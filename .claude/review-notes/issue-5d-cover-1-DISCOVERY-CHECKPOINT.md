@@ -4,6 +4,12 @@
 lifted, published, activated or retired by this checkpoint, and no schema change is
 implemented. It ends here.
 
+> **Superseded in part, 2026-09-11.** §§1–8 are the reviewed discovery record and are
+> unchanged. Two things they say are now stale and are corrected by later work rather than
+> edited here: representation schema 10 was implemented after review (commit `020b268`), and
+> a proposal now exists — **§9** records it. Nothing is accepted, published, activated or
+> retired, then or now.
+
 **Amended 2026-09-11 — four explanations corrected in place.** Independent review
 confirmed the two source locations, the 16 leaves, the 28 clauses and the six schema gaps;
 none of those moved. Four pieces of *reasoning* elsewhere in this document overstated what
@@ -522,3 +528,236 @@ progress.
    with the most surface: it is a defensive bonus family that does not exist, and half of it
    (AC) has no roll context to hang on. G4 is next, because `AreaOriginKind.CREATURE_OR_OBJECT`
    is a tempting reuse that would merge two unrelated vocabularies.
+
+---
+
+## 9. Proposal record — 2026-09-11
+
+This section supersedes §8's "not done … any proposal": one exists now. Nothing else in this
+checkpoint changed — the two sites, the 16 leaves, the 28 clauses and the six gaps are the ones
+independent review confirmed, now carried by an executable artifact instead of only by prose.
+Still true, and restated because it is the point: **nothing is accepted, published, activated or
+retired**, no acceptance script was run, no source corpus changed, machine rows are `PROPOSED`,
+and #137's full-corpus obligation is undischarged.
+
+### 9.1 What was built
+
+Three files, all under `.claude/review-notes/`:
+
+| Path | Bytes | sha256 |
+| --- | --- | --- |
+| `issue-5d-batch-cover-1-generator.py` | 145,809 | `7cc0f037fcf029dd69bf9cc4be31d45bedf30fe3befdc875df131f473e8153a4` |
+| `issue-5d-batch-cover-1-PROPOSAL.json` | 23,610 | `132bbc9f47104cc5e768ef3a5ee48101ba3c6e8fcdbbaaec8029b3b36083d07e` |
+| `issue-5d-batch-cover-1-audit.json` | 102,744 | `8454ffdf532afce6d3a78541bef60f79637d91ba54df90f6a6de1cdd9c7f5b17` |
+
+**Proposal identity:** `1d8a51164f9be0a1559aba93fb076ee0e8c262dda183791491bc339e3ebfec01`.
+
+That is the projection identity of *this batch's* candidate. It is not the identity of accepted
+authority and does not become one by being reported here.
+
+**Where `PROPOSED` lives.** A reviewer looking for a review state inside `PROPOSAL.json` will not
+find one: `accounting.span_payload` deliberately omits it, because a span set that means the same
+thing must compare equal however it was reviewed. The state is on the objects and is asserted
+there — `{p.span.review_state for p in PROPOSAL.proposed_spans} == {ReviewState.PROPOSED}` — and
+the payload is asserted to carry no `acceptance` and no `obligations` key at all.
+
+### 9.2 Span scope
+
+One composite record, `glossary.cover`, `RecordKind.GLOSSARY_RULE` in scope
+`srd-5.2.1/rules-glossary`, assembled from **two printed sites in two chapters**:
+
+* `Rules Glossary > Rules Definitions > Cover` — p179, 4 leaves
+* `Playing the Game > Combat > Cover` — p15, 12 leaves
+
+Sixteen leaves, zero policy exclusions. Twenty-eight reviewed clauses become twenty-eight spans:
+**16 `SUBSTANTIVE`, 12 `SUPPORTING_AUTHORITY`, 0 `NON_MECHANICAL`, 0 `UNRESOLVED`.** The extents
+partition all sixteen leaves gap-free; the generator re-proves the partition against the bound
+leaves rather than trusting the manifest's arithmetic, and the manifest's own digest
+(`f82163ee…`) is re-pinned before it is read. Spans carry no retyped text.
+
+The composition is **4 components, every one `ComponentHandling.STRUCTURED`, carrying 8 typed
+facts, 0 prose bindings, 0 references and 0 relationships**:
+
+| Component | Facts |
+| --- | --- |
+| `degree_benefit` | `cover_defensive_bonus` ×2 (Half, Three-Quarters), `cover_targeting_prohibition` (Total) |
+| `degree_provision` | `cover_provision` ×3 (the *Offered By* column) |
+| `benefit_origin` | `cover_benefit_origin` — the opposite-side requirement |
+| `degree_selection` | `cover_degree_selection` — most protective, degrees not added together |
+
+Sixteen substantive clauses yield eight facts because **four rules are printed at both sites**
+(`half_benefit`, `three_quarters_benefit`, `total_prohibition`, `most_protective`). Each is
+represented **once**, with `PRIMARY` provenance from *both* sites' spans — the source printed one
+rule twice, and provenance is per span, so several spans claiming one target is the ordinary
+shape. Two equivalent facts in two components is what `_validate_duplicated_fact_authority`
+rejects; a same-component duplicate is what `validation.py:159` rejects. Each of the four is
+asserted to be claimed `PRIMARY` by exactly two spans, one per site, and the site pair is
+asserted to be `["combat", "glossary"]`.
+
+Provenance is **28 claims, exactly one per span**: 8 `RECORD`/`CONTEXTUAL`, 1
+`COMPONENT`/`PRIMARY`, 3 `COMPONENT`/`CONTEXTUAL`, 15 `FACT`/`PRIMARY`, 1 `FACT`/`CONTEXTUAL`.
+
+**The three-degree closure statement** is the single component-scope `PRIMARY` claim.
+`glossary/1/1` — *"There are three degrees of cover, each of which provides a different benefit to
+a target"* — states that the printed vocabulary is closed at three members. That is true of a
+whole column of rule and of no single fact in it, so it is claimed at component scope on
+`degree_benefit`. Grouping the degrees into one component is what gives the sentence something to
+claim; the 19 accepted component-scope claims in the frozen prior are the precedent for the shape.
+
+### 9.3 Architecture Notes
+
+**No drift from design principles.** Six disclosures a reviewer should not have to discover:
+
+1. **Standalone and combined reference resolution are kept apart, and the distinction matters.**
+   This batch emits **zero** references — the population prints one citation and it names a
+   chapter, not a record, and it points at this record's own second site. Standalone validation of
+   the candidate's representation produces **0** findings (asserted as an exact empty tuple).
+   Merged with the lifted prior it produces exactly **2**: `glossary.speed` and
+   `glossary.concentration`, both inherited. The prior's own `Cover` citation — asserted to be
+   exactly one inbound row, from `glossary.area_of_effect`, source text `Cover`, target
+   `glossary.cover` — **resolves in the merged candidate only**. Accepted authority still carries
+   three unresolved targets and will until an acceptance that has not happened. Resolving a
+   citation in a candidate is not a change to current accepted authority.
+2. **The six-part release binding is verified through the canonical seam, and rederivation is
+   distinguished from database evidence.** `release_binding_payload(BINDING)` is asserted to have
+   exactly six parts, and those six are asserted to equal five **rederived in this run from the
+   source PDF** (`package_uuid`, `release_version`, `authoritative_source_hash`,
+   `transform_config_hash`, `bundle_root_hash`) plus one **disclosed** from the committed 5c
+   release record (`persisted_corpus_digest`), which cannot be rederived without a publish. The
+   audit labels each as such. **No operational database evidence was performed by this run**: no
+   session, no `rp_sources`, no Chroma, no persistence layer was touched, and the audit says so in
+   those words rather than leaving it to be inferred.
+3. **`validate_candidate` is classified, never filtered.** It returns 27,818 findings for a
+   one-record candidate. Every one is classed by the literal prefixes the three validators emit,
+   counted, and given a worked example in the audit; the tally is asserted exhaustive and the
+   `other` class is asserted empty, so an unrecognised finding fails the run instead of being
+   quietly dropped. **`release_binding_disagreement` is 0** — the class this run has to be clean
+   at. `corpus_leaf_not_yet_classified` is 27,788, one per leaf of the bound release that the five
+   accepted batches plus this proposal do not cover; that is #137's undischarged obligation
+   reported honestly, not a defect of this batch. `inherited_unresolved_reference` is the same 2
+   as above, asserted equal to that list rather than merely counted. **`span_not_accepted` is 28,
+   asserted by span id and not merely by count, and they are exactly this batch's proposed rows** —
+   the merged ledger carries the accepted prior's batches and acceptance records, so the prior's
+   530 accepted spans clear the check and only the machine rows proposed here do not. That is the
+   machine-readable form of *keep machine rows `PROPOSED`*.
+4. **Two identity scopes are reported separately.** The frozen five-batch prior keeps
+   `8e08ac48f2a57a4498557990a07270f9abd855b246c1039da68cc9ec82d44b40` on disk and is asserted
+   byte-, blob- and content-unchanged across the run. The in-memory copy lifted to schema 10 has
+   identity `34128ca4c3dd8060cd43e1a0b1097d8abe40b029c03c02d556748a21e86b1d6a`, **computed and
+   deliberately not pinned**. The live accepted artifact is read only as a mutation sentinel and
+   is asserted byte-unchanged. Every accepted span, record, component, fact, provenance
+   coordinate, acceptance record and per-batch schema anchor survives the lift: the five anchors
+   are asserted to remain `conditions-1 → schema-3, hazards-1 → schema-5, actions-1 → schema-7,
+   attitudes-1 → schema-8, areas-of-effect-1 → schema-9`, schema 10 appears in no anchor, and
+   `representation_schema` is asserted to be the **only** payload key the lift moves.
+5. **Disjointness from the prior is proven, not assumed.** Zero span-id overlap, zero leaf
+   overlap, and zero overlap in all six representation collections. The prior's measured
+   collections (`records 46, components 132, prose_bindings 49, relationships 0, references 53,
+   provenance 547`), its 530 spans and 46 obligations are re-measured by the generator and
+   asserted against the pinned values.
+6. **`black` and `ruff` are not run against the generator, by scope not by exception.** The
+   repository gates are `black src/ tests/` and `ruff check src/ tests/`; `.claude/review-notes/`
+   is outside them, and the already-accepted `areas-of-effect-1` generator fails the same
+   checks. Reformatting review-notes scripts would be churn with no gate behind it.
+
+**The six gaps read as ordinary closed declarative schema work.** Each is witnessed by at least
+one clause (`gap_witnesses` in the audit) and closed by schema 10: G1 the three-degree closure,
+G2 the defensive bonus, G3 the direct-targeting prohibition, G4 the provision polarity, G5 the
+opposite-side requirement, G6 most-protective selection. Schema 10 mints **5 fact families over 8
+new closed vocabularies** and adds **one member (`half`) to the accepted `CoverDegree`** — whose
+own schema-6 docstring said Half Cover *"is outside this batch's cut and is admitted by the batch
+that states it"*; this is that batch. It declares **zero intrinsic invariants**, adds no field to
+an accepted family, makes nothing required or nullable, and changes no ownership form, which is
+what makes the crossing a re-declaration rather than a rewrite. Succession from schema 9
+(`f5a5e30817e64f019e31aa7f4692d72611215e4294e7da36242e492bca6b336e`) to schema 10
+(`c39e3a35e197a1d1db5c2c2b3445ff0cbf03395c91e3426353a4bce589be4be0`) is the single registered step
+`5d-lift-schema-9-to-10`, exercised element by element rather than described.
+
+Nothing here computes or adjudicates geometry. The record states printed thresholds and printed
+benefits; choosing a degree for a scene, measuring a line, executing an attack and adapter
+ownership all remain outside.
+
+### 9.4 Obligations
+
+Twenty-eight expected obligations are **typed from this checkpoint's clause tables** — clause,
+disposition, carrier and witnessed gaps — and only then compared against what the emission loop
+produced. Deriving them from generated output would have made the check circular. Each of the 28
+is discharged by exactly one span at exactly the reviewed extent with the expected carrier;
+omission, duplication and carrier drift each fail the run. The literal table is asserted to split
+`{substantive: 12, supporting_authority: 16}` before emission and the gap witnesses are
+cross-checked against the checkpoint's own list.
+
+Tally: `typed=15, typed_component_scope=1, supporting_authority_record_owned=8,
+supporting_authority_bounding_a_component=3, supporting_authority_bounding_a_fact=1`. Zero
+prose-bound, zero unresolved. **Zero prose bindings is a positive claim**: no clause in this
+population matches one of the six closed irreducibility reasons, and each of the six is disposed
+by name in the audit, so binding one would have recorded a vocabulary gap as an irreducibility.
+
+### 9.5 The three questions §8 put to review — disposition
+
+1. **§4c, one record or three.** Built as **one composite record**, on the three grounds §8 gave
+   and no others: accepted authority already cites `glossary.cover` by name, the three degrees are
+   untagged table rows with no entry of their own, and `CoverDegree` is already consumed as a
+   vocabulary by two accepted facts. §8's correction stands — this is the *sufficient* choice
+   under #137 contract 3 and ADR-005d Decision 3, not the only permitted one. It is the first
+   record in this build whose authority is drawn from two chapters.
+2. **§4a, the doubly-printed rules.** Disposed as **one fact each with `PRIMARY` provenance from
+   both sites**, asserted per rule rather than argued: four rules, two primary claimants each, one
+   per site. Where the second printing *defers* rather than states (*"As detailed in the Cover
+   table"*) it is `SUPPORTING_AUTHORITY` linked to what it defers to, not a second statement of
+   the rule.
+3. **§4, the six gaps.** They read as ordinary closed declarative schema work: 5 families, 8
+   vocabularies, 1 widened member, **0 declared invariant rows**, no accepted family touched. G2
+   and G3 are two families rather than one because a bonus has a number and Total Cover's benefit
+   is a prohibition. G4 records the printed phrase *an object that covers the whole target* rather
+   than reusing `AreaOriginKind.CREATURE_OR_OBJECT`, which would have merged two unrelated
+   vocabularies.
+
+### 9.6 Reproduction and gates
+
+From the repository root, on this branch:
+
+```bash
+python .claude/review-notes/issue-5d-batch-cover-1-generator.py
+pytest -q --no-cov tests/ingestion/mechanical/test_schema_10_cover.py
+pytest -q --no-cov tests/ingestion/mechanical/test_cover_1_frozen_prior.py
+```
+
+The run re-derives membership from the bound release's containers, re-derives the 30-leaf
+boundary and cross-checks it against the manifest, re-pins the manifest digest, rebuilds the
+composition, writes both artifacts with LF endings (asserted: no `CR` byte in either), and then
+spawns itself once in a clean child process (`COVER1_RERUN=1`) and asserts the final bytes and the
+minted identity are identical — **deterministic: True**. Inputs are repository-relative only: the
+source PDF, the source manifest, the frozen review prior, the `afterworlds` package. The live
+accepted artifact is not an input.
+
+**Test evidence.** `tests/ingestion/mechanical/test_schema_10_cover.py` gained one test:
+`test_the_committed_proposal_is_the_composition_this_module_states`, which asserts the committed
+`proposed_representation` equals the draft that module composes independently. The generator never
+imports the test module and the test module never imports the generator, so the equality is
+agreement between two independent statements of one composition — same four components, same eight
+facts, same 28 provenance claims at the same coordinates — not a tautology. Identity is
+deliberately not pinned in the test: asserting it would make an ordinary re-run of a
+reviewed-and-unchanged composition look like a regression.
+
+`pytest tests/ingestion/mechanical -q --no-cov` → **2633 passed** (149.77s) on the working tree
+that became this commit. `black --check` and `ruff check` are clean on the changed test module.
+**`mypy src/` was not re-run and `pytest -q` was not re-run in full on this head, and no claim is
+made that they were.** `src/` is byte-unchanged since `bd11cf6` (`git diff bd11cf6 -- src/` is
+empty), and everything this commit changes is outside it: one test in
+`tests/ingestion/mechanical/`, two artifacts and one generator under `.claude/review-notes/`, this
+section, and an additive `.secrets.baseline` splice. The package suite that covers the changed
+test is the 2633-test run above. `detect-secrets` ran through the configured
+pre-commit hook (`python -m detect_secrets.pre_commit_hook --baseline .secrets.baseline`) against
+the staged files; the baseline grew additively for entropy hits in the two large JSON artifacts
+and no detector setting or unrelated entry changed.
+
+### 9.7 Where this still stops
+
+Independent semantic review of this proposal has not happened, and the Owner has not been asked
+for exact semantic acceptance. No `accept_proposal`, no live accepted artifact written, no push,
+no merge, no publication, no activation, no retirement, no runtime geometry, no adapter work, no
+other batch, no dependency maintenance, and no change to parent #137's state. `glossary.speed` and
+`glossary.concentration` remain unresolved cross-batch targets belonging to a later glossary
+batch. Accepted authority still carries three unresolved targets, including `Cover`. The
+full-corpus obligation #137 governs is undischarged: this is one record of it.
