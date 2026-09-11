@@ -18,10 +18,17 @@ from afterworlds.ingestion.mechanical.representation import (
     ActionRestrictionFact,
     AdvantageFact,
     AdvantageState,
+    AreaDimension,
+    AreaDimensionRequirementFact,
+    AreaOriginInclusion,
+    AreaOriginInclusionFact,
     AttackKind,
     AttackRollFact,
     AutomaticOutcome,
     AutomaticOutcomeFact,
+    BlockedLineExclusionFact,
+    BlockedLineQuantifier,
+    CoverDegree,
     CreatureDefenseFact,
     CriticalHitChange,
     CriticalHitRuleFact,
@@ -430,6 +437,112 @@ def test_a_conditions_family_override_cannot_widen_the_union(
     author_override(
         runtime.session,
         override_id=f"ov-cond-bad-{abs(hash(why))}",
+        target=CHECK_COMPONENT_TARGET,
+        operation=OverrideOperationEnum.APPEND,
+        payload=payload,
+    )
+    assert typed_view(runtime).outcome is AuthorityOutcome.INVALID_OVERRIDE, why
+
+
+# -- the areas-of-effect families, through the same path -----------------------
+#
+# Schema 9 added seven more families for the Area of Effect class. Nothing in
+# the override layer was changed for them, which is exactly the claim worth a
+# regression: the families reach the seam through the projection's own
+# ``fact_from_payload``, and the vocabularies they close stay closed there.
+
+#: Cone, p178: "A Cone's point of origin isn't included in the Cone's area of
+#: effect, unless its creator decides otherwise." The creator-controlled
+#: exception is inside the member, so an override that dropped it would be
+#: stating a different rule rather than reformatting this one.
+CONE_INCLUSION = AreaOriginInclusionFact(
+    inclusion=AreaOriginInclusion.EXCLUDED_UNLESS_ITS_CREATOR_DECIDES_OTHERWISE
+)
+
+#: Area of Effect, p176: all straight lines blocked, Total Cover the threshold.
+BLOCKED_LINES = BlockedLineExclusionFact(
+    blocked=BlockedLineQuantifier.ALL_STRAIGHT_LINES_FROM_THE_POINT_OF_ORIGIN,
+    blocking_cover=CoverDegree.TOTAL,
+)
+
+#: Cylinder, p179: two parameters, in the order the sentence prints them.
+CYLINDER_DIMENSIONS = AreaDimensionRequirementFact(
+    dimensions=(AreaDimension.RADIUS_OF_THE_BASE, AreaDimension.HEIGHT)
+)
+
+
+def test_an_area_of_effect_family_appends_and_reaches_the_typed_view(
+    runtime: RuntimeFixture,
+) -> None:
+    """A schema-9 family through the existing seam, under existing precedence."""
+    author_override(
+        runtime.session,
+        override_id="ov-area-inclusion",
+        target=CHECK_COMPONENT_TARGET,
+        operation=OverrideOperationEnum.APPEND,
+        payload=append_fact_payload(CONE_INCLUSION),
+    )
+    check = component(effective(runtime), CREATURE_KEY, CHECK_KEY)
+    assert check is not None
+    (added,) = [f for f in check.facts if f.fact_key == fact_key(CONE_INCLUSION)]
+    assert added.fact == CONE_INCLUSION
+    assert added.supplied_by_override_id == "ov-area-inclusion"
+    assert added.span_ids == ()
+
+    result = typed_view(runtime)
+    assert result.outcome is AuthorityOutcome.RESOLVED
+    assert result.typed_view is not None
+    assert CONE_INCLUSION in [
+        f.fact
+        for record in result.typed_view.records
+        for comp in record.components
+        for f in comp.facts
+    ]
+
+
+@pytest.mark.parametrize(
+    ("payload", "why"),
+    [
+        (
+            {
+                "patch": "append_fact",
+                "fact": {**fact_payload(CONE_INCLUSION), "inclusion": "excluded"},
+            },
+            "an inclusion member that drops the creator-controlled exception",
+        ),
+        (
+            {
+                "patch": "append_fact",
+                "fact": {
+                    **fact_payload(BLOCKED_LINES),
+                    "blocked": "a_straight_line_from_the_point_of_origin",
+                },
+            },
+            "a quantifier that would invert the blocked-line rule",
+        ),
+        (
+            {
+                "patch": "append_fact",
+                "fact": {**fact_payload(CYLINDER_DIMENSIONS), "dimensions": "radius"},
+            },
+            "an ordered parameter list flattened into a string",
+        ),
+    ],
+    ids=["weakened-inclusion", "weakened-quantifier", "stringly-dimensions"],
+)
+def test_an_area_of_effect_override_cannot_widen_the_union(
+    runtime: RuntimeFixture, payload: dict[str, object], why: str
+) -> None:
+    """The same door, held shut against the schema-9 vocabularies.
+
+    The first two state a *different rule* from the one the source prints; the
+    third is a malformed encoding of the right one. Admitting either kind at
+    the runtime seam would put a second definition of the class in front of a
+    consumer, so the seam refuses both without having to tell them apart.
+    """
+    author_override(
+        runtime.session,
+        override_id=f"ov-area-bad-{abs(hash(why))}",
         target=CHECK_COMPONENT_TARGET,
         operation=OverrideOperationEnum.APPEND,
         payload=payload,
