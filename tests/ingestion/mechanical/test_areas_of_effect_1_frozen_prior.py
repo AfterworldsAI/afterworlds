@@ -176,14 +176,16 @@ def test_the_prior_declares_schema_8_and_records_the_five_lifts_that_got_it_ther
     ]
 
 
-def test_exactly_one_registered_crossing_separates_the_prior_from_this_build() -> None:
+def test_the_registered_crossings_separate_the_prior_from_this_build() -> None:
     """The position after the checkpoint, stated rather than assumed.
 
     This is the edit the previous form of this test said would be needed if
     ``areas-of-effect-1`` turned out to want a schema step. It does: schema 9
     admits seven families the prior's contract cannot state, so the prior is no
     longer current and reading it as current is a *finding* rather than a silent
-    pass. One registered step closes the gap.
+    pass. It was exactly one registered step until ``cover-1`` minted schema 10;
+    the path is read from the registry rather than counted, so a succession
+    lengthens the list here instead of breaking the claim.
 
     **Two identities, two scopes.** The frozen authority is untouched on disk and
     keeps the identity the Owner accepted. Its lifted copy is a *different*
@@ -208,11 +210,13 @@ def test_exactly_one_registered_crossing_separates_the_prior_from_this_build() -
     assert findings, "reading a superseded prior as current must be visible"
     assert any(REPRESENTATION_SCHEMA_VERSION in f for f in findings), findings
 
-    assert [step.lift_id for step in lift_path(prior, current)] == [
-        "5d-lift-schema-8-to-9"
+    expected = [
+        "5d-lift-schema-8-to-9",
+        "5d-lift-schema-9-to-10",
     ]
+    assert [step.lift_id for step in lift_path(prior, current)] == expected
     lifted, records = lift_accepted_inputs(inputs, current)
-    assert [record.lift_id for record in records] == ["5d-lift-schema-8-to-9"]
+    assert [record.lift_id for record in records] == expected
     assert validate_schema_binding(candidate_from_accepted_inputs(lifted)) == ()
     assert lifted.oracle.representation is inputs.oracle.representation
     assert oracle_identity(inputs.oracle) == ACCEPTED_ORACLE_IDENTITY

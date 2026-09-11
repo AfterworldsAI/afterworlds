@@ -4,6 +4,32 @@
 lifted, published, activated or retired by this checkpoint, and no schema change is
 implemented. It ends here.
 
+**Amended 2026-09-11 — four explanations corrected in place.** Independent review
+confirmed the two source locations, the 16 leaves, the 28 clauses and the six schema gaps;
+none of those moved. Four pieces of *reasoning* elsewhere in this document overstated what
+the governing authority says, and each is corrected where it appears, marked *(corrected
+2026-09-11)*:
+
+* §4a inferred **one fact per component** from the duplicate-fact validator. The validator
+  does not say that, and it does not decide grouping across different source spans.
+* §4c inferred that a missing `ENTRY` and coexistence with an enum **forbid** member
+  records. #137 contract 3 and ADR-005d Decision 3 say the opposite — records assemble from
+  accepted semantic membership, and a 5c `ENTRY` is structural evidence, not universal
+  semantic authority. The conclusion survives on its own evidence: one record is the
+  sufficient choice here, not the only permitted one.
+* §4 and its G6 row described *"most protective"* as **a total order over three named
+  members**. Nothing in the source prints a rank and nothing in this schema carries one.
+* §4's G4 row called the recorded value *"the fraction"* and the excluded work
+  *"geometry"*. The record states a **printed threshold**, and the boundary is runtime
+  *computation*, not geometric subject matter. An exact numeric representation of these
+  thresholds would have been permitted — #137 and ADR-005d exclude measuring and
+  adjudicating, not carrying exact declarative numbers — so the closed `CoverageThreshold`
+  vocabulary is the *sufficient* choice, not the only admissible one. The matching
+  rationale in the ADR-005d schema-10 amendment and in `CoverageThreshold`'s docstring is
+  corrected the same way.
+
+The findings those passages support are unchanged. Only the reasons are.
+
 **Authority.** #137; ADR-005d; `docs/architecture/known_unknowns.md`; `CLAUDE.md`. The
 `areas-of-effect-1` discovery checkpoint §5b recorded `Cover` as a confirmed external
 citation with an undefined target, and `known_unknowns.md:465` records the disposition
@@ -181,8 +207,11 @@ reasons in `policy.IRREDUCIBILITY_REASONS` (`policy.py:86`) — `contextual_appl
 `natural_language_exception`, `fiction_dependent_consequence`. Each substantive clause was
 checked against all six and matches none: every one states a closed, printed, non-delegated
 rule with a stated threshold or a stated value. *"at least half"*, *"at least
-three-quarters"* and *"the whole"* are exact fractions, not GM latitude; *"most protective
-degree"* is a total order over three named members, not a judgment call. Binding any of
+three-quarters"* and *"the whole"* are exact printed thresholds, not GM latitude; *"most
+protective degree"* is a printed selection rule, not a judgment call **(corrected
+2026-09-11 — it is not an order).** The source states *that* the most protective degree is
+the one that applies and never prints a rank over the three; a record that carried one
+would be stating something the page does not. Binding any of
 them as irreducible would be the defect #137 contract 3 names, so each is reported as a
 missing vocabulary instead.
 
@@ -206,9 +235,9 @@ surface.
 | **G1** — `CoverDegree.HALF` | `glossary/1/2`, `combat/5/0` | `CoverDegree` carries `THREE_QUARTERS` and `TOTAL` only. Its own docstring already anticipates this: Half Cover *"is outside this batch's cut and is admitted by the batch that states it."* This is that batch | that the printed vocabulary has **three** members, which `glossary/1/1` states outright | none | pure vocabulary widening; nothing evaluates |
 | **G2** — the degree's defensive benefit | `glossary/1/2`, `glossary/1/3`, `combat/6/0`, `combat/8/0` | **none.** `CreatureDefenseFact(armor_class, hit_points, hit_point_dice)` is a stat block's own AC, not a bonus to someone else's. `AttackRollFact.to_hit_bonus` is a stat block's attack. `AdvantageFact(state, roll, use_limit)` is advantage state, not a numeric bonus. `DerivedQuantityFact(base, modifier, unit, …)` derives from an ability modifier. `RollSpec(actor, context, ability, skill)` **can** name the saving-throw half — `RollContext.SAVING_THROW` + `AbilityScore.DEXTERITY` — but AC is not a roll and `RollContext` has no member for it | one printed benefit that is **two** modifications at once: `+N` to AC **and** `+N` to Dexterity saving throws | the conjunction is the rule. Splitting it into two facts would be faithful only if the shape kept them keyed to one degree; a shape that could state only the saving-throw half would silently drop AC | the record states the degree, the amount and what it modifies; applying it to a specific roll is adapter work |
 | **G3** — targeting prohibition | `glossary/1/4`, `combat/11/0` | **none.** `ActionRestrictionFact(cost)` restricts *action-economy slots*, not targeting. `Targets` (p105) states the same prohibition from the other side and is outside this population (§6) | that Total Cover's benefit is categorically different from the other two: not a bonus at all, but *"can't be targeted directly"* | *"directly"* is load-bearing and printed — the prohibition is on direct targeting, not on all effects. A shape that dropped it would state a stronger, wrong rule | the record states the prohibition; deciding whether a given effect targets directly is adjudication |
-| **G4** — offeror and coverage threshold | `combat/6/1`, `combat/9/0`, `combat/11/1` | `Rational(numerator, denominator)` exists and is the exact carrier for the fraction. `AreaOriginKind.CREATURE_OR_OBJECT` is **precedent** that "a creature or an object" is admissible as a closed member — but it is an *area-origin* vocabulary and reusing it here would merge two unrelated vocabularies | what offers each degree, and how much of the target it must cover: `at least 1/2`, `at least 3/4`, `the whole` | the printed asymmetry (§3): Half admits a creature **or** an object, the other two admit an object only. A single shared offeror member would erase it | the record states the offeror kind and the fraction; measuring how much of a target an obstacle actually covers is geometry, explicitly outside 5d |
+| **G4** — offeror and coverage threshold | `combat/6/1`, `combat/9/0`, `combat/11/1` | `Rational(numerator, denominator)` exists and is the exact carrier for the fraction. `AreaOriginKind.CREATURE_OR_OBJECT` is **precedent** that "a creature or an object" is admissible as a closed member — but it is an *area-origin* vocabulary and reusing it here would merge two unrelated vocabularies | what offers each degree, and how much of the target it must cover: `at least 1/2`, `at least 3/4`, `the whole` | the printed asymmetry (§3): Half admits a creature **or** an object, the other two admit an object only. A single shared offeror member would erase it | the record states the offeror kind and the printed coverage threshold; measuring how much of a target an obstacle actually covers is runtime computation, explicitly outside 5d **(corrected 2026-09-11)** |
 | **G5** — directionality | `combat/1/2` | **none** | that cover benefits a target *only* when the attack or effect originates on the opposite side | printed at one site only. It is a precondition on the benefit, not a property of the degree, so a degree-only record would lose it entirely | the record states the relation; deciding which side an effect originated on is runtime geometry |
-| **G6** — non-stacking / most-protective selection | `glossary/1/5`, `combat/1/3` | **none.** The nearest shapes are `QuantityMultiplierFact` and `ScalingFact`, both about amounts, neither about selecting among applicable states | that multiple applicable degrees resolve to exactly one — the most protective — and explicitly do not sum | `combat/1/3` adds *"the degrees aren't added together"*, which is the same rule stated negatively rather than a second rule | the record states the selection rule and the order over three named members; determining which degrees apply in a situation is runtime |
+| **G6** — non-stacking / most-protective selection | `glossary/1/5`, `combat/1/3` | **none.** The nearest shapes are `QuantityMultiplierFact` and `ScalingFact`, both about amounts, neither about selecting among applicable states | that multiple applicable degrees resolve to exactly one — the most protective — and explicitly do not sum | `combat/1/3` adds *"the degrees aren't added together"*, which is the same rule stated negatively rather than a second rule | the record states the selection rule and that the degrees do not sum; determining which degrees apply in a situation is runtime, and **(corrected 2026-09-11)** no rank over the three is printed, recorded or implied |
 
 **None of the six is an Owner Decision.** Each is a closed, printed, enumerable distinction
 with no product decision, no ownership move and no contradiction between authorities. A new
@@ -240,10 +269,21 @@ that one record's authority would be drawn from two chapters, and two validators
 (`ProvenanceClaim(target_kind, target_key, span_id, role)`), edges are keyed by
 `(kind, key, span_id, role)`, and `validation.py:621` rejects only a span with **more than
 one** primary owner. Several spans claiming the *same* target is exactly the permitted
-case. So: **one fact per component, with `PRIMARY` provenance from both sites' spans.** The
-duplicated-fact rule cannot fire — there is only one component — the duplicate-edge check
-cannot fire (different `span_id`), and every substantive span is claimed, satisfying
-`validation.py:637`. The alternative — typing one site and classifying the other's
+case. So: **one fact for the rule, carrying `PRIMARY` provenance from both sites' spans.**
+The duplicate-edge check cannot fire (different `span_id`), and every substantive span is
+claimed, satisfying `validation.py:637`.
+
+**(Corrected 2026-09-11.)** An earlier form of this paragraph read *"one fact per
+component"* and attributed that to the validators. It does not follow from them.
+`_validate_duplicated_fact_authority` rejects two components of one record holding
+equivalent facts **drawn from the same substantive span**; it says nothing about how many
+distinct facts a component may hold, and it does not decide grouping across different
+source spans. What the validators require is only that the rule be stated once — not that
+each statement occupy a component of its own. Component organization is ordinary
+engineering, and this build groups the eight facts into four components: one per printed
+column of the Cover table (`degree_benefit`, `degree_provision`) and one per qualifying
+prose rule (`benefit_origin`, `degree_selection`). That grouping is also what makes the
+closure statement below representable. The alternative — typing one site and classifying the other's
 restatement as `SUPPORTING_AUTHORITY` with a linked edge — is also available and is the
 shape `areas-of-effect-1` used for two of its spans. The first is the honest one here,
 because both sites genuinely state the rule.
@@ -282,21 +322,35 @@ Drawing provenance from `Playing the Game > Combat` is therefore representable t
 
 ### 4c. One record or three
 
+**(Corrected 2026-09-11 — the second and third bullets were arguments about what is
+*permitted*, and they were wrong about that.)** #137 contract 3 requires the projection to
+support *"non-entry rules and free-standing tables"* and forbids *"assuming one 5c `ENTRY`
+equals one mechanical entity"*; ADR-005d Decision 3 states that *"a 5c `ENTRY` is
+structural evidence, not universal semantic authority"* and that records are assembled from
+a committed accepted inventory. So the absence of an `ENTRY` for a table row does **not**
+forbid a record sited on it, and nothing in either authority forbids a record coexisting
+with an enum that names the same distinction. Both bullets are restated below as what they
+actually are: reasons one record is the *sufficient* choice, not reasons three are
+impossible.
+
 The evidence decides this, and it decides it against an umbrella:
 
 * **Accepted authority already names the target.** `glossary.area_of_effect` cites
   `(srd-5.2.1/rules-glossary, "Cover") → glossary.cover`. Defining anything else leaves an
   accepted reference dangling.
-* **Every accepted member record is its own glossary entry** — `condition.*`, `action.*`,
-  `attitude.*`, `area_of_effect.*`. The three degrees are not entries; they are untagged
-  table rows (`combat/5/0`, `combat/7/0`, `combat/10/0`) with no `See also`, no heading and
-  no container of their own. There is nothing for a member record to be sited on.
-* **Degree is already a vocabulary, not a record.** `Applicability.cover: CoverDegree` and
-  `BlockedLineExclusionFact.blocking_cover: CoverDegree` both consume it as an enum in
-  accepted authority. Minting `cover.half` as a record would put the same distinction in
-  two places at once.
+* **The source did not print the degrees as definable units.** They are untagged table rows
+  (`combat/5/0`, `combat/7/0`, `combat/10/0`) with no `See also`, no heading and no
+  container of their own. Member records would therefore be sited on a boundary this
+  discovery drew rather than one the page prints — permitted, but not *derived*, and the
+  smallest faithful extension prefers the boundary the source printed.
+* **Degree is already a vocabulary the schema carries.** `Applicability.cover: CoverDegree`
+  and `BlockedLineExclusionFact.blocking_cover: CoverDegree` both consume it as an enum in
+  accepted authority. Member records would add a second place the same three names live,
+  and nothing in this population needs one: every printed distinction between the degrees
+  is a field of a fact keyed to the degree.
 
-So: one record, `glossary.cover`, with degree as a closed enum. The umbrella shape
+So: one record, `glossary.cover`, with degree as a closed enum — the sufficient choice, on
+the evidence, rather than the only permitted one. The umbrella shape
 `glossary.area_of_effect` uses is not available here because the source did not print
 members to enumerate.
 

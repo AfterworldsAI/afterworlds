@@ -82,6 +82,7 @@ __all__ = [
     "SCHEMA_7_VERSION",
     "SCHEMA_8_VERSION",
     "SCHEMA_9_VERSION",
+    "SCHEMA_10_VERSION",
     "UnsupportedSchemaVersionError",
     "validate_schema_binding",
 ]
@@ -153,6 +154,7 @@ SCHEMA_6_VERSION = "5d-representation-schema-6"
 SCHEMA_7_VERSION = "5d-representation-schema-7"
 SCHEMA_8_VERSION = "5d-representation-schema-8"
 SCHEMA_9_VERSION = "5d-representation-schema-9"
+SCHEMA_10_VERSION = "5d-representation-schema-10"
 
 
 class LegacySchemaPayloadError(ValueError):
@@ -314,6 +316,13 @@ _MERGED_COMPONENT_FIELDS: dict[str, frozenset[str]] = {
     SCHEMA_9_VERSION: frozenset(
         {"applies_when", "options", "fact_qualifiers", "recurs"}
     ),
+    # The same again for schema 10: five fact families, eight vocabularies and
+    # one member added to a ninth, none of which is a component key. Written out
+    # for the reason above — a succession must not silently inherit a row nobody
+    # reviewed.
+    SCHEMA_10_VERSION: frozenset(
+        {"applies_when", "options", "fact_qualifiers", "recurs"}
+    ),
 }
 
 # Minting a new schema without giving it a row here would leave the current
@@ -355,6 +364,7 @@ _RECORD_OWNED_REFERENCE_VERSIONS: frozenset[str] = frozenset(
         SCHEMA_7_VERSION,
         SCHEMA_8_VERSION,
         SCHEMA_9_VERSION,
+        SCHEMA_10_VERSION,
     }
 )
 
@@ -362,7 +372,13 @@ _RECORD_OWNED_REFERENCE_VERSIONS: frozenset[str] = frozenset(
 #: Schema 6 and later; stated as a set rather than a comparison for the same
 #: reason ``_MERGED_COMPONENT_FIELDS`` is a registry.
 _OPTION_SCOPED_PROSE_VERSIONS: frozenset[str] = frozenset(
-    {SCHEMA_6_VERSION, SCHEMA_7_VERSION, SCHEMA_8_VERSION, SCHEMA_9_VERSION}
+    {
+        SCHEMA_6_VERSION,
+        SCHEMA_7_VERSION,
+        SCHEMA_8_VERSION,
+        SCHEMA_9_VERSION,
+        SCHEMA_10_VERSION,
+    }
 )
 
 

@@ -114,6 +114,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_8_HASH,
     SCHEMA_8_VERSION,
     SCHEMA_9_HASH,
+    SCHEMA_9_VERSION,
     lift_path,
 )
 from afterworlds.ingestion.mechanical.validation import validate_representation
@@ -668,11 +669,17 @@ def test_the_mint_declares_seven_families_and_eleven_vocabularies() -> None:
     land a row here and fail. ``CoverDegree`` deliberately does not appear: the
     blocked-line rule reuses schema 6's vocabulary exactly as schema 6 declared
     it, and re-minting it would be a second declaration of the same closure.
+
+    Filtered on ``SCHEMA_9_VERSION`` rather than on live authority, because
+    this is schema 9's mint record and schema 10 has since been declared. The
+    ``CoverDegree`` assertion is what that change makes load-bearing: schema 10
+    widens that vocabulary with ``half``, and schema 9's rows must still be
+    exactly the eleven it minted.
     """
     rows = [
         row
         for row in introduction_manifest()
-        if row["introduced_in"] == REPRESENTATION_SCHEMA_VERSION
+        if row["introduced_in"] == SCHEMA_9_VERSION
     ]
     assert {row["name"] for row in rows if row["kind"] == "fact_family"} == {
         family.value
@@ -700,7 +707,7 @@ def test_the_crossing_from_schema_8_is_exactly_one_registered_step() -> None:
     """One step, looked up rather than named, in the direction it applies."""
     steps = lift_path(
         (SCHEMA_8_VERSION, SCHEMA_8_HASH),
-        (REPRESENTATION_SCHEMA_VERSION, SCHEMA_9_HASH),
+        (SCHEMA_9_VERSION, SCHEMA_9_HASH),
     )
     assert [step.lift_id for step in steps] == ["5d-lift-schema-8-to-9"]
 

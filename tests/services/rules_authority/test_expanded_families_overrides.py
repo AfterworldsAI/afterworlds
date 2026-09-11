@@ -26,9 +26,21 @@ from afterworlds.ingestion.mechanical.representation import (
     AttackRollFact,
     AutomaticOutcome,
     AutomaticOutcomeFact,
+    BenefitOriginSide,
     BlockedLineExclusionFact,
     BlockedLineQuantifier,
+    CoverageThreshold,
+    CoverBenefitOriginFact,
+    CoverDefense,
+    CoverDefensiveBonusFact,
     CoverDegree,
+    CoverDegreeCombination,
+    CoverDegreeSelection,
+    CoverDegreeSelectionFact,
+    CoveredInteraction,
+    CoverOfferor,
+    CoverProvisionFact,
+    CoverTargetingProhibitionFact,
     CreatureDefenseFact,
     CriticalHitChange,
     CriticalHitRuleFact,
@@ -39,6 +51,7 @@ from afterworlds.ingestion.mechanical.representation import (
     DamageType,
     DiceExpression,
     DieSize,
+    MechanicalFact,
     RollActor,
     RollContext,
     RollSpec,
@@ -46,6 +59,7 @@ from afterworlds.ingestion.mechanical.representation import (
     SpeedModificationFact,
     StateEffectFact,
     StateEffectKind,
+    TargetingProhibition,
     fact_key,
     fact_payload,
 )
@@ -543,6 +557,192 @@ def test_an_area_of_effect_override_cannot_widen_the_union(
     author_override(
         runtime.session,
         override_id=f"ov-area-bad-{abs(hash(why))}",
+        target=CHECK_COMPONENT_TARGET,
+        operation=OverrideOperationEnum.APPEND,
+        payload=payload,
+    )
+    assert typed_view(runtime).outcome is AuthorityOutcome.INVALID_OVERRIDE, why
+
+
+# -- the cover families, through the same path --------------------------------
+#
+# Schema 10 added five more families for the Cover entry, and one member --
+# ``CoverDegree.HALF`` -- to a vocabulary the override layer could already
+# carry. That widening is why this block is written out rather than assumed
+# from the two above: the seam has been able to accept a degree of cover since
+# schema 6, so the question is whether it now accepts the third member and the
+# rules that say what a degree *is*, without the door opening any wider.
+
+#: Cover table, p15: "Half" / "+2 bonus to AC and Dexterity saving throws". One
+#: printed benefit that is two modifications at once, both keyed to one degree
+#: -- and the specimen that carries the member schema 10 added.
+HALF_BENEFIT = CoverDefensiveBonusFact(
+    degree=CoverDegree.HALF,
+    bonus=2,
+    to_defense=CoverDefense.ARMOR_CLASS,
+    to_saving_throw=AbilityScore.DEXTERITY,
+)
+
+#: Cover table, p15: "Total" / "Can't be targeted directly". Not a bonus, and
+#: not a prohibition on everything: "directly" is printed.
+TOTAL_PROHIBITION = CoverTargetingProhibitionFact(
+    degree=CoverDegree.TOTAL,
+    prohibits=TargetingProhibition.DIRECT_TARGETING,
+)
+
+#: Cover table, p15: "Another creature or an object that covers at least half of
+#: the target". Half is the only degree a creature can offer.
+HALF_PROVISION = CoverProvisionFact(
+    degree=CoverDegree.HALF,
+    offered_by=CoverOfferor.ANOTHER_CREATURE_OR_AN_OBJECT,
+    coverage=CoverageThreshold.AT_LEAST_HALF,
+)
+
+#: Cover, p15: the benefit applies only against something originating on the far
+#: side. Printed at one site only, and it qualifies every degree.
+BENEFIT_ORIGIN = CoverBenefitOriginFact(
+    interaction=CoveredInteraction.AN_ATTACK_OR_OTHER_EFFECT,
+    requires_origin=BenefitOriginSide.OPPOSITE_SIDE_OF_THE_COVER,
+)
+
+#: Cover, p15 and p179: the most protective degree applies, and the degrees are
+#: not added together. One rule with two printed halves.
+DEGREE_SELECTION = CoverDegreeSelectionFact(
+    selects=CoverDegreeSelection.MOST_PROTECTIVE,
+    combination=CoverDegreeCombination.NOT_ADDED_TOGETHER,
+)
+
+COVER_FACTS = (
+    HALF_BENEFIT,
+    TOTAL_PROHIBITION,
+    HALF_PROVISION,
+    BENEFIT_ORIGIN,
+    DEGREE_SELECTION,
+)
+
+
+@pytest.mark.parametrize(
+    "fact", COVER_FACTS, ids=[fact.FAMILY.value for fact in COVER_FACTS]
+)
+def test_a_cover_family_appends_and_reaches_the_typed_view(
+    runtime: RuntimeFixture, fact: MechanicalFact
+) -> None:
+    """Each schema-10 family through the existing seam, under existing precedence.
+
+    All five rather than one representative, because they are not variations on
+    a single shape: a numeric bonus, a prohibition, a provision keyed to the new
+    member, a precondition on the benefit and a selection rule are five
+    different payloads arriving at the same door.
+    """
+    override_id = f"ov-cover-{fact.FAMILY.value}"
+    author_override(
+        runtime.session,
+        override_id=override_id,
+        target=CHECK_COMPONENT_TARGET,
+        operation=OverrideOperationEnum.APPEND,
+        payload=append_fact_payload(fact),
+    )
+    check = component(effective(runtime), CREATURE_KEY, CHECK_KEY)
+    assert check is not None
+    (added,) = [f for f in check.facts if f.fact_key == fact_key(fact)]
+    assert added.fact == fact
+    assert added.supplied_by_override_id == override_id
+    assert added.span_ids == ()
+
+    result = typed_view(runtime)
+    assert result.outcome is AuthorityOutcome.RESOLVED
+    assert result.typed_view is not None
+    assert fact in [
+        f.fact
+        for record in result.typed_view.records
+        for comp in record.components
+        for f in comp.facts
+    ]
+
+
+@pytest.mark.parametrize(
+    ("payload", "why"),
+    [
+        (
+            {
+                "patch": "append_fact",
+                "fact": {**fact_payload(HALF_PROVISION), "degree": "quarter"},
+            },
+            "a fourth degree of cover",
+        ),
+        (
+            {
+                "patch": "append_fact",
+                "fact": {**fact_payload(HALF_BENEFIT), "to_defense": "armour_class"},
+            },
+            "a defense the entry never names",
+        ),
+        (
+            {
+                "patch": "append_fact",
+                "fact": {**fact_payload(HALF_BENEFIT), "bonus": "+2"},
+            },
+            "a bonus encoded as the string the page prints",
+        ),
+        (
+            {
+                "patch": "append_fact",
+                "fact": {**fact_payload(TOTAL_PROHIBITION), "prohibits": "targeting"},
+            },
+            "a prohibition broadened past direct targeting",
+        ),
+        (
+            {
+                "patch": "append_fact",
+                "fact": {
+                    **fact_payload(HALF_PROVISION),
+                    "coverage": "at_least_some_of_the_target",
+                },
+            },
+            "a coverage threshold the table does not print",
+        ),
+        (
+            {
+                "patch": "append_fact",
+                "fact": {**fact_payload(BENEFIT_ORIGIN), "interaction": "an_attack"},
+            },
+            "an interaction that drops the other effects",
+        ),
+        (
+            {
+                "patch": "append_fact",
+                "fact": {
+                    **fact_payload(DEGREE_SELECTION),
+                    "combination": "added_together",
+                },
+            },
+            "a combination rule that inverts the printed one",
+        ),
+    ],
+    ids=[
+        "fourth-degree",
+        "unknown-defense",
+        "stringly-bonus",
+        "broadened-prohibition",
+        "unprinted-threshold",
+        "narrowed-interaction",
+        "inverted-combination",
+    ],
+)
+def test_a_cover_override_cannot_widen_the_union(
+    runtime: RuntimeFixture, payload: dict[str, object], why: str
+) -> None:
+    """The same door, held shut against the schema-10 vocabularies.
+
+    Five of these state a *different rule* from the one the source prints and
+    two are malformed encodings of the right one, and the seam refuses both
+    kinds without having to tell them apart. ``fourth-degree`` is the one worth
+    naming separately: ``CoverDegree`` is the vocabulary this schema widened,
+    and widening it once is not the same as leaving it open.
+    """
+    author_override(
+        runtime.session,
+        override_id=f"ov-cover-bad-{abs(hash(why))}",
         target=CHECK_COMPONENT_TARGET,
         operation=OverrideOperationEnum.APPEND,
         payload=payload,

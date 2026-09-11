@@ -266,6 +266,19 @@ __all__ = [
     "RelocatedOrigin",
     "UnseenOriginRelocationFact",
     "UnseenPlacement",
+    "BenefitOriginSide",
+    "CoverBenefitOriginFact",
+    "CoverDefense",
+    "CoverDefensiveBonusFact",
+    "CoverDegreeCombination",
+    "CoverDegreeSelection",
+    "CoverDegreeSelectionFact",
+    "CoverOfferor",
+    "CoverProvisionFact",
+    "CoverTargetingProhibitionFact",
+    "CoverageThreshold",
+    "CoveredInteraction",
+    "TargetingProhibition",
     "ComponentDraft",
     "ProseBindingDraft",
     "ProvenanceClaim",
@@ -1426,6 +1439,148 @@ class RelocatedOrigin(StrEnum):
     NEAR_SIDE_OF_THE_OBSTRUCTION = "near_side_of_the_obstruction"
 
 
+class CoverDefense(StrEnum):
+    """The defence a degree of cover raises by a stated bonus.
+
+    One member. Both printings of the benefit name exactly two beneficiaries —
+    *"+2 bonus to AC and Dexterity saving throws"* — and a saving throw is
+    already a vocabulary this module has (:class:`AbilityScore`), so this names
+    the other one. AC is not a roll: :class:`RollContext` has no member for it
+    and inventing one would claim the source asks for a roll it never asks for.
+
+    It is a required field rather than a flag or a naming convention, so the
+    *"and"* in the printed benefit is structural — see
+    :class:`CoverDefensiveBonusFact`.
+    """
+
+    ARMOR_CLASS = "armor_class"
+
+
+class TargetingProhibition(StrEnum):
+    """What Total Cover forbids, in the source's own words.
+
+    One member, and *"directly"* is load-bearing. The table prints *"Can't be
+    targeted directly"* and the glossary prints *"can't be targeted
+    directly"* — not *"can't be attacked"* and not *"can't be affected"*. An
+    area of effect that includes a target behind Total Cover is a different
+    question this record does not answer, and a member spelled
+    ``CANNOT_BE_TARGETED`` would silently answer it.
+
+    Kept apart from :class:`ActionRestrictionFact`, which restricts
+    action-economy slots rather than what may be chosen as a target.
+    """
+
+    DIRECT_TARGETING = "direct_targeting"
+
+
+class CoverOfferor(StrEnum):
+    """What the Cover table's *"Offered By"* column names for a degree.
+
+    Two members, because the source prints two and prints them asymmetrically:
+    Half Cover is offered by *"Another creature or an object"*, and both
+    Three-Quarters and Total Cover by *"An object"*. The asymmetry is the rule,
+    so it is carried rather than normalised into one member.
+
+    Deliberately **not** :class:`AreaOriginKind`, whose
+    ``CREATURE_OR_OBJECT`` member reads the same and means something else — what
+    an area of effect's point of origin may sit on. Reusing it would merge two
+    vocabularies the source keeps apart, for the reason
+    :class:`ObscurementState` gives about :class:`CoverDegree`.
+
+    The values keep the printed articles. ``Walls, trees, creatures, and other
+    obstacles`` (p15) is open exemplification and no vocabulary is invented from
+    it; this column is the closed statement.
+    """
+
+    ANOTHER_CREATURE_OR_AN_OBJECT = "another_creature_or_an_object"
+    AN_OBJECT = "an_object"
+
+
+class CoverageThreshold(StrEnum):
+    """How much of the target the offeror must cover, for a degree.
+
+    The three printed thresholds: *"covers at least half of the target"*,
+    *"covers at least three-quarters of the target"*, *"covers the whole
+    target"*.
+
+    Named rather than numeric, by sufficiency rather than by prohibition. Two of
+    the three are exact fractional thresholds and the page prints them as
+    fractions, so a :class:`Rational` with a :class:`Comparison` beside it would
+    state them faithfully too: recording a printed threshold is exact
+    declarative data, not the runtime measurement #137 puts out of scope. The
+    reason for a closed vocabulary is that the numeric shape buys nothing here.
+    The source prints exactly three thresholds, each carrying its comparison
+    inside the printed phrase, and no rule in this population varies one,
+    derives one or compares two — so three members say everything the page says
+    on one axis instead of two, leave no fourth value to invent, and let *"the
+    whole target"* stay the phrase the page prints rather than forcing a choice
+    between ``== 1`` and ``>= 1`` the page never makes. Nothing here measures:
+    a consumer that has a geometry reads the threshold and applies it with its
+    own.
+    """
+
+    AT_LEAST_HALF = "at_least_half"
+    AT_LEAST_THREE_QUARTERS = "at_least_three_quarters"
+    WHOLE_TARGET = "whole_target"
+
+
+class CoveredInteraction(StrEnum):
+    """What the directionality rule is about.
+
+    One member, and the breadth is the source's: *"an attack or other effect"*.
+    Splitting it into an attack member and an effect member would assert a
+    distinction the clause declines to make, and narrowing it to attacks would
+    drop the half the clause adds.
+
+    The first conjunct of the printed conjunction — see
+    :class:`CoverBenefitOriginFact`.
+    """
+
+    AN_ATTACK_OR_OTHER_EFFECT = "an_attack_or_other_effect"
+
+
+class BenefitOriginSide(StrEnum):
+    """Where that attack or effect must originate for cover to help.
+
+    The second conjunct: *"only when an attack or other effect originates on the
+    opposite side of the cover"*. Opposite to the target, which is what "the
+    cover" is between; the side is named, never computed. Nothing here holds a
+    position.
+    """
+
+    OPPOSITE_SIDE_OF_THE_COVER = "opposite_side_of_the_cover"
+
+
+class CoverDegreeSelection(StrEnum):
+    """Which degree applies when more than one does.
+
+    One member — *"benefits only from the most protective degree"* (p179),
+    *"only the most protective degree of cover applies"* (p15).
+
+    **No rank over the three degrees is stated here, and none is invented.**
+    Neither printing orders Half, Three-Quarters and Total; each states the
+    selection rule and leaves "most protective" to be read from the benefits
+    themselves, which :class:`CoverDefensiveBonusFact` and
+    :class:`CoverTargetingProhibitionFact` carry. A rank field would be a
+    comparison this record makes up, and choosing a degree for a scene is a
+    consumer's job in any case (#137 "Out of scope").
+    """
+
+    MOST_PROTECTIVE = "most_protective"
+
+
+class CoverDegreeCombination(StrEnum):
+    """What may not be done with two applicable degrees.
+
+    One member: *"the degrees aren't added together"* (p15). The second half of
+    the same printed statement the glossary prints only the first half of, and a
+    required field beside :class:`CoverDegreeSelection` rather than a fact of
+    its own — see :class:`CoverDegreeSelectionFact`.
+    """
+
+    NOT_ADDED_TOGETHER = "not_added_together"
+
+
 class ExpendableResource(StrEnum):
     """A resource a rule states is, or is not, spent.
 
@@ -1479,13 +1634,31 @@ class ObscurementState(StrEnum):
 class CoverDegree(StrEnum):
     """A printed degree of cover.
 
-    The two degrees ``Hide`` (p183) states. ``Cover`` (p179) prints a third,
-    Half Cover; it is outside this batch's cut and is admitted by the batch that
+    Schema 6 admitted the two degrees ``Hide`` (p183) states, and said of the
+    third that it "is outside this batch's cut and is admitted by the batch that
     states it — the way :class:`ApplicabilityKind` and :class:`TimeUnit` already
-    gained members across a succession, rather than by transcribing a page this
-    projection has not read.
+    gained members across a succession". Schema 10 is that batch: ``Cover``
+    (p179) and ``Cover`` ("Playing the Game" > "Combat", p15) both print
+    *"three degrees of cover"* and both name Half Cover first, so the member
+    arrives from the pages that state it rather than from a page no projection
+    had read.
+
+    **The vocabulary is now at its printed closure and stays there.** Both
+    printings state the cardinality — *"There are three degrees of cover"* — so
+    no separate cardinality fact states it: the closure is this enum's own
+    membership, on the precedent :data:`_SCHEMA_8_VOCABULARY_MEMBERS` states for
+    :class:`Attitude`, which is admitted at its printed closure including
+    members no fact instantiates.
+
+    The member is registered against schema 10 rather than schema 6, and schema
+    6's row is frozen to the pair it actually admitted — see
+    :data:`_SCHEMA_6_VOCABULARY_MEMBERS`. A schema-6 or schema-9 artifact
+    carrying ``half`` is refused by :func:`post_schema_3_violations`, which is
+    the whole point of registering a member against the succession that added
+    it.
     """
 
+    HALF = "half"
     THREE_QUARTERS = "three_quarters"
     TOTAL = "total"
 
@@ -1733,6 +1906,21 @@ class FactFamily(StrEnum):
     AREA_ORIGIN_MOVEMENT = "area_origin_movement"
     BLOCKED_LINE_EXCLUSION = "blocked_line_exclusion"
     UNSEEN_ORIGIN_RELOCATION = "unseen_origin_relocation"
+    #: Schema 10, batch ``cover-1``. Five families, one per distinct rule the
+    #: Cover class prints across its two printings, admitted on the same gate:
+    #: #137 contract 3, whose prose-bound branch is unavailable because no
+    #: member of the closed irreducibility catalog is affirmatively true of any
+    #: of the substantive clauses. Two of them state what a degree *is* —
+    #: something schema 9 could consume (``Applicability.cover``,
+    #: ``BlockedLineExclusionFact.blocking_cover``) but nowhere define. They are
+    #: declarative shapes for stated rules; no geometry is measured, no degree
+    #: is chosen for a scene and no attack is executed (#137 "Out of scope",
+    #: ADR-005d Decision 4).
+    COVER_DEFENSIVE_BONUS = "cover_defensive_bonus"
+    COVER_TARGETING_PROHIBITION = "cover_targeting_prohibition"
+    COVER_PROVISION = "cover_provision"
+    COVER_BENEFIT_ORIGIN = "cover_benefit_origin"
+    COVER_DEGREE_SELECTION = "cover_degree_selection"
 
 
 # ---------------------------------------------------------------------------
@@ -3465,6 +3653,165 @@ class UnseenOriginRelocationFact:
     relocated_to: RelocatedOrigin
 
 
+@dataclass(frozen=True)
+class CoverDefensiveBonusFact:
+    """What a degree of cover adds, and to what.
+
+    *"Half Cover (+2 bonus to AC and Dexterity saving throws)"* and
+    *"Three-Quarters Cover (+5 bonus to AC and Dexterity saving throws)"*
+    (p179), printed again as the Cover table's *"Benefit to Target"* column
+    (p15).
+
+    **The conjunction is structural**, on the :class:`UnseenOriginRelocationFact`
+    precedent. The rule is not "a bonus to AC" plus a separate "a bonus to
+    Dexterity saving throws"; it is one bonus stated once for both, and a fact
+    naming only one of them cannot be built because both are required fields
+    over their own vocabularies. Two facts would double the rule; one field
+    holding a list would make *"and"* a combinator with exactly one legal
+    operand set, which ADR-005d Decision 4 refuses.
+
+    :attr:`bonus` is a plain signed integer on the :attr:`AttackRollFact.to_hit_bonus`
+    precedent, with no intrinsic range rule: the schema states that a degree
+    carries a numeric bonus, and *which* number is what the reviewed proposal
+    states and the identity covers.
+
+    :attr:`to_saving_throw` is typed as the whole :class:`AbilityScore`
+    vocabulary rather than pinned to ``DEXTERITY`` by an invariant, for the
+    reason :attr:`BlockedLineExclusionFact.blocking_cover` gives: a fact naming
+    another ability would be a different rule with a different payload and a
+    different identity, which is what makes the field reviewable rather than
+    decorative.
+
+    **Total Cover has no row here.** Its benefit is a prohibition, not a bonus,
+    and a nullable ``bonus`` would let a stated zero and an absent one hash
+    alike — see :class:`CoverTargetingProhibitionFact`.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.COVER_DEFENSIVE_BONUS
+
+    degree: CoverDegree
+    bonus: int
+    to_defense: CoverDefense
+    to_saving_throw: AbilityScore
+
+
+@dataclass(frozen=True)
+class CoverTargetingProhibitionFact:
+    """The benefit Total Cover gives, which is not a bonus.
+
+    *"and Total Cover (can't be targeted directly)"* (p179), printed again as
+    *"Can't be targeted directly"* in the table's *"Benefit to Target"* column
+    (p15).
+
+    Its own family rather than a nullable field on
+    :class:`CoverDefensiveBonusFact`, because the two benefits are different
+    kinds of statement: one adds a number to two defences, the other removes a
+    target from being chosen. Merging them would need every field of both to be
+    optional, and a payload with every field absent states nothing while
+    canonicalising to something.
+
+    :attr:`degree` is carried rather than implied by the family name, on
+    :class:`RelocatedOrigin`'s rule that a consumer must not have to know a
+    naming convention to read authority — and because a degree the source later
+    prints with the same prohibition would need this fact, not a second family.
+
+    **Nothing here refuses a target.** Executing an attack, resolving an effect
+    and deciding whether a particular creature is behind Total Cover all need a
+    scene, and a scene is not mechanical authority (#137 "Out of scope").
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.COVER_TARGETING_PROHIBITION
+
+    degree: CoverDegree
+    prohibits: TargetingProhibition
+
+
+@dataclass(frozen=True)
+class CoverProvisionFact:
+    """What offers a degree of cover, and how much of the target it covers.
+
+    The Cover table's *"Offered By"* column, one row per degree: *"Another
+    creature or an object that covers at least half of the target"*, *"An object
+    that covers at least three-quarters of the target"*, *"An object that covers
+    the whole target"*.
+
+    One fact per row rather than one per column: the offeror and the threshold
+    are printed in a single clause and neither stands alone — *"an object"*
+    without a threshold names no degree, and *"at least half"* without an
+    offeror covers nothing. The asymmetry between the rows (a creature may offer
+    Half Cover; only an object offers the other two) is therefore preserved by
+    the rows themselves rather than asserted anywhere.
+
+    **Nothing here measures coverage.** :class:`CoverageThreshold` names the
+    printed threshold; deciding whether some obstacle covers at least half of
+    some target needs a map (#137 "Out of scope").
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.COVER_PROVISION
+
+    degree: CoverDegree
+    offered_by: CoverOfferor
+    coverage: CoverageThreshold
+
+
+@dataclass(frozen=True)
+class CoverBenefitOriginFact:
+    """When cover helps at all, whatever its degree.
+
+    *"A target can benefit from cover only when an attack or other effect
+    originates on the opposite side of the cover."* (p15) — printed once, at the
+    combat site only, and a precondition on every degree rather than a property
+    of any one of them.
+
+    No :attr:`degree` field, deliberately. The clause says *"cover"*, not a
+    degree, and per-degree copies of it would be three statements where the
+    source makes one. A reader asking whether Half Cover helps against an effect
+    originating on the target's own side reads this fact, which is about all
+    cover.
+
+    The conjunction is structural, on the :class:`UnseenOriginRelocationFact`
+    precedent: both the interaction the rule is about and the side it must come
+    from are required fields over their own vocabularies.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.COVER_BENEFIT_ORIGIN
+
+    interaction: CoveredInteraction
+    requires_origin: BenefitOriginSide
+
+
+@dataclass(frozen=True)
+class CoverDegreeSelectionFact:
+    """Which degree applies when a target is behind more than one.
+
+    Printed twice, and the two printings are the same rule at different lengths:
+    *"If behind more than one degree of cover, a target benefits only from the
+    most protective degree."* (p179) and *"If a target is behind multiple
+    sources of cover, only the most protective degree of cover applies; the
+    degrees aren't added together."* (p15).
+
+    **One fact, two authorities.** The longer printing states both halves and
+    the shorter states the first; representing them as two facts would duplicate
+    an effect the source states once, so the fuller statement is carried once
+    and both spans claim it. That is a provenance arrangement, not a schema one:
+    a component's provenance already admits many spans, and #137 contract 3
+    requires the exact source coordinates of each.
+
+    Both halves are required fields over their own vocabularies, so the rule
+    cannot be stated as "most protective" without "not added together" — they
+    are one printed sentence, joined by a semicolon.
+
+    **No rank, and no selection performed.** See :class:`CoverDegreeSelection`
+    for why no order over the three degrees is invented, and #137 "Out of scope"
+    for why choosing a degree for a scene is not this module's job.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.COVER_DEGREE_SELECTION
+
+    selects: CoverDegreeSelection
+    combination: CoverDegreeCombination
+
+
 MechanicalFact = (
     AbilityCheckFact
     | ActionEconomyFact
@@ -3523,6 +3870,11 @@ MechanicalFact = (
     | AreaOriginMovementFact
     | BlockedLineExclusionFact
     | UnseenOriginRelocationFact
+    | CoverDefensiveBonusFact
+    | CoverTargetingProhibitionFact
+    | CoverProvisionFact
+    | CoverBenefitOriginFact
+    | CoverDegreeSelectionFact
 )
 
 _FACT_TYPES: dict[FactFamily, type] = {
@@ -3583,6 +3935,11 @@ _FACT_TYPES: dict[FactFamily, type] = {
     FactFamily.AREA_ORIGIN_MOVEMENT: AreaOriginMovementFact,
     FactFamily.BLOCKED_LINE_EXCLUSION: BlockedLineExclusionFact,
     FactFamily.UNSEEN_ORIGIN_RELOCATION: UnseenOriginRelocationFact,
+    FactFamily.COVER_DEFENSIVE_BONUS: CoverDefensiveBonusFact,
+    FactFamily.COVER_TARGETING_PROHIBITION: CoverTargetingProhibitionFact,
+    FactFamily.COVER_PROVISION: CoverProvisionFact,
+    FactFamily.COVER_BENEFIT_ORIGIN: CoverBenefitOriginFact,
+    FactFamily.COVER_DEGREE_SELECTION: CoverDegreeSelectionFact,
 }
 
 
@@ -5399,6 +5756,51 @@ def _check_unseen_origin_relocation(fact: UnseenOriginRelocationFact) -> list[st
     ]
 
 
+# Schema 10, batch ``cover-1``. None of the five adds a row to
+# :data:`_INVARIANTS`: what each admits is exactly its vocabularies, which the
+# schema payload already carries, and the one non-enum field is a signed integer
+# with no printed range — the same shape and the same silence as
+# :attr:`AttackRollFact.to_hit_bonus`.
+def _check_cover_defensive_bonus(fact: CoverDefensiveBonusFact) -> list[str]:
+    return [
+        *_enum_field(fact.degree, CoverDegree, "degree"),
+        *_int_field(fact.bonus, "bonus"),
+        *_enum_field(fact.to_defense, CoverDefense, "to_defense"),
+        *_enum_field(fact.to_saving_throw, AbilityScore, "to_saving_throw"),
+    ]
+
+
+def _check_cover_targeting_prohibition(
+    fact: CoverTargetingProhibitionFact,
+) -> list[str]:
+    return [
+        *_enum_field(fact.degree, CoverDegree, "degree"),
+        *_enum_field(fact.prohibits, TargetingProhibition, "prohibits"),
+    ]
+
+
+def _check_cover_provision(fact: CoverProvisionFact) -> list[str]:
+    return [
+        *_enum_field(fact.degree, CoverDegree, "degree"),
+        *_enum_field(fact.offered_by, CoverOfferor, "offered_by"),
+        *_enum_field(fact.coverage, CoverageThreshold, "coverage"),
+    ]
+
+
+def _check_cover_benefit_origin(fact: CoverBenefitOriginFact) -> list[str]:
+    return [
+        *_enum_field(fact.interaction, CoveredInteraction, "interaction"),
+        *_enum_field(fact.requires_origin, BenefitOriginSide, "requires_origin"),
+    ]
+
+
+def _check_cover_degree_selection(fact: CoverDegreeSelectionFact) -> list[str]:
+    return [
+        *_enum_field(fact.selects, CoverDegreeSelection, "selects"),
+        *_enum_field(fact.combination, CoverDegreeCombination, "combination"),
+    ]
+
+
 _FACT_INVARIANTS: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.ABILITY_CHECK: _check_ability_check,
     FactFamily.ACTION_ECONOMY: _check_action_economy,
@@ -5457,6 +5859,11 @@ _FACT_INVARIANTS: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.AREA_ORIGIN_MOVEMENT: _check_area_origin_movement,
     FactFamily.BLOCKED_LINE_EXCLUSION: _check_blocked_line_exclusion,
     FactFamily.UNSEEN_ORIGIN_RELOCATION: _check_unseen_origin_relocation,
+    FactFamily.COVER_DEFENSIVE_BONUS: _check_cover_defensive_bonus,
+    FactFamily.COVER_TARGETING_PROHIBITION: _check_cover_targeting_prohibition,
+    FactFamily.COVER_PROVISION: _check_cover_provision,
+    FactFamily.COVER_BENEFIT_ORIGIN: _check_cover_benefit_origin,
+    FactFamily.COVER_DEGREE_SELECTION: _check_cover_degree_selection,
 }
 
 
@@ -6837,6 +7244,84 @@ def _build_unseen_origin_relocation(
     )
 
 
+def _build_cover_defensive_bonus(p: Mapping[str, Any]) -> CoverDefensiveBonusFact:
+    _reject(
+        FactFamily.COVER_DEFENSIVE_BONUS,
+        [
+            *_json_enum(p["degree"], CoverDegree, "degree"),
+            *_int_field(p["bonus"], "bonus"),
+            *_json_enum(p["to_defense"], CoverDefense, "to_defense"),
+            *_json_enum(p["to_saving_throw"], AbilityScore, "to_saving_throw"),
+        ],
+    )
+    return CoverDefensiveBonusFact(
+        degree=CoverDegree(p["degree"]),
+        bonus=p["bonus"],
+        to_defense=CoverDefense(p["to_defense"]),
+        to_saving_throw=AbilityScore(p["to_saving_throw"]),
+    )
+
+
+def _build_cover_targeting_prohibition(
+    p: Mapping[str, Any],
+) -> CoverTargetingProhibitionFact:
+    _reject(
+        FactFamily.COVER_TARGETING_PROHIBITION,
+        [
+            *_json_enum(p["degree"], CoverDegree, "degree"),
+            *_json_enum(p["prohibits"], TargetingProhibition, "prohibits"),
+        ],
+    )
+    return CoverTargetingProhibitionFact(
+        degree=CoverDegree(p["degree"]),
+        prohibits=TargetingProhibition(p["prohibits"]),
+    )
+
+
+def _build_cover_provision(p: Mapping[str, Any]) -> CoverProvisionFact:
+    _reject(
+        FactFamily.COVER_PROVISION,
+        [
+            *_json_enum(p["degree"], CoverDegree, "degree"),
+            *_json_enum(p["offered_by"], CoverOfferor, "offered_by"),
+            *_json_enum(p["coverage"], CoverageThreshold, "coverage"),
+        ],
+    )
+    return CoverProvisionFact(
+        degree=CoverDegree(p["degree"]),
+        offered_by=CoverOfferor(p["offered_by"]),
+        coverage=CoverageThreshold(p["coverage"]),
+    )
+
+
+def _build_cover_benefit_origin(p: Mapping[str, Any]) -> CoverBenefitOriginFact:
+    _reject(
+        FactFamily.COVER_BENEFIT_ORIGIN,
+        [
+            *_json_enum(p["interaction"], CoveredInteraction, "interaction"),
+            *_json_enum(p["requires_origin"], BenefitOriginSide, "requires_origin"),
+        ],
+    )
+    return CoverBenefitOriginFact(
+        interaction=CoveredInteraction(p["interaction"]),
+        requires_origin=BenefitOriginSide(p["requires_origin"]),
+    )
+
+
+def _build_cover_degree_selection(p: Mapping[str, Any]) -> CoverDegreeSelectionFact:
+    _reject(
+        FactFamily.COVER_DEGREE_SELECTION,
+        [
+            *_json_enum(p["selects"], CoverDegreeSelection, "selects"),
+            *_json_enum(p["combination"], CoverDegreeCombination, "combination"),
+        ],
+    )
+    return CoverDegreeSelectionFact(
+        selects=CoverDegreeSelection(p["selects"]),
+        combination=CoverDegreeCombination(p["combination"]),
+    )
+
+
 _FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] = {
     FactFamily.ABILITY_CHECK: _build_ability_check,
     FactFamily.ACTION_ECONOMY: _build_action_economy,
@@ -6895,6 +7380,11 @@ _FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] 
     FactFamily.AREA_ORIGIN_MOVEMENT: _build_area_origin_movement,
     FactFamily.BLOCKED_LINE_EXCLUSION: _build_blocked_line_exclusion,
     FactFamily.UNSEEN_ORIGIN_RELOCATION: _build_unseen_origin_relocation,
+    FactFamily.COVER_DEFENSIVE_BONUS: _build_cover_defensive_bonus,
+    FactFamily.COVER_TARGETING_PROHIBITION: _build_cover_targeting_prohibition,
+    FactFamily.COVER_PROVISION: _build_cover_provision,
+    FactFamily.COVER_BENEFIT_ORIGIN: _build_cover_benefit_origin,
+    FactFamily.COVER_DEGREE_SELECTION: _build_cover_degree_selection,
 }
 
 #: Every family must declare a builder and an invariant checker. A family added
@@ -7013,7 +7503,7 @@ assert (
 #: contracts. Nothing here computes geometry, models a grid, or adjudicates:
 #: the rules are represented declaratively and consumed by hand-authored code
 #: (#137 "Out of scope", ADR-005d Decision 4).
-REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-9"
+REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-10"
 
 
 class UnsupportedRepresentationShapeError(TypeError):
@@ -7506,6 +7996,19 @@ def _introductions() -> tuple[_Introduction, ...]:
             _Introduction("vocabulary_member", vocabulary, member, SCHEMA_9)
             for member in members
         )
+    # Schema 10 adds five families, eight whole vocabularies and — for the first
+    # time since schema 6 — one member to a vocabulary an earlier schema already
+    # had. It adds no ownership form, no required field and no nullable field on
+    # any family an earlier schema already had.
+    rows.extend(
+        _Introduction("fact_family", "FactFamily", family.value, SCHEMA_10)
+        for family in _SCHEMA_10_FAMILIES
+    )
+    for vocabulary, members in _SCHEMA_10_VOCABULARY_MEMBERS.items():
+        rows.extend(
+            _Introduction("vocabulary_member", vocabulary, member, SCHEMA_10)
+            for member in members
+        )
     rows.extend(
         _Introduction("nullable_field", _OPTIONAL_SINCE_FAMILIES[owner], key, arrived)
         for owner, keys in _OPTIONAL_SINCE.items()
@@ -7564,6 +8067,7 @@ def _vocabulary_shape(owner: str) -> list[str] | None:
         or _SCHEMA_7_VOCABULARY_ALL.get(owner)
         or _SCHEMA_8_VOCABULARY_ALL.get(owner)
         or _SCHEMA_9_VOCABULARY_ALL.get(owner)
+        or _SCHEMA_10_VOCABULARY_ALL.get(owner)
     )
     return None if members is None else sorted(members)
 
@@ -7657,6 +8161,7 @@ def _collect_post_schema_3(
             (_SCHEMA_7_MEMBER_INDEX, SCHEMA_7),
             (_SCHEMA_8_MEMBER_INDEX, SCHEMA_8),
             (_SCHEMA_9_MEMBER_INDEX, SCHEMA_9),
+            (_SCHEMA_10_MEMBER_INDEX, SCHEMA_10),
         ):
             if (
                 type(value).__name__,
@@ -7896,7 +8401,13 @@ _SCHEMA_6_VOCABULARY_MEMBERS: dict[str, tuple[str, ...]] = {
     "AllowanceScope": tuple(m.value for m in AllowanceScope),
     "AttackRelativeTiming": tuple(m.value for m in AttackRelativeTiming),
     "BenefitUseLimit": tuple(m.value for m in BenefitUseLimit),
-    "CoverDegree": tuple(m.value for m in CoverDegree),
+    # **Frozen to the pair schema 6 actually admitted**, and the only row in
+    # this table that may not be derived from its live enum. Schema 10 adds
+    # ``half``; a derived row would hand that member to schema 6 retroactively
+    # and a schema-6 artifact carrying it would pass a check that exists to
+    # refuse it. The whole live vocabulary is still what the payload renders —
+    # see :data:`_SCHEMA_6_VOCABULARY_ALL`.
+    "CoverDegree": (CoverDegree.THREE_QUARTERS.value, CoverDegree.TOTAL.value),
     "EligibilitySubject": tuple(m.value for m in EligibilitySubject),
     "EquipmentChange": tuple(m.value for m in EquipmentChange),
     "ExpendableResource": tuple(m.value for m in ExpendableResource),
@@ -7909,14 +8420,19 @@ _SCHEMA_6_VOCABULARY_MEMBERS: dict[str, tuple[str, ...]] = {
     "TriggeredReaction": tuple(m.value for m in TriggeredReaction),
 }
 
+#: ``CoverDegree`` joins the three written-out rows rather than the derived
+#: ones: :data:`_SCHEMA_6_VOCABULARY_MEMBERS` now names two of its members, and
+#: inheriting that here would render a vocabulary two thirds of its real size in
+#: the identity-bound payload.
 _SCHEMA_6_VOCABULARY_ALL: dict[str, tuple[str, ...]] = {
     "ApplicabilityKind": tuple(m.value for m in ApplicabilityKind),
+    "CoverDegree": tuple(m.value for m in CoverDegree),
     "DcKind": tuple(m.value for m in DcKind),
     "RollActor": tuple(m.value for m in RollActor),
     **{
         name: members
         for name, members in _SCHEMA_6_VOCABULARY_MEMBERS.items()
-        if name not in ("ApplicabilityKind", "DcKind", "RollActor")
+        if name not in ("ApplicabilityKind", "CoverDegree", "DcKind", "RollActor")
     },
 }
 
@@ -8016,6 +8532,63 @@ _SCHEMA_9_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
     for member in members
 )
 
+SCHEMA_10 = "5d-representation-schema-10"
+
+#: The five families schema 10 admitted, for batch ``cover-1``. One per distinct
+#: rule the Cover class prints across its two printings, named by member for the
+#: same reason schema 4's, 6's, 8's and 9's are.
+_SCHEMA_10_FAMILIES: tuple[FactFamily, ...] = (
+    FactFamily.COVER_DEFENSIVE_BONUS,
+    FactFamily.COVER_TARGETING_PROHIBITION,
+    FactFamily.COVER_PROVISION,
+    FactFamily.COVER_BENEFIT_ORIGIN,
+    FactFamily.COVER_DEGREE_SELECTION,
+)
+
+#: Schema 10 introduces eight vocabularies whole **and adds one member to a
+#: vocabulary an earlier schema already had** — the first succession to do that
+#: since schema 6, and the case schema 9's comment said belonged to "the batch
+#: that reads it".
+#:
+#: ``CoverDegree`` therefore sits in the first group, the one no field-keyed
+#: registry can catch: :attr:`Applicability.cover` and
+#: :attr:`BlockedLineExclusionFact.blocking_cover` are schema-6 and schema-9
+#: fields respectively, and only the *value* ``half`` is new. Both are the real
+#: legality witnesses: a schema-9 artifact stating ``Applicability(kind=COVER,
+#: cover=HALF)`` carries a member schema 9 never admitted, in a field schema 9
+#: had.
+_SCHEMA_10_VOCABULARY_MEMBERS: dict[str, tuple[str, ...]] = {
+    # Added to a vocabulary an earlier schema already had.
+    "CoverDegree": (CoverDegree.HALF.value,),
+    # Vocabularies schema 10 introduced whole.
+    "CoverDefense": tuple(m.value for m in CoverDefense),
+    "TargetingProhibition": tuple(m.value for m in TargetingProhibition),
+    "CoverOfferor": tuple(m.value for m in CoverOfferor),
+    "CoverageThreshold": tuple(m.value for m in CoverageThreshold),
+    "CoveredInteraction": tuple(m.value for m in CoveredInteraction),
+    "BenefitOriginSide": tuple(m.value for m in BenefitOriginSide),
+    "CoverDegreeSelection": tuple(m.value for m in CoverDegreeSelection),
+    "CoverDegreeCombination": tuple(m.value for m in CoverDegreeCombination),
+}
+
+#: ``CoverDegree`` is written out for the reason schema 4's and 6's mixed tables
+#: are: its ``_MEMBERS`` row names one member and its rendering must name all
+#: three.
+_SCHEMA_10_VOCABULARY_ALL: dict[str, tuple[str, ...]] = {
+    "CoverDegree": tuple(m.value for m in CoverDegree),
+    **{
+        name: members
+        for name, members in _SCHEMA_10_VOCABULARY_MEMBERS.items()
+        if name != "CoverDegree"
+    },
+}
+
+_SCHEMA_10_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
+    (vocabulary, member)
+    for vocabulary, members in _SCHEMA_10_VOCABULARY_MEMBERS.items()
+    for member in members
+)
+
 
 #: Every family-bearing succession, newest last. A family added later must join
 #: this table rather than the one comparison schema 4 was checked by, which
@@ -8025,6 +8598,7 @@ _FAMILY_INTRODUCTIONS: tuple[tuple[tuple[FactFamily, ...], str], ...] = (
     (_SCHEMA_6_FAMILIES, SCHEMA_6),
     (_SCHEMA_8_FAMILIES, SCHEMA_8),
     (_SCHEMA_9_FAMILIES, SCHEMA_9),
+    (_SCHEMA_10_FAMILIES, SCHEMA_10),
 )
 
 #: Fields a later schema made **required** on a family an earlier schema already
@@ -8105,6 +8679,17 @@ _VERSION_STATES: dict[str, frozenset[str]] = {
             SCHEMA_7,
             SCHEMA_8,
             SCHEMA_9,
+        }
+    ),
+    SCHEMA_10: frozenset(
+        {
+            "5d-representation-schema-4",
+            SCHEMA_5,
+            SCHEMA_6,
+            SCHEMA_7,
+            SCHEMA_8,
+            SCHEMA_9,
+            SCHEMA_10,
         }
     ),
 }

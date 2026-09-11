@@ -16,13 +16,13 @@ at once: the live artifact is untouched, and this copy is the same content
 today. Both identities are pinned — blob sha1 and LF sha256 — and every other
 pin below is derived by loading the file rather than transcribed.
 
-**No crossing is asserted.** The prior declares schema 9 and schema 9 is
-current, so ``validate_schema_binding`` is clean and ``lift_path`` refuses. This
-is the position ``test_areas_of_effect_1_frozen_prior`` was written from before
-its discovery checkpoint answered the schema question; whether ``cover-1`` needs
-a schema step is that batch's open question, not something this module may
-pre-decide. If it does, the test below that records the refusal is the visible
-edit to make, the way its predecessor made it.
+**Exactly one crossing is asserted.** The discovery checkpoint answered the
+schema question: ``Cover`` prints six meanings schema 9 cannot state, so this
+build declares schema 10 and the prior is no longer current. Reading it as
+current is now a *finding*, and one registered step closes the gap while
+carrying every accepted element by identity. This is the visible edit the
+previous form of this module named in advance, made the way
+``test_areas_of_effect_1_frozen_prior`` made its own.
 
 **What this module does not do.** It proves nothing about the live artifact
 beyond the final identity assertion. Every pin describes the *frozen* file: the
@@ -44,6 +44,7 @@ from afterworlds.ingestion.mechanical.oracle import (
     candidate_from_accepted_inputs,
     load_accepted_inputs,
     oracle_identity,
+    oracle_payload,
 )
 from afterworlds.ingestion.mechanical.projection import validate_schema_binding
 from afterworlds.ingestion.mechanical.representation import (
@@ -58,6 +59,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_9_HASH,
     SCHEMA_9_VERSION,
     UnknownSchemaLiftError,
+    lift_accepted_inputs,
     lift_path,
 )
 
@@ -182,28 +184,69 @@ def test_the_prior_declares_schema_9_and_records_the_six_lifts_that_got_it_there
     ]
 
 
-def test_no_registered_crossing_separates_the_prior_from_this_build() -> None:
-    """The starting position, stated rather than assumed.
+def test_exactly_one_registered_crossing_separates_the_prior_from_this_build() -> None:
+    """The position after the checkpoint, stated rather than assumed.
 
-    The prior declares schema 9 and schema 9 is current, so the binding is clean
-    and no lift exists to take. Whether ``cover-1`` prints clauses schema 9
-    cannot state is the question its discovery checkpoint exists to answer; if
-    the answer is yes and a schema 10 is minted, *this* test is the one that
-    fails first, and it is then replaced by an
-    exactly-one-registered-crossing claim the way
-    ``test_areas_of_effect_1_frozen_prior`` replaced its own.
+    This is the edit the previous form of this test named in advance. The
+    checkpoint's answer was yes: ``Cover`` prints six meanings schema 9 cannot
+    state, schema 10 states them, and so the prior is no longer current. Reading
+    it as current is a *finding* rather than a silent pass, and one registered
+    step closes the gap.
+
+    **Two identities, two scopes.** The frozen authority is untouched on disk
+    and keeps the identity the Owner accepted. Its lifted copy is a *different*
+    object with a *different* identity, because ``oracle_payload`` carries the
+    representation binding and the lift re-declares exactly that. The content is
+    what survives, and identically rather than equally: the lifted copy holds
+    the same representation object, and the only top-level payload key that
+    moves is ``representation_schema``.
+
+    **The five schema anchors cross untouched.** That is the assertion schema
+    10 most needs to make, because it is the first succession since schema 6 to
+    widen a vocabulary an accepted batch already uses: ``CoverDegree`` gains
+    ``half``, and ``areas-of-effect-1`` states ``total`` under schema 9. A lift
+    that re-derived anchors would erase the record of what each batch was
+    accepted under, which is the distinction the whole mechanism protects.
+
+    A self-lift stays unregistered, so a generator that reached for one here
+    would raise rather than silently no-op.
     """
     inputs = load_accepted_inputs(FROZEN_PRIOR)
     current = (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
     prior = (inputs.oracle.schema_version, inputs.oracle.schema_hash)
     assert prior == (SCHEMA_9_VERSION, SCHEMA_9_HASH)
-    assert prior == current
+    assert prior != current
 
-    assert validate_schema_binding(candidate_from_accepted_inputs(inputs)) == ()
+    findings = validate_schema_binding(candidate_from_accepted_inputs(inputs))
+    assert findings, "reading a superseded prior as current must be visible"
+    assert any(REPRESENTATION_SCHEMA_VERSION in f for f in findings), findings
+
+    expected = ["5d-lift-schema-9-to-10"]
+    assert [step.lift_id for step in lift_path(prior, current)] == expected
+    lifted, records = lift_accepted_inputs(inputs, current)
+    assert [record.lift_id for record in records] == expected
+    assert validate_schema_binding(candidate_from_accepted_inputs(lifted)) == ()
+    assert lifted.oracle.representation is inputs.oracle.representation
     assert oracle_identity(inputs.oracle) == ACCEPTED_ORACLE_IDENTITY
 
+    # The lifted copy is newly bound, so it is newly identified. Asserted
+    # structurally rather than against a literal: the value moves every time the
+    # destination pin moves, and what is being proved is *why* it moves.
+    assert oracle_identity(lifted.oracle) != ACCEPTED_ORACLE_IDENTITY
+    before = oracle_payload(inputs.oracle)
+    after = oracle_payload(lifted.oracle)
+    moved = {k for k in set(before) | set(after) if before.get(k) != after.get(k)}
+    assert moved == {"representation_schema"}, sorted(moved)
+
+    # Everything the prior carries besides the binding crosses untouched, and by
+    # identity rather than equality -- the lift rebinds, it does not rebuild.
+    for field in ("batches", "acceptances", "schema_anchors"):
+        assert getattr(lifted, field) is getattr(inputs, field), field
+    assert lifted.oracle.spans is inputs.oracle.spans
+    assert lifted.oracle.obligations is inputs.oracle.obligations
+
     try:
-        lift_path(prior, current)
+        lift_path(current, current)
     except UnknownSchemaLiftError:
         pass
     else:  # pragma: no cover - would mean a self-lift got registered

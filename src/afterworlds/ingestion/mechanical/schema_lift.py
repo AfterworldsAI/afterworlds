@@ -95,6 +95,8 @@ __all__ = [
     "SCHEMA_8_VERSION",
     "SCHEMA_9_HASH",
     "SCHEMA_9_VERSION",
+    "SCHEMA_10_HASH",
+    "SCHEMA_10_VERSION",
     "SchemaLiftRecord",
     "UnknownSchemaLiftError",
     "lift_for",
@@ -122,6 +124,9 @@ SCHEMA_8_HASH = "8a125f6c4c9929109879ad98a8f14a4ec1d0c7f5fe56fe4f894dafbdf707aff
 SCHEMA_9_VERSION = "5d-representation-schema-9"
 #: Pinned literally, for the same reason every predecessor is.
 SCHEMA_9_HASH = "f5a5e30817e64f019e31aa7f4692d72611215e4294e7da36242e492bca6b336e"  # noqa: E501  # pragma: allowlist secret
+SCHEMA_10_VERSION = "5d-representation-schema-10"
+#: Pinned literally, for the same reason every predecessor is.
+SCHEMA_10_HASH = "c39e3a35e197a1d1db5c2c2b3445ff0cbf03395c91e3426353a4bce589be4be0"  # noqa: E501  # pragma: allowlist secret
 
 
 class SchemaLiftError(ValueError):
@@ -319,6 +324,49 @@ SCHEMA_LIFTS: dict[tuple[str, str], SchemaLift] = {
             "element by element rather than asserting. A schema-8 artifact is "
             "the only shape this succession carries, and it carries every one "
             "of them."
+        ),
+    ),
+    (SCHEMA_9_VERSION, SCHEMA_9_HASH): SchemaLift(
+        lift_id="5d-lift-schema-9-to-10",
+        from_version=SCHEMA_9_VERSION,
+        from_hash=SCHEMA_9_HASH,
+        to_version=SCHEMA_10_VERSION,
+        to_hash=SCHEMA_10_HASH,
+        rationale=(
+            "Schema 10 closes the cover-1 schema stops and nothing else: five "
+            "fact families over eight closed vocabularies, one per distinct "
+            "rule the Cover class prints across its glossary and combat "
+            "printings, so the defensive bonus a degree adds to AC and "
+            "Dexterity saving throws, Total Cover's prohibition on direct "
+            "targeting, what offers each degree and how much of the target it "
+            "covers, the opposite-side origin an attack or other effect must "
+            "have for cover to help, and the most-protective selection with "
+            "its no-adding restatement can be stated rather than left "
+            "UNRESOLVED. Schema 9 could already consume a degree of cover "
+            "through Applicability.cover and "
+            "BlockedLineExclusionFact.blocking_cover; neither defines what a "
+            "degree is or what it gives, which is the gap this closes. "
+            "Unlike every succession since schema 6 it does add one member to "
+            "an accepted vocabulary: CoverDegree gains half, which schema 6 "
+            "named as arriving with the batch that reads the page printing "
+            "it. That widening reaches no accepted element. A vocabulary "
+            "member's canonical payload is its own value, never its position "
+            "in a declaration, so every accepted fact carrying three_quarters "
+            "or total renders byte-identically under both contracts; schema "
+            "5-to-6 is the precedent, having added three members to "
+            "vocabularies earlier schemas already had across the same "
+            "registry. Schema 6's own registry row is frozen to the pair it "
+            "admitted rather than derived from the live enum, so half is "
+            "registered against schema 10 and a schema-6 or schema-9 artifact "
+            "stating it is refused. Beyond that member, schema 10 adds no "
+            "field to an accepted family, no ownership form, no nullable "
+            "field, no required field and no intrinsic invariant on any "
+            "family an earlier schema already had. Every accepted fact "
+            "payload, fact key, component key and provenance coordinate "
+            "therefore has the same canonical form under both contracts, "
+            "which verify_lift proves element by element rather than "
+            "asserting. A schema-9 artifact is the only shape this succession "
+            "carries, and it carries every one of them."
         ),
     ),
 }

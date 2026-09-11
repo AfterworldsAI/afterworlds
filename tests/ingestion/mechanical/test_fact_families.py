@@ -62,6 +62,7 @@ from afterworlds.ingestion.mechanical.representation import (
     Attitude,
     AutomaticOutcome,
     AutomaticOutcomeFact,
+    BenefitOriginSide,
     BlockedLineExclusionFact,
     BlockedLineQuantifier,
     ComponentDraft,
@@ -71,7 +72,18 @@ from afterworlds.ingestion.mechanical.representation import (
     ConditionLevelFact,
     ConditionRemovalRestrictionFact,
     ConsumptionBand,
+    CoverageThreshold,
+    CoverBenefitOriginFact,
+    CoverDefense,
+    CoverDefensiveBonusFact,
     CoverDegree,
+    CoverDegreeCombination,
+    CoverDegreeSelection,
+    CoverDegreeSelectionFact,
+    CoveredInteraction,
+    CoverOfferor,
+    CoverProvisionFact,
+    CoverTargetingProhibitionFact,
     CreatureAbilityScoreFact,
     CreatureChallengeFact,
     CreatureDefenseFact,
@@ -161,6 +173,7 @@ from afterworlds.ingestion.mechanical.representation import (
     StateEffectKind,
     SustainedState,
     SustainedStateRequirementFact,
+    TargetingProhibition,
     TimePeriod,
     TimeUnit,
     TrackedQuantity,
@@ -493,6 +506,47 @@ EXEMPLARS: dict[FactFamily, Any] = {
         placement=UnseenPlacement.AT_AN_UNSEEN_POINT,
         obstruction=InterveningObstruction.BETWEEN_THE_CREATOR_AND_THE_POINT,
         relocated_to=RelocatedOrigin.NEAR_SIDE_OF_THE_OBSTRUCTION,
+    ),
+    # Cover table: "Three-Quarters" / "+5 bonus to AC and Dexterity saving
+    # throws". The glossary prints the same rule in prose — "Three-Quarters
+    # Cover (+5 bonus to AC and Dexterity saving throws)" — and one fact
+    # states what both print.
+    FactFamily.COVER_DEFENSIVE_BONUS: CoverDefensiveBonusFact(
+        degree=CoverDegree.THREE_QUARTERS,
+        bonus=5,
+        to_defense=CoverDefense.ARMOR_CLASS,
+        to_saving_throw=AbilityScore.DEXTERITY,
+    ),
+    # Cover table: "Total" / "Can't be targeted directly". Total Cover is
+    # the one degree whose benefit is not a bonus, which is why it is a
+    # different family rather than a bonus of zero.
+    FactFamily.COVER_TARGETING_PROHIBITION: CoverTargetingProhibitionFact(
+        degree=CoverDegree.TOTAL,
+        prohibits=TargetingProhibition.DIRECT_TARGETING,
+    ),
+    # Cover table: "Half" / "Another creature or an object that covers at
+    # least half of the target". Half is the only degree a creature can
+    # offer; the other two name an object.
+    FactFamily.COVER_PROVISION: CoverProvisionFact(
+        degree=CoverDegree.HALF,
+        offered_by=CoverOfferor.ANOTHER_CREATURE_OR_AN_OBJECT,
+        coverage=CoverageThreshold.AT_LEAST_HALF,
+    ),
+    # Cover: "A target can benefit from cover only when an attack or other
+    # effect originates on the opposite side of the cover." Printed once,
+    # in the combat chapter, and it qualifies every degree.
+    FactFamily.COVER_BENEFIT_ORIGIN: CoverBenefitOriginFact(
+        interaction=CoveredInteraction.AN_ATTACK_OR_OTHER_EFFECT,
+        requires_origin=BenefitOriginSide.OPPOSITE_SIDE_OF_THE_COVER,
+    ),
+    # Cover: "If a target is behind multiple sources of cover, only the most
+    # protective degree of cover applies; the degrees aren't added
+    # together." The glossary prints the selection half alone — "a target
+    # benefits only from the most protective degree" — so the restatement
+    # the combat printing adds is a second field, not a second fact.
+    FactFamily.COVER_DEGREE_SELECTION: CoverDegreeSelectionFact(
+        selects=CoverDegreeSelection.MOST_PROTECTIVE,
+        combination=CoverDegreeCombination.NOT_ADDED_TOGETHER,
     ),
 }
 

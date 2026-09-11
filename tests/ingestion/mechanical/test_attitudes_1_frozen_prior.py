@@ -189,7 +189,11 @@ def test_the_registered_crossings_separate_the_prior_from_this_build() -> None:
     assert findings, "reading a superseded prior as current must be visible"
     assert any(REPRESENTATION_SCHEMA_VERSION in f for f in findings), findings
 
-    expected = ["5d-lift-schema-7-to-8", "5d-lift-schema-8-to-9"]
+    expected = [
+        "5d-lift-schema-7-to-8",
+        "5d-lift-schema-8-to-9",
+        "5d-lift-schema-9-to-10",
+    ]
     assert [step.lift_id for step in lift_path(prior, current)] == expected
     lifted, records = lift_accepted_inputs(inputs, current)
     assert [record.lift_id for record in records] == expected

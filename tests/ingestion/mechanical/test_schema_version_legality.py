@@ -91,6 +91,7 @@ from afterworlds.ingestion.mechanical.representation import (
     AttackRelativeTiming,
     Attitude,
     AutomaticOutcome,
+    BenefitOriginSide,
     BenefitUseLimit,
     BlockedLineExclusionFact,
     BlockedLineQuantifier,
@@ -100,7 +101,18 @@ from afterworlds.ingestion.mechanical.representation import (
     ConditionLevelFact,
     ConditionRemovalRestrictionFact,
     ConsumptionBand,
+    CoverageThreshold,
+    CoverBenefitOriginFact,
+    CoverDefense,
+    CoverDefensiveBonusFact,
     CoverDegree,
+    CoverDegreeCombination,
+    CoverDegreeSelection,
+    CoverDegreeSelectionFact,
+    CoveredInteraction,
+    CoverOfferor,
+    CoverProvisionFact,
+    CoverTargetingProhibitionFact,
     CreatureSize,
     DamageFact,
     DamageInterval,
@@ -153,6 +165,7 @@ from afterworlds.ingestion.mechanical.representation import (
     Skill,
     SustainedState,
     SustainedStateRequirementFact,
+    TargetingProhibition,
     TerminationScope,
     TimePeriod,
     TimeUnit,
@@ -178,6 +191,8 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_7_VERSION,
     SCHEMA_8_HASH,
     SCHEMA_8_VERSION,
+    SCHEMA_9_HASH,
+    SCHEMA_9_VERSION,
     SchemaLiftError,
     accepted_schema_contracts,
     lift_accepted_inputs,
@@ -569,6 +584,54 @@ SCHEMA_9_ONLY = [
 ]
 
 
+#: One live object per axis schema 10 added — eight closed vocabularies
+#: carried by the five families that state them, plus the one member schema
+#: 10 adds to a vocabulary schema 6 already had. ``CoverProvisionFact`` is
+#: the specimen that carries ``CoverDegree.HALF``: schema 6 registered
+#: ``three_quarters`` and ``total`` and nothing else, so a schema-6 or
+#: schema-9 reader must refuse ``half`` even though it recognises the field.
+SCHEMA_10_ONLY = [
+    pytest.param(
+        CoverDefensiveBonusFact(
+            degree=CoverDegree.THREE_QUARTERS,
+            bonus=5,
+            to_defense=CoverDefense.ARMOR_CLASS,
+            to_saving_throw=AbilityScore.DEXTERITY,
+        ),
+        id="vocabulary-cover_defense",
+    ),
+    pytest.param(
+        CoverTargetingProhibitionFact(
+            degree=CoverDegree.TOTAL,
+            prohibits=TargetingProhibition.DIRECT_TARGETING,
+        ),
+        id="vocabulary-targeting_prohibition",
+    ),
+    pytest.param(
+        CoverProvisionFact(
+            degree=CoverDegree.HALF,
+            offered_by=CoverOfferor.ANOTHER_CREATURE_OR_AN_OBJECT,
+            coverage=CoverageThreshold.AT_LEAST_HALF,
+        ),
+        id="vocabulary-cover_offeror-coverage_threshold-cover_degree_half",
+    ),
+    pytest.param(
+        CoverBenefitOriginFact(
+            interaction=CoveredInteraction.AN_ATTACK_OR_OTHER_EFFECT,
+            requires_origin=BenefitOriginSide.OPPOSITE_SIDE_OF_THE_COVER,
+        ),
+        id="vocabulary-covered_interaction-benefit_origin_side",
+    ),
+    pytest.param(
+        CoverDegreeSelectionFact(
+            selects=CoverDegreeSelection.MOST_PROTECTIVE,
+            combination=CoverDegreeCombination.NOT_ADDED_TOGETHER,
+        ),
+        id="vocabulary-cover_degree_selection-cover_degree_combination",
+    ),
+]
+
+
 # ---------------------------------------------------------------------------
 # The contract, driven from the manifest rather than from a hand-written list
 # ---------------------------------------------------------------------------
@@ -589,6 +652,7 @@ def test_every_manifest_row_has_an_exemplar_here() -> None:
         *SCHEMA_6_ONLY,
         *SCHEMA_8_ONLY,
         *SCHEMA_9_ONLY,
+        *SCHEMA_10_ONLY,
     ):
         (obj,) = param.values
         exercised |= _groups_exercised_by(obj)
@@ -641,13 +705,49 @@ def test_schema_8_refuses_every_schema_9_only_type_or_value(obj: object) -> None
 
 @pytest.mark.parametrize("obj", SCHEMA_9_ONLY)
 def test_schema_9_admits_what_it_introduced(obj: object) -> None:
-    """And the other direction, so the rule is not "refuse everything newer"."""
-    assert post_schema_3_violations(obj, REPRESENTATION_SCHEMA_VERSION) == []
+    """And the other direction, so the rule is not "refuse everything newer".
+
+    Pinned to ``SCHEMA_9_VERSION`` rather than to live authority now that
+    schema 10 exists. Read against the live pair this would keep passing for
+    the wrong reason — a later contract admits its predecessor's content —
+    and schema 9's own admission would stop being asserted anywhere.
+    """
+    assert post_schema_3_violations(obj, SCHEMA_9_VERSION) == []
 
 
 @pytest.mark.parametrize("obj", SCHEMA_8_ONLY)
 def test_schema_9_still_admits_every_schema_8_introduction(obj: object) -> None:
     """Schema 9 widened the union; it narrowed nothing schema 8 could state."""
+    assert post_schema_3_violations(obj, SCHEMA_9_VERSION) == []
+
+
+@pytest.mark.parametrize("obj", SCHEMA_10_ONLY)
+def test_schema_9_refuses_every_schema_10_only_type_or_value(
+    obj: object,
+) -> None:
+    """The succession cover-1 needs, in the direction that makes it one.
+
+    Schema 9 can already *consume* a degree of cover — ``Applicability.cover``
+    and ``BlockedLineExclusionFact.blocking_cover`` both read one — which is
+    exactly why this is asserted per specimen rather than assumed. Consuming
+    a degree is not defining it, and the third specimen goes further still:
+    it carries ``CoverDegree.HALF``, a member of a vocabulary schema 6
+    already declared, and schema 9 must refuse it on the member alone.
+    """
+    assert post_schema_3_violations(obj, SCHEMA_9_VERSION), obj
+
+
+@pytest.mark.parametrize("obj", SCHEMA_10_ONLY)
+def test_schema_10_admits_what_it_introduced(obj: object) -> None:
+    """And the other direction, so the rule is not "refuse everything newer"."""
+    assert post_schema_3_violations(obj, REPRESENTATION_SCHEMA_VERSION) == []
+
+
+@pytest.mark.parametrize("obj", SCHEMA_9_ONLY)
+def test_schema_10_still_admits_every_schema_9_introduction(
+    obj: object,
+) -> None:
+    """Schema 10 widened the union; it narrowed nothing schema 9 could state."""
     assert post_schema_3_violations(obj, REPRESENTATION_SCHEMA_VERSION) == []
 
 
@@ -1125,13 +1225,14 @@ def test_the_recognized_contracts_are_exactly_the_live_pair_and_the_registry() -
         (SCHEMA_4_VERSION, SCHEMA_4_HASH),
         # Schema 5 joins the set by becoming the *source* of a registered lift,
         # which is exactly how schema 3 and schema 4 are here. Schema 6 joins it
-        # the same way at schema 7, schema 7 at schema 8, and schema 8 at
-        # schema 9. The rule is the registry, not a list of versions somebody
-        # kept up to date.
+        # the same way at schema 7, schema 7 at schema 8, schema 8 at schema 9,
+        # and schema 9 at schema 10. The rule is the registry, not a list of
+        # versions somebody kept up to date.
         (SCHEMA_5_VERSION, SCHEMA_5_HASH),
         (SCHEMA_6_VERSION, SCHEMA_6_HASH),
         (SCHEMA_7_VERSION, SCHEMA_7_HASH),
         (SCHEMA_8_VERSION, SCHEMA_8_HASH),
+        (SCHEMA_9_VERSION, SCHEMA_9_HASH),
     }
 
 
