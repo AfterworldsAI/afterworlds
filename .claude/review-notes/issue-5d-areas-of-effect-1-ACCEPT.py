@@ -18,22 +18,39 @@ the Owner, not the agent that ran this file.
 It is an **acceptance** operation, not a regeneration and not a semantic
 revision. It changes no proposal, no audit, no schema, no policy, and nothing
 under `src/` except the one accepted-authority artifact it is authorized to
-extend. It does not hand-convert the proposal JSON into accepted authority — the
-reviewed `MechanicalProposal` is rebuilt by executing the reviewed generator and
-its identity and payload hash are asserted before acceptance. It does not create
-a second oracle file; the resolver refuses two artifacts claiming one release, so
-this batch *extends* the existing one. It does not publish, activate, or retire
-anything, and it closes nothing.
+extend. In acceptance mode the reviewed `MechanicalProposal` is rebuilt by
+executing the reviewed generator; in `--verify` it is reconstructed from the
+committed proposal JSON and proved to be that proposal by round-tripping its
+payload back to those exact bytes. Neither mode hand-converts the proposal JSON
+into accepted authority: both hand the rebuilt object to the one native
+`accept_proposal` seam and both assert its identity and payload hash before
+doing so. It does not create a second oracle file; the resolver refuses two
+artifacts claiming one release, so this batch *extends* the existing one. It
+does not publish, activate, or retire anything, and it closes nothing.
 
 Re-running it is refused once the acceptance exists, and refused early: in
 acceptance mode the prior is the **live** artifact, pinned by content digest and
 Git blob, so the moment accepted authority moves past this batch the run stops
 before the generator executes and long before anything is written. Pass
-`--verify` to re-check the post-acceptance assertions against the committed
-artifact without attempting the acceptance again; that mode reads the frozen
-four-batch fixture as the prior, because after acceptance the live file *is* the
-merged result and reading it as "the prior" would make every preservation
-comparison compare the artifact to itself.
+`--verify` to rebuild the merge and re-check it against the committed artifact
+without attempting the acceptance again; that mode reads the frozen four-batch
+fixture as the prior, because after acceptance the live file *is* the merged
+result and reading it as "the prior" would make every preservation comparison
+compare the artifact to itself.
+
+**What `--verify` reproduces, and from what.** It reconstructs the reviewed
+proposal from the committed proposal JSON, derives the accepted scope *in its
+recorded order* from the digest-pinned discovery manifest, calls the same
+`accept_proposal` seam over the frozen prior, serializes the result in the one
+committed form, and asserts the bytes equal the committed artifact's. Nothing in
+that chain is read from the artifact being checked, and nothing is written: the
+expected result is built in memory and compared, so a difference anywhere in the
+merged file is refused, not only in the fields sampled further down. The scope
+order matters because `resolved_scope` is retained verbatim while every other
+collection is canonicalized — the generator emitted it in manifest clause order,
+the proposal JSON sorts its spans canonically, and the accepted order is the
+former. It is recovered from the manifest rather than re-read from the artifact,
+so the check cannot pass by copying its own subject.
 
 **What acceptance did not make true.** This batch is the first accepted over a
 prior it does not help close: it resolves **none** of the citations the prior
@@ -62,10 +79,12 @@ the committed proposal, the committed audit
 all tracked repository files. The audit is pinned by canonical-LF digest below
 and cross-checked on exactly the fields it carries — identity, schema, prior
 digests, reviewed counts and dispositions, the reference scope and the
-succession step. The accepted scope is derived from the proposal itself, never
-from the audit. Every input this script requires is a tracked repository file,
-so `--verify` reproduces on any checkout rather than only on the machine the
-review ran on.
+succession step. The accepted scope is derived from the proposal and the
+digest-pinned discovery manifest, never from the audit and never from the
+artifact under check. Every input either mode requires — the generator, the
+proposal, the audit, the discovery manifest, the frozen prior and the committed
+SRD PDF — is a tracked repository file, so `--verify` reproduces on any checkout
+rather than only on the machine the review ran on.
 """
 
 from __future__ import annotations
@@ -75,7 +94,6 @@ import json
 import os
 import runpy
 import sys
-from dataclasses import dataclass
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -86,13 +104,23 @@ sys.path.insert(0, str(REPO / "src"))
 GENERATOR = HERE / "issue-5d-batch-areas-of-effect-1-generator.py"
 PROPOSAL_FILE = HERE / "issue-5d-batch-areas-of-effect-1-PROPOSAL.json"
 AUDIT_FILE = HERE / "issue-5d-batch-areas-of-effect-1-audit.json"
+
+#: The reviewed source inventory, and the only retained record of the order the
+#: accepted scope was selected in. The generator walks its clause rows in file
+#: order, which is what fixed `resolved_scope`; the proposal JSON sorts its spans
+#: canonically and so cannot state that order. Pinned by the same canonical-LF
+#: digest the generator pins, so verification cannot silently follow a different
+#: inventory than the one that was reviewed.
+MANIFEST_FILE = HERE / "issue-5d-areas-of-effect-1-source-manifest.json"
+MANIFEST_SHA256 = "5932c353dfd7d67756eeac72876705f5a60c5f2fe8175a7e78fdc0eb8c0d8b9c"  # noqa: E501  # pragma: allowlist secret
+
 ACCEPTED_PATH = (
     REPO
     / "src/afterworlds/ingestion/mechanical/oracles"
     / "srd-5-2-1-corpus-36b786d8-fa2.json"
 )
 
-for _p in (GENERATOR, PROPOSAL_FILE, AUDIT_FILE, ACCEPTED_PATH):
+for _p in (GENERATOR, PROPOSAL_FILE, AUDIT_FILE, MANIFEST_FILE, ACCEPTED_PATH):
     assert _p.exists(), _p
 
 # --- The pinned reviewed proposal ------------------------------------------
@@ -259,6 +287,7 @@ from afterworlds.ingestion.corpus.policy import exclusion_reason_for  # noqa: E4
 from afterworlds.ingestion.corpus.reconcile import _full_coverage_edges  # noqa: E402
 from afterworlds.ingestion.mechanical.acceptance import accept_proposal  # noqa: E402
 from afterworlds.ingestion.mechanical.accounting import (  # noqa: E402
+    derive_span_id,
     validate_acceptance,
 )
 from afterworlds.ingestion.mechanical.bound_corpus import (  # noqa: E402
@@ -271,14 +300,19 @@ from afterworlds.ingestion.mechanical.models import (  # noqa: E402
 )
 from afterworlds.ingestion.mechanical.oracle import (  # noqa: E402
     ACCEPTED_ARTIFACT_KIND,
+    _representation,
+    _span,
     accepted_inputs_payload,
     load_accepted_inputs,
     oracle_identity,
 )
 from afterworlds.ingestion.mechanical.projection import (  # noqa: E402
+    ReleaseBinding,
     representation_payload,
 )
 from afterworlds.ingestion.mechanical.proposal import (  # noqa: E402
+    MechanicalProposal,
+    ProposedSpan,
     proposal_identity,
     proposal_payload,
 )
@@ -351,13 +385,57 @@ def _count_facts(payload: object) -> int:
     return 0
 
 
-@dataclass(frozen=True)
-class _Reviewed:
-    """One reviewed span, as the committed proposal states it."""
+def _reconstruct_proposal(document: dict[str, object]) -> MechanicalProposal:
+    """The reviewed `MechanicalProposal`, rebuilt from the committed proposal JSON.
 
-    span_id: str
-    leaf_id: str
-    disposition: SemanticDisposition
+    Used by `--verify`, which must not run the generator: the generator writes
+    the proposal and audit files, and a verification that writes is not a
+    verification. Deserialization goes through the loader's own field parsers
+    (`_span`, `_representation`) rather than a second hand-written reader, so a
+    field this script forgot to carry cannot be quietly dropped instead of
+    rejected.
+
+    Fidelity is not taken on trust from those parsers either. The caller
+    round-trips the result back through `proposal_payload` and asserts equality
+    with the committed bytes, which is what makes "reconstructed from the
+    retained proposal" a checked claim rather than an assertion about this
+    function.
+
+    `_span` stamps `ReviewState.ACCEPTED` because an oracle span is accepted by
+    construction. That is immaterial here: review state is not part of any
+    payload, and `accept_proposal` restamps every in-scope span regardless.
+    """
+    spans = []
+    for index, raw in enumerate(document["proposed_spans"]):  # type: ignore[attr-defined]
+        assert isinstance(raw, dict), raw
+        spans.append(
+            ProposedSpan(
+                span=_span(
+                    {
+                        k: v
+                        for k, v in raw.items()
+                        if k not in ("proposal_origin", "rationale")
+                    },
+                    index,
+                ),
+                origin=str(raw["proposal_origin"]),
+                rationale=str(raw["rationale"]),
+            )
+        )
+    schema = document["representation_schema"]
+    assert isinstance(schema, dict), schema
+    binding = document["release_binding"]
+    assert isinstance(binding, dict), binding
+    return MechanicalProposal(
+        binding=ReleaseBinding(**binding),
+        policy_version=str(document["semantic_policy_version"]),
+        policy_hash=str(document["semantic_policy_hash"]),
+        schema_version=str(schema["version"]),
+        schema_hash=str(schema["hash"]),
+        proposed_spans=tuple(spans),
+        proposed_representation=_representation(document["proposed_representation"]),
+        proposal_origin=str(document["proposal_origin"]),
+    )
 
 
 def _identifiers(path: Path) -> tuple[str, str, str]:
@@ -480,9 +558,31 @@ assert _audit_content_before == AUDIT_CONTENT_SHA256, _audit_content_before
 #: The Owner's authorization names this hash explicitly, so it is checked against
 #: the bytes on disk first and against the rebuilt object second.
 assert (
-    hash_obj(json.loads(PROPOSAL_FILE.read_text(encoding="utf-8")))
-    == PROPOSAL_IDENTITY
+    hash_obj(json.loads(PROPOSAL_FILE.read_text(encoding="utf-8"))) == PROPOSAL_IDENTITY
 ), "the committed proposal JSON is not the proposal the Owner named"
+
+# --- The recorded selection order, recovered from the reviewed inventory ----
+#
+# `resolved_scope` is the one field acceptance retains *verbatim*: spans, diffs
+# and every representation collection are canonicalized on serialization, so the
+# only order that survives into the artifact is the order the scope was handed
+# over in. The generator handed over manifest clause order, which the canonically
+# sorted proposal JSON does not preserve.
+#
+# So the order is recovered here from the manifest itself, whose digest is pinned
+# to the value the generator asserts. Span ids are re-derived from each clause's
+# leaf and half-open extent through the same `derive_span_id` the generator uses,
+# never read back from the artifact under check — an expected value copied from
+# its own subject would make the comparison below vacuous.
+_manifest_raw, MANIFEST_DIGEST, _manifest_blob = _identifiers(MANIFEST_FILE)
+assert MANIFEST_DIGEST == MANIFEST_SHA256, MANIFEST_DIGEST
+MANIFEST = json.loads(MANIFEST_FILE.read_text(encoding="utf-8"))
+MANIFEST_SCOPE = tuple(
+    derive_span_id(str(row["leaf_id"]), int(row["char_start"]), int(row["char_end"]))
+    for row in MANIFEST["clauses"]
+)
+assert len(MANIFEST_SCOPE) == BATCH_COUNTS["spans"], len(MANIFEST_SCOPE)
+assert len(set(MANIFEST_SCOPE)) == len(MANIFEST_SCOPE), "a clause id repeats"
 
 if not VERIFY_ONLY:
     os.environ["AREASOFEFFECT1_RERUN"] = "1"
@@ -513,27 +613,63 @@ if not VERIFY_ONLY:
         proposal_payload(PROPOSAL) == _committed_proposal
     ), "the rebuilt proposal differs from the committed proposal JSON"
 
-    # --- The scope: every proposed span, in the proposal's own order --------
+    # --- The scope: every proposed span, in the generator's emission order --
     RESOLVED_SCOPE = tuple(p.span.span_id for p in PROPOSAL.proposed_spans)
-    _spans_reviewed = [p.span for p in PROPOSAL.proposed_spans]
+    #: The generator emitted in manifest clause order, and the manifest is what
+    #: `--verify` recovers that order from. Asserted here so the two derivations
+    #: are known to agree on the run that actually creates the authority, rather
+    #: than only claimed to by the mode that checks it afterwards.
+    assert RESOLVED_SCOPE == MANIFEST_SCOPE, "the emission order left the manifest"
+    SCOPE_SOURCE = "the reviewed generator's emission order (manifest clause order)"
 else:
+    # The generator is deliberately *not* run here: it writes the proposal and
+    # the audit, and a verification that writes has verified nothing about the
+    # bytes that were already there. The reviewed object is reconstructed from
+    # the committed proposal JSON instead, and then proved to be that proposal
+    # by round-tripping it back to those exact bytes.
     _committed_proposal = json.loads(PROPOSAL_FILE.read_text(encoding="utf-8"))
-    PROPOSAL_PAYLOAD_HASH = hash_obj(_committed_proposal)
+    PROPOSAL = _reconstruct_proposal(_committed_proposal)
+
+    #: Two independent checks on the reconstruction, in this order. Payload
+    #: equality is the strong one: every field of every span, component, fact,
+    #: binding and provenance claim has to come back identical, so a field this
+    #: script failed to carry fails here rather than passing as a subset. The
+    #: identity check then ties the reconstruction to the hash the Owner's
+    #: authorization names by its own words.
+    assert (
+        proposal_payload(PROPOSAL) == _committed_proposal
+    ), "the reconstructed proposal does not round-trip to the committed JSON"
+    assert proposal_identity(PROPOSAL) == PROPOSAL_IDENTITY, proposal_identity(PROPOSAL)
+    PROPOSAL_PAYLOAD_HASH = hash_obj(proposal_payload(PROPOSAL))
     assert PROPOSAL_PAYLOAD_HASH == PROPOSAL_IDENTITY, PROPOSAL_PAYLOAD_HASH
-    _proposal_raw_after, _proposal_content_after, _proposal_blob_after = (
-        _proposal_raw_before,
-        _proposal_content_before,
-        _proposal_blob_before,
+    assert PROPOSAL.schema_version == SCHEMA_VERSION
+    assert PROPOSAL.schema_hash == SCHEMA_HASH
+    assert not schema_binding_violations(
+        PROPOSAL.proposed_representation, (SCHEMA_VERSION, SCHEMA_HASH)
     )
-    _spans_reviewed = [
-        _Reviewed(
-            span_id=p["span_id"],
-            leaf_id=p["leaf_id"],
-            disposition=SemanticDisposition(p["disposition"]),
-        )
-        for p in _committed_proposal["proposed_spans"]
-    ]
-    RESOLVED_SCOPE = tuple(p.span_id for p in _spans_reviewed)
+
+    #: Nothing was written, so the pre-run identifiers are still the file's.
+    #: Re-read rather than aliased, so a mode that somehow did write would be
+    #: caught by the assertions rather than reported with stale values.
+    (
+        _proposal_raw_after,
+        _proposal_content_after,
+        _proposal_blob_after,
+    ) = _identifiers(PROPOSAL_FILE)
+    assert _proposal_content_after == PROPOSAL_CONTENT_SHA256, _proposal_content_after
+    assert _identifiers(AUDIT_FILE)[1] == AUDIT_CONTENT_SHA256, "the audit changed"
+
+    RESOLVED_SCOPE = MANIFEST_SCOPE
+    SCOPE_SOURCE = "manifest clause order, re-derived from the pinned inventory"
+    #: The reconstructed proposal proposed exactly the spans the manifest names.
+    #: Set equality, because the proposal's own order is canonical and is not the
+    #: recorded one; the order claim is the manifest's and is asserted by the
+    #: full byte comparison in section 3 rather than by a second reading here.
+    assert set(RESOLVED_SCOPE) == {
+        p.span.span_id for p in PROPOSAL.proposed_spans
+    }, "the manifest and the committed proposal name different spans"
+
+_spans_reviewed = [p.span for p in PROPOSAL.proposed_spans]
 
 assert _committed_proposal["representation_schema"] == {
     "version": SCHEMA_VERSION,
@@ -562,7 +698,8 @@ _audit_prior = _audit["accepted_prior"]
 _audit_refs = _audit["reference_scope"]
 MATCHES_RETAINED_AUDIT = {
     "proposal_identity": _audit["proposal_identity"] == PROPOSAL_IDENTITY,
-    "schema": _audit["representation_schema"] == {
+    "schema": _audit["representation_schema"]
+    == {
         "version": SCHEMA_VERSION,
         "hash": SCHEMA_HASH,
     },
@@ -597,8 +734,7 @@ MATCHES_RETAINED_AUDIT = {
         == sorted(MISSING_REFERENCE_TARGETS)
     ),
     "resolved_by_this_batch": (
-        sorted(_audit_refs["resolved_by_this_batch"])
-        == sorted(RESOLVED_BY_THIS_BATCH)
+        sorted(_audit_refs["resolved_by_this_batch"]) == sorted(RESOLVED_BY_THIS_BATCH)
     ),
     "succession_step": _audit["schema_succession"]["steps"] == EXPECTED_LIFT_IDS,
     "no_open_schema_stop": _audit["review_disposition"]["open_schema_stops"] == [],
@@ -641,17 +777,60 @@ RULE = (
     "Owner's and the execution is not a review."
 )
 
-if not VERIFY_ONLY:
-    ACCEPTED = accept_proposal(
-        PROPOSAL,
-        batch_id=BATCH_ID,
-        rule=RULE,
-        resolved_scope=RESOLVED_SCOPE,
-        reviewer=REVIEWER,
-        accepted_at=ACCEPTED_AT,
-        prior=PRIOR,
+#: **The merge itself, computed in both modes.** Acceptance and verification run
+#: the same native seam over the same prior with the same scope, rule, reviewer
+#: and timestamp — every one of which is a pinned constant or derived from a
+#: pinned input above. Only the *writing* is conditional: verification produces
+#: the expected artifact in memory and compares it, which is the whole point of
+#: the mode. Nothing is reaccepted on disk and no second authority is created.
+ACCEPTED = accept_proposal(
+    PROPOSAL,
+    batch_id=BATCH_ID,
+    rule=RULE,
+    resolved_scope=RESOLVED_SCOPE,
+    reviewer=REVIEWER,
+    accepted_at=ACCEPTED_AT,
+    prior=PRIOR,
+)
+EXPECTED_BYTES = (
+    json.dumps(
+        accepted_inputs_payload(ACCEPTED), indent=2, sort_keys=True, ensure_ascii=False
     )
+    + "\n"
+).encode("utf-8")
+
+if not VERIFY_ONLY:
     WRITTEN = _write_artifact(ACCEPTED_PATH, accepted_inputs_payload(ACCEPTED))
+    assert WRITTEN == EXPECTED_BYTES, "the written bytes are not the computed merge"
+
+# --- The complete comparison, before any sampled property is looked at ------
+#
+# This is the claim the reproduction rests on, and it is deliberately total: the
+# expected artifact is rebuilt from retained inputs and compared **byte for
+# byte** against the committed one. It subsumes every pin, count, set and tally
+# below — those stay because they name *what* differs when something does, but
+# none of them is what makes the reproduction sound. A field nobody thought to
+# sample still fails here.
+#
+# It is stated before the three identity pins rather than after, so it cannot be
+# read as a consequence of them: an artifact that satisfied all three pins and
+# still differed somewhere the oracle identity excludes would be refused on this
+# line.
+_committed_bytes = ACCEPTED_PATH.read_bytes().replace(b"\r\n", b"\n")
+REBUILT_ARTIFACT_IS_BYTE_IDENTICAL = _committed_bytes == EXPECTED_BYTES
+if not REBUILT_ARTIFACT_IS_BYTE_IDENTICAL:
+    _expected_doc = json.loads(EXPECTED_BYTES.decode("utf-8"))
+    _committed_doc = json.loads(_committed_bytes.decode("utf-8"))
+    _differing = sorted(
+        key
+        for key in sorted(set(_expected_doc) | set(_committed_doc))
+        if _expected_doc.get(key) != _committed_doc.get(key)
+    )
+    raise AssertionError(
+        "the merge rebuilt from the retained proposal, the pinned manifest and "
+        "the frozen prior is not the committed artifact; top-level keys that "
+        f"differ: {_differing or ['(none - byte-level difference only)']}"
+    )
 
 # From here the committed file is the subject: every assertion below reads what
 # was actually written, not the in-memory result that produced it.
@@ -771,14 +950,14 @@ MISSING_PRIOR_ELEMENTS = {
     for coll in sorted(REPRESENTATION_COLLECTIONS)
 }
 for _coll in REPRESENTATION_COLLECTIONS:
-    if not VERIFY_ONLY:
-        # The acceptance seam keeps prior items first, so the in-memory result
-        # carries them as a byte-identical prefix. There is no in-memory result
-        # under --verify, and the serialized order is canonical rather than
-        # prior-first, so this is the one claim that is acceptance-only.
-        _prior_elements = getattr(PRIOR.oracle.representation, _coll)
-        _in_memory = getattr(ACCEPTED.oracle.representation, _coll)
-        assert _in_memory[: len(_prior_elements)] == _prior_elements, _coll
+    # The acceptance seam keeps prior items first, so the in-memory result
+    # carries them as an element-identical prefix — a property of the merge that
+    # serialization then hides, because the committed order is canonical rather
+    # than prior-first. Checked in **both** modes: verification computes the same
+    # in-memory merge, so this is no longer an acceptance-only claim.
+    _prior_elements = getattr(PRIOR.oracle.representation, _coll)
+    _in_memory = getattr(ACCEPTED.oracle.representation, _coll)
+    assert _in_memory[: len(_prior_elements)] == _prior_elements, _coll
     assert not MISSING_PRIOR_ELEMENTS[_coll], (
         _coll,
         len(MISSING_PRIOR_ELEMENTS[_coll]),
@@ -864,8 +1043,7 @@ _components = {
     (c.record_key, c.semantic_key): c for c in RESULT.oracle.representation.components
 }
 _bound = {
-    (b.record_key, b.component_key)
-    for b in RESULT.oracle.representation.prose_bindings
+    (b.record_key, b.component_key) for b in RESULT.oracle.representation.prose_bindings
 }
 _blocked = _components[("glossary.area_of_effect", "blocked_line_exclusion")]
 _unseen = _components[("glossary.area_of_effect", "unseen_origin_relocation")]
@@ -979,12 +1157,11 @@ assert (
     == RESOLVED_BY_THIS_BATCH
 ), (PRIOR_UNRESOLVED_REFERENCES, UNRESOLVED_REFERENCES)
 assert (
-    set(UNRESOLVED_REFERENCES) - set(PRIOR_UNRESOLVED_REFERENCES)
-    == ADDED_BY_THIS_BATCH
+    set(UNRESOLVED_REFERENCES) - set(PRIOR_UNRESOLVED_REFERENCES) == ADDED_BY_THIS_BATCH
 ), (PRIOR_UNRESOLVED_REFERENCES, UNRESOLVED_REFERENCES)
-assert len(REPRESENTATION_FINDINGS) == len(MISSING_REFERENCE_TARGETS), (
-    REPRESENTATION_FINDINGS
-)
+assert len(REPRESENTATION_FINDINGS) == len(
+    MISSING_REFERENCE_TARGETS
+), REPRESENTATION_FINDINGS
 assert all(
     any(target in finding for target in MISSING_REFERENCE_TARGETS)
     for finding in REPRESENTATION_FINDINGS
@@ -1033,7 +1210,17 @@ REPORT = {
         "leaves": LEAVES,
         "records": len(AREA_RECORDS),
         "dispositions": DISPOSITIONS,
+        "order_source": SCOPE_SOURCE,
     },
+    "source_manifest_sha256": MANIFEST_DIGEST,
+    #: The whole reproduction claim, in one boolean. The expected artifact is
+    #: rebuilt from the retained proposal, the pinned manifest and the frozen
+    #: prior through `accept_proposal`, and compared byte for byte. Independent
+    #: of the three identity pins below and asserted before them: every other
+    #: field in this report samples the result, and this one compares all of it.
+    "reconstructed_artifact_byte_identical_to_committed": (
+        REBUILT_ARTIFACT_IS_BYTE_IDENTICAL
+    ),
     "matches_retained_audit": MATCHES_RETAINED_AUDIT,
     "semantic_diff_tally": DIFF_TALLY,
     "merged_counts": MEASURED,

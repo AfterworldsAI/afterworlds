@@ -14,6 +14,12 @@ Performed through the repository's real `accept_proposal` path. Every claim belo
 decision; the script executed the recorded action and reviewed nothing** — the report says so in a
 field of its own rather than leaving the distinction to a reader.
 
+> **Round-1 remediation, PR #165.** The `--verify` mode described below previously sampled the
+> committed artifact where this document said it re-derived the merge. It now rebuilds the complete
+> expected artifact from retained inputs and compares it byte for byte, writing nothing; the
+> accepted artifact, proposal, frozen prior, recorded acceptance metadata and schema pin are
+> byte-unchanged. Detail in `.claude/review-notes/pr-165-issue-5d-remediation-log.md`.
+
 | | |
 |---|---|
 | Batch | `areas-of-effect-1` |
@@ -80,9 +86,10 @@ one made: an audit written by the generator is in-repo evidence of what was prop
 independent second observation of it. The weaker claim is the true one and is stated in the script's
 module docstring as well as here.
 
-Every input `--verify` requires is a tracked repository file: the proposal, the audit, the generator,
-the frozen four-batch prior and the `afterworlds` package. Nothing is read from a private workstation
-path, so the reproduction below runs in any checkout.
+Every input `--verify` requires is a tracked repository file: the proposal, the audit, the discovery
+source manifest (canonical-LF `5932c353…0d8b9c`, the same digest the generator pins), the frozen
+four-batch prior, the committed SRD PDF and the `afterworlds` package. Nothing is read from a private
+workstation path, so the reproduction below runs in any checkout.
 
 The semantic diff is retained in full inside the batch record, 43 entries, tallying
 `none → substantive: 24` and `none → supporting_authority: 19`. Nothing was previously judged, so no
@@ -93,7 +100,29 @@ prior disposition moved.
 | Mode | Prior read | Purpose |
 |---|---|---|
 | default | the **live** committed artifact | performs the acceptance; a stale rerun fails early rather than double-merging |
-| `--verify` | the **frozen four-batch fixture** | re-derives the whole merge from repository inputs and compares it to the committed result |
+| `--verify` | the **frozen four-batch fixture** | rebuilds the whole merge in memory from repository inputs and compares it to the committed result **byte for byte**; writes nothing |
+
+`--verify` does not run the generator — the generator writes the proposal and the audit, and a
+verification that writes has verified nothing about the bytes that were already there. Instead it
+reconstructs the reviewed `MechanicalProposal` from the committed proposal JSON through the loader's
+own field parsers, and proves it *is* that proposal by round-tripping the result back through
+`proposal_payload` to those exact bytes and re-deriving the pinned proposal identity. It then hands
+that object to the same `accept_proposal` seam the acceptance used.
+
+The accepted scope is handed over **in its recorded order**, re-derived from the digest-pinned
+discovery manifest. `resolved_scope` is the one field acceptance retains verbatim — spans, diffs and
+every representation collection are canonicalized on serialization — and the generator emitted it in
+manifest clause order, which the canonically sorted proposal JSON does not preserve. Reading the
+order back from the artifact would make the comparison test nothing, so it is rebuilt from the
+inventory instead and the acceptance run asserts the two derivations agree.
+
+The comparison is total and is stated **before** the three identity pins, so it cannot be read as a
+consequence of them: a difference anywhere in the merged file fails, including in fields no sampled
+assertion covers. `test_areas_of_effect_1_acceptance_reproduction.py` is the regression coverage,
+written as a second independent implementation, and its third test demonstrates the gap the byte
+comparison closes — accepting the identical span set in the proposal's canonical order yields an
+artifact with the same `oracle_identity`, the same counts, the same dispositions, the same unresolved
+citations and no acceptance findings, and different bytes.
 
 The frozen prior is
 `tests/ingestion/mechanical/data/accepted_prior_conditions_1_hazards_1_actions_1_attitudes_1.json`
@@ -165,12 +194,19 @@ python .claude/review-notes/issue-5d-areas-of-effect-1-ACCEPT.py --verify
 pytest -q --no-cov tests/ingestion/mechanical/
 ```
 
-`--verify` reads only tracked repository inputs, re-derives the merge from the frozen four-batch prior
-and the retained proposal, and compares it to the committed artifact. It ends with
+`--verify` reads only tracked repository inputs, rebuilds the complete merged artifact in memory from
+the frozen four-batch prior, the retained proposal and the pinned source manifest, and compares it to
+the committed file byte for byte. It ends with
+`reconstructed_artifact_byte_identical_to_committed: true`,
 `accepted_artifact_matches_pinned_merged_identity: true` and
-`frozen_four_batch_prior_untouched: true`. It **writes nothing**: run after the reconciliation above,
-`git status --porcelain -- src/` showed no working-tree modification, and the report parsed equal to
-the one taken at acceptance.
+`frozen_four_batch_prior_untouched: true`. It **writes nothing**: `git status --porcelain -- src/
+tests/ .claude/review-notes/issue-5d-areas-of-effect-1-source-manifest.json` is empty after it runs,
+and the accepted artifact, proposal and audit digests are re-asserted unchanged during the run.
+
+The default mode still refuses a stale rerun, and refuses it first: with the acceptance in place it
+fails on the live artifact's pinned prior digest at
+`assert _prior_content_sha == PRIOR_CONTENT_SHA256`, before the generator executes and before
+anything is written.
 
 The full stdout of the acceptance run itself is retained untracked under
 `.claude/review-notes/accept-run/` as `areasofeffect1-acceptance-run.log`, with the JSON report split
@@ -178,6 +214,13 @@ out as `areasofeffect1-acceptance-report.json`; the pre-commit verification is
 `areasofeffect1-verify-pre-commit.json`. The acceptance run's stdout is not pure JSON because the
 script executes the generator through `runpy` first — that is why the log and the report are two
 files rather than one.
+
+The round-1 remediation evidence is retained beside them: `areasofeffect1-verify-remediated.json`
+(the rebuilt-and-compared run), `areasofeffect1-stale-rerun-refused.err` (the default mode still
+refusing on the live prior digest) and `areasofeffect1-scope-order-refusal-proof.err` — an untracked
+copy of the script with `RESOLVED_SCOPE` taken from the proposal's canonical order instead of the
+manifest's, which exits 1 on the new comparison with `top-level keys that differ: ['acceptance']`
+while the committed artifact remains byte-unchanged and still satisfies all three identity pins.
 
 ## Which committed checks changed, and why each had to
 
@@ -227,10 +270,11 @@ Run on the final branch head.
 
 | Gate | Result |
 |---|---|
-| `black --check src/ tests/` | pass — 466 files unchanged |
+| `black --check src/ tests/` | pass — 467 files unchanged |
 | `ruff check src/ tests/` | pass |
 | `mypy src/` | pass — no issues in 225 source files |
-| `pytest -q` (full suite, attached to completion) | pass - **5502 passed, 10 skipped** in 1369.79s; total coverage 94.14%, above the 80% floor |
+| `pytest -q --no-cov tests/ingestion/mechanical/` | pass — **2527 passed** in 182.41s |
+| `pytest -q` (full suite, attached to completion) | pass - **5506 passed, 10 skipped** in 1744.81s; total coverage 94.14%, above the 80% floor |
 | `detect-secrets` pre-commit hook on the staged set | pass, exit 0 |
 | `pip-audit` | **nonzero — 22 known vulnerabilities across 9 packages** |
 
@@ -241,11 +285,22 @@ Run on the final branch head.
 `pydantic-settings 2.14.0` (CVE-2026-58203 → 2.14.2), `pytest 9.0.2` (PYSEC-2026-1845 → 9.0.3),
 `urllib3 2.6.3` (PYSEC-2026-141, -142 → 2.7.0). `afterworlds 0.1.0` is skipped as not on PyPI.
 
-**Disposition: pre-existing, untouched, and out of this change's scope.** This change edits no
-dependency: `pyproject.toml`'s only modification is a package-data *comment*. Every finding predates
-it and is unrelated to CRD Issue 5d. No audit suppression, no `npm`/`pip` audit fix, no version bump
-and no environment maintenance was performed, and the gate was not weakened to accommodate them.
-Dependency remediation is separate work with its own review.
+**Disposition: untouched by this change, and out of its scope.** Stated as what was actually
+verified, not as a chronology:
+
+* the audit exits **1** locally, with the 22 findings above, and is reported at that value;
+* this branch changes **no dependency**. `git diff origin/main...HEAD` touches no lock file, no
+  requirements file and no dependency specification; `pyproject.toml`'s only modification is a
+  package-data *comment*;
+* no audit configuration, ignore list or suppression was added or changed, and the gate was not
+  weakened.
+
+An earlier revision of this section said every finding *predates* the change. That claim was
+supported only by the dependencies being unchanged, which does not establish when an advisory was
+published; establishing it would mean auditing `main` in the same environment and reading advisory
+dates, which this change does not do. The three verified facts above are what is asserted instead.
+No audit suppression, no `npm`/`pip` audit fix, no version bump and no environment maintenance was
+performed. Dependency remediation is separate work with its own review.
 
 ## Architecture Notes
 
