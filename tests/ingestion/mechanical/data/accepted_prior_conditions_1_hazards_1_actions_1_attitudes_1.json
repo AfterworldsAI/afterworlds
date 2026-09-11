@@ -1468,360 +1468,6 @@
         "semantic_diff_hash": "a816d5dd47a5b7798ea921d58ddda3e22fe0c4db2346e4bde9ce491bed7a76b8"
       },
       {
-        "batch_id": "areas-of-effect-1",
-        "diff": [
-          {
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "05a58c24-4518-5c70-b353-933440fb0c7d"
-          },
-          {
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "0d6471e2-ec81-513b-b37c-07970e517731"
-          },
-          {
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "167fc4ba-4b7a-5e4f-874e-9bf37f2187cb"
-          },
-          {
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "1c7b804e-5713-50e9-8be7-d3735ce29a05"
-          },
-          {
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "4857bb6a-a058-5fde-a786-5af81d8e90ab"
-          },
-          {
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "64170c93-5588-5547-9841-71e1faaeaaba"
-          },
-          {
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "72c47c82-aee7-5ee6-8e29-0a39f948b0ca"
-          },
-          {
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "754863c1-5f4e-5bdc-8993-69f1835da231"
-          },
-          {
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "7ed90529-e766-51bc-b534-a05c4deed3e1"
-          },
-          {
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "80a0324c-c2a9-56cd-a359-e71c9862762e"
-          },
-          {
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "81910437-b819-5288-9d96-63f725d3b4bf"
-          },
-          {
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "8319ed74-9f55-5e40-86ee-0dd7d97b601f"
-          },
-          {
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "880bd572-7fde-5914-8fe8-01509253b9d9"
-          },
-          {
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "8a47ec00-afdc-522b-80ef-dd4c1a44e436"
-          },
-          {
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "8eee5d4d-bf82-5bf9-b045-74f1a717588b"
-          },
-          {
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "9d313e99-98b7-52fc-bd2b-7a7d9113ab23"
-          },
-          {
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "a088d31c-ba2e-54d3-8995-cea6d4464334"
-          },
-          {
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "a5fe1887-a450-5cf4-a6db-f90eac4212eb"
-          },
-          {
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "a680f5dd-a93b-5051-bb43-2f9f65488645"
-          },
-          {
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "a6f36dad-3710-500d-9a80-6be235ab178b"
-          },
-          {
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "b0dfe8e4-0584-582f-9323-523d50e1b061"
-          },
-          {
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "bd54a3bc-d30d-5476-b991-0d99ec354fc1"
-          },
-          {
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "d29d9c85-ec33-5679-8bbb-ca2c7f117ce1"
-          },
-          {
-            "accepted_disposition": "substantive",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "e50f4cae-b4e4-5e0c-99ce-d3c5cdb380f1"
-          },
-          {
-            "accepted_disposition": "supporting_authority",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "08834572-01e2-5b2f-8e97-2f09242ea1f9"
-          },
-          {
-            "accepted_disposition": "supporting_authority",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "1cdfae19-3d46-5a9c-b8d1-79224d797fad"
-          },
-          {
-            "accepted_disposition": "supporting_authority",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "25d15049-fc1a-52ae-aba1-1aa70d0dec7c"
-          },
-          {
-            "accepted_disposition": "supporting_authority",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "3914ccf0-0a12-5263-8648-e622038d3043"
-          },
-          {
-            "accepted_disposition": "supporting_authority",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "444755af-296c-5bab-9be9-532f2e592575"
-          },
-          {
-            "accepted_disposition": "supporting_authority",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "587daf0f-c92a-53d7-8dd2-e63ceec90b95"
-          },
-          {
-            "accepted_disposition": "supporting_authority",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "8411c0f4-6fb7-5b5e-a2ea-f38ec2bbf47d"
-          },
-          {
-            "accepted_disposition": "supporting_authority",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "979c555f-8058-59d6-a0fc-a02edd4c2c37"
-          },
-          {
-            "accepted_disposition": "supporting_authority",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "9e353bb0-9d61-549d-b26f-3f868709f5cd"
-          },
-          {
-            "accepted_disposition": "supporting_authority",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "b8960978-bf84-5191-8135-013c2cbebbef"
-          },
-          {
-            "accepted_disposition": "supporting_authority",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "b8b990bd-9b62-549f-9bd7-48bc5c63a24f"
-          },
-          {
-            "accepted_disposition": "supporting_authority",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "ba004b5a-bd89-5dcd-b74b-78d603981724"
-          },
-          {
-            "accepted_disposition": "supporting_authority",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "ce8e8678-822c-5f9f-88b9-caa4d2477b90"
-          },
-          {
-            "accepted_disposition": "supporting_authority",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "d1422b1e-c238-5069-8145-64707025893d"
-          },
-          {
-            "accepted_disposition": "supporting_authority",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "dcfc2c61-fd26-5dc2-9d7d-35dc356672e3"
-          },
-          {
-            "accepted_disposition": "supporting_authority",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "ea9eac60-ed28-540f-998a-3a02c32f7d51"
-          },
-          {
-            "accepted_disposition": "supporting_authority",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "f2096b71-2e95-5698-97df-138c7fc46427"
-          },
-          {
-            "accepted_disposition": "supporting_authority",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "f29e11a3-2a81-5ea8-b9bb-d4a14208c86e"
-          },
-          {
-            "accepted_disposition": "supporting_authority",
-            "accepted_reason_code": null,
-            "prior_disposition": null,
-            "prior_reason_code": null,
-            "span_id": "f2b49a90-df9c-55b6-8563-dd947139a35c"
-          }
-        ],
-        "proposal_identity": "d602f4e59ab90dbb04852661f78f03e2e311025e80be03f39f4b324f2c6d6878",
-        "resolved_scope": [
-          "9e353bb0-9d61-549d-b26f-3f868709f5cd",
-          "b8b990bd-9b62-549f-9bd7-48bc5c63a24f",
-          "f29e11a3-2a81-5ea8-b9bb-d4a14208c86e",
-          "ea9eac60-ed28-540f-998a-3a02c32f7d51",
-          "b8960978-bf84-5191-8135-013c2cbebbef",
-          "1cdfae19-3d46-5a9c-b8d1-79224d797fad",
-          "8411c0f4-6fb7-5b5e-a2ea-f38ec2bbf47d",
-          "3914ccf0-0a12-5263-8648-e622038d3043",
-          "587daf0f-c92a-53d7-8dd2-e63ceec90b95",
-          "9d313e99-98b7-52fc-bd2b-7a7d9113ab23",
-          "f2096b71-2e95-5698-97df-138c7fc46427",
-          "a5fe1887-a450-5cf4-a6db-f90eac4212eb",
-          "d29d9c85-ec33-5679-8bbb-ca2c7f117ce1",
-          "dcfc2c61-fd26-5dc2-9d7d-35dc356672e3",
-          "979c555f-8058-59d6-a0fc-a02edd4c2c37",
-          "05a58c24-4518-5c70-b353-933440fb0c7d",
-          "25d15049-fc1a-52ae-aba1-1aa70d0dec7c",
-          "bd54a3bc-d30d-5476-b991-0d99ec354fc1",
-          "0d6471e2-ec81-513b-b37c-07970e517731",
-          "ce8e8678-822c-5f9f-88b9-caa4d2477b90",
-          "a6f36dad-3710-500d-9a80-6be235ab178b",
-          "e50f4cae-b4e4-5e0c-99ce-d3c5cdb380f1",
-          "08834572-01e2-5b2f-8e97-2f09242ea1f9",
-          "8319ed74-9f55-5e40-86ee-0dd7d97b601f",
-          "880bd572-7fde-5914-8fe8-01509253b9d9",
-          "81910437-b819-5288-9d96-63f725d3b4bf",
-          "d1422b1e-c238-5069-8145-64707025893d",
-          "754863c1-5f4e-5bdc-8993-69f1835da231",
-          "1c7b804e-5713-50e9-8be7-d3735ce29a05",
-          "64170c93-5588-5547-9841-71e1faaeaaba",
-          "f2b49a90-df9c-55b6-8563-dd947139a35c",
-          "8a47ec00-afdc-522b-80ef-dd4c1a44e436",
-          "7ed90529-e766-51bc-b534-a05c4deed3e1",
-          "8eee5d4d-bf82-5bf9-b045-74f1a717588b",
-          "b0dfe8e4-0584-582f-9323-523d50e1b061",
-          "444755af-296c-5bab-9be9-532f2e592575",
-          "a088d31c-ba2e-54d3-8995-cea6d4464334",
-          "4857bb6a-a058-5fde-a786-5af81d8e90ab",
-          "80a0324c-c2a9-56cd-a359-e71c9862762e",
-          "ba004b5a-bd89-5dcd-b74b-78d603981724",
-          "167fc4ba-4b7a-5e4f-874e-9bf37f2187cb",
-          "72c47c82-aee7-5ee6-8e29-0a39f948b0ca",
-          "a680f5dd-a93b-5051-bb43-2f9f65488645"
-        ],
-        "rule": "Owner authorization recorded at 2026-09-11T05:30:17Z, verbatim: 'I accept all 43 spans and the complete representation of proposal d602f4e59ab90dbb04852661f78f03e2e311025e80be03f39f4b324f2c6d6878 as batch areas-of-effect-1, extending the preserved prior through the registered schema transitions.' Applied to CRD Issue 5d batch areas-of-effect-1, proposal identity d602f4e59ab90dbb04852661f78f03e2e311025e80be03f39f4b324f2c6d6878 under representation schema 5d-representation-schema-9 over 5c release 4458fa10-4a66-5e0e-9ecc-ea37530ad2b4/5.2.1-corpus.36b786d8-fa2. The scope is the complete proposed span set and nothing outside it: 43 spans over 20 represented 5c leaves and 7 records — the Area of Effect umbrella glossary rule and the six shapes Cone, Cube, Cylinder, Emanation, Line and Sphere — with 24 substantive and 19 supporting-authority dispositions, and zero unresolved and zero non-mechanical. All 43 source obligations are discharged by carriage rather than by assertion: 24 typed, 0 prose-bound and 19 supporting-authority-only (10 record-owned, 7 reference-owned and 2 bounding a fact). The eight schema stops the discovery checkpoint found — G1 through G8, the origin and its extent, the per-shape dimension parameters, origin inclusion, origin movement, the Cone width relation, the blocked-line exclusion and its Total Cover threshold, and the unseen origin relocation — were all closed at representation schema 9 before review, by adding seven fact families and eleven closed vocabularies; the prior accepted schema-8 authority is carried forward by the single registered lift 5d-lift-schema-8-to-9. This acceptance resolves none of the citations the prior could not resolve and adds one of its own: the umbrella's printed See-also citation of glossary.cover, which no accepted batch defines and which this batch does not ingest. glossary.concentration and glossary.speed remain unresolved from the prior. All three remain publication blockers until the batches that define them are accepted, and no target was invented for any of them. Schema 9 names geometry; it supplies no runtime geometry, traces no line and evaluates no distance. Recorded by an agent executing this authorization; the decision is the Owner's and the execution is not a review.",
-        "semantic_diff_hash": "b84b2b04e2769709213d0b7aa913c6f932b0f5321ed512e93a4f0320b1e28e97"
-      },
-      {
         "batch_id": "attitudes-1",
         "diff": [
           {
@@ -4359,21 +4005,6 @@
         "lift_id": "5d-lift-schema-7-to-8",
         "to_hash": "8a125f6c4c9929109879ad98a8f14a4ec1d0c7f5fe56fe4f894dafbdf707afff",
         "to_version": "5d-representation-schema-8",
-        "verified_collections": [
-          "components",
-          "prose_bindings",
-          "provenance",
-          "records",
-          "references",
-          "relationships"
-        ]
-      },
-      {
-        "from_hash": "8a125f6c4c9929109879ad98a8f14a4ec1d0c7f5fe56fe4f894dafbdf707afff",
-        "from_version": "5d-representation-schema-8",
-        "lift_id": "5d-lift-schema-8-to-9",
-        "to_hash": "f5a5e30817e64f019e31aa7f4692d72611215e4294e7da36242e492bca6b336e",
-        "to_version": "5d-representation-schema-9",
         "verified_collections": [
           "components",
           "prose_bindings",
@@ -7306,264 +6937,6 @@
         "batch_id": "attitudes-1",
         "reviewer": "Ravenlok (Owner)",
         "span_id": "fcd321e6-517c-5047-98dd-aec102802b5c"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "05a58c24-4518-5c70-b353-933440fb0c7d"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "08834572-01e2-5b2f-8e97-2f09242ea1f9"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "0d6471e2-ec81-513b-b37c-07970e517731"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "167fc4ba-4b7a-5e4f-874e-9bf37f2187cb"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "1c7b804e-5713-50e9-8be7-d3735ce29a05"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "1cdfae19-3d46-5a9c-b8d1-79224d797fad"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "25d15049-fc1a-52ae-aba1-1aa70d0dec7c"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "3914ccf0-0a12-5263-8648-e622038d3043"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "444755af-296c-5bab-9be9-532f2e592575"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "4857bb6a-a058-5fde-a786-5af81d8e90ab"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "587daf0f-c92a-53d7-8dd2-e63ceec90b95"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "64170c93-5588-5547-9841-71e1faaeaaba"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "72c47c82-aee7-5ee6-8e29-0a39f948b0ca"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "754863c1-5f4e-5bdc-8993-69f1835da231"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "7ed90529-e766-51bc-b534-a05c4deed3e1"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "80a0324c-c2a9-56cd-a359-e71c9862762e"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "81910437-b819-5288-9d96-63f725d3b4bf"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "8319ed74-9f55-5e40-86ee-0dd7d97b601f"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "8411c0f4-6fb7-5b5e-a2ea-f38ec2bbf47d"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "880bd572-7fde-5914-8fe8-01509253b9d9"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "8a47ec00-afdc-522b-80ef-dd4c1a44e436"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "8eee5d4d-bf82-5bf9-b045-74f1a717588b"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "979c555f-8058-59d6-a0fc-a02edd4c2c37"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "9d313e99-98b7-52fc-bd2b-7a7d9113ab23"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "9e353bb0-9d61-549d-b26f-3f868709f5cd"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "a088d31c-ba2e-54d3-8995-cea6d4464334"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "a5fe1887-a450-5cf4-a6db-f90eac4212eb"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "a680f5dd-a93b-5051-bb43-2f9f65488645"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "a6f36dad-3710-500d-9a80-6be235ab178b"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "b0dfe8e4-0584-582f-9323-523d50e1b061"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "b8960978-bf84-5191-8135-013c2cbebbef"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "b8b990bd-9b62-549f-9bd7-48bc5c63a24f"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "ba004b5a-bd89-5dcd-b74b-78d603981724"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "bd54a3bc-d30d-5476-b991-0d99ec354fc1"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "ce8e8678-822c-5f9f-88b9-caa4d2477b90"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "d1422b1e-c238-5069-8145-64707025893d"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "d29d9c85-ec33-5679-8bbb-ca2c7f117ce1"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "dcfc2c61-fd26-5dc2-9d7d-35dc356672e3"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "e50f4cae-b4e4-5e0c-99ce-d3c5cdb380f1"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "ea9eac60-ed28-540f-998a-3a02c32f7d51"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "f2096b71-2e95-5698-97df-138c7fc46427"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "f29e11a3-2a81-5ea8-b9bb-d4a14208c86e"
-      },
-      {
-        "accepted_at": "2026-09-11T05:30:17Z",
-        "batch_id": "areas-of-effect-1",
-        "reviewer": "Ravenlok (Owner)",
-        "span_id": "f2b49a90-df9c-55b6-8563-dd947139a35c"
       }
     ],
     "schema_anchors": [
@@ -7590,12 +6963,6 @@
         "proposal_identity": "c571dfd6b829852e58ca066f8735b6d5944cb51c0f4b42c82052d876392bff22",
         "schema_hash": "8a125f6c4c9929109879ad98a8f14a4ec1d0c7f5fe56fe4f894dafbdf707afff",
         "schema_version": "5d-representation-schema-8"
-      },
-      {
-        "batch_id": "areas-of-effect-1",
-        "proposal_identity": "d602f4e59ab90dbb04852661f78f03e2e311025e80be03f39f4b324f2c6d6878",
-        "schema_hash": "f5a5e30817e64f019e31aa7f4692d72611215e4294e7da36242e492bca6b336e",
-        "schema_version": "5d-representation-schema-9"
       }
     ]
   },
@@ -8004,81 +7371,9 @@
     {
       "kind": "glossary_rule",
       "prose_bound_components": [],
-      "record_key": "area_of_effect.cone",
-      "structured_fact_families": [
-        "area_dimension_requirement",
-        "area_origin",
-        "area_origin_inclusion",
-        "area_width_relation"
-      ]
-    },
-    {
-      "kind": "glossary_rule",
-      "prose_bound_components": [],
-      "record_key": "area_of_effect.cube",
-      "structured_fact_families": [
-        "area_dimension_requirement",
-        "area_origin",
-        "area_origin_inclusion"
-      ]
-    },
-    {
-      "kind": "glossary_rule",
-      "prose_bound_components": [],
-      "record_key": "area_of_effect.cylinder",
-      "structured_fact_families": [
-        "area_dimension_requirement",
-        "area_origin",
-        "area_origin_inclusion"
-      ]
-    },
-    {
-      "kind": "glossary_rule",
-      "prose_bound_components": [],
-      "record_key": "area_of_effect.emanation",
-      "structured_fact_families": [
-        "area_dimension_requirement",
-        "area_origin",
-        "area_origin_inclusion",
-        "area_origin_movement"
-      ]
-    },
-    {
-      "kind": "glossary_rule",
-      "prose_bound_components": [],
-      "record_key": "area_of_effect.line",
-      "structured_fact_families": [
-        "area_dimension_requirement",
-        "area_origin",
-        "area_origin_inclusion"
-      ]
-    },
-    {
-      "kind": "glossary_rule",
-      "prose_bound_components": [],
-      "record_key": "area_of_effect.sphere",
-      "structured_fact_families": [
-        "area_dimension_requirement",
-        "area_origin",
-        "area_origin_inclusion"
-      ]
-    },
-    {
-      "kind": "glossary_rule",
-      "prose_bound_components": [],
       "record_key": "attitude.indifferent",
       "structured_fact_families": [
         "default_attitude"
-      ]
-    },
-    {
-      "kind": "glossary_rule",
-      "prose_bound_components": [],
-      "record_key": "glossary.area_of_effect",
-      "structured_fact_families": [
-        "area_origin",
-        "blocked_line_exclusion",
-        "unseen_origin_relocation"
       ]
     },
     {
@@ -8783,22 +8078,6 @@
         "fact_qualifiers": [],
         "facts": [
           {
-            "blocked": "all_straight_lines_from_the_point_of_origin",
-            "blocking_cover": "total",
-            "family": "blocked_line_exclusion"
-          }
-        ],
-        "handling": "structured",
-        "irreducibility_reason_code": null,
-        "options": [],
-        "record_key": "glossary.area_of_effect",
-        "semantic_key": "blocked_line_exclusion"
-      },
-      {
-        "applies_when": null,
-        "fact_qualifiers": [],
-        "facts": [
-          {
             "can_increase": false,
             "change": "set_to",
             "family": "speed_modification",
@@ -9316,110 +8595,6 @@
         "fact_qualifiers": [],
         "facts": [
           {
-            "dimensions": [
-              "distance_it_extends"
-            ],
-            "family": "area_dimension_requirement"
-          }
-        ],
-        "handling": "structured",
-        "irreducibility_reason_code": null,
-        "options": [],
-        "record_key": "area_of_effect.emanation",
-        "semantic_key": "area_dimension_requirement"
-      },
-      {
-        "applies_when": null,
-        "fact_qualifiers": [],
-        "facts": [
-          {
-            "dimensions": [
-              "distance_it_extends_as_the_radius"
-            ],
-            "family": "area_dimension_requirement"
-          }
-        ],
-        "handling": "structured",
-        "irreducibility_reason_code": null,
-        "options": [],
-        "record_key": "area_of_effect.sphere",
-        "semantic_key": "area_dimension_requirement"
-      },
-      {
-        "applies_when": null,
-        "fact_qualifiers": [],
-        "facts": [
-          {
-            "dimensions": [
-              "length",
-              "width"
-            ],
-            "family": "area_dimension_requirement"
-          }
-        ],
-        "handling": "structured",
-        "irreducibility_reason_code": null,
-        "options": [],
-        "record_key": "area_of_effect.line",
-        "semantic_key": "area_dimension_requirement"
-      },
-      {
-        "applies_when": null,
-        "fact_qualifiers": [],
-        "facts": [
-          {
-            "dimensions": [
-              "maximum_length"
-            ],
-            "family": "area_dimension_requirement"
-          }
-        ],
-        "handling": "structured",
-        "irreducibility_reason_code": null,
-        "options": [],
-        "record_key": "area_of_effect.cone",
-        "semantic_key": "area_dimension_requirement"
-      },
-      {
-        "applies_when": null,
-        "fact_qualifiers": [],
-        "facts": [
-          {
-            "dimensions": [
-              "radius_of_the_base",
-              "height"
-            ],
-            "family": "area_dimension_requirement"
-          }
-        ],
-        "handling": "structured",
-        "irreducibility_reason_code": null,
-        "options": [],
-        "record_key": "area_of_effect.cylinder",
-        "semantic_key": "area_dimension_requirement"
-      },
-      {
-        "applies_when": null,
-        "fact_qualifiers": [],
-        "facts": [
-          {
-            "dimensions": [
-              "size_the_length_of_each_side"
-            ],
-            "family": "area_dimension_requirement"
-          }
-        ],
-        "handling": "structured",
-        "irreducibility_reason_code": null,
-        "options": [],
-        "record_key": "area_of_effect.cube",
-        "semantic_key": "area_dimension_requirement"
-      },
-      {
-        "applies_when": null,
-        "fact_qualifiers": [],
-        "facts": [
-          {
             "effect": "aging_suspended",
             "family": "state_effect"
           }
@@ -9474,125 +8649,6 @@
         "options": [],
         "record_key": "condition.unconscious",
         "semantic_key": "unaware"
-      },
-      {
-        "applies_when": null,
-        "fact_qualifiers": [],
-        "facts": [
-          {
-            "extent": "straight_lines",
-            "family": "area_origin",
-            "origin": "point",
-            "placement": "anywhere_on_a_face_of_the_cube"
-          }
-        ],
-        "handling": "structured",
-        "irreducibility_reason_code": null,
-        "options": [],
-        "record_key": "area_of_effect.cube",
-        "semantic_key": "area_origin"
-      },
-      {
-        "applies_when": null,
-        "fact_qualifiers": [],
-        "facts": [
-          {
-            "extent": "straight_lines",
-            "family": "area_origin",
-            "origin": "point",
-            "placement": "center_of_the_circular_top_or_bottom"
-          }
-        ],
-        "handling": "structured",
-        "irreducibility_reason_code": null,
-        "options": [],
-        "record_key": "area_of_effect.cylinder",
-        "semantic_key": "area_origin"
-      },
-      {
-        "applies_when": null,
-        "fact_qualifiers": [],
-        "facts": [
-          {
-            "extent": "straight_lines_in_a_direction_its_creator_chooses",
-            "family": "area_origin",
-            "origin": "point",
-            "placement": null
-          }
-        ],
-        "handling": "structured",
-        "irreducibility_reason_code": null,
-        "options": [],
-        "record_key": "area_of_effect.cone",
-        "semantic_key": "area_origin"
-      },
-      {
-        "applies_when": null,
-        "fact_qualifiers": [],
-        "facts": [
-          {
-            "extent": "straight_lines_in_all_directions",
-            "family": "area_origin",
-            "origin": "creature_or_object",
-            "placement": null
-          }
-        ],
-        "handling": "structured",
-        "irreducibility_reason_code": null,
-        "options": [],
-        "record_key": "area_of_effect.emanation",
-        "semantic_key": "area_origin"
-      },
-      {
-        "applies_when": null,
-        "fact_qualifiers": [],
-        "facts": [
-          {
-            "extent": "straight_lines_outward_in_all_directions",
-            "family": "area_origin",
-            "origin": "point",
-            "placement": null
-          }
-        ],
-        "handling": "structured",
-        "irreducibility_reason_code": null,
-        "options": [],
-        "record_key": "area_of_effect.sphere",
-        "semantic_key": "area_origin"
-      },
-      {
-        "applies_when": null,
-        "fact_qualifiers": [],
-        "facts": [
-          {
-            "extent": "straight_path_along_its_length_covering_the_area_its_width_defines",
-            "family": "area_origin",
-            "origin": "point",
-            "placement": null
-          }
-        ],
-        "handling": "structured",
-        "irreducibility_reason_code": null,
-        "options": [],
-        "record_key": "area_of_effect.line",
-        "semantic_key": "area_origin"
-      },
-      {
-        "applies_when": null,
-        "fact_qualifiers": [],
-        "facts": [
-          {
-            "extent": null,
-            "family": "area_origin",
-            "origin": "point",
-            "placement": null
-          }
-        ],
-        "handling": "structured",
-        "irreducibility_reason_code": null,
-        "options": [],
-        "record_key": "glossary.area_of_effect",
-        "semantic_key": "area_origin"
       },
       {
         "applies_when": null,
@@ -10018,129 +9074,6 @@
         "fact_qualifiers": [],
         "facts": [
           {
-            "family": "area_origin_inclusion",
-            "inclusion": "excluded_unless_its_creator_decides_otherwise"
-          }
-        ],
-        "handling": "structured",
-        "irreducibility_reason_code": null,
-        "options": [],
-        "record_key": "area_of_effect.cone",
-        "semantic_key": "area_origin_inclusion"
-      },
-      {
-        "applies_when": null,
-        "fact_qualifiers": [],
-        "facts": [
-          {
-            "family": "area_origin_inclusion",
-            "inclusion": "excluded_unless_its_creator_decides_otherwise"
-          }
-        ],
-        "handling": "structured",
-        "irreducibility_reason_code": null,
-        "options": [],
-        "record_key": "area_of_effect.cube",
-        "semantic_key": "area_origin_inclusion"
-      },
-      {
-        "applies_when": null,
-        "fact_qualifiers": [],
-        "facts": [
-          {
-            "family": "area_origin_inclusion",
-            "inclusion": "excluded_unless_its_creator_decides_otherwise"
-          }
-        ],
-        "handling": "structured",
-        "irreducibility_reason_code": null,
-        "options": [],
-        "record_key": "area_of_effect.emanation",
-        "semantic_key": "area_origin_inclusion"
-      },
-      {
-        "applies_when": null,
-        "fact_qualifiers": [],
-        "facts": [
-          {
-            "family": "area_origin_inclusion",
-            "inclusion": "excluded_unless_its_creator_decides_otherwise"
-          }
-        ],
-        "handling": "structured",
-        "irreducibility_reason_code": null,
-        "options": [],
-        "record_key": "area_of_effect.line",
-        "semantic_key": "area_origin_inclusion"
-      },
-      {
-        "applies_when": null,
-        "fact_qualifiers": [],
-        "facts": [
-          {
-            "family": "area_origin_inclusion",
-            "inclusion": "included"
-          }
-        ],
-        "handling": "structured",
-        "irreducibility_reason_code": null,
-        "options": [],
-        "record_key": "area_of_effect.cylinder",
-        "semantic_key": "area_origin_inclusion"
-      },
-      {
-        "applies_when": null,
-        "fact_qualifiers": [],
-        "facts": [
-          {
-            "family": "area_origin_inclusion",
-            "inclusion": "included"
-          }
-        ],
-        "handling": "structured",
-        "irreducibility_reason_code": null,
-        "options": [],
-        "record_key": "area_of_effect.sphere",
-        "semantic_key": "area_origin_inclusion"
-      },
-      {
-        "applies_when": null,
-        "fact_qualifiers": [],
-        "facts": [
-          {
-            "family": "area_origin_movement",
-            "suspended_by_any_of": [
-              "instantaneous_effect",
-              "stationary_effect"
-            ]
-          }
-        ],
-        "handling": "structured",
-        "irreducibility_reason_code": null,
-        "options": [],
-        "record_key": "area_of_effect.emanation",
-        "semantic_key": "area_origin_movement"
-      },
-      {
-        "applies_when": null,
-        "fact_qualifiers": [],
-        "facts": [
-          {
-            "family": "area_width_relation",
-            "relation": "equal_to_that_points_distance_from_the_point_of_origin"
-          }
-        ],
-        "handling": "structured",
-        "irreducibility_reason_code": null,
-        "options": [],
-        "record_key": "area_of_effect.cone",
-        "semantic_key": "area_width_relation"
-      },
-      {
-        "applies_when": null,
-        "fact_qualifiers": [],
-        "facts": [
-          {
             "family": "automatic_outcome",
             "outcome": "failure",
             "roll": {
@@ -10482,23 +9415,6 @@
         "options": [],
         "record_key": "action.ready",
         "semantic_key": "ready_resolution"
-      },
-      {
-        "applies_when": null,
-        "fact_qualifiers": [],
-        "facts": [
-          {
-            "family": "unseen_origin_relocation",
-            "obstruction": "between_the_creator_and_the_point",
-            "placement": "at_an_unseen_point",
-            "relocated_to": "near_side_of_the_obstruction"
-          }
-        ],
-        "handling": "structured",
-        "irreducibility_reason_code": null,
-        "options": [],
-        "record_key": "glossary.area_of_effect",
-        "semantic_key": "unseen_origin_relocation"
       },
       {
         "applies_when": null,
@@ -11881,14 +10797,6 @@
       },
       {
         "role": "contextual",
-        "span_id": "08834572-01e2-5b2f-8e97-2f09242ea1f9",
-        "target_key": [
-          "area_of_effect.cube"
-        ],
-        "target_kind": "record"
-      },
-      {
-        "role": "contextual",
         "span_id": "0b208860-0b07-5eab-84b0-c5aaad23140b",
         "target_key": [
           "glossary.action",
@@ -12104,18 +11012,6 @@
       },
       {
         "role": "contextual",
-        "span_id": "1cdfae19-3d46-5a9c-b8d1-79224d797fad",
-        "target_key": [
-          "glossary.area_of_effect",
-          "",
-          "Cylinder",
-          "srd-5.2.1/rules-glossary",
-          "area_of_effect.cylinder"
-        ],
-        "target_kind": "reference"
-      },
-      {
-        "role": "contextual",
         "span_id": "1ce5b6cd-412c-5bfb-98f4-81d7b265870d",
         "target_key": [
           "condition.exhaustion"
@@ -12181,14 +11077,6 @@
         "span_id": "24c88490-0154-5c91-a0ad-9250dfd9f769",
         "target_key": [
           "action.disengage"
-        ],
-        "target_kind": "record"
-      },
-      {
-        "role": "contextual",
-        "span_id": "25d15049-fc1a-52ae-aba1-1aa70d0dec7c",
-        "target_key": [
-          "area_of_effect.cone"
         ],
         "target_kind": "record"
       },
@@ -12464,18 +11352,6 @@
       },
       {
         "role": "contextual",
-        "span_id": "3914ccf0-0a12-5263-8648-e622038d3043",
-        "target_key": [
-          "glossary.area_of_effect",
-          "",
-          "Line",
-          "srd-5.2.1/rules-glossary",
-          "area_of_effect.line"
-        ],
-        "target_kind": "reference"
-      },
-      {
-        "role": "contextual",
         "span_id": "39ba4b77-436c-5f3a-9859-b16831536ca9",
         "target_key": [
           "glossary.attitude",
@@ -12609,14 +11485,6 @@
       },
       {
         "role": "contextual",
-        "span_id": "444755af-296c-5bab-9be9-532f2e592575",
-        "target_key": [
-          "area_of_effect.line"
-        ],
-        "target_kind": "record"
-      },
-      {
-        "role": "contextual",
         "span_id": "44d0875e-8c8e-58d0-9294-fa50181c7f74",
         "target_key": [
           "condition.unconscious",
@@ -12741,18 +11609,6 @@
           "glossary.hazard"
         ],
         "target_kind": "record"
-      },
-      {
-        "role": "contextual",
-        "span_id": "587daf0f-c92a-53d7-8dd2-e63ceec90b95",
-        "target_key": [
-          "glossary.area_of_effect",
-          "",
-          "Sphere",
-          "srd-5.2.1/rules-glossary",
-          "area_of_effect.sphere"
-        ],
-        "target_kind": "reference"
       },
       {
         "role": "contextual",
@@ -13192,18 +12048,6 @@
       },
       {
         "role": "contextual",
-        "span_id": "8411c0f4-6fb7-5b5e-a2ea-f38ec2bbf47d",
-        "target_key": [
-          "glossary.area_of_effect",
-          "",
-          "Emanation",
-          "srd-5.2.1/rules-glossary",
-          "area_of_effect.emanation"
-        ],
-        "target_kind": "reference"
-      },
-      {
-        "role": "contextual",
         "span_id": "843a2620-80a4-5989-a9ff-db5250f6cfca",
         "target_key": [
           "glossary.hazard",
@@ -13394,18 +12238,6 @@
       },
       {
         "role": "contextual",
-        "span_id": "979c555f-8058-59d6-a0fc-a02edd4c2c37",
-        "target_key": [
-          "glossary.area_of_effect",
-          "",
-          "Cover",
-          "srd-5.2.1/rules-glossary",
-          "glossary.cover"
-        ],
-        "target_kind": "reference"
-      },
-      {
-        "role": "contextual",
         "span_id": "9a6bc7d4-9419-5f9f-b0b7-b97aaad43b1f",
         "target_key": [
           "action.utilize",
@@ -13426,14 +12258,6 @@
         "span_id": "9cd85974-aec4-569a-b280-e15f3545c01a",
         "target_key": [
           "attitude.hostile"
-        ],
-        "target_kind": "record"
-      },
-      {
-        "role": "contextual",
-        "span_id": "9e353bb0-9d61-549d-b26f-3f868709f5cd",
-        "target_key": [
-          "glossary.area_of_effect"
         ],
         "target_kind": "record"
       },
@@ -13647,26 +12471,6 @@
       },
       {
         "role": "contextual",
-        "span_id": "b8960978-bf84-5191-8135-013c2cbebbef",
-        "target_key": [
-          "glossary.area_of_effect",
-          "",
-          "Cube",
-          "srd-5.2.1/rules-glossary",
-          "area_of_effect.cube"
-        ],
-        "target_kind": "reference"
-      },
-      {
-        "role": "contextual",
-        "span_id": "b8b990bd-9b62-549f-9bd7-48bc5c63a24f",
-        "target_key": [
-          "glossary.area_of_effect"
-        ],
-        "target_kind": "record"
-      },
-      {
-        "role": "contextual",
         "span_id": "b8c7c745-4336-5b04-9b77-d32502e721a0",
         "target_key": [
           "glossary.hazard",
@@ -13676,14 +12480,6 @@
           "hazard.suffocation"
         ],
         "target_kind": "reference"
-      },
-      {
-        "role": "contextual",
-        "span_id": "ba004b5a-bd89-5dcd-b74b-78d603981724",
-        "target_key": [
-          "area_of_effect.sphere"
-        ],
-        "target_kind": "record"
       },
       {
         "role": "contextual",
@@ -13806,16 +12602,6 @@
       },
       {
         "role": "contextual",
-        "span_id": "ce8e8678-822c-5f9f-88b9-caa4d2477b90",
-        "target_key": [
-          "area_of_effect.cone",
-          "area_width_relation",
-          "2079399d7f5b6919"
-        ],
-        "target_kind": "fact"
-      },
-      {
-        "role": "contextual",
         "span_id": "cf3edc8b-eb02-561b-9a13-ca368fe752f2",
         "target_key": [
           "condition.poisoned"
@@ -13827,14 +12613,6 @@
         "span_id": "d025d170-fad3-5eee-98de-9b032328bfaf",
         "target_key": [
           "condition.charmed"
-        ],
-        "target_kind": "record"
-      },
-      {
-        "role": "contextual",
-        "span_id": "d1422b1e-c238-5069-8145-64707025893d",
-        "target_key": [
-          "area_of_effect.cylinder"
         ],
         "target_kind": "record"
       },
@@ -13962,14 +12740,6 @@
       },
       {
         "role": "contextual",
-        "span_id": "dcfc2c61-fd26-5dc2-9d7d-35dc356672e3",
-        "target_key": [
-          "glossary.area_of_effect"
-        ],
-        "target_kind": "record"
-      },
-      {
-        "role": "contextual",
         "span_id": "dddfb422-bf33-5cc0-b762-0454a205ad09",
         "target_key": [
           "glossary.action",
@@ -14057,18 +12827,6 @@
           "inactive"
         ],
         "target_kind": "component"
-      },
-      {
-        "role": "contextual",
-        "span_id": "ea9eac60-ed28-540f-998a-3a02c32f7d51",
-        "target_key": [
-          "glossary.area_of_effect",
-          "",
-          "Cone",
-          "srd-5.2.1/rules-glossary",
-          "area_of_effect.cone"
-        ],
-        "target_kind": "reference"
       },
       {
         "role": "contextual",
@@ -14197,32 +12955,6 @@
           "ready_trigger"
         ],
         "target_kind": "component"
-      },
-      {
-        "role": "contextual",
-        "span_id": "f2096b71-2e95-5698-97df-138c7fc46427",
-        "target_key": [
-          "glossary.area_of_effect",
-          "area_origin",
-          "0171f5d7d7581b32"
-        ],
-        "target_kind": "fact"
-      },
-      {
-        "role": "contextual",
-        "span_id": "f29e11a3-2a81-5ea8-b9bb-d4a14208c86e",
-        "target_key": [
-          "glossary.area_of_effect"
-        ],
-        "target_kind": "record"
-      },
-      {
-        "role": "contextual",
-        "span_id": "f2b49a90-df9c-55b6-8563-dd947139a35c",
-        "target_key": [
-          "area_of_effect.emanation"
-        ],
-        "target_kind": "record"
       },
       {
         "role": "contextual",
@@ -14401,16 +13133,6 @@
       },
       {
         "role": "primary",
-        "span_id": "05a58c24-4518-5c70-b353-933440fb0c7d",
-        "target_key": [
-          "glossary.area_of_effect",
-          "unseen_origin_relocation",
-          "9503f1af74b4456b"
-        ],
-        "target_kind": "fact"
-      },
-      {
-        "role": "primary",
         "span_id": "05b99d36-265c-541f-97d0-2d3c85c0b0c4",
         "target_key": [
           "hazard.dehydration",
@@ -14527,16 +13249,6 @@
       },
       {
         "role": "primary",
-        "span_id": "0d6471e2-ec81-513b-b37c-07970e517731",
-        "target_key": [
-          "area_of_effect.cone",
-          "area_width_relation",
-          "2079399d7f5b6919"
-        ],
-        "target_kind": "fact"
-      },
-      {
-        "role": "primary",
         "span_id": "0e71af43-f5f8-5c61-bda4-05a3b65c1b01",
         "target_key": [
           "hazard.burning",
@@ -14582,16 +13294,6 @@
           "hazard.falling",
           "fall_damage",
           "0617d42b33c8b298"
-        ],
-        "target_kind": "fact"
-      },
-      {
-        "role": "primary",
-        "span_id": "167fc4ba-4b7a-5e4f-874e-9bf37f2187cb",
-        "target_key": [
-          "area_of_effect.sphere",
-          "area_origin",
-          "147f69f0fac3f107"
         ],
         "target_kind": "fact"
       },
@@ -14677,16 +13379,6 @@
           "hazard.malnutrition",
           "starvation_automatic",
           "a2dfac8bea01c536"
-        ],
-        "target_kind": "fact"
-      },
-      {
-        "role": "primary",
-        "span_id": "1c7b804e-5713-50e9-8be7-d3735ce29a05",
-        "target_key": [
-          "area_of_effect.cylinder",
-          "area_dimension_requirement",
-          "350299744f9b4a93"
         ],
         "target_kind": "fact"
       },
@@ -15156,16 +13848,6 @@
       },
       {
         "role": "primary",
-        "span_id": "4857bb6a-a058-5fde-a786-5af81d8e90ab",
-        "target_key": [
-          "area_of_effect.line",
-          "area_dimension_requirement",
-          "71c60bb8afc8de95"
-        ],
-        "target_kind": "fact"
-      },
-      {
-        "role": "primary",
         "span_id": "4867251c-70b2-5eef-8c12-07fddab03b6d",
         "target_key": [
           "action.magic",
@@ -15447,16 +14129,6 @@
       },
       {
         "role": "primary",
-        "span_id": "64170c93-5588-5547-9841-71e1faaeaaba",
-        "target_key": [
-          "area_of_effect.cylinder",
-          "area_origin_inclusion",
-          "34fd0aed5d886ccd"
-        ],
-        "target_kind": "fact"
-      },
-      {
-        "role": "primary",
         "span_id": "672760bf-ef6a-5352-9f72-1a06d2326dc2",
         "target_key": [
           "condition.grappled",
@@ -15585,16 +14257,6 @@
       },
       {
         "role": "primary",
-        "span_id": "72c47c82-aee7-5ee6-8e29-0a39f948b0ca",
-        "target_key": [
-          "area_of_effect.sphere",
-          "area_dimension_requirement",
-          "96d4263e30fd1257"
-        ],
-        "target_kind": "fact"
-      },
-      {
-        "role": "primary",
         "span_id": "72d5fd9a-1a4d-5f94-a77d-288db70f1f25",
         "target_key": [
           "action.influence",
@@ -15627,16 +14289,6 @@
           "assist_ability_check"
         ],
         "target_kind": "prose_binding"
-      },
-      {
-        "role": "primary",
-        "span_id": "754863c1-5f4e-5bdc-8993-69f1835da231",
-        "target_key": [
-          "area_of_effect.cylinder",
-          "area_origin",
-          "518de4616f855198"
-        ],
-        "target_kind": "fact"
       },
       {
         "role": "primary",
@@ -15731,16 +14383,6 @@
       },
       {
         "role": "primary",
-        "span_id": "7ed90529-e766-51bc-b534-a05c4deed3e1",
-        "target_key": [
-          "area_of_effect.emanation",
-          "area_dimension_requirement",
-          "5b13bd4471f9a4dd"
-        ],
-        "target_kind": "fact"
-      },
-      {
-        "role": "primary",
         "span_id": "8054fd4b-caa0-50f8-bee3-1c3d3fc50dce",
         "target_key": [
           "action.disengage",
@@ -15760,26 +14402,6 @@
       },
       {
         "role": "primary",
-        "span_id": "80a0324c-c2a9-56cd-a359-e71c9862762e",
-        "target_key": [
-          "area_of_effect.line",
-          "area_origin_inclusion",
-          "a3e05a80559df144"
-        ],
-        "target_kind": "fact"
-      },
-      {
-        "role": "primary",
-        "span_id": "81910437-b819-5288-9d96-63f725d3b4bf",
-        "target_key": [
-          "area_of_effect.cube",
-          "area_origin_inclusion",
-          "a3e05a80559df144"
-        ],
-        "target_kind": "fact"
-      },
-      {
-        "role": "primary",
         "span_id": "82b7577e-5c4d-595c-a85c-d228c85a3ac1",
         "target_key": [
           "condition.prone",
@@ -15796,16 +14418,6 @@
           "hazard.malnutrition",
           "food_requirement",
           "d83b6961472de9c3"
-        ],
-        "target_kind": "fact"
-      },
-      {
-        "role": "primary",
-        "span_id": "8319ed74-9f55-5e40-86ee-0dd7d97b601f",
-        "target_key": [
-          "area_of_effect.cube",
-          "area_origin",
-          "9f7322c19b476f7d"
         ],
         "target_kind": "fact"
       },
@@ -15917,26 +14529,6 @@
       },
       {
         "role": "primary",
-        "span_id": "880bd572-7fde-5914-8fe8-01509253b9d9",
-        "target_key": [
-          "area_of_effect.cube",
-          "area_dimension_requirement",
-          "960c3045d10136cb"
-        ],
-        "target_kind": "fact"
-      },
-      {
-        "role": "primary",
-        "span_id": "8a47ec00-afdc-522b-80ef-dd4c1a44e436",
-        "target_key": [
-          "area_of_effect.emanation",
-          "area_origin",
-          "254a4f0dfd4af0c0"
-        ],
-        "target_kind": "fact"
-      },
-      {
-        "role": "primary",
         "span_id": "8d0bd486-9bf1-59da-9231-0c8b22bb1a2f",
         "target_key": [
           "hazard.dehydration",
@@ -15964,16 +14556,6 @@
           "condition.unconscious",
           "saving_throws_affected",
           "16a1dea9ade2ca55"
-        ],
-        "target_kind": "fact"
-      },
-      {
-        "role": "primary",
-        "span_id": "8eee5d4d-bf82-5bf9-b045-74f1a717588b",
-        "target_key": [
-          "area_of_effect.emanation",
-          "area_origin_movement",
-          "7f08dd1bd5047fc2"
         ],
         "target_kind": "fact"
       },
@@ -16113,16 +14695,6 @@
       },
       {
         "role": "primary",
-        "span_id": "9d313e99-98b7-52fc-bd2b-7a7d9113ab23",
-        "target_key": [
-          "glossary.area_of_effect",
-          "area_origin",
-          "0171f5d7d7581b32"
-        ],
-        "target_kind": "fact"
-      },
-      {
-        "role": "primary",
         "span_id": "9d4b73bb-0f5b-5429-b2aa-9e0b6e8612cc",
         "target_key": [
           "hazard.dehydration",
@@ -16138,16 +14710,6 @@
           "hazard.dehydration",
           "water_requirement",
           "6bd1bf8c972fb4d7"
-        ],
-        "target_kind": "fact"
-      },
-      {
-        "role": "primary",
-        "span_id": "a088d31c-ba2e-54d3-8995-cea6d4464334",
-        "target_key": [
-          "area_of_effect.line",
-          "area_origin",
-          "d0e9405d335d9ef6"
         ],
         "target_kind": "fact"
       },
@@ -16224,36 +14786,6 @@
       },
       {
         "role": "primary",
-        "span_id": "a5fe1887-a450-5cf4-a6db-f90eac4212eb",
-        "target_key": [
-          "glossary.area_of_effect",
-          "blocked_line_exclusion",
-          "2c3756945346fd66"
-        ],
-        "target_kind": "fact"
-      },
-      {
-        "role": "primary",
-        "span_id": "a680f5dd-a93b-5051-bb43-2f9f65488645",
-        "target_key": [
-          "area_of_effect.sphere",
-          "area_origin_inclusion",
-          "34fd0aed5d886ccd"
-        ],
-        "target_kind": "fact"
-      },
-      {
-        "role": "primary",
-        "span_id": "a6f36dad-3710-500d-9a80-6be235ab178b",
-        "target_key": [
-          "area_of_effect.cone",
-          "area_dimension_requirement",
-          "9eccb145ad6c5418"
-        ],
-        "target_kind": "fact"
-      },
-      {
-        "role": "primary",
         "span_id": "a99a093d-f215-52cf-99bf-342494de65bc",
         "target_key": [
           "condition.charmed",
@@ -16299,16 +14831,6 @@
           "condition.poisoned",
           "checks_and_attacks",
           "185a8c61e2aa0730"
-        ],
-        "target_kind": "fact"
-      },
-      {
-        "role": "primary",
-        "span_id": "b0dfe8e4-0584-582f-9323-523d50e1b061",
-        "target_key": [
-          "area_of_effect.emanation",
-          "area_origin_inclusion",
-          "a3e05a80559df144"
         ],
         "target_kind": "fact"
       },
@@ -16446,16 +14968,6 @@
           "condition.unconscious",
           "saving_throws_affected",
           "9ab037007e9ceaf2"
-        ],
-        "target_kind": "fact"
-      },
-      {
-        "role": "primary",
-        "span_id": "bd54a3bc-d30d-5476-b991-0d99ec354fc1",
-        "target_key": [
-          "area_of_effect.cone",
-          "area_origin",
-          "6672338c7118aaaa"
         ],
         "target_kind": "fact"
       },
@@ -16669,16 +15181,6 @@
       },
       {
         "role": "primary",
-        "span_id": "d29d9c85-ec33-5679-8bbb-ca2c7f117ce1",
-        "target_key": [
-          "glossary.area_of_effect",
-          "blocked_line_exclusion",
-          "2c3756945346fd66"
-        ],
-        "target_kind": "fact"
-      },
-      {
-        "role": "primary",
         "span_id": "d2ebb26a-c96f-54f5-8781-b2c66208fc94",
         "target_key": [
           "action.magic",
@@ -16883,16 +15385,6 @@
           "ready_concentration_break"
         ],
         "target_kind": "component"
-      },
-      {
-        "role": "primary",
-        "span_id": "e50f4cae-b4e4-5e0c-99ce-d3c5cdb380f1",
-        "target_key": [
-          "area_of_effect.cone",
-          "area_origin_inclusion",
-          "a3e05a80559df144"
-        ],
-        "target_kind": "fact"
       },
       {
         "role": "primary",
@@ -17266,36 +15758,6 @@
       {
         "kind": "glossary_rule",
         "parent_key": null,
-        "semantic_key": "area_of_effect.cone"
-      },
-      {
-        "kind": "glossary_rule",
-        "parent_key": null,
-        "semantic_key": "area_of_effect.cube"
-      },
-      {
-        "kind": "glossary_rule",
-        "parent_key": null,
-        "semantic_key": "area_of_effect.cylinder"
-      },
-      {
-        "kind": "glossary_rule",
-        "parent_key": null,
-        "semantic_key": "area_of_effect.emanation"
-      },
-      {
-        "kind": "glossary_rule",
-        "parent_key": null,
-        "semantic_key": "area_of_effect.line"
-      },
-      {
-        "kind": "glossary_rule",
-        "parent_key": null,
-        "semantic_key": "area_of_effect.sphere"
-      },
-      {
-        "kind": "glossary_rule",
-        "parent_key": null,
         "semantic_key": "attitude.friendly"
       },
       {
@@ -17312,11 +15774,6 @@
         "kind": "glossary_rule",
         "parent_key": null,
         "semantic_key": "glossary.action"
-      },
-      {
-        "kind": "glossary_rule",
-        "parent_key": null,
-        "semantic_key": "glossary.area_of_effect"
       },
       {
         "kind": "glossary_rule",
@@ -17394,55 +15851,6 @@
         "scope_key": "srd-5.2.1/rules-glossary",
         "source_text": "Influence",
         "target_record_key": "action.influence"
-      },
-      {
-        "from_component_key": "",
-        "from_record_key": "glossary.area_of_effect",
-        "scope_key": "srd-5.2.1/rules-glossary",
-        "source_text": "Cone",
-        "target_record_key": "area_of_effect.cone"
-      },
-      {
-        "from_component_key": "",
-        "from_record_key": "glossary.area_of_effect",
-        "scope_key": "srd-5.2.1/rules-glossary",
-        "source_text": "Cover",
-        "target_record_key": "glossary.cover"
-      },
-      {
-        "from_component_key": "",
-        "from_record_key": "glossary.area_of_effect",
-        "scope_key": "srd-5.2.1/rules-glossary",
-        "source_text": "Cube",
-        "target_record_key": "area_of_effect.cube"
-      },
-      {
-        "from_component_key": "",
-        "from_record_key": "glossary.area_of_effect",
-        "scope_key": "srd-5.2.1/rules-glossary",
-        "source_text": "Cylinder",
-        "target_record_key": "area_of_effect.cylinder"
-      },
-      {
-        "from_component_key": "",
-        "from_record_key": "glossary.area_of_effect",
-        "scope_key": "srd-5.2.1/rules-glossary",
-        "source_text": "Emanation",
-        "target_record_key": "area_of_effect.emanation"
-      },
-      {
-        "from_component_key": "",
-        "from_record_key": "glossary.area_of_effect",
-        "scope_key": "srd-5.2.1/rules-glossary",
-        "source_text": "Line",
-        "target_record_key": "area_of_effect.line"
-      },
-      {
-        "from_component_key": "",
-        "from_record_key": "glossary.area_of_effect",
-        "scope_key": "srd-5.2.1/rules-glossary",
-        "source_text": "Sphere",
-        "target_record_key": "area_of_effect.sphere"
       },
       {
         "from_component_key": "",
@@ -17735,8 +16143,8 @@
     "relationships": []
   },
   "representation_schema": {
-    "hash": "f5a5e30817e64f019e31aa7f4692d72611215e4294e7da36242e492bca6b336e",
-    "version": "5d-representation-schema-9"
+    "hash": "8a125f6c4c9929109879ad98a8f14a4ec1d0c7f5fe56fe4f894dafbdf707afff",
+    "version": "5d-representation-schema-8"
   },
   "semantic_policy_hash": "e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454",
   "semantic_policy_version": "5d-semantic-policy-1",
@@ -17903,27 +16311,11 @@
     },
     {
       "char_end": 11,
-      "char_start": 4,
-      "disposition": "supporting_authority",
-      "leaf_id": "af6478d2-3f9a-5dcd-ad2f-a1b364c71d15",
-      "non_mechanical_reason_code": null,
-      "span_id": "587daf0f-c92a-53d7-8dd2-e63ceec90b95"
-    },
-    {
-      "char_end": 11,
       "char_start": 6,
       "disposition": "supporting_authority",
       "leaf_id": "30194fe9-3fad-5ac5-a895-5fb969c5f1d7",
       "non_mechanical_reason_code": null,
       "span_id": "6aeaf037-7700-50a8-9258-2684af95a203"
-    },
-    {
-      "char_end": 110,
-      "char_start": 0,
-      "disposition": "substantive",
-      "leaf_id": "32cb0337-705d-5107-8c43-31178d968a23",
-      "non_mechanical_reason_code": null,
-      "span_id": "167fc4ba-4b7a-5e4f-874e-9bf37f2187cb"
     },
     {
       "char_end": 110,
@@ -17948,14 +16340,6 @@
       "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
       "non_mechanical_reason_code": null,
       "span_id": "3a19b9ea-a2f9-55a4-973e-adcb53218225"
-    },
-    {
-      "char_end": 112,
-      "char_start": 0,
-      "disposition": "substantive",
-      "leaf_id": "8834ac19-e730-5c84-89e7-62882dddb1f2",
-      "non_mechanical_reason_code": null,
-      "span_id": "8a47ec00-afdc-522b-80ef-dd4c1a44e436"
     },
     {
       "char_end": 113,
@@ -17988,14 +16372,6 @@
       "leaf_id": "765f49cc-67f3-518f-a630-1fe46eb5a8cb",
       "non_mechanical_reason_code": null,
       "span_id": "5553e751-80fd-5dea-a4ff-b04a14228015"
-    },
-    {
-      "char_end": 117,
-      "char_start": 0,
-      "disposition": "substantive",
-      "leaf_id": "8d464d21-2e78-58a7-8045-37df4d393b0e",
-      "non_mechanical_reason_code": null,
-      "span_id": "bd54a3bc-d30d-5476-b991-0d99ec354fc1"
     },
     {
       "char_end": 117,
@@ -18068,14 +16444,6 @@
       "leaf_id": "2db001c2-80f4-5ddf-bbfb-1a0ac32e271c",
       "non_mechanical_reason_code": null,
       "span_id": "976672e3-0f20-56c7-b33a-c3327693f7b9"
-    },
-    {
-      "char_end": 121,
-      "char_start": 0,
-      "disposition": "substantive",
-      "leaf_id": "ebc0f678-517f-5fbb-a973-ac8f11c4a30a",
-      "non_mechanical_reason_code": null,
-      "span_id": "8319ed74-9f55-5e40-86ee-0dd7d97b601f"
     },
     {
       "char_end": 122,
@@ -18199,14 +16567,6 @@
     },
     {
       "char_end": 131,
-      "char_start": 0,
-      "disposition": "supporting_authority",
-      "leaf_id": "4ff9e24f-12db-5958-ad01-6cacbacbc8ae",
-      "non_mechanical_reason_code": null,
-      "span_id": "b8b990bd-9b62-549f-9bd7-48bc5c63a24f"
-    },
-    {
-      "char_end": 131,
       "char_start": 79,
       "disposition": "substantive",
       "leaf_id": "83d172e9-9468-5a3c-ae2b-96089f60deb9",
@@ -18305,14 +16665,6 @@
       "char_end": 14,
       "char_start": 0,
       "disposition": "supporting_authority",
-      "leaf_id": "8b1fed74-61ce-5334-a4fd-b9fba71c072f",
-      "non_mechanical_reason_code": null,
-      "span_id": "9e353bb0-9d61-549d-b26f-3f868709f5cd"
-    },
-    {
-      "char_end": 14,
-      "char_start": 0,
-      "disposition": "supporting_authority",
       "leaf_id": "90966333-58e6-5391-8984-3622b1376c05",
       "non_mechanical_reason_code": null,
       "span_id": "a385f90a-697a-5439-8dd3-119392d0350f"
@@ -18388,14 +16740,6 @@
       "leaf_id": "c96a6483-f93d-52e9-892d-520001c067a7",
       "non_mechanical_reason_code": null,
       "span_id": "87130d30-f34c-5a7f-9261-6b6794f053aa"
-    },
-    {
-      "char_end": 140,
-      "char_start": 0,
-      "disposition": "substantive",
-      "leaf_id": "ed92551f-ae72-5a8d-85ff-79362ab75cda",
-      "non_mechanical_reason_code": null,
-      "span_id": "a088d31c-ba2e-54d3-8995-cea6d4464334"
     },
     {
       "char_end": 140,
@@ -18494,14 +16838,6 @@
       "span_id": "41321169-f0dc-5cf7-8fc6-2c66ede6ca38"
     },
     {
-      "char_end": 154,
-      "char_start": 0,
-      "disposition": "substantive",
-      "leaf_id": "4954b589-14e5-5d13-9bf4-0e558b9bb915",
-      "non_mechanical_reason_code": null,
-      "span_id": "754863c1-5f4e-5bdc-8993-69f1835da231"
-    },
-    {
       "char_end": 156,
       "char_start": 143,
       "disposition": "supporting_authority",
@@ -18580,14 +16916,6 @@
       "leaf_id": "bbb7961f-13da-583d-a4ec-393545f088a7",
       "non_mechanical_reason_code": null,
       "span_id": "82b7577e-5c4d-595c-a85c-d228c85a3ac1"
-    },
-    {
-      "char_end": 160,
-      "char_start": 90,
-      "disposition": "supporting_authority",
-      "leaf_id": "638724ef-98bb-522d-b68e-0506bc97cdb6",
-      "non_mechanical_reason_code": null,
-      "span_id": "f2096b71-2e95-5698-97df-138c7fc46427"
     },
     {
       "char_end": 162,
@@ -18862,14 +17190,6 @@
       "span_id": "24c88490-0154-5c91-a0ad-9250dfd9f769"
     },
     {
-      "char_end": 18,
-      "char_start": 8,
-      "disposition": "supporting_authority",
-      "leaf_id": "7613fd31-d5e3-5ff1-b216-e54171da8291",
-      "non_mechanical_reason_code": null,
-      "span_id": "8411c0f4-6fb7-5b5e-a2ea-f38ec2bbf47d"
-    },
-    {
       "char_end": 180,
       "char_start": 103,
       "disposition": "substantive",
@@ -18892,22 +17212,6 @@
       "leaf_id": "eed155ef-0dae-5014-b54a-a0cdfdb4df43",
       "non_mechanical_reason_code": null,
       "span_id": "f4650484-d7b1-55ae-ad93-143d49c25eef"
-    },
-    {
-      "char_end": 184,
-      "char_start": 112,
-      "disposition": "substantive",
-      "leaf_id": "8834ac19-e730-5c84-89e7-62882dddb1f2",
-      "non_mechanical_reason_code": null,
-      "span_id": "7ed90529-e766-51bc-b534-a05c4deed3e1"
-    },
-    {
-      "char_end": 184,
-      "char_start": 131,
-      "disposition": "supporting_authority",
-      "leaf_id": "4ff9e24f-12db-5958-ad01-6cacbacbc8ae",
-      "non_mechanical_reason_code": null,
-      "span_id": "f29e11a3-2a81-5ea8-b9bb-d4a14208c86e"
     },
     {
       "char_end": 187,
@@ -19102,36 +17406,12 @@
       "span_id": "fd456f5d-0386-5f2e-9b00-cf3154734324"
     },
     {
-      "char_end": 203,
-      "char_start": 140,
-      "disposition": "substantive",
-      "leaf_id": "ed92551f-ae72-5a8d-85ff-79362ab75cda",
-      "non_mechanical_reason_code": null,
-      "span_id": "4857bb6a-a058-5fde-a786-5af81d8e90ab"
-    },
-    {
       "char_end": 204,
       "char_start": 132,
       "disposition": "substantive",
       "leaf_id": "2a4a9331-f52b-5d86-9e68-e1242e49eb49",
       "non_mechanical_reason_code": null,
       "span_id": "e8957b66-499f-5814-a40a-5eca40fa4729"
-    },
-    {
-      "char_end": 206,
-      "char_start": 110,
-      "disposition": "substantive",
-      "leaf_id": "32cb0337-705d-5107-8c43-31178d968a23",
-      "non_mechanical_reason_code": null,
-      "span_id": "72c47c82-aee7-5ee6-8e29-0a39f948b0ca"
-    },
-    {
-      "char_end": 206,
-      "char_start": 121,
-      "disposition": "substantive",
-      "leaf_id": "ebc0f678-517f-5fbb-a973-ac8f11c4a30a",
-      "non_mechanical_reason_code": null,
-      "span_id": "880bd572-7fde-5914-8fe8-01509253b9d9"
     },
     {
       "char_end": 21,
@@ -19164,30 +17444,6 @@
       "leaf_id": "5bb08b93-6a81-59b9-bd3a-693a78afdb3b",
       "non_mechanical_reason_code": null,
       "span_id": "b354d403-a536-54da-8a17-6792f81578c0"
-    },
-    {
-      "char_end": 21,
-      "char_start": 0,
-      "disposition": "supporting_authority",
-      "leaf_id": "74587a82-5acc-5b79-bf6c-9500a48592ea",
-      "non_mechanical_reason_code": null,
-      "span_id": "08834572-01e2-5b2f-8e97-2f09242ea1f9"
-    },
-    {
-      "char_end": 21,
-      "char_start": 0,
-      "disposition": "supporting_authority",
-      "leaf_id": "9208b6e4-4afa-58cf-a226-43f4b95b35e8",
-      "non_mechanical_reason_code": null,
-      "span_id": "25d15049-fc1a-52ae-aba1-1aa70d0dec7c"
-    },
-    {
-      "char_end": 21,
-      "char_start": 0,
-      "disposition": "supporting_authority",
-      "leaf_id": "9e2d76bb-c579-5789-964f-406b39b02673",
-      "non_mechanical_reason_code": null,
-      "span_id": "444755af-296c-5bab-9be9-532f2e592575"
     },
     {
       "char_end": 21,
@@ -19335,27 +17591,11 @@
     },
     {
       "char_end": 221,
-      "char_start": 8,
-      "disposition": "substantive",
-      "leaf_id": "5ef92f4d-62c2-5d57-b154-d4689beb9dc4",
-      "non_mechanical_reason_code": null,
-      "span_id": "05a58c24-4518-5c70-b353-933440fb0c7d"
-    },
-    {
-      "char_end": 221,
       "char_start": 97,
       "disposition": "substantive",
       "leaf_id": "47fb82fd-598f-5b62-bb42-9b7d07100a36",
       "non_mechanical_reason_code": null,
       "span_id": "e78995c4-99bf-5a8e-8447-dc6d289d18ed"
-    },
-    {
-      "char_end": 222,
-      "char_start": 117,
-      "disposition": "substantive",
-      "leaf_id": "8d464d21-2e78-58a7-8045-37df4d393b0e",
-      "non_mechanical_reason_code": null,
-      "span_id": "0d6471e2-ec81-513b-b37c-07970e517731"
     },
     {
       "char_end": 224,
@@ -19452,14 +17692,6 @@
       "leaf_id": "9ebc5873-f7b7-5a7e-9b6f-d7f5a7d246d1",
       "non_mechanical_reason_code": null,
       "span_id": "64f75f01-3d1d-5baf-80af-86936e4c0d43"
-    },
-    {
-      "char_end": 23,
-      "char_start": 0,
-      "disposition": "supporting_authority",
-      "leaf_id": "dafddf9b-a89d-557f-9b8f-1081bd7e170f",
-      "non_mechanical_reason_code": null,
-      "span_id": "ba004b5a-bd89-5dcd-b74b-78d603981724"
     },
     {
       "char_end": 23,
@@ -19575,14 +17807,6 @@
     },
     {
       "char_end": 25,
-      "char_start": 0,
-      "disposition": "supporting_authority",
-      "leaf_id": "16894c5c-319b-5ce0-aeef-e7aca9805a38",
-      "non_mechanical_reason_code": null,
-      "span_id": "d1422b1e-c238-5069-8145-64707025893d"
-    },
-    {
-      "char_end": 25,
       "char_start": 10,
       "disposition": "supporting_authority",
       "leaf_id": "d51910e6-1a94-5591-9a4e-bb60e9cd89c8",
@@ -19647,27 +17871,11 @@
     },
     {
       "char_end": 26,
-      "char_start": 0,
-      "disposition": "supporting_authority",
-      "leaf_id": "a38fd7d6-3a9e-5d16-b135-c235e6c25619",
-      "non_mechanical_reason_code": null,
-      "span_id": "f2b49a90-df9c-55b6-8563-dd947139a35c"
-    },
-    {
-      "char_end": 26,
       "char_start": 16,
       "disposition": "substantive",
       "leaf_id": "47d252e4-a921-515f-b209-e68549d67bb2",
       "non_mechanical_reason_code": null,
       "span_id": "cfe0febf-90ba-551e-8025-88c8e8bd9696"
-    },
-    {
-      "char_end": 260,
-      "char_start": 154,
-      "disposition": "substantive",
-      "leaf_id": "4954b589-14e5-5d13-9bf4-0e558b9bb915",
-      "non_mechanical_reason_code": null,
-      "span_id": "1c7b804e-5713-50e9-8be7-d3735ce29a05"
     },
     {
       "char_end": 265,
@@ -19716,14 +17924,6 @@
       "leaf_id": "af20f466-ce0c-5790-9912-0c93dae7211a",
       "non_mechanical_reason_code": null,
       "span_id": "fb7e343e-d6e5-5028-9707-f31e61717ee2"
-    },
-    {
-      "char_end": 277,
-      "char_start": 206,
-      "disposition": "substantive",
-      "leaf_id": "32cb0337-705d-5107-8c43-31178d968a23",
-      "non_mechanical_reason_code": null,
-      "span_id": "a680f5dd-a93b-5051-bb43-2f9f65488645"
     },
     {
       "char_end": 28,
@@ -19806,36 +18006,12 @@
       "span_id": "43dbd2af-15a2-51d7-a42c-febada49aa8c"
     },
     {
-      "char_end": 303,
-      "char_start": 203,
-      "disposition": "substantive",
-      "leaf_id": "ed92551f-ae72-5a8d-85ff-79362ab75cda",
-      "non_mechanical_reason_code": null,
-      "span_id": "80a0324c-c2a9-56cd-a359-e71c9862762e"
-    },
-    {
-      "char_end": 304,
-      "char_start": 184,
-      "disposition": "substantive",
-      "leaf_id": "8834ac19-e730-5c84-89e7-62882dddb1f2",
-      "non_mechanical_reason_code": null,
-      "span_id": "8eee5d4d-bf82-5bf9-b045-74f1a717588b"
-    },
-    {
       "char_end": 304,
       "char_start": 237,
       "disposition": "substantive",
       "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
       "non_mechanical_reason_code": null,
       "span_id": "cb7598ca-791b-5b9d-9db5-eb127bd91925"
-    },
-    {
-      "char_end": 306,
-      "char_start": 206,
-      "disposition": "substantive",
-      "leaf_id": "ebc0f678-517f-5fbb-a973-ac8f11c4a30a",
-      "non_mechanical_reason_code": null,
-      "span_id": "81910437-b819-5288-9d96-63f725d3b4bf"
     },
     {
       "char_end": 31,
@@ -19918,14 +18094,6 @@
       "span_id": "75213732-5ea1-583f-b70c-123d2ad42414"
     },
     {
-      "char_end": 318,
-      "char_start": 160,
-      "disposition": "substantive",
-      "leaf_id": "638724ef-98bb-522d-b68e-0506bc97cdb6",
-      "non_mechanical_reason_code": null,
-      "span_id": "a5fe1887-a450-5cf4-a6db-f90eac4212eb"
-    },
-    {
       "char_end": 32,
       "char_start": 0,
       "disposition": "substantive",
@@ -19948,22 +18116,6 @@
       "leaf_id": "3555667c-5d26-54f8-83e3-4cf6158f4486",
       "non_mechanical_reason_code": null,
       "span_id": "b6053e4d-ed1f-5b28-8070-f8791a936347"
-    },
-    {
-      "char_end": 324,
-      "char_start": 260,
-      "disposition": "substantive",
-      "leaf_id": "4954b589-14e5-5d13-9bf4-0e558b9bb915",
-      "non_mechanical_reason_code": null,
-      "span_id": "64170c93-5588-5547-9841-71e1faaeaaba"
-    },
-    {
-      "char_end": 328,
-      "char_start": 222,
-      "disposition": "supporting_authority",
-      "leaf_id": "8d464d21-2e78-58a7-8045-37df4d393b0e",
-      "non_mechanical_reason_code": null,
-      "span_id": "ce8e8678-822c-5f9f-88b9-caa4d2477b90"
     },
     {
       "char_end": 328,
@@ -20270,14 +18422,6 @@
       "span_id": "41859d36-91ee-51f7-8b12-96980391c2fc"
     },
     {
-      "char_end": 376,
-      "char_start": 318,
-      "disposition": "substantive",
-      "leaf_id": "638724ef-98bb-522d-b68e-0506bc97cdb6",
-      "non_mechanical_reason_code": null,
-      "span_id": "d29d9c85-ec33-5679-8bbb-ca2c7f117ce1"
-    },
-    {
       "char_end": 38,
       "char_start": 0,
       "disposition": "substantive",
@@ -20308,14 +18452,6 @@
       "leaf_id": "ab01adba-10fd-55b2-9ee5-a2c7122d4e8f",
       "non_mechanical_reason_code": null,
       "span_id": "c774f247-33de-5eb8-8ec4-7284bdf805d5"
-    },
-    {
-      "char_end": 389,
-      "char_start": 328,
-      "disposition": "substantive",
-      "leaf_id": "8d464d21-2e78-58a7-8045-37df4d393b0e",
-      "non_mechanical_reason_code": null,
-      "span_id": "a6f36dad-3710-500d-9a80-6be235ab178b"
     },
     {
       "char_end": 39,
@@ -20388,22 +18524,6 @@
       "leaf_id": "7c43a7ca-4a38-5f92-9349-9aa42126fc9b",
       "non_mechanical_reason_code": null,
       "span_id": "2992173c-fa8b-5401-82b5-3789d4acac89"
-    },
-    {
-      "char_end": 4,
-      "char_start": 0,
-      "disposition": "supporting_authority",
-      "leaf_id": "a93806db-2435-5b9d-89ea-96433111cde3",
-      "non_mechanical_reason_code": null,
-      "span_id": "ea9eac60-ed28-540f-998a-3a02c32f7d51"
-    },
-    {
-      "char_end": 4,
-      "char_start": 0,
-      "disposition": "supporting_authority",
-      "leaf_id": "af6478d2-3f9a-5dcd-ad2f-a1b364c71d15",
-      "non_mechanical_reason_code": null,
-      "span_id": "3914ccf0-0a12-5263-8648-e622038d3043"
     },
     {
       "char_end": 4,
@@ -20542,14 +18662,6 @@
       "span_id": "2bc271aa-83f5-59da-bd78-54eb3159f287"
     },
     {
-      "char_end": 422,
-      "char_start": 304,
-      "disposition": "substantive",
-      "leaf_id": "8834ac19-e730-5c84-89e7-62882dddb1f2",
-      "non_mechanical_reason_code": null,
-      "span_id": "b0dfe8e4-0584-582f-9323-523d50e1b061"
-    },
-    {
       "char_end": 427,
       "char_start": 404,
       "disposition": "substantive",
@@ -20684,14 +18796,6 @@
       "leaf_id": "b2cdbf59-5d8d-5361-b1e6-f34b43721962",
       "non_mechanical_reason_code": null,
       "span_id": "38d60326-4e0b-5fb5-8f7b-e202607445b3"
-    },
-    {
-      "char_end": 489,
-      "char_start": 389,
-      "disposition": "substantive",
-      "leaf_id": "8d464d21-2e78-58a7-8045-37df4d393b0e",
-      "non_mechanical_reason_code": null,
-      "span_id": "e50f4cae-b4e4-5e0c-99ce-d3c5cdb380f1"
     },
     {
       "char_end": 49,
@@ -21537,14 +19641,6 @@
       "char_end": 8,
       "char_start": 0,
       "disposition": "supporting_authority",
-      "leaf_id": "5ef92f4d-62c2-5d57-b154-d4689beb9dc4",
-      "non_mechanical_reason_code": null,
-      "span_id": "979c555f-8058-59d6-a0fc-a02edd4c2c37"
-    },
-    {
-      "char_end": 8,
-      "char_start": 0,
-      "disposition": "supporting_authority",
       "leaf_id": "67f4ba93-a5a3-531d-95fb-cf99bc0c6131",
       "non_mechanical_reason_code": null,
       "span_id": "3a44296e-1562-569e-89f9-2877d9d3de3e"
@@ -21556,14 +19652,6 @@
       "leaf_id": "752c95c2-1ad3-5365-a39d-74a01bb23089",
       "non_mechanical_reason_code": null,
       "span_id": "22b87581-7849-53b1-9726-7249fc99bde5"
-    },
-    {
-      "char_end": 8,
-      "char_start": 0,
-      "disposition": "supporting_authority",
-      "leaf_id": "7613fd31-d5e3-5ff1-b216-e54171da8291",
-      "non_mechanical_reason_code": null,
-      "span_id": "1cdfae19-3d46-5a9c-b8d1-79224d797fad"
     },
     {
       "char_end": 8,
@@ -21668,14 +19756,6 @@
       "leaf_id": "f355ce23-d019-5a87-b072-c0bce0c8d6c6",
       "non_mechanical_reason_code": null,
       "span_id": "72f600dc-9581-5867-9545-608a75636f5c"
-    },
-    {
-      "char_end": 8,
-      "char_start": 0,
-      "disposition": "supporting_authority",
-      "leaf_id": "f7fc8e1e-e3e1-5a7d-bbc7-192b151d5766",
-      "non_mechanical_reason_code": null,
-      "span_id": "dcfc2c61-fd26-5dc2-9d7d-35dc356672e3"
     },
     {
       "char_end": 8,
@@ -21884,22 +19964,6 @@
       "leaf_id": "f45c09d8-e12a-5f96-8e4b-5839dae451f4",
       "non_mechanical_reason_code": null,
       "span_id": "83ef0f35-7bf9-5c17-9e0a-24c43268b586"
-    },
-    {
-      "char_end": 9,
-      "char_start": 4,
-      "disposition": "supporting_authority",
-      "leaf_id": "a93806db-2435-5b9d-89ea-96433111cde3",
-      "non_mechanical_reason_code": null,
-      "span_id": "b8960978-bf84-5191-8135-013c2cbebbef"
-    },
-    {
-      "char_end": 90,
-      "char_start": 0,
-      "disposition": "substantive",
-      "leaf_id": "638724ef-98bb-522d-b68e-0506bc97cdb6",
-      "non_mechanical_reason_code": null,
-      "span_id": "9d313e99-98b7-52fc-bd2b-7a7d9113ab23"
     },
     {
       "char_end": 90,

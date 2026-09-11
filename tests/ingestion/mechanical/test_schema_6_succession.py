@@ -59,6 +59,8 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_7_VERSION,
     SCHEMA_8_HASH,
     SCHEMA_8_VERSION,
+    SCHEMA_9_HASH,
+    SCHEMA_9_VERSION,
     lift_accepted_inputs,
 )
 
@@ -73,10 +75,11 @@ FROZEN_BLOB = "6e65533f4a3523aba3d60cfc3c274ab22e66b59a"  # pragma: allowlist se
 
 #: The committed artifact's own digest. It was the same file as the frozen copy
 #: until the Owner accepted ``actions-1`` into it, and has moved again for
-#: ``attitudes-1``; reusing one constant for both only ever worked because of
-#: the original coincidence. Two constants, because they are two files: the
-#: sentinel below has to be able to fail for one and pass for the other.
-COMMITTED_CONTENT_SHA256 = "fd390d95dde74498142035d9dde00ccf7effadb372fc13f9662154841bb787ab"  # noqa: E501  # pragma: allowlist secret
+#: ``attitudes-1`` and ``areas-of-effect-1``; reusing one constant for both only
+#: ever worked because of the original coincidence. Two constants, because they
+#: are two files: the sentinel below has to be able to fail for one and pass for
+#: the other.
+COMMITTED_CONTENT_SHA256 = "9f3802514298f519120680db4a9a20805f5dcb8a4b00dd8686ed6faddec1e738"  # noqa: E501  # pragma: allowlist secret
 
 #: The accepted oracle's own identity. Derived from the semantic content the
 #: Owner accepted, and the one figure a succession may not move at all.
@@ -137,7 +140,7 @@ def test_the_prior_is_not_current_authority_until_it_is_lifted() -> None:
     inputs = load_accepted_inputs(FROZEN_PRIOR)
     findings = validate_schema_binding(candidate_from_accepted_inputs(inputs))
     assert findings != ()
-    assert any(SCHEMA_8_VERSION in f for f in findings), findings
+    assert any(SCHEMA_9_VERSION in f for f in findings), findings
 
 
 # ---------------------------------------------------------------------------
@@ -151,7 +154,7 @@ def test_the_registered_chain_reaches_current_authority_one_crossing_at_a_time()
     """Every crossing since the artifact was reviewed, and the earlier ones kept.
 
     The artifact still declares schema 5, so reaching current authority is now
-    three registered steps rather than one: schema 6, 7, then 8. The crossings
+    four registered steps rather than one: schema 6, 7, 8, then 9. The crossings
     that carried ``conditions-1`` up from schema 3 are not re-run — they already
     happened, and the file records them — so what this asserts is that the
     retained evidence and the new records together name the whole path, one row
@@ -168,6 +171,7 @@ def test_the_registered_chain_reaches_current_authority_one_crossing_at_a_time()
         "5d-lift-schema-5-to-6",
         "5d-lift-schema-6-to-7",
         "5d-lift-schema-7-to-8",
+        "5d-lift-schema-8-to-9",
     ]
     for record in records:
         assert set(record.verified_collections) == REPRESENTATION_COLLECTIONS
@@ -184,12 +188,16 @@ def test_the_registered_chain_reaches_current_authority_one_crossing_at_a_time()
         SCHEMA_7_VERSION,
         SCHEMA_7_HASH,
     )
-    assert (records[-1].to_version, records[-1].to_hash) == (
+    assert (records[2].to_version, records[2].to_hash) == (
         SCHEMA_8_VERSION,
         SCHEMA_8_HASH,
     )
-    assert lifted.oracle.schema_version == SCHEMA_8_VERSION
-    assert lifted.oracle.schema_hash == SCHEMA_8_HASH
+    assert (records[-1].to_version, records[-1].to_hash) == (
+        SCHEMA_9_VERSION,
+        SCHEMA_9_HASH,
+    )
+    assert lifted.oracle.schema_version == SCHEMA_9_VERSION
+    assert lifted.oracle.schema_hash == SCHEMA_9_HASH
     assert validate_schema_binding(candidate_from_accepted_inputs(lifted)) == ()
 
 

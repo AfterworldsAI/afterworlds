@@ -40,6 +40,14 @@ from afterworlds.ingestion.mechanical.representation import (
     AllowanceScope,
     Applicability,
     ApplicabilityKind,
+    AreaDimension,
+    AreaDimensionRequirementFact,
+    AreaExtentPattern,
+    AreaMovementSuspension,
+    AreaOriginFact,
+    AreaOriginKind,
+    AreaOriginMovementFact,
+    AreaOriginPlacement,
     AutomaticOutcome,
     CastingTimeThreshold,
     Comparison,
@@ -106,6 +114,9 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_4_HASH,
     SCHEMA_4_VERSION,
     SCHEMA_8_HASH,
+    SCHEMA_8_VERSION,
+    SCHEMA_9_HASH,
+    SCHEMA_9_VERSION,
     UnknownSchemaLiftError,
     lift_for,
     schema_binding_violations,
@@ -875,6 +886,55 @@ CASES: dict[str, tuple[object, object]] = {
         Applicability(kind=ApplicabilityKind.ANY_OF, any_of_terms=(_COVER_TOTAL,)),
         Applicability(kind=ApplicabilityKind.ANY_OF, any_of_terms=_DODGE_TERMS),
     ),
+    # Schema 9, batch ``areas-of-effect-1``. Each control is a shape the class
+    # really prints: a cube's origin on a face of the cube, a cylinder's two
+    # parameters, and the two exceptions that suspend a moving origin.
+    "area_origin.placement.requires-a-stated-extent": (
+        AreaOriginFact(
+            origin=AreaOriginKind.POINT,
+            extent=None,
+            placement=AreaOriginPlacement.ANYWHERE_ON_A_FACE_OF_THE_CUBE,
+        ),
+        AreaOriginFact(
+            origin=AreaOriginKind.POINT,
+            extent=AreaExtentPattern.STRAIGHT_LINES,
+            placement=AreaOriginPlacement.ANYWHERE_ON_A_FACE_OF_THE_CUBE,
+        ),
+    ),
+    "area_dimension_requirement.dimensions.at-least-one": (
+        AreaDimensionRequirementFact(dimensions=()),
+        AreaDimensionRequirementFact(
+            dimensions=(AreaDimension.RADIUS_OF_THE_BASE, AreaDimension.HEIGHT)
+        ),
+    ),
+    "area_dimension_requirement.dimensions.no-repeats": (
+        AreaDimensionRequirementFact(
+            dimensions=(AreaDimension.HEIGHT, AreaDimension.HEIGHT)
+        ),
+        AreaDimensionRequirementFact(
+            dimensions=(AreaDimension.RADIUS_OF_THE_BASE, AreaDimension.HEIGHT)
+        ),
+    ),
+    "area_origin_movement.suspended_by_any_of.at-least-one": (
+        AreaOriginMovementFact(suspended_by_any_of=()),
+        AreaOriginMovementFact(
+            suspended_by_any_of=(AreaMovementSuspension.INSTANTANEOUS_EFFECT,)
+        ),
+    ),
+    "area_origin_movement.suspended_by_any_of.no-repeats": (
+        AreaOriginMovementFact(
+            suspended_by_any_of=(
+                AreaMovementSuspension.STATIONARY_EFFECT,
+                AreaMovementSuspension.STATIONARY_EFFECT,
+            )
+        ),
+        AreaOriginMovementFact(
+            suspended_by_any_of=(
+                AreaMovementSuspension.INSTANTANEOUS_EFFECT,
+                AreaMovementSuspension.STATIONARY_EFFECT,
+            )
+        ),
+    ),
 }
 
 
@@ -961,6 +1021,56 @@ def test_weakening_an_invariant_declaration_breaks_the_registered_lift(
         lift_for((SCHEMA_3_VERSION, SCHEMA_3_HASH), (SCHEMA_4_VERSION, weakened))
 
 
+#: The five rows schema 9 added. Named here so the weakening proof runs against
+#: each one separately: dropping any single one of them must cost the same thing.
+SCHEMA_9_INVARIANT_IDS = (
+    "area_origin.placement.requires-a-stated-extent",
+    "area_dimension_requirement.dimensions.at-least-one",
+    "area_dimension_requirement.dimensions.no-repeats",
+    "area_origin_movement.suspended_by_any_of.at-least-one",
+    "area_origin_movement.suspended_by_any_of.no-repeats",
+)
+
+
+@pytest.mark.parametrize("invariant_id", SCHEMA_9_INVARIANT_IDS)
+def test_weakening_a_schema_9_declaration_breaks_the_registered_crossing(
+    monkeypatch: pytest.MonkeyPatch, invariant_id: str
+) -> None:
+    """Row by row, at the succession these rows were minted for.
+
+    The schema-4 proof above drops the first row and watches the 3-to-4 crossing
+    refuse. This is the same consequence stated where the areas-of-effect-1
+    contract lives: each of the five rows is load-bearing on its own, so a build
+    that quietly drops one cannot present itself as this schema.
+    """
+    from afterworlds.ingestion.mechanical import representation
+
+    kept = representation._INVARIANTS
+    weakened_rows = tuple(row for row in kept if row.id != invariant_id)
+    assert len(weakened_rows) == len(kept) - 1, invariant_id
+    monkeypatch.setattr(representation, "_INVARIANTS", weakened_rows)
+    weakened = representation_schema_hash()
+
+    assert weakened != SCHEMA_9_HASH
+    with pytest.raises(UnknownSchemaLiftError):
+        lift_for((SCHEMA_8_VERSION, SCHEMA_8_HASH), (SCHEMA_9_VERSION, weakened))
+
+
+def test_the_destination_before_these_rows_were_declared_is_refused() -> None:
+    """The stale pin, named rather than described.
+
+    Before the five rows above were declared, this build hashed to the value
+    below and the registry pointed at it. Declaring them moved the hash, which
+    is the whole point of an identity-bound contract — so the earlier
+    destination is now a schema this repository cannot produce, and the
+    succession refuses to reach it.
+    """
+    stale = "0be1696e0d5167f764a25c3faea8d16dc886b751425683468b1e0bad284f83f9"  # noqa: E501  # pragma: allowlist secret
+    assert representation_schema_hash() != stale
+    with pytest.raises(UnknownSchemaLiftError):
+        lift_for((SCHEMA_8_VERSION, SCHEMA_8_HASH), (SCHEMA_9_VERSION, stale))
+
+
 def test_the_registered_lift_still_reaches_the_finalized_destination() -> None:
     """And the other direction: the real pin resolves, and the source is unmoved."""
     lift = lift_for(
@@ -970,7 +1080,7 @@ def test_the_registered_lift_still_reaches_the_finalized_destination() -> None:
     assert SCHEMA_3_HASH == (
         "43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05"  # noqa: E501  # pragma: allowlist secret
     )
-    assert representation_schema_hash() == SCHEMA_8_HASH
+    assert representation_schema_hash() == SCHEMA_9_HASH
 
 
 # ---------------------------------------------------------------------------

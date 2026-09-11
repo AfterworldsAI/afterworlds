@@ -16,8 +16,9 @@ the case the freeze was for: the bytes are untouched, so the prior a reviewer
 reads is the prior the proposal was built against, and the one registered
 crossing between it and the current union is *stated* here rather than assumed.
 It was the same bytes as the committed artifact until the Owner accepted
-``attitudes-1`` on 2026-09-10; since then the committed artifact extends it and
-this copy has not moved, which is the whole point of taking it.
+``attitudes-1``; the committed artifact has since been extended again by
+``areas-of-effect-1`` and this copy has not moved, which is the whole point of
+taking it.
 
 **What this module does not do.** It proves nothing about the live artifact
 beyond the one extension assertion at the end. Every pin below describes the
@@ -163,14 +164,18 @@ def test_the_prior_declares_schema_7_and_records_the_four_lifts_that_got_it_ther
     ]
 
 
-def test_exactly_one_registered_crossing_separates_the_prior_from_this_build() -> None:
-    """The succession ``attitudes-1`` takes, named rather than counted.
+def test_the_registered_crossings_separate_the_prior_from_this_build() -> None:
+    """The succession ``attitudes-1``'s prior takes, named rather than counted.
 
-    Schema 8 admits one family the prior's contract cannot state, so the prior
-    is no longer current and reading it as current is a *finding* rather than a
-    silent pass. Exactly one registered step closes the gap, and the identity
-    the Owner accepted survives it — ``lift`` re-declares the binding and proves
-    the content unmoved, it does not rewrite content.
+    Schema 8 admitted one family this prior's contract cannot state, and schema
+    9 admitted seven more for ``areas-of-effect-1``. The prior is therefore no
+    longer current and reading it as current is a *finding* rather than a silent
+    pass. The registered steps that close the gap are named here in order, and
+    the identity the Owner accepted survives them — ``lift`` re-declares the
+    binding and proves the content unmoved, it does not rewrite content.
+
+    The list, not its length, is the claim: a step appearing here that nobody
+    registered, or a registered step missing from it, both fail.
 
     A self-lift stays unregistered, so a generator that reached for one would
     raise rather than silently no-op.
@@ -184,11 +189,10 @@ def test_exactly_one_registered_crossing_separates_the_prior_from_this_build() -
     assert findings, "reading a superseded prior as current must be visible"
     assert any(REPRESENTATION_SCHEMA_VERSION in f for f in findings), findings
 
-    assert [step.lift_id for step in lift_path(prior, current)] == [
-        "5d-lift-schema-7-to-8"
-    ]
+    expected = ["5d-lift-schema-7-to-8", "5d-lift-schema-8-to-9"]
+    assert [step.lift_id for step in lift_path(prior, current)] == expected
     lifted, records = lift_accepted_inputs(inputs, current)
-    assert [record.lift_id for record in records] == ["5d-lift-schema-7-to-8"]
+    assert [record.lift_id for record in records] == expected
     assert validate_schema_binding(candidate_from_accepted_inputs(lifted)) == ()
     assert lifted.oracle.representation is inputs.oracle.representation
     assert oracle_identity(inputs.oracle) == ACCEPTED_ORACLE_IDENTITY
@@ -226,21 +230,22 @@ def test_the_prior_round_trips_strictly_through_its_own_payload() -> None:
     )
 
 
-def test_the_committed_artifact_extends_this_frozen_copy_by_exactly_one_batch() -> None:
-    """The successor relationship, now that the two files have parted.
+def test_the_committed_artifact_extends_this_copy_by_the_batches_since() -> None:
+    """The successor relationship, now two acceptances deep.
 
-    The previous revision asserted the two were the same bytes and said in its
-    own docstring that the next Owner acceptance would end that. ``attitudes-1``
-    did, on 2026-09-10. Deleting the assertion would have left the copy
-    unattached to the thing it was copied from, so it is replaced by the
-    stronger claim the freeze existed to make checkable: the live artifact is
-    this prior plus exactly one batch, and every earlier batch's acceptance
-    evidence came through the schema-8 succession untouched.
+    The first revision asserted the two files were the same bytes; the Owner's
+    acceptance of ``attitudes-1`` ended that and this became the
+    extends-by-exactly-one claim. ``areas-of-effect-1`` makes it two, so the
+    claim is generalized rather than re-pinned to a single batch name: whatever
+    has been accepted since the freeze is named exactly, and every batch the
+    freeze holds must still be present and identical, which is the part that
+    would catch a merge rewriting history. Narrowing it back to one batch, or
+    deleting it, would leave the copy unattached to what it was copied from.
     """
     assert _lf_digest(FROZEN_PRIOR) == FROZEN_CONTENT_SHA256
     assert _lf_digest(COMMITTED) != FROZEN_CONTENT_SHA256
 
     frozen = {b.batch_id: b for b in load_accepted_inputs(FROZEN_PRIOR).batches}
     committed = {b.batch_id: b for b in load_accepted_inputs(COMMITTED).batches}
-    assert set(committed) - set(frozen) == {"attitudes-1"}
+    assert set(committed) - set(frozen) == {"attitudes-1", "areas-of-effect-1"}
     assert {k: committed[k] for k in frozen} == frozen

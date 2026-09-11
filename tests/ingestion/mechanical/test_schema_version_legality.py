@@ -76,10 +76,24 @@ from afterworlds.ingestion.mechanical.representation import (
     AllowanceScope,
     Applicability,
     ApplicabilityKind,
+    AreaDimension,
+    AreaDimensionRequirementFact,
+    AreaExtentPattern,
+    AreaMovementSuspension,
+    AreaOriginFact,
+    AreaOriginInclusion,
+    AreaOriginInclusionFact,
+    AreaOriginKind,
+    AreaOriginMovementFact,
+    AreaOriginPlacement,
+    AreaWidthRelation,
+    AreaWidthRelationFact,
     AttackRelativeTiming,
     Attitude,
     AutomaticOutcome,
     BenefitUseLimit,
+    BlockedLineExclusionFact,
+    BlockedLineQuantifier,
     Comparison,
     ComponentDraft,
     ConditionKind,
@@ -108,6 +122,7 @@ from afterworlds.ingestion.mechanical.representation import (
     FactFamily,
     GrantedActivity,
     InterleavePoint,
+    InterveningObstruction,
     LevelDirection,
     MeasureUnit,
     MovementAllowanceBasis,
@@ -122,6 +137,7 @@ from afterworlds.ingestion.mechanical.representation import (
     Recurrence,
     RecurrenceBoundary,
     ReferenceDraft,
+    RelocatedOrigin,
     RepresentationDraft,
     RequiredQuantity,
     ResolutionTiming,
@@ -143,6 +159,8 @@ from afterworlds.ingestion.mechanical.representation import (
     TrackedQuantity,
     TriggeredReaction,
     TriggeredResolutionFact,
+    UnseenOriginRelocationFact,
+    UnseenPlacement,
     introduction_manifest,
     post_schema_3_violations,
     representation_schema_hash,
@@ -158,6 +176,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_6_VERSION,
     SCHEMA_7_HASH,
     SCHEMA_7_VERSION,
+    SCHEMA_8_HASH,
     SCHEMA_8_VERSION,
     SchemaLiftError,
     accepted_schema_contracts,
@@ -488,6 +507,68 @@ SCHEMA_8_ONLY = [
 ]
 
 
+#: One live object per axis schema 9 added — eleven closed vocabularies carried
+#: by the seven families that state them, which between them trip every schema-9
+#: manifest group. ``AreaOriginFact`` states all three of its vocabularies at
+#: once here deliberately: its two nullable fields are how the class's own
+#: placement rules are printed, and a specimen that left them ``None`` would
+#: leave two vocabularies with no exemplar while still looking like coverage.
+SCHEMA_9_ONLY = [
+    pytest.param(
+        AreaOriginFact(
+            origin=AreaOriginKind.POINT,
+            extent=AreaExtentPattern.STRAIGHT_LINES,
+            placement=AreaOriginPlacement.CENTER_OF_THE_CIRCULAR_TOP_OR_BOTTOM,
+        ),
+        id="vocabulary-area_origin_kind-extent_pattern-placement",
+    ),
+    pytest.param(
+        AreaDimensionRequirementFact(
+            dimensions=(AreaDimension.RADIUS_OF_THE_BASE, AreaDimension.HEIGHT)
+        ),
+        id="vocabulary-area_dimension",
+    ),
+    pytest.param(
+        AreaOriginInclusionFact(
+            inclusion=AreaOriginInclusion.EXCLUDED_UNLESS_ITS_CREATOR_DECIDES_OTHERWISE
+        ),
+        id="vocabulary-area_origin_inclusion",
+    ),
+    pytest.param(
+        AreaWidthRelationFact(
+            relation=(
+                AreaWidthRelation.EQUAL_TO_THAT_POINTS_DISTANCE_FROM_THE_POINT_OF_ORIGIN
+            )
+        ),
+        id="vocabulary-area_width_relation",
+    ),
+    pytest.param(
+        AreaOriginMovementFact(
+            suspended_by_any_of=(
+                AreaMovementSuspension.INSTANTANEOUS_EFFECT,
+                AreaMovementSuspension.STATIONARY_EFFECT,
+            )
+        ),
+        id="vocabulary-area_movement_suspension",
+    ),
+    pytest.param(
+        BlockedLineExclusionFact(
+            blocked=BlockedLineQuantifier.ALL_STRAIGHT_LINES_FROM_THE_POINT_OF_ORIGIN,
+            blocking_cover=CoverDegree.TOTAL,
+        ),
+        id="vocabulary-blocked_line_quantifier",
+    ),
+    pytest.param(
+        UnseenOriginRelocationFact(
+            placement=UnseenPlacement.AT_AN_UNSEEN_POINT,
+            obstruction=InterveningObstruction.BETWEEN_THE_CREATOR_AND_THE_POINT,
+            relocated_to=RelocatedOrigin.NEAR_SIDE_OF_THE_OBSTRUCTION,
+        ),
+        id="vocabulary-unseen_placement-obstruction-relocated_origin",
+    ),
+]
+
+
 # ---------------------------------------------------------------------------
 # The contract, driven from the manifest rather than from a hand-written list
 # ---------------------------------------------------------------------------
@@ -502,7 +583,13 @@ def test_every_manifest_row_has_an_exemplar_here() -> None:
     here instead of being trusted.
     """
     exercised: set[str] = set()
-    for param in (*SCHEMA_4_ONLY, *SCHEMA_5_ONLY, *SCHEMA_6_ONLY, *SCHEMA_8_ONLY):
+    for param in (
+        *SCHEMA_4_ONLY,
+        *SCHEMA_5_ONLY,
+        *SCHEMA_6_ONLY,
+        *SCHEMA_8_ONLY,
+        *SCHEMA_9_ONLY,
+    ):
         (obj,) = param.values
         exercised |= _groups_exercised_by(obj)
     assert _MANIFEST_GROUPS - exercised == set(), sorted(_MANIFEST_GROUPS - exercised)
@@ -538,6 +625,30 @@ def _groups_exercised_by(obj: object) -> set[str]:
         for row in introduction_manifest()
         if any(repr(row["name"]) in f for f in findings)
     }
+
+
+@pytest.mark.parametrize("obj", SCHEMA_9_ONLY)
+def test_schema_8_refuses_every_schema_9_only_type_or_value(obj: object) -> None:
+    """The succession areas-of-effect-1 needed, in the direction that makes it one.
+
+    If schema 8 admitted any of these the lift would be decoration: a version
+    that can already state the content crosses nothing. Seven families and
+    eleven vocabularies are a large addition, so this is asserted per specimen
+    rather than once over the set.
+    """
+    assert post_schema_3_violations(obj, SCHEMA_8_VERSION), obj
+
+
+@pytest.mark.parametrize("obj", SCHEMA_9_ONLY)
+def test_schema_9_admits_what_it_introduced(obj: object) -> None:
+    """And the other direction, so the rule is not "refuse everything newer"."""
+    assert post_schema_3_violations(obj, REPRESENTATION_SCHEMA_VERSION) == []
+
+
+@pytest.mark.parametrize("obj", SCHEMA_8_ONLY)
+def test_schema_9_still_admits_every_schema_8_introduction(obj: object) -> None:
+    """Schema 9 widened the union; it narrowed nothing schema 8 could state."""
+    assert post_schema_3_violations(obj, REPRESENTATION_SCHEMA_VERSION) == []
 
 
 @pytest.mark.parametrize("obj", SCHEMA_8_ONLY)
@@ -1014,11 +1125,13 @@ def test_the_recognized_contracts_are_exactly_the_live_pair_and_the_registry() -
         (SCHEMA_4_VERSION, SCHEMA_4_HASH),
         # Schema 5 joins the set by becoming the *source* of a registered lift,
         # which is exactly how schema 3 and schema 4 are here. Schema 6 joins it
-        # the same way at schema 7, and schema 7 at schema 8. The rule is the
-        # registry, not a list of versions somebody kept up to date.
+        # the same way at schema 7, schema 7 at schema 8, and schema 8 at
+        # schema 9. The rule is the registry, not a list of versions somebody
+        # kept up to date.
         (SCHEMA_5_VERSION, SCHEMA_5_HASH),
         (SCHEMA_6_VERSION, SCHEMA_6_HASH),
         (SCHEMA_7_VERSION, SCHEMA_7_HASH),
+        (SCHEMA_8_VERSION, SCHEMA_8_HASH),
     }
 
 

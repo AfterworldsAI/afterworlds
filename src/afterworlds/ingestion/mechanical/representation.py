@@ -247,6 +247,25 @@ __all__ = [
     "invariant_manifest",
     "held_structure_violations",
     "size_comparison_violations",
+    # Schema 9 — batch areas-of-effect-1.
+    "AreaDimension",
+    "AreaDimensionRequirementFact",
+    "AreaExtentPattern",
+    "AreaMovementSuspension",
+    "AreaOriginFact",
+    "AreaOriginInclusion",
+    "AreaOriginInclusionFact",
+    "AreaOriginKind",
+    "AreaOriginMovementFact",
+    "AreaOriginPlacement",
+    "AreaWidthRelation",
+    "AreaWidthRelationFact",
+    "BlockedLineExclusionFact",
+    "BlockedLineQuantifier",
+    "InterveningObstruction",
+    "RelocatedOrigin",
+    "UnseenOriginRelocationFact",
+    "UnseenPlacement",
     "ComponentDraft",
     "ProseBindingDraft",
     "ProvenanceClaim",
@@ -1194,6 +1213,219 @@ class Attitude(StrEnum):
     INDIFFERENT = "indifferent"
 
 
+class AreaOriginKind(StrEnum):
+    """What the source says an area of effect's origin *is*.
+
+    Two members, because the class prints two. The general rule states a
+    location — *"An area of effect has a point of origin, a location from which
+    the effect's energy erupts."* (``Area of Effect``, p176) — and five of the
+    six shapes restate it of themselves. ``Emanation`` states the other: it
+    *"extends in straight lines from a creature or an object in all
+    directions."* (p180), and its own inclusion clause names that origin again
+    as *"(creature or object)"*.
+
+    The general rule and the ``Emanation`` rule therefore coexist as two facts
+    over one vocabulary rather than as one rule with a footnote. Neither is
+    written as an exception to the other, because the source writes neither that
+    way.
+    """
+
+    POINT = "point"
+    CREATURE_OR_OBJECT = "creature_or_object"
+
+
+class AreaExtentPattern(StrEnum):
+    """How the source says an area extends from its origin.
+
+    One member per printed opening clause, carrying the whole clause rather than
+    a shortened form of it. A member that dropped ``Cone``'s *"in a direction
+    its creator chooses"* would lose who chooses, and one that dropped
+    ``Line``'s *"and covers an area defined by its width"* would lose what the
+    line covers — in each case the dropped phrase is the mechanic.
+
+    ``Cube`` and ``Cylinder`` share :attr:`STRAIGHT_LINES` because that is all
+    their opening clauses state about extending; what distinguishes them is
+    where their point of origin sits, which is :class:`AreaOriginPlacement`.
+    """
+
+    STRAIGHT_LINES = "straight_lines"
+    STRAIGHT_LINES_IN_A_DIRECTION_ITS_CREATOR_CHOOSES = (
+        "straight_lines_in_a_direction_its_creator_chooses"
+    )
+    STRAIGHT_LINES_IN_ALL_DIRECTIONS = "straight_lines_in_all_directions"
+    STRAIGHT_LINES_OUTWARD_IN_ALL_DIRECTIONS = (
+        "straight_lines_outward_in_all_directions"
+    )
+    STRAIGHT_PATH_ALONG_ITS_LENGTH_COVERING_THE_AREA_ITS_WIDTH_DEFINES = (
+        "straight_path_along_its_length_covering_the_area_its_width_defines"
+    )
+
+
+class AreaOriginPlacement(StrEnum):
+    """Where a shape's own rule says to position its point of origin.
+
+    The umbrella defers to the shapes — *"The rules for each shape specify how
+    to position its point of origin."* — and exactly two of them answer with a
+    position. ``Cone`` answers with a *direction* instead, which is extent;
+    ``Line`` and ``Sphere`` state neither; ``Emanation`` has no point to place,
+    because its origin is a creature or an object. Those four carry no placement
+    at all rather than a placeholder one, which is why the field is nullable.
+
+    **No coordinates and no grid.** *"anywhere on a face of the Cube"* and
+    *"the center of the circular top or bottom"* are the source's words for a
+    position, not a position this projection computes; nothing here converts
+    them into squares, offsets or units.
+    """
+
+    ANYWHERE_ON_A_FACE_OF_THE_CUBE = "anywhere_on_a_face_of_the_cube"
+    CENTER_OF_THE_CIRCULAR_TOP_OR_BOTTOM = "center_of_the_circular_top_or_bottom"
+
+
+class AreaDimension(StrEnum):
+    """A parameter *name* the effect that creates an area must specify.
+
+    The name, and only the name. **No unit and no value.** Every one of the six
+    parameter clauses is prefixed *"The effect that creates a … specifies"*, so
+    the values arrive with the spell or feature, not with the shape; and no
+    substantive clause in this class prints a unit — the one "feet" in the
+    section is ``Cone``'s worked example, which is supporting authority.
+    :class:`DistanceUnit` is deliberately *not* referenced by this vocabulary or
+    by :class:`AreaDimensionRequirementFact` for that reason.
+
+    ``Emanation`` and ``Sphere`` are separate members rather than one shared
+    one: ``Emanation`` specifies *"the distance it extends"*, while ``Sphere``
+    specifies *"the distance it extends as the radius of the Sphere"* — the
+    second names what the distance *is*, and dropping that would make the two
+    clauses identical when the source prints them differently.
+    """
+
+    MAXIMUM_LENGTH = "maximum_length"
+    SIZE_THE_LENGTH_OF_EACH_SIDE = "size_the_length_of_each_side"
+    RADIUS_OF_THE_BASE = "radius_of_the_base"
+    HEIGHT = "height"
+    DISTANCE_IT_EXTENDS = "distance_it_extends"
+    DISTANCE_IT_EXTENDS_AS_THE_RADIUS = "distance_it_extends_as_the_radius"
+    LENGTH = "length"
+    WIDTH = "width"
+
+
+class AreaOriginInclusion(StrEnum):
+    """Whether an area's own origin lies inside the area.
+
+    Both printed forms, and the second carries its qualification whole. All four
+    shapes that exclude their origin state *"unless its creator decides
+    otherwise"*; a bare ``EXCLUDED`` would drop the creator's control, which is
+    a stated mechanic and not a caveat. ``Cylinder`` and ``Sphere`` include
+    theirs unconditionally and state no such clause.
+    """
+
+    INCLUDED = "included"
+    EXCLUDED_UNLESS_ITS_CREATOR_DECIDES_OTHERWISE = (
+        "excluded_unless_its_creator_decides_otherwise"
+    )
+
+
+class AreaWidthRelation(StrEnum):
+    """A stated relation between an area's width and a point along its length.
+
+    One member, because ``Cone`` states one relation and no other shape in this
+    class states any: *"A Cone's width at any point along its length is equal to
+    that point's distance from the point of origin."*
+
+    A single-member vocabulary is accepted precedent in this union —
+    :class:`TerminationScope`, :class:`DistanceUnit`, :class:`TimePeriod` — and
+    the ``attitudes-1`` rejection of one was narrower than it reads: it applied
+    where the source printed a three-member closure in one line and the batch
+    proposed admitting only the member it used. There is no wider printed
+    closure here to admit.
+
+    The relation is *named*, not evaluated. Nothing in this module computes a
+    width from a distance; a consumer that wants a number reads the relation and
+    the length its own effect supplies.
+    """
+
+    EQUAL_TO_THAT_POINTS_DISTANCE_FROM_THE_POINT_OF_ORIGIN = (
+        "equal_to_that_points_distance_from_the_point_of_origin"
+    )
+
+
+class AreaMovementSuspension(StrEnum):
+    """An effect character that stops an Emanation moving with its origin.
+
+    Both printed exceptions, and only those: *"An Emanation moves with the
+    creature or object that is its origin unless it is an instantaneous or a
+    stationary effect."*
+
+    Not members of :class:`DurationKind`. "Stationary" is not a duration, and
+    widening an accepted vocabulary to hold it would change what every accepted
+    duration means; "instantaneous" overlaps a duration the corpus states
+    elsewhere, but here it is one arm of a two-arm printed exception and is
+    admitted as that arm rather than as a cross-reference this batch has not
+    read.
+    """
+
+    INSTANTANEOUS_EFFECT = "instantaneous_effect"
+    STATIONARY_EFFECT = "stationary_effect"
+
+
+class BlockedLineQuantifier(StrEnum):
+    """How many lines to a location must be blocked before it drops out.
+
+    One member, and the member *is* the quantifier: *"If **all** straight lines
+    extending from the point of origin to a location in the area of effect are
+    blocked, that location isn't included in the area of effect."*
+
+    Stating the rule without it would read as "a blocked line excludes", which
+    is a different and far larger exclusion — the shorthand loses the quantifier
+    and the loss is not visible in the result. The source states no threshold
+    short of all, so none is invented; what this vocabulary guarantees is that
+    the threshold it *does* state is carried in the payload rather than left to
+    a reader's summary of it.
+    """
+
+    ALL_STRAIGHT_LINES_FROM_THE_POINT_OF_ORIGIN = (
+        "all_straight_lines_from_the_point_of_origin"
+    )
+
+
+class UnseenPlacement(StrEnum):
+    """The placement half of the unseen-origin rule's printed conjunction.
+
+    *"If the creator of an area of effect places it at an unseen point and an
+    obstruction … is between the creator and that point …"* — this member is the
+    first conjunct. It is a field of its own on
+    :class:`UnseenOriginRelocationFact` rather than an entry in a list, so that
+    the conjunction is structural: a fact stating only one of the two halves
+    cannot be constructed at all.
+    """
+
+    AT_AN_UNSEEN_POINT = "at_an_unseen_point"
+
+
+class InterveningObstruction(StrEnum):
+    """The obstruction half of the same printed conjunction.
+
+    The second conjunct — *"an obstruction—such as a wall—is between the creator
+    and that point"*. *"such as a wall"* is the source's example rather than a
+    closure over obstruction kinds, so no obstruction vocabulary is invented
+    from it.
+    """
+
+    BETWEEN_THE_CREATOR_AND_THE_POINT = "between_the_creator_and_the_point"
+
+
+class RelocatedOrigin(StrEnum):
+    """Where the point of origin comes into being when both conjuncts hold.
+
+    *"… the point of origin comes into being on the near side of the
+    obstruction."* The result is stated as a value rather than read off the
+    family's name, for the reason :class:`MovementTransportFact` gives: a
+    consumer must not have to know a naming convention to read authority.
+    """
+
+    NEAR_SIDE_OF_THE_OBSTRUCTION = "near_side_of_the_obstruction"
+
+
 class ExpendableResource(StrEnum):
     """A resource a rule states is, or is not, spent.
 
@@ -1487,6 +1719,20 @@ class FactFamily(StrEnum):
     #: prose-bound branch is unavailable (#137 contract 3, ADR-005d
     #: Decision 4).
     DEFAULT_ATTITUDE = "default_attitude"
+    #: Schema 9, batch ``areas-of-effect-1``. Seven families, one per distinct
+    #: rule the Area of Effect class prints, admitted on the same gate: #137
+    #: contract 3, whose prose-bound branch is unavailable because no member of
+    #: the closed irreducibility catalog is affirmatively true of any of the 24
+    #: substantive clauses. They are declarative shapes for stated rules; no
+    #: geometry is computed, no grid is modelled and nothing is adjudicated
+    #: (#137 "Out of scope", ADR-005d Decision 4).
+    AREA_ORIGIN = "area_origin"
+    AREA_DIMENSION_REQUIREMENT = "area_dimension_requirement"
+    AREA_ORIGIN_INCLUSION = "area_origin_inclusion"
+    AREA_WIDTH_RELATION = "area_width_relation"
+    AREA_ORIGIN_MOVEMENT = "area_origin_movement"
+    BLOCKED_LINE_EXCLUSION = "blocked_line_exclusion"
+    UNSEEN_ORIGIN_RELOCATION = "unseen_origin_relocation"
 
 
 # ---------------------------------------------------------------------------
@@ -3043,6 +3289,182 @@ class DefaultAttitudeFact:
     attitude: Attitude
 
 
+@dataclass(frozen=True)
+class AreaOriginFact:
+    """What an area of effect's origin is, and how the area extends from it.
+
+    The general rule and the six shape rules are one family because the source
+    prints one rule and six restatements of it, not seven unrelated rules:
+    *"An area of effect has a point of origin, a location from which the
+    effect's energy erupts."* (``Area of Effect``, p176), then each shape's
+    opening clause.
+
+    **The general rule and the shape rules coexist rather than override.** The
+    umbrella's fact states :attr:`origin` alone, because the umbrella states
+    only that an origin exists and what it is; it names no extent and no
+    placement, and the two nullable fields are that absence stated rather than
+    filled in. ``Emanation``'s fact states ``CREATURE_OR_OBJECT``, which is the
+    origin its own clause names. Nothing in this family marks either as
+    superseding the other, because the source marks neither.
+
+    **Placement qualifies an extent.** A fact may not state
+    :attr:`placement` without :attr:`extent`: the placement clauses are
+    subordinate phrases of the opening clause that states the extending, and a
+    placement with nothing to place would be a shape this class does not print.
+
+    **Declarative only.** ``STRAIGHT_LINES`` names what the source says the area
+    does; it is not a traversal, a ray cast, or an instruction to compute one.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.AREA_ORIGIN
+
+    origin: AreaOriginKind
+    extent: AreaExtentPattern | None = None
+    placement: AreaOriginPlacement | None = None
+
+
+@dataclass(frozen=True)
+class AreaDimensionRequirementFact:
+    """The parameters the effect that creates this area must specify.
+
+    *"The effect that creates a Cylinder specifies the radius of the Cylinder's
+    base and the Cylinder's height."* — and five more like it.
+
+    **Arity is meaning, and it varies.** ``Cone``, ``Cube``, ``Emanation`` and
+    ``Sphere`` name one parameter; ``Cylinder`` and ``Line`` name two. A shape
+    that required a fixed arity would have to invent a parameter for four of the
+    six.
+
+    **Source order, not sorted order.** ``DamageResponseFact.except_types``
+    sorts because an unordered set of exceptions has no printed order to lose;
+    here the source prints *"the radius of the Cylinder's base and the
+    Cylinder's height"* and *"its length and width"* in an order, and sorting
+    would silently reverse the first. Duplicates are still refused, because a
+    parameter named twice is one requirement written twice.
+
+    **Names only — no unit, no value, no default.** See :class:`AreaDimension`.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.AREA_DIMENSION_REQUIREMENT
+
+    dimensions: tuple[AreaDimension, ...]
+
+
+@dataclass(frozen=True)
+class AreaOriginInclusionFact:
+    """Whether this area's own origin is part of the area.
+
+    Six clauses, two printed forms, and the creator's control is inside the
+    excluded form rather than beside it — see :class:`AreaOriginInclusion`.
+
+    Stated as a value rather than a boolean for the reason
+    :class:`DefaultAttitudeFact` states: a ``bool`` would name neither the
+    qualification nor which of the two printed sentences a record carries.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.AREA_ORIGIN_INCLUSION
+
+    inclusion: AreaOriginInclusion
+
+
+@dataclass(frozen=True)
+class AreaWidthRelationFact:
+    """A width the source relates to a distance, named rather than computed.
+
+    ``Cone``'s second clause, and the only clause of its kind in the class. The
+    relation is authority a consumer reads; this module does not evaluate it,
+    and could not — the distances it would need arrive with the effect that
+    creates the Cone, not with the Cone.
+
+    Not :class:`DerivedQuantityFact`: that family derives a quantity from an
+    *ability modifier* and carries a time unit, which is a different derivation
+    over different inputs.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.AREA_WIDTH_RELATION
+
+    relation: AreaWidthRelation
+
+
+@dataclass(frozen=True)
+class AreaOriginMovementFact:
+    """An area that moves with its origin, and what stops it.
+
+    *"An Emanation moves with the creature or object that is its origin unless
+    it is an instantaneous or a stationary effect."*
+
+    The positive rule is the family: a fact of this family says the area moves
+    with its origin. :attr:`suspended_by_any_of` carries the printed exceptions,
+    and its name carries the quantifier — the source joins them with *"or"*, so
+    either one alone suspends the movement. Both are stated, because both are
+    printed; a fact naming only one would be a different and weaker rule.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.AREA_ORIGIN_MOVEMENT
+
+    suspended_by_any_of: tuple[AreaMovementSuspension, ...]
+
+
+@dataclass(frozen=True)
+class BlockedLineExclusionFact:
+    """When a location inside the shape is nevertheless not in the area.
+
+    Two clauses, one rule: *"If all straight lines extending from the point of
+    origin to a location in the area of effect are blocked, that location isn't
+    included in the area of effect."* and *"To block a line, an obstruction must
+    provide Total Cover."* The second says what "blocked" means, so it is the
+    threshold field of the same fact rather than a fact of its own.
+
+    :attr:`blocking_cover` is typed as the whole :class:`CoverDegree`
+    vocabulary, not pinned to ``TOTAL`` by an invariant. ``TOTAL`` is what this
+    record carries because it is what the source prints; a fact carrying
+    ``THREE_QUARTERS`` would be a different rule with a different payload and a
+    different identity, which is exactly the property that makes the threshold
+    reviewable rather than decorative. ``CoverDegree`` is an accepted schema-6
+    vocabulary and is reused unchanged — no member is added, and ``Cover``
+    itself stays an unresolved reference target for the batch that reads it.
+
+    **Nothing here traces a line.** The rule is represented; deciding whether a
+    particular location's lines are blocked needs a map, and a map is not
+    mechanical authority (#137 "Out of scope").
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.BLOCKED_LINE_EXCLUSION
+
+    blocked: BlockedLineQuantifier
+    blocking_cover: CoverDegree
+
+
+@dataclass(frozen=True)
+class UnseenOriginRelocationFact:
+    """Where an unseen point of origin actually comes into being.
+
+    *"If the creator of an area of effect places it at an unseen point and an
+    obstruction—such as a wall—is between the creator and that point, the point
+    of origin comes into being on the near side of the obstruction."*
+
+    **The conjunction is structural, and deliberately so.** Both conditions are
+    required fields over their own vocabularies, so a fact stating one of them
+    cannot be built: the *"and"* is enforced by the shape rather than by a
+    combinator. It is not an :class:`Applicability` — ``ANY_OF`` is a flat
+    disjunction that states, in its own words, "no nesting, no conjunction, no
+    negation of a sub-term, no operators" — and it is not a two-entry tuple with
+    an invariant demanding both entries, which would be a conjunction operator
+    with exactly one legal operand set and therefore the general predicate
+    language ADR-005d Decision 4 refuses.
+
+    Each condition is a single-member vocabulary on the precedent
+    :class:`AreaWidthRelation` cites. The result is a third stated value rather
+    than the family's name.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.UNSEEN_ORIGIN_RELOCATION
+
+    placement: UnseenPlacement
+    obstruction: InterveningObstruction
+    relocated_to: RelocatedOrigin
+
+
 MechanicalFact = (
     AbilityCheckFact
     | ActionEconomyFact
@@ -3094,6 +3516,13 @@ MechanicalFact = (
     | SustainedStateRequirementFact
     | TriggeredResolutionFact
     | DefaultAttitudeFact
+    | AreaOriginFact
+    | AreaDimensionRequirementFact
+    | AreaOriginInclusionFact
+    | AreaWidthRelationFact
+    | AreaOriginMovementFact
+    | BlockedLineExclusionFact
+    | UnseenOriginRelocationFact
 )
 
 _FACT_TYPES: dict[FactFamily, type] = {
@@ -3147,6 +3576,13 @@ _FACT_TYPES: dict[FactFamily, type] = {
     FactFamily.SUSTAINED_STATE_REQUIREMENT: SustainedStateRequirementFact,
     FactFamily.TRIGGERED_RESOLUTION: TriggeredResolutionFact,
     FactFamily.DEFAULT_ATTITUDE: DefaultAttitudeFact,
+    FactFamily.AREA_ORIGIN: AreaOriginFact,
+    FactFamily.AREA_DIMENSION_REQUIREMENT: AreaDimensionRequirementFact,
+    FactFamily.AREA_ORIGIN_INCLUSION: AreaOriginInclusionFact,
+    FactFamily.AREA_WIDTH_RELATION: AreaWidthRelationFact,
+    FactFamily.AREA_ORIGIN_MOVEMENT: AreaOriginMovementFact,
+    FactFamily.BLOCKED_LINE_EXCLUSION: BlockedLineExclusionFact,
+    FactFamily.UNSEEN_ORIGIN_RELOCATION: UnseenOriginRelocationFact,
 }
 
 
@@ -4879,6 +5315,90 @@ def _check_default_attitude(fact: DefaultAttitudeFact) -> list[str]:
     return [*_enum_field(fact.attitude, Attitude, "attitude")]
 
 
+def _check_area_origin(fact: AreaOriginFact) -> list[str]:
+    findings = [
+        *_enum_field(fact.origin, AreaOriginKind, "origin"),
+        *_optional_enum_field(fact.extent, AreaExtentPattern, "extent"),
+        *_optional_enum_field(fact.placement, AreaOriginPlacement, "placement"),
+    ]
+    if findings:
+        return findings
+    if fact.placement is not None and fact.extent is None:
+        findings.append(
+            "placement states where a point of origin sits without stating the "
+            "extending it qualifies; the source prints the placement inside the "
+            "clause that states the extent"
+        )
+    return findings
+
+
+def _check_area_dimension_requirement(fact: AreaDimensionRequirementFact) -> list[str]:
+    findings: list[str] = []
+    if drift := exact_tuple_violations(fact.dimensions, "dimensions"):
+        return drift
+    for i, d in enumerate(fact.dimensions):
+        findings.extend(_enum_field(d, AreaDimension, f"dimensions[{i}]"))
+    if findings:
+        return findings
+    if not fact.dimensions:
+        findings.append(
+            "dimensions is empty; every parameter clause in this class names at "
+            "least one parameter the creating effect must specify"
+        )
+        return findings
+    codes = [d.value for d in fact.dimensions]
+    if len(set(codes)) != len(codes):
+        # Printed order is preserved rather than sorted — see the family
+        # docstring — so uniqueness is checked without touching the order.
+        findings.append("dimensions repeats a parameter")
+    return findings
+
+
+def _check_area_origin_inclusion(fact: AreaOriginInclusionFact) -> list[str]:
+    return [*_enum_field(fact.inclusion, AreaOriginInclusion, "inclusion")]
+
+
+def _check_area_width_relation(fact: AreaWidthRelationFact) -> list[str]:
+    return [*_enum_field(fact.relation, AreaWidthRelation, "relation")]
+
+
+def _check_area_origin_movement(fact: AreaOriginMovementFact) -> list[str]:
+    findings: list[str] = []
+    if drift := exact_tuple_violations(fact.suspended_by_any_of, "suspended_by_any_of"):
+        return drift
+    for i, s in enumerate(fact.suspended_by_any_of):
+        findings.extend(
+            _enum_field(s, AreaMovementSuspension, f"suspended_by_any_of[{i}]")
+        )
+    if findings:
+        return findings
+    if not fact.suspended_by_any_of:
+        findings.append(
+            "suspended_by_any_of is empty; an area that moves with its origin "
+            "under no exception is not the rule this family states"
+        )
+        return findings
+    codes = [s.value for s in fact.suspended_by_any_of]
+    if len(set(codes)) != len(codes):
+        findings.append("suspended_by_any_of repeats an exception")
+    return findings
+
+
+def _check_blocked_line_exclusion(fact: BlockedLineExclusionFact) -> list[str]:
+    return [
+        *_enum_field(fact.blocked, BlockedLineQuantifier, "blocked"),
+        *_enum_field(fact.blocking_cover, CoverDegree, "blocking_cover"),
+    ]
+
+
+def _check_unseen_origin_relocation(fact: UnseenOriginRelocationFact) -> list[str]:
+    return [
+        *_enum_field(fact.placement, UnseenPlacement, "placement"),
+        *_enum_field(fact.obstruction, InterveningObstruction, "obstruction"),
+        *_enum_field(fact.relocated_to, RelocatedOrigin, "relocated_to"),
+    ]
+
+
 _FACT_INVARIANTS: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.ABILITY_CHECK: _check_ability_check,
     FactFamily.ACTION_ECONOMY: _check_action_economy,
@@ -4930,6 +5450,13 @@ _FACT_INVARIANTS: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.TRIGGERED_RESOLUTION: _check_triggered_resolution,
     FactFamily.SIZE_KEYED_QUANTITY: _check_size_keyed_quantity,
     FactFamily.DEFAULT_ATTITUDE: _check_default_attitude,
+    FactFamily.AREA_ORIGIN: _check_area_origin,
+    FactFamily.AREA_DIMENSION_REQUIREMENT: _check_area_dimension_requirement,
+    FactFamily.AREA_ORIGIN_INCLUSION: _check_area_origin_inclusion,
+    FactFamily.AREA_WIDTH_RELATION: _check_area_width_relation,
+    FactFamily.AREA_ORIGIN_MOVEMENT: _check_area_origin_movement,
+    FactFamily.BLOCKED_LINE_EXCLUSION: _check_blocked_line_exclusion,
+    FactFamily.UNSEEN_ORIGIN_RELOCATION: _check_unseen_origin_relocation,
 }
 
 
@@ -6214,6 +6741,102 @@ def _build_default_attitude(p: Mapping[str, Any]) -> DefaultAttitudeFact:
     return DefaultAttitudeFact(attitude=Attitude(p["attitude"]))
 
 
+def _build_area_origin(p: Mapping[str, Any]) -> AreaOriginFact:
+    _reject(
+        FactFamily.AREA_ORIGIN,
+        [
+            *_json_enum(p["origin"], AreaOriginKind, "origin"),
+            *_optional_json_enum(p["extent"], AreaExtentPattern, "extent"),
+            *_optional_json_enum(p["placement"], AreaOriginPlacement, "placement"),
+        ],
+    )
+    raw_extent = p["extent"]
+    raw_placement = p["placement"]
+    return AreaOriginFact(
+        origin=AreaOriginKind(p["origin"]),
+        extent=None if raw_extent is None else AreaExtentPattern(raw_extent),
+        placement=(
+            None if raw_placement is None else AreaOriginPlacement(raw_placement)
+        ),
+    )
+
+
+def _build_area_dimension_requirement(
+    p: Mapping[str, Any],
+) -> AreaDimensionRequirementFact:
+    raw = p["dimensions"]
+    if not isinstance(raw, list):
+        raise MalformedFactPayloadError("dimensions is not a list")
+    findings: list[str] = []
+    for i, d in enumerate(raw):
+        findings.extend(_json_enum(d, AreaDimension, f"dimensions[{i}]"))
+    _reject(FactFamily.AREA_DIMENSION_REQUIREMENT, findings)
+    return AreaDimensionRequirementFact(dimensions=tuple(AreaDimension(d) for d in raw))
+
+
+def _build_area_origin_inclusion(p: Mapping[str, Any]) -> AreaOriginInclusionFact:
+    _reject(
+        FactFamily.AREA_ORIGIN_INCLUSION,
+        _json_enum(p["inclusion"], AreaOriginInclusion, "inclusion"),
+    )
+    return AreaOriginInclusionFact(inclusion=AreaOriginInclusion(p["inclusion"]))
+
+
+def _build_area_width_relation(p: Mapping[str, Any]) -> AreaWidthRelationFact:
+    _reject(
+        FactFamily.AREA_WIDTH_RELATION,
+        _json_enum(p["relation"], AreaWidthRelation, "relation"),
+    )
+    return AreaWidthRelationFact(relation=AreaWidthRelation(p["relation"]))
+
+
+def _build_area_origin_movement(p: Mapping[str, Any]) -> AreaOriginMovementFact:
+    raw = p["suspended_by_any_of"]
+    if not isinstance(raw, list):
+        raise MalformedFactPayloadError("suspended_by_any_of is not a list")
+    findings: list[str] = []
+    for i, s in enumerate(raw):
+        findings.extend(
+            _json_enum(s, AreaMovementSuspension, f"suspended_by_any_of[{i}]")
+        )
+    _reject(FactFamily.AREA_ORIGIN_MOVEMENT, findings)
+    return AreaOriginMovementFact(
+        suspended_by_any_of=tuple(AreaMovementSuspension(s) for s in raw)
+    )
+
+
+def _build_blocked_line_exclusion(p: Mapping[str, Any]) -> BlockedLineExclusionFact:
+    _reject(
+        FactFamily.BLOCKED_LINE_EXCLUSION,
+        [
+            *_json_enum(p["blocked"], BlockedLineQuantifier, "blocked"),
+            *_json_enum(p["blocking_cover"], CoverDegree, "blocking_cover"),
+        ],
+    )
+    return BlockedLineExclusionFact(
+        blocked=BlockedLineQuantifier(p["blocked"]),
+        blocking_cover=CoverDegree(p["blocking_cover"]),
+    )
+
+
+def _build_unseen_origin_relocation(
+    p: Mapping[str, Any],
+) -> UnseenOriginRelocationFact:
+    _reject(
+        FactFamily.UNSEEN_ORIGIN_RELOCATION,
+        [
+            *_json_enum(p["placement"], UnseenPlacement, "placement"),
+            *_json_enum(p["obstruction"], InterveningObstruction, "obstruction"),
+            *_json_enum(p["relocated_to"], RelocatedOrigin, "relocated_to"),
+        ],
+    )
+    return UnseenOriginRelocationFact(
+        placement=UnseenPlacement(p["placement"]),
+        obstruction=InterveningObstruction(p["obstruction"]),
+        relocated_to=RelocatedOrigin(p["relocated_to"]),
+    )
+
+
 _FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] = {
     FactFamily.ABILITY_CHECK: _build_ability_check,
     FactFamily.ACTION_ECONOMY: _build_action_economy,
@@ -6265,6 +6888,13 @@ _FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] 
     FactFamily.TRIGGERED_RESOLUTION: _build_triggered_resolution,
     FactFamily.SIZE_KEYED_QUANTITY: _build_size_keyed_quantity,
     FactFamily.DEFAULT_ATTITUDE: _build_default_attitude,
+    FactFamily.AREA_ORIGIN: _build_area_origin,
+    FactFamily.AREA_DIMENSION_REQUIREMENT: _build_area_dimension_requirement,
+    FactFamily.AREA_ORIGIN_INCLUSION: _build_area_origin_inclusion,
+    FactFamily.AREA_WIDTH_RELATION: _build_area_width_relation,
+    FactFamily.AREA_ORIGIN_MOVEMENT: _build_area_origin_movement,
+    FactFamily.BLOCKED_LINE_EXCLUSION: _build_blocked_line_exclusion,
+    FactFamily.UNSEEN_ORIGIN_RELOCATION: _build_unseen_origin_relocation,
 }
 
 #: Every family must declare a builder and an invariant checker. A family added
@@ -6371,7 +7001,19 @@ assert (
 #: required on, or made nullable on any accepted family, and no ownership form
 #: changes, so every accepted fact key and provenance coordinate has the same
 #: canonical form under both contracts.
-REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-8"
+#:
+#: Version ``9`` closes the ``areas-of-effect-1`` schema stop and nothing else.
+#: The Area of Effect class prints eight distinct rules that schema 8 had no
+#: shape for and no composition of accepted families states, so schema 9 adds
+#: seven fact families over eleven closed vocabularies, one per printed rule.
+#: It reuses :class:`CoverDegree` unchanged, adds no member to any accepted
+#: vocabulary, adds no field to an accepted family, makes no accepted field
+#: required or nullable, and changes no ownership form — so every accepted fact
+#: key and provenance coordinate has the same canonical form under both
+#: contracts. Nothing here computes geometry, models a grid, or adjudicates:
+#: the rules are represented declaratively and consumed by hand-authored code
+#: (#137 "Out of scope", ADR-005d Decision 4).
+REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-9"
 
 
 class UnsupportedRepresentationShapeError(TypeError):
@@ -6852,6 +7494,18 @@ def _introductions() -> tuple[_Introduction, ...]:
             _Introduction("vocabulary_member", vocabulary, member, SCHEMA_8)
             for member in members
         )
+    # Schema 9 adds seven families and eleven whole vocabularies, and no
+    # ownership form, no required field and no nullable field on any family an
+    # earlier schema already had.
+    rows.extend(
+        _Introduction("fact_family", "FactFamily", family.value, SCHEMA_9)
+        for family in _SCHEMA_9_FAMILIES
+    )
+    for vocabulary, members in _SCHEMA_9_VOCABULARY_MEMBERS.items():
+        rows.extend(
+            _Introduction("vocabulary_member", vocabulary, member, SCHEMA_9)
+            for member in members
+        )
     rows.extend(
         _Introduction("nullable_field", _OPTIONAL_SINCE_FAMILIES[owner], key, arrived)
         for owner, keys in _OPTIONAL_SINCE.items()
@@ -6909,6 +7563,7 @@ def _vocabulary_shape(owner: str) -> list[str] | None:
         or _SCHEMA_6_VOCABULARY_ALL.get(owner)
         or _SCHEMA_7_VOCABULARY_ALL.get(owner)
         or _SCHEMA_8_VOCABULARY_ALL.get(owner)
+        or _SCHEMA_9_VOCABULARY_ALL.get(owner)
     )
     return None if members is None else sorted(members)
 
@@ -7001,6 +7656,7 @@ def _collect_post_schema_3(
             (_SCHEMA_6_MEMBER_INDEX, SCHEMA_6),
             (_SCHEMA_7_MEMBER_INDEX, SCHEMA_7),
             (_SCHEMA_8_MEMBER_INDEX, SCHEMA_8),
+            (_SCHEMA_9_MEMBER_INDEX, SCHEMA_9),
         ):
             if (
                 type(value).__name__,
@@ -7317,6 +7973,49 @@ _SCHEMA_8_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
     for member in members
 )
 
+SCHEMA_9 = "5d-representation-schema-9"
+
+#: The seven families schema 9 admitted, for batch ``areas-of-effect-1``. One
+#: per distinct rule the class prints, named by member for the same reason
+#: schema 4's, 6's and 8's are.
+_SCHEMA_9_FAMILIES: tuple[FactFamily, ...] = (
+    FactFamily.AREA_ORIGIN,
+    FactFamily.AREA_DIMENSION_REQUIREMENT,
+    FactFamily.AREA_ORIGIN_INCLUSION,
+    FactFamily.AREA_WIDTH_RELATION,
+    FactFamily.AREA_ORIGIN_MOVEMENT,
+    FactFamily.BLOCKED_LINE_EXCLUSION,
+    FactFamily.UNSEEN_ORIGIN_RELOCATION,
+)
+
+#: Schema 9 introduces eleven vocabularies whole and adds nothing to a
+#: vocabulary an earlier schema already had. :class:`CoverDegree` is *not* here:
+#: :class:`BlockedLineExclusionFact` reuses it exactly as schema 6 declared it,
+#: and a row here would claim schema 9 introduced a member it did not.
+_SCHEMA_9_VOCABULARY_MEMBERS: dict[str, tuple[str, ...]] = {
+    "AreaOriginKind": tuple(m.value for m in AreaOriginKind),
+    "AreaExtentPattern": tuple(m.value for m in AreaExtentPattern),
+    "AreaOriginPlacement": tuple(m.value for m in AreaOriginPlacement),
+    "AreaDimension": tuple(m.value for m in AreaDimension),
+    "AreaOriginInclusion": tuple(m.value for m in AreaOriginInclusion),
+    "AreaWidthRelation": tuple(m.value for m in AreaWidthRelation),
+    "AreaMovementSuspension": tuple(m.value for m in AreaMovementSuspension),
+    "BlockedLineQuantifier": tuple(m.value for m in BlockedLineQuantifier),
+    "UnseenPlacement": tuple(m.value for m in UnseenPlacement),
+    "InterveningObstruction": tuple(m.value for m in InterveningObstruction),
+    "RelocatedOrigin": tuple(m.value for m in RelocatedOrigin),
+}
+
+_SCHEMA_9_VOCABULARY_ALL: dict[str, tuple[str, ...]] = dict(
+    _SCHEMA_9_VOCABULARY_MEMBERS
+)
+
+_SCHEMA_9_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
+    (vocabulary, member)
+    for vocabulary, members in _SCHEMA_9_VOCABULARY_MEMBERS.items()
+    for member in members
+)
+
 
 #: Every family-bearing succession, newest last. A family added later must join
 #: this table rather than the one comparison schema 4 was checked by, which
@@ -7325,6 +8024,7 @@ _FAMILY_INTRODUCTIONS: tuple[tuple[tuple[FactFamily, ...], str], ...] = (
     (_SCHEMA_4_FAMILIES, SCHEMA_4),
     (_SCHEMA_6_FAMILIES, SCHEMA_6),
     (_SCHEMA_8_FAMILIES, SCHEMA_8),
+    (_SCHEMA_9_FAMILIES, SCHEMA_9),
 )
 
 #: Fields a later schema made **required** on a family an earlier schema already
@@ -7396,6 +8096,16 @@ _VERSION_STATES: dict[str, frozenset[str]] = {
     SCHEMA_7: frozenset({"5d-representation-schema-4", SCHEMA_5, SCHEMA_6, SCHEMA_7}),
     SCHEMA_8: frozenset(
         {"5d-representation-schema-4", SCHEMA_5, SCHEMA_6, SCHEMA_7, SCHEMA_8}
+    ),
+    SCHEMA_9: frozenset(
+        {
+            "5d-representation-schema-4",
+            SCHEMA_5,
+            SCHEMA_6,
+            SCHEMA_7,
+            SCHEMA_8,
+            SCHEMA_9,
+        }
     ),
 }
 
@@ -9740,6 +10450,64 @@ _INVARIANTS: tuple[_Invariant, ...] = (
         rule=(
             "at least two terms; a disjunction of one is a plain applicability "
             "misdescribed"
+        ),
+    ),
+    # -----------------------------------------------------------------------
+    # Schema 9, batch ``areas-of-effect-1``. Same scope rule as above. Three of
+    # the seven new families carry an intrinsic rule beyond the enum domain
+    # their wire shape already reflects, and each of those rules is declared
+    # separately from the others it shares a field with: emptiness and
+    # repetition are different claims about a sequence, refused by different
+    # branches with different messages, so a witness for one is no witness for
+    # the other. The remaining four families add no row — what they admit is
+    # exactly their vocabularies, which the payload already states.
+    # -----------------------------------------------------------------------
+    _Invariant(
+        id="area_origin.placement.requires-a-stated-extent",
+        locus="fact:area_origin",
+        field="extent+placement",
+        rule=(
+            "a stated placement states an extent beside it; the source prints "
+            "where a point of origin sits inside the clause that states what "
+            "extends from it, so a placement without one qualifies nothing"
+        ),
+    ),
+    _Invariant(
+        id="area_dimension_requirement.dimensions.at-least-one",
+        locus="fact:area_dimension_requirement",
+        field="dimensions",
+        rule=(
+            "at least one parameter; every parameter clause in this class "
+            "names one the creating effect must specify, and requiring none is "
+            "the absence of this fact rather than a fact requiring nothing"
+        ),
+    ),
+    _Invariant(
+        id="area_dimension_requirement.dimensions.no-repeats",
+        locus="fact:area_dimension_requirement",
+        field="dimensions",
+        rule=(
+            "no parameter twice; printed order is preserved rather than "
+            "sorted, so this is checked without imposing an order the source "
+            "does not state"
+        ),
+    ),
+    _Invariant(
+        id="area_origin_movement.suspended_by_any_of.at-least-one",
+        locus="fact:area_origin_movement",
+        field="suspended_by_any_of",
+        rule=(
+            "at least one exception; an area that moves with its origin under "
+            "no exception is not the rule this family states"
+        ),
+    ),
+    _Invariant(
+        id="area_origin_movement.suspended_by_any_of.no-repeats",
+        locus="fact:area_origin_movement",
+        field="suspended_by_any_of",
+        rule=(
+            "no exception twice; the same suspension stated again suspends "
+            "nothing further"
         ),
     ),
 )

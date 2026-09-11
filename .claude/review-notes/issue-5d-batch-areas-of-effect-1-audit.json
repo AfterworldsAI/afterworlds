@@ -1,0 +1,3890 @@
+{
+ "_": "DISPOSABLE REVIEW MATERIAL for CRD Issue 5d batch areas-of-effect-1. Emitted by issue-5d-batch-areas-of-effect-1-generator.py. This run accepts nothing, publishes nothing, activates nothing, retires nothing, writes no database and never executes the publication gate. It is material for semantic review.",
+ "proposal_identity": "d602f4e59ab90dbb04852661f78f03e2e311025e80be03f39f4b324f2c6d6878",
+ "batch_selection": {
+  "batch_id": "areas-of-effect-1",
+  "chosen_by": "complete source membership",
+  "rule": "the shape the four accepted batches established: a source-tagged entry class plus the untagged umbrella glossary rule that defines the tag. conditions-1 = 15 + Condition; hazards-1 = 5 + Hazard; actions-1 = 12 + Action; attitudes-1 = 3 + Attitude; areas-of-effect-1 = 6 + Area of Effect.",
+  "membership": {
+   "Area of Effect": "glossary.area_of_effect",
+   "Cone [Area of Effect]": "area_of_effect.cone",
+   "Cube [Area of Effect]": "area_of_effect.cube",
+   "Cylinder [Area of Effect]": "area_of_effect.cylinder",
+   "Emanation [Area of Effect]": "area_of_effect.emanation",
+   "Line [Area of Effect]": "area_of_effect.line",
+   "Sphere [Area of Effect]": "area_of_effect.sphere"
+  },
+  "tag_classes_in_the_source": {
+   "Action": 12,
+   "Area of Effect": 6,
+   "Attitude": 3,
+   "Condition": 15,
+   "Hazard": 5
+  },
+  "accepted_classes": [
+   "Condition",
+   "Hazard",
+   "Action",
+   "Attitude"
+  ],
+  "this_class": "Area of Effect",
+  "remaining_unaccepted_tagged_classes": [],
+  "cross_check": "the tag-derived membership and the six names the umbrella's own enumeration prints agree in both directions, and the boundary's twenty leaves are exactly the twenty the reviewed inventory covers",
+  "what_this_is_not": "the corpus #137 governs. This is ONE tagged class of the Rules Glossary. The full-corpus obligation is untouched and undischarged, and no count in this artifact is evidence about it."
+ },
+ "representation_schema": {
+  "version": "5d-representation-schema-9",
+  "hash": "f5a5e30817e64f019e31aa7f4692d72611215e4294e7da36242e492bca6b336e"
+ },
+ "schema_extension": {
+  "extends_the_schema": true,
+  "from_schema": "5d-representation-schema-8",
+  "to_schema": "5d-representation-schema-9",
+  "new_fact_families": [
+   "area_dimension_requirement",
+   "area_origin",
+   "area_origin_inclusion",
+   "area_origin_movement",
+   "area_width_relation",
+   "blocked_line_exclusion",
+   "unseen_origin_relocation"
+  ],
+  "new_vocabularies": {
+   "count": 11,
+   "members": [
+    [
+     "all_straight_lines_from_the_point_of_origin"
+    ],
+    [
+     "anywhere_on_a_face_of_the_cube",
+     "center_of_the_circular_top_or_bottom"
+    ],
+    [
+     "at_an_unseen_point"
+    ],
+    [
+     "between_the_creator_and_the_point"
+    ],
+    [
+     "creature_or_object",
+     "point"
+    ],
+    [
+     "distance_it_extends",
+     "distance_it_extends_as_the_radius",
+     "height",
+     "length",
+     "maximum_length",
+     "radius_of_the_base",
+     "size_the_length_of_each_side",
+     "width"
+    ],
+    [
+     "equal_to_that_points_distance_from_the_point_of_origin"
+    ],
+    [
+     "excluded_unless_its_creator_decides_otherwise",
+     "included"
+    ],
+    [
+     "instantaneous_effect",
+     "stationary_effect"
+    ],
+    [
+     "near_side_of_the_obstruction"
+    ],
+    [
+     "straight_lines",
+     "straight_lines_in_a_direction_its_creator_chooses",
+     "straight_lines_in_all_directions",
+     "straight_lines_outward_in_all_directions",
+     "straight_path_along_its_length_covering_the_area_its_width_defines"
+    ]
+   ]
+  },
+  "reused_without_re_minting": {
+   "CoverDegree": [
+    "three_quarters",
+    "total"
+   ],
+   "why": "the blocked-line rule's threshold is schema 6's vocabulary used exactly as schema 6 declared it. blocking_cover is typed as the whole CoverDegree rather than pinned to TOTAL, because the field's type is the KIND of thing that blocks and the printed threshold is the VALUE."
+  },
+  "intrinsic_invariants_declared": [
+   {
+    "id": "area_dimension_requirement.dimensions.at-least-one",
+    "locus": "fact:area_dimension_requirement",
+    "field": "dimensions",
+    "rule": "at least one parameter; every parameter clause in this class names one the creating effect must specify, and requiring none is the absence of this fact rather than a fact requiring nothing"
+   },
+   {
+    "id": "area_dimension_requirement.dimensions.no-repeats",
+    "locus": "fact:area_dimension_requirement",
+    "field": "dimensions",
+    "rule": "no parameter twice; printed order is preserved rather than sorted, so this is checked without imposing an order the source does not state"
+   },
+   {
+    "id": "area_origin.placement.requires-a-stated-extent",
+    "locus": "fact:area_origin",
+    "field": "extent+placement",
+    "rule": "a stated placement states an extent beside it; the source prints where a point of origin sits inside the clause that states what extends from it, so a placement without one qualifies nothing"
+   },
+   {
+    "id": "area_origin_movement.suspended_by_any_of.at-least-one",
+    "locus": "fact:area_origin_movement",
+    "field": "suspended_by_any_of",
+    "rule": "at least one exception; an area that moves with its origin under no exception is not the rule this family states"
+   },
+   {
+    "id": "area_origin_movement.suspended_by_any_of.no-repeats",
+    "locus": "fact:area_origin_movement",
+    "field": "suspended_by_any_of",
+    "rule": "no exception twice; the same suspension stated again suspends nothing further"
+   }
+  ],
+  "accepted_families_changed": [],
+  "registered_transitions_touched": [
+   "5d-lift-schema-8-to-9"
+  ],
+  "note": "Seven families over eleven closed vocabularies, one family per gap in the discovery checkpoint's section 4 except that G1 and G2 share area_origin: the general point-of-origin rule and the per-shape placement rule are one fact's fields, so they coexist on a shape record without either restating the other, and Emanation states a creature-or-object origin in the same field where the other five state a point. No field is added to, made required on, or made nullable on any accepted family and no ownership form changes, which is what makes the crossing a re-declaration rather than a rewrite.",
+  "no_values_no_geometry": "No parameter value, unit, coordinate or grid semantic is represented anywhere. The source prints none in this class: AreaDimension names the parameters and says the creating effect supplies them, and Cylinder's two and Line's two arrive as an ordered tuple rather than fixed slots. The only 'feet' in the class is Cone's worked example, which is supporting authority."
+ },
+ "semantic_policy": {
+  "version": "5d-semantic-policy-1",
+  "hash": "e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454"
+ },
+ "release_binding": {
+  "package_uuid": "4458fa10-4a66-5e0e-9ecc-ea37530ad2b4",
+  "release_version": "5.2.1-corpus.36b786d8-fa2",
+  "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+  "transform_config_hash": "77720c2f3b8c9b88363d48050466fb8e3a26f8476b63145d1b5928ff2581ef3e",
+  "bundle_root_hash": "03353dfb79790aee7260b9ed96055b7296cd6f70e3e6f97d6cbe0a2484279685",
+  "persisted_corpus_digest": "c1f547962b7d9096986f0b8e75624f9f8803dfc281c16033e1c2250cad5a929b",
+  "derivation": "five of six values re-derived from the committed PDF by the 5c pipeline and asserted; persisted_corpus_digest is a function of persisted rows and verified vector state, so it is carried from the published CRD Issue 5c release record and disclosed as such."
+ },
+ "boundary": {
+  "derived_from": "'[Area of Effect]'-tagged entries under Rules Definitions, plus the untagged 'Area of Effect' umbrella, cross-checked against the six names the umbrella's own enumeration prints",
+  "labels": [
+   "Area of Effect",
+   "Cone [Area of Effect]",
+   "Cube [Area of Effect]",
+   "Cylinder [Area of Effect]",
+   "Emanation [Area of Effect]",
+   "Line [Area of Effect]",
+   "Sphere [Area of Effect]"
+  ],
+  "printed_pages": [
+   177,
+   179,
+   180,
+   181,
+   184,
+   188
+  ],
+  "policy_exclusions": [],
+  "canaries": {
+   "records": {
+    "derived": 7,
+    "expected": 7
+   },
+   "represented_leaves": {
+    "derived": 20,
+    "expected": 20
+   },
+   "policy_exclusions": {
+    "derived": 0,
+    "expected": 0
+   },
+   "container_leaves": {
+    "derived": 20,
+    "expected": 20
+   },
+   "clauses": {
+    "derived": 43,
+    "expected": 43
+   },
+   "substantive_clauses": {
+    "derived": 24,
+    "expected": 24
+   },
+   "facts": {
+    "derived": 23,
+    "expected": 23
+   }
+  },
+  "no_grid_language_in_the_source": "the class prints no 'square', 'grid', 'battle map', 'token' or 'space', so no grid semantic is represented. Recorded here as a boundary of the source, not a decision of this run."
+ },
+ "source_inventory": {
+  "manifest": ".claude/review-notes/issue-5d-areas-of-effect-1-source-manifest.json",
+  "manifest_sha256": "5932c353dfd7d67756eeac72876705f5a60c5f2fe8175a7e78fdc0eb8c0d8b9c",
+  "generated_by": "issue-5d-areas-of-effect-1-discovery.py",
+  "carries_dispositions": false,
+  "leaves": 20,
+  "clauses": 43,
+  "tie_to_the_bound_source": "every reviewed leaf id exists in the corpus this run just built from the PDF and holds byte-identical content; the reviewed clause extents partition each of the twenty leaves end to end, starting at 0 and stopping at the leaf's length, and the concatenation reconstructs the leaf byte for byte. The manifest supplies the reviewed coordinates; the PDF supplies the content."
+ },
+ "counts": {
+  "records": 7,
+  "represented_leaves": 20,
+  "policy_exclusions": 0,
+  "clauses": 43,
+  "spans": 43,
+  "substantive": 24,
+  "supporting_authority": 19,
+  "non_mechanical": 0,
+  "unresolved": 0,
+  "components": 23,
+  "components_structured": 23,
+  "components_mixed": 0,
+  "components_prose_bound": 0,
+  "facts": 23,
+  "fact_families_used": 7,
+  "prose_bindings": 0,
+  "references": 7,
+  "record_owned_references": 7,
+  "relationships": 0,
+  "provenance_edges": 43,
+  "obligations": 43
+ },
+ "count_derivation": {
+  "records": "one per source entry in the boundary: the Area of Effect umbrella plus the six [Area of Effect] entries",
+  "represented_leaves": "distinct leaf ids the spans cover; all 20 of the boundary's 20 container leaves, because this boundary has no policy exclusion",
+  "clauses": "the reviewed inventory's partition cells, read from the committed discovery manifest and re-proved gap-free against the bound leaves",
+  "spans": "one per printed clause, at the clause's exact reviewed extent",
+  "facts": "23 over 24 substantive clauses: Area of Effect/5/2 and 5/3 jointly state one BlockedLineExclusionFact and both claim it PRIMARY",
+  "components": "one per family per record, all STRUCTURED, each holding exactly one fact. The umbrella holds three; Cone and Emanation four each; Cube, Cylinder, Line and Sphere three each",
+  "references": "six from the umbrella's printed enumeration plus one from its See also; every one record-owned, because no component of this batch is the thing doing the citing. None of the six shapes prints a See also, so no back-reference is derivable",
+  "prose_bindings": "none. No clause in this class matches one of the six closed irreducibility reasons, so binding any of them would record a vocabulary gap as an irreducibility",
+  "unresolved": "none. Schema 9 carries all twenty-four substantive clauses, so no span is emitted UNRESOLVED"
+ },
+ "per_record": {
+  "area_of_effect.cone": {
+   "leaves": 2,
+   "spans": 6
+  },
+  "area_of_effect.cube": {
+   "leaves": 2,
+   "spans": 4
+  },
+  "area_of_effect.cylinder": {
+   "leaves": 2,
+   "spans": 4
+  },
+  "area_of_effect.emanation": {
+   "leaves": 2,
+   "spans": 5
+  },
+  "area_of_effect.line": {
+   "leaves": 2,
+   "spans": 4
+  },
+  "area_of_effect.sphere": {
+   "leaves": 2,
+   "spans": 4
+  },
+  "glossary.area_of_effect": {
+   "leaves": 8,
+   "spans": 16
+  }
+ },
+ "record_shapes": {
+  "glossary.area_of_effect": {
+   "kind": "glossary_rule",
+   "components": [
+    "area_origin",
+    "blocked_line_exclusion",
+    "unseen_origin_relocation"
+   ],
+   "facts": {
+    "area_origin": "area_origin",
+    "blocked_line_exclusion": "blocked_line_exclusion",
+    "unseen_origin_relocation": "unseen_origin_relocation"
+   },
+   "prose_bindings": 0,
+   "references": 7
+  },
+  "area_of_effect.cone": {
+   "kind": "glossary_rule",
+   "components": [
+    "area_dimension_requirement",
+    "area_origin",
+    "area_origin_inclusion",
+    "area_width_relation"
+   ],
+   "facts": {
+    "area_origin": "area_origin",
+    "area_width_relation": "area_width_relation",
+    "area_dimension_requirement": "area_dimension_requirement",
+    "area_origin_inclusion": "area_origin_inclusion"
+   },
+   "prose_bindings": 0,
+   "references": 0
+  },
+  "area_of_effect.cube": {
+   "kind": "glossary_rule",
+   "components": [
+    "area_dimension_requirement",
+    "area_origin",
+    "area_origin_inclusion"
+   ],
+   "facts": {
+    "area_origin": "area_origin",
+    "area_dimension_requirement": "area_dimension_requirement",
+    "area_origin_inclusion": "area_origin_inclusion"
+   },
+   "prose_bindings": 0,
+   "references": 0
+  },
+  "area_of_effect.cylinder": {
+   "kind": "glossary_rule",
+   "components": [
+    "area_dimension_requirement",
+    "area_origin",
+    "area_origin_inclusion"
+   ],
+   "facts": {
+    "area_origin": "area_origin",
+    "area_dimension_requirement": "area_dimension_requirement",
+    "area_origin_inclusion": "area_origin_inclusion"
+   },
+   "prose_bindings": 0,
+   "references": 0
+  },
+  "area_of_effect.emanation": {
+   "kind": "glossary_rule",
+   "components": [
+    "area_dimension_requirement",
+    "area_origin",
+    "area_origin_inclusion",
+    "area_origin_movement"
+   ],
+   "facts": {
+    "area_origin": "area_origin",
+    "area_dimension_requirement": "area_dimension_requirement",
+    "area_origin_movement": "area_origin_movement",
+    "area_origin_inclusion": "area_origin_inclusion"
+   },
+   "prose_bindings": 0,
+   "references": 0
+  },
+  "area_of_effect.line": {
+   "kind": "glossary_rule",
+   "components": [
+    "area_dimension_requirement",
+    "area_origin",
+    "area_origin_inclusion"
+   ],
+   "facts": {
+    "area_origin": "area_origin",
+    "area_dimension_requirement": "area_dimension_requirement",
+    "area_origin_inclusion": "area_origin_inclusion"
+   },
+   "prose_bindings": 0,
+   "references": 0
+  },
+  "area_of_effect.sphere": {
+   "kind": "glossary_rule",
+   "components": [
+    "area_dimension_requirement",
+    "area_origin",
+    "area_origin_inclusion"
+   ],
+   "facts": {
+    "area_origin": "area_origin",
+    "area_dimension_requirement": "area_dimension_requirement",
+    "area_origin_inclusion": "area_origin_inclusion"
+   },
+   "prose_bindings": 0,
+   "references": 0
+  }
+ },
+ "validation": {
+  "seams_reporting_findings": {
+   "build-time draft shape (representation_draft_violations)": 0,
+   "held authority shape (held_structure_violations)": 0,
+   "declared meaning under this schema (declared_meaning_violations)": 0,
+   "component rules (damage + roll outcome + option sets)": 0,
+   "representation gate, standalone (validate_representation)": 1,
+   "representation gate, merged with the lifted four-batch prior": 3,
+   "committed-loader round trip (representation_payload -> _representation)": 0,
+   "partition accounting (validate_partition)": 0,
+   "reason codes (validate_reason_codes)": 0
+  },
+  "expected_nonzero": {
+   "representation gate, standalone (validate_representation)": 1,
+   "representation gate, merged with the lifted four-batch prior": 3
+  },
+  "wire_round_trip": true,
+  "partition": [],
+  "reason_codes": [],
+  "structural": [],
+  "component_rules": [],
+  "declared_meaning": [],
+  "standalone_findings": [
+   "reference srd-5.2.1/rules-glossary:'Cover': unknown target record glossary.cover"
+  ],
+  "standalone_findings_asserted_as_a_tuple": [
+   "reference srd-5.2.1/rules-glossary:'Cover': unknown target record glossary.cover"
+  ],
+  "merged_findings": [
+   "reference srd-5.2.1/rules-glossary:'Speed': unknown target record glossary.speed",
+   "reference srd-5.2.1/rules-glossary:'Concentration': unknown target record glossary.concentration",
+   "reference srd-5.2.1/rules-glossary:'Cover': unknown target record glossary.cover"
+  ],
+  "what_zero_would_not_prove": "these judge shape, not fidelity. This batch does not validate clean and says so: exactly one standalone finding, exactly three merged, all of the unresolved-reference class."
+ },
+ "classification_partitions": {
+  "16894c5c-319b-5ce0-aeef-e7aca9805a38": {
+   "record": "area_of_effect.cylinder",
+   "printed_page": 180,
+   "content": "Cylinder [Area of Effect]",
+   "cells": [
+    {
+     "range": [
+      0,
+      25
+     ],
+     "text": "Cylinder [Area of Effect]",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "32cb0337-705d-5107-8c43-31178d968a23": {
+   "record": "area_of_effect.sphere",
+   "printed_page": 188,
+   "content": "A Sphere is an area of effect that extends in straight lines from a point of origin outward in all directions. The effect that creates a Sphere specifies the distance it extends as the radius of the Sphere. A Sphere’s point of origin is included in the Sphere’s area of effect.",
+   "cells": [
+    {
+     "range": [
+      0,
+      110
+     ],
+     "text": "A Sphere is an area of effect that extends in straight lines from a point of origin outward in all directions.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      110,
+      206
+     ],
+     "text": " The effect that creates a Sphere specifies the distance it extends as the radius of the Sphere.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      206,
+      277
+     ],
+     "text": " A Sphere’s point of origin is included in the Sphere’s area of effect.",
+     "disposition": "substantive"
+    }
+   ]
+  },
+  "4954b589-14e5-5d13-9bf4-0e558b9bb915": {
+   "record": "area_of_effect.cylinder",
+   "printed_page": 180,
+   "content": "A Cylinder is an area of effect that extends in straight lines from a point of origin located at the center of the circular top or bottom of the Cylinder. The effect that creates a Cylinder specifies the radius of the Cylinder’s base and the Cylinder’s height. A Cylinder’s point of origin is included in the area of effect.",
+   "cells": [
+    {
+     "range": [
+      0,
+      154
+     ],
+     "text": "A Cylinder is an area of effect that extends in straight lines from a point of origin located at the center of the circular top or bottom of the Cylinder.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      154,
+      260
+     ],
+     "text": " The effect that creates a Cylinder specifies the radius of the Cylinder’s base and the Cylinder’s height.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      260,
+      324
+     ],
+     "text": " A Cylinder’s point of origin is included in the area of effect.",
+     "disposition": "substantive"
+    }
+   ]
+  },
+  "4ff9e24f-12db-5958-ad01-6cacbacbc8ae": {
+   "record": "glossary.area_of_effect",
+   "printed_page": 177,
+   "content": "The descriptions of many spells and other features specify that they have an area of effect, which typically has one of six shapes. These shapes are defined elsewhere in this glossary:",
+   "cells": [
+    {
+     "range": [
+      0,
+      131
+     ],
+     "text": "The descriptions of many spells and other features specify that they have an area of effect, which typically has one of six shapes.",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      131,
+      184
+     ],
+     "text": " These shapes are defined elsewhere in this glossary:",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "5ef92f4d-62c2-5d57-b154-d4689beb9dc4": {
+   "record": "glossary.area_of_effect",
+   "printed_page": 177,
+   "content": "“Cover.” If the creator of an area of effect places it at an unseen point and an obstruction—such as a wall— is between the creator and that point, the point of origin comes into being on the near side of the obstruction.",
+   "cells": [
+    {
+     "range": [
+      0,
+      8
+     ],
+     "text": "“Cover.”",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      8,
+      221
+     ],
+     "text": " If the creator of an area of effect places it at an unseen point and an obstruction—such as a wall— is between the creator and that point, the point of origin comes into being on the near side of the obstruction.",
+     "disposition": "substantive"
+    }
+   ]
+  },
+  "638724ef-98bb-522d-b68e-0506bc97cdb6": {
+   "record": "glossary.area_of_effect",
+   "printed_page": 177,
+   "content": "An area of effect has a point of origin, a location from which the effect’s energy erupts. The rules for each shape specify how to position its point of origin. If all straight lines extending from the point of origin to a location in the area of effect are blocked, that location isn’t included in the area of effect. To block a line, an obstruction must provide Total Cover.",
+   "cells": [
+    {
+     "range": [
+      0,
+      90
+     ],
+     "text": "An area of effect has a point of origin, a location from which the effect’s energy erupts.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      90,
+      160
+     ],
+     "text": " The rules for each shape specify how to position its point of origin.",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      160,
+      318
+     ],
+     "text": " If all straight lines extending from the point of origin to a location in the area of effect are blocked, that location isn’t included in the area of effect.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      318,
+      376
+     ],
+     "text": " To block a line, an obstruction must provide Total Cover.",
+     "disposition": "substantive"
+    }
+   ]
+  },
+  "74587a82-5acc-5b79-bf6c-9500a48592ea": {
+   "record": "area_of_effect.cube",
+   "printed_page": 179,
+   "content": "Cube [Area of Effect]",
+   "cells": [
+    {
+     "range": [
+      0,
+      21
+     ],
+     "text": "Cube [Area of Effect]",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "7613fd31-d5e3-5ff1-b216-e54171da8291": {
+   "record": "glossary.area_of_effect",
+   "printed_page": 177,
+   "content": "Cylinder Emanation",
+   "cells": [
+    {
+     "range": [
+      0,
+      8
+     ],
+     "text": "Cylinder",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      8,
+      18
+     ],
+     "text": " Emanation",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "8834ac19-e730-5c84-89e7-62882dddb1f2": {
+   "record": "area_of_effect.emanation",
+   "printed_page": 181,
+   "content": "An Emanation is an area of effect that extends in straight lines from a creature or an object in all directions. The effect that creates an Emanation specifies the distance it extends. An Emanation moves with the creature or object that is its origin unless it is an instantaneous or a stationary effect. An Emanation’s origin (creature or object) isn’t included in the area of effect unless its creator decides otherwise.",
+   "cells": [
+    {
+     "range": [
+      0,
+      112
+     ],
+     "text": "An Emanation is an area of effect that extends in straight lines from a creature or an object in all directions.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      112,
+      184
+     ],
+     "text": " The effect that creates an Emanation specifies the distance it extends.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      184,
+      304
+     ],
+     "text": " An Emanation moves with the creature or object that is its origin unless it is an instantaneous or a stationary effect.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      304,
+      422
+     ],
+     "text": " An Emanation’s origin (creature or object) isn’t included in the area of effect unless its creator decides otherwise.",
+     "disposition": "substantive"
+    }
+   ]
+  },
+  "8b1fed74-61ce-5334-a4fd-b9fba71c072f": {
+   "record": "glossary.area_of_effect",
+   "printed_page": 177,
+   "content": "Area of Effect",
+   "cells": [
+    {
+     "range": [
+      0,
+      14
+     ],
+     "text": "Area of Effect",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "8d464d21-2e78-58a7-8045-37df4d393b0e": {
+   "record": "area_of_effect.cone",
+   "printed_page": 179,
+   "content": "A Cone is an area of effect that extends in straight lines from a point of origin in a direction its creator chooses. A Cone’s width at any point along its length is equal to that point’s distance from the point of origin. For example, a Cone is 15 feet wide at a point along its length that is 15 feet from the point of origin. The effect that creates a Cone specifies its maximum length. A Cone’s point of origin isn’t included in the area of effect unless its creator decides otherwise.",
+   "cells": [
+    {
+     "range": [
+      0,
+      117
+     ],
+     "text": "A Cone is an area of effect that extends in straight lines from a point of origin in a direction its creator chooses.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      117,
+      222
+     ],
+     "text": " A Cone’s width at any point along its length is equal to that point’s distance from the point of origin.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      222,
+      328
+     ],
+     "text": " For example, a Cone is 15 feet wide at a point along its length that is 15 feet from the point of origin.",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      328,
+      389
+     ],
+     "text": " The effect that creates a Cone specifies its maximum length.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      389,
+      489
+     ],
+     "text": " A Cone’s point of origin isn’t included in the area of effect unless its creator decides otherwise.",
+     "disposition": "substantive"
+    }
+   ]
+  },
+  "9208b6e4-4afa-58cf-a226-43f4b95b35e8": {
+   "record": "area_of_effect.cone",
+   "printed_page": 179,
+   "content": "Cone [Area of Effect]",
+   "cells": [
+    {
+     "range": [
+      0,
+      21
+     ],
+     "text": "Cone [Area of Effect]",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "9e2d76bb-c579-5789-964f-406b39b02673": {
+   "record": "area_of_effect.line",
+   "printed_page": 184,
+   "content": "Line [Area of Effect]",
+   "cells": [
+    {
+     "range": [
+      0,
+      21
+     ],
+     "text": "Line [Area of Effect]",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "a38fd7d6-3a9e-5d16-b135-c235e6c25619": {
+   "record": "area_of_effect.emanation",
+   "printed_page": 181,
+   "content": "Emanation [Area of Effect]",
+   "cells": [
+    {
+     "range": [
+      0,
+      26
+     ],
+     "text": "Emanation [Area of Effect]",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "a93806db-2435-5b9d-89ea-96433111cde3": {
+   "record": "glossary.area_of_effect",
+   "printed_page": 177,
+   "content": "Cone Cube",
+   "cells": [
+    {
+     "range": [
+      0,
+      4
+     ],
+     "text": "Cone",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      4,
+      9
+     ],
+     "text": " Cube",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "af6478d2-3f9a-5dcd-ad2f-a1b364c71d15": {
+   "record": "glossary.area_of_effect",
+   "printed_page": 177,
+   "content": "Line Sphere",
+   "cells": [
+    {
+     "range": [
+      0,
+      4
+     ],
+     "text": "Line",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      4,
+      11
+     ],
+     "text": " Sphere",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "dafddf9b-a89d-557f-9b8f-1081bd7e170f": {
+   "record": "area_of_effect.sphere",
+   "printed_page": 188,
+   "content": "Sphere [Area of Effect]",
+   "cells": [
+    {
+     "range": [
+      0,
+      23
+     ],
+     "text": "Sphere [Area of Effect]",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "ebc0f678-517f-5fbb-a973-ac8f11c4a30a": {
+   "record": "area_of_effect.cube",
+   "printed_page": 179,
+   "content": "A Cube is an area of effect that extends in straight lines from a point of origin located anywhere on a face of the Cube. The effect that creates a Cube specifies its size, which is the length of each side. A Cube’s point of origin isn’t included in the area of effect unless its creator decides otherwise.",
+   "cells": [
+    {
+     "range": [
+      0,
+      121
+     ],
+     "text": "A Cube is an area of effect that extends in straight lines from a point of origin located anywhere on a face of the Cube.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      121,
+      206
+     ],
+     "text": " The effect that creates a Cube specifies its size, which is the length of each side.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      206,
+      306
+     ],
+     "text": " A Cube’s point of origin isn’t included in the area of effect unless its creator decides otherwise.",
+     "disposition": "substantive"
+    }
+   ]
+  },
+  "ed92551f-ae72-5a8d-85ff-79362ab75cda": {
+   "record": "area_of_effect.line",
+   "printed_page": 184,
+   "content": "A Line is an area of effect that extends from a point of origin in a straight path along its length and covers an area defined by its width. The effect that creates a Line specifies its length and width. A Line’s point of origin isn’t included in the area of effect unless its creator decides otherwise.",
+   "cells": [
+    {
+     "range": [
+      0,
+      140
+     ],
+     "text": "A Line is an area of effect that extends from a point of origin in a straight path along its length and covers an area defined by its width.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      140,
+      203
+     ],
+     "text": " The effect that creates a Line specifies its length and width.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      203,
+      303
+     ],
+     "text": " A Line’s point of origin isn’t included in the area of effect unless its creator decides otherwise.",
+     "disposition": "substantive"
+    }
+   ]
+  },
+  "f7fc8e1e-e3e1-5a7d-bbc7-192b151d5766": {
+   "record": "glossary.area_of_effect",
+   "printed_page": 177,
+   "content": "See also",
+   "cells": [
+    {
+     "range": [
+      0,
+      8
+     ],
+     "text": "See also",
+     "disposition": "supporting_authority"
+    }
+   ]
+  }
+ },
+ "reference_scope": {
+  "references_emitted": 7,
+  "record_owned": 7,
+  "from_the_printed_enumeration": [
+   "Area of Effect/2/0 -> area_of_effect.cone",
+   "Area of Effect/2/1 -> area_of_effect.cube",
+   "Area of Effect/3/0 -> area_of_effect.cylinder",
+   "Area of Effect/3/1 -> area_of_effect.emanation",
+   "Area of Effect/4/0 -> area_of_effect.line",
+   "Area of Effect/4/1 -> area_of_effect.sphere"
+  ],
+  "from_see_also": [
+   "Area of Effect/7/0 -> glossary.cover"
+  ],
+  "targets_defined_by_this_batch": [
+   "area_of_effect.cone",
+   "area_of_effect.cube",
+   "area_of_effect.cylinder",
+   "area_of_effect.emanation",
+   "area_of_effect.line",
+   "area_of_effect.sphere"
+  ],
+  "cross_batch_citations": [
+   "glossary.area_of_effect -> glossary.cover"
+  ],
+  "cross_batch_citations_all_resolve_into_the_accepted_prior": false,
+  "unresolved_targets_before_this_batch": [
+   "glossary.concentration",
+   "glossary.speed"
+  ],
+  "unresolved_targets_after_the_merge": [
+   "glossary.concentration",
+   "glossary.cover",
+   "glossary.speed"
+  ],
+  "resolved_by_this_batch": [],
+  "publishable_alone": false,
+  "note": "This batch ADDS ONE unresolved citation and RESOLVES NONE. Six of its seven references target shapes it defines itself; the seventh is the umbrella's See-also citation of Cover, which no accepted batch defines and which this batch does not ingest. Combined with the accepted prior's two, the missing targets after this batch are glossary.concentration, glossary.speed and glossary.cover. No reference closure is invented and nothing here expands into Cover ingestion.",
+  "why_no_back_references": "none of the six shape entries prints a 'See also' leaf, so no citation of the umbrella is derivable from the source and none is emitted. 'Total Cover' inside Area of Effect/5/3 is a typed CoverDegree member on the blocked-line fact, not a second citation.",
+  "validator_findings": {
+   "standalone": {
+    "findings": 1,
+    "distinct_targets": [
+     "glossary.cover"
+    ],
+    "citations_per_target": {
+     "glossary.cover": 1
+    },
+    "exact": [
+     "reference srd-5.2.1/rules-glossary:'Cover': unknown target record glossary.cover"
+    ]
+   },
+   "merged": {
+    "findings": 3,
+    "distinct_targets": [
+     "glossary.concentration",
+     "glossary.cover",
+     "glossary.speed"
+    ],
+    "citations_per_target": {
+     "glossary.concentration": 1,
+     "glossary.cover": 1,
+     "glossary.speed": 1
+    },
+    "exact": [
+     "reference srd-5.2.1/rules-glossary:'Concentration': unknown target record glossary.concentration",
+     "reference srd-5.2.1/rules-glossary:'Cover': unknown target record glossary.cover",
+     "reference srd-5.2.1/rules-glossary:'Speed': unknown target record glossary.speed"
+    ]
+   }
+  }
+ },
+ "reference_siting": {
+  "rule": "a reference is emitted where the source cites a record as a defined term, not at every place it says the word",
+  "accepted_precedent": [
+   "glossary.hazard emits its five references from its quoted See-also list; 'A hazard is an environmental danger.' is supporting authority",
+   "glossary.condition and glossary.action emit from their printed enumerations, the only place they cite their members"
+  ],
+  "applied_here": "the umbrella's six enumeration clauses and its one See-also citation are the seven references. Its two framing sentences are the record's own definitional framing and stay supporting authority. 'Total Cover' in Area of Effect/5/3 is a typed CoverDegree member inside the blocked-line fact, not a second citation, and none of the six shapes prints a See also, so no back-reference to the umbrella is derivable.",
+  "reference_keys_are_distinct": true
+ },
+ "schema_stops": [],
+ "schema_stops_note": "none open. The eight gaps the discovery checkpoint found are all closed by schema 9, every one of them witnessed by at least one clause in this batch, and no span is emitted UNRESOLVED.",
+ "gaps_closed": [
+  "G1",
+  "G2",
+  "G3",
+  "G4",
+  "G5",
+  "G6",
+  "G7",
+  "G8"
+ ],
+ "irreducibility_catalog_disposition": {
+  "contextual_applicability": "false of all twenty-four: each states its rule outright. Where a condition is printed — the unseen-origin conjunction, the two Emanation movement exceptions, the creator's inclusion override — it is a closed printed term carried by a field of the fact, not applicability prose the projection cannot enumerate.",
+  "subjective_judgment": "false: nothing is left to anyone's assessment. Every value is a named member of a closed class the source prints.",
+  "open_ended_effect": "false: every effect here is closed. 'Such as a wall' is inline exemplification inside a substantive clause, and it is deliberately NOT read as an obstruction vocabulary.",
+  "gamemaster_latitude": "false: the source delegates nothing here. The one discretion it prints belongs to the area's creator, and it is typed — 'excluded unless its creator decides otherwise' is a member, not a gap.",
+  "natural_language_exception": "false: these are the rules, not exceptions carved out of one. Emanation's two suspensions are printed members of the rule's own field rather than prose exceptions to it.",
+  "fiction_dependent_consequence": "false: each consequence is mechanical and stated. Computing which lines are blocked, or where the near side of an obstruction is, is adapter geometry the record never claims to do.",
+  "conclusion": "none of the six closed reasons is affirmatively true of any of the twenty-four substantive clauses, so this batch emits ZERO prose bindings. That is a positive claim, not an omission: binding one anyway would record a vocabulary gap as an irreducibility, which is exactly the misfiling the closed catalog exists to prevent."
+ },
+ "typed_prose_dispositions": {
+  "typed": [
+   {
+    "record": "glossary.area_of_effect",
+    "component": "area_origin",
+    "family": "area_origin",
+    "fact": "0171f5d7d7581b32",
+    "clauses": [
+     "Area of Effect/5/0"
+    ],
+    "text": [
+     "An area of effect has a point of origin, a location from which the effect’s energy erupts."
+    ],
+    "states": "an area of effect has a point of origin"
+   },
+   {
+    "record": "glossary.area_of_effect",
+    "component": "blocked_line_exclusion",
+    "family": "blocked_line_exclusion",
+    "fact": "2c3756945346fd66",
+    "clauses": [
+     "Area of Effect/5/2",
+     "Area of Effect/5/3"
+    ],
+    "text": [
+     " If all straight lines extending from the point of origin to a location in the area of effect are blocked, that location isn’t included in the area of effect.",
+     " To block a line, an obstruction must provide Total Cover."
+    ],
+    "states": "a location is excluded when ALL straight lines from the point of origin to it are blocked"
+   },
+   {
+    "record": "glossary.area_of_effect",
+    "component": "unseen_origin_relocation",
+    "family": "unseen_origin_relocation",
+    "fact": "9503f1af74b4456b",
+    "clauses": [
+     "Area of Effect/7/1"
+    ],
+    "text": [
+     " If the creator of an area of effect places it at an unseen point and an obstruction—such as a wall— is between the creator and that point, the point of origin comes into being on the near side of the obstruction."
+    ],
+    "states": "placed at an unseen point AND an obstruction between the creator and that point: the origin comes into being on the near side"
+   },
+   {
+    "record": "area_of_effect.cone",
+    "component": "area_origin",
+    "family": "area_origin",
+    "fact": "6672338c7118aaaa",
+    "clauses": [
+     "Cone/1/0"
+    ],
+    "text": [
+     "A Cone is an area of effect that extends in straight lines from a point of origin in a direction its creator chooses."
+    ],
+    "states": "a Cone extends in straight lines in a direction its creator chooses"
+   },
+   {
+    "record": "area_of_effect.cone",
+    "component": "area_width_relation",
+    "family": "area_width_relation",
+    "fact": "2079399d7f5b6919",
+    "clauses": [
+     "Cone/1/1"
+    ],
+    "text": [
+     " A Cone’s width at any point along its length is equal to that point’s distance from the point of origin."
+    ],
+    "states": "a Cone's width at a point equals that point's distance from the origin"
+   },
+   {
+    "record": "area_of_effect.cone",
+    "component": "area_dimension_requirement",
+    "family": "area_dimension_requirement",
+    "fact": "9eccb145ad6c5418",
+    "clauses": [
+     "Cone/1/3"
+    ],
+    "text": [
+     " The effect that creates a Cone specifies its maximum length."
+    ],
+    "states": "the creating effect specifies a Cone's maximum length"
+   },
+   {
+    "record": "area_of_effect.cone",
+    "component": "area_origin_inclusion",
+    "family": "area_origin_inclusion",
+    "fact": "a3e05a80559df144",
+    "clauses": [
+     "Cone/1/4"
+    ],
+    "text": [
+     " A Cone’s point of origin isn’t included in the area of effect unless its creator decides otherwise."
+    ],
+    "states": "a Cone's origin is excluded unless its creator decides otherwise"
+   },
+   {
+    "record": "area_of_effect.cube",
+    "component": "area_origin",
+    "family": "area_origin",
+    "fact": "9f7322c19b476f7d",
+    "clauses": [
+     "Cube/1/0"
+    ],
+    "text": [
+     "A Cube is an area of effect that extends in straight lines from a point of origin located anywhere on a face of the Cube."
+    ],
+    "states": "a Cube's origin sits anywhere on a face of the Cube"
+   },
+   {
+    "record": "area_of_effect.cube",
+    "component": "area_dimension_requirement",
+    "family": "area_dimension_requirement",
+    "fact": "960c3045d10136cb",
+    "clauses": [
+     "Cube/1/1"
+    ],
+    "text": [
+     " The effect that creates a Cube specifies its size, which is the length of each side."
+    ],
+    "states": "the creating effect specifies a Cube's size: the length of each side"
+   },
+   {
+    "record": "area_of_effect.cube",
+    "component": "area_origin_inclusion",
+    "family": "area_origin_inclusion",
+    "fact": "a3e05a80559df144",
+    "clauses": [
+     "Cube/1/2"
+    ],
+    "text": [
+     " A Cube’s point of origin isn’t included in the area of effect unless its creator decides otherwise."
+    ],
+    "states": "a Cube's origin is excluded unless its creator decides otherwise"
+   },
+   {
+    "record": "area_of_effect.cylinder",
+    "component": "area_origin",
+    "family": "area_origin",
+    "fact": "518de4616f855198",
+    "clauses": [
+     "Cylinder/1/0"
+    ],
+    "text": [
+     "A Cylinder is an area of effect that extends in straight lines from a point of origin located at the center of the circular top or bottom of the Cylinder."
+    ],
+    "states": "a Cylinder's origin sits at the center of the circular top or bottom"
+   },
+   {
+    "record": "area_of_effect.cylinder",
+    "component": "area_dimension_requirement",
+    "family": "area_dimension_requirement",
+    "fact": "350299744f9b4a93",
+    "clauses": [
+     "Cylinder/1/1"
+    ],
+    "text": [
+     " The effect that creates a Cylinder specifies the radius of the Cylinder’s base and the Cylinder’s height."
+    ],
+    "states": "the creating effect specifies TWO parameters: the base radius and the height"
+   },
+   {
+    "record": "area_of_effect.cylinder",
+    "component": "area_origin_inclusion",
+    "family": "area_origin_inclusion",
+    "fact": "34fd0aed5d886ccd",
+    "clauses": [
+     "Cylinder/1/2"
+    ],
+    "text": [
+     " A Cylinder’s point of origin is included in the area of effect."
+    ],
+    "states": "a Cylinder's origin is included"
+   },
+   {
+    "record": "area_of_effect.emanation",
+    "component": "area_origin",
+    "family": "area_origin",
+    "fact": "254a4f0dfd4af0c0",
+    "clauses": [
+     "Emanation/1/0"
+    ],
+    "text": [
+     "An Emanation is an area of effect that extends in straight lines from a creature or an object in all directions."
+    ],
+    "states": "an Emanation extends from a CREATURE OR AN OBJECT in all directions - the one origin in this class that is not a point"
+   },
+   {
+    "record": "area_of_effect.emanation",
+    "component": "area_dimension_requirement",
+    "family": "area_dimension_requirement",
+    "fact": "5b13bd4471f9a4dd",
+    "clauses": [
+     "Emanation/1/1"
+    ],
+    "text": [
+     " The effect that creates an Emanation specifies the distance it extends."
+    ],
+    "states": "the creating effect specifies the distance an Emanation extends"
+   },
+   {
+    "record": "area_of_effect.emanation",
+    "component": "area_origin_movement",
+    "family": "area_origin_movement",
+    "fact": "7f08dd1bd5047fc2",
+    "clauses": [
+     "Emanation/1/2"
+    ],
+    "text": [
+     " An Emanation moves with the creature or object that is its origin unless it is an instantaneous or a stationary effect."
+    ],
+    "states": "an Emanation moves with its origin unless the effect is instantaneous OR stationary - both exceptions, not one"
+   },
+   {
+    "record": "area_of_effect.emanation",
+    "component": "area_origin_inclusion",
+    "family": "area_origin_inclusion",
+    "fact": "a3e05a80559df144",
+    "clauses": [
+     "Emanation/1/3"
+    ],
+    "text": [
+     " An Emanation’s origin (creature or object) isn’t included in the area of effect unless its creator decides otherwise."
+    ],
+    "states": "an Emanation's origin is excluded unless its creator decides otherwise"
+   },
+   {
+    "record": "area_of_effect.line",
+    "component": "area_origin",
+    "family": "area_origin",
+    "fact": "d0e9405d335d9ef6",
+    "clauses": [
+     "Line/1/0"
+    ],
+    "text": [
+     "A Line is an area of effect that extends from a point of origin in a straight path along its length and covers an area defined by its width."
+    ],
+    "states": "a Line extends in a straight path along its length, covering its width"
+   },
+   {
+    "record": "area_of_effect.line",
+    "component": "area_dimension_requirement",
+    "family": "area_dimension_requirement",
+    "fact": "71c60bb8afc8de95",
+    "clauses": [
+     "Line/1/1"
+    ],
+    "text": [
+     " The effect that creates a Line specifies its length and width."
+    ],
+    "states": "the creating effect specifies TWO parameters: length and width"
+   },
+   {
+    "record": "area_of_effect.line",
+    "component": "area_origin_inclusion",
+    "family": "area_origin_inclusion",
+    "fact": "a3e05a80559df144",
+    "clauses": [
+     "Line/1/2"
+    ],
+    "text": [
+     " A Line’s point of origin isn’t included in the area of effect unless its creator decides otherwise."
+    ],
+    "states": "a Line's origin is excluded unless its creator decides otherwise"
+   },
+   {
+    "record": "area_of_effect.sphere",
+    "component": "area_origin",
+    "family": "area_origin",
+    "fact": "147f69f0fac3f107",
+    "clauses": [
+     "Sphere/1/0"
+    ],
+    "text": [
+     "A Sphere is an area of effect that extends in straight lines from a point of origin outward in all directions."
+    ],
+    "states": "a Sphere extends outward in all directions"
+   },
+   {
+    "record": "area_of_effect.sphere",
+    "component": "area_dimension_requirement",
+    "family": "area_dimension_requirement",
+    "fact": "96d4263e30fd1257",
+    "clauses": [
+     "Sphere/1/1"
+    ],
+    "text": [
+     " The effect that creates a Sphere specifies the distance it extends as the radius of the Sphere."
+    ],
+    "states": "the creating effect specifies the distance it extends as the radius"
+   },
+   {
+    "record": "area_of_effect.sphere",
+    "component": "area_origin_inclusion",
+    "family": "area_origin_inclusion",
+    "fact": "34fd0aed5d886ccd",
+    "clauses": [
+     "Sphere/1/2"
+    ],
+    "text": [
+     " A Sphere’s point of origin is included in the Sphere’s area of effect."
+    ],
+    "states": "a Sphere's origin is included"
+   }
+  ],
+  "prose_bound": [],
+  "supporting_authority": [
+   {
+    "record": "glossary.area_of_effect",
+    "clause": "Area of Effect/0/0",
+    "carried_by": "record",
+    "claimant": "glossary.area_of_effect",
+    "text": "Area of Effect"
+   },
+   {
+    "record": "glossary.area_of_effect",
+    "clause": "Area of Effect/1/0",
+    "carried_by": "record",
+    "claimant": "glossary.area_of_effect",
+    "text": "The descriptions of many spells and other features specify that they have an area of effect, which typically has one of six shapes."
+   },
+   {
+    "record": "glossary.area_of_effect",
+    "clause": "Area of Effect/1/1",
+    "carried_by": "record",
+    "claimant": "glossary.area_of_effect",
+    "text": " These shapes are defined elsewhere in this glossary:"
+   },
+   {
+    "record": "glossary.area_of_effect",
+    "clause": "Area of Effect/2/0",
+    "carried_by": "reference",
+    "claimant": "glossary.area_of_effect -> area_of_effect.cone",
+    "text": "Cone"
+   },
+   {
+    "record": "glossary.area_of_effect",
+    "clause": "Area of Effect/2/1",
+    "carried_by": "reference",
+    "claimant": "glossary.area_of_effect -> area_of_effect.cube",
+    "text": " Cube"
+   },
+   {
+    "record": "glossary.area_of_effect",
+    "clause": "Area of Effect/3/0",
+    "carried_by": "reference",
+    "claimant": "glossary.area_of_effect -> area_of_effect.cylinder",
+    "text": "Cylinder"
+   },
+   {
+    "record": "glossary.area_of_effect",
+    "clause": "Area of Effect/3/1",
+    "carried_by": "reference",
+    "claimant": "glossary.area_of_effect -> area_of_effect.emanation",
+    "text": " Emanation"
+   },
+   {
+    "record": "glossary.area_of_effect",
+    "clause": "Area of Effect/4/0",
+    "carried_by": "reference",
+    "claimant": "glossary.area_of_effect -> area_of_effect.line",
+    "text": "Line"
+   },
+   {
+    "record": "glossary.area_of_effect",
+    "clause": "Area of Effect/4/1",
+    "carried_by": "reference",
+    "claimant": "glossary.area_of_effect -> area_of_effect.sphere",
+    "text": " Sphere"
+   },
+   {
+    "record": "glossary.area_of_effect",
+    "clause": "Area of Effect/5/1",
+    "carried_by": "fact_context",
+    "claimant": "glossary.area_of_effect/area_origin (bounds the fact)",
+    "text": " The rules for each shape specify how to position its point of origin."
+   },
+   {
+    "record": "glossary.area_of_effect",
+    "clause": "Area of Effect/6/0",
+    "carried_by": "record",
+    "claimant": "glossary.area_of_effect",
+    "text": "See also"
+   },
+   {
+    "record": "glossary.area_of_effect",
+    "clause": "Area of Effect/7/0",
+    "carried_by": "reference",
+    "claimant": "glossary.area_of_effect -> glossary.cover",
+    "text": "“Cover.”"
+   },
+   {
+    "record": "area_of_effect.cone",
+    "clause": "Cone/0/0",
+    "carried_by": "record",
+    "claimant": "area_of_effect.cone",
+    "text": "Cone [Area of Effect]"
+   },
+   {
+    "record": "area_of_effect.cone",
+    "clause": "Cone/1/2",
+    "carried_by": "fact_context",
+    "claimant": "area_of_effect.cone/area_width_relation (bounds the fact)",
+    "text": " For example, a Cone is 15 feet wide at a point along its length that is 15 feet from the point of origin."
+   },
+   {
+    "record": "area_of_effect.cube",
+    "clause": "Cube/0/0",
+    "carried_by": "record",
+    "claimant": "area_of_effect.cube",
+    "text": "Cube [Area of Effect]"
+   },
+   {
+    "record": "area_of_effect.cylinder",
+    "clause": "Cylinder/0/0",
+    "carried_by": "record",
+    "claimant": "area_of_effect.cylinder",
+    "text": "Cylinder [Area of Effect]"
+   },
+   {
+    "record": "area_of_effect.emanation",
+    "clause": "Emanation/0/0",
+    "carried_by": "record",
+    "claimant": "area_of_effect.emanation",
+    "text": "Emanation [Area of Effect]"
+   },
+   {
+    "record": "area_of_effect.line",
+    "clause": "Line/0/0",
+    "carried_by": "record",
+    "claimant": "area_of_effect.line",
+    "text": "Line [Area of Effect]"
+   },
+   {
+    "record": "area_of_effect.sphere",
+    "clause": "Sphere/0/0",
+    "carried_by": "record",
+    "claimant": "area_of_effect.sphere",
+    "text": "Sphere [Area of Effect]"
+   }
+  ],
+  "unresolved": []
+ },
+ "precedent": {
+  "accepted": {
+   "record": "glossary.hazard",
+   "references": 5,
+   "all_record_owned": true,
+   "components_holding_references": 0
+  },
+  "this_batch": {
+   "record": "glossary.area_of_effect",
+   "references": 7,
+   "all_record_owned": true,
+   "components_holding_references": 0
+  },
+  "identical_axes": [
+   "from_component_key == RECORD_OWNED_REFERENCE",
+   "the definitional framing sentence stays supporting authority",
+   "the citation list is the only place the record cites its members"
+  ],
+  "differing_axis": "glossary.hazard's five targets all exist; one of this umbrella's seven does not",
+  "note": "glossary.hazard emits its five references from its quoted See-also list and classifies 'A hazard is an environmental danger.' as supporting authority. This umbrella does the same with its printed enumeration and its See-also, and its two framing sentences stay supporting authority."
+ },
+ "consumer_boundary_proofs": {
+  "glossary.area_of_effect": {
+   "kind": "glossary_rule",
+   "component_keys": [
+    "area_origin",
+    "blocked_line_exclusion",
+    "unseen_origin_relocation"
+   ],
+   "span_ids": 4
+  },
+  "area_of_effect.cone": {
+   "kind": "glossary_rule",
+   "component_keys": [
+    "area_dimension_requirement",
+    "area_origin",
+    "area_origin_inclusion",
+    "area_width_relation"
+   ],
+   "span_ids": 1
+  },
+  "area_of_effect.cube": {
+   "kind": "glossary_rule",
+   "component_keys": [
+    "area_dimension_requirement",
+    "area_origin",
+    "area_origin_inclusion"
+   ],
+   "span_ids": 1
+  },
+  "area_of_effect.cylinder": {
+   "kind": "glossary_rule",
+   "component_keys": [
+    "area_dimension_requirement",
+    "area_origin",
+    "area_origin_inclusion"
+   ],
+   "span_ids": 1
+  },
+  "area_of_effect.emanation": {
+   "kind": "glossary_rule",
+   "component_keys": [
+    "area_dimension_requirement",
+    "area_origin",
+    "area_origin_inclusion",
+    "area_origin_movement"
+   ],
+   "span_ids": 1
+  },
+  "area_of_effect.line": {
+   "kind": "glossary_rule",
+   "component_keys": [
+    "area_dimension_requirement",
+    "area_origin",
+    "area_origin_inclusion"
+   ],
+   "span_ids": 1
+  },
+  "area_of_effect.sphere": {
+   "kind": "glossary_rule",
+   "component_keys": [
+    "area_dimension_requirement",
+    "area_origin",
+    "area_origin_inclusion"
+   ],
+   "span_ids": 1
+  },
+  "per_shape_origin_extent_and_placement": {
+   "glossary.area_of_effect": {
+    "origin": "point",
+    "extent": null,
+    "placement": null,
+    "fact_span_text": [
+     "An area of effect has a point of origin, a location from which the effect’s energy erupts.",
+     " The rules for each shape specify how to position its point of origin."
+    ]
+   },
+   "area_of_effect.cone": {
+    "origin": "point",
+    "extent": "straight_lines_in_a_direction_its_creator_chooses",
+    "placement": null,
+    "fact_span_text": [
+     "A Cone is an area of effect that extends in straight lines from a point of origin in a direction its creator chooses."
+    ]
+   },
+   "area_of_effect.cube": {
+    "origin": "point",
+    "extent": "straight_lines",
+    "placement": "anywhere_on_a_face_of_the_cube",
+    "fact_span_text": [
+     "A Cube is an area of effect that extends in straight lines from a point of origin located anywhere on a face of the Cube."
+    ]
+   },
+   "area_of_effect.cylinder": {
+    "origin": "point",
+    "extent": "straight_lines",
+    "placement": "center_of_the_circular_top_or_bottom",
+    "fact_span_text": [
+     "A Cylinder is an area of effect that extends in straight lines from a point of origin located at the center of the circular top or bottom of the Cylinder."
+    ]
+   },
+   "area_of_effect.emanation": {
+    "origin": "creature_or_object",
+    "extent": "straight_lines_in_all_directions",
+    "placement": null,
+    "fact_span_text": [
+     "An Emanation is an area of effect that extends in straight lines from a creature or an object in all directions."
+    ]
+   },
+   "area_of_effect.line": {
+    "origin": "point",
+    "extent": "straight_path_along_its_length_covering_the_area_its_width_defines",
+    "placement": null,
+    "fact_span_text": [
+     "A Line is an area of effect that extends from a point of origin in a straight path along its length and covers an area defined by its width."
+    ]
+   },
+   "area_of_effect.sphere": {
+    "origin": "point",
+    "extent": "straight_lines_outward_in_all_directions",
+    "placement": null,
+    "fact_span_text": [
+     "A Sphere is an area of effect that extends in straight lines from a point of origin outward in all directions."
+    ]
+   }
+  },
+  "dimension_parameters_in_printed_order": {
+   "area_of_effect.cone": [
+    "maximum_length"
+   ],
+   "area_of_effect.cube": [
+    "size_the_length_of_each_side"
+   ],
+   "area_of_effect.cylinder": [
+    "radius_of_the_base",
+    "height"
+   ],
+   "area_of_effect.emanation": [
+    "distance_it_extends"
+   ],
+   "area_of_effect.line": [
+    "length",
+    "width"
+   ],
+   "area_of_effect.sphere": [
+    "distance_it_extends_as_the_radius"
+   ]
+  },
+  "origin_inclusion_polarity": {
+   "area_of_effect.cone": "excluded_unless_its_creator_decides_otherwise",
+   "area_of_effect.cube": "excluded_unless_its_creator_decides_otherwise",
+   "area_of_effect.cylinder": "included",
+   "area_of_effect.emanation": "excluded_unless_its_creator_decides_otherwise",
+   "area_of_effect.line": "excluded_unless_its_creator_decides_otherwise",
+   "area_of_effect.sphere": "included"
+  },
+  "emanation_movement_exceptions": {
+   "suspended_by_any_of": [
+    "instantaneous_effect",
+    "stationary_effect"
+   ],
+   "note": "both printed exceptions. 'stationary effect' had no vocabulary member anywhere in schema 8 and is a distinct printed kind, not a synonym for instantaneous."
+  },
+  "cone_width_relation": {
+   "relation": "equal_to_that_points_distance_from_the_point_of_origin",
+   "worked_example_is_supporting_authority": " For example, a Cone is 15 feet wide at a point along its length that is 15 feet from the point of origin.",
+   "note": "a named closed member a hand-authored adapter interprets, which is the 'approved and bounded typed mechanic shape' ADR-005c Decision 3 and ADR-005d Decision 4 describe. Encoding the taper as an evaluated expression would be the forbidden thing; the 15-foot example stays supporting authority rather than becoming a fact with a value in it."
+  },
+  "blocked_line_rule": {
+   "blocked": "all_straight_lines_from_the_point_of_origin",
+   "blocking_cover": "total",
+   "claimed_primary_by": [
+    " If all straight lines extending from the point of origin to a location in the area of effect are blocked, that location isn’t included in the area of effect.",
+    " To block a line, an obstruction must provide Total Cover."
+   ],
+   "note": "two clauses, one rule, both PRIMARY on their own spans: the source states the exclusion in one sentence and the threshold that makes a line blocked in the next. WHICH lines are blocked in a given situation is adapter geometry and is explicitly outside 5d."
+  },
+  "unseen_origin_relocation": {
+   "placement": "at_an_unseen_point",
+   "obstruction": "between_the_creator_and_the_point",
+   "relocated_to": "near_side_of_the_obstruction",
+   "note": "a closed conjunction. 'such as a wall' is inline exemplification inside the substantive clause and is deliberately not read as an obstruction vocabulary."
+  },
+  "umbrella_citations": {
+   "cited": [
+    "area_of_effect.cone",
+    "area_of_effect.cube",
+    "area_of_effect.cylinder",
+    "area_of_effect.emanation",
+    "area_of_effect.line",
+    "area_of_effect.sphere",
+    "glossary.cover"
+   ],
+   "assembled_by_the_projection": [
+    "area_of_effect.cone",
+    "area_of_effect.cube",
+    "area_of_effect.cylinder",
+    "area_of_effect.emanation",
+    "area_of_effect.line",
+    "area_of_effect.sphere"
+   ],
+   "not_assembled": [
+    "glossary.cover"
+   ],
+   "note": "six of seven resolve into records this batch defines. glossary.cover does not and is not ingested here."
+  }
+ },
+ "schema_succession": {
+  "prior_schema": "5d-representation-schema-8",
+  "batch_schema": "5d-representation-schema-9",
+  "lift_required": true,
+  "steps": [
+   "5d-lift-schema-8-to-9"
+  ],
+  "verified_collections": [
+   [
+    "components",
+    "prose_bindings",
+    "provenance",
+    "records",
+    "references",
+    "relationships"
+   ]
+  ],
+  "frozen_prior_identity": "c3b4d4b759441b05418fcbe1d90811e0d7c2535319aa005e64201ce29b5c74fa",
+  "frozen_prior_identity_scope": "the file on disk, which this run reads and never writes. It is the identity the Owner accepted and it does not move.",
+  "lifted_copy_identity_at_this_head": "3454f61f51163f5cd3b5cfd24638c2fc89e87f69973f9e92a194739b311c4b95",
+  "lifted_copy_identity_scope": "a DIFFERENT object: the in-memory copy this run lifts to schema 9. Reported rather than pinned, because oracle_payload carries the representation binding and the lift re-declares exactly that, so this value moves with every destination-pin change.",
+  "payload_keys_that_moved": [
+   "representation_schema"
+  ],
+  "inherited_authority_unchanged": {
+   "representation_object_is_the_same_object": true,
+   "spans_obligations_batches_acceptances_anchors_cross_by_identity": true,
+   "per_batch_schema_anchors": {
+    "conditions-1": "5d-representation-schema-3",
+    "hazards-1": "5d-representation-schema-5",
+    "actions-1": "5d-representation-schema-7",
+    "attitudes-1": "5d-representation-schema-8"
+   },
+   "why_anchors_matter": "each accepted batch keeps the hash it was reviewed under. A lift that re-derived anchors would restamp four batches as one and erase the distinction succession depends on."
+  },
+  "unlifted_prior_read_as_current_is_a_finding": [
+   "candidate declares representation schema '5d-representation-schema-8', build implements '5d-representation-schema-9'",
+   "candidate declares representation schema hash '8a125f6c4c9929109879ad98a8f14a4ec1d0c7f5fe56fe4f894dafbdf707afff', committed union hashes to 'f5a5e30817e64f019e31aa7f4692d72611215e4294e7da36242e492bca6b336e'"
+  ],
+  "note": "the accepted prior is anchored at 5d-representation-schema-8 and this batch proposes under 5d-representation-schema-9, which the class's twenty-four substantive clauses required. Exactly one registered transition separates them and it is exercised here rather than described. The transition adds fact families and vocabularies; it adds no field to an accepted family, no ownership form, no nullable field and no required field, so every accepted fact key, component key and provenance coordinate has the same canonical form under both contracts."
+ },
+ "accepted_prior": {
+  "path": "tests/ingestion/mechanical/data/accepted_prior_conditions_1_hazards_1_actions_1_attitudes_1.json",
+  "content_sha256": "fd390d95dde74498142035d9dde00ccf7effadb372fc13f9662154841bb787ab",
+  "blob": "2346404005618b0389b4e4f66d2e96c5c35b200f",
+  "identity": "c3b4d4b759441b05418fcbe1d90811e0d7c2535319aa005e64201ce29b5c74fa",
+  "identity_scope": "the frozen file on disk, read and never written",
+  "lifted_copy_identity_at_this_head": "3454f61f51163f5cd3b5cfd24638c2fc89e87f69973f9e92a194739b311c4b95",
+  "lifted_copy_identity_scope": "a different object, reported rather than pinned; it moves with the destination schema pin",
+  "batch_ids": [
+   "actions-1",
+   "attitudes-1",
+   "conditions-1",
+   "hazards-1"
+  ],
+  "collections": {
+   "records": 39,
+   "components": 109,
+   "prose_bindings": 49,
+   "relationships": 0,
+   "references": 46,
+   "provenance": 504
+  },
+  "spans": 487,
+  "obligations": 39,
+  "schema_version": "5d-representation-schema-8",
+  "per_batch_schema_anchors": {
+   "conditions-1": "5d-representation-schema-3",
+   "hazards-1": "5d-representation-schema-5",
+   "actions-1": "5d-representation-schema-7",
+   "attitudes-1": "5d-representation-schema-8"
+  },
+  "read_only": true,
+  "content_sha256_after": "fd390d95dde74498142035d9dde00ccf7effadb372fc13f9662154841bb787ab",
+  "unchanged": true
+ },
+ "disjointness_from_the_accepted_prior": {
+  "span_overlap": [],
+  "leaf_overlap": [],
+  "collection_overlap": {
+   "records": [],
+   "components": [],
+   "prose_bindings": [],
+   "relationships": [],
+   "references": [],
+   "provenance": []
+  },
+  "prior_spans_retained": 487,
+  "prior_obligations_retained": 39,
+  "zero_movement": {
+   "records": {
+    "prior_elements": 39,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 39,
+     "new": 7,
+     "merged": 46,
+     "sums": true
+    }
+   },
+   "components": {
+    "prior_elements": 109,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 109,
+     "new": 23,
+     "merged": 132,
+     "sums": true
+    }
+   },
+   "prose_bindings": {
+    "prior_elements": 49,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 49,
+     "new": 0,
+     "merged": 49,
+     "sums": true
+    }
+   },
+   "relationships": {
+    "prior_elements": 0,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 0,
+     "new": 0,
+     "merged": 0,
+     "sums": true
+    }
+   },
+   "references": {
+    "prior_elements": 46,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 46,
+     "new": 7,
+     "merged": 53,
+     "sums": true
+    }
+   },
+   "provenance": {
+    "prior_elements": 504,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 504,
+     "new": 43,
+     "merged": 547,
+     "sums": true
+    }
+   }
+  }
+ },
+ "obligation_closure": {
+  "Area of Effect/0/0": {
+   "text": "Area of Effect",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "record",
+    "glossary.area_of_effect"
+   ],
+   "derived_carrier": [
+    "record",
+    "glossary.area_of_effect"
+   ],
+   "agrees": true,
+   "span": "9e353bb0-9d61-549d-b26f-3f868709f5cd",
+   "range": [
+    0,
+    14
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "Area of Effect/1/0": {
+   "text": "The descriptions of many spells and other features specify that they have an area of effect, which typically has one of six shapes.",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "record",
+    "glossary.area_of_effect"
+   ],
+   "derived_carrier": [
+    "record",
+    "glossary.area_of_effect"
+   ],
+   "agrees": true,
+   "span": "b8b990bd-9b62-549f-9bd7-48bc5c63a24f",
+   "range": [
+    0,
+    131
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "Area of Effect/1/1": {
+   "text": " These shapes are defined elsewhere in this glossary:",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "record",
+    "glossary.area_of_effect"
+   ],
+   "derived_carrier": [
+    "record",
+    "glossary.area_of_effect"
+   ],
+   "agrees": true,
+   "span": "f29e11a3-2a81-5ea8-b9bb-d4a14208c86e",
+   "range": [
+    131,
+    184
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "Area of Effect/2/0": {
+   "text": "Cone",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "reference",
+    "glossary.area_of_effect",
+    "area_of_effect.cone"
+   ],
+   "derived_carrier": [
+    "reference",
+    "glossary.area_of_effect",
+    "area_of_effect.cone"
+   ],
+   "agrees": true,
+   "span": "ea9eac60-ed28-540f-998a-3a02c32f7d51",
+   "range": [
+    0,
+    4
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "Area of Effect/2/1": {
+   "text": " Cube",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "reference",
+    "glossary.area_of_effect",
+    "area_of_effect.cube"
+   ],
+   "derived_carrier": [
+    "reference",
+    "glossary.area_of_effect",
+    "area_of_effect.cube"
+   ],
+   "agrees": true,
+   "span": "b8960978-bf84-5191-8135-013c2cbebbef",
+   "range": [
+    4,
+    9
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "Area of Effect/3/0": {
+   "text": "Cylinder",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "reference",
+    "glossary.area_of_effect",
+    "area_of_effect.cylinder"
+   ],
+   "derived_carrier": [
+    "reference",
+    "glossary.area_of_effect",
+    "area_of_effect.cylinder"
+   ],
+   "agrees": true,
+   "span": "1cdfae19-3d46-5a9c-b8d1-79224d797fad",
+   "range": [
+    0,
+    8
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "Area of Effect/3/1": {
+   "text": " Emanation",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "reference",
+    "glossary.area_of_effect",
+    "area_of_effect.emanation"
+   ],
+   "derived_carrier": [
+    "reference",
+    "glossary.area_of_effect",
+    "area_of_effect.emanation"
+   ],
+   "agrees": true,
+   "span": "8411c0f4-6fb7-5b5e-a2ea-f38ec2bbf47d",
+   "range": [
+    8,
+    18
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "Area of Effect/4/0": {
+   "text": "Line",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "reference",
+    "glossary.area_of_effect",
+    "area_of_effect.line"
+   ],
+   "derived_carrier": [
+    "reference",
+    "glossary.area_of_effect",
+    "area_of_effect.line"
+   ],
+   "agrees": true,
+   "span": "3914ccf0-0a12-5263-8648-e622038d3043",
+   "range": [
+    0,
+    4
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "Area of Effect/4/1": {
+   "text": " Sphere",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "reference",
+    "glossary.area_of_effect",
+    "area_of_effect.sphere"
+   ],
+   "derived_carrier": [
+    "reference",
+    "glossary.area_of_effect",
+    "area_of_effect.sphere"
+   ],
+   "agrees": true,
+   "span": "587daf0f-c92a-53d7-8dd2-e63ceec90b95",
+   "range": [
+    4,
+    11
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "Area of Effect/5/0": {
+   "text": "An area of effect has a point of origin, a location from which the effect’s energy erupts.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "glossary.area_of_effect",
+    "area_origin",
+    "area_origin"
+   ],
+   "derived_carrier": [
+    "fact",
+    "glossary.area_of_effect",
+    "area_origin",
+    "area_origin"
+   ],
+   "agrees": true,
+   "span": "9d313e99-98b7-52fc-bd2b-7a7d9113ab23",
+   "range": [
+    0,
+    90
+   ],
+   "gaps": [
+    "G1"
+   ],
+   "states": "an area of effect has a point of origin"
+  },
+  "Area of Effect/5/1": {
+   "text": " The rules for each shape specify how to position its point of origin.",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "fact_context",
+    "glossary.area_of_effect",
+    "area_origin"
+   ],
+   "derived_carrier": [
+    "fact_context",
+    "glossary.area_of_effect",
+    "area_origin"
+   ],
+   "agrees": true,
+   "span": "f2096b71-2e95-5698-97df-138c7fc46427",
+   "range": [
+    90,
+    160
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "Area of Effect/5/2": {
+   "text": " If all straight lines extending from the point of origin to a location in the area of effect are blocked, that location isn’t included in the area of effect.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "glossary.area_of_effect",
+    "blocked_line_exclusion",
+    "blocked_line_exclusion"
+   ],
+   "derived_carrier": [
+    "fact",
+    "glossary.area_of_effect",
+    "blocked_line_exclusion",
+    "blocked_line_exclusion"
+   ],
+   "agrees": true,
+   "span": "a5fe1887-a450-5cf4-a6db-f90eac4212eb",
+   "range": [
+    160,
+    318
+   ],
+   "gaps": [
+    "G7"
+   ],
+   "states": "a location is excluded when ALL straight lines from the point of origin to it are blocked"
+  },
+  "Area of Effect/5/3": {
+   "text": " To block a line, an obstruction must provide Total Cover.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "glossary.area_of_effect",
+    "blocked_line_exclusion",
+    "blocked_line_exclusion"
+   ],
+   "derived_carrier": [
+    "fact",
+    "glossary.area_of_effect",
+    "blocked_line_exclusion",
+    "blocked_line_exclusion"
+   ],
+   "agrees": true,
+   "span": "d29d9c85-ec33-5679-8bbb-ca2c7f117ce1",
+   "range": [
+    318,
+    376
+   ],
+   "gaps": [
+    "G7"
+   ],
+   "states": "Total Cover is the threshold that blocks a line"
+  },
+  "Area of Effect/6/0": {
+   "text": "See also",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "record",
+    "glossary.area_of_effect"
+   ],
+   "derived_carrier": [
+    "record",
+    "glossary.area_of_effect"
+   ],
+   "agrees": true,
+   "span": "dcfc2c61-fd26-5dc2-9d7d-35dc356672e3",
+   "range": [
+    0,
+    8
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "Area of Effect/7/0": {
+   "text": "“Cover.”",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "reference",
+    "glossary.area_of_effect",
+    "glossary.cover"
+   ],
+   "derived_carrier": [
+    "reference",
+    "glossary.area_of_effect",
+    "glossary.cover"
+   ],
+   "agrees": true,
+   "span": "979c555f-8058-59d6-a0fc-a02edd4c2c37",
+   "range": [
+    0,
+    8
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "Area of Effect/7/1": {
+   "text": " If the creator of an area of effect places it at an unseen point and an obstruction—such as a wall— is between the creator and that point, the point of origin comes into being on the near side of the obstruction.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "glossary.area_of_effect",
+    "unseen_origin_relocation",
+    "unseen_origin_relocation"
+   ],
+   "derived_carrier": [
+    "fact",
+    "glossary.area_of_effect",
+    "unseen_origin_relocation",
+    "unseen_origin_relocation"
+   ],
+   "agrees": true,
+   "span": "05a58c24-4518-5c70-b353-933440fb0c7d",
+   "range": [
+    8,
+    221
+   ],
+   "gaps": [
+    "G8"
+   ],
+   "states": "placed at an unseen point AND an obstruction between the creator and that point: the origin comes into being on the near side"
+  },
+  "Cone/0/0": {
+   "text": "Cone [Area of Effect]",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "record",
+    "area_of_effect.cone"
+   ],
+   "derived_carrier": [
+    "record",
+    "area_of_effect.cone"
+   ],
+   "agrees": true,
+   "span": "25d15049-fc1a-52ae-aba1-1aa70d0dec7c",
+   "range": [
+    0,
+    21
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "Cone/1/0": {
+   "text": "A Cone is an area of effect that extends in straight lines from a point of origin in a direction its creator chooses.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "area_of_effect.cone",
+    "area_origin",
+    "area_origin"
+   ],
+   "derived_carrier": [
+    "fact",
+    "area_of_effect.cone",
+    "area_origin",
+    "area_origin"
+   ],
+   "agrees": true,
+   "span": "bd54a3bc-d30d-5476-b991-0d99ec354fc1",
+   "range": [
+    0,
+    117
+   ],
+   "gaps": [
+    "G1",
+    "G2"
+   ],
+   "states": "a Cone extends in straight lines in a direction its creator chooses"
+  },
+  "Cone/1/1": {
+   "text": " A Cone’s width at any point along its length is equal to that point’s distance from the point of origin.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "area_of_effect.cone",
+    "area_width_relation",
+    "area_width_relation"
+   ],
+   "derived_carrier": [
+    "fact",
+    "area_of_effect.cone",
+    "area_width_relation",
+    "area_width_relation"
+   ],
+   "agrees": true,
+   "span": "0d6471e2-ec81-513b-b37c-07970e517731",
+   "range": [
+    117,
+    222
+   ],
+   "gaps": [
+    "G5"
+   ],
+   "states": "a Cone's width at a point equals that point's distance from the origin"
+  },
+  "Cone/1/2": {
+   "text": " For example, a Cone is 15 feet wide at a point along its length that is 15 feet from the point of origin.",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "fact_context",
+    "area_of_effect.cone",
+    "area_width_relation"
+   ],
+   "derived_carrier": [
+    "fact_context",
+    "area_of_effect.cone",
+    "area_width_relation"
+   ],
+   "agrees": true,
+   "span": "ce8e8678-822c-5f9f-88b9-caa4d2477b90",
+   "range": [
+    222,
+    328
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "Cone/1/3": {
+   "text": " The effect that creates a Cone specifies its maximum length.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "area_of_effect.cone",
+    "area_dimension_requirement",
+    "area_dimension_requirement"
+   ],
+   "derived_carrier": [
+    "fact",
+    "area_of_effect.cone",
+    "area_dimension_requirement",
+    "area_dimension_requirement"
+   ],
+   "agrees": true,
+   "span": "a6f36dad-3710-500d-9a80-6be235ab178b",
+   "range": [
+    328,
+    389
+   ],
+   "gaps": [
+    "G3"
+   ],
+   "states": "the creating effect specifies a Cone's maximum length"
+  },
+  "Cone/1/4": {
+   "text": " A Cone’s point of origin isn’t included in the area of effect unless its creator decides otherwise.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "area_of_effect.cone",
+    "area_origin_inclusion",
+    "area_origin_inclusion"
+   ],
+   "derived_carrier": [
+    "fact",
+    "area_of_effect.cone",
+    "area_origin_inclusion",
+    "area_origin_inclusion"
+   ],
+   "agrees": true,
+   "span": "e50f4cae-b4e4-5e0c-99ce-d3c5cdb380f1",
+   "range": [
+    389,
+    489
+   ],
+   "gaps": [
+    "G4"
+   ],
+   "states": "a Cone's origin is excluded unless its creator decides otherwise"
+  },
+  "Cube/0/0": {
+   "text": "Cube [Area of Effect]",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "record",
+    "area_of_effect.cube"
+   ],
+   "derived_carrier": [
+    "record",
+    "area_of_effect.cube"
+   ],
+   "agrees": true,
+   "span": "08834572-01e2-5b2f-8e97-2f09242ea1f9",
+   "range": [
+    0,
+    21
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "Cube/1/0": {
+   "text": "A Cube is an area of effect that extends in straight lines from a point of origin located anywhere on a face of the Cube.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "area_of_effect.cube",
+    "area_origin",
+    "area_origin"
+   ],
+   "derived_carrier": [
+    "fact",
+    "area_of_effect.cube",
+    "area_origin",
+    "area_origin"
+   ],
+   "agrees": true,
+   "span": "8319ed74-9f55-5e40-86ee-0dd7d97b601f",
+   "range": [
+    0,
+    121
+   ],
+   "gaps": [
+    "G1",
+    "G2"
+   ],
+   "states": "a Cube's origin sits anywhere on a face of the Cube"
+  },
+  "Cube/1/1": {
+   "text": " The effect that creates a Cube specifies its size, which is the length of each side.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "area_of_effect.cube",
+    "area_dimension_requirement",
+    "area_dimension_requirement"
+   ],
+   "derived_carrier": [
+    "fact",
+    "area_of_effect.cube",
+    "area_dimension_requirement",
+    "area_dimension_requirement"
+   ],
+   "agrees": true,
+   "span": "880bd572-7fde-5914-8fe8-01509253b9d9",
+   "range": [
+    121,
+    206
+   ],
+   "gaps": [
+    "G3"
+   ],
+   "states": "the creating effect specifies a Cube's size: the length of each side"
+  },
+  "Cube/1/2": {
+   "text": " A Cube’s point of origin isn’t included in the area of effect unless its creator decides otherwise.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "area_of_effect.cube",
+    "area_origin_inclusion",
+    "area_origin_inclusion"
+   ],
+   "derived_carrier": [
+    "fact",
+    "area_of_effect.cube",
+    "area_origin_inclusion",
+    "area_origin_inclusion"
+   ],
+   "agrees": true,
+   "span": "81910437-b819-5288-9d96-63f725d3b4bf",
+   "range": [
+    206,
+    306
+   ],
+   "gaps": [
+    "G4"
+   ],
+   "states": "a Cube's origin is excluded unless its creator decides otherwise"
+  },
+  "Cylinder/0/0": {
+   "text": "Cylinder [Area of Effect]",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "record",
+    "area_of_effect.cylinder"
+   ],
+   "derived_carrier": [
+    "record",
+    "area_of_effect.cylinder"
+   ],
+   "agrees": true,
+   "span": "d1422b1e-c238-5069-8145-64707025893d",
+   "range": [
+    0,
+    25
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "Cylinder/1/0": {
+   "text": "A Cylinder is an area of effect that extends in straight lines from a point of origin located at the center of the circular top or bottom of the Cylinder.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "area_of_effect.cylinder",
+    "area_origin",
+    "area_origin"
+   ],
+   "derived_carrier": [
+    "fact",
+    "area_of_effect.cylinder",
+    "area_origin",
+    "area_origin"
+   ],
+   "agrees": true,
+   "span": "754863c1-5f4e-5bdc-8993-69f1835da231",
+   "range": [
+    0,
+    154
+   ],
+   "gaps": [
+    "G1",
+    "G2"
+   ],
+   "states": "a Cylinder's origin sits at the center of the circular top or bottom"
+  },
+  "Cylinder/1/1": {
+   "text": " The effect that creates a Cylinder specifies the radius of the Cylinder’s base and the Cylinder’s height.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "area_of_effect.cylinder",
+    "area_dimension_requirement",
+    "area_dimension_requirement"
+   ],
+   "derived_carrier": [
+    "fact",
+    "area_of_effect.cylinder",
+    "area_dimension_requirement",
+    "area_dimension_requirement"
+   ],
+   "agrees": true,
+   "span": "1c7b804e-5713-50e9-8be7-d3735ce29a05",
+   "range": [
+    154,
+    260
+   ],
+   "gaps": [
+    "G3"
+   ],
+   "states": "the creating effect specifies TWO parameters: the base radius and the height"
+  },
+  "Cylinder/1/2": {
+   "text": " A Cylinder’s point of origin is included in the area of effect.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "area_of_effect.cylinder",
+    "area_origin_inclusion",
+    "area_origin_inclusion"
+   ],
+   "derived_carrier": [
+    "fact",
+    "area_of_effect.cylinder",
+    "area_origin_inclusion",
+    "area_origin_inclusion"
+   ],
+   "agrees": true,
+   "span": "64170c93-5588-5547-9841-71e1faaeaaba",
+   "range": [
+    260,
+    324
+   ],
+   "gaps": [
+    "G4"
+   ],
+   "states": "a Cylinder's origin is included"
+  },
+  "Emanation/0/0": {
+   "text": "Emanation [Area of Effect]",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "record",
+    "area_of_effect.emanation"
+   ],
+   "derived_carrier": [
+    "record",
+    "area_of_effect.emanation"
+   ],
+   "agrees": true,
+   "span": "f2b49a90-df9c-55b6-8563-dd947139a35c",
+   "range": [
+    0,
+    26
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "Emanation/1/0": {
+   "text": "An Emanation is an area of effect that extends in straight lines from a creature or an object in all directions.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "area_of_effect.emanation",
+    "area_origin",
+    "area_origin"
+   ],
+   "derived_carrier": [
+    "fact",
+    "area_of_effect.emanation",
+    "area_origin",
+    "area_origin"
+   ],
+   "agrees": true,
+   "span": "8a47ec00-afdc-522b-80ef-dd4c1a44e436",
+   "range": [
+    0,
+    112
+   ],
+   "gaps": [
+    "G1",
+    "G2"
+   ],
+   "states": "an Emanation extends from a CREATURE OR AN OBJECT in all directions - the one origin in this class that is not a point"
+  },
+  "Emanation/1/1": {
+   "text": " The effect that creates an Emanation specifies the distance it extends.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "area_of_effect.emanation",
+    "area_dimension_requirement",
+    "area_dimension_requirement"
+   ],
+   "derived_carrier": [
+    "fact",
+    "area_of_effect.emanation",
+    "area_dimension_requirement",
+    "area_dimension_requirement"
+   ],
+   "agrees": true,
+   "span": "7ed90529-e766-51bc-b534-a05c4deed3e1",
+   "range": [
+    112,
+    184
+   ],
+   "gaps": [
+    "G3"
+   ],
+   "states": "the creating effect specifies the distance an Emanation extends"
+  },
+  "Emanation/1/2": {
+   "text": " An Emanation moves with the creature or object that is its origin unless it is an instantaneous or a stationary effect.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "area_of_effect.emanation",
+    "area_origin_movement",
+    "area_origin_movement"
+   ],
+   "derived_carrier": [
+    "fact",
+    "area_of_effect.emanation",
+    "area_origin_movement",
+    "area_origin_movement"
+   ],
+   "agrees": true,
+   "span": "8eee5d4d-bf82-5bf9-b045-74f1a717588b",
+   "range": [
+    184,
+    304
+   ],
+   "gaps": [
+    "G6"
+   ],
+   "states": "an Emanation moves with its origin unless the effect is instantaneous OR stationary - both exceptions, not one"
+  },
+  "Emanation/1/3": {
+   "text": " An Emanation’s origin (creature or object) isn’t included in the area of effect unless its creator decides otherwise.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "area_of_effect.emanation",
+    "area_origin_inclusion",
+    "area_origin_inclusion"
+   ],
+   "derived_carrier": [
+    "fact",
+    "area_of_effect.emanation",
+    "area_origin_inclusion",
+    "area_origin_inclusion"
+   ],
+   "agrees": true,
+   "span": "b0dfe8e4-0584-582f-9323-523d50e1b061",
+   "range": [
+    304,
+    422
+   ],
+   "gaps": [
+    "G4"
+   ],
+   "states": "an Emanation's origin is excluded unless its creator decides otherwise"
+  },
+  "Line/0/0": {
+   "text": "Line [Area of Effect]",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "record",
+    "area_of_effect.line"
+   ],
+   "derived_carrier": [
+    "record",
+    "area_of_effect.line"
+   ],
+   "agrees": true,
+   "span": "444755af-296c-5bab-9be9-532f2e592575",
+   "range": [
+    0,
+    21
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "Line/1/0": {
+   "text": "A Line is an area of effect that extends from a point of origin in a straight path along its length and covers an area defined by its width.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "area_of_effect.line",
+    "area_origin",
+    "area_origin"
+   ],
+   "derived_carrier": [
+    "fact",
+    "area_of_effect.line",
+    "area_origin",
+    "area_origin"
+   ],
+   "agrees": true,
+   "span": "a088d31c-ba2e-54d3-8995-cea6d4464334",
+   "range": [
+    0,
+    140
+   ],
+   "gaps": [
+    "G1",
+    "G2"
+   ],
+   "states": "a Line extends in a straight path along its length, covering its width"
+  },
+  "Line/1/1": {
+   "text": " The effect that creates a Line specifies its length and width.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "area_of_effect.line",
+    "area_dimension_requirement",
+    "area_dimension_requirement"
+   ],
+   "derived_carrier": [
+    "fact",
+    "area_of_effect.line",
+    "area_dimension_requirement",
+    "area_dimension_requirement"
+   ],
+   "agrees": true,
+   "span": "4857bb6a-a058-5fde-a786-5af81d8e90ab",
+   "range": [
+    140,
+    203
+   ],
+   "gaps": [
+    "G3"
+   ],
+   "states": "the creating effect specifies TWO parameters: length and width"
+  },
+  "Line/1/2": {
+   "text": " A Line’s point of origin isn’t included in the area of effect unless its creator decides otherwise.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "area_of_effect.line",
+    "area_origin_inclusion",
+    "area_origin_inclusion"
+   ],
+   "derived_carrier": [
+    "fact",
+    "area_of_effect.line",
+    "area_origin_inclusion",
+    "area_origin_inclusion"
+   ],
+   "agrees": true,
+   "span": "80a0324c-c2a9-56cd-a359-e71c9862762e",
+   "range": [
+    203,
+    303
+   ],
+   "gaps": [
+    "G4"
+   ],
+   "states": "a Line's origin is excluded unless its creator decides otherwise"
+  },
+  "Sphere/0/0": {
+   "text": "Sphere [Area of Effect]",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "record",
+    "area_of_effect.sphere"
+   ],
+   "derived_carrier": [
+    "record",
+    "area_of_effect.sphere"
+   ],
+   "agrees": true,
+   "span": "ba004b5a-bd89-5dcd-b74b-78d603981724",
+   "range": [
+    0,
+    23
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "Sphere/1/0": {
+   "text": "A Sphere is an area of effect that extends in straight lines from a point of origin outward in all directions.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "area_of_effect.sphere",
+    "area_origin",
+    "area_origin"
+   ],
+   "derived_carrier": [
+    "fact",
+    "area_of_effect.sphere",
+    "area_origin",
+    "area_origin"
+   ],
+   "agrees": true,
+   "span": "167fc4ba-4b7a-5e4f-874e-9bf37f2187cb",
+   "range": [
+    0,
+    110
+   ],
+   "gaps": [
+    "G1",
+    "G2"
+   ],
+   "states": "a Sphere extends outward in all directions"
+  },
+  "Sphere/1/1": {
+   "text": " The effect that creates a Sphere specifies the distance it extends as the radius of the Sphere.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "area_of_effect.sphere",
+    "area_dimension_requirement",
+    "area_dimension_requirement"
+   ],
+   "derived_carrier": [
+    "fact",
+    "area_of_effect.sphere",
+    "area_dimension_requirement",
+    "area_dimension_requirement"
+   ],
+   "agrees": true,
+   "span": "72c47c82-aee7-5ee6-8e29-0a39f948b0ca",
+   "range": [
+    110,
+    206
+   ],
+   "gaps": [
+    "G3"
+   ],
+   "states": "the creating effect specifies the distance it extends as the radius"
+  },
+  "Sphere/1/2": {
+   "text": " A Sphere’s point of origin is included in the Sphere’s area of effect.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "area_of_effect.sphere",
+    "area_origin_inclusion",
+    "area_origin_inclusion"
+   ],
+   "derived_carrier": [
+    "fact",
+    "area_of_effect.sphere",
+    "area_origin_inclusion",
+    "area_origin_inclusion"
+   ],
+   "agrees": true,
+   "span": "a680f5dd-a93b-5051-bb43-2f9f65488645",
+   "range": [
+    206,
+    277
+   ],
+   "gaps": [
+    "G4"
+   ],
+   "states": "a Sphere's origin is included"
+  }
+ },
+ "obligation_accounting": {
+  "supporting_authority_bounding_a_fact": [
+   "Area of Effect/5/1",
+   "Cone/1/2"
+  ],
+  "supporting_authority_record_owned": [
+   "Area of Effect/0/0",
+   "Area of Effect/1/0",
+   "Area of Effect/1/1",
+   "Area of Effect/6/0",
+   "Cone/0/0",
+   "Cube/0/0",
+   "Cylinder/0/0",
+   "Emanation/0/0",
+   "Line/0/0",
+   "Sphere/0/0"
+  ],
+  "supporting_authority_reference_owned": [
+   "Area of Effect/2/0",
+   "Area of Effect/2/1",
+   "Area of Effect/3/0",
+   "Area of Effect/3/1",
+   "Area of Effect/4/0",
+   "Area of Effect/4/1",
+   "Area of Effect/7/0"
+  ],
+  "typed": [
+   "Area of Effect/5/0",
+   "Area of Effect/5/2",
+   "Area of Effect/5/3",
+   "Area of Effect/7/1",
+   "Cone/1/0",
+   "Cone/1/1",
+   "Cone/1/3",
+   "Cone/1/4",
+   "Cube/1/0",
+   "Cube/1/1",
+   "Cube/1/2",
+   "Cylinder/1/0",
+   "Cylinder/1/1",
+   "Cylinder/1/2",
+   "Emanation/1/0",
+   "Emanation/1/1",
+   "Emanation/1/2",
+   "Emanation/1/3",
+   "Line/1/0",
+   "Line/1/1",
+   "Line/1/2",
+   "Sphere/1/0",
+   "Sphere/1/1",
+   "Sphere/1/2"
+  ],
+  "tally": {
+   "supporting_authority_bounding_a_fact": 2,
+   "supporting_authority_record_owned": 10,
+   "supporting_authority_reference_owned": 7,
+   "typed": 24
+  },
+  "prose_bound": [],
+  "unresolved": []
+ },
+ "obligation_derivation": "EXPECTED_OBLIGATIONS in the generator is one literal row per printed clause, typed from the reviewed source record - section 3 of the discovery checkpoint for the 5c disposition and the gap ids, section 9's clause-to-fact table for the carrier. It is not computed from anything this run emits, and the discovery manifest deliberately carries no disposition, so the table is the independent statement of what the proposal owes the source. The emission is then checked against it three ways: every obligation discharged (omission), by exactly one span at exactly the reviewed extent (duplication), and carried by exactly the element the review names (semantic loss).",
+ "evidence_classes": [
+  {
+   "class": "source extraction and partition reconstruction",
+   "executed_here": true,
+   "strength": "strong for coverage and span boundaries: the reviewed clause extents are re-proved gap-free against the leaves this run just extracted from the PDF. Says nothing about whether the meaning assigned to a span is right - that is what semantic review is for"
+  },
+  {
+   "class": "obligation closure against the reviewed inventory",
+   "executed_here": true,
+   "strength": "exposes omission, duplication and carrier drift against a table typed from the checkpoint rather than from the emission. It does not prove the checkpoint's judgment is right; it proves the proposal states that judgment and no other"
+  },
+  {
+   "class": "structural validation",
+   "executed_here": true,
+   "strength": "the repository's own checkers over the emitted draft and over the merge acceptance would validate. These judge shape, not fidelity, and this batch does not come back clean"
+  },
+  {
+   "class": "consumer projection assertion",
+   "executed_here": true,
+   "strength": "_base_records is applied to the merged candidate in memory and every distinction the source prints is read back off those objects. Nothing is persisted"
+  },
+  {
+   "class": "schema succession",
+   "executed_here": true,
+   "strength": "one registered crossing, exercised element by element, with the inherited acceptance record asserted to cross by object identity. Proves the crossing; performs none of it"
+  },
+  {
+   "class": "cross-batch reference resolution",
+   "executed_here": true,
+   "strength": "NEGATIVE result, stated: this batch adds one unresolved target and resolves none. Combined missing after the merge is glossary.concentration, glossary.speed, glossary.cover"
+  },
+  {
+   "class": "full-corpus completeness",
+   "executed_here": false,
+   "strength": "NOT claimed. This is one tagged class of the Rules Glossary. The corpus #137 governs is untouched and undischarged"
+  },
+  {
+   "class": "publication gate",
+   "executed_here": false,
+   "strength": "NOT run. There is no persisted projection to run it over, and this generator must not create one"
+  },
+  {
+   "class": "acceptance",
+   "executed_here": false,
+   "strength": "NOT run. accept_proposal is never called; the live oracle is read as a mutation sentinel only"
+  }
+ ],
+ "review_disposition": {
+  "open_schema_stops": [],
+  "residues": [
+   "glossary.cover is cited by this batch and defined by no batch; Cover ingestion is not in this batch and nothing here reaches into it",
+   "glossary.concentration and glossary.speed remain unresolved from the accepted prior; they belong to a later glossary batch",
+   "the full-corpus obligation #137 governs is undischarged: this is one tagged class"
+  ],
+  "requires_owner_authorization_before": [
+   "any acceptance of this batch into committed authority",
+   "any acceptance is also what would carry the accepted prior across 5d-lift-schema-8-to-9; this run proves the crossing and performs none of it"
+  ]
+ },
+ "repository_inputs": {
+  "repository_root_derived_from": "Path(__file__).resolve().parents[2]",
+  "source_pdf": "docs/sources/DnD5_5e_SRD_CC_v5_2_1.pdf",
+  "source_manifest": ".claude/review-notes/issue-5d-areas-of-effect-1-source-manifest.json",
+  "review_prior": "tests/ingestion/mechanical/data/accepted_prior_conditions_1_hazards_1_actions_1_attitudes_1.json",
+  "afterworlds_package": "src/afterworlds",
+  "output_directory": ".claude/review-notes",
+  "note": "Recorded relative to the derived root on purpose: an absolute path would make this artifact differ between two checkouts that produced identical content. Every path above is repository-retained, so this proposal is reproducible from the repository alone. The live accepted-authority oracle is deliberately absent: it is not an input. This run reads it only as a mutation sentinel and records neither its path nor its digest, because an accumulating artifact's identity goes stale at the next acceptance."
+ },
+ "spans": [
+  {
+   "clause": "Area of Effect/0/0",
+   "record": "glossary.area_of_effect",
+   "leaf": "8b1fed74-61ce-5334-a4fd-b9fba71c072f",
+   "printed_page": 177,
+   "span_id": "9e353bb0-9d61-549d-b26f-3f868709f5cd",
+   "range": [
+    0,
+    14
+   ],
+   "text": "Area of Effect",
+   "disposition": "supporting_authority",
+   "claimant_kind": "record",
+   "claimant": "glossary.area_of_effect",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause": "Area of Effect/1/0",
+   "record": "glossary.area_of_effect",
+   "leaf": "4ff9e24f-12db-5958-ad01-6cacbacbc8ae",
+   "printed_page": 177,
+   "span_id": "b8b990bd-9b62-549f-9bd7-48bc5c63a24f",
+   "range": [
+    0,
+    131
+   ],
+   "text": "The descriptions of many spells and other features specify that they have an area of effect, which typically has one of six shapes.",
+   "disposition": "supporting_authority",
+   "claimant_kind": "record",
+   "claimant": "glossary.area_of_effect",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause": "Area of Effect/1/1",
+   "record": "glossary.area_of_effect",
+   "leaf": "4ff9e24f-12db-5958-ad01-6cacbacbc8ae",
+   "printed_page": 177,
+   "span_id": "f29e11a3-2a81-5ea8-b9bb-d4a14208c86e",
+   "range": [
+    131,
+    184
+   ],
+   "text": " These shapes are defined elsewhere in this glossary:",
+   "disposition": "supporting_authority",
+   "claimant_kind": "record",
+   "claimant": "glossary.area_of_effect",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause": "Area of Effect/2/0",
+   "record": "glossary.area_of_effect",
+   "leaf": "a93806db-2435-5b9d-89ea-96433111cde3",
+   "printed_page": 177,
+   "span_id": "ea9eac60-ed28-540f-998a-3a02c32f7d51",
+   "range": [
+    0,
+    4
+   ],
+   "text": "Cone",
+   "disposition": "supporting_authority",
+   "claimant_kind": "reference",
+   "claimant": "glossary.area_of_effect -> area_of_effect.cone",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "a source-authored mechanical reference, sited on the record that prints it and naming a target record key within a committed scope; whether that key resolves to an ingested record is a validator finding, not a property of the citation; supporting authority, because naming a rule is not stating one"
+  },
+  {
+   "clause": "Area of Effect/2/1",
+   "record": "glossary.area_of_effect",
+   "leaf": "a93806db-2435-5b9d-89ea-96433111cde3",
+   "printed_page": 177,
+   "span_id": "b8960978-bf84-5191-8135-013c2cbebbef",
+   "range": [
+    4,
+    9
+   ],
+   "text": " Cube",
+   "disposition": "supporting_authority",
+   "claimant_kind": "reference",
+   "claimant": "glossary.area_of_effect -> area_of_effect.cube",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "a source-authored mechanical reference, sited on the record that prints it and naming a target record key within a committed scope; whether that key resolves to an ingested record is a validator finding, not a property of the citation; supporting authority, because naming a rule is not stating one"
+  },
+  {
+   "clause": "Area of Effect/3/0",
+   "record": "glossary.area_of_effect",
+   "leaf": "7613fd31-d5e3-5ff1-b216-e54171da8291",
+   "printed_page": 177,
+   "span_id": "1cdfae19-3d46-5a9c-b8d1-79224d797fad",
+   "range": [
+    0,
+    8
+   ],
+   "text": "Cylinder",
+   "disposition": "supporting_authority",
+   "claimant_kind": "reference",
+   "claimant": "glossary.area_of_effect -> area_of_effect.cylinder",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "a source-authored mechanical reference, sited on the record that prints it and naming a target record key within a committed scope; whether that key resolves to an ingested record is a validator finding, not a property of the citation; supporting authority, because naming a rule is not stating one"
+  },
+  {
+   "clause": "Area of Effect/3/1",
+   "record": "glossary.area_of_effect",
+   "leaf": "7613fd31-d5e3-5ff1-b216-e54171da8291",
+   "printed_page": 177,
+   "span_id": "8411c0f4-6fb7-5b5e-a2ea-f38ec2bbf47d",
+   "range": [
+    8,
+    18
+   ],
+   "text": " Emanation",
+   "disposition": "supporting_authority",
+   "claimant_kind": "reference",
+   "claimant": "glossary.area_of_effect -> area_of_effect.emanation",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "a source-authored mechanical reference, sited on the record that prints it and naming a target record key within a committed scope; whether that key resolves to an ingested record is a validator finding, not a property of the citation; supporting authority, because naming a rule is not stating one"
+  },
+  {
+   "clause": "Area of Effect/4/0",
+   "record": "glossary.area_of_effect",
+   "leaf": "af6478d2-3f9a-5dcd-ad2f-a1b364c71d15",
+   "printed_page": 177,
+   "span_id": "3914ccf0-0a12-5263-8648-e622038d3043",
+   "range": [
+    0,
+    4
+   ],
+   "text": "Line",
+   "disposition": "supporting_authority",
+   "claimant_kind": "reference",
+   "claimant": "glossary.area_of_effect -> area_of_effect.line",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "a source-authored mechanical reference, sited on the record that prints it and naming a target record key within a committed scope; whether that key resolves to an ingested record is a validator finding, not a property of the citation; supporting authority, because naming a rule is not stating one"
+  },
+  {
+   "clause": "Area of Effect/4/1",
+   "record": "glossary.area_of_effect",
+   "leaf": "af6478d2-3f9a-5dcd-ad2f-a1b364c71d15",
+   "printed_page": 177,
+   "span_id": "587daf0f-c92a-53d7-8dd2-e63ceec90b95",
+   "range": [
+    4,
+    11
+   ],
+   "text": " Sphere",
+   "disposition": "supporting_authority",
+   "claimant_kind": "reference",
+   "claimant": "glossary.area_of_effect -> area_of_effect.sphere",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "a source-authored mechanical reference, sited on the record that prints it and naming a target record key within a committed scope; whether that key resolves to an ingested record is a validator finding, not a property of the citation; supporting authority, because naming a rule is not stating one"
+  },
+  {
+   "clause": "Area of Effect/5/0",
+   "record": "glossary.area_of_effect",
+   "leaf": "638724ef-98bb-522d-b68e-0506bc97cdb6",
+   "printed_page": 177,
+   "span_id": "9d313e99-98b7-52fc-bd2b-7a7d9113ab23",
+   "range": [
+    0,
+    90
+   ],
+   "text": "An area of effect has a point of origin, a location from which the effect’s energy erupts.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "glossary.area_of_effect/area_origin/0171f5d7d7581b32",
+   "role": "primary",
+   "gaps": [
+    "G1"
+   ],
+   "states": "an area of effect has a point of origin",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "clause": "Area of Effect/5/1",
+   "record": "glossary.area_of_effect",
+   "leaf": "638724ef-98bb-522d-b68e-0506bc97cdb6",
+   "printed_page": 177,
+   "span_id": "f2096b71-2e95-5698-97df-138c7fc46427",
+   "range": [
+    90,
+    160
+   ],
+   "text": " The rules for each shape specify how to position its point of origin.",
+   "disposition": "supporting_authority",
+   "claimant_kind": "fact_context",
+   "claimant": "glossary.area_of_effect/area_origin (bounds the fact)",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "bounds exactly one typed fact and states no rule of its own; supporting authority claimed CONTEXTUAL by that fact rather than by the record, so the link a reviewer needs is in the provenance instead of in prose"
+  },
+  {
+   "clause": "Area of Effect/5/2",
+   "record": "glossary.area_of_effect",
+   "leaf": "638724ef-98bb-522d-b68e-0506bc97cdb6",
+   "printed_page": 177,
+   "span_id": "a5fe1887-a450-5cf4-a6db-f90eac4212eb",
+   "range": [
+    160,
+    318
+   ],
+   "text": " If all straight lines extending from the point of origin to a location in the area of effect are blocked, that location isn’t included in the area of effect.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "glossary.area_of_effect/blocked_line_exclusion/2c3756945346fd66",
+   "role": "primary",
+   "gaps": [
+    "G7"
+   ],
+   "states": "a location is excluded when ALL straight lines from the point of origin to it are blocked",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "clause": "Area of Effect/5/3",
+   "record": "glossary.area_of_effect",
+   "leaf": "638724ef-98bb-522d-b68e-0506bc97cdb6",
+   "printed_page": 177,
+   "span_id": "d29d9c85-ec33-5679-8bbb-ca2c7f117ce1",
+   "range": [
+    318,
+    376
+   ],
+   "text": " To block a line, an obstruction must provide Total Cover.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "glossary.area_of_effect/blocked_line_exclusion/2c3756945346fd66",
+   "role": "primary",
+   "gaps": [
+    "G7"
+   ],
+   "states": "Total Cover is the threshold that blocks a line",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "clause": "Area of Effect/6/0",
+   "record": "glossary.area_of_effect",
+   "leaf": "f7fc8e1e-e3e1-5a7d-bbc7-192b151d5766",
+   "printed_page": 177,
+   "span_id": "dcfc2c61-fd26-5dc2-9d7d-35dc356672e3",
+   "range": [
+    0,
+    8
+   ],
+   "text": "See also",
+   "disposition": "supporting_authority",
+   "claimant_kind": "record",
+   "claimant": "glossary.area_of_effect",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause": "Area of Effect/7/0",
+   "record": "glossary.area_of_effect",
+   "leaf": "5ef92f4d-62c2-5d57-b154-d4689beb9dc4",
+   "printed_page": 177,
+   "span_id": "979c555f-8058-59d6-a0fc-a02edd4c2c37",
+   "range": [
+    0,
+    8
+   ],
+   "text": "“Cover.”",
+   "disposition": "supporting_authority",
+   "claimant_kind": "reference",
+   "claimant": "glossary.area_of_effect -> glossary.cover",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "a source-authored mechanical reference, sited on the record that prints it and naming a target record key within a committed scope; whether that key resolves to an ingested record is a validator finding, not a property of the citation; supporting authority, because naming a rule is not stating one"
+  },
+  {
+   "clause": "Area of Effect/7/1",
+   "record": "glossary.area_of_effect",
+   "leaf": "5ef92f4d-62c2-5d57-b154-d4689beb9dc4",
+   "printed_page": 177,
+   "span_id": "05a58c24-4518-5c70-b353-933440fb0c7d",
+   "range": [
+    8,
+    221
+   ],
+   "text": " If the creator of an area of effect places it at an unseen point and an obstruction—such as a wall— is between the creator and that point, the point of origin comes into being on the near side of the obstruction.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "glossary.area_of_effect/unseen_origin_relocation/9503f1af74b4456b",
+   "role": "primary",
+   "gaps": [
+    "G8"
+   ],
+   "states": "placed at an unseen point AND an obstruction between the creator and that point: the origin comes into being on the near side",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "clause": "Cone/0/0",
+   "record": "area_of_effect.cone",
+   "leaf": "9208b6e4-4afa-58cf-a226-43f4b95b35e8",
+   "printed_page": 179,
+   "span_id": "25d15049-fc1a-52ae-aba1-1aa70d0dec7c",
+   "range": [
+    0,
+    21
+   ],
+   "text": "Cone [Area of Effect]",
+   "disposition": "supporting_authority",
+   "claimant_kind": "record",
+   "claimant": "area_of_effect.cone",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause": "Cone/1/0",
+   "record": "area_of_effect.cone",
+   "leaf": "8d464d21-2e78-58a7-8045-37df4d393b0e",
+   "printed_page": 179,
+   "span_id": "bd54a3bc-d30d-5476-b991-0d99ec354fc1",
+   "range": [
+    0,
+    117
+   ],
+   "text": "A Cone is an area of effect that extends in straight lines from a point of origin in a direction its creator chooses.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "area_of_effect.cone/area_origin/6672338c7118aaaa",
+   "role": "primary",
+   "gaps": [
+    "G1",
+    "G2"
+   ],
+   "states": "a Cone extends in straight lines in a direction its creator chooses",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "clause": "Cone/1/1",
+   "record": "area_of_effect.cone",
+   "leaf": "8d464d21-2e78-58a7-8045-37df4d393b0e",
+   "printed_page": 179,
+   "span_id": "0d6471e2-ec81-513b-b37c-07970e517731",
+   "range": [
+    117,
+    222
+   ],
+   "text": " A Cone’s width at any point along its length is equal to that point’s distance from the point of origin.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "area_of_effect.cone/area_width_relation/2079399d7f5b6919",
+   "role": "primary",
+   "gaps": [
+    "G5"
+   ],
+   "states": "a Cone's width at a point equals that point's distance from the origin",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "clause": "Cone/1/2",
+   "record": "area_of_effect.cone",
+   "leaf": "8d464d21-2e78-58a7-8045-37df4d393b0e",
+   "printed_page": 179,
+   "span_id": "ce8e8678-822c-5f9f-88b9-caa4d2477b90",
+   "range": [
+    222,
+    328
+   ],
+   "text": " For example, a Cone is 15 feet wide at a point along its length that is 15 feet from the point of origin.",
+   "disposition": "supporting_authority",
+   "claimant_kind": "fact_context",
+   "claimant": "area_of_effect.cone/area_width_relation (bounds the fact)",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "bounds exactly one typed fact and states no rule of its own; supporting authority claimed CONTEXTUAL by that fact rather than by the record, so the link a reviewer needs is in the provenance instead of in prose"
+  },
+  {
+   "clause": "Cone/1/3",
+   "record": "area_of_effect.cone",
+   "leaf": "8d464d21-2e78-58a7-8045-37df4d393b0e",
+   "printed_page": 179,
+   "span_id": "a6f36dad-3710-500d-9a80-6be235ab178b",
+   "range": [
+    328,
+    389
+   ],
+   "text": " The effect that creates a Cone specifies its maximum length.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "area_of_effect.cone/area_dimension_requirement/9eccb145ad6c5418",
+   "role": "primary",
+   "gaps": [
+    "G3"
+   ],
+   "states": "the creating effect specifies a Cone's maximum length",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "clause": "Cone/1/4",
+   "record": "area_of_effect.cone",
+   "leaf": "8d464d21-2e78-58a7-8045-37df4d393b0e",
+   "printed_page": 179,
+   "span_id": "e50f4cae-b4e4-5e0c-99ce-d3c5cdb380f1",
+   "range": [
+    389,
+    489
+   ],
+   "text": " A Cone’s point of origin isn’t included in the area of effect unless its creator decides otherwise.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "area_of_effect.cone/area_origin_inclusion/a3e05a80559df144",
+   "role": "primary",
+   "gaps": [
+    "G4"
+   ],
+   "states": "a Cone's origin is excluded unless its creator decides otherwise",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "clause": "Cube/0/0",
+   "record": "area_of_effect.cube",
+   "leaf": "74587a82-5acc-5b79-bf6c-9500a48592ea",
+   "printed_page": 179,
+   "span_id": "08834572-01e2-5b2f-8e97-2f09242ea1f9",
+   "range": [
+    0,
+    21
+   ],
+   "text": "Cube [Area of Effect]",
+   "disposition": "supporting_authority",
+   "claimant_kind": "record",
+   "claimant": "area_of_effect.cube",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause": "Cube/1/0",
+   "record": "area_of_effect.cube",
+   "leaf": "ebc0f678-517f-5fbb-a973-ac8f11c4a30a",
+   "printed_page": 179,
+   "span_id": "8319ed74-9f55-5e40-86ee-0dd7d97b601f",
+   "range": [
+    0,
+    121
+   ],
+   "text": "A Cube is an area of effect that extends in straight lines from a point of origin located anywhere on a face of the Cube.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "area_of_effect.cube/area_origin/9f7322c19b476f7d",
+   "role": "primary",
+   "gaps": [
+    "G1",
+    "G2"
+   ],
+   "states": "a Cube's origin sits anywhere on a face of the Cube",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "clause": "Cube/1/1",
+   "record": "area_of_effect.cube",
+   "leaf": "ebc0f678-517f-5fbb-a973-ac8f11c4a30a",
+   "printed_page": 179,
+   "span_id": "880bd572-7fde-5914-8fe8-01509253b9d9",
+   "range": [
+    121,
+    206
+   ],
+   "text": " The effect that creates a Cube specifies its size, which is the length of each side.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "area_of_effect.cube/area_dimension_requirement/960c3045d10136cb",
+   "role": "primary",
+   "gaps": [
+    "G3"
+   ],
+   "states": "the creating effect specifies a Cube's size: the length of each side",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "clause": "Cube/1/2",
+   "record": "area_of_effect.cube",
+   "leaf": "ebc0f678-517f-5fbb-a973-ac8f11c4a30a",
+   "printed_page": 179,
+   "span_id": "81910437-b819-5288-9d96-63f725d3b4bf",
+   "range": [
+    206,
+    306
+   ],
+   "text": " A Cube’s point of origin isn’t included in the area of effect unless its creator decides otherwise.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "area_of_effect.cube/area_origin_inclusion/a3e05a80559df144",
+   "role": "primary",
+   "gaps": [
+    "G4"
+   ],
+   "states": "a Cube's origin is excluded unless its creator decides otherwise",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "clause": "Cylinder/0/0",
+   "record": "area_of_effect.cylinder",
+   "leaf": "16894c5c-319b-5ce0-aeef-e7aca9805a38",
+   "printed_page": 180,
+   "span_id": "d1422b1e-c238-5069-8145-64707025893d",
+   "range": [
+    0,
+    25
+   ],
+   "text": "Cylinder [Area of Effect]",
+   "disposition": "supporting_authority",
+   "claimant_kind": "record",
+   "claimant": "area_of_effect.cylinder",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause": "Cylinder/1/0",
+   "record": "area_of_effect.cylinder",
+   "leaf": "4954b589-14e5-5d13-9bf4-0e558b9bb915",
+   "printed_page": 180,
+   "span_id": "754863c1-5f4e-5bdc-8993-69f1835da231",
+   "range": [
+    0,
+    154
+   ],
+   "text": "A Cylinder is an area of effect that extends in straight lines from a point of origin located at the center of the circular top or bottom of the Cylinder.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "area_of_effect.cylinder/area_origin/518de4616f855198",
+   "role": "primary",
+   "gaps": [
+    "G1",
+    "G2"
+   ],
+   "states": "a Cylinder's origin sits at the center of the circular top or bottom",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "clause": "Cylinder/1/1",
+   "record": "area_of_effect.cylinder",
+   "leaf": "4954b589-14e5-5d13-9bf4-0e558b9bb915",
+   "printed_page": 180,
+   "span_id": "1c7b804e-5713-50e9-8be7-d3735ce29a05",
+   "range": [
+    154,
+    260
+   ],
+   "text": " The effect that creates a Cylinder specifies the radius of the Cylinder’s base and the Cylinder’s height.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "area_of_effect.cylinder/area_dimension_requirement/350299744f9b4a93",
+   "role": "primary",
+   "gaps": [
+    "G3"
+   ],
+   "states": "the creating effect specifies TWO parameters: the base radius and the height",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "clause": "Cylinder/1/2",
+   "record": "area_of_effect.cylinder",
+   "leaf": "4954b589-14e5-5d13-9bf4-0e558b9bb915",
+   "printed_page": 180,
+   "span_id": "64170c93-5588-5547-9841-71e1faaeaaba",
+   "range": [
+    260,
+    324
+   ],
+   "text": " A Cylinder’s point of origin is included in the area of effect.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "area_of_effect.cylinder/area_origin_inclusion/34fd0aed5d886ccd",
+   "role": "primary",
+   "gaps": [
+    "G4"
+   ],
+   "states": "a Cylinder's origin is included",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "clause": "Emanation/0/0",
+   "record": "area_of_effect.emanation",
+   "leaf": "a38fd7d6-3a9e-5d16-b135-c235e6c25619",
+   "printed_page": 181,
+   "span_id": "f2b49a90-df9c-55b6-8563-dd947139a35c",
+   "range": [
+    0,
+    26
+   ],
+   "text": "Emanation [Area of Effect]",
+   "disposition": "supporting_authority",
+   "claimant_kind": "record",
+   "claimant": "area_of_effect.emanation",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause": "Emanation/1/0",
+   "record": "area_of_effect.emanation",
+   "leaf": "8834ac19-e730-5c84-89e7-62882dddb1f2",
+   "printed_page": 181,
+   "span_id": "8a47ec00-afdc-522b-80ef-dd4c1a44e436",
+   "range": [
+    0,
+    112
+   ],
+   "text": "An Emanation is an area of effect that extends in straight lines from a creature or an object in all directions.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "area_of_effect.emanation/area_origin/254a4f0dfd4af0c0",
+   "role": "primary",
+   "gaps": [
+    "G1",
+    "G2"
+   ],
+   "states": "an Emanation extends from a CREATURE OR AN OBJECT in all directions - the one origin in this class that is not a point",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "clause": "Emanation/1/1",
+   "record": "area_of_effect.emanation",
+   "leaf": "8834ac19-e730-5c84-89e7-62882dddb1f2",
+   "printed_page": 181,
+   "span_id": "7ed90529-e766-51bc-b534-a05c4deed3e1",
+   "range": [
+    112,
+    184
+   ],
+   "text": " The effect that creates an Emanation specifies the distance it extends.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "area_of_effect.emanation/area_dimension_requirement/5b13bd4471f9a4dd",
+   "role": "primary",
+   "gaps": [
+    "G3"
+   ],
+   "states": "the creating effect specifies the distance an Emanation extends",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "clause": "Emanation/1/2",
+   "record": "area_of_effect.emanation",
+   "leaf": "8834ac19-e730-5c84-89e7-62882dddb1f2",
+   "printed_page": 181,
+   "span_id": "8eee5d4d-bf82-5bf9-b045-74f1a717588b",
+   "range": [
+    184,
+    304
+   ],
+   "text": " An Emanation moves with the creature or object that is its origin unless it is an instantaneous or a stationary effect.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "area_of_effect.emanation/area_origin_movement/7f08dd1bd5047fc2",
+   "role": "primary",
+   "gaps": [
+    "G6"
+   ],
+   "states": "an Emanation moves with its origin unless the effect is instantaneous OR stationary - both exceptions, not one",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "clause": "Emanation/1/3",
+   "record": "area_of_effect.emanation",
+   "leaf": "8834ac19-e730-5c84-89e7-62882dddb1f2",
+   "printed_page": 181,
+   "span_id": "b0dfe8e4-0584-582f-9323-523d50e1b061",
+   "range": [
+    304,
+    422
+   ],
+   "text": " An Emanation’s origin (creature or object) isn’t included in the area of effect unless its creator decides otherwise.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "area_of_effect.emanation/area_origin_inclusion/a3e05a80559df144",
+   "role": "primary",
+   "gaps": [
+    "G4"
+   ],
+   "states": "an Emanation's origin is excluded unless its creator decides otherwise",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "clause": "Line/0/0",
+   "record": "area_of_effect.line",
+   "leaf": "9e2d76bb-c579-5789-964f-406b39b02673",
+   "printed_page": 184,
+   "span_id": "444755af-296c-5bab-9be9-532f2e592575",
+   "range": [
+    0,
+    21
+   ],
+   "text": "Line [Area of Effect]",
+   "disposition": "supporting_authority",
+   "claimant_kind": "record",
+   "claimant": "area_of_effect.line",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause": "Line/1/0",
+   "record": "area_of_effect.line",
+   "leaf": "ed92551f-ae72-5a8d-85ff-79362ab75cda",
+   "printed_page": 184,
+   "span_id": "a088d31c-ba2e-54d3-8995-cea6d4464334",
+   "range": [
+    0,
+    140
+   ],
+   "text": "A Line is an area of effect that extends from a point of origin in a straight path along its length and covers an area defined by its width.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "area_of_effect.line/area_origin/d0e9405d335d9ef6",
+   "role": "primary",
+   "gaps": [
+    "G1",
+    "G2"
+   ],
+   "states": "a Line extends in a straight path along its length, covering its width",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "clause": "Line/1/1",
+   "record": "area_of_effect.line",
+   "leaf": "ed92551f-ae72-5a8d-85ff-79362ab75cda",
+   "printed_page": 184,
+   "span_id": "4857bb6a-a058-5fde-a786-5af81d8e90ab",
+   "range": [
+    140,
+    203
+   ],
+   "text": " The effect that creates a Line specifies its length and width.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "area_of_effect.line/area_dimension_requirement/71c60bb8afc8de95",
+   "role": "primary",
+   "gaps": [
+    "G3"
+   ],
+   "states": "the creating effect specifies TWO parameters: length and width",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "clause": "Line/1/2",
+   "record": "area_of_effect.line",
+   "leaf": "ed92551f-ae72-5a8d-85ff-79362ab75cda",
+   "printed_page": 184,
+   "span_id": "80a0324c-c2a9-56cd-a359-e71c9862762e",
+   "range": [
+    203,
+    303
+   ],
+   "text": " A Line’s point of origin isn’t included in the area of effect unless its creator decides otherwise.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "area_of_effect.line/area_origin_inclusion/a3e05a80559df144",
+   "role": "primary",
+   "gaps": [
+    "G4"
+   ],
+   "states": "a Line's origin is excluded unless its creator decides otherwise",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "clause": "Sphere/0/0",
+   "record": "area_of_effect.sphere",
+   "leaf": "dafddf9b-a89d-557f-9b8f-1081bd7e170f",
+   "printed_page": 188,
+   "span_id": "ba004b5a-bd89-5dcd-b74b-78d603981724",
+   "range": [
+    0,
+    23
+   ],
+   "text": "Sphere [Area of Effect]",
+   "disposition": "supporting_authority",
+   "claimant_kind": "record",
+   "claimant": "area_of_effect.sphere",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause": "Sphere/1/0",
+   "record": "area_of_effect.sphere",
+   "leaf": "32cb0337-705d-5107-8c43-31178d968a23",
+   "printed_page": 188,
+   "span_id": "167fc4ba-4b7a-5e4f-874e-9bf37f2187cb",
+   "range": [
+    0,
+    110
+   ],
+   "text": "A Sphere is an area of effect that extends in straight lines from a point of origin outward in all directions.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "area_of_effect.sphere/area_origin/147f69f0fac3f107",
+   "role": "primary",
+   "gaps": [
+    "G1",
+    "G2"
+   ],
+   "states": "a Sphere extends outward in all directions",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "clause": "Sphere/1/1",
+   "record": "area_of_effect.sphere",
+   "leaf": "32cb0337-705d-5107-8c43-31178d968a23",
+   "printed_page": 188,
+   "span_id": "72c47c82-aee7-5ee6-8e29-0a39f948b0ca",
+   "range": [
+    110,
+    206
+   ],
+   "text": " The effect that creates a Sphere specifies the distance it extends as the radius of the Sphere.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "area_of_effect.sphere/area_dimension_requirement/96d4263e30fd1257",
+   "role": "primary",
+   "gaps": [
+    "G3"
+   ],
+   "states": "the creating effect specifies the distance it extends as the radius",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  },
+  {
+   "clause": "Sphere/1/2",
+   "record": "area_of_effect.sphere",
+   "leaf": "32cb0337-705d-5107-8c43-31178d968a23",
+   "printed_page": 188,
+   "span_id": "a680f5dd-a93b-5051-bb43-2f9f65488645",
+   "range": [
+    206,
+    277
+   ],
+   "text": " A Sphere’s point of origin is included in the Sphere’s area of effect.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "area_of_effect.sphere/area_origin_inclusion/34fd0aed5d886ccd",
+   "role": "primary",
+   "gaps": [
+    "G4"
+   ],
+   "states": "a Sphere's origin is included",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit"
+  }
+ ],
+ "determinism": {
+  "procedure": "The parent writes both artifacts in their final form, then re-executes this generator in a separate process, then compares the final bytes of both files and asserts the child minted the same proposal identity.",
+  "newlines": "LF, written explicitly, on every platform",
+  "proposal_sha256": "f18f909c0af1363e029b71b8e352134929afde8a2cd9c4eb6bc6153edfe184b9",
+  "audit_self_hash": "omitted: an audit cannot state its own final digest without changing the bytes that digest describes. The run asserts instead that the parent's and the child's final audits are byte-identical, and reports the resulting digest to stdout.",
+  "reproduce_from_the_repository": "python .claude/review-notes/issue-5d-batch-areas-of-effect-1-generator.py   (from the repository root). Every input is repository-retained: the committed PDF, the committed discovery manifest, the committed frozen prior and the package under src/."
+ }
+}

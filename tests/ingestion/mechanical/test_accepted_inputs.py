@@ -285,6 +285,7 @@ def test_exactly_one_accepted_artifact_is_committed_for_the_release() -> None:
     assert committed_oracle_for(PRODUCTION_PACKAGE, PRODUCTION_RELEASE) is not None
     assert sorted(b.batch_id for b in inputs.batches) == [
         "actions-1",
+        "areas-of-effect-1",
         "attitudes-1",
         "conditions-1",
         "hazards-1",
@@ -294,6 +295,7 @@ def test_exactly_one_accepted_artifact_is_committed_for_the_release() -> None:
         "hazards-1",
         "actions-1",
         "attitudes-1",
+        "areas-of-effect-1",
     ]
 
 
@@ -304,8 +306,9 @@ def test_the_production_release_cannot_publish_or_activate(session: Session) -> 
     parameter that would let a caller supply authority of its own. The uuid here
     names no persisted header, so this is the "nothing to publish" refusal —
     distinct from the real release's, which now refuses as ``INCOMPLETE``
-    because ``conditions-1``, ``hazards-1``, ``actions-1`` and ``attitudes-1``
-    are accepted — 39 records over 487 spans — but the corpus is not finished.
+    because ``conditions-1``, ``hazards-1``, ``actions-1``, ``attitudes-1`` and
+    ``areas-of-effect-1`` are accepted — 46 records over 530 spans — but the
+    corpus is not finished.
     """
     result = publish_from_committed_oracle(session, "any-projection-uuid", now=NOW)
     assert result.outcome is PublicationOutcome.ABSENT
