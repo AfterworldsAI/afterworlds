@@ -151,6 +151,14 @@ The frozen prior is
 **not** written by this change: the report field `frozen_five_batch_prior_untouched` is `true`, and
 the fixture's blob is unchanged in the commit diff. No six-batch freeze was created.
 
+> **Erratum against the acceptance commit message.** The body of `1f3117d` says "all three frozen
+> prior fixtures are untouched". The count is wrong: `tests/ingestion/mechanical/data/` holds
+> **four** `accepted_prior_*.json` fixtures — `…hazards_1`, `…actions_1`, `…attitudes_1` and the
+> five-batch `…areas_of_effect_1` pinned above. The untouchedness claim is correct for every one of
+> them: the commit's 21 changed paths contain no `tests/ingestion/mechanical/data/` entry at all.
+> Only the number is wrong. The message is left as written rather than amended, because the gate
+> results recorded under `## Gates` were run on `1f3117d` itself.
+
 ## Merged result
 
 | | conditions-1 | hazards-1 | actions-1 | attitudes-1 | areas-of-effect-1 | cover-1 | **merged** |
