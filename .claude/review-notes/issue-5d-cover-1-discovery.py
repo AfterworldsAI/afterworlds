@@ -83,8 +83,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -526,6 +527,21 @@ for _claim in PRIOR.oracle.representation.provenance:
         _PRIOR_KEYS_BY_CONTAINER[_owner].add(str(_claim.target_key[0]))
 assert _PRIOR_KEYS_BY_CONTAINER, "no accepted provenance resolved to this release"
 
+#: The provenance shapes accepted authority already uses, counted rather than
+#: recalled. The checkpoint's 4a leans on one of them: a span that states
+#: something about a component as a whole -- rather than about any single fact
+#: -- needs a component-level ``PRIMARY`` claim to satisfy the
+#: substantive-but-unclaimed rule, and this says whether that shape is
+#: precedent or invention.
+PRIOR_PROVENANCE_SHAPES = dict(
+    sorted(
+        Counter(
+            f"{claim.target_kind.value}/{claim.role.value}"
+            for claim in PRIOR.oracle.representation.provenance
+        ).items()
+    )
+)
+
 BOUNDARY = [
     {
         "leaf_id": leaf.leaf_id,
@@ -535,6 +551,7 @@ BOUNDARY = [
         "container_path": _path_of(leaf.container_path[-1]),
         "section": LABELS[_ancestry(leaf.container_path[-1])[-1]],
         "represented_by_5c": leaf.leaf_id in REPRESENTED,
+        "prints_standalone_word": bool(re.search(r"\bCover\b", leaf.content)),
         "already_accepted_as": sorted(
             _PRIOR_KEYS_BY_CONTAINER.get(leaf.container_path[-1], ())
         ),
@@ -546,6 +563,18 @@ BOUNDARY = [
 for _row in BOUNDARY:
     assert _row["container_label"] != "Cover", _row
     assert all(key in PRIOR_DEFINED for key in _row["already_accepted_as"]), _row
+
+#: The scan is a case-sensitive *substring* match, so it also catches longer
+#: words. Reported rather than filtered -- a filter would be a judgment inside
+#: the run -- and named here so the checkpoint states the figure it derived.
+BOUNDARY_WITHOUT_STANDALONE_WORD = [
+    row["container_label"] for row in BOUNDARY if not row["prints_standalone_word"]
+]
+assert all(
+    "Covering" in row["content"]
+    for row in BOUNDARY
+    if not row["prints_standalone_word"]
+), "a non-standalone hit that is not 'Covering'"
 
 BOUNDARY_BY_SECTION: dict[str, int] = defaultdict(int)
 for _row in BOUNDARY:
@@ -787,6 +816,8 @@ MANIFEST = {
     "boundary_count": len(BOUNDARY),
     "boundary_by_section": dict(sorted(BOUNDARY_BY_SECTION.items())),
     "boundary_lowercase_only_leaf_count": LOWERCASE_ONLY_OCCURRENCES,
+    "boundary_without_standalone_word": sorted(BOUNDARY_WITHOUT_STANDALONE_WORD),
+    "prior_provenance_shapes": PRIOR_PROVENANCE_SHAPES,
     "boundary": BOUNDARY,
     "inbound_citations": INBOUND_CITATIONS,
     "glossary_entry_labels_occurring_in_population_text": GLOSSARY_LABEL_OCCURRENCES,
@@ -818,6 +849,8 @@ print(f"clauses            {len(CLAUSES)}")
 print(f"policy exclusions  {len(POLICY_EXCLUDED)}")
 print(f"boundary leaves    {len(BOUNDARY)}")
 print(f"boundary sections  {dict(sorted(BOUNDARY_BY_SECTION.items()))}")
+print(f"no standalone word {sorted(BOUNDARY_WITHOUT_STANDALONE_WORD)}")
+print(f"prior prov shapes  {PRIOR_PROVENANCE_SHAPES}")
 print(f"logical tables     {[t['logical_table_id'] for t in TABLE_WITNESS]}")
 print(f"inbound citations  {len(INBOUND_CITATIONS)}")
 print(f"manifest sha256    {_lf_sha256(MANIFEST_PATH)}")

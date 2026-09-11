@@ -20,7 +20,7 @@ pytest -q --no-cov tests/ingestion/mechanical/test_cover_1_frozen_prior.py
 ```
 
 The first writes `.claude/review-notes/issue-5d-cover-1-source-manifest.json` (LF, sha256
-`d0fb9260ea38ffc8d1dddb67a0496d36fdf67ae041270646921dd815820b442c`, byte-identical on
+`f82163ee2fc6b6c1805974e6e7404eca45fd6b48452a64a91f9e6a4f0e0cdcad`, byte-identical on
 rerun). Every clause id cited below is a row in its `clauses` array, addressable as
 `leaf_id[char_start:char_end)`. No judgment in this document is encoded in the script: it
 emits no disposition and no candidate record key, because a discovery run that shipped its
@@ -134,7 +134,7 @@ checkpoint's readings for review, not accepted dispositions.
 |---|---|---|---|---|
 | `glossary/0/0` | `4d39043d[0:5)` | `Cover` | A | entry heading; navigational |
 | `glossary/1/0` | `77f2f462[0:60)` | `Cover provides a degree of protection to a target behind it.` | A | frames the rule; states no threshold, benefit or condition of its own |
-| `glossary/1/1` | `77f2f462[60:150)` | ` There are three degrees of cover, each of which provides a different benefit to a target:` | S | the closed cardinality of the vocabulary — **three** degrees |
+| `glossary/1/1` | `77f2f462[60:150)` | ` There are three degrees of cover, each of which provides a different benefit to a target:` | S | the closed cardinality of the vocabulary — **three** degrees. No *fact* carries it; §4a names the carrier |
 | `glossary/1/2` | `77f2f462[150:207)` | ` Half Cover (+2 bonus to AC and Dexterity saving throws),` | S | G1 + G2 |
 | `glossary/1/3` | `77f2f462[207:274)` | ` Three-Quarters Cover (+5 bonus to AC and Dexterity saving throws),` | S | G2 |
 | `glossary/1/4` | `77f2f462[274:320)` | ` and Total Cover (can’t be targeted directly).` | S | G3 |
@@ -148,7 +148,7 @@ checkpoint's readings for review, not accepted dispositions.
 |---|---|---|---|---|
 | `combat/0/0` | `9dbd5ece[0:5)` | `Cover` | A | entry heading |
 | `combat/1/0` | `ac18c3da[0:103)` | `Walls, trees, creatures, and other obstacles can provide cover, making a target more difficult to harm.` | A | exemplification inside a framing sentence — *"and other obstacles"* is open by construction. **Not** an offeror enumeration; the same reading `areas-of-effect-1` gave *"such as a wall"* (its G8 residue) |
-| `combat/1/1` | `ac18c3da[103:222)` | ` As detailed in the Cover table, there are three degrees of cover, each of which gives a different benefit to a target.` | A | restates `glossary/1/1` and points at the table; carries no distinct claim |
+| `combat/1/1` | `ac18c3da[103:222)` | ` As detailed in the Cover table, there are three degrees of cover, each of which gives a different benefit to a target.` | A | restates `glossary/1/1` and points at the table; carries no distinct claim — `SUPPORTING_AUTHORITY` with a link, §4a |
 | `combat/1/2` | `ac18c3da[222:336)` | ` A target can benefit from cover only when an attack or other effect originates on the opposite side of the cover.` | S | **G5 — printed only here.** The glossary site does not state directionality |
 | `combat/1/3` | `ac18c3da[336:470)` | ` If a target is behind multiple sources of cover, only the most protective degree of cover applies; the degrees aren’t added together.` | S | G6, second statement — §4a |
 | `combat/1/4` | `ac18c3da[470:625)` | ` For example, if a target is behind a creature that gives Half Cover and a tree trunk that gives Three-Quarters Cover, the target has Three-Quarters Cover.` | A | worked example; the `Cone/1/2` precedent in `areas-of-effect-1` |
@@ -247,6 +247,22 @@ cannot fire (different `span_id`), and every substantive span is claimed, satisf
 restatement as `SUPPORTING_AUTHORITY` with a linked edge — is also available and is the
 shape `areas-of-effect-1` used for two of its spans. The first is the honest one here,
 because both sites genuinely state the rule.
+
+**A fifth statement is printed twice and is *not* this case.** `glossary/1/1` and
+`combat/1/1` both print the cardinality — *"there are three degrees of cover."* It is
+excluded from the four above because the four are rules printed twice, and this one is not
+a rule: what it states is the **closure of a vocabulary**, and `ProvenanceTargetKind` has
+no vocabulary member (`record`, `component`, `fact`, `fact_qualifier`, `prose_binding`,
+`relationship`, `reference`). Read substantive with no element to claim it, the span would
+trip `validation.py:637` — *substantive but unclaimed*. The carrier that does exist is a
+**component-level `PRIMARY` claim**: a span stating something about a component as a whole
+rather than about any one of its facts. That is precedent, not invention — the frozen
+prior holds **19** `component/primary` claims and **0** `record/primary`, a distribution
+the run now derives from the prior and the manifest records as `prior_provenance_shapes`.
+So the reading is `glossary/1/1` claiming `PRIMARY` on the component that carries the three
+degrees, while `combat/1/1` defers rather than states — *"As detailed in the Cover
+table"* — and is `SUPPORTING_AUTHORITY` with a link. That is why §3 reads the two
+differently, and the asymmetry is the point rather than an oversight.
 
 ### 4b. First non-glossary provenance — checked, not assumed
 
@@ -375,9 +391,12 @@ Four of these are worth naming individually:
   clear path to it, so it can't be behind Total Cover."* It consumes `CoverDegree.TOTAL`;
   it does not define it.
 
-The boundary scan is a case-sensitive substring match on `Cover`, so two of the thirty
-(Daylight, Light) match the unrelated word *"Covering"*. Disclosed rather than filtered: a
-filter would be a judgment inside the run. A separate count is reported for lowercase-only
+The boundary scan is a case-sensitive *substring* match on `Cover`, so **three** of the
+thirty — Darkness, Daylight, Light — match only the longer word *"Covering"* and
+print no standalone `Cover` at all. Disclosed rather than filtered: a filter would be a
+judgment inside the run. The run derives this per row (`prints_standalone_word`) and
+asserts that every non-standalone hit is *"Covering"*, so the figure is read out of the
+release rather than eyeballed. A separate count is reported for lowercase-only
 occurrences of `cover` — **43 leaves** — which are likewise all use.
 
 **Other boundaries:**
@@ -417,7 +436,8 @@ occurrences of `cover` — **43 leaves** — which are likewise all use.
 | Live accepted artifact read as a mutation sentinel, never as an input | unmoved |
 | Every other file in `.claude/review-notes/` digested before and after | unmoved |
 | `black --check` and `ruff check` on the discovery script | clean |
-| Manifest reproducibility | rerun byte-identical, sha256 `d0fb9260ea38ffc8d1dddb67a0496d36fdf67ae041270646921dd815820b442c` |
+| Manifest reproducibility | rerun byte-identical, sha256 `f82163ee2fc6b6c1805974e6e7404eca45fd6b48452a64a91f9e6a4f0e0cdcad` |
+| Manifest reproduced from a clean `git archive` export of this checkpoint's own tree, run outside the working tree | byte-identical (`cmp`). The export is hermetic: the script's own `assert PACKAGE_ROOT.resolve() == IMPORTED_FROM` and the manifest's `IMPORTED_FROM.relative_to(REPO)` both hold there, so the exported `src/` is what ran. No untracked file in `.claude/review-notes/` is an input |
 
 Not run, and not implied: the publication gate (there is no persisted projection to run it
 over), the semantic validator (there is no draft), any acceptance script, any lift, any
