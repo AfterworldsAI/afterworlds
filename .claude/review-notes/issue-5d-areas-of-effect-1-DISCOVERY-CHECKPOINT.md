@@ -622,7 +622,7 @@ demoted, because each states part of the rule and neither states it alone.
 
 ### 10.3 Architecture Notes
 
-**No drift from design principles**, with three deviations stated rather than resolved:
+**No drift from design principles.** Three disclosures a reviewer should not have to discover:
 
 1. **The batch does not validate clean, and says so.** Standalone validation produces exactly one
    finding, asserted as an exact tuple rather than filtered:
