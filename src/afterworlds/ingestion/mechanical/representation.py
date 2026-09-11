@@ -10452,6 +10452,64 @@ _INVARIANTS: tuple[_Invariant, ...] = (
             "misdescribed"
         ),
     ),
+    # -----------------------------------------------------------------------
+    # Schema 9, batch ``areas-of-effect-1``. Same scope rule as above. Three of
+    # the seven new families carry an intrinsic rule beyond the enum domain
+    # their wire shape already reflects, and each of those rules is declared
+    # separately from the others it shares a field with: emptiness and
+    # repetition are different claims about a sequence, refused by different
+    # branches with different messages, so a witness for one is no witness for
+    # the other. The remaining four families add no row — what they admit is
+    # exactly their vocabularies, which the payload already states.
+    # -----------------------------------------------------------------------
+    _Invariant(
+        id="area_origin.placement.requires-a-stated-extent",
+        locus="fact:area_origin",
+        field="extent+placement",
+        rule=(
+            "a stated placement states an extent beside it; the source prints "
+            "where a point of origin sits inside the clause that states what "
+            "extends from it, so a placement without one qualifies nothing"
+        ),
+    ),
+    _Invariant(
+        id="area_dimension_requirement.dimensions.at-least-one",
+        locus="fact:area_dimension_requirement",
+        field="dimensions",
+        rule=(
+            "at least one parameter; every parameter clause in this class "
+            "names one the creating effect must specify, and requiring none is "
+            "the absence of this fact rather than a fact requiring nothing"
+        ),
+    ),
+    _Invariant(
+        id="area_dimension_requirement.dimensions.no-repeats",
+        locus="fact:area_dimension_requirement",
+        field="dimensions",
+        rule=(
+            "no parameter twice; printed order is preserved rather than "
+            "sorted, so this is checked without imposing an order the source "
+            "does not state"
+        ),
+    ),
+    _Invariant(
+        id="area_origin_movement.suspended_by_any_of.at-least-one",
+        locus="fact:area_origin_movement",
+        field="suspended_by_any_of",
+        rule=(
+            "at least one exception; an area that moves with its origin under "
+            "no exception is not the rule this family states"
+        ),
+    ),
+    _Invariant(
+        id="area_origin_movement.suspended_by_any_of.no-repeats",
+        locus="fact:area_origin_movement",
+        field="suspended_by_any_of",
+        rule=(
+            "no exception twice; the same suspension stated again suspends "
+            "nothing further"
+        ),
+    ),
 )
 
 

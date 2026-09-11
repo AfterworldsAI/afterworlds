@@ -46,6 +46,7 @@ from afterworlds.ingestion.mechanical.oracle import (
     candidate_from_accepted_inputs,
     load_accepted_inputs,
     oracle_identity,
+    oracle_payload,
 )
 from afterworlds.ingestion.mechanical.projection import validate_schema_binding
 from afterworlds.ingestion.mechanical.representation import (
@@ -179,9 +180,17 @@ def test_exactly_one_registered_crossing_separates_the_prior_from_this_build() -
     ``areas-of-effect-1`` turned out to want a schema step. It does: schema 9
     admits seven families the prior's contract cannot state, so the prior is no
     longer current and reading it as current is a *finding* rather than a silent
-    pass. One registered step closes the gap, and the identity the Owner
-    accepted survives it — ``lift`` re-declares the binding and proves the
-    content unmoved, it does not rewrite content.
+    pass. One registered step closes the gap.
+
+    **Two identities, two scopes.** The frozen authority is untouched on disk and
+    keeps the identity the Owner accepted. Its lifted copy is a *different*
+    object with a *different* identity, because ``oracle_payload`` carries the
+    representation binding and the lift re-declares exactly that. The content is
+    what survives, and identically rather than equally: the lifted copy holds
+    the same representation object, and the only top-level payload key that
+    moves is ``representation_schema``. Reporting the lifted identity as the
+    accepted one would claim the binding is not part of identity, which is the
+    opposite of what this succession relies on.
 
     A self-lift stays unregistered, so a generator that reached for one here
     would raise rather than silently no-op.
@@ -204,6 +213,15 @@ def test_exactly_one_registered_crossing_separates_the_prior_from_this_build() -
     assert validate_schema_binding(candidate_from_accepted_inputs(lifted)) == ()
     assert lifted.oracle.representation is inputs.oracle.representation
     assert oracle_identity(inputs.oracle) == ACCEPTED_ORACLE_IDENTITY
+
+    # The lifted copy is newly bound, so it is newly identified. Asserted
+    # structurally rather than against a literal: the value moves every time the
+    # destination pin moves, and what is being proved is *why* it moves.
+    assert oracle_identity(lifted.oracle) != ACCEPTED_ORACLE_IDENTITY
+    before = oracle_payload(inputs.oracle)
+    after = oracle_payload(lifted.oracle)
+    moved = {k for k in set(before) | set(after) if before.get(k) != after.get(k)}
+    assert moved == {"representation_schema"}, sorted(moved)
 
     try:
         lift_path(current, current)

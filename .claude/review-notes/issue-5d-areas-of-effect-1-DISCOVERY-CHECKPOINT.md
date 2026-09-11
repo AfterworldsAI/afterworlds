@@ -74,8 +74,9 @@ the first bullet left open, so schema 9 exists and exactly one registered crossi
 (`5d-lift-schema-8-to-9`) now separates the prior from the current union.
 `test_areas_of_effect_1_frozen_prior.py` was edited to state that — `prior != current`,
 `validate_schema_binding` reports a finding on the unlifted prior, `lift_path` returns the
-single step, and `oracle_identity` survives it — which is the visible edit the test's own
-docstring promised rather than drift. The second bullet still holds: the final test asserts
+single step, and the crossing preserves the content it carries — which is the visible edit
+the test's own docstring promised rather than drift. (That test's identity claims were
+sharpened on 2026-09-10; see §9.) The second bullet still holds: the final test asserts
 the live artifact and the frozen copy are the same bytes, because no fifth batch has been
 accepted.
 
@@ -452,10 +453,42 @@ the per-shape placement rule are one fact's fields, so the two coexist on a shap
 without either restating the other, and Emanation states a creature-or-object origin in the
 same field where the other five state a point. `REPRESENTATION_SCHEMA_VERSION` is
 `5d-representation-schema-9`; the derived hash is
-`0be1696e0d5167f764a25c3faea8d16dc886b751425683468b1e0bad284f83f9`. One registered crossing,
+`f5a5e30817e64f019e31aa7f4692d72611215e4294e7da36242e492bca6b336e`. One registered crossing,
 `5d-lift-schema-8-to-9`, joins it to schema 8. Accepted bytes are not re-declared: the
-committed artifact still says schema 8, still records its own five lifts, and
-`oracle_identity` is unmoved on both frozen priors after lifting.
+committed artifact still says schema 8 and still records its own five lifts.
+
+*Corrected 2026-09-10.* An earlier form of this paragraph said `oracle_identity` is unmoved
+on both frozen priors after lifting. That conflated two objects. The frozen priors on disk
+are not touched and keep their accepted identities — `areas-of-effect-1`'s is
+`c3b4d4b759441b05418fcbe1d90811e0d7c2535319aa005e64201ce29b5c74fa`. The **lifted copy** the
+build produces is a new object with a new identity, because `oracle_payload` includes
+`representation_schema.{version,hash}` and the lift re-declares exactly that binding. At this
+head the lifted copy is
+`3454f61f51163f5cd3b5cfd24638c2fc89e87f69973f9e92a194739b311c4b95`, and it moves again with
+every destination-pin change. What survives the crossing is the content: the lifted copy
+holds the same representation object, and `representation_schema` is the only top-level
+payload key that differs. `test_exactly_one_registered_crossing_separates_the_prior_from_this_build`
+asserts that structurally rather than pinning the moving value.
+
+**The intrinsic contract, declared.** Decision 4 binds `invariant_manifest()` into schema
+identity, so this batch's settled intrinsic rules are declared there rather than living only
+in the validators. Three of the seven families carry a rule beyond the enum domain their wire
+shape already states, and they become five rows, since emptiness and repetition are separate
+claims refused by separate branches:
+
+| Row | Rule |
+| --- | --- |
+| `area_origin.placement.requires-a-stated-extent` | a stated placement states an extent beside it |
+| `area_dimension_requirement.dimensions.at-least-one` | at least one parameter |
+| `area_dimension_requirement.dimensions.no-repeats` | no parameter twice, order untouched |
+| `area_origin_movement.suspended_by_any_of.at-least-one` | at least one exception |
+| `area_origin_movement.suspended_by_any_of.no-repeats` | no exception twice |
+
+The other four families add no row: what they admit is exactly their vocabularies, which the
+payload already carries. Each row has an admitted and a refused witness in
+`test_schema_4_invariant_closure`, and that module also proves, row by row, that dropping one
+moves the hash and makes `lift_for` refuse the 8-to-9 crossing — plus that the pre-declaration
+destination `0be1696e…83f9` is now a schema this repository cannot produce.
 
 **Vocabulary boundaries chosen here.** Each vocabulary holds exactly the members the 43
 clauses print, spelled as the source spells them. `blocking_cover` is typed as the whole

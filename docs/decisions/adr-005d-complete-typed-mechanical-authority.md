@@ -529,6 +529,17 @@ Decisions worth recording, because each was a shape considered and rejected.
   *and* an intervening obstruction — and the printed result, the near side of the obstruction. Deleting
   either condition is refused, because a single-condition form is a different rule.
 
+**The intrinsic contract these families add is declared, not only enforced.** Decision 4 binds the
+invariant manifest into schema identity, so a rule a validator enforces and the manifest omits is a
+rule outside the identity that is supposed to describe it. Three of the seven families carry an
+intrinsic rule beyond the enum domain their wire shape already states, and those become five declared
+rows, because emptiness and repetition are separate claims refused by separate branches: a stated
+`placement` states an `extent` beside it; `dimensions` holds at least one parameter and no parameter
+twice; `suspended_by_any_of` holds at least one exception and no exception twice. The other four
+families add no row — what they admit is exactly their vocabularies, which the payload already carries.
+Each row is exercised in both directions in `test_schema_4_invariant_closure`, and dropping any one of
+them is proved there to move the hash and make `lift_for` refuse the 8-to-9 crossing.
+
 None of this evaluates anything. Every member names what a rule *says*; nothing carries an expression, a
 predicate, a formula, a free-form value or a dispatch table, and the vocabularies are closed, so a
 consumer meeting a member it does not handle fails rather than interprets. That is the line **#137**
@@ -540,15 +551,26 @@ Runtime geometry, grid simulation, adapter execution and downstream adjudication
 Decision 11 and #137 leave them.
 
 The schema-9 destination pin is
-`0be1696e0d5167f764a25c3faea8d16dc886b751425683468b1e0bad284f83f9`. Schemas 3 through 8 remain
+`f5a5e30817e64f019e31aa7f4692d72611215e4294e7da36242e492bca6b336e`. Schemas 3 through 8 remain
 recognized contracts with unchanged pins, and succession stays one row per crossing: exactly one
 registered transition, `5d-lift-schema-8-to-9`, separates schema 8 from schema 9, and the build
 exercises it rather than describing it. **Nothing accepted moves.** The committed artifact and both
 frozen priors still declare the schema they were accepted under after this change — schema 8 and schema
 7 respectively — each keeps its own digest, every per-batch anchor is retained (`conditions-1`→3,
 `hazards-1`→5, `actions-1`→7, `attitudes-1`→8), and the lift re-declares the binding and proves the
-content unmoved rather than rewriting it: `oracle_identity` is
-`c3b4d4b759441b05418fcbe1d90811e0d7c2535319aa005e64201ce29b5c74fa` before and after.
+content unmoved rather than rewriting it.
+
+Identity is reported at the scope it holds. The frozen authority on disk is unread-and-unwritten by
+this work and keeps `oracle_identity`
+`c3b4d4b759441b05418fcbe1d90811e0d7c2535319aa005e64201ce29b5c74fa`. The **lifted copy** the build
+produces is not that object and does not carry that identity: `oracle_payload` includes
+`representation_schema.{version,hash}`, so re-declaring the binding necessarily re-identifies the copy.
+At this head the lifted copy is `3454f61f51163f5cd3b5cfd24638c2fc89e87f69973f9e92a194739b311c4b95`,
+and that value moves again whenever the destination pin does. What the lift proves is narrower and
+stronger than an equal identity: the lifted copy holds the *same* representation object, and the only
+top-level payload key that differs is `representation_schema`. Decision 4's intrinsic contract is what
+makes this true rather than incidental — identity covers the binding on purpose, so a copy claiming a
+schema it was not built against cannot present the accepted identity.
 
 Nothing is accepted, published, activated, or retired by this schema change, and no proposal exists for
 `areas-of-effect-1` yet. The accepted mechanical identity is still
