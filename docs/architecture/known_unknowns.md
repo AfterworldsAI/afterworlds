@@ -489,6 +489,39 @@ reference targets below is therefore still three. *(That last sentence has since
 accepted `cover-1` on 2026-09-11, which defined the target and took the count to two. The rest of
 this paragraph stands as written — it records what the schema change alone did.)*
 
+**Representation schema 11 (the `Speed` entry) discharges nothing here, and the movement residue
+this document already carries is the reason it has to say so explicitly.** `Speed` is printed twice in
+the bound release — a Rules Glossary definition and `Playing the Game > Combat > Movement and
+Position`, joined by the source's own reciprocal citation — 16 leaves, 36 clauses, 16 of them
+substantive. No reason code in `policy.IRREDUCIBILITY_REASONS` is affirmatively true of any of them, so
+schema 11 adds seven families over twelve closed vocabularies and widens `MovementMode` by one member
+(`jump`), under #137 contract 3 and ADR-005d Decision 4; see the schema-11 amendment in
+`docs/decisions/adr-005d-complete-typed-mechanical-authority.md`. **Four movement items above are
+neither narrowed nor leaned on.** *"Movement options and per-foot movement cost"* remains
+`conditions-1` residue; *"Ratio-form movement costs"* is untouched, because no clause in this
+population states a ratio and `MovementCostKind` gains no member; *"Applicability over a capability
+predicate"* concerns the `Swimming` and `Climbing` entries, which are outside this batch's population
+and whose *"if you have a Swim Speed and use it to swim"* is still unreachable by
+`ApplicabilityKind` — schema 11 names `special_speed` as a category and does not make possession of one
+an applicability condition; and the *sequencing* deferral is untouched, because `SpeedSelectionFact`
+and `SpeedSwitchLimitFact` state a choice among a creature's own speeds and its printed cost, not a
+position in a sequence, so neither `MovementInterleaveFact` nor `TriggeredResolutionFact` gains an
+instance or a member. **No new Known Unknown is created.** **Nothing evaluates and nothing about a
+grid is represented.** Schema 11 carries no parameter value, unit, coordinate or grid semantic;
+subtracting a move from the allowance, applying the propagation rule to a creature's actual speed
+list, and every square, segment and corner rule stay outside, where #137's Out of scope and ADR-005d
+Decision 11 leave them. The grid rules printed at `Playing the Game > Exploration > Vehicles` are
+outside **this batch** by its membership rule and not outside declarative 5d; their printed
+representation remains later 5d work, neither prejudged nor scheduled. **`glossary.speed` is not
+resolved by this change.** A schema can now state the entry; only an accepted `speed-1` proposal would
+define the target, and none exists. The count of unresolved cross-batch reference targets below is
+therefore still two. When such a proposal is accepted it would close `glossary.speed` and open nine —
+`glossary.climbing`, `.crawling`, `.flying`, `.jumping`, `.swimming`, `.burrow_speed`, `.climb_speed`,
+`.fly_speed`, `.swim_speed` — taking the count to ten. That is arithmetic over two sets and not a
+measured seam result: no operation merges an accepted prior with an unaccepted draft. It is recorded
+here for the same reason the earlier residue movements were — as a consequence of accepting a complete
+source class, not a reason to choose one.
+
 Still outstanding inside CRD Issue 5d: **the accepted corpus is incomplete**. Six batches are
 accepted. `conditions-1` was reviewed and accepted by the Owner on 2026-08-23, `hazards-1` on
 2026-09-03, `actions-1` on 2026-09-09, `attitudes-1` on 2026-09-10, `areas-of-effect-1` on

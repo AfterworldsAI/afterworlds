@@ -490,13 +490,13 @@ def test_accepted_authority_is_lifted_rather_than_restamped() -> None:
     """Both halves of the fail-closed rule, one specimen each.
 
     ``cover-1`` was reviewed under schema 10 and this build implements schema
-    10, so the committed artifact declares current authority again and a lift
-    over it is a no-op: nothing to carry, nothing to restamp. That is the
-    admitted half. The assertions are written against
-    ``REPRESENTATION_SCHEMA_VERSION`` rather than a literal precisely so the
-    next succession moves them rather than quietly passing — the file will stop
-    being current the moment schema 11 is declared, and this test will say so
-    before anything else does.
+    11, so the committed artifact no longer declares current authority:
+    reading it as current is a finding, and one registered crossing closes the
+    gap. The assertions are written against ``REPRESENTATION_SCHEMA_VERSION``
+    rather than a literal precisely so each succession moves them rather than
+    quietly passing — which is what schema 11 has just done to the revision
+    this test was left at when ``cover-1`` was accepted, and what schema 10
+    did before that.
 
     Accepted authority is never restamped in place. What carries an earlier
     declaration forward is the registered lift chain, not an edit: a projection
@@ -509,15 +509,19 @@ def test_accepted_authority_is_lifted_rather_than_restamped() -> None:
     """
     inputs = load_accepted_inputs(ARTIFACT_PATH)
     assert inputs.oracle.schema_version == SCHEMA_10_VERSION
-    assert inputs.oracle.schema_version == REPRESENTATION_SCHEMA_VERSION
-    assert inputs.oracle.schema_hash == representation_schema_hash()
-    assert validate_schema_binding(candidate_from_accepted_inputs(inputs)) == ()
+    assert inputs.oracle.schema_version != REPRESENTATION_SCHEMA_VERSION
+    findings = validate_schema_binding(candidate_from_accepted_inputs(inputs))
+    assert findings, "reading a superseded artifact as current must be visible"
+    assert any(REPRESENTATION_SCHEMA_VERSION in f for f in findings), findings
 
     lifted, records = lift_accepted_inputs(
         inputs, (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
     )
-    assert records == (), "a current artifact has nothing to be carried across"
-    assert lifted is inputs
+    assert [r.lift_id for r in records] == ["5d-lift-schema-10-to-11"]
+    assert lifted.oracle.representation is inputs.oracle.representation
+    assert lifted.oracle.schema_version == REPRESENTATION_SCHEMA_VERSION
+    assert lifted.oracle.schema_hash == representation_schema_hash()
+    assert validate_schema_binding(candidate_from_accepted_inputs(lifted)) == ()
     # The committed file is untouched by asking.
     assert oracle_identity(inputs.oracle) == ORACLE_IDENTITY
 
@@ -611,6 +615,7 @@ def test_the_lift_carries_the_artifact_without_touching_its_content() -> None:
         "5d-lift-schema-7-to-8",
         "5d-lift-schema-8-to-9",
         "5d-lift-schema-9-to-10",
+        "5d-lift-schema-10-to-11",
     ]
     for record in records:
         assert set(record.verified_collections) == REPRESENTATION_COLLECTIONS

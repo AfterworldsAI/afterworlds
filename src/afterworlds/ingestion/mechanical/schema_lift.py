@@ -97,6 +97,8 @@ __all__ = [
     "SCHEMA_9_VERSION",
     "SCHEMA_10_HASH",
     "SCHEMA_10_VERSION",
+    "SCHEMA_11_HASH",
+    "SCHEMA_11_VERSION",
     "SchemaLiftRecord",
     "UnknownSchemaLiftError",
     "lift_for",
@@ -127,6 +129,9 @@ SCHEMA_9_HASH = "f5a5e30817e64f019e31aa7f4692d72611215e4294e7da36242e492bca6b336
 SCHEMA_10_VERSION = "5d-representation-schema-10"
 #: Pinned literally, for the same reason every predecessor is.
 SCHEMA_10_HASH = "c39e3a35e197a1d1db5c2c2b3445ff0cbf03395c91e3426353a4bce589be4be0"  # noqa: E501  # pragma: allowlist secret
+SCHEMA_11_VERSION = "5d-representation-schema-11"
+#: Pinned literally, for the same reason every predecessor is.
+SCHEMA_11_HASH = "605e8b4cfdaf0cb6d4f0b65fcf0d23f3e45c4734404c9568f41dc4261eefd037"  # noqa: E501  # pragma: allowlist secret
 
 
 class SchemaLiftError(ValueError):
@@ -367,6 +372,67 @@ SCHEMA_LIFTS: dict[tuple[str, str], SchemaLift] = {
             "which verify_lift proves element by element rather than "
             "asserting. A schema-9 artifact is the only shape this succession "
             "carries, and it carries every one of them."
+        ),
+    ),
+    (SCHEMA_10_VERSION, SCHEMA_10_HASH): SchemaLift(
+        lift_id="5d-lift-schema-10-to-11",
+        from_version=SCHEMA_10_VERSION,
+        from_hash=SCHEMA_10_HASH,
+        to_version=SCHEMA_11_VERSION,
+        to_hash=SCHEMA_11_HASH,
+        rationale=(
+            "Schema 11 closes the speed-1 schema stops and nothing else: "
+            "seven fact families over eleven closed vocabularies, one per "
+            "distinct rule the Rules Glossary Speed entry and Playing the "
+            "Game > Combat > Movement and Position print between them, so "
+            "what a Speed is, how a movement allowance is drawn down and "
+            "where the drawing-down stops, the choice of which speed to use "
+            "and the switch during a move, what a switch costs and the "
+            "nonpositive result that forbids the new speed outright, the "
+            "equal-amount same-duration propagation of a Speed change to "
+            "every special speed, the four special speeds named inside an "
+            "open list, and how a mode of movement may compose a move can be "
+            "stated rather than left UNRESOLVED. Schema 3 could already "
+            "change a Speed through SpeedModificationFact, measure a granted "
+            "budget by one through MovementAllowanceFact and state a "
+            "creature's own through CreatureSpeedFact; none of them defines "
+            "what a Speed is, when it is available or how it is spent, which "
+            "is the gap this closes. "
+            "It touches an accepted family in exactly one way. "
+            "MovementAllowanceFact gains window, which is omitted when unset "
+            "and is registered in _POST_SCHEMA_3_FIELDS rather than as a "
+            "nullable or required field: the two accepted Dash allowances and "
+            "Ready's carry no window, so their canonical payloads have no "
+            "such key under either contract and their fact keys, component "
+            "keys and provenance coordinates do not move. Schema 4's "
+            "RollSpec.skill and schema 5's DamageFact.per are the precedent, "
+            "each having added an omit-when-empty field to a structure an "
+            "earlier schema already had. The base allowance the speed-1 sites "
+            "state is this family rather than a new one: Ready's 'move up to "
+            "your Speed' is already a ceiling, so 'a distance equal to your "
+            "Speed or less' and 'Or you can decide not to move' state the "
+            "same ceiling and claim the same fact, and what the base "
+            "allowance adds is the turn window. "
+            "Like schema 10 it adds one member to a vocabulary an earlier "
+            "schema already had: MovementMode gains jump, the fourth mode of "
+            "the list Movement and Position prints, arriving with the batch "
+            "that reads that sentence. That widening reaches no accepted "
+            "element. A vocabulary member's canonical payload is its own "
+            "value, never its position in a declaration, so every accepted "
+            "fact carrying walk, burrow, climb, crawl, fly or swim renders "
+            "byte-identically under both contracts; schema 9-to-10 is the "
+            "precedent. MovementMode is a schema-3 vocabulary with no "
+            "registry row of its own, so jump is registered against schema 11 "
+            "alone and a schema-3-through-10 artifact stating it is refused "
+            "on the member. Beyond that member and that omitted field, schema "
+            "11 adds no field to an accepted family, no ownership form, no "
+            "nullable field, no required field and no intrinsic invariant on "
+            "any family an earlier schema already had. Every accepted fact "
+            "payload, fact key, component key and provenance coordinate "
+            "therefore has the same canonical form under both contracts, "
+            "which verify_lift proves element by element rather than "
+            "asserting. A schema-10 artifact is the only shape this "
+            "succession carries, and it carries every one of them."
         ),
     ),
 }

@@ -19,7 +19,7 @@ and identical. Both fixture identities stay pinned â€” blob sha1 and LF sha256 â
 and every other pin below is derived by loading the file rather than
 transcribed.
 
-**Exactly one crossing is asserted.** The discovery checkpoint answered the
+**The registered crossings are asserted.** The discovery checkpoint answered the
 schema question: ``Cover`` prints six meanings schema 9 cannot state, so this
 build declares schema 10 and the prior is no longer current. Reading it as
 current is now a *finding*, and one registered step closes the gap while
@@ -170,8 +170,8 @@ def test_the_prior_declares_schema_9_and_records_the_six_lifts_that_got_it_there
 
     Accepted bytes are never re-declared in place: the artifact says schema 9
     and records the six crossings that carried it there, and it will still say
-    schema 9 after schema 10. A crossing to a *later* union is a property of the
-    pair, not a field this file gains.
+    schema 9 after schema 10 and after schema 11. A crossing to a *later* union
+    is a property of the pair, not a field this file gains.
     """
     inputs = load_accepted_inputs(FROZEN_PRIOR)
     assert (inputs.oracle.schema_version, inputs.oracle.schema_hash) == (
@@ -188,14 +188,16 @@ def test_the_prior_declares_schema_9_and_records_the_six_lifts_that_got_it_there
     ]
 
 
-def test_exactly_one_registered_crossing_separates_the_prior_from_this_build() -> None:
+def test_the_registered_crossings_separate_the_prior_from_this_build() -> None:
     """The position after the checkpoint, stated rather than assumed.
 
     This is the edit the previous form of this test named in advance. The
     checkpoint's answer was yes: ``Cover`` prints six meanings schema 9 cannot
     state, schema 10 states them, and so the prior is no longer current. Reading
-    it as current is a *finding* rather than a silent pass, and one registered
-    step closes the gap.
+    it as current is a *finding* rather than a silent pass. It was exactly one
+    registered step until ``speed-1`` minted schema 11; the path is read from
+    the registry rather than counted, so a succession lengthens the list here
+    instead of breaking the claim.
 
     **Two identities, two scopes.** The frozen authority is untouched on disk
     and keeps the identity the Owner accepted. Its lifted copy is a *different*
@@ -225,7 +227,10 @@ def test_exactly_one_registered_crossing_separates_the_prior_from_this_build() -
     assert findings, "reading a superseded prior as current must be visible"
     assert any(REPRESENTATION_SCHEMA_VERSION in f for f in findings), findings
 
-    expected = ["5d-lift-schema-9-to-10"]
+    expected = [
+        "5d-lift-schema-9-to-10",
+        "5d-lift-schema-10-to-11",
+    ]
     assert [step.lift_id for step in lift_path(prior, current)] == expected
     lifted, records = lift_accepted_inputs(inputs, current)
     assert [record.lift_id for record in records] == expected

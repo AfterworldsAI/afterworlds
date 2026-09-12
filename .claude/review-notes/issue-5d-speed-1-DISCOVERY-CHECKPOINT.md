@@ -4,6 +4,13 @@
 lifted, published, activated or retired by this checkpoint, and no schema change is
 implemented. It ends here.
 
+**Corrected on 2026-09-12 by the schema-11 implementation run — see §9.** Three
+conclusions below did not survive implementation: the reference restriction in
+§5b/§5d, the `MovementAllowanceFact` reading in §4c and G2, and the placement of
+the grid rules in §6. Each keeps its original text with a dated pointer, because
+what discovery concluded is part of the record; §9 states what replaced it and
+why. Everything else in this document stands as written.
+
 **Authority.** #137; ADR-005d; `docs/architecture/known_unknowns.md`; `CLAUDE.md`. The
 accepted six-batch artifact carries exactly two unresolved reference targets,
 `glossary.concentration` and `glossary.speed`, recorded at `known_unknowns.md:499-500`;
@@ -315,7 +322,9 @@ schema work. ADR-005d Decision 4 and ADR-005c Decision 3 forbid *executable* mec
 every gap above is satisfied by named closed members a hand-authored adapter interprets, and
 none of them evaluates anything. **Zero of the six is a genuine unresolved product or
 ownership question.** Whether they require a schema 11 is not prejudged here: that is a
-proposal-time judgment and §8 leaves it open.
+proposal-time judgment and §8 leaves it open. **[As of 2026-09-11. Answered on
+2026-09-12: schema 11 mints seven families and widens `MovementMode` by one member;
+G2 is carried by the existing `movement_allowance` family — §9.2.]**
 
 ### 4a. The definition sentence — two readings, neither prejudged
 
@@ -354,6 +363,7 @@ explicitly, because it is the first time in this build that a new record's rule 
 the reach of accepted facts in other records.
 
 ### 4c. `MovementAllowanceFact` — reuse is available, and the question is fidelity
+**[Superseded 2026-09-12 — §9.2. The family was reused, with one optional field.]**
 
 The family exists and its `OWN_SPEED` basis is already accepted on two records. Ready's
 *"move up to your Speed"* and `combat/1/0`+`combat/2/0`'s *"move a distance equal to your
@@ -401,6 +411,9 @@ bound release — `Climbing`, `Crawling`, `Flying`, `Jumping`, `Swimming`. The r
 per-term cut and, for each, whether an entry with that label exists; it emits no reference
 and no target key.
 
+**[Superseded 2026-09-12 — §9.1. The count is nine outgoing references and ten
+combined targets, not five and six.]**
+
 **The residue arithmetic, reported as a consequence and not as a goal.** Defining
 `glossary.speed` closes the one inbound target. Five outbound references would name five
 targets no accepted record defines. If both happen, the unresolved residue moves from
@@ -418,6 +431,7 @@ authority. `combat/3/5` is additionally *self-directed* — it points at the pop
 other site — which is the same reason `cover-1` gave for emitting zero.
 
 **(d) The open question: an explicit pointer inside substantive prose.**
+**[Superseded 2026-09-12 — §9.1. The four special speeds are cited.]**
 `glossary/5/0`+`6/0`+`7/0` names four capitalized entry labels — `Burrow Speed`, `Climb
 Speed`, `Fly Speed`, `Swim Speed` — and then says *"each of which is defined in this
 glossary."* All four entries exist. That pointer is **stronger than Dash's bare *"such
@@ -517,6 +531,7 @@ neighbours and the ones a reviewer will test the membership rule against:
   *"using your Speed in 5-foot segments… dividing it by 5"*, plus square-entry costs and the
   corner rule. Runtime geometry and an optional presentation convention; explicitly outside
   5d, and not a statement of what Speed is.
+  **[Corrected 2026-09-12 — §9.3: outside *this batch*, not outside declarative 5d.]**
 * **`Combat > Impeded Weapons` (p15)** — consumes `Swim Speed` as a precondition on an
   attack roll. Attack adjudication, out.
 
@@ -600,7 +615,10 @@ asserted away: `3a7db508…` (`Equipment > Mounts and Vehicles > Speed`), `2f55c
 
 Not run, and not implied: the publication gate (there is no persisted projection to run it
 over), the semantic validator (there is no draft), any acceptance script, any lift, any
-schema mint, any operational-database read. No full repository gate suite was run for this
+schema mint, any operational-database read. **[True as of 2026-09-11. The schema-11
+implementation run of 2026-09-12 mints the schema, registers one lift and runs the
+validator over a draft; it still runs no acceptance script, no publication gate and no
+operational-database read.]** No full repository gate suite was run for this
 checkpoint and none is claimed; `.claude/review-notes/` is outside the `black src/ tests/`
 and `ruff check src/ tests/` paths, and the two files this branch added under `tests/` were
 gated by the freeze commit (`496201a`: black, ruff, 8 tests, detect-secrets exit 0).
@@ -613,7 +631,8 @@ Delivered: the six-batch frozen prior and its contract test (commit `496201a`); 
 reproducible discovery run and its manifest; this checkpoint. Not done, and not to be done
 before Codex reviews: any schema change, any proposal, any draft, acceptance, push, merge,
 publication, activation, retirement or parent-issue state change. Parent tracking issue #137
-remains in progress. Whether a schema 11 is needed is deliberately left open.
+remains in progress. Whether a schema 11 is needed is deliberately left open. **[Left open
+as of 2026-09-11; decided on 2026-09-12 — §9.]**
 
 **The four questions this checkpoint puts to review:**
 
@@ -640,3 +659,128 @@ remains in progress. Whether a schema 11 is needed is deliberately left open.
    G1 is the one that could vanish entirely under the `cover-1` framing reading. G3
    (depletion) has no existing shape of any kind and is the widest surface. G6 asks whether
    *special speed* can be a named category while its four members stay in later batches.
+
+---
+
+## 9. Corrections from the schema-11 implementation run (2026-09-12)
+
+Implementation is evidence about the source, not authority over it. Three of this
+checkpoint's conclusions did not survive contact with the schema and are corrected
+here. The superseded text is left in place above with a dated pointer, so a reviewer
+can read what discovery concluded and what replaced it.
+
+### 9.1 The `See also`-only restriction was never governing authority
+
+**What §5b/§5d concluded.** Five references, emitted only from the `See also` citation
+leaf; the explicit pointer at `glossary/5/0`+`6/0`+`7/0` emits nothing, on the
+`action.dash` precedent; the residue moves from two to six.
+
+**What is wrong with it.** "A reference may be emitted only from a `See also` leaf" is
+not written in #137, in ADR-005d, in `known_unknowns.md` or in any validator.
+`actions-1` emitted references from a `See also` leaf because that is where its
+citations were printed, which is a fact about `actions-1`'s source and not a rule about
+every source. This checkpoint took an observed shape for a governing restriction.
+
+**What the source states.** *"such as a Burrow Speed, Climb Speed, Fly Speed, or Swim
+Speed, each of which is defined in this glossary."* The clause names four capitalized
+entry labels, all four entries exist in the bound release, and the sentence states that
+they are defined there. That is explicit citation intent printed in the source, which is
+the only thing a reference has ever needed.
+
+**`action.dash` is not the same sentence and its artifact does not move.** Dash prints
+*"such as a Fly Speed or Swim Speed"* and stops. It names no definition site and makes
+no claim about where the reader should look, so it is a bare example. The distinction is
+the trailing clause, not the wording of the list. `action.dash`'s accepted artifact is
+unchanged by this batch and nothing here proposes revisiting it.
+
+**What was implemented.** Nine outgoing references, each with its exact printed scope
+and provenance:
+
+| Source text | Target | Cited at |
+|---|---|---|
+| `Climbing` | `glossary.climbing` | `glossary/3/0` |
+| `Crawling` | `glossary.crawling` | `glossary/3/1` |
+| `Flying` | `glossary.flying` | `glossary/3/2` |
+| `Jumping` | `glossary.jumping` | `glossary/3/3` |
+| `Swimming` | `glossary.swimming` | `glossary/3/4` |
+| `Burrow Speed` | `glossary.burrow_speed` | `glossary/5/0` |
+| `Climb Speed` | `glossary.climb_speed` | `glossary/5/0` |
+| `Fly Speed` | `glossary.fly_speed` | `glossary/5/0` **and** `glossary/6/0` |
+| `Swim Speed` | `glossary.swim_speed` | `glossary/6/0` |
+
+`Fly Speed` is printed across a leaf boundary — *"… Climb Speed, Fly"* ends one leaf and
+*"Speed, or Swim Speed, …"* begins the next — so the one reference carries two
+provenance claims. `_validate_provenance` rejects only exact duplicate edges, so two
+claims on one reference are admissible; the split is asserted directly by
+`test_the_fly_speed_reference_carries_both_printed_halves`.
+
+**The arithmetic, stated as arithmetic.** Nine outgoing references against a prior whose
+residue is `{glossary.concentration, glossary.speed}`. This batch defines
+`glossary.speed`, so the combined residue is `{glossary.concentration}` plus the nine —
+**ten**. This is stated as arithmetic over two pinned sets and not as a seam result:
+`oracle.py` exposes no operation that merges an accepted prior with a new batch's draft,
+so no run can produce the combined number directly. The two clauses that cite a
+*chapter* rather than an entry — `glossary/3/5`, `combat/3/5` — and `combat/3/0`'s
+parenthetical still emit nothing, because there is no record for a chapter; that part of
+§5c stands.
+
+### 9.2 `granted` is a word in a docstring, not a property of the family
+
+**What §4c and G2 concluded.** Reusing `MovementAllowanceFact` for the base per-turn
+allowance would publish it as a *grant*, because all three accepted instances are
+granted by another rule.
+
+**What is wrong with it.** `MovementAllowanceBasis` names *where a quantity comes from*.
+Its three accepted instances happen to sit on records whose rules grant movement; that
+is a property of those records, not of the field. Nothing in the family's type, its
+invariants or its validator asserts conditionality, and a fact family does not acquire a
+precondition from the company it has kept.
+
+**What was implemented.** The family is reused. `MovementAllowanceFact` gains one
+optional field, `window: MovementWindow | None`, which states the printed *"on your
+turn"* and is `None` wherever the source does not print a window — so the three accepted
+instances are unchanged, field for field, through the lift. A post-schema-3 optional
+field emits no `introduction_manifest()` row, which is why §9's mint count is seven
+families and not eight.
+
+**The three distinctions §4c named are preserved, and kept apart:**
+
+* **the ceiling** — *"a distance equal to your Speed or less"*. `action.ready`'s
+  *"move up to your Speed"* is already represented by this family with no extra field,
+  so the bound is what `movement_allowance` has always meant. Nothing was added for it.
+* **the option not to move** — *"Or you can decide not to move"*. `combat/2/1` is
+  provenance on the same allowance fact, not a second fact. A zero-movement fact would
+  state a rule the page does not print: the sentence says the ceiling may be left
+  unused, which is what a ceiling already permits.
+* **depletion** — *"until it is used up or until you are done moving, whichever comes
+  first"*. This is a separate statement about the same budget and it is a separate
+  family, `movement_depletion`. Folding it into the allowance would conflate the bound
+  with the spending of it, which is the conflation §4c was right to warn about.
+
+**One schema choice worth naming.** `MovementDepletionFact.until` is a
+`tuple[MovementDepletionTerminator, ...]`, not a single member. The sentence prints two
+terminators and then resolves *between* them; *"whichever comes first"* is a statement
+about the pair, so `resolution` has nothing to resolve unless `until` carries both. The
+shape is `AreaOriginMovementFact.suspended_by_any_of`'s, already accepted at schema 9,
+and it carries the same two intrinsic rules: at least one terminator, and no repeats.
+Printed order is preserved rather than sorted, because the page prints an order and
+`resolution` is precisely the statement that the order does not decide the outcome.
+
+### 9.3 The grid rules are outside this batch, not outside declarative 5d
+
+**What §6 concluded.** `Playing the Game > Exploration > Vehicles`'s 5-foot segments,
+square-entry costs and corner rule are *"explicitly outside 5d."*
+
+**What is wrong with it.** Two different things were collapsed. *Executing* grid
+geometry — choosing a route, counting squares, applying the corner rule to a real
+move — is downstream runtime work that ADR-005d Decision 11 leaves to 15c. *Representing*
+what the page prints about the optional grid is ordinary declarative work of exactly the
+kind 5d exists to do. Saying the whole subject is outside 5d would commit a future batch
+to leaving printed rules unrepresented, which is not this checkpoint's to decide.
+
+**What is correct.** Those leaves are outside **`speed-1`**, by §6's own membership rule:
+the bound release does not attach them to either of this batch's two entries, and they
+state a presentation convention rather than what Speed is. Their printed representation
+remains later 5d work and is neither prejudged nor scheduled here. No parameter value,
+unit, coordinate or grid semantic is invented by this batch, and no schema-11 vocabulary
+mentions a square, a segment or a corner.

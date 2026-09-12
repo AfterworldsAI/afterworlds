@@ -279,6 +279,24 @@ __all__ = [
     "CoverageThreshold",
     "CoveredInteraction",
     "TargetingProhibition",
+    "MovementComposition",
+    "MovementCompositionFact",
+    "MovementDepletionFact",
+    "MovementDepletionResolution",
+    "MovementDepletionTerminator",
+    "MovementWindow",
+    "SpecialSpeedFact",
+    "SpecialSpeedListing",
+    "SpeedChangePropagationFact",
+    "SpeedDefinitionFact",
+    "SpeedPropagationDuration",
+    "SpeedPropagationMagnitude",
+    "SpeedPropagationScope",
+    "SpeedSelection",
+    "SpeedSelectionFact",
+    "SpeedSwitchAccounting",
+    "SpeedSwitchLimitFact",
+    "SpeedSwitchOutcome",
     "ComponentDraft",
     "ProseBindingDraft",
     "ProvenanceClaim",
@@ -598,7 +616,21 @@ class RangeKind(StrEnum):
 
 
 class MovementMode(StrEnum):
-    """A creature's movement modes."""
+    """A creature's movement modes.
+
+    Schema 3 admitted six of the seven. The mode list Playing the Game >
+    Movement and Position prints — *"Your movement can include climbing,
+    crawling, jumping, and swimming"* — names a fourth mode no earlier batch
+    read, and schema 11 is the succession that reads that sentence, so
+    ``JUMP`` arrives from the page that states it. Registered against schema
+    11 in :data:`_SCHEMA_11_VOCABULARY_MEMBERS`, on the precedent schema 10
+    set for :attr:`CoverDegree.HALF`: a schema-3-through-10 artifact carrying
+    ``jump`` in a field those contracts already had is refused by
+    :func:`post_schema_3_violations` on the member alone.
+
+    The other six need no registry row and get none. They are schema-3
+    members, and schema 3 predates the introduction manifest entirely.
+    """
 
     WALK = "walk"
     BURROW = "burrow"
@@ -609,6 +641,9 @@ class MovementMode(StrEnum):
     #: printed-vocabulary member rather than an inferred one.
     CRAWL = "crawl"
     FLY = "fly"
+    #: The fourth mode of that same printed list, admitted by schema 11 with
+    #: the batch that states it rather than transcribed ahead of it.
+    JUMP = "jump"
     SWIM = "swim"
 
 
@@ -1439,6 +1474,159 @@ class RelocatedOrigin(StrEnum):
     NEAR_SIDE_OF_THE_OBSTRUCTION = "near_side_of_the_obstruction"
 
 
+class MovementWindow(StrEnum):
+    """When a stated movement allowance is available.
+
+    *"the distance in feet the creature can cover when it moves on its turn"*
+    (Rules Glossary > Speed, p188) · *"On your turn, you can move a distance
+    equal to your Speed or less."* (Playing the Game > Combat > Movement and
+    Position, p14). Both printings put the whole allowance inside one turn, and
+    that ceiling is the claim neither :class:`RecurrenceBoundary` nor
+    :class:`Phase` can carry: those name an *instant* a thing happens at, and
+    this names the interval a budget is spent across.
+
+    One member, because the two sites state one window. A rule that granted
+    movement over some other interval would add its own member here rather than
+    re-mean this one.
+    """
+
+    OWN_TURN = "own_turn"
+
+
+class MovementDepletionTerminator(StrEnum):
+    """An event at which spending a movement allowance stops.
+
+    *"until it is used up or until you are done moving, whichever comes first"*
+    (Movement and Position, p14). Two printed terminators, stated as two
+    members rather than as one disjunctive member, so a consumer can tell which
+    of them ended a move.
+    """
+
+    #: *"until it is used up"* — the allowance itself reaching zero.
+    ALLOWANCE_USED_UP = "allowance_used_up"
+    #: *"until you are done moving"* — the mover stopping with budget left.
+    DONE_MOVING = "done_moving"
+
+
+class MovementDepletionResolution(StrEnum):
+    """How a set of stated terminators resolves against each other.
+
+    *"whichever comes first"*. Carried as its own field rather than left to a
+    reader's assumption: first-wins and last-wins are different rules, and the
+    page states one of them. Each depletion fact carries it, because the
+    relation is true of each terminator the sentence names.
+    """
+
+    WHICHEVER_COMES_FIRST = "whichever_comes_first"
+
+
+class SpeedSelection(StrEnum):
+    """A permission the subject has over which of its speeds it uses.
+
+    *"If you have more than one speed, choose which one to use when you move;
+    you can switch between the speeds during your move."* (Speed, p188). Two
+    permissions in one sentence, separated by a semicolon, and genuinely
+    distinct: the first is a choice made at the start, the second is a change
+    made partway through.
+    """
+
+    CHOOSE_BEFORE_MOVING = "choose_before_moving"
+    SWITCH_DURING_MOVE = "switch_during_move"
+
+
+class SpeedSwitchAccounting(StrEnum):
+    """How the distance still available on a newly chosen speed is established.
+
+    *"Whenever you switch, subtract the distance already moved from the new
+    speed. The result determines how much farther you can move."* (Speed,
+    p188). Names the stated procedure; it does not perform it. No arithmetic
+    happens here and no distance is stored — see #137 "Out of scope" and
+    ADR-005d Decision 11.
+    """
+
+    SUBTRACT_DISTANCE_ALREADY_MOVED = "subtract_distance_already_moved"
+
+
+class SpeedSwitchOutcome(StrEnum):
+    """What a nonpositive result of that accounting means.
+
+    *"If the result is 0 or less, you can't use the new speed during the
+    current move."* A **prohibition on using the speed**, which is not the same
+    rule as clamping a remaining distance to zero: a clamped speed is still the
+    speed being used, and the page says it may not be used at all.
+    """
+
+    FORBIDS_USING_THE_NEW_SPEED = "forbids_using_the_new_speed"
+
+
+class SpeedPropagationScope(StrEnum):
+    """Which of the subject's other speeds a change to Speed carries to.
+
+    *"any special speed you have"* (Changes to Your Speeds, p188) — every one
+    the subject has, named by no mode in particular. Deliberately not a
+    :class:`MovementMode`: naming modes here would close a set the sentence
+    leaves open, and the worked examples it prints (a Climb Speed reduced to 0,
+    a Fly Speed halved) are illustrations of the general rule rather than its
+    membership.
+    """
+
+    EVERY_SPECIAL_SPEED = "every_special_speed"
+
+
+class SpeedPropagationMagnitude(StrEnum):
+    """How large the carried change is.
+
+    *"increases or decreases by an equal amount"*. Equality to the stated
+    change, not a number: the amount is whatever the originating effect was,
+    which no integer can state ahead of it — the same reason
+    :class:`MovementAllowanceBasis` carries no number.
+    """
+
+    EQUAL_AMOUNT = "equal_amount"
+
+
+class SpeedPropagationDuration(StrEnum):
+    """How long the carried change lasts.
+
+    *"for the same duration"*. Its own field beside the magnitude, because the
+    page states two things about the carried change and a single member saying
+    both would let a consumer that needed one of them read the other. Distinct
+    from :class:`EffectDurationFact`, which names a boundary an effect ends at;
+    this names equality to another effect's duration, which
+    :class:`RecurrenceBoundary` has no member for.
+    """
+
+    SAME_DURATION = "same_duration"
+
+
+class SpecialSpeedListing(StrEnum):
+    """How a named special speed appears in the sentence that names it.
+
+    *"Some creatures have special speeds, such as a Burrow Speed, Climb Speed,
+    Fly Speed, or Swim Speed, each of which is defined in this glossary."*
+    (Speed, p188). *"such as"* makes the list open, so each member named is
+    recorded as one instance of an open list rather than as an element of a
+    closed vocabulary of special speeds. A fifth special speed printed
+    elsewhere is admitted by the batch that reads it and contradicts nothing
+    stated here.
+    """
+
+    NAMED_IN_A_NON_EXHAUSTIVE_LIST = "named_in_a_non_exhaustive_list"
+
+
+class MovementComposition(StrEnum):
+    """How a mode of movement may make up a move.
+
+    *"These different modes of movement can be combined with your regular
+    movement, or they can constitute your entire move."* (Movement and
+    Position, p14). Two stated compositions, and the *"or"* is inclusive of
+    both being separately permitted rather than a choice the source resolves.
+    """
+
+    COMBINED_WITH_REGULAR_MOVEMENT = "combined_with_regular_movement"
+    ENTIRE_MOVE = "entire_move"
+
+
 class CoverDefense(StrEnum):
     """The defence a degree of cover raises by a stated bonus.
 
@@ -1920,6 +2108,28 @@ class FactFamily(StrEnum):
     COVER_PROVISION = "cover_provision"
     COVER_BENEFIT_ORIGIN = "cover_benefit_origin"
     COVER_DEGREE_SELECTION = "cover_degree_selection"
+    #: Schema 11, batch ``speed-1``. Seven families, one per distinct rule
+    #: the two Speed sites print — Rules Glossary > Speed and Playing the
+    #: Game > Combat > Movement and Position — admitted on the same gate as
+    #: every predecessor: #137 contract 3, whose prose-bound branch is
+    #: unavailable because no member of the closed irreducibility catalog is
+    #: affirmatively true of any substantive clause at either site.
+    #:
+    #: Accepted authority has consumed a Speed since schema 3 —
+    #: ``SpeedModificationFact`` changes one, ``MovementAllowanceFact``
+    #: measures a budget by one, ``CreatureSpeedFact`` states one in feet —
+    #: and nothing defined what a Speed is, when it is available, how it is
+    #: spent, or what happens to it when a creature has more than one. That
+    #: is the gap these close. Nothing evaluates: no distance is measured,
+    #: subtracted or compared, and no move is executed (#137 "Out of scope",
+    #: ADR-005d Decision 4 and Decision 11).
+    SPEED_DEFINITION = "speed_definition"
+    MOVEMENT_DEPLETION = "movement_depletion"
+    SPEED_SELECTION = "speed_selection"
+    SPEED_SWITCH_LIMIT = "speed_switch_limit"
+    SPEED_CHANGE_PROPAGATION = "speed_change_propagation"
+    SPECIAL_SPEED = "special_speed"
+    MOVEMENT_COMPOSITION = "movement_composition"
 
 
 # ---------------------------------------------------------------------------
@@ -3216,7 +3426,7 @@ class ActionAllowanceFact:
 
 @dataclass(frozen=True)
 class MovementAllowanceFact:
-    """A movement budget granted, measured by one of the subject's own speeds.
+    """A movement budget, measured by one of the subject's own speeds.
 
     *"you gain extra movement … The increase equals your Speed after applying
     any modifiers."* (``Dash``, p180) · *"you can use that speed instead of your
@@ -3226,11 +3436,34 @@ class MovementAllowanceFact:
     Kept out of :class:`ActionAllowanceFact` because the quantity domains
     differ: a count of slots is an integer, and this is a quantity no integer
     can state.
+
+    **Schema 11 adds the window, and the base allowance is this family.**
+    *"On your turn, you can move a distance equal to your Speed or less."*
+    (Movement and Position, p14) states a movement budget measured by the
+    subject's own Speed, which is exactly what ``basis`` already means. The
+    word *granted* in ``Dash``'s wording describes where the two accepted
+    instances came from, not a restriction this family carries: ``Ready``'s
+    *"move up to your Speed"* is already a ceiling rather than a compulsion,
+    so *"or less"* and *"Or you can decide not to move"* are the same
+    ceiling stated from the other end and claim this fact rather than
+    inventing a zero-movement family beside it. What the base allowance adds
+    that a granted one never stated is *when* the budget exists, and that is
+    ``window``.
+
+    ``window`` is omitted when unset — see :data:`_POST_SCHEMA_3_FIELDS` —
+    so ``Dash``'s two accepted facts and ``Ready``'s keep the exact canonical
+    form they were accepted with, and their fact keys, component keys and
+    provenance coordinates do not move.
+
+    Depletion is deliberately **not** here. A ceiling and the deduction that
+    consumes it are two statements printed in two different sentences, and
+    :class:`MovementDepletionFact` carries the second.
     """
 
     FAMILY: ClassVar[FactFamily] = FactFamily.MOVEMENT_ALLOWANCE
 
     basis: MovementAllowanceBasis
+    window: MovementWindow | None = None
 
 
 @dataclass(frozen=True)
@@ -3811,6 +4044,195 @@ class CoverDegreeSelectionFact:
     combination: CoverDegreeCombination
 
 
+# Schema 11, batch ``speed-1``. One family per distinct rule the two Speed
+# sites print; see :class:`FactFamily` for the gate each is admitted on.
+@dataclass(frozen=True)
+class SpeedDefinitionFact:
+    """What a Speed is.
+
+    *"A creature has a Speed, which is the distance in feet the creature can
+    cover when it moves on its turn."* (Rules Glossary > Speed, p188) — the
+    definitional half of the entry, and the statement every accepted consumer
+    of a Speed has been relying on without it being anywhere represented.
+
+    **Two axes, both printed.** The unit reuses :class:`DistanceUnit`, minted
+    at schema 5 for exactly this — a stated distance with the unit the page
+    states — rather than a second foot vocabulary. The window is
+    :class:`MovementWindow`.
+
+    **No number.** A Speed's value is per creature and belongs to
+    :class:`CreatureSpeedFact`, which states one in feet for a creature that
+    has one. This states what the quantity *means*, which is why it carries no
+    quantity at all.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.SPEED_DEFINITION
+
+    unit: DistanceUnit
+    window: MovementWindow
+
+
+@dataclass(frozen=True)
+class MovementDepletionFact:
+    """A movement allowance is consumed as it is spent, and stops at an event.
+
+    *"However you're moving with your Speed, you deduct the distance of each
+    part of your move from it until it is used up or until you are done moving,
+    whichever comes first."* (Movement and Position, p14).
+
+    **Separate from the allowance.** :class:`MovementAllowanceFact` states a
+    ceiling; this states that spending draws it down and names where the
+    drawing-down stops. Conflating them would make an unspent allowance
+    indistinguishable from an exhausted one.
+
+    **One fact, both printed terminators.** The sentence names two and then
+    resolves between them: *"whichever comes first"* is a statement about the
+    pair, not about either one, so ``resolution`` has nothing to resolve unless
+    ``until`` carries both. Splitting the sentence into one fact per terminator
+    would make each half assert a race against an opponent it does not name.
+    The tuple is the shape :class:`AreaOriginMovementFact` already uses for
+    ``suspended_by_any_of``: a printed list whose members are alternatives to
+    one another.
+
+    **Nothing is deducted here.** *"the distance of each part of your move"* is
+    what the deduction is computed from at runtime; no distance is represented,
+    accumulated or compared (#137 "Out of scope").
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.MOVEMENT_DEPLETION
+
+    #: Which of the subject's own speeds is drawn down. The page says *"moving
+    #: with your Speed"*, and :class:`MovementAllowanceBasis` already names
+    #: that basis without attaching a number to it.
+    depletes: MovementAllowanceBasis
+    #: Every terminator the sentence names, in printed order. The order is
+    #: preserved rather than sorted because the page prints one, and
+    #: ``resolution`` is what says the order does not decide the outcome.
+    until: tuple[MovementDepletionTerminator, ...]
+    resolution: MovementDepletionResolution
+
+
+@dataclass(frozen=True)
+class SpeedSelectionFact:
+    """A permission over which of several speeds the subject uses.
+
+    *"If you have more than one speed, choose which one to use when you move;
+    you can switch between the speeds during your move."* (Speed, p188). One
+    fact per printed permission.
+
+    The *"If you have more than one speed"* protasis is a state of the
+    creature, not a rule this fact restates: a creature with one speed has
+    nothing to choose between, and the permission is vacuous rather than
+    withheld.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.SPEED_SELECTION
+
+    permits: SpeedSelection
+
+
+@dataclass(frozen=True)
+class SpeedSwitchLimitFact:
+    """What switching speeds mid-move costs, and when it is forbidden.
+
+    *"Whenever you switch, subtract the distance already moved from the new
+    speed. The result determines how much farther you can move. If the result
+    is 0 or less, you can't use the new speed during the current move."*
+    (Speed, p188) — three sentences stating one procedure and its one negative
+    outcome, so one fact carries them with a ``PRIMARY`` claim on each of the
+    three spans.
+
+    **The prohibition is a prohibition.** ``when_nonpositive`` says the new
+    speed may not be used at all for the rest of the move, which is a stronger
+    and different rule from a remaining distance clamped to zero.
+
+    **Nothing subtracts.** ``accounting`` names the stated procedure; the
+    subtraction, the comparison against zero and the resulting distance all
+    happen at runtime in code that reads this (#137 "Out of scope", ADR-005d
+    Decision 11).
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.SPEED_SWITCH_LIMIT
+
+    accounting: SpeedSwitchAccounting
+    when_nonpositive: SpeedSwitchOutcome
+
+
+@dataclass(frozen=True)
+class SpeedChangePropagationFact:
+    """A change to Speed carries to the subject's special speeds.
+
+    *"If an effect increases or decreases your Speed for a time, any special
+    speed you have increases or decreases by an equal amount for the same
+    duration."* (Changes to Your Speeds, p188).
+
+    **Distinct from :class:`SpeedModificationFact`**, which states one effect's
+    own change to a Speed. This states what happens to the subject's *other*
+    speeds when any such change occurs, and no accepted modification fact says
+    anything about them.
+
+    **The two worked examples are evidence, not facts.** *"if your Speed is
+    reduced to 0 and you have a Climb Speed, your Climb Speed is also reduced
+    to 0"* and the halved Fly Speed that follows are instances of this rule,
+    carried as ``CONTEXTUAL`` provenance on this fact. Representing them as
+    facts would publish two special cases as though the page stated them
+    independently, and would close :class:`SpeedPropagationScope` to the two
+    modes the examples happen to use.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.SPEED_CHANGE_PROPAGATION
+
+    to: SpeedPropagationScope
+    magnitude: SpeedPropagationMagnitude
+    duration: SpeedPropagationDuration
+
+
+@dataclass(frozen=True)
+class SpecialSpeedFact:
+    """A named special speed, and the openness of the list naming it.
+
+    *"Some creatures have special speeds, such as a Burrow Speed, Climb Speed,
+    Fly Speed, or Swim Speed, each of which is defined in this glossary."*
+    (Speed, p188). One fact per named speed.
+
+    **The mode reuses :class:`MovementMode`.** A Burrow Speed and the burrow
+    mode of movement are the same locomotion named twice, and a parallel
+    vocabulary would let the two drift.
+
+    **The list stays open.** ``listing`` records that each of the four is named
+    inside a *"such as"* construction, so nothing here asserts that these are
+    all the special speeds there are. That reading is what
+    :attr:`MovementAllowanceBasis.OWN_SPECIAL_SPEED` already relies on.
+
+    **A pointer is not a definition.** *"each of which is defined in this
+    glossary"* makes each named speed a cross-reference this batch must emit
+    and cannot resolve; that is a reference with its own provenance, not a
+    field here.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.SPECIAL_SPEED
+
+    mode: MovementMode
+    listing: SpecialSpeedListing
+
+
+@dataclass(frozen=True)
+class MovementCompositionFact:
+    """How a mode of movement may make up a move.
+
+    *"These different modes of movement can be combined with your regular
+    movement, or they can constitute your entire move."* (Movement and
+    Position, p14). One fact per stated composition.
+
+    Distinct from :class:`MovementPermissionFact`, which says *that* a mode may
+    be used and nothing about how much of a move it may be.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.MOVEMENT_COMPOSITION
+
+    composes: MovementComposition
+
+
 MechanicalFact = (
     AbilityCheckFact
     | ActionEconomyFact
@@ -3874,6 +4296,13 @@ MechanicalFact = (
     | CoverProvisionFact
     | CoverBenefitOriginFact
     | CoverDegreeSelectionFact
+    | SpeedDefinitionFact
+    | MovementDepletionFact
+    | SpeedSelectionFact
+    | SpeedSwitchLimitFact
+    | SpeedChangePropagationFact
+    | SpecialSpeedFact
+    | MovementCompositionFact
 )
 
 _FACT_TYPES: dict[FactFamily, type] = {
@@ -3939,6 +4368,13 @@ _FACT_TYPES: dict[FactFamily, type] = {
     FactFamily.COVER_PROVISION: CoverProvisionFact,
     FactFamily.COVER_BENEFIT_ORIGIN: CoverBenefitOriginFact,
     FactFamily.COVER_DEGREE_SELECTION: CoverDegreeSelectionFact,
+    FactFamily.SPEED_DEFINITION: SpeedDefinitionFact,
+    FactFamily.MOVEMENT_DEPLETION: MovementDepletionFact,
+    FactFamily.SPEED_SELECTION: SpeedSelectionFact,
+    FactFamily.SPEED_SWITCH_LIMIT: SpeedSwitchLimitFact,
+    FactFamily.SPEED_CHANGE_PROPAGATION: SpeedChangePropagationFact,
+    FactFamily.SPECIAL_SPEED: SpecialSpeedFact,
+    FactFamily.MOVEMENT_COMPOSITION: MovementCompositionFact,
 }
 
 
@@ -5558,7 +5994,10 @@ def _check_action_allowance(fact: ActionAllowanceFact) -> list[str]:
 
 
 def _check_movement_allowance(fact: MovementAllowanceFact) -> list[str]:
-    return _enum_field(fact.basis, MovementAllowanceBasis, "basis")
+    return [
+        *_enum_field(fact.basis, MovementAllowanceBasis, "basis"),
+        *_optional_enum_field(fact.window, MovementWindow, "window"),
+    ]
 
 
 def _check_movement_interleave(fact: MovementInterleaveFact) -> list[str]:
@@ -5800,6 +6239,75 @@ def _check_cover_degree_selection(fact: CoverDegreeSelectionFact) -> list[str]:
     ]
 
 
+# Schema 11, batch ``speed-1``. None of the seven adds a row to
+# :data:`_INVARIANTS`: every field is a closed vocabulary the schema payload
+# already carries, no family here has a numeric field at all, and no pair of
+# their members is mutually contradictory — the two depletion terminators are
+# alternatives the page itself resolves with ``resolution``, not a conflict.
+def _check_speed_definition(fact: SpeedDefinitionFact) -> list[str]:
+    return [
+        *_enum_field(fact.unit, DistanceUnit, "unit"),
+        *_enum_field(fact.window, MovementWindow, "window"),
+    ]
+
+
+def _check_movement_depletion(fact: MovementDepletionFact) -> list[str]:
+    findings = [
+        *_enum_field(fact.depletes, MovementAllowanceBasis, "depletes"),
+        *_enum_field(fact.resolution, MovementDepletionResolution, "resolution"),
+    ]
+    if drift := exact_tuple_violations(fact.until, "until"):
+        return [*findings, *drift]
+    for i, terminator in enumerate(fact.until):
+        findings.extend(
+            _enum_field(terminator, MovementDepletionTerminator, f"until[{i}]")
+        )
+    if findings:
+        return findings
+    if not fact.until:
+        findings.append(
+            "until is empty; a depletion that never stops is not the rule "
+            "this family states"
+        )
+        return findings
+    codes = [terminator.value for terminator in fact.until]
+    if len(set(codes)) != len(codes):
+        findings.append("until repeats a terminator")
+    return findings
+
+
+def _check_speed_selection(fact: SpeedSelectionFact) -> list[str]:
+    return _enum_field(fact.permits, SpeedSelection, "permits")
+
+
+def _check_speed_switch_limit(fact: SpeedSwitchLimitFact) -> list[str]:
+    return [
+        *_enum_field(fact.accounting, SpeedSwitchAccounting, "accounting"),
+        *_enum_field(fact.when_nonpositive, SpeedSwitchOutcome, "when_nonpositive"),
+    ]
+
+
+def _check_speed_change_propagation(
+    fact: SpeedChangePropagationFact,
+) -> list[str]:
+    return [
+        *_enum_field(fact.to, SpeedPropagationScope, "to"),
+        *_enum_field(fact.magnitude, SpeedPropagationMagnitude, "magnitude"),
+        *_enum_field(fact.duration, SpeedPropagationDuration, "duration"),
+    ]
+
+
+def _check_special_speed(fact: SpecialSpeedFact) -> list[str]:
+    return [
+        *_enum_field(fact.mode, MovementMode, "mode"),
+        *_enum_field(fact.listing, SpecialSpeedListing, "listing"),
+    ]
+
+
+def _check_movement_composition(fact: MovementCompositionFact) -> list[str]:
+    return _enum_field(fact.composes, MovementComposition, "composes")
+
+
 _FACT_INVARIANTS: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.ABILITY_CHECK: _check_ability_check,
     FactFamily.ACTION_ECONOMY: _check_action_economy,
@@ -5863,6 +6371,13 @@ _FACT_INVARIANTS: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.COVER_PROVISION: _check_cover_provision,
     FactFamily.COVER_BENEFIT_ORIGIN: _check_cover_benefit_origin,
     FactFamily.COVER_DEGREE_SELECTION: _check_cover_degree_selection,
+    FactFamily.SPEED_DEFINITION: _check_speed_definition,
+    FactFamily.MOVEMENT_DEPLETION: _check_movement_depletion,
+    FactFamily.SPEED_SELECTION: _check_speed_selection,
+    FactFamily.SPEED_SWITCH_LIMIT: _check_speed_switch_limit,
+    FactFamily.SPEED_CHANGE_PROPAGATION: _check_speed_change_propagation,
+    FactFamily.SPECIAL_SPEED: _check_special_speed,
+    FactFamily.MOVEMENT_COMPOSITION: _check_movement_composition,
 }
 
 
@@ -7003,9 +7518,19 @@ def _build_action_allowance(p: Mapping[str, Any]) -> ActionAllowanceFact:
 def _build_movement_allowance(p: Mapping[str, Any]) -> MovementAllowanceFact:
     _reject(
         FactFamily.MOVEMENT_ALLOWANCE,
-        _json_enum(p["basis"], MovementAllowanceBasis, "basis"),
+        [
+            *_json_enum(p["basis"], MovementAllowanceBasis, "basis"),
+            # ``window`` is omitted when unset, so an accepted schema-3 through
+            # schema-10 payload has no such key at all and rebuilds to the
+            # declared ``None``.
+            *_optional_json_enum(p.get("window"), MovementWindow, "window"),
+        ],
     )
-    return MovementAllowanceFact(basis=MovementAllowanceBasis(p["basis"]))
+    raw_window = p.get("window")
+    return MovementAllowanceFact(
+        basis=MovementAllowanceBasis(p["basis"]),
+        window=None if raw_window is None else MovementWindow(raw_window),
+    )
 
 
 def _build_movement_interleave(p: Mapping[str, Any]) -> MovementInterleaveFact:
@@ -7321,6 +7846,105 @@ def _build_cover_degree_selection(p: Mapping[str, Any]) -> CoverDegreeSelectionF
     )
 
 
+# Schema 11, batch ``speed-1``.
+def _build_speed_definition(p: Mapping[str, Any]) -> SpeedDefinitionFact:
+    _reject(
+        FactFamily.SPEED_DEFINITION,
+        [
+            *_json_enum(p["unit"], DistanceUnit, "unit"),
+            *_json_enum(p["window"], MovementWindow, "window"),
+        ],
+    )
+    return SpeedDefinitionFact(
+        unit=DistanceUnit(p["unit"]),
+        window=MovementWindow(p["window"]),
+    )
+
+
+def _build_movement_depletion(p: Mapping[str, Any]) -> MovementDepletionFact:
+    raw = p["until"]
+    if not isinstance(raw, list):
+        raise MalformedFactPayloadError("until is not a list")
+    findings = [
+        *_json_enum(p["depletes"], MovementAllowanceBasis, "depletes"),
+        *_json_enum(p["resolution"], MovementDepletionResolution, "resolution"),
+    ]
+    for i, terminator in enumerate(raw):
+        findings.extend(
+            _json_enum(terminator, MovementDepletionTerminator, f"until[{i}]")
+        )
+    _reject(FactFamily.MOVEMENT_DEPLETION, findings)
+    return MovementDepletionFact(
+        depletes=MovementAllowanceBasis(p["depletes"]),
+        until=tuple(MovementDepletionTerminator(t) for t in raw),
+        resolution=MovementDepletionResolution(p["resolution"]),
+    )
+
+
+def _build_speed_selection(p: Mapping[str, Any]) -> SpeedSelectionFact:
+    _reject(
+        FactFamily.SPEED_SELECTION,
+        _json_enum(p["permits"], SpeedSelection, "permits"),
+    )
+    return SpeedSelectionFact(permits=SpeedSelection(p["permits"]))
+
+
+def _build_speed_switch_limit(p: Mapping[str, Any]) -> SpeedSwitchLimitFact:
+    _reject(
+        FactFamily.SPEED_SWITCH_LIMIT,
+        [
+            *_json_enum(p["accounting"], SpeedSwitchAccounting, "accounting"),
+            *_json_enum(p["when_nonpositive"], SpeedSwitchOutcome, "when_nonpositive"),
+        ],
+    )
+    return SpeedSwitchLimitFact(
+        accounting=SpeedSwitchAccounting(p["accounting"]),
+        when_nonpositive=SpeedSwitchOutcome(p["when_nonpositive"]),
+    )
+
+
+def _build_speed_change_propagation(
+    p: Mapping[str, Any],
+) -> SpeedChangePropagationFact:
+    _reject(
+        FactFamily.SPEED_CHANGE_PROPAGATION,
+        [
+            *_json_enum(p["to"], SpeedPropagationScope, "to"),
+            *_json_enum(p["magnitude"], SpeedPropagationMagnitude, "magnitude"),
+            *_json_enum(p["duration"], SpeedPropagationDuration, "duration"),
+        ],
+    )
+    return SpeedChangePropagationFact(
+        to=SpeedPropagationScope(p["to"]),
+        magnitude=SpeedPropagationMagnitude(p["magnitude"]),
+        duration=SpeedPropagationDuration(p["duration"]),
+    )
+
+
+def _build_special_speed(p: Mapping[str, Any]) -> SpecialSpeedFact:
+    _reject(
+        FactFamily.SPECIAL_SPEED,
+        [
+            *_json_enum(p["mode"], MovementMode, "mode"),
+            *_json_enum(p["listing"], SpecialSpeedListing, "listing"),
+        ],
+    )
+    return SpecialSpeedFact(
+        mode=MovementMode(p["mode"]),
+        listing=SpecialSpeedListing(p["listing"]),
+    )
+
+
+def _build_movement_composition(
+    p: Mapping[str, Any],
+) -> MovementCompositionFact:
+    _reject(
+        FactFamily.MOVEMENT_COMPOSITION,
+        _json_enum(p["composes"], MovementComposition, "composes"),
+    )
+    return MovementCompositionFact(composes=MovementComposition(p["composes"]))
+
+
 _FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] = {
     FactFamily.ABILITY_CHECK: _build_ability_check,
     FactFamily.ACTION_ECONOMY: _build_action_economy,
@@ -7384,6 +8008,13 @@ _FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] 
     FactFamily.COVER_PROVISION: _build_cover_provision,
     FactFamily.COVER_BENEFIT_ORIGIN: _build_cover_benefit_origin,
     FactFamily.COVER_DEGREE_SELECTION: _build_cover_degree_selection,
+    FactFamily.SPEED_DEFINITION: _build_speed_definition,
+    FactFamily.MOVEMENT_DEPLETION: _build_movement_depletion,
+    FactFamily.SPEED_SELECTION: _build_speed_selection,
+    FactFamily.SPEED_SWITCH_LIMIT: _build_speed_switch_limit,
+    FactFamily.SPEED_CHANGE_PROPAGATION: _build_speed_change_propagation,
+    FactFamily.SPECIAL_SPEED: _build_special_speed,
+    FactFamily.MOVEMENT_COMPOSITION: _build_movement_composition,
 }
 
 #: Every family must declare a builder and an invariant checker. A family added
@@ -7502,7 +8133,7 @@ assert (
 #: contracts. Nothing here computes geometry, models a grid, or adjudicates:
 #: the rules are represented declaratively and consumed by hand-authored code
 #: (#137 "Out of scope", ADR-005d Decision 4).
-REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-10"
+REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-11"
 
 
 class UnsupportedRepresentationShapeError(TypeError):
@@ -8008,6 +8639,23 @@ def _introductions() -> tuple[_Introduction, ...]:
             _Introduction("vocabulary_member", vocabulary, member, SCHEMA_10)
             for member in members
         )
+    # Schema 11 adds seven families, eleven whole vocabularies and one
+    # member to ``MovementMode``, which schema 3 already had. It adds one
+    # field to a family an earlier schema had —
+    # ``MovementAllowanceFact.window`` — and that field is omitted when unset,
+    # so it is registered in :data:`_POST_SCHEMA_3_FIELDS` rather than here:
+    # its absence reads as the declared default and every accepted allowance
+    # payload is byte-identical under both contracts. No ownership form and
+    # no newly required or newly nullable field on any accepted family.
+    rows.extend(
+        _Introduction("fact_family", "FactFamily", family.value, SCHEMA_11)
+        for family in _SCHEMA_11_FAMILIES
+    )
+    for vocabulary, members in _SCHEMA_11_VOCABULARY_MEMBERS.items():
+        rows.extend(
+            _Introduction("vocabulary_member", vocabulary, member, SCHEMA_11)
+            for member in members
+        )
     rows.extend(
         _Introduction("nullable_field", _OPTIONAL_SINCE_FAMILIES[owner], key, arrived)
         for owner, keys in _OPTIONAL_SINCE.items()
@@ -8067,6 +8715,7 @@ def _vocabulary_shape(owner: str) -> list[str] | None:
         or _SCHEMA_8_VOCABULARY_ALL.get(owner)
         or _SCHEMA_9_VOCABULARY_ALL.get(owner)
         or _SCHEMA_10_VOCABULARY_ALL.get(owner)
+        or _SCHEMA_11_VOCABULARY_ALL.get(owner)
     )
     return None if members is None else sorted(members)
 
@@ -8161,6 +8810,7 @@ def _collect_post_schema_3(
             (_SCHEMA_8_MEMBER_INDEX, SCHEMA_8),
             (_SCHEMA_9_MEMBER_INDEX, SCHEMA_9),
             (_SCHEMA_10_MEMBER_INDEX, SCHEMA_10),
+            (_SCHEMA_11_MEMBER_INDEX, SCHEMA_11),
         ):
             if (
                 type(value).__name__,
@@ -8589,6 +9239,73 @@ _SCHEMA_10_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
 )
 
 
+SCHEMA_11 = "5d-representation-schema-11"
+
+#: The seven families schema 11 admitted, for batch ``speed-1``. One per
+#: distinct rule the Rules Glossary Speed entry and Playing the Game > Combat >
+#: Movement and Position print between them, named by member for the same
+#: reason schema 4's, 6's, 8's, 9's and 10's are.
+_SCHEMA_11_FAMILIES: tuple[FactFamily, ...] = (
+    FactFamily.SPEED_DEFINITION,
+    FactFamily.MOVEMENT_DEPLETION,
+    FactFamily.SPEED_SELECTION,
+    FactFamily.SPEED_SWITCH_LIMIT,
+    FactFamily.SPEED_CHANGE_PROPAGATION,
+    FactFamily.SPECIAL_SPEED,
+    FactFamily.MOVEMENT_COMPOSITION,
+)
+
+#: Schema 11 introduces eleven vocabularies whole **and adds one member to a
+#: vocabulary schema 3 already had**, the second succession to do that after
+#: schema 10.
+#:
+#: ``MovementMode`` therefore sits in the first group, the one no field-keyed
+#: registry can catch: :attr:`MovementPermissionFact.mode`,
+#: :attr:`CreatureSpeedFact.mode` and :attr:`SpeedModificationFact.mode` are all
+#: schema-3 fields, and only the *value* ``jump`` is new. A schema-10 artifact
+#: stating ``MovementPermissionFact(mode=JUMP)`` carries a member schema 10
+#: never admitted, in a field schema 3 had, and is refused on the member alone.
+#:
+#: Its six earlier members get no row, here or anywhere: schema 3 predates the
+#: introduction manifest, and inventing rows for it would claim a legality
+#: contract that never existed. The whole live vocabulary is still what the
+#: payload renders — see :data:`_SCHEMA_11_VOCABULARY_ALL`.
+_SCHEMA_11_VOCABULARY_MEMBERS: dict[str, tuple[str, ...]] = {
+    # Added to a vocabulary schema 3 already had.
+    "MovementMode": (MovementMode.JUMP.value,),
+    # Vocabularies schema 11 introduced whole.
+    "MovementWindow": tuple(m.value for m in MovementWindow),
+    "MovementDepletionTerminator": tuple(m.value for m in MovementDepletionTerminator),
+    "MovementDepletionResolution": tuple(m.value for m in MovementDepletionResolution),
+    "SpeedSelection": tuple(m.value for m in SpeedSelection),
+    "SpeedSwitchAccounting": tuple(m.value for m in SpeedSwitchAccounting),
+    "SpeedSwitchOutcome": tuple(m.value for m in SpeedSwitchOutcome),
+    "SpeedPropagationScope": tuple(m.value for m in SpeedPropagationScope),
+    "SpeedPropagationMagnitude": tuple(m.value for m in SpeedPropagationMagnitude),
+    "SpeedPropagationDuration": tuple(m.value for m in SpeedPropagationDuration),
+    "SpecialSpeedListing": tuple(m.value for m in SpecialSpeedListing),
+    "MovementComposition": tuple(m.value for m in MovementComposition),
+}
+
+#: ``MovementMode`` is written out for the reason schema 4's, 6's and 10's mixed
+#: tables are: its ``_MEMBERS`` row names one member and its rendering must name
+#: all seven.
+_SCHEMA_11_VOCABULARY_ALL: dict[str, tuple[str, ...]] = {
+    "MovementMode": tuple(m.value for m in MovementMode),
+    **{
+        name: members
+        for name, members in _SCHEMA_11_VOCABULARY_MEMBERS.items()
+        if name != "MovementMode"
+    },
+}
+
+_SCHEMA_11_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
+    (vocabulary, member)
+    for vocabulary, members in _SCHEMA_11_VOCABULARY_MEMBERS.items()
+    for member in members
+)
+
+
 #: Every family-bearing succession, newest last. A family added later must join
 #: this table rather than the one comparison schema 4 was checked by, which
 #: could only ever ask about schema 4.
@@ -8598,6 +9315,7 @@ _FAMILY_INTRODUCTIONS: tuple[tuple[tuple[FactFamily, ...], str], ...] = (
     (_SCHEMA_8_FAMILIES, SCHEMA_8),
     (_SCHEMA_9_FAMILIES, SCHEMA_9),
     (_SCHEMA_10_FAMILIES, SCHEMA_10),
+    (_SCHEMA_11_FAMILIES, SCHEMA_11),
 )
 
 #: Fields a later schema made **required** on a family an earlier schema already
@@ -8691,9 +9409,32 @@ _VERSION_STATES: dict[str, frozenset[str]] = {
             SCHEMA_10,
         }
     ),
+    SCHEMA_11: frozenset(
+        {
+            "5d-representation-schema-4",
+            SCHEMA_5,
+            SCHEMA_6,
+            SCHEMA_7,
+            SCHEMA_8,
+            SCHEMA_9,
+            SCHEMA_10,
+            SCHEMA_11,
+        }
+    ),
 }
 
 _register_post_schema_3(
+    # Schema 11. Omitted when unset, so ``Dash``'s two accepted movement
+    # allowances and ``Ready``'s keep the exact canonical form they were
+    # accepted with: the base allowance the speed-1 sites state is the only
+    # instance that carries a window, and no accepted payload, fact key or
+    # provenance coordinate moves.
+    _PostSchema3Field(
+        owner="MovementAllowanceFact",
+        key="window",
+        introduced_in=SCHEMA_11,
+        is_empty=_empty_none,
+    ),
     _PostSchema3Field(
         owner="RollSpec",
         key="skill",
@@ -11092,6 +11833,26 @@ _INVARIANTS: tuple[_Invariant, ...] = (
         rule=(
             "no exception twice; the same suspension stated again suspends "
             "nothing further"
+        ),
+    ),
+    _Invariant(
+        id="movement_depletion.until.at-least-one",
+        locus="fact:movement_depletion",
+        field="until",
+        rule=(
+            "at least one terminator; a depletion that never stops is not "
+            "the rule this family states, and a resolution between "
+            "terminators would resolve nothing"
+        ),
+    ),
+    _Invariant(
+        id="movement_depletion.until.no-repeats",
+        locus="fact:movement_depletion",
+        field="until",
+        rule=(
+            "no terminator twice; printed order is preserved rather than "
+            "sorted, so this is checked without imposing an order the "
+            "source does not state"
         ),
     ),
 )

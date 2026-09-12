@@ -754,6 +754,121 @@ is a later step. The full-corpus work Decision 5 requires remains undischarged.
 > the acceptance published, activated and retired **nothing**, and the full-corpus work Decision 5
 > requires remains undischarged.
 
+**Amended by representation schema 11 — the `Speed` entry.** `Speed` is printed twice in the bound
+release, as a Rules Glossary definition (p188) and as `Playing the Game > Combat > Movement and
+Position` (p14), joined by the source's own reciprocal citation rather than by a label match: 16
+leaves, 36 clauses, 16 of them substantive. Schema 10 can state **none** of the 16. The prose-bound
+branch is unavailable rather than declined — no clause matches any of the six closed reason codes in
+`policy.IRREDUCIBILITY_REASONS`; *"the distance in feet"*, *"a distance equal to your Speed or less"*,
+*"subtract the distance already moved"* and *"until it is used up or until you are done moving,
+whichever comes first"* are exact, printed, non-delegated statements — so **#137 contract 3** read
+under **Decision 4** requires typed families. Schema 11 adds seven, over twelve closed vocabularies:
+`SpeedDefinitionFact`, `MovementDepletionFact`, `SpeedSelectionFact`, `SpeedSwitchLimitFact`,
+`SpeedChangePropagationFact`, `SpecialSpeedFact` and `MovementCompositionFact`.
+
+**Unlike schema 10, this one does add a field to an accepted family, and that is the part worth
+recording.** `MovementAllowanceFact` was minted at schema 6 and carries three accepted instances over two
+records (`action.dash` twice, `action.ready` once). Schema 11 adds one **optional** field,
+`window: MovementWindow | None`, defaulting to `None`, so those three instances are unchanged field
+for field across the lift and no accepted payload gains a key. The alternative — minting a sibling
+family for the base per-turn allowance — was rejected: the family names *where a movement quantity
+comes from*, and nothing in its type, its invariants or its validator asserts that the quantity was
+granted by another rule. That its three accepted instances happen to sit on records that grant
+movement is a property of those records. A per-turn base allowance and a Dash's extra movement are the
+same kind of statement about the same budget, and a second family would have made a consumer ask which
+one it was holding.
+
+**It also widens a vocabulary accepted authority already consumes.** `MovementMode` was admitted at
+schema 3 with six of its seven members, and `action.dash` consumes it through
+`MovementPermissionFact`. Schema 11 adds `JUMP`, which is printed in the same sentence the other modes
+came from — *"Your movement can include climbing, crawling, jumping, and swimming"* — and was simply
+missing. Widening is recorded the way a new vocabulary is. The other six members need no registry
+row and get none — schema 3 predates the introduction manifest entirely — and schema 11 registers `jump` as
+its own introduction, so a schema-8 or schema-10 reader refuses `jump` on the member alone even
+though it recognises the field — the precedent schema 10 set for `CoverDegree.HALF`. That refusal is
+asserted per specimen against schema 8 and schema 10, not inferred.
+
+Decisions worth recording, because each was a shape considered.
+
+- **`MovementDepletionFact.until` is a tuple, not a single terminator.** The sentence prints two
+  stopping conditions and then resolves *between* them. *"Whichever comes first"* is a statement about
+  the pair, so `resolution` has nothing to resolve unless `until` carries both, and one fact per
+  terminator would make each half assert a race against an opponent it does not name. The shape is
+  `AreaOriginMovementFact.suspended_by_any_of`'s, accepted at schema 9 for the same reason: a printed
+  list whose members are alternatives to one another. It carries two intrinsic rules —
+  `movement_depletion.until.at-least-one` and `movement_depletion.until.no-repeats` — and printed order
+  is preserved rather than sorted, because the page prints an order and `resolution` is precisely the
+  statement that the order does not decide the outcome.
+- **A zero-movement fact for *"Or you can decide not to move"* was rejected.** `action.ready` already
+  represents *"move up to your Speed"* with no extra field, so the ceiling is what `movement_allowance`
+  has always meant, and a ceiling already permits being left unused. A separate fact would state a rule
+  the page does not print. The clause is provenance on the allowance fact instead.
+- **Folding depletion into the allowance was rejected.** The ceiling and the spending of it are two
+  printed statements about one budget. One family carrying both would conflate what a turn grants with
+  how it runs out, and `MovementCostFact`'s own docstring already draws that line — *"it states the
+  cost, never what the cost buys"*.
+- **`SpeedSwitchOutcome.FORBIDS_USING_THE_NEW_SPEED` is a prohibition, not a clamp.** The page prints
+  *"If the result is 0 or less, you can't use the new speed"*. A shape that recorded only the
+  subtraction, or that clamped a remainder to zero, would lose the prohibition and state arithmetic the
+  source does not ask anyone to perform.
+- **`SpecialSpeedListing.NAMED_IN_A_NON_EXHAUSTIVE_LIST` keeps *"such as"* open.** The four special
+  speeds the entry names are stated as members of a list the page marks open. The member says so at the
+  consumer, so naming four does not close the category — and the four entries that define them stay in
+  later batches, which is the same asymmetry `cover-1` accepted in reverse when `CoverDegree` predated
+  the entry defining the degrees.
+- **`SpeedChangePropagationFact` states the rule; the worked examples are evidence.** *"If a Speed is
+  reduced to 0… every special speed is also 0"* and the halving example are provenance on the
+  propagation fact at `CONTEXTUAL`, not facts of their own. No arithmetic engine is implied or built:
+  the fact names a scope, an equal magnitude and a same duration, and applying that to a creature's
+  actual speed list is runtime.
+- **`CreatureSpeedFact` was not reused for the definition.** It states what a stat block prints —
+  `Speed 20 ft.` — and requires a number. *"A creature's Speed is the distance in feet the creature can
+  cover when it moves on its turn"* prints no number, so stating it as a creature speed would require
+  inventing one. `SpeedDefinitionFact(unit, window)` carries the unit, the quantity kind and the
+  window, which is what the sentence states and no more. The two sourcing sentences — *"determined
+  during character creation"*, *"noted in the monster's stat block"* — name a *source* for a value and
+  print none, so they are record-level supporting authority.
+
+None of this evaluates anything. Every member names what a rule *says*; nothing carries an expression, a
+predicate, a formula, a free-form value or a dispatch table, and the vocabularies are closed, so a
+consumer meeting a member it does not handle fails rather than interprets. **No parameter value, unit,
+coordinate or grid semantic is invented anywhere in schema 11** — `DistanceUnit.FOOT` is the unit the
+sentence prints, and there is no square, segment or corner in any vocabulary. Subtracting a move from
+the allowance, choosing a route, applying the propagation rule to a creature's actual speed list and
+converting a Speed to a travel rate are all runtime, where **Decision 11** and #137's Out of scope leave
+them. The optional grid rules printed at `Playing the Game > Exploration > Vehicles` are outside this
+**batch** by its membership rule and are not thereby outside declarative 5d: their execution is
+downstream, their printed representation remains later 5d work, and nothing here prejudges or schedules
+it.
+
+The schema-11 destination pin is
+`605e8b4cfdaf0cb6d4f0b65fcf0d23f3e45c4734404c9568f41dc4261eefd037`. Schemas 3 through 10 remain
+recognized contracts with unchanged pins, and succession stays one row per crossing: exactly one
+registered transition, `5d-lift-schema-10-to-11`, separates schema 10 from schema 11, and the build
+exercises it rather than describing it. **Nothing accepted moves.** The committed artifact and every
+frozen prior still declare the schema they were accepted under after this change, each keeps its own
+digest, and all six per-batch anchors are retained unchanged (`conditions-1`→3, `hazards-1`→5,
+`actions-1`→7, `attitudes-1`→8, `areas-of-effect-1`→9, `cover-1`→10) — the assertion this succession
+most needs to make, because `actions-1` consumes the very family and the very vocabulary schema 11 extends, and a lift that
+re-derived anchors would erase the record of what each batch was accepted under. The frozen six-batch
+prior on disk keeps the identity the Owner accepted,
+`86cd11c2be330f5962982d8d87dfc1847815710868223257529f30bef8cdb500`, over 47 records and 558 spans. Its
+*lifted copy* is a different object with a different identity —
+`bc8757af6483d63894ce9c9359a5e8c1c8cce0cd410c7e89f92185d5d5aa2136` — because the oracle payload carries
+the representation binding and the lift re-declares exactly that; the only top-level payload key that
+moves is `representation_schema`, and everything else crosses by object identity rather than by
+equality. The lift rebinds; it does not rebuild.
+
+Nothing is accepted, published, activated, or retired by this schema change, and no proposal exists for
+`speed-1`. The accepted mechanical corpus is unchanged, and the two unresolved cross-batch reference
+targets — `glossary.concentration` and `glossary.speed` — are still two. Schema 11 makes
+`glossary.speed` *representable*; only accepting a `speed-1` proposal would resolve it, and that is a
+later step. Such a proposal would close `glossary.speed` and open nine — the five entries the glossary
+`See also` leaf cites and the four special speeds the definition sentence says are *"defined in this
+glossary"* — taking the combined residue to ten. That is arithmetic over two sets rather than a measured
+result: no operation merges an accepted prior with an unaccepted draft. The full-corpus work Decision 5
+requires remains undischarged.
+
 ### Decision 5 — Exact completeness, not aggregate thresholds
 
 Publication is proven through exact full-corpus accounting and accepted per-record/component obligations.

@@ -19,13 +19,14 @@ module's last test is the one that must change, and it names in advance what
 should replace it — the live artifact is this prior plus exactly one batch, and
 every batch the freeze holds is still present and identical.
 
-**No crossing separates this prior from the checkout.** ``cover-1``'s freeze was
-taken at schema 9 and the build that reviewed it declared schema 10, so exactly
-one registered lift stood between them. This freeze is taken *at* schema 10,
-which is the checkout's own binding, so the honest assertion is the opposite
-one: reading this prior as current is not a finding, no lift path exists, and a
-generator that reached for one would raise. Whether ``speed-1`` needs a schema
-11 is a question for its discovery checkpoint and is not prejudged here.
+**Exactly one registered crossing separates this prior from this build.** The
+freeze was taken *at* schema 10, level with the checkout, and this module's
+crossing test named in advance what would have to change if ``speed-1`` needed
+a schema 11. It did: the two defining Speed sites print meanings schema 10
+cannot state, this build mints schema 11, and ``5d-lift-schema-10-to-11`` is
+the single registered step between the frozen prior and the checkout. The
+frozen bytes do not move; a crossing to a *later* union is a property of the
+pair, not a field the file gains.
 
 **What this module does not do.** It proves nothing about representation, and
 nothing about the live artifact beyond the equality claim. Every pin describes
@@ -48,6 +49,7 @@ from afterworlds.ingestion.mechanical.oracle import (
     candidate_from_accepted_inputs,
     load_accepted_inputs,
     oracle_identity,
+    oracle_payload,
 )
 from afterworlds.ingestion.mechanical.projection import validate_schema_binding
 from afterworlds.ingestion.mechanical.representation import (
@@ -62,7 +64,10 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_9_HASH,
     SCHEMA_10_HASH,
     SCHEMA_10_VERSION,
+    SCHEMA_11_HASH,
+    SCHEMA_11_VERSION,
     UnknownSchemaLiftError,
+    lift_accepted_inputs,
     lift_path,
 )
 
@@ -169,9 +174,9 @@ def test_the_prior_declares_schema_10_and_records_the_seven_lifts_that_got_it_th
     """What the file itself carries, which no successor schema restamps.
 
     Accepted bytes are never re-declared in place: the artifact says schema 10
-    and records the seven crossings that carried it there, and it will still say
-    schema 10 after any schema 11. A crossing to a *later* union is a property of
-    the pair, not a field this file gains.
+    and records the seven crossings that carried it there, and it still says
+    schema 10 now that this build declares schema 11. A crossing to a *later*
+    union is a property of the pair, not a field this file gains.
     """
     inputs = load_accepted_inputs(FROZEN_PRIOR)
     assert (inputs.oracle.schema_version, inputs.oracle.schema_hash) == (
@@ -189,31 +194,82 @@ def test_the_prior_declares_schema_10_and_records_the_seven_lifts_that_got_it_th
     ]
 
 
-def test_no_crossing_separates_this_prior_from_the_checkout() -> None:
-    """The position at the freeze, stated rather than assumed.
+def test_exactly_one_registered_crossing_separates_the_prior_from_this_build() -> None:
+    """The position after the mint, stated rather than assumed.
 
-    ``cover-1``'s freeze was taken one registered step behind its own build and
-    said so. This one is taken level with the checkout, so the assertions invert:
-    the prior's binding *is* the current binding, reading it as current is not a
-    finding, and no lift path exists between them. A generator that reached for
-    a self-lift raises rather than silently no-opping, which is what keeps
-    "level" from being indistinguishable from "not checked".
+    This is the edit the previous form of this test named in advance. The freeze
+    was taken level with the checkout; the checkpoint's question was whether
+    ``speed-1`` needs a schema 11, and the answer was yes, so the assertions
+    invert: the prior's binding is no longer the current binding, reading it as
+    current is a *finding* rather than a silent pass, and exactly one registered
+    step closes the gap.
 
-    Whether ``speed-1`` needs a schema 11 is not decided here. If one is minted,
-    this test is where the crossing becomes visible: ``prior != current`` and a
-    one-step path appears, exactly as ``cover-1``'s equivalent recorded.
+    **Two identities, two scopes.** The frozen authority is untouched on disk and
+    keeps the identity the Owner accepted. Its lifted copy is a *different*
+    object with a *different* identity, because ``oracle_payload`` carries the
+    representation binding and the lift re-declares exactly that. The content is
+    what survives, and identically rather than equally: the lifted copy holds the
+    same representation object, and the only top-level payload key that moves is
+    ``representation_schema``.
+
+    **The six schema anchors cross untouched.** That is the assertion schema 11
+    most needs to make, because like schema 10 it widens a vocabulary accepted
+    authority already uses: ``MovementMode`` gains ``jump``, and four accepted
+    batches state members of that vocabulary. A lift that re-derived anchors
+    would erase the record of what each batch was accepted under, which is the
+    distinction the whole mechanism protects.
+
+    A self-lift stays unregistered, so a generator that reached for one here
+    would raise rather than silently no-op.
     """
     inputs = load_accepted_inputs(FROZEN_PRIOR)
     current = (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
     prior = (inputs.oracle.schema_version, inputs.oracle.schema_hash)
     assert prior == (SCHEMA_10_VERSION, SCHEMA_10_HASH)
-    assert prior == current
+    assert current == (SCHEMA_11_VERSION, SCHEMA_11_HASH)
+    assert prior != current
 
-    assert validate_schema_binding(candidate_from_accepted_inputs(inputs)) == ()
+    findings = validate_schema_binding(candidate_from_accepted_inputs(inputs))
+    assert findings, "reading a superseded prior as current must be visible"
+    assert any(REPRESENTATION_SCHEMA_VERSION in f for f in findings), findings
+
+    expected = ["5d-lift-schema-10-to-11"]
+    assert [step.lift_id for step in lift_path(prior, current)] == expected
+    lifted, records = lift_accepted_inputs(inputs, current)
+    assert [record.lift_id for record in records] == expected
+    assert validate_schema_binding(candidate_from_accepted_inputs(lifted)) == ()
+    assert lifted.oracle.representation is inputs.oracle.representation
     assert oracle_identity(inputs.oracle) == ACCEPTED_ORACLE_IDENTITY
 
+    # The lifted copy is newly bound, so it is newly identified. Asserted
+    # structurally rather than against a literal: the value moves every time the
+    # destination pin moves, and what is being proved is *why* it moves.
+    assert oracle_identity(lifted.oracle) != ACCEPTED_ORACLE_IDENTITY
+    before = oracle_payload(inputs.oracle)
+    after = oracle_payload(lifted.oracle)
+    moved = {k for k in set(before) | set(after) if before.get(k) != after.get(k)}
+    assert moved == {"representation_schema"}, sorted(moved)
+
+    # Everything the prior carries besides the binding crosses untouched, and by
+    # identity rather than equality -- the lift rebinds, it does not rebuild.
+    for field in ("batches", "acceptances", "schema_anchors"):
+        assert getattr(lifted, field) is getattr(inputs, field), field
+    assert lifted.oracle.spans is inputs.oracle.spans
+    assert lifted.oracle.obligations is inputs.oracle.obligations
+    # Named per batch as well as by identity, because this is the assertion the
+    # vocabulary widening would break first if a lift ever re-derived them.
+    crossed = {a.batch_id: a.schema_hash for a in lifted.schema_anchors}
+    assert crossed == {
+        "conditions-1": SCHEMA_3_HASH,
+        "hazards-1": SCHEMA_5_HASH,
+        "actions-1": SCHEMA_7_HASH,
+        "attitudes-1": SCHEMA_8_HASH,
+        "areas-of-effect-1": SCHEMA_9_HASH,
+        "cover-1": SCHEMA_10_HASH,
+    }
+
     try:
-        lift_path(prior, current)
+        lift_path(current, current)
     except UnknownSchemaLiftError:
         pass
     else:  # pragma: no cover - would mean a self-lift got registered

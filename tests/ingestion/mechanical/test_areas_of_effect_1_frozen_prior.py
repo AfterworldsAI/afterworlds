@@ -183,9 +183,10 @@ def test_the_registered_crossings_separate_the_prior_from_this_build() -> None:
     ``areas-of-effect-1`` turned out to want a schema step. It does: schema 9
     admits seven families the prior's contract cannot state, so the prior is no
     longer current and reading it as current is a *finding* rather than a silent
-    pass. It was exactly one registered step until ``cover-1`` minted schema 10;
-    the path is read from the registry rather than counted, so a succession
-    lengthens the list here instead of breaking the claim.
+    pass. It was exactly one registered step until ``cover-1`` minted schema 10
+    and ``speed-1`` schema 11; the path is read from the registry rather than
+    counted, so a succession lengthens the list here instead of breaking the
+    claim.
 
     **Two identities, two scopes.** The frozen authority is untouched on disk and
     keeps the identity the Owner accepted. Its lifted copy is a *different*
@@ -213,6 +214,7 @@ def test_the_registered_crossings_separate_the_prior_from_this_build() -> None:
     expected = [
         "5d-lift-schema-8-to-9",
         "5d-lift-schema-9-to-10",
+        "5d-lift-schema-10-to-11",
     ]
     assert [step.lift_id for step in lift_path(prior, current)] == expected
     lifted, records = lift_accepted_inputs(inputs, current)

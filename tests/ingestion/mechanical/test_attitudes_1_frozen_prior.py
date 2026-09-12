@@ -167,8 +167,9 @@ def test_the_prior_declares_schema_7_and_records_the_four_lifts_that_got_it_ther
 def test_the_registered_crossings_separate_the_prior_from_this_build() -> None:
     """The succession ``attitudes-1``'s prior takes, named rather than counted.
 
-    Schema 8 admitted one family this prior's contract cannot state, and schema
-    9 admitted seven more for ``areas-of-effect-1``. The prior is therefore no
+    Schema 8 admitted one family this prior's contract cannot state, schema 9
+    admitted seven more for ``areas-of-effect-1``, schema 10 five for
+    ``cover-1`` and schema 11 seven for ``speed-1``. The prior is therefore no
     longer current and reading it as current is a *finding* rather than a silent
     pass. The registered steps that close the gap are named here in order, and
     the identity the Owner accepted survives them — ``lift`` re-declares the
@@ -193,6 +194,7 @@ def test_the_registered_crossings_separate_the_prior_from_this_build() -> None:
         "5d-lift-schema-7-to-8",
         "5d-lift-schema-8-to-9",
         "5d-lift-schema-9-to-10",
+        "5d-lift-schema-10-to-11",
     ]
     assert [step.lift_id for step in lift_path(prior, current)] == expected
     lifted, records = lift_accepted_inputs(inputs, current)

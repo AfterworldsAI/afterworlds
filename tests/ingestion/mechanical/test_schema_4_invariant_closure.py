@@ -74,6 +74,10 @@ from afterworlds.ingestion.mechanical.representation import (
     GrantedActivity,
     LevelDirection,
     MeasureUnit,
+    MovementAllowanceBasis,
+    MovementDepletionFact,
+    MovementDepletionResolution,
+    MovementDepletionTerminator,
     ObscurementState,
     Phase,
     Rational,
@@ -117,7 +121,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_8_VERSION,
     SCHEMA_9_HASH,
     SCHEMA_9_VERSION,
-    SCHEMA_10_HASH,
+    SCHEMA_11_HASH,
     UnknownSchemaLiftError,
     lift_for,
     schema_binding_violations,
@@ -936,6 +940,42 @@ CASES: dict[str, tuple[object, object]] = {
             )
         ),
     ),
+    # *"until it is used up or until you are done moving, whichever comes
+    # first"* -- Movement and Position, p14. ``resolution`` resolves between
+    # terminators, so the control carries the pair the sentence prints.
+    "movement_depletion.until.at-least-one": (
+        MovementDepletionFact(
+            depletes=MovementAllowanceBasis.OWN_SPEED,
+            until=(),
+            resolution=MovementDepletionResolution.WHICHEVER_COMES_FIRST,
+        ),
+        MovementDepletionFact(
+            depletes=MovementAllowanceBasis.OWN_SPEED,
+            until=(
+                MovementDepletionTerminator.ALLOWANCE_USED_UP,
+                MovementDepletionTerminator.DONE_MOVING,
+            ),
+            resolution=MovementDepletionResolution.WHICHEVER_COMES_FIRST,
+        ),
+    ),
+    "movement_depletion.until.no-repeats": (
+        MovementDepletionFact(
+            depletes=MovementAllowanceBasis.OWN_SPEED,
+            until=(
+                MovementDepletionTerminator.DONE_MOVING,
+                MovementDepletionTerminator.DONE_MOVING,
+            ),
+            resolution=MovementDepletionResolution.WHICHEVER_COMES_FIRST,
+        ),
+        MovementDepletionFact(
+            depletes=MovementAllowanceBasis.OWN_SPEED,
+            until=(
+                MovementDepletionTerminator.ALLOWANCE_USED_UP,
+                MovementDepletionTerminator.DONE_MOVING,
+            ),
+            resolution=MovementDepletionResolution.WHICHEVER_COMES_FIRST,
+        ),
+    ),
 }
 
 
@@ -1081,7 +1121,7 @@ def test_the_registered_lift_still_reaches_the_finalized_destination() -> None:
     assert SCHEMA_3_HASH == (
         "43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05"  # noqa: E501  # pragma: allowlist secret
     )
-    assert representation_schema_hash() == SCHEMA_10_HASH
+    assert representation_schema_hash() == SCHEMA_11_HASH
 
 
 # ---------------------------------------------------------------------------
