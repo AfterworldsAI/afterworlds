@@ -615,6 +615,145 @@ Decision 5 requires remains undischarged.
 > and `glossary.speed`. All three are explicit publication blockers, so the corpus stays incomplete and
 > runtime-unpublished, and the full-corpus work Decision 5 requires remains undischarged.
 
+**Amended by representation schema 10 — the `Cover` entry.** `Cover` is printed twice in the bound
+release, as a Rules Glossary definition (p179) and as a `Playing the Game > Combat` section with a
+table (p15): 16 leaves, 28 clauses, 16 of them substantive. Schema 9 can state **none** of the 16. The
+prose-bound branch is unavailable rather than declined — no clause matches any of the six closed reason
+codes in `policy.IRREDUCIBILITY_REASONS`; every one states a closed, printed, non-delegated rule with a
+stated threshold or a stated value — so **#137 contract 3** read under **Decision 4** requires typed
+families. Schema 10 adds five, over eight closed vocabularies: `CoverDefensiveBonusFact`,
+`CoverTargetingProhibitionFact`, `CoverProvisionFact`, `CoverBenefitOriginFact` and
+`CoverDegreeSelectionFact`. Nothing else moves: no field is added to, made required on, or made
+nullable on any accepted family, and no ownership form changes.
+
+**It also widens a vocabulary accepted authority already consumes, which is the part worth recording.**
+`CoverDegree` was minted at schema 6 for `Applicability.cover` and carries `THREE_QUARTERS` and `TOTAL`;
+`areas-of-effect-1` states `TOTAL` on `BlockedLineExclusionFact.blocking_cover` under schema 9, and
+`action.hide` consumes two of the three. Schema 10 adds `HALF`. Widening is recorded the same way a new
+vocabulary is: schema 6's registered member set stays frozen at the two it introduced and schema 10
+registers `half` as its own introduction, so a schema-6 or schema-9 reader refuses `half` on the member
+alone even though it recognises the field. That is asserted per specimen in
+`tests/ingestion/mechanical/test_schema_version_legality.py`, not inferred — *consuming* a degree of
+cover has always been legal, and defining one is the new thing.
+
+Decisions worth recording, because each was a shape considered.
+
+- **A `Rational` coverage fraction was considered and not used — for sufficiency, not because it is
+  forbidden.** The table prints *at least half*, *at least three-quarters* and *the whole target*.
+  Two of those are exact fractional thresholds and the source does print them as fractions, so
+  `Rational(1, 2)` with a `Comparison` beside it would have been a faithful representation as well.
+  Recording a printed threshold is exact declarative data; it is not the runtime measurement #137's
+  Out of scope and **Decision 11** exclude, and neither authority bars a schema from carrying exact
+  numbers. What decides it is that the numeric shape buys nothing here. The source prints exactly
+  three thresholds, each carries its own comparison inside the printed phrase, and no clause in this
+  population varies a threshold, derives one, or compares two of them — so a closed three-member
+  vocabulary states every printed phrase once, on one axis instead of two, and leaves no fourth value
+  for a consumer to invent. It also lets *the whole target* stay the phrase the page prints. If a
+  later batch prints a coverage threshold this vocabulary cannot name, the exact numeric carrier is
+  still available and is the natural extension.
+- **Reusing `AreaOriginKind.CREATURE_OR_OBJECT` for the offeror was rejected.** It is precedent that
+  *"a creature or an object"* is admissible as a closed member, not a vocabulary to share: merging an
+  area-origin kind with a cover offeror would make two unrelated rules move together. `CoverOfferor`
+  carries `ANOTHER_CREATURE_OR_AN_OBJECT` and `AN_OBJECT`, which is the printed asymmetry — Half admits
+  a creature or an object, Three-Quarters and Total admit an object only — and a single shared member
+  would have erased it.
+- **A bonus of zero for Total Cover was rejected.** Total Cover's benefit is categorically different:
+  *"Can't be targeted directly."* `CoverTargetingProhibitionFact` is a separate family for that reason,
+  and `TargetingProhibition.DIRECT_TARGETING` keeps *"directly"* — a prohibition on all effects is a
+  stronger, different rule.
+- **A rank over the three degrees was rejected.** *"Only the most protective degree applies"* is a
+  printed selection rule; no ordering of the three is printed anywhere in either site.
+  `CoverDegreeSelection.MOST_PROTECTIVE` names the rule the page states and stops there. The combat
+  printing's *"the degrees aren't added together"* is the same rule stated negatively, so it is a
+  second field — `CoverDegreeCombination.NOT_ADDED_TOGETHER` — on one fact rather than a second fact.
+- **Splitting the defensive bonus into AC and saving-throw halves was rejected.** One printed benefit is
+  two modifications at once, both keyed to one degree; a shape that could state only the saving-throw
+  half (`RollSpec` reaches that one, and `RollContext` has no member for AC) would silently drop AC.
+  `CoverDefensiveBonusFact` carries the degree, the amount, the defense and the ability together.
+- **Two facts for the rules printed at both sites were rejected.** Four rules appear in both the
+  glossary and the combat section. Provenance is many-to-many under **Decision 3** and
+  `validation.py:621` rejects only a span with more than one *primary* owner, so both sites' spans claim
+  the same fact as `PRIMARY`: shared authority, exact provenance, one stated effect. The alternative —
+  typing one site and classifying the other as supporting authority — was available and is what
+  `areas-of-effect-1` used for two spans, but here both sites genuinely state the rule.
+- **The closure statement is carried by a component, not a fact.** *"There are three degrees of cover"*
+  (`glossary/1/1`) states the closure of a vocabulary, and `ProvenanceTargetKind` has no vocabulary
+  member. Read substantive with nothing to claim it, the span would trip `validation.py:637`. A
+  component-level `PRIMARY` claim is the carrier that exists, and it is precedent rather than invention:
+  the accepted prior holds 19 `component/primary` claims and 0 `record/primary`. The combat section's
+  `combat/1/1` defers instead of stating — *"As detailed in the Cover table"* — so it is supporting
+  authority on the same component, and that asymmetry is the reading, not an oversight.
+
+None of this evaluates anything. Every member names what a rule *says*; nothing carries an expression, a
+predicate, a formula, a free-form value or a dispatch table, and the vocabularies are closed, so a
+consumer meeting a member it does not handle fails rather than interprets. **No runtime geometry is
+computed**, and no parameter value, unit, coordinate or grid semantic appears anywhere in schema 10 —
+because nothing in this population prints one, not because geometric meaning may not be represented.
+The boundary is computation and adjudication, not subject matter. Measuring what fraction of a target
+an obstacle covers, deciding which side an effect originated on, choosing a degree for a scene and
+executing an attack are all runtime, where **Decision 11** and #137's Out of scope leave them. `Applicability.cover` already lets a rule be *conditioned* on a degree; that
+existing field consumes a cover state and was never a definition of one, which is precisely the gap
+schema 10 closes.
+
+The schema-10 destination pin is
+`c39e3a35e197a1d1db5c2c2b3445ff0cbf03395c91e3426353a4bce589be4be0`. Schemas 3 through 9 remain
+recognized contracts with unchanged pins, and succession stays one row per crossing: exactly one
+registered transition, `5d-lift-schema-9-to-10`, separates schema 9 from schema 10, and the build
+exercises it rather than describing it. **Nothing accepted moves.** The committed artifact and every
+frozen prior still declare the schema they were accepted under after this change, each keeps its own
+digest, and all five per-batch anchors are retained unchanged (`conditions-1`→3, `hazards-1`→5,
+`actions-1`→7, `attitudes-1`→8, `areas-of-effect-1`→9) — the assertion this succession most needs to
+make, because a lift that re-derived anchors would erase the record of what each batch was accepted
+under. The frozen five-batch prior on disk keeps the identity the Owner accepted,
+`8e08ac48f2a57a4498557990a07270f9abd855b246c1039da68cc9ec82d44b40`, over 46 records and 530 spans. Its
+*lifted copy* is a different object with a different identity —
+`34128ca4c3dd8060cd43e1a0b1097d8abe40b029c03c02d556748a21e86b1d6a` — because the oracle payload carries
+the representation binding and the lift re-declares exactly that; the only top-level payload key that
+moves is `representation_schema`, and everything else crosses by object identity rather than by
+equality. The lift rebinds; it does not rebuild.
+
+Nothing is accepted, published, activated, or retired by this schema change, and no proposal exists for
+`cover-1`. The accepted mechanical corpus is unchanged, and the three unresolved cross-batch reference
+targets — `glossary.concentration`, `glossary.cover` and `glossary.speed` — are still three. Schema 10
+makes `glossary.cover` *representable*; only accepting a `cover-1` proposal would resolve it, and that
+is a later step. The full-corpus work Decision 5 requires remains undischarged.
+
+> **Historical — the state at the schema-10 registration, superseded by Owner Decision 2026-09-11.**
+> The paragraphs above record the state when schema 10 was registered and are kept as written; the
+> "nothing is accepted and no proposal exists" they state has since ended. On 2026-09-11 the Owner
+> accepted the schema-10 proposal
+> `1d8a51164f9be0a1559aba93fb076ee0e8c262dda183791491bc339e3ebfec01` as batch `cover-1` — all 28
+> spans and the complete representation, extending the preserved five-batch prior through the
+> registered transitions. **No unresolved architectural choice remains here and no further Owner
+> ruling is required**; this note reconciles the description with a decision already recorded, and
+> amends no contract.
+>
+> What the acceptance changed: the committed artifact now declares schema 10 rather than schema 9,
+> and carries a sixth anchor, `cover-1` at schema 10. The registered path resolved as
+> `5d-lift-schema-3-to-4` → `4-to-5` → `5-to-6` → `6-to-7` → `7-to-8` → `8-to-9` → `9-to-10`, and the
+> prior was lifted rather than rewritten. What it did not change: `conditions-1` stays anchored at
+> schema 3, `hazards-1` at schema 5, `actions-1` at schema 7, `attitudes-1` at schema 8 and
+> `areas-of-effect-1` at schema 9, where each was reviewed; the frozen priors
+> `accepted_prior_conditions_1_hazards_1_actions_1.json`,
+> `accepted_prior_conditions_1_hazards_1_actions_1_attitudes_1.json` and
+> `accepted_prior_conditions_1_hazards_1_actions_1_attitudes_1_areas_of_effect_1.json` are untouched
+> at schemas 7, 8 and 9 and keep their own digests; schemas 3 through 9 remain recognized contracts
+> with the pins above; and the schema-10 destination pin is still
+> `c39e3a35e197a1d1db5c2c2b3445ff0cbf03395c91e3426353a4bce589be4be0`. The accepted mechanical
+> identity is now `86cd11c2be330f5962982d8d87dfc1847815710868223257529f30bef8cdb500`, over 47 records
+> and 558 spans. Because the artifact now declares the schema this build implements, the lifted-copy
+> identity reported above describes the earlier state and no lift stands between the committed file
+> and current authority.
+>
+> What it resolved, and what it did not. This acceptance *narrows* the residue by defining a target
+> another batch already cited: `glossary.cover` — added by
+> `areas-of-effect-1` and made representable by schema 10 — is now defined, and
+> `areas-of-effect-1`'s `Cover` citation resolves. `glossary.concentration` and `glossary.speed`
+> remain unresolved, no target was invented for either, and the batch added none of its own. Both
+> are still explicit publication blockers, so the corpus stays incomplete and runtime-unpublished,
+> the acceptance published, activated and retired **nothing**, and the full-corpus work Decision 5
+> requires remains undischarged.
+
 ### Decision 5 — Exact completeness, not aggregate thresholds
 
 Publication is proven through exact full-corpus accounting and accepted per-record/component obligations.

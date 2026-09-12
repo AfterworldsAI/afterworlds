@@ -1,41 +1,40 @@
-"""The ``areas-of-effect-1`` merge, rebuilt from retained inputs — CRD Issue 5d.
+"""The ``cover-1`` merge, rebuilt from retained inputs — CRD Issue 5d.
 
-``.claude/review-notes/issue-5d-areas-of-effect-1-ACCEPT.py --verify`` claims to
-reproduce the committed artifact rather than to spot-check it. This module is the
+``.claude/review-notes/issue-5d-cover-1-ACCEPT.py --verify`` claims to reproduce
+the committed artifact rather than to spot-check it. This module is the
 regression coverage for that claim, and it is deliberately a **second**
 implementation: it reconstructs the reviewed proposal, re-derives the accepted
 scope and calls ``accept_proposal`` on its own, importing nothing from the ACCEPT
 script. Two independent paths arriving at the same bytes is evidence; one shared
-helper agreeing with itself is not.
+helper agreeing with itself is not. It follows
+``test_areas_of_effect_1_acceptance_reproduction`` clause for clause, because
+the property being covered is the same one.
 
 **Where each input comes from, and why none of them is the artifact.**
 
-* the reviewed proposal — ``issue-5d-batch-areas-of-effect-1-PROPOSAL.json``,
-  the committed bytes the Owner's authorization names by hash;
+* the reviewed proposal — ``issue-5d-batch-cover-1-PROPOSAL.json``, the
+  committed bytes the Owner's authorization names by hash;
 * the accepted scope **in its recorded order** —
-  ``issue-5d-areas-of-effect-1-source-manifest.json``, pinned by digest here and
-  in the generator, walked in file order and turned into span ids through
+  ``issue-5d-cover-1-source-manifest.json``, pinned by digest here and in the
+  generator, walked in file order and turned into span ids through
   ``derive_span_id``. The proposal sorts its spans canonically, so it cannot
   state this order; the artifact retains it verbatim, so reading it back from
   there would make the comparison test nothing;
-* the prior — the frozen four-batch fixture, never the live file.
+* the prior — the frozen five-batch fixture, never the live file. That the live
+  artifact still carries that prior unchanged is asserted in
+  ``test_cover_1_frozen_prior``.
 
-**What the rebuild is compared against.** Not the live committed artifact: the
-Owner accepted ``cover-1`` into it on 2026-09-11, so the live file is this
-merge *plus a sixth batch* and a byte comparison against it would be false.
-The comparison target is the frozen five-batch fixture, which is byte-for-byte
-what this acceptance wrote — Git blob ``467fcc62…``, the live artifact's own
-blob until the sixth acceptance moved it. That the live artifact still carries
-this result unchanged is asserted in ``test_cover_1_frozen_prior``, which is
-where the fixture is attached to the file it was copied from. Retargeting here
-rather than loosening the comparison keeps it a byte comparison.
-
-The one thing taken from the result is the batch's recorded ``rule`` prose.
+The one thing taken from the artifact is the batch's recorded ``rule`` prose.
 That is retained acceptance *evidence* with no second copy in the repository, and
 it is not what these tests are about: the Owner's verbatim authorization is a
 literal below and is asserted to be inside it. Everything the identity covers —
 every span, disposition, component, fact, reference, obligation, anchor and lift
 — is rebuilt.
+
+The comparison target here *is* the live committed artifact, because ``cover-1``
+is the newest acceptance and nothing has extended the file since. The day a
+seventh batch is accepted this comparison moves to a frozen copy of the
+six-batch result, as ``areas-of-effect-1``'s did when this batch landed.
 
 The third test is the one that earns the first. It shows that the merge can
 differ in a way the committed artifact's own pins cannot see: handing
@@ -60,6 +59,7 @@ from afterworlds.ingestion.mechanical.accounting import (
     validate_acceptance,
 )
 from afterworlds.ingestion.mechanical.oracle import (
+    COMMITTED_ORACLE_DIR,
     AcceptedInputs,
     _representation,
     _span,
@@ -78,47 +78,46 @@ from afterworlds.ingestion.mechanical.representation import (
 )
 
 REVIEW_NOTES = pathlib.Path(__file__).resolve().parents[3] / ".claude" / "review-notes"
-PROPOSAL_PATH = REVIEW_NOTES / "issue-5d-batch-areas-of-effect-1-PROPOSAL.json"
-MANIFEST_PATH = REVIEW_NOTES / "issue-5d-areas-of-effect-1-source-manifest.json"
+PROPOSAL_PATH = REVIEW_NOTES / "issue-5d-batch-cover-1-PROPOSAL.json"
+MANIFEST_PATH = REVIEW_NOTES / "issue-5d-cover-1-source-manifest.json"
 FROZEN_PRIOR = (
-    pathlib.Path(__file__).resolve().parent
-    / "data"
-    / "accepted_prior_conditions_1_hazards_1_actions_1_attitudes_1.json"
-)
-#: What this acceptance produced, frozen. See the module docstring: the live
-#: artifact has moved on by one batch, this file has not.
-FROZEN_RESULT = (
     pathlib.Path(__file__).resolve().parent
     / "data"
     / "accepted_prior_conditions_1_hazards_1_actions_1"
     "_attitudes_1_areas_of_effect_1.json"
 )
+#: What this acceptance produced: the live committed artifact, because nothing
+#: has extended it since. See the module docstring.
+FROZEN_RESULT = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
 
-BATCH_ID = "areas-of-effect-1"
+BATCH_ID = "cover-1"
 REVIEWER = "Ravenlok (Owner)"
-ACCEPTED_AT = "2026-09-11T05:30:17Z"
+#: The clock read when the Owner's acceptance was applied, observed rather
+#: than invented; the write window it produced is recorded in
+#: ``issue-5d-cover-1-ACCEPTANCE-CHECKPOINT.md``.
+ACCEPTED_AT = "2026-09-11T17:14:44Z"
 
 #: The Owner's authorization, verbatim, restated here rather than read from the
 #: artifact, so the rule prose the artifact carries is checked against a value
 #: this module holds independently.
 AUTHORIZATION = (
-    "I accept all 43 spans and the complete representation of proposal "
-    "d602f4e59ab90dbb04852661f78f03e2e311025e80be03f39f4b324f2c6d6878 as batch "
-    "areas-of-effect-1, extending the preserved prior through the registered "
-    "schema transitions."
+    "I accept all 28 spans and the complete representation of proposal "
+    "1d8a51164f9be0a1559aba93fb076ee0e8c262dda183791491bc339e3ebfec01 as batch "
+    "cover-1, extending the preserved prior through the registered schema "
+    "transitions."
 )
 
-PROPOSAL_IDENTITY = "d602f4e59ab90dbb04852661f78f03e2e311025e80be03f39f4b324f2c6d6878"  # noqa: E501  # pragma: allowlist secret
+PROPOSAL_IDENTITY = "1d8a51164f9be0a1559aba93fb076ee0e8c262dda183791491bc339e3ebfec01"  # noqa: E501  # pragma: allowlist secret
 
 #: The reviewed inventory's canonical-LF digest, the same value the generator and
 #: the ACCEPT script pin. A manifest that moved would change the recorded order
 #: silently, so it is refused here before the order is used.
-MANIFEST_SHA256 = "5932c353dfd7d67756eeac72876705f5a60c5f2fe8175a7e78fdc0eb8c0d8b9c"  # noqa: E501  # pragma: allowlist secret
+MANIFEST_SHA256 = "f82163ee2fc6b6c1805974e6e7404eca45fd6b48452a64a91f9e6a4f0e0cdcad"  # noqa: E501  # pragma: allowlist secret
 
 #: Derived from the accepted semantic content alone. Acceptance *evidence* —
 #: reviewer, timestamp, rule, resolved scope, anchors and lifts — is deliberately
 #: outside it, which is exactly what the third test exploits.
-MERGED_ORACLE_IDENTITY = "8e08ac48f2a57a4498557990a07270f9abd855b246c1039da68cc9ec82d44b40"  # noqa: E501  # pragma: allowlist secret
+MERGED_ORACLE_IDENTITY = "86cd11c2be330f5962982d8d87dfc1847815710868223257529f30bef8cdb500"  # noqa: E501  # pragma: allowlist secret
 
 
 def _canonical_bytes(path: pathlib.Path) -> bytes:
@@ -254,7 +253,7 @@ def test_the_committed_merge_is_reproducible_from_the_retained_inputs() -> None:
 
     Byte equality, not identity equality: the oracle identity covers accepted
     content only, so an artifact matching it can still differ in the acceptance
-    evidence beside it. This compares the frozen result in full.
+    evidence beside it. This compares the committed file in full.
     """
     rebuilt = _serialize(_merge(_recorded_scope()))
 
@@ -273,7 +272,7 @@ def test_the_recorded_scope_order_is_the_manifests_and_not_the_proposals() -> No
     canonical = _proposal_order_scope()
 
     assert set(recorded) == set(canonical)
-    assert len(recorded) == len(canonical) == 43
+    assert len(recorded) == len(canonical) == 28
     assert recorded != canonical
 
 
@@ -284,8 +283,8 @@ def test_a_difference_the_sampled_properties_miss_is_still_refused() -> None:
     the recorded one is a real difference in the merged file — ``resolved_scope``
     is retained verbatim while everything else is canonicalized — and it is
     invisible to every property a spot-checking verification samples, including
-    the ``oracle_identity`` this result was pinned by. So the sampled surface
-    agrees, the pinned identity agrees, and the bytes do not.
+    the ``oracle_identity`` the committed artifact is pinned by. So the sampled
+    surface agrees, the pinned identity agrees, and the bytes do not.
     """
     recorded = _merge(_recorded_scope())
     reordered = _merge(_proposal_order_scope())

@@ -760,11 +760,11 @@ def test_the_representation_schema_hash_is_untouched() -> None:
     """``ComponentBody`` is patch-layer shape, not representation shape.
 
     The literal has moved with each deliberate representation change — schema 3,
-    schema 7, schema 8, and now schema 9's seven added families. What this test
-    asserts is
+    schema 7, schema 8, schema 9, and now schema 10's five added families.
+    What this test asserts is
     unchanged: the *patch layer* does not participate in representation
     identity, so this canary may only move when the representation itself does.
     """
     assert representation_schema_hash() == (
-        "f5a5e30817e64f019e31aa7f4692d72611215e4294e7da36242e492bca6b336e"  # noqa: E501  # pragma: allowlist secret
+        "c39e3a35e197a1d1db5c2c2b3445ff0cbf03395c91e3426353a4bce589be4be0"  # noqa: E501  # pragma: allowlist secret
     )

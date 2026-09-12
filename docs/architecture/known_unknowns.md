@@ -466,22 +466,48 @@ Sequencing a batch that states `Cover` is ordinary engineering under #137, not a
 nothing in this document anticipates that entry's content. `areas-of-effect-1` has since been accepted,
 which added `glossary.cover` for real rather than in prospect and resolved nothing.
 
-Still outstanding inside CRD Issue 5d: **the accepted corpus is incomplete**. Five batches are
+**Representation schema 10 (the `Cover` entry) narrows nothing here either, and the same is recorded
+rather than left silent.** `Cover` — printed twice in the bound release, 16 leaves, 28 clauses, 16 of
+them substantive — had **no** shape under schema 9, and no reason code in
+`policy.IRREDUCIBILITY_REASONS` is affirmatively true of any of its clauses, so schema 10 adds five
+families over eight closed vocabularies, plus the third member of `CoverDegree`, under #137 contract 3
+and ADR-005d Decision 4; see the schema-10 amendment in
+`docs/decisions/adr-005d-complete-typed-mechanical-authority.md`. It belongs to none of the groups
+above, discharges none of them, and changes no closure standard stated in this document. **No
+spatial-geometry, visibility or line-of-sight Known Unknown is created, narrowed or leaned on.** This
+document holds no entry for cover, visibility, occlusion or line of sight; schema 10 computes no
+geometry and carries no parameter value, unit, coordinate or grid semantic — the boundary being
+runtime computation rather than geometric subject matter — and measuring coverage, deciding which
+side an effect originated on, choosing a degree for a scene and executing an attack all stay
+outside, where #137's Out of scope and ADR-005d Decision 11 leave them. The disposition recorded above — *"Sequencing
+a batch that states `Cover` is ordinary engineering under #137, not an Owner Decision, and nothing in
+this document anticipates that entry's content"* — was followed as written: the entry was measured from
+the bound release rather than anticipated from that sentence, and no Owner Decision was required.
+**`glossary.cover` is not resolved by this change.** A schema can now state the entry; only an accepted
+`cover-1` proposal would define the target, and none exists. The count of unresolved cross-batch
+reference targets below is therefore still three. *(That last sentence has since expired: the Owner
+accepted `cover-1` on 2026-09-11, which defined the target and took the count to two. The rest of
+this paragraph stands as written — it records what the schema change alone did.)*
+
+Still outstanding inside CRD Issue 5d: **the accepted corpus is incomplete**. Six batches are
 accepted. `conditions-1` was reviewed and accepted by the Owner on 2026-08-23, `hazards-1` on
-2026-09-03, `actions-1` on 2026-09-09, `attitudes-1` on 2026-09-10 and `areas-of-effect-1` on
-2026-09-11; all five are committed as accepted authority for the production SRD 5.2.1 release, so that
-release resolves to a committed oracle — but that oracle covers **46 records and 530 spans** (15
-conditions, 5 hazards, 12 actions, 3 attitudes and 6 areas of effect, plus the glossary entry defining
-each list), not the corpus. Three cross-batch reference targets named by accepted content —
-`glossary.concentration`, `glossary.cover` and `glossary.speed` — are still unresolved, and no target
+2026-09-03, `actions-1` on 2026-09-09, `attitudes-1` on 2026-09-10, `areas-of-effect-1` on
+2026-09-11 and `cover-1` later the same day; all six are committed as accepted authority for the
+production SRD 5.2.1 release, so that release resolves to a committed oracle — but that oracle covers
+**47 records and 558 spans** (15 conditions, 5 hazards, 12 actions, 3 attitudes and 6 areas of effect,
+plus the glossary entry defining each list, and the `Cover` glossary rule, which defines no list of
+its own), not the corpus. Two cross-batch reference targets named by accepted content —
+`glossary.concentration` and `glossary.speed` — are still unresolved, and no target
 was invented for them; `attitudes-1` closed three others by accepting the complete source-defined
-Attitude class, and `areas-of-effect-1` closed none while adding `glossary.cover`. Both are
+Attitude class, `areas-of-effect-1` closed none while adding `glossary.cover`, and `cover-1` closed
+that one by defining the entry `areas-of-effect-1` cites. All three are
 consequences of accepting complete source classes rather than reasons for accepting them, and the
 residue moved in both directions rather than only down. The publication path therefore returns
 `INCOMPLETE` for the production projection rather than `ABSENT`, the runtime binding still reports
 `UNPUBLISHED` because no mechanical projection has been published or activated, and later batches
 extend the same release artifact through `accept_proposal`'s `prior=` merge rather than committing a
-second one — as `hazards-1`, `actions-1`, `attitudes-1` and `areas-of-effect-1` each did. The obsolete
+second one — as `hazards-1`, `actions-1`, `attitudes-1`, `areas-of-effect-1` and `cover-1` each did.
+The obsolete
 `MechanicalEntity` path and the legacy
 chunk-targeting prose override path both remain in place pending the final
 activation/legacy-retirement PR.

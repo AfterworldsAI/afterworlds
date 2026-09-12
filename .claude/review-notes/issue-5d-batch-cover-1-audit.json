@@ -1,0 +1,3036 @@
+{
+ "_": "DISPOSABLE REVIEW MATERIAL for CRD Issue 5d batch cover-1. Emitted by issue-5d-batch-cover-1-generator.py. This run accepts nothing, publishes nothing, activates nothing, retires nothing, writes no database and never executes the publication gate. It is material for semantic review.",
+ "proposal_identity": "1d8a51164f9be0a1559aba93fb076ee0e8c262dda183791491bc339e3ebfec01",
+ "proposal_identity_scope": "the identity of THIS PROPOSAL object. It is not the identity of accepted authority, which is unchanged, and it is not a claim that anything was accepted.",
+ "batch_selection": {
+  "batch_id": "cover-1",
+  "chosen_by": "complete source membership",
+  "rule": "there is no tag. Membership is the structural claim the run asserts: exactly two entry containers labeled 'Cover', one beneath 'Rules Definitions' and one beneath 'Combat', and the first directs to the second through its own printed See-also citation. Printing the word 'Cover' is use, not definition, and pulls nothing in.",
+  "membership": {
+   "glossary": {
+    "container_id": "6295e463-969f-597b-b07d-6f9665cf13ed",
+    "container_path": "Rules Glossary > Rules Definitions > Cover",
+    "page_index": [
+     178
+    ],
+    "leaves": 4
+   },
+   "combat": {
+    "container_id": "e973a828-0b83-547b-979c-f93dc7fa5888",
+    "container_path": "Playing the Game > Combat > Cover",
+    "page_index": [
+     14
+    ],
+    "leaves": 12
+   }
+  },
+  "printed_join": {
+   "from_site": "glossary",
+   "see_also_leaf_id": "08f63b16-ed84-5291-a12b-bc798334914c",
+   "citation_leaf_id": "297ec10b-13dd-5dc8-ba15-259b637a9ac6",
+   "citation_text": "“Playing the Game” (“Combat”).",
+   "names_section": "Playing the Game",
+   "names_subsection": "Combat",
+   "to_site": "combat",
+   "note": "the two sites are one population because the source joins them, not because a reader judges them related. This is the printed join, re-derived rather than recalled."
+  },
+  "record": "glossary.cover",
+  "composite": "#137 contract 3's composite case and ADR-005d Decision 3 read literally: a 5c ENTRY is structural evidence, not universal semantic authority, so two entries can state one mechanical entity. This is the first record in this build whose authority is drawn from two chapters.",
+  "what_this_is_not": "the corpus #137 governs. This is ONE record of the Rules Glossary plus its governing section. The full-corpus obligation is untouched and undischarged, and no count in this artifact is evidence about it."
+ },
+ "representation_schema": {
+  "version": "5d-representation-schema-10",
+  "hash": "c39e3a35e197a1d1db5c2c2b3445ff0cbf03395c91e3426353a4bce589be4be0"
+ },
+ "schema_extension": {
+  "extends_the_schema": true,
+  "from_schema": "5d-representation-schema-9",
+  "to_schema": "5d-representation-schema-10",
+  "new_fact_families": [
+   "cover_benefit_origin",
+   "cover_defensive_bonus",
+   "cover_degree_selection",
+   "cover_provision",
+   "cover_targeting_prohibition"
+  ],
+  "new_vocabularies": {
+   "count": 8,
+   "members": [
+    [
+     "an_attack_or_other_effect"
+    ],
+    [
+     "an_object",
+     "another_creature_or_an_object"
+    ],
+    [
+     "armor_class"
+    ],
+    [
+     "at_least_half",
+     "at_least_three_quarters",
+     "whole_target"
+    ],
+    [
+     "direct_targeting"
+    ],
+    [
+     "most_protective"
+    ],
+    [
+     "not_added_together"
+    ],
+    [
+     "opposite_side_of_the_cover"
+    ]
+   ]
+  },
+  "accepted_vocabulary_widened": {
+   "CoverDegree": [
+    "half",
+    "three_quarters",
+    "total"
+   ],
+   "members_added_here": [
+    "half"
+   ],
+   "why": "CoverDegree is schema 6's, minted from Hide (p183), and carried THREE_QUARTERS and TOTAL only - its own docstring said Half Cover 'is outside this batch's cut and is admitted by the batch that states it'. This is that batch. representation_schema_payload emits vocabularies by their sorted admitted values, so this one member moves the schema hash by itself, independent of the five new families."
+  },
+  "intrinsic_invariants_declared": [],
+  "accepted_families_changed": [],
+  "registered_transitions_touched": [
+   "5d-lift-schema-9-to-10"
+  ],
+  "note": "Five families over eight new closed vocabularies plus one member added to an accepted one, one family per gap in the discovery checkpoint's section 4 except that G1 is the widening rather than a family and G2 and G3 are two families because the two benefits are different kinds of thing: a bonus has a number and Total Cover's benefit is a prohibition. No field is added to, made required on, or made nullable on any accepted family and no ownership form changes, which is what makes the crossing a re-declaration rather than a rewrite.",
+  "no_runtime_geometry": "Nothing here computes geometry. CoverageThreshold names the printed threshold - 'at least half', 'at least three-quarters', 'the whole target' - as closed members a hand-authored adapter interprets. Measuring how much of a target an obstacle covers, deciding which side an effect originated on, and choosing a degree for a scene are all runtime computation and are outside 5d. The excluded work is the computation, not the subject matter.",
+  "no_rank_over_the_degrees": "'most protective' is the printed selection rule and no order over the three degrees is printed, recorded or implied. A rank field would be stating something the page does not."
+ },
+ "semantic_policy": {
+  "version": "5d-semantic-policy-1",
+  "hash": "e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454"
+ },
+ "release_binding": {
+  "package_uuid": "4458fa10-4a66-5e0e-9ecc-ea37530ad2b4",
+  "release_version": "5.2.1-corpus.36b786d8-fa2",
+  "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+  "transform_config_hash": "77720c2f3b8c9b88363d48050466fb8e3a26f8476b63145d1b5928ff2581ef3e",
+  "bundle_root_hash": "03353dfb79790aee7260b9ed96055b7296cd6f70e3e6f97d6cbe0a2484279685",
+  "persisted_corpus_digest": "c1f547962b7d9096986f0b8e75624f9f8803dfc281c16033e1c2250cad5a929b",
+  "parts": 6,
+  "read_through": "projection.release_binding_payload - the canonical payload of ReleaseBinding, which is what every downstream identity is computed over",
+  "verified_at_the_seam": "projection.validate_candidate, run over the merged candidate. It is the repository's own check that the binding, the classification ledger and the bound corpus snapshot all name one release - two of three agreeing is not agreement. Its binding-class findings are empty.",
+  "binding_class_findings": [],
+  "all_candidate_findings_by_class": {
+   "release_binding_disagreement": {
+    "count": 0,
+    "example": null,
+    "meaning": "the binding, the classification ledger and the bound corpus snapshot all name one release; the ledger declares the semantic policy this build uses; the candidate declares the representation schema and hash this build implements. Matched by the literal prefixes the three validators emit. This is the class this run has to be clean at, and it is."
+   },
+   "corpus_leaf_not_yet_classified": {
+    "count": 27788,
+    "example": "leaf 0002cdcd-3442-51f6-95ec-e8b9a7e254d6: no semantic spans",
+    "meaning": "one per leaf of the bound release that no accepted or proposed span covers. This is the full-corpus obligation #137 governs, reported honestly: the five accepted batches plus this proposal cover 321 leaves of the 28109-leaf release and the rest are undischarged. It is not a defect of this proposal and this proposal does not reduce it beyond its own sixteen leaves."
+   },
+   "inherited_unresolved_reference": {
+    "count": 2,
+    "example": "reference srd-5.2.1/rules-glossary:'Speed': unknown target record glossary.speed",
+    "meaning": "exactly the two the merged representation gate reports, inherited from the accepted prior: glossary.concentration and glossary.speed. Asserted equal to that list rather than merely counted, so a third could not hide here."
+   },
+   "span_not_accepted": {
+    "count": 28,
+    "example": "span 0b2c4764-1011-5453-bf61-7d224173ee13: no acceptance record",
+    "meaning": "exactly this batch's twenty-eight proposed spans, by span id and not merely by count. The merged ledger carries the accepted prior's batches and acceptance records, so its 530 accepted spans clear this check and only the machine rows proposed here do not - which is the correct reading of a proposal: it is unaccepted because acceptance has not happened, and clearing it is the Owner's act, not this run's."
+   }
+  },
+  "other_candidate_findings_note": "reported, not filtered. validate_candidate also enforces the explicit-acceptance rule, and nothing in this batch is accepted - every span is PROPOSED - so those findings are the correct result for a proposal and would be cleared by an acceptance that has not happened.",
+  "source_rederivation": {
+   "rederived_from_the_committed_pdf_in_this_process": [
+    "authoritative_source_hash",
+    "bundle_root_hash",
+    "package_uuid",
+    "release_version",
+    "transform_config_hash"
+   ],
+   "disclosed_from_the_published_5c_release_record": [
+    "persisted_corpus_digest"
+   ],
+   "why_the_sixth_is_disclosed": "persisted_corpus_digest is a function of the persisted rp_sources rows and the read-back vector state. Recomputing it needs a session over that persisted state (persistence.recompute_persisted_digest); verifying a published release against declared values is operational.load_verified_operational_corpus, the narrower downstream seam. Neither requires a publish, and this run performs neither, so the value is carried from the 5c release record and disclosed."
+  },
+  "operational_database_evidence": {
+   "performed_by_this_run": [],
+   "note": "NONE. This run opens no session, reads no rp_sources row, queries no vector store and persists nothing. The five re-derived values are source rederivation from the committed PDF; the sixth is a disclosed carry. No claim in this artifact rests on operational database evidence."
+  }
+ },
+ "boundary": {
+  "derived_from": "the two entry containers the bound release labels 'Cover', one beneath 'Rules Definitions' and one beneath 'Combat'",
+  "printed_pages": [
+   15,
+   179
+  ],
+  "page_index_note": "printed_page is page_index + 1: the glossary site is page index 178 / printed p179, the Combat site page index 14 / printed p15",
+  "policy_exclusions": [],
+  "excluded_leaves_that_print_the_word": {
+   "count": 30,
+   "by_section": {
+    "Animals": 2,
+    "Classes": 4,
+    "Magic Items": 6,
+    "Monsters A–Z": 6,
+    "Playing the Game": 1,
+    "Rules Glossary": 4,
+    "Spells": 7
+   },
+   "without_the_standalone_word": [
+    "Darkness",
+    "Daylight",
+    "Light"
+   ],
+   "lowercase_only_leaf_count": 43,
+   "rederived_and_checked_against_the_manifest": true,
+   "note": "each of these uses Cover while stating some other rule, or restates a Cover rule from outside a Cover entry - leaf 7322a0d0-afaf-5df9-97f6-a0e428c81097 (Spells > Casting Spells > Targets) states the spell-targeting rule that a caster needs a clear path, so the target cannot be behind Total Cover. Membership here is the reviewed structural rule - the container labelled Cover - so these leaves stay outside this reviewed population."
+  },
+  "canaries": {
+   "records": {
+    "derived": 1,
+    "expected": 1
+   },
+   "source_sites": {
+    "derived": 2,
+    "expected": 2
+   },
+   "represented_leaves": {
+    "derived": 16,
+    "expected": 16
+   },
+   "policy_exclusions": {
+    "derived": 0,
+    "expected": 0
+   },
+   "container_leaves": {
+    "derived": 16,
+    "expected": 16
+   },
+   "clauses": {
+    "derived": 28,
+    "expected": 28
+   },
+   "substantive_clauses": {
+    "derived": 16,
+    "expected": 16
+   },
+   "components": {
+    "derived": 4,
+    "expected": 4
+   },
+   "facts": {
+    "derived": 8,
+    "expected": 8
+   },
+   "boundary_leaves_excluded": {
+    "derived": 30,
+    "expected": 30
+   }
+  },
+  "extraction_artifacts_carried_verbatim": {
+   "degree_label_as_extracted": "ThreeQuarters",
+   "degree_label_as_printed": "Three-Quarters",
+   "table_caption_absorbed_into_the_prose_leaf": " Cover",
+   "note": "properties of the frozen 5c release, carried verbatim rather than repaired. The committed table inventory independently records the same fragmentation. No source-corpus change is proposed or made here."
+  },
+  "no_grid_language_in_the_source": "the population prints no 'square', 'grid', 'battle map' or 'token', so no grid semantic is represented. Recorded here as a boundary of the source, not a decision of this run."
+ },
+ "source_inventory": {
+  "manifest": ".claude/review-notes/issue-5d-cover-1-source-manifest.json",
+  "manifest_sha256": "f82163ee2fc6b6c1805974e6e7404eca45fd6b48452a64a91f9e6a4f0e0cdcad",
+  "generated_by": "issue-5d-cover-1-discovery.py",
+  "carries_dispositions": false,
+  "carries_a_record_assignment": false,
+  "leaves": 16,
+  "clauses": 28,
+  "tie_to_the_bound_source": "every reviewed leaf id exists in the corpus this run just built from the PDF and holds byte-identical content; the reviewed clause extents partition each of the sixteen leaves end to end, starting at 0 and stopping at the leaf's length, and the concatenation reconstructs the leaf byte for byte. The manifest supplies the reviewed coordinates; the PDF supplies the content."
+ },
+ "counts": {
+  "records": 1,
+  "source_sites": 2,
+  "represented_leaves": 16,
+  "policy_exclusions": 0,
+  "clauses": 28,
+  "spans": 28,
+  "substantive": 16,
+  "supporting_authority": 12,
+  "non_mechanical": 0,
+  "unresolved": 0,
+  "components": 4,
+  "components_structured": 4,
+  "components_mixed": 0,
+  "components_prose_bound": 0,
+  "facts": 8,
+  "fact_families_used": 5,
+  "facts_printed_at_both_sites": 4,
+  "prose_bindings": 0,
+  "references": 0,
+  "relationships": 0,
+  "provenance_edges": 28,
+  "obligations": 28
+ },
+ "count_derivation": {
+  "records": "one. The two printed sites are one composite glossary.cover record, not two: accepted authority already cites glossary.cover by name, the three degrees are untagged table rows with no entry of their own, and CoverDegree is already consumed as a vocabulary by two accepted facts",
+  "represented_leaves": "distinct leaf ids the spans cover; all 16 of the two containers' 16 leaves, because this boundary has no policy exclusion",
+  "clauses": "the reviewed inventory's partition cells, read from the committed discovery manifest and re-proved gap-free against the bound leaves",
+  "spans": "one per printed clause, at the clause's exact reviewed extent",
+  "facts": "8 over 16 substantive clauses: four rules are printed at both sites and are represented once each with PRIMARY provenance from both, and the three provision rows each take their degree label and their Offered By cell",
+  "components": "four, all STRUCTURED: one per column of the printed table (degree_benefit, degree_provision) and one per qualifying rule the prose adds (benefit_origin, degree_selection). Grouping the degrees is what gives the closure sentence a component to claim",
+  "references": "none. The population prints one citation and it names a chapter, not a record - and it points at this record's own second site. No scope_key decision arises",
+  "prose_bindings": "none. No clause in this population matches one of the six closed irreducibility reasons, so binding any of them would record a vocabulary gap as an irreducibility",
+  "provenance_edges": "one per clause: 8 record-scope CONTEXTUAL, 1 component-scope PRIMARY (the closure statement), 3 component-scope CONTEXTUAL, 15 fact-scope PRIMARY and 1 fact-scope CONTEXTUAL",
+  "unresolved": "none. Schema 10 carries all sixteen substantive clauses, so no span is emitted UNRESOLVED"
+ },
+ "provenance_shapes": {
+  "component/contextual": 3,
+  "component/primary": 1,
+  "fact/contextual": 1,
+  "fact/primary": 15,
+  "record/contextual": 8
+ },
+ "record_shapes": {
+  "glossary.cover": {
+   "kind": "glossary_rule",
+   "components": [
+    "degree_benefit",
+    "degree_provision",
+    "benefit_origin",
+    "degree_selection"
+   ],
+   "facts": {
+    "degree_benefit": [
+     "cover_defensive_bonus",
+     "cover_defensive_bonus",
+     "cover_targeting_prohibition"
+    ],
+    "degree_provision": [
+     "cover_provision",
+     "cover_provision",
+     "cover_provision"
+    ],
+    "benefit_origin": [
+     "cover_benefit_origin"
+    ],
+    "degree_selection": [
+     "cover_degree_selection"
+    ]
+   },
+   "prose_bindings": 0,
+   "references": 0,
+   "relationships": 0
+  }
+ },
+ "shared_provenance": {
+  "half_benefit": {
+   "component": "degree_benefit",
+   "family": "cover_defensive_bonus",
+   "fact_key": "5e4d96e1a9adde6f",
+   "clauses": [
+    "glossary/1/2",
+    "combat/6/0"
+   ],
+   "sites": [
+    "combat",
+    "glossary"
+   ],
+   "printed_twice": true,
+   "text": [
+    " Half Cover (+2 bonus to AC and Dexterity saving throws),",
+    "+2 bonus to AC and Dexterity saving throws"
+   ]
+  },
+  "three_quarters_benefit": {
+   "component": "degree_benefit",
+   "family": "cover_defensive_bonus",
+   "fact_key": "4f1d7ffb18cfd8db",
+   "clauses": [
+    "glossary/1/3",
+    "combat/8/0"
+   ],
+   "sites": [
+    "combat",
+    "glossary"
+   ],
+   "printed_twice": true,
+   "text": [
+    " Three-Quarters Cover (+5 bonus to AC and Dexterity saving throws),",
+    "+5 bonus to AC and Dexterity saving throws"
+   ]
+  },
+  "total_prohibition": {
+   "component": "degree_benefit",
+   "family": "cover_targeting_prohibition",
+   "fact_key": "cffc77a875a205b1",
+   "clauses": [
+    "glossary/1/4",
+    "combat/11/0"
+   ],
+   "sites": [
+    "combat",
+    "glossary"
+   ],
+   "printed_twice": true,
+   "text": [
+    " and Total Cover (can’t be targeted directly).",
+    "Can’t be targeted directly"
+   ]
+  },
+  "half_provision": {
+   "component": "degree_provision",
+   "family": "cover_provision",
+   "fact_key": "8dc446c1f3c25c6d",
+   "clauses": [
+    "combat/5/0",
+    "combat/6/1"
+   ],
+   "sites": [
+    "combat"
+   ],
+   "printed_twice": true,
+   "text": [
+    "Half",
+    " Another creature or an object that covers at least half of the target"
+   ]
+  },
+  "three_quarters_provision": {
+   "component": "degree_provision",
+   "family": "cover_provision",
+   "fact_key": "7e04f20a16cf38cb",
+   "clauses": [
+    "combat/7/0",
+    "combat/9/0"
+   ],
+   "sites": [
+    "combat"
+   ],
+   "printed_twice": true,
+   "text": [
+    "ThreeQuarters",
+    "An object that covers at least three-quarters of the target"
+   ]
+  },
+  "total_provision": {
+   "component": "degree_provision",
+   "family": "cover_provision",
+   "fact_key": "4f5751578c4ff530",
+   "clauses": [
+    "combat/10/0",
+    "combat/11/1"
+   ],
+   "sites": [
+    "combat"
+   ],
+   "printed_twice": true,
+   "text": [
+    "Total",
+    " An object that covers the whole target"
+   ]
+  },
+  "opposite_side": {
+   "component": "benefit_origin",
+   "family": "cover_benefit_origin",
+   "fact_key": "898451fe1d6958e6",
+   "clauses": [
+    "combat/1/2"
+   ],
+   "sites": [
+    "combat"
+   ],
+   "printed_twice": false,
+   "text": [
+    " A target can benefit from cover only when an attack or other effect originates on the opposite side of the cover."
+   ]
+  },
+  "most_protective": {
+   "component": "degree_selection",
+   "family": "cover_degree_selection",
+   "fact_key": "1fbedb4352b952b7",
+   "clauses": [
+    "glossary/1/5",
+    "combat/1/3"
+   ],
+   "sites": [
+    "combat",
+    "glossary"
+   ],
+   "printed_twice": true,
+   "text": [
+    " If behind more than one degree of cover, a target benefits only from the most protective degree.",
+    " If a target is behind multiple sources of cover, only the most protective degree of cover applies; the degrees aren’t added together."
+   ]
+  }
+ },
+ "shared_provenance_note": "Four rules are printed at both sites and are represented ONCE each, with PRIMARY provenance from both sites' spans, because that is what the source did: it printed one rule twice. Provenance is per span, so several spans claiming one target is the ordinary shape. No validator forces this: validation.py:159 rejects two equal-keyed facts inside one component, and _validate_duplicated_fact_authority (validation.py:652) rejects sibling components holding an equivalent fact drawn from the SAME substantive span, so two components each holding a copy taken from the two distinct printings would pass both. One fact is chosen because both sites state one rule, and publishing two copies would be two claims where the source made one. Where the second printing DEFERS rather than states ('As detailed in the Cover table') it is supporting authority linked to what it defers to.",
+ "validation": {
+  "seams_reporting_findings": {
+   "build-time draft shape (representation_draft_violations)": 0,
+   "held authority shape (held_structure_violations)": 0,
+   "declared meaning under this schema (declared_meaning_violations)": 0,
+   "component rules (damage + roll outcome + option sets)": 0,
+   "representation gate, standalone (validate_representation)": 0,
+   "representation gate, merged with the lifted five-batch prior": 2,
+   "committed-loader round trip (representation_payload -> _representation)": 0,
+   "partition accounting (validate_partition)": 0,
+   "reason codes (validate_reason_codes)": 0,
+   "binding agreement (validate_candidate, binding class)": 0
+  },
+  "expected_nonzero": {
+   "representation gate, merged with the lifted five-batch prior": 2
+  },
+  "wire_round_trip": true,
+  "partition": [],
+  "reason_codes": [],
+  "structural": [],
+  "component_rules": [],
+  "declared_meaning": [],
+  "standalone_findings": [],
+  "merged_findings": [
+   "reference srd-5.2.1/rules-glossary:'Speed': unknown target record glossary.speed",
+   "reference srd-5.2.1/rules-glossary:'Concentration': unknown target record glossary.concentration"
+  ],
+  "candidate_findings_binding_class": [],
+  "candidate_findings_by_class": {
+   "release_binding_disagreement": {
+    "count": 0,
+    "example": null,
+    "meaning": "the binding, the classification ledger and the bound corpus snapshot all name one release; the ledger declares the semantic policy this build uses; the candidate declares the representation schema and hash this build implements. Matched by the literal prefixes the three validators emit. This is the class this run has to be clean at, and it is."
+   },
+   "corpus_leaf_not_yet_classified": {
+    "count": 27788,
+    "example": "leaf 0002cdcd-3442-51f6-95ec-e8b9a7e254d6: no semantic spans",
+    "meaning": "one per leaf of the bound release that no accepted or proposed span covers. This is the full-corpus obligation #137 governs, reported honestly: the five accepted batches plus this proposal cover 321 leaves of the 28109-leaf release and the rest are undischarged. It is not a defect of this proposal and this proposal does not reduce it beyond its own sixteen leaves."
+   },
+   "inherited_unresolved_reference": {
+    "count": 2,
+    "example": "reference srd-5.2.1/rules-glossary:'Speed': unknown target record glossary.speed",
+    "meaning": "exactly the two the merged representation gate reports, inherited from the accepted prior: glossary.concentration and glossary.speed. Asserted equal to that list rather than merely counted, so a third could not hide here."
+   },
+   "span_not_accepted": {
+    "count": 28,
+    "example": "span 0b2c4764-1011-5453-bf61-7d224173ee13: no acceptance record",
+    "meaning": "exactly this batch's twenty-eight proposed spans, by span id and not merely by count. The merged ledger carries the accepted prior's batches and acceptance records, so its 530 accepted spans clear this check and only the machine rows proposed here do not - which is the correct reading of a proposal: it is unaccepted because acceptance has not happened, and clearing it is the Owner's act, not this run's."
+   }
+  },
+  "candidate_findings_note": "27818 findings, every one of them in one of three classes, all of them the correct result for a proposal of one record: leaves of the release no batch has classified yet, spans no acceptance has accepted, and the two unresolved reference targets inherited from the accepted prior. They are counted and classed rather than listed, with one example each, because a full dump would be tens of megabytes of the same two sentences. Nothing is filtered: the class tally sums to the total and the 'other' class is asserted empty.",
+  "what_zero_would_not_prove": "these judge shape, not fidelity. Standalone this batch is clean, which proves only that it cites nothing it does not define; the two merged findings are inherited from the accepted prior and are named exactly."
+ },
+ "classification_partitions": {
+  "08f63b16-ed84-5291-a12b-bc798334914c": {
+   "record": "glossary.cover",
+   "site": "glossary",
+   "printed_page": 179,
+   "content": "See also",
+   "cells": [
+    {
+     "range": [
+      0,
+      8
+     ],
+     "text": "See also",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "0b5a0f13-fc6f-5785-9589-d5e6cd92b92f": {
+   "record": "glossary.cover",
+   "site": "combat",
+   "printed_page": 15,
+   "content": "+2 bonus to AC and Dexterity saving throws Another creature or an object that covers at least half of the target",
+   "cells": [
+    {
+     "range": [
+      0,
+      42
+     ],
+     "text": "+2 bonus to AC and Dexterity saving throws",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      42,
+      112
+     ],
+     "text": " Another creature or an object that covers at least half of the target",
+     "disposition": "substantive"
+    }
+   ]
+  },
+  "165e6e6c-71b8-5cae-9f46-19eae31b81a5": {
+   "record": "glossary.cover",
+   "site": "combat",
+   "printed_page": 15,
+   "content": "Total",
+   "cells": [
+    {
+     "range": [
+      0,
+      5
+     ],
+     "text": "Total",
+     "disposition": "substantive"
+    }
+   ]
+  },
+  "21bff720-ab3f-5f40-aac9-7e3bf8662a1a": {
+   "record": "glossary.cover",
+   "site": "combat",
+   "printed_page": 15,
+   "content": "Half",
+   "cells": [
+    {
+     "range": [
+      0,
+      4
+     ],
+     "text": "Half",
+     "disposition": "substantive"
+    }
+   ]
+  },
+  "297ec10b-13dd-5dc8-ba15-259b637a9ac6": {
+   "record": "glossary.cover",
+   "site": "glossary",
+   "printed_page": 179,
+   "content": "“Playing the Game” (“Combat”).",
+   "cells": [
+    {
+     "range": [
+      0,
+      30
+     ],
+     "text": "“Playing the Game” (“Combat”).",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "3d1bf5fb-4437-5c9a-95de-179f0a5247f8": {
+   "record": "glossary.cover",
+   "site": "combat",
+   "printed_page": 15,
+   "content": "An object that covers at least three-quarters of the target",
+   "cells": [
+    {
+     "range": [
+      0,
+      59
+     ],
+     "text": "An object that covers at least three-quarters of the target",
+     "disposition": "substantive"
+    }
+   ]
+  },
+  "4d39043d-cdb6-5302-95b9-eeb21ee629a7": {
+   "record": "glossary.cover",
+   "site": "glossary",
+   "printed_page": 179,
+   "content": "Cover",
+   "cells": [
+    {
+     "range": [
+      0,
+      5
+     ],
+     "text": "Cover",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "75c546c7-bba1-5cae-8d15-a10fc8ec8d46": {
+   "record": "glossary.cover",
+   "site": "combat",
+   "printed_page": 15,
+   "content": "Benefit to Target",
+   "cells": [
+    {
+     "range": [
+      0,
+      17
+     ],
+     "text": "Benefit to Target",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "77f2f462-86ae-5841-a724-a36be4e7dee4": {
+   "record": "glossary.cover",
+   "site": "glossary",
+   "printed_page": 179,
+   "content": "Cover provides a degree of protection to a target behind it. There are three degrees of cover, each of which provides a different benefit to a target: Half Cover (+2 bonus to AC and Dexterity saving throws), Three-Quarters Cover (+5 bonus to AC and Dexterity saving throws), and Total Cover (can’t be targeted directly). If behind more than one degree of cover, a target benefits only from the most protective degree.",
+   "cells": [
+    {
+     "range": [
+      0,
+      60
+     ],
+     "text": "Cover provides a degree of protection to a target behind it.",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      60,
+      150
+     ],
+     "text": " There are three degrees of cover, each of which provides a different benefit to a target:",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      150,
+      207
+     ],
+     "text": " Half Cover (+2 bonus to AC and Dexterity saving throws),",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      207,
+      274
+     ],
+     "text": " Three-Quarters Cover (+5 bonus to AC and Dexterity saving throws),",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      274,
+      320
+     ],
+     "text": " and Total Cover (can’t be targeted directly).",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      320,
+      417
+     ],
+     "text": " If behind more than one degree of cover, a target benefits only from the most protective degree.",
+     "disposition": "substantive"
+    }
+   ]
+  },
+  "7e6312ab-c1b9-59ff-b46e-ca02d9656f42": {
+   "record": "glossary.cover",
+   "site": "combat",
+   "printed_page": 15,
+   "content": "+5 bonus to AC and Dexterity saving throws",
+   "cells": [
+    {
+     "range": [
+      0,
+      42
+     ],
+     "text": "+5 bonus to AC and Dexterity saving throws",
+     "disposition": "substantive"
+    }
+   ]
+  },
+  "9dbd5ece-558c-52d4-89d1-c10b98af25c4": {
+   "record": "glossary.cover",
+   "site": "combat",
+   "printed_page": 15,
+   "content": "Cover",
+   "cells": [
+    {
+     "range": [
+      0,
+      5
+     ],
+     "text": "Cover",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "ac18c3da-d741-5f11-9ec6-c608da46dfb1": {
+   "record": "glossary.cover",
+   "site": "combat",
+   "printed_page": 15,
+   "content": "Walls, trees, creatures, and other obstacles can provide cover, making a target more difficult to harm. As detailed in the Cover table, there are three degrees of cover, each of which gives a different benefit to a target. A target can benefit from cover only when an attack or other effect originates on the opposite side of the cover. If a target is behind multiple sources of cover, only the most protective degree of cover applies; the degrees aren’t added together. For example, if a target is behind a creature that gives Half Cover and a tree trunk that gives Three-Quarters Cover, the target has Three-Quarters Cover. Cover",
+   "cells": [
+    {
+     "range": [
+      0,
+      103
+     ],
+     "text": "Walls, trees, creatures, and other obstacles can provide cover, making a target more difficult to harm.",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      103,
+      222
+     ],
+     "text": " As detailed in the Cover table, there are three degrees of cover, each of which gives a different benefit to a target.",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      222,
+      336
+     ],
+     "text": " A target can benefit from cover only when an attack or other effect originates on the opposite side of the cover.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      336,
+      470
+     ],
+     "text": " If a target is behind multiple sources of cover, only the most protective degree of cover applies; the degrees aren’t added together.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      470,
+      625
+     ],
+     "text": " For example, if a target is behind a creature that gives Half Cover and a tree trunk that gives Three-Quarters Cover, the target has Three-Quarters Cover.",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      625,
+      631
+     ],
+     "text": " Cover",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "ae0d54f5-fd31-5abc-b025-442b4ffb4e22": {
+   "record": "glossary.cover",
+   "site": "combat",
+   "printed_page": 15,
+   "content": "Can’t be targeted directly An object that covers the whole target",
+   "cells": [
+    {
+     "range": [
+      0,
+      26
+     ],
+     "text": "Can’t be targeted directly",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      26,
+      65
+     ],
+     "text": " An object that covers the whole target",
+     "disposition": "substantive"
+    }
+   ]
+  },
+  "d194524d-267f-5a1a-b0f6-63aee3f6c71c": {
+   "record": "glossary.cover",
+   "site": "combat",
+   "printed_page": 15,
+   "content": "Degree",
+   "cells": [
+    {
+     "range": [
+      0,
+      6
+     ],
+     "text": "Degree",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "ea44211d-9fa6-597e-ad6b-14e758c85f3c": {
+   "record": "glossary.cover",
+   "site": "combat",
+   "printed_page": 15,
+   "content": "ThreeQuarters",
+   "cells": [
+    {
+     "range": [
+      0,
+      13
+     ],
+     "text": "ThreeQuarters",
+     "disposition": "substantive"
+    }
+   ]
+  },
+  "f4d2934b-e115-55c5-a164-40402fea240d": {
+   "record": "glossary.cover",
+   "site": "combat",
+   "printed_page": 15,
+   "content": "Offered By …",
+   "cells": [
+    {
+     "range": [
+      0,
+      12
+     ],
+     "text": "Offered By …",
+     "disposition": "supporting_authority"
+    }
+   ]
+  }
+ },
+ "reference_scope": {
+  "references_emitted": 0,
+  "why_zero": "the population prints exactly one citation - glossary/3/0, '\"Playing the Game\" (\"Combat\").' - and it names a CHAPTER, not a record. Every one of the prior's 53 references targets a record key and there is no record for a chapter. It is also this record's own second site, so a reference would be self-directed even if a target existed. The honest shape is record-owned supporting authority, which is what glossary/3/0 gets.",
+  "scope_key_decision": "none arises. scope_key lives only on references and this batch emits none, so this batch proposes no second scope. Whether a future non-glossary batch needs one is left open and untouched.",
+  "outbound_citations": [],
+  "inbound_citations": [
+   {
+    "from_record_key": "glossary.area_of_effect",
+    "from_component_key": "",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Cover",
+    "target_record_key": "glossary.cover"
+   }
+  ],
+  "standalone": {
+   "findings": 0,
+   "note": "zero. The draft cites nothing, so there is no unresolved target for a standalone validation to report."
+  },
+  "combined": {
+   "findings": 2,
+   "unresolved_targets_before": [
+    "glossary.concentration",
+    "glossary.cover",
+    "glossary.speed"
+   ],
+   "unresolved_targets_after": [
+    "glossary.concentration",
+    "glossary.speed"
+   ],
+   "resolved_by_this_batch": [
+    "glossary.cover"
+   ],
+   "resolving_citation": {
+    "from_record_key": "glossary.area_of_effect",
+    "from_component_key": "",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Cover",
+    "target_record_key": "glossary.cover"
+   }
+  },
+  "resolution_scope": "The Cover citation resolves in the MERGED CANDIDATE this run builds in memory - the lifted five-batch prior plus this proposal. It does NOT mean current accepted authority has changed: accepted authority is the frozen prior, it still carries three unresolved targets, nothing here is accepted, and the resolution becomes a property of accepted authority only at an acceptance that has not happened.",
+  "publishable_alone": false,
+  "validator_findings": {
+   "standalone": {
+    "findings": 0,
+    "distinct_targets": [],
+    "citations_per_target": {},
+    "exact": []
+   },
+   "merged": {
+    "findings": 2,
+    "distinct_targets": [
+     "glossary.concentration",
+     "glossary.speed"
+    ],
+    "citations_per_target": {
+     "glossary.concentration": 1,
+     "glossary.speed": 1
+    },
+    "exact": [
+     "reference srd-5.2.1/rules-glossary:'Concentration': unknown target record glossary.concentration",
+     "reference srd-5.2.1/rules-glossary:'Speed': unknown target record glossary.speed"
+    ]
+   }
+  },
+  "merged_findings_exact": [
+   "reference srd-5.2.1/rules-glossary:'Concentration': unknown target record glossary.concentration",
+   "reference srd-5.2.1/rules-glossary:'Speed': unknown target record glossary.speed"
+  ]
+ },
+ "schema_stops": [],
+ "schema_stops_note": "none open. The six gaps the discovery checkpoint found are all closed by schema 10, every one of them witnessed by at least one clause in this batch, and no span is emitted UNRESOLVED.",
+ "gaps_closed": [
+  "G1",
+  "G2",
+  "G3",
+  "G4",
+  "G5",
+  "G6"
+ ],
+ "gap_witnesses": {
+  "G1": [
+   "combat/5/0",
+   "glossary/1/1",
+   "glossary/1/2"
+  ],
+  "G2": [
+   "combat/6/0",
+   "combat/8/0",
+   "glossary/1/2",
+   "glossary/1/3"
+  ],
+  "G3": [
+   "combat/11/0",
+   "glossary/1/4"
+  ],
+  "G4": [
+   "combat/11/1",
+   "combat/6/1",
+   "combat/9/0"
+  ],
+  "G5": [
+   "combat/1/2"
+  ],
+  "G6": [
+   "combat/1/3",
+   "glossary/1/5"
+  ]
+ },
+ "irreducibility_catalog_disposition": {
+  "contextual_applicability": "false of all sixteen: each states its rule outright. The one printed condition - a benefit applies only against something originating on the opposite side - is a closed printed term carried by a field of the fact, not applicability prose the projection cannot enumerate.",
+  "subjective_judgment": "false: nothing is left to anyone's assessment. 'at least half', 'at least three-quarters' and 'the whole' are exact printed thresholds, and 'most protective' is a printed selection rule.",
+  "open_ended_effect": "false: every effect here is closed. 'Walls, trees, creatures, and other obstacles' is inline exemplification in a supporting-authority clause and is deliberately NOT read as an obstacle vocabulary.",
+  "gamemaster_latitude": "false: the source delegates nothing here. Every degree, benefit, offeror and threshold is printed.",
+  "natural_language_exception": "false: these are the rules, not exceptions carved out of one. The no-adding clause is the same rule stated negatively, carried by a required field beside the selection rather than as prose.",
+  "fiction_dependent_consequence": "false: each consequence is mechanical and stated. Measuring how much of a target an obstacle covers, deciding which side an effect came from, and choosing a degree for a scene are adapter and adjudication work the record never claims to do.",
+  "conclusion": "none of the six closed reasons is affirmatively true of any of the sixteen substantive clauses, so this batch emits ZERO prose bindings. That is a positive claim, not an omission: binding one anyway would record a vocabulary gap as an irreducibility, which is exactly the misfiling the closed catalog exists to prevent."
+ },
+ "typed_prose_dispositions": {
+  "typed": [
+   {
+    "record": "glossary.cover",
+    "component": "degree_benefit",
+    "family": "cover_defensive_bonus",
+    "fact": "5e4d96e1a9adde6f",
+    "clauses": [
+     "glossary/1/2",
+     "combat/6/0"
+    ],
+    "sites": [
+     "combat",
+     "glossary"
+    ],
+    "text": [
+     " Half Cover (+2 bonus to AC and Dexterity saving throws),",
+     "+2 bonus to AC and Dexterity saving throws"
+    ],
+    "states": "Half Cover grants +2 to AC AND to Dexterity saving throws"
+   },
+   {
+    "record": "glossary.cover",
+    "component": "degree_benefit",
+    "family": "cover_defensive_bonus",
+    "fact": "4f1d7ffb18cfd8db",
+    "clauses": [
+     "glossary/1/3",
+     "combat/8/0"
+    ],
+    "sites": [
+     "combat",
+     "glossary"
+    ],
+    "text": [
+     " Three-Quarters Cover (+5 bonus to AC and Dexterity saving throws),",
+     "+5 bonus to AC and Dexterity saving throws"
+    ],
+    "states": "Three-Quarters Cover grants +5 to AC AND to Dexterity saving throws"
+   },
+   {
+    "record": "glossary.cover",
+    "component": "degree_benefit",
+    "family": "cover_targeting_prohibition",
+    "fact": "cffc77a875a205b1",
+    "clauses": [
+     "glossary/1/4",
+     "combat/11/0"
+    ],
+    "sites": [
+     "combat",
+     "glossary"
+    ],
+    "text": [
+     " and Total Cover (can’t be targeted directly).",
+     "Can’t be targeted directly"
+    ],
+    "states": "Total Cover's benefit is categorically different: not a bonus at all, but that the target can't be targeted DIRECTLY"
+   },
+   {
+    "record": "glossary.cover",
+    "component": "degree_provision",
+    "family": "cover_provision",
+    "fact": "8dc446c1f3c25c6d",
+    "clauses": [
+     "combat/5/0",
+     "combat/6/1"
+    ],
+    "sites": [
+     "combat"
+    ],
+    "text": [
+     "Half",
+     " Another creature or an object that covers at least half of the target"
+    ],
+    "states": "the Half degree row: the table's key for this provision"
+   },
+   {
+    "record": "glossary.cover",
+    "component": "degree_provision",
+    "family": "cover_provision",
+    "fact": "7e04f20a16cf38cb",
+    "clauses": [
+     "combat/7/0",
+     "combat/9/0"
+    ],
+    "sites": [
+     "combat"
+    ],
+    "text": [
+     "ThreeQuarters",
+     "An object that covers at least three-quarters of the target"
+    ],
+    "states": "the Three-Quarters degree row, carried verbatim as the release extracts it ('ThreeQuarters')"
+   },
+   {
+    "record": "glossary.cover",
+    "component": "degree_provision",
+    "family": "cover_provision",
+    "fact": "4f5751578c4ff530",
+    "clauses": [
+     "combat/10/0",
+     "combat/11/1"
+    ],
+    "sites": [
+     "combat"
+    ],
+    "text": [
+     "Total",
+     " An object that covers the whole target"
+    ],
+    "states": "the Total degree row: the table's key for this provision"
+   },
+   {
+    "record": "glossary.cover",
+    "component": "benefit_origin",
+    "family": "cover_benefit_origin",
+    "fact": "898451fe1d6958e6",
+    "clauses": [
+     "combat/1/2"
+    ],
+    "sites": [
+     "combat"
+    ],
+    "text": [
+     " A target can benefit from cover only when an attack or other effect originates on the opposite side of the cover."
+    ],
+    "states": "cover benefits a target ONLY when the attack or other effect originates on the OPPOSITE SIDE of the cover"
+   },
+   {
+    "record": "glossary.cover",
+    "component": "degree_selection",
+    "family": "cover_degree_selection",
+    "fact": "1fbedb4352b952b7",
+    "clauses": [
+     "glossary/1/5",
+     "combat/1/3"
+    ],
+    "sites": [
+     "combat",
+     "glossary"
+    ],
+    "text": [
+     " If behind more than one degree of cover, a target benefits only from the most protective degree.",
+     " If a target is behind multiple sources of cover, only the most protective degree of cover applies; the degrees aren’t added together."
+    ],
+    "states": "behind more than one degree, a target benefits only from the MOST PROTECTIVE degree"
+   }
+  ],
+  "typed_at_component_scope": [
+   {
+    "record": "glossary.cover",
+    "component": "degree_benefit",
+    "clause": "glossary/1/1",
+    "text": " There are three degrees of cover, each of which provides a different benefit to a target:",
+    "states": "the printed vocabulary is CLOSED AT THREE members, stated outright and about no single fact"
+   }
+  ],
+  "prose_bound": [],
+  "supporting_authority": [
+   {
+    "record": "glossary.cover",
+    "clause": "glossary/0/0",
+    "site": "glossary",
+    "carried_by": "record",
+    "claimant": "glossary.cover",
+    "text": "Cover"
+   },
+   {
+    "record": "glossary.cover",
+    "clause": "glossary/1/0",
+    "site": "glossary",
+    "carried_by": "record",
+    "claimant": "glossary.cover",
+    "text": "Cover provides a degree of protection to a target behind it."
+   },
+   {
+    "record": "glossary.cover",
+    "clause": "glossary/2/0",
+    "site": "glossary",
+    "carried_by": "record",
+    "claimant": "glossary.cover",
+    "text": "See also"
+   },
+   {
+    "record": "glossary.cover",
+    "clause": "glossary/3/0",
+    "site": "glossary",
+    "carried_by": "record",
+    "claimant": "glossary.cover",
+    "text": "“Playing the Game” (“Combat”)."
+   },
+   {
+    "record": "glossary.cover",
+    "clause": "combat/0/0",
+    "site": "combat",
+    "carried_by": "record",
+    "claimant": "glossary.cover",
+    "text": "Cover"
+   },
+   {
+    "record": "glossary.cover",
+    "clause": "combat/1/0",
+    "site": "combat",
+    "carried_by": "record",
+    "claimant": "glossary.cover",
+    "text": "Walls, trees, creatures, and other obstacles can provide cover, making a target more difficult to harm."
+   },
+   {
+    "record": "glossary.cover",
+    "clause": "combat/1/1",
+    "site": "combat",
+    "carried_by": "component_context",
+    "claimant": "glossary.cover/degree_benefit (bounds the component)",
+    "text": " As detailed in the Cover table, there are three degrees of cover, each of which gives a different benefit to a target."
+   },
+   {
+    "record": "glossary.cover",
+    "clause": "combat/1/4",
+    "site": "combat",
+    "carried_by": "fact_context",
+    "claimant": "glossary.cover/degree_selection/1fbedb4352b952b7 (bounds the fact)",
+    "text": " For example, if a target is behind a creature that gives Half Cover and a tree trunk that gives Three-Quarters Cover, the target has Three-Quarters Cover."
+   },
+   {
+    "record": "glossary.cover",
+    "clause": "combat/1/5",
+    "site": "combat",
+    "carried_by": "record",
+    "claimant": "glossary.cover",
+    "text": " Cover"
+   },
+   {
+    "record": "glossary.cover",
+    "clause": "combat/2/0",
+    "site": "combat",
+    "carried_by": "record",
+    "claimant": "glossary.cover",
+    "text": "Degree"
+   },
+   {
+    "record": "glossary.cover",
+    "clause": "combat/3/0",
+    "site": "combat",
+    "carried_by": "component_context",
+    "claimant": "glossary.cover/degree_benefit (bounds the component)",
+    "text": "Benefit to Target"
+   },
+   {
+    "record": "glossary.cover",
+    "clause": "combat/4/0",
+    "site": "combat",
+    "carried_by": "component_context",
+    "claimant": "glossary.cover/degree_provision (bounds the component)",
+    "text": "Offered By …"
+   }
+  ],
+  "unresolved": []
+ },
+ "consumer_boundary_proofs": {
+  "glossary.cover": {
+   "kind": "glossary_rule",
+   "component_keys": [
+    "benefit_origin",
+    "degree_benefit",
+    "degree_provision",
+    "degree_selection"
+   ],
+   "record_scope_span_ids": 8,
+   "clauses_carried_by_the_whole_record": 28,
+   "assembled_from_sites": [
+    "combat",
+    "glossary"
+   ],
+   "note": "one record assembled from two printed sites in two chapters - #137 contract 3's composite case. Record membership is declared by accepted semantic assembly, not by a runtime heuristic over containers."
+  },
+  "three_degrees": {
+   "vocabulary": [
+    "half",
+    "three_quarters",
+    "total"
+   ],
+   "stated_by": "glossary/1/1",
+   "closure_text": " There are three degrees of cover, each of which provides a different benefit to a target:",
+   "carried_by": "a PRIMARY provenance claim on the whole degree_benefit component",
+   "every_degree_has_a_benefit": [
+    "half",
+    "three_quarters",
+    "total"
+   ],
+   "every_degree_has_a_provision": [
+    "half",
+    "three_quarters",
+    "total"
+   ],
+   "no_rank_is_stated": true
+  },
+  "degree_benefits": {
+   "half": {
+    "family": "cover_defensive_bonus",
+    "bonus": 2,
+    "to_defense": "armor_class",
+    "to_saving_throw": "dexterity"
+   },
+   "three_quarters": {
+    "family": "cover_defensive_bonus",
+    "bonus": 5,
+    "to_defense": "armor_class",
+    "to_saving_throw": "dexterity"
+   },
+   "total": {
+    "family": "cover_targeting_prohibition",
+    "prohibits": "direct_targeting",
+    "bonus": null
+   },
+   "note": "one printed benefit that is TWO modifications at once - a bonus to AC AND to Dexterity saving throws - kept keyed to one degree, so neither half can be dropped. Total Cover has no bonus row at all: its benefit is a different kind of thing, and 'directly' is load-bearing and printed."
+  },
+  "degree_provision": {
+   "half": {
+    "offered_by": "another_creature_or_an_object",
+    "coverage": "at_least_half"
+   },
+   "three_quarters": {
+    "offered_by": "an_object",
+    "coverage": "at_least_three_quarters"
+   },
+   "total": {
+    "offered_by": "an_object",
+    "coverage": "whole_target"
+   },
+   "note": "the asymmetry is the rule: only Half admits another creature as an offeror. The coverage members name the printed thresholds; nothing here measures anything, and 'the whole target' stays the phrase the page prints rather than becoming a number."
+  },
+  "benefit_origin": {
+   "interaction": "an_attack_or_other_effect",
+   "requires_origin": "opposite_side_of_the_cover",
+   "printed_at": [
+    "combat"
+   ],
+   "text": " A target can benefit from cover only when an attack or other effect originates on the opposite side of the cover.",
+   "note": "printed only in Combat. A degree-only record would lose it entirely. Deciding which side an effect originated on is runtime geometry and is outside 5d."
+  },
+  "degree_selection": {
+   "selects": "most_protective",
+   "combination": "not_added_together",
+   "claimed_primary_by": [
+    " If behind more than one degree of cover, a target benefits only from the most protective degree.",
+    " If a target is behind multiple sources of cover, only the most protective degree of cover applies; the degrees aren’t added together."
+   ],
+   "worked_example_is_supporting_authority": " For example, if a target is behind a creature that gives Half Cover and a tree trunk that gives Three-Quarters Cover, the target has Three-Quarters Cover.",
+   "note": "two clauses, one rule, both PRIMARY on their own spans: the glossary states it positively and Combat states the same rule negatively. No rank over the three degrees is printed, recorded or implied, and the worked example stays supporting authority rather than becoming a fact with a ranking in it."
+  },
+  "shared_provenance": {
+   "half_benefit": {
+    "component": "degree_benefit",
+    "span_ids_on_the_projection": 2,
+    "claiming_it_primary": 2,
+    "sites": [
+     "combat",
+     "glossary"
+    ],
+    "text": [
+     " Half Cover (+2 bonus to AC and Dexterity saving throws),",
+     "+2 bonus to AC and Dexterity saving throws"
+    ]
+   },
+   "most_protective": {
+    "component": "degree_selection",
+    "span_ids_on_the_projection": 3,
+    "claiming_it_primary": 2,
+    "sites": [
+     "combat",
+     "glossary"
+    ],
+    "text": [
+     " If behind more than one degree of cover, a target benefits only from the most protective degree.",
+     " If a target is behind multiple sources of cover, only the most protective degree of cover applies; the degrees aren’t added together."
+    ]
+   },
+   "three_quarters_benefit": {
+    "component": "degree_benefit",
+    "span_ids_on_the_projection": 2,
+    "claiming_it_primary": 2,
+    "sites": [
+     "combat",
+     "glossary"
+    ],
+    "text": [
+     " Three-Quarters Cover (+5 bonus to AC and Dexterity saving throws),",
+     "+5 bonus to AC and Dexterity saving throws"
+    ]
+   },
+   "total_prohibition": {
+    "component": "degree_benefit",
+    "span_ids_on_the_projection": 2,
+    "claiming_it_primary": 2,
+    "sites": [
+     "combat",
+     "glossary"
+    ],
+    "text": [
+     " and Total Cover (can’t be targeted directly).",
+     "Can’t be targeted directly"
+    ]
+   }
+  },
+  "closure_claim": {
+   "clause": "glossary/1/1",
+   "target": [
+    "glossary.cover",
+    "degree_benefit"
+   ],
+   "role": "primary",
+   "precedent_in_the_accepted_prior": 19,
+   "note": "a substantive statement about no single fact needs a component-scope carrier. The count above is the accepted precedent for that shape, read off the frozen prior rather than recalled."
+  },
+  "inbound_citation_resolution": {
+   "citing_record": "glossary.area_of_effect",
+   "its_targets": [
+    "area_of_effect.cone",
+    "area_of_effect.cube",
+    "area_of_effect.cylinder",
+    "area_of_effect.emanation",
+    "area_of_effect.line",
+    "area_of_effect.sphere",
+    "glossary.cover"
+   ],
+   "assembled_by_the_projection": [
+    "area_of_effect.cone",
+    "area_of_effect.cube",
+    "area_of_effect.cylinder",
+    "area_of_effect.emanation",
+    "area_of_effect.line",
+    "area_of_effect.sphere",
+    "glossary.cover"
+   ],
+   "not_assembled": [],
+   "scope": "The Cover citation resolves in the MERGED CANDIDATE this run builds in memory - the lifted five-batch prior plus this proposal. It does NOT mean current accepted authority has changed: accepted authority is the frozen prior, it still carries three unresolved targets, nothing here is accepted, and the resolution becomes a property of accepted authority only at an acceptance that has not happened."
+  }
+ },
+ "schema_succession": {
+  "prior_schema": "5d-representation-schema-9",
+  "batch_schema": "5d-representation-schema-10",
+  "lift_required": true,
+  "steps": [
+   "5d-lift-schema-9-to-10"
+  ],
+  "verified_collections": [
+   [
+    "components",
+    "prose_bindings",
+    "provenance",
+    "records",
+    "references",
+    "relationships"
+   ]
+  ],
+  "frozen_prior_identity": "8e08ac48f2a57a4498557990a07270f9abd855b246c1039da68cc9ec82d44b40",
+  "frozen_prior_identity_scope": "the file on disk, which this run reads and never writes. It is the identity the Owner accepted and it does not move.",
+  "lifted_copy_identity_at_this_head": "34128ca4c3dd8060cd43e1a0b1097d8abe40b029c03c02d556748a21e86b1d6a",
+  "lifted_copy_identity_scope": "a DIFFERENT object: the in-memory copy this run lifts to schema 10. Reported rather than pinned, because oracle_payload carries the representation binding and the lift re-declares exactly that, so this value moves with every destination-pin change.",
+  "payload_keys_that_moved": [
+   "representation_schema"
+  ],
+  "inherited_authority_unchanged": {
+   "representation_object_is_the_same_object": true,
+   "spans_obligations_batches_acceptances_anchors_cross_by_identity": true,
+   "per_batch_schema_anchors": {
+    "conditions-1": "5d-representation-schema-3",
+    "hazards-1": "5d-representation-schema-5",
+    "actions-1": "5d-representation-schema-7",
+    "attitudes-1": "5d-representation-schema-8",
+    "areas-of-effect-1": "5d-representation-schema-9"
+   },
+   "schema_10_appears_in_no_anchor": true,
+   "why_anchors_matter": "each accepted batch keeps the hash it was reviewed under. A lift that re-derived anchors would restamp five batches as one and erase the distinction succession depends on."
+  },
+  "unlifted_prior_read_as_current_is_a_finding": [
+   "candidate declares representation schema '5d-representation-schema-9', build implements '5d-representation-schema-10'",
+   "candidate declares representation schema hash 'f5a5e30817e64f019e31aa7f4692d72611215e4294e7da36242e492bca6b336e', committed union hashes to 'c39e3a35e197a1d1db5c2c2b3445ff0cbf03395c91e3426353a4bce589be4be0'"
+  ],
+  "note": "the accepted prior is anchored at 5d-representation-schema-9 and this batch proposes under 5d-representation-schema-10, which the population's sixteen substantive clauses required. Exactly one registered transition separates them and it is exercised here rather than described. The transition adds fact families and vocabularies and widens one accepted vocabulary by one member; it adds no field to an accepted family, no ownership form, no nullable field and no required field, so every accepted fact key, component key and provenance coordinate has the same canonical form under both contracts."
+ },
+ "accepted_prior": {
+  "path": "tests/ingestion/mechanical/data/accepted_prior_conditions_1_hazards_1_actions_1_attitudes_1_areas_of_effect_1.json",
+  "content_sha256": "9f3802514298f519120680db4a9a20805f5dcb8a4b00dd8686ed6faddec1e738",
+  "blob": "467fcc62c8fb64e54cf74e73a6f55c384129eef7",
+  "identity": "8e08ac48f2a57a4498557990a07270f9abd855b246c1039da68cc9ec82d44b40",
+  "identity_scope": "the frozen file on disk, read and never written",
+  "lifted_copy_identity_at_this_head": "34128ca4c3dd8060cd43e1a0b1097d8abe40b029c03c02d556748a21e86b1d6a",
+  "lifted_copy_identity_scope": "a different object, reported rather than pinned; it moves with the destination schema pin",
+  "batch_ids": [
+   "actions-1",
+   "areas-of-effect-1",
+   "attitudes-1",
+   "conditions-1",
+   "hazards-1"
+  ],
+  "collections": {
+   "records": 46,
+   "components": 132,
+   "prose_bindings": 49,
+   "relationships": 0,
+   "references": 53,
+   "provenance": 547
+  },
+  "spans": 530,
+  "obligations": 46,
+  "schema_version": "5d-representation-schema-9",
+  "per_batch_schema_anchors": {
+   "conditions-1": "5d-representation-schema-3",
+   "hazards-1": "5d-representation-schema-5",
+   "actions-1": "5d-representation-schema-7",
+   "attitudes-1": "5d-representation-schema-8",
+   "areas-of-effect-1": "5d-representation-schema-9"
+  },
+  "read_only": true,
+  "content_sha256_after": "9f3802514298f519120680db4a9a20805f5dcb8a4b00dd8686ed6faddec1e738",
+  "unchanged": true
+ },
+ "disjointness_from_the_accepted_prior": {
+  "span_overlap": [],
+  "leaf_overlap": [],
+  "collection_overlap": {
+   "records": [],
+   "components": [],
+   "prose_bindings": [],
+   "relationships": [],
+   "references": [],
+   "provenance": []
+  },
+  "prior_spans_retained": 530,
+  "prior_obligations_retained": 46,
+  "zero_movement": {
+   "records": {
+    "prior_elements": 46,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 46,
+     "new": 1,
+     "merged": 47,
+     "sums": true
+    }
+   },
+   "components": {
+    "prior_elements": 132,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 132,
+     "new": 4,
+     "merged": 136,
+     "sums": true
+    }
+   },
+   "prose_bindings": {
+    "prior_elements": 49,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 49,
+     "new": 0,
+     "merged": 49,
+     "sums": true
+    }
+   },
+   "relationships": {
+    "prior_elements": 0,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 0,
+     "new": 0,
+     "merged": 0,
+     "sums": true
+    }
+   },
+   "references": {
+    "prior_elements": 53,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 53,
+     "new": 0,
+     "merged": 53,
+     "sums": true
+    }
+   },
+   "provenance": {
+    "prior_elements": 547,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 547,
+     "new": 28,
+     "merged": 575,
+     "sums": true
+    }
+   }
+  }
+ },
+ "obligation_closure": {
+  "glossary/0/0": {
+   "site": "glossary",
+   "text": "Cover",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "record",
+    "glossary.cover"
+   ],
+   "derived_carrier": [
+    "record",
+    "glossary.cover"
+   ],
+   "agrees": true,
+   "span": "0b2c4764-1011-5453-bf61-7d224173ee13",
+   "range": [
+    0,
+    5
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "glossary/1/0": {
+   "site": "glossary",
+   "text": "Cover provides a degree of protection to a target behind it.",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "record",
+    "glossary.cover"
+   ],
+   "derived_carrier": [
+    "record",
+    "glossary.cover"
+   ],
+   "agrees": true,
+   "span": "f704d1e5-05bf-5530-a7bf-232af52c84c0",
+   "range": [
+    0,
+    60
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "glossary/1/1": {
+   "site": "glossary",
+   "text": " There are three degrees of cover, each of which provides a different benefit to a target:",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "component",
+    "glossary.cover",
+    "degree_benefit"
+   ],
+   "derived_carrier": [
+    "component",
+    "glossary.cover",
+    "degree_benefit"
+   ],
+   "agrees": true,
+   "span": "f17ee754-bc36-5854-b6c4-9c1bc4668296",
+   "range": [
+    60,
+    150
+   ],
+   "gaps": [
+    "G1"
+   ],
+   "states": "the printed vocabulary is CLOSED AT THREE members, stated outright and about no single fact"
+  },
+  "glossary/1/2": {
+   "site": "glossary",
+   "text": " Half Cover (+2 bonus to AC and Dexterity saving throws),",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_benefit",
+    "cover_defensive_bonus",
+    "half_benefit"
+   ],
+   "derived_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_benefit",
+    "cover_defensive_bonus",
+    "half_benefit"
+   ],
+   "agrees": true,
+   "span": "ebfaf0ec-93b8-5f5a-9934-bbdbcafb2c8d",
+   "range": [
+    150,
+    207
+   ],
+   "gaps": [
+    "G1",
+    "G2"
+   ],
+   "states": "Half Cover grants +2 to AC AND to Dexterity saving throws"
+  },
+  "glossary/1/3": {
+   "site": "glossary",
+   "text": " Three-Quarters Cover (+5 bonus to AC and Dexterity saving throws),",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_benefit",
+    "cover_defensive_bonus",
+    "three_quarters_benefit"
+   ],
+   "derived_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_benefit",
+    "cover_defensive_bonus",
+    "three_quarters_benefit"
+   ],
+   "agrees": true,
+   "span": "90720ac5-b209-5f4f-9ca4-ebd8688590c6",
+   "range": [
+    207,
+    274
+   ],
+   "gaps": [
+    "G2"
+   ],
+   "states": "Three-Quarters Cover grants +5 to AC AND to Dexterity saving throws"
+  },
+  "glossary/1/4": {
+   "site": "glossary",
+   "text": " and Total Cover (can’t be targeted directly).",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_benefit",
+    "cover_targeting_prohibition",
+    "total_prohibition"
+   ],
+   "derived_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_benefit",
+    "cover_targeting_prohibition",
+    "total_prohibition"
+   ],
+   "agrees": true,
+   "span": "83b298b2-9691-5161-8c1d-202f25060b58",
+   "range": [
+    274,
+    320
+   ],
+   "gaps": [
+    "G3"
+   ],
+   "states": "Total Cover's benefit is categorically different: not a bonus at all, but that the target can't be targeted DIRECTLY"
+  },
+  "glossary/1/5": {
+   "site": "glossary",
+   "text": " If behind more than one degree of cover, a target benefits only from the most protective degree.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_selection",
+    "cover_degree_selection",
+    "most_protective"
+   ],
+   "derived_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_selection",
+    "cover_degree_selection",
+    "most_protective"
+   ],
+   "agrees": true,
+   "span": "5aae674d-a1ec-51c8-a3a3-93f7ec7328bb",
+   "range": [
+    320,
+    417
+   ],
+   "gaps": [
+    "G6"
+   ],
+   "states": "behind more than one degree, a target benefits only from the MOST PROTECTIVE degree"
+  },
+  "glossary/2/0": {
+   "site": "glossary",
+   "text": "See also",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "record",
+    "glossary.cover"
+   ],
+   "derived_carrier": [
+    "record",
+    "glossary.cover"
+   ],
+   "agrees": true,
+   "span": "d33850d4-45b7-5114-9887-a83695f83d35",
+   "range": [
+    0,
+    8
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "glossary/3/0": {
+   "site": "glossary",
+   "text": "“Playing the Game” (“Combat”).",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "record",
+    "glossary.cover"
+   ],
+   "derived_carrier": [
+    "record",
+    "glossary.cover"
+   ],
+   "agrees": true,
+   "span": "84b2158a-e567-5e96-9130-23aae5357687",
+   "range": [
+    0,
+    30
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "combat/0/0": {
+   "site": "combat",
+   "text": "Cover",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "record",
+    "glossary.cover"
+   ],
+   "derived_carrier": [
+    "record",
+    "glossary.cover"
+   ],
+   "agrees": true,
+   "span": "3ff8fbab-4daa-5153-a5c8-e6f5c98ece42",
+   "range": [
+    0,
+    5
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "combat/1/0": {
+   "site": "combat",
+   "text": "Walls, trees, creatures, and other obstacles can provide cover, making a target more difficult to harm.",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "record",
+    "glossary.cover"
+   ],
+   "derived_carrier": [
+    "record",
+    "glossary.cover"
+   ],
+   "agrees": true,
+   "span": "e70acc31-2b3b-5c49-828d-373644a14493",
+   "range": [
+    0,
+    103
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "combat/1/1": {
+   "site": "combat",
+   "text": " As detailed in the Cover table, there are three degrees of cover, each of which gives a different benefit to a target.",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "component_context",
+    "glossary.cover",
+    "degree_benefit"
+   ],
+   "derived_carrier": [
+    "component_context",
+    "glossary.cover",
+    "degree_benefit"
+   ],
+   "agrees": true,
+   "span": "e1921b33-4c79-53ca-bbb1-5c62905a3090",
+   "range": [
+    103,
+    222
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "combat/1/2": {
+   "site": "combat",
+   "text": " A target can benefit from cover only when an attack or other effect originates on the opposite side of the cover.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "glossary.cover",
+    "benefit_origin",
+    "cover_benefit_origin",
+    "opposite_side"
+   ],
+   "derived_carrier": [
+    "fact",
+    "glossary.cover",
+    "benefit_origin",
+    "cover_benefit_origin",
+    "opposite_side"
+   ],
+   "agrees": true,
+   "span": "adeee9ac-a16a-59a6-b8ca-40dcefc1fcb2",
+   "range": [
+    222,
+    336
+   ],
+   "gaps": [
+    "G5"
+   ],
+   "states": "cover benefits a target ONLY when the attack or other effect originates on the OPPOSITE SIDE of the cover"
+  },
+  "combat/1/3": {
+   "site": "combat",
+   "text": " If a target is behind multiple sources of cover, only the most protective degree of cover applies; the degrees aren’t added together.",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_selection",
+    "cover_degree_selection",
+    "most_protective"
+   ],
+   "derived_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_selection",
+    "cover_degree_selection",
+    "most_protective"
+   ],
+   "agrees": true,
+   "span": "febf783b-4a35-5e23-9de4-6a12f58180b7",
+   "range": [
+    336,
+    470
+   ],
+   "gaps": [
+    "G6"
+   ],
+   "states": "the same selection rule, stated negatively: only the most protective degree applies and the degrees AREN'T ADDED TOGETHER"
+  },
+  "combat/1/4": {
+   "site": "combat",
+   "text": " For example, if a target is behind a creature that gives Half Cover and a tree trunk that gives Three-Quarters Cover, the target has Three-Quarters Cover.",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "fact_context",
+    "glossary.cover",
+    "degree_selection",
+    "most_protective"
+   ],
+   "derived_carrier": [
+    "fact_context",
+    "glossary.cover",
+    "degree_selection",
+    "most_protective"
+   ],
+   "agrees": true,
+   "span": "31dbb990-cf4e-5a5b-b638-495e5f02106c",
+   "range": [
+    470,
+    625
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "combat/1/5": {
+   "site": "combat",
+   "text": " Cover",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "record",
+    "glossary.cover"
+   ],
+   "derived_carrier": [
+    "record",
+    "glossary.cover"
+   ],
+   "agrees": true,
+   "span": "3683868e-dd0e-52dc-8818-1a2452c663c0",
+   "range": [
+    625,
+    631
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "combat/2/0": {
+   "site": "combat",
+   "text": "Degree",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "record",
+    "glossary.cover"
+   ],
+   "derived_carrier": [
+    "record",
+    "glossary.cover"
+   ],
+   "agrees": true,
+   "span": "5ad139a4-6ed2-5431-b726-d4ba4b399125",
+   "range": [
+    0,
+    6
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "combat/3/0": {
+   "site": "combat",
+   "text": "Benefit to Target",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "component_context",
+    "glossary.cover",
+    "degree_benefit"
+   ],
+   "derived_carrier": [
+    "component_context",
+    "glossary.cover",
+    "degree_benefit"
+   ],
+   "agrees": true,
+   "span": "42d1d221-12d5-5bc8-9720-5a09a3b158da",
+   "range": [
+    0,
+    17
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "combat/4/0": {
+   "site": "combat",
+   "text": "Offered By …",
+   "disposition": "supporting_authority",
+   "expected_carrier": [
+    "component_context",
+    "glossary.cover",
+    "degree_provision"
+   ],
+   "derived_carrier": [
+    "component_context",
+    "glossary.cover",
+    "degree_provision"
+   ],
+   "agrees": true,
+   "span": "fab4a02d-5bfd-5f49-960e-9b373cf55b95",
+   "range": [
+    0,
+    12
+   ],
+   "gaps": [],
+   "states": null
+  },
+  "combat/5/0": {
+   "site": "combat",
+   "text": "Half",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_provision",
+    "cover_provision",
+    "half_provision"
+   ],
+   "derived_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_provision",
+    "cover_provision",
+    "half_provision"
+   ],
+   "agrees": true,
+   "span": "bdb56803-d8a5-5210-a63f-5e296552c495",
+   "range": [
+    0,
+    4
+   ],
+   "gaps": [
+    "G1"
+   ],
+   "states": "the Half degree row: the table's key for this provision"
+  },
+  "combat/6/0": {
+   "site": "combat",
+   "text": "+2 bonus to AC and Dexterity saving throws",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_benefit",
+    "cover_defensive_bonus",
+    "half_benefit"
+   ],
+   "derived_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_benefit",
+    "cover_defensive_bonus",
+    "half_benefit"
+   ],
+   "agrees": true,
+   "span": "736eff22-b55f-5efb-8be8-574a76524a7b",
+   "range": [
+    0,
+    42
+   ],
+   "gaps": [
+    "G2"
+   ],
+   "states": "the Cover table's Benefit column for Half, the same +2 to AC and Dexterity saving throws the glossary prints"
+  },
+  "combat/6/1": {
+   "site": "combat",
+   "text": " Another creature or an object that covers at least half of the target",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_provision",
+    "cover_provision",
+    "half_provision"
+   ],
+   "derived_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_provision",
+    "cover_provision",
+    "half_provision"
+   ],
+   "agrees": true,
+   "span": "499343fd-43ba-5ed6-84c2-90985b5356dd",
+   "range": [
+    42,
+    112
+   ],
+   "gaps": [
+    "G4"
+   ],
+   "states": "Half Cover is offered by ANOTHER CREATURE OR AN OBJECT covering AT LEAST HALF of the target - the only clause admitting a creature"
+  },
+  "combat/7/0": {
+   "site": "combat",
+   "text": "ThreeQuarters",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_provision",
+    "cover_provision",
+    "three_quarters_provision"
+   ],
+   "derived_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_provision",
+    "cover_provision",
+    "three_quarters_provision"
+   ],
+   "agrees": true,
+   "span": "abaf5ae7-6033-5834-87fe-df0c696ce94e",
+   "range": [
+    0,
+    13
+   ],
+   "gaps": [],
+   "states": "the Three-Quarters degree row, carried verbatim as the release extracts it ('ThreeQuarters')"
+  },
+  "combat/8/0": {
+   "site": "combat",
+   "text": "+5 bonus to AC and Dexterity saving throws",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_benefit",
+    "cover_defensive_bonus",
+    "three_quarters_benefit"
+   ],
+   "derived_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_benefit",
+    "cover_defensive_bonus",
+    "three_quarters_benefit"
+   ],
+   "agrees": true,
+   "span": "5e5846f7-de0c-5df2-9105-d9cbf8b0239a",
+   "range": [
+    0,
+    42
+   ],
+   "gaps": [
+    "G2"
+   ],
+   "states": "the Cover table's Benefit column for Three-Quarters, the same +5 the glossary prints"
+  },
+  "combat/9/0": {
+   "site": "combat",
+   "text": "An object that covers at least three-quarters of the target",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_provision",
+    "cover_provision",
+    "three_quarters_provision"
+   ],
+   "derived_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_provision",
+    "cover_provision",
+    "three_quarters_provision"
+   ],
+   "agrees": true,
+   "span": "4b2a83c2-e5de-567f-aae4-cf22808c856e",
+   "range": [
+    0,
+    59
+   ],
+   "gaps": [
+    "G4"
+   ],
+   "states": "Three-Quarters Cover is offered by AN OBJECT covering AT LEAST THREE-QUARTERS of the target"
+  },
+  "combat/10/0": {
+   "site": "combat",
+   "text": "Total",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_provision",
+    "cover_provision",
+    "total_provision"
+   ],
+   "derived_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_provision",
+    "cover_provision",
+    "total_provision"
+   ],
+   "agrees": true,
+   "span": "dd1c4eca-4199-5475-8ad6-ccc2d1c4611b",
+   "range": [
+    0,
+    5
+   ],
+   "gaps": [],
+   "states": "the Total degree row: the table's key for this provision"
+  },
+  "combat/11/0": {
+   "site": "combat",
+   "text": "Can’t be targeted directly",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_benefit",
+    "cover_targeting_prohibition",
+    "total_prohibition"
+   ],
+   "derived_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_benefit",
+    "cover_targeting_prohibition",
+    "total_prohibition"
+   ],
+   "agrees": true,
+   "span": "90374bba-0361-5e55-b98d-80f197708867",
+   "range": [
+    0,
+    26
+   ],
+   "gaps": [
+    "G3"
+   ],
+   "states": "the Cover table's Benefit column for Total, the same direct-targeting prohibition the glossary prints"
+  },
+  "combat/11/1": {
+   "site": "combat",
+   "text": " An object that covers the whole target",
+   "disposition": "substantive",
+   "expected_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_provision",
+    "cover_provision",
+    "total_provision"
+   ],
+   "derived_carrier": [
+    "fact",
+    "glossary.cover",
+    "degree_provision",
+    "cover_provision",
+    "total_provision"
+   ],
+   "agrees": true,
+   "span": "2cad0e9f-9048-54d8-923c-8531781da346",
+   "range": [
+    26,
+    65
+   ],
+   "gaps": [
+    "G4"
+   ],
+   "states": "Total Cover is offered by AN OBJECT covering THE WHOLE target - its own printed phrase, not 'at least the whole'"
+  }
+ },
+ "obligation_accounting": {
+  "supporting_authority_bounding_a_component": [
+   "combat/1/1",
+   "combat/3/0",
+   "combat/4/0"
+  ],
+  "supporting_authority_bounding_a_fact": [
+   "combat/1/4"
+  ],
+  "supporting_authority_record_owned": [
+   "glossary/0/0",
+   "glossary/1/0",
+   "glossary/2/0",
+   "glossary/3/0",
+   "combat/0/0",
+   "combat/1/0",
+   "combat/1/5",
+   "combat/2/0"
+  ],
+  "typed": [
+   "glossary/1/2",
+   "glossary/1/3",
+   "glossary/1/4",
+   "glossary/1/5",
+   "combat/1/2",
+   "combat/1/3",
+   "combat/5/0",
+   "combat/6/0",
+   "combat/6/1",
+   "combat/7/0",
+   "combat/8/0",
+   "combat/9/0",
+   "combat/10/0",
+   "combat/11/0",
+   "combat/11/1"
+  ],
+  "typed_component_scope": [
+   "glossary/1/1"
+  ],
+  "tally": {
+   "supporting_authority_bounding_a_component": 3,
+   "supporting_authority_bounding_a_fact": 1,
+   "supporting_authority_record_owned": 8,
+   "typed": 15,
+   "typed_component_scope": 1
+  },
+  "prose_bound": [],
+  "unresolved": []
+ },
+ "obligation_derivation": "EXPECTED_OBLIGATIONS in the generator is one literal row per printed clause, typed from the reviewed source record - section 3 of the discovery checkpoint for the 5c disposition, section 4's gap table for the gap ids and its witness lists, section 4a for the shared-provenance disposition and section 4c for the one-record finding. It is not computed from anything this run emits, and the discovery manifest deliberately carries no disposition and no candidate record key, so the table is the independent statement of what the proposal owes the source. The emission is then checked against it three ways: every obligation discharged (omission), by exactly one span at exactly the reviewed extent (duplication), and carried by exactly the element the review names, down to WHICH fact of a multi-fact component (semantic loss).",
+ "evidence_classes": [
+  {
+   "class": "source extraction and partition reconstruction",
+   "executed_here": true,
+   "strength": "strong for coverage and span boundaries: the reviewed clause extents are re-proved gap-free against the sixteen leaves this run just extracted from the PDF, and the thirty-leaf exclusion is re-derived rather than transcribed. Says nothing about whether the meaning assigned to a span is right - that is what semantic review is for"
+  },
+  {
+   "class": "obligation closure against the reviewed inventory",
+   "executed_here": true,
+   "strength": "exposes omission, duplication and carrier drift against a table typed from the checkpoint rather than from the emission, including which fact of a multi-fact component carries a clause. It does not prove the checkpoint's judgment is right; it proves the proposal states that judgment and no other"
+  },
+  {
+   "class": "structural validation",
+   "executed_here": true,
+   "strength": "the repository's own checkers over the emitted draft and over the merge acceptance would validate. These judge shape, not fidelity"
+  },
+  {
+   "class": "release-binding agreement",
+   "executed_here": true,
+   "strength": "all six parts read through release_binding_payload and checked at validate_candidate, the seam that requires the binding, the classification ledger and the bound corpus snapshot to name one release. Five values are source rederivation from the committed PDF; the sixth is a disclosed carry and no operational database evidence was performed"
+  },
+  {
+   "class": "consumer projection assertion",
+   "executed_here": true,
+   "strength": "_base_records is applied to the merged candidate in memory and every distinction the source prints is read back off those objects. Nothing is persisted"
+  },
+  {
+   "class": "schema succession",
+   "executed_here": true,
+   "strength": "one registered crossing, exercised element by element, with the inherited acceptance record asserted to cross by object identity. Proves the crossing; performs none of it"
+  },
+  {
+   "class": "cross-batch reference resolution",
+   "executed_here": true,
+   "strength": "stated at two scopes. Standalone: zero findings, because this batch cites nothing. Combined with the lifted prior: two findings, glossary.concentration and glossary.speed, down from three because the prior's Cover citation acquires a target IN THE MERGED CANDIDATE. Accepted authority is unchanged"
+  },
+  {
+   "class": "full-corpus completeness",
+   "executed_here": false,
+   "strength": "NOT claimed. This is one record of the Rules Glossary and its governing section. The corpus #137 governs is untouched and undischarged"
+  },
+  {
+   "class": "publication gate",
+   "executed_here": false,
+   "strength": "NOT run. There is no persisted projection to run it over, and this generator must not create one"
+  },
+  {
+   "class": "acceptance",
+   "executed_here": false,
+   "strength": "NOT run. accept_proposal is never called; the live oracle is read as a mutation sentinel only"
+  }
+ ],
+ "review_disposition": {
+  "open_schema_stops": [],
+  "residues": [
+   "glossary.concentration and glossary.speed remain unresolved from the accepted prior; they belong to a later glossary batch",
+   "the prior's Cover citation resolves in the merged candidate only. Accepted authority still carries three unresolved targets and does so until an acceptance that has not happened",
+   "the full-corpus obligation #137 governs is undischarged: this is one record"
+  ],
+  "requires_owner_authorization_before": [
+   "any acceptance of this batch into committed authority",
+   "any acceptance is also what would carry the accepted prior across 5d-lift-schema-9-to-10; this run proves the crossing and performs none of it"
+  ]
+ },
+ "repository_inputs": {
+  "repository_root_derived_from": "Path(__file__).resolve().parents[2]",
+  "source_pdf": "docs/sources/DnD5_5e_SRD_CC_v5_2_1.pdf",
+  "source_manifest": ".claude/review-notes/issue-5d-cover-1-source-manifest.json",
+  "review_prior": "tests/ingestion/mechanical/data/accepted_prior_conditions_1_hazards_1_actions_1_attitudes_1_areas_of_effect_1.json",
+  "afterworlds_package": "src/afterworlds",
+  "output_directory": ".claude/review-notes",
+  "note": "Recorded relative to the derived root on purpose: an absolute path would make this artifact differ between two checkouts that produced identical content. Every path above is repository-retained, so this proposal is reproducible from the repository alone. The live accepted-authority oracle is deliberately absent: it is not an input. This run reads it only as a mutation sentinel and records neither its path nor its digest, because an accumulating artifact's identity goes stale at the next acceptance."
+ },
+ "spans": [
+  {
+   "clause": "glossary/0/0",
+   "site": "glossary",
+   "record": "glossary.cover",
+   "leaf": "4d39043d-cdb6-5302-95b9-eeb21ee629a7",
+   "printed_page": 179,
+   "span_id": "0b2c4764-1011-5453-bf61-7d224173ee13",
+   "range": [
+    0,
+    5
+   ],
+   "text": "Cover",
+   "disposition": "supporting_authority",
+   "claimant_kind": "record",
+   "claimant": "glossary.cover",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause": "glossary/1/0",
+   "site": "glossary",
+   "record": "glossary.cover",
+   "leaf": "77f2f462-86ae-5841-a724-a36be4e7dee4",
+   "printed_page": 179,
+   "span_id": "f704d1e5-05bf-5530-a7bf-232af52c84c0",
+   "range": [
+    0,
+    60
+   ],
+   "text": "Cover provides a degree of protection to a target behind it.",
+   "disposition": "supporting_authority",
+   "claimant_kind": "record",
+   "claimant": "glossary.cover",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause": "glossary/1/1",
+   "site": "glossary",
+   "record": "glossary.cover",
+   "leaf": "77f2f462-86ae-5841-a724-a36be4e7dee4",
+   "printed_page": 179,
+   "span_id": "f17ee754-bc36-5854-b6c4-9c1bc4668296",
+   "range": [
+    60,
+    150
+   ],
+   "text": " There are three degrees of cover, each of which provides a different benefit to a target:",
+   "disposition": "substantive",
+   "claimant_kind": "component",
+   "claimant": "glossary.cover/degree_benefit",
+   "role": "primary",
+   "gaps": [
+    "G1"
+   ],
+   "states": "the printed vocabulary is CLOSED AT THREE members, stated outright and about no single fact",
+   "rationale": "states something true of a whole column of rule and of no single fact in it, so it is claimed PRIMARY on the component; the schema's carrier for a substantive statement that is about no one fact"
+  },
+  {
+   "clause": "glossary/1/2",
+   "site": "glossary",
+   "record": "glossary.cover",
+   "leaf": "77f2f462-86ae-5841-a724-a36be4e7dee4",
+   "printed_page": 179,
+   "span_id": "ebfaf0ec-93b8-5f5a-9934-bbdbcafb2c8d",
+   "range": [
+    150,
+    207
+   ],
+   "text": " Half Cover (+2 bonus to AC and Dexterity saving throws),",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "glossary.cover/degree_benefit/5e4d96e1a9adde6f",
+   "role": "primary",
+   "gaps": [
+    "G1",
+    "G2"
+   ],
+   "states": "Half Cover grants +2 to AC AND to Dexterity saving throws",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit; where the source prints the same rule twice, both printings claim the one fact PRIMARY"
+  },
+  {
+   "clause": "glossary/1/3",
+   "site": "glossary",
+   "record": "glossary.cover",
+   "leaf": "77f2f462-86ae-5841-a724-a36be4e7dee4",
+   "printed_page": 179,
+   "span_id": "90720ac5-b209-5f4f-9ca4-ebd8688590c6",
+   "range": [
+    207,
+    274
+   ],
+   "text": " Three-Quarters Cover (+5 bonus to AC and Dexterity saving throws),",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "glossary.cover/degree_benefit/4f1d7ffb18cfd8db",
+   "role": "primary",
+   "gaps": [
+    "G2"
+   ],
+   "states": "Three-Quarters Cover grants +5 to AC AND to Dexterity saving throws",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit; where the source prints the same rule twice, both printings claim the one fact PRIMARY"
+  },
+  {
+   "clause": "glossary/1/4",
+   "site": "glossary",
+   "record": "glossary.cover",
+   "leaf": "77f2f462-86ae-5841-a724-a36be4e7dee4",
+   "printed_page": 179,
+   "span_id": "83b298b2-9691-5161-8c1d-202f25060b58",
+   "range": [
+    274,
+    320
+   ],
+   "text": " and Total Cover (can’t be targeted directly).",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "glossary.cover/degree_benefit/cffc77a875a205b1",
+   "role": "primary",
+   "gaps": [
+    "G3"
+   ],
+   "states": "Total Cover's benefit is categorically different: not a bonus at all, but that the target can't be targeted DIRECTLY",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit; where the source prints the same rule twice, both printings claim the one fact PRIMARY"
+  },
+  {
+   "clause": "glossary/1/5",
+   "site": "glossary",
+   "record": "glossary.cover",
+   "leaf": "77f2f462-86ae-5841-a724-a36be4e7dee4",
+   "printed_page": 179,
+   "span_id": "5aae674d-a1ec-51c8-a3a3-93f7ec7328bb",
+   "range": [
+    320,
+    417
+   ],
+   "text": " If behind more than one degree of cover, a target benefits only from the most protective degree.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "glossary.cover/degree_selection/1fbedb4352b952b7",
+   "role": "primary",
+   "gaps": [
+    "G6"
+   ],
+   "states": "behind more than one degree, a target benefits only from the MOST PROTECTIVE degree",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit; where the source prints the same rule twice, both printings claim the one fact PRIMARY"
+  },
+  {
+   "clause": "glossary/2/0",
+   "site": "glossary",
+   "record": "glossary.cover",
+   "leaf": "08f63b16-ed84-5291-a12b-bc798334914c",
+   "printed_page": 179,
+   "span_id": "d33850d4-45b7-5114-9887-a83695f83d35",
+   "range": [
+    0,
+    8
+   ],
+   "text": "See also",
+   "disposition": "supporting_authority",
+   "claimant_kind": "record",
+   "claimant": "glossary.cover",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause": "glossary/3/0",
+   "site": "glossary",
+   "record": "glossary.cover",
+   "leaf": "297ec10b-13dd-5dc8-ba15-259b637a9ac6",
+   "printed_page": 179,
+   "span_id": "84b2158a-e567-5e96-9130-23aae5357687",
+   "range": [
+    0,
+    30
+   ],
+   "text": "“Playing the Game” (“Combat”).",
+   "disposition": "supporting_authority",
+   "claimant_kind": "record",
+   "claimant": "glossary.cover",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause": "combat/0/0",
+   "site": "combat",
+   "record": "glossary.cover",
+   "leaf": "9dbd5ece-558c-52d4-89d1-c10b98af25c4",
+   "printed_page": 15,
+   "span_id": "3ff8fbab-4daa-5153-a5c8-e6f5c98ece42",
+   "range": [
+    0,
+    5
+   ],
+   "text": "Cover",
+   "disposition": "supporting_authority",
+   "claimant_kind": "record",
+   "claimant": "glossary.cover",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause": "combat/1/0",
+   "site": "combat",
+   "record": "glossary.cover",
+   "leaf": "ac18c3da-d741-5f11-9ec6-c608da46dfb1",
+   "printed_page": 15,
+   "span_id": "e70acc31-2b3b-5c49-828d-373644a14493",
+   "range": [
+    0,
+    103
+   ],
+   "text": "Walls, trees, creatures, and other obstacles can provide cover, making a target more difficult to harm.",
+   "disposition": "supporting_authority",
+   "claimant_kind": "record",
+   "claimant": "glossary.cover",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause": "combat/1/1",
+   "site": "combat",
+   "record": "glossary.cover",
+   "leaf": "ac18c3da-d741-5f11-9ec6-c608da46dfb1",
+   "printed_page": 15,
+   "span_id": "e1921b33-4c79-53ca-bbb1-5c62905a3090",
+   "range": [
+    103,
+    222
+   ],
+   "text": " As detailed in the Cover table, there are three degrees of cover, each of which gives a different benefit to a target.",
+   "disposition": "supporting_authority",
+   "claimant_kind": "component_context",
+   "claimant": "glossary.cover/degree_benefit (bounds the component)",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "bounds or defers to a whole component and states no rule of its own; supporting authority claimed CONTEXTUAL by that component, so the link a reviewer needs is in the provenance instead of in prose"
+  },
+  {
+   "clause": "combat/1/2",
+   "site": "combat",
+   "record": "glossary.cover",
+   "leaf": "ac18c3da-d741-5f11-9ec6-c608da46dfb1",
+   "printed_page": 15,
+   "span_id": "adeee9ac-a16a-59a6-b8ca-40dcefc1fcb2",
+   "range": [
+    222,
+    336
+   ],
+   "text": " A target can benefit from cover only when an attack or other effect originates on the opposite side of the cover.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "glossary.cover/benefit_origin/898451fe1d6958e6",
+   "role": "primary",
+   "gaps": [
+    "G5"
+   ],
+   "states": "cover benefits a target ONLY when the attack or other effect originates on the OPPOSITE SIDE of the cover",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit; where the source prints the same rule twice, both printings claim the one fact PRIMARY"
+  },
+  {
+   "clause": "combat/1/3",
+   "site": "combat",
+   "record": "glossary.cover",
+   "leaf": "ac18c3da-d741-5f11-9ec6-c608da46dfb1",
+   "printed_page": 15,
+   "span_id": "febf783b-4a35-5e23-9de4-6a12f58180b7",
+   "range": [
+    336,
+    470
+   ],
+   "text": " If a target is behind multiple sources of cover, only the most protective degree of cover applies; the degrees aren’t added together.",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "glossary.cover/degree_selection/1fbedb4352b952b7",
+   "role": "primary",
+   "gaps": [
+    "G6"
+   ],
+   "states": "the same selection rule, stated negatively: only the most protective degree applies and the degrees AREN'T ADDED TOGETHER",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit; where the source prints the same rule twice, both printings claim the one fact PRIMARY"
+  },
+  {
+   "clause": "combat/1/4",
+   "site": "combat",
+   "record": "glossary.cover",
+   "leaf": "ac18c3da-d741-5f11-9ec6-c608da46dfb1",
+   "printed_page": 15,
+   "span_id": "31dbb990-cf4e-5a5b-b638-495e5f02106c",
+   "range": [
+    470,
+    625
+   ],
+   "text": " For example, if a target is behind a creature that gives Half Cover and a tree trunk that gives Three-Quarters Cover, the target has Three-Quarters Cover.",
+   "disposition": "supporting_authority",
+   "claimant_kind": "fact_context",
+   "claimant": "glossary.cover/degree_selection/1fbedb4352b952b7 (bounds the fact)",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "bounds exactly one typed fact and states no rule of its own; supporting authority claimed CONTEXTUAL by that fact rather than by the record"
+  },
+  {
+   "clause": "combat/1/5",
+   "site": "combat",
+   "record": "glossary.cover",
+   "leaf": "ac18c3da-d741-5f11-9ec6-c608da46dfb1",
+   "printed_page": 15,
+   "span_id": "3683868e-dd0e-52dc-8818-1a2452c663c0",
+   "range": [
+    625,
+    631
+   ],
+   "text": " Cover",
+   "disposition": "supporting_authority",
+   "claimant_kind": "record",
+   "claimant": "glossary.cover",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause": "combat/2/0",
+   "site": "combat",
+   "record": "glossary.cover",
+   "leaf": "d194524d-267f-5a1a-b0f6-63aee3f6c71c",
+   "printed_page": 15,
+   "span_id": "5ad139a4-6ed2-5431-b726-d4ba4b399125",
+   "range": [
+    0,
+    6
+   ],
+   "text": "Degree",
+   "disposition": "supporting_authority",
+   "claimant_kind": "record",
+   "claimant": "glossary.cover",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause": "combat/3/0",
+   "site": "combat",
+   "record": "glossary.cover",
+   "leaf": "75c546c7-bba1-5cae-8d15-a10fc8ec8d46",
+   "printed_page": 15,
+   "span_id": "42d1d221-12d5-5bc8-9720-5a09a3b158da",
+   "range": [
+    0,
+    17
+   ],
+   "text": "Benefit to Target",
+   "disposition": "supporting_authority",
+   "claimant_kind": "component_context",
+   "claimant": "glossary.cover/degree_benefit (bounds the component)",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "bounds or defers to a whole component and states no rule of its own; supporting authority claimed CONTEXTUAL by that component, so the link a reviewer needs is in the provenance instead of in prose"
+  },
+  {
+   "clause": "combat/4/0",
+   "site": "combat",
+   "record": "glossary.cover",
+   "leaf": "f4d2934b-e115-55c5-a164-40402fea240d",
+   "printed_page": 15,
+   "span_id": "fab4a02d-5bfd-5f49-960e-9b373cf55b95",
+   "range": [
+    0,
+    12
+   ],
+   "text": "Offered By …",
+   "disposition": "supporting_authority",
+   "claimant_kind": "component_context",
+   "claimant": "glossary.cover/degree_provision (bounds the component)",
+   "role": "contextual",
+   "gaps": [],
+   "states": null,
+   "rationale": "bounds or defers to a whole component and states no rule of its own; supporting authority claimed CONTEXTUAL by that component, so the link a reviewer needs is in the provenance instead of in prose"
+  },
+  {
+   "clause": "combat/5/0",
+   "site": "combat",
+   "record": "glossary.cover",
+   "leaf": "21bff720-ab3f-5f40-aac9-7e3bf8662a1a",
+   "printed_page": 15,
+   "span_id": "bdb56803-d8a5-5210-a63f-5e296552c495",
+   "range": [
+    0,
+    4
+   ],
+   "text": "Half",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "glossary.cover/degree_provision/8dc446c1f3c25c6d",
+   "role": "primary",
+   "gaps": [
+    "G1"
+   ],
+   "states": "the Half degree row: the table's key for this provision",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit; where the source prints the same rule twice, both printings claim the one fact PRIMARY"
+  },
+  {
+   "clause": "combat/6/0",
+   "site": "combat",
+   "record": "glossary.cover",
+   "leaf": "0b5a0f13-fc6f-5785-9589-d5e6cd92b92f",
+   "printed_page": 15,
+   "span_id": "736eff22-b55f-5efb-8be8-574a76524a7b",
+   "range": [
+    0,
+    42
+   ],
+   "text": "+2 bonus to AC and Dexterity saving throws",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "glossary.cover/degree_benefit/5e4d96e1a9adde6f",
+   "role": "primary",
+   "gaps": [
+    "G2"
+   ],
+   "states": "the Cover table's Benefit column for Half, the same +2 to AC and Dexterity saving throws the glossary prints",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit; where the source prints the same rule twice, both printings claim the one fact PRIMARY"
+  },
+  {
+   "clause": "combat/6/1",
+   "site": "combat",
+   "record": "glossary.cover",
+   "leaf": "0b5a0f13-fc6f-5785-9589-d5e6cd92b92f",
+   "printed_page": 15,
+   "span_id": "499343fd-43ba-5ed6-84c2-90985b5356dd",
+   "range": [
+    42,
+    112
+   ],
+   "text": " Another creature or an object that covers at least half of the target",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "glossary.cover/degree_provision/8dc446c1f3c25c6d",
+   "role": "primary",
+   "gaps": [
+    "G4"
+   ],
+   "states": "Half Cover is offered by ANOTHER CREATURE OR AN OBJECT covering AT LEAST HALF of the target - the only clause admitting a creature",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit; where the source prints the same rule twice, both printings claim the one fact PRIMARY"
+  },
+  {
+   "clause": "combat/7/0",
+   "site": "combat",
+   "record": "glossary.cover",
+   "leaf": "ea44211d-9fa6-597e-ad6b-14e758c85f3c",
+   "printed_page": 15,
+   "span_id": "abaf5ae7-6033-5834-87fe-df0c696ce94e",
+   "range": [
+    0,
+    13
+   ],
+   "text": "ThreeQuarters",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "glossary.cover/degree_provision/7e04f20a16cf38cb",
+   "role": "primary",
+   "gaps": [],
+   "states": "the Three-Quarters degree row, carried verbatim as the release extracts it ('ThreeQuarters')",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit; where the source prints the same rule twice, both printings claim the one fact PRIMARY"
+  },
+  {
+   "clause": "combat/8/0",
+   "site": "combat",
+   "record": "glossary.cover",
+   "leaf": "7e6312ab-c1b9-59ff-b46e-ca02d9656f42",
+   "printed_page": 15,
+   "span_id": "5e5846f7-de0c-5df2-9105-d9cbf8b0239a",
+   "range": [
+    0,
+    42
+   ],
+   "text": "+5 bonus to AC and Dexterity saving throws",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "glossary.cover/degree_benefit/4f1d7ffb18cfd8db",
+   "role": "primary",
+   "gaps": [
+    "G2"
+   ],
+   "states": "the Cover table's Benefit column for Three-Quarters, the same +5 the glossary prints",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit; where the source prints the same rule twice, both printings claim the one fact PRIMARY"
+  },
+  {
+   "clause": "combat/9/0",
+   "site": "combat",
+   "record": "glossary.cover",
+   "leaf": "3d1bf5fb-4437-5c9a-95de-179f0a5247f8",
+   "printed_page": 15,
+   "span_id": "4b2a83c2-e5de-567f-aae4-cf22808c856e",
+   "range": [
+    0,
+    59
+   ],
+   "text": "An object that covers at least three-quarters of the target",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "glossary.cover/degree_provision/7e04f20a16cf38cb",
+   "role": "primary",
+   "gaps": [
+    "G4"
+   ],
+   "states": "Three-Quarters Cover is offered by AN OBJECT covering AT LEAST THREE-QUARTERS of the target",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit; where the source prints the same rule twice, both printings claim the one fact PRIMARY"
+  },
+  {
+   "clause": "combat/10/0",
+   "site": "combat",
+   "record": "glossary.cover",
+   "leaf": "165e6e6c-71b8-5cae-9f46-19eae31b81a5",
+   "printed_page": 15,
+   "span_id": "dd1c4eca-4199-5475-8ad6-ccc2d1c4611b",
+   "range": [
+    0,
+    5
+   ],
+   "text": "Total",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "glossary.cover/degree_provision/4f5751578c4ff530",
+   "role": "primary",
+   "gaps": [],
+   "states": "the Total degree row: the table's key for this provision",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit; where the source prints the same rule twice, both printings claim the one fact PRIMARY"
+  },
+  {
+   "clause": "combat/11/0",
+   "site": "combat",
+   "record": "glossary.cover",
+   "leaf": "ae0d54f5-fd31-5abc-b025-442b4ffb4e22",
+   "printed_page": 15,
+   "span_id": "90374bba-0361-5e55-b98d-80f197708867",
+   "range": [
+    0,
+    26
+   ],
+   "text": "Can’t be targeted directly",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "glossary.cover/degree_benefit/cffc77a875a205b1",
+   "role": "primary",
+   "gaps": [
+    "G3"
+   ],
+   "states": "the Cover table's Benefit column for Total, the same direct-targeting prohibition the glossary prints",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit; where the source prints the same rule twice, both printings claim the one fact PRIMARY"
+  },
+  {
+   "clause": "combat/11/1",
+   "site": "combat",
+   "record": "glossary.cover",
+   "leaf": "ae0d54f5-fd31-5abc-b025-442b4ffb4e22",
+   "printed_page": 15,
+   "span_id": "2cad0e9f-9048-54d8-923c-8531781da346",
+   "range": [
+    26,
+    65
+   ],
+   "text": " An object that covers the whole target",
+   "disposition": "substantive",
+   "claimant_kind": "fact",
+   "claimant": "glossary.cover/degree_provision/4f5751578c4ff530",
+   "role": "primary",
+   "gaps": [
+    "G4"
+   ],
+   "states": "Total Cover is offered by AN OBJECT covering THE WHOLE target - its own printed phrase, not 'at least the whole'",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows or multiplies it carried by a structure of this schema rather than left implicit; where the source prints the same rule twice, both printings claim the one fact PRIMARY"
+  }
+ ],
+ "determinism": {
+  "procedure": "The parent writes both artifacts in their final form, then re-executes this generator in a separate process, then compares the final bytes of both files and asserts the child minted the same proposal identity.",
+  "newlines": "LF, written explicitly, on every platform",
+  "proposal_sha256": "132bbc9f47104cc5e768ef3a5ee48101ba3c6e8fcdbbaaec8029b3b36083d07e",
+  "audit_self_hash": "omitted: an audit cannot state its own final digest without changing the bytes that digest describes. The run asserts instead that the parent's and the child's final audits are byte-identical, and reports the resulting digest to stdout.",
+  "reproduce_from_the_repository": "python .claude/review-notes/issue-5d-batch-cover-1-generator.py   (from the repository root). Every input is repository-retained: the committed PDF, the committed discovery manifest, the committed frozen prior and the package under src/."
+ }
+}
