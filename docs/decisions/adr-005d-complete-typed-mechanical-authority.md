@@ -882,9 +882,24 @@ targets — `glossary.concentration` and `glossary.speed` — are still two. Sch
 `glossary.speed` *representable*; only accepting a `speed-1` proposal would resolve it, and that is a
 later step. Such a proposal would close `glossary.speed` and open nine — the five entries the glossary
 `See also` leaf cites and the four special speeds the definition sentence says are *"defined in this
-glossary"* — taking the combined residue to ten. That is arithmetic over two sets rather than a measured
-result: no operation merges an accepted prior with an unaccepted draft. The full-corpus work Decision 5
+glossary"* — taking the combined residue to ten. ~~That is arithmetic over two sets rather than a measured
+result: no operation merges an accepted prior with an unaccepted draft.~~ The full-corpus work Decision 5
 requires remains undischarged.
+
+**Superseded in part at the `speed-1` proposal (2026-09-12).** Two statements above described the state
+before a proposal existed. They are corrected here rather than deleted, so the record shows what changed.
+
+1. *"No proposal exists for `speed-1`"* was true when written and is not now. The proposal artifact
+   `.claude/review-notes/issue-5d-batch-speed-1-PROPOSAL.json` exists, identity
+   `bd9d49427b7f2d996269e4e30a74abc26dacb7804e9176d8ca7f908b6c6a2bf8`, awaiting independent semantic
+   review and Owner acceptance. Nothing about it is accepted: the accepted mechanical corpus is still the
+   frozen six-batch prior and its unresolved targets are still exactly two.
+2. The struck sentence was **wrong**, not merely superseded. `acceptance._merge_representation` does
+   merge a lifted accepted prior with a draft, and `oracle.candidate_from_accepted_inputs` builds a
+   candidate over the result. Ten is a *measured* figure: the proposal generator runs
+   `validate_representation` twice — **nine** unresolved-reference findings against the draft standing
+   alone, **ten** against the merge of the schema-11-lifted six-batch prior with it — and asserts both
+   target lists exactly. The measurement is in memory and changes no accepted authority.
 
 ### Decision 5 — Exact completeness, not aggregate thresholds
 

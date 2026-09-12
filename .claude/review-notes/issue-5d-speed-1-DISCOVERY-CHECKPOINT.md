@@ -717,12 +717,21 @@ claims on one reference are admissible; the split is asserted directly by
 **The arithmetic, stated as arithmetic.** Nine outgoing references against a prior whose
 residue is `{glossary.concentration, glossary.speed}`. This batch defines
 `glossary.speed`, so the combined residue is `{glossary.concentration}` plus the nine —
-**ten**. This is stated as arithmetic over two pinned sets and not as a seam result:
+**ten**. ~~This is stated as arithmetic over two pinned sets and not as a seam result:
 `oracle.py` exposes no operation that merges an accepted prior with a new batch's draft,
-so no run can produce the combined number directly. The two clauses that cite a
+so no run can produce the combined number directly.~~ The two clauses that cite a
 *chapter* rather than an entry — `glossary/3/5`, `combat/3/5` — and `combat/3/0`'s
 parenthetical still emit nothing, because there is no record for a chapter; that part of
 §5c stands.
+
+**Corrected at the proposal (2026-09-12); the struck sentence was wrong.** The merge seam
+does exist — it is `acceptance._merge_representation`, with
+`oracle.candidate_from_accepted_inputs` building the candidate over its result — and the
+proposal generator uses it. It runs `validate_representation` twice and asserts both
+target lists exactly: **nine** unresolved-reference findings against the draft standing
+alone, **ten** against the merge of the schema-11-lifted six-batch prior with it. Ten is
+therefore a measured figure, and the arithmetic above happens to agree with it. The merge
+is performed in memory only; accepted authority still carries two unresolved targets.
 
 ### 9.2 `granted` is a word in a docstring, not a property of the family
 

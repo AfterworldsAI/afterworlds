@@ -1643,3 +1643,36 @@ def test_the_gamemaster_view_names_the_clauses_without_delivering_them() -> None
     assert len(sentences) == 24
     for clause_id in sentences:
         assert str(CLAUSE[clause_id]["text"]).strip() not in rendered, clause_id
+
+
+#: The proposal the generator wrote, next to this module in the review notes.
+#: Read, never written: the test is an agreement check on committed bytes, so a
+#: proposal regenerated from a changed composition fails here instead of landing
+#: unnoticed.
+PROPOSAL_PATH = (
+    pathlib.Path(__file__).resolve().parents[3]
+    / ".claude"
+    / "review-notes"
+    / "issue-5d-batch-speed-1-PROPOSAL.json"
+)
+
+
+def test_the_committed_proposal_is_the_composition_this_module_states() -> None:
+    """The committed proposal represents exactly what this module represents.
+
+    The generator derives its draft independently — rebuilding the corpus from
+    the committed PDF, reading the reviewed source manifest and the discovery
+    checkpoint — and never imports this module. So the equality below is
+    agreement between two independent statements of one composition, not a
+    tautology: the same nine components, the same seventeen facts, the same
+    fifty-two provenance claims at the same coordinates, including which of a
+    four-fact component carries which clause and which single reference carries
+    two claims because its sentence is split across a leaf boundary.
+
+    Identity is deliberately not pinned here. The proposal's identity is
+    reported by the generator and recorded in the review document; asserting it
+    in a test would make an ordinary re-run of a reviewed-and-unchanged
+    composition look like a regression.
+    """
+    proposal = json.loads(PROPOSAL_PATH.read_text(encoding="utf-8"))
+    assert proposal["proposed_representation"] == representation_payload(_draft())

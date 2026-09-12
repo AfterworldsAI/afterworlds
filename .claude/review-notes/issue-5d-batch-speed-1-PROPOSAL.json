@@ -1,0 +1,1157 @@
+{
+ "artifact_kind": "machine_proposal",
+ "proposal_origin": "issue-5d-batch-speed-1-generator.py (CRD Issue 5d batch speed-1, representation schema 11)",
+ "proposal_schema_version": "5d-proposal-1",
+ "proposed_representation": {
+  "components": [
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "accounting": "subtract_distance_already_moved",
+      "family": "speed_switch_limit",
+      "when_nonpositive": "forbids_using_the_new_speed"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.speed",
+    "semantic_key": "speed_switch_limit"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "basis": "own_speed",
+      "family": "movement_allowance",
+      "window": "own_turn"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.speed",
+    "semantic_key": "movement_allowance"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "composes": "combined_with_regular_movement",
+      "family": "movement_composition"
+     },
+     {
+      "composes": "entire_move",
+      "family": "movement_composition"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.speed",
+    "semantic_key": "movement_composition"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "depletes": "own_speed",
+      "family": "movement_depletion",
+      "resolution": "whichever_comes_first",
+      "until": [
+       "allowance_used_up",
+       "done_moving"
+      ]
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.speed",
+    "semantic_key": "movement_depletion"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "duration": "same_duration",
+      "family": "speed_change_propagation",
+      "magnitude": "equal_amount",
+      "to": "every_special_speed"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.speed",
+    "semantic_key": "speed_change_propagation"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "movement_permission",
+      "mode": "climb"
+     },
+     {
+      "family": "movement_permission",
+      "mode": "crawl"
+     },
+     {
+      "family": "movement_permission",
+      "mode": "jump"
+     },
+     {
+      "family": "movement_permission",
+      "mode": "swim"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.speed",
+    "semantic_key": "movement_modes"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "special_speed",
+      "listing": "named_in_a_non_exhaustive_list",
+      "mode": "burrow"
+     },
+     {
+      "family": "special_speed",
+      "listing": "named_in_a_non_exhaustive_list",
+      "mode": "climb"
+     },
+     {
+      "family": "special_speed",
+      "listing": "named_in_a_non_exhaustive_list",
+      "mode": "fly"
+     },
+     {
+      "family": "special_speed",
+      "listing": "named_in_a_non_exhaustive_list",
+      "mode": "swim"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.speed",
+    "semantic_key": "special_speeds"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "speed_definition",
+      "unit": "foot",
+      "window": "own_turn"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.speed",
+    "semantic_key": "speed_definition"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "speed_selection",
+      "permits": "choose_before_moving"
+     },
+     {
+      "family": "speed_selection",
+      "permits": "switch_during_move"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.speed",
+    "semantic_key": "speed_selection"
+   }
+  ],
+  "prose_bindings": [],
+  "provenance": [
+   {
+    "role": "contextual",
+    "span_id": "06a81f0f-b3c9-5ba5-9483-f86af7e00f9a",
+    "target_key": [
+     "glossary.speed",
+     "",
+     "Flying",
+     "srd-5.2.1/rules-glossary",
+     "glossary.flying"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0f34875c-9862-55f9-90ed-6de593d85ab5",
+    "target_key": [
+     "glossary.speed"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "144955c8-f53d-5bd2-89c9-ece35877ed5a",
+    "target_key": [
+     "glossary.speed",
+     "",
+     "Climbing",
+     "srd-5.2.1/rules-glossary",
+     "glossary.climbing"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "2090d14c-42f9-58ec-966f-3cab629476a4",
+    "target_key": [
+     "glossary.speed",
+     "speed_change_propagation",
+     "34ca484dd89df3de"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "20d17a40-e45f-57a4-b989-e5d65777273f",
+    "target_key": [
+     "glossary.speed"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "32ceff0a-e4d2-577d-bf00-7179eea5a72b",
+    "target_key": [
+     "glossary.speed"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3b23cae7-793e-5e1a-a0bf-25c84da8ab4d",
+    "target_key": [
+     "glossary.speed",
+     "speed_change_propagation",
+     "34ca484dd89df3de"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "51db0cb5-00ed-5051-8165-bdd84e0df899",
+    "target_key": [
+     "glossary.speed",
+     "speed_change_propagation",
+     "34ca484dd89df3de"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "5d81f44c-bf6f-58dc-8b1d-ec6b9e495a72",
+    "target_key": [
+     "glossary.speed"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "5f71fd01-f0fa-5dd9-a04b-5d6681b47ef3",
+    "target_key": [
+     "glossary.speed",
+     "",
+     "Swimming",
+     "srd-5.2.1/rules-glossary",
+     "glossary.swimming"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "70747d85-3f32-5097-9aa1-3d4524372851",
+    "target_key": [
+     "glossary.speed",
+     "movement_modes",
+     "040ab0c0024902b4"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "70747d85-3f32-5097-9aa1-3d4524372851",
+    "target_key": [
+     "glossary.speed",
+     "movement_modes",
+     "0644dacdb96695a0"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "70747d85-3f32-5097-9aa1-3d4524372851",
+    "target_key": [
+     "glossary.speed",
+     "movement_modes",
+     "c845468cf1bb2070"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "70747d85-3f32-5097-9aa1-3d4524372851",
+    "target_key": [
+     "glossary.speed",
+     "movement_modes",
+     "c9377183f178461f"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "82d12d0d-766b-58b7-a1a2-06418db6614a",
+    "target_key": [
+     "glossary.speed",
+     "",
+     "Burrow Speed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.burrow_speed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "82d12d0d-766b-58b7-a1a2-06418db6614a",
+    "target_key": [
+     "glossary.speed",
+     "",
+     "Climb Speed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.climb_speed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "82d12d0d-766b-58b7-a1a2-06418db6614a",
+    "target_key": [
+     "glossary.speed",
+     "",
+     "Fly Speed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.fly_speed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "82d12d0d-766b-58b7-a1a2-06418db6614a",
+    "target_key": [
+     "glossary.speed",
+     "special_speeds",
+     "1f1c43e2bcf12c9b"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "82d12d0d-766b-58b7-a1a2-06418db6614a",
+    "target_key": [
+     "glossary.speed",
+     "special_speeds",
+     "39233c12435680cf"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "82d12d0d-766b-58b7-a1a2-06418db6614a",
+    "target_key": [
+     "glossary.speed",
+     "special_speeds",
+     "8f915ca769180442"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "82e70512-273e-57b7-aa8e-ca387094fc4b",
+    "target_key": [
+     "glossary.speed",
+     "movement_composition",
+     "5bc83cf13326fab9"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "82e70512-273e-57b7-aa8e-ca387094fc4b",
+    "target_key": [
+     "glossary.speed",
+     "movement_composition",
+     "8f2909931590f8c7"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "8d37c29f-32e6-5af0-9c9b-d91c25e3478a",
+    "target_key": [
+     "glossary.speed"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "957cc31f-7505-5828-b4d2-15bbb35b3339",
+    "target_key": [
+     "glossary.speed"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "9717f242-7805-517b-ad45-19e418e7552c",
+    "target_key": [
+     "glossary.speed"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "994522d4-885a-556d-96cc-498a6cce5653",
+    "target_key": [
+     "glossary.speed"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "a423a9d2-e153-5a76-b5f2-93ca1345dfdd",
+    "target_key": [
+     "glossary.speed",
+     "",
+     "Crawling",
+     "srd-5.2.1/rules-glossary",
+     "glossary.crawling"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "a5ca8bb2-19ec-5cab-9fed-eb535f51306a",
+    "target_key": [
+     "glossary.speed",
+     "speed_switch_limit",
+     "a032d62d4775e314"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "aab5908b-c438-5b33-9b92-ceedbba76e2c",
+    "target_key": [
+     "glossary.speed",
+     "speed_change_propagation",
+     "34ca484dd89df3de"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "aeb1a24d-5aec-551c-ace4-555381eb02c1",
+    "target_key": [
+     "glossary.speed",
+     "",
+     "Jumping",
+     "srd-5.2.1/rules-glossary",
+     "glossary.jumping"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "c22e81ec-4489-5120-bc0b-aa16ecea582c",
+    "target_key": [
+     "glossary.speed"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "cfb9f419-f8fc-5714-a7c4-58b8cae02a0e",
+    "target_key": [
+     "glossary.speed",
+     "",
+     "Fly Speed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.fly_speed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "cfb9f419-f8fc-5714-a7c4-58b8cae02a0e",
+    "target_key": [
+     "glossary.speed",
+     "",
+     "Swim Speed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.swim_speed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "cfb9f419-f8fc-5714-a7c4-58b8cae02a0e",
+    "target_key": [
+     "glossary.speed",
+     "special_speeds",
+     "8f915ca769180442"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "cfb9f419-f8fc-5714-a7c4-58b8cae02a0e",
+    "target_key": [
+     "glossary.speed",
+     "special_speeds",
+     "d63b59cf59df0573"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d5c9270b-ceb4-5cfd-90a9-0221a4787d3d",
+    "target_key": [
+     "glossary.speed"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "primary",
+    "span_id": "1d4621ba-0815-5fa6-a986-3c6b72c1cb5a",
+    "target_key": [
+     "glossary.speed",
+     "speed_change_propagation",
+     "34ca484dd89df3de"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "22858bf5-3fd8-510e-93b4-2286ae407795",
+    "target_key": [
+     "glossary.speed",
+     "movement_allowance",
+     "6183dc5b4c8aef8a"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "4b9c35fa-2812-5189-9d06-cf538bfd92bd",
+    "target_key": [
+     "glossary.speed",
+     "movement_allowance",
+     "6183dc5b4c8aef8a"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "70747d85-3f32-5097-9aa1-3d4524372851",
+    "target_key": [
+     "glossary.speed",
+     "movement_modes"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "7d8b0c04-ea65-5e27-b942-b3be16784533",
+    "target_key": [
+     "glossary.speed",
+     "speed_switch_limit",
+     "a032d62d4775e314"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "82d12d0d-766b-58b7-a1a2-06418db6614a",
+    "target_key": [
+     "glossary.speed",
+     "special_speeds"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "82e70512-273e-57b7-aa8e-ca387094fc4b",
+    "target_key": [
+     "glossary.speed",
+     "movement_composition"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "83839fdd-c307-5263-9c76-1c2621be6ddb",
+    "target_key": [
+     "glossary.speed",
+     "movement_depletion",
+     "ccbea9e00e3358bd"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "86771827-c419-55bd-b864-897f3da07435",
+    "target_key": [
+     "glossary.speed",
+     "movement_allowance",
+     "6183dc5b4c8aef8a"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "8c953c5b-4654-5d46-bdf4-5de23236f967",
+    "target_key": [
+     "glossary.speed",
+     "speed_switch_limit",
+     "a032d62d4775e314"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "b65f1c7f-9e60-5018-aba2-adf8287b5429",
+    "target_key": [
+     "glossary.speed",
+     "special_speeds"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "b7b38064-4155-59cc-9088-61912807cd11",
+    "target_key": [
+     "glossary.speed",
+     "speed_selection",
+     "257515e28b0731a4"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "cfb9f419-f8fc-5714-a7c4-58b8cae02a0e",
+    "target_key": [
+     "glossary.speed",
+     "special_speeds"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "d0a35294-f634-5ba1-b7bd-bb3aed27b325",
+    "target_key": [
+     "glossary.speed",
+     "speed_switch_limit",
+     "a032d62d4775e314"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "d310f9f6-f920-5f90-85dc-2516a7294d68",
+    "target_key": [
+     "glossary.speed",
+     "speed_selection",
+     "d0989a0d3ec89589"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "d987de22-4ea6-5058-ac82-6dd0d343ec8a",
+    "target_key": [
+     "glossary.speed",
+     "speed_definition",
+     "914a54e5de269f65"
+    ],
+    "target_kind": "fact"
+   }
+  ],
+  "records": [
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.speed"
+   }
+  ],
+  "references": [
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Burrow Speed",
+    "target_record_key": "glossary.burrow_speed"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Climb Speed",
+    "target_record_key": "glossary.climb_speed"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Climbing",
+    "target_record_key": "glossary.climbing"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Crawling",
+    "target_record_key": "glossary.crawling"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Fly Speed",
+    "target_record_key": "glossary.fly_speed"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Flying",
+    "target_record_key": "glossary.flying"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Jumping",
+    "target_record_key": "glossary.jumping"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Swim Speed",
+    "target_record_key": "glossary.swim_speed"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Swimming",
+    "target_record_key": "glossary.swimming"
+   }
+  ],
+  "relationships": []
+ },
+ "proposed_spans": [
+  {
+   "char_end": 103,
+   "char_start": 23,
+   "disposition": "substantive",
+   "leaf_id": "bef2033c-0879-5829-951b-3ccefa22356f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY",
+   "span_id": "d987de22-4ea6-5058-ac82-6dd0d343ec8a"
+  },
+  {
+   "char_end": 105,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "afee8441-9c5f-5ebc-89b6-211254d8f97a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "states something true of a whole group of facts and of no single fact in it, so it is claimed PRIMARY on the component; each fact the sentence names then cites the same span CONTEXTUAL, which is the carrier accepted authority already uses for this shape",
+   "span_id": "70747d85-3f32-5097-9aa1-3d4524372851"
+  },
+  {
+   "char_end": 11,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "88acf51c-d44c-5171-8bf9-349488ff5c16",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "an explicit printed pointer at another entry; carried as an outgoing reference with the source's own scope, CONTEXTUAL on the reference",
+   "span_id": "144955c8-f53d-5bd2-89c9-ece35877ed5a"
+  },
+  {
+   "char_end": 14,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "4744f798-dcc1-53ab-a6ae-9e6ce4800634",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY",
+   "span_id": "86771827-c419-55bd-b864-897f3da07435"
+  },
+  {
+   "char_end": 141,
+   "char_start": 89,
+   "disposition": "substantive",
+   "leaf_id": "a4accfca-97dc-5361-a97f-02ca30eafb25",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY",
+   "span_id": "d310f9f6-f920-5f90-85dc-2516a7294d68"
+  },
+  {
+   "char_end": 15,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "ac4db61a-9763-5b0b-8b3b-381ce52c5d32",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "d5c9270b-ceb4-5cfd-90a9-0221a4787d3d"
+  },
+  {
+   "char_end": 150,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "8421e19c-55c4-5aff-9041-7ec1e40cdb2d",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY",
+   "span_id": "1d4621ba-0815-5fa6-a986-3c6b72c1cb5a"
+  },
+  {
+   "char_end": 17,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "a4accfca-97dc-5361-a97f-02ca30eafb25",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "states something true of a whole group of facts and of no single fact in it, so it is claimed PRIMARY on the component; each fact the sentence names then cites the same span CONTEXTUAL, which is the carrier accepted authority already uses for this shape",
+   "span_id": "b65f1c7f-9e60-5018-aba2-adf8287b5429"
+  },
+  {
+   "char_end": 21,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "2f12fa72-6d6e-57f4-b426-e307bde915d9",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "bounds exactly one typed fact and states no rule of its own; supporting authority claimed CONTEXTUAL by that fact rather than by the record",
+   "span_id": "51db0cb5-00ed-5051-8165-bdd84e0df899"
+  },
+  {
+   "char_end": 21,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "8f05389a-13cb-5480-a246-6a5df9230a00",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "9717f242-7805-517b-ad45-19e418e7552c"
+  },
+  {
+   "char_end": 218,
+   "char_start": 141,
+   "disposition": "substantive",
+   "leaf_id": "a4accfca-97dc-5361-a97f-02ca30eafb25",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY",
+   "span_id": "8c953c5b-4654-5d46-bdf4-5de23236f967"
+  },
+  {
+   "char_end": 224,
+   "char_start": 105,
+   "disposition": "substantive",
+   "leaf_id": "afee8441-9c5f-5ebc-89b6-211254d8f97a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "states something true of a whole group of facts and of no single fact in it, so it is claimed PRIMARY on the component; each fact the sentence names then cites the same span CONTEXTUAL, which is the carrier accepted authority already uses for this shape",
+   "span_id": "82e70512-273e-57b7-aa8e-ca387094fc4b"
+  },
+  {
+   "char_end": 23,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "a1ebf029-bdba-5841-b964-2f93f6e02012",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "994522d4-885a-556d-96cc-498a6cce5653"
+  },
+  {
+   "char_end": 23,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "bef2033c-0879-5829-951b-3ccefa22356f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "c22e81ec-4489-5120-bc0b-aa16ecea582c"
+  },
+  {
+   "char_end": 23,
+   "char_start": 11,
+   "disposition": "supporting_authority",
+   "leaf_id": "88acf51c-d44c-5171-8bf9-349488ff5c16",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "an explicit printed pointer at another entry; carried as an outgoing reference with the source's own scope, CONTEXTUAL on the reference",
+   "span_id": "a423a9d2-e153-5a76-b5f2-93ca1345dfdd"
+  },
+  {
+   "char_end": 260,
+   "char_start": 150,
+   "disposition": "supporting_authority",
+   "leaf_id": "8421e19c-55c4-5aff-9041-7ec1e40cdb2d",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "bounds exactly one typed fact and states no rule of its own; supporting authority claimed CONTEXTUAL by that fact rather than by the record",
+   "span_id": "3b23cae7-793e-5e1a-a0bf-25c84da8ab4d"
+  },
+  {
+   "char_end": 271,
+   "char_start": 218,
+   "disposition": "substantive",
+   "leaf_id": "a4accfca-97dc-5361-a97f-02ca30eafb25",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY",
+   "span_id": "7d8b0c04-ea65-5e27-b942-b3be16784533"
+  },
+  {
+   "char_end": 279,
+   "char_start": 260,
+   "disposition": "supporting_authority",
+   "leaf_id": "8421e19c-55c4-5aff-9041-7ec1e40cdb2d",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "bounds exactly one typed fact and states no rule of its own; supporting authority claimed CONTEXTUAL by that fact rather than by the record",
+   "span_id": "aab5908b-c438-5b33-9b92-ceedbba76e2c"
+  },
+  {
+   "char_end": 33,
+   "char_start": 23,
+   "disposition": "supporting_authority",
+   "leaf_id": "88acf51c-d44c-5171-8bf9-349488ff5c16",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "an explicit printed pointer at another entry; carried as an outgoing reference with the source's own scope, CONTEXTUAL on the reference",
+   "span_id": "06a81f0f-b3c9-5ba5-9483-f86af7e00f9a"
+  },
+  {
+   "char_end": 352,
+   "char_start": 271,
+   "disposition": "substantive",
+   "leaf_id": "a4accfca-97dc-5361-a97f-02ca30eafb25",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY",
+   "span_id": "d0a35294-f634-5ba1-b7bd-bb3aed27b325"
+  },
+  {
+   "char_end": 394,
+   "char_start": 224,
+   "disposition": "substantive",
+   "leaf_id": "afee8441-9c5f-5ebc-89b6-211254d8f97a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY",
+   "span_id": "83839fdd-c307-5263-9c76-1c2621be6ddb"
+  },
+  {
+   "char_end": 44,
+   "char_start": 33,
+   "disposition": "supporting_authority",
+   "leaf_id": "88acf51c-d44c-5171-8bf9-349488ff5c16",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "an explicit printed pointer at another entry; carried as an outgoing reference with the source's own scope, CONTEXTUAL on the reference",
+   "span_id": "aeb1a24d-5aec-551c-ace4-555381eb02c1"
+  },
+  {
+   "char_end": 45,
+   "char_start": 14,
+   "disposition": "substantive",
+   "leaf_id": "4744f798-dcc1-53ab-a6ae-9e6ce4800634",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY",
+   "span_id": "4b9c35fa-2812-5189-9d06-cf538bfd92bd"
+  },
+  {
+   "char_end": 455,
+   "char_start": 394,
+   "disposition": "supporting_authority",
+   "leaf_id": "afee8441-9c5f-5ebc-89b6-211254d8f97a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "8d37c29f-32e6-5af0-9c9b-d91c25e3478a"
+  },
+  {
+   "char_end": 46,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "a2ac2ebd-a877-5b81-921e-1edd473c3a6f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "states something true of a whole group of facts and of no single fact in it, so it is claimed PRIMARY on the component; each fact the sentence names then cites the same span CONTEXTUAL, which is the carrier accepted authority already uses for this shape",
+   "span_id": "cfb9f419-f8fc-5714-a7c4-58b8cae02a0e"
+  },
+  {
+   "char_end": 494,
+   "char_start": 352,
+   "disposition": "supporting_authority",
+   "leaf_id": "a4accfca-97dc-5361-a97f-02ca30eafb25",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "bounds exactly one typed fact and states no rule of its own; supporting authority claimed CONTEXTUAL by that fact rather than by the record",
+   "span_id": "a5ca8bb2-19ec-5cab-9fed-eb535f51306a"
+  },
+  {
+   "char_end": 5,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "193c5f92-bea4-5d32-8f71-57e8021d2d00",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "20d17a40-e45f-57a4-b989-e5d65777273f"
+  },
+  {
+   "char_end": 50,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "c6d4aae3-073c-5755-be6c-8f23c030214f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "bounds exactly one typed fact and states no rule of its own; supporting authority claimed CONTEXTUAL by that fact rather than by the record",
+   "span_id": "2090d14c-42f9-58ec-966f-3cab629476a4"
+  },
+  {
+   "char_end": 51,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "b93abccd-4ffe-5291-a534-b3aa8fe30b0b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY",
+   "span_id": "22858bf5-3fd8-510e-93b4-2286ae407795"
+  },
+  {
+   "char_end": 511,
+   "char_start": 455,
+   "disposition": "supporting_authority",
+   "leaf_id": "afee8441-9c5f-5ebc-89b6-211254d8f97a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "5d81f44c-bf6f-58dc-8b1d-ec6b9e495a72"
+  },
+  {
+   "char_end": 55,
+   "char_start": 44,
+   "disposition": "supporting_authority",
+   "leaf_id": "88acf51c-d44c-5171-8bf9-349488ff5c16",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "an explicit printed pointer at another entry; carried as an outgoing reference with the source's own scope, CONTEXTUAL on the reference",
+   "span_id": "5f71fd01-f0fa-5dd9-a04b-5d6681b47ef3"
+  },
+  {
+   "char_end": 635,
+   "char_start": 511,
+   "disposition": "supporting_authority",
+   "leaf_id": "afee8441-9c5f-5ebc-89b6-211254d8f97a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "957cc31f-7505-5828-b4d2-15bbb35b3339"
+  },
+  {
+   "char_end": 76,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "05dabf62-ad50-5ae7-9196-12265dc0c293",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "states something true of a whole group of facts and of no single fact in it, so it is claimed PRIMARY on the component; each fact the sentence names then cites the same span CONTEXTUAL, which is the carrier accepted authority already uses for this shape",
+   "span_id": "82d12d0d-766b-58b7-a1a2-06418db6614a"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "b469c79c-b4b0-51aa-83cb-65e8e0e70e2d",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "0f34875c-9862-55f9-90ed-6de593d85ab5"
+  },
+  {
+   "char_end": 89,
+   "char_start": 17,
+   "disposition": "substantive",
+   "leaf_id": "a4accfca-97dc-5361-a97f-02ca30eafb25",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY",
+   "span_id": "b7b38064-4155-59cc-9088-61912807cd11"
+  },
+  {
+   "char_end": 90,
+   "char_start": 55,
+   "disposition": "supporting_authority",
+   "leaf_id": "88acf51c-d44c-5171-8bf9-349488ff5c16",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-speed-1-generator.py",
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded",
+   "span_id": "32ceff0a-e4d2-577d-bf00-7179eea5a72b"
+  }
+ ],
+ "release_binding": {
+  "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+  "bundle_root_hash": "03353dfb79790aee7260b9ed96055b7296cd6f70e3e6f97d6cbe0a2484279685",
+  "package_uuid": "4458fa10-4a66-5e0e-9ecc-ea37530ad2b4",
+  "persisted_corpus_digest": "c1f547962b7d9096986f0b8e75624f9f8803dfc281c16033e1c2250cad5a929b",
+  "release_version": "5.2.1-corpus.36b786d8-fa2",
+  "transform_config_hash": "77720c2f3b8c9b88363d48050466fb8e3a26f8476b63145d1b5928ff2581ef3e"
+ },
+ "representation_schema": {
+  "hash": "605e8b4cfdaf0cb6d4f0b65fcf0d23f3e45c4734404c9568f41dc4261eefd037",
+  "version": "5d-representation-schema-11"
+ },
+ "semantic_policy_hash": "e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454",
+ "semantic_policy_version": "5d-semantic-policy-1"
+}

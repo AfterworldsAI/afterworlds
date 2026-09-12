@@ -522,10 +522,20 @@ resolved by this change.** A schema can now state the entry; only an accepted `s
 define the target, and none exists. The count of unresolved cross-batch reference targets below is
 therefore still two. When such a proposal is accepted it would close `glossary.speed` and open nine —
 `glossary.climbing`, `.crawling`, `.flying`, `.jumping`, `.swimming`, `.burrow_speed`, `.climb_speed`,
-`.fly_speed`, `.swim_speed` — taking the count to ten. That is arithmetic over two sets and not a
-measured seam result: no operation merges an accepted prior with an unaccepted draft. It is recorded
+`.fly_speed`, `.swim_speed` — taking the count to ten. ~~That is arithmetic over two sets and not a
+measured seam result: no operation merges an accepted prior with an unaccepted draft.~~ It is recorded
 here for the same reason the earlier residue movements were — as a consequence of accepting a complete
 source class, not a reason to choose one.
+
+**Corrected at the `speed-1` proposal (2026-09-12), struck above rather than deleted.** The struck
+sentence was wrong. `acceptance._merge_representation` merges a lifted accepted prior with a draft and
+`oracle.candidate_from_accepted_inputs` builds a candidate over the result, so ten is **measured**, not
+arithmetic: the proposal generator runs `validate_representation` twice — nine unresolved-reference
+findings against the draft alone, ten against the merge with the schema-11-lifted six-batch prior — and
+asserts both target lists exactly. Separately, a `speed-1` proposal artifact now exists
+(`.claude/review-notes/issue-5d-batch-speed-1-PROPOSAL.json`, identity `bd9d4942…`) and is unaccepted;
+the merge above is performed in memory, so **the count of unresolved targets in accepted authority is
+still two** and the rest of this paragraph stands.
 
 Still outstanding inside CRD Issue 5d: **the accepted corpus is incomplete**. Six batches are
 accepted. `conditions-1` was reviewed and accepted by the Owner on 2026-08-23, `hazards-1` on
