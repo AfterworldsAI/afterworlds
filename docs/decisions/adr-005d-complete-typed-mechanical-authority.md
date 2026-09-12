@@ -757,12 +757,25 @@ is a later step. The full-corpus work Decision 5 requires remains undischarged.
 **Amended by representation schema 11 — the `Speed` entry.** `Speed` is printed twice in the bound
 release, as a Rules Glossary definition (p188) and as `Playing the Game > Combat > Movement and
 Position` (p14), joined by the source's own reciprocal citation rather than by a label match: 16
-leaves, 36 clauses, 16 of them substantive. Schema 10 can state **none** of the 16. The prose-bound
+leaves, 36 clauses, 16 of them substantive. **Schema 10 can state no one of the 16 completely, and
+only one of them even in part.** Of the four modes `combat/3/0` prints it admits `climb`, `crawl`
+and `swim` through `MovementPermissionFact` — a family already present at schema 3, the earliest
+registered contract — and refuses `jump` on the member. The three allowance clauses
+(`combat/1/0`, `combat/2/0`, `combat/2/1`) reach `MovementAllowanceFact`, minted at schema 6, and
+are refused on the `window` key alone; what survives without it is a bare basis that never says the
+allowance is per turn. The remaining twelve reach no family at all. So the distinctions schema 11
+adds, named rather than counted, are: what a Speed *is* — a distance in feet coverable on the
+creature's own turn; the per-turn window on the allowance; depletion by two terminators and the
+race between them; selection among several speeds and the switch mid-move; the switch's accounting
+and its nonpositive prohibition; propagation of a Speed change to every special speed; *special
+speed* as a named category in an open list; the `jump` member; and how a mode composes with regular
+movement. The prose-bound
 branch is unavailable rather than declined — no clause matches any of the six closed reason codes in
 `policy.IRREDUCIBILITY_REASONS`; *"the distance in feet"*, *"a distance equal to your Speed or less"*,
 *"subtract the distance already moved"* and *"until it is used up or until you are done moving,
 whichever comes first"* are exact, printed, non-delegated statements — so **#137 contract 3** read
-under **Decision 4** requires typed families. Schema 11 adds seven, over twelve closed vocabularies:
+under **Decision 4** requires typed families. Schema 11 adds seven, over eleven **new** closed
+vocabularies — a twelfth, `MovementMode`, it widens rather than mints:
 `SpeedDefinitionFact`, `MovementDepletionFact`, `SpeedSelectionFact`, `SpeedSwitchLimitFact`,
 `SpeedChangePropagationFact`, `SpecialSpeedFact` and `MovementCompositionFact`.
 
@@ -779,8 +792,12 @@ same kind of statement about the same budget, and a second family would have mad
 one it was holding.
 
 **It also widens a vocabulary accepted authority already consumes.** `MovementMode` was admitted at
-schema 3 with six of its seven members, and `action.dash` consumes it through
-`MovementPermissionFact`. Schema 11 adds `JUMP`, which is printed in the same sentence the other modes
+schema 3 with six of its seven members, and accepted authority consumes it through
+`MovementPermissionFact` at exactly one place: `condition.prone`, component
+`restricted_movement`, `mode=crawl` — the single accepted instance of that family. (`action.dash`'s
+two accepted movement facts are `MovementAllowanceFact`, which carries no mode; its bare *"such as
+a Fly Speed or Swim Speed"* names no mode either.) Schema 11 adds `JUMP`, which is printed in the
+same sentence the other modes
 came from — *"Your movement can include climbing, crawling, jumping, and swimming"* — and was simply
 missing. Widening is recorded the way a new vocabulary is. The other six members need no registry
 row and get none — schema 3 predates the introduction manifest entirely — and schema 11 registers `jump` as

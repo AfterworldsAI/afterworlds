@@ -860,13 +860,13 @@ def test_schema_10_refuses_every_schema_11_only_type_or_value(
 ) -> None:
     """The succession speed-1 needs, in the direction that makes it one.
 
-    Schema 3 could already *change* a Speed, measure an allowance by one
-    and state a creature's own — which is exactly why this is asserted per
-    specimen rather than assumed. The last two go further still: one
-    carries ``MovementMode.JUMP``, a member of a vocabulary schema 3
-    already declared, and the other a ``window`` key on a family schema 3
-    already had. Schema 10 must refuse each on the member and the key
-    alone, not on the type.
+    Schema 3 could already *change* a Speed and state a creature's own, and
+    schema 6 could measure an allowance by one — which is exactly why this
+    is asserted per specimen rather than assumed. The last two go further
+    still: one carries ``MovementMode.JUMP``, a member of a vocabulary
+    schema 3 already declared, and the other a ``window`` key on a family
+    schema 6 already had. Schema 10 must refuse each on the member and the
+    key alone, not on the type.
     """
     assert post_schema_3_violations(obj, SCHEMA_10_VERSION), obj
 

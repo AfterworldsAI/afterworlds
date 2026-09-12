@@ -494,8 +494,9 @@ this document already carries is the reason it has to say so explicitly.** `Spee
 the bound release — a Rules Glossary definition and `Playing the Game > Combat > Movement and
 Position`, joined by the source's own reciprocal citation — 16 leaves, 36 clauses, 16 of them
 substantive. No reason code in `policy.IRREDUCIBILITY_REASONS` is affirmatively true of any of them, so
-schema 11 adds seven families over twelve closed vocabularies and widens `MovementMode` by one member
-(`jump`), under #137 contract 3 and ADR-005d Decision 4; see the schema-11 amendment in
+schema 11 adds seven families over eleven new closed vocabularies and widens a twelfth,
+`MovementMode`, by one member (`jump`), under #137 contract 3 and ADR-005d Decision 4; see the
+schema-11 amendment in
 `docs/decisions/adr-005d-complete-typed-mechanical-authority.md`. **Four movement items above are
 neither narrowed nor leaned on.** *"Movement options and per-foot movement cost"* remains
 `conditions-1` residue; *"Ratio-form movement costs"* is untouched, because no clause in this
@@ -507,8 +508,12 @@ an applicability condition; and the *sequencing* deferral is untouched, because 
 and `SpeedSwitchLimitFact` state a choice among a creature's own speeds and its printed cost, not a
 position in a sequence, so neither `MovementInterleaveFact` nor `TriggeredResolutionFact` gains an
 instance or a member. **No new Known Unknown is created.** **Nothing evaluates and nothing about a
-grid is represented.** Schema 11 carries no parameter value, unit, coordinate or grid semantic;
-subtracting a move from the allowance, applying the propagation rule to a creature's actual speed
+grid is represented.** Schema 11 **invents** no parameter value, unit, coordinate or grid semantic,
+which is not the same as carrying no unit: `SpeedDefinitionFact.unit` is `DistanceUnit.FOOT`, the
+member schema 5 registered, and it names the foot *"the distance in feet"* prints. Reproducing a
+unit the sentence states is the opposite of inventing geometry — no schema-11 vocabulary mentions a
+square, a segment or a corner, and no fact in this batch carries a number.
+Subtracting a move from the allowance, applying the propagation rule to a creature's actual speed
 list, and every square, segment and corner rule stay outside, where #137's Out of scope and ADR-005d
 Decision 11 leave them. The grid rules printed at `Playing the Game > Exploration > Vehicles` are
 outside **this batch** by its membership rule and not outside declarative 5d; their printed

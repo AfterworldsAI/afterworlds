@@ -777,7 +777,7 @@ def test_a_cover_override_cannot_widen_the_union(
 #
 # Schema 11 mints seven families and widens ``MovementMode`` by one member, but
 # it also does something the three blocks above never did: it adds an optional
-# field to a family the override layer has carried since schema 8. So this
+# field to a family the override layer has carried since schema 6. So this
 # block asks two questions rather than one. Do the seven new payloads reach a
 # deterministic consumer intact -- and does ``MovementAllowanceFact``, whose
 # wire shape changed under an override author who may still be writing the old
@@ -792,7 +792,7 @@ SPEED_DEFINITION = SpeedDefinitionFact(
 )
 
 #: Movement and Position, p14: "you can move a distance up to your Speed" on
-#: your turn. The family is schema 8's; ``window`` is the field schema 11 added
+#: your turn. The family is schema 6's; ``window`` is the field schema 11 added
 #: to it, and this specimen is the reason the optional field is exercised here.
 OWN_SPEED_ALLOWANCE = MovementAllowanceFact(
     basis=MovementAllowanceBasis.OWN_SPEED,

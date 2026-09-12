@@ -15,7 +15,7 @@ switching costs and when it is forbidden, how a change to Speed reaches the
 special speeds, that a special speed is named in an open list, or that a mode
 may compose with regular movement or constitute the whole move. Seven families
 over eleven new closed vocabularies — plus one member, ``jump``, widening the
-``MovementMode`` vocabulary schema 8 minted — state all of it, and one
+``MovementMode`` vocabulary schema 3 already had — state all of it, and one
 registered crossing carries the frozen six-batch prior across.
 
 **The allowance is reused, not replaced.** ``MovementAllowanceFact`` already
@@ -332,7 +332,7 @@ COMPOSITION: tuple[tuple[str, MechanicalFact, tuple[str, ...]], ...] = (
     (SPECIAL, SpecialSpeedFact(mode=MovementMode.SWIM, listing=LISTED), ()),
     # G6b. "Your movement can include climbing, crawling, jumping, and swimming
     # (each explained in "Rules Glossary")." Four modes in one sentence, on the
-    # family schema 8 already minted for exactly this.
+    # family schema 3 already had for exactly this.
     (MODES, MovementPermissionFact(mode=MovementMode.CLIMB), ()),
     (MODES, MovementPermissionFact(mode=MovementMode.CRAWL), ()),
     (MODES, MovementPermissionFact(mode=MovementMode.JUMP), ()),
@@ -1101,7 +1101,7 @@ def test_g6_modes_categories_and_composition_keep_such_as_open() -> None:
     *"such as"* stays open because ``listing`` says the printed list is
     non-exhaustive — the openness is a property the fact states, not something
     inferred from a vocabulary that happens to hold more members. The modes come
-    from the family schema 8 already minted, and the two compositions are the
+    from the family schema 3 already had, and the two compositions are the
     disjunction the sentence prints.
     """
     assert {f.mode for f in FACTS_BY_COMPONENT[SPECIAL]} == {
@@ -1230,10 +1230,11 @@ def test_schema_10_cannot_state_the_seven_new_families() -> None:
 
     Every fact from a family schema 11 mints is meaning schema 10's declared
     contract cannot carry, and the composed draft as a whole is refused under
-    it. ``MovementPermissionFact`` is deliberately *not* in this list: schema 8
-    minted that family, and asserting it refused would claim a delta the mint
-    does not have. What schema 10 cannot state about it is the ``jump`` member,
-    which the next test isolates.
+    it. ``MovementPermissionFact`` is deliberately *not* in this list: the family
+    predates the introduction manifest and was already statable under schema 3,
+    the earliest registered contract, so asserting it refused would claim a delta
+    the mint does not have. What schema 10 cannot state about it is the ``jump``
+    member, which the next test isolates.
     """
     minted = {
         FactFamily.SPEED_DEFINITION,
@@ -1260,10 +1261,10 @@ def test_an_earlier_contract_refuses_the_jump_member_it_never_registered(
 ) -> None:
     """The widening is refused by *member*, on a family and field that predate it.
 
-    ``MovementPermissionFact.mode`` arrived at schema 8 and neither schema 8 nor
-    schema 10 registered ``jump``. That is what makes the schema-8 registry row
-    a frozen closure rather than whatever the live enum happens to hold: the
-    same field, the same family, and the member is the only thing refused.
+    ``MovementPermissionFact.mode`` is a schema-3 field and neither schema 8 nor
+    schema 10 registered ``jump``. That is what makes each version's member
+    index a frozen closure rather than whatever the live enum happens to hold:
+    the same field, the same family, and the member is the only thing refused.
     """
     jumping = _single(MODES, MovementPermissionFact(mode=MovementMode.JUMP))
     assert declared_meaning_violations(jumping, version)
