@@ -59,9 +59,9 @@ afterworlds = [
     # oracle.committed_oracle_for from the fixed packaged directory. The
     # directory holds one production artifact today — the SRD 5.2.1 release,
     # carrying accepted batches conditions-1, hazards-1, actions-1, attitudes-1,
-    # areas-of-effect-1 and cover-1 — so the glob must ship it, or an installed
-    # distribution would resolve no accepted authority and publication would
-    # return ABSENT rather than the honest INCOMPLETE.
+    # areas-of-effect-1, cover-1 and speed-1 — so the glob must ship it, or an
+    # installed distribution would resolve no accepted authority and publication
+    # would return ABSENT rather than the honest INCOMPLETE.
     "ingestion/mechanical/oracles/*.json",
 ]
 

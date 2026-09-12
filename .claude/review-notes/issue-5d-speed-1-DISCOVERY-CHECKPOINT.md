@@ -4,6 +4,20 @@
 lifted, published, activated or retired by this checkpoint, and no schema change is
 implemented. It ends here.
 
+> **Superseded on 2026-09-12 — this document is the discovery and proposal record, kept
+> as written.** The status line above recorded a true intermediate state and is preserved
+> with it, as is every other status line below: together they are the evidence of what was
+> put in front of the Owner, in the order it was put there. Independent semantic review
+> then completed with no blocking finding, and the Owner authorized acceptance of proposal
+> `bd9d49427b7f2d996269e4e30a74abc26dacb7804e9176d8ca7f908b6c6a2bf8` as batch `speed-1` —
+> all 36 spans and the complete representation. It was accepted. Current acceptance status
+> lives in `issue-5d-speed-1-ACCEPTANCE-CHECKPOINT.md`. The prior pins below still describe
+> the frozen six-batch prior, which the acceptance did not touch. Nothing was published,
+> activated or retired then either. Of the two unresolved targets recorded below,
+> `glossary.speed` is the one this batch defined; `glossary.concentration` is still
+> unresolved, and this batch added nine movement and special-speed targets of its own, so
+> accepted authority now carries ten.
+
 **Corrected on 2026-09-12 by the schema-11 implementation run — see §9.** Three
 conclusions below did not survive implementation: the reference restriction in
 §5b/§5d, the `MovementAllowanceFact` reading in §4c and G2, and the placement of

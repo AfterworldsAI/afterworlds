@@ -901,6 +901,47 @@ before a proposal existed. They are corrected here rather than deleted, so the r
    alone, **ten** against the merge of the schema-11-lifted six-batch prior with it — and asserts both
    target lists exactly. The measurement is in memory and changes no accepted authority.
 
+> **Historical — the state at the schema-11 registration and at the `speed-1` proposal, superseded
+> by Owner Decision 2026-09-12.** The paragraphs above record the state when schema 11 was registered
+> and when the proposal was raised, and are kept as written; the "nothing is accepted" they state has
+> since ended, as has the correction's "the accepted mechanical corpus is still the frozen six-batch
+> prior". On 2026-09-12 the Owner accepted the reviewed proposal
+> `bd9d49427b7f2d996269e4e30a74abc26dacb7804e9176d8ca7f908b6c6a2bf8` as batch `speed-1` — all 36
+> spans and the complete representation, extending the preserved six-batch prior through the
+> registered transitions. **No unresolved architectural choice remains here and no further Owner
+> ruling is required**; this note reconciles the description with a decision already recorded, and
+> amends no contract.
+>
+> What the acceptance changed: the committed artifact now declares schema 11 rather than schema 10,
+> and carries a seventh anchor, `speed-1` at schema 11. The registered path resolved as
+> `5d-lift-schema-3-to-4` → `4-to-5` → `5-to-6` → `6-to-7` → `7-to-8` → `8-to-9` → `9-to-10` →
+> `10-to-11`, and the prior was lifted rather than rewritten. What it did not change: `conditions-1`
+> stays anchored at schema 3, `hazards-1` at schema 5, `actions-1` at schema 7, `attitudes-1` at
+> schema 8, `areas-of-effect-1` at schema 9 and `cover-1` at schema 10, where each was reviewed; all
+> four frozen priors are untouched at the schemas they were frozen under and keep their own digests —
+> including `accepted_prior_conditions_1_hazards_1_actions_1_attitudes_1_areas_of_effect_1_cover_1.json`,
+> still `86cd11c2be330f5962982d8d87dfc1847815710868223257529f30bef8cdb500` over 47 records and 558
+> spans; schemas 3 through 10 remain recognized contracts with the pins above; and the schema-11
+> destination pin is still `605e8b4cfdaf0cb6d4f0b65fcf0d23f3e45c4734404c9568f41dc4261eefd037`. The
+> accepted mechanical identity is now
+> `d395e4ed79045d0b3ef015240d61fd91445a4b38a77a5f75b0e537ca74eaa29f`, over 48 records and 594 spans.
+> Because the artifact again declares the schema this build implements, no lift stands between the
+> committed file and current authority.
+>
+> What it resolved, and what it did not. The residue moved in both directions in a single acceptance
+> and the total went **up**. `speed-1` defines `glossary.speed`, so the `Speed` citation `actions-1`
+> printed in Dash now resolves; it also emits nine outgoing citations of its own —
+> `glossary.burrow_speed`, `glossary.climb_speed`, `glossary.climbing`, `glossary.crawling`,
+> `glossary.fly_speed`, `glossary.flying`, `glossary.jumping`, `glossary.swim_speed` and
+> `glossary.swimming` — so the unresolved count went from two to ten. Those nine are cited, not
+> ingested: no record, component, fact or span was created for any of them and no target was
+> invented. `glossary.concentration` is untouched and remains the inherited residue it has been since
+> `conditions-1`. Ten is now a measured property of committed authority rather than arithmetic over
+> two sets, asserted in `test_committed_accepted_authority`. All ten are explicit publication
+> blockers, so the corpus stays incomplete and runtime-unpublished, the acceptance published,
+> activated and retired **nothing**, and the full-corpus work Decision 5 requires remains
+> undischarged.
+
 ### Decision 5 — Exact completeness, not aggregate thresholds
 
 Publication is proven through exact full-corpus accounting and accepted per-record/component obligations.

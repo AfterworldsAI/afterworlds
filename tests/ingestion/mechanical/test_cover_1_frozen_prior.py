@@ -318,7 +318,7 @@ def test_the_prior_round_trips_strictly_through_its_own_payload() -> None:
     )
 
 
-def test_the_committed_artifact_extends_this_copy_by_exactly_one_batch() -> None:
+def test_the_committed_artifact_extends_this_copy_by_the_batches_since() -> None:
     """The copy, attached to what it was copied from.
 
     Taking the freeze changed nothing about accepted authority, and until the
@@ -326,8 +326,10 @@ def test_the_committed_artifact_extends_this_copy_by_exactly_one_batch() -> None
     content. The previous form of this test named that acceptance as the thing
     that would end it and named what should replace it, so this is that
     replacement rather than a deletion: the live artifact is this prior plus
-    exactly one batch, and every batch the freeze holds is still present and
-    identical, which is the part that would catch a merge rewriting history.
+    exactly the batches accepted since, and every batch the freeze holds is
+    still present and identical, which is the part that would catch a merge
+    rewriting history. The Owner's acceptance of ``speed-1`` makes that two,
+    so the claim is generalized rather than re-pinned to a single batch name.
 
     The fixture's own two pins are asserted above and are unchanged by the
     acceptance; what moved is the live file, so its digest is asserted to
@@ -340,5 +342,8 @@ def test_the_committed_artifact_extends_this_copy_by_exactly_one_batch() -> None
 
     frozen = {b.batch_id: b for b in load_accepted_inputs(FROZEN_PRIOR).batches}
     committed = {b.batch_id: b for b in load_accepted_inputs(COMMITTED).batches}
-    assert set(committed) - set(frozen) == {"cover-1"}
+    assert set(committed) - set(frozen) == {
+        "cover-1",
+        "speed-1",
+    }
     assert {k: committed[k] for k in frozen} == frozen

@@ -11,13 +11,15 @@ evidence — a batch reviewed against a prior that has since moved was reviewed
 against something the reviewer never saw.
 
 **The copy is the preservation proof.** The fixture is
-``git cat-file blob b7c0149432072d4a3b151d0f9b2c458252e584da``, which is the
-live accepted artifact's blob as this freeze is taken. At this moment the two
-files are the same content, and that is asserted rather than assumed. Accepting
-``speed-1`` would extend the live file and end that equality; when it does, this
-module's last test is the one that must change, and it names in advance what
-should replace it — the live artifact is this prior plus exactly one batch, and
-every batch the freeze holds is still present and identical.
+``git cat-file blob b7c0149432072d4a3b151d0f9b2c458252e584da``, which was the
+live accepted artifact's blob when the freeze was taken. The Owner's acceptance
+of ``speed-1`` on 2026-09-12 extended the live file, so the copy no longer
+matches it byte for byte; what it now proves is that the extension *carried*
+this prior — every batch here is still present in the live artifact and
+identical. That is the replacement the previous form of this module's last test
+named in advance, made rather than deleted. Both fixture identities stay pinned
+— blob sha1 and LF sha256 — and every other pin below is derived by loading the
+file rather than transcribed.
 
 **Exactly one registered crossing separates this prior from this build.** The
 freeze was taken *at* schema 10, level with the checkout, and this module's
@@ -32,9 +34,11 @@ pair, not a field the file gains.
 nothing about the live artifact beyond the equality claim. Every pin describes
 the *frozen* file: the six batches it holds, its 47 records, and the two
 reference targets it cannot resolve — the honest starting position ``speed-1``
-is measured from, not a list to be worked through. One of those two,
-``glossary.speed``, is the citation this batch exists to consider; the other
-remains open and out of its cut.
+was measured from, not a list to be worked through. ``speed-1`` resolved one of
+those two, ``glossary.speed``, by defining the record, and emitted nine outgoing
+citations of its own; ``glossary.concentration`` was outside its cut and remains
+open. Where the live artifact now stands is pinned in
+``test_committed_accepted_authority``, not here.
 """
 
 from __future__ import annotations
@@ -344,28 +348,27 @@ def test_the_prior_round_trips_strictly_through_its_own_payload() -> None:
     )
 
 
-def test_the_committed_artifact_is_still_this_copy_byte_for_byte() -> None:
+def test_the_committed_artifact_extends_this_copy_by_exactly_one_batch() -> None:
     """The copy, attached to what it was copied from.
 
-    Taking the freeze changes nothing about accepted authority, so until the
-    Owner accepts another batch the live artifact and this copy are the same
-    content. That equality is asserted rather than assumed, because a freeze
-    that had silently copied something else would otherwise pass every test
-    above.
+    Taking the freeze changed nothing about accepted authority, and until the
+    Owner accepted ``speed-1`` the live artifact and this copy were the same
+    content. The previous form of this test named that acceptance as the thing
+    that would end it and named what should replace it, so this is that
+    replacement rather than a deletion: the live artifact is this prior plus
+    exactly one batch, and every batch the freeze holds is still present and
+    identical, which is the part that would catch a merge rewriting history.
 
-    **What replaces this test.** An acceptance of ``speed-1`` extends the live
-    file and ends the equality. The replacement is the shape ``cover-1``'s
-    freeze ended at: assert the live digest *differs*, assert the live batch set
-    is this one plus exactly the newly accepted batch, and assert every batch the
-    freeze holds is still present and identical — which is the part that would
-    catch a merge rewriting history. Naming it here means the edit is a
-    recorded succession rather than a deletion.
+    The fixture's own two pins are asserted above and are unchanged by the
+    acceptance; what moved is the live file, so its digest is asserted to
+    *differ* rather than transcribed here. The committed artifact's own pins
+    live in ``test_committed_accepted_authority``.
     """
     assert _lf_digest(FROZEN_PRIOR) == FROZEN_CONTENT_SHA256
     assert _blob_id(FROZEN_PRIOR) == FROZEN_BLOB
-    assert _lf_digest(COMMITTED) == FROZEN_CONTENT_SHA256
+    assert _lf_digest(COMMITTED) != FROZEN_CONTENT_SHA256
 
     frozen = {b.batch_id: b for b in load_accepted_inputs(FROZEN_PRIOR).batches}
     committed = {b.batch_id: b for b in load_accepted_inputs(COMMITTED).batches}
-    assert set(committed) == set(frozen) == set(BATCH_IDS)
+    assert set(committed) - set(frozen) == {"speed-1"}
     assert {k: committed[k] for k in frozen} == frozen

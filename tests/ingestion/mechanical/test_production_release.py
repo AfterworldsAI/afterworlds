@@ -242,21 +242,21 @@ def test_the_bound_release_supplies_the_accounting_population(
 def test_the_accepted_oracle_for_the_production_release_resolves(
     production: ProductionFixture,
 ) -> None:
-    """Accepted authority exists for the real SRD release — six accepted batches.
+    """Accepted authority exists for the real SRD release — seven accepted batches.
 
-    It judges 47 records — 15 conditions, 5 hazards, 12 actions, 3 attitudes and
+    It judges 48 records — 15 conditions, 5 hazards, 12 actions, 3 attitudes and
     6 areas of effect, plus the glossary entry that defines each of those five
-    lists and the Cover glossary rule, which names no list of its own — and
-    nothing else, which is exactly why the publication test below still
-    refuses: the SRD has far more than 47 records.
+    lists, the Cover glossary rule and the Speed glossary rule, neither of which
+    names a list of its own — and nothing else, which is exactly why the
+    publication test below still refuses: the SRD has far more than 48 records.
     """
     resolved = committed_oracle_for(
         production.binding.package_uuid, production.binding.release_version
     )
     assert resolved is not None
     assert resolved.binding == production.binding
-    assert len(resolved.representation.records) == 47
-    assert len(resolved.spans) == 558
+    assert len(resolved.representation.records) == 48
+    assert len(resolved.spans) == 594
 
 
 def test_the_production_path_refuses_the_real_release(
@@ -266,13 +266,13 @@ def test_the_production_path_refuses_the_real_release(
 
     Before ``conditions-1`` was accepted this returned ``ABSENT``: no authority
     judged the release at all. Authority now exists and resolves, so the refusal
-    moves to ``INCOMPLETE`` — the accepted artifact covers 47 records (15
+    moves to ``INCOMPLETE`` — the accepted artifact covers 48 records (15
     conditions, 5 hazards, 12 actions, 3 attitudes and 6 areas of effect, plus
-    the glossary entry defining each of those five lists, and Cover) while the
-    persisted
-    projection covers the whole SRD. Each further batch narrowed the gap and did
-    not close it, which is the point: publication is refused because the CRD
-    Issue 5d corpus is unfinished, not because nothing was ever reviewed.
+    the glossary entry defining each of those five lists, Cover and Speed) while
+    the persisted projection covers the whole SRD. Each further batch narrowed
+    the gap and did not close it, which is the point: publication is refused
+    because the CRD Issue 5d corpus is unfinished, not because nothing was ever
+    reviewed.
     """
     result = publish_from_committed_oracle(
         production.session, production.projection_uuid, now=NOW
