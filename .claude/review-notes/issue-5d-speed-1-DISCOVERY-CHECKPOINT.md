@@ -23,7 +23,7 @@ pytest -q --no-cov tests/ingestion/mechanical/test_speed_1_frozen_prior.py
 ```
 
 The first writes `.claude/review-notes/issue-5d-speed-1-source-manifest.json` (LF, sha256
-`be3277f681482f76049f2c558ce43efb4b8efcf1914436635dbb36ec36fb8491`, 390,631 bytes,
+`8c8ea8eed38feaeb28d74386690b5ee28e43872b1316517b922fb89afa016b20`, 417,161 bytes,
 byte-identical on rerun). Every clause id cited below is a row in its `clauses` array,
 addressable as `leaf_id[char_start:char_end)`. No judgment in this document is encoded in
 the script: it emits no disposition and no candidate record key, because a discovery run
@@ -290,7 +290,11 @@ population** as their evidence:
 
 The prior *uses* them: 5 `speed_modification`, 3 `movement_allowance`, 2 `movement_cost`, 1
 `movement_permission`, 1 `movement_transport`, 1 `movement_interleave` — 13 accepted facts
-about movement, all derived from the prior by the run rather than remembered. So the
+about movement, walked out of the frozen prior by the run and emitted as
+`prior_movement_facts` (`by_family` counts, and every row with its record key,
+component key and fields). `area_origin_movement`, 1, matches the same family pattern
+and is reported beside them rather than folded in: it is about an area's origin moving,
+not a creature's. So the
 question is not whether the schema knows about Speed. It is whether it can state what Speed
 **is** and what a turn's movement budget **does**, which is a different claim from every one
 of those thirteen.
@@ -334,8 +338,9 @@ and the gap surface is five. If `S` is right, G1 needs a carrier and there is no
 
 Accepted authority holds five `speed_modification` facts — `condition.grappled`,
 `condition.paralyzed`, `condition.petrified`, `condition.restrained`,
-`condition.unconscious`, each `{change: set_to, feet: 0, mode: null, can_increase: false}`,
-all derived from the prior by the run. Each condition's own page prints *"Your Speed is 0
+`condition.unconscious`, each `{change: set_to, feet: 0, mode: null, can_increase: false}` —
+walked out of the frozen prior and asserted field-for-field by the run, in
+`prior_movement_facts.rows`. Each condition's own page prints *"Your Speed is 0
 and can't increase"* and nothing more. **The rule that makes those five reach a creature's
 Climb Speed is printed here, at `glossary/9/0`, and nowhere on any of those five pages.**
 
@@ -401,7 +406,7 @@ and no target key.
 targets no accepted record defines. If both happen, the unresolved residue moves from
 `{glossary.concentration, glossary.speed}` — two — to six. **The residue direction moves
 up.** That is what following the established rule produces, and it is reported rather than
-avoided; `known_unknowns.md:499-503` already records that the residue has moved in both
+avoided; `known_unknowns.md:504-505` already records that the residue has moved in both
 directions across batches and that residue movement is a consequence of accepting complete
 source classes, not a reason for choosing one.
 
@@ -477,8 +482,9 @@ target key — not transcribed. Every boundary leaf is represented by 5c
 
 **545 print the capitalized term; 12 are lowercase-only.** Unlike `cover-1` — where three of
 thirty hits matched only the longer word *"Covering"* — **every one of the 557 contains a
-standalone `speed`/`speeds` token**, asserted by the run rather than eyeballed. No
-substring artifact exists in this scan.
+standalone `speed`/`speeds` token**. Each boundary row carries `prints_standalone_token`,
+the run asserts it row by row, and the total is emitted as
+`boundary_standalone_token_leaf_count` (557). No substring artifact exists in this scan.
 
 **Twenty-two boundary leaves are already owned by accepted authority**, derived from the
 prior: `Dash [Action]` 6, `Exhaustion` 2, `Grappled` 2, `Paralyzed` 2, `Petrified` 2,
@@ -581,14 +587,15 @@ asserted away: `3a7db508…` (`Equipment > Mounts and Vehicles > Speed`), `2f55c
 | Policy exclusions inside the population | 0, listed rather than asserted away |
 | Every member leaf asserted attached directly to its entry; committed table inventory filtered to the population's printed pages and asserted to name no member-owned table | pass |
 | No member leaf is already represented by the accepted prior | pass |
-| Every boundary leaf represented by 5c; every boundary row asserted to contain a standalone `speed`/`speeds` token | pass, 557 rows, 0 substring artifacts |
+| Every boundary leaf represented by 5c; every boundary row carries `prints_standalone_token` and is asserted true | pass, 557 rows, `boundary_standalone_token_leaf_count` 557, 0 substring artifacts |
+| The prior's own movement and speed facts walked out of the frozen prior over components and their options | pass, 14 matching facts, 13 about a creature's own movement; the five `speed_modification` rows asserted field-for-field |
 | Accepted-record ownership of boundary containers derived from the prior's spans and provenance | pass; every derived key asserted present in the prior |
 | No adjudicated-boundary container prints the membership citation | pass, 21 containers |
 | Frozen prior digest, blob and `oracle_identity` before and after the run | unmoved |
 | Live accepted artifact read as a mutation sentinel, never as an input | unmoved |
 | Every other file in `.claude/review-notes/` digested before and after | unmoved |
 | `black --check` and `ruff check` on the discovery script | clean |
-| Manifest reproducibility | rerun byte-identical, sha256 `be3277f681482f76049f2c558ce43efb4b8efcf1914436635dbb36ec36fb8491` |
+| Manifest reproducibility | rerun byte-identical, sha256 `8c8ea8eed38feaeb28d74386690b5ee28e43872b1316517b922fb89afa016b20` |
 | Manifest reproduced from a clean `git archive` export of this checkpoint's own tree, run outside the working tree | byte-identical (`cmp`). The export is hermetic: the script's own `assert PACKAGE_ROOT.resolve() == IMPORTED_FROM` holds there, so the exported `src/` is what ran. No untracked file in `.claude/review-notes/` is an input |
 
 Not run, and not implied: the publication gate (there is no persisted projection to run it

@@ -907,6 +907,7 @@
     "Spells": 25
   },
   "boundary_lowercase_only_leaf_count": 12,
+  "boundary_standalone_token_leaf_count": 557,
   "boundary_note": "Every leaf outside the population whose text contains 'speed' in any case, enumerated with its container so the exclusion is checkable rather than asserted. All of them are represented by 5c, so the word is not a proxy for the population and the exclusion is a judgment about what the source states, never an artifact of what 5c dropped.",
   "adjudicated_boundary": [
     {
@@ -2519,6 +2520,184 @@
     "record/contextual": 98,
     "reference/contextual": 53
   },
+  "prior_movement_facts": {
+    "rule": "every fact in the frozen prior whose family name matches movement|speed, walked over components and their options",
+    "by_family": {
+      "area_origin_movement": 1,
+      "movement_allowance": 3,
+      "movement_cost": 2,
+      "movement_interleave": 1,
+      "movement_permission": 1,
+      "movement_transport": 1,
+      "speed_modification": 5
+    },
+    "creature_movement_families": [
+      "movement_allowance",
+      "movement_cost",
+      "movement_interleave",
+      "movement_permission",
+      "movement_transport",
+      "speed_modification"
+    ],
+    "creature_movement_fact_count": 13,
+    "total_matching_fact_count": 14,
+    "rows": [
+      {
+        "record_key": "action.ready",
+        "component_key": "ready_response",
+        "option_key": "move_up_to_speed",
+        "family": "movement_allowance",
+        "fields": {
+          "basis": "own_speed"
+        }
+      },
+      {
+        "record_key": "action.dash",
+        "component_key": "dash_movement",
+        "option_key": "special_speed",
+        "family": "movement_allowance",
+        "fields": {
+          "basis": "own_special_speed"
+        }
+      },
+      {
+        "record_key": "action.dash",
+        "component_key": "dash_movement",
+        "option_key": "standard_speed",
+        "family": "movement_allowance",
+        "fields": {
+          "basis": "own_speed"
+        }
+      },
+      {
+        "record_key": "condition.prone",
+        "component_key": "restricted_movement",
+        "option_key": "crawl",
+        "family": "movement_permission",
+        "fields": {
+          "mode": "crawl"
+        }
+      },
+      {
+        "record_key": "condition.prone",
+        "component_key": "restricted_movement",
+        "option_key": "stand",
+        "family": "movement_cost",
+        "fields": {
+          "kind": "expenditure",
+          "amount": "half_speed",
+          "payer": "subject",
+          "feet": null,
+          "rounding": "down"
+        }
+      },
+      {
+        "record_key": "action.attack",
+        "component_key": "attack_movement_interleave",
+        "option_key": null,
+        "family": "movement_interleave",
+        "fields": {
+          "between": "repeated_attacks"
+        }
+      },
+      {
+        "record_key": "condition.grappled",
+        "component_key": "speed_zero",
+        "option_key": null,
+        "family": "speed_modification",
+        "fields": {
+          "change": "set_to",
+          "feet": 0,
+          "mode": null,
+          "can_increase": false
+        }
+      },
+      {
+        "record_key": "condition.paralyzed",
+        "component_key": "speed_zero",
+        "option_key": null,
+        "family": "speed_modification",
+        "fields": {
+          "change": "set_to",
+          "feet": 0,
+          "mode": null,
+          "can_increase": false
+        }
+      },
+      {
+        "record_key": "condition.petrified",
+        "component_key": "speed_zero",
+        "option_key": null,
+        "family": "speed_modification",
+        "fields": {
+          "change": "set_to",
+          "feet": 0,
+          "mode": null,
+          "can_increase": false
+        }
+      },
+      {
+        "record_key": "condition.restrained",
+        "component_key": "speed_zero",
+        "option_key": null,
+        "family": "speed_modification",
+        "fields": {
+          "change": "set_to",
+          "feet": 0,
+          "mode": null,
+          "can_increase": false
+        }
+      },
+      {
+        "record_key": "condition.unconscious",
+        "component_key": "speed_zero",
+        "option_key": null,
+        "family": "speed_modification",
+        "fields": {
+          "change": "set_to",
+          "feet": 0,
+          "mode": null,
+          "can_increase": false
+        }
+      },
+      {
+        "record_key": "area_of_effect.emanation",
+        "component_key": "area_origin_movement",
+        "option_key": null,
+        "family": "area_origin_movement",
+        "fields": {
+          "suspended_by_any_of": [
+            "instantaneous_effect",
+            "stationary_effect"
+          ]
+        }
+      },
+      {
+        "record_key": "condition.grappled",
+        "component_key": "movable",
+        "option_key": null,
+        "family": "movement_cost",
+        "fields": {
+          "kind": "per_foot_surcharge",
+          "amount": "feet",
+          "payer": "counterpart",
+          "feet": 1,
+          "rounding": null
+        }
+      },
+      {
+        "record_key": "condition.grappled",
+        "component_key": "movable",
+        "option_key": null,
+        "family": "movement_transport",
+        "fields": {
+          "carrier": "counterpart",
+          "carried": "subject",
+          "kind": "permitted"
+        }
+      }
+    ]
+  },
   "boundary": [
     {
       "leaf_id": "997c3986-23f6-50e4-bd7d-1841c07ca968",
@@ -2529,6 +2708,7 @@
       "section": "Playing the Game",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "For the rest of the turn, give yourself extra movement equal to your Speed."
     },
@@ -2541,6 +2721,7 @@
       "section": "Playing the Game",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Until the start of your next turn, attack rolls against you have Disadvantage, and you make Dexterity saving throws with Advantage. You lose this benefit if you have the Incapacitated condition or if your Speed is 0."
     },
@@ -2553,6 +2734,7 @@
       "section": "Playing the Game",
       "represented_by_5c": true,
       "prints_capitalized_term": false,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Travelers in wagons, carriages, or other land vehicles choose a pace as normal. Characters in a waterborne vessel are limited to the speed of the vessel, and they don’t choose a travel pace. Depending on the vessel and the size of the crew, ships might be able to travel for up to 24 hours per day. “Equipment” includes vehicles for sale."
     },
@@ -2565,6 +2747,7 @@
       "section": "Playing the Game",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed. Rather than moving foot by foot, move"
     },
@@ -2577,6 +2760,7 @@
       "section": "Playing the Game",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "square by square on the grid, using your Speed in 5-foot segments. You can translate your Speed into squares by dividing it by 5. For example, a Speed of 30 feet translates into 6 squares. If you use a grid often, consider writing your Speed in squares on your character sheet. Entering a Square. To enter a square, you must have enough movement left to pay for entering. It costs 1 square of movement to enter an unoccupied square that’s adjacent to your space (orthogonally or diagonally adjacent). A square of Difficult Terrain costs 2 squares to enter. Other effects might make a square cost even more. Corners. Diagonal movement can’t cross the corner of a wall, a large tree, or another terrain feature that fills its space. Ranges. To determine the range on a grid between two things—whether creatures or objects— count squares from a square adjacent to one of them and stop counting in the space of the other one. Count by the shortest route."
     },
@@ -2589,6 +2773,7 @@
       "section": "Playing the Game",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed and take one action. You decide whether to"
     },
@@ -2601,6 +2786,7 @@
       "section": "Playing the Game",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "You can break up your move, using some of its movement before and after any action, Bonus Action, or Reaction you take on the same turn. For example, if you have a Speed of 30 feet, you could go 10 feet, take an action, and then go 20 feet."
     },
@@ -2613,6 +2799,7 @@
       "section": "Playing the Game",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "On your turn, you can give yourself the Prone condition (see “Rules Glossary”) without using an action or any of your Speed, but you can’t do so if your"
     },
@@ -2625,6 +2812,7 @@
       "section": "Playing the Game",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed is 0."
     },
@@ -2637,6 +2825,7 @@
       "section": "Playing the Game",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "During your move, you can mount a creature that is within 5 feet of you or dismount. Doing so costs an amount of movement equal to half your Speed (round down). For example, if your Speed is 30 feet, you spend 15 feet of movement to mount a horse."
     },
@@ -2649,6 +2838,7 @@
       "section": "Playing the Game",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "When making a melee attack roll with a weapon underwater, a creature that lacks a Swim Speed has Disadvantage on the attack roll unless the weapon deals Piercing damage. A ranged attack roll with a weapon underwater automatically misses a target beyond the weapon’s normal range, and the attack roll has Disadvantage against a target within normal range."
     },
@@ -2661,6 +2851,7 @@
       "section": "Creation",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Choose a species for your character. The following species options are detailed in “Character Origins”: Dragonborn, Dwarf, Elf, Gnome, Goliath, Halfling, Human, Orc, and Tiefling. Once you’ve chosen a species, write it on your character sheet. Then record your species’ traits. Your character’s size and Speed are determined by the character’s species; record these in the appropriate places on your character sheet as well (you may write just the first letter of your size)."
     },
@@ -2673,6 +2864,7 @@
       "section": "Classes",
       "represented_by_5c": true,
       "prints_capitalized_term": false,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Your speed increases by 10 feet while you aren’t wearing Heavy armor."
     },
@@ -2685,6 +2877,7 @@
       "section": "Classes",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "As part of the Bonus Action you take to enter your Rage, you can move up to half your Speed."
     },
@@ -2697,6 +2890,7 @@
       "section": "Classes",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "The target is pushed 15 feet straight away from you. You can then move up to half your Speed straight toward the target without provoking Opportunity Attacks."
     },
@@ -2709,6 +2903,7 @@
       "section": "Classes",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "The target’s Speed is reduced by 15 feet until the start of your next turn. A target can be affected by only one Hamstring Blow at a time— the most recent one."
     },
@@ -2721,6 +2916,7 @@
       "section": "Classes",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "You know four Beast forms for this feature, chosen from among Beast stat blocks that have a maximum Challenge Rating of 1/4 and that lack a Fly Speed (see “Animals” in “Monsters” for stat block options). The"
     },
@@ -2733,6 +2929,7 @@
       "section": "Classes",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "are recommended. Whenever you finish a Long Rest, you can replace one of your known forms with another eligible form. When you reach certain Druid levels, your number of known forms and the maximum Challenge Rating for those forms increases, as shown in the Beast Shapes table. In addition, starting at level 8, you can adopt a form that has a Fly Speed. When choosing known forms, you may look in other sources for eligible Beasts if the Game Master permits you to do so. Beast Shapes Druid Level"
     },
@@ -2745,6 +2942,7 @@
       "section": "Classes",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed"
     },
@@ -2757,6 +2955,7 @@
       "section": "Classes",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Whenever you activate your Second Wind with a Bonus Action, you can move up to half your Speed without provoking Opportunity Attacks."
     },
@@ -2769,6 +2968,7 @@
       "section": "Classes",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "In addition, immediately after you score a Critical Hit, you can move up to half your Speed without provoking Opportunity Attacks."
     },
@@ -2781,6 +2981,7 @@
       "section": "Classes",
       "represented_by_5c": true,
       "prints_capitalized_term": false,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Your speed increases by 10 feet while you aren’t wearing armor or wielding a Shield. This bonus increases when you reach certain Monk levels, as shown on the Monk Features table."
     },
@@ -2793,6 +2994,7 @@
       "section": "Classes",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Once per turn when you hit a creature with a Monk weapon or an Unarmed Strike, you can expend 1 Focus Point to attempt a stunning strike. The target must make a Constitution saving throw. On a failed save, the target has the Stunned condition until the start of your next turn. On a successful save, the target’s Speed is halved until the start of your next turn, and the next attack roll made against the target before then has Advantage."
     },
@@ -2805,6 +3007,7 @@
       "section": "Classes",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Your Speed increases by 10 feet while you aren’t wearing Heavy armor. You also have a Climb Speed and a Swim Speed equal to your Speed."
     },
@@ -2817,6 +3020,7 @@
       "section": "Classes",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "As a Bonus Action, you give yourself Advantage on your next attack roll on the current turn. You can use this feature only if you haven’t moved during this turn, and after you use it, your Speed is 0 until the end of the current turn."
     },
@@ -2829,6 +3033,7 @@
       "section": "Classes",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Immediately after the attack, you move up to half your Speed without provoking Opportunity Attacks."
     },
@@ -2841,6 +3046,7 @@
       "section": "Classes",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "You gain a Climb Speed equal to your"
     },
@@ -2853,6 +3059,7 @@
       "section": "Classes",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed."
     },
@@ -2865,6 +3072,7 @@
       "section": "Classes",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "As a Bonus Action, you can cause draconic wings to appear on your back. The wings last for 1 hour or until you dismiss them (no action required). For the duration, you have a Fly Speed of 60 feet. Once you use this feature, you can’t use it again until you finish a Long Rest unless you spend 3 Sorcery Points (no action required) to restore your use of it."
     },
@@ -2877,6 +3085,7 @@
       "section": "Classes",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed equal to your Speed."
     },
@@ -2889,6 +3098,7 @@
       "section": "Classes",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed or a Swim Speed (your choice) of 40 feet."
     },
@@ -2901,6 +3111,7 @@
       "section": "Character Origins",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed"
     },
@@ -2913,6 +3124,7 @@
       "section": "Character Origins",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed."
     },
@@ -2925,6 +3137,7 @@
       "section": "Character Origins",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed: 30 feet"
     },
@@ -2937,6 +3150,7 @@
       "section": "Character Origins",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "When you reach character level 5, you can channel draconic magic to give yourself temporary flight. As a Bonus Action, you sprout spectral wings on your back that last for 10 minutes or until you retract the wings (no action required) or have the Incapacitated condition. During that time, you have a Fly Speed equal to your Speed. Your wings appear to be made of the same energy as your Breath Weapon. Once you use this trait, you can’t use it again until you finish a Long Rest."
     },
@@ -2949,6 +3163,7 @@
       "section": "Character Origins",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed: 30 feet"
     },
@@ -2961,6 +3176,7 @@
       "section": "Character Origins",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed: 30 feet"
     },
@@ -2973,6 +3189,7 @@
       "section": "Character Origins",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed: 30 feet"
     },
@@ -2985,6 +3202,7 @@
       "section": "Character Origins",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed: 35 feet"
     },
@@ -2997,6 +3215,7 @@
       "section": "Character Origins",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "When you hit a target with an attack roll and deal damage to it, you can also deal 1d6 Cold damage to that target and reduce its Speed by 10 feet until the start of your next turn."
     },
@@ -3009,6 +3228,7 @@
       "section": "Character Origins",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Wood Elf Your Speed increases to 35 feet. You also know the Druidcraft cantrip."
     },
@@ -3021,6 +3241,7 @@
       "section": "Character Origins",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Starting at character level 5, you can change your size to Large as a Bonus Action if you’re in a big enough space. This transformation lasts for 10 minutes or until you end it (no action required). For that duration, you have Advantage on Strength checks, and your Speed increases by 10 feet. Once you use this trait, you can’t use it again until you finish a Long Rest."
     },
@@ -3033,6 +3254,7 @@
       "section": "Character Origins",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed: 30 feet"
     },
@@ -3045,6 +3267,7 @@
       "section": "Character Origins",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed: 30 feet"
     },
@@ -3057,6 +3280,7 @@
       "section": "Character Origins",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed: 30 feet"
     },
@@ -3069,6 +3293,7 @@
       "section": "Character Origins",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed: 30 feet"
     },
@@ -3081,6 +3306,7 @@
       "section": "Equipment",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "If you hit a creature with this weapon and deal damage to it, you can reduce its Speed by 10 feet until the start of your next turn. If the creature is hit more than once by weapons that have this property, the Speed reduction doesn’t exceed 10 feet."
     },
@@ -3093,6 +3319,7 @@
       "section": "Equipment",
       "represented_by_5c": true,
       "prints_capitalized_term": false,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "If the table shows a Strength score in the Strength column for an armor type, that armor reduces the wearer’s speed by 10 feet unless the wearer has a Strength score equal to or higher than the listed score."
     },
@@ -3105,6 +3332,7 @@
       "section": "Equipment",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "As a Utilize action, you can spread Caltrops from their bag to cover a 5-foot-square area within 5 feet of yourself. A creature that enters this area for the first time on a turn must succeed on a DC 15 Dexterity saving throw or take 1 Piercing damage and have its Speed reduced to 0 until the start of its next turn. It takes 10 minutes to recover the Caltrops."
     },
@@ -3117,6 +3345,7 @@
       "section": "Equipment",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "The trap is affixed by a heavy chain to an immobile object, such as a tree or a spike driven into the ground. A creature that steps on the plate must succeed on a DC 13 Dexterity saving throw or take 1d4 Piercing damage and have its Speed reduced to 0 until the start of its next turn. Thereafter, until the creature breaks free of the trap, its movement is limited by the length of the chain (typically 3 feet). A creature can use its action to make a DC 13 Strength (Athletics) check, freeing itself or another creature within its reach on a success. Each failed check deals 1 Piercing damage to the trapped creature."
     },
@@ -3129,6 +3358,7 @@
       "section": "Equipment",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed"
     },
@@ -3141,6 +3371,7 @@
       "section": "Equipment",
       "represented_by_5c": true,
       "prints_capitalized_term": false,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "A ship sailing against a strong wind moves at half speed. In a dead calm (no wind), waterborne ships can’t move under sail and must be rowed. Keelboats and Rowboats are used on lakes and rivers. If going downstream, add the speed of the current (typically 3 miles per hour) to the speed of the vehicle. These vehicles can’t be rowed against any significant current, but they can be pulled upstream by draft animals on the shores. A Rowboat can be carried and weighs 100 pounds."
     },
@@ -3153,6 +3384,7 @@
       "section": "Equipment",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed"
     },
@@ -3165,6 +3397,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "You sprout gills and grow webs between your fingers. You can breathe underwater and gain a Swim Speed equal to your Speed."
     },
@@ -3177,6 +3410,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -3189,6 +3423,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "You target a creature you know on the same plane of existence. You or a willing creature you touch enters a trance state to act as a dream messenger. While in the trance, the messenger is Incapacitated and has a Speed of 0. If the target is asleep, the messenger appears in the target’s dreams and can converse with the target as long as it remains asleep, through the spell’s duration. The messenger can also shape the dream’s environment, creating landscapes, objects, and other images. The messenger can emerge from the trance at any time, ending the spell. The target recalls the dream perfectly upon waking. If the target is awake when you cast the spell, the messenger knows it and can either end the trance (and the spell) or wait for the target to sleep, at which point the messenger enters its dreams. You can make the messenger terrifying to the target. If you do so, the messenger can deliver a message of no more than ten words, and then the target makes a Wisdom saving throw. On a failed save, the target gains no benefit from its rest, and it takes 3d6 Psychic damage when it wakes up."
     },
@@ -3201,6 +3436,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 60"
     },
@@ -3213,6 +3449,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "You attempt to turn one creature that you can see within range into stone. The target makes a Constitution saving throw. On a failed save, it has the Restrained condition for the duration. On a successful save, its Speed is 0 until the start of your next turn. Constructs automatically succeed on the save. A Restrained target makes another Constitution saving throw at the end of each of its turns. If it successfully saves against this spell three times, the spell ends. If it fails its saves three times, it is turned to stone and has the Petrified condition for the duration. The successes and failures needn’t be consecutive; keep track of both until the target collects three of a kind. If you maintain your Concentration on this spell for the entire possible duration, the target is Petrified until the condition is ended by"
     },
@@ -3225,6 +3462,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "You touch a willing creature. For the duration, the target gains a Fly Speed of 60 feet and can hover. When the spell ends, the target falls if it is still aloft unless it can stop the fall."
     },
@@ -3237,6 +3475,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "neither reduce the target’s Speed nor cause the target to have the Paralyzed or Restrained conditions. The target also has a Swim Speed equal to its Speed. In addition, the target can spend 5 feet of movement to automatically escape from nonmagical restraints, such as manacles or a creature imposing the Grappled condition on it."
     },
@@ -3249,6 +3488,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "While in this form, the target’s only method of movement is a Fly Speed of 10 feet, and it can hover. The target can enter and occupy the space of another creature. The target has Resistance to Bludgeoning, Piercing, and Slashing damage; it has Immunity to the Prone condition; and it has Advantage on Strength, Dexterity, and Constitution saving throws. The target can pass through narrow openings, but it treats liquids as though they were solid surfaces. The target can’t talk or manipulate objects, and any objects it was carrying or holding can’t be dropped, used, or otherwise interacted with. Finally, the target can’t attack or cast spells."
     },
@@ -3261,6 +3501,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -3273,6 +3514,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Multiattack. The insect makes a number of attacks equal to half this spell’s level (round down). Poison Jab. Melee Attack Roll: Bonus equals your spell attack modifier, reach 10 ft. Hit: 1d6 + 3 plus the spell’s level Piercing damage plus 1d4 Poison damage. Web Bolt (Spider Only). Ranged Attack Roll: Bonus equals your spell attack modifier, range 60 ft. Hit: 1d10 + 3 plus the spell’s level Bludgeoning damage, and the target’s Speed is reduced to 0 until the start of the insect’s next turn."
     },
@@ -3285,6 +3527,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Choose a willing creature that you can see within range. Until the spell ends, the target’s Speed is doubled, it gains a +2 bonus to Armor Class, it has Advantage on Dexterity saving throws, and it gains an additional action on each of its turns. That action can be used to take only the Attack (one attack only), Dash, Disengage, Hide, or Utilize action. When the spell ends, the target is Incapacitated and has a Speed of 0 until the end of its next turn, as a wave of lethargy washes over it."
     },
@@ -3297,6 +3540,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "You create a twisting pattern of colors in a 30-foot Cube within range. The pattern appears for a moment and vanishes. Each creature in the area who can see the pattern must succeed on a Wisdom saving throw or have the Charmed condition for the duration. While Charmed, the creature has the Incapacitated condition and a Speed of 0. The spell ends for an affected creature if it takes any damage or if someone else uses an action to shake the creature out of its stupor."
     },
@@ -3309,6 +3553,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "You touch a creature. The target’s Speed increases by 10 feet until the spell ends."
     },
@@ -3321,6 +3566,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "spell can’t be possessed). The target makes a Charisma saving throw. On a failed save, your soul enters the target’s body, and the target’s soul becomes trapped in the container. On a successful save, the target resists your efforts to possess it, and you can’t attempt to possess it again for 24 hours. Once you possess a creature’s body, you control it. Your Hit Points, Hit Point Dice, Strength, Dexterity, Constitution, Speed, and senses are replaced by the creature’s. You otherwise keep your game statistics. Meanwhile, the possessed creature’s soul can perceive from the container using its own senses, but it can’t move and it is Incapacitated. While possessing a body, you can take a Magic action to return from the host body to the container if it is within 100 feet of you, returning the host creature’s soul to its body. If the host body dies while you’re in it, the creature dies, and you make a Charisma saving throw against your own spellcasting DC. On a success, you return to the container if it is within 100 feet of you. Otherwise, you die. If the container is destroyed or the spell ends, your soul returns to your body. If your body is more than 100 feet away from you or if your body is dead, you die. If another creature’s soul is in the container when it is destroyed, the creature’s soul returns to"
     },
@@ -3333,6 +3579,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "You gain the Invisible condition at the same time that an illusory double of you appears where you are standing. The double lasts for the duration, but the invisibility ends immediately after you make an attack roll, deal damage, or cast a spell. As a Magic action, you can move the illusory double up to twice your Speed and make it gesture, speak, and behave in whatever way you choose. It is intangible and invulnerable. You can see through its eyes and hear through its ears as if you were located where it is."
     },
@@ -3345,6 +3592,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "stat block (see “Monsters”), except it has a Speed of 100 feet and can travel 13 miles in an hour. When the spell ends, the steed gradually fades, giving the rider 1 minute to dismount. The spell ends early if the steed takes any damage."
     },
@@ -3357,6 +3605,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed is 0 until the start of your next turn."
     },
@@ -3369,6 +3618,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "A frigid beam of blue-white light streaks toward a creature within range. Make a ranged spell attack against the target. On a hit, it takes 1d8 Cold damage, and its Speed is reduced by 10 feet until the start of your next turn."
     },
@@ -3381,6 +3631,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "A shimmering sphere encloses a Large or smaller creature or object within range. An unwilling creature must succeed on a Dexterity saving throw or be enclosed for the duration. Nothing—not physical objects, energy, or other spell effects—can pass through the barrier, in or out, though a creature in the sphere can breathe there. The sphere is immune to all damage, and a creature or object inside can’t be damaged by attacks or effects originating from outside, nor can a creature inside the sphere damage anything outside it. The sphere is weightless and just large enough to contain the creature or object inside. An enclosed creature can take an action to push against the sphere’s walls and thus roll the sphere at up to half the creature’s Speed. Similarly, the globe can be picked up and moved by other creatures. A"
     },
@@ -3393,6 +3644,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "You alter time around up to six creatures of your choice in a 40-foot Cube within range. Each target must succeed on a Wisdom saving throw or be affected by this spell for the duration. An affected target’s Speed is halved, it takes a −2 penalty to AC and Dexterity saving throws, and it can’t take Reactions. On its turns, it can take either an action or a Bonus Action, not both, and it can make only one attack if it takes the Attack action. If it casts a spell with a Somatic component, there is a 25 percent chance the spell fails as a result of the target making the spell’s gestures too slowly. An affected target repeats the save at the end of each of its turns, ending the spell on itself on a success."
     },
@@ -3405,6 +3657,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Until the spell ends, one willing creature you touch gains the ability to move up, down, and across vertical surfaces and along ceilings, while leaving its hands free. The target also gains a Climb Speed equal to its Speed."
     },
@@ -3417,6 +3670,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed is halved in the Emanation, and whenever the"
     },
@@ -3429,6 +3683,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -3441,6 +3696,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "A nonmagical wall of solid stone springs into existence at a point you choose within range. The wall is 6 inches thick and is composed of ten 10-foot-by10-foot panels. Each panel must be contiguous with another panel. Alternatively, you can create 10-footby-20-foot panels that are only 3 inches thick. If the wall cuts through a creature’s space when it appears, the creature is pushed to one side of the wall (you choose which side). If a creature would be surrounded on all sides by the wall (or the wall and another solid surface), that creature can make a Dexterity saving throw. On a success, it can use its Reaction to move up to its Speed so that it is no longer enclosed by the wall. The wall can have any shape you desire, though it can’t occupy the same space as a creature or object. The wall doesn’t need to be vertical or rest on a firm foundation. It must, however, merge with and be solidly supported by existing stone. Thus, you can use this spell to bridge a chasm or create a ramp. If you create a span greater than 20 feet in length, you must halve the size of each panel to create supports. You can crudely shape the wall to create battlements and the like. The wall is an object made of stone that can be damaged and thus breached. Each panel has AC 15 and 30 Hit Points per inch of thickness, and it has Immunity to Poison and Psychic damage. Reducing a panel to 0 Hit Points destroys it and might cause connected panels to collapse at the GM’s discretion. If you maintain your Concentration on this spell for its full duration, the wall becomes permanent and can’t be dispelled. Otherwise, the wall disappears when the spell ends."
     },
@@ -3453,6 +3709,7 @@
       "section": "Spells",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "You and up to ten willing creatures of your choice within range assume gaseous forms for the duration, appearing as wisps of cloud. While in this cloud form, a target has a Fly Speed of 300 feet and can hover; it has Immunity to the Prone condition; and it has Resistance to Bludgeoning, Piercing, and Slashing damage. The only actions a target can take in this form are the Dash action or a Magic action to begin reverting to its normal form. Reverting takes 1 minute, during which the target has the Stunned condition. Until the spell ends, the target can revert to cloud form, which also requires a Magic action followed by a 1-minute transformation. If a target is in cloud form and flying when the effect ends, the target descends 60 feet per round for 1 minute until it lands, which it does safely. If it can’t land after 1 minute, it falls the remaining distance."
     },
@@ -3465,6 +3722,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Burrow Speed"
     },
@@ -3477,6 +3735,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "A creature that has a Burrow Speed can use that speed to move through sand, earth, mud, or ice. The creature can’t burrow through solid rock unless the creature has a trait that allows it to do so."
     },
@@ -3489,6 +3748,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "“Speed.”"
     },
@@ -3501,6 +3761,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed can be no more than 5 feet. Carrying Capacity"
     },
@@ -3513,6 +3774,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "While you’re climbing, each foot of movement costs 1 extra foot (2 extra feet in Difficult Terrain). You ignore this extra cost if you have a Climb Speed and use it to climb."
     },
@@ -3525,6 +3787,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Climb Speed"
     },
@@ -3537,6 +3800,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "A Climb Speed can be used in place of Speed to traverse a vertical surface without expending the extra movement normally associated with climbing."
     },
@@ -3549,6 +3813,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "“Climbing” and “Speed.”"
     },
@@ -3561,6 +3826,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "“Speed.”"
     },
@@ -3573,6 +3839,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [
         "action.dash"
       ],
@@ -3587,6 +3854,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [
         "action.dash"
       ],
@@ -3601,6 +3869,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [
         "action.dash"
       ],
@@ -3615,6 +3884,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [
         "action.dash"
       ],
@@ -3629,6 +3899,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": false,
+      "prints_standalone_token": true,
       "already_accepted_as": [
         "action.dash"
       ],
@@ -3643,6 +3914,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [
         "action.dash"
       ],
@@ -3657,6 +3929,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [
         "action.dodge"
       ],
@@ -3671,6 +3944,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [
         "condition.exhaustion"
       ],
@@ -3685,6 +3959,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [
         "condition.exhaustion"
       ],
@@ -3699,6 +3974,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "A variety of effects allow a creature to fly. While flying, you fall if you have the Incapacitated or Prone condition or your Fly Speed is reduced to 0. You can stay aloft in those circumstances if you can hover."
     },
@@ -3711,6 +3987,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "“Falling” and “Fly Speed.”"
     },
@@ -3723,6 +4000,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Fly Speed"
     },
@@ -3735,6 +4013,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "A Fly Speed can be used to travel through the air. While you have a Fly Speed, you can stay aloft until you land, fall, or die."
     },
@@ -3747,6 +4026,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "“Flying” and “Speed.”"
     },
@@ -3759,6 +4039,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [
         "condition.grappled"
       ],
@@ -3773,6 +4054,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [
         "condition.grappled"
       ],
@@ -3787,6 +4069,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": false,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "You can make an Opportunity Attack when a creature that you can see leaves your reach using its action, its Bonus Action, its Reaction, or one of its speeds. To make the Opportunity Attack, take a Reaction to make one melee attack with a weapon or an Unarmed Strike against the provoking creature. The attack occurs right before the creature leaves your reach."
     },
@@ -3799,6 +4082,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [
         "condition.paralyzed"
       ],
@@ -3813,6 +4097,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [
         "condition.paralyzed"
       ],
@@ -3827,6 +4112,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [
         "condition.petrified"
       ],
@@ -3841,6 +4127,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [
         "condition.petrified"
       ],
@@ -3855,6 +4142,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [
         "condition.prone"
       ],
@@ -3869,6 +4157,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [
         "condition.prone"
       ],
@@ -3883,6 +4172,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [
         "action.ready"
       ],
@@ -3897,6 +4187,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [
         "condition.restrained"
       ],
@@ -3911,6 +4202,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [
         "condition.restrained"
       ],
@@ -3925,6 +4217,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed."
     },
@@ -3937,6 +4230,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Here the monster’s Speed is provided, along with any special speeds."
     },
@@ -3949,6 +4243,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed,” “Climb Speed,” “Fly Speed,” and “Swim"
     },
@@ -3961,6 +4256,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed.”"
     },
@@ -3973,6 +4269,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "While you’re swimming, each foot of movement costs 1 extra foot (2 extra feet in Difficult Terrain). You ignore this extra cost if you have a Swim Speed and use it to swim. At the GM’s option, moving any distance in rough water might require a successful DC 15 Strength (Athletics) check."
     },
@@ -3985,6 +4282,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Swim Speed"
     },
@@ -3997,6 +4295,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "A Swim Speed can be used to swim without expending the extra movement normally associated with swimming."
     },
@@ -4009,6 +4308,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "“Swimming” and “Speed.”"
     },
@@ -4021,6 +4321,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [
         "condition.unconscious"
       ],
@@ -4035,6 +4336,7 @@
       "section": "Rules Glossary",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [
         "condition.unconscious"
       ],
@@ -4049,6 +4351,7 @@
       "section": "Gameplay Toolbox",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "The group must move at a Slow pace if any group member’s Speed is reduced to half or less of normal."
     },
@@ -4061,6 +4364,7 @@
       "section": "Gameplay Toolbox",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "If a party can travel at a high Speed for an extended time, as with a spell such as"
     },
@@ -4073,6 +4377,7 @@
       "section": "Gameplay Toolbox",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed into travel rates using these rules:"
     },
@@ -4085,6 +4390,7 @@
       "section": "Gameplay Toolbox",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "= Speed ÷ 10"
     },
@@ -4097,6 +4403,7 @@
       "section": "Gameplay Toolbox",
       "represented_by_5c": true,
       "prints_capitalized_term": false,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Characters traveling in a vehicle use the vehicle’s speed in miles per hour (as shown in “Equipment”) to determine their rate of travel, and they don’t choose a travel pace."
     },
@@ -4109,6 +4416,7 @@
       "section": "Gameplay Toolbox",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Swimming through deep water (more than 100 feet deep) presents additional challenges because of the water’s pressure and cold temperature. After each hour of swimming in deep water, a creature that lacks a Swim Speed must succeed on a DC 10 Constitution saving throw or gain 1 Exhaustion level."
     },
@@ -4121,6 +4429,7 @@
       "section": "Gameplay Toolbox",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed is halved while the creature is Poisoned in"
     },
@@ -4133,6 +4442,7 @@
       "section": "Gameplay Toolbox",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "A creature needs a Climb Speed, climbing gear, or magic such as"
     },
@@ -4145,6 +4455,7 @@
       "section": "Gameplay Toolbox",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "A creature needs a Climb Speed, climbing gear, or magic such as a"
     },
@@ -4157,6 +4468,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "is a Large object with the following statistics: AC 20; HP 200; Speed 30 ft., Swim 30 ft. (or 0 ft. for both if the legs aren’t extended); Immunity to Poison and Psychic damage. To be used as a vehicle, the apparatus requires one pilot. While the apparatus’s hatch is closed, the compartment is airtight and watertight. The compartment holds enough air for 10 hours of breathing, divided by the number of breathing creatures inside. The apparatus floats on water. It can also go underwater to a depth of 900 feet. Below that, the vehicle takes 2d6 Bludgeoning damage each minute from pressure. A creature in the compartment can take a Utilize action to move as many as two of the apparatus’s levers up or down. After each use, a lever goes back to its neutral position. Each lever, from left to right, functions as shown in the Apparatus of the Crab Levers table."
     },
@@ -4169,6 +4481,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Legs retract, reducing the apparatus’s Speed and Swim Speed to 0 and making it unable to benefit from bonuses to speed."
     },
@@ -4181,6 +4494,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "in the Sphere must succeed on a DC 15 Dexterity saving throw or take 5d4 Force damage. A sphere of transparent force then encloses the area for 1 minute. Any creature that failed the save and is completely within the area is trapped inside this sphere. Creatures that succeeded on the save or are partially within the area are pushed away from the center of the sphere until they are no longer inside it. Only breathable air can pass through the sphere’s wall. No attack or other effect can pass through. An enclosed creature can take a Utilize action to push against the sphere’s wall, moving the sphere up to half the creature’s Speed. The sphere can be picked up, and its magic causes it to weigh only 1 pound, regardless of the weight of creatures inside."
     },
@@ -4193,6 +4507,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Boots of Speed"
     },
@@ -4205,6 +4520,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "While you wear these boots, you can take a Bonus Action to click the boots’ heels together. If you do, the boots double your Speed, and any creature that makes an Opportunity Attack against you has Disadvantage on the attack roll. If you click your heels together again, you end the effect. When you’ve used the boots’ property for a total of 10 minutes, the magic ceases to function for you until you finish a Long Rest."
     },
@@ -4217,6 +4533,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "While you wear these boots, your Speed becomes 30 feet unless your Speed is higher, and your Speed isn’t reduced by you carrying weight in excess of your carrying capacity or wearing Heavy Armor. Once on each of your turns, you can jump up to 30 feet by spending only 10 feet of movement."
     },
@@ -4229,6 +4546,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "This wooden broom functions like a mundane broom until you stand astride it and take a Magic action to make it hover beneath you, at which time it can be ridden in the air. It has a Fly Speed of 50 feet. It can carry up to 400 pounds, but its Fly Speed becomes 30 feet while carrying over 200 pounds. The broom stops hovering when you land or when you’re no longer riding it. As a Magic action, you can send the broom to travel alone to a destination within 1 mile of you if you name the location and are familiar with it. The broom comes back to you when you take a Magic action and use a command word if the broom is still within 1 mile of you."
     },
@@ -4241,6 +4559,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed is halved"
     },
@@ -4253,6 +4572,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Fly Speed"
     },
@@ -4265,6 +4585,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "You have a Climb Speed equal to your Speed and can move up, down, and across vertical surfaces and along ceilings, while leaving your hands free."
     },
@@ -4277,6 +4598,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "While you wear this cloak, it magically projects an illusion that makes you appear to be standing in a place near your actual location, causing any creature to have Disadvantage on attack rolls against you. If you take damage, the property ceases to function until the start of your next turn. This property is suppressed while your Speed is 0."
     },
@@ -4289,6 +4611,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "While wearing this cloak, you have Advantage on Dexterity (Stealth) checks. In an area of Dim Light or Darkness, you can grip the edges of the cloak and use it to gain a Fly Speed of 40 feet. If you ever fail to grip the cloak’s edges while flying in this way, or if you are no longer in Dim Light or Darkness, you lose this Fly Speed. While wearing the cloak in an area of Dim Light or Darkness, you can cast"
     },
@@ -4301,6 +4624,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "While wearing this cloak, you can breathe underwater, and you have a Swim Speed of 60 feet."
     },
@@ -4313,6 +4637,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": false,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": ", but it can’t attack. It obeys your simple commands and can carry up to 500 pounds while flying at its maximum speed (16 miles per hour for a maximum of 144 miles per day, with a 1-hour rest for every 3 hours of flying) or 1,000 pounds at half that speed. The bird disappears after flying its maximum distance for a day or if it drops to 0 Hit Points. You can dismiss the bird as a Magic action."
     },
@@ -4325,6 +4650,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": false,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "If you are on a boat or ship, you can take a Magic action to toss the token up to 10 feet in the air. The token disappears, and a giant flapping fan takes its place. The fan floats and creates a strong wind. This wind can fill the sails of one ship, increasing its speed by 5 miles per hour for 8 hours. You can dismiss the fan as a Magic action."
     },
@@ -4337,6 +4663,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": false,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "You can take a Magic action to touch the token to a body of water at least 60 feet in diameter. The token disappears, and a 50-footlong, 20-foot-wide boat shaped like a swan takes its place. The boat is self-propelled and moves across water at a speed of 6 miles per hour. You can take a Magic action while on the boat to command it to move or to turn up to 90 degrees. The boat remains for 24 hours and then disappears. You can dismiss the boat as a Magic action."
     },
@@ -4349,6 +4676,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Fly 60 ft."
     },
@@ -4361,6 +4689,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "While wearing these gloves, you have a Climb Speed and a Swim Speed equal to your Speed, and you gain a +5 bonus to Strength (Athletics) checks made to climb or swim."
     },
@@ -4373,6 +4702,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Horseshoes of Speed"
     },
@@ -4385,6 +4715,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "These horseshoes come in a set of four. As a Magic action, you can touch one of the horseshoes to the hoof of a horse or similar creature, whereupon the horseshoe affixes itself to the hoof. Removing a horseshoe also takes a Magic action. While all four horseshoes are attached to the same creature, its Speed is increased by 30 feet."
     },
@@ -4397,6 +4728,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 60"
     },
@@ -4409,6 +4741,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "When you drink this potion, you gain a Climb Speed equal to your Speed for 1 hour. During this time, you have Advantage on Strength (Athletics) checks to climb. This potion is separated into brown, silver, and gray layers resembling bands of stone. Shaking the bottle fails to mix the colors."
     },
@@ -4421,6 +4754,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "When you drink this potion, you gain a Fly Speed equal to your Speed for 1 hour and can hover. If you’re in the air when the potion wears off, you fall unless you have some other means of staying aloft. This potion’s clear liquid floats at the top of its container and has cloudy white impurities drifting in it."
     },
@@ -4433,6 +4767,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Potion of Speed"
     },
@@ -4445,6 +4780,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "You know Auran, you have Resistance to Lightning damage, and you have a Fly Speed equal to your Speed and can hover."
     },
@@ -4457,6 +4793,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "You know Aquan, you gain a Swim Speed of 60 feet, and you can breathe underwater."
     },
@@ -4469,6 +4806,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": false,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "While you wear this ring, Difficult Terrain doesn’t cost you extra movement. In addition, magic can neither reduce any of your Speeds nor cause you to have the Paralyzed or Restrained condition."
     },
@@ -4481,6 +4819,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "You have a Swim Speed of 40 feet while wearing this ring."
     },
@@ -4493,6 +4832,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Scimitar of Speed"
     },
@@ -4505,6 +4845,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "While you wear these light shoes, you can move up, down, and across vertical surfaces and along ceilings, while leaving your hands free. You have a Climb Speed equal to your Speed. However, the slippers don’t allow you to move this way on a slippery surface, such as one covered by ice or oil."
     },
@@ -4517,6 +4858,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "(save DC 15) from it on a Beast that has a Swim Speed."
     },
@@ -4529,6 +4871,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "These boots have 4 charges and regain 1d4 expended charges daily at dawn. While wearing the boots, you can take a Magic action to expend 1 charge, gaining a Fly Speed of 30 feet for 1 hour. If you are flying when the duration expires, you descend at a rate of 30 feet per round until you land."
     },
@@ -4541,6 +4884,7 @@
       "section": "Magic Items",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "While wearing this cloak, you can take a Magic action to turn the cloak into a pair of wings on your back. The wings lasts for 1 hour or until you end the effect early as a Magic action. The wings give you a Fly Speed of 60 feet. If you are aloft when the wings disappear, you fall. When the wings disappear, you can’t use them again for 1d12 hours."
     },
@@ -4553,6 +4897,7 @@
       "section": "Monsters",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Armor Class, Hit Points, Speed, and Initiative are provided here."
     },
@@ -4565,6 +4910,7 @@
       "section": "Monsters",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed"
     },
@@ -4577,6 +4923,7 @@
       "section": "Monsters",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "The Speed entry specifies a monster’s Speed. Some monsters have one or more of the following speeds: Burrow, Climb, Fly, Swim. Rules for Speed and these specials speeds appear in “Rules Glossary"
     },
@@ -4589,6 +4936,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 10"
     },
@@ -4601,6 +4949,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 10"
     },
@@ -4613,6 +4962,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 25"
     },
@@ -4625,6 +4975,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 5 ft., Fly 50 ft. (hover)"
     },
@@ -4637,6 +4988,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 10 ft."
     },
@@ -4649,6 +5001,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Burrow 10 ft."
     },
@@ -4661,6 +5014,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Tunneler. The ankheg can burrow through solid rock at half its Burrow Speed and leaves a 10-foot-diameter tunnel in its wake."
     },
@@ -4673,6 +5027,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -4685,6 +5040,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20 ft."
     },
@@ -4697,6 +5053,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20"
     },
@@ -4709,6 +5066,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 50 ft."
     },
@@ -4721,6 +5079,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -4733,6 +5092,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Fly 80 ft."
     },
@@ -4745,6 +5105,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -4757,6 +5118,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -4769,6 +5131,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Climb 30 ft."
     },
@@ -4781,6 +5144,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20"
     },
@@ -4793,6 +5157,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -4805,6 +5170,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 50"
     },
@@ -4817,6 +5183,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -4829,6 +5196,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Fly 60 ft., Swim 30 ft."
     },
@@ -4841,6 +5209,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Fly 80 ft., Swim 40 ft."
     },
@@ -4853,6 +5222,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -4865,6 +5235,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all expended uses at the start of each of its turns. Cloud of Insects. Dexterity Saving Throw: DC 17, one creature the dragon can see within 120 feet. Failure: 22 (4d10) Poison damage, and the target has Disadvantage on saving throws to maintain Concentration until the end of its next turn. Failure or Success: The dragon can’t take this action again until the start of its next turn. Frightful Presence. The dragon uses Spellcasting to cast Fear. The dragon can’t take this action again until the start of its next turn. Pounce. The dragon moves up to half its Speed, and it makes one Rend attack."
     },
@@ -4877,6 +5248,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -4889,6 +5261,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Pounce. The dragon moves up to half its Speed, and it makes one Rend attack."
     },
@@ -4901,6 +5274,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20"
     },
@@ -4913,6 +5287,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -4925,6 +5300,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Burrow 15 ft., Fly 60 ft."
     },
@@ -4937,6 +5313,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -4949,6 +5326,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Burrow 30 ft., Fly 80 ft."
     },
@@ -4961,6 +5339,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all expended uses at the start of each of its turns. Cloaked Flight. The dragon uses Spellcasting to cast Invisibility on itself, and it can fly up to half its Fly Speed. The dragon can’t take this action again until the start of its next turn. Sonic Boom. The dragon uses Spellcasting to cast Shatter. The dragon can’t take this action again until the start of its next turn."
     },
@@ -4973,6 +5352,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -4985,6 +5365,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all expended uses at the start of each of its turns. Cloaked Flight. The dragon uses Spellcasting to cast Invisibility on itself, and it can fly up to half its Fly Speed. The dragon can’t take this action again until the start of its next turn. Sonic Boom. The dragon uses Spellcasting to cast Shatter (level 3 version). The dragon can’t take this action again until the start of its next turn. Tail Swipe. The dragon makes one Rend attack."
     },
@@ -4997,6 +5378,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -5009,6 +5391,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -5021,6 +5404,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Burrow 20 ft., Fly 80 ft."
     },
@@ -5033,6 +5417,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Burrow 30 ft., Fly 80 ft."
     },
@@ -5045,6 +5430,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all expended uses at the start of each of its turns. Blazing Light. The dragon uses Spellcasting to cast Scorching Ray. Pounce. The dragon moves up to half its Speed, and it makes one Rend attack. Scorching Sands. Dexterity Saving Throw: DC 16, one creature the dragon can see within 120 feet. Failure: 27 (6d8) Fire damage, and the target’s Speed is halved until the end of its next turn. Failure or Success: The dragon can’t take this action again until the start of its next turn."
     },
@@ -5057,6 +5443,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -5069,6 +5456,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all expended uses at the start of each of its turns. Blazing Light. The dragon uses Spellcasting to cast Scorching Ray (level 3 version). Pounce. The dragon moves up to half its Speed, and it makes one Rend attack. Scorching Sands. Dexterity Saving Throw: DC 20, one creature the dragon can see within 120 feet. Failure: 36 (8d8) Fire damage, and the target’s Speed is halved until the end of its next turn. Failure or Success: The dragon can’t take this action again until the start of its next turn."
     },
@@ -5081,6 +5469,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -5093,6 +5482,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -5105,6 +5495,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Fly 80 ft., Swim 40 ft."
     },
@@ -5117,6 +5508,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all expended uses at the start of each of its turns. Guiding Light. The dragon uses Spellcasting to cast Guiding Bolt (level 2 version). Pounce. The dragon moves up to half its Speed, and it makes one Rend attack. Thunderclap. Constitution Saving Throw: DC 17, each creature in a 20-foot-radius Sphere centered on a point the dragon can see within 90 feet. Failure: 10 (3d6)"
     },
@@ -5129,6 +5521,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Fly 80 ft., Swim 40 ft."
     },
@@ -5141,6 +5534,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all expended uses at the start of each of its turns. Guiding Light. The dragon uses Spellcasting to cast Guiding Bolt (level 2 version). Pounce. The dragon moves up to half its Speed, and it makes one Rend attack. Thunderclap. Constitution Saving Throw: DC 22, each creature in a 20-foot-radius Sphere centered on a point the dragon can see within 120 feet. Failure: 13 (3d8) Thunder damage, and the target has the Deafened condition until the end of its next turn."
     },
@@ -5153,6 +5547,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -5165,6 +5560,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -5177,6 +5573,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Burrow 40 ft."
     },
@@ -5189,6 +5586,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 50"
     },
@@ -5201,6 +5599,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Trampling Charge (Recharge 5–6). The centaur moves up to its Speed without provoking Opportunity Attacks and can move through the spaces of Medium or smaller creatures. Each creature whose space the centaur enters is targeted once by the following effect. Strength Saving Throw: DC 14. Failure: 7 (1d6 + 4) Bludgeoning damage, and the target has the Prone condition."
     },
@@ -5213,6 +5612,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -5225,6 +5625,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Fly 60 ft."
     },
@@ -5237,6 +5638,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Swim 30 ft."
     },
@@ -5249,6 +5651,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -5261,6 +5664,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 10"
     },
@@ -5273,6 +5677,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -5285,6 +5690,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20 ft., Fly 40 ft."
     },
@@ -5297,6 +5703,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -5309,6 +5716,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Climb 30 ft., Fly 60 ft."
     },
@@ -5321,6 +5729,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Rend. Melee Attack Roll: +4, reach 5 ft. Hit: 7 (1d10 + 2) Slashing damage. Acid Breath (Recharge 5–6). Dexterity Saving Throw: DC 11, each creature in a 20-foot-long, 5-footwide Line. Failure: 18 (4d8) Acid damage. Success: Half damage. Slowing Breath. Constitution Saving Throw: DC 11, each creature in a 15-foot Cone. Failure: The target can’t take Reactions; its Speed is halved; and it can take either an action or a Bonus Action on its turn, not both."
     },
@@ -5333,6 +5742,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Climb 40 ft., Fly 80 ft."
     },
@@ -5345,6 +5755,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of Slowing Breath. Rend. Melee Attack Roll: +7, reach 10 ft. Hit: 15 (2d10 + 4) Slashing damage. Acid Breath (Recharge 5–6). Dexterity Saving Throw: DC 14, each creature in a 40-foot-long, 5-footwide Line. Failure: 40 (9d8) Acid damage. Success: Half damage. Slowing Breath. Constitution Saving Throw: DC 14, each creature in a 30-foot Cone. Failure: The target can’t take Reactions; its Speed is halved; and it can take either an action or a Bonus Action on its turn, not both. This effect lasts until the end of its next turn."
     },
@@ -5357,6 +5768,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Climb 40 ft., Fly 80 ft."
     },
@@ -5369,6 +5781,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of (A) Slowing Breath or (B) Spellcasting to cast Mind Spike (level 4 version). Rend. Melee Attack Roll: +11, reach 10 ft. Hit: 17 (2d10 + 6) Slashing damage plus 4 (1d8) Acid damage. Acid Breath (Recharge 5–6). Dexterity Saving Throw: DC 18, each creature in an 60-foot-long, 5-footwide Line. Failure: 54 (12d8) Acid damage. Success: Half damage. Slowing Breath. Constitution Saving Throw: DC 18, each creature in a 60-foot Cone. Failure: The target can’t take Reactions; its Speed is halved; and it can take either an action or a Bonus Action on its turn, not both. This effect lasts until the end of its next turn. Spellcasting. The dragon casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 17): At Will: Detect Magic, Mind Spike (level 4 version), Minor Illusion, Shapechange (Beast or Humanoid form only, no Temporary Hit Points gained from the spell, and no Concentration or Temporary Hit Points required to maintain the spell) 1/Day Each: Greater Restoration, Major Image"
     },
@@ -5381,6 +5794,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Pounce. The dragon moves up to half its Speed, and it"
     },
@@ -5393,6 +5807,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Climb 40 ft., Fly 80 ft."
     },
@@ -5405,6 +5820,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Multiattack. The dragon makes three Rend attacks. It can replace one attack with a use of (A) Slowing Breath or (B) Spellcasting to cast Mind Spike (level 5 version). Rend. Melee Attack Roll: +15, reach 15 ft. Hit: 19 (2d10 + 8) Slashing damage plus 9 (2d8) Acid damage. Acid Breath (Recharge 5–6). Dexterity Saving Throw: DC 22, each creature in an 90-foot-long, 10-footwide Line. Failure: 63 (14d8) Acid damage. Success: Half damage. Slowing Breath. Constitution Saving Throw: DC 22, each creature in a 90-foot Cone. Failure: The target can’t take Reactions; its Speed is halved; and it can take either an action or a Bonus Action on its turn, not both. This effect lasts until the end of its next turn. Spellcasting. The dragon casts one of the following spells, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 21): At Will: Detect Magic, Mind Spike (level 5 version), Minor Illusion, Shapechange (Beast or Humanoid form only, no Temporary Hit Points gained from the spell, and no Concentration or Temporary Hit Points required to maintain the spell) 1/Day Each: Greater Restoration, Major Image, Project Image"
     },
@@ -5417,6 +5833,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all expended uses at the start of each of its turns. Giggling Magic. Charisma Saving Throw: DC 21, one creature the dragon can see within 120 feet. Failure: 31 (9d6) Psychic damage. Until the end of its next turn, the target rolls 1d8 whenever it makes an ability check or attack roll and subtracts the number rolled from the D20 Test. Failure or Success: The dragon can’t take this action again until the start of its next turn. Mind Jolt. The dragon uses Spellcasting to cast Mind Spike (level 5 version). The dragon can’t take this action again until the start of its next turn. Pounce. The dragon moves up to half its Speed, and it makes one Rend attack."
     },
@@ -5429,6 +5846,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -5441,6 +5859,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Climb 30 ft."
     },
@@ -5453,6 +5872,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -5465,6 +5885,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -5477,6 +5898,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 10 ft., Fly 30 ft."
     },
@@ -5489,6 +5911,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed becomes 0, it can’t benefit from any bonus to its"
     },
@@ -5501,6 +5924,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed, and it moves with the target."
     },
@@ -5513,6 +5937,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft."
     },
@@ -5525,6 +5950,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -5537,6 +5963,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -5549,6 +5976,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -5561,6 +5989,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20"
     },
@@ -5573,6 +6002,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20 ft."
     },
@@ -5585,6 +6015,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -5597,6 +6028,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -5609,6 +6041,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -5621,6 +6054,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -5633,6 +6067,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -5645,6 +6080,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -5657,6 +6093,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -5669,6 +6106,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft."
     },
@@ -5681,6 +6119,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 50 ft."
     },
@@ -5693,6 +6132,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -5705,6 +6145,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -5717,6 +6158,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft."
     },
@@ -5729,6 +6171,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed"
     },
@@ -5741,6 +6184,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 5 ft."
     },
@@ -5753,6 +6197,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 5 ft."
     },
@@ -5765,6 +6210,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Fly 60 ft."
     },
@@ -5777,6 +6223,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 15 ft."
     },
@@ -5789,6 +6236,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Pseudopod. Melee Attack Roll: +4, reach 5 ft. Hit: 12 (3d6 + 2) Acid damage. Engulf. The cube moves up to its Speed without provoking Opportunity Attacks. The cube can move through the spaces of Large or smaller creatures if it has room inside itself to contain them (see the Ooze Cube trait). Dexterity Saving Throw: DC 12, each creature whose space the cube enters for the first time during this move. Failure: 10 (3d6) Acid damage, and the target is engulfed. An engulfed target is suffocating, can’t cast spells with a Verbal component, has the Restrained condition, and takes 10 (3d6) Acid damage at the start of each of the cube’s turns. When the cube moves, the engulfed target moves with it. An engulfed target can try to escape by taking an action to make a DC 12 Strength (Athletics) check. On a successful check, the target escapes and enters the nearest unoccupied space. Success: Half damage, and the target moves to an unoccupied space within 5 feet of the cube. If there is no unoccupied space, the target fails the save instead."
     },
@@ -5801,6 +6249,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -5813,6 +6262,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 5 ft., Fly 40 ft. (hover)"
     },
@@ -5825,6 +6275,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Multiattack. The ghost makes two Withering Touch attacks. Withering Touch. Melee Attack Roll: +5, reach 5 ft. Hit: 19 (3d10 + 3) Necrotic damage. Etherealness. The ghost casts the Etherealness spell, requiring no spell components and using Charisma as the spellcasting ability. The ghost is visible on the Material Plane while on the Border Ethereal and vice versa, but it can’t affect or be affected by anything on the other plane. Horrific Visage. Wisdom Saving Throw: DC 13, each creature in a 60-foot Cone that can see the ghost and isn’t an Undead. Failure: 10 (2d6 + 3) Psychic damage, and the target has the Frightened condition until the start of the ghost’s next turn. Success: The target is immune to this ghost’s Horrific Visage for 24 hours. Possession (Recharge 6). Charisma Saving Throw: DC 13, one Humanoid the ghost can see within 5 feet. Failure: The target is possessed by the ghost; the ghost disappears, and the target has the Incapacitated condition and loses control of its body. The ghost now controls the body, but the target retains awareness. The ghost can’t be targeted by any attack, spell, or other effect, except ones that specifically target Undead. The ghost’s game statistics are the same, except it uses the possessed target’s Speed, as well as the target’s Strength, Dexterity, and Constitution modifiers. The possession lasts until the body drops to 0 Hit Points or the ghost leaves as a Bonus Action. When the possession ends, the ghost appears in an unoccupied space within 5 feet of the target, and the target is immune to this ghost’s Possession for 24 hours. Success: The target is immune to this ghost’s Possession for 24 hours."
     },
@@ -5837,6 +6288,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -5849,6 +6301,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20"
     },
@@ -5861,6 +6314,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -5873,6 +6327,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -5885,6 +6340,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -5897,6 +6353,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Rampage (1/Day). Immediately after dealing damage to a creature that is already Bloodied, the gnoll moves up to half its Speed, and it makes one Rend attack."
     },
@@ -5909,6 +6366,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -5921,6 +6379,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -5933,6 +6392,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -5945,6 +6405,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Fly 60 ft., Swim 30 ft."
     },
@@ -5957,6 +6418,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Fly 80 ft., Swim 40 ft."
     },
@@ -5969,6 +6431,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -5981,6 +6444,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all expended uses at the start of each of its turns. Banish. Charisma Saving Throw: DC 21, one creature the dragon can see within 120 feet. Failure: 10 (3d6) Force damage, and the target has the Incapacitated condition and is transported to a harmless demiplane until the start of the dragon’s next turn, at which point it re appears in an unoccupied space of the dragon’s choice within 120 feet of the dragon. Failure or Success: The dragon can’t take this action again until the start of its next turn. Guiding Light. The dragon uses Spellcasting to cast Guiding Bolt (level 2 version). Pounce. The dragon moves up to half its Speed, and it"
     },
@@ -5993,6 +6457,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Fly 80 ft., Swim 40 ft."
     },
@@ -6005,6 +6470,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all expended uses at the start of each of its turns. Banish. Charisma Saving Throw: DC 24, one creature the dragon can see within 120 feet. Failure: 24 (7d6) Force damage, and the target has the Incapacitated condition and is transported to a harmless demiplane until the start of the dragon’s next turn, at which point it reappears in an unoccupied space of the dragon’s choice within 120 feet of the dragon. Failure or Success: The dragon can’t take this action again until the start of its next turn. Guiding Light. The dragon uses Spellcasting to cast Guiding Bolt (level 4 version). Pounce. The dragon moves up to half its Speed, and it makes one Rend attack."
     },
@@ -6017,6 +6483,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -6029,6 +6496,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 10"
     },
@@ -6041,6 +6509,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -6053,6 +6522,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Fly 80 ft., Swim 40 ft."
     },
@@ -6065,6 +6535,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Fly 80 ft., Swim 40 ft."
     },
@@ -6077,6 +6548,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Noxious Miasma. Constitution Saving Throw: DC 17, each creature in a 20-foot-radius Sphere centered on a point the dragon can see within 90 feet. Failure: 7 (2d6) Poison damage, and the target takes a −2 penalty to AC until the end of its next turn. Failure or Success: The dragon can’t take this action again until the start of its next turn. Pounce. The dragon moves up to half its Speed, and it"
     },
@@ -6089,6 +6561,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Fly 80 ft., Swim 40 ft."
     },
@@ -6101,6 +6574,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all expended uses at the start of each of its turns. Mind Invasion. The dragon uses Spellcasting to cast Mind Spike (level 5 version). Noxious Miasma. Constitution Saving Throw: DC 21, each creature in a 30-foot-radius Sphere centered on a point the dragon can see within 90 feet. Failure: 17 (5d6) Poison damage, and the target takes a −2 penalty to AC until the end of its next turn. Failure or Success: The dragon can’t take this action again until the start of its next turn. Pounce. The dragon moves up to half its Speed, and it makes one Rend attack."
     },
@@ -6113,6 +6587,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -6125,6 +6600,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -6137,6 +6613,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Fly 80 ft."
     },
@@ -6149,6 +6626,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -6161,6 +6639,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Climb 40 ft., Swim 40 ft."
     },
@@ -6173,6 +6652,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -6185,6 +6665,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -6197,6 +6678,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -6209,6 +6691,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20 ft., Fly 40 ft."
     },
@@ -6221,6 +6704,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 50"
     },
@@ -6233,6 +6717,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -6245,6 +6730,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft."
     },
@@ -6257,6 +6743,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -6269,6 +6756,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -6281,6 +6769,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -6293,6 +6782,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20 ft., Fly 40 ft."
     },
@@ -6305,6 +6795,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Fly 60 ft."
     },
@@ -6317,6 +6808,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -6329,6 +6821,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -6341,6 +6834,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Multiattack. The devil makes three Ice Spear attacks. It can replace one attack with a Tail attack. Ice Spear. Melee or Ranged Attack Roll: +10, reach 5 ft. or range 30/120 ft. Hit: 14 (2d8 + 5) Piercing damage plus 10 (3d6) Cold damage. Until the end of its next turn, the target can’t take a Bonus Action or Reaction, its Speed decreases by 10 feet, and it can move or take one action on its turn, not both. Hit or Miss: The spear magically returns to the devil’s hand immediately after a ranged attack. Tail. Melee Attack Roll: +10, reach 10 ft. Hit: 15 (3d6 + 5) Bludgeoning damage plus 18 (4d8) Cold damage. Ice Wall (Recharge 6). The devil casts Wall of Ice (level 8 version), requiring no spell components and using Intelligence as the spellcasting ability (spell save DC 17)."
     },
@@ -6353,6 +6847,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20 ft., Fly 40 ft."
     },
@@ -6365,6 +6860,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Sting. Melee Attack Roll: +5, reach 5 ft. Hit: 6 (1d6 + 3) Piercing damage plus 7 (2d6) Poison damage. Invisibility. The imp casts Invisibility on itself, requiring no spell components and using Charisma as the spellcasting ability. Shape-Shift. The imp shape-shifts to resemble a rat (Speed 20 ft.), a raven (20 ft., Fly 60 ft.), or a spider (20 ft., Climb 20 ft.), or it returns to its true form. Its game statistics are the same in each form, except for its Speed. Any equipment it is wearing or carrying isn’t transformed."
     },
@@ -6377,6 +6873,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Fly 60 ft."
     },
@@ -6389,6 +6886,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 50"
     },
@@ -6401,6 +6899,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -6413,6 +6912,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -6425,6 +6925,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -6437,6 +6938,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -6449,6 +6951,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the kraken can expend a use to take one of the following actions. The kraken regains all expended uses at the start of each of its turns. Storm Bolt. The kraken uses Lightning Strike. Toxic Ink. Constitution Saving Throw: DC 23, each creature in a 15-foot Emanation originating from the kraken while it is underwater. Failure: The target has the Blinded and Poisoned conditions until the end of the kraken’s next turn. The kraken then moves up to its Speed. Failure or Success: The kraken can’t take this action again until the start of its next turn."
     },
@@ -6461,6 +6964,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -6473,6 +6977,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20"
     },
@@ -6485,6 +6990,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -6497,6 +7003,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -6509,6 +7016,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -6521,6 +7029,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -6533,6 +7042,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -6545,6 +7055,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Climb 40 ft."
     },
@@ -6557,6 +7068,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -6569,6 +7081,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Fly 30 ft."
     },
@@ -6581,6 +7094,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Fly 30 ft."
     },
@@ -6593,6 +7107,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Fly 30 ft."
     },
@@ -6605,6 +7120,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -6617,6 +7133,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Claw. Melee Attack Roll: +2, reach 5 ft. Hit: 2 (1d4) Slashing damage plus 2 (1d4) Fire damage. Steam Breath (Recharge 6). Constitution Saving Throw: DC 10, each creature in a 15-foot Cone. Failure: 5 (2d4) Fire damage, and the target’s Speed decreases by 10 feet until the end of the mephit’s next turn. Success: Half damage only. Failure or Success: Being underwater doesn’t grant Resistance to this Fire damage."
     },
@@ -6629,6 +7146,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 10 ft., Swim 40 ft."
     },
@@ -6641,6 +7159,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Ocean Spear. Melee or Ranged Attack Roll: +2, reach 5 ft. or range 20/60 ft. Hit: 3 (1d6) Piercing damage plus 2 (1d4) Cold damage. If the target is a creature, its Speed decreases by 10 feet until the end of its next turn. Hit or Miss: The spear magically returns to the merfolk’s hand immediately after a ranged attack."
     },
@@ -6653,6 +7172,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 10"
     },
@@ -6665,6 +7185,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20 ft."
     },
@@ -6677,6 +7198,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -6689,6 +7211,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20"
     },
@@ -6701,6 +7224,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -6713,6 +7237,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20"
     },
@@ -6725,6 +7250,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -6737,6 +7263,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 60"
     },
@@ -6749,6 +7276,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -6761,6 +7289,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20 ft., Climb 20 ft."
     },
@@ -6773,6 +7302,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -6785,6 +7315,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Fly 30 ft. (hover)"
     },
@@ -6797,6 +7328,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -6809,6 +7341,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -6821,6 +7354,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 60 ft., Fly 90 ft."
     },
@@ -6833,6 +7367,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Climb 30 ft."
     },
@@ -6845,6 +7380,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -6857,6 +7393,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -6869,6 +7406,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Fly 60 ft."
     },
@@ -6881,6 +7419,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -6893,6 +7432,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -6905,6 +7445,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -6917,6 +7458,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 15"
     },
@@ -6929,6 +7471,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 50 ft., Burrow 50 ft."
     },
@@ -6941,6 +7484,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Tunneler. The worm can burrow through solid rock at half its Burrow Speed and leaves a 10-foot-diameter tunnel in its wake."
     },
@@ -6953,6 +7497,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft."
     },
@@ -6965,6 +7510,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Rend. Melee Attack Roll: +5, reach 5 ft. Hit: 5 (1d4 + 3) Slashing damage, and the target has the Poisoned condition until the start of the quasit’s next turn. Invisibility. The quasit casts Invisibility on itself, requiring no spell components and using Charisma as the spellcasting ability. Scare (1/Day). Wisdom Saving Throw: DC 10, one creature within 20 feet. Failure: The target has the Frightened condition. At the end of each of its turns, the target repeats the save, ending the effect on itself on a success. After 1 minute, it succeeds automatically. Shape-Shift. The quasit shape-shifts to resemble a bat (Speed 10 ft., Fly 40 ft.), a centipede (40 ft., Climb 40 ft.), or a toad (40 ft., Swim 40 ft.), or it returns to its true form. Its game statistics are the same in each form, except for its Speed. Any equipment it is wearing or carrying isn’t transformed."
     },
@@ -6977,6 +7523,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft."
     },
@@ -6989,6 +7536,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -7001,6 +7549,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -7013,6 +7562,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Climb 40 ft., Fly 80 ft."
     },
@@ -7025,6 +7575,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all expended uses at the start of each of its turns. Commanding Presence. The dragon uses Spellcasting to cast Command (level 2 version). The dragon can’t take this action again until the start of its next turn. Fiery Rays. The dragon uses Spellcasting to cast Scorching Ray. The dragon can’t take this action again until the start of its next turn. Pounce. The dragon moves up to half its Speed, and it"
     },
@@ -7037,6 +7588,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Climb 40 ft., Fly 80 ft."
     },
@@ -7049,6 +7601,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all expended uses at the start of each of its turns. Commanding Presence. The dragon uses Spellcasting to cast Command (level 2 version). The dragon can’t take this action again until the start of its next turn. Fiery Rays. The dragon uses Spellcasting to cast Scorching Ray (level 3 version). The dragon can’t take this action again until the start of its next turn. Pounce. The dragon moves up to half its Speed, and it makes one Rend attack."
     },
@@ -7061,6 +7614,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -7073,6 +7627,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20"
     },
@@ -7085,6 +7640,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Swoop (Recharge 5–6). If the roc has a creature Grappled, the roc flies up to half its Fly Speed without provoking Opportunity Attacks and drops that creature."
     },
@@ -7097,6 +7653,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 10 ft., Climb 20 ft."
     },
@@ -7109,6 +7666,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft."
     },
@@ -7121,6 +7679,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -7133,6 +7692,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed straight toward an enemy it can see."
     },
@@ -7145,6 +7705,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -7157,6 +7718,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft."
     },
@@ -7169,6 +7731,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -7181,6 +7744,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Swim 40 ft."
     },
@@ -7193,6 +7757,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -7205,6 +7770,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -7217,6 +7783,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -7229,6 +7796,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -7241,6 +7809,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Fly 80 ft."
     },
@@ -7253,6 +7822,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Fly 80 ft."
     },
@@ -7265,6 +7835,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all expended uses at the start of each of its turns. Chill. The dragon uses Spellcasting to cast Hold Monster. The dragon can’t take this action again until the start of its next turn. Cold Gale. Dexterity Saving Throw: DC 19, each creature in a 60-foot-long, 10-foot-wide Line. Failure: 14 (4d6) Cold damage, and the target is pushed up to 30 feet straight away from the dragon. Success: Half damage only. Failure or Success: The dragon can’t take this action again until the start of its next turn. Pounce. The dragon moves up to half its Speed, and it"
     },
@@ -7277,6 +7848,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Fly 80 ft."
     },
@@ -7289,6 +7861,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all expended uses at the start of each of its turns. Chill. The dragon uses Spellcasting to cast Hold Monster. The dragon can’t take this action again until the start of its next turn. Cold Gale. Dexterity Saving Throw: DC 23, each creature in a 60-foot-long, 10-foot-wide Line. Failure: 14 (4d6) Cold damage, and the target is pushed up to 30 feet straight away from the dragon. Success: Half damage only. Failure or Success: The dragon can’t take this action again until the start of its next turn. Pounce. The dragon moves up to half its Speed, and it makes one Rend attack."
     },
@@ -7301,6 +7874,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -7313,6 +7887,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 60"
     },
@@ -7325,6 +7900,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft."
     },
@@ -7337,6 +7913,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 50"
     },
@@ -7349,6 +7926,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Fly 50 ft. (hover)"
     },
@@ -7361,6 +7939,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20"
     },
@@ -7373,6 +7952,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Fly 60 ft."
     },
@@ -7385,6 +7965,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Fly 60 ft."
     },
@@ -7397,6 +7978,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -7409,6 +7991,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 10 ft., Fly 40 ft."
     },
@@ -7421,6 +8004,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Climb 30 ft."
     },
@@ -7433,6 +8017,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 10 ft., Fly 40 ft."
     },
@@ -7445,6 +8030,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft."
     },
@@ -7457,6 +8043,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -7469,6 +8056,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 50 ft., Fly 25 ft. (hover), Swim 50 ft."
     },
@@ -7481,6 +8069,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -7493,6 +8082,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed is available only in its true form. Any equipment"
     },
@@ -7505,6 +8095,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 60"
     },
@@ -7517,6 +8108,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Legendary Action Uses: 3. Immediately after another creature’s turn, the tarrasque can expend a use to take one of the following actions. The tarrasque regains all expended uses at the start of each of its turns. Onslaught. The tarrasque moves up to half its Speed, and it makes one Claw or Tail attack. World-Shaking Movement. The tarrasque moves up to its Speed. At the end of this movement, the tarrasque creates an instantaneous shock wave in a 60-foot Emanation originating from itself. Creatures in that area lose Concentration and, if Medium or smaller, have the Prone condition. The tarrasque can’t take this action again until the start of its next turn."
     },
@@ -7529,6 +8121,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -7541,6 +8134,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -7553,6 +8147,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -7565,6 +8160,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -7577,6 +8173,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Charge. The troll moves up to half its Speed straight"
     },
@@ -7589,6 +8186,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20 ft."
     },
@@ -7601,6 +8199,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 50"
     },
@@ -7613,6 +8212,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Legendary Action Uses: 3. Immediately after another creature’s turn, the unicorn can expend a use to take one of the following actions. The unicorn regains all expended uses at the start of each of its turns. Charging Horn. The unicorn moves up to half its Speed without provoking Opportunity Attacks, and it makes one Radiant Horn attack. Shimmering Shield. The unicorn targets itself or one creature it can see within 60 feet of itself. The target gains 10 (3d6) Temporary Hit Points, and its AC increases by 2 until the end of the unicorn’s next turn."
     },
@@ -7625,6 +8225,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -7637,6 +8238,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -7649,6 +8251,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Climb 40 ft."
     },
@@ -7661,6 +8264,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Charm (Recharge 5–6). The vampire casts Charm Person, requiring no spell components and using Charisma as the spellcasting ability (spell save DC 17), and the duration is 24 hours. The Charmed target is a willing recipient of the vampire’s Bite, the damage of which doesn’t end the spell. When the spell ends, the target is unaware it was Charmed by the vampire. Shape-Shift. If the vampire isn’t in sunlight or running water, it shape-shifts into a Tiny bat (Speed 5 ft., Fly"
     },
@@ -7673,6 +8277,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft.) or a Medium cloud of mist (Speed 5 ft.,"
     },
@@ -7685,6 +8290,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Fly Speed 20 ft. [hover]), or it returns to its vampire form. Anything it is wearing transforms with it. While in bat form, the vampire can’t speak. Its game statistics, other than its size and Speed, are unchanged. While in mist form, the vampire can’t take any actions, speak, or manipulate objects. It is weightless and can enter an enemy’s space and stop there. If air can pass through a space, the mist can do so, but it can’t pass through liquid. It has Resistance to all damage, except the damage it takes from sunlight."
     },
@@ -7697,6 +8303,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed, and it makes one Grave Strike attack."
     },
@@ -7709,6 +8316,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Fly 60 ft."
     },
@@ -7721,6 +8329,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft."
     },
@@ -7733,6 +8342,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -7745,6 +8355,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Swim 90 ft."
     },
@@ -7757,6 +8368,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Freeze. If the elemental takes Cold damage, its Speed decreases by 20 feet until the end of its next turn. Water Form. The elemental can enter an enemy’s space and stop there. It can move through a space as narrow as 1 inch without expending extra movement to do so."
     },
@@ -7769,6 +8381,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -7781,6 +8394,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -7793,6 +8407,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -7805,6 +8420,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -7817,6 +8433,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Prowl (Tiger or Hybrid Form Only). The weretiger moves up to its Speed without provoking Opportunity Attacks. At the end of this movement, the weretiger can take the Hide action. Shape-Shift. The weretiger shape-shifts into a Large tiger-humanoid hybrid or a Large tiger, or it returns to its true humanoid form. Its game statistics, other than its size, are the same in each form. Any equipment it is wearing or carrying isn’t transformed."
     },
@@ -7829,6 +8446,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., 40 ft. (wolf form only)"
     },
@@ -7841,6 +8459,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Burrow 15 ft., Fly 60 ft., Swim 30 ft."
     },
@@ -7853,6 +8472,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Burrow 20 ft., Fly 80 ft., Swim 40 ft."
     },
@@ -7865,6 +8485,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -7877,6 +8498,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all expended uses at the start of each of its turns. Freezing Burst. Constitution Saving Throw: DC 14, each creature in a 30-foot-radius Sphere centered on a point the dragon can see within 120 feet. Failure: 7 (2d6) Cold damage, and the target’s Speed is 0 until the end of the target’s next turn. Failure or Success: The dragon can’t take this action again until the start of its next turn. Frightful Presence. The dragon casts Fear, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 14). The dragon can’t take this action again until the start of its next turn. Pounce. The dragon moves up to half its Speed, and it makes one Rend attack."
     },
@@ -7889,6 +8511,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -7901,6 +8524,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Legendary Action Uses: 3 (4 in Lair). Immediately after another creature’s turn, the dragon can expend a use to take one of the following actions. The dragon regains all expended uses at the start of each of its turns. Freezing Burst. Constitution Saving Throw: DC 20, each creature in a 30-foot-radius Sphere centered on a point the dragon can see within 120 feet. Failure: 14 (4d6) Cold damage, and the target’s Speed is 0 until the end of the target’s next turn. Failure or Success: The dragon can’t take this action again until the start of its next turn. Frightful Presence. The dragon casts Fear, requiring no Material components and using Charisma as the spellcasting ability (spell save DC 18). The dragon can’t take this action again until the start of its next turn. Pounce. The dragon moves up to half its Speed, and it makes one Rend attack."
     },
@@ -7913,6 +8537,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -7925,6 +8550,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 5 ft., Fly 50 ft. (hover)"
     },
@@ -7937,6 +8563,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 50 ft."
     },
@@ -7949,6 +8576,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 50"
     },
@@ -7961,6 +8589,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 5 ft., Fly 60 ft. (hover)"
     },
@@ -7973,6 +8602,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -7985,6 +8615,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20 ft., Burrow 20 ft."
     },
@@ -7997,6 +8628,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Charge. The xorn moves up to its Speed or Burrow"
     },
@@ -8009,6 +8641,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed straight toward an enemy it can sense."
     },
@@ -8021,6 +8654,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20 ft."
     },
@@ -8033,6 +8667,7 @@
       "section": "Monsters A–Z",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -8045,6 +8680,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 60 ft."
     },
@@ -8057,6 +8693,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -8069,6 +8706,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Climb 30 ft."
     },
@@ -8081,6 +8719,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20 ft., Swim 80 ft."
     },
@@ -8093,6 +8732,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Climb 30 ft."
     },
@@ -8105,6 +8745,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20 ft., Burrow 5 ft."
     },
@@ -8117,6 +8758,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 5"
     },
@@ -8129,6 +8771,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Climb 30 ft., Swim 30 ft."
     },
@@ -8141,6 +8784,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 10 ft., Fly 60 ft."
     },
@@ -8153,6 +8797,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -8165,6 +8810,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Climb 30 ft."
     },
@@ -8177,6 +8823,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 50"
     },
@@ -8189,6 +8836,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Climb 40 ft."
     },
@@ -8201,6 +8849,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Swim 30 ft."
     },
@@ -8213,6 +8862,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20"
     },
@@ -8225,6 +8875,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20 ft., Swim 30 ft."
     },
@@ -8237,6 +8888,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 50"
     },
@@ -8249,6 +8901,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 50 ft."
     },
@@ -8261,6 +8914,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft."
     },
@@ -8273,6 +8927,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 10"
     },
@@ -8285,6 +8940,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft."
     },
@@ -8297,6 +8953,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 50"
     },
@@ -8309,6 +8966,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Fly 60 ft., Swim 30 ft."
     },
@@ -8321,6 +8979,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20 ft., Swim 20 ft."
     },
@@ -8333,6 +8992,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -8345,6 +9005,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Burrow 10 ft."
     },
@@ -8357,6 +9018,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 10 ft., Fly 60 ft."
     },
@@ -8369,6 +9031,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft."
     },
@@ -8381,6 +9044,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Climb 30 ft."
     },
@@ -8393,6 +9057,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -8405,6 +9070,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Swim 30 ft."
     },
@@ -8417,6 +9083,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -8429,6 +9096,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 10 ft., Fly 80 ft."
     },
@@ -8441,6 +9109,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 60"
     },
@@ -8453,6 +9122,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Climb 30 ft."
     },
@@ -8465,6 +9135,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Swim 30 ft."
     },
@@ -8477,6 +9148,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Climb 30 ft."
     },
@@ -8489,6 +9161,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 50"
     },
@@ -8501,6 +9174,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Rampage (1/Day). Immediately after dealing damage to a creature that was already Bloodied, the hyena can move up to half its Speed, and it makes one Bite attack."
     },
@@ -8513,6 +9187,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Climb 40 ft."
     },
@@ -8525,6 +9200,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 10 ft., Swim 60 ft."
     },
@@ -8537,6 +9213,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Ink Cloud (1/Day). Trigger: The octopus takes damage while underwater. Response: The octopus releases ink that fills a 10-foot Cube centered on itself, and the octopus moves up to its Swim Speed. The Cube is Heavily Obscured for 1 minute or until a strong current or similar effect disperses the ink."
     },
@@ -8549,6 +9226,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 5 ft., Fly 60 ft."
     },
@@ -8561,6 +9239,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30"
     },
@@ -8573,6 +9252,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft."
     },
@@ -8585,6 +9265,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 5 ft., Swim 40 ft."
     },
@@ -8597,6 +9278,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Bubble Dash. While underwater, the seahorse moves up to half its Swim Speed without provoking Opportunity Attacks."
     },
@@ -8609,6 +9291,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 5 ft., Swim 60 ft."
     },
@@ -8621,6 +9304,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Climb 30 ft."
     },
@@ -8633,6 +9317,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Swim 30 ft."
     },
@@ -8645,6 +9330,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -8657,6 +9343,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 10 ft., Fly 60 ft."
     },
@@ -8669,6 +9356,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 10 ft., Fly 50 ft."
     },
@@ -8681,6 +9369,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Climb 30 ft."
     },
@@ -8693,6 +9382,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft., Climb 40 ft."
     },
@@ -8705,6 +9395,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -8717,6 +9408,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 10 ft., Fly 60 ft."
     },
@@ -8729,6 +9421,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Swim 30 ft."
     },
@@ -8741,6 +9434,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 5"
     },
@@ -8753,6 +9447,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 50 ft."
     },
@@ -8765,6 +9460,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -8777,6 +9473,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 5 ft., Swim 60 ft."
     },
@@ -8789,6 +9486,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 50 ft."
     },
@@ -8801,6 +9499,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20 ft., Climb 20 ft."
     },
@@ -8813,6 +9512,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 50 ft."
     },
@@ -8825,6 +9525,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -8837,6 +9538,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft."
     },
@@ -8849,6 +9551,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 5 ft., Swim 30 ft."
     },
@@ -8861,6 +9564,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Ink Cloud (1/Day). Trigger: A creature ends its turn within 5 feet of the octopus while underwater. Response: The octopus releases ink that fills a 5-foot Cube centered on itself, and the octopus moves up to its Swim Speed. The Cube is Heavily Obscured for 1 minute or until a strong current or similar effect disperses the ink."
     },
@@ -8873,6 +9577,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 5 ft., Fly 60 ft."
     },
@@ -8885,6 +9590,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 50 ft., Climb 40 ft."
     },
@@ -8897,6 +9603,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 5 ft., Swim 40 ft."
     },
@@ -8909,6 +9616,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20 ft., Swim 40 ft."
     },
@@ -8921,6 +9629,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -8933,6 +9642,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft."
     },
@@ -8945,6 +9655,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 10 ft., Fly 60 ft."
     },
@@ -8957,6 +9668,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20"
     },
@@ -8969,6 +9681,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 10 ft., Fly 50 ft."
     },
@@ -8981,6 +9694,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 5"
     },
@@ -8993,6 +9707,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40 ft."
     },
@@ -9005,6 +9720,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 60 ft."
     },
@@ -9017,6 +9733,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -9029,6 +9746,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 10 ft."
     },
@@ -9041,6 +9759,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 5"
     },
@@ -9053,6 +9772,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Bubble Dash. While underwater, the seahorse moves up to its Swim Speed without provoking Opportunity Attacks."
     },
@@ -9065,6 +9785,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20 ft., Climb 20 ft."
     },
@@ -9077,6 +9798,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 5 ft., Fly 30 ft."
     },
@@ -9089,6 +9811,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 20 ft., Climb or Fly 20 ft. (GM’s choice)"
     },
@@ -9101,6 +9824,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Spider Climb. If the swarm has a Climb Speed, the swarm can climb difficult surfaces, including along ceilings, without needing to make an ability check. Swarm. The swarm can occupy another creature’s space and vice versa, and the swarm can move through any opening large enough for a Tiny insect. The swarm can’t regain Hit Points or gain Temporary Hit Points."
     },
@@ -9113,6 +9837,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 5"
     },
@@ -9125,6 +9850,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Climb 30 ft."
     },
@@ -9137,6 +9863,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 10"
     },
@@ -9149,6 +9876,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Swim 30 ft."
     },
@@ -9161,6 +9889,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     },
@@ -9173,6 +9902,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 50 ft."
     },
@@ -9185,6 +9915,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 50"
     },
@@ -9197,6 +9928,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Swim 30 ft."
     },
@@ -9209,6 +9941,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 10 ft., Fly 50 ft."
     },
@@ -9221,6 +9954,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 60 ft."
     },
@@ -9233,6 +9967,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 30 ft., Climb 30 ft."
     },
@@ -9245,6 +9980,7 @@
       "section": "Animals",
       "represented_by_5c": true,
       "prints_capitalized_term": true,
+      "prints_standalone_token": true,
       "already_accepted_as": [],
       "content": "Speed 40"
     }

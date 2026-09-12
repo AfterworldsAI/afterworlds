@@ -111,6 +111,7 @@ the source does not print.
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import json
 import re
@@ -761,6 +762,92 @@ PRIOR_PROVENANCE_SHAPES = dict(
     )
 )
 
+
+#: The movement and speed facts accepted authority already holds, walked out of
+#: the frozen prior rather than remembered. Facts live inside components and
+#: inside their options, so the walk is recursive over both.
+def _plain(value: Any) -> Any:
+    if isinstance(value, (list, tuple)):
+        return [_plain(item) for item in value]
+    return getattr(value, "value", value)
+
+
+MOVEMENT_FAMILY = re.compile(r"movement|speed")
+
+#: The six families the checkpoint counts as facts about a creature's own
+#: movement. ``area_origin_movement`` also matches the pattern and is reported
+#: beside them rather than folded in: it is about an area's origin moving.
+CREATURE_MOVEMENT_FAMILIES = (
+    "movement_allowance",
+    "movement_cost",
+    "movement_interleave",
+    "movement_permission",
+    "movement_transport",
+    "speed_modification",
+)
+
+_MOVEMENT_ROWS: list[dict[str, Any]] = []
+for _component in PRIOR.oracle.representation.components:
+    _groups: list[tuple[str | None, Any]] = [(None, _component.facts)]
+    _groups += [(opt.semantic_key, opt.facts) for opt in _component.options]
+    for _option_key, _facts in _groups:
+        for _fact in _facts:
+            _family = _fact.FAMILY.value
+            if not MOVEMENT_FAMILY.search(_family):
+                continue
+            _MOVEMENT_ROWS.append(
+                {
+                    "record_key": _component.record_key,
+                    "component_key": _component.semantic_key,
+                    "option_key": _option_key,
+                    "family": _family,
+                    "fields": {
+                        f.name: _plain(getattr(_fact, f.name))
+                        for f in dataclasses.fields(_fact)
+                    },
+                }
+            )
+
+_MOVEMENT_BY_FAMILY = dict(
+    sorted(Counter(row["family"] for row in _MOVEMENT_ROWS).items())
+)
+_CREATURE_MOVEMENT_ROWS = [
+    row for row in _MOVEMENT_ROWS if row["family"] in CREATURE_MOVEMENT_FAMILIES
+]
+assert sorted(
+    {
+        row["family"]
+        for row in _MOVEMENT_ROWS
+        if row["family"] not in CREATURE_MOVEMENT_FAMILIES
+    }
+) == ["area_origin_movement"], _MOVEMENT_BY_FAMILY
+
+#: The five ``speed_modification`` facts the conditions batch accepted all say
+#: ``mode: null`` — the faithful record of an unqualified statement, asserted
+#: here so the checkpoint's reading of them is not a recollection.
+_SPEED_ZERO = [row for row in _MOVEMENT_ROWS if row["family"] == "speed_modification"]
+assert len(_SPEED_ZERO) == 5, _SPEED_ZERO
+for _row in _SPEED_ZERO:
+    assert _row["fields"] == {
+        "change": "set_to",
+        "feet": 0,
+        "mode": None,
+        "can_increase": False,
+    }, _row
+
+PRIOR_MOVEMENT_FACTS = {
+    "rule": (
+        "every fact in the frozen prior whose family name matches "
+        "movement|speed, walked over components and their options"
+    ),
+    "by_family": _MOVEMENT_BY_FAMILY,
+    "creature_movement_families": list(CREATURE_MOVEMENT_FAMILIES),
+    "creature_movement_fact_count": len(_CREATURE_MOVEMENT_ROWS),
+    "total_matching_fact_count": len(_MOVEMENT_ROWS),
+    "rows": _MOVEMENT_ROWS,
+}
+assert PRIOR_MOVEMENT_FACTS["creature_movement_fact_count"] == 13, _MOVEMENT_BY_FAMILY
+
 #: **No member leaf is already represented.** The two sites are untouched by
 #: accepted authority, asserted rather than assumed: a batch that re-represented
 #: a leaf another batch already owns would be a duplicate, not a new record.
@@ -784,6 +871,9 @@ BOUNDARY = [
         "section": LABELS[_ancestry(leaf.container_path[-1])[-1]],
         "represented_by_5c": leaf.leaf_id in REPRESENTED,
         "prints_capitalized_term": bool(re.search(r"\bSpeed\b", leaf.content)),
+        "prints_standalone_token": bool(
+            re.search(r"\bspeeds?\b", leaf.content, re.IGNORECASE)
+        ),
         "already_accepted_as": sorted(
             _PRIOR_KEYS_BY_CONTAINER.get(leaf.container_path[-1], ())
         ),
@@ -796,6 +886,7 @@ for _row in BOUNDARY:
     assert _row["container_path"] != SOURCE_SITES[0]["container_path"], _row
     assert _row["container_path"] != SOURCE_SITES[1]["container_path"], _row
     assert all(key in PRIOR_DEFINED for key in _row["already_accepted_as"]), _row
+    assert _row["prints_standalone_token"], _row
 
 #: Every boundary leaf is represented by 5c — so the word is emphatically not a
 #: proxy for the population, and the exclusion is a judgment about what the
@@ -813,6 +904,11 @@ for _row in BOUNDARY:
 BOUNDARY_LOWERCASE_ONLY = sum(
     1 for row in BOUNDARY if not row["prints_capitalized_term"]
 )
+
+#: No boundary row is a substring artifact: the asserted figure above, restated
+#: as a count so the manifest carries it rather than only the assertion.
+BOUNDARY_STANDALONE_TOKEN = sum(1 for row in BOUNDARY if row["prints_standalone_token"])
+assert len(BOUNDARY) == BOUNDARY_STANDALONE_TOKEN
 
 # ---------------------------------------------------------------------------
 # Adjudicated boundary — the containers a reader would actually question
@@ -1120,6 +1216,7 @@ MANIFEST = {
     "boundary_all_represented_by_5c": BOUNDARY_ALL_REPRESENTED,
     "boundary_by_section": dict(sorted(BOUNDARY_BY_SECTION.items())),
     "boundary_lowercase_only_leaf_count": BOUNDARY_LOWERCASE_ONLY,
+    "boundary_standalone_token_leaf_count": BOUNDARY_STANDALONE_TOKEN,
     "boundary_note": (
         "Every leaf outside the population whose text contains 'speed' in any "
         "case, enumerated with its container so the exclusion is checkable "
@@ -1138,6 +1235,7 @@ MANIFEST = {
         "for a later batch -- is the checkpoint's judgment."
     ),
     "prior_provenance_shapes": PRIOR_PROVENANCE_SHAPES,
+    "prior_movement_facts": PRIOR_MOVEMENT_FACTS,
     "boundary": BOUNDARY,
     "inbound_citations": INBOUND_CITATIONS,
     "outbound_reference_precedent": DASH_PRECEDENT,
@@ -1175,8 +1273,10 @@ print(f"boundary leaves           {len(BOUNDARY)}")
 print(f"boundary all represented  {BOUNDARY_ALL_REPRESENTED}")
 print(f"boundary sections         {dict(sorted(BOUNDARY_BY_SECTION.items()))}")
 print(f"lowercase-only boundary   {BOUNDARY_LOWERCASE_ONLY}")
+print(f"standalone-token boundary {BOUNDARY_STANDALONE_TOKEN}")
 print(f"adjudicated containers    {len(ADJUDICATED_BOUNDARY)}")
 print(f"prior prov shapes         {PRIOR_PROVENANCE_SHAPES}")
+print(f"prior movement facts      {PRIOR_MOVEMENT_FACTS['by_family']}")
 print(f"inbound citations         {INBOUND_CITATIONS}")
 print(f"current schema reached by {CURRENT_SCHEMA_REACHED_BY}")
 print(f"manifest sha256           {_lf_sha256(MANIFEST_PATH)}")
