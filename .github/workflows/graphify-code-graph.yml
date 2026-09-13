@@ -33,7 +33,7 @@ jobs:
 
       - name: Build code-only graph
         run: |
-          graphify src
+          graphify src --code-only
           graphify cluster-only src --no-label
 
       - name: Upload Graphify artifact
