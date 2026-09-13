@@ -183,9 +183,10 @@ def test_the_registered_crossings_separate_the_prior_from_this_build() -> None:
     ``areas-of-effect-1`` turned out to want a schema step. It does: schema 9
     admits seven families the prior's contract cannot state, so the prior is no
     longer current and reading it as current is a *finding* rather than a silent
-    pass. It was exactly one registered step until ``cover-1`` minted schema 10;
-    the path is read from the registry rather than counted, so a succession
-    lengthens the list here instead of breaking the claim.
+    pass. It was exactly one registered step until ``cover-1`` minted schema 10
+    and ``speed-1`` schema 11; the path is read from the registry rather than
+    counted, so a succession lengthens the list here instead of breaking the
+    claim.
 
     **Two identities, two scopes.** The frozen authority is untouched on disk and
     keeps the identity the Owner accepted. Its lifted copy is a *different*
@@ -213,6 +214,7 @@ def test_the_registered_crossings_separate_the_prior_from_this_build() -> None:
     expected = [
         "5d-lift-schema-8-to-9",
         "5d-lift-schema-9-to-10",
+        "5d-lift-schema-10-to-11",
     ]
     assert [step.lift_id for step in lift_path(prior, current)] == expected
     lifted, records = lift_accepted_inputs(inputs, current)
@@ -284,9 +286,9 @@ def test_the_committed_artifact_extends_this_copy_by_the_batches_since() -> None
     the thing that would end it and named what should replace it, so this is
     that replacement rather than a deletion: the live artifact is this prior
     plus exactly the batches accepted since, and every batch the freeze holds
-    is still present and identical. ``cover-1`` makes that two, so the claim is
-    generalized rather than re-pinned to a single batch name, following
-    ``test_attitudes_1_frozen_prior``.
+    is still present and identical. ``cover-1`` and ``speed-1`` make
+    that three, so the claim is generalized rather than re-pinned to a single
+    batch name, following ``test_attitudes_1_frozen_prior``.
     """
     assert _lf_digest(FROZEN_PRIOR) == FROZEN_CONTENT_SHA256
     assert _lf_digest(COMMITTED) != FROZEN_CONTENT_SHA256
@@ -296,5 +298,6 @@ def test_the_committed_artifact_extends_this_copy_by_the_batches_since() -> None
     assert set(committed) - set(frozen) == {
         "areas-of-effect-1",
         "cover-1",
+        "speed-1",
     }
     assert {k: committed[k] for k in frozen} == frozen

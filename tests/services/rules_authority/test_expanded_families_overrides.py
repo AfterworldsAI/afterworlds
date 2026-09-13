@@ -51,12 +51,35 @@ from afterworlds.ingestion.mechanical.representation import (
     DamageType,
     DiceExpression,
     DieSize,
+    DistanceUnit,
     MechanicalFact,
+    MovementAllowanceBasis,
+    MovementAllowanceFact,
+    MovementComposition,
+    MovementCompositionFact,
+    MovementDepletionFact,
+    MovementDepletionResolution,
+    MovementDepletionTerminator,
+    MovementMode,
+    MovementPermissionFact,
+    MovementWindow,
     RollActor,
     RollContext,
     RollSpec,
+    SpecialSpeedFact,
+    SpecialSpeedListing,
     SpeedChange,
+    SpeedChangePropagationFact,
+    SpeedDefinitionFact,
     SpeedModificationFact,
+    SpeedPropagationDuration,
+    SpeedPropagationMagnitude,
+    SpeedPropagationScope,
+    SpeedSelection,
+    SpeedSelectionFact,
+    SpeedSwitchAccounting,
+    SpeedSwitchLimitFact,
+    SpeedSwitchOutcome,
     StateEffectFact,
     StateEffectKind,
     TargetingProhibition,
@@ -743,6 +766,259 @@ def test_a_cover_override_cannot_widen_the_union(
     author_override(
         runtime.session,
         override_id=f"ov-cover-bad-{abs(hash(why))}",
+        target=CHECK_COMPONENT_TARGET,
+        operation=OverrideOperationEnum.APPEND,
+        payload=payload,
+    )
+    assert typed_view(runtime).outcome is AuthorityOutcome.INVALID_OVERRIDE, why
+
+
+# -- the speed families, through the same path --------------------------------
+#
+# Schema 11 mints seven families and widens ``MovementMode`` by one member, but
+# it also does something the three blocks above never did: it adds an optional
+# field to a family the override layer has carried since schema 6. So this
+# block asks two questions rather than one. Do the seven new payloads reach a
+# deterministic consumer intact -- and does ``MovementAllowanceFact``, whose
+# wire shape changed under an override author who may still be writing the old
+# one, still arrive as the fact it now is?
+
+#: Speed, p14: "A creature's Speed is the distance in feet the creature can
+#: cover when it moves on its turn." The unit and the window, and no number:
+#: the entry defines the quantity without printing one.
+SPEED_DEFINITION = SpeedDefinitionFact(
+    unit=DistanceUnit.FOOT,
+    window=MovementWindow.OWN_TURN,
+)
+
+#: Movement and Position, p14: "you can move a distance up to your Speed" on
+#: your turn. The family is schema 6's; ``window`` is the field schema 11 added
+#: to it, and this specimen is the reason the optional field is exercised here.
+OWN_SPEED_ALLOWANCE = MovementAllowanceFact(
+    basis=MovementAllowanceBasis.OWN_SPEED,
+    window=MovementWindow.OWN_TURN,
+)
+
+#: Movement and Position, p14: "until it is used up or until you are done
+#: moving, whichever comes first". Both terminators in one fact, because the
+#: resolution is a statement about the pair.
+DEPLETION = MovementDepletionFact(
+    depletes=MovementAllowanceBasis.OWN_SPEED,
+    until=(
+        MovementDepletionTerminator.ALLOWANCE_USED_UP,
+        MovementDepletionTerminator.DONE_MOVING,
+    ),
+    resolution=MovementDepletionResolution.WHICHEVER_COMES_FIRST,
+)
+
+#: Speed, p14: a creature with more than one speed chooses which to use before
+#: moving.
+SELECTION = SpeedSelectionFact(permits=SpeedSelection.CHOOSE_BEFORE_MOVING)
+
+#: Speed, p14: switching costs the distance already moved, and a nonpositive
+#: remainder forbids the new speed. The prohibition, not an arithmetic rule.
+SWITCH_LIMIT = SpeedSwitchLimitFact(
+    accounting=SpeedSwitchAccounting.SUBTRACT_DISTANCE_ALREADY_MOVED,
+    when_nonpositive=SpeedSwitchOutcome.FORBIDS_USING_THE_NEW_SPEED,
+)
+
+#: Speed, p14: a change to Speed changes every special speed by the same amount
+#: for the same duration. The worked examples are evidence, not a calculator.
+PROPAGATION = SpeedChangePropagationFact(
+    to=SpeedPropagationScope.EVERY_SPECIAL_SPEED,
+    magnitude=SpeedPropagationMagnitude.EQUAL_AMOUNT,
+    duration=SpeedPropagationDuration.SAME_DURATION,
+)
+
+#: Speed, p14: "such as a Burrow Speed, Climb Speed, Fly Speed, or Swim Speed".
+#: The listing member is what keeps "such as" open at the consumer.
+SPECIAL_FLY = SpecialSpeedFact(
+    mode=MovementMode.FLY,
+    listing=SpecialSpeedListing.NAMED_IN_A_NON_EXHAUSTIVE_LIST,
+)
+
+#: Movement and Position, p14: you can jump as part of your move. ``jump`` is
+#: the member schema 11 adds to a vocabulary this seam already accepted, so
+#: this specimen is the widening arriving through the override door.
+JUMP_PERMISSION = MovementPermissionFact(mode=MovementMode.JUMP)
+
+#: Movement and Position, p14: such movement is part of the entire move.
+COMPOSITION = MovementCompositionFact(composes=MovementComposition.ENTIRE_MOVE)
+
+SPEED_FACTS = (
+    SPEED_DEFINITION,
+    OWN_SPEED_ALLOWANCE,
+    DEPLETION,
+    SELECTION,
+    SWITCH_LIMIT,
+    PROPAGATION,
+    SPECIAL_FLY,
+    JUMP_PERMISSION,
+    COMPOSITION,
+)
+
+
+@pytest.mark.parametrize(
+    "fact", SPEED_FACTS, ids=[fact.FAMILY.value for fact in SPEED_FACTS]
+)
+def test_a_speed_family_appends_and_reaches_the_typed_view(
+    runtime: RuntimeFixture, fact: MechanicalFact
+) -> None:
+    """Nine specimens for seven new families, and the two extra are the point.
+
+    ``movement_allowance`` and ``movement_permission`` are not new, so a block
+    that covered only the mint would skip exactly the two payloads whose shape
+    changed under an unchanged family name.
+    """
+    override_id = f"ov-speed-{fact.FAMILY.value}"
+    author_override(
+        runtime.session,
+        override_id=override_id,
+        target=CHECK_COMPONENT_TARGET,
+        operation=OverrideOperationEnum.APPEND,
+        payload=append_fact_payload(fact),
+    )
+    check = component(effective(runtime), CREATURE_KEY, CHECK_KEY)
+    assert check is not None
+    (added,) = [f for f in check.facts if f.fact_key == fact_key(fact)]
+    assert added.fact == fact
+    assert added.supplied_by_override_id == override_id
+    assert added.span_ids == ()
+
+    result = typed_view(runtime)
+    assert result.outcome is AuthorityOutcome.RESOLVED
+    assert result.typed_view is not None
+    assert fact in [
+        f.fact
+        for record in result.typed_view.records
+        for comp in record.components
+        for f in comp.facts
+    ]
+
+
+def test_the_depletion_terminators_survive_the_override_path_in_order(
+    runtime: RuntimeFixture,
+) -> None:
+    """The one new field that is a sequence, checked as a sequence.
+
+    ``until`` is the only schema-11 field whose payload is a list. A path that
+    round-tripped it as a set, or kept only its last member, would still produce
+    a ``MovementDepletionFact`` and still resolve -- so the arrival is checked
+    against the printed order rather than against membership.
+    """
+    author_override(
+        runtime.session,
+        override_id="ov-speed-until-order",
+        target=CHECK_COMPONENT_TARGET,
+        operation=OverrideOperationEnum.APPEND,
+        payload=append_fact_payload(DEPLETION),
+    )
+    check = component(effective(runtime), CREATURE_KEY, CHECK_KEY)
+    assert check is not None
+    (added,) = [f for f in check.facts if f.fact_key == fact_key(DEPLETION)]
+    arrived = added.fact
+    assert isinstance(arrived, MovementDepletionFact)
+    assert arrived.until == (
+        MovementDepletionTerminator.ALLOWANCE_USED_UP,
+        MovementDepletionTerminator.DONE_MOVING,
+    )
+
+
+@pytest.mark.parametrize(
+    ("payload", "why"),
+    [
+        (
+            {
+                "patch": "append_fact",
+                "fact": {**fact_payload(DEPLETION), "until": "allowance_used_up"},
+            },
+            "one terminator where the sentence prints a list of them",
+        ),
+        (
+            {
+                "patch": "append_fact",
+                "fact": {**fact_payload(DEPLETION), "until": ["out_of_movement"]},
+            },
+            "a terminator the sentence never names",
+        ),
+        (
+            {
+                "patch": "append_fact",
+                "fact": {**fact_payload(OWN_SPEED_ALLOWANCE), "window": "next_turn"},
+            },
+            "a window on the field schema 11 added to an older family",
+        ),
+        (
+            {
+                "patch": "append_fact",
+                "fact": {**fact_payload(JUMP_PERMISSION), "mode": "teleport"},
+            },
+            "a mode outside the closure jump was added to",
+        ),
+        (
+            {
+                "patch": "append_fact",
+                "fact": {**fact_payload(SPEED_DEFINITION), "unit": "feet"},
+            },
+            "the unit spelled the way the page prints it in a sentence",
+        ),
+        (
+            {
+                "patch": "append_fact",
+                "fact": {
+                    **fact_payload(SWITCH_LIMIT),
+                    "when_nonpositive": "allows_using_the_new_speed",
+                },
+            },
+            "the nonpositive prohibition inverted into a permission",
+        ),
+        (
+            {
+                "patch": "append_fact",
+                "fact": {**fact_payload(PROPAGATION), "to": "every_speed"},
+            },
+            "propagation broadened past the special speeds",
+        ),
+        (
+            {
+                "patch": "append_fact",
+                "fact": {**fact_payload(SPECIAL_FLY), "listing": "exhaustive_list"},
+            },
+            "a listing that closes what the entry prints as open",
+        ),
+        (
+            {
+                "patch": "append_fact",
+                "fact": {**fact_payload(COMPOSITION), "composes": "partial_move"},
+            },
+            "a composition the entry does not state",
+        ),
+    ],
+    ids=[
+        "scalar-until",
+        "unnamed-terminator",
+        "unknown-window",
+        "mode-past-the-closure",
+        "stringly-unit",
+        "inverted-prohibition",
+        "broadened-propagation",
+        "closed-listing",
+        "unprinted-composition",
+    ],
+)
+def test_a_speed_override_cannot_widen_the_union(
+    runtime: RuntimeFixture, payload: dict[str, object], why: str
+) -> None:
+    """The same door, held shut against the schema-11 vocabularies.
+
+    ``scalar-until`` and ``mode-past-the-closure`` are the two worth naming.
+    The first is the only shape check in this schema that is about a field
+    being a list at all; the second asks whether widening ``MovementMode`` once
+    left it open, and the answer is that it did not.
+    """
+    author_override(
+        runtime.session,
+        override_id=f"ov-speed-bad-{abs(hash(why))}",
         target=CHECK_COMPONENT_TARGET,
         operation=OverrideOperationEnum.APPEND,
         payload=payload,

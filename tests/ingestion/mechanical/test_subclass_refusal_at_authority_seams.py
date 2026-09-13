@@ -82,6 +82,10 @@ from afterworlds.ingestion.mechanical.representation import (
     EffectTerminationFact,
     FactQualifier,
     MeasureUnit,
+    MovementAllowanceBasis,
+    MovementDepletionFact,
+    MovementDepletionResolution,
+    MovementDepletionTerminator,
     ObscurementState,
     ParticipantRole,
     Phase,
@@ -817,6 +821,14 @@ def _area_origin_movement(suspended_by_any_of: object) -> AreaOriginMovementFact
     return AreaOriginMovementFact(suspended_by_any_of=cast(Any, suspended_by_any_of))
 
 
+def _movement_depletion(until: object) -> MovementDepletionFact:
+    return MovementDepletionFact(
+        depletes=MovementAllowanceBasis.OWN_SPEED,
+        until=cast(Any, until),
+        resolution=MovementDepletionResolution.WHICHEVER_COMES_FIRST,
+    )
+
+
 def _size_applicability(any_of: object) -> Applicability:
     return Applicability(
         kind=ApplicabilityKind.SIZE_COMPARISON,
@@ -915,6 +927,20 @@ NESTED_TUPLE_FIELDS = [
         id="AreaOriginMovementFact.suspended_by_any_of",
     ),
     pytest.param(
+        lambda c: _with_fact(
+            _movement_depletion(
+                c(
+                    (
+                        MovementDepletionTerminator.ALLOWANCE_USED_UP,
+                        MovementDepletionTerminator.DONE_MOVING,
+                    )
+                )
+            )
+        ),
+        "until",
+        id="MovementDepletionFact.until",
+    ),
+    pytest.param(
         lambda c: _with_applicability(_size_applicability(c(SIZE_COMPARISONS))),
         "any_of",
         id="Applicability.any_of",
@@ -969,7 +995,8 @@ def test_the_audited_inventory_is_the_whole_declared_surface() -> None:
     boundary round 10 already closed. A new authority dataclass with a tuple
     field fails here rather than shipping unaudited: schema 9's two — an area's
     required dimensions and an Emanation's movement exceptions — were added to
-    the table because this assertion demanded them.
+    the table because this assertion demanded them, and schema 11's one -- a
+    movement allowance's printed terminators -- for the same reason.
     """
     declared = {
         f"{cls.__name__}.{field.name}"

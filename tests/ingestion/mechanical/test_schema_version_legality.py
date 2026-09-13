@@ -139,7 +139,15 @@ from afterworlds.ingestion.mechanical.representation import (
     MeasureUnit,
     MovementAllowanceBasis,
     MovementAllowanceFact,
+    MovementComposition,
+    MovementCompositionFact,
+    MovementDepletionFact,
+    MovementDepletionResolution,
+    MovementDepletionTerminator,
     MovementInterleaveFact,
+    MovementMode,
+    MovementPermissionFact,
+    MovementWindow,
     ObscurementState,
     Phase,
     Rational,
@@ -163,6 +171,18 @@ from afterworlds.ingestion.mechanical.representation import (
     SizeKeyedQuantityFact,
     SizeQuantity,
     Skill,
+    SpecialSpeedFact,
+    SpecialSpeedListing,
+    SpeedChangePropagationFact,
+    SpeedDefinitionFact,
+    SpeedPropagationDuration,
+    SpeedPropagationMagnitude,
+    SpeedPropagationScope,
+    SpeedSelection,
+    SpeedSelectionFact,
+    SpeedSwitchAccounting,
+    SpeedSwitchLimitFact,
+    SpeedSwitchOutcome,
     SustainedState,
     SustainedStateRequirementFact,
     TargetingProhibition,
@@ -193,6 +213,8 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_8_VERSION,
     SCHEMA_9_HASH,
     SCHEMA_9_VERSION,
+    SCHEMA_10_HASH,
+    SCHEMA_10_VERSION,
     SchemaLiftError,
     accepted_schema_contracts,
     lift_accepted_inputs,
@@ -632,6 +654,79 @@ SCHEMA_10_ONLY = [
 ]
 
 
+#: One live object per axis schema 11 added — eleven closed vocabularies
+#: carried by the seven families that state them, plus the two shapes that
+#: reach structures an earlier schema already had. ``MovementPermissionFact``
+#: is the specimen that carries ``MovementMode.JUMP``: ``MovementMode`` is a
+#: schema-3 vocabulary and schema 11 registers ``jump`` as its own
+#: introduction, so every reader from schema 3 through schema 10 must refuse
+#: it on the member alone. ``MovementAllowanceFact`` is the specimen that
+#: carries ``window``, an omit-when-empty field registered in
+#: ``_POST_SCHEMA_3_FIELDS`` exactly as ``RollSpec.skill`` and ``DamageFact.per``
+#: were — no manifest row, and an earlier reader refuses the key.
+SCHEMA_11_ONLY = [
+    pytest.param(
+        SpeedDefinitionFact(
+            unit=DistanceUnit.FOOT,
+            window=MovementWindow.OWN_TURN,
+        ),
+        id="vocabulary-movement_window",
+    ),
+    pytest.param(
+        MovementDepletionFact(
+            depletes=MovementAllowanceBasis.OWN_SPEED,
+            until=(
+                MovementDepletionTerminator.ALLOWANCE_USED_UP,
+                MovementDepletionTerminator.DONE_MOVING,
+            ),
+            resolution=MovementDepletionResolution.WHICHEVER_COMES_FIRST,
+        ),
+        id="vocabulary-movement_depletion_terminator-resolution",
+    ),
+    pytest.param(
+        SpeedSelectionFact(permits=SpeedSelection.SWITCH_DURING_MOVE),
+        id="vocabulary-speed_selection",
+    ),
+    pytest.param(
+        SpeedSwitchLimitFact(
+            accounting=SpeedSwitchAccounting.SUBTRACT_DISTANCE_ALREADY_MOVED,
+            when_nonpositive=SpeedSwitchOutcome.FORBIDS_USING_THE_NEW_SPEED,
+        ),
+        id="vocabulary-speed_switch_accounting-speed_switch_outcome",
+    ),
+    pytest.param(
+        SpeedChangePropagationFact(
+            to=SpeedPropagationScope.EVERY_SPECIAL_SPEED,
+            magnitude=SpeedPropagationMagnitude.EQUAL_AMOUNT,
+            duration=SpeedPropagationDuration.SAME_DURATION,
+        ),
+        id="vocabulary-speed_propagation_scope-magnitude-duration",
+    ),
+    pytest.param(
+        SpecialSpeedFact(
+            mode=MovementMode.BURROW,
+            listing=SpecialSpeedListing.NAMED_IN_A_NON_EXHAUSTIVE_LIST,
+        ),
+        id="vocabulary-special_speed_listing",
+    ),
+    pytest.param(
+        MovementCompositionFact(composes=MovementComposition.ENTIRE_MOVE),
+        id="vocabulary-movement_composition",
+    ),
+    pytest.param(
+        MovementPermissionFact(mode=MovementMode.JUMP),
+        id="member-MovementMode.jump",
+    ),
+    pytest.param(
+        MovementAllowanceFact(
+            basis=MovementAllowanceBasis.OWN_SPEED,
+            window=MovementWindow.OWN_TURN,
+        ),
+        id="field-MovementAllowanceFact.window",
+    ),
+]
+
+
 # ---------------------------------------------------------------------------
 # The contract, driven from the manifest rather than from a hand-written list
 # ---------------------------------------------------------------------------
@@ -653,6 +748,7 @@ def test_every_manifest_row_has_an_exemplar_here() -> None:
         *SCHEMA_8_ONLY,
         *SCHEMA_9_ONLY,
         *SCHEMA_10_ONLY,
+        *SCHEMA_11_ONLY,
     ):
         (obj,) = param.values
         exercised |= _groups_exercised_by(obj)
@@ -739,8 +835,15 @@ def test_schema_9_refuses_every_schema_10_only_type_or_value(
 
 @pytest.mark.parametrize("obj", SCHEMA_10_ONLY)
 def test_schema_10_admits_what_it_introduced(obj: object) -> None:
-    """And the other direction, so the rule is not "refuse everything newer"."""
-    assert post_schema_3_violations(obj, REPRESENTATION_SCHEMA_VERSION) == []
+    """And the other direction, so the rule is not "refuse everything newer".
+
+    Pinned to ``SCHEMA_10_VERSION`` rather than to live authority now that
+    schema 11 exists, for the reason schema 9's equivalent was pinned when
+    schema 10 arrived: read against the live pair this would keep passing
+    because a later contract admits its predecessor's content, and schema
+    10's own admission would stop being asserted anywhere.
+    """
+    assert post_schema_3_violations(obj, SCHEMA_10_VERSION) == []
 
 
 @pytest.mark.parametrize("obj", SCHEMA_9_ONLY)
@@ -748,6 +851,37 @@ def test_schema_10_still_admits_every_schema_9_introduction(
     obj: object,
 ) -> None:
     """Schema 10 widened the union; it narrowed nothing schema 9 could state."""
+    assert post_schema_3_violations(obj, SCHEMA_10_VERSION) == []
+
+
+@pytest.mark.parametrize("obj", SCHEMA_11_ONLY)
+def test_schema_10_refuses_every_schema_11_only_type_or_value(
+    obj: object,
+) -> None:
+    """The succession speed-1 needs, in the direction that makes it one.
+
+    Schema 3 could already *change* a Speed and state a creature's own, and
+    schema 6 could measure an allowance by one — which is exactly why this
+    is asserted per specimen rather than assumed. The last two go further
+    still: one carries ``MovementMode.JUMP``, a member of a vocabulary
+    schema 3 already declared, and the other a ``window`` key on a family
+    schema 6 already had. Schema 10 must refuse each on the member and the
+    key alone, not on the type.
+    """
+    assert post_schema_3_violations(obj, SCHEMA_10_VERSION), obj
+
+
+@pytest.mark.parametrize("obj", SCHEMA_11_ONLY)
+def test_schema_11_admits_what_it_introduced(obj: object) -> None:
+    """And the other direction, so the rule is not "refuse everything newer"."""
+    assert post_schema_3_violations(obj, REPRESENTATION_SCHEMA_VERSION) == []
+
+
+@pytest.mark.parametrize("obj", SCHEMA_10_ONLY)
+def test_schema_11_still_admits_every_schema_10_introduction(
+    obj: object,
+) -> None:
+    """Schema 11 widened the union; it narrowed nothing schema 10 could state."""
     assert post_schema_3_violations(obj, REPRESENTATION_SCHEMA_VERSION) == []
 
 
@@ -1226,13 +1360,14 @@ def test_the_recognized_contracts_are_exactly_the_live_pair_and_the_registry() -
         # Schema 5 joins the set by becoming the *source* of a registered lift,
         # which is exactly how schema 3 and schema 4 are here. Schema 6 joins it
         # the same way at schema 7, schema 7 at schema 8, schema 8 at schema 9,
-        # and schema 9 at schema 10. The rule is the registry, not a list of
-        # versions somebody kept up to date.
+        # schema 9 at schema 10 and schema 10 at schema 11. The rule is the
+        # registry, not a list of versions somebody kept up to date.
         (SCHEMA_5_VERSION, SCHEMA_5_HASH),
         (SCHEMA_6_VERSION, SCHEMA_6_HASH),
         (SCHEMA_7_VERSION, SCHEMA_7_HASH),
         (SCHEMA_8_VERSION, SCHEMA_8_HASH),
         (SCHEMA_9_VERSION, SCHEMA_9_HASH),
+        (SCHEMA_10_VERSION, SCHEMA_10_HASH),
     }
 
 

@@ -104,6 +104,7 @@ from afterworlds.ingestion.mechanical.representation import (
     DerivedQuantityFact,
     DiceExpression,
     DieSize,
+    DistanceUnit,
     DurationKind,
     EffectDurationFact,
     EffectTerminationFact,
@@ -123,12 +124,18 @@ from afterworlds.ingestion.mechanical.representation import (
     MovementAllowanceBasis,
     MovementAllowanceFact,
     MovementAmount,
+    MovementComposition,
+    MovementCompositionFact,
     MovementCostFact,
     MovementCostKind,
+    MovementDepletionFact,
+    MovementDepletionResolution,
+    MovementDepletionTerminator,
     MovementInterleaveFact,
     MovementMode,
     MovementPermissionFact,
     MovementTransportFact,
+    MovementWindow,
     ParticipantRole,
     ProgressionEntryFact,
     QuantityMultiplierFact,
@@ -159,8 +166,20 @@ from afterworlds.ingestion.mechanical.representation import (
     SensoryCapabilityFact,
     SizeKeyedQuantityFact,
     SizeQuantity,
+    SpecialSpeedFact,
+    SpecialSpeedListing,
     SpeedChange,
+    SpeedChangePropagationFact,
+    SpeedDefinitionFact,
     SpeedModificationFact,
+    SpeedPropagationDuration,
+    SpeedPropagationMagnitude,
+    SpeedPropagationScope,
+    SpeedSelection,
+    SpeedSelectionFact,
+    SpeedSwitchAccounting,
+    SpeedSwitchLimitFact,
+    SpeedSwitchOutcome,
     SpellCastingTime,
     SpellComponents,
     SpellDescriptorFact,
@@ -547,6 +566,54 @@ EXEMPLARS: dict[FactFamily, Any] = {
     FactFamily.COVER_DEGREE_SELECTION: CoverDegreeSelectionFact(
         selects=CoverDegreeSelection.MOST_PROTECTIVE,
         combination=CoverDegreeCombination.NOT_ADDED_TOGETHER,
+    ),
+    # Speed: "A creature has a Speed, which is the distance in feet the
+    # creature can cover when it moves on its turn."
+    FactFamily.SPEED_DEFINITION: SpeedDefinitionFact(
+        unit=DistanceUnit.FOOT,
+        window=MovementWindow.OWN_TURN,
+    ),
+    # Movement and Position: "you deduct the distance of each part of
+    # your move from it until it is used up or until you are done
+    # moving, whichever comes first."
+    FactFamily.MOVEMENT_DEPLETION: MovementDepletionFact(
+        depletes=MovementAllowanceBasis.OWN_SPEED,
+        until=(
+            MovementDepletionTerminator.ALLOWANCE_USED_UP,
+            MovementDepletionTerminator.DONE_MOVING,
+        ),
+        resolution=MovementDepletionResolution.WHICHEVER_COMES_FIRST,
+    ),
+    # Speed: "If you have more than one speed, choose which one to use
+    # when you move".
+    FactFamily.SPEED_SELECTION: SpeedSelectionFact(
+        permits=SpeedSelection.CHOOSE_BEFORE_MOVING,
+    ),
+    # Speed: "Whenever you switch, subtract the distance already moved
+    # from the new speed. ... If the result is 0 or less, you can't use
+    # the new speed during the current move."
+    FactFamily.SPEED_SWITCH_LIMIT: SpeedSwitchLimitFact(
+        accounting=SpeedSwitchAccounting.SUBTRACT_DISTANCE_ALREADY_MOVED,
+        when_nonpositive=SpeedSwitchOutcome.FORBIDS_USING_THE_NEW_SPEED,
+    ),
+    # Changes to Your Speeds: "any special speed you have increases or
+    # decreases by an equal amount for the same duration."
+    FactFamily.SPEED_CHANGE_PROPAGATION: SpeedChangePropagationFact(
+        to=SpeedPropagationScope.EVERY_SPECIAL_SPEED,
+        magnitude=SpeedPropagationMagnitude.EQUAL_AMOUNT,
+        duration=SpeedPropagationDuration.SAME_DURATION,
+    ),
+    # Speed: "Some creatures have special speeds, such as a Burrow
+    # Speed, Climb Speed, Fly Speed, or Swim Speed".
+    FactFamily.SPECIAL_SPEED: SpecialSpeedFact(
+        mode=MovementMode.BURROW,
+        listing=SpecialSpeedListing.NAMED_IN_A_NON_EXHAUSTIVE_LIST,
+    ),
+    # Movement and Position: "These different modes of movement can be
+    # combined with your regular movement, or they can constitute your
+    # entire move."
+    FactFamily.MOVEMENT_COMPOSITION: MovementCompositionFact(
+        composes=MovementComposition.COMBINED_WITH_REGULAR_MOVEMENT,
     ),
 }
 

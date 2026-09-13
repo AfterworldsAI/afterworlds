@@ -667,7 +667,7 @@ def test_a_component_wide_outcome_is_not_established_by_one_arm() -> None:
 def test_schema_5_stays_pinned_as_the_source_of_a_registered_succession() -> None:
     """Superseded, and therefore *more* load-bearing rather than less.
 
-    This build declares schema 10. Schema 5's pin is unchanged, and what it
+    This build declares schema 11. Schema 5's pin is unchanged, and what it
     names
     is still the **source** of the registered ``5d-lift-schema-5-to-6``
     transition — which is the first step of what keeps accepted schema-5
@@ -687,11 +687,13 @@ def test_schema_5_stays_pinned_as_the_source_of_a_registered_succession() -> Non
         SCHEMA_9_VERSION,
         SCHEMA_10_HASH,
         SCHEMA_10_VERSION,
+        SCHEMA_11_HASH,
+        SCHEMA_11_VERSION,
         SCHEMA_LIFTS,
     )
 
-    assert REPRESENTATION_SCHEMA_VERSION == SCHEMA_10_VERSION
-    assert representation_schema_hash() == SCHEMA_10_HASH
+    assert REPRESENTATION_SCHEMA_VERSION == SCHEMA_11_VERSION
+    assert representation_schema_hash() == SCHEMA_11_HASH
     lift = SCHEMA_LIFTS[(SCHEMA_5_VERSION, SCHEMA_5_HASH)]
     assert (lift.to_version, lift.to_hash) == (SCHEMA_6_VERSION, SCHEMA_6_HASH)
     # And the steps after it, so the chain from schema 5 is asserted whole.
@@ -707,10 +709,15 @@ def test_schema_5_stays_pinned_as_the_source_of_a_registered_succession() -> Non
         SCHEMA_9_VERSION,
         SCHEMA_9_HASH,
     )
-    last = SCHEMA_LIFTS[(SCHEMA_9_VERSION, SCHEMA_9_HASH)]
-    assert (last.to_version, last.to_hash) == (
+    onward_again_still = SCHEMA_LIFTS[(SCHEMA_9_VERSION, SCHEMA_9_HASH)]
+    assert (onward_again_still.to_version, onward_again_still.to_hash) == (
         SCHEMA_10_VERSION,
         SCHEMA_10_HASH,
+    )
+    last = SCHEMA_LIFTS[(SCHEMA_10_VERSION, SCHEMA_10_HASH)]
+    assert (last.to_version, last.to_hash) == (
+        SCHEMA_11_VERSION,
+        SCHEMA_11_HASH,
     )
 
 

@@ -1,0 +1,3734 @@
+{
+ "_": "Review artifact for CRD Issue 5d batch speed-1. Regenerate with `python .claude/review-notes/issue-5d-batch-speed-1-generator.py` from the repository root. Nothing here is accepted, published, activated or persisted.",
+ "issue": "#137 / CRD Issue 5d",
+ "batch_id": "speed-1",
+ "proposal_identity": "bd9d49427b7f2d996269e4e30a74abc26dacb7804e9176d8ca7f908b6c6a2bf8",
+ "proposal_identity_scope": "the identity of THIS proposal artifact: binding, policy, schema, proposed spans and proposed representation. It is not an oracle identity, not a projection identity and not an acceptance. It becomes authority only at an acceptance that has not happened.",
+ "batch_selection": {
+  "record": "glossary.speed",
+  "membership_rule": "A leaf is in this population when the bound release attaches it to one of the two entry containers the source itself joins by a reciprocal citation: 'Rules Glossary > Rules Definitions > Speed', and the one entry in the whole release that prints the sentence 'See \"Rules Glossary\" for more about Speed'. The label is NOT the query -- four containers are labeled 'Speed' and three of them are a species pointer, a vehicle-speed homonym and a stat-block pointer that defers to the glossary. Printing the word 'speed' is use, not definition, and pulls nothing in.",
+  "sites": [
+   {
+    "site": "glossary",
+    "container_path": "Rules Glossary > Rules Definitions > Speed",
+    "label": "Speed",
+    "leaves": 12
+   },
+   {
+    "site": "combat",
+    "container_path": "Playing the Game > Combat > Movement and Position",
+    "label": "Movement and Position",
+    "leaves": 4
+   }
+  ],
+  "the_label_is_not_the_query": {
+   "entries_labelled_speed_in_the_release": 4,
+   "entries_labelled_speed_that_are_members": 1,
+   "the_member_is_selected_by_path": "Rules Glossary > Rules Definitions > Speed",
+   "entries_labelled_speed_that_are_not_members": [
+    "Character Origins > Character Species > Speed",
+    "Equipment > Mounts and Vehicles > Speed",
+    "Monsters > Parts of a Stat Block > Speed"
+   ],
+   "second_site_label": "Movement and Position",
+   "note": "four entries in the bound release are labelled 'Speed' and only one of them is this rule; the other three are listed above by their full container paths and are adjudicated out. Meanwhile the second site is labelled 'Movement and Position'. A label query would have been wrong in both directions at once, which is why the glossary member is selected by its full container path and the second site is derived from the printed reciprocal citation instead."
+  },
+  "direction": {
+   "outbound": {
+    "from_site": "glossary",
+    "see_also_leaf_id": "b469c79c-b4b0-51aa-83cb-65e8e0e70e2d",
+    "citation_leaf_id": "88acf51c-d44c-5171-8bf9-349488ff5c16",
+    "names_section": "Playing the Game",
+    "names_subsection": "Combat",
+    "to_site": "combat"
+   },
+   "inbound": {
+    "from_site": "combat",
+    "leaf_id": "afee8441-9c5f-5ebc-89b6-211254d8f97a",
+    "clause_id": "combat/3/5",
+    "occurrences_in_the_whole_release": 1,
+    "to_site": "glossary"
+   },
+   "corroboration_outside_the_population": {
+    "from_container": "Playing the Game > Combat > Your Turn",
+    "leaf_id": "f98dd786-6d1c-5d24-846e-afa2f76db981",
+    "occurrences_in_the_whole_release": 1,
+    "in_the_population": false
+   },
+   "note": "the two sites are one population because the source joins them, not because a reader judges them related. This is the printed join, re-derived rather than recalled, and the second site's container is not labeled 'Speed' at all."
+  },
+  "naive_cooccurrence_would_have_added": [
+   "Dropping Prone",
+   "Mounting and Dismounting"
+  ],
+  "naive_cooccurrence_note": "three entries beneath Playing the Game > Combat mention the glossary and Speed together. One of them IS the second site; the other two cite the glossary for some other rule and are asserted non-members here.",
+  "adjudicated_boundary": [
+   {
+    "container_path": "Character Origins > Character Species > Speed",
+    "leaf_count": 3,
+    "prints_the_reciprocal_citation": false,
+    "defers_the_movement_rules_to_the_population": false,
+    "cites_the_glossary_speed_entry_in_a_see_also": false,
+    "already_accepted_as": []
+   },
+   {
+    "container_path": "Equipment > Mounts and Vehicles > Speed",
+    "leaf_count": 3,
+    "prints_the_reciprocal_citation": false,
+    "defers_the_movement_rules_to_the_population": false,
+    "cites_the_glossary_speed_entry_in_a_see_also": false,
+    "already_accepted_as": []
+   },
+   {
+    "container_path": "Monsters > Parts of a Stat Block > Speed",
+    "leaf_count": 3,
+    "prints_the_reciprocal_citation": false,
+    "defers_the_movement_rules_to_the_population": false,
+    "cites_the_glossary_speed_entry_in_a_see_also": false,
+    "already_accepted_as": []
+   },
+   {
+    "container_path": "Rules Glossary > Rules Definitions > Burrow Speed",
+    "leaf_count": 4,
+    "prints_the_reciprocal_citation": false,
+    "defers_the_movement_rules_to_the_population": false,
+    "cites_the_glossary_speed_entry_in_a_see_also": true,
+    "already_accepted_as": []
+   },
+   {
+    "container_path": "Rules Glossary > Rules Definitions > Climb Speed",
+    "leaf_count": 4,
+    "prints_the_reciprocal_citation": false,
+    "defers_the_movement_rules_to_the_population": false,
+    "cites_the_glossary_speed_entry_in_a_see_also": true,
+    "already_accepted_as": []
+   },
+   {
+    "container_path": "Rules Glossary > Rules Definitions > Fly Speed",
+    "leaf_count": 4,
+    "prints_the_reciprocal_citation": false,
+    "defers_the_movement_rules_to_the_population": false,
+    "cites_the_glossary_speed_entry_in_a_see_also": true,
+    "already_accepted_as": []
+   },
+   {
+    "container_path": "Rules Glossary > Rules Definitions > Swim Speed",
+    "leaf_count": 5,
+    "prints_the_reciprocal_citation": false,
+    "defers_the_movement_rules_to_the_population": false,
+    "cites_the_glossary_speed_entry_in_a_see_also": true,
+    "already_accepted_as": []
+   },
+   {
+    "container_path": "Rules Glossary > Rules Definitions > Climbing",
+    "leaf_count": 4,
+    "prints_the_reciprocal_citation": false,
+    "defers_the_movement_rules_to_the_population": false,
+    "cites_the_glossary_speed_entry_in_a_see_also": false,
+    "already_accepted_as": []
+   },
+   {
+    "container_path": "Rules Glossary > Rules Definitions > Crawling",
+    "leaf_count": 4,
+    "prints_the_reciprocal_citation": false,
+    "defers_the_movement_rules_to_the_population": false,
+    "cites_the_glossary_speed_entry_in_a_see_also": true,
+    "already_accepted_as": []
+   },
+   {
+    "container_path": "Rules Glossary > Rules Definitions > Flying",
+    "leaf_count": 4,
+    "prints_the_reciprocal_citation": false,
+    "defers_the_movement_rules_to_the_population": false,
+    "cites_the_glossary_speed_entry_in_a_see_also": false,
+    "already_accepted_as": []
+   },
+   {
+    "container_path": "Rules Glossary > Rules Definitions > Jumping",
+    "leaf_count": 4,
+    "prints_the_reciprocal_citation": false,
+    "defers_the_movement_rules_to_the_population": false,
+    "cites_the_glossary_speed_entry_in_a_see_also": false,
+    "already_accepted_as": []
+   },
+   {
+    "container_path": "Rules Glossary > Rules Definitions > Swimming",
+    "leaf_count": 2,
+    "prints_the_reciprocal_citation": false,
+    "defers_the_movement_rules_to_the_population": false,
+    "cites_the_glossary_speed_entry_in_a_see_also": false,
+    "already_accepted_as": []
+   },
+   {
+    "container_path": "Playing the Game > Combat > Your Turn",
+    "leaf_count": 42,
+    "prints_the_reciprocal_citation": false,
+    "defers_the_movement_rules_to_the_population": true,
+    "cites_the_glossary_speed_entry_in_a_see_also": false,
+    "already_accepted_as": []
+   },
+   {
+    "container_path": "Playing the Game > Combat > Difficult Terrain",
+    "leaf_count": 2,
+    "prints_the_reciprocal_citation": false,
+    "defers_the_movement_rules_to_the_population": false,
+    "cites_the_glossary_speed_entry_in_a_see_also": false,
+    "already_accepted_as": []
+   },
+   {
+    "container_path": "Playing the Game > Combat > Breaking Up Your Move",
+    "leaf_count": 2,
+    "prints_the_reciprocal_citation": false,
+    "defers_the_movement_rules_to_the_population": false,
+    "cites_the_glossary_speed_entry_in_a_see_also": false,
+    "already_accepted_as": []
+   },
+   {
+    "container_path": "Playing the Game > Combat > Dropping Prone",
+    "leaf_count": 3,
+    "prints_the_reciprocal_citation": false,
+    "defers_the_movement_rules_to_the_population": false,
+    "cites_the_glossary_speed_entry_in_a_see_also": false,
+    "already_accepted_as": []
+   },
+   {
+    "container_path": "Playing the Game > Combat > Moving around Other Creatures",
+    "leaf_count": 14,
+    "prints_the_reciprocal_citation": false,
+    "defers_the_movement_rules_to_the_population": false,
+    "cites_the_glossary_speed_entry_in_a_see_also": false,
+    "already_accepted_as": []
+   },
+   {
+    "container_path": "Playing the Game > Combat > Creature Size",
+    "leaf_count": 23,
+    "prints_the_reciprocal_citation": false,
+    "defers_the_movement_rules_to_the_population": false,
+    "cites_the_glossary_speed_entry_in_a_see_also": false,
+    "already_accepted_as": []
+   },
+   {
+    "container_path": "Playing the Game > Combat > Mounting and Dismounting",
+    "leaf_count": 4,
+    "prints_the_reciprocal_citation": false,
+    "defers_the_movement_rules_to_the_population": false,
+    "cites_the_glossary_speed_entry_in_a_see_also": false,
+    "already_accepted_as": []
+   },
+   {
+    "container_path": "Playing the Game > Exploration > Travel Pace",
+    "leaf_count": 23,
+    "prints_the_reciprocal_citation": false,
+    "defers_the_movement_rules_to_the_population": false,
+    "cites_the_glossary_speed_entry_in_a_see_also": false,
+    "already_accepted_as": []
+   },
+   {
+    "container_path": "Gameplay Toolbox > Travel Pace > Special Movement",
+    "leaf_count": 15,
+    "prints_the_reciprocal_citation": false,
+    "defers_the_movement_rules_to_the_population": false,
+    "cites_the_glossary_speed_entry_in_a_see_also": false,
+    "already_accepted_as": []
+   }
+  ],
+  "adjudicated_boundary_note": "The containers a reader would actually question, with full leaf text and facts only: the three other 'Speed' labels, the four special-speed glossary entries this population's prose names, the five glossary entries its See-also citation names, the Combat siblings that spend Speed, and the two sites that convert it into a travel rate. What each one is -- an outbound reference, an incidental use, or a sibling record for a later batch -- is the checkpoint's judgment.",
+  "cross_leaf_sentences": [
+   {
+    "clause_ids": [
+     "glossary/5/0",
+     "glossary/6/0",
+     "glossary/7/0"
+    ],
+    "leaf_ids": [
+     "05dabf62-ad50-5ae7-9196-12265dc0c293",
+     "a2ac2ebd-a877-5b81-921e-1edd473c3a6f",
+     "a4accfca-97dc-5361-a97f-02ca30eafb25"
+    ],
+    "sites": [
+     "glossary"
+    ],
+    "reconstructed_here": "Some creatures have special speeds, such as a Burrow Speed, Climb Speed, Fly Speed, or Swim Speed, each of which is defined in this glossary."
+   },
+   {
+    "clause_ids": [
+     "glossary/9/2",
+     "glossary/10/0",
+     "glossary/11/0"
+    ],
+    "leaf_ids": [
+     "8421e19c-55c4-5aff-9041-7ec1e40cdb2d",
+     "c6d4aae3-073c-5755-be6c-8f23c030214f",
+     "2f12fa72-6d6e-57f4-b426-e307bde915d9"
+    ],
+    "sites": [
+     "glossary"
+    ],
+    "reconstructed_here": "Similarly, if your Speed is halved and you have a Fly Speed, your Fly Speed is also halved."
+   },
+   {
+    "clause_ids": [
+     "combat/1/0",
+     "combat/2/0"
+    ],
+    "leaf_ids": [
+     "b93abccd-4ffe-5291-a534-b3aa8fe30b0b",
+     "4744f798-dcc1-53ab-a6ae-9e6ce4800634"
+    ],
+    "sites": [
+     "combat"
+    ],
+    "reconstructed_here": "On your turn, you can move a distance equal to your Speed or less."
+   }
+  ]
+ },
+ "representation_schema": {
+  "version": "5d-representation-schema-11",
+  "hash": "605e8b4cfdaf0cb6d4f0b65fcf0d23f3e45c4734404c9568f41dc4261eefd037"
+ },
+ "schema_extension": {
+  "extends_the_schema": true,
+  "from_schema": "5d-representation-schema-10",
+  "to_schema": "5d-representation-schema-11",
+  "new_fact_families": [
+   "movement_composition",
+   "movement_depletion",
+   "special_speed",
+   "speed_change_propagation",
+   "speed_definition",
+   "speed_selection",
+   "speed_switch_limit"
+  ],
+  "new_vocabularies": {
+   "count": 11,
+   "members": [
+    [
+     "allowance_used_up",
+     "done_moving"
+    ],
+    [
+     "choose_before_moving",
+     "switch_during_move"
+    ],
+    [
+     "combined_with_regular_movement",
+     "entire_move"
+    ],
+    [
+     "equal_amount"
+    ],
+    [
+     "every_special_speed"
+    ],
+    [
+     "forbids_using_the_new_speed"
+    ],
+    [
+     "named_in_a_non_exhaustive_list"
+    ],
+    [
+     "own_turn"
+    ],
+    [
+     "same_duration"
+    ],
+    [
+     "subtract_distance_already_moved"
+    ],
+    [
+     "whichever_comes_first"
+    ]
+   ]
+  },
+  "accepted_vocabulary_widened": {
+   "MovementMode": [
+    "burrow",
+    "climb",
+    "crawl",
+    "fly",
+    "jump",
+    "swim",
+    "walk"
+   ],
+   "members_added_here": [
+    "jump"
+   ],
+   "witness_clauses": [
+    "combat/3/0"
+   ],
+   "witness_text": "Your movement can include climbing, crawling, jumping, and swimming (each explained in “Rules Glossary”).",
+   "why": "MovementMode predates the introduction manifest: it first appears in f6d2813 under representation schema 2, so it carries no introduction row and was already statable under schema 3, the earliest registered contract. It carried walk, burrow, climb, crawl, fly and swim. The member added here is jump, and its witness is derived from the obligation table above rather than named in prose: the only clause carrying a movement_permission fact for JUMP is the one in witness_clauses, whose printed text is in witness_text. That clause is not a citation clause - the glossary's 'Climbing, Crawling, Flying, Jumping, and Swimming' See-also list names Jumping as a REFERENCE target to another entry, not as a mode this record permits, and it carries no fact. representation_schema_payload emits vocabularies by their sorted admitted values, so this one member moves the schema hash by itself, independent of the seven new families."
+  },
+  "accepted_families_reused_unchanged": {
+   "movement_allowance": "introduced at 5d-representation-schema-6 and carried unchanged. Schema 11 adds an OPTIONAL window field; the two accepted action.dash facts and the one action.ready fact carry no window key and their canonical form is identical under both contracts.",
+   "movement_permission": "predates the manifest, like MovementMode. The one accepted instance is condition.prone::restricted_movement/options[0]/facts[0], mode=crawl. Nothing about it changes here."
+  },
+  "intrinsic_invariants_declared": [
+   {
+    "id": "movement_depletion.until.at-least-one",
+    "locus": "fact:movement_depletion",
+    "field": "until",
+    "rule": "at least one terminator; a depletion that never stops is not the rule this family states, and a resolution between terminators would resolve nothing"
+   },
+   {
+    "id": "movement_depletion.until.no-repeats",
+    "locus": "fact:movement_depletion",
+    "field": "until",
+    "rule": "no terminator twice; printed order is preserved rather than sorted, so this is checked without imposing an order the source does not state"
+   }
+  ],
+  "accepted_families_changed": [],
+  "registered_transitions_touched": [
+   "5d-lift-schema-10-to-11"
+  ],
+  "note": "Seven families over eleven new closed vocabularies plus one member added to an accepted one, and two accepted families reused rather than re-minted. The only field added to an accepted family is movement_allowance.window, which is optional and defaults to None, so every accepted fact key, component key and provenance coordinate has the same canonical form under both contracts. No ownership form changes and no field is made required on an accepted family, which is what makes the crossing a re-declaration rather than a rewrite.",
+  "no_runtime_geometry": "Nothing here computes movement. DistanceUnit.FOOT names the foot the page prints in 'the distance in feet' - schema 5's member, reproduced rather than invented. No schema-11 vocabulary mentions a square, a segment, a diagonal or a corner; no fact carries a number; and subtracting the distance already moved, tracking a remaining allowance and applying a speed change to a creature's numbers are all runtime computation outside 5d. The excluded work is the computation, not the subject matter.",
+  "no_rank_over_the_modes": "no order over the seven movement modes is printed, recorded or implied, and SpecialSpeedListing records that the source's list is non-exhaustive instead of closing it."
+ },
+ "semantic_policy": {
+  "version": "5d-semantic-policy-1",
+  "hash": "e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454"
+ },
+ "release_binding": {
+  "package_uuid": "4458fa10-4a66-5e0e-9ecc-ea37530ad2b4",
+  "release_version": "5.2.1-corpus.36b786d8-fa2",
+  "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+  "transform_config_hash": "77720c2f3b8c9b88363d48050466fb8e3a26f8476b63145d1b5928ff2581ef3e",
+  "bundle_root_hash": "03353dfb79790aee7260b9ed96055b7296cd6f70e3e6f97d6cbe0a2484279685",
+  "persisted_corpus_digest": "c1f547962b7d9096986f0b8e75624f9f8803dfc281c16033e1c2250cad5a929b",
+  "parts": 6,
+  "read_through": "projection.release_binding_payload - the canonical payload of ReleaseBinding, which is what every downstream identity is computed over",
+  "verified_at_the_seam": "projection.validate_candidate, run over the merged candidate. It is the repository's own check that the binding, the classification ledger and the bound corpus snapshot all name one release - two of three agreeing is not agreement. Its binding-class findings are empty.",
+  "binding_class_findings": [],
+  "all_candidate_findings_by_class": {
+   "release_binding_disagreement": {
+    "count": 0,
+    "example": null,
+    "meaning": "the binding, the classification ledger and the bound corpus snapshot all name one release; the ledger declares the semantic policy this build uses; the candidate declares the representation schema and hash this build implements. Matched by the literal prefixes the three validators emit. This is the class this run has to be clean at, and it is."
+   },
+   "corpus_leaf_not_yet_classified": {
+    "count": 27772,
+    "example": "leaf 0002cdcd-3442-51f6-95ec-e8b9a7e254d6: no semantic spans",
+    "meaning": "one per leaf of the bound release that no accepted or proposed span covers. This is the full-corpus obligation #137 governs, reported honestly: the six accepted batches plus this proposal cover 337 leaves of the 28109-leaf release and the rest are undischarged. It is not a defect of this proposal and this proposal does not reduce it beyond its own sixteen leaves."
+   },
+   "span_not_accepted": {
+    "count": 36,
+    "example": "span 20d17a40-e45f-57a4-b989-e5d65777273f: no acceptance record",
+    "meaning": "one per span of this proposal, because no acceptance record exists for them - which is the correct state for a proposal the Owner has not accepted. Asserted to be exactly this batch's thirty-six span ids, so none of the prior's five hundred and fifty-eight accepted spans is in this class."
+   },
+   "unresolved_reference": {
+    "count": 10,
+    "example": "reference srd-5.2.1/rules-glossary:'Burrow Speed': unknown target record glossary.burrow_speed",
+    "meaning": "the ten dangling targets the merged representation gate already reported: this batch's nine outgoing citations plus the prior's inherited glossary.concentration. Asserted equal to that list rather than counted independently."
+   }
+  },
+  "other_candidate_findings_note": "reported, not filtered. validate_candidate also enforces the explicit-acceptance rule, and nothing in this batch is accepted - every span is PROPOSED - so those findings are the correct result for a proposal and would be cleared by an acceptance that has not happened.",
+  "source_rederivation": {
+   "rederived_from_the_committed_pdf_in_this_process": [
+    "authoritative_source_hash",
+    "bundle_root_hash",
+    "package_uuid",
+    "release_version",
+    "transform_config_hash"
+   ],
+   "disclosed_from_the_published_5c_release_record": [
+    "persisted_corpus_digest"
+   ],
+   "why_the_sixth_is_disclosed": "The five values above are re-derived from the committed PDF by this run and asserted. This sixth is carried from the published CRD Issue 5c release record and disclosed as carried: recomputing it needs a session over the persisted rp_sources rows plus read-back vector state (persistence.recompute_persisted_digest), and verifying a published release against declared values is operational.load_verified_operational_corpus, the narrower downstream trust seam. Neither requires a publish; this run performs neither, and no operational database evidence was produced by it -- no session, no rp_sources, no Chroma, no persistence layer was touched."
+  },
+  "operational_database_evidence": {
+   "performed_by_this_run": [],
+   "note": "NONE. This run opens no session, reads no rp_sources row, queries no vector store and persists nothing. The five re-derived values are source rederivation from the committed PDF; the sixth is a disclosed carry. No claim in this artifact rests on operational database evidence."
+  }
+ },
+ "boundary": {
+  "derived_from": "the glossary entry the bound release labels 'Speed' beneath 'Rules Definitions', plus the Combat entry its See-also citation points at, which the release labels 'Movement and Position'",
+  "printed_pages": [
+   14,
+   188
+  ],
+  "page_index_note": "printed_page is page_index + 1, the same convention the accepted batches use",
+  "policy_exclusions": [],
+  "leaves_that_print_the_word_and_stay_outside": {
+   "count": 557,
+   "by_section": {
+    "Animals": 101,
+    "Character Origins": 15,
+    "Classes": 19,
+    "Creation": 1,
+    "Equipment": 7,
+    "Gameplay Toolbox": 9,
+    "Magic Items": 33,
+    "Monsters": 3,
+    "Monsters A–Z": 288,
+    "Playing the Game": 11,
+    "Rules Glossary": 45,
+    "Spells": 25
+   },
+   "lowercase_only_leaf_count": 12,
+   "standalone_token_leaf_count": 557,
+   "all_represented_by_5c": true,
+   "rederived_and_checked_against_the_manifest": true,
+   "note": "Every leaf outside the population whose text contains 'speed' in any case, enumerated with its container so the exclusion is checkable rather than asserted. All of them are represented by 5c, so the word is not a proxy for the population and the exclusion is a judgment about what the source states, never an artifact of what 5c dropped."
+  },
+  "canaries": {
+   "records": {
+    "derived": 1,
+    "expected": 1
+   },
+   "source_sites": {
+    "derived": 2,
+    "expected": 2
+   },
+   "represented_leaves": {
+    "derived": 16,
+    "expected": 16
+   },
+   "policy_exclusions": {
+    "derived": 0,
+    "expected": 0
+   },
+   "container_leaves": {
+    "derived": 16,
+    "expected": 16
+   },
+   "clauses": {
+    "derived": 36,
+    "expected": 36
+   },
+   "substantive_clauses": {
+    "derived": 16,
+    "expected": 16
+   },
+   "components": {
+    "derived": 9,
+    "expected": 9
+   },
+   "facts": {
+    "derived": 17,
+    "expected": 17
+   },
+   "references": {
+    "derived": 9,
+    "expected": 9
+   },
+   "provenance_claims": {
+    "derived": 52,
+    "expected": 52
+   },
+   "boundary_leaves_outside_this_batch": {
+    "derived": 557,
+    "expected": 557
+   }
+  },
+  "extraction_artifacts_carried_verbatim": {
+   "note": "Properties of the frozen 5c release, carried verbatim rather than repaired. No source-corpus change is proposed or made here.",
+   "sentences_split_across_leaves": 3,
+   "prose_continuations_typed_stat_field": [
+    "a2ac2ebd-a877-5b81-921e-1edd473c3a6f",
+    "c6d4aae3-073c-5755-be6c-8f23c030214f",
+    "2f12fa72-6d6e-57f4-b426-e307bde915d9",
+    "4744f798-dcc1-53ab-a6ae-9e6ce4800634"
+   ],
+   "prose_continuations_typed_stat_field_note": "Mid-sentence continuations the extraction typed as stat_field rather than paragraph. Recorded because the leaf_type is carried into evidence and a reader should not mistake it for a stat block.",
+   "population_owns_no_printed_table": true,
+   "logical_tables_on_the_populations_printed_pages": [
+    {
+     "logical_table_id": "8108ad3f-ea7b-5db1-ac2b-42df95f6df11",
+     "printed_pages": [
+      14
+     ],
+     "header": [
+      "size",
+      "space(feet)",
+      "space(squares)"
+     ],
+     "owned_by_a_member_container": false
+    },
+    {
+     "logical_table_id": "bcd448bc-a16c-5d13-a044-cca71743e244",
+     "printed_pages": [
+      14
+     ],
+     "header": [
+      "unseena",
+      "ttackersand",
+      "targets"
+     ],
+     "owned_by_a_member_container": false
+    },
+    {
+     "logical_table_id": "bf31d5fe-e4f4-58b6-821e-fd92df92e579",
+     "printed_pages": [
+      14
+     ],
+     "header": [
+      "duringyourmove,",
+      "youcanpass",
+      "throughthespace"
+     ],
+     "owned_by_a_member_container": false
+    }
+   ]
+  },
+  "no_grid_language_in_the_source": "the population prints no 'square', 'grid', 'battle map' or 'token', and prints no number. The only unit it prints is the foot, which DistanceUnit.FOOT reproduces. Recorded here as a boundary of the source, not a decision of this run."
+ },
+ "source_inventory": {
+  "manifest": ".claude/review-notes/issue-5d-speed-1-source-manifest.json",
+  "manifest_sha256": "8c8ea8eed38feaeb28d74386690b5ee28e43872b1316517b922fb89afa016b20",
+  "generated_by": "issue-5d-speed-1-discovery.py",
+  "carries_dispositions": false,
+  "carries_a_record_assignment": false,
+  "leaves": 16,
+  "clauses": 36,
+  "tie_to_the_bound_source": "every reviewed leaf id exists in the corpus this run just built from the PDF and holds byte-identical content; the reviewed clause extents partition each of the sixteen leaves end to end, starting at 0 and stopping at the leaf's length, and the concatenation reconstructs the leaf byte for byte. The manifest supplies the reviewed coordinates; the PDF supplies the content."
+ },
+ "counts": {
+  "records": 1,
+  "source_sites": 2,
+  "represented_leaves": 16,
+  "policy_exclusions": 0,
+  "clauses": 36,
+  "spans": 36,
+  "substantive": 16,
+  "supporting_authority": 20,
+  "non_mechanical": 0,
+  "unresolved": 0,
+  "components": 9,
+  "facts": 17,
+  "prose_bindings": 0,
+  "relationships": 0,
+  "references": 9,
+  "provenance": 52,
+  "cross_leaf_sentences": 3,
+  "boundary_leaves_outside_this_batch": 557
+ },
+ "count_derivation": {
+  "clauses": "the reviewed inventory in the committed discovery manifest, re-proved gap-free against the live corpus in this run",
+  "substantive": "a clause is SUBSTANTIVE exactly when some carrier in the reviewed obligation table claims PRIMARY - a fact or a component. Derived from the table, then checked against the composition's own partition.",
+  "facts": "counted off the component drafts, not off the obligation table. Seventeen facts over sixteen substantive clauses is not a mismatch: four sentences each name several members of one group, and three rules are each printed across more than one clause.",
+  "provenance": "one claim per (element, span, role) edge. Fifty-two edges over thirty-six clauses, because a clause that states a rule and cites an entry in the same breath discharges both at once.",
+  "references": "one per distinct printed pointer, not one per printing. Nine pointers, ten reference-scope provenance claims, because Fly Speed is named on two leaves.",
+  "test_counts_are_not_this_count": "the schema-11 test module's composition is the same composition and is asserted equal to this proposal's payload. It is corroboration, not the measure: completeness here is judged against the thirty-six printed clauses of the bound source, which is what the partition proof and the obligation table check."
+ },
+ "provenance_shapes": {
+  "component/primary": 5,
+  "fact/contextual": 16,
+  "fact/primary": 11,
+  "record/contextual": 10,
+  "reference/contextual": 10
+ },
+ "prior_provenance_shapes": {
+  "component/contextual": 127,
+  "component/primary": 20,
+  "fact/contextual": 15,
+  "fact/primary": 205,
+  "fact_qualifier/contextual": 1,
+  "fact_qualifier/primary": 7,
+  "prose_binding/primary": 49,
+  "record/contextual": 98,
+  "reference/contextual": 53
+ },
+ "prior_provenance_shapes_note": "the accepted six-batch prior's own shape tally, carried from the discovery manifest. It records component/primary: 20, which is the precedent for claiming a sentence about a whole group on the component rather than splitting it across the group's members.",
+ "record_shapes": {
+  "glossary.speed": {
+   "kind": "glossary_rule",
+   "components": [
+    "speed_definition",
+    "movement_allowance",
+    "movement_depletion",
+    "speed_selection",
+    "speed_switch_limit",
+    "speed_change_propagation",
+    "special_speeds",
+    "movement_modes",
+    "movement_composition"
+   ],
+   "facts": {
+    "speed_definition": [
+     "speed_definition"
+    ],
+    "movement_allowance": [
+     "movement_allowance"
+    ],
+    "movement_depletion": [
+     "movement_depletion"
+    ],
+    "speed_selection": [
+     "speed_selection",
+     "speed_selection"
+    ],
+    "speed_switch_limit": [
+     "speed_switch_limit"
+    ],
+    "speed_change_propagation": [
+     "speed_change_propagation"
+    ],
+    "special_speeds": [
+     "special_speed",
+     "special_speed",
+     "special_speed",
+     "special_speed"
+    ],
+    "movement_modes": [
+     "movement_permission",
+     "movement_permission",
+     "movement_permission",
+     "movement_permission"
+    ],
+    "movement_composition": [
+     "movement_composition",
+     "movement_composition"
+    ]
+   },
+   "prose_bindings": 0,
+   "references": 9,
+   "relationships": 0
+  }
+ },
+ "validation": {
+  "seams_reporting_findings": {
+   "build-time draft shape (representation_draft_violations)": 0,
+   "held authority shape (held_structure_violations)": 0,
+   "declared meaning under this schema (declared_meaning_violations)": 0,
+   "component rules (damage + roll outcome + option sets)": 0,
+   "representation gate, standalone (validate_representation)": 9,
+   "representation gate, merged with the lifted six-batch prior": 10,
+   "committed-loader round trip (representation_payload -> _representation)": 0,
+   "partition accounting (validate_partition)": 0,
+   "reason codes (validate_reason_codes)": 0
+  },
+  "expected_nonzero": {
+   "representation gate, standalone (validate_representation)": 9,
+   "representation gate, merged with the lifted six-batch prior": 10
+  },
+  "wire_round_trip": true,
+  "partition": [],
+  "reason_codes": [],
+  "structural": [],
+  "component_rules": [],
+  "declared_meaning": [],
+  "standalone_findings": [
+   "reference srd-5.2.1/rules-glossary:'Climbing': unknown target record glossary.climbing",
+   "reference srd-5.2.1/rules-glossary:'Crawling': unknown target record glossary.crawling",
+   "reference srd-5.2.1/rules-glossary:'Flying': unknown target record glossary.flying",
+   "reference srd-5.2.1/rules-glossary:'Jumping': unknown target record glossary.jumping",
+   "reference srd-5.2.1/rules-glossary:'Swimming': unknown target record glossary.swimming",
+   "reference srd-5.2.1/rules-glossary:'Burrow Speed': unknown target record glossary.burrow_speed",
+   "reference srd-5.2.1/rules-glossary:'Climb Speed': unknown target record glossary.climb_speed",
+   "reference srd-5.2.1/rules-glossary:'Fly Speed': unknown target record glossary.fly_speed",
+   "reference srd-5.2.1/rules-glossary:'Swim Speed': unknown target record glossary.swim_speed"
+  ],
+  "standalone_findings_asserted_as_a_tuple": [
+   "reference srd-5.2.1/rules-glossary:'Burrow Speed': unknown target record glossary.burrow_speed",
+   "reference srd-5.2.1/rules-glossary:'Climb Speed': unknown target record glossary.climb_speed",
+   "reference srd-5.2.1/rules-glossary:'Climbing': unknown target record glossary.climbing",
+   "reference srd-5.2.1/rules-glossary:'Crawling': unknown target record glossary.crawling",
+   "reference srd-5.2.1/rules-glossary:'Fly Speed': unknown target record glossary.fly_speed",
+   "reference srd-5.2.1/rules-glossary:'Flying': unknown target record glossary.flying",
+   "reference srd-5.2.1/rules-glossary:'Jumping': unknown target record glossary.jumping",
+   "reference srd-5.2.1/rules-glossary:'Swim Speed': unknown target record glossary.swim_speed",
+   "reference srd-5.2.1/rules-glossary:'Swimming': unknown target record glossary.swimming"
+  ],
+  "merged_findings": [
+   "reference srd-5.2.1/rules-glossary:'Concentration': unknown target record glossary.concentration",
+   "reference srd-5.2.1/rules-glossary:'Climbing': unknown target record glossary.climbing",
+   "reference srd-5.2.1/rules-glossary:'Crawling': unknown target record glossary.crawling",
+   "reference srd-5.2.1/rules-glossary:'Flying': unknown target record glossary.flying",
+   "reference srd-5.2.1/rules-glossary:'Jumping': unknown target record glossary.jumping",
+   "reference srd-5.2.1/rules-glossary:'Swimming': unknown target record glossary.swimming",
+   "reference srd-5.2.1/rules-glossary:'Burrow Speed': unknown target record glossary.burrow_speed",
+   "reference srd-5.2.1/rules-glossary:'Climb Speed': unknown target record glossary.climb_speed",
+   "reference srd-5.2.1/rules-glossary:'Fly Speed': unknown target record glossary.fly_speed",
+   "reference srd-5.2.1/rules-glossary:'Swim Speed': unknown target record glossary.swim_speed"
+  ],
+  "merged_findings_asserted_as_a_tuple": [
+   "reference srd-5.2.1/rules-glossary:'Burrow Speed': unknown target record glossary.burrow_speed",
+   "reference srd-5.2.1/rules-glossary:'Climb Speed': unknown target record glossary.climb_speed",
+   "reference srd-5.2.1/rules-glossary:'Climbing': unknown target record glossary.climbing",
+   "reference srd-5.2.1/rules-glossary:'Concentration': unknown target record glossary.concentration",
+   "reference srd-5.2.1/rules-glossary:'Crawling': unknown target record glossary.crawling",
+   "reference srd-5.2.1/rules-glossary:'Fly Speed': unknown target record glossary.fly_speed",
+   "reference srd-5.2.1/rules-glossary:'Flying': unknown target record glossary.flying",
+   "reference srd-5.2.1/rules-glossary:'Jumping': unknown target record glossary.jumping",
+   "reference srd-5.2.1/rules-glossary:'Swim Speed': unknown target record glossary.swim_speed",
+   "reference srd-5.2.1/rules-glossary:'Swimming': unknown target record glossary.swimming"
+  ],
+  "candidate_findings_binding_class": [],
+  "candidate_findings_by_class": {
+   "release_binding_disagreement": {
+    "count": 0,
+    "example": null,
+    "meaning": "the binding, the classification ledger and the bound corpus snapshot all name one release; the ledger declares the semantic policy this build uses; the candidate declares the representation schema and hash this build implements. Matched by the literal prefixes the three validators emit. This is the class this run has to be clean at, and it is."
+   },
+   "corpus_leaf_not_yet_classified": {
+    "count": 27772,
+    "example": "leaf 0002cdcd-3442-51f6-95ec-e8b9a7e254d6: no semantic spans",
+    "meaning": "one per leaf of the bound release that no accepted or proposed span covers. This is the full-corpus obligation #137 governs, reported honestly: the six accepted batches plus this proposal cover 337 leaves of the 28109-leaf release and the rest are undischarged. It is not a defect of this proposal and this proposal does not reduce it beyond its own sixteen leaves."
+   },
+   "span_not_accepted": {
+    "count": 36,
+    "example": "span 20d17a40-e45f-57a4-b989-e5d65777273f: no acceptance record",
+    "meaning": "one per span of this proposal, because no acceptance record exists for them - which is the correct state for a proposal the Owner has not accepted. Asserted to be exactly this batch's thirty-six span ids, so none of the prior's five hundred and fifty-eight accepted spans is in this class."
+   },
+   "unresolved_reference": {
+    "count": 10,
+    "example": "reference srd-5.2.1/rules-glossary:'Burrow Speed': unknown target record glossary.burrow_speed",
+    "meaning": "the ten dangling targets the merged representation gate already reported: this batch's nine outgoing citations plus the prior's inherited glossary.concentration. Asserted equal to that list rather than counted independently."
+   }
+  },
+  "candidate_findings_note": "27818 findings, every one of them in one of three classes, all of them the correct result for a proposal of one record: leaves of the release no batch has classified yet, spans no acceptance has accepted, and the ten unresolved reference targets. They are counted and classed rather than listed, with one example each, because a full dump would be tens of megabytes of the same two sentences. Nothing is filtered: the class tally sums to the total and the 'other' class is asserted empty.",
+  "what_zero_would_not_prove": "these judge shape, not fidelity. Neither column is zero here and both are asserted as exact tuples: nine standalone findings, one per outgoing citation, and ten merged, the nine plus the prior's inherited glossary.concentration. A clean run would not have meant the meanings are right - that is what semantic review is for."
+ },
+ "classification_partitions": {
+  "05dabf62-ad50-5ae7-9196-12265dc0c293": {
+   "record": "glossary.speed",
+   "site": "glossary",
+   "printed_page": 188,
+   "content": "Some creatures have special speeds, such as a Burrow Speed, Climb Speed, Fly",
+   "cells": [
+    {
+     "range": [
+      0,
+      76
+     ],
+     "text": "Some creatures have special speeds, such as a Burrow Speed, Climb Speed, Fly",
+     "disposition": "substantive"
+    }
+   ]
+  },
+  "193c5f92-bea4-5d32-8f71-57e8021d2d00": {
+   "record": "glossary.speed",
+   "site": "glossary",
+   "printed_page": 188,
+   "content": "Speed",
+   "cells": [
+    {
+     "range": [
+      0,
+      5
+     ],
+     "text": "Speed",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "2f12fa72-6d6e-57f4-b426-e307bde915d9": {
+   "record": "glossary.speed",
+   "site": "glossary",
+   "printed_page": 188,
+   "content": "Speed is also halved.",
+   "cells": [
+    {
+     "range": [
+      0,
+      21
+     ],
+     "text": "Speed is also halved.",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "4744f798-dcc1-53ab-a6ae-9e6ce4800634": {
+   "record": "glossary.speed",
+   "site": "combat",
+   "printed_page": 14,
+   "content": "Speed or less. Or you can decide not to move.",
+   "cells": [
+    {
+     "range": [
+      0,
+      14
+     ],
+     "text": "Speed or less.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      14,
+      45
+     ],
+     "text": " Or you can decide not to move.",
+     "disposition": "substantive"
+    }
+   ]
+  },
+  "8421e19c-55c4-5aff-9041-7ec1e40cdb2d": {
+   "record": "glossary.speed",
+   "site": "glossary",
+   "printed_page": 188,
+   "content": "If an effect increases or decreases your Speed for a time, any special speed you have increases or decreases by an equal amount for the same duration. For example, if your Speed is reduced to 0 and you have a Climb Speed, your Climb Speed is also reduced to 0. Similarly, if your",
+   "cells": [
+    {
+     "range": [
+      0,
+      150
+     ],
+     "text": "If an effect increases or decreases your Speed for a time, any special speed you have increases or decreases by an equal amount for the same duration.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      150,
+      260
+     ],
+     "text": " For example, if your Speed is reduced to 0 and you have a Climb Speed, your Climb Speed is also reduced to 0.",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      260,
+      279
+     ],
+     "text": " Similarly, if your",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "88acf51c-d44c-5171-8bf9-349488ff5c16": {
+   "record": "glossary.speed",
+   "site": "glossary",
+   "printed_page": 188,
+   "content": "“Climbing,” “Crawling,” “Flying,” “Jumping,” “Swimming” and “Playing the Game” (“Combat”).",
+   "cells": [
+    {
+     "range": [
+      0,
+      11
+     ],
+     "text": "“Climbing,”",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      11,
+      23
+     ],
+     "text": " “Crawling,”",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      23,
+      33
+     ],
+     "text": " “Flying,”",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      33,
+      44
+     ],
+     "text": " “Jumping,”",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      44,
+      55
+     ],
+     "text": " “Swimming”",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      55,
+      90
+     ],
+     "text": " and “Playing the Game” (“Combat”).",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "8f05389a-13cb-5480-a246-6a5df9230a00": {
+   "record": "glossary.speed",
+   "site": "combat",
+   "printed_page": 14,
+   "content": "Movement and Position",
+   "cells": [
+    {
+     "range": [
+      0,
+      21
+     ],
+     "text": "Movement and Position",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "a1ebf029-bdba-5841-b964-2f93f6e02012": {
+   "record": "glossary.speed",
+   "site": "glossary",
+   "printed_page": 188,
+   "content": "Changes to Your Speeds.",
+   "cells": [
+    {
+     "range": [
+      0,
+      23
+     ],
+     "text": "Changes to Your Speeds.",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "a2ac2ebd-a877-5b81-921e-1edd473c3a6f": {
+   "record": "glossary.speed",
+   "site": "glossary",
+   "printed_page": 188,
+   "content": "Speed, or Swim Speed, each of which is defined",
+   "cells": [
+    {
+     "range": [
+      0,
+      46
+     ],
+     "text": "Speed, or Swim Speed, each of which is defined",
+     "disposition": "substantive"
+    }
+   ]
+  },
+  "a4accfca-97dc-5361-a97f-02ca30eafb25": {
+   "record": "glossary.speed",
+   "site": "glossary",
+   "printed_page": 188,
+   "content": "in this glossary. If you have more than one speed, choose which one to use when you move; you can switch between the speeds during your move. Whenever you switch, subtract the distance already moved from the new speed. The result determines how much farther you can move. If the result is 0 or less, you can’t use the new speed during the current move. For example, if you have a Speed of 30 and a Fly Speed of 40, you could fly 10 feet, walk 10 feet, and leap into the air to fly 20 feet more.",
+   "cells": [
+    {
+     "range": [
+      0,
+      17
+     ],
+     "text": "in this glossary.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      17,
+      89
+     ],
+     "text": " If you have more than one speed, choose which one to use when you move;",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      89,
+      141
+     ],
+     "text": " you can switch between the speeds during your move.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      141,
+      218
+     ],
+     "text": " Whenever you switch, subtract the distance already moved from the new speed.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      218,
+      271
+     ],
+     "text": " The result determines how much farther you can move.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      271,
+      352
+     ],
+     "text": " If the result is 0 or less, you can’t use the new speed during the current move.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      352,
+      494
+     ],
+     "text": " For example, if you have a Speed of 30 and a Fly Speed of 40, you could fly 10 feet, walk 10 feet, and leap into the air to fly 20 feet more.",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "ac4db61a-9763-5b0b-8b3b-381ce52c5d32": {
+   "record": "glossary.speed",
+   "site": "glossary",
+   "printed_page": 188,
+   "content": "Special Speeds.",
+   "cells": [
+    {
+     "range": [
+      0,
+      15
+     ],
+     "text": "Special Speeds.",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "afee8441-9c5f-5ebc-89b6-211254d8f97a": {
+   "record": "glossary.speed",
+   "site": "combat",
+   "printed_page": 14,
+   "content": "Your movement can include climbing, crawling, jumping, and swimming (each explained in “Rules Glossary”). These different modes of movement can be combined with your regular movement, or they can constitute your entire move. However you’re moving with your Speed, you deduct the distance of each part of your move from it until it is used up or until you are done moving, whichever comes first. A character’s Speed is determined during character creation. A monster’s Speed is noted in the monster’s stat block. See “Rules Glossary” for more about Speed as well as about special speeds, such as a Climb Speed, Fly Speed, or Swim Speed.",
+   "cells": [
+    {
+     "range": [
+      0,
+      105
+     ],
+     "text": "Your movement can include climbing, crawling, jumping, and swimming (each explained in “Rules Glossary”).",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      105,
+      224
+     ],
+     "text": " These different modes of movement can be combined with your regular movement, or they can constitute your entire move.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      224,
+      394
+     ],
+     "text": " However you’re moving with your Speed, you deduct the distance of each part of your move from it until it is used up or until you are done moving, whichever comes first.",
+     "disposition": "substantive"
+    },
+    {
+     "range": [
+      394,
+      455
+     ],
+     "text": " A character’s Speed is determined during character creation.",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      455,
+      511
+     ],
+     "text": " A monster’s Speed is noted in the monster’s stat block.",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      511,
+      635
+     ],
+     "text": " See “Rules Glossary” for more about Speed as well as about special speeds, such as a Climb Speed, Fly Speed, or Swim Speed.",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "b469c79c-b4b0-51aa-83cb-65e8e0e70e2d": {
+   "record": "glossary.speed",
+   "site": "glossary",
+   "printed_page": 188,
+   "content": "See also",
+   "cells": [
+    {
+     "range": [
+      0,
+      8
+     ],
+     "text": "See also",
+     "disposition": "supporting_authority"
+    }
+   ]
+  },
+  "b93abccd-4ffe-5291-a534-b3aa8fe30b0b": {
+   "record": "glossary.speed",
+   "site": "combat",
+   "printed_page": 14,
+   "content": "On your turn, you can move a distance equal to your",
+   "cells": [
+    {
+     "range": [
+      0,
+      51
+     ],
+     "text": "On your turn, you can move a distance equal to your",
+     "disposition": "substantive"
+    }
+   ]
+  },
+  "bef2033c-0879-5829-951b-3ccefa22356f": {
+   "record": "glossary.speed",
+   "site": "glossary",
+   "printed_page": 188,
+   "content": "A creature has a Speed, which is the distance in feet the creature can cover when it moves on its turn.",
+   "cells": [
+    {
+     "range": [
+      0,
+      23
+     ],
+     "text": "A creature has a Speed,",
+     "disposition": "supporting_authority"
+    },
+    {
+     "range": [
+      23,
+      103
+     ],
+     "text": " which is the distance in feet the creature can cover when it moves on its turn.",
+     "disposition": "substantive"
+    }
+   ]
+  },
+  "c6d4aae3-073c-5755-be6c-8f23c030214f": {
+   "record": "glossary.speed",
+   "site": "glossary",
+   "printed_page": 188,
+   "content": "Speed is halved and you have a Fly Speed, your Fly",
+   "cells": [
+    {
+     "range": [
+      0,
+      50
+     ],
+     "text": "Speed is halved and you have a Fly Speed, your Fly",
+     "disposition": "supporting_authority"
+    }
+   ]
+  }
+ },
+ "reference_scope": {
+  "references_emitted": 9,
+  "record_owned": 9,
+  "from_the_see_also_citation": [
+   "glossary/3/0 -> glossary.climbing",
+   "glossary/3/1 -> glossary.crawling",
+   "glossary/3/2 -> glossary.flying",
+   "glossary/3/3 -> glossary.jumping",
+   "glossary/3/4 -> glossary.swimming"
+  ],
+  "from_the_special_speed_sentence": [
+   "glossary/5/0 -> glossary.burrow_speed",
+   "glossary/5/0 -> glossary.climb_speed",
+   "glossary/5/0+glossary/6/0 -> glossary.fly_speed",
+   "glossary/6/0 -> glossary.swim_speed"
+  ],
+  "the_special_speed_sentence": "Some creatures have special speeds, such as a Burrow Speed, Climb Speed, Fly Speed, or Swim Speed, each of which is defined in this glossary.",
+  "the_special_speed_sentence_clauses": [
+   "glossary/5/0",
+   "glossary/6/0",
+   "glossary/7/0"
+  ],
+  "split_across_two_clauses": [
+   {
+    "source_text": "Fly Speed",
+    "target_record_key": "glossary.fly_speed",
+    "clauses": [
+     "glossary/5/0",
+     "glossary/6/0"
+    ]
+   }
+  ],
+  "cross_batch_citations": [
+   "glossary.speed -> glossary.burrow_speed",
+   "glossary.speed -> glossary.climb_speed",
+   "glossary.speed -> glossary.climbing",
+   "glossary.speed -> glossary.crawling",
+   "glossary.speed -> glossary.fly_speed",
+   "glossary.speed -> glossary.flying",
+   "glossary.speed -> glossary.jumping",
+   "glossary.speed -> glossary.swim_speed",
+   "glossary.speed -> glossary.swimming"
+  ],
+  "cross_batch_citations_all_resolve_into_the_accepted_prior": false,
+  "targets_defined_by_this_batch": [],
+  "unresolved_targets_before_this_batch": [
+   "glossary.concentration",
+   "glossary.speed"
+  ],
+  "unresolved_targets_after_the_merge": [
+   "glossary.burrow_speed",
+   "glossary.climb_speed",
+   "glossary.climbing",
+   "glossary.concentration",
+   "glossary.crawling",
+   "glossary.fly_speed",
+   "glossary.flying",
+   "glossary.jumping",
+   "glossary.swim_speed",
+   "glossary.swimming"
+  ],
+  "resolved_by_this_batch": [
+   "glossary.speed"
+  ],
+  "resolving_citation": {
+   "from_record_key": "action.dash",
+   "from_component_key": "",
+   "scope_key": "srd-5.2.1/rules-glossary",
+   "source_text": "Speed",
+   "target_record_key": "glossary.speed"
+  },
+  "publishable_alone": false,
+  "note": "This batch ADDS NINE unresolved citations and RESOLVES ONE. The nine are the five entries the See-also citation names - Climbing, Crawling, Flying, Jumping, Swimming - and the four special-speed entries named by the ONE sentence in the_special_speed_sentence: Burrow Speed, Climb Speed, Fly Speed and Swim Speed. That sentence is printed across a leaf boundary, which is why the Fly Speed reference straddles two clauses and carries two provenance claims. None of the nine is ingested by any accepted batch and this batch does not ingest them. The one it resolves is its own: action.dash already carries a reference whose source text is 'Speed' in the frozen accepted prior loaded by this run, where the target record did not exist; which batch first emitted that reference is not measured here. Combined with the prior's remaining glossary.concentration, the missing targets after this batch are ten.",
+  "resolution_scope": "The Dash citation resolves in the MERGED CANDIDATE this run builds in memory - the lifted six-batch prior plus this proposal. It does NOT mean current accepted authority has changed: accepted authority is the frozen prior, it still carries two unresolved targets, nothing here is accepted, and the resolution becomes a property of accepted authority only at an acceptance that has not happened.",
+  "validator_findings": {
+   "standalone": {
+    "findings": 9,
+    "distinct_targets": [
+     "glossary.burrow_speed",
+     "glossary.climb_speed",
+     "glossary.climbing",
+     "glossary.crawling",
+     "glossary.fly_speed",
+     "glossary.flying",
+     "glossary.jumping",
+     "glossary.swim_speed",
+     "glossary.swimming"
+    ],
+    "citations_per_target": {
+     "glossary.burrow_speed": 1,
+     "glossary.climb_speed": 1,
+     "glossary.climbing": 1,
+     "glossary.crawling": 1,
+     "glossary.fly_speed": 1,
+     "glossary.flying": 1,
+     "glossary.jumping": 1,
+     "glossary.swim_speed": 1,
+     "glossary.swimming": 1
+    },
+    "exact": [
+     "reference srd-5.2.1/rules-glossary:'Burrow Speed': unknown target record glossary.burrow_speed",
+     "reference srd-5.2.1/rules-glossary:'Climb Speed': unknown target record glossary.climb_speed",
+     "reference srd-5.2.1/rules-glossary:'Climbing': unknown target record glossary.climbing",
+     "reference srd-5.2.1/rules-glossary:'Crawling': unknown target record glossary.crawling",
+     "reference srd-5.2.1/rules-glossary:'Fly Speed': unknown target record glossary.fly_speed",
+     "reference srd-5.2.1/rules-glossary:'Flying': unknown target record glossary.flying",
+     "reference srd-5.2.1/rules-glossary:'Jumping': unknown target record glossary.jumping",
+     "reference srd-5.2.1/rules-glossary:'Swim Speed': unknown target record glossary.swim_speed",
+     "reference srd-5.2.1/rules-glossary:'Swimming': unknown target record glossary.swimming"
+    ]
+   },
+   "merged": {
+    "findings": 10,
+    "distinct_targets": [
+     "glossary.burrow_speed",
+     "glossary.climb_speed",
+     "glossary.climbing",
+     "glossary.concentration",
+     "glossary.crawling",
+     "glossary.fly_speed",
+     "glossary.flying",
+     "glossary.jumping",
+     "glossary.swim_speed",
+     "glossary.swimming"
+    ],
+    "citations_per_target": {
+     "glossary.burrow_speed": 1,
+     "glossary.climb_speed": 1,
+     "glossary.climbing": 1,
+     "glossary.concentration": 1,
+     "glossary.crawling": 1,
+     "glossary.fly_speed": 1,
+     "glossary.flying": 1,
+     "glossary.jumping": 1,
+     "glossary.swim_speed": 1,
+     "glossary.swimming": 1
+    },
+    "exact": [
+     "reference srd-5.2.1/rules-glossary:'Burrow Speed': unknown target record glossary.burrow_speed",
+     "reference srd-5.2.1/rules-glossary:'Climb Speed': unknown target record glossary.climb_speed",
+     "reference srd-5.2.1/rules-glossary:'Climbing': unknown target record glossary.climbing",
+     "reference srd-5.2.1/rules-glossary:'Concentration': unknown target record glossary.concentration",
+     "reference srd-5.2.1/rules-glossary:'Crawling': unknown target record glossary.crawling",
+     "reference srd-5.2.1/rules-glossary:'Fly Speed': unknown target record glossary.fly_speed",
+     "reference srd-5.2.1/rules-glossary:'Flying': unknown target record glossary.flying",
+     "reference srd-5.2.1/rules-glossary:'Jumping': unknown target record glossary.jumping",
+     "reference srd-5.2.1/rules-glossary:'Swim Speed': unknown target record glossary.swim_speed",
+     "reference srd-5.2.1/rules-glossary:'Swimming': unknown target record glossary.swimming"
+    ]
+   }
+  },
+  "standalone_findings_exact": [
+   "reference srd-5.2.1/rules-glossary:'Burrow Speed': unknown target record glossary.burrow_speed",
+   "reference srd-5.2.1/rules-glossary:'Climb Speed': unknown target record glossary.climb_speed",
+   "reference srd-5.2.1/rules-glossary:'Climbing': unknown target record glossary.climbing",
+   "reference srd-5.2.1/rules-glossary:'Crawling': unknown target record glossary.crawling",
+   "reference srd-5.2.1/rules-glossary:'Fly Speed': unknown target record glossary.fly_speed",
+   "reference srd-5.2.1/rules-glossary:'Flying': unknown target record glossary.flying",
+   "reference srd-5.2.1/rules-glossary:'Jumping': unknown target record glossary.jumping",
+   "reference srd-5.2.1/rules-glossary:'Swim Speed': unknown target record glossary.swim_speed",
+   "reference srd-5.2.1/rules-glossary:'Swimming': unknown target record glossary.swimming"
+  ],
+  "merged_findings_exact": [
+   "reference srd-5.2.1/rules-glossary:'Burrow Speed': unknown target record glossary.burrow_speed",
+   "reference srd-5.2.1/rules-glossary:'Climb Speed': unknown target record glossary.climb_speed",
+   "reference srd-5.2.1/rules-glossary:'Climbing': unknown target record glossary.climbing",
+   "reference srd-5.2.1/rules-glossary:'Concentration': unknown target record glossary.concentration",
+   "reference srd-5.2.1/rules-glossary:'Crawling': unknown target record glossary.crawling",
+   "reference srd-5.2.1/rules-glossary:'Fly Speed': unknown target record glossary.fly_speed",
+   "reference srd-5.2.1/rules-glossary:'Flying': unknown target record glossary.flying",
+   "reference srd-5.2.1/rules-glossary:'Jumping': unknown target record glossary.jumping",
+   "reference srd-5.2.1/rules-glossary:'Swim Speed': unknown target record glossary.swim_speed",
+   "reference srd-5.2.1/rules-glossary:'Swimming': unknown target record glossary.swimming"
+  ]
+ },
+ "schema_stops": [],
+ "schema_stops_note": "none open. The six gaps the discovery checkpoint found are all closed by schema 11, every one of them witnessed by at least one clause in this batch, and no span is emitted UNRESOLVED.",
+ "gaps_closed": [
+  "G1",
+  "G2",
+  "G3",
+  "G4",
+  "G5",
+  "G6"
+ ],
+ "gap_witnesses": {
+  "G1": [
+   "glossary/1/1"
+  ],
+  "G2": [
+   "combat/1/0",
+   "combat/2/0",
+   "combat/2/1"
+  ],
+  "G3": [
+   "combat/3/2"
+  ],
+  "G4": [
+   "glossary/7/1",
+   "glossary/7/2",
+   "glossary/7/3",
+   "glossary/7/4",
+   "glossary/7/5"
+  ],
+  "G5": [
+   "glossary/9/0"
+  ],
+  "G6": [
+   "glossary/5/0",
+   "glossary/6/0",
+   "glossary/7/0",
+   "combat/3/0",
+   "combat/3/1"
+  ]
+ },
+ "irreducibility_catalog_disposition": {
+  "contextual_applicability": "false of all sixteen: each states its rule outright. 'on your turn' and 'while moving' are printed windows carried by MovementWindow and MovementComposition fields, not applicability prose the projection cannot enumerate.",
+  "subjective_judgment": "false: nothing is left to anyone's assessment. 'whichever comes first', 'subtract the distance you already moved' and 'you can't use the new speed' are exact printed rules, and every distance the page prints stays a number on a creature's sheet rather than a field of any fact here.",
+  "open_ended_effect": "false: every effect here is closed. The special-speed list is deliberately typed as a LISTING - named_in_a_non_exhaustive_list - which records that the source's enumeration is open WITHOUT inventing the members it does not print.",
+  "gamemaster_latitude": "false: the source delegates nothing in this population. Choosing a speed, switching mid-move, the subtraction, the nonpositive outcome and the propagation are all printed rules.",
+  "natural_language_exception": "false: these are the rules, not exceptions carved out of one. The nonpositive case is a required field beside the accounting rule, not prose qualifying it.",
+  "fiction_dependent_consequence": "false: each consequence is mechanical and stated. Tracking remaining movement, resolving a mid-move switch and applying a speed change to a creature's numbers are adapter and adjudication work the record never claims to do.",
+  "conclusion": "none of the six closed reasons is affirmatively true of any of the sixteen substantive clauses, so this batch emits ZERO prose bindings. That is a positive claim, not an omission: binding one anyway would record a vocabulary gap as an irreducibility, which is exactly the misfiling the closed catalog exists to prevent."
+ },
+ "obligation_closure": {
+  "glossary/0/0": {
+   "clause_id": "glossary/0/0",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "193c5f92-bea4-5d32-8f71-57e8021d2d00",
+   "char_start": 0,
+   "char_end": 5,
+   "span_id": "20d17a40-e45f-57a4-b989-e5d65777273f",
+   "text": "Speed",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "record",
+     "target": "glossary.speed"
+    }
+   ],
+   "claims": 1,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  "glossary/1/0": {
+   "clause_id": "glossary/1/0",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "bef2033c-0879-5829-951b-3ccefa22356f",
+   "char_start": 0,
+   "char_end": 23,
+   "span_id": "c22e81ec-4489-5120-bc0b-aa16ecea582c",
+   "text": "A creature has a Speed,",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "record",
+     "target": "glossary.speed"
+    }
+   ],
+   "claims": 1,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  "glossary/1/1": {
+   "clause_id": "glossary/1/1",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "bef2033c-0879-5829-951b-3ccefa22356f",
+   "char_start": 23,
+   "char_end": 103,
+   "span_id": "d987de22-4ea6-5058-ac82-6dd0d343ec8a",
+   "text": " which is the distance in feet the creature can cover when it moves on its turn.",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G1",
+   "carriers": [
+    {
+     "kind": "fact",
+     "target": "glossary.speed/speed_definition/914a54e5de269f65"
+    }
+   ],
+   "claims": 1,
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY"
+  },
+  "glossary/2/0": {
+   "clause_id": "glossary/2/0",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "b469c79c-b4b0-51aa-83cb-65e8e0e70e2d",
+   "char_start": 0,
+   "char_end": 8,
+   "span_id": "0f34875c-9862-55f9-90ed-6de593d85ab5",
+   "text": "See also",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "record",
+     "target": "glossary.speed"
+    }
+   ],
+   "claims": 1,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  "glossary/3/0": {
+   "clause_id": "glossary/3/0",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "88acf51c-d44c-5171-8bf9-349488ff5c16",
+   "char_start": 0,
+   "char_end": 11,
+   "span_id": "144955c8-f53d-5bd2-89c9-ece35877ed5a",
+   "text": "“Climbing,”",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "reference",
+     "target": "glossary.speed -> glossary.climbing"
+    }
+   ],
+   "claims": 1,
+   "rationale": "an explicit printed pointer at another entry; carried as an outgoing reference with the source's own scope, CONTEXTUAL on the reference"
+  },
+  "glossary/3/1": {
+   "clause_id": "glossary/3/1",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "88acf51c-d44c-5171-8bf9-349488ff5c16",
+   "char_start": 11,
+   "char_end": 23,
+   "span_id": "a423a9d2-e153-5a76-b5f2-93ca1345dfdd",
+   "text": " “Crawling,”",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "reference",
+     "target": "glossary.speed -> glossary.crawling"
+    }
+   ],
+   "claims": 1,
+   "rationale": "an explicit printed pointer at another entry; carried as an outgoing reference with the source's own scope, CONTEXTUAL on the reference"
+  },
+  "glossary/3/2": {
+   "clause_id": "glossary/3/2",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "88acf51c-d44c-5171-8bf9-349488ff5c16",
+   "char_start": 23,
+   "char_end": 33,
+   "span_id": "06a81f0f-b3c9-5ba5-9483-f86af7e00f9a",
+   "text": " “Flying,”",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "reference",
+     "target": "glossary.speed -> glossary.flying"
+    }
+   ],
+   "claims": 1,
+   "rationale": "an explicit printed pointer at another entry; carried as an outgoing reference with the source's own scope, CONTEXTUAL on the reference"
+  },
+  "glossary/3/3": {
+   "clause_id": "glossary/3/3",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "88acf51c-d44c-5171-8bf9-349488ff5c16",
+   "char_start": 33,
+   "char_end": 44,
+   "span_id": "aeb1a24d-5aec-551c-ace4-555381eb02c1",
+   "text": " “Jumping,”",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "reference",
+     "target": "glossary.speed -> glossary.jumping"
+    }
+   ],
+   "claims": 1,
+   "rationale": "an explicit printed pointer at another entry; carried as an outgoing reference with the source's own scope, CONTEXTUAL on the reference"
+  },
+  "glossary/3/4": {
+   "clause_id": "glossary/3/4",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "88acf51c-d44c-5171-8bf9-349488ff5c16",
+   "char_start": 44,
+   "char_end": 55,
+   "span_id": "5f71fd01-f0fa-5dd9-a04b-5d6681b47ef3",
+   "text": " “Swimming”",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "reference",
+     "target": "glossary.speed -> glossary.swimming"
+    }
+   ],
+   "claims": 1,
+   "rationale": "an explicit printed pointer at another entry; carried as an outgoing reference with the source's own scope, CONTEXTUAL on the reference"
+  },
+  "glossary/3/5": {
+   "clause_id": "glossary/3/5",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "88acf51c-d44c-5171-8bf9-349488ff5c16",
+   "char_start": 55,
+   "char_end": 90,
+   "span_id": "32ceff0a-e4d2-577d-bf00-7179eea5a72b",
+   "text": " and “Playing the Game” (“Combat”).",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "record",
+     "target": "glossary.speed"
+    }
+   ],
+   "claims": 1,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  "glossary/4/0": {
+   "clause_id": "glossary/4/0",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "ac4db61a-9763-5b0b-8b3b-381ce52c5d32",
+   "char_start": 0,
+   "char_end": 15,
+   "span_id": "d5c9270b-ceb4-5cfd-90a9-0221a4787d3d",
+   "text": "Special Speeds.",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "record",
+     "target": "glossary.speed"
+    }
+   ],
+   "claims": 1,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  "glossary/5/0": {
+   "clause_id": "glossary/5/0",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "05dabf62-ad50-5ae7-9196-12265dc0c293",
+   "char_start": 0,
+   "char_end": 76,
+   "span_id": "82d12d0d-766b-58b7-a1a2-06418db6614a",
+   "text": "Some creatures have special speeds, such as a Burrow Speed, Climb Speed, Fly",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G6",
+   "carriers": [
+    {
+     "kind": "component",
+     "target": "glossary.speed/special_speeds"
+    },
+    {
+     "kind": "fact_detail",
+     "target": "glossary.speed/special_speeds/1f1c43e2bcf12c9b"
+    },
+    {
+     "kind": "fact_detail",
+     "target": "glossary.speed/special_speeds/39233c12435680cf"
+    },
+    {
+     "kind": "fact_detail",
+     "target": "glossary.speed/special_speeds/8f915ca769180442"
+    },
+    {
+     "kind": "reference",
+     "target": "glossary.speed -> glossary.burrow_speed"
+    },
+    {
+     "kind": "reference",
+     "target": "glossary.speed -> glossary.climb_speed"
+    },
+    {
+     "kind": "reference",
+     "target": "glossary.speed -> glossary.fly_speed"
+    }
+   ],
+   "claims": 7,
+   "rationale": "states something true of a whole group of facts and of no single fact in it, so it is claimed PRIMARY on the component; each fact the sentence names then cites the same span CONTEXTUAL, which is the carrier accepted authority already uses for this shape"
+  },
+  "glossary/6/0": {
+   "clause_id": "glossary/6/0",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "a2ac2ebd-a877-5b81-921e-1edd473c3a6f",
+   "char_start": 0,
+   "char_end": 46,
+   "span_id": "cfb9f419-f8fc-5714-a7c4-58b8cae02a0e",
+   "text": "Speed, or Swim Speed, each of which is defined",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G6",
+   "carriers": [
+    {
+     "kind": "component",
+     "target": "glossary.speed/special_speeds"
+    },
+    {
+     "kind": "fact_detail",
+     "target": "glossary.speed/special_speeds/8f915ca769180442"
+    },
+    {
+     "kind": "fact_detail",
+     "target": "glossary.speed/special_speeds/d63b59cf59df0573"
+    },
+    {
+     "kind": "reference",
+     "target": "glossary.speed -> glossary.fly_speed"
+    },
+    {
+     "kind": "reference",
+     "target": "glossary.speed -> glossary.swim_speed"
+    }
+   ],
+   "claims": 5,
+   "rationale": "states something true of a whole group of facts and of no single fact in it, so it is claimed PRIMARY on the component; each fact the sentence names then cites the same span CONTEXTUAL, which is the carrier accepted authority already uses for this shape"
+  },
+  "glossary/7/0": {
+   "clause_id": "glossary/7/0",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "a4accfca-97dc-5361-a97f-02ca30eafb25",
+   "char_start": 0,
+   "char_end": 17,
+   "span_id": "b65f1c7f-9e60-5018-aba2-adf8287b5429",
+   "text": "in this glossary.",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G6",
+   "carriers": [
+    {
+     "kind": "component",
+     "target": "glossary.speed/special_speeds"
+    }
+   ],
+   "claims": 1,
+   "rationale": "states something true of a whole group of facts and of no single fact in it, so it is claimed PRIMARY on the component; each fact the sentence names then cites the same span CONTEXTUAL, which is the carrier accepted authority already uses for this shape"
+  },
+  "glossary/7/1": {
+   "clause_id": "glossary/7/1",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "a4accfca-97dc-5361-a97f-02ca30eafb25",
+   "char_start": 17,
+   "char_end": 89,
+   "span_id": "b7b38064-4155-59cc-9088-61912807cd11",
+   "text": " If you have more than one speed, choose which one to use when you move;",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G4",
+   "carriers": [
+    {
+     "kind": "fact",
+     "target": "glossary.speed/speed_selection/257515e28b0731a4"
+    }
+   ],
+   "claims": 1,
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY"
+  },
+  "glossary/7/2": {
+   "clause_id": "glossary/7/2",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "a4accfca-97dc-5361-a97f-02ca30eafb25",
+   "char_start": 89,
+   "char_end": 141,
+   "span_id": "d310f9f6-f920-5f90-85dc-2516a7294d68",
+   "text": " you can switch between the speeds during your move.",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G4",
+   "carriers": [
+    {
+     "kind": "fact",
+     "target": "glossary.speed/speed_selection/d0989a0d3ec89589"
+    }
+   ],
+   "claims": 1,
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY"
+  },
+  "glossary/7/3": {
+   "clause_id": "glossary/7/3",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "a4accfca-97dc-5361-a97f-02ca30eafb25",
+   "char_start": 141,
+   "char_end": 218,
+   "span_id": "8c953c5b-4654-5d46-bdf4-5de23236f967",
+   "text": " Whenever you switch, subtract the distance already moved from the new speed.",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G4",
+   "carriers": [
+    {
+     "kind": "fact",
+     "target": "glossary.speed/speed_switch_limit/a032d62d4775e314"
+    }
+   ],
+   "claims": 1,
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY"
+  },
+  "glossary/7/4": {
+   "clause_id": "glossary/7/4",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "a4accfca-97dc-5361-a97f-02ca30eafb25",
+   "char_start": 218,
+   "char_end": 271,
+   "span_id": "7d8b0c04-ea65-5e27-b942-b3be16784533",
+   "text": " The result determines how much farther you can move.",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G4",
+   "carriers": [
+    {
+     "kind": "fact",
+     "target": "glossary.speed/speed_switch_limit/a032d62d4775e314"
+    }
+   ],
+   "claims": 1,
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY"
+  },
+  "glossary/7/5": {
+   "clause_id": "glossary/7/5",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "a4accfca-97dc-5361-a97f-02ca30eafb25",
+   "char_start": 271,
+   "char_end": 352,
+   "span_id": "d0a35294-f634-5ba1-b7bd-bb3aed27b325",
+   "text": " If the result is 0 or less, you can’t use the new speed during the current move.",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G4",
+   "carriers": [
+    {
+     "kind": "fact",
+     "target": "glossary.speed/speed_switch_limit/a032d62d4775e314"
+    }
+   ],
+   "claims": 1,
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY"
+  },
+  "glossary/7/6": {
+   "clause_id": "glossary/7/6",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "a4accfca-97dc-5361-a97f-02ca30eafb25",
+   "char_start": 352,
+   "char_end": 494,
+   "span_id": "a5ca8bb2-19ec-5cab-9fed-eb535f51306a",
+   "text": " For example, if you have a Speed of 30 and a Fly Speed of 40, you could fly 10 feet, walk 10 feet, and leap into the air to fly 20 feet more.",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "fact_context",
+     "target": "glossary.speed/speed_switch_limit/a032d62d4775e314"
+    }
+   ],
+   "claims": 1,
+   "rationale": "bounds exactly one typed fact and states no rule of its own; supporting authority claimed CONTEXTUAL by that fact rather than by the record"
+  },
+  "glossary/8/0": {
+   "clause_id": "glossary/8/0",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "a1ebf029-bdba-5841-b964-2f93f6e02012",
+   "char_start": 0,
+   "char_end": 23,
+   "span_id": "994522d4-885a-556d-96cc-498a6cce5653",
+   "text": "Changes to Your Speeds.",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "record",
+     "target": "glossary.speed"
+    }
+   ],
+   "claims": 1,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  "glossary/9/0": {
+   "clause_id": "glossary/9/0",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "8421e19c-55c4-5aff-9041-7ec1e40cdb2d",
+   "char_start": 0,
+   "char_end": 150,
+   "span_id": "1d4621ba-0815-5fa6-a986-3c6b72c1cb5a",
+   "text": "If an effect increases or decreases your Speed for a time, any special speed you have increases or decreases by an equal amount for the same duration.",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G5",
+   "carriers": [
+    {
+     "kind": "fact",
+     "target": "glossary.speed/speed_change_propagation/34ca484dd89df3de"
+    }
+   ],
+   "claims": 1,
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY"
+  },
+  "glossary/9/1": {
+   "clause_id": "glossary/9/1",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "8421e19c-55c4-5aff-9041-7ec1e40cdb2d",
+   "char_start": 150,
+   "char_end": 260,
+   "span_id": "3b23cae7-793e-5e1a-a0bf-25c84da8ab4d",
+   "text": " For example, if your Speed is reduced to 0 and you have a Climb Speed, your Climb Speed is also reduced to 0.",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "fact_context",
+     "target": "glossary.speed/speed_change_propagation/34ca484dd89df3de"
+    }
+   ],
+   "claims": 1,
+   "rationale": "bounds exactly one typed fact and states no rule of its own; supporting authority claimed CONTEXTUAL by that fact rather than by the record"
+  },
+  "glossary/9/2": {
+   "clause_id": "glossary/9/2",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "8421e19c-55c4-5aff-9041-7ec1e40cdb2d",
+   "char_start": 260,
+   "char_end": 279,
+   "span_id": "aab5908b-c438-5b33-9b92-ceedbba76e2c",
+   "text": " Similarly, if your",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "fact_context",
+     "target": "glossary.speed/speed_change_propagation/34ca484dd89df3de"
+    }
+   ],
+   "claims": 1,
+   "rationale": "bounds exactly one typed fact and states no rule of its own; supporting authority claimed CONTEXTUAL by that fact rather than by the record"
+  },
+  "glossary/10/0": {
+   "clause_id": "glossary/10/0",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "c6d4aae3-073c-5755-be6c-8f23c030214f",
+   "char_start": 0,
+   "char_end": 50,
+   "span_id": "2090d14c-42f9-58ec-966f-3cab629476a4",
+   "text": "Speed is halved and you have a Fly Speed, your Fly",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "fact_context",
+     "target": "glossary.speed/speed_change_propagation/34ca484dd89df3de"
+    }
+   ],
+   "claims": 1,
+   "rationale": "bounds exactly one typed fact and states no rule of its own; supporting authority claimed CONTEXTUAL by that fact rather than by the record"
+  },
+  "glossary/11/0": {
+   "clause_id": "glossary/11/0",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "2f12fa72-6d6e-57f4-b426-e307bde915d9",
+   "char_start": 0,
+   "char_end": 21,
+   "span_id": "51db0cb5-00ed-5051-8165-bdd84e0df899",
+   "text": "Speed is also halved.",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "fact_context",
+     "target": "glossary.speed/speed_change_propagation/34ca484dd89df3de"
+    }
+   ],
+   "claims": 1,
+   "rationale": "bounds exactly one typed fact and states no rule of its own; supporting authority claimed CONTEXTUAL by that fact rather than by the record"
+  },
+  "combat/0/0": {
+   "clause_id": "combat/0/0",
+   "site": "combat",
+   "page_index": 13,
+   "leaf_id": "8f05389a-13cb-5480-a246-6a5df9230a00",
+   "char_start": 0,
+   "char_end": 21,
+   "span_id": "9717f242-7805-517b-ad45-19e418e7552c",
+   "text": "Movement and Position",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "record",
+     "target": "glossary.speed"
+    }
+   ],
+   "claims": 1,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  "combat/1/0": {
+   "clause_id": "combat/1/0",
+   "site": "combat",
+   "page_index": 13,
+   "leaf_id": "b93abccd-4ffe-5291-a534-b3aa8fe30b0b",
+   "char_start": 0,
+   "char_end": 51,
+   "span_id": "22858bf5-3fd8-510e-93b4-2286ae407795",
+   "text": "On your turn, you can move a distance equal to your",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G2",
+   "carriers": [
+    {
+     "kind": "fact",
+     "target": "glossary.speed/movement_allowance/6183dc5b4c8aef8a"
+    }
+   ],
+   "claims": 1,
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY"
+  },
+  "combat/2/0": {
+   "clause_id": "combat/2/0",
+   "site": "combat",
+   "page_index": 13,
+   "leaf_id": "4744f798-dcc1-53ab-a6ae-9e6ce4800634",
+   "char_start": 0,
+   "char_end": 14,
+   "span_id": "86771827-c419-55bd-b864-897f3da07435",
+   "text": "Speed or less.",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G2",
+   "carriers": [
+    {
+     "kind": "fact",
+     "target": "glossary.speed/movement_allowance/6183dc5b4c8aef8a"
+    }
+   ],
+   "claims": 1,
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY"
+  },
+  "combat/2/1": {
+   "clause_id": "combat/2/1",
+   "site": "combat",
+   "page_index": 13,
+   "leaf_id": "4744f798-dcc1-53ab-a6ae-9e6ce4800634",
+   "char_start": 14,
+   "char_end": 45,
+   "span_id": "4b9c35fa-2812-5189-9d06-cf538bfd92bd",
+   "text": " Or you can decide not to move.",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G2",
+   "carriers": [
+    {
+     "kind": "fact",
+     "target": "glossary.speed/movement_allowance/6183dc5b4c8aef8a"
+    }
+   ],
+   "claims": 1,
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY"
+  },
+  "combat/3/0": {
+   "clause_id": "combat/3/0",
+   "site": "combat",
+   "page_index": 13,
+   "leaf_id": "afee8441-9c5f-5ebc-89b6-211254d8f97a",
+   "char_start": 0,
+   "char_end": 105,
+   "span_id": "70747d85-3f32-5097-9aa1-3d4524372851",
+   "text": "Your movement can include climbing, crawling, jumping, and swimming (each explained in “Rules Glossary”).",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G6",
+   "carriers": [
+    {
+     "kind": "component",
+     "target": "glossary.speed/movement_modes"
+    },
+    {
+     "kind": "fact_detail",
+     "target": "glossary.speed/movement_modes/0644dacdb96695a0"
+    },
+    {
+     "kind": "fact_detail",
+     "target": "glossary.speed/movement_modes/c845468cf1bb2070"
+    },
+    {
+     "kind": "fact_detail",
+     "target": "glossary.speed/movement_modes/c9377183f178461f"
+    },
+    {
+     "kind": "fact_detail",
+     "target": "glossary.speed/movement_modes/040ab0c0024902b4"
+    }
+   ],
+   "claims": 5,
+   "rationale": "states something true of a whole group of facts and of no single fact in it, so it is claimed PRIMARY on the component; each fact the sentence names then cites the same span CONTEXTUAL, which is the carrier accepted authority already uses for this shape"
+  },
+  "combat/3/1": {
+   "clause_id": "combat/3/1",
+   "site": "combat",
+   "page_index": 13,
+   "leaf_id": "afee8441-9c5f-5ebc-89b6-211254d8f97a",
+   "char_start": 105,
+   "char_end": 224,
+   "span_id": "82e70512-273e-57b7-aa8e-ca387094fc4b",
+   "text": " These different modes of movement can be combined with your regular movement, or they can constitute your entire move.",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G6",
+   "carriers": [
+    {
+     "kind": "component",
+     "target": "glossary.speed/movement_composition"
+    },
+    {
+     "kind": "fact_detail",
+     "target": "glossary.speed/movement_composition/5bc83cf13326fab9"
+    },
+    {
+     "kind": "fact_detail",
+     "target": "glossary.speed/movement_composition/8f2909931590f8c7"
+    }
+   ],
+   "claims": 3,
+   "rationale": "states something true of a whole group of facts and of no single fact in it, so it is claimed PRIMARY on the component; each fact the sentence names then cites the same span CONTEXTUAL, which is the carrier accepted authority already uses for this shape"
+  },
+  "combat/3/2": {
+   "clause_id": "combat/3/2",
+   "site": "combat",
+   "page_index": 13,
+   "leaf_id": "afee8441-9c5f-5ebc-89b6-211254d8f97a",
+   "char_start": 224,
+   "char_end": 394,
+   "span_id": "83839fdd-c307-5263-9c76-1c2621be6ddb",
+   "text": " However you’re moving with your Speed, you deduct the distance of each part of your move from it until it is used up or until you are done moving, whichever comes first.",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G3",
+   "carriers": [
+    {
+     "kind": "fact",
+     "target": "glossary.speed/movement_depletion/ccbea9e00e3358bd"
+    }
+   ],
+   "claims": 1,
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY"
+  },
+  "combat/3/3": {
+   "clause_id": "combat/3/3",
+   "site": "combat",
+   "page_index": 13,
+   "leaf_id": "afee8441-9c5f-5ebc-89b6-211254d8f97a",
+   "char_start": 394,
+   "char_end": 455,
+   "span_id": "8d37c29f-32e6-5af0-9c9b-d91c25e3478a",
+   "text": " A character’s Speed is determined during character creation.",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "record",
+     "target": "glossary.speed"
+    }
+   ],
+   "claims": 1,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  "combat/3/4": {
+   "clause_id": "combat/3/4",
+   "site": "combat",
+   "page_index": 13,
+   "leaf_id": "afee8441-9c5f-5ebc-89b6-211254d8f97a",
+   "char_start": 455,
+   "char_end": 511,
+   "span_id": "5d81f44c-bf6f-58dc-8b1d-ec6b9e495a72",
+   "text": " A monster’s Speed is noted in the monster’s stat block.",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "record",
+     "target": "glossary.speed"
+    }
+   ],
+   "claims": 1,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  "combat/3/5": {
+   "clause_id": "combat/3/5",
+   "site": "combat",
+   "page_index": 13,
+   "leaf_id": "afee8441-9c5f-5ebc-89b6-211254d8f97a",
+   "char_start": 511,
+   "char_end": 635,
+   "span_id": "957cc31f-7505-5828-b4d2-15bbb35b3339",
+   "text": " See “Rules Glossary” for more about Speed as well as about special speeds, such as a Climb Speed, Fly Speed, or Swim Speed.",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "record",
+     "target": "glossary.speed"
+    }
+   ],
+   "claims": 1,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  }
+ },
+ "obligation_accounting": {
+  "supporting_authority_bounding_a_fact": 5,
+  "supporting_authority_record_owned": 10,
+  "supporting_authority_reference_owned": 5,
+  "typed": 11,
+  "typed_at_component_scope": 5
+ },
+ "obligation_derivation": "The obligation table is typed from the reviewed discovery checkpoint - section 3's dispositions and section 4's gap table - and carries a TUPLE of carriers per clause, which is new in this batch. Nothing in it is computed from what this file emits. The emission loop then builds spans and provenance claims from the table, and those claims are asserted to be the same multiset as the composition's own provenance, which was written independently from the schema-11 composition. Two statements of the same judgment, checked against each other; neither derived from the other.",
+ "span_granularity": "PROPOSED, not final. Thirty-six spans is the granularity the reviewed inventory records and this run proves gap-free; it is not an Owner decision about how finely this population should be cut. A reviewer who would merge or split clauses is disagreeing with the proposal, not finding a defect in it.",
+ "evidence_classes": [
+  {
+   "class": "source extraction and partition reconstruction",
+   "executed_here": true,
+   "strength": "strong for coverage and span boundaries: the reviewed clause extents are re-proved gap-free against the sixteen leaves this run just extracted from the PDF, and the 557-leaf exclusion is re-derived rather than transcribed. Says nothing about whether the meaning assigned to a span is right - that is what semantic review is for"
+  },
+  {
+   "class": "obligation closure against the reviewed inventory",
+   "executed_here": true,
+   "strength": "exposes omission, duplication and carrier drift against a table typed from the checkpoint rather than from the emission, including which fact of a multi-fact component carries a clause and which of a clause's several carriers names its disposition. It does not prove the checkpoint's judgment is right; it proves the proposal states that judgment and no other"
+  },
+  {
+   "class": "structural validation",
+   "executed_here": true,
+   "strength": "the repository's own checkers over the emitted draft and over the merge acceptance would validate. These judge shape, not fidelity"
+  },
+  {
+   "class": "release-binding agreement",
+   "executed_here": true,
+   "strength": "all six parts read through release_binding_payload and checked at validate_candidate, the seam that requires the binding, the classification ledger and the bound corpus snapshot to name one release. Five values are source rederivation from the committed PDF; the sixth is a disclosed carry and no operational database evidence was performed"
+  },
+  {
+   "class": "consumer projection assertion",
+   "executed_here": true,
+   "strength": "_base_records is applied to the merged candidate in memory and every distinction the source prints is read back off those objects - the printed unit, the depletion terminators in printed order, the propagation fact's one PRIMARY and four CONTEXTUAL clauses, and Dash's citation acquiring a target. Nothing is persisted"
+  },
+  {
+   "class": "schema succession",
+   "executed_here": true,
+   "strength": "one registered crossing, 5d-lift-schema-10-to-11, exercised element by element, with the inherited acceptance record asserted to cross by object identity. Proves the crossing; performs none of it"
+  },
+  {
+   "class": "cross-batch reference resolution",
+   "executed_here": true,
+   "strength": "stated at two scopes and MEASURED at both by running acceptance._merge_representation over the lifted prior and this draft, not by arithmetic over two pinned sets. Standalone: nine findings, one per outgoing citation, none of which this batch defines. Combined with the lifted prior: ten, the nine plus the prior's inherited glossary.concentration, with glossary.speed dropping out because this batch defines it. Accepted authority is unchanged"
+  },
+  {
+   "class": "full-corpus completeness",
+   "executed_here": false,
+   "strength": "NOT claimed. This is one record of the Rules Glossary and its governing Combat section. The corpus #137 governs is untouched and undischarged"
+  },
+  {
+   "class": "PDF rederivation is not operational-database proof",
+   "executed_here": true,
+   "strength": "what this run proves is that the committed PDF plus the committed transform config reproduce the bound corpus and five of the six binding values. It proves nothing about any persisted rp_sources row, vector store or published release, because it touches none of them"
+  },
+  {
+   "class": "publication gate",
+   "executed_here": false,
+   "strength": "NOT run. There is no persisted projection to run it over, and this generator must not create one"
+  },
+  {
+   "class": "acceptance",
+   "executed_here": false,
+   "strength": "NOT run. accept_proposal is never called; the live oracle is read as a mutation sentinel only"
+  }
+ ],
+ "consumer_boundary_proofs": {
+  "glossary.speed": {
+   "kind": "glossary_rule",
+   "component_keys": [
+    "movement_allowance",
+    "movement_composition",
+    "movement_depletion",
+    "movement_modes",
+    "special_speeds",
+    "speed_change_propagation",
+    "speed_definition",
+    "speed_selection",
+    "speed_switch_limit"
+   ],
+   "record_scope_span_ids": 10,
+   "clauses_carried_by_the_whole_record": 36,
+   "assembled_from_sites": [
+    "combat",
+    "glossary"
+   ],
+   "all_components_structured": [
+    "structured"
+   ],
+   "note": "one record assembled from two printed sites in two chapters - #137 contract 3's composite case. The second site is not reached by a label: nothing in Combat is labelled Speed. It is reached by the reciprocal citation the glossary entry prints, which is the membership rule the discovery manifest records."
+  },
+  "speed_definition": {
+   "family": "speed_definition",
+   "unit": "foot",
+   "window": "own_turn",
+   "clauses": [
+    "glossary/1/1"
+   ],
+   "stated_by": " which is the distance in feet the creature can cover when it moves on its turn.",
+   "the_whole_fact_is": [
+    "FAMILY",
+    "unit",
+    "window"
+   ],
+   "no_number_is_carried": "the two fields above are the whole of SpeedDefinitionFact; there is no distance field to carry a number in",
+   "printed_unit_is_not_invented_geometry": "DistanceUnit.FOOT is schema 5's member and names the foot the source prints. No schema-11 vocabulary mentions a square, a grid, a diagonal or a corner, and no fact in this batch carries a number. Reproducing a printed unit is the opposite of inventing geometry."
+  },
+  "movement_depletion": {
+   "family": "movement_depletion",
+   "depletes": "own_speed",
+   "until_in_printed_order": [
+    "allowance_used_up",
+    "done_moving"
+   ],
+   "resolution": "whichever_comes_first",
+   "clauses": [
+    "combat/3/2"
+   ],
+   "stated_by": " However you’re moving with your Speed, you deduct the distance of each part of your move from it until it is used up or until you are done moving, whichever comes first.",
+   "intrinsic_invariants_that_bind_it": [
+    "movement_depletion.until.at-least-one",
+    "movement_depletion.until.no-repeats"
+   ],
+   "note": "the two terminators are the source's 'until it is used up or until you are done moving' and the resolution is its 'whichever comes first'. Nothing subtracts anything here: the accounting rule is named as a closed member, not performed."
+  },
+  "speed_change_propagation": {
+   "family": "speed_change_propagation",
+   "to": "every_special_speed",
+   "magnitude": "equal_amount",
+   "duration": "same_duration",
+   "primary_span": [
+    "glossary/9/0"
+   ],
+   "contextual_spans": [
+    "glossary/10/0",
+    "glossary/11/0",
+    "glossary/9/1",
+    "glossary/9/2"
+   ],
+   "stated_by": "If an effect increases or decreases your Speed for a time, any special speed you have increases or decreases by an equal amount for the same duration.",
+   "bounded_by": {
+    "glossary/10/0": "Speed is halved and you have a Fly Speed, your Fly",
+    "glossary/11/0": "Speed is also halved.",
+    "glossary/9/1": " For example, if your Speed is reduced to 0 and you have a Climb Speed, your Climb Speed is also reduced to 0.",
+    "glossary/9/2": " Similarly, if your"
+   },
+   "note": "the four bounding clauses are printed examples and consequences of the one rule, not four more rules: halving a Speed halves each special speed, a special speed that drops to 0 cannot be used, and the reversal restores it. Each is claimed CONTEXTUAL on the one fact rather than typed as its own, because none states a mechanic the propagation fact does not already carry."
+  },
+  "split_reference": {
+   "from_record_key": "glossary.speed",
+   "from_component_key": "",
+   "record_owned": true,
+   "scope_key": "srd-5.2.1/rules-glossary",
+   "source_text": "Fly Speed",
+   "target_record_key": "glossary.fly_speed",
+   "references_emitted_for_this_target": 1,
+   "provenance_claims": [
+    "glossary/5/0",
+    "glossary/6/0"
+   ],
+   "clause_texts": {
+    "glossary/5/0": "Some creatures have special speeds, such as a Burrow Speed, Climb Speed, Fly",
+    "glossary/6/0": "Speed, or Swim Speed, each of which is defined"
+   },
+   "why_one_reference_and_two_claims": "the source prints the same pointer twice - 'such as a Burrow Speed, Climb Speed, Fly Speed, or Swim Speed' runs across a leaf boundary, so Fly Speed is named on glossary/5/0 and again on glossary/6/0. One citation of one entry is one reference; the two printings are two provenance claims on it. Emitting two references would assert the source cited Fly Speed twice, which it did not.",
+   "every_other_reference_carries_exactly_one_claim": {
+    "glossary.burrow_speed": 1,
+    "glossary.climb_speed": 1,
+    "glossary.climbing": 1,
+    "glossary.crawling": 1,
+    "glossary.fly_speed": 2,
+    "glossary.flying": 1,
+    "glossary.jumping": 1,
+    "glossary.swim_speed": 1,
+    "glossary.swimming": 1
+   }
+  },
+  "inbound_citation_resolution": {
+   "citation": {
+    "from_record_key": "action.dash",
+    "from_component_key": "",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Speed",
+    "target_record_key": "glossary.speed"
+   },
+   "dash_outgoing_targets_in_the_merged_candidate": [
+    "glossary.speed"
+   ],
+   "resolves_in": "the merged candidate this run builds in memory",
+   "does_not_resolve_in": "accepted authority, which is the frozen prior and is unchanged by this run. The resolution becomes a property of accepted authority only at an acceptance that has not happened.",
+   "accepted_movement_facts_that_already_exist": {
+    "rule": "every fact in the frozen prior whose family name matches movement|speed, walked over components and their options",
+    "by_family": {
+     "area_origin_movement": 1,
+     "movement_allowance": 3,
+     "movement_cost": 2,
+     "movement_interleave": 1,
+     "movement_permission": 1,
+     "movement_transport": 1,
+     "speed_modification": 5
+    },
+    "creature_movement_families": [
+     "movement_allowance",
+     "movement_cost",
+     "movement_interleave",
+     "movement_permission",
+     "movement_transport",
+     "speed_modification"
+    ],
+    "creature_movement_fact_count": 13,
+    "total_matching_fact_count": 14,
+    "rows": [
+     {
+      "record_key": "action.ready",
+      "component_key": "ready_response",
+      "option_key": "move_up_to_speed",
+      "family": "movement_allowance",
+      "fields": {
+       "basis": "own_speed"
+      }
+     },
+     {
+      "record_key": "action.dash",
+      "component_key": "dash_movement",
+      "option_key": "special_speed",
+      "family": "movement_allowance",
+      "fields": {
+       "basis": "own_special_speed"
+      }
+     },
+     {
+      "record_key": "action.dash",
+      "component_key": "dash_movement",
+      "option_key": "standard_speed",
+      "family": "movement_allowance",
+      "fields": {
+       "basis": "own_speed"
+      }
+     },
+     {
+      "record_key": "condition.prone",
+      "component_key": "restricted_movement",
+      "option_key": "crawl",
+      "family": "movement_permission",
+      "fields": {
+       "mode": "crawl"
+      }
+     },
+     {
+      "record_key": "condition.prone",
+      "component_key": "restricted_movement",
+      "option_key": "stand",
+      "family": "movement_cost",
+      "fields": {
+       "kind": "expenditure",
+       "amount": "half_speed",
+       "payer": "subject",
+       "feet": null,
+       "rounding": "down"
+      }
+     },
+     {
+      "record_key": "action.attack",
+      "component_key": "attack_movement_interleave",
+      "option_key": null,
+      "family": "movement_interleave",
+      "fields": {
+       "between": "repeated_attacks"
+      }
+     },
+     {
+      "record_key": "condition.grappled",
+      "component_key": "speed_zero",
+      "option_key": null,
+      "family": "speed_modification",
+      "fields": {
+       "change": "set_to",
+       "feet": 0,
+       "mode": null,
+       "can_increase": false
+      }
+     },
+     {
+      "record_key": "condition.paralyzed",
+      "component_key": "speed_zero",
+      "option_key": null,
+      "family": "speed_modification",
+      "fields": {
+       "change": "set_to",
+       "feet": 0,
+       "mode": null,
+       "can_increase": false
+      }
+     },
+     {
+      "record_key": "condition.petrified",
+      "component_key": "speed_zero",
+      "option_key": null,
+      "family": "speed_modification",
+      "fields": {
+       "change": "set_to",
+       "feet": 0,
+       "mode": null,
+       "can_increase": false
+      }
+     },
+     {
+      "record_key": "condition.restrained",
+      "component_key": "speed_zero",
+      "option_key": null,
+      "family": "speed_modification",
+      "fields": {
+       "change": "set_to",
+       "feet": 0,
+       "mode": null,
+       "can_increase": false
+      }
+     },
+     {
+      "record_key": "condition.unconscious",
+      "component_key": "speed_zero",
+      "option_key": null,
+      "family": "speed_modification",
+      "fields": {
+       "change": "set_to",
+       "feet": 0,
+       "mode": null,
+       "can_increase": false
+      }
+     },
+     {
+      "record_key": "area_of_effect.emanation",
+      "component_key": "area_origin_movement",
+      "option_key": null,
+      "family": "area_origin_movement",
+      "fields": {
+       "suspended_by_any_of": [
+        "instantaneous_effect",
+        "stationary_effect"
+       ]
+      }
+     },
+     {
+      "record_key": "condition.grappled",
+      "component_key": "movable",
+      "option_key": null,
+      "family": "movement_cost",
+      "fields": {
+       "kind": "per_foot_surcharge",
+       "amount": "feet",
+       "payer": "counterpart",
+       "feet": 1,
+       "rounding": null
+      }
+     },
+     {
+      "record_key": "condition.grappled",
+      "component_key": "movable",
+      "option_key": null,
+      "family": "movement_transport",
+      "fields": {
+       "carrier": "counterpart",
+       "carried": "subject",
+       "kind": "permitted"
+      }
+     }
+    ]
+   }
+  },
+  "components": {
+   "movement_allowance": {
+    "handling": "structured",
+    "facts": [
+     "movement_allowance"
+    ],
+    "fact_clauses": [
+     "combat/1/0",
+     "combat/2/0",
+     "combat/2/1"
+    ],
+    "component_scope_clauses": []
+   },
+   "movement_composition": {
+    "handling": "structured",
+    "facts": [
+     "movement_composition",
+     "movement_composition"
+    ],
+    "fact_clauses": [
+     "combat/3/1"
+    ],
+    "component_scope_clauses": [
+     "combat/3/1"
+    ]
+   },
+   "movement_depletion": {
+    "handling": "structured",
+    "facts": [
+     "movement_depletion"
+    ],
+    "fact_clauses": [
+     "combat/3/2"
+    ],
+    "component_scope_clauses": []
+   },
+   "movement_modes": {
+    "handling": "structured",
+    "facts": [
+     "movement_permission",
+     "movement_permission",
+     "movement_permission",
+     "movement_permission"
+    ],
+    "fact_clauses": [
+     "combat/3/0"
+    ],
+    "component_scope_clauses": [
+     "combat/3/0"
+    ]
+   },
+   "special_speeds": {
+    "handling": "structured",
+    "facts": [
+     "special_speed",
+     "special_speed",
+     "special_speed",
+     "special_speed"
+    ],
+    "fact_clauses": [
+     "glossary/5/0",
+     "glossary/6/0"
+    ],
+    "component_scope_clauses": [
+     "glossary/5/0",
+     "glossary/6/0",
+     "glossary/7/0"
+    ]
+   },
+   "speed_change_propagation": {
+    "handling": "structured",
+    "facts": [
+     "speed_change_propagation"
+    ],
+    "fact_clauses": [
+     "glossary/10/0",
+     "glossary/11/0",
+     "glossary/9/0",
+     "glossary/9/1",
+     "glossary/9/2"
+    ],
+    "component_scope_clauses": []
+   },
+   "speed_definition": {
+    "handling": "structured",
+    "facts": [
+     "speed_definition"
+    ],
+    "fact_clauses": [
+     "glossary/1/1"
+    ],
+    "component_scope_clauses": []
+   },
+   "speed_selection": {
+    "handling": "structured",
+    "facts": [
+     "speed_selection",
+     "speed_selection"
+    ],
+    "fact_clauses": [
+     "glossary/7/1",
+     "glossary/7/2"
+    ],
+    "component_scope_clauses": []
+   },
+   "speed_switch_limit": {
+    "handling": "structured",
+    "facts": [
+     "speed_switch_limit"
+    ],
+    "fact_clauses": [
+     "glossary/7/3",
+     "glossary/7/4",
+     "glossary/7/5",
+     "glossary/7/6"
+    ],
+    "component_scope_clauses": []
+   }
+  }
+ },
+ "schema_succession": {
+  "prior_schema": "5d-representation-schema-10",
+  "batch_schema": "5d-representation-schema-11",
+  "lift_required": true,
+  "steps": [
+   "5d-lift-schema-10-to-11"
+  ],
+  "verified_collections": [
+   [
+    "components",
+    "prose_bindings",
+    "provenance",
+    "records",
+    "references",
+    "relationships"
+   ]
+  ],
+  "frozen_prior_identity": "86cd11c2be330f5962982d8d87dfc1847815710868223257529f30bef8cdb500",
+  "frozen_prior_identity_scope": "the file on disk, which this run reads and never writes. It is the identity the Owner accepted and it does not move.",
+  "lifted_copy_identity_at_this_head": "bc8757af6483d63894ce9c9359a5e8c1c8cce0cd410c7e89f92185d5d5aa2136",
+  "lifted_copy_identity_scope": "a DIFFERENT object: the in-memory copy this run lifts to schema 11. Reported rather than pinned, because oracle_payload carries the representation binding and the lift re-declares exactly that, so this value moves with every destination-pin change.",
+  "payload_keys_that_moved": [
+   "representation_schema"
+  ],
+  "inherited_authority_unchanged": {
+   "representation_object_is_the_same_object": true,
+   "spans_obligations_batches_acceptances_anchors_cross_by_identity": true,
+   "per_batch_schema_anchors": {
+    "conditions-1": "5d-representation-schema-3",
+    "hazards-1": "5d-representation-schema-5",
+    "actions-1": "5d-representation-schema-7",
+    "attitudes-1": "5d-representation-schema-8",
+    "areas-of-effect-1": "5d-representation-schema-9",
+    "cover-1": "5d-representation-schema-10"
+   },
+   "schema_11_appears_in_no_anchor": true,
+   "why_anchors_matter": "each accepted batch keeps the hash it was reviewed under. A lift that re-derived anchors would restamp six batches as one and erase the distinction succession depends on."
+  },
+  "unlifted_prior_read_as_current_is_a_finding": [
+   "candidate declares representation schema '5d-representation-schema-10', build implements '5d-representation-schema-11'",
+   "candidate declares representation schema hash 'c39e3a35e197a1d1db5c2c2b3445ff0cbf03395c91e3426353a4bce589be4be0', committed union hashes to '605e8b4cfdaf0cb6d4f0b65fcf0d23f3e45c4734404c9568f41dc4261eefd037'"
+  ],
+  "note": "the accepted prior is anchored at 5d-representation-schema-10 and this batch proposes under 5d-representation-schema-11, which the population's sixteen substantive clauses required. Exactly one registered transition separates them and it is exercised here rather than described. The transition adds fact families and vocabularies, widens one accepted vocabulary by one member and adds one optional field to movement_allowance; it adds no required field, no ownership form and no nullable-to-required change, so every accepted fact key, component key and provenance coordinate has the same canonical form under both contracts."
+ },
+ "accepted_prior": {
+  "path": "tests/ingestion/mechanical/data/accepted_prior_conditions_1_hazards_1_actions_1_attitudes_1_areas_of_effect_1_cover_1.json",
+  "content_sha256_before": "391c71b72d7fa9406890c74eed9a505278ea4f8f4536a01cd3db1edf403f6407",
+  "blob": "b7c0149432072d4a3b151d0f9b2c458252e584da",
+  "identity": "86cd11c2be330f5962982d8d87dfc1847815710868223257529f30bef8cdb500",
+  "schema_version": "5d-representation-schema-10",
+  "batches": [
+   "actions-1",
+   "areas-of-effect-1",
+   "attitudes-1",
+   "conditions-1",
+   "cover-1",
+   "hazards-1"
+  ],
+  "spans": 558,
+  "obligations": 47,
+  "read_only": "this run reads the frozen prior and never writes it. Its bytes, its Git blob id and its accepted identity are asserted unchanged before and after every write this run performs.",
+  "content_sha256_after": "391c71b72d7fa9406890c74eed9a505278ea4f8f4536a01cd3db1edf403f6407",
+  "unchanged": true
+ },
+ "disjointness_from_the_accepted_prior": {
+  "span_overlap": [],
+  "leaf_overlap": [],
+  "collection_overlap": {
+   "records": [],
+   "components": [],
+   "prose_bindings": [],
+   "relationships": [],
+   "references": [],
+   "provenance": []
+  },
+  "prior_spans_retained": 558,
+  "prior_obligations_retained": 47,
+  "zero_movement": {
+   "records": {
+    "prior_elements": 47,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 47,
+     "new": 1,
+     "merged": 48,
+     "sums": true
+    }
+   },
+   "components": {
+    "prior_elements": 136,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 136,
+     "new": 9,
+     "merged": 145,
+     "sums": true
+    }
+   },
+   "prose_bindings": {
+    "prior_elements": 49,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 49,
+     "new": 0,
+     "merged": 49,
+     "sums": true
+    }
+   },
+   "relationships": {
+    "prior_elements": 0,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 0,
+     "new": 0,
+     "merged": 0,
+     "sums": true
+    }
+   },
+   "references": {
+    "prior_elements": 53,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 53,
+     "new": 9,
+     "merged": 62,
+     "sums": true
+    }
+   },
+   "provenance": {
+    "prior_elements": 575,
+    "prefix_is_byte_identical": true,
+    "prior_payloads_absent_from_the_merge": [],
+    "payload_element_count": {
+     "prior": 575,
+     "new": 52,
+     "merged": 627,
+     "sums": true
+    }
+   }
+  }
+ },
+ "review_disposition": {
+  "open_schema_stops": [],
+  "residues": [
+   "the nine entries this batch cites - Climbing, Crawling, Flying, Jumping, Swimming, Burrow Speed, Climb Speed, Fly Speed and Swim Speed - are unresolved and belong to later glossary batches. This batch does not ingest them",
+   "glossary.concentration remains unresolved from the accepted prior and is untouched here",
+   "Dash's Speed citation resolves in the merged candidate only. Accepted authority still carries two unresolved targets and does so until an acceptance that has not happened",
+   "span granularity is proposed, not settled",
+   "the full-corpus obligation #137 governs is undischarged: this is one record"
+  ],
+  "requires_owner_authorization_before": [
+   "any acceptance of this batch into committed authority",
+   "any acceptance is also what would carry the accepted prior across 5d-lift-schema-10-to-11; this run proves the crossing and performs none of it"
+  ]
+ },
+ "repository_inputs": {
+  "repository_root_derived_from": "Path(__file__).resolve().parents[2]",
+  "source_pdf": "docs/sources/DnD5_5e_SRD_CC_v5_2_1.pdf",
+  "source_manifest": ".claude/review-notes/issue-5d-speed-1-source-manifest.json",
+  "review_prior": "tests/ingestion/mechanical/data/accepted_prior_conditions_1_hazards_1_actions_1_attitudes_1_areas_of_effect_1_cover_1.json",
+  "afterworlds_package": "src/afterworlds",
+  "output_directory": ".claude/review-notes",
+  "note": "Recorded relative to the derived root on purpose: an absolute path would make this artifact differ between two checkouts that produced identical content. Every path above is repository-retained, so this proposal is reproducible from the repository alone. The live accepted-authority oracle is deliberately absent: it is not an input. This run reads it only as a mutation sentinel and records neither its path nor its digest, because an accumulating artifact's identity goes stale at the next acceptance."
+ },
+ "spans": [
+  {
+   "clause_id": "glossary/0/0",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "193c5f92-bea4-5d32-8f71-57e8021d2d00",
+   "char_start": 0,
+   "char_end": 5,
+   "span_id": "20d17a40-e45f-57a4-b989-e5d65777273f",
+   "text": "Speed",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "record",
+     "target": "glossary.speed"
+    }
+   ],
+   "claims": 1,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause_id": "glossary/1/0",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "bef2033c-0879-5829-951b-3ccefa22356f",
+   "char_start": 0,
+   "char_end": 23,
+   "span_id": "c22e81ec-4489-5120-bc0b-aa16ecea582c",
+   "text": "A creature has a Speed,",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "record",
+     "target": "glossary.speed"
+    }
+   ],
+   "claims": 1,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause_id": "glossary/1/1",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "bef2033c-0879-5829-951b-3ccefa22356f",
+   "char_start": 23,
+   "char_end": 103,
+   "span_id": "d987de22-4ea6-5058-ac82-6dd0d343ec8a",
+   "text": " which is the distance in feet the creature can cover when it moves on its turn.",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G1",
+   "carriers": [
+    {
+     "kind": "fact",
+     "target": "glossary.speed/speed_definition/914a54e5de269f65"
+    }
+   ],
+   "claims": 1,
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY"
+  },
+  {
+   "clause_id": "glossary/2/0",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "b469c79c-b4b0-51aa-83cb-65e8e0e70e2d",
+   "char_start": 0,
+   "char_end": 8,
+   "span_id": "0f34875c-9862-55f9-90ed-6de593d85ab5",
+   "text": "See also",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "record",
+     "target": "glossary.speed"
+    }
+   ],
+   "claims": 1,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause_id": "glossary/3/0",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "88acf51c-d44c-5171-8bf9-349488ff5c16",
+   "char_start": 0,
+   "char_end": 11,
+   "span_id": "144955c8-f53d-5bd2-89c9-ece35877ed5a",
+   "text": "“Climbing,”",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "reference",
+     "target": "glossary.speed -> glossary.climbing"
+    }
+   ],
+   "claims": 1,
+   "rationale": "an explicit printed pointer at another entry; carried as an outgoing reference with the source's own scope, CONTEXTUAL on the reference"
+  },
+  {
+   "clause_id": "glossary/3/1",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "88acf51c-d44c-5171-8bf9-349488ff5c16",
+   "char_start": 11,
+   "char_end": 23,
+   "span_id": "a423a9d2-e153-5a76-b5f2-93ca1345dfdd",
+   "text": " “Crawling,”",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "reference",
+     "target": "glossary.speed -> glossary.crawling"
+    }
+   ],
+   "claims": 1,
+   "rationale": "an explicit printed pointer at another entry; carried as an outgoing reference with the source's own scope, CONTEXTUAL on the reference"
+  },
+  {
+   "clause_id": "glossary/3/2",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "88acf51c-d44c-5171-8bf9-349488ff5c16",
+   "char_start": 23,
+   "char_end": 33,
+   "span_id": "06a81f0f-b3c9-5ba5-9483-f86af7e00f9a",
+   "text": " “Flying,”",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "reference",
+     "target": "glossary.speed -> glossary.flying"
+    }
+   ],
+   "claims": 1,
+   "rationale": "an explicit printed pointer at another entry; carried as an outgoing reference with the source's own scope, CONTEXTUAL on the reference"
+  },
+  {
+   "clause_id": "glossary/3/3",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "88acf51c-d44c-5171-8bf9-349488ff5c16",
+   "char_start": 33,
+   "char_end": 44,
+   "span_id": "aeb1a24d-5aec-551c-ace4-555381eb02c1",
+   "text": " “Jumping,”",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "reference",
+     "target": "glossary.speed -> glossary.jumping"
+    }
+   ],
+   "claims": 1,
+   "rationale": "an explicit printed pointer at another entry; carried as an outgoing reference with the source's own scope, CONTEXTUAL on the reference"
+  },
+  {
+   "clause_id": "glossary/3/4",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "88acf51c-d44c-5171-8bf9-349488ff5c16",
+   "char_start": 44,
+   "char_end": 55,
+   "span_id": "5f71fd01-f0fa-5dd9-a04b-5d6681b47ef3",
+   "text": " “Swimming”",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "reference",
+     "target": "glossary.speed -> glossary.swimming"
+    }
+   ],
+   "claims": 1,
+   "rationale": "an explicit printed pointer at another entry; carried as an outgoing reference with the source's own scope, CONTEXTUAL on the reference"
+  },
+  {
+   "clause_id": "glossary/3/5",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "88acf51c-d44c-5171-8bf9-349488ff5c16",
+   "char_start": 55,
+   "char_end": 90,
+   "span_id": "32ceff0a-e4d2-577d-bf00-7179eea5a72b",
+   "text": " and “Playing the Game” (“Combat”).",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "record",
+     "target": "glossary.speed"
+    }
+   ],
+   "claims": 1,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause_id": "glossary/4/0",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "ac4db61a-9763-5b0b-8b3b-381ce52c5d32",
+   "char_start": 0,
+   "char_end": 15,
+   "span_id": "d5c9270b-ceb4-5cfd-90a9-0221a4787d3d",
+   "text": "Special Speeds.",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "record",
+     "target": "glossary.speed"
+    }
+   ],
+   "claims": 1,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause_id": "glossary/5/0",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "05dabf62-ad50-5ae7-9196-12265dc0c293",
+   "char_start": 0,
+   "char_end": 76,
+   "span_id": "82d12d0d-766b-58b7-a1a2-06418db6614a",
+   "text": "Some creatures have special speeds, such as a Burrow Speed, Climb Speed, Fly",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G6",
+   "carriers": [
+    {
+     "kind": "component",
+     "target": "glossary.speed/special_speeds"
+    },
+    {
+     "kind": "fact_detail",
+     "target": "glossary.speed/special_speeds/1f1c43e2bcf12c9b"
+    },
+    {
+     "kind": "fact_detail",
+     "target": "glossary.speed/special_speeds/39233c12435680cf"
+    },
+    {
+     "kind": "fact_detail",
+     "target": "glossary.speed/special_speeds/8f915ca769180442"
+    },
+    {
+     "kind": "reference",
+     "target": "glossary.speed -> glossary.burrow_speed"
+    },
+    {
+     "kind": "reference",
+     "target": "glossary.speed -> glossary.climb_speed"
+    },
+    {
+     "kind": "reference",
+     "target": "glossary.speed -> glossary.fly_speed"
+    }
+   ],
+   "claims": 7,
+   "rationale": "states something true of a whole group of facts and of no single fact in it, so it is claimed PRIMARY on the component; each fact the sentence names then cites the same span CONTEXTUAL, which is the carrier accepted authority already uses for this shape"
+  },
+  {
+   "clause_id": "glossary/6/0",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "a2ac2ebd-a877-5b81-921e-1edd473c3a6f",
+   "char_start": 0,
+   "char_end": 46,
+   "span_id": "cfb9f419-f8fc-5714-a7c4-58b8cae02a0e",
+   "text": "Speed, or Swim Speed, each of which is defined",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G6",
+   "carriers": [
+    {
+     "kind": "component",
+     "target": "glossary.speed/special_speeds"
+    },
+    {
+     "kind": "fact_detail",
+     "target": "glossary.speed/special_speeds/8f915ca769180442"
+    },
+    {
+     "kind": "fact_detail",
+     "target": "glossary.speed/special_speeds/d63b59cf59df0573"
+    },
+    {
+     "kind": "reference",
+     "target": "glossary.speed -> glossary.fly_speed"
+    },
+    {
+     "kind": "reference",
+     "target": "glossary.speed -> glossary.swim_speed"
+    }
+   ],
+   "claims": 5,
+   "rationale": "states something true of a whole group of facts and of no single fact in it, so it is claimed PRIMARY on the component; each fact the sentence names then cites the same span CONTEXTUAL, which is the carrier accepted authority already uses for this shape"
+  },
+  {
+   "clause_id": "glossary/7/0",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "a4accfca-97dc-5361-a97f-02ca30eafb25",
+   "char_start": 0,
+   "char_end": 17,
+   "span_id": "b65f1c7f-9e60-5018-aba2-adf8287b5429",
+   "text": "in this glossary.",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G6",
+   "carriers": [
+    {
+     "kind": "component",
+     "target": "glossary.speed/special_speeds"
+    }
+   ],
+   "claims": 1,
+   "rationale": "states something true of a whole group of facts and of no single fact in it, so it is claimed PRIMARY on the component; each fact the sentence names then cites the same span CONTEXTUAL, which is the carrier accepted authority already uses for this shape"
+  },
+  {
+   "clause_id": "glossary/7/1",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "a4accfca-97dc-5361-a97f-02ca30eafb25",
+   "char_start": 17,
+   "char_end": 89,
+   "span_id": "b7b38064-4155-59cc-9088-61912807cd11",
+   "text": " If you have more than one speed, choose which one to use when you move;",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G4",
+   "carriers": [
+    {
+     "kind": "fact",
+     "target": "glossary.speed/speed_selection/257515e28b0731a4"
+    }
+   ],
+   "claims": 1,
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY"
+  },
+  {
+   "clause_id": "glossary/7/2",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "a4accfca-97dc-5361-a97f-02ca30eafb25",
+   "char_start": 89,
+   "char_end": 141,
+   "span_id": "d310f9f6-f920-5f90-85dc-2516a7294d68",
+   "text": " you can switch between the speeds during your move.",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G4",
+   "carriers": [
+    {
+     "kind": "fact",
+     "target": "glossary.speed/speed_selection/d0989a0d3ec89589"
+    }
+   ],
+   "claims": 1,
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY"
+  },
+  {
+   "clause_id": "glossary/7/3",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "a4accfca-97dc-5361-a97f-02ca30eafb25",
+   "char_start": 141,
+   "char_end": 218,
+   "span_id": "8c953c5b-4654-5d46-bdf4-5de23236f967",
+   "text": " Whenever you switch, subtract the distance already moved from the new speed.",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G4",
+   "carriers": [
+    {
+     "kind": "fact",
+     "target": "glossary.speed/speed_switch_limit/a032d62d4775e314"
+    }
+   ],
+   "claims": 1,
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY"
+  },
+  {
+   "clause_id": "glossary/7/4",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "a4accfca-97dc-5361-a97f-02ca30eafb25",
+   "char_start": 218,
+   "char_end": 271,
+   "span_id": "7d8b0c04-ea65-5e27-b942-b3be16784533",
+   "text": " The result determines how much farther you can move.",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G4",
+   "carriers": [
+    {
+     "kind": "fact",
+     "target": "glossary.speed/speed_switch_limit/a032d62d4775e314"
+    }
+   ],
+   "claims": 1,
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY"
+  },
+  {
+   "clause_id": "glossary/7/5",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "a4accfca-97dc-5361-a97f-02ca30eafb25",
+   "char_start": 271,
+   "char_end": 352,
+   "span_id": "d0a35294-f634-5ba1-b7bd-bb3aed27b325",
+   "text": " If the result is 0 or less, you can’t use the new speed during the current move.",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G4",
+   "carriers": [
+    {
+     "kind": "fact",
+     "target": "glossary.speed/speed_switch_limit/a032d62d4775e314"
+    }
+   ],
+   "claims": 1,
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY"
+  },
+  {
+   "clause_id": "glossary/7/6",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "a4accfca-97dc-5361-a97f-02ca30eafb25",
+   "char_start": 352,
+   "char_end": 494,
+   "span_id": "a5ca8bb2-19ec-5cab-9fed-eb535f51306a",
+   "text": " For example, if you have a Speed of 30 and a Fly Speed of 40, you could fly 10 feet, walk 10 feet, and leap into the air to fly 20 feet more.",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "fact_context",
+     "target": "glossary.speed/speed_switch_limit/a032d62d4775e314"
+    }
+   ],
+   "claims": 1,
+   "rationale": "bounds exactly one typed fact and states no rule of its own; supporting authority claimed CONTEXTUAL by that fact rather than by the record"
+  },
+  {
+   "clause_id": "glossary/8/0",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "a1ebf029-bdba-5841-b964-2f93f6e02012",
+   "char_start": 0,
+   "char_end": 23,
+   "span_id": "994522d4-885a-556d-96cc-498a6cce5653",
+   "text": "Changes to Your Speeds.",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "record",
+     "target": "glossary.speed"
+    }
+   ],
+   "claims": 1,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause_id": "glossary/9/0",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "8421e19c-55c4-5aff-9041-7ec1e40cdb2d",
+   "char_start": 0,
+   "char_end": 150,
+   "span_id": "1d4621ba-0815-5fa6-a986-3c6b72c1cb5a",
+   "text": "If an effect increases or decreases your Speed for a time, any special speed you have increases or decreases by an equal amount for the same duration.",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G5",
+   "carriers": [
+    {
+     "kind": "fact",
+     "target": "glossary.speed/speed_change_propagation/34ca484dd89df3de"
+    }
+   ],
+   "claims": 1,
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY"
+  },
+  {
+   "clause_id": "glossary/9/1",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "8421e19c-55c4-5aff-9041-7ec1e40cdb2d",
+   "char_start": 150,
+   "char_end": 260,
+   "span_id": "3b23cae7-793e-5e1a-a0bf-25c84da8ab4d",
+   "text": " For example, if your Speed is reduced to 0 and you have a Climb Speed, your Climb Speed is also reduced to 0.",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "fact_context",
+     "target": "glossary.speed/speed_change_propagation/34ca484dd89df3de"
+    }
+   ],
+   "claims": 1,
+   "rationale": "bounds exactly one typed fact and states no rule of its own; supporting authority claimed CONTEXTUAL by that fact rather than by the record"
+  },
+  {
+   "clause_id": "glossary/9/2",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "8421e19c-55c4-5aff-9041-7ec1e40cdb2d",
+   "char_start": 260,
+   "char_end": 279,
+   "span_id": "aab5908b-c438-5b33-9b92-ceedbba76e2c",
+   "text": " Similarly, if your",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "fact_context",
+     "target": "glossary.speed/speed_change_propagation/34ca484dd89df3de"
+    }
+   ],
+   "claims": 1,
+   "rationale": "bounds exactly one typed fact and states no rule of its own; supporting authority claimed CONTEXTUAL by that fact rather than by the record"
+  },
+  {
+   "clause_id": "glossary/10/0",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "c6d4aae3-073c-5755-be6c-8f23c030214f",
+   "char_start": 0,
+   "char_end": 50,
+   "span_id": "2090d14c-42f9-58ec-966f-3cab629476a4",
+   "text": "Speed is halved and you have a Fly Speed, your Fly",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "fact_context",
+     "target": "glossary.speed/speed_change_propagation/34ca484dd89df3de"
+    }
+   ],
+   "claims": 1,
+   "rationale": "bounds exactly one typed fact and states no rule of its own; supporting authority claimed CONTEXTUAL by that fact rather than by the record"
+  },
+  {
+   "clause_id": "glossary/11/0",
+   "site": "glossary",
+   "page_index": 187,
+   "leaf_id": "2f12fa72-6d6e-57f4-b426-e307bde915d9",
+   "char_start": 0,
+   "char_end": 21,
+   "span_id": "51db0cb5-00ed-5051-8165-bdd84e0df899",
+   "text": "Speed is also halved.",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "fact_context",
+     "target": "glossary.speed/speed_change_propagation/34ca484dd89df3de"
+    }
+   ],
+   "claims": 1,
+   "rationale": "bounds exactly one typed fact and states no rule of its own; supporting authority claimed CONTEXTUAL by that fact rather than by the record"
+  },
+  {
+   "clause_id": "combat/0/0",
+   "site": "combat",
+   "page_index": 13,
+   "leaf_id": "8f05389a-13cb-5480-a246-6a5df9230a00",
+   "char_start": 0,
+   "char_end": 21,
+   "span_id": "9717f242-7805-517b-ad45-19e418e7552c",
+   "text": "Movement and Position",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "record",
+     "target": "glossary.speed"
+    }
+   ],
+   "claims": 1,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause_id": "combat/1/0",
+   "site": "combat",
+   "page_index": 13,
+   "leaf_id": "b93abccd-4ffe-5291-a534-b3aa8fe30b0b",
+   "char_start": 0,
+   "char_end": 51,
+   "span_id": "22858bf5-3fd8-510e-93b4-2286ae407795",
+   "text": "On your turn, you can move a distance equal to your",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G2",
+   "carriers": [
+    {
+     "kind": "fact",
+     "target": "glossary.speed/movement_allowance/6183dc5b4c8aef8a"
+    }
+   ],
+   "claims": 1,
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY"
+  },
+  {
+   "clause_id": "combat/2/0",
+   "site": "combat",
+   "page_index": 13,
+   "leaf_id": "4744f798-dcc1-53ab-a6ae-9e6ce4800634",
+   "char_start": 0,
+   "char_end": 14,
+   "span_id": "86771827-c419-55bd-b864-897f3da07435",
+   "text": "Speed or less.",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G2",
+   "carriers": [
+    {
+     "kind": "fact",
+     "target": "glossary.speed/movement_allowance/6183dc5b4c8aef8a"
+    }
+   ],
+   "claims": 1,
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY"
+  },
+  {
+   "clause_id": "combat/2/1",
+   "site": "combat",
+   "page_index": 13,
+   "leaf_id": "4744f798-dcc1-53ab-a6ae-9e6ce4800634",
+   "char_start": 14,
+   "char_end": 45,
+   "span_id": "4b9c35fa-2812-5189-9d06-cf538bfd92bd",
+   "text": " Or you can decide not to move.",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G2",
+   "carriers": [
+    {
+     "kind": "fact",
+     "target": "glossary.speed/movement_allowance/6183dc5b4c8aef8a"
+    }
+   ],
+   "claims": 1,
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY"
+  },
+  {
+   "clause_id": "combat/3/0",
+   "site": "combat",
+   "page_index": 13,
+   "leaf_id": "afee8441-9c5f-5ebc-89b6-211254d8f97a",
+   "char_start": 0,
+   "char_end": 105,
+   "span_id": "70747d85-3f32-5097-9aa1-3d4524372851",
+   "text": "Your movement can include climbing, crawling, jumping, and swimming (each explained in “Rules Glossary”).",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G6",
+   "carriers": [
+    {
+     "kind": "component",
+     "target": "glossary.speed/movement_modes"
+    },
+    {
+     "kind": "fact_detail",
+     "target": "glossary.speed/movement_modes/0644dacdb96695a0"
+    },
+    {
+     "kind": "fact_detail",
+     "target": "glossary.speed/movement_modes/c845468cf1bb2070"
+    },
+    {
+     "kind": "fact_detail",
+     "target": "glossary.speed/movement_modes/c9377183f178461f"
+    },
+    {
+     "kind": "fact_detail",
+     "target": "glossary.speed/movement_modes/040ab0c0024902b4"
+    }
+   ],
+   "claims": 5,
+   "rationale": "states something true of a whole group of facts and of no single fact in it, so it is claimed PRIMARY on the component; each fact the sentence names then cites the same span CONTEXTUAL, which is the carrier accepted authority already uses for this shape"
+  },
+  {
+   "clause_id": "combat/3/1",
+   "site": "combat",
+   "page_index": 13,
+   "leaf_id": "afee8441-9c5f-5ebc-89b6-211254d8f97a",
+   "char_start": 105,
+   "char_end": 224,
+   "span_id": "82e70512-273e-57b7-aa8e-ca387094fc4b",
+   "text": " These different modes of movement can be combined with your regular movement, or they can constitute your entire move.",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G6",
+   "carriers": [
+    {
+     "kind": "component",
+     "target": "glossary.speed/movement_composition"
+    },
+    {
+     "kind": "fact_detail",
+     "target": "glossary.speed/movement_composition/5bc83cf13326fab9"
+    },
+    {
+     "kind": "fact_detail",
+     "target": "glossary.speed/movement_composition/8f2909931590f8c7"
+    }
+   ],
+   "claims": 3,
+   "rationale": "states something true of a whole group of facts and of no single fact in it, so it is claimed PRIMARY on the component; each fact the sentence names then cites the same span CONTEXTUAL, which is the carrier accepted authority already uses for this shape"
+  },
+  {
+   "clause_id": "combat/3/2",
+   "site": "combat",
+   "page_index": 13,
+   "leaf_id": "afee8441-9c5f-5ebc-89b6-211254d8f97a",
+   "char_start": 224,
+   "char_end": 394,
+   "span_id": "83839fdd-c307-5263-9c76-1c2621be6ddb",
+   "text": " However you’re moving with your Speed, you deduct the distance of each part of your move from it until it is used up or until you are done moving, whichever comes first.",
+   "disposition": "substantive",
+   "review_state": "proposed",
+   "gap_id": "G3",
+   "carriers": [
+    {
+     "kind": "fact",
+     "target": "glossary.speed/movement_depletion/ccbea9e00e3358bd"
+    }
+   ],
+   "claims": 1,
+   "rationale": "states a mechanic the closed typed union carries exactly, with every qualifier that narrows it carried by a structure of this schema rather than left implicit; where the source prints one rule across several clauses, each printing claims the one fact PRIMARY"
+  },
+  {
+   "clause_id": "combat/3/3",
+   "site": "combat",
+   "page_index": 13,
+   "leaf_id": "afee8441-9c5f-5ebc-89b6-211254d8f97a",
+   "char_start": 394,
+   "char_end": 455,
+   "span_id": "8d37c29f-32e6-5af0-9c9b-d91c25e3478a",
+   "text": " A character’s Speed is determined during character creation.",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "record",
+     "target": "glossary.speed"
+    }
+   ],
+   "claims": 1,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause_id": "combat/3/4",
+   "site": "combat",
+   "page_index": 13,
+   "leaf_id": "afee8441-9c5f-5ebc-89b6-211254d8f97a",
+   "char_start": 455,
+   "char_end": 511,
+   "span_id": "5d81f44c-bf6f-58dc-8b1d-ec6b9e495a72",
+   "text": " A monster’s Speed is noted in the monster’s stat block.",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "record",
+     "target": "glossary.speed"
+    }
+   ],
+   "claims": 1,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  },
+  {
+   "clause_id": "combat/3/5",
+   "site": "combat",
+   "page_index": 13,
+   "leaf_id": "afee8441-9c5f-5ebc-89b6-211254d8f97a",
+   "char_start": 511,
+   "char_end": 635,
+   "span_id": "957cc31f-7505-5828-b4d2-15bbb35b3339",
+   "text": " See “Rules Glossary” for more about Speed as well as about special speeds, such as a Climb Speed, Fly Speed, or Swim Speed.",
+   "disposition": "supporting_authority",
+   "review_state": "proposed",
+   "gap_id": null,
+   "carriers": [
+    {
+     "kind": "record",
+     "target": "glossary.speed"
+    }
+   ],
+   "claims": 1,
+   "rationale": "identifies, frames, or defines the mechanic; preserved as supporting authority owned by the record rather than discarded"
+  }
+ ],
+ "determinism": {
+  "procedure": "The parent writes both artifacts in their final form, then re-executes this generator in a separate process, then compares the final bytes of both files and asserts the child minted the same proposal identity.",
+  "newlines": "LF, written explicitly, on every platform",
+  "proposal_sha256": "78e6dc72c208f11f1a1c234611751563ece50338d7c212bec81054e4f111188a",
+  "audit_self_hash": "omitted: an audit cannot state its own final digest without changing the bytes that digest describes. The run asserts instead that the parent's and the child's final audits are byte-identical, and reports the resulting digest to stdout.",
+  "reproduce_from_the_repository": "python .claude/review-notes/issue-5d-batch-speed-1-generator.py   (from the repository root). Every input is repository-retained: the committed PDF, the committed discovery manifest, the committed frozen prior and the package under src/."
+ }
+}

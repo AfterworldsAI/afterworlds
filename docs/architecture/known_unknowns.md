@@ -489,28 +489,82 @@ reference targets below is therefore still three. *(That last sentence has since
 accepted `cover-1` on 2026-09-11, which defined the target and took the count to two. The rest of
 this paragraph stands as written — it records what the schema change alone did.)*
 
-Still outstanding inside CRD Issue 5d: **the accepted corpus is incomplete**. Six batches are
+**Representation schema 11 (the `Speed` entry) discharges nothing here, and the movement residue
+this document already carries is the reason it has to say so explicitly.** `Speed` is printed twice in
+the bound release — a Rules Glossary definition and `Playing the Game > Combat > Movement and
+Position`, joined by the source's own reciprocal citation — 16 leaves, 36 clauses, 16 of them
+substantive. No reason code in `policy.IRREDUCIBILITY_REASONS` is affirmatively true of any of them, so
+schema 11 adds seven families over eleven new closed vocabularies and widens a twelfth,
+`MovementMode`, by one member (`jump`), under #137 contract 3 and ADR-005d Decision 4; see the
+schema-11 amendment in
+`docs/decisions/adr-005d-complete-typed-mechanical-authority.md`. **Four movement items above are
+neither narrowed nor leaned on.** *"Movement options and per-foot movement cost"* remains
+`conditions-1` residue; *"Ratio-form movement costs"* is untouched, because no clause in this
+population states a ratio and `MovementCostKind` gains no member; *"Applicability over a capability
+predicate"* concerns the `Swimming` and `Climbing` entries, which are outside this batch's population
+and whose *"if you have a Swim Speed and use it to swim"* is still unreachable by
+`ApplicabilityKind` — schema 11 names `special_speed` as a category and does not make possession of one
+an applicability condition; and the *sequencing* deferral is untouched, because `SpeedSelectionFact`
+and `SpeedSwitchLimitFact` state a choice among a creature's own speeds and its printed cost, not a
+position in a sequence, so neither `MovementInterleaveFact` nor `TriggeredResolutionFact` gains an
+instance or a member. **No new Known Unknown is created.** **Nothing evaluates and nothing about a
+grid is represented.** Schema 11 **invents** no parameter value, unit, coordinate or grid semantic,
+which is not the same as carrying no unit: `SpeedDefinitionFact.unit` is `DistanceUnit.FOOT`, the
+member schema 5 registered, and it names the foot *"the distance in feet"* prints. Reproducing a
+unit the sentence states is the opposite of inventing geometry — no schema-11 vocabulary mentions a
+square, a segment or a corner, and no fact in this batch carries a number.
+Subtracting a move from the allowance, applying the propagation rule to a creature's actual speed
+list, and every square, segment and corner rule stay outside, where #137's Out of scope and ADR-005d
+Decision 11 leave them. The grid rules printed at `Playing the Game > Exploration > Vehicles` are
+outside **this batch** by its membership rule and not outside declarative 5d; their printed
+representation remains later 5d work, neither prejudged nor scheduled. **`glossary.speed` is not
+resolved by this change.** A schema can now state the entry; only an accepted `speed-1` proposal would
+define the target, and none exists. The count of unresolved cross-batch reference targets below is
+therefore still two. When such a proposal is accepted it would close `glossary.speed` and open nine —
+`glossary.climbing`, `.crawling`, `.flying`, `.jumping`, `.swimming`, `.burrow_speed`, `.climb_speed`,
+`.fly_speed`, `.swim_speed` — taking the count to ten. ~~That is arithmetic over two sets and not a
+measured seam result: no operation merges an accepted prior with an unaccepted draft.~~ It is recorded
+here for the same reason the earlier residue movements were — as a consequence of accepting a complete
+source class, not a reason to choose one.
+
+**Corrected at the `speed-1` proposal (2026-09-12), struck above rather than deleted.** The struck
+sentence was wrong. `acceptance._merge_representation` merges a lifted accepted prior with a draft and
+`oracle.candidate_from_accepted_inputs` builds a candidate over the result, so ten is **measured**, not
+arithmetic: the proposal generator runs `validate_representation` twice — nine unresolved-reference
+findings against the draft alone, ten against the merge with the schema-11-lifted six-batch prior — and
+asserts both target lists exactly. Separately, a `speed-1` proposal artifact now exists
+(`.claude/review-notes/issue-5d-batch-speed-1-PROPOSAL.json`, identity `bd9d4942…`) and is unaccepted;
+the merge above is performed in memory, so **the count of unresolved targets in accepted authority is
+still two** and the rest of this paragraph stands. *(That last clause has since expired: the Owner
+accepted `speed-1` on 2026-09-12, which resolved `glossary.speed`, emitted nine citations of its own
+and took the count to ten. The rest of this paragraph stands as written — it records what the
+proposal alone did.)*
+
+Still outstanding inside CRD Issue 5d: **the accepted corpus is incomplete**. Seven batches are
 accepted. `conditions-1` was reviewed and accepted by the Owner on 2026-08-23, `hazards-1` on
 2026-09-03, `actions-1` on 2026-09-09, `attitudes-1` on 2026-09-10, `areas-of-effect-1` on
-2026-09-11 and `cover-1` later the same day; all six are committed as accepted authority for the
-production SRD 5.2.1 release, so that release resolves to a committed oracle — but that oracle covers
-**47 records and 558 spans** (15 conditions, 5 hazards, 12 actions, 3 attitudes and 6 areas of effect,
-plus the glossary entry defining each list, and the `Cover` glossary rule, which defines no list of
-its own), not the corpus. Two cross-batch reference targets named by accepted content —
-`glossary.concentration` and `glossary.speed` — are still unresolved, and no target
-was invented for them; `attitudes-1` closed three others by accepting the complete source-defined
-Attitude class, `areas-of-effect-1` closed none while adding `glossary.cover`, and `cover-1` closed
-that one by defining the entry `areas-of-effect-1` cites. All three are
-consequences of accepting complete source classes rather than reasons for accepting them, and the
-residue moved in both directions rather than only down. The publication path therefore returns
-`INCOMPLETE` for the production projection rather than `ABSENT`, the runtime binding still reports
-`UNPUBLISHED` because no mechanical projection has been published or activated, and later batches
-extend the same release artifact through `accept_proposal`'s `prior=` merge rather than committing a
-second one — as `hazards-1`, `actions-1`, `attitudes-1`, `areas-of-effect-1` and `cover-1` each did.
-The obsolete
-`MechanicalEntity` path and the legacy
-chunk-targeting prose override path both remain in place pending the final
-activation/legacy-retirement PR.
+2026-09-11, `cover-1` later the same day and `speed-1` on 2026-09-12; all seven are committed as
+accepted authority for the production SRD 5.2.1 release, so that release resolves to a committed
+oracle — but that oracle covers **48 records and 594 spans** (15 conditions, 5 hazards, 12 actions,
+3 attitudes and 6 areas of effect, plus the glossary entry defining each list, and the `Cover` and
+`Speed` glossary rules, neither of which defines a list of its own), not the corpus. Ten cross-batch
+reference targets named by accepted content are still unresolved and no target was invented for any
+of them: `glossary.concentration`, inherited since `conditions-1`, plus the nine movement and
+special-speed entries `speed-1` cites without defining — `glossary.burrow_speed`,
+`glossary.climb_speed`, `glossary.climbing`, `glossary.crawling`, `glossary.fly_speed`,
+`glossary.flying`, `glossary.jumping`, `glossary.swim_speed` and `glossary.swimming`.
+`attitudes-1` closed three targets by accepting the complete source-defined Attitude class,
+`areas-of-effect-1` closed none while adding `glossary.cover`, `cover-1` closed that one by defining
+the entry `areas-of-effect-1` cites, and `speed-1` closed `glossary.speed` while opening nine. All
+four are consequences of accepting complete source classes rather than reasons for accepting them,
+and the residue moves in both directions rather than only down — `speed-1` moved it both ways at
+once. The publication path therefore returns `INCOMPLETE` for the production projection rather than
+`ABSENT`, the runtime binding still reports `UNPUBLISHED` because no mechanical projection has been
+published or activated, and later batches extend the same release artifact through
+`accept_proposal`'s `prior=` merge rather than committing a second one — as `hazards-1`,
+`actions-1`, `attitudes-1`, `areas-of-effect-1`, `cover-1` and `speed-1` each did. The obsolete
+`MechanicalEntity` path and the legacy chunk-targeting prose override path both remain in place
+pending the final activation/legacy-retirement PR.
 
 **This does not move CRD Issue 15c's boundary.** Publishing a mechanical projection proves complete
 *representation*, never adapter capability. The bounded-d20 adapter's capability manifest, certified

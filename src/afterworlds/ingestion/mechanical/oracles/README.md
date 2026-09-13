@@ -16,8 +16,8 @@ any of them.
 `srd-5-2-1-corpus-36b786d8-fa2.json` — accepted authority for the SRD 5.2.1
 release (`4458fa10-4a66-5e0e-9ecc-ea37530ad2b4` /
 `5.2.1-corpus.36b786d8-fa2`), currently holding **batches `conditions-1`,
-`hazards-1`, `actions-1`, `attitudes-1`, `areas-of-effect-1` and `cover-1`** —
-47 accepted records over 558 accepted spans.
+`hazards-1`, `actions-1`, `attitudes-1`, `areas-of-effect-1`, `cover-1` and
+`speed-1`** — 48 accepted records over 594 accepted spans.
 
 The file is named for the release, not for the batch, because the resolver
 matches on the release binding and refuses outright when two artifacts claim one
@@ -29,17 +29,25 @@ how `actions-1` was accepted on 2026-09-09 over both, how `attitudes-1` was
 accepted on 2026-09-10 over all three — that one also crossing a schema, from 7
 to 8, through the registered lift rather than by restamping the file — and how
 `areas-of-effect-1` was accepted on 2026-09-11 over all four, crossing from 8 to
-9 the same way, and how `cover-1` was accepted later the same day over all five,
-crossing from 9 to 10.
+9 the same way, how `cover-1` was accepted later the same day over all five,
+crossing from 9 to 10, and how `speed-1` was accepted on 2026-09-12 over all
+six, crossing from 10 to 11.
 
 **The CRD Issue 5d corpus is incomplete, so this release still cannot publish.**
-Batches beyond `cover-1` have not begun, two cross-batch reference targets named
-by accepted content — `glossary.concentration` and `glossary.speed` — are still
-unresolved, and nothing is published or activated. `areas-of-effect-1` resolved
-none of them and added `glossary.cover`; `cover-1` defined that entry, so its
-`Cover` citation now resolves and the count went back to two. The residue moves
-in both directions — accepting a complete source class can widen it as well as
-narrow it — and neither direction is a reason to accept or withhold a batch.
+Batches beyond `speed-1` have not begun, ten cross-batch reference targets named
+by accepted content are still unresolved, and nothing is published or activated:
+`glossary.concentration`, inherited and untouched since `conditions-1`, plus the
+nine movement entries `speed-1` cites without defining — `glossary.burrow_speed`,
+`glossary.climb_speed`, `glossary.climbing`, `glossary.crawling`,
+`glossary.fly_speed`, `glossary.flying`, `glossary.jumping`,
+`glossary.swim_speed` and `glossary.swimming`. The residue moves in both
+directions and `speed-1` moved it both ways at once: it defines `glossary.speed`,
+so the `Speed` citation `actions-1` printed in Dash now resolves, and it emits
+nine citations of its own, so the count went from two to ten. Those nine are
+cited, not ingested — no record, component, fact or span was created for any of
+them, and no target was invented. Accepting a complete source class can widen
+the residue as well as narrow it, and neither direction is a reason to accept or
+withhold a batch.
 Accepted authority now exists and resolves, but the publication gate compares it
 against the *whole* persisted projection: a projection carrying any record this
 artifact does not accept fails with `MISSING_AUTHORITY` / `UNEXPECTED_AUTHORITY`.

@@ -269,7 +269,7 @@ def test_exactly_one_accepted_artifact_is_committed_for_the_release() -> None:
     somebody commits production authority without review, this fails. It used
     to assert the directory was empty; that claim expired when the Owner
     accepted ``conditions-1``, and again with each batch that extended the same
-    file. The property worth keeping survives all five extensions: **one**
+    file. The property worth keeping survives all six extensions: **one**
     artifact, for **this** release, holding exactly the batches the Owner
     accepted.
 
@@ -291,6 +291,7 @@ def test_exactly_one_accepted_artifact_is_committed_for_the_release() -> None:
         "conditions-1",
         "cover-1",
         "hazards-1",
+        "speed-1",
     ]
     assert [a.batch_id for a in inputs.schema_anchors] == [
         "conditions-1",
@@ -299,6 +300,7 @@ def test_exactly_one_accepted_artifact_is_committed_for_the_release() -> None:
         "attitudes-1",
         "areas-of-effect-1",
         "cover-1",
+        "speed-1",
     ]
 
 
@@ -310,8 +312,8 @@ def test_the_production_release_cannot_publish_or_activate(session: Session) -> 
     names no persisted header, so this is the "nothing to publish" refusal —
     distinct from the real release's, which now refuses as ``INCOMPLETE``
     because ``conditions-1``, ``hazards-1``, ``actions-1``, ``attitudes-1``,
-    ``areas-of-effect-1`` and ``cover-1`` are accepted — 47 records over 558
-    spans — but the corpus is not finished.
+    ``areas-of-effect-1``, ``cover-1`` and ``speed-1`` are accepted — 48 records
+    over 594 spans — but the corpus is not finished.
     """
     result = publish_from_committed_oracle(session, "any-projection-uuid", now=NOW)
     assert result.outcome is PublicationOutcome.ABSENT

@@ -83,6 +83,7 @@ __all__ = [
     "SCHEMA_8_VERSION",
     "SCHEMA_9_VERSION",
     "SCHEMA_10_VERSION",
+    "SCHEMA_11_VERSION",
     "UnsupportedSchemaVersionError",
     "validate_schema_binding",
 ]
@@ -155,6 +156,7 @@ SCHEMA_7_VERSION = "5d-representation-schema-7"
 SCHEMA_8_VERSION = "5d-representation-schema-8"
 SCHEMA_9_VERSION = "5d-representation-schema-9"
 SCHEMA_10_VERSION = "5d-representation-schema-10"
+SCHEMA_11_VERSION = "5d-representation-schema-11"
 
 
 class LegacySchemaPayloadError(ValueError):
@@ -323,6 +325,12 @@ _MERGED_COMPONENT_FIELDS: dict[str, frozenset[str]] = {
     SCHEMA_10_VERSION: frozenset(
         {"applies_when", "options", "fact_qualifiers", "recurs"}
     ),
+    # The same again for schema 11: seven fact families, eleven vocabularies,
+    # one member added to a twelfth and one omit-when-empty field on a fact,
+    # none of which is a component key. Written out for the reason above.
+    SCHEMA_11_VERSION: frozenset(
+        {"applies_when", "options", "fact_qualifiers", "recurs"}
+    ),
 }
 
 # Minting a new schema without giving it a row here would leave the current
@@ -365,6 +373,7 @@ _RECORD_OWNED_REFERENCE_VERSIONS: frozenset[str] = frozenset(
         SCHEMA_8_VERSION,
         SCHEMA_9_VERSION,
         SCHEMA_10_VERSION,
+        SCHEMA_11_VERSION,
     }
 )
 
@@ -378,6 +387,7 @@ _OPTION_SCOPED_PROSE_VERSIONS: frozenset[str] = frozenset(
         SCHEMA_8_VERSION,
         SCHEMA_9_VERSION,
         SCHEMA_10_VERSION,
+        SCHEMA_11_VERSION,
     }
 )
 

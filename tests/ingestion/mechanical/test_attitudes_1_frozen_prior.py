@@ -167,8 +167,9 @@ def test_the_prior_declares_schema_7_and_records_the_four_lifts_that_got_it_ther
 def test_the_registered_crossings_separate_the_prior_from_this_build() -> None:
     """The succession ``attitudes-1``'s prior takes, named rather than counted.
 
-    Schema 8 admitted one family this prior's contract cannot state, and schema
-    9 admitted seven more for ``areas-of-effect-1``. The prior is therefore no
+    Schema 8 admitted one family this prior's contract cannot state, schema 9
+    admitted seven more for ``areas-of-effect-1``, schema 10 five for
+    ``cover-1`` and schema 11 seven for ``speed-1``. The prior is therefore no
     longer current and reading it as current is a *finding* rather than a silent
     pass. The registered steps that close the gap are named here in order, and
     the identity the Owner accepted survives them — ``lift`` re-declares the
@@ -193,6 +194,7 @@ def test_the_registered_crossings_separate_the_prior_from_this_build() -> None:
         "5d-lift-schema-7-to-8",
         "5d-lift-schema-8-to-9",
         "5d-lift-schema-9-to-10",
+        "5d-lift-schema-10-to-11",
     ]
     assert [step.lift_id for step in lift_path(prior, current)] == expected
     lifted, records = lift_accepted_inputs(inputs, current)
@@ -235,13 +237,13 @@ def test_the_prior_round_trips_strictly_through_its_own_payload() -> None:
 
 
 def test_the_committed_artifact_extends_this_copy_by_the_batches_since() -> None:
-    """The successor relationship, now three acceptances deep.
+    """The successor relationship, now four acceptances deep.
 
     The first revision asserted the two files were the same bytes; the Owner's
     acceptance of ``attitudes-1`` ended that and this became the
-    extends-by-exactly-one claim. ``areas-of-effect-1`` made it two and
-    ``cover-1`` makes it three, so the claim is generalized rather than
-    re-pinned to a single batch name: whatever
+    extends-by-exactly-one claim. ``areas-of-effect-1`` made it two,
+    ``cover-1`` three and ``speed-1`` makes it four, so the claim is
+    generalized rather than re-pinned to a single batch name: whatever
     has been accepted since the freeze is named exactly, and every batch the
     freeze holds must still be present and identical, which is the part that
     would catch a merge rewriting history. Narrowing it back to one batch, or
@@ -256,5 +258,6 @@ def test_the_committed_artifact_extends_this_copy_by_the_batches_since() -> None
         "attitudes-1",
         "areas-of-effect-1",
         "cover-1",
+        "speed-1",
     }
     assert {k: committed[k] for k in frozen} == frozen

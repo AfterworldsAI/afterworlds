@@ -113,6 +113,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_9_VERSION,
     SCHEMA_10_HASH,
     SCHEMA_10_VERSION,
+    accepted_schema_contracts,
     lift_accepted_inputs,
     lift_path,
 )
@@ -688,9 +689,14 @@ def test_the_mint_declares_five_families_eight_vocabularies_and_one_member() -> 
     assert widened["name"] == "half"
     assert {row["kind"] for row in rows} == {"fact_family", "vocabulary_member"}, rows
 
-    # The pin this module is written against is the live one.
-    assert REPRESENTATION_SCHEMA_VERSION == SCHEMA_10_VERSION
-    assert representation_schema_hash() == SCHEMA_10_HASH
+    # The pin this module is written against was the live one until
+    # ``speed-1`` minted schema 11. It is still a recognised contract and
+    # still the source of a registered crossing, and schema 10's own delta
+    # is what this module asserts, so the pin is read from the registry
+    # rather than from live authority.
+    assert (SCHEMA_10_VERSION, SCHEMA_10_HASH) in accepted_schema_contracts()
+    assert REPRESENTATION_SCHEMA_VERSION != SCHEMA_10_VERSION
+    assert representation_schema_hash() != SCHEMA_10_HASH
 
 
 def test_the_crossing_from_schema_9_is_exactly_one_registered_step() -> None:
@@ -1031,16 +1037,16 @@ def test_an_earlier_contract_refuses_the_half_member_it_never_registered(
 
 
 def test_an_unminted_version_is_refused() -> None:
-    """Schema 11 does not exist, and the payload seam says so rather than guessing.
+    """Schema 12 does not exist, and the payload seam says so rather than guessing.
 
     Version legality is not ``declared_meaning_violations``'s question — it
     answers what a *recognised* schema can state. The emitter is where an
     unrecognised version is refused, and it has to stay refused now that
-    ``…-10`` is real: the probe moves to the next unminted string rather than
-    the assertion being retired.
+    ``…-10`` and ``…-11`` are both real: the probe moves to the next unminted
+    string rather than the assertion being retired.
     """
     with pytest.raises(UnsupportedSchemaVersionError):
-        representation_payload(_draft(), schema_version="5d-representation-schema-11")
+        representation_payload(_draft(), schema_version="5d-representation-schema-12")
     # And the live version is emitted without complaint.
     assert representation_payload(
         _draft(), schema_version=REPRESENTATION_SCHEMA_VERSION
@@ -1236,8 +1242,11 @@ def test_the_frozen_prior_crosses_with_every_accepted_element_preserved() -> Non
     """
     inputs = load_accepted_inputs(FROZEN_PRIOR)
     before_identity = oracle_identity(inputs.oracle)
-    current = (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
-    lifted, records = lift_accepted_inputs(inputs, current)
+    # Schema 10's own destination, not live authority: this module proves the
+    # crossing schema 10 registered, and a later succession lengthening the
+    # path to the checkout is that succession's claim to make, not this one's.
+    target = (SCHEMA_10_VERSION, SCHEMA_10_HASH)
+    lifted, records = lift_accepted_inputs(inputs, target)
     assert [r.lift_id for r in records] == ["5d-lift-schema-9-to-10"]
 
     # Collections cross by identity, not by rebuild.
