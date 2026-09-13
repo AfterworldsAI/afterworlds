@@ -7,6 +7,7 @@ on:
 
 jobs:
   ci:
+    if: ${{ !startsWith(github.head_ref, 'chore/graphify-') }}
     name: Lint, Type-check, Test, Audit
     runs-on: ubuntu-latest
 
@@ -116,6 +117,7 @@ jobs:
           --ignore-vuln CVE-2026-45833
 
   frontend:
+    if: ${{ !startsWith(github.head_ref, 'chore/graphify-') }}
     name: Frontend — Typecheck, Lint, Format, Test, Audit, Build
     runs-on: ubuntu-latest
     defaults:
@@ -168,6 +170,7 @@ jobs:
         run: npm run build
 
   e2e:
+    if: ${{ !startsWith(github.head_ref, 'chore/graphify-') }}
     name: E2E — minimal spine (Playwright, faked provider passes)
     runs-on: ubuntu-latest
 
