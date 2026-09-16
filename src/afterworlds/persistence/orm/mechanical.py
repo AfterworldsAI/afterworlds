@@ -248,6 +248,16 @@ class MechanicalComponentORM(_ProjectionScoped):
     irreducibility_reason_code: Mapped[str | None] = mapped_column(
         sa.String(64), nullable=True
     )
+    #: Why the source prose is retained when applying the meaning does *not*
+    #: require judgement: the meaning is reducible and no identified
+    #: code-owned use in play, explanation or correction needs a separate
+    #: structured field for it. Schema 12. NULL on every row written before
+    #: that contract, which is the correct value rather than a placeholder:
+    #: those rows stated an irreducibility reason, and exactly one of the two
+    #: is stated.
+    prose_retention_reason_code: Mapped[str | None] = mapped_column(
+        sa.String(64), nullable=True
+    )
     #: The closed applicability qualifier, or NULL when the component applies
     #: unconditionally. Stored as the canonical payload rather than as columns
     #: so one shape change does not become a table migration per field.
@@ -324,8 +334,23 @@ class MechanicalProseBindingORM(_ProjectionScoped):
     span_id: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
     chunk_char_start: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     chunk_char_end: Mapped[int] = mapped_column(sa.Integer, nullable=False)
-    irreducibility_reason_code: Mapped[str] = mapped_column(
-        sa.String(64), nullable=False
+    #: Why applying this passage's meaning requires judgement, or NULL when
+    #: it does not. Nullable since schema 12: a binding retained for a
+    #: reducibility reason states no irreducibility reason rather than a
+    #: false one, and the amendment forbids relabelling reducible meaning
+    #: with an irreducibility code in those words.
+    irreducibility_reason_code: Mapped[str | None] = mapped_column(
+        sa.String(64), nullable=True
+    )
+    #: Why the source prose is retained when applying the meaning does *not*
+    #: require judgement: the meaning is reducible and no identified
+    #: code-owned use in play, explanation or correction needs a separate
+    #: structured field for it. Schema 12. NULL on every row written before
+    #: that contract, which is the correct value rather than a placeholder:
+    #: those rows stated an irreducibility reason, and exactly one of the two
+    #: is stated.
+    prose_retention_reason_code: Mapped[str | None] = mapped_column(
+        sa.String(64), nullable=True
     )
     #: The option of the component's actor choice this binding governs, or the
     #: empty string when it governs the whole component. Schema 6, and stored

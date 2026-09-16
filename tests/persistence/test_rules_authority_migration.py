@@ -539,3 +539,50 @@ def test_package_deletion_cascades_the_scope_association(migrated: Path) -> None
         )
     finally:
         con.close()
+
+
+#: The two tables migration 0032 touches. They are not in ``RETAINED_TABLES``
+#: — that tuple is the append-only override family — but they are reached by
+#: the same chain and drift the same way, so they get the same parity check.
+_SCHEMA_12_TABLES = ("rp_mech_components", "rp_mech_prose_bindings")
+
+
+@pytest.mark.parametrize("table", _SCHEMA_12_TABLES)
+def test_the_projection_tables_match_the_orm_after_0032(
+    migrated: Path, table: str
+) -> None:
+    """The mechanical suite builds its databases with ``create_all``; this one migrates.
+
+    Nothing else compares the two for these tables, so a migration that forgot a
+    column would leave every mechanical test green and production one column
+    short of the ORM that reads it back.
+    """
+    con = sqlite3.connect(migrated)
+    try:
+        in_db = {row[1] for row in con.execute(f"PRAGMA table_info({table})")}
+        in_orm = {column.name for column in Base.metadata.tables[table].columns}
+        assert in_db == in_orm, f"{table}: {in_db ^ in_orm}"
+        assert "prose_retention_reason_code" in in_db
+    finally:
+        con.close()
+
+
+def test_a_binding_may_state_no_irreducibility_reason_after_0032(
+    migrated: Path,
+) -> None:
+    """Schema 12's nullability, asserted where it is actually enforced.
+
+    The draft-level rule — exactly one of the two reasons — is checked in
+    ``tests/ingestion/mechanical``; what the column has to allow is the half
+    that was previously impossible to store at all.
+    """
+    con = sqlite3.connect(migrated)
+    try:
+        nullable = {
+            row[1]: not row[3]
+            for row in con.execute("PRAGMA table_info(rp_mech_prose_bindings)")
+        }
+        assert nullable["irreducibility_reason_code"] is True
+        assert nullable["prose_retention_reason_code"] is True
+    finally:
+        con.close()

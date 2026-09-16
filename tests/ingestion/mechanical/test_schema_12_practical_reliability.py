@@ -35,9 +35,9 @@ accepted batches state no retention reason, the key is omitted when unset, and
 the identity of every accepted component, binding, fact and provenance
 coordinate is unchanged under both contracts — asserted below as the payload
 equality the registered ``5d-lift-schema-11-to-12`` rationale asserts in prose.
-The persistence half of the retention key is not yet built, so the publication
-gate's policy seam is not exercised here; it is reachable only once a retention
-code survives a round trip through the ORM.
+Nothing has been persisted under schema 12 either: migration 0032 adds the two
+retention columns and relaxes the binding's nullability, and NULL on every
+existing row is what those rows already meant.
 """
 
 from __future__ import annotations
@@ -47,15 +47,29 @@ import json
 from pathlib import Path
 
 import pytest
+import sqlalchemy as sa
+from sqlalchemy.orm import Session
 
 from afterworlds.ingestion.mechanical.acceptance import (
     AcceptanceError,
     accept_proposal,
 )
+from afterworlds.ingestion.mechanical.gate import (
+    GateFailureCategory,
+    run_publication_gate,
+)
 from afterworlds.ingestion.mechanical.models import ClassificationLedger
 from afterworlds.ingestion.mechanical.oracle import (
+    AcceptedOracle,
     OracleLoadError,
     load_oracle,
+)
+from afterworlds.ingestion.mechanical.persistence import (
+    identify_projection,
+    persist_draft,
+    reconstruct_candidate,
+    record_persisted_state_digest,
+    verify_persisted_state,
 )
 from afterworlds.ingestion.mechanical.policy import (
     POLICY_1_HASH,
@@ -91,11 +105,13 @@ from afterworlds.ingestion.mechanical.validation import validate_representation
 from tests.ingestion.mechanical.conftest import (
     BOUNDED_ORACLE_PATH,
     DESCRIPTOR_KEY,
+    NOW,
     OPEN_ENDED_KEY,
     RELEASE_BINDING,
     SCHEMA_HASH,
     SCHEMA_VERSION,
     WISH_BINDING,
+    accepted_oracle,
     binding_claim,
     bound_corpus,
     build_candidate,
@@ -563,3 +579,113 @@ def test_a_retention_reason_under_the_current_policy_is_accepted() -> None:
     binding = accepted.oracle.representation.prose_bindings[0]  # type: ignore[attr-defined]
     assert binding.irreducibility_reason_code is None
     assert binding.prose_retention_reason_code == RETENTION
+
+
+# ---------------------------------------------------------------------------
+# The persistence half, and the gate seam it makes reachable
+# ---------------------------------------------------------------------------
+
+
+def _persist(session: Session, ledger: ClassificationLedger | None = None) -> str:
+    candidate = build_candidate(representation=_retained())
+    if ledger is not None:
+        candidate = dataclasses.replace(candidate, classification=ledger)
+    identified = identify_projection(candidate)
+    persist_draft(session, identified, now=NOW)
+    record_persisted_state_digest(session, identified.projection_uuid)
+    return identified.projection_uuid
+
+
+def _retained_oracle(policy_version: str, policy_hash: str) -> AcceptedOracle:
+    return dataclasses.replace(
+        accepted_oracle(),
+        representation=_retained(),
+        policy_version=policy_version,
+        policy_hash=policy_hash,
+    )
+
+
+def test_a_retention_reason_survives_storage_and_reconstruction(
+    session: Session,
+) -> None:
+    """Migration 0032's two columns, read back through the ORM that writes them.
+
+    Both sides are asserted, because they are two columns on two tables and a
+    migration that added one would leave the other silently dropping its reason
+    on every round trip.
+    """
+    uuid = _persist(session)
+    session.flush()
+    rebuilt = reconstruct_candidate(session, uuid)
+    component = next(
+        c for c in rebuilt.representation.components if c.semantic_key == OPEN_ENDED_KEY
+    )
+    assert component.irreducibility_reason_code is None
+    assert component.prose_retention_reason_code == RETENTION
+    binding = rebuilt.representation.prose_bindings[0]
+    assert binding.irreducibility_reason_code is None
+    assert binding.prose_retention_reason_code == RETENTION
+
+
+def test_the_persisted_state_proof_holds_over_a_retention_reason(
+    session: Session,
+) -> None:
+    """The digest is recorded and verifies, so the new columns are inside the proof.
+
+    ``compute_persisted_state_digest`` serializes through ``projection_payload``
+    at the row's own recorded schema version, which is why a NULL column does
+    not re-identify anything already stored — and why a *stated* one is covered
+    rather than invisible.
+    """
+    uuid = _persist(session)
+    session.flush()
+    assert verify_persisted_state(session, uuid) == ()
+
+
+def test_a_forged_retention_reason_breaks_the_persisted_state_proof(
+    session: Session,
+) -> None:
+    """Covered, not merely stored: an edit under the digest is caught."""
+    uuid = _persist(session)
+    session.flush()
+    session.execute(
+        sa.text(
+            "UPDATE rp_mech_prose_bindings SET prose_retention_reason_code = "
+            ":code WHERE projection_uuid = :uuid"
+        ),
+        {"code": "forged_reason", "uuid": uuid},
+    )
+    session.flush()
+    assert verify_persisted_state(session, uuid) != ()
+
+
+def test_the_gate_passes_over_a_retention_reason_under_the_current_policy(
+    session: Session,
+) -> None:
+    """The whole round trip, judged against independently accepted authority."""
+    result = run_publication_gate(
+        session,
+        _persist(session),
+        _retained_oracle(SEMANTIC_POLICY_VERSION, semantic_policy_hash()),
+    )
+    assert result.passed, result.failures
+
+
+def test_the_gate_refuses_a_retention_reason_under_policy_1(
+    session: Session,
+) -> None:
+    """The fourth seam, and the one that was unreachable until 0032 landed.
+
+    The oracle and the projection are made to *agree* on policy 1 so the paired
+    declaration check stays silent: what fires here is the meaning check alone,
+    which is the claim being asserted rather than the category.
+    """
+    uuid = _persist(session, ledger=_ledger(POLICY_1_VERSION, POLICY_1_HASH))
+    result = run_publication_gate(
+        session, uuid, _retained_oracle(POLICY_1_VERSION, POLICY_1_HASH)
+    )
+    assert not result.passed
+    assert GateFailureCategory.POLICY_MISMATCH in result.categories()
+    assert any(
+        "whose retention catalog does not admit" in f.detail for f in result.failures
+    )

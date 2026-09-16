@@ -276,6 +276,7 @@ def persist_draft(
                 semantic_key=component.semantic_key,
                 handling=component.handling.value,
                 irreducibility_reason_code=component.irreducibility_reason_code,
+                prose_retention_reason_code=component.prose_retention_reason_code,
                 applies_when=applicability_payload(component.applies_when),
                 recurs=recurrence_payload(component.recurs),
             )
@@ -330,6 +331,7 @@ def persist_draft(
                 chunk_char_start=binding.chunk_char_start,
                 chunk_char_end=binding.chunk_char_end,
                 irreducibility_reason_code=binding.irreducibility_reason_code,
+                prose_retention_reason_code=binding.prose_retention_reason_code,
                 option_key=binding.option_key,
             )
         )
@@ -738,6 +740,7 @@ def reconstruct_candidate(
                 "handling",
             ),
             irreducibility_reason_code=c.irreducibility_reason_code,
+            prose_retention_reason_code=c.prose_retention_reason_code,
             facts=tuple(
                 _fact_from_row(f)
                 for f in raw.facts
@@ -801,6 +804,7 @@ def reconstruct_candidate(
                 chunk_char_start=p.chunk_char_start,
                 chunk_char_end=p.chunk_char_end,
                 irreducibility_reason_code=p.irreducibility_reason_code,
+                prose_retention_reason_code=p.prose_retention_reason_code,
                 option_key=p.option_key,
             )
             for p in raw.prose_bindings
