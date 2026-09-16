@@ -68,6 +68,7 @@ from afterworlds.ingestion.mechanical.persistence import (
     reconstruct_candidate,
     verify_persisted_state,
 )
+from afterworlds.ingestion.mechanical.policy import policy_meaning_violations
 from afterworlds.ingestion.mechanical.projection import (
     LegacySchemaPayloadError,
     ProjectionCandidate,
@@ -600,6 +601,14 @@ def run_publication_gate(
             f"{oracle.policy_hash[:12]}…, projection declares "
             f"{ledger.policy_version!r}/{ledger.policy_hash[:12]}…",
         )
+    # Agreement between the two declarations is not enough on its own, for the
+    # reason the schema block below gives about its own pair: both may agree on
+    # a policy whose catalog does not admit a reason code the representation
+    # actually states.
+    for violation in policy_meaning_violations(
+        candidate.representation, ledger.policy_version
+    ):
+        _fail(findings, GateFailureCategory.POLICY_MISMATCH, violation)
 
     # The closed representation contract, checked on both axes. Agreement
     # between the oracle and the projection is not enough on its own: two

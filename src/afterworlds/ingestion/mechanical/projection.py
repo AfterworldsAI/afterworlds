@@ -39,6 +39,7 @@ from afterworlds.ingestion.mechanical.accounting import (
 from afterworlds.ingestion.mechanical.bound_corpus import BoundCorpusSnapshot
 from afterworlds.ingestion.mechanical.canonical import canonical_order
 from afterworlds.ingestion.mechanical.models import ClassificationLedger
+from afterworlds.ingestion.mechanical.policy import policy_meaning_violations
 from afterworlds.ingestion.mechanical.representation import (
     COMPONENT_WIDE_PROSE,
     RECORD_OWNED_REFERENCE,
@@ -84,6 +85,7 @@ __all__ = [
     "SCHEMA_9_VERSION",
     "SCHEMA_10_VERSION",
     "SCHEMA_11_VERSION",
+    "SCHEMA_12_VERSION",
     "UnsupportedSchemaVersionError",
     "validate_schema_binding",
 ]
@@ -157,6 +159,7 @@ SCHEMA_8_VERSION = "5d-representation-schema-8"
 SCHEMA_9_VERSION = "5d-representation-schema-9"
 SCHEMA_10_VERSION = "5d-representation-schema-10"
 SCHEMA_11_VERSION = "5d-representation-schema-11"
+SCHEMA_12_VERSION = "5d-representation-schema-12"
 
 
 class LegacySchemaPayloadError(ValueError):
@@ -262,6 +265,21 @@ _COMPONENT_FIELDS: tuple[_VersionedComponentField, ...] = (
         holds_meaning=lambda c: c.recurs is not None,
         omit_when_empty=True,
     ),
+    # Schema 12, and the first component key added since ``recurs``. Omitted
+    # when unset for exactly ``recurs``' reason: every component accepted under
+    # schemas 1-11 states no retention reason, so its canonical payload has no
+    # such key under either contract and its component key, provenance
+    # coordinate and enclosing projection identity do not move. A component
+    # that *does* state one under a schema that has no such key is refused by
+    # ``_component_versioned_payload`` rather than quietly flattened, which is
+    # what stops the omission from becoming a way to forge an old identity.
+    _VersionedComponentField(
+        key="prose_retention_reason_code",
+        introduced_in="schema-12",
+        payload=lambda c: c.prose_retention_reason_code,
+        holds_meaning=lambda c: c.prose_retention_reason_code is not None,
+        omit_when_empty=True,
+    ),
 )
 
 #: Every merged representation schema version, and the component payload keys
@@ -331,6 +349,29 @@ _MERGED_COMPONENT_FIELDS: dict[str, frozenset[str]] = {
     SCHEMA_11_VERSION: frozenset(
         {"applies_when", "options", "fact_qualifiers", "recurs"}
     ),
+    # **The first row since schema 4 that differs from its predecessor.** Every
+    # row from 5 to 11 above repeats schema 4's set and says so, because each of
+    # those successions added families, vocabularies and fact-level fields, none
+    # of which is a component key. Schema 12 adds one:
+    # ``prose_retention_reason_code``, carrying the Owner Decision of
+    # 2026-09-16.
+    #
+    # Adding a component key is the movement this whole table exists to make
+    # safe, and it is safe here for one stated reason rather than by assumption:
+    # the key is ``omit_when_empty``, and no component accepted under schemas
+    # 1-11 states a retention reason, so every one of them renders the exact
+    # bytes it rendered under its own contract. ``verify_lift`` proves that
+    # element by element over the real accepted representation; nothing here
+    # asserts it.
+    SCHEMA_12_VERSION: frozenset(
+        {
+            "applies_when",
+            "options",
+            "fact_qualifiers",
+            "recurs",
+            "prose_retention_reason_code",
+        }
+    ),
 }
 
 # Minting a new schema without giving it a row here would leave the current
@@ -374,6 +415,7 @@ _RECORD_OWNED_REFERENCE_VERSIONS: frozenset[str] = frozenset(
         SCHEMA_9_VERSION,
         SCHEMA_10_VERSION,
         SCHEMA_11_VERSION,
+        SCHEMA_12_VERSION,
     }
 )
 
@@ -388,8 +430,16 @@ _OPTION_SCOPED_PROSE_VERSIONS: frozenset[str] = frozenset(
         SCHEMA_9_VERSION,
         SCHEMA_10_VERSION,
         SCHEMA_11_VERSION,
+        SCHEMA_12_VERSION,
     }
 )
+
+#: The versions whose prose bindings may state a *retention* reason instead of
+#: an irreducibility one. Schema 12 and later; its own registry rather than a
+#: row in ``_MERGED_COMPONENT_FIELDS`` for the reason the two registries above
+#: are their own — that table answers which *component* keys a version emits,
+#: and this is a prose-binding key.
+_RETENTION_REASON_PROSE_VERSIONS: frozenset[str] = frozenset({SCHEMA_12_VERSION})
 
 
 def _prose_binding_payload(
@@ -402,6 +452,11 @@ def _prose_binding_payload(
     post-schema-3 fact field and for the same purpose: every binding accepted
     before schema 6 has the exact payload — and therefore the exact provenance
     coordinate — it already had.
+
+    ``prose_retention_reason_code`` follows the same rule, minted by schema 12:
+    omitted when unset, so every binding accepted under schemas 1-11 keeps its
+    exact payload and provenance coordinate, and refused rather than dropped
+    when a binding that states one declares a contract that has no such key.
 
     A binding that *is* option-scoped under a contract with no such scope is
     refused rather than flattened to the component, because flattening it would
@@ -429,10 +484,26 @@ def _prose_binding_payload(
         "span_id": binding.span_id,
         "chunk_char_start": binding.chunk_char_start,
         "chunk_char_end": binding.chunk_char_end,
+        # Unconditional since schema 1, and stays unconditional: a binding
+        # retained under schema 12 for a reducibility reason emits ``null``
+        # here, which is the distinction schema 12 mints. Omitting the key
+        # instead would make "retained for a different reason" and "written
+        # before this key existed" the same bytes.
         "irreducibility_reason_code": binding.irreducibility_reason_code,
     }
     if binding.option_key != COMPONENT_WIDE_PROSE:
         payload["option_key"] = binding.option_key
+    if binding.prose_retention_reason_code is not None:
+        if schema_version not in _RETENTION_REASON_PROSE_VERSIONS:
+            raise LegacySchemaPayloadError(
+                f"prose binding {binding.record_key}/{binding.component_key} "
+                f"states retention reason "
+                f"{binding.prose_retention_reason_code!r}, but declares schema "
+                f"{schema_version!r}, which has no prose retention reason — "
+                f"that arrived with {SCHEMA_12_VERSION}; refusing to omit "
+                "meaning-bearing data to reproduce a legacy identity"
+            )
+        payload["prose_retention_reason_code"] = binding.prose_retention_reason_code
     return payload
 
 
@@ -944,6 +1015,14 @@ def validate_candidate(
         )
 
     findings.extend(validate_policy_binding(ledger))
+    # The meaning half of the same declaration. ``validate_policy_binding``
+    # compares the ledger's declared pair against the build's; this asks whether
+    # the representation states anything that pair has no catalog for — the
+    # exact split ``validate_schema_binding`` already makes between the declared
+    # schema pair and ``declared_meaning_violations``.
+    findings.extend(
+        policy_meaning_violations(candidate.representation, ledger.policy_version)
+    )
     findings.extend(validate_schema_binding(candidate))
 
     leaf_lengths = corpus.leaf_lengths

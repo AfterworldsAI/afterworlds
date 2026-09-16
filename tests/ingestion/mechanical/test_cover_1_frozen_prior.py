@@ -170,8 +170,8 @@ def test_the_prior_declares_schema_9_and_records_the_six_lifts_that_got_it_there
 
     Accepted bytes are never re-declared in place: the artifact says schema 9
     and records the six crossings that carried it there, and it will still say
-    schema 9 after schema 10 and after schema 11. A crossing to a *later* union
-    is a property of the pair, not a field this file gains.
+    schema 9 after schema 10, after schema 11 and after schema 12. A crossing
+    to a *later* union is a property of the pair, not a field this file gains.
     """
     inputs = load_accepted_inputs(FROZEN_PRIOR)
     assert (inputs.oracle.schema_version, inputs.oracle.schema_hash) == (
@@ -195,8 +195,9 @@ def test_the_registered_crossings_separate_the_prior_from_this_build() -> None:
     checkpoint's answer was yes: ``Cover`` prints six meanings schema 9 cannot
     state, schema 10 states them, and so the prior is no longer current. Reading
     it as current is a *finding* rather than a silent pass. It was exactly one
-    registered step until ``speed-1`` minted schema 11; the path is read from
-    the registry rather than counted, so a succession lengthens the list here
+    registered step until ``speed-1`` minted schema 11 and the
+    practical-reliability amendment schema 12; the path is read from the
+    registry rather than counted, so a succession lengthens the list here
     instead of breaking the claim.
 
     **Two identities, two scopes.** The frozen authority is untouched on disk
@@ -230,6 +231,7 @@ def test_the_registered_crossings_separate_the_prior_from_this_build() -> None:
     expected = [
         "5d-lift-schema-9-to-10",
         "5d-lift-schema-10-to-11",
+        "5d-lift-schema-11-to-12",
     ]
     assert [step.lift_id for step in lift_path(prior, current)] == expected
     lifted, records = lift_accepted_inputs(inputs, current)

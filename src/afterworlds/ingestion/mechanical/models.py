@@ -53,9 +53,17 @@ class ReviewState(StrEnum):
 class ComponentHandling(StrEnum):
     """How a publishable component's meaning is represented (#137 contract 2).
 
-    ``PROSE_BOUND`` is an affirmative judgement backed by a closed
-    irreducibility reason — never a backlog state and never a synonym for
-    "the adapter cannot execute it".
+    ``PROSE_BOUND`` is an affirmative judgement backed by exactly one closed
+    reason — never a backlog state and never a synonym for "the adapter cannot
+    execute it". Since schema 12 there are two catalogs it may be backed by,
+    and which one applies is itself the judgement: an
+    :class:`IrreducibilityReason` says the meaning requires judgement to apply,
+    and a :class:`ProseRetentionReason` says the meaning is reducible but no
+    identified code-owned use in play, explanation or correction needs a
+    separate structured field for it. Stating the first for the second is the
+    relabelling ADR-005d forbids (Owner Decision 2026-09-16); stating both is a
+    contradiction, and :mod:`~afterworlds.ingestion.mechanical.validation`
+    refuses each.
     """
 
     STRUCTURED = "structured"

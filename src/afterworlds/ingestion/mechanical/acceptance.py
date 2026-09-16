@@ -69,6 +69,7 @@ from afterworlds.ingestion.mechanical.policy import (
     PolicyTransitionRecord,
     UnknownPolicyTransitionError,
     accepted_policy_contracts,
+    policy_meaning_violations,
     policy_transition_for,
 )
 from afterworlds.ingestion.mechanical.projection import LegacySchemaPayloadError
@@ -355,6 +356,21 @@ def accept_proposal(
             f"the prior accepted authority declares representation schema "
             f"{prior.oracle.schema_version!r} but is not admissible under it, so "
             "it was not accepted under the schema it names: " + "; ".join(illegal)
+        )
+
+    # The same question of the *policy* the proposal declares, and a separate
+    # one. Schema 12 mints the ``prose_retention_reason_code`` key;
+    # ``5d-semantic-policy-2`` mints the catalog its values come from, and the
+    # two are versioned independently. A schema-12 proposal declaring
+    # ``5d-semantic-policy-1`` is legal and may simply state no retention
+    # reason — so the schema check above passes it, and only this one sees a
+    # reason code drawn from a catalog the declared policy does not have.
+    if unstatable := policy_meaning_violations(
+        proposal.proposed_representation, proposal.policy_version
+    ):
+        raise AcceptanceError(
+            f"this proposal declares semantic policy {proposal.policy_version!r} "
+            "but carries meaning that policy cannot state: " + "; ".join(unstatable)
         )
 
     # The prior's *evidence* is validated here, before anything is computed

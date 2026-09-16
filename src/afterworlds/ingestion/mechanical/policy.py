@@ -30,7 +30,9 @@ apart would let a span "cover" text the corpus layer considers different.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from afterworlds.ingestion.corpus.hashing import hash_obj
 from afterworlds.ingestion.corpus.policy import NORMALIZATION_VERSION, normalize
@@ -54,10 +56,15 @@ __all__ = [
     "irreducibility_reason_for",
     "non_mechanical_reason_for",
     "policy_transition_for",
+    "policy_meaning_violations",
+    "policy_transition_violations",
     "prose_retention_reason_for",
     "semantic_policy_hash",
     "semantic_policy_payload",
 ]
+
+if TYPE_CHECKING:  # pragma: no cover - imported for annotations only
+    from afterworlds.ingestion.mechanical.representation import RepresentationDraft
 
 POLICY_1_VERSION = "5d-semantic-policy-1"
 POLICY_2_VERSION = "5d-semantic-policy-2"
@@ -372,3 +379,180 @@ def accepted_policy_contracts() -> frozenset[tuple[str, str]]:
         | set(POLICY_TRANSITIONS)
         | {(t.to_version, t.to_hash) for t in POLICY_TRANSITIONS.values()}
     )
+
+
+def policy_transition_violations(
+    transitions: Sequence[PolicyTransitionRecord], declared: tuple[str, str]
+) -> list[str]:
+    """Violations of a loaded policy-transition chain against the registry.
+
+    The loader establishes that each record is well-formed and that the step it
+    names is registered. That is a claim about each record alone, and says
+    nothing about the sequence they form or about the artifact carrying them.
+    Without this, a file declaring ``5d-semantic-policy-1`` while carrying a
+    ``1 -> 2`` record loads clean: every individual record is authorized, and
+    the artifact's own declaration contradicts all of them.
+
+    Four properties, the same ones :func:`~.schema_lift.lift_chain_violations`
+    checks, minus the proof extent :class:`PolicyTransitionRecord` deliberately
+    does not carry:
+
+    1. **Registered.** The source pair is a key in :data:`POLICY_TRANSITIONS`
+       and the registered step's id and destination agree with the record.
+    2. **Continuous, oldest first.** Each record's destination is the next
+       record's source.
+    3. **Terminal.** The last record's destination is the policy the artifact
+       *declares*. Evidence ending elsewhere describes a different artifact.
+    4. **Non-repeating.** No transition appears twice; a succession is crossed
+       once.
+
+    There is no policy counterpart to the schema regime's per-batch anchor, so
+    there is no "crossed from somewhere nothing was reviewed under" rule here:
+    a batch records the policy it was accepted under only through the artifact's
+    declaration, and inventing a per-batch policy anchor would be asserting
+    review history the seven accepted batches never stated.
+
+    **Empty is legal.** The committed artifact has crossed nothing, so it has
+    no evidence to carry and property 3 does not apply to it.
+    """
+    findings: list[str] = []
+    if not transitions:
+        return findings
+
+    seen: set[tuple[str, str, str, str]] = set()
+    for index, record in enumerate(transitions):
+        at = f"policy_transitions[{index}] ({record.transition_id})"
+        source = (record.from_version, record.from_hash)
+        registered = POLICY_TRANSITIONS.get(source)
+        if registered is None:
+            findings.append(
+                f"{at}: no transition is registered from {record.from_version!r} "
+                f"({record.from_hash}); this succession was never authorized"
+            )
+        elif (registered.transition_id, registered.to_version, registered.to_hash) != (
+            record.transition_id,
+            record.to_version,
+            record.to_hash,
+        ):
+            findings.append(
+                f"{at}: the registered transition from {record.from_version!r} "
+                f"is {registered.transition_id!r} to {registered.to_version!r} "
+                f"({registered.to_hash}), not {record.transition_id!r} to "
+                f"{record.to_version!r} ({record.to_hash})"
+            )
+
+        crossing = (*source, record.to_version, record.to_hash)
+        if crossing in seen:
+            findings.append(
+                f"{at}: this transition is already recorded; a succession is "
+                "crossed once"
+            )
+        seen.add(crossing)
+
+        if index:
+            previous = transitions[index - 1]
+            if (previous.to_version, previous.to_hash) != source:
+                findings.append(
+                    f"{at}: does not continue the previous record, which ended "
+                    f"at {previous.to_version!r} ({previous.to_hash}); policy "
+                    "evidence is an ordered chain, oldest first"
+                )
+
+    last = transitions[-1]
+    if (last.to_version, last.to_hash) != declared:
+        findings.append(
+            f"policy_transitions[{len(transitions) - 1}] ({last.transition_id}): "
+            f"the chain ends at {last.to_version!r} ({last.to_hash}), but the "
+            f"artifact declares {declared[0]!r} ({declared[1]})"
+        )
+    return findings
+
+
+def prose_retention_codes(version: str = SEMANTIC_POLICY_VERSION) -> frozenset[str]:
+    """The retention reasons *version*'s catalog admits.
+
+    Empty under ``5d-semantic-policy-1``, which has no retention catalog at all
+    — the distinction arrived with the Owner Decision of 2026-09-16. Derived
+    from :func:`semantic_policy_payload` rather than restated, so a historical
+    version answers with the catalog its recorded hash covers, and an
+    unrecognized version raises there rather than resolving to an empty set
+    that would read as "this policy admits nothing" instead of "nobody knows
+    what this policy is". Callers that must report rather than refuse handle
+    that distinction themselves; :func:`policy_meaning_violations` does.
+    """
+    payload = semantic_policy_payload(version)
+    reasons = payload.get("prose_retention_reasons", ())
+    assert isinstance(reasons, Sequence)
+    return frozenset(str(r["code"]) for r in reasons)
+
+
+def policy_meaning_violations(
+    draft: RepresentationDraft, policy_version: str
+) -> list[str]:
+    """Meaning *draft* carries that its declared *policy* cannot state.
+
+    The policy half of the invariant
+    :func:`~.representation.declared_meaning_violations` states for the schema
+    half, and it is a genuinely separate question rather than a second spelling
+    of one. The two contracts are versioned independently on purpose: a schema
+    says which *shapes* a payload may exhibit, a policy says which *reason
+    codes* are closed. Schema 12 mints the ``prose_retention_reason_code`` key;
+    ``5d-semantic-policy-2`` mints the catalog its values come from. Either can
+    move without the other, so a schema-12 artifact declaring
+    ``5d-semantic-policy-1`` is perfectly legal — it simply may not state a
+    retention reason, because under that policy there is no such reason to
+    state.
+
+    Nothing here checks the *irreducibility* catalog per version: both
+    recognized policies carry it identically, element for element, so a
+    version-keyed rule over it would assert a distinction that does not exist.
+    :mod:`~.validation` checks its closure, which is the rule that is real.
+
+    Reported rather than raised, like every other ``*_violations`` reader here,
+    so a caller decides whether this is a gate finding or a refusal.
+
+    **An unrecognized declaration is answered, not escalated.** A file declares
+    its own policy and the loader's job is to report honestly what it says, so
+    a version this build does not know legitimately reaches here — the gate and
+    ``validate_policy_binding`` are what refuse the declaration itself, and
+    raising here would turn their finding into a crash on the way to it.
+    Nothing is waved through: with no catalog to read, *every* stated retention
+    code is unconfirmable, which is a violation reported in exactly those terms
+    rather than as the false claim that a known catalog excluded it. A draft
+    that states no retention code at all is unaffected, which is why a
+    schema-11 artifact under a policy nobody recognizes still loads exactly as
+    it did before schema 12.
+    """
+    try:
+        admitted: frozenset[str] | None = prose_retention_codes(policy_version)
+    except ValueError:
+        admitted = None
+
+    def unstatable(code: str | None) -> str | None:
+        if code is None:
+            return None
+        if admitted is None:
+            return (
+                f"declares semantic policy {policy_version!r}, which this build "
+                f"does not recognize, so its retention catalog cannot be shown "
+                f"to admit {code!r}"
+            )
+        if code not in admitted:
+            return (
+                f"declares semantic policy {policy_version!r}, whose retention "
+                f"catalog does not admit {code!r}"
+            )
+        return None
+
+    findings: list[str] = []
+    for component in draft.components:
+        if reason := unstatable(component.prose_retention_reason_code):
+            findings.append(
+                f"component {component.record_key}/{component.semantic_key}: " + reason
+            )
+    for binding in draft.prose_bindings:
+        if reason := unstatable(binding.prose_retention_reason_code):
+            findings.append(
+                f"prose binding {binding.record_key}/{binding.component_key}: " + reason
+            )
+    return findings

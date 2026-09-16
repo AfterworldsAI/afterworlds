@@ -251,6 +251,7 @@ def test_the_lift_is_recorded_as_evidence_with_its_verified_extent() -> None:
         "5d-lift-schema-8-to-9",
         "5d-lift-schema-9-to-10",
         "5d-lift-schema-10-to-11",
+        "5d-lift-schema-11-to-12",
     ]
     assert (first.from_version, first.from_hash) == (SCHEMA_3_VERSION, SCHEMA_3_HASH)
     assert (last.to_version, last.to_hash) == (

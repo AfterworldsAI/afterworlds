@@ -33,7 +33,10 @@ from afterworlds.ingestion.mechanical.models import (
     SemanticDisposition,
     SemanticSpan,
 )
-from afterworlds.ingestion.mechanical.policy import irreducibility_reason_for
+from afterworlds.ingestion.mechanical.policy import (
+    irreducibility_reason_for,
+    prose_retention_reason_for,
+)
 from afterworlds.ingestion.mechanical.representation import (
     PROVENANCE_REQUIRED_KINDS,
     RECORD_OWNED_REFERENCE,
@@ -207,6 +210,7 @@ def _validate_components(draft: RepresentationDraft) -> list[str]:
 
         has_prose = key in bound_prose
         code = component.irreducibility_reason_code
+        retention = component.prose_retention_reason_code
         # Option facts are structured authority exactly as direct facts are: a
         # component whose whole meaning is an actor choice publishes typed
         # facts, they simply live one level down.
@@ -220,6 +224,10 @@ def _validate_components(draft: RepresentationDraft) -> list[str]:
                 findings.append(
                     f"{tag}: structured handling with an irreducibility reason"
                 )
+            if retention is not None:
+                findings.append(
+                    f"{tag}: structured handling with a prose retention reason"
+                )
         else:
             handling = component.handling.value
             if component.handling is ComponentHandling.PROSE_BOUND:
@@ -229,12 +237,26 @@ def _validate_components(draft: RepresentationDraft) -> list[str]:
                 findings.append(f"{tag}: mixed handling with no typed facts")
             if not has_prose:
                 findings.append(f"{tag}: {handling} handling with no bound prose")
-            # A component that says its meaning is irreducible must say *why*,
-            # under the closed catalog. Silence here is the backlog state
-            # PROSE_BOUND must never become.
-            if code is None or not code.strip():
+            # A component whose meaning is carried as exact governing prose
+            # must say *why*, under a closed catalog, and **exactly one of the
+            # two catalogs applies**. Silence is the backlog state PROSE_BOUND
+            # must never become; stating both is a component that claims its
+            # meaning is irreducible *and* that it is reducible but has no
+            # identified structured use, which are contradictory claims about
+            # the same passage. Neither may be reported as the other: labelling
+            # reducible meaning with an irreducibility code is the relabelling
+            # ADR-005d forbids in those words (Owner Decision 2026-09-16).
+            stated = [c for c in (code, retention) if c is not None and c.strip()]
+            if not stated:
                 findings.append(
-                    f"{tag}: {handling} handling with no irreducibility reason"
+                    f"{tag}: {handling} handling with no irreducibility reason "
+                    "and no prose retention reason"
+                )
+            elif len(stated) == 2:
+                findings.append(
+                    f"{tag}: {handling} handling states both an irreducibility "
+                    "reason and a prose retention reason; exactly one says why "
+                    "this meaning is carried as prose"
                 )
 
         if (
@@ -243,6 +265,14 @@ def _validate_components(draft: RepresentationDraft) -> list[str]:
             and irreducibility_reason_for(code) is None
         ):
             findings.append(f"{tag}: irreducibility reason {code!r} is not closed")
+        if (
+            retention is not None
+            and retention.strip()
+            and prose_retention_reason_for(retention) is None
+        ):
+            findings.append(
+                f"{tag}: prose retention reason {retention!r} is not closed"
+            )
 
     return findings
 
@@ -329,15 +359,52 @@ def _validate_prose_bindings(
             findings.extend(_validate_prose_extent(binding, spans_by_id, corpus, tag))
 
         code = binding.irreducibility_reason_code
-        if irreducibility_reason_for(code) is None:
-            findings.append(f"{tag}: irreducibility reason {code!r} is not closed")
-        elif component is not None and code != component.irreducibility_reason_code:
-            # Two independently valid reasons that disagree are a contradiction
-            # about *why* this authority is prose-bound. Neither copy wins.
+        retention = binding.prose_retention_reason_code
+        # The binding half of the component's exactly-one rule, and it is a
+        # separate check rather than an inference from the component: a binding
+        # may name a component this draft does not carry, and the loop above has
+        # already reported that without giving this one anything to compare
+        # against.
+        stated = [c for c in (code, retention) if c is not None and c.strip()]
+        if not stated:
             findings.append(
-                f"{tag}: reason {code!r} disagrees with its component's "
-                f"{component.irreducibility_reason_code!r}"
+                f"{tag}: no irreducibility reason and no prose retention reason"
             )
+        elif len(stated) == 2:
+            findings.append(
+                f"{tag}: states both an irreducibility reason and a prose "
+                "retention reason; exactly one says why this passage is prose"
+            )
+        if code is not None and code.strip():
+            if irreducibility_reason_for(code) is None:
+                findings.append(f"{tag}: irreducibility reason {code!r} is not closed")
+            elif component is not None and code != component.irreducibility_reason_code:
+                # Two independently valid reasons that disagree are a
+                # contradiction about *why* this authority is prose-bound.
+                # Neither copy wins.
+                findings.append(
+                    f"{tag}: reason {code!r} disagrees with its component's "
+                    f"{component.irreducibility_reason_code!r}"
+                )
+        if retention is not None and retention.strip():
+            # Compared against the component's *same-kind* code, never across
+            # kinds. A binding retained for a reducibility reason under a
+            # component that states an irreducibility one is already caught by
+            # the exactly-one rules on each side; matching it against the other
+            # catalog here would report the same contradiction a second time in
+            # terms that name the wrong field.
+            if prose_retention_reason_for(retention) is None:
+                findings.append(
+                    f"{tag}: prose retention reason {retention!r} is not closed"
+                )
+            elif (
+                component is not None
+                and retention != component.prose_retention_reason_code
+            ):
+                findings.append(
+                    f"{tag}: retention reason {retention!r} disagrees with its "
+                    f"component's {component.prose_retention_reason_code!r}"
+                )
     return findings
 
 

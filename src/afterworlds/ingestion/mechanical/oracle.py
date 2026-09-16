@@ -74,6 +74,8 @@ from afterworlds.ingestion.mechanical.models import (
 from afterworlds.ingestion.mechanical.policy import (
     POLICY_TRANSITIONS,
     PolicyTransitionRecord,
+    policy_meaning_violations,
+    policy_transition_violations,
 )
 from afterworlds.ingestion.mechanical.projection import (
     ProjectionCandidate,
@@ -766,7 +768,16 @@ def _representation(payload: object) -> RepresentationDraft:
                 "facts",
             ),
             where,
-            optional=("applies_when", "options", "fact_qualifiers", "recurs"),
+            optional=(
+                "applies_when",
+                "options",
+                "fact_qualifiers",
+                "recurs",
+                # Schema 12, and absent from every payload written before it.
+                # The canonical form omits it when the component states no
+                # retention reason, so its absence has exactly one reading.
+                "prose_retention_reason_code",
+            ),
         )
         # The fact list is shape-checked here *before* delegation, because the
         # closed-union parser reads a mapping and a non-object element would
@@ -800,6 +811,10 @@ def _representation(payload: object) -> RepresentationDraft:
                 # dropped or misspelled anywhere upstream fails there rather
                 # than loading as silently empty.
                 recurs=_recurrence(c.get("recurs"), f"{where}.recurs"),
+                prose_retention_reason_code=_optional_string(
+                    c.get("prose_retention_reason_code"),
+                    f"{where}.prose_retention_reason_code",
+                ),
                 applies_when=_applicability(
                     c.get("applies_when"), f"{where}.applies_when"
                 ),
@@ -834,13 +849,20 @@ def _representation(payload: object) -> RepresentationDraft:
                 "span_id",
                 "chunk_char_start",
                 "chunk_char_end",
+                # Required *as a key* under every contract, and nullable since
+                # schema 12. A binding retained for a reducibility reason
+                # writes ``null`` here rather than omitting the key, so
+                # "retained for a different reason" and "written before this
+                # distinction existed" never share a payload shape.
                 "irreducibility_reason_code",
             ),
             where,
-            # Schema 6, and absent from every payload written before it. The
-            # canonical form omits it when the binding governs the whole
-            # component, so its absence has exactly one reading.
-            optional=("option_key",),
+            # Schema 6 and schema 12 respectively, and each absent from every
+            # payload written before it. The canonical form omits ``option_key``
+            # when the binding governs the whole component and
+            # ``prose_retention_reason_code`` when the binding states no
+            # retention reason, so each absence has exactly one reading.
+            optional=("option_key", "prose_retention_reason_code"),
         )
         prose_bindings.append(
             ProseBindingDraft(
@@ -852,9 +874,13 @@ def _representation(payload: object) -> RepresentationDraft:
                     b["chunk_char_start"], f"{where}.chunk_char_start"
                 ),
                 chunk_char_end=_offset(b["chunk_char_end"], f"{where}.chunk_char_end"),
-                irreducibility_reason_code=_string(
+                irreducibility_reason_code=_optional_string(
                     b["irreducibility_reason_code"],
                     f"{where}.irreducibility_reason_code",
+                ),
+                prose_retention_reason_code=_optional_string(
+                    b.get("prose_retention_reason_code"),
+                    f"{where}.prose_retention_reason_code",
                 ),
                 option_key=(
                     COMPONENT_WIDE_PROSE
@@ -1287,6 +1313,19 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
             + "; ".join(illegal)
         )
 
+    # The policy contract is versioned independently of the schema one, so its
+    # legality is a separate question with its own answer: a schema-12 file
+    # declaring ``5d-semantic-policy-1`` passes the check above and may still
+    # carry a retention reason that policy has no catalog for.
+    if unstatable := policy_meaning_violations(
+        oracle.representation, oracle.policy_version
+    ):
+        raise OracleLoadError(
+            f"{path.name}: this artifact declares semantic policy "
+            f"{oracle.policy_version!r} but carries meaning that policy cannot "
+            "state: " + "; ".join(unstatable)
+        )
+
     # Loaded evidence is read from a file, so the wire-shape checks above prove
     # only that it is well-formed — never that the succession it claims was
     # authorized, happened, or could have happened. Validated against the
@@ -1320,6 +1359,17 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
         raise OracleLoadError(
             "acceptance evidence does not describe an authorized succession of "
             "this artifact: " + "; ".join(drift)
+        )
+
+    # The same question for the policy half. The parse loop above proved each
+    # claimed step is a registered one; that is a statement about records, not
+    # about the chain they form or about the policy this artifact declares.
+    if crossings := policy_transition_violations(
+        transitions, (oracle.policy_version, oracle.policy_hash)
+    ):
+        raise OracleLoadError(
+            "acceptance evidence does not describe an authorized policy "
+            "succession of this artifact: " + "; ".join(crossings)
         )
     return inputs
 

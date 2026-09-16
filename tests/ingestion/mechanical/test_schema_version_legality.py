@@ -215,6 +215,8 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_9_VERSION,
     SCHEMA_10_HASH,
     SCHEMA_10_VERSION,
+    SCHEMA_11_HASH,
+    SCHEMA_11_VERSION,
     SchemaLiftError,
     accepted_schema_contracts,
     lift_accepted_inputs,
@@ -873,8 +875,15 @@ def test_schema_10_refuses_every_schema_11_only_type_or_value(
 
 @pytest.mark.parametrize("obj", SCHEMA_11_ONLY)
 def test_schema_11_admits_what_it_introduced(obj: object) -> None:
-    """And the other direction, so the rule is not "refuse everything newer"."""
-    assert post_schema_3_violations(obj, REPRESENTATION_SCHEMA_VERSION) == []
+    """And the other direction, so the rule is not "refuse everything newer".
+
+    Pinned to ``SCHEMA_11_VERSION`` rather than to live authority now that
+    schema 12 exists, for the reason schema 10's equivalent was pinned when
+    schema 11 arrived: read against the live pair this would keep passing
+    because a later contract admits its predecessor's content, and schema
+    11's own admission would stop being asserted anywhere.
+    """
+    assert post_schema_3_violations(obj, SCHEMA_11_VERSION) == []
 
 
 @pytest.mark.parametrize("obj", SCHEMA_10_ONLY)
@@ -882,6 +891,23 @@ def test_schema_11_still_admits_every_schema_10_introduction(
     obj: object,
 ) -> None:
     """Schema 11 widened the union; it narrowed nothing schema 10 could state."""
+    assert post_schema_3_violations(obj, SCHEMA_11_VERSION) == []
+
+
+@pytest.mark.parametrize("obj", [*SCHEMA_10_ONLY, *SCHEMA_11_ONLY])
+def test_schema_12_still_admits_every_earlier_introduction(
+    obj: object,
+) -> None:
+    """Schema 12 narrowed nothing.
+
+    There is no ``SCHEMA_12_ONLY`` beside this and that is the claim rather
+    than an omission: schema 12 mints no fact family, no vocabulary and no
+    vocabulary member, so it has no fact-level introduction for
+    ``post_schema_3_violations`` to refuse under an earlier contract. What it
+    does add is two draft keys and one nullability, whose refusal under every
+    earlier contract is asserted in ``test_schema_12_practical_reliability``
+    over the owners that actually carry them.
+    """
     assert post_schema_3_violations(obj, REPRESENTATION_SCHEMA_VERSION) == []
 
 
@@ -1360,14 +1386,16 @@ def test_the_recognized_contracts_are_exactly_the_live_pair_and_the_registry() -
         # Schema 5 joins the set by becoming the *source* of a registered lift,
         # which is exactly how schema 3 and schema 4 are here. Schema 6 joins it
         # the same way at schema 7, schema 7 at schema 8, schema 8 at schema 9,
-        # schema 9 at schema 10 and schema 10 at schema 11. The rule is the
-        # registry, not a list of versions somebody kept up to date.
+        # schema 9 at schema 10, schema 10 at schema 11 and schema 11 at schema
+        # 12. The rule is the registry, not a list of versions somebody kept up
+        # to date.
         (SCHEMA_5_VERSION, SCHEMA_5_HASH),
         (SCHEMA_6_VERSION, SCHEMA_6_HASH),
         (SCHEMA_7_VERSION, SCHEMA_7_HASH),
         (SCHEMA_8_VERSION, SCHEMA_8_HASH),
         (SCHEMA_9_VERSION, SCHEMA_9_HASH),
         (SCHEMA_10_VERSION, SCHEMA_10_HASH),
+        (SCHEMA_11_VERSION, SCHEMA_11_HASH),
     }
 
 
