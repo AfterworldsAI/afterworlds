@@ -65,6 +65,12 @@ from afterworlds.ingestion.mechanical.oracle import (
     AcceptedOracle,
     derive_obligations,
 )
+from afterworlds.ingestion.mechanical.policy import (
+    PolicyTransitionRecord,
+    UnknownPolicyTransitionError,
+    accepted_policy_contracts,
+    policy_transition_for,
+)
 from afterworlds.ingestion.mechanical.projection import LegacySchemaPayloadError
 from afterworlds.ingestion.mechanical.proposal import (
     MechanicalProposal,
@@ -267,14 +273,46 @@ def accept_proposal(
             "this proposal binds a different 5c release than the prior accepted "
             "authority it would extend"
         )
-    if prior is not None and (
-        prior.oracle.policy_version,
-        prior.oracle.policy_hash,
-    ) != (proposal.policy_version, proposal.policy_hash):
+    # Recognition first, on the proposal's own declaration. An invented hash,
+    # or a known version paired with another version's hash, names no policy
+    # this build can state the meaning of — so the reason codes it carries
+    # cannot be checked against any closed catalog, and accepting it would mint
+    # authority under a policy that does not exist. Same shape as the schema
+    # recognition below, for the same reason.
+    proposed_policy = (proposal.policy_version, proposal.policy_hash)
+    if proposed_policy not in accepted_policy_contracts():
         raise AcceptanceError(
-            "this proposal declares a different semantic policy than the prior "
-            "accepted authority it would extend"
+            f"this proposal declares semantic policy {proposal.policy_version!r} "
+            f"({proposal.policy_hash}), which is not a contract this build "
+            "accepts authority under"
         )
+
+    # A policy difference is refused unless an authorized transition covers this
+    # exact succession — the same table-not-comparison rule ``SCHEMA_LIFTS``
+    # follows. Crossing is what makes the older policy's codes still readable,
+    # and the crossing is recorded, so the artifact keeps saying which
+    # successions actually happened rather than being silently reinterpreted.
+    policy_steps: tuple[PolicyTransitionRecord, ...] = ()
+    if prior is not None:
+        prior_policy = (prior.oracle.policy_version, prior.oracle.policy_hash)
+        if prior_policy != proposed_policy:
+            try:
+                crossing = policy_transition_for(prior_policy, proposed_policy)
+            except UnknownPolicyTransitionError as exc:
+                raise AcceptanceError(
+                    "this proposal declares a different semantic policy than the "
+                    "prior accepted authority it would extend, and no registered "
+                    f"transition authorizes the difference: {exc}"
+                ) from exc
+            policy_steps = (
+                PolicyTransitionRecord(
+                    transition_id=crossing.transition_id,
+                    from_version=crossing.from_version,
+                    from_hash=crossing.from_hash,
+                    to_version=crossing.to_version,
+                    to_hash=crossing.to_hash,
+                ),
+            )
 
     # **The central invariant, and it runs before every branch below.** A
     # representation and the schema identity it declares are admissible together
@@ -456,6 +494,10 @@ def accept_proposal(
         # Oldest first, and append-only: an artifact records every succession it
         # was carried across, not merely the last one.
         lifts=tuple(prior.lifts if prior else ()) + lift_records,
+        # Append-only on the same terms, and empty for every artifact that never
+        # crossed a policy boundary — which is all seven accepted batches.
+        policy_transitions=tuple(prior.policy_transitions if prior else ())
+        + policy_steps,
     )
 
 

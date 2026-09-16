@@ -151,6 +151,16 @@ def validate_policy_binding(ledger: ClassificationLedger) -> tuple[str, ...]:
     policy must fail here rather than be quietly reinterpreted under current
     code — that is how a catalog change that invalidates past acceptances
     becomes visible instead of silent.
+
+    Deliberately *not* widened to
+    :func:`~.policy.accepted_policy_contracts` when the policy registry was
+    added. That set is what authority may be *read and extended* under; this
+    is the publication path, and it keeps the same strict rule
+    :func:`~.projection.validate_schema_binding` applies to the representation
+    schema: a projection about to become current authority declares the live
+    policy exactly. Accepted authority under a superseded policy stays
+    loadable, replayable, and crossable — it simply becomes publishable by
+    crossing, which is an acceptance action, not a read.
     """
     findings: list[str] = []
     if ledger.policy_version != SEMANTIC_POLICY_VERSION:

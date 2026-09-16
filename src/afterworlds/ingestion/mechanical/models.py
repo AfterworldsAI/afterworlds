@@ -80,6 +80,19 @@ class IrreducibilityReason:
 
 
 @dataclass(frozen=True)
+class ProseRetentionReason:
+    """One entry of the closed prose-retention catalog.
+
+    Distinct from :class:`IrreducibilityReason` and never interchangeable with
+    it: an irreducibility reason claims the meaning cannot be reduced, a
+    retention reason claims only that nothing identified needs it reduced.
+    """
+
+    code: str
+    description: str
+
+
+@dataclass(frozen=True)
 class SemanticSpan:
     """One accepted-or-proposed classification of an exact leaf subspan.
 

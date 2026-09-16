@@ -71,6 +71,10 @@ from afterworlds.ingestion.mechanical.models import (
     SemanticDisposition,
     SemanticSpan,
 )
+from afterworlds.ingestion.mechanical.policy import (
+    POLICY_TRANSITIONS,
+    PolicyTransitionRecord,
+)
 from afterworlds.ingestion.mechanical.projection import (
     ProjectionCandidate,
     ReleaseBinding,
@@ -246,6 +250,13 @@ class AcceptedInputs:
     #: acceptance criterion 11), so this sits beside the acceptance batches
     #: rather than inside :class:`AcceptedOracle`.
     lifts: tuple[SchemaLiftRecord, ...] = ()
+    #: Semantic-policy successions this artifact was carried across, oldest
+    #: first. Evidence on exactly the same terms as :attr:`lifts`, and kept in
+    #: its own field rather than folded into them because a schema lift and a
+    #: policy transition authorize different things: one says the accepted
+    #: *representation* is byte-identical under a wider type contract, the
+    #: other says the accepted *reason codes* still mean what they meant.
+    policy_transitions: tuple[PolicyTransitionRecord, ...] = ()
 
     def classification(self) -> ClassificationLedger:
         """The complete accepted ledger, result and evidence together."""
@@ -1003,10 +1014,14 @@ def _acceptance(payload: object, where: str) -> tuple[
     tuple[AcceptanceRecord, ...],
     tuple[SchemaLiftRecord, ...],
     tuple[BatchSchemaAnchor, ...],
+    tuple[PolicyTransitionRecord, ...],
 ]:
     """Load the review evidence half of a committed accepted-inputs file."""
     p = _require(
-        payload, ("batches", "records"), where, optional=("lifts", "schema_anchors")
+        payload,
+        ("batches", "records"),
+        where,
+        optional=("lifts", "schema_anchors", "policy_transitions"),
     )
 
     anchors = []
@@ -1059,6 +1074,40 @@ def _acceptance(payload: object, where: str) -> tuple[
                 ),
             )
         )
+
+    transitions = []
+    for i, raw_step in enumerate(
+        _object_list(p.get("policy_transitions", []), f"{where}.policy_transitions")
+    ):
+        at = f"{where}.policy_transitions[{i}]"
+        entry = _require(
+            raw_step,
+            ("transition_id", "from_version", "from_hash", "to_version", "to_hash"),
+            at,
+        )
+        step = PolicyTransitionRecord(
+            transition_id=_string(entry["transition_id"], f"{at}.transition_id"),
+            from_version=_string(entry["from_version"], f"{at}.from_version"),
+            from_hash=_string(entry["from_hash"], f"{at}.from_hash"),
+            to_version=_string(entry["to_version"], f"{at}.to_version"),
+            to_hash=_string(entry["to_hash"], f"{at}.to_hash"),
+        )
+        # A file can claim any crossing it likes; only a registered one
+        # actually authorizes carrying policy-1 reason codes forward. Checked
+        # on the same terms the schema chain is: against the committed
+        # registry, by exact pair, with no rule over version order.
+        registered = POLICY_TRANSITIONS.get((step.from_version, step.from_hash))
+        if registered is None or (
+            registered.transition_id,
+            registered.to_version,
+            registered.to_hash,
+        ) != (step.transition_id, step.to_version, step.to_hash):
+            raise OracleLoadError(
+                f"{at}: claims a semantic-policy transition "
+                f"{step.transition_id!r} from {step.from_version!r} to "
+                f"{step.to_version!r} that this build does not authorize"
+            )
+        transitions.append(step)
 
     batches = []
     for i, raw in enumerate(_object_list(p["batches"], f"{where}.batches")):
@@ -1138,7 +1187,13 @@ def _acceptance(payload: object, where: str) -> tuple[
                 accepted_at=_string(r["accepted_at"], f"{at}.accepted_at"),
             )
         )
-    return tuple(batches), tuple(records), tuple(lifts), tuple(anchors)
+    return (
+        tuple(batches),
+        tuple(records),
+        tuple(lifts),
+        tuple(anchors),
+        tuple(transitions),
+    )
 
 
 def load_accepted_inputs(path: Path) -> AcceptedInputs:
@@ -1200,7 +1255,9 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
     )
     _check_obligations_closed(representation, obligations, path.name)
     spans = tuple(_span(s, i) for i, s in enumerate(_object_list(p["spans"], "spans")))
-    batches, acceptances, lifts, anchors = _acceptance(p["acceptance"], "acceptance")
+    batches, acceptances, lifts, anchors, transitions = _acceptance(
+        p["acceptance"], "acceptance"
+    )
     oracle = AcceptedOracle(
         binding=ReleaseBinding(
             **{k: _string(binding[k], f"release_binding.{k}") for k in binding_fields}
@@ -1241,6 +1298,7 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
         acceptances=acceptances,
         schema_anchors=anchors,
         lifts=lifts,
+        policy_transitions=transitions,
     )
 
     # Evidence is validated as strictly as the result it justifies. A file whose
@@ -1414,6 +1472,21 @@ def accepted_inputs_payload(inputs: AcceptedInputs) -> dict[str, object]:
                 "verified_collections": list(lift.verified_collections),
             }
             for lift in inputs.lifts
+        ]
+    if inputs.policy_transitions:
+        # Same omit-when-empty discipline, and it is what keeps the committed
+        # seven-batch artifact byte-identical while this build applies a newer
+        # policy: an artifact that never crossed a policy succession says
+        # nothing about one.
+        acceptance["policy_transitions"] = [
+            {
+                "transition_id": step.transition_id,
+                "from_version": step.from_version,
+                "from_hash": step.from_hash,
+                "to_version": step.to_version,
+                "to_hash": step.to_hash,
+            }
+            for step in inputs.policy_transitions
         ]
     payload["acceptance"] = acceptance
     return payload

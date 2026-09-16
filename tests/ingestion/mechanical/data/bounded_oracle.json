@@ -306,8 +306,8 @@
     "hash": "605e8b4cfdaf0cb6d4f0b65fcf0d23f3e45c4734404c9568f41dc4261eefd037",
     "version": "5d-representation-schema-11"
   },
-  "semantic_policy_hash": "e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454",
-  "semantic_policy_version": "5d-semantic-policy-1",
+  "semantic_policy_hash": "ce8464f8c9013a849ad8f73bacbac0305b54861daec361883f9b06e5be289ad3",
+  "semantic_policy_version": "5d-semantic-policy-2",
   "spans": [
     {
       "char_end": 40,
