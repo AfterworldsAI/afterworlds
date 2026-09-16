@@ -1,15 +1,16 @@
-# ADR-005d practical reliability amendment — proposed
+# ADR-005d practical reliability amendment — accepted
 
 **Date:** 2026-09-16\
-**Status:** Proposed for the Owner's concrete design review; not an accepted amendment.\
+**Status:** Accepted by Owner Decision 2026-09-16; implementation pending.\
 **Parent:** [ADR-005d](adr-005d-complete-typed-mechanical-authority.md)\
-**Companion:** [complete proposed issue #137](../architecture/issue-5d-practical-reliability-draft.md)\
+**Companion:** [complete amended issue #137](../architecture/issue-5d-practical-reliability-draft.md)\
 **Evidence and next steps:** [Speed comparison](../architecture/issue-5d-speed-comparison.md)
 
-The Owner authorized preparing this comparison and coordinated amendment. This document does not
-record approval of its proposed design, accept a new corpus batch, or authorize publication. Adoption
-requires updating issue #137 and recording this amendment's accepted status together. Until then the
-accepted ADR and live issue continue to govern implementation.
+**Owner Decision, 2026-09-16:** “I approve adopting this policy in CRD Issue 5d and ADR-005d.”
+
+This amendment and the coordinated issue text are adopted. Implementation remains pending. This
+decision accepts no new corpus batch and authorizes no publication, activation, or merge. PR #169
+records the decision in the repository; issue #137 carries the amended construction contract.
 
 ## Purpose
 
@@ -28,9 +29,9 @@ create a mandatory form for every passage or field. A foreseeable v1 use counts;
 already exist. Mere reducibility, possible future extensibility, or a desired representation count is
 insufficient.
 
-## Proposed replacements and preserved decisions
+## Superseded requirements and preserved decisions
 
-On adoption, the provisions below supersede only the corresponding requirements of ADR-005d. The
+The provisions below supersede only the corresponding requirements of ADR-005d. The
 historical schema amendments and accepted batches remain evidence of the contracts under which they
 were created. No accepted schema, input, identity, or runtime behavior changes merely by adopting
 this text. Any necessary implementation/schema transition must be explicit and versioned.
@@ -39,7 +40,7 @@ New accepted review inventories, coverage decisions, and handling policies are m
 and participate in the projection identity. Incidental review metadata remains outside semantic
 identity. Existing recorded identities are not reinterpreted under the new policy.
 
-| Parent provision | Proposed change |
+| Parent provision | Adopted change |
 |---|---|
 | Central Decision; Decision 1 | Full actual-rule coverage remains. Choose fields for identified code uses and exact prose for remaining governing meaning. Reducibility alone does not force a field. |
 | Decision 2 | Review coherent entries, tables, or sections against an inventory covering the source. Replace mandatory gap-free classification of every extracted leaf with the coverage contract below. |
@@ -137,7 +138,7 @@ If the pilot still requires a large custom program, diagnose that cost before st
 
 ## Scope and sequencing
 
-Adopt the coordinated issue/ADR wording first. Next, Claude implements the shared-tool and any required
+The coordinated issue/ADR wording is adopted. Next, Claude implements the shared-tool and any required
 versioned policy changes, preserving accepted meaning and exercising the failures above. Review that
 work before conducting the regular-section pilot and resuming broader corpus authoring.
 
