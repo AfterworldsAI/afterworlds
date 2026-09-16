@@ -75,6 +75,7 @@ from afterworlds.ingestion.mechanical.projection import (
     UnsupportedSchemaVersionError,
     identify_projection,
     representation_payload,
+    review_unit_payload,
     validate_candidate,
     validate_schema_binding,
 )
@@ -635,22 +636,34 @@ def run_publication_gate(
     #    incomplete production projection fail structurally: a projection that
     #    classified a handful of leaves is not "mostly complete", it simply is
     #    not the release's REPRESENTED population.
+    #
+    #    A leaf is covered by a span over it *or* by an accepted review unit
+    #    naming it. The second is not a weakening: a reviewer who read a section
+    #    and recorded that nothing in it states a rule has accounted for that
+    #    leaf exactly as deliberately as one who classified a span in it, and
+    #    demanding a span anyway would make the inventory unusable for the
+    #    passages it exists to account for. The inventory is identity-bearing
+    #    and compared element by element in step 6, so this relies on an
+    #    accepted decision, not on a claim the projection makes about itself.
     corpus = bound_corpus_from_operational(operational_corpus)
     represented = set(corpus.leaf_lengths)
     classified = {s.leaf_id for s in ledger.spans}
-    for leaf_id in sorted(represented - classified):
+    reviewed = {leaf_id for unit in candidate.review_units for leaf_id in unit.leaf_ids}
+    covered = classified | reviewed
+    for leaf_id in sorted(represented - covered):
         _fail(
             findings,
             GateFailureCategory.POPULATION_MISMATCH,
             f"leaf {leaf_id}: represented by the bound 5c release, absent from the "
-            "accepted classification",
+            "accepted classification and named by no accepted review unit",
         )
-    for leaf_id in sorted(classified - represented):
+    for leaf_id in sorted(covered - represented):
         _fail(
             findings,
             GateFailureCategory.POPULATION_MISMATCH,
-            f"leaf {leaf_id}: classified, but not a represented leaf of the bound "
-            "5c release",
+            f"leaf {leaf_id}: "
+            + ("classified" if leaf_id in classified else "named by a review unit")
+            + ", but not a represented leaf of the bound 5c release",
         )
 
     # 4. Residue. Classified explicitly rather than read out of the validator's
@@ -701,6 +714,18 @@ def run_publication_gate(
         "spans",
         findings,
         _CLASSIFICATION_CATEGORIES,
+    )
+    # The review inventory is accepted authority in the ordinary categories: a
+    # unit the projection carries that nobody accepted is unexpected authority,
+    # and an accepted unit it dropped is missing authority. Deliberately outside
+    # the schema guard below, because an inventory canonicalizes under no
+    # representation schema — a declaration the renderer cannot read is no
+    # reason to stop comparing what was reviewed.
+    _compare_elements(
+        review_unit_payload(candidate.review_units),
+        review_unit_payload(oracle.review_units),
+        "review_units",
+        findings,
     )
     # Each side canonicalizes under its own declaration, so a side whose
     # declaration and content disagree cannot be rendered at all. That is a

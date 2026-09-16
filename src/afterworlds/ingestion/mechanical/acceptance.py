@@ -57,6 +57,7 @@ from afterworlds.ingestion.mechanical.models import (
     AcceptanceBatch,
     AcceptanceRecord,
     ReviewState,
+    ReviewUnit,
     SemanticDiffEntry,
     SemanticSpan,
 )
@@ -72,7 +73,10 @@ from afterworlds.ingestion.mechanical.policy import (
     policy_meaning_violations,
     policy_transition_for,
 )
-from afterworlds.ingestion.mechanical.projection import LegacySchemaPayloadError
+from afterworlds.ingestion.mechanical.projection import (
+    LegacySchemaPayloadError,
+    review_unit_violations,
+)
 from afterworlds.ingestion.mechanical.proposal import (
     MechanicalProposal,
     proposal_identity,
@@ -238,6 +242,7 @@ def accept_proposal(
     reviewer: str,
     accepted_at: str,
     prior: AcceptedInputs | None = None,
+    review_units: tuple[ReviewUnit, ...] = (),
 ) -> AcceptedInputs:
     """Record one explicit acceptance of *resolved_scope* from *proposal*.
 
@@ -250,6 +255,14 @@ def accept_proposal(
     what their disposition became. The batch separately records the identity of
     the complete proposal reviewed, which is what ties the accepted
     *representation* to something a human looked at.
+
+    ``review_units`` is what this batch's reviewer recorded having read: the
+    coherent sections, entries and tables they reviewed, which leaves each
+    covers, and which rules each must contain. It accumulates across batches
+    on the same terms as their scopes — a ``unit_id`` a prior batch already
+    recorded cannot be recorded again — and the accumulated inventory is
+    checked against the *merged* representation, because a unit may legitimately
+    expect a rule an earlier batch structured.
 
     Extending *prior* requires a disjoint scope: a span it already accepted
     cannot be re-accepted here.
@@ -479,6 +492,30 @@ def accept_proposal(
         prior.oracle.representation if prior else None,
         proposal.proposed_representation,
     )
+
+    # The inventory accumulates like batch scopes do, and for the same reason:
+    # two units under one id would make every expectation's parentage ambiguous
+    # in the persisted rows and in the artifact alike.
+    prior_units = prior.oracle.review_units if prior else ()
+    if repeated := sorted(
+        {u.unit_id for u in review_units} & {u.unit_id for u in prior_units}
+    ):
+        raise AcceptanceError(
+            f"review units already recorded by a prior batch: {repeated}"
+        )
+    merged_units = prior_units + review_units
+    # Checked against the merged representation rather than this proposal's,
+    # because a unit may expect a rule an earlier batch structured. Refused here,
+    # before an artifact exists, rather than producing one the loader rejects —
+    # the same terms as the disjoint-scope refusal above.
+    if violations := review_unit_violations(
+        merged_units, representation, proposal.policy_version
+    ):
+        raise AcceptanceError(
+            "this acceptance would record a review inventory that is not "
+            f"coverage of what it claims: {violations}"
+        )
+
     return AcceptedInputs(
         oracle=AcceptedOracle(
             binding=proposal.binding,
@@ -489,6 +526,7 @@ def accept_proposal(
             spans=_ordered(spans),
             representation=representation,
             obligations=derive_obligations(representation),
+            review_units=merged_units,
         ),
         batches=tuple(prior.batches if prior else ()) + (batch,),
         acceptances=acceptances,

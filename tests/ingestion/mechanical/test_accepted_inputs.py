@@ -30,7 +30,7 @@ from afterworlds.ingestion.mechanical.gate import (
     GateFailureCategory,
     run_publication_gate,
 )
-from afterworlds.ingestion.mechanical.models import ComponentHandling
+from afterworlds.ingestion.mechanical.models import ComponentHandling, ExpectedRule
 from afterworlds.ingestion.mechanical.oracle import (
     COMMITTED_ORACLE_DIR,
     OracleLoadError,
@@ -77,6 +77,7 @@ from tests.ingestion.mechanical.conftest import (
     NOW,
     PACKAGE_UUID,
     RELEASE_BINDING,
+    REVIEW_UNITS,
     SCHEMA_HASH,
     SCHEMA_VERSION,
     SPELL_KEY,
@@ -805,3 +806,101 @@ def test_a_corrupted_persisted_proposal_identity_fails_the_publication_gate(
     assert not result.passed
     assert GateFailureCategory.SEMANTIC_VALIDATION in result.categories()
     assert any("is not a canonical SHA-256 digest" in f.detail for f in result.failures)
+
+
+# -- the review inventory an acceptance records -------------------------------
+#
+# ``review_units`` is what this batch's reviewer recorded having read. It
+# accumulates across batches on the same terms their scopes do, and it is
+# checked against the *merged* representation, because a unit may legitimately
+# expect a rule an earlier batch structured.
+
+
+def test_an_acceptance_records_what_its_reviewer_read(tmp_path: Path) -> None:
+    """Through the committed form, because that is where the inventory has to
+    survive: accepted in memory, written to the artifact, read back by the
+    loader the build uses."""
+    inputs = _accept(review_units=REVIEW_UNITS)
+    assert inputs.oracle.review_units == REVIEW_UNITS
+
+    path = tmp_path / "accepted.json"
+    path.write_text(json.dumps(accepted_inputs_payload(inputs)), encoding="utf-8")
+    reloaded = load_accepted_inputs(path)
+    assert oracle_identity(reloaded.oracle) == oracle_identity(inputs.oracle)
+    assert {u.unit_id for u in reloaded.oracle.review_units} == {
+        u.unit_id for u in REVIEW_UNITS
+    }
+
+
+def test_an_acceptance_recording_nothing_read_is_the_existing_shape() -> None:
+    """Every one of the seven accepted batches passes no unit, and still works."""
+    assert _accept().oracle.review_units == ()
+
+
+def test_a_second_batch_carries_the_first_batchs_inventory_forward() -> None:
+    proposal = _proposal()
+    first_span, *rest = [p.span.span_id for p in proposal.proposed_spans]
+    first = _accept(resolved_scope=(first_span,), review_units=(REVIEW_UNITS[0],))
+    second = accept_proposal(
+        proposal,
+        batch_id="batch-2",
+        rule="the remaining spans",
+        resolved_scope=tuple(rest),
+        reviewer="owner",
+        accepted_at="2026-08-10T00:00:00Z",
+        prior=first,
+        review_units=(REVIEW_UNITS[1],),
+    )
+    assert second.oracle.review_units == REVIEW_UNITS
+
+
+def test_a_unit_id_a_prior_batch_recorded_is_refused() -> None:
+    """Two units under one id would make every expectation's parentage ambiguous."""
+    proposal = _proposal()
+    first_span, *rest = [p.span.span_id for p in proposal.proposed_spans]
+    with pytest.raises(AcceptanceError, match="already recorded by a prior batch"):
+        accept_proposal(
+            proposal,
+            batch_id="batch-2",
+            rule="the remaining spans",
+            resolved_scope=tuple(rest),
+            reviewer="owner",
+            accepted_at="2026-08-10T00:00:00Z",
+            prior=_accept(
+                resolved_scope=(first_span,), review_units=(REVIEW_UNITS[0],)
+            ),
+            review_units=(replace(REVIEW_UNITS[0], expected_rules=()),),
+        )
+
+
+def test_an_expectation_with_no_home_in_the_representation_is_refused() -> None:
+    """Refused before an artifact exists, not after the loader rejects one."""
+    homeless = replace(
+        REVIEW_UNITS[0],
+        expected_rules=(ExpectedRule(SPELL_KEY, "component:nowhere"),),
+    )
+    with pytest.raises(AcceptanceError, match="not coverage of what it claims"):
+        _accept(review_units=(homeless,))
+
+
+def test_a_unit_expecting_a_rule_an_earlier_batch_structured_is_accepted() -> None:
+    """Checked against the merged representation, not against this batch's.
+
+    The second batch accepts one span and records a unit expecting the
+    descriptor component — which the first batch's representation already
+    carries. Against this batch's proposal alone that is indistinguishable from
+    the homeless expectation above.
+    """
+    proposal = _proposal()
+    first_span, *rest = [p.span.span_id for p in proposal.proposed_spans]
+    second = accept_proposal(
+        proposal,
+        batch_id="batch-2",
+        rule="the remaining spans",
+        resolved_scope=tuple(rest),
+        reviewer="owner",
+        accepted_at="2026-08-10T00:00:00Z",
+        prior=_accept(resolved_scope=(first_span,)),
+        review_units=(REVIEW_UNITS[0],),
+    )
+    assert second.oracle.review_units == (REVIEW_UNITS[0],)
