@@ -256,7 +256,7 @@ character-state completeness for deterministic adjudication), and CRD Issue 15c 
 production reachability).
 
 **Owner Decision 2026-09-16 — practical reliability policy adopted; implementation pending.**
-The [accepted ADR-005d amendment](../decisions/adr-005d-practical-reliability-proposal.md) and amended
+The [amended ADR-005d](../decisions/adr-005d-complete-typed-mechanical-authority.md) and amended
 #137 govern section/entry/table review, use-driven field selection, exact governing prose, shared
 batch tooling, and a regular-section pilot. Full actual-rule coverage and downstream ownership remain.
 The seven accepted batches are preserved. The landed implementation and historical schema work below

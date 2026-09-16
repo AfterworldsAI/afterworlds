@@ -2,10 +2,10 @@
 
 > **Status:** Accepted — practical reliability amendment adopted by Owner 2026-09-16.
 > Owner decision: “I approve adopting this policy in CRD Issue 5d and ADR-005d.”
-> This complete issue text incorporates the [accepted ADR amendment](../decisions/adr-005d-practical-reliability-proposal.md).
+> This complete issue text is coordinated with the amended [ADR-005d](../decisions/adr-005d-complete-typed-mechanical-authority.md).
 > Implementation remains in progress. Policy adoption does not accept new corpus content or authorize
-> publication, activation, or merge. The original issue was finalized on 2026-07-30; prior decisions
-> remain except where this amendment expressly supersedes them.
+> publication, activation, or merge. The original issue was finalized on 2026-07-30;
+> the adopted changes are incorporated directly below and into ADR-005d.
 > See the [Speed comparison and delivery sequence](issue-5d-speed-comparison.md).
 >
 > **Amended by Owner Decision 2026-07-30 (PR #138 review):** the effective runtime `RulesPackageBinding`
@@ -61,8 +61,9 @@ component is executable by the bounded-d20 Rules System Adapter.
 
 ## Governing Authority
 
-ADR-005d together with its Owner-adopted practical reliability amendment governs this issue.
-The 2026-09-16 amendment supersedes the older requirements at the provisions it identifies.
+[ADR-005d](../decisions/adr-005d-complete-typed-mechanical-authority.md) governs this issue.
+The Owner-adopted 2026-09-16 policy is incorporated directly into this complete issue text and the
+corresponding ADR decisions; no separate policy overlay is required.
 
 The core authority split is:
 

@@ -10,7 +10,7 @@ Keep the accepted Speed data. Change the rules for deciding what future content 
 fields, and consolidate the repeated batch machinery. Speed does not demonstrate that its seventeen
 facts should be deleted. It does demonstrate costs beyond recording and reviewing the rule itself.
 
-The Owner adopted the [ADR amendment](../decisions/adr-005d-practical-reliability-proposal.md) and the
+The Owner adopted the [amended ADR-005d](../decisions/adr-005d-complete-typed-mechanical-authority.md) and the
 [complete amended issue #137](issue-5d-practical-reliability-draft.md) together. They
 preserve complete SRD rule coverage while changing how representation work earns its place.
 
@@ -109,7 +109,8 @@ This proposal does not address overall completion-percentage accounting.
    needs; corrupt a source link or stored payload; attempt unaccepted input or partial publication.
    Keep existing binding/override tests. Test the common behavior once and add content-specific cases
    for actual exceptions, rather than duplicating the machinery for each batch.
-5. Select and author one coherent regular section using that path. Equipment is a candidate only
+5. Complete and review the implementation above before authoring the pilot. Then select and author
+   one coherent regular section using that path. Equipment is a candidate only
    after checking the actual section, its exceptions, and reusable fields. Present its exact scope
    and proposal for the ordinary explicit semantic acceptance; do not assume this design review
    accepts unseen corpus content.
