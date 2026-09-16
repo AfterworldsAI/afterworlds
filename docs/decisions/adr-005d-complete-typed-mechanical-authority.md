@@ -15,6 +15,10 @@ operation resolved last, rather than remembered as a sticky promotion, correctin
 the contrary  
 **Amends/clarifies:** ADR-005c, ADR-0007, ADR-015, ADR-018
 
+**Pending proposal (2026-09-16):** the [practical reliability amendment](adr-005d-practical-reliability-proposal.md)
+and its companion issue draft propose proportionate source review, use-driven field selection, and
+shared batch tooling. They are not accepted and do not yet change the decisions below.
+
 ---
 
 ## Context
