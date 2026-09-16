@@ -270,6 +270,7 @@ class TestRpTablePrefix:
             # what that review was required to contain.
             "rp_mech_review_units",
             "rp_mech_review_expectations",
+            "rp_mech_review_unit_acceptances",
         }
         actual = {n for n in Base.metadata.tables if n.startswith("rp_")}
         assert (
