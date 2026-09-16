@@ -106,8 +106,8 @@ unconditionally.**
 Its high-entropy strings are content hashes — release binding pins, declared
 policy and schema hashes, derived span ids — not credentials. A JSON artifact
 cannot carry an inline allowlist pragma, so its baseline block was added by the
-additive splice (`.claude/review-notes/_conditions1_baseline_splice.py`):
-scan a copy, add only that one file's block, leave every other entry and
+additive splice (`.claude/review-notes/_conditions1_baseline_splice.py`,
+untracked scratch, like every other `_*_baseline_splice*.py`): scan a copy, add only that one file's block, leave every other entry and
 `generated_at` untouched.
 
 Superseded conditions-1 drafts are deliberately not committed: retained review
@@ -134,7 +134,10 @@ acceptance overwrote with the seven-batch merge, so `--verify` compares a
 six-batch rebuild to a seven-batch file. The script is retained acceptance
 evidence and is left unchanged for that reason — an ordinary engineering choice,
 not an Owner item. **cover-1's reproduction against its frozen six-batch prior
-`86cd11c2…` (47 records / 558 spans) passes on this head.**
+`86cd11c2…` (47 records / 558 spans) passes on this head**, in
+`tests/ingestion/mechanical/test_cover_1_acceptance_reproduction.py` alongside
+`test_speed_1_frozen_prior.py` — 12 tests, inside the ingestion chunk and rerun
+directly on the current tree. The retained ACCEPT scripts were not re-executed.
 
 **`application.py` / `views.py` carry the retention reason; they do not branch on
 it.** `EffectiveComponent` and `GameMasterComponent` expose
