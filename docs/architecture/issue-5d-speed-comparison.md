@@ -1,8 +1,8 @@
-# 5d recovery: Speed comparison and proposed next steps
+# 5d recovery: Speed comparison and adopted next steps
 
 **Date:** 2026-09-16\
 **Inspected repository:** `02a432f2`, merged Speed acceptance PR #167.\
-**Status:** Reviewable design proposal. No accepted rules or runtime code changed.
+**Status:** Policy adopted by Owner 2026-09-16; implementation pending. No accepted rules or runtime code changed.
 
 ## Recommendation
 
@@ -10,8 +10,8 @@ Keep the accepted Speed data. Change the rules for deciding what future content 
 fields, and consolidate the repeated batch machinery. Speed does not demonstrate that its seventeen
 facts should be deleted. It does demonstrate costs beyond recording and reviewing the rule itself.
 
-Review the [proposed ADR amendment](../decisions/adr-005d-practical-reliability-proposal.md) and the
-[complete replacement draft for issue #137](issue-5d-practical-reliability-draft.md) together. They
+The Owner adopted the [ADR amendment](../decisions/adr-005d-practical-reliability-proposal.md) and the
+[complete amended issue #137](issue-5d-practical-reliability-draft.md) together. They
 preserve complete SRD rule coverage while changing how representation work earns its place.
 
 ## What Speed actually contains
@@ -95,10 +95,10 @@ does not remove source review, and using two loaders does not substitute for it.
 
 This proposal does not address overall completion-percentage accounting.
 
-## Concrete sequence after design adoption
+## Implementation sequence
 
-1. Record adoption of the coordinated issue and ADR wording. The complete issue draft preserves all
-   25 acceptance-criterion numbers and the later override amendments.
+1. Policy adoption is recorded in the coordinated issue and ADR wording. The complete amended issue
+   preserves all 25 acceptance-criterion numbers and the later override amendments.
 2. Claude implements the smallest shared loader/accept/verify changes around existing production
    code. Use retained Speed inputs as a reproduction case; preserve its accepted data and replay
    evidence. Keep already-supported historical schemas honest.
