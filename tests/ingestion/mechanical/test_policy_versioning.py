@@ -101,7 +101,7 @@ def test_every_recognized_policy_still_hashes_to_its_pinned_contract(
     """The registry's pins are facts about committed policies, not restatements.
 
     Without this, editing one description silently mints a third contract: the
-    constant would still say ``ce8464f8…`` while ``semantic_policy_hash`` said
+    constant would still say ``da63b894…`` while ``semantic_policy_hash`` said
     something else, and every artifact declaring the pinned pair would stop
     loading with no test naming the cause.
     """

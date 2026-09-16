@@ -73,13 +73,34 @@ def derive_span_id(leaf_id: str, char_start: int, char_end: int) -> str:
 
 
 def validate_partition(
-    leaf_id: str, leaf_length: int, spans: tuple[SemanticSpan, ...]
+    leaf_id: str,
+    leaf_length: int,
+    spans: tuple[SemanticSpan, ...],
+    *,
+    require_complete: bool = True,
 ) -> tuple[str, ...]:
     """Return violations of the gap-free, non-overlapping partition rule.
 
     *spans* are the spans claimed for ``leaf_id``; ``leaf_length`` is the length
     of that leaf's canonical text. A leaf with no spans is a violation, not an
     empty success — unclassified text is the failure this check exists for.
+
+    ``require_complete=False`` drops exactly the three completeness findings —
+    no spans at all, a gap before a span, and trailing text after the last one —
+    and keeps every validity finding: derived id, bounds, emptiness, and
+    overlap. It is passed only for a leaf an accepted **review unit** covers,
+    because the Owner Decision of 2026-09-16 amended ADR-005d Decision 2 to say
+    that classification rows "for every character interval of every extracted
+    leaf are not required" once a human has reviewed the leaf at a coherent
+    boundary. Such a leaf may still carry exact subspans "where needed for a
+    fact, rule, qualification, citation, or correction", and those subspans are
+    held to every rule above — what is no longer demanded is that they tile the
+    leaf end to end.
+
+    The default is ``True``, so nothing that does not explicitly opt out changes
+    behaviour, and the seven accepted batches keep the complete partitions they
+    were reviewed under: the same decision says existing accepted partitions
+    "remain valid and are not rewritten".
     """
     findings: list[str] = []
     mine = sorted(
@@ -88,7 +109,7 @@ def validate_partition(
     )
 
     if not mine:
-        return (f"leaf {leaf_id}: no semantic spans",)
+        return () if not require_complete else (f"leaf {leaf_id}: no semantic spans",)
 
     cursor = 0
     for span in mine:
@@ -106,9 +127,10 @@ def validate_partition(
                 f"leaf {leaf_id}: span [{span.char_start},{span.char_end}) is empty"
             )
         if span.char_start > cursor:
-            findings.append(
-                f"leaf {leaf_id}: uncovered text [{cursor},{span.char_start})"
-            )
+            if require_complete:
+                findings.append(
+                    f"leaf {leaf_id}: uncovered text [{cursor},{span.char_start})"
+                )
         elif span.char_start < cursor:
             findings.append(
                 f"leaf {leaf_id}: overlapping span at [{span.char_start},"
@@ -116,7 +138,7 @@ def validate_partition(
             )
         cursor = max(cursor, span.char_end)
 
-    if cursor < leaf_length:
+    if require_complete and cursor < leaf_length:
         findings.append(f"leaf {leaf_id}: uncovered text [{cursor},{leaf_length})")
 
     return tuple(findings)

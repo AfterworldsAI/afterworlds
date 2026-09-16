@@ -6,7 +6,8 @@ policy. It defines, exhaustively:
 
 * the closed non-mechanical reason catalog;
 * the closed prose-bound irreducibility catalog;
-* the closed prose-retention reason catalog; and
+* the closed prose-retention reason catalog;
+* the closed review-unit kind catalog; and
 * the canonicalization rules under which spans and payloads are compared.
 
 Because it lives in committed source it is frozen by construction, and the
@@ -19,9 +20,11 @@ reproducible here. ``5d-semantic-policy-1`` is what the seven accepted batches
 were accepted under; ``5d-semantic-policy-2`` adds the prose-retention catalog
 required by the Owner Decision of 2026-09-16 (ADR-005d, #137 contract 2), which
 distinguishes prose retained because judgement is required from prose retained
-because no separate structured use was identified. A historical payload is
-reproduced key for key so its recorded hash still verifies: a superseded policy
-keeps its original meaning rather than being reinterpreted under current code.
+because no separate structured use was identified, and the review-unit kinds
+that same decision requires for reviewing coherent sections, entries and
+tables. A historical payload is reproduced key for key so its recorded hash
+still verifies: a superseded policy keeps its original meaning rather than
+being reinterpreted under current code.
 
 Canonicalization deliberately reuses CRD Issue 5c's ``normalize`` rather than
 defining a second text-equivalence rule. Two normalization rules that drift
@@ -40,6 +43,8 @@ from afterworlds.ingestion.mechanical.models import (
     IrreducibilityReason,
     NonMechanicalReason,
     ProseRetentionReason,
+    ReviewUnitKind,
+    ReviewUnitKindEntry,
 )
 
 __all__ = [
@@ -47,6 +52,7 @@ __all__ = [
     "NON_MECHANICAL_REASONS",
     "POLICY_TRANSITIONS",
     "PROSE_RETENTION_REASONS",
+    "REVIEW_UNIT_KINDS",
     "SEMANTIC_POLICY_VERSION",
     "PolicyTransition",
     "PolicyTransitionRecord",
@@ -59,6 +65,7 @@ __all__ = [
     "policy_meaning_violations",
     "policy_transition_violations",
     "prose_retention_reason_for",
+    "review_unit_kind_codes",
     "semantic_policy_hash",
     "semantic_policy_payload",
 ]
@@ -78,7 +85,7 @@ SEMANTIC_POLICY_VERSION = POLICY_2_VERSION
 #: them here would make the registry agree with any future edit, which is the
 #: one thing a version registry exists to refuse.
 POLICY_1_HASH = "e6363968d6ee8ec288e6c7e3382907a1afd8bf2aad0b18e153aec439b5aa9454"  # noqa: E501  # pragma: allowlist secret
-POLICY_2_HASH = "ce8464f8c9013a849ad8f73bacbac0305b54861daec361883f9b06e5be289ad3"  # noqa: E501  # pragma: allowlist secret
+POLICY_2_HASH = "da63b8940c5b3997b44d53e02941389b68e2a2ba35250e73194d38bb1d74cde7"  # noqa: E501  # pragma: allowlist secret
 
 # ---------------------------------------------------------------------------
 # Closed catalogs (#137 contract 2)
@@ -183,6 +190,42 @@ PROSE_RETENTION_REASONS: tuple[ProseRetentionReason, ...] = (
     ),
 )
 
+#: The coherent source boundaries a review unit may be reviewed at — ADR-005d
+#: Decision 2's "meaningful section, entry, or table boundaries", verbatim and
+#: closed.
+#:
+#: **Why this is policy rather than representation schema.** The representation
+#: schema hashes the shape of a ``RepresentationDraft``: its fact families,
+#: component fields, and vocabularies. A review unit is not in the draft — it
+#: is a sibling of the accepted spans, and like them its *values* are governed
+#: by the policy that says which closed codes accepted authority may state.
+#: Putting the kinds here is what makes "reviewed at an entry boundary" a claim
+#: with a recorded, verifiable contract, and what makes a unit declared under
+#: ``5d-semantic-policy-1`` refusable rather than silently admitted.
+REVIEW_UNIT_KINDS: tuple[ReviewUnitKindEntry, ...] = (
+    ReviewUnitKindEntry(
+        code=ReviewUnitKind.SECTION.value,
+        description=(
+            "A coherent titled stretch of rules reviewed as one whole, "
+            "including its exceptions and qualifications."
+        ),
+    ),
+    ReviewUnitKindEntry(
+        code=ReviewUnitKind.ENTRY.value,
+        description=(
+            "One member of a named series — a condition, a spell, an item — "
+            "reviewed as the series presents it."
+        ),
+    ),
+    ReviewUnitKindEntry(
+        code=ReviewUnitKind.TABLE.value,
+        description=(
+            "A table reviewed row by row, so an omitted row is a missing "
+            "expected rule rather than an unnoticed gap."
+        ),
+    ),
+)
+
 _NON_MECHANICAL_BY_CODE = {r.code: r for r in NON_MECHANICAL_REASONS}
 _IRREDUCIBILITY_BY_CODE = {r.code: r for r in IRREDUCIBILITY_REASONS}
 _PROSE_RETENTION_BY_CODE = {r.code: r for r in PROSE_RETENTION_REASONS}
@@ -229,11 +272,11 @@ def semantic_policy_payload(
     """Canonical, identity-bearing payload of a recognized semantic policy.
 
     Policy 1's payload is reproduced with *exactly* the keys it was hashed
-    under. The prose-retention catalog is a policy-2 key and is absent from
-    policy 1 rather than emitted empty: an added key changes the hash, and a
-    superseded policy whose recorded hash no longer verifies is not a
-    superseded policy — it is a lost one, and every batch accepted under it
-    becomes unreadable.
+    under. The prose-retention and review-unit-kind catalogs are policy-2 keys
+    and are absent from policy 1 rather than emitted empty: an added key
+    changes the hash, and a superseded policy whose recorded hash no longer
+    verifies is not a superseded policy — it is a lost one, and every batch
+    accepted under it becomes unreadable.
 
     Both versions share the two catalogs above, element for element. That is
     what makes the 1 → 2 transition a strict superset rather than a
@@ -257,6 +300,9 @@ def semantic_policy_payload(
         payload["prose_retention_reasons"] = [
             {"code": r.code, "description": r.description}
             for r in PROSE_RETENTION_REASONS
+        ]
+        payload["review_unit_kinds"] = [
+            {"code": r.code, "description": r.description} for r in REVIEW_UNIT_KINDS
         ]
     return payload
 
@@ -484,6 +530,21 @@ def prose_retention_codes(version: str = SEMANTIC_POLICY_VERSION) -> frozenset[s
     reasons = payload.get("prose_retention_reasons", ())
     assert isinstance(reasons, Sequence)
     return frozenset(str(r["code"]) for r in reasons)
+
+
+def review_unit_kind_codes(version: str = SEMANTIC_POLICY_VERSION) -> frozenset[str]:
+    """The review-unit kinds *version*'s catalog admits.
+
+    Empty under ``5d-semantic-policy-1``, for the same reason and with the same
+    consequence :func:`prose_retention_codes` describes: a policy with no
+    review-unit catalog admits no review unit at all, so accepted authority
+    that states one under policy 1 is refused rather than read under a contract
+    policy 1 never recorded. Derived from the payload, never restated.
+    """
+    payload = semantic_policy_payload(version)
+    kinds = payload.get("review_unit_kinds", ())
+    assert isinstance(kinds, Sequence)
+    return frozenset(str(k["code"]) for k in kinds)
 
 
 def policy_meaning_violations(

@@ -66,7 +66,10 @@ from afterworlds.ingestion.mechanical.models import (
     AcceptanceRecord,
     ClassificationLedger,
     ComponentHandling,
+    ExpectedRule,
     ReviewState,
+    ReviewUnit,
+    ReviewUnitKind,
     SemanticDiffEntry,
     SemanticDisposition,
     SemanticSpan,
@@ -82,6 +85,8 @@ from afterworlds.ingestion.mechanical.projection import (
     ReleaseBinding,
     applicability_payload_violations,
     representation_payload,
+    review_unit_payload,
+    review_unit_violations,
 )
 from afterworlds.ingestion.mechanical.representation import (
     COMPONENT_WIDE_PROSE,
@@ -221,6 +226,26 @@ class AcceptedOracle:
     spans: tuple[SemanticSpan, ...]
     representation: RepresentationDraft
     obligations: tuple[RecordObligation, ...]
+    #: The accepted review inventory (ADR-005d Decision 2, as amended by the
+    #: Owner Decision of 2026-09-16): which coherent sections, entries and
+    #: tables a human reviewed, their exact leaf membership, and the rules that
+    #: review found and requires to have a home.
+    #:
+    #: **Authored, unlike its neighbour.** ``obligations`` is *derived* —
+    #: :func:`derive_obligations` is the single definition and
+    #: :func:`load_oracle` refuses a committed file whose declared obligations
+    #: are not exactly that derivation, because two hand-written derivations
+    #: would eventually disagree. A review unit is the opposite by requirement:
+    #: ADR-005d Decision 2 says expected entries and table rows "must be derived
+    #: from the source and checked in review, not inferred from the output being
+    #: tested". There is deliberately no ``derive_review_units``, and nothing
+    #: here checks the inventory for equality against the representation — an
+    #: expectation read back out of the thing it is meant to test could not
+    #: catch an omission, which is the entire obligation.
+    #:
+    #: Empty for all seven accepted batches, and omitted from the payload when
+    #: empty, so their recorded identities do not move.
+    review_units: tuple[ReviewUnit, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -334,11 +359,18 @@ def obligation_payload(obligation: RecordObligation) -> dict[str, object]:
 def oracle_payload(oracle: AcceptedOracle) -> dict[str, object]:
     """Canonical payload of the accepted oracle.
 
-    Reuses the projection's own payload builders for spans and representation,
-    so "the oracle and the projection agree" is a comparison of one canonical
-    form rather than of two hand-written serializations that could drift.
+    Reuses the projection's own payload builders for spans, representation and
+    the review inventory, so "the oracle and the projection agree" is a
+    comparison of one canonical form rather than of two hand-written
+    serializations that could drift.
+
+    ``review_units`` is emitted only when the artifact states one, the same
+    omit-when-empty discipline ``lifts`` and ``policy_transitions`` follow in
+    :func:`accepted_inputs_payload`, which composes this function — so this
+    single branch keeps both the oracle identity and the committed accepted-
+    inputs bytes of all seven batches exactly as they were reviewed.
     """
-    return {
+    payload: dict[str, object] = {
         "release_binding": {
             "package_uuid": oracle.binding.package_uuid,
             "release_version": oracle.binding.release_version,
@@ -367,6 +399,9 @@ def oracle_payload(oracle: AcceptedOracle) -> dict[str, object]:
             obligation_payload(o) for o in oracle.obligations
         ),
     }
+    if oracle.review_units:
+        payload["review_units"] = review_unit_payload(oracle.review_units)
+    return payload
 
 
 def oracle_identity(oracle: AcceptedOracle) -> str:
@@ -972,6 +1007,54 @@ def _obligation(payload: object, index: int) -> RecordObligation:
     )
 
 
+def _expected_rule(payload: object, where: str) -> ExpectedRule:
+    r = _require(
+        payload,
+        ("record_key", "component_key"),
+        where,
+        # Omitted when the reviewer accepted exact governing prose as the
+        # rule's home, exactly as the canonical payload writes it.
+        optional=("fact_family",),
+    )
+    return ExpectedRule(
+        record_key=_string(r["record_key"], f"{where}.record_key"),
+        component_key=_string(r["component_key"], f"{where}.component_key"),
+        # Named by its wire value rather than parsed into ``FactFamily``: an
+        # expectation is a claim about the source, and a reviewer may legitimately
+        # expect a family this build does not implement — that is a finding for
+        # ``review_unit_violations`` to report against the representation, not a
+        # reason this file cannot be read at all.
+        fact_family=(
+            _string(r["fact_family"], f"{where}.fact_family")
+            if "fact_family" in r
+            else None
+        ),
+    )
+
+
+def _review_unit(payload: object, index: int) -> ReviewUnit:
+    where = f"review_units[{index}]"
+    u = _require(
+        payload,
+        ("unit_id", "kind", "leaf_ids", "expected_rules", "excluded_group_reasons"),
+        where,
+    )
+    return ReviewUnit(
+        unit_id=_string(u["unit_id"], f"{where}.unit_id"),
+        kind=_enum(ReviewUnitKind, u["kind"], f"{where}.kind"),
+        leaf_ids=tuple(_string_list(u["leaf_ids"], f"{where}.leaf_ids")),
+        expected_rules=tuple(
+            _expected_rule(r, f"{where}.expected_rules[{i}]")
+            for i, r in enumerate(
+                _object_list(u["expected_rules"], f"{where}.expected_rules")
+            )
+        ),
+        excluded_group_reasons=tuple(
+            _string_list(u["excluded_group_reasons"], f"{where}.excluded_group_reasons")
+        ),
+    )
+
+
 def _check_obligations_closed(
     representation: RepresentationDraft,
     obligations: tuple[RecordObligation, ...],
@@ -1261,6 +1344,11 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
             "obligations",
         ),
         path.name,
+        # Absent from all seven accepted batches, and absent rather than empty
+        # from any artifact that states no review inventory — which is what
+        # keeps their committed bytes and recorded identities exactly as
+        # reviewed.
+        optional=("review_units",),
     )
     binding_fields = (
         "package_uuid",
@@ -1280,6 +1368,13 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
         for i, o in enumerate(_object_list(p["obligations"], "obligations"))
     )
     _check_obligations_closed(representation, obligations, path.name)
+    # Deliberately no closure check against the representation. See
+    # ``AcceptedOracle.review_units``: an expectation derived from the output it
+    # exists to test could not catch an omitted rule.
+    review_units = tuple(
+        _review_unit(u, i)
+        for i, u in enumerate(_object_list(p.get("review_units", []), "review_units"))
+    )
     spans = tuple(_span(s, i) for i, s in enumerate(_object_list(p["spans"], "spans")))
     batches, acceptances, lifts, anchors, transitions = _acceptance(
         p["acceptance"], "acceptance"
@@ -1295,6 +1390,7 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
         spans=spans,
         representation=representation,
         obligations=obligations,
+        review_units=review_units,
     )
     # Committed bytes are not self-proving either. The wire-shape checks above
     # establish that this file parses into the declared types; they say nothing
@@ -1324,6 +1420,20 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
             f"{path.name}: this artifact declares semantic policy "
             f"{oracle.policy_version!r} but carries meaning that policy cannot "
             "state: " + "; ".join(unstatable)
+        )
+
+    # The review inventory is held to the same two questions, and for the same
+    # reason: a unit declared under ``5d-semantic-policy-1`` names a boundary
+    # kind that policy has no catalog for, and an expected rule with no home is
+    # an inventory claiming coverage it does not have. Neither is a weaker
+    # oracle — an inventory that cannot be trusted to catch an omission is not
+    # coverage evidence at all.
+    if uncovered := review_unit_violations(
+        oracle.review_units, oracle.representation, oracle.policy_version
+    ):
+        raise OracleLoadError(
+            f"{path.name}: the accepted review inventory is not coverage: "
+            + "; ".join(uncovered)
         )
 
     # Loaded evidence is read from a file, so the wire-shape checks above prove
@@ -1405,6 +1515,10 @@ def candidate_from_accepted_inputs(inputs: AcceptedInputs) -> ProjectionCandidat
         representation=inputs.oracle.representation,
         schema_version=inputs.oracle.schema_version,
         schema_hash=inputs.oracle.schema_hash,
+        # Carried, not re-derived. The inventory is identity-bearing on both
+        # sides, so a candidate that dropped it would persist a projection whose
+        # UUID could never match the oracle that judges it.
+        review_units=inputs.oracle.review_units,
     )
 
 

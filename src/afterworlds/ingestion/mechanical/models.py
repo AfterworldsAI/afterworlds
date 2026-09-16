@@ -71,6 +71,30 @@ class ComponentHandling(StrEnum):
     MIXED = "mixed"
 
 
+class ReviewUnitKind(StrEnum):
+    """The coherent source boundary one review unit was reviewed at.
+
+    ADR-005d Decision 2 names exactly these three: "meaningful section, entry,
+    or table boundaries". A closed catalog rather than free text, and carried in
+    the semantic policy payload beside the reason catalogs, because a unit's
+    kind is a claim stated in accepted authority — the boundary a reviewer says
+    they read the source at — and a build that admitted a fourth kind would be
+    validating coverage under a contract nothing recorded.
+    """
+
+    SECTION = "section"
+    ENTRY = "entry"
+    TABLE = "table"
+
+
+@dataclass(frozen=True)
+class ReviewUnitKindEntry:
+    """One entry of the closed, identity-bound review-unit kind catalog."""
+
+    code: str
+    description: str
+
+
 @dataclass(frozen=True)
 class NonMechanicalReason:
     """One entry of the closed, identity-bound non-mechanical reason catalog."""
@@ -121,6 +145,71 @@ class SemanticSpan:
     # Required exactly when disposition is NON_MECHANICAL; must name a code in
     # the frozen catalog.
     non_mechanical_reason_code: str | None = None
+
+
+@dataclass(frozen=True)
+class ExpectedRule:
+    """One rule a reviewer read in the source and requires to have a home.
+
+    Derived from the source during review and checked against the
+    representation — never read back out of it. ADR-005d Decision 2 is explicit
+    that expected entries and table rows "must be derived from the source and
+    checked in review, not inferred from the output being tested", which is why
+    nothing in this codebase derives an :class:`ExpectedRule` from a
+    ``RepresentationDraft``. An expectation that an omission could not violate
+    is not coverage evidence.
+
+    Granularity is the component plus, where the reviewer decided it, the
+    structured family that must carry the meaning. Finer than the component
+    would demand the reviewer predict fact identities; coarser could not catch
+    an omitted qualification or exception, which is the whole obligation.
+    """
+
+    record_key: str
+    component_key: str
+    #: The structured family that must carry this rule, or ``None`` when the
+    #: reviewer accepted exact governing prose as its home. ``None`` is a
+    #: judgement, not an absence: it says the component must exist and must be
+    #: prose-bound or mixed, so dropping the passage still fails.
+    fact_family: str | None = None
+
+
+@dataclass(frozen=True)
+class ReviewUnit:
+    """One coherent stretch of source that a human actually reviewed.
+
+    ADR-005d Decision 2, as amended by the Owner Decision of 2026-09-16. The
+    inventory of units is the review scope and the coverage evidence; it is not
+    a second copy of the source, and a unit "need not become a record or
+    component" (Decision 3). What it must do is resolve to *exact* source
+    membership, which is why ``leaf_ids`` names 5c leaves rather than a title
+    or a page range.
+
+    A unit is the alternative to partitioning every character interval of a
+    leaf into accepted spans: the amendment says such rows "are not required",
+    while existing accepted partitions "remain valid and are not rewritten".
+    Both therefore count as coverage, and a leaf may be covered by either.
+    Exact subspans remain where a fact, rule, qualification, citation, or
+    correction needs one.
+
+    Audit metadata — who reviewed it, when, and their comments — is deliberately
+    absent. A unit states what was reviewed and what must be there, and those
+    are the only parts that bear on identity.
+    """
+
+    unit_id: str
+    kind: ReviewUnitKind
+    #: Exact 5c leaf membership. Held sorted in every payload so that two
+    #: reviewers naming the same leaves in different orders record one unit.
+    leaf_ids: tuple[str, ...]
+    expected_rules: tuple[ExpectedRule, ...] = ()
+    #: Why a group inside this unit carries no mechanical authority — pure
+    #: flavor, navigation, licensing, or non-rule advice. Free prose, one
+    #: sentence per group, because the amendment asks for "a reason for the
+    #: applicable group" and a closed catalog here would force a reviewer to
+    #: pick the nearest wrong word. The excluded text remains in the immutable
+    #: 5c source either way.
+    excluded_group_reasons: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

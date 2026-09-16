@@ -51,7 +51,10 @@ from afterworlds.ingestion.mechanical.models import (
     AcceptanceRecord,
     ClassificationLedger,
     ComponentHandling,
+    ExpectedRule,
     ReviewState,
+    ReviewUnit,
+    ReviewUnitKind,
     SemanticDiffEntry,
     SemanticDisposition,
     SemanticSpan,
@@ -134,6 +137,8 @@ from afterworlds.persistence.orm.mechanical import (
     MechanicalRecordORM,
     MechanicalReferenceORM,
     MechanicalRelationshipORM,
+    MechanicalReviewExpectationORM,
+    MechanicalReviewUnitORM,
     MechanicalSpanORM,
 )
 
@@ -254,6 +259,32 @@ def persist_draft(
                 accepted_at=acceptance.accepted_at,
             )
         )
+
+    # Leaf membership and exclusion reasons are stored sorted, and expectations
+    # are not given an ordinal, because the accepted inventory is a set of
+    # decisions rather than a sequence: two reviewers who recorded the same
+    # units in a different order reviewed the same scope. Contrast the batch
+    # scope above, whose recorded order is retained evidence and is kept.
+    for unit in candidate.review_units:
+        session.add(
+            MechanicalReviewUnitORM(
+                projection_uuid=uuid_,
+                unit_id=unit.unit_id,
+                kind=unit.kind.value,
+                leaf_ids=sorted(unit.leaf_ids),
+                excluded_group_reasons=sorted(unit.excluded_group_reasons),
+            )
+        )
+        for rule in unit.expected_rules:
+            session.add(
+                MechanicalReviewExpectationORM(
+                    projection_uuid=uuid_,
+                    unit_id=unit.unit_id,
+                    record_key=rule.record_key,
+                    component_key=rule.component_key,
+                    fact_family=rule.fact_family,
+                )
+            )
 
     for record in draft.records:
         session.add(
@@ -852,6 +883,29 @@ def reconstruct_candidate(
         ),
     )
 
+    review_units = tuple(
+        ReviewUnit(
+            unit_id=u.unit_id,
+            kind=parse_enum(
+                ReviewUnitKind, u.kind, "rp_mech_review_units", u.unit_id, "kind"
+            ),
+            leaf_ids=tuple(u.leaf_ids),
+            expected_rules=tuple(
+                ExpectedRule(
+                    record_key=e.record_key,
+                    component_key=e.component_key,
+                    fact_family=e.fact_family,
+                )
+                for e in sorted(
+                    (e for e in raw.review_expectations if e.unit_id == u.unit_id),
+                    key=lambda e: (e.record_key, e.component_key, e.fact_family or ""),
+                )
+            ),
+            excluded_group_reasons=tuple(u.excluded_group_reasons),
+        )
+        for u in sorted(raw.review_units, key=lambda u: u.unit_id)
+    )
+
     return ProjectionCandidate(
         binding=ReleaseBinding(
             package_uuid=header.package_uuid,
@@ -876,6 +930,7 @@ def reconstruct_candidate(
         # was, so a later mismatch is detectable instead of erased.
         schema_version=header.representation_schema_version,
         schema_hash=header.representation_schema_hash,
+        review_units=review_units,
     )
 
 
@@ -1149,6 +1204,8 @@ def delete_projection(session: Session, projection_uuid: str) -> None:
         MechanicalRelationshipORM,
         MechanicalReferenceORM,
         MechanicalProvenanceORM,
+        MechanicalReviewUnitORM,
+        MechanicalReviewExpectationORM,
     ):
         session.execute(delete(model).where(model.projection_uuid == projection_uuid))
     session.execute(

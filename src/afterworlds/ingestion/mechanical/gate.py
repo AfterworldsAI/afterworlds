@@ -425,6 +425,7 @@ def _accepted_identity(oracle: AcceptedOracle) -> str:
             representation=oracle.representation,
             schema_version=oracle.schema_version,
             schema_hash=oracle.schema_hash,
+            review_units=oracle.review_units,
         )
     ).projection_uuid
 

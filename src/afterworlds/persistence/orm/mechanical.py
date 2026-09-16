@@ -400,3 +400,55 @@ class MechanicalProvenanceORM(_ProjectionScoped):
     target_key: Mapped[list[str]] = mapped_column(sa.JSON, nullable=False)
     span_id: Mapped[str] = mapped_column(sa.String(36), nullable=False, index=True)
     role: Mapped[str] = mapped_column(sa.String(16), nullable=False)
+
+
+class MechanicalReviewUnitORM(_ProjectionScoped):
+    """One coherent stretch of source a human reviewed as a whole.
+
+    ``(projection_uuid, unit_id)`` is the logical identity its expectation rows
+    are matched on, unique at the database level for the same defence-in-depth
+    reason the batch header is: reconstruction still proves the relation.
+
+    ``leaf_ids`` and ``excluded_group_reasons`` are JSON lists of plain strings,
+    validated as such before reconstruction, for the reason
+    ``rp_mech_provenance.target_key`` already is — a list of strings is not a
+    relation, and giving each leaf a row would buy a join and no invariant.
+    Expected rules do get their own table, because each one is a structured
+    claim with its own fields.
+    """
+
+    __tablename__ = "rp_mech_review_units"
+    __table_args__ = (
+        sa.UniqueConstraint(
+            "projection_uuid", "unit_id", name="uq_rp_mech_review_unit_identity"
+        ),
+    )
+
+    projection_uuid: Mapped[str] = _ProjectionScoped._projection_fk()
+    unit_id: Mapped[str] = mapped_column(sa.String(255), nullable=False, index=True)
+    kind: Mapped[str] = mapped_column(sa.String(16), nullable=False)
+    leaf_ids: Mapped[list[str]] = mapped_column(sa.JSON, nullable=False)
+    excluded_group_reasons: Mapped[list[str]] = mapped_column(sa.JSON, nullable=False)
+
+
+class MechanicalReviewExpectationORM(_ProjectionScoped):
+    """One rule a reviewer read in the source and requires to have a home.
+
+    ``fact_family`` is NULL when the reviewer accepted exact governing prose as
+    the rule's home. That NULL is a recorded judgement rather than a missing
+    value, which is why the column is nullable and the row is not: dropping the
+    row would say the reviewer never read the rule.
+
+    The family is stored as the wire string it was accepted as, not as this
+    build's enum. A persisted expectation naming a family a later build no
+    longer declares must still reconstruct and then be *reported*, and an
+    unreadable row cannot be reported.
+    """
+
+    __tablename__ = "rp_mech_review_expectations"
+
+    projection_uuid: Mapped[str] = _ProjectionScoped._projection_fk()
+    unit_id: Mapped[str] = mapped_column(sa.String(255), nullable=False, index=True)
+    record_key: Mapped[str] = mapped_column(sa.String(255), nullable=False, index=True)
+    component_key: Mapped[str] = mapped_column(sa.String(255), nullable=False)
+    fact_family: Mapped[str | None] = mapped_column(sa.String(64), nullable=True)

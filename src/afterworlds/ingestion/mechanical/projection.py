@@ -38,14 +38,22 @@ from afterworlds.ingestion.mechanical.accounting import (
 )
 from afterworlds.ingestion.mechanical.bound_corpus import BoundCorpusSnapshot
 from afterworlds.ingestion.mechanical.canonical import canonical_order
-from afterworlds.ingestion.mechanical.models import ClassificationLedger
-from afterworlds.ingestion.mechanical.policy import policy_meaning_violations
+from afterworlds.ingestion.mechanical.models import (
+    ClassificationLedger,
+    ComponentHandling,
+    ReviewUnit,
+)
+from afterworlds.ingestion.mechanical.policy import (
+    policy_meaning_violations,
+    review_unit_kind_codes,
+)
 from afterworlds.ingestion.mechanical.representation import (
     COMPONENT_WIDE_PROSE,
     RECORD_OWNED_REFERENCE,
     REPRESENTATION_SCHEMA_VERSION,
     Applicability,
     ComponentDraft,
+    FactFamily,
     ProseBindingDraft,
     Recurrence,
     ReferenceDraft,
@@ -127,6 +135,186 @@ class ProjectionCandidate:
     representation: RepresentationDraft
     schema_version: str
     schema_hash: str
+    #: The accepted review inventory, which ADR-005d Decision 6 names a
+    #: meaning-bearing input that "participates in the projection identity".
+    #:
+    #: A sibling of the classification rather than a member of it: the ledger's
+    #: contract is spans accepted under a policy, and a unit classifies no
+    #: interval. Empty is the honest default — it is what every projection built
+    #: before the Owner Decision of 2026-09-16 states, and because
+    #: :func:`projection_payload` omits the key when it is empty, those
+    #: projections keep the exact UUID they were identified under.
+    review_units: tuple[ReviewUnit, ...] = ()
+
+
+def review_unit_payload(units: tuple[ReviewUnit, ...]) -> list[dict[str, object]]:
+    """Canonical payload of an accepted review inventory.
+
+    Ordered by ``unit_id`` and with each unit's leaves and expected rules
+    ordered by their own content, because the inventory is a set of decisions
+    rather than a sequence: two reviewers who recorded the same units in a
+    different order reviewed the same scope, and a payload that disagreed would
+    mint two identities for one act of review.
+
+    Contrast :func:`~.accounting.acceptance_evidence_payload`, which preserves
+    the recorded scope order exactly — that order *is* retained evidence of how
+    one batch was reviewed. This is the opposite case, and the difference is
+    deliberate at both sites.
+    """
+    return [
+        {
+            "unit_id": unit.unit_id,
+            "kind": unit.kind.value,
+            "leaf_ids": sorted(unit.leaf_ids),
+            "expected_rules": sorted(
+                (
+                    {
+                        "record_key": rule.record_key,
+                        "component_key": rule.component_key,
+                        # Omitted, not null, when the reviewer accepted prose as
+                        # the rule's home: an absent key is how every other
+                        # payload in this module states "this version says
+                        # nothing here", and a null would have to be told apart
+                        # from a family literally named null.
+                        **(
+                            {"fact_family": rule.fact_family}
+                            if rule.fact_family is not None
+                            else {}
+                        ),
+                    }
+                    for rule in unit.expected_rules
+                ),
+                key=lambda r: (
+                    str(r["record_key"]),
+                    str(r["component_key"]),
+                    str(r.get("fact_family", "")),
+                ),
+            ),
+            "excluded_group_reasons": sorted(unit.excluded_group_reasons),
+        }
+        for unit in sorted(units, key=lambda u: u.unit_id)
+    ]
+
+
+#: Handlings that actually carry governing prose. Named separately from
+#: ``oracle._PROSE_BOUND_HANDLINGS`` only because this module may not import
+#: that one; the membership is the same claim and is asserted equal in tests.
+_PROSE_CARRYING_HANDLINGS = frozenset(
+    {ComponentHandling.PROSE_BOUND, ComponentHandling.MIXED}
+)
+
+
+def review_unit_violations(
+    units: tuple[ReviewUnit, ...],
+    draft: RepresentationDraft,
+    policy_version: str,
+) -> list[str]:
+    """Return every way an accepted review inventory fails to be coverage.
+
+    Pure: no session, no corpus, no I/O. Leaf *membership* — whether these leaf
+    ids are the bound release's — is deliberately not checked here, because the
+    release is not an argument; that comparison belongs at the gate, which holds
+    the verified 5c snapshot and already owns ``POPULATION_MISMATCH``.
+
+    What is checked is the part that can be answered from the inventory and the
+    representation alone:
+
+    * the declared policy admits this unit's kind at all;
+    * ids are unique, and membership is non-empty — a unit covering no leaf is
+      a review nobody could have performed; and
+    * **every expected rule has a home.** This is the coverage obligation
+      itself, and the direction matters: expectations are checked *into* the
+      representation, never read out of it. A rule the reviewer found in the
+      source and the representation does not carry is the omission this
+      inventory exists to catch. The converse — representation content no unit
+      expected — is not a violation, because a unit states what review found,
+      not an exhaustive census of what may legitimately be there.
+    """
+    if not units:
+        # An unrecognised policy version is a finding ``policy_meaning_violations``
+        # already reports, and consulting its catalog here would turn that
+        # finding into a crash out of an API whose contract is to report.
+        return []
+    findings: list[str] = []
+    try:
+        admitted = review_unit_kind_codes(policy_version)
+    except ValueError:
+        return [
+            f"review units are declared under semantic policy "
+            f"{policy_version!r}, which states no review-unit kinds"
+        ]
+
+    seen: set[str] = set()
+    for unit in sorted(units, key=lambda u: u.unit_id):
+        if unit.unit_id in seen:
+            findings.append(f"review unit {unit.unit_id}: declared more than once")
+        seen.add(unit.unit_id)
+
+        if unit.kind.value not in admitted:
+            findings.append(
+                f"review unit {unit.unit_id}: kind {unit.kind.value!r} is not "
+                f"admitted by semantic policy {policy_version!r}"
+            )
+        if not unit.leaf_ids:
+            findings.append(f"review unit {unit.unit_id}: names no source leaves")
+        if len(set(unit.leaf_ids)) != len(unit.leaf_ids):
+            findings.append(f"review unit {unit.unit_id}: names a leaf twice")
+        for reason in unit.excluded_group_reasons:
+            if not reason.strip():
+                findings.append(
+                    f"review unit {unit.unit_id}: an excluded group states an "
+                    "empty reason"
+                )
+
+        findings.extend(_expected_rule_violations(unit, draft))
+
+    return findings
+
+
+def _expected_rule_violations(
+    unit: ReviewUnit, draft: RepresentationDraft
+) -> list[str]:
+    """Return every expected rule of *unit* the representation does not carry."""
+    findings: list[str] = []
+    components = {(c.record_key, c.semantic_key): c for c in draft.components}
+
+    for rule in unit.expected_rules:
+        key = (rule.record_key, rule.component_key)
+        component = components.get(key)
+        if component is None:
+            findings.append(
+                f"review unit {unit.unit_id}: expected rule "
+                f"{rule.record_key}/{rule.component_key} has no component"
+            )
+            continue
+        if rule.fact_family is None:
+            # The reviewer accepted exact governing prose as this rule's home,
+            # so the component must actually be one that carries prose. A
+            # component silently resolved to STRUCTURED has dropped the passage
+            # the expectation names.
+            if component.handling not in _PROSE_CARRYING_HANDLINGS:
+                findings.append(
+                    f"review unit {unit.unit_id}: expected rule "
+                    f"{rule.record_key}/{rule.component_key} was accepted as "
+                    f"governing prose, but the component is "
+                    f"{component.handling.value}"
+                )
+            continue
+        # ``FAMILY`` is the class attribute every typed fact declares and the
+        # one ``derive_obligations`` reads; nothing else on a fact names its
+        # family, so reading it any other way would be a second definition.
+        families = {
+            family.value
+            for f in component.all_facts()
+            if isinstance(family := getattr(f, "FAMILY", None), FactFamily)
+        }
+        if rule.fact_family not in families:
+            findings.append(
+                f"review unit {unit.unit_id}: expected rule "
+                f"{rule.record_key}/{rule.component_key} requires fact family "
+                f"{rule.fact_family!r}, which the component does not carry"
+            )
+    return findings
 
 
 def release_binding_payload(binding: ReleaseBinding) -> dict[str, object]:
@@ -672,8 +860,17 @@ def projection_payload(candidate: ProjectionCandidate) -> dict[str, object]:
     Taken from the candidate's declaration rather than from the module
     constants, for the same reason ``classification_payload`` takes the policy
     from the ledger: substituting current code here would re-identify history.
+
+    ``review_units`` is emitted only when the candidate states one. ADR-005d
+    Decision 6 requires an accepted review inventory to participate in this
+    identity, and the same decision requires that "existing recorded identities
+    are not reinterpreted under the new policy" — an always-present empty list
+    would satisfy the first and break the second, re-identifying every
+    projection built before the Owner Decision of 2026-09-16. Same
+    omit-when-empty discipline as ``lifts`` and ``policy_transitions`` in the
+    accepted-inputs payload, and for the same reason.
     """
-    return {
+    payload: dict[str, object] = {
         "release_binding": release_binding_payload(candidate.binding),
         "classification": classification_payload(candidate.classification),
         "representation_schema": {
@@ -688,6 +885,9 @@ def projection_payload(candidate: ProjectionCandidate) -> dict[str, object]:
             candidate.representation, schema_version=candidate.schema_version
         ),
     }
+    if candidate.review_units:
+        payload["review_units"] = review_unit_payload(candidate.review_units)
+    return payload
 
 
 def validate_schema_binding(candidate: ProjectionCandidate) -> tuple[str, ...]:
@@ -1027,14 +1227,40 @@ def validate_candidate(
 
     leaf_lengths = corpus.leaf_lengths
     claimed_leaves = {s.leaf_id for s in ledger.spans}
-    for leaf_id in sorted(claimed_leaves | set(leaf_lengths)):
+    # The two accepted ways a leaf can be covered, unioned rather than counted.
+    # A leaf an accepted review unit names has been read by a human at a
+    # coherent boundary, which is what the Owner Decision of 2026-09-16 made
+    # sufficient; a leaf with a complete span partition was covered the older
+    # way and stays valid. Deliberately not a second coverage metric and
+    # deliberately not a percentage: a leaf is covered or it is not.
+    reviewed_leaves = {
+        leaf_id for unit in candidate.review_units for leaf_id in unit.leaf_ids
+    }
+    for leaf_id in sorted(claimed_leaves | reviewed_leaves | set(leaf_lengths)):
         if leaf_id not in leaf_lengths:
-            findings.append(f"leaf {leaf_id}: classified but not in the bound release")
+            # Named honestly for whichever side claimed it: a unit that resolves
+            # to a leaf the release does not have is a membership error, not a
+            # classification error, and reporting it as the latter would send a
+            # reviewer to look at spans that do not exist.
+            how = (
+                "classified" if leaf_id in claimed_leaves else "named by a review unit"
+            )
+            findings.append(f"leaf {leaf_id}: {how} but not in the bound release")
             continue
         findings.extend(
-            validate_partition(leaf_id, leaf_lengths[leaf_id], ledger.spans)
+            validate_partition(
+                leaf_id,
+                leaf_lengths[leaf_id],
+                ledger.spans,
+                require_complete=leaf_id not in reviewed_leaves,
+            )
         )
 
+    findings.extend(
+        review_unit_violations(
+            candidate.review_units, candidate.representation, ledger.policy_version
+        )
+    )
     findings.extend(validate_reason_codes(ledger.spans))
     findings.extend(validate_acceptance(ledger))
     findings.extend(validate_representation(candidate.representation, ledger, corpus))

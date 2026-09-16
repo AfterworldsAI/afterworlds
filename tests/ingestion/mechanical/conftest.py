@@ -80,7 +80,10 @@ from afterworlds.ingestion.mechanical.models import (
     AcceptanceRecord,
     ClassificationLedger,
     ComponentHandling,
+    ExpectedRule,
     ReviewState,
+    ReviewUnit,
+    ReviewUnitKind,
     SemanticDiffEntry,
     SemanticDisposition,
     SemanticSpan,
@@ -149,9 +152,9 @@ BOUNDED_ORACLE_PATH = DATA_DIR / "bounded_oracle.json"
 #: readable placeholder: acceptance validation requires the canonical 64-lowercase-
 #: hex shape ``hash_obj`` emits, and an invented-looking value would fail it. The
 #: first draft of this constant was 65 characters and did exactly that.
-REVIEWED_PROPOSAL_IDENTITY = (
-    "aae73b3d1cb9b87b0da2ee35565e6664d43be68732bdbc4e3b0e158a1e02f5e9"
-)
+# A real digest rather than a readable placeholder, so detect-secrets sees a
+# genuine hex string here and is told, inline, that it is fixture data.
+REVIEWED_PROPOSAL_IDENTITY = "aae73b3d1cb9b87b0da2ee35565e6664d43be68732bdbc4e3b0e158a1e02f5e9"  # noqa: E501  # pragma: allowlist secret
 
 SPELL_LEAF = "leaf-spell"
 PROSE_LEAF = "leaf-prose"
@@ -768,6 +771,45 @@ OBLIGATIONS = (
         prose_bound_components=frozenset(),
     ),
 )
+
+
+#: An accepted review inventory over this same bounded fixture.
+#:
+#: Two units, so the canonical ordering is actually exercised rather than
+#: trivially satisfied. The entry unit expects one rule with a structured home
+#: and one the reviewer accepted as governing prose — the two cases that fail
+#: differently — and it names an excluded group so the reason list is not
+#: always empty.
+#:
+#: It is *not* part of :func:`build_candidate`. The default candidate accepts a
+#: complete span partition and claims no unit, which is what every existing
+#: accepted batch looks like; a test that wants an inventory says so.
+REVIEW_UNITS = (
+    ReviewUnit(
+        unit_id="unit-wish-entry",
+        kind=ReviewUnitKind.ENTRY,
+        leaf_ids=(SPELL_LEAF, PROSE_LEAF),
+        expected_rules=(
+            ExpectedRule(SPELL_KEY, DESCRIPTOR_KEY, DESCRIPTOR_FACT.FAMILY.value),
+            ExpectedRule(SPELL_KEY, OPEN_ENDED_KEY),
+        ),
+        excluded_group_reasons=(
+            "the spell-list heading above this entry is navigation, not a rule",
+        ),
+    ),
+    ReviewUnit(
+        unit_id="unit-support-section",
+        kind=ReviewUnitKind.SECTION,
+        leaf_ids=(SUPPORT_LEAF,),
+    ),
+)
+
+
+def reviewed_candidate(
+    units: tuple[ReviewUnit, ...] = REVIEW_UNITS, **overrides: object
+) -> ProjectionCandidate:
+    """:func:`build_candidate`, with an accepted review inventory attached."""
+    return replace(build_candidate(**overrides), review_units=units)
 
 
 def accepted_oracle() -> AcceptedOracle:

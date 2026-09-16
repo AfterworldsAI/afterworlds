@@ -49,6 +49,8 @@ from afterworlds.persistence.orm.mechanical import (
     MechanicalRecordORM,
     MechanicalReferenceORM,
     MechanicalRelationshipORM,
+    MechanicalReviewExpectationORM,
+    MechanicalReviewUnitORM,
     MechanicalSpanORM,
 )
 
@@ -116,6 +118,10 @@ class RawProjectionState:
     #: Empty for any component that states a conjunction rather than a choice,
     #: which is every component built before schema 2.
     component_options: Sequence[MechanicalComponentOptionORM] = ()
+    #: Empty for every projection accepted before review units existed, and for
+    #: any projection whose partition is complete without them.
+    review_units: Sequence[MechanicalReviewUnitORM] = ()
+    review_expectations: Sequence[MechanicalReviewExpectationORM] = ()
 
 
 def load_raw_state(
@@ -148,15 +154,18 @@ def load_raw_state(
         relationships=rows(MechanicalRelationshipORM),
         references=rows(MechanicalReferenceORM),
         provenance=rows(MechanicalProvenanceORM),
+        review_units=rows(MechanicalReviewUnitORM),
+        review_expectations=rows(MechanicalReviewExpectationORM),
     )
 
 
-def _valid_target_key(value: object) -> bool:
-    """A persisted provenance target key must be a list of plain strings.
+def _is_string_list(value: object) -> bool:
+    """A JSON column declared as a list of plain strings really holds one.
 
     The column is JSON, so it can hold anything. Only a list of strings can
     become the declared immutable tuple; a nested structure or a number would
-    have to be coerced, and a coerced key addresses an element nobody declared.
+    have to be coerced, and a coerced provenance key addresses an element nobody
+    declared, just as a coerced leaf id names source nobody reviewed.
     """
     return isinstance(value, list) and all(type(v) is str for v in value)
 
@@ -344,10 +353,40 @@ def validate_raw_closure(raw: RawProjectionState) -> None:
             )
 
     for claim in raw.provenance:
-        if not _valid_target_key(claim.target_key):
+        if not _is_string_list(claim.target_key):
             problems.append(
                 f"rp_mech_provenance row {claim.row_id}: target_key "
                 f"{claim.target_key!r} is not a list of strings"
+            )
+
+    # Review units own a logical identity of (projection_uuid, unit_id), and
+    # their expectation rows are matched on it. Structure only: whether the
+    # expectations are *satisfied* is the candidate validator's question, and
+    # answering it here would put the same rule in two places.
+    unit_ids: set[str] = set()
+    for unit in raw.review_units:
+        if unit.unit_id in unit_ids:
+            problems.append(
+                f"rp_mech_review_units: duplicate unit_id {unit.unit_id!r} "
+                "in one projection"
+            )
+        unit_ids.add(unit.unit_id)
+        for field, value in (
+            ("leaf_ids", unit.leaf_ids),
+            ("excluded_group_reasons", unit.excluded_group_reasons),
+        ):
+            if not _is_string_list(value):
+                problems.append(
+                    f"rp_mech_review_units row {unit.row_id}: {field} "
+                    f"{value!r} is not a list of strings"
+                )
+
+    for expectation in raw.review_expectations:
+        if expectation.unit_id not in unit_ids:
+            problems.append(
+                f"rp_mech_review_expectations row {expectation.row_id}: names "
+                f"review unit {expectation.unit_id!r} with no header in this "
+                "projection"
             )
 
     if problems:
