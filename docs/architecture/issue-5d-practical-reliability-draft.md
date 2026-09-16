@@ -1,10 +1,11 @@
 # CRD Issue 5d — Complete Typed Mechanical Authority and Deterministic Rules-Package Binding
 
-> **Status:** Proposed complete replacement for issue #137, prepared 2026-09-16.
-> This draft incorporates the proposed practical reliability amendment and preserves prior settled
-> decisions. It is not the live issue or an accepted amendment. Adopt it together with
-> [the ADR amendment](../decisions/adr-005d-practical-reliability-proposal.md).
-> The original issue was finalized by the Owner on 2026-07-30; the historical decisions below remain.
+> **Status:** Accepted — practical reliability amendment adopted by Owner 2026-09-16.
+> Owner decision: “I approve adopting this policy in CRD Issue 5d and ADR-005d.”
+> This complete issue text incorporates the [accepted ADR amendment](../decisions/adr-005d-practical-reliability-proposal.md).
+> Implementation remains in progress. Policy adoption does not accept new corpus content or authorize
+> publication, activation, or merge. The original issue was finalized on 2026-07-30; prior decisions
+> remain except where this amendment expressly supersedes them.
 > See the [Speed comparison and delivery sequence](issue-5d-speed-comparison.md).
 >
 > **Amended by Owner Decision 2026-07-30 (PR #138 review):** the effective runtime `RulesPackageBinding`
@@ -60,8 +61,8 @@ component is executable by the bounded-d20 Rules System Adapter.
 
 ## Governing Authority
 
-Upon adoption, ADR-005d together with its practical reliability amendment governs this issue. Until
-adoption, this proposed replacement does not supersede the live issue or accepted ADR.
+ADR-005d together with its Owner-adopted practical reliability amendment governs this issue.
+The 2026-09-16 amendment supersedes the older requirements at the provisions it identifies.
 
 The core authority split is:
 
