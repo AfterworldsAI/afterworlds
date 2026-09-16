@@ -762,6 +762,8 @@ def test_a_represented_leaf_with_no_span_is_covered_by_an_accepted_review_unit(
     assert result.passed, result.failures
     assert result.diagnostics["represented_leaves"] == 3
     assert result.diagnostics["classified_leaves"] == 2
+    # The number that explains the gap in a passing report.
+    assert result.diagnostics["reviewed_leaves"] == 1
 
 
 def test_the_same_projection_claiming_no_unit_is_refused_as_incomplete(

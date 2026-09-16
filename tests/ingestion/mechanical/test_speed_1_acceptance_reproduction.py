@@ -63,15 +63,17 @@ from afterworlds.ingestion.mechanical.oracle import (
     AcceptedInputs,
     _representation,
     _span,
-    accepted_inputs_payload,
     load_accepted_inputs,
     oracle_identity,
+    serialize_accepted_inputs,
 )
 from afterworlds.ingestion.mechanical.projection import ReleaseBinding
 from afterworlds.ingestion.mechanical.proposal import (
     MechanicalProposal,
     ProposedSpan,
+    load_proposal,
     proposal_identity,
+    proposal_payload,
 )
 from afterworlds.ingestion.mechanical.representation import (
     REPRESENTATION_COLLECTIONS,
@@ -125,21 +127,17 @@ def _canonical_bytes(path: pathlib.Path) -> bytes:
     return path.read_bytes().replace(b"\r\n", b"\n")
 
 
-def _serialize(accepted: AcceptedInputs) -> bytes:
-    """The one committed serialization form: indented, key-sorted, LF, trailing NL."""
-    return (
-        json.dumps(
-            accepted_inputs_payload(accepted),
-            indent=2,
-            sort_keys=True,
-            ensure_ascii=False,
-        )
-        + "\n"
-    ).encode("utf-8")
-
-
 def _reviewed_proposal() -> MechanicalProposal:
-    """The reviewed proposal, rebuilt from the committed JSON and proved to be it."""
+    """The reviewed proposal, rebuilt from the committed JSON and proved to be it.
+
+    Deliberately a second implementation of what
+    :func:`~afterworlds.ingestion.mechanical.proposal.load_proposal` does, kept
+    after the production loader arrived. The sibling reproductions now call the
+    loader; this one does not, because a reproduction whose every part is the
+    production code agreeing with itself proves the code is self-consistent and
+    nothing else. The two are compared in
+    ``test_the_production_loader_rebuilds_the_same_proposal``.
+    """
     document = json.loads(PROPOSAL_PATH.read_text(encoding="utf-8"))
     spans = tuple(
         ProposedSpan(
@@ -248,6 +246,21 @@ def _sampled_properties(accepted: AcceptedInputs) -> dict[str, object]:
     }
 
 
+def test_the_production_loader_rebuilds_the_same_proposal() -> None:
+    """The second implementation, compared against the first.
+
+    ``proposal_payload`` rather than dataclass equality, because the two differ
+    in exactly one field and should: ``load_proposal`` stamps PROPOSED, while
+    the rebuild here reuses the accepted-span reader, which stamps ACCEPTED.
+    Review state is outside the payload by design -- it is acceptance evidence,
+    not content -- and ``accept_proposal`` overwrites it either way, so payload
+    equality is what decides whether the merges below could differ.
+    """
+    loaded = load_proposal(PROPOSAL_PATH, expected_identity=PROPOSAL_IDENTITY)
+
+    assert proposal_payload(loaded) == proposal_payload(_reviewed_proposal())
+
+
 def test_the_committed_merge_is_reproducible_from_the_retained_inputs() -> None:
     """Rebuild the whole artifact from the proposal, the manifest and the prior.
 
@@ -255,7 +268,7 @@ def test_the_committed_merge_is_reproducible_from_the_retained_inputs() -> None:
     content only, so an artifact matching it can still differ in the acceptance
     evidence beside it. This compares the committed file in full.
     """
-    rebuilt = _serialize(_merge(_recorded_scope()))
+    rebuilt = serialize_accepted_inputs(_merge(_recorded_scope()))
 
     assert rebuilt == _canonical_bytes(FROZEN_RESULT)
     # Stated separately so a failure says which half moved.
@@ -296,11 +309,11 @@ def test_a_difference_the_sampled_properties_miss_is_still_refused() -> None:
 
     # The bytes do not, and the difference is exactly the retained scope order.
     committed = _canonical_bytes(FROZEN_RESULT)
-    assert _serialize(recorded) == committed
-    assert _serialize(reordered) != committed
+    assert serialize_accepted_inputs(recorded) == committed
+    assert serialize_accepted_inputs(reordered) != committed
 
     expected = json.loads(committed.decode("utf-8"))
-    produced = json.loads(_serialize(reordered).decode("utf-8"))
+    produced = json.loads(serialize_accepted_inputs(reordered).decode("utf-8"))
     differing = sorted(key for key in expected if expected[key] != produced.get(key))
     assert differing == ["acceptance"], differing
     (expected_batch,) = [

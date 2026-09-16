@@ -134,7 +134,8 @@ class GateFailureCategory(StrEnum):
     #: cannot be established, so nothing here can be judged (ADR-005d
     #: Decisions 4 and 6).
     SCHEMA_MISMATCH = "schema_mismatch"
-    #: Classified leaves are not exactly the bound release's REPRESENTED set.
+    #: The leaves accounted for -- classified by a span or named by an accepted
+    #: review unit -- are not exactly the bound release's REPRESENTED set.
     POPULATION_MISMATCH = "population_mismatch"
     #: The accepted span partition differs from the oracle's.
     CLASSIFICATION_MISMATCH = "classification_mismatch"
@@ -779,6 +780,11 @@ def run_publication_gate(
     diagnostics = {
         "represented_leaves": len(represented),
         "classified_leaves": len(classified),
+        # Beside it rather than folded into it: a reviewed leaf with no span is
+        # accounted for, but it is not classified, and an auditor reading a
+        # passing report with fewer classified leaves than represented ones is
+        # owed the number that explains the gap.
+        "reviewed_leaves": len(reviewed),
         "accepted_spans": len(ledger.spans),
         "records": len(draft.records),
         "components": len(draft.components),

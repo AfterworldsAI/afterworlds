@@ -157,6 +157,7 @@ __all__ = [
     "obligation_payload",
     "oracle_identity",
     "oracle_payload",
+    "serialize_accepted_inputs",
 ]
 
 #: Committed accepted authority, one JSON file per published 5c release.
@@ -1592,6 +1593,30 @@ def _resolve_committed_oracle(
 # ---------------------------------------------------------------------------
 # Writing committed artifacts
 # ---------------------------------------------------------------------------
+
+
+def serialize_accepted_inputs(inputs: AcceptedInputs) -> bytes:
+    """The one committed serialization form: indented, key-sorted, UTF-8, LF.
+
+    Every committed accepted-inputs artifact in ``oracles/`` is written this
+    way, and every reproduction of one compares against these exact bytes. That
+    made the form load-bearing while it existed only as a line each acceptance
+    program and each reproduction spelled out for itself — a stray ``indent``
+    would have shown up as an artifact that no longer reproduces, blamed on the
+    merge. It is stated once, here, beside the payload builder it serializes.
+
+    Bytes rather than ``str`` because the comparison this exists for is a byte
+    comparison against a file, and because the newline is part of the form.
+    """
+    return (
+        json.dumps(
+            accepted_inputs_payload(inputs),
+            indent=2,
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+        + "\n"
+    ).encode("utf-8")
 
 
 def accepted_inputs_payload(inputs: AcceptedInputs) -> dict[str, object]:

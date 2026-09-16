@@ -39,12 +39,25 @@ payload; a reviewer decides what happens next.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import json
+from dataclasses import dataclass, replace
+from pathlib import Path
 
 from afterworlds.ingestion.corpus.hashing import hash_obj
 from afterworlds.ingestion.mechanical.accounting import span_payload
 from afterworlds.ingestion.mechanical.canonical import canonical_order
-from afterworlds.ingestion.mechanical.models import SemanticSpan
+from afterworlds.ingestion.mechanical.models import ReviewState, SemanticSpan
+
+# The committed readers, reused rather than re-implemented. They are private
+# because nothing outside a loader should be turning raw payloads into accepted
+# shapes, and that stays true here: this module wraps them, it does not move or
+# rename them, and a second hand-rolled reader is exactly the drift a retained
+# proposal cannot afford.
+from afterworlds.ingestion.mechanical.oracle import (
+    OracleLoadError,
+    _representation,
+    _span,
+)
 from afterworlds.ingestion.mechanical.projection import (
     ReleaseBinding,
     representation_payload,
@@ -55,7 +68,9 @@ __all__ = [
     "PROPOSAL_ARTIFACT_KIND",
     "PROPOSAL_SCHEMA_VERSION",
     "MechanicalProposal",
+    "ProposalLoadError",
     "ProposedSpan",
+    "load_proposal",
     "proposal_identity",
     "proposal_payload",
 ]
@@ -167,3 +182,90 @@ def proposal_identity(proposal: MechanicalProposal) -> str:
     published authority.
     """
     return hash_obj(proposal_payload(proposal))
+
+
+class ProposalLoadError(ValueError):
+    """A retained proposal file that will not load as the proposal it claims.
+
+    Distinct from :class:`~afterworlds.ingestion.mechanical.oracle.OracleLoadError`
+    on purpose: a malformed proposal and a malformed oracle are different
+    failures with different consequences. A proposal that will not load blocks
+    a review; an oracle that will not load blocks a publication.
+    """
+
+
+def load_proposal(
+    path: Path, *, expected_identity: str | None = None
+) -> MechanicalProposal:
+    """Load one retained machine proposal from JSON.
+
+    The inverse of :func:`proposal_payload`, and the one reader for it. Every
+    batch's acceptance evidence records the ``proposal_identity`` of what a
+    human reviewed, and that recorded value is only worth something if the
+    retained bytes still derive it on a later build — so reconstructing a
+    reviewed proposal is a production concern, not something each reproduction
+    re-derives its own way.
+
+    Spans load as :attr:`ReviewState.PROPOSED`. A proposal is a claim nobody has
+    accepted; :func:`~afterworlds.ingestion.mechanical.acceptance.accept_proposal`
+    is what stamps acceptance, and it does so unconditionally, so this is an
+    honest label rather than a behaviour change. Review state is absent from
+    :func:`span_payload`, so it reaches no identity either way.
+
+    ``expected_identity``, when given, is checked after the rebuild and refuses
+    on mismatch. A caller naming the proposal it means to load gets the
+    substitution caught here rather than several steps later, in a merge whose
+    bytes no longer match anything retained.
+    """
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ProposalLoadError(f"{path.name}: {exc}") from exc
+
+    if not isinstance(raw, dict) or raw.get("artifact_kind") != PROPOSAL_ARTIFACT_KIND:
+        kind = raw.get("artifact_kind") if isinstance(raw, dict) else None
+        raise ProposalLoadError(
+            f"{path.name}: artifact_kind {kind!r} is not "
+            f"{PROPOSAL_ARTIFACT_KIND!r}; this file is not a machine proposal"
+        )
+
+    try:
+        spans = tuple(
+            ProposedSpan(
+                span=replace(
+                    _span(
+                        {
+                            key: value
+                            for key, value in entry.items()
+                            if key not in ("proposal_origin", "rationale")
+                        },
+                        index,
+                    ),
+                    review_state=ReviewState.PROPOSED,
+                ),
+                origin=str(entry["proposal_origin"]),
+                rationale=str(entry["rationale"]),
+            )
+            for index, entry in enumerate(raw["proposed_spans"])
+        )
+        proposal = MechanicalProposal(
+            binding=ReleaseBinding(**raw["release_binding"]),
+            policy_version=str(raw["semantic_policy_version"]),
+            policy_hash=str(raw["semantic_policy_hash"]),
+            schema_version=str(raw["representation_schema"]["version"]),
+            schema_hash=str(raw["representation_schema"]["hash"]),
+            proposed_spans=spans,
+            proposed_representation=_representation(raw["proposed_representation"]),
+            proposal_origin=str(raw["proposal_origin"]),
+        )
+    except (OracleLoadError, KeyError, TypeError, AttributeError) as exc:
+        raise ProposalLoadError(f"{path.name}: {exc}") from exc
+
+    if expected_identity is not None:
+        identity = proposal_identity(proposal)
+        if identity != expected_identity:
+            raise ProposalLoadError(
+                f"{path.name}: derives proposal {identity}, not the "
+                f"{expected_identity} this caller named"
+            )
+    return proposal

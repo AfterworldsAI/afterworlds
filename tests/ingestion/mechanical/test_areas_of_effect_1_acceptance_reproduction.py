@@ -2,11 +2,16 @@
 
 ``.claude/review-notes/issue-5d-areas-of-effect-1-ACCEPT.py --verify`` claims to
 reproduce the committed artifact rather than to spot-check it. This module is the
-regression coverage for that claim, and it is deliberately a **second**
-implementation: it reconstructs the reviewed proposal, re-derives the accepted
-scope and calls ``accept_proposal`` on its own, importing nothing from the ACCEPT
-script. Two independent paths arriving at the same bytes is evidence; one shared
-helper agreeing with itself is not.
+regression coverage for that claim, and it is deliberately independent of that
+script: it re-derives the accepted scope and calls ``accept_proposal`` on its
+own, importing nothing from it. Two independent paths arriving at the same bytes
+is evidence; one shared helper agreeing with itself is not.
+
+The reviewed proposal is loaded by ``load_proposal``, the production reader,
+rather than rebuilt here. That is a consolidation, not a weakening: the ACCEPT
+script this module checks does its own rebuild, so the two paths still meet only
+at the bytes. The hand-written second rebuild is retained once, in
+``test_speed_1_acceptance_reproduction``, which compares it against the loader.
 
 **Where each input comes from, and why none of them is the artifact.**
 
@@ -61,18 +66,11 @@ from afterworlds.ingestion.mechanical.accounting import (
 )
 from afterworlds.ingestion.mechanical.oracle import (
     AcceptedInputs,
-    _representation,
-    _span,
-    accepted_inputs_payload,
     load_accepted_inputs,
     oracle_identity,
+    serialize_accepted_inputs,
 )
-from afterworlds.ingestion.mechanical.projection import ReleaseBinding
-from afterworlds.ingestion.mechanical.proposal import (
-    MechanicalProposal,
-    ProposedSpan,
-    proposal_identity,
-)
+from afterworlds.ingestion.mechanical.proposal import load_proposal
 from afterworlds.ingestion.mechanical.representation import (
     REPRESENTATION_COLLECTIONS,
 )
@@ -126,51 +124,6 @@ def _canonical_bytes(path: pathlib.Path) -> bytes:
     return path.read_bytes().replace(b"\r\n", b"\n")
 
 
-def _serialize(accepted: AcceptedInputs) -> bytes:
-    """The one committed serialization form: indented, key-sorted, LF, trailing NL."""
-    return (
-        json.dumps(
-            accepted_inputs_payload(accepted),
-            indent=2,
-            sort_keys=True,
-            ensure_ascii=False,
-        )
-        + "\n"
-    ).encode("utf-8")
-
-
-def _reviewed_proposal() -> MechanicalProposal:
-    """The reviewed proposal, rebuilt from the committed JSON and proved to be it."""
-    document = json.loads(PROPOSAL_PATH.read_text(encoding="utf-8"))
-    spans = tuple(
-        ProposedSpan(
-            span=_span(
-                {
-                    key: value
-                    for key, value in raw.items()
-                    if key not in ("proposal_origin", "rationale")
-                },
-                index,
-            ),
-            origin=raw["proposal_origin"],
-            rationale=raw["rationale"],
-        )
-        for index, raw in enumerate(document["proposed_spans"])
-    )
-    proposal = MechanicalProposal(
-        binding=ReleaseBinding(**document["release_binding"]),
-        policy_version=document["semantic_policy_version"],
-        policy_hash=document["semantic_policy_hash"],
-        schema_version=document["representation_schema"]["version"],
-        schema_hash=document["representation_schema"]["hash"],
-        proposed_spans=spans,
-        proposed_representation=_representation(document["proposed_representation"]),
-        proposal_origin=document["proposal_origin"],
-    )
-    assert proposal_identity(proposal) == PROPOSAL_IDENTITY
-    return proposal
-
-
 def _recorded_scope() -> tuple[str, ...]:
     """The accepted scope in its recorded order, re-derived from the manifest."""
     assert (
@@ -203,7 +156,7 @@ def _recorded_rule() -> str:
 def _merge(scope: tuple[str, ...]) -> AcceptedInputs:
     """One in-memory merge of the reviewed proposal over the frozen prior."""
     return accept_proposal(
-        _reviewed_proposal(),
+        load_proposal(PROPOSAL_PATH, expected_identity=PROPOSAL_IDENTITY),
         batch_id=BATCH_ID,
         rule=_recorded_rule(),
         resolved_scope=scope,
@@ -256,7 +209,7 @@ def test_the_committed_merge_is_reproducible_from_the_retained_inputs() -> None:
     content only, so an artifact matching it can still differ in the acceptance
     evidence beside it. This compares the frozen result in full.
     """
-    rebuilt = _serialize(_merge(_recorded_scope()))
+    rebuilt = serialize_accepted_inputs(_merge(_recorded_scope()))
 
     assert rebuilt == _canonical_bytes(FROZEN_RESULT)
     # Stated separately so a failure says which half moved.
@@ -297,11 +250,11 @@ def test_a_difference_the_sampled_properties_miss_is_still_refused() -> None:
 
     # The bytes do not, and the difference is exactly the retained scope order.
     committed = _canonical_bytes(FROZEN_RESULT)
-    assert _serialize(recorded) == committed
-    assert _serialize(reordered) != committed
+    assert serialize_accepted_inputs(recorded) == committed
+    assert serialize_accepted_inputs(reordered) != committed
 
     expected = json.loads(committed.decode("utf-8"))
-    produced = json.loads(_serialize(reordered).decode("utf-8"))
+    produced = json.loads(serialize_accepted_inputs(reordered).decode("utf-8"))
     differing = sorted(key for key in expected if expected[key] != produced.get(key))
     assert differing == ["acceptance"], differing
     (expected_batch,) = [

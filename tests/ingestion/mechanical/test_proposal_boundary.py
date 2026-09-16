@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pytest
 
+from afterworlds.ingestion.mechanical.acceptance import accept_proposal
 from afterworlds.ingestion.mechanical.oracle import (
     ACCEPTED_ARTIFACT_KIND,
     OracleLoadError,
@@ -32,7 +33,9 @@ from afterworlds.ingestion.mechanical.policy import (
 from afterworlds.ingestion.mechanical.proposal import (
     PROPOSAL_ARTIFACT_KIND,
     MechanicalProposal,
+    ProposalLoadError,
     ProposedSpan,
+    load_proposal,
     proposal_identity,
     proposal_payload,
 )
@@ -165,8 +168,6 @@ def test_an_accepted_artifact_still_loads_from_the_same_directory(
     tmp_path: Path,
 ) -> None:
     """The negative controls above are not just "nothing loads here"."""
-    from afterworlds.ingestion.mechanical.acceptance import accept_proposal
-
     proposal = _proposal()
     inputs = accept_proposal(
         proposal,
@@ -180,6 +181,54 @@ def test_an_accepted_artifact_still_loads_from_the_same_directory(
     resolved = _resolve_committed_inputs(PACKAGE_UUID, RELEASE_VERSION, tmp_path)
     assert resolved is not None
     assert resolved.oracle.binding == RELEASE_BINDING
+
+
+# -- and the proposal loader refuses the route out ----------------------------
+#
+# The same boundary read the other way. ``load_proposal`` exists so a retained
+# proposal can be reconstructed and its recorded identity re-derived; it must not
+# become a way to read accepted authority back into an unaccepted shape.
+
+
+def test_an_accepted_artifact_does_not_load_as_a_proposal(tmp_path: Path) -> None:
+    proposal = _proposal()
+    inputs = accept_proposal(
+        proposal,
+        batch_id="batch-1",
+        rule="every span of the bounded fixture, reviewed together",
+        resolved_scope=tuple(p.span.span_id for p in proposal.proposed_spans),
+        reviewer="owner",
+        accepted_at="2026-08-09T00:00:00Z",
+    )
+    path = _written(tmp_path, accepted_inputs_payload(inputs), "accepted.json")
+    with pytest.raises(ProposalLoadError, match="not a machine proposal"):
+        load_proposal(path)
+
+
+def test_forging_an_accepted_artifact_into_a_proposal_fails_on_shape(
+    tmp_path: Path,
+) -> None:
+    """Symmetric to ``test_forging_the_discriminator_still_fails_on_shape``.
+
+    An accepted artifact with its discriminator edited to claim it is a proposal
+    still has no ``proposed_spans`` and no ``proposed_representation``, and its
+    spans carry no stated rationale — because nothing proposed them.
+    """
+    proposal = _proposal()
+    payload = accepted_inputs_payload(
+        accept_proposal(
+            proposal,
+            batch_id="batch-1",
+            rule="every span of the bounded fixture, reviewed together",
+            resolved_scope=tuple(p.span.span_id for p in proposal.proposed_spans),
+            reviewer="owner",
+            accepted_at="2026-08-09T00:00:00Z",
+        )
+    )
+    payload["artifact_kind"] = PROPOSAL_ARTIFACT_KIND
+    path = _written(tmp_path, payload, "forged-proposal.json")
+    with pytest.raises(ProposalLoadError, match="proposed_spans"):
+        load_proposal(path)
 
 
 # -- proposals leave no trace in accepted authority ---------------------------
