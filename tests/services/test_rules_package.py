@@ -266,6 +266,10 @@ class TestRpTablePrefix:
             "rp_override_set_versions",
             "rp_override_set_entries",
             "rp_override_set_scopes",
+            # CRD Issue 5d practical reliability: what a human reviewed, and
+            # what that review was required to contain.
+            "rp_mech_review_units",
+            "rp_mech_review_expectations",
         }
         actual = {n for n in Base.metadata.tables if n.startswith("rp_")}
         assert (
