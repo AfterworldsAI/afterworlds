@@ -211,8 +211,8 @@ def test_forging_an_accepted_artifact_into_a_proposal_fails_on_shape(
     """Symmetric to ``test_forging_the_discriminator_still_fails_on_shape``.
 
     An accepted artifact with its discriminator edited to claim it is a proposal
-    still has no ``proposed_spans`` and no ``proposed_representation``, and its
-    spans carry no stated rationale — because nothing proposed them.
+    still declares no ``proposal_schema_version`` — it was never authored under
+    one — so it is refused before anything tries to read spans out of it.
     """
     proposal = _proposal()
     payload = accepted_inputs_payload(
@@ -227,7 +227,7 @@ def test_forging_an_accepted_artifact_into_a_proposal_fails_on_shape(
     )
     payload["artifact_kind"] = PROPOSAL_ARTIFACT_KIND
     path = _written(tmp_path, payload, "forged-proposal.json")
-    with pytest.raises(ProposalLoadError, match="proposed_spans"):
+    with pytest.raises(ProposalLoadError, match="proposal_schema_version"):
         load_proposal(path)
 
 

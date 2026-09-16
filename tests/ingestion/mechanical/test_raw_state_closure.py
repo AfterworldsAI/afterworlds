@@ -53,6 +53,7 @@ from afterworlds.persistence.orm.mechanical import (
     MechanicalReferenceORM,
     MechanicalRelationshipORM,
     MechanicalReviewExpectationORM,
+    MechanicalReviewUnitAcceptanceORM,
     MechanicalReviewUnitORM,
     MechanicalSpanORM,
 )
@@ -96,6 +97,10 @@ TABLE_POLICY: dict[type, str] = {
     # both the projection identity and the persisted-state digest.
     MechanicalReviewUnitORM: "semantic",
     MechanicalReviewExpectationORM: "semantic",
+    # "evidence", exactly like ``rp_mech_acceptances``: who accepted a unit and
+    # when is retained and digested, but it is not part of what the projection
+    # means, so it stays outside the projection identity.
+    MechanicalReviewUnitAcceptanceORM: "evidence",
     # Package-scoped, not projection-scoped: which projection a package has
     # activated is not part of any projection's reconstructed meaning, so it is
     # deliberately outside the raw row set and the persisted-state digest. A
@@ -546,9 +551,9 @@ def test_every_scoped_table_is_loaded_into_the_raw_state(session: Session) -> No
         if policy not in _NON_PROJECTION_POLICIES
     }
     # The default batch-reviewed candidate populates every scoped table except
-    # references, which the honest fixture leaves empty, and the two review-unit
-    # tables, which it leaves empty because it accepts a complete partition
-    # without claiming any unit. References are covered by
+    # references, which the honest fixture leaves empty, and the three
+    # review-unit tables, which it leaves empty because it accepts a complete
+    # partition without claiming any unit. References are covered by
     # ``test_honest_references_and_provenance_still_reconstruct`` above; the
     # review-unit tables by ``test_a_reviewed_candidate_populates_both_review_
     # tables`` and the closure controls below it.
@@ -556,6 +561,7 @@ def test_every_scoped_table_is_loaded_into_the_raw_state(session: Session) -> No
         "rp_mech_references",
         "rp_mech_review_units",
         "rp_mech_review_expectations",
+        "rp_mech_review_unit_acceptances",
     }
 
 
@@ -573,7 +579,7 @@ def test_a_reviewed_candidate_populates_both_review_tables(session: Session) -> 
 
     ``_persist_batch`` deliberately claims no unit, because that is what every
     accepted batch looks like. This is the candidate that does, and it proves
-    both tables are written and both are loaded into the raw state.
+    all three review tables are written and loaded into the raw state.
     """
     from afterworlds.ingestion.mechanical.raw_state import load_raw_state
 
@@ -587,6 +593,7 @@ def test_a_reviewed_candidate_populates_both_review_tables(session: Session) -> 
 
     assert len(raw.review_units) == 2
     assert len(raw.review_expectations) == 2
+    assert len(raw.review_unit_acceptances) == 2
     validate_raw_closure(raw)
 
 

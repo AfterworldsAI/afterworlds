@@ -499,16 +499,36 @@ def _write(tmp_path, payload: dict[str, object]):  # type: ignore[no-untyped-def
     return path
 
 
+def _accepted_by(payload: dict[str, object], units, batch_id="batch-wish") -> None:  # type: ignore[no-untyped-def]
+    """State *units* in *payload* and record the action that accepted them.
+
+    An inventory nobody is recorded as having accepted is refused, so a test
+    that wants a legitimately reviewed artifact has to state both halves.
+    """
+    payload["review_units"] = review_unit_payload(units)
+    acceptance = payload["acceptance"]
+    acceptance["review_unit_records"] = [  # type: ignore[index]
+        {
+            "unit_id": u.unit_id,
+            "batch_id": batch_id,
+            "reviewer": "owner",
+            "accepted_at": "2026-08-09T00:00:00Z",
+        }
+        for u in units
+    ]
+
+
 def test_an_accepted_artifact_carries_its_review_inventory(tmp_path) -> None:  # type: ignore[no-untyped-def]
     payload = _bounded_payload()
-    payload["review_units"] = review_unit_payload(REVIEW_UNITS)
+    _accepted_by(payload, REVIEW_UNITS)
+    expected_units = payload["review_units"]
     oracle = load_accepted_inputs(_write(tmp_path, payload)).oracle
 
     # Compared canonically, because that is the form the file states: the
     # writer sorts units, their leaves and their expected rules, and the loader
     # reads back exactly what is written. Canonical in, canonical out.
-    assert review_unit_payload(oracle.review_units) == payload["review_units"]
-    assert oracle_payload(oracle)["review_units"] == payload["review_units"]
+    assert review_unit_payload(oracle.review_units) == expected_units
+    assert oracle_payload(oracle)["review_units"] == expected_units
 
     # And it is a real inventory afterwards, not just matching bytes.
     entry = next(u for u in oracle.review_units if u.unit_id == "unit-wish-entry")
@@ -539,6 +559,26 @@ def test_a_malformed_unit_is_refused_rather_than_coerced(tmp_path) -> None:  # t
 
     with pytest.raises(OracleLoadError):
         load_accepted_inputs(_write(tmp_path, payload))
+
+
+def test_an_artifact_stating_a_unit_no_action_accepted_is_refused(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """The widened-inventory refusal at the committed form.
+
+    Adding a unit to a reviewed file is the cheap forgery this check exists for:
+    the acceptance records name what a reviewer actually accepted, and a unit
+    outside them inherits nothing.
+    """
+    payload = _bounded_payload()
+    _accepted_by(payload, REVIEW_UNITS)
+    payload["review_units"] = review_unit_payload(REVIEW_UNITS)
+    records = payload["acceptance"]["review_unit_records"]  # type: ignore[index]
+    payload["acceptance"]["review_unit_records"] = [  # type: ignore[index]
+        r for r in records if r["unit_id"] != "unit-support-section"
+    ]
+
+    with pytest.raises(OracleLoadError) as exc:
+        load_accepted_inputs(_write(tmp_path, payload))
+    assert "no acceptance action records accepting them" in str(exc.value)
 
 
 def test_the_committed_bounded_artifact_claims_no_unit() -> None:

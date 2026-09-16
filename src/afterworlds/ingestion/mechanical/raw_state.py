@@ -50,6 +50,7 @@ from afterworlds.persistence.orm.mechanical import (
     MechanicalReferenceORM,
     MechanicalRelationshipORM,
     MechanicalReviewExpectationORM,
+    MechanicalReviewUnitAcceptanceORM,
     MechanicalReviewUnitORM,
     MechanicalSpanORM,
 )
@@ -122,6 +123,8 @@ class RawProjectionState:
     #: any projection whose partition is complete without them.
     review_units: Sequence[MechanicalReviewUnitORM] = ()
     review_expectations: Sequence[MechanicalReviewExpectationORM] = ()
+    #: One per accepted unit, and empty exactly when the inventory is.
+    review_unit_acceptances: Sequence[MechanicalReviewUnitAcceptanceORM] = ()
 
 
 def load_raw_state(
@@ -156,6 +159,7 @@ def load_raw_state(
         provenance=rows(MechanicalProvenanceORM),
         review_units=rows(MechanicalReviewUnitORM),
         review_expectations=rows(MechanicalReviewExpectationORM),
+        review_unit_acceptances=rows(MechanicalReviewUnitAcceptanceORM),
     )
 
 
@@ -388,6 +392,38 @@ def validate_raw_closure(raw: RawProjectionState) -> None:
                 f"review unit {expectation.unit_id!r} with no header in this "
                 "projection"
             )
+
+    # Both directions, because both are losable. A row naming no unit is
+    # evidence of an acceptance nothing holds; a unit with no row is an
+    # inventory nobody is recorded as having accepted, which is the state the
+    # table exists to make impossible.
+    accepted_unit_ids: set[str] = set()
+    for unit_acceptance in raw.review_unit_acceptances:
+        if unit_acceptance.unit_id not in unit_ids:
+            problems.append(
+                f"rp_mech_review_unit_acceptances row {unit_acceptance.row_id}: "
+                f"names review unit {unit_acceptance.unit_id!r} with no header "
+                "in this projection"
+            )
+        if unit_acceptance.unit_id in accepted_unit_ids:
+            problems.append(
+                "rp_mech_review_unit_acceptances: duplicate acceptance of unit "
+                f"{unit_acceptance.unit_id!r} in one projection"
+            )
+        accepted_unit_ids.add(unit_acceptance.unit_id)
+        if (
+            unit_acceptance.batch_id is not None
+            and unit_acceptance.batch_id not in batch_ids
+        ):
+            problems.append(
+                f"rp_mech_review_unit_acceptances row {unit_acceptance.row_id}: "
+                f"names batch {unit_acceptance.batch_id!r} with no header in "
+                "this projection"
+            )
+    for unit_id in sorted(unit_ids - accepted_unit_ids):
+        problems.append(
+            f"rp_mech_review_units: unit {unit_id!r} has no acceptance record"
+        )
 
     if problems:
         raise PersistedStateReconstructionError(

@@ -262,6 +262,7 @@ def _validate_batch(
     spans_by_id: dict[str, SemanticSpan],
     linked_spans: set[str],
     batch_by_span: dict[str, str | None],
+    linked_units: set[str],
 ) -> list[str]:
     """Return violations of one batch's retained acceptance evidence.
 
@@ -269,15 +270,23 @@ def _validate_batch(
     this batch must describe exactly the same span set. Any two of them
     agreeing while the third does not means the retained evidence no longer
     shows what was actually accepted.
+
+    A batch may resolve no span at all, but only when it resolved review units
+    instead: a reviewer who read a coherent unit and recorded that it states no
+    rule accounted for that source, and there is no span to classify. Such a
+    batch has no diff and no span acceptance record, and the three checks that
+    would otherwise demand them are conditioned on it — nothing is relaxed for
+    a batch that resolved neither.
     """
     findings: list[str] = []
     tag = f"batch {batch.batch_id}"
+    unit_only = not batch.resolved_scope and bool(linked_units)
 
     if not batch.rule.strip():
         findings.append(f"{tag}: no acceptance rule recorded")
-    if not batch.resolved_scope:
-        findings.append(f"{tag}: no resolved scope recorded")
-    if not batch.diff:
+    if not batch.resolved_scope and not linked_units:
+        findings.append(f"{tag}: no resolved scope and no accepted review unit")
+    if not batch.diff and not unit_only:
         findings.append(f"{tag}: no semantic diff retained")
     # Without this, the batch attests only that spans were accepted, and the
     # accepted representation could be authority nobody reviewed.
@@ -322,7 +331,7 @@ def _validate_batch(
     for span_id in sorted(scope - diff_ids):
         findings.append(f"{tag}: scope member {span_id} has no accepted diff entry")
 
-    if not linked_spans:
+    if not linked_spans and not unit_only:
         findings.append(f"{tag}: no acceptance record names this batch")
     for span_id in sorted(scope - linked_spans):
         named = batch_by_span.get(span_id)
@@ -364,6 +373,13 @@ def validate_acceptance(ledger: ClassificationLedger) -> tuple[str, ...]:
         if record.batch_id is not None:
             linked_by_batch.setdefault(record.batch_id, set()).add(record.span_id)
 
+    units_by_batch: dict[str, set[str]] = {}
+    for unit_record in ledger.review_unit_acceptances:
+        if unit_record.batch_id is not None:
+            units_by_batch.setdefault(unit_record.batch_id, set()).add(
+                unit_record.unit_id
+            )
+
     for batch in ledger.batches:
         if batch.batch_id in batch_ids:
             findings.append(f"batch {batch.batch_id}: duplicate batch id")
@@ -374,6 +390,7 @@ def validate_acceptance(ledger: ClassificationLedger) -> tuple[str, ...]:
                 spans_by_id,
                 linked_by_batch.get(batch.batch_id, set()),
                 batch_by_span,
+                units_by_batch.get(batch.batch_id, set()),
             )
         )
 
@@ -400,6 +417,27 @@ def validate_acceptance(ledger: ClassificationLedger) -> tuple[str, ...]:
         if record.span_id in accepted:
             findings.append(f"span {record.span_id}: duplicate acceptance record")
         accepted.add(record.span_id)
+
+    # The same three questions of the sibling ledger. Unit *membership* — that
+    # the inventory actually holds these ids — is checked where the inventory
+    # is, in ``load_accepted_inputs``; the ledger does not carry it.
+    accepted_units: set[str] = set()
+    for unit_record in ledger.review_unit_acceptances:
+        if not unit_record.reviewer.strip() or not unit_record.accepted_at.strip():
+            findings.append(
+                f"review unit {unit_record.unit_id}: acceptance without "
+                "reviewer/timestamp evidence"
+            )
+        if unit_record.batch_id is not None and unit_record.batch_id not in batch_ids:
+            findings.append(
+                f"review unit {unit_record.unit_id}: acceptance names unknown "
+                f"batch {unit_record.batch_id}"
+            )
+        if unit_record.unit_id in accepted_units:
+            findings.append(
+                f"review unit {unit_record.unit_id}: duplicate acceptance record"
+            )
+        accepted_units.add(unit_record.unit_id)
 
     for span in ledger.spans:
         if span.disposition is SemanticDisposition.UNRESOLVED:
@@ -484,7 +522,7 @@ def acceptance_evidence_payload(ledger: ClassificationLedger) -> dict[str, objec
     Scope order is preserved rather than sorted: the reviewer's recorded scope
     is evidence, and a reordered scope is a different record of what happened.
     """
-    return {
+    payload: dict[str, object] = {
         "review_states": canonical_order(
             {"span_id": s.span_id, "review_state": s.review_state.value}
             for s in ledger.spans
@@ -517,3 +555,21 @@ def acceptance_evidence_payload(ledger: ClassificationLedger) -> dict[str, objec
             for a in ledger.acceptances
         ),
     }
+    if ledger.review_unit_acceptances:
+        # Emitted only when there is one, the same omit-when-empty discipline
+        # the rest of this artifact follows: a ledger that accepted no review
+        # unit says nothing about one, and the seven committed batches keep the
+        # exact evidence bytes and persisted-state digest they were accepted
+        # with. This is also the batch attribution for the inventory — which
+        # action accepted which unit — which the merged inventory alone cannot
+        # state.
+        payload["review_unit_records"] = canonical_order(
+            {
+                "unit_id": a.unit_id,
+                "batch_id": a.batch_id,
+                "reviewer": a.reviewer,
+                "accepted_at": a.accepted_at,
+            }
+            for a in ledger.review_unit_acceptances
+        )
+    return payload

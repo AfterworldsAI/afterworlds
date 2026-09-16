@@ -57,7 +57,7 @@ from afterworlds.ingestion.mechanical.models import (
     AcceptanceBatch,
     AcceptanceRecord,
     ReviewState,
-    ReviewUnit,
+    ReviewUnitAcceptance,
     SemanticDiffEntry,
     SemanticSpan,
 )
@@ -242,7 +242,7 @@ def accept_proposal(
     reviewer: str,
     accepted_at: str,
     prior: AcceptedInputs | None = None,
-    review_units: tuple[ReviewUnit, ...] = (),
+    resolved_review_units: tuple[str, ...] = (),
 ) -> AcceptedInputs:
     """Record one explicit acceptance of *resolved_scope* from *proposal*.
 
@@ -256,19 +256,32 @@ def accept_proposal(
     the complete proposal reviewed, which is what ties the accepted
     *representation* to something a human looked at.
 
-    ``review_units`` is what this batch's reviewer recorded having read: the
-    coherent sections, entries and tables they reviewed, which leaves each
-    covers, and which rules each must contain. It accumulates across batches
-    on the same terms as their scopes — a ``unit_id`` a prior batch already
-    recorded cannot be recorded again — and the accumulated inventory is
-    checked against the *merged* representation, because a unit may legitimately
-    expect a rule an earlier batch structured.
+    ``resolved_review_units`` names ``unit_id``s of units *this proposal
+    proposed* — the coherent sections, entries and tables the reviewer read,
+    which leaves each covers, and which rules each must contain. It is a scope
+    over the proposal's inventory on exactly the terms ``resolved_scope`` is a
+    scope over its spans: the units themselves are proposal content, inside the
+    ``proposal_identity`` this batch records, so an altered inventory derives a
+    different identity and cannot inherit this acceptance; and naming is what
+    accepts, so a proposed unit this action does not name is not accepted.
+    Accepted units accumulate across batches on the same terms as scopes — a
+    ``unit_id`` a prior batch already recorded cannot be recorded again — and
+    the accumulated inventory is checked against the *merged* representation,
+    because a unit may legitimately expect a rule an earlier batch structured.
+
+    An acceptance action must resolve *something*, but it need not be a span. A
+    reviewer who read a coherent unit and recorded that it states no rule this
+    build must carry has accounted for that source as deliberately as one who
+    classified a span in it; requiring a span anyway would retain the obsolete
+    demand to classify extra text as the price of a legitimate review.
 
     Extending *prior* requires a disjoint scope: a span it already accepted
     cannot be re-accepted here.
     """
-    if not resolved_scope:
-        raise AcceptanceError("an acceptance action must name at least one span")
+    if not resolved_scope and not resolved_review_units:
+        raise AcceptanceError(
+            "an acceptance action must name at least one span or one review unit"
+        )
     if not reviewer.strip():
         raise AcceptanceError("an acceptance action must name its reviewer")
     if not rule.strip():
@@ -281,6 +294,22 @@ def accept_proposal(
         raise AcceptanceError(
             f"resolved scope names spans this proposal did not propose: {unknown}"
         )
+
+    # The same three refusals, over the proposal's inventory. Resolving a unit
+    # the proposal does not state would record acceptance of an expectation set
+    # outside the ``proposal_identity`` this batch retains — which is the whole
+    # reason the inventory moved into the proposal.
+    proposed_units_by_id = {u.unit_id: u for u in proposal.proposed_review_units}
+    if repeats := sorted(
+        {u for u in resolved_review_units if resolved_review_units.count(u) > 1}
+    ):
+        raise AcceptanceError(f"resolved review units repeat {repeats}")
+    if unproposed := sorted(set(resolved_review_units) - proposed_units_by_id.keys()):
+        raise AcceptanceError(
+            "resolved review units name units this proposal did not propose: "
+            f"{unproposed}"
+        )
+    accepted_units = tuple(proposed_units_by_id[u] for u in resolved_review_units)
 
     if prior is not None and prior.oracle.binding != proposal.binding:
         raise AcceptanceError(
@@ -487,6 +516,22 @@ def accept_proposal(
         )
         for span_id in resolved_scope
     )
+    # The sibling ledger, on the same terms: who accepted this unit, when, and
+    # as part of which action. A batch that resolved only units produces no
+    # ``AcceptanceRecord`` at all, so without this its reviewer and timestamp
+    # would reach no retained evidence and nothing would attribute the unit to
+    # the action that accepted it.
+    review_unit_acceptances = tuple(prior.review_unit_acceptances if prior else ()) + (
+        tuple(
+            ReviewUnitAcceptance(
+                unit_id=unit_id,
+                batch_id=batch_id,
+                reviewer=reviewer,
+                accepted_at=accepted_at,
+            )
+            for unit_id in resolved_review_units
+        )
+    )
 
     representation = _merge_representation(
         prior.oracle.representation if prior else None,
@@ -498,12 +543,12 @@ def accept_proposal(
     # in the persisted rows and in the artifact alike.
     prior_units = prior.oracle.review_units if prior else ()
     if repeated := sorted(
-        {u.unit_id for u in review_units} & {u.unit_id for u in prior_units}
+        set(resolved_review_units) & {u.unit_id for u in prior_units}
     ):
         raise AcceptanceError(
             f"review units already recorded by a prior batch: {repeated}"
         )
-    merged_units = prior_units + review_units
+    merged_units = prior_units + accepted_units
     # Checked against the merged representation rather than this proposal's,
     # because a unit may expect a rule an earlier batch structured. Refused here,
     # before an artifact exists, rather than producing one the loader rejects —
@@ -530,6 +575,7 @@ def accept_proposal(
         ),
         batches=tuple(prior.batches if prior else ()) + (batch,),
         acceptances=acceptances,
+        review_unit_acceptances=review_unit_acceptances,
         # Every retained batch states the schema it was *reviewed* under, and
         # this new one states the schema the proposal declares. A prior loaded
         # in the legacy unanchored form is anchored here at its own declaration,

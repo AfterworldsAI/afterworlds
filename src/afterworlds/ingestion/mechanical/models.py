@@ -287,6 +287,38 @@ class AcceptanceRecord:
 
 
 @dataclass(frozen=True)
+class ReviewUnitAcceptance:
+    """Evidence that one :class:`ReviewUnit` was explicitly accepted.
+
+    The exact sibling of :class:`AcceptanceRecord`, and deliberately a separate
+    record rather than a field on :class:`AcceptanceBatch`. A unit is accepted
+    by the same kind of action a span is — a named reviewer, at a named time,
+    as part of a named batch — and giving it the same shape means the two
+    halves of one acceptance are audited by the same rules instead of by a
+    second mechanism that would eventually disagree.
+
+    Without this, a batch that accepted only review units recorded nobody: its
+    scope was empty, so it produced no :class:`AcceptanceRecord`, and the
+    reviewer and timestamp handed to ``accept_proposal`` reached no retained
+    evidence at all. It also carries the attribution a span-bearing batch
+    already has — which action accepted *this* unit — which the merged
+    inventory on its own cannot state.
+
+    ``batch_id`` is ``None`` for an individually reviewed unit and otherwise
+    names an :class:`AcceptanceBatch`, exactly as it is on the sibling: being
+    audited by the same rules means having the same shape, and a ledger whose
+    span acceptances predate batches has review-unit acceptances that do too.
+    ``accept_proposal`` always names the batch it is taking, so every unit
+    accepted through the production path carries its attribution.
+    """
+
+    unit_id: str
+    batch_id: str | None
+    reviewer: str
+    accepted_at: str
+
+
+@dataclass(frozen=True)
 class ClassificationLedger:
     """The complete accepted semantic accounting for one bound 5c release.
 
@@ -315,3 +347,8 @@ class ClassificationLedger:
     spans: tuple[SemanticSpan, ...]
     batches: tuple[AcceptanceBatch, ...]
     acceptances: tuple[AcceptanceRecord, ...]
+    #: Empty for every ledger accepted before review units existed, which is all
+    #: seven accepted batches. The canonical evidence payload omits the key when
+    #: it is empty, so their committed bytes and recorded persisted-state
+    #: digests are unchanged.
+    review_unit_acceptances: tuple[ReviewUnitAcceptance, ...] = ()

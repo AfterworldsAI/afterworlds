@@ -69,6 +69,7 @@ from afterworlds.ingestion.mechanical.models import (
     ExpectedRule,
     ReviewState,
     ReviewUnit,
+    ReviewUnitAcceptance,
     ReviewUnitKind,
     SemanticDiffEntry,
     SemanticDisposition,
@@ -268,6 +269,11 @@ class AcceptedInputs:
     oracle: AcceptedOracle
     batches: tuple[AcceptanceBatch, ...]
     acceptances: tuple[AcceptanceRecord, ...]
+    #: The acceptance action that accepted each unit of :attr:`oracle`'s review
+    #: inventory. Empty for all seven accepted batches, which recorded no
+    #: inventory, and omitted from the written file when empty — so their
+    #: committed bytes and recorded digests are exactly as reviewed.
+    review_unit_acceptances: tuple[ReviewUnitAcceptance, ...] = ()
     #: The representation schema each retained batch was *reviewed* under.
     #: Empty only for the legacy pre-schema-4 form, where absence has one
     #: possible meaning; see ``schema_lift.succession_evidence_violations``.
@@ -296,6 +302,7 @@ class AcceptedInputs:
             spans=self.oracle.spans,
             batches=self.batches,
             acceptances=self.acceptances,
+            review_unit_acceptances=self.review_unit_acceptances,
         )
 
 
@@ -1033,8 +1040,14 @@ def _expected_rule(payload: object, where: str) -> ExpectedRule:
     )
 
 
-def _review_unit(payload: object, index: int) -> ReviewUnit:
-    where = f"review_units[{index}]"
+def _review_unit(
+    payload: object, index: int, *, key: str = "review_units"
+) -> ReviewUnit:
+    # ``key`` only names the field in the error message. A proposal states its
+    # inventory under ``proposed_review_units`` and an accepted artifact under
+    # ``review_units``; a refusal that named the wrong one would send a reader
+    # looking for a key their file does not have.
+    where = f"{key}[{index}]"
     u = _require(
         payload,
         ("unit_id", "kind", "leaf_ids", "expected_rules", "excluded_group_reasons"),
@@ -1125,14 +1138,40 @@ def _acceptance(payload: object, where: str) -> tuple[
     tuple[SchemaLiftRecord, ...],
     tuple[BatchSchemaAnchor, ...],
     tuple[PolicyTransitionRecord, ...],
+    tuple[ReviewUnitAcceptance, ...],
 ]:
     """Load the review evidence half of a committed accepted-inputs file."""
     p = _require(
         payload,
         ("batches", "records"),
         where,
-        optional=("lifts", "schema_anchors", "policy_transitions"),
+        optional=(
+            "lifts",
+            "schema_anchors",
+            "policy_transitions",
+            # Absent from all seven accepted batches on the same terms as the
+            # inventory they accept: absent rather than empty, so their
+            # committed bytes are exactly what was reviewed.
+            "review_unit_records",
+        ),
     )
+
+    unit_records = []
+    for i, raw_unit in enumerate(
+        _object_list(p.get("review_unit_records", []), f"{where}.review_unit_records")
+    ):
+        at = f"{where}.review_unit_records[{i}]"
+        entry = _require(
+            raw_unit, ("unit_id", "batch_id", "reviewer", "accepted_at"), at
+        )
+        unit_records.append(
+            ReviewUnitAcceptance(
+                unit_id=_string(entry["unit_id"], f"{at}.unit_id"),
+                batch_id=_optional_string(entry["batch_id"], f"{at}.batch_id"),
+                reviewer=_string(entry["reviewer"], f"{at}.reviewer"),
+                accepted_at=_string(entry["accepted_at"], f"{at}.accepted_at"),
+            )
+        )
 
     anchors = []
     for i, raw_anchor in enumerate(
@@ -1303,6 +1342,7 @@ def _acceptance(payload: object, where: str) -> tuple[
         tuple(lifts),
         tuple(anchors),
         tuple(transitions),
+        tuple(unit_records),
     )
 
 
@@ -1377,7 +1417,7 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
         for i, u in enumerate(_object_list(p.get("review_units", []), "review_units"))
     )
     spans = tuple(_span(s, i) for i, s in enumerate(_object_list(p["spans"], "spans")))
-    batches, acceptances, lifts, anchors, transitions = _acceptance(
+    batches, acceptances, lifts, anchors, transitions, unit_records = _acceptance(
         p["acceptance"], "acceptance"
     )
     oracle = AcceptedOracle(
@@ -1442,10 +1482,30 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
     # authorized, happened, or could have happened. Validated against the
     # registry and against this artifact's own declaration before it becomes
     # part of the loaded inputs.
+    # Every accepted unit names one this artifact states, and every unit this
+    # artifact states was accepted by a recorded action. Without the second
+    # half, an inventory could be widened after the fact — new units, new
+    # expectations — and inherit the acceptance of the ones beside them, which
+    # is the claim the review-unit contract exists to make checkable.
+    inventory = {u.unit_id for u in oracle.review_units}
+    claimed = {a.unit_id for a in unit_records}
+    if stranded := sorted(claimed - inventory):
+        raise OracleLoadError(
+            f"{path.name}: acceptance records name review units this artifact "
+            f"does not state: {stranded}"
+        )
+    if unaccepted := sorted(inventory - claimed):
+        raise OracleLoadError(
+            f"{path.name}: review units {unaccepted} are stated but no "
+            "acceptance action records accepting them; an inventory nobody "
+            "accepted is not review evidence"
+        )
+
     inputs = AcceptedInputs(
         oracle=oracle,
         batches=batches,
         acceptances=acceptances,
+        review_unit_acceptances=unit_records,
         schema_anchors=anchors,
         lifts=lifts,
         policy_transitions=transitions,
@@ -1634,6 +1694,12 @@ def accepted_inputs_payload(inputs: AcceptedInputs) -> dict[str, object]:
         "batches": evidence["batches"],
         "records": evidence["acceptances"],
     }
+    if "review_unit_records" in evidence:
+        # Present exactly when the evidence payload states it, which is exactly
+        # when a review unit was accepted. Same omit-when-empty discipline as
+        # the three fields below, and the reason the seven committed batches
+        # still round-trip byte-identically.
+        acceptance["review_unit_records"] = evidence["review_unit_records"]
     if inputs.schema_anchors:
         # Emitted only when stated, so the committed legacy artifact keeps the
         # exact bytes it was reviewed and committed with.

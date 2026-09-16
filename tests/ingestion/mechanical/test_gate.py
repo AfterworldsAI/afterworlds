@@ -81,6 +81,7 @@ from tests.ingestion.mechanical.conftest import (
     build_ledger,
     build_representation,
     reviewed_candidate,
+    unit_acceptances,
 )
 
 
@@ -733,6 +734,9 @@ def _reviewed_pair(
 ) -> tuple[ProjectionCandidate, AcceptedOracle]:
     """A candidate and the oracle that accepted exactly it, both over *units*."""
     ledger, representation = _support_leaf_states_no_rule()
+    ledger = dataclasses.replace(
+        ledger, review_unit_acceptances=unit_acceptances(units)
+    )
     candidate = dataclasses.replace(
         build_candidate(),
         classification=ledger,

@@ -83,6 +83,7 @@ from afterworlds.ingestion.mechanical.models import (
     ExpectedRule,
     ReviewState,
     ReviewUnit,
+    ReviewUnitAcceptance,
     ReviewUnitKind,
     SemanticDiffEntry,
     SemanticDisposition,
@@ -805,11 +806,34 @@ REVIEW_UNITS = (
 )
 
 
+def unit_acceptances(
+    units: tuple[ReviewUnit, ...] = REVIEW_UNITS,
+) -> tuple[ReviewUnitAcceptance, ...]:
+    """One acceptance per unit, on the terms :func:`build_ledger` accepts spans.
+
+    That ledger predates batches — its span acceptances name no batch — so the
+    unit half of the same acceptance names none either. Attribution to a named
+    batch is what ``accept_proposal`` records, and the tests that exercise it
+    assert it there.
+    """
+    return tuple(
+        ReviewUnitAcceptance(u.unit_id, None, "owner", "2026-07-31T00:00:00Z")
+        for u in units
+    )
+
+
 def reviewed_candidate(
     units: tuple[ReviewUnit, ...] = REVIEW_UNITS, **overrides: object
 ) -> ProjectionCandidate:
     """:func:`build_candidate`, with an accepted review inventory attached."""
-    return replace(build_candidate(**overrides), review_units=units)
+    candidate = build_candidate(**overrides)
+    return replace(
+        candidate,
+        review_units=units,
+        classification=replace(
+            candidate.classification, review_unit_acceptances=unit_acceptances(units)
+        ),
+    )
 
 
 def accepted_oracle() -> AcceptedOracle:

@@ -223,6 +223,26 @@ class MechanicalAcceptanceORM(_ProjectionScoped):
     accepted_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
 
 
+class MechanicalReviewUnitAcceptanceORM(_ProjectionScoped):
+    """One explicit acceptance of one review unit.
+
+    The exact sibling of ``rp_mech_acceptances``, and stored separately for the
+    same reason the inventory is: a batch that accepted only review units writes
+    no span acceptance row at all, so without this its reviewer, timestamp and
+    batch attribution would exist nowhere in persisted state.
+    """
+
+    __tablename__ = "rp_mech_review_unit_acceptances"
+
+    projection_uuid: Mapped[str] = _ProjectionScoped._projection_fk()
+    unit_id: Mapped[str] = mapped_column(sa.String(255), nullable=False, index=True)
+    batch_id: Mapped[str | None] = mapped_column(
+        sa.String(64), nullable=True, index=True
+    )
+    reviewer: Mapped[str] = mapped_column(sa.String(255), nullable=False)
+    accepted_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+
+
 class MechanicalRecordORM(_ProjectionScoped):
     """One semantic record."""
 

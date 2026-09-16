@@ -271,7 +271,7 @@ def test_batch_without_rule_scope_or_diff_is_not_acceptance() -> None:
         )
     )
     assert any("no acceptance rule recorded" in f for f in findings)
-    assert any("no resolved scope recorded" in f for f in findings)
+    assert any("no resolved scope and no accepted review unit" in f for f in findings)
     assert any("no semantic diff retained" in f for f in findings)
 
 

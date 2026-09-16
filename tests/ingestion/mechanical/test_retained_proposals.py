@@ -55,15 +55,6 @@ REVIEWED_PROPOSALS = {
     "speed-1": "issue-5d-batch-speed-1-PROPOSAL.json",
 }
 
-#: The one reviewed proposal that is retained but not committed. No ``conditions-1``
-#: review artifact is tracked at all -- proposal, audit, generator and checkpoints
-#: exist only in working copies. That is a gap in retained evidence and an Owner
-#: item: committing a retained artifact is part of an acceptance record, not a
-#: change a test may make on its own. Until it is resolved this batch is checked
-#: wherever its file is present and skipped, by name, where it is not. Any *other*
-#: missing file fails, because no other batch has that excuse.
-NOT_COMMITTED = frozenset({"conditions-1"})
-
 
 def _recorded_proposal_identities() -> dict[str, str]:
     """What the committed artifact says each batch's reviewer accepted from."""
@@ -93,9 +84,6 @@ def test_a_batchs_recorded_proposal_identity_is_still_derivable(batch_id: str) -
     states the property for a reader.
     """
     path = REVIEW_NOTES / REVIEWED_PROPOSALS[batch_id]
-    if batch_id in NOT_COMMITTED and not path.exists():
-        pytest.skip(f"{path.name} is retained review evidence that was never committed")
-
     recorded = _recorded_proposal_identities()[batch_id]
     proposal = load_proposal(path, expected_identity=recorded)
     assert proposal_identity(proposal) == recorded
@@ -161,3 +149,121 @@ def test_the_committed_artifact_is_what_the_production_writer_writes() -> None:
     """
     written = serialize_accepted_inputs(load_accepted_inputs(COMMITTED_ARTIFACT))
     assert written == COMMITTED_ARTIFACT.read_bytes().replace(b"\r\n", b"\n")
+
+
+# -- the declared shape is honoured, not assumed ------------------------------
+#
+# ``load_proposal`` used to read ``proposal_schema_version`` nowhere. A retained
+# file declaring a shape this build cannot state the meaning of was rebuilt
+# under the current rules and restamped with the current constant — and because
+# the restamped payload re-derived the old identity, passing the recorded
+# ``expected_identity`` *confirmed* the forgery rather than catching it. Every
+# case below is refused before reconstruction and before the identity check, so
+# supplying the recorded identity changes nothing.
+
+
+def _speed_copy(tmp_path: pathlib.Path, **mutations: object) -> pathlib.Path:
+    """The retained Speed proposal, byte-for-byte except *mutations*.
+
+    A ``None`` value deletes the key. The original is never touched: it is
+    accepted review evidence.
+    """
+    with open(REVIEW_NOTES / REVIEWED_PROPOSALS["speed-1"], encoding="utf-8") as handle:
+        document = json.load(handle)
+    for key, value in mutations.items():
+        if value is None:
+            del document[key]
+        else:
+            document[key] = value
+    path = tmp_path / "speed-1-copy.json"
+    with open(path, "w", encoding="utf-8", newline="\n") as handle:
+        json.dump(document, handle)
+    return path
+
+
+def test_a_version_this_build_cannot_read_is_refused_despite_a_matching_identity(
+    tmp_path: pathlib.Path,
+) -> None:
+    """The exact probe: one field changed, the recorded identity supplied."""
+    path = _speed_copy(tmp_path, proposal_schema_version="unsupported-proposal-999")
+    recorded = _recorded_proposal_identities()["speed-1"]
+
+    with pytest.raises(ProposalLoadError, match="not a shape this build reads"):
+        load_proposal(path, expected_identity=recorded)
+
+
+@pytest.mark.parametrize(
+    "declared", [None, 999, ["5d-proposal-1"]], ids=["missing", "int", "list"]
+)
+def test_a_proposal_that_states_no_readable_version_is_refused(
+    tmp_path: pathlib.Path, declared: object
+) -> None:
+    """Absent and mistyped are the same failure: the file states no shape.
+
+    Not coerced, and not defaulted to the current constant — defaulting is what
+    let the restamp happen.
+    """
+    path = _speed_copy(tmp_path, proposal_schema_version=declared)
+    with pytest.raises(ProposalLoadError, match="is not a string"):
+        load_proposal(
+            path, expected_identity=_recorded_proposal_identities()["speed-1"]
+        )
+
+
+def test_envelope_content_the_declared_version_does_not_state_is_refused(
+    tmp_path: pathlib.Path,
+) -> None:
+    """A key nobody reads is a claim nobody checked.
+
+    A proposal is read precisely to establish what a human was shown, so a file
+    carrying content outside its declared envelope is refused rather than
+    loaded with that content dropped on the floor.
+    """
+    path = _speed_copy(tmp_path, reviewer_note="read in full, looks fine")
+    with pytest.raises(ProposalLoadError, match="unexpected \\['reviewer_note'\\]"):
+        load_proposal(
+            path, expected_identity=_recorded_proposal_identities()["speed-1"]
+        )
+
+
+def test_an_inventory_carried_under_the_shape_that_states_none_is_refused(
+    tmp_path: pathlib.Path,
+) -> None:
+    """The file-side twin of the writer's refusal.
+
+    ``5d-proposal-1`` states no review inventory, so units carried under it
+    would sit outside the identity an acceptance records — which is precisely
+    the gap that made a widened inventory inherit an acceptance.
+    """
+    path = _speed_copy(
+        tmp_path,
+        proposed_review_units=[
+            {
+                "unit_id": "unit-forged",
+                "kind": "entry",
+                "leaf_ids": ["leaf-speed"],
+                "expected_rules": [],
+                "excluded_group_reasons": [],
+            }
+        ],
+    )
+    with pytest.raises(
+        ProposalLoadError, match="unexpected \\['proposed_review_units'\\]"
+    ):
+        load_proposal(path)
+
+
+def test_a_readable_version_still_reaches_the_shape_checks(
+    tmp_path: pathlib.Path,
+) -> None:
+    """The version check screens; it does not replace what it screens for.
+
+    A file declaring a shape this build reads is still read as that shape, and
+    a proposed span missing the rationale its author stated still fails there.
+    """
+    with open(REVIEW_NOTES / REVIEWED_PROPOSALS["speed-1"], encoding="utf-8") as handle:
+        spans = json.load(handle)["proposed_spans"]
+    del spans[0]["rationale"]
+
+    with pytest.raises(ProposalLoadError, match="rationale"):
+        load_proposal(_speed_copy(tmp_path, proposed_spans=spans))

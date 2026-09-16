@@ -54,6 +54,7 @@ from afterworlds.ingestion.mechanical.models import (
     ExpectedRule,
     ReviewState,
     ReviewUnit,
+    ReviewUnitAcceptance,
     ReviewUnitKind,
     SemanticDiffEntry,
     SemanticDisposition,
@@ -138,6 +139,7 @@ from afterworlds.persistence.orm.mechanical import (
     MechanicalReferenceORM,
     MechanicalRelationshipORM,
     MechanicalReviewExpectationORM,
+    MechanicalReviewUnitAcceptanceORM,
     MechanicalReviewUnitORM,
     MechanicalSpanORM,
 )
@@ -257,6 +259,17 @@ def persist_draft(
                 batch_id=acceptance.batch_id,
                 reviewer=acceptance.reviewer,
                 accepted_at=acceptance.accepted_at,
+            )
+        )
+
+    for unit_acceptance in ledger.review_unit_acceptances:
+        session.add(
+            MechanicalReviewUnitAcceptanceORM(
+                projection_uuid=uuid_,
+                unit_id=unit_acceptance.unit_id,
+                batch_id=unit_acceptance.batch_id,
+                reviewer=unit_acceptance.reviewer,
+                accepted_at=unit_acceptance.accepted_at,
             )
         )
 
@@ -923,6 +936,19 @@ def reconstruct_candidate(
             spans=spans,
             batches=batches,
             acceptances=acceptances,
+            # Ordered by unit id, because the accepted inventory is a set of
+            # decisions rather than a sequence — the same rule the units
+            # themselves reconstruct under, and the reason two databases that
+            # stored one acceptance in a different row order digest alike.
+            review_unit_acceptances=tuple(
+                ReviewUnitAcceptance(
+                    unit_id=a.unit_id,
+                    batch_id=a.batch_id,
+                    reviewer=a.reviewer,
+                    accepted_at=a.accepted_at,
+                )
+                for a in sorted(raw.review_unit_acceptances, key=lambda a: a.unit_id)
+            ),
         ),
         representation=representation,
         # From the stored declaration, never from the module constants. A
@@ -1206,6 +1232,7 @@ def delete_projection(session: Session, projection_uuid: str) -> None:
         MechanicalProvenanceORM,
         MechanicalReviewUnitORM,
         MechanicalReviewExpectationORM,
+        MechanicalReviewUnitAcceptanceORM,
     ):
         session.execute(delete(model).where(model.projection_uuid == projection_uuid))
     session.execute(
