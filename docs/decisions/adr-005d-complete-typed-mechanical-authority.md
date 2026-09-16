@@ -15,9 +15,12 @@ operation resolved last, rather than remembered as a sticky promotion, correctin
 the contrary  
 **Amends/clarifies:** ADR-005c, ADR-0007, ADR-015, ADR-018
 
-**Pending proposal (2026-09-16):** the [practical reliability amendment](adr-005d-practical-reliability-proposal.md)
-and its companion issue draft propose proportionate source review, use-driven field selection, and
-shared batch tooling. They are not accepted and do not yet change the decisions below.
+**Amended by Owner Decision 2026-09-16:** the [accepted practical reliability amendment](adr-005d-practical-reliability-proposal.md)
+and coordinated CRD Issue 5d text govern proportionate source review, use-driven field selection,
+governing prose, and shared batch tooling. The amendment supersedes the corresponding requirements
+below, including mandatory leaf partitions, reducibility-driven structuring, and rejection of prose
+solely because it is reducible. Historical schema contracts and accepted batches retain their meanings.
+Implementation is pending; policy adoption is not corpus acceptance, publication, activation, or merge.
 
 ---
 
