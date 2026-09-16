@@ -102,6 +102,14 @@ class GameMasterComponent:
     component_key: str
     handling: ComponentHandling
     irreducibility_reason_code: str | None
+    #: Why this passage is retained although applying its meaning does *not*
+    #: require judgement. Schema 12, and the reason this view states the two
+    #: separately: before schema 12 a ``PROSE_BOUND`` component always named an
+    #: irreducibility reason, so ``None`` here meant "structured, read the
+    #: facts". It no longer does. A GameMaster shown retained prose with both
+    #: fields empty would have to guess whether the passage is theirs to
+    #: adjudicate or is simply the exact wording of a rule that applies itself.
+    prose_retention_reason_code: str | None
     governing_prose: tuple[GoverningProseEntry, ...]
     #: Typed facts, supplied as *context* for judgement. A GameMaster reading
     #: this view is adjudicating, not executing; the facts are here so the
@@ -197,6 +205,7 @@ def _gamemaster_component(
         component_key=component.semantic_key,
         handling=component.handling,
         irreducibility_reason_code=component.irreducibility_reason_code,
+        prose_retention_reason_code=component.prose_retention_reason_code,
         governing_prose=tuple(
             _resolve_prose(entry, prose) for entry in component.governing_prose
         ),

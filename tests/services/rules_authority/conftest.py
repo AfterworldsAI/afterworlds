@@ -159,6 +159,13 @@ CHECK_LEAF = "leaf-check"
 #: claim them.
 MIXED_FACT_LEAF = "leaf-mixed-fact"
 MIXED_PROSE_LEAF = "leaf-mixed-prose"
+#: The retained-prose component's own leaf. Schema 12 lets prose be retained
+#: for a *reducibility* reason, and before this component the fixture had no
+#: way to express one: every prose-bound component it carried named an
+#: irreducibility reason, so ``irreducibility_reason_code is None`` meant
+#: "structured" throughout the suite. That is exactly the reading schema 12
+#: invalidates, so the runtime fixture needs a component where it is false.
+RETAINED_LEAF = "leaf-retained"
 LEAF_LENGTHS = {
     SPELL_LEAF: 40,
     PROSE_LEAF: 30,
@@ -166,6 +173,7 @@ LEAF_LENGTHS = {
     CHECK_LEAF: 25,
     MIXED_FACT_LEAF: 22,
     MIXED_PROSE_LEAF: 28,
+    RETAINED_LEAF: 26,
 }
 
 WISH_CHUNK = "chunk-wish-0001"
@@ -174,6 +182,7 @@ SPELL_CHUNK = "chunk-wish-spell"
 CHECK_CHUNK = "chunk-servant-check"
 MIXED_FACT_CHUNK = "chunk-servant-mixed-fact"
 MIXED_PROSE_CHUNK = "chunk-servant-mixed-prose"
+RETAINED_CHUNK = "chunk-wish-retained"
 
 SPELL_SPAN = derive_span_id(SPELL_LEAF, 0, 40)
 PROSE_SPAN = derive_span_id(PROSE_LEAF, 0, 30)
@@ -181,6 +190,7 @@ SUPPORT_SPAN = derive_span_id(SUPPORT_LEAF, 0, 20)
 CHECK_SPAN = derive_span_id(CHECK_LEAF, 0, 25)
 MIXED_FACT_SPAN = derive_span_id(MIXED_FACT_LEAF, 0, 22)
 MIXED_PROSE_SPAN = derive_span_id(MIXED_PROSE_LEAF, 0, 28)
+RETAINED_SPAN = derive_span_id(RETAINED_LEAF, 0, 26)
 
 SPELL_KEY = "spell:wish"
 CREATURE_KEY = "creature:wish-scoped-servant"
@@ -188,6 +198,9 @@ DESCRIPTOR_KEY = "descriptor"
 OPEN_ENDED_KEY = "open-ended-clause"
 CHECK_KEY = "servant-check"
 MIXED_KEY = "servant-mixed-clause"
+RETAINED_KEY = "reducible-clause"
+#: The only code ``5d-semantic-policy-2``'s retention catalog admits.
+RETENTION_REASON = "no_identified_structured_use"
 
 DESCRIPTOR_FACT = SpellDescriptorFact(
     level=9, school=SpellSchool.CONJURATION, ritual=False, concentration=False
@@ -240,6 +253,7 @@ _EDGE_PAIRS = (
     (CHECK_CHUNK, CHECK_LEAF),
     (MIXED_FACT_CHUNK, MIXED_FACT_LEAF),
     (MIXED_PROSE_CHUNK, MIXED_PROSE_LEAF),
+    (RETAINED_CHUNK, RETAINED_LEAF),
 )
 
 
@@ -442,6 +456,30 @@ def _mixed_clause_binding(prefix: str = "") -> ProseBindingDraft:
     )
 
 
+def _retained_clause_binding(prefix: str = "") -> ProseBindingDraft:
+    """Prose retained for a *reducibility* reason, not an irreducibility one.
+
+    Schema 12's distinction, present in the fixture so the runtime views have
+    something to distinguish. Applying this passage needs no judgement — it is
+    here because no identified code-owned use in play, explanation or
+    correction wants a structured field for it, which is what the one code
+    ``5d-semantic-policy-2`` admits says. It therefore states *no*
+    irreducibility reason: schema 12 requires exactly one of the two, and
+    relabelling reducible meaning with an irreducibility code is what the
+    amendment forbids in those words.
+    """
+    return ProseBindingDraft(
+        component_key=RETAINED_KEY,
+        record_key=SPELL_KEY,
+        chunk_id=f"{prefix}{RETAINED_CHUNK}",
+        span_id=RETAINED_SPAN,
+        chunk_char_start=0,
+        chunk_char_end=26,
+        irreducibility_reason_code=None,
+        prose_retention_reason_code=RETENTION_REASON,
+    )
+
+
 def _classification(package_uuid: str, release_version: str) -> ClassificationLedger:
     spans = (
         SemanticSpan(
@@ -489,6 +527,14 @@ def _classification(package_uuid: str, release_version: str) -> ClassificationLe
             leaf_id=MIXED_PROSE_LEAF,
             char_start=0,
             char_end=28,
+            disposition=SemanticDisposition.SUBSTANTIVE,
+            review_state=ReviewState.ACCEPTED,
+        ),
+        SemanticSpan(
+            span_id=RETAINED_SPAN,
+            leaf_id=RETAINED_LEAF,
+            char_start=0,
+            char_end=26,
             disposition=SemanticDisposition.SUBSTANTIVE,
             review_state=ReviewState.ACCEPTED,
         ),
@@ -543,6 +589,12 @@ def _representation(prefix: str = "") -> RepresentationDraft:
                 irreducibility_reason_code="open_ended_effect",
             ),
             ComponentDraft(
+                record_key=SPELL_KEY,
+                semantic_key=RETAINED_KEY,
+                handling=ComponentHandling.PROSE_BOUND,
+                prose_retention_reason_code=RETENTION_REASON,
+            ),
+            ComponentDraft(
                 record_key=CREATURE_KEY,
                 semantic_key=CHECK_KEY,
                 handling=ComponentHandling.STRUCTURED,
@@ -556,7 +608,11 @@ def _representation(prefix: str = "") -> RepresentationDraft:
                 facts=(CHECK_FACT,),
             ),
         ),
-        prose_bindings=(_wish_binding(prefix), _mixed_clause_binding(prefix)),
+        prose_bindings=(
+            _wish_binding(prefix),
+            _mixed_clause_binding(prefix),
+            _retained_clause_binding(prefix),
+        ),
         relationships=(),
         references=(),
         provenance=(
@@ -588,6 +644,12 @@ def _representation(prefix: str = "") -> RepresentationDraft:
                 ProvenanceTargetKind.PROSE_BINDING,
                 prose_binding_target_key(_mixed_clause_binding(prefix)),
                 MIXED_PROSE_SPAN,
+                ProvenanceRole.PRIMARY,
+            ),
+            ProvenanceClaim(
+                ProvenanceTargetKind.PROSE_BINDING,
+                prose_binding_target_key(_retained_clause_binding(prefix)),
+                RETAINED_SPAN,
                 ProvenanceRole.PRIMARY,
             ),
             ProvenanceClaim(

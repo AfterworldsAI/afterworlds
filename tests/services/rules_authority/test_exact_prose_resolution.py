@@ -63,6 +63,7 @@ def _authority(*prose: GoverningProseEntry) -> EffectiveAuthority:
                         semantic_key="open-ended-clause",
                         handling=ComponentHandling.PROSE_BOUND,
                         irreducibility_reason_code="open_ended_effect",
+                        prose_retention_reason_code=None,
                         facts=(),
                         governing_prose=prose,
                         span_ids=(SPAN,),
