@@ -425,3 +425,110 @@ Targeted, not a full suite: the full local run belongs to `0cb696c` (5980
 passed, 10 skipped, 94.15% coverage) and is not re-attributed to this head. CI
 on the final pushed head is the full-suite evidence for this correction.
 
+---
+
+## Finding 5 — a proposal could state one id twice and have one definition silently discarded
+
+Raised as comment `4032773536` after #170 was marked ready; Codex returned the
+PR to draft for this correction.
+
+**The defect.** `accept_proposal` built `proposed_units_by_id = {u.unit_id: u
+for u in proposal.proposed_review_units}` before anything looked for repeats.
+Two units sharing one `unit_id` and stating different kinds were reduced to
+whichever came last. Resolving that id then accepted one definition while the
+`proposal_identity` the batch retains as evidence — derived from the ordered
+list — names both, and the discarded definition never reached the
+accepted-candidate duplicate validator, which only ever sees what survived the
+dictionary.
+
+This is not a hash collision. Reversing the two definitions derives a different
+`proposal_identity`, so the identity distinguishes them perfectly; what failed
+was an invalid duplicate identifier getting past the uniqueness contract at the
+acceptance boundary.
+
+**The sibling.** `proposed_by_id = {p.span.span_id: p.span for p in
+proposal.proposed_spans}` loses an entry the same way. A four-entry proposal
+containing one repeated span id accepts as three spans whenever the resolved
+scope is unique, and the batch retains an identity naming four.
+
+**The correction.** One `_repeated` helper — a `Counter` over ids — and two
+refusals placed immediately before either dictionary is built, so neither
+conversion can discard an entry that was never refused:
+
+* `this proposal proposes spans more than once: [...]`
+* `this proposal proposes review units more than once: [...]`
+
+Identical repeats are refused on the same terms as conflicting ones: resolving
+the id still names an entry no reader can point at, and a proposal stating one
+unit twice has said nothing the second statement adds. The check counts ids
+only, so rejecting an invalid identifier never depends on what the duplicate
+definition contains, nor on whether this acceptance names it — which is why no
+unaccepted unit is asked for valid semantic coverage in order to be refused for
+a duplicate id. The two pre-existing `.count()` duplicate checks over
+`resolved_scope` and `resolved_review_units` now call the same helper;
+behaviour and messages are unchanged.
+
+Ordered resolved scope, legitimate representation merging and shared authority,
+the declared proposal formats and the seven historical proposal identities are
+all untouched: nothing here changes what a valid proposal derives.
+
+**Bounded sibling dispositions.** Codex checked the neighbouring selection paths
+before handing this off; one more was found while placing the fix.
+
+| Path | Disposition |
+| --- | --- |
+| proposed review units, duplicate `unit_id` | **patched** |
+| proposed spans, duplicate `span_id` | **patched** (verified sibling) |
+| repeated resolved span / unit ids | already rejected |
+| re-accepting an id a prior batch accepted | already rejected |
+| accepted-inventory and raw-state duplicates | already rejected |
+| `_merged_collection` keyed union across representation collections | **out of scope** — intentional contract, rejects conflicting contents, unchanged |
+| `proposal_payload`'s `by_span` origin/rationale lookup | **already safe** — the same last-wins shape, but acceptance now refuses before any identity is recorded as evidence, and an unaccepted proposal's identity attests to nothing |
+
+All seven retained production proposals were loaded and checked: zero duplicate
+proposed span ids, zero duplicate unit ids. No Owner Decision, no new
+framework, no policy expansion.
+
+**Proof.** Four new tests at the public `accept_proposal` boundary in
+`test_accepted_inputs.py`:
+`test_a_proposal_stating_one_unit_id_twice_is_refused` (conflicting kinds, and
+this action resolves *no* unit, so the refusal cannot be coming from coverage),
+`test_a_repeated_unit_definition_is_refused_even_when_it_is_identical`,
+`test_a_proposal_stating_one_span_id_twice_is_refused` (asserts the four-entry /
+three-unique-id shape explicitly) and
+`test_a_repeated_span_definition_is_refused_even_when_it_is_identical`. The span
+tests resolve the *deduplicated* ids on purpose: passing the raw list would trip
+the pre-existing "resolved scope repeats spans" refusal and the tests would pass
+for the wrong reason.
+
+Ordinary valid proposals are the existing controls rather than a new one:
+`test_retained_proposals.py` loads all seven through the production loader, and
+`test_cover_1_acceptance_reproduction.py`,
+`test_speed_1_acceptance_reproduction.py` and
+`test_areas_of_effect_1_acceptance_reproduction.py` re-run real
+`accept_proposal` calls end to end. All pass on this head.
+
+Regression check, on the same terms as Finding 4: the new tests were run against
+`git show HEAD:...acceptance.py` — **4 failed, 51 passed**, the failures being
+exactly the four new tests, each "DID NOT RAISE". The file was restored and
+`git diff --stat` confirmed the change intact. No stash was used.
+
+**Nothing recorded moved.** No stored shape, migration, accepted artifact,
+proposal identity, scope order, binding or digest is touched.
+
+---
+
+## Gate results — head `171ac6c` (duplicate proposed id refusal)
+
+| Gate | Scope | Result |
+| --- | --- | --- |
+| `black --check src/ tests/` | gate paths | clean, 477 files |
+| `ruff check src/ tests/` | gate paths | **All checks passed** |
+| `mypy src/` | 225 files | **Success** |
+| `pytest tests/ingestion/mechanical` | 2974 tests | **2974 passed** (177s) |
+| detect-secrets (pre-commit hook form) | staged files | clean; baseline unchanged |
+
+Focused, not a full suite. Prior evidence keeps its own heads: the full local
+run (5980 passed, 10 skipped, 94.15%) is `0cb696c`'s, and CI run `35174458362`
+(5985 passed, 10 skipped, 94.15%, audit clean) is `b6eddfe`'s. CI on this
+head is the full-suite evidence for this correction.
