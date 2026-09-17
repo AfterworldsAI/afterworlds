@@ -69,8 +69,8 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_9_HASH,
     SCHEMA_10_HASH,
     SCHEMA_10_VERSION,
-    SCHEMA_12_HASH,
-    SCHEMA_12_VERSION,
+    SCHEMA_13_HASH,
+    SCHEMA_13_VERSION,
     UnknownSchemaLiftError,
     lift_accepted_inputs,
     lift_path,
@@ -235,7 +235,7 @@ def test_the_registered_crossings_separate_the_prior_from_this_build() -> None:
     current = (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
     prior = (inputs.oracle.schema_version, inputs.oracle.schema_hash)
     assert prior == (SCHEMA_10_VERSION, SCHEMA_10_HASH)
-    assert current == (SCHEMA_12_VERSION, SCHEMA_12_HASH)
+    assert current == (SCHEMA_13_VERSION, SCHEMA_13_HASH)
     assert prior != current
 
     findings = validate_schema_binding(candidate_from_accepted_inputs(inputs))
@@ -245,6 +245,7 @@ def test_the_registered_crossings_separate_the_prior_from_this_build() -> None:
     expected = [
         "5d-lift-schema-10-to-11",
         "5d-lift-schema-11-to-12",
+        "5d-lift-schema-12-to-13",
     ]
     assert [step.lift_id for step in lift_path(prior, current)] == expected
     lifted, records = lift_accepted_inputs(inputs, current)

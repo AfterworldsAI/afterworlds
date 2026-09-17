@@ -1281,16 +1281,16 @@ def test_an_earlier_contract_refuses_the_jump_member_it_never_registered(
 
 
 def test_an_unminted_version_is_refused() -> None:
-    """Schema 13 does not exist, and the payload seam says so rather than guessing.
+    """Schema 14 does not exist, and the payload seam says so rather than guessing.
 
     Version legality is not ``declared_meaning_violations``'s question — it
     answers what a *recognised* schema can state. The emitter is where an
-    unrecognised version is refused, and it stays refused now that ``…-11`` and
-    ``…-12`` are both real: the probe moves to the next unminted string rather
-    than the assertion being retired.
+    unrecognised version is refused, and it stays refused now that ``…-11``,
+    ``…-12`` and ``…-13`` are all real: the probe moves to the next unminted
+    string rather than the assertion being retired.
     """
     with pytest.raises(UnsupportedSchemaVersionError):
-        representation_payload(_draft(), schema_version="5d-representation-schema-13")
+        representation_payload(_draft(), schema_version="5d-representation-schema-14")
     assert representation_payload(
         _draft(), schema_version=REPRESENTATION_SCHEMA_VERSION
     ) == representation_payload(_draft())

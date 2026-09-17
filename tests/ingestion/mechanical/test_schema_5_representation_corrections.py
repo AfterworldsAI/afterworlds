@@ -691,11 +691,13 @@ def test_schema_5_stays_pinned_as_the_source_of_a_registered_succession() -> Non
         SCHEMA_11_VERSION,
         SCHEMA_12_HASH,
         SCHEMA_12_VERSION,
+        SCHEMA_13_HASH,
+        SCHEMA_13_VERSION,
         SCHEMA_LIFTS,
     )
 
-    assert REPRESENTATION_SCHEMA_VERSION == SCHEMA_12_VERSION
-    assert representation_schema_hash() == SCHEMA_12_HASH
+    assert REPRESENTATION_SCHEMA_VERSION == SCHEMA_13_VERSION
+    assert representation_schema_hash() == SCHEMA_13_HASH
     lift = SCHEMA_LIFTS[(SCHEMA_5_VERSION, SCHEMA_5_HASH)]
     assert (lift.to_version, lift.to_hash) == (SCHEMA_6_VERSION, SCHEMA_6_HASH)
     # And the steps after it, so the chain from schema 5 is asserted whole.

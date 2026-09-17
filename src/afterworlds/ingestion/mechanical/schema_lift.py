@@ -101,6 +101,8 @@ __all__ = [
     "SCHEMA_11_VERSION",
     "SCHEMA_12_HASH",
     "SCHEMA_12_VERSION",
+    "SCHEMA_13_HASH",
+    "SCHEMA_13_VERSION",
     "SchemaLiftRecord",
     "UnknownSchemaLiftError",
     "lift_for",
@@ -136,6 +138,9 @@ SCHEMA_11_VERSION = "5d-representation-schema-11"
 SCHEMA_11_HASH = "605e8b4cfdaf0cb6d4f0b65fcf0d23f3e45c4734404c9568f41dc4261eefd037"  # noqa: E501  # pragma: allowlist secret
 SCHEMA_12_VERSION = "5d-representation-schema-12"
 SCHEMA_12_HASH = "a706d9df46d2232293d40fa5bfd7c2d3e0480cd26041461b21c8eeb5027af0e8"  # noqa: E501  # pragma: allowlist secret
+SCHEMA_13_VERSION = "5d-representation-schema-13"
+#: Pinned literally, for the same reason every predecessor is.
+SCHEMA_13_HASH = "39710a37985977105659000ff17af2913b63c98a141dd4db90ee489817cf55bf"  # noqa: E501  # pragma: allowlist secret
 
 
 class SchemaLiftError(ValueError):
@@ -498,6 +503,53 @@ SCHEMA_LIFTS: dict[tuple[str, str], SchemaLift] = {
             "declaring 5d-semantic-policy-1 may carry no retention reason at "
             "all. A schema-11 artifact is the only shape this succession "
             "carries, and it carries every one of them."
+        ),
+    ),
+    (SCHEMA_12_VERSION, SCHEMA_12_HASH): SchemaLift(
+        lift_id="5d-lift-schema-12-to-13",
+        from_version=SCHEMA_12_VERSION,
+        from_hash=SCHEMA_12_HASH,
+        to_version=SCHEMA_13_VERSION,
+        to_hash=SCHEMA_13_HASH,
+        rationale=(
+            "Schema 13 admits one fact family, proficiency_bonus_band, for "
+            "batch proficiency-1, and nothing else. It mints no vocabulary, "
+            "no vocabulary member, no ownership form, no component key, no "
+            "field on any family an earlier schema already had, and no "
+            "required or nullable field on one. Its whole surface is the new "
+            "family's row in _SCHEMA_13_FAMILIES and the introduction that "
+            "row renders. "
+            "The family exists because the Proficiency Bonus table prints "
+            "BANDS and no accepted family can hold one. The table's eight "
+            "rows are indexed by a single printed column, 'Level or CR', and "
+            "the three families that come closest each state something else. "
+            "ProgressionEntryFact is indexed by one integer level and names "
+            "what is granted with a semantic key its own contract says is "
+            "never a place to smuggle a second dimension; expanding 5-8 into "
+            "four of those would state four levels the table never prints and "
+            "would drop the Challenge Rating reading entirely. "
+            "SpellSlotProgressionFact is two exact levels, not a range. "
+            "ScalingFact states an increment at a threshold, while each "
+            "printed row is the total bonus for its band, so a faithful "
+            "reuse would have to author increments the source does not print "
+            "and an unbounded final band would grant +9 above CR 30. "
+            "minimum is nullable and carries no default because the first row "
+            "is printed 'Up to 4' and states no lower bound; writing 1 there "
+            "would author a bound the source does not print and would exclude "
+            "CR 0, 1/8, 1/4 and 1/2 from the only band that covers them. "
+            "Nothing accepted moves. No component of the seven accepted "
+            "batches states a fact of this family -- it did not exist when "
+            "they were reviewed -- so every accepted fact key, component key, "
+            "prose-binding payload and provenance coordinate has the same "
+            "canonical form under both contracts, which verify_lift proves "
+            "element by element rather than asserting. A schema-12 "
+            "declaration carrying a proficiency_bonus_band fact is refused by "
+            "the introduction manifest, never flattened, so the addition "
+            "cannot become a way to forge an identity an earlier reviewer "
+            "signed. "
+            "The policy contract does not move with it: 5d-semantic-policy-2 "
+            "is what proficiency-1 declares, and it is the same policy "
+            "schema 12 arrived with."
         ),
     ),
 }

@@ -137,6 +137,7 @@ from afterworlds.ingestion.mechanical.representation import (
     MovementTransportFact,
     MovementWindow,
     ParticipantRole,
+    ProficiencyBonusBandFact,
     ProgressionEntryFact,
     QuantityMultiplierFact,
     RangeKind,
@@ -251,6 +252,11 @@ EXEMPLARS: dict[FactFamily, Any] = {
         duration=SpellDuration(kind=DurationKind.INSTANTANEOUS),
     ),
     # A class table's "Class Features" column
+    # The Proficiency Bonus table's opening row: 'Up to 4' states no lower
+    # bound, so the band is open below rather than starting at 1.
+    FactFamily.PROFICIENCY_BONUS_BAND: ProficiencyBonusBandFact(
+        bonus=2, maximum=4, minimum=None
+    ),
     FactFamily.PROGRESSION_ENTRY: ProgressionEntryFact(
         level=5, entitlement_key="feature:extra-attack"
     ),

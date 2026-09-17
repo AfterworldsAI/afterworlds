@@ -232,6 +232,7 @@ def test_the_registered_crossings_separate_the_prior_from_this_build() -> None:
         "5d-lift-schema-9-to-10",
         "5d-lift-schema-10-to-11",
         "5d-lift-schema-11-to-12",
+        "5d-lift-schema-12-to-13",
     ]
     assert [step.lift_id for step in lift_path(prior, current)] == expected
     lifted, records = lift_accepted_inputs(inputs, current)

@@ -152,6 +152,7 @@ __all__ = [
     "EquipmentDescriptorFact",
     "HealingFact",
     "MechanicalFact",
+    "ProficiencyBonusBandFact",
     "ProgressionEntryFact",
     "ResourceRecoveryFact",
     "ScalingFact",
@@ -2036,6 +2037,7 @@ class FactFamily(StrEnum):
     MOVEMENT_COST = "movement_cost"
     MOVEMENT_PERMISSION = "movement_permission"
     MOVEMENT_TRANSPORT = "movement_transport"
+    PROFICIENCY_BONUS_BAND = "proficiency_bonus_band"
     PROGRESSION_ENTRY = "progression_entry"
     QUANTITY_MULTIPLIER = "quantity_multiplier"
     RESOURCE_RECOVERY = "resource_recovery"
@@ -2674,6 +2676,37 @@ class SpellDescriptorFact:
     spell_range: SpellRange | None = None
     components: SpellComponents | None = None
     duration: SpellDuration | None = None
+
+
+@dataclass(frozen=True)
+class ProficiencyBonusBandFact:
+    """One printed row of the Proficiency Bonus table.
+
+    **The index is the source's own "Level or CR" column**, which reads two
+    ways in one column: a character's level, or a monster's Challenge Rating.
+    That is not an ambiguity to resolve here. The table prints one progression
+    and a creature brings whichever index it has, so this family states the band
+    and the bonus, and nothing infers a second axis from the numbers.
+
+    ``minimum`` is nullable because the first row is printed ``Up to 4``, which
+    states no lower bound at all. Writing 1 there would author a bound the
+    source does not print, and would silently exclude every Challenge Rating
+    below 1 -- CR 0, 1/8, 1/4 and 1/2 are all real -- from the only band that
+    covers them. It carries no default, so an open band is a stated ``None``
+    rather than a forgotten argument.
+
+    A band, never a per-level row. Expanding ``5-8`` into four
+    :class:`ProgressionEntryFact` entries would state four levels the table
+    never prints, would drop the Challenge Rating reading entirely, and would
+    need ``entitlement_key`` to carry the bonus -- which that field's own
+    contract forbids in those words.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.PROFICIENCY_BONUS_BAND
+
+    bonus: int
+    maximum: int
+    minimum: int | None
 
 
 @dataclass(frozen=True)
@@ -4259,6 +4292,7 @@ MechanicalFact = (
     | DamageResponseFact
     | EquipmentDescriptorFact
     | HealingFact
+    | ProficiencyBonusBandFact
     | ProgressionEntryFact
     | ResourceRecoveryFact
     | ScalingFact
@@ -4322,6 +4356,7 @@ _FACT_TYPES: dict[FactFamily, type] = {
     FactFamily.DAMAGE_RESPONSE: DamageResponseFact,
     FactFamily.EQUIPMENT_DESCRIPTOR: EquipmentDescriptorFact,
     FactFamily.HEALING: HealingFact,
+    FactFamily.PROFICIENCY_BONUS_BAND: ProficiencyBonusBandFact,
     FactFamily.PROGRESSION_ENTRY: ProgressionEntryFact,
     FactFamily.RESOURCE_RECOVERY: ResourceRecoveryFact,
     FactFamily.SCALING: ScalingFact,
@@ -4839,6 +4874,31 @@ def _check_spell_descriptor(fact: SpellDescriptorFact) -> list[str]:
             f"concentration {fact.concentration} disagrees with duration's "
             f"{fact.duration.concentration}"
         )
+    return findings
+
+
+def _check_proficiency_bonus_band(fact: ProficiencyBonusBandFact) -> list[str]:
+    findings = [
+        *_int_field(fact.bonus, "bonus"),
+        *_int_field(fact.maximum, "maximum"),
+        *_optional_int_field(fact.minimum, "minimum"),
+    ]
+    if findings:
+        return findings
+    if fact.bonus < 1:
+        findings.append(f"proficiency bonus {fact.bonus} adds nothing")
+    if fact.maximum < 1:
+        findings.append(f"band upper bound {fact.maximum} covers no level or CR")
+    if fact.minimum is not None:
+        # A band open below states no minimum. It does not state one nothing can
+        # reach, which would read as a bound the source printed.
+        if fact.minimum < 1:
+            findings.append(
+                f"band lower bound {fact.minimum} is below the first level or "
+                "CR; a band open below states no minimum instead"
+            )
+        elif fact.minimum > fact.maximum:
+            findings.append(f"band {fact.minimum}-{fact.maximum} runs backwards")
     return findings
 
 
@@ -6332,6 +6392,7 @@ _FACT_INVARIANTS: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.DAMAGE_RESPONSE: _check_damage_response,
     FactFamily.EQUIPMENT_DESCRIPTOR: _check_equipment_descriptor,
     FactFamily.HEALING: _check_healing,
+    FactFamily.PROFICIENCY_BONUS_BAND: _check_proficiency_bonus_band,
     FactFamily.PROGRESSION_ENTRY: _check_progression_entry,
     FactFamily.RESOURCE_RECOVERY: _check_resource_recovery,
     FactFamily.SCALING: _check_scaling,
@@ -7481,6 +7542,24 @@ def _build_weapon_property(p: Mapping[str, Any]) -> WeaponPropertyFact:
     )
 
 
+def _build_proficiency_bonus_band(
+    p: Mapping[str, Any],
+) -> ProficiencyBonusBandFact:
+    _reject(
+        FactFamily.PROFICIENCY_BONUS_BAND,
+        [
+            *_int_field(p["bonus"], "bonus"),
+            *_int_field(p["maximum"], "maximum"),
+            *_optional_int_field(p["minimum"], "minimum"),
+        ],
+    )
+    return ProficiencyBonusBandFact(
+        bonus=p["bonus"],
+        maximum=p["maximum"],
+        minimum=p["minimum"],
+    )
+
+
 def _build_progression_entry(p: Mapping[str, Any]) -> ProgressionEntryFact:
     _reject(
         FactFamily.PROGRESSION_ENTRY,
@@ -7969,6 +8048,7 @@ _FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] 
     FactFamily.DAMAGE_RESPONSE: _build_damage_response,
     FactFamily.EQUIPMENT_DESCRIPTOR: _build_equipment_descriptor,
     FactFamily.HEALING: _build_healing,
+    FactFamily.PROFICIENCY_BONUS_BAND: _build_proficiency_bonus_band,
     FactFamily.PROGRESSION_ENTRY: _build_progression_entry,
     FactFamily.RESOURCE_RECOVERY: _build_resource_recovery,
     FactFamily.SCALING: _build_scaling,
@@ -8153,7 +8233,23 @@ assert (
 #: under 12 and no accepted component key, provenance coordinate or
 #: projection identity moves. It adds no fact family, no vocabulary member,
 #: no ownership form and no required field.
-REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-12"
+#:
+#: Version ``13`` admits one fact family, :class:`ProficiencyBonusBandFact`,
+#: for batch ``proficiency-1``. It mints no vocabulary -- every field is an
+#: integer or a nullable integer -- adds no field to an accepted family, makes
+#: no accepted field required or nullable, adds no component key and changes no
+#: ownership form, so every accepted fact key and provenance coordinate has the
+#: same canonical form under 12 and 13.
+#:
+#: The family exists because no accepted one can hold a *band*. The Proficiency
+#: Bonus table prints eight rows indexed by a single ``Level or CR`` column, and
+#: the three families that come closest each state something else:
+#: :class:`ProgressionEntryFact` is indexed by one integer level and carries
+#: what is granted as a semantic key; :class:`SpellSlotProgressionFact` is two
+#: exact levels; and :class:`ScalingFact` states an *increment* at a threshold,
+#: while the table prints the total bonus for each band. Reusing any of them
+#: would mean authoring rows the source does not print.
+REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-13"
 
 
 class UnsupportedRepresentationShapeError(TypeError):
@@ -8682,6 +8778,13 @@ def _introductions() -> tuple[_Introduction, ...]:
     # key on ``ComponentDraft`` and ``ProseBindingDraft``, registered in
     # ``_POST_SCHEMA_3_FIELDS`` rather than here, exactly as schema 11's
     # ``MovementAllowanceFact.window`` is.
+    # Schema 13 adds one family and nothing else: no vocabulary whole, no
+    # member on a vocabulary an earlier schema had, no ownership form, no
+    # component key, and no field on any family an earlier schema had.
+    rows.extend(
+        _Introduction("fact_family", "FactFamily", family.value, SCHEMA_13)
+        for family in _SCHEMA_13_FAMILIES
+    )
     rows.extend(
         _Introduction("nullable_field", _OPTIONAL_SINCE_WIRE_NAMES[owner], key, arrived)
         for owner, keys in _OPTIONAL_SINCE.items()
@@ -9273,6 +9376,15 @@ SCHEMA_11 = "5d-representation-schema-11"
 #: :data:`_OPTIONAL_SINCE`.
 SCHEMA_12 = "5d-representation-schema-12"
 
+SCHEMA_13 = "5d-representation-schema-13"
+
+#: The one family schema 13 admitted, for batch ``proficiency-1``. Named by
+#: member for the same reason schema 4's, 6's, 8's, 9's, 10's and 11's are.
+#: It has no ``_SCHEMA_13_VOCABULARY_MEMBERS`` companion because the family
+#: mints no vocabulary: its three fields are two integers and a nullable
+#: integer, so there is no member index a schema-12 declaration could trip on.
+_SCHEMA_13_FAMILIES: tuple[FactFamily, ...] = (FactFamily.PROFICIENCY_BONUS_BAND,)
+
 #: The seven families schema 11 admitted, for batch ``speed-1``. One per
 #: distinct rule the Rules Glossary Speed entry and Playing the Game > Combat >
 #: Movement and Position print between them, named by member for the same
@@ -9348,6 +9460,7 @@ _FAMILY_INTRODUCTIONS: tuple[tuple[tuple[FactFamily, ...], str], ...] = (
     (_SCHEMA_9_FAMILIES, SCHEMA_9),
     (_SCHEMA_10_FAMILIES, SCHEMA_10),
     (_SCHEMA_11_FAMILIES, SCHEMA_11),
+    (_SCHEMA_13_FAMILIES, SCHEMA_13),
 )
 
 #: Fields a later schema made **required** on a family an earlier schema already
@@ -9477,6 +9590,20 @@ _VERSION_STATES: dict[str, frozenset[str]] = {
             SCHEMA_10,
             SCHEMA_11,
             SCHEMA_12,
+        }
+    ),
+    SCHEMA_13: frozenset(
+        {
+            "5d-representation-schema-4",
+            SCHEMA_5,
+            SCHEMA_6,
+            SCHEMA_7,
+            SCHEMA_8,
+            SCHEMA_9,
+            SCHEMA_10,
+            SCHEMA_11,
+            SCHEMA_12,
+            SCHEMA_13,
         }
     ),
 }

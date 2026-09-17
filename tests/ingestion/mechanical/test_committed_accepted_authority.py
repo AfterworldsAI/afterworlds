@@ -570,7 +570,10 @@ def test_accepted_authority_is_lifted_rather_than_restamped() -> None:
     lifted, records = lift_accepted_inputs(
         inputs, (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
     )
-    assert [r.lift_id for r in records] == ["5d-lift-schema-11-to-12"]
+    assert [r.lift_id for r in records] == [
+        "5d-lift-schema-11-to-12",
+        "5d-lift-schema-12-to-13",
+    ]
     assert lifted.oracle.representation is inputs.oracle.representation
     assert lifted.oracle.schema_version == REPRESENTATION_SCHEMA_VERSION
     assert lifted.oracle.schema_hash == representation_schema_hash()
@@ -670,6 +673,7 @@ def test_the_lift_carries_the_artifact_without_touching_its_content() -> None:
         "5d-lift-schema-9-to-10",
         "5d-lift-schema-10-to-11",
         "5d-lift-schema-11-to-12",
+        "5d-lift-schema-12-to-13",
     ]
     for record in records:
         assert set(record.verified_collections) == REPRESENTATION_COLLECTIONS

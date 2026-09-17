@@ -67,6 +67,8 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_11_VERSION,
     SCHEMA_12_HASH,
     SCHEMA_12_VERSION,
+    SCHEMA_13_HASH,
+    SCHEMA_13_VERSION,
     lift_accepted_inputs,
 )
 
@@ -146,7 +148,7 @@ def test_the_prior_is_not_current_authority_until_it_is_lifted() -> None:
     inputs = load_accepted_inputs(FROZEN_PRIOR)
     findings = validate_schema_binding(candidate_from_accepted_inputs(inputs))
     assert findings != ()
-    assert any(SCHEMA_12_VERSION in f for f in findings), findings
+    assert any(SCHEMA_13_VERSION in f for f in findings), findings
 
 
 # ---------------------------------------------------------------------------
@@ -160,8 +162,8 @@ def test_the_registered_chain_reaches_current_authority_one_crossing_at_a_time()
     """Every crossing since the artifact was reviewed, and the earlier ones kept.
 
     The artifact still declares schema 5, so reaching current authority is now
-    seven registered steps rather than one: schema 6, 7, 8, 9, 10, 11, then
-    12. The
+    eight registered steps rather than one: schema 6, 7, 8, 9, 10, 11, 12,
+    then 13. The
     crossings that carried ``conditions-1`` up from schema 3 are not re-run —
     they already happened, and the file records them — so what this asserts is that the
     retained evidence and the new records together name the whole path, one row
@@ -182,6 +184,7 @@ def test_the_registered_chain_reaches_current_authority_one_crossing_at_a_time()
         "5d-lift-schema-9-to-10",
         "5d-lift-schema-10-to-11",
         "5d-lift-schema-11-to-12",
+        "5d-lift-schema-12-to-13",
     ]
     for record in records:
         assert set(record.verified_collections) == REPRESENTATION_COLLECTIONS
@@ -214,12 +217,16 @@ def test_the_registered_chain_reaches_current_authority_one_crossing_at_a_time()
         SCHEMA_11_VERSION,
         SCHEMA_11_HASH,
     )
-    assert (records[-1].to_version, records[-1].to_hash) == (
+    assert (records[6].to_version, records[6].to_hash) == (
         SCHEMA_12_VERSION,
         SCHEMA_12_HASH,
     )
-    assert lifted.oracle.schema_version == SCHEMA_12_VERSION
-    assert lifted.oracle.schema_hash == SCHEMA_12_HASH
+    assert (records[-1].to_version, records[-1].to_hash) == (
+        SCHEMA_13_VERSION,
+        SCHEMA_13_HASH,
+    )
+    assert lifted.oracle.schema_version == SCHEMA_13_VERSION
+    assert lifted.oracle.schema_hash == SCHEMA_13_HASH
     assert validate_schema_binding(candidate_from_accepted_inputs(lifted)) == ()
 
 
