@@ -255,6 +255,14 @@ CRD Issue 5d (structured mechanical authority and deterministic rule binding), C
 character-state completeness for deterministic adjudication), and CRD Issue 15c (bounded d20 adapter
 production reachability).
 
+**Owner Decision 2026-09-16 — practical reliability policy adopted; implementation pending.**
+The [amended ADR-005d](../decisions/adr-005d-complete-typed-mechanical-authority.md) and amended
+#137 govern section/entry/table review, use-driven field selection, exact governing prose, shared
+batch tooling, and a regular-section pilot. Full actual-rule coverage and downstream ownership remain.
+The seven accepted batches are preserved. The landed implementation and historical schema work below
+are not evidence that the new policy is already implemented. No new corpus acceptance, publication,
+activation, or merge is implied by this decision.
+
 **In progress — typed Rules Package authority (CRD Issue 5d, #137).** CRD Issue 5d is under
 construction and is **not complete**. Landed so far: span-exact semantic accounting, the closed typed
 representation, the persistence → reconstruction → digest → gate → publication lifecycle and its exact

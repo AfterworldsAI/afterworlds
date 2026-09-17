@@ -15,6 +15,13 @@ operation resolved last, rather than remembered as a sticky promotion, correctin
 the contrary  
 **Amends/clarifies:** ADR-005c, ADR-0007, ADR-015, ADR-018
 
+**Amended by Owner Decision 2026-09-16:** “I approve adopting this policy in CRD Issue 5d and ADR-005d.”
+The adopted practical reliability policy is incorporated directly into the decisions below and the
+[coordinated CRD Issue 5d text](../architecture/issue-5d-practical-reliability-draft.md).
+Historical schema contracts and accepted batches retain their original meanings; necessary data-format
+and semantic-policy transitions remain explicit and versioned. Implementation is pending. Policy adoption
+is not corpus acceptance, publication, activation, or merge.
+
 ---
 
 ## Context
@@ -60,12 +67,14 @@ The Owner has settled completed 5d scope as the full mechanically substantive SR
 ## Central Decision
 
 Afterworlds will publish one complete typed mechanical-authority projection for an exact published 5c
-release. Every mechanically substantive source component is represented:
+release. Every actual rule, qualification, and exception is represented:
 
-- through typed declarative facts where meaning can be preserved faithfully;
-- through exact governing prose where contextual, subjective, or open-ended GameMaster judgment remains
-  necessary; or
+- through typed declarative facts required by an identified code-owned use in play, explanation, or correction;
+- through exact governing prose for remaining rule meaning, including judgment and reducible meaning
+  without an identified need for separate fields; or
 - through both.
+
+Choosing prose does not make a fixed rule discretionary or certify its execution.
 
 This projection is complete mechanical **representation**, not universal deterministic **execution**.
 The hand-authored Rules System Adapter separately declares and proves the component shapes it can execute.
@@ -79,29 +88,61 @@ The hand-authored Rules System Adapter separately declares and proves the compon
 The completed first projection accounts for the full mechanically substantive content of SRD 5.2.1.
 Implementation phasing cannot redefine a partial projection as completed 5d.
 
-Structured/prose-bound handling follows representability of source meaning. No owner-selected extraction
-percentage, prose ceiling, or adapter-coverage target determines that classification.
+Structured/prose-bound handling follows identified uses and faithful preservation of rule meaning.
+Planned v1 consumers count; reducibility alone does not require a field. No extraction percentage,
+prose ceiling, or current adapter-coverage target determines that handling.
 
-### Decision 2 — Span-exact semantic classification
+### Decision 2 — Complete coverage through coherent source review
 
-Every 5c `REPRESENTED` leaf is partitioned into accepted semantic spans classified as:
+The reviewed inventory must cover the whole bound SRD corpus at meaningful section, entry, or table
+boundaries. Each unit resolves to exact source membership; gaps in the inventory, unreviewed units,
+unresolved rules, and missing expected rules block publication. Expected entries and table rows must
+be derived from the source and checked in review, not inferred from the output being tested.
 
-- substantive mechanical authority;
-- supporting authority;
-- non-mechanical material under a closed reason;
-- or unresolved.
+Within a reviewed unit:
 
-Unreviewed/proposed and unresolved spans block publication. `PROSE_BOUND` is not a classification default;
-it is an affirmative component-handling judgment requiring a closed irreducibility reason.
+- Every actual rule, qualification, and exception has an accepted home in structured data, exact
+  governing prose, or both.
+- Repeated statements may share one rule representation with their relevant source links. Preserve
+  differences in scope or effect; similar wording alone does not establish duplication.
+- Examples and explanations may remain supporting text. If one introduces a rule or exception, that
+  meaning must be represented as authority.
+- Pure flavor, navigation, licensing, and non-rule advice may be excluded from mechanical authority
+  with a reason for the applicable group. They remain in the immutable 5c source.
 
-Supporting authority is first-class. Headings, examples, cross-references, explanatory clauses, and
-GameMaster guidance may identify, limit, explain, or exemplify mechanics even when they are not
-independent structured facts.
+Separate accepted classification rows for every character interval of every extracted leaf are not
+required. Source review cannot be replaced by an aggregate percentage or an unattended classifier.
+Existing accepted span partitions remain valid and are not rewritten.
+
+The inventory is the review scope and coverage evidence, not a second copy of the source. Exact
+subspan references remain where needed for a fact, rule, qualification, citation, or correction.
+Ordinary shared tooling may derive membership/offsets; the reviewer accepts the actual scope and
+meaning, not merely the generator's claim that it is complete.
+
+Use exact governing prose for remaining rule meaning. This includes genuine judgment and meaning
+that is technically reducible but has no identified need for a separate field. Such prose remains
+part of the bound rule authority, available through the GameMaster view with exact source references.
+It is not merely a citation or explanatory footnote.
+
+Supporting authority remains first-class: headings, examples, cross-references, and explanations can
+identify, limit, or explain mechanics without becoming independent structured facts. Prose-bound
+handling is an affirmative accepted choice, never an unreviewed default.
+
+The handling states remain structured, prose-bound, and mixed. A prose choice records its actual
+reason. Do not label reducible text as irreducible to satisfy today's catalog. A versioned policy
+change must distinguish at least judgment-required prose from prose retained without a separate
+structured use. Old reason values keep their historical meanings.
+
+This does not authorize a model to extract a number or interpret prose into a trusted mutation at
+runtime. If a planned v1 code operation needs a field, supply it before that operation relies on the
+rule. Missing required fields are explicit failures. The 15c-owned validated application path for
+GameMaster decisions remains a separate obligation, not an escape hatch supplied by prose representation.
 
 ### Decision 3 — Semantic records and many-to-many provenance
 
 Mechanical records are assembled from a committed accepted inventory. A 5c `ENTRY` is structural evidence,
-not universal semantic authority.
+not universal semantic authority. A review unit need not become a record or component. Preserve exact
+source links and existing chunk provenance without duplicating source prose.
 
 Records and components use stable semantic keys rather than positional ordinals. Facts, prose bindings,
 and relationships carry exact many-to-many provenance to 5c leaf subspans. Primary and contextual roles
@@ -117,8 +158,14 @@ record and the retained override-set version that supplied it (Decision 9).
 
 ### Decision 4 — Closed typed facts, no generated rules engine
 
-Structured authority uses a closed, versioned discriminated union of fact families. A new mechanical
-family requires a typed schema and tests or an honest prose-bound classification.
+Structured authority uses a closed, versioned discriminated union of fact families. A new structured
+field or family requires an identified code-owned use in play, explanation, or correction, with typed
+validation and appropriate tests. Name the operation and consequence of omission; planned v1 consumers
+count. Reducibility, speculative extensibility, and representation counts alone are insufficient.
+
+Ask why a passage needs classification and recording, why a detail needs a field, and what would fail
+in play, explanation, or correction if omitted. One answer may cover a repeated family or coherent
+section; these questions do not impose mandatory paperwork for every passage or field.
 
 The projection cannot contain:
 
@@ -129,6 +176,10 @@ The projection cannot contain:
 - mechanically authoritative values inferred from source prose at runtime.
 
 The projection is declarative data consumed by hand-authored code.
+
+The schema amendments below retain the contracts and evidence of previously accepted work. Their
+historical field-selection rationales do not impose reducibility-driven structuring on new work under
+the adopted 2026-09-16 policy. Accepted meaning, identities, inputs, and replay evidence remain intact.
 
 **Amended by Owner Decision 2026-08-29 (#137 round 6) — schema identity binds the intrinsic validation
 contract, not only the wire shape.** A serialized grammar is not only which fields exist and which values
@@ -944,12 +995,14 @@ before a proposal existed. They are corrected here rather than deleted, so the r
 
 ### Decision 5 — Exact completeness, not aggregate thresholds
 
-Publication is proven through exact full-corpus accounting and accepted per-record/component obligations.
-Every expected record, component, fact family, prose-bound claim, provenance edge, and reference must be
-present exactly as required.
+Publication is proven through the complete reviewed source inventory and accepted expected rules,
+exceptions, and required structured inputs, checked against reconstructed stored authority. Every
+expected record, component, fact family, governing-prose claim, provenance edge, and reference must be
+present exactly as required. Expectations are reviewed against the source independently of built output.
 
 Counts, extraction floors, prose percentages, and category ceilings may detect regressions but cannot
-prove completeness. An all-prose projection and a duplicated-fact projection must both fail.
+prove completeness. Prose-only representation fails when it omits required structured inputs or rule
+meaning, not merely because prose was selected. A duplicated-fact projection must fail.
 
 **Amended by Owner Decision 2026-08-24 — duplication is a shape, not only a fact.** "A duplicated-fact
 projection must fail" is the general rule that one source statement may not be published twice, and it
@@ -971,14 +1024,18 @@ explicitly because both were reachable and neither was caught:
 Mechanical projection identity binds:
 
 - the exact published 5c source release;
-- semantic classification;
+- accepted semantic classification or review inventory and coverage decisions;
 - record assembly and membership;
-- actual components and handling;
+- actual components, handling, and governing-prose reasons;
 - actual structured facts and relationships;
 - prose bindings and exact provenance;
 - reference resolutions;
 - representation schema and semantic policy; and
 - normalization/canonicalization rules.
+
+New accepted review inventories, coverage decisions, and handling policies are meaning-bearing inputs
+and participate in the projection identity. Incidental review metadata remains outside semantic
+identity. Existing recorded identities are not reinterpreted under the new policy.
 
 Reviewer names, timestamps, proposal origins, and comments are audit metadata and do not change semantic
 identity unless the accepted semantic content changes.
@@ -1128,6 +1185,31 @@ build candidate
 Draft/partial projections are not active authority. Published projections are immutable. Meaning-changing
 corrections *to the projection itself* mint a new projection UUID; changes to override state do not (see
 Decision 9).
+
+Retain direct integrity checking of the published 5c source, accepted input validation, reconstruction
+of stored authority, identity verification, unique reference resolution, and atomic publication.
+Published projections remain immutable; partial projections cannot activate.
+
+Acceptance evidence must identify the reviewed source scope, proposal, accepted meaning changes, and
+decision. Reuse the existing `accept_proposal` seam and production validators where possible. A common
+loader, accept/verify command, and parameterized tests may replace duplicated future batch machinery.
+Neither unattended generation nor a passing test constitutes semantic acceptance.
+
+Independence means the expected rule meaning and required cases were reviewed against the source
+independently of the built output. It does not require a second handwritten implementation of the
+acceptance procedure for every batch. Tests must exercise failures, not just compare a shared helper
+to itself. Keep retained accepted inputs, recorded scope order, and historical replay fixtures; simplifying
+future tooling does not authorize their deletion.
+
+Check concrete failures: an omitted rule or exception, a missing field required by a named operation,
+a wrong/unresolvable source reference, a changed source or stored payload under an unchanged identity,
+an unaccepted proposal, and partial publication. Existing binding and override failure tests remain.
+Add a check for a newly discovered failure when it has a concrete consequence. Do not construct a new
+recursive proof system or prescribe a second generator solely to call its output independent.
+
+Verify persistence, reconstruction, and identity of new coverage decisions and prose reasons. Changed
+proposals require acceptance of the actual changed meaning and scope; an earlier decision does not
+authorize a changed proposal.
 
 **Owner Decision 2026-08-01, as amended 2026-08-03 — what the 5d publication gate proves about the
 bound 5c release.**
@@ -1502,7 +1584,7 @@ narrowly scoped cross-reference as of this change.
 
 ### Costs
 
-- The accepted classification and mechanical declaration artifacts are substantial.
+- Complete source review and mechanical declarations require work proportionate to identified uses.
 - Full semantic review cannot be replaced by a corpus count or unattended classifier.
 - Table/stat-block reconstruction and scoped reference resolution require committed domain work.
 - Typed fact and override families require maintenance as new authorized Rules Packages add mechanics.
@@ -1568,6 +1650,27 @@ narrowly scoped cross-reference as of this change.
 ---
 
 ## Implementation Authority
+
+Keep the accepted Speed representation. Consolidate the common batch machinery first, with Speed as
+a retained reproduction case, without rewriting its accepted authority or historical fixtures.
+
+Complete and review the shared-tool and necessary versioned policy/coverage implementation before
+authoring the pilot. Then propose one coherent regular section, including its exceptions, for an
+ordinary authoring pilot.
+The engineer selects and names the actual section after inspecting the source and existing field
+families; the selection is not permission to reduce final coverage or skip awkward rows.
+
+The pilot must show what reused existing fields, what new fields were necessary and why, what remained
+governing/supporting prose, and whether review found omissions. Report actual authoring/review effort
+and batch-specific code added; no invented throughput target or overall completion percentage.
+If the pilot still requires a large custom program, diagnose that cost before starting more batches.
+
+Preserve all seven accepted batches, including Speed's one record, nine components, and seventeen facts,
+their accepted meaning, identities, recorded scope order, and historical replay evidence. Pilot selection
+does not accept new corpus content; ordinary explicit semantic acceptance is still required. This phase
+does not reopen 5c, rewrite accepted content for uniformity, implement movement simulation or 15c behavior,
+retire legacy paths, or add overall completion-percentage accounting. The four-part binding, override
+precedence and retained provenance-exact replay, exact citations, and downstream ownership remain intact.
 
 The construction-ready CRD Issue 5d specification governs required outcomes, scope, architectural
 boundaries, failure behavior, and acceptance evidence. Repository-native schema, module organization,
