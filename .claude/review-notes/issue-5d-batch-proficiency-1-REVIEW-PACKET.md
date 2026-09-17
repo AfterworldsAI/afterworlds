@@ -530,13 +530,19 @@ the ingestion tree — `tests/services/rules_authority/`'s patch-layer
 schema-hash assertion, which exists precisely to move when the representation
 does — and restamping it closed the sequence.
 
-That cost is **not** proportional to the size of the schema change, and this is
-measured rather than asserted. The schema-12 mint at `eef9a08` added seven
-families with their vocabularies — 612 insertions across 11 `src/` files — and
-restamped **19 pre-existing non-`src` files**. This mint added one family — 199
-insertions across 3 `src/` files — and restamped **the same 19 pre-existing
-files**, 101 insertions and 41 deletions. The driver is the number of committed
-sites that pin a schema hash, not the section, not the family count.
+That cost is **not** proportional to the size of the schema change at either of
+the two mints measured. The schema-12 mint at `eef9a08` added seven families
+with their vocabularies — 612 insertions across 11 `src/` files — and modified
+**19 pre-existing non-`src` files**, 769 insertions and 97 deletions. That
+non-`src` delta is much larger than a restamp because schema 12 also changed
+test *behaviour*: it minted the prose-retention reason codes, so those files
+gained assertions as well as new hash literals. This mint added one family —
+199 insertions across 3 `src/` files — and modified **19 pre-existing non-`src`
+files**, 101 insertions and 41 deletions, which *is* restamp-sized. **17 files
+appear in both sets.** So the honest reading is a floor, not a ratio: a mint
+pays for the number of committed sites that pin a schema hash regardless of how
+small the schema change is. Two mints is two data points, not a trend — but
+both paid it.
 
 Stated plainly rather than acted on: those pins exist deliberately — each one
 is a canary that fails when representation meaning moves, which is exactly what
