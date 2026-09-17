@@ -238,6 +238,21 @@ what the policy catalog says it says — *the meaning is reducible, but no
 identified code-owned use requires a separate structured field* — and each
 group below has to earn that.
 
+**The boundary each group is judged against is ownership, not availability.**
+ADR-015 Decision 7 divides this section cleanly: code owns the deterministic
+rails, and *“the bounded d20 Rules System Adapter is hand-authored and covers
+d20 semantics only: modifier assembly from sheet + rule slice + `RuleOverride`s…”*
+— while *“rules ingestion does not generate executable mechanics”*.
+`construction_readiness` repeats both halves for Issue 15: the bounded d20
+adapter is in scope, *“executable mechanics generated from ingestion”* is out
+of it. So the question a clause must answer is not whether a consumer exists
+today — one does, `_assemble_modifiers` in `pipeline/rpg/adapter.py`, and
+planned v1 uses would count regardless — but which **input** that hand-authored
+algorithm cannot derive and cannot read off the character sheet, which
+Invariant 9 makes the owner of a creature's proficiency selections. In this
+section exactly one input answers that, the level/CR → bonus progression, and
+it is typed. The rest is either the algorithm itself or sheet state.
+
 Answered per coherent group, not per field or per row. The thirteen components
 fall into six groups:
 
@@ -245,8 +260,8 @@ fall into six groups:
 |---|---|---|---|---|
 | **the bonus progression** | `proficiency_bonus_table` | resolve a level or CR to a bonus — the value a v1 character sheet renders and every later addition starts from | a consumer would have to read the number out of prose at runtime, which contract 2 forbids outright: *"choosing prose does not authorize runtime interpretation into trusted values"* | **STRUCTURED** — 8 `ProficiencyBonusBandFact`s |
 | **where the bonus comes from, and what it can reach** | `proficiency_bonus_basis`, `proficiency_bonus_application` | explain why a creature's bonus is the number it is, and which D20 Tests the bonus can reach at all | none identified. The *value* is the group above; the *selection* — which skills, saves and items this creature is proficient with — is character-sheet state (Invariant 9), not corpus state, so a field here would state a condition whose operand this corpus does not hold | **PROSE_BOUND** |
-| **applying it** | `skill_proficiency_application`, `saving_throw_proficiency`, `weapon_proficiency`, `tool_proficiency` (part) | add the bonus to the roll the proficiency covers | no v1 operation is blocked today, and the validated application path for a GameMaster-selected effect is **15c's** — named in contract 2 and listed in this issue's out-of-scope items. The honest limit is recorded as residue (§8 #8), not asserted away | **PROSE_BOUND** |
-| **the stacking limits** | `bonus_does_not_stack` | correct a computation that would add, multiply or divide the bonus more than once | same 15c consumer as the group above; there is no computation in v1 to constrain until that path exists | **PROSE_BOUND** |
+| **applying it** | `skill_proficiency_application`, `saving_throw_proficiency`, `weapon_proficiency`, `tool_proficiency` (part) | add the bonus to the roll the proficiency covers — already a code-owned v1 rail: ADR-015 Decision 7 gives modifier assembly to the hand-authored bounded d20 adapter | none. These clauses state the *algorithm*, and the algorithm is code's: Decision 7 also forbids ingestion from generating executable mechanics, and Issue 15 lists that out of scope explicitly. Both of its operands sit elsewhere — the *value* is the band family above, the *selection* is sheet state (Invariant 9) — so a field restating “add the bonus here” would supply no input and would be the ingested mechanic Decision 7 rules out | **PROSE_BOUND** |
+| **the stacking limits** | `bonus_does_not_stack` | add each proficiency term once; multiply or divide it at most once where a feature says so | none. This is a correctness property of that same code-owned algorithm rather than an input to it, and no corpus field makes an assembler that adds twice add once. The multiply/divide clause governs features — Expertise is the source's own example — that this section does not define and this corpus does not hold | **PROSE_BOUND** |
 | **which skill is relevant** | `skill_relevance_sources`, `skill_relevance_judgment` | select the skill an action calls for | split between the two components, for two different reasons — see below | **PROSE_BOUND**, two reason codes |
 | **pointers to data held elsewhere** | `skill_list`, `determining_skills`, `equipment_proficiency` | navigate to the Skills table, to character creation, to a class or a stat block | none here. The data is another unit's to represent; a field would pre-empt a batch that has not reviewed its source | **PROSE_BOUND** |
 
@@ -310,9 +325,12 @@ What that combination does and does not license, stated exactly:
 * Any validated application of this Advantage to an actual check belongs to
   **15c's typed application path for GameMaster-selected effects** — a separate
   obligation that contract 2 names explicitly and that prose representation
-  does not discharge. This branch adds no runtime consumer of this fact, and
-  this finding does not by itself call for a new trigger family or any runtime
-  code.
+  does not discharge. That routing is specific to *this* clause, whose trigger
+  turns on the GM's skill-relevance judgment (§5 #9, #12); it does not extend to
+  the ordinary application and stacking clauses, which are fixed source rules
+  executed by a code-owned rail, not GameMaster-selected effects. This branch
+  adds no runtime consumer of this fact, and this finding does not by itself
+  call for a new trigger family or any runtime code.
 
 **One new family, and three new fields.** Schema 13 adds
 `ProficiencyBonusBandFact` (§9) and nothing else. The family is new **and so
@@ -438,18 +456,21 @@ reviewable.
    are **not** a permanent exception to build-time resolution: contract 2 makes
    the unreviewed sections publication blockers and contract 4 makes the
    references resolve once authored. No batch is authorized here to fix it.
-8. **The application rules are prose, and 15c owns what would change that.**
-   `skill_proficiency_application`, `saving_throw_proficiency`,
-   `weapon_proficiency`, `tool_proficiency` and `bonus_does_not_stack` state
-   where the bonus is added and how often. No v1 operation reads them today and
-   none is blocked, which is what `no_identified_structured_use` asserts — but
-   the honest limit is that the assertion is about *today's* identified
-   operations. When 15c defines its validated application path for
-   GameMaster-selected effects, if that path needs typed eligibility or a typed
-   stacking constraint, contract 2 requires the field to be supplied **before**
-   the operation relies on the rule. Prose representation does not discharge
-   that obligation and is not claimed to. Recorded so a later batch inherits the
-   question rather than the conclusion.
+8. **The application rules are prose because the algorithm is code-owned, not
+   because nothing reads them.** `skill_proficiency_application`,
+   `saving_throw_proficiency`, `weapon_proficiency`, `tool_proficiency` and
+   `bonus_does_not_stack` state where the bonus is added and how often — the
+   hand-authored bounded d20 rail of ADR-015 Decision 7, whose other half
+   (*“rules ingestion does not generate executable mechanics”*) is why no corpus
+   field carries it. The one input that rail needs from this section is the
+   progression, and that is typed. The honest limit is narrower than “15c will
+   decide”: if a later operation needs an input this section holds only as prose
+   — typed saving-throw eligibility, say, or a typed constraint for a feature
+   that multiplies the bonus — contract 2 and ADR-005d Decision 2 require that
+   field **before** the operation relies on the rule. Prose representation does
+   not discharge that obligation and is not claimed to. One clause does route
+   through 15c on its own merits: `tool_proficiency`'s Advantage, whose trigger
+   is the GM's skill-relevance judgment (§6).
 
 ## 9. What the pilot cost
 
@@ -463,19 +484,21 @@ there is nothing to compare elapsed time against and none is invented.
 
 | what | measured | how |
 |---|---|---|
-| **elapsed on the branch** | **2 h 17 m** (`72fab6e` 2026-09-16 23:41:41 −07:00 → `23f49d2` 2026-09-17 01:58:25 −07:00) | commit timestamps. A **lower bound** on authoring: it excludes reading and source review before the first commit, and it includes one context compaction and at least two full-suite passes. It is *not* hands-on time. |
+| **dispatch to final pilot commit** | **2 h 09 m 29 s** (dispatch 2026-09-17 06:48:56.155 Z → `23f49d2` 08:58:25 Z) | the launcher record `issue-5d-proficiency-pilot-sep16-launch.json` and the commit timestamp. An observable **run interval** — not hands-on time, and not a bound on work. |
+| **whole pilot run** | **2 h 47 m 50 s** (dispatch → 09:36:46.529 Z) | the matching `…-usage.json` `finished_utc`: the same run carried through CI waiting and reporting after the commit. That file also records **seven** context compactions and 306 agent turns. |
 | **local gate wait, final pass** | **1,198 s ≈ 20 m** | `tests/ingestion` 867.97 s + `tests --ignore=tests/ingestion` 330.03 s. Waiting, not work, and it recurs on every pass. |
 | **CI wait, final head** | **31 m 44 s** | run `35202642012`, created 08:59:15 Z, updated 09:30:59 Z, conclusion `success`. Also waiting. |
 | **production footprint** | **199 insertions, 2 deletions, 3 files** | `representation.py` 128/1, `projection.py` 19/1, `schema_lift.py` 52/0. |
 | **batch-specific footprint** | **1,109** generator + **224** proposal-test lines, no accept script | new files in `23f49d2`, plus the 1,744-line `PROPOSAL.json` and this packet, which are data and prose rather than program. |
 | **mint maintenance** | **101 insertions, 41 deletions across 19 pre-existing files** | the schema-hash restamp; see the diagnosis below. |
 
-The two waits are not interchangeable with the elapsed figure. The local suite
-runs **inside** the 2 h 17 m window and ran more than once, so at least ~20 m
-of that window is machine time, not authoring. CI ran **after** it — the run
-was created at 01:59:15 local, fifty seconds after the final commit — so its
-31 m 44 s sits outside the window entirely and is pure additional latency
-before the branch could be reported as green.
+Neither wait is interchangeable with either interval. The final local gate pass
+falls **inside** the 2 h 09 m interval, so ~20 m of it is machine time rather
+than authoring. CI run `35202642012` was created at 08:59:15 Z, fifty seconds
+**after** the final pilot commit: its 31 m 44 s is outside the 2 h 09 m interval
+and inside the 2 h 47 m run. The branch parent `72fab6e` is the PR #170 merge,
+not the start of this authoring, so parent-to-commit elapsed time bounds nothing
+here and is not reported.
 
 **Batch-specific code: one generator, 1,109 lines.** Against the accepted
 batches' generators — read as a footprint table, not a throughput result:
@@ -517,8 +540,8 @@ src/afterworlds/ingestion/mechanical/schema_lift.py     |  52 ++
 ```
 
 That is the whole production footprint: a new `ProficiencyBonusBandFact`
-family, its projection wiring, and one lift step. Additive — the same bounded
-shape as the schema-12 mint at `eef9a08`.
+family, its projection wiring, and one lift step. Additive: it adds a family and
+its wiring and widens no existing family, vocabulary or field.
 
 ### Diagnosis 1 — the schema restamp is the real recurring maintenance
 
@@ -530,23 +553,24 @@ the ingestion tree — `tests/services/rules_authority/`'s patch-layer
 schema-hash assertion, which exists precisely to move when the representation
 does — and restamping it closed the sequence.
 
-That cost is **not** proportional to the size of the schema change at either of
-the two mints measured. The schema-12 mint at `eef9a08` added seven families
-with their vocabularies — 612 insertions across 11 `src/` files — and modified
-**19 pre-existing non-`src` files** by 204 insertions and 97 deletions. This
-mint added one family — 199 insertions across 3 `src/` files — and modified
-**19 pre-existing non-`src` files** by 101 insertions and 41 deletions. **17
-files appear in both sets.** So the honest reading is a floor, not a ratio: a
-mint pays for the number of committed sites that pin a schema hash largely
-regardless of how small the schema change is. Two mints is two data points, not
-a trend — but both paid it, and this one paid roughly half of the seven-family
-mint's restamp for one seventh of the families.
+That cost tracks the number of committed sites that pin a schema hash, not the
+size of the schema change. The schema-12 mint at `eef9a08` modified **19
+pre-existing non-`src` files** by 204 insertions and 97 deletions; this mint
+modified **19 pre-existing non-`src` files** by 101 insertions and 41 deletions;
+**17 files appear in both sets.** The two `src` deltas are not comparable work,
+and no ratio is drawn between them: `eef9a08` is 612 insertions and 29 deletions
+across 9 files and, by its own commit message, *“mints no fact family, no
+vocabulary, no vocabulary member, no ownership form, no required field and no
+intrinsic invariant”* — it carries one distinction for retained prose into the
+serialized grammar. This mint is 199/2 across 3 files and adds one family. What
+the two share is the restamp, and two mints is two data points rather than a
+trend.
 
 A counting note, so the figures are not read as more than they are. All four
-numbers above are `--diff-filter=M` over pre-existing files only. `eef9a08`'s
-*total* non-`src` delta is larger — 769/97 across 22 files — because it also
-**added** test modules for its seven families; those additions are family work,
-not restamp, and are excluded here. Neither figure is pure hash-literal churn:
+restamp numbers above are `--diff-filter=M` over pre-existing files only.
+`eef9a08`'s *total* non-`src` delta is larger — 769/97 across 22 files — because
+it also **added** test modules in the same commit; those additions are not
+restamp and are excluded here. Neither figure is pure hash-literal churn:
 a modified file may also have gained assertions in the same commit.
 
 Stated plainly rather than acted on: those pins exist deliberately — each one
