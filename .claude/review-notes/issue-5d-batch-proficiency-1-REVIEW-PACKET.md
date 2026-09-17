@@ -533,16 +533,21 @@ does — and restamping it closed the sequence.
 That cost is **not** proportional to the size of the schema change at either of
 the two mints measured. The schema-12 mint at `eef9a08` added seven families
 with their vocabularies — 612 insertions across 11 `src/` files — and modified
-**19 pre-existing non-`src` files**, 769 insertions and 97 deletions. That
-non-`src` delta is much larger than a restamp because schema 12 also changed
-test *behaviour*: it minted the prose-retention reason codes, so those files
-gained assertions as well as new hash literals. This mint added one family —
-199 insertions across 3 `src/` files — and modified **19 pre-existing non-`src`
-files**, 101 insertions and 41 deletions, which *is* restamp-sized. **17 files
-appear in both sets.** So the honest reading is a floor, not a ratio: a mint
-pays for the number of committed sites that pin a schema hash regardless of how
-small the schema change is. Two mints is two data points, not a trend — but
-both paid it.
+**19 pre-existing non-`src` files** by 204 insertions and 97 deletions. This
+mint added one family — 199 insertions across 3 `src/` files — and modified
+**19 pre-existing non-`src` files** by 101 insertions and 41 deletions. **17
+files appear in both sets.** So the honest reading is a floor, not a ratio: a
+mint pays for the number of committed sites that pin a schema hash largely
+regardless of how small the schema change is. Two mints is two data points, not
+a trend — but both paid it, and this one paid roughly half of the seven-family
+mint's restamp for one seventh of the families.
+
+A counting note, so the figures are not read as more than they are. All four
+numbers above are `--diff-filter=M` over pre-existing files only. `eef9a08`'s
+*total* non-`src` delta is larger — 769/97 across 22 files — because it also
+**added** test modules for its seven families; those additions are family work,
+not restamp, and are excluded here. Neither figure is pure hash-literal churn:
+a modified file may also have gained assertions in the same commit.
 
 Stated plainly rather than acted on: those pins exist deliberately — each one
 is a canary that fails when representation meaning moves, which is exactly what
