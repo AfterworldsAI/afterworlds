@@ -25,6 +25,13 @@ catches a rule or passage substituted from the wrong source text. Two facts of
 one family read from the same span remain the exact accepted-oracle comparison's
 job, which already catches any changed build against an unchanged oracle.
 
+When a rule names several spans they are **required constituents, not
+alternatives**. Each must have the appropriate actual authority home, and the
+finding names exactly the ones that do not — otherwise an expectation would
+certify, on one surviving passage's evidence, source material it never looked
+at. A single shared structure still answers for every passage that states it,
+because it carries a provenance claim to each; nothing here counts facts.
+
 Negative controls perturb one thing each. The oracle is never perturbed to make
 a candidate pass.
 """
@@ -473,7 +480,7 @@ def test_an_expected_rule_naming_an_unclassified_span_is_reported() -> None:
     )
     findings = _violations((unit,))
     assert any("which the classification does not state" in f for f in findings)
-    assert any("carries that family from other source text only" in f for f in findings)
+    assert any("carries no fact of that family read from there" in f for f in findings)
 
 
 def test_a_rule_read_from_source_this_unit_does_not_review_is_reported() -> None:
@@ -496,7 +503,7 @@ def test_a_rule_substituted_from_the_wrong_source_text_is_reported() -> None:
         ExpectedRule(SPELL_KEY, DESCRIPTOR_KEY, DESCRIPTOR_FAMILY, (PROSE_SPAN,))
     )
     (finding,) = _violations((unit,))
-    assert "carries that family from other source text only" in finding
+    assert "carries no fact of that family read from there" in finding
 
 
 def test_prose_substituted_from_the_wrong_source_text_is_reported() -> None:
@@ -504,6 +511,59 @@ def test_prose_substituted_from_the_wrong_source_text_is_reported() -> None:
     unit = _entry_unit(ExpectedRule(SPELL_KEY, OPEN_ENDED_KEY, None, (SPELL_SPAN,)))
     (finding,) = _violations((unit,))
     assert "binds no prose from" in finding
+
+
+def test_a_rule_read_from_two_passages_needs_a_home_for_both() -> None:
+    """Governing prose, several sources: one bound passage does not answer for two.
+
+    The reviewer read this rule across the spell text and the prose paragraph.
+    The fixture binds prose for this component from ``PROSE_SPAN`` only, so the
+    expectation is unmet — and the finding names the span with no home, not the
+    one that has one.
+    """
+    unit = _wish_unit(
+        ExpectedRule(SPELL_KEY, OPEN_ENDED_KEY, None, (SPELL_SPAN, PROSE_SPAN))
+    )
+    (finding,) = _violations((unit,))
+    assert "binds no prose from" in finding
+    assert SPELL_SPAN in finding
+    assert PROSE_SPAN not in finding
+
+
+def test_a_rule_read_from_two_passages_passes_when_both_are_bound() -> None:
+    """The positive control: add the missing binding and the same rule is met."""
+    base = build_representation()
+    both = replace(
+        base,
+        prose_bindings=(
+            *base.prose_bindings,
+            replace(
+                next(
+                    b for b in base.prose_bindings if b.component_key == OPEN_ENDED_KEY
+                ),
+                span_id=SPELL_SPAN,
+            ),
+        ),
+    )
+    unit = _wish_unit(
+        ExpectedRule(SPELL_KEY, OPEN_ENDED_KEY, None, (SPELL_SPAN, PROSE_SPAN))
+    )
+    assert _violations((unit,), draft=both) == []
+
+
+def test_a_multi_source_rule_is_refused_at_the_gate() -> None:
+    """The production seam, not the private helper.
+
+    ``validate_candidate`` is what a build must pass before anything downstream
+    will look at it, and it is where the accepted inventory buys the partition
+    relaxation. A rule whose second passage has no home must fail *there*.
+    """
+    unit = _wish_unit(
+        ExpectedRule(SPELL_KEY, OPEN_ENDED_KEY, None, (SPELL_SPAN, PROSE_SPAN))
+    )
+    findings = validate_candidate(reviewed_candidate((unit,)), bound_corpus())
+    assert any("binds no prose from" in f and SPELL_SPAN in f for f in findings)
+    assert validate_candidate(reviewed_candidate(), bound_corpus()) == ()
 
 
 def test_representation_content_no_unit_expected_is_not_a_violation() -> None:
@@ -633,7 +693,58 @@ def test_dropping_one_of_two_exceptions_fails_exactly_its_expectation() -> None:
         spans=_sentence_spans(),
     )
     assert CLIMB_SENTENCE in finding
-    assert "carries that family from other source text only" in finding
+    assert "carries no fact of that family read from there" in finding
+
+
+def test_one_rule_read_from_two_sentences_needs_authority_for_both() -> None:
+    """The structured half of the same defect, as one expectation not two.
+
+    The reviewer read one rule stated across both sentences. Only the crawl
+    exception survives, so the rule is unmet — and a family-presence check, or
+    one satisfied by any named span, would pass here.
+    """
+    unit = _entry_unit(
+        ExpectedRule(
+            SPELL_KEY, EXCEPTIONS_KEY, MOVEMENT_FAMILY, (CRAWL_SENTENCE, CLIMB_SENTENCE)
+        )
+    )
+    (finding,) = _violations(
+        (unit,),
+        draft=_exceptions_draft(CRAWL_EXCEPTION),
+        spans=_sentence_spans(),
+    )
+    assert CLIMB_SENTENCE in finding
+    assert CRAWL_SENTENCE not in finding
+
+
+def test_one_shared_fact_answers_for_both_sentences_it_was_read_from() -> None:
+    """Legitimate shared authority: one fact, two passages, no duplicate.
+
+    The source states the same exception twice. One structure carries it with a
+    provenance claim to each sentence, and the multi-source rule is met — the
+    correction must not turn source repetition into a demand for duplicate
+    facts.
+    """
+    drafted = _exceptions_draft(CRAWL_EXCEPTION)
+    shared = replace(
+        drafted,
+        provenance=(
+            *drafted.provenance,
+            ProvenanceClaim(
+                ProvenanceTargetKind.FACT,
+                fact_target_key(SPELL_KEY, EXCEPTIONS_KEY, CRAWL_EXCEPTION),
+                CLIMB_SENTENCE,
+                ProvenanceRole.CONTEXTUAL,
+            ),
+        ),
+    )
+    unit = _entry_unit(
+        ExpectedRule(
+            SPELL_KEY, EXCEPTIONS_KEY, MOVEMENT_FAMILY, (CRAWL_SENTENCE, CLIMB_SENTENCE)
+        )
+    )
+    assert _violations((unit,), draft=shared, spans=_sentence_spans()) == []
+    assert len(shared.components[-1].facts) == 1
 
 
 def test_a_shared_representation_satisfies_a_rule_read_from_either_span() -> None:

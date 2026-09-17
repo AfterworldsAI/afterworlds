@@ -465,16 +465,23 @@ def _expected_rule_violations(
                 f"{tag} was accepted as governing prose, but the component is "
                 f"{component.handling.value}"
             )
-        elif sources and not any(
-            binding.record_key == rule.record_key
-            and binding.component_key == rule.component_key
-            and binding.span_id in sources
-            for binding in draft.prose_bindings
-        ):
-            findings.append(
-                f"{tag} was accepted as governing prose, but the component "
-                f"binds no prose from {sorted(sources)}"
-            )
+        else:
+            bound = {
+                binding.span_id
+                for binding in draft.prose_bindings
+                if binding.record_key == rule.record_key
+                and binding.component_key == rule.component_key
+            }
+            # Every named passage, not any one of them. The reviewer listed the
+            # passages this rule is stated across; a component that kept one and
+            # dropped the other has dropped governing text, and a check reading
+            # the list as alternatives would certify the missing passage on the
+            # surviving one's evidence.
+            if unbound := sorted(sources - bound):
+                findings.append(
+                    f"{tag} was accepted as governing prose, but the component "
+                    f"binds no prose from {unbound}"
+                )
         return findings
 
     # ``FAMILY`` is the class attribute every typed fact declares and the one
@@ -490,33 +497,38 @@ def _expected_rule_violations(
             f"{tag} requires fact family {rule.fact_family!r}, which the "
             "component does not carry"
         )
-    elif sources and not _family_carried_from(component, rule, draft, sources):
+    elif unread := _family_sources_without_authority(component, rule, draft, sources):
         findings.append(
             f"{tag} requires fact family {rule.fact_family!r} read from "
-            f"{sorted(sources)}, and the component carries that family from "
-            "other source text only"
+            f"{unread}, and the component carries no fact of that family read "
+            "from there"
         )
     return findings
 
 
-def _family_carried_from(
+def _family_sources_without_authority(
     component: ComponentDraft,
     rule: ExpectedRule,
     draft: RepresentationDraft,
     sources: set[str],
-) -> bool:
-    """Whether a fact of the expected family claims one of the rule's spans.
+) -> list[str]:
+    """Which of the rule's spans no fact of the expected family was read from.
+
+    Each named span is a required constituent of the rule, so this answers
+    per span rather than for the list as a whole: a rule stated across two
+    sentences needs a home for both, and a check satisfied by any one of them
+    would certify the sentence it never looked at.
+
+    It does not require a fact *per* span. One shared structure legitimately
+    stated by several passages satisfies all of them, because it carries a
+    provenance claim to each — which is exactly what the source repetition
+    means, and why nothing here counts facts.
 
     Option facts are addressed by their own four-element key, so a fact under
     one option can never answer for an expectation the source stated under
     another. Reuses the one ``fact_target_key`` definition rather than matching
     on anything a caller could spell differently.
     """
-    claimed = {
-        claim.target_key
-        for claim in draft.provenance
-        if claim.target_kind is ProvenanceTargetKind.FACT and claim.span_id in sources
-    }
     owned = (
         *(("", fact) for fact in component.facts),
         *(
@@ -525,13 +537,18 @@ def _family_carried_from(
             for fact in option.facts
         ),
     )
-    return any(
-        isinstance(family := getattr(fact, "FAMILY", None), FactFamily)
-        and family.value == rule.fact_family
-        and fact_target_key(rule.record_key, rule.component_key, fact, option_key)
-        in claimed
+    keys = {
+        fact_target_key(rule.record_key, rule.component_key, fact, option_key)
         for option_key, fact in owned
-    )
+        if isinstance(family := getattr(fact, "FAMILY", None), FactFamily)
+        and family.value == rule.fact_family
+    }
+    claimed = {
+        claim.span_id
+        for claim in draft.provenance
+        if claim.target_kind is ProvenanceTargetKind.FACT and claim.target_key in keys
+    }
+    return sorted(sources - claimed)
 
 
 def release_binding_payload(binding: ReleaseBinding) -> dict[str, object]:

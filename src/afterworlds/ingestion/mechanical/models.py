@@ -183,7 +183,10 @@ class ExpectedRule:
     #: rule. Required in substance — an expectation naming none is reported as
     #: a violation rather than refused at construction, because an inventory
     #: that cannot be read cannot be reported on. Several spans are legitimate:
-    #: a rule stated across two sentences is one rule.
+    #: a rule stated across two sentences is one rule, and **each named span
+    #: is required, not an alternative** — every one of them must have the
+    #: appropriate actual authority home, or the rule is reported as unmet
+    #: naming exactly the spans that do not.
     #:
     #: A structure may legitimately be the home of more than one expectation —
     #: one shared representation of a statement the source repeats — because a
