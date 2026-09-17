@@ -228,9 +228,40 @@ component.
 
 ## 6. Representation choices worth a reviewer's attention
 
-Most of the 13 components are unremarkable: a clause states a rule, no closed
-vocabulary models it, so the clause is retained as exact governing prose under
-`no_identified_structured_use`. Four choices are not unremarkable.
+The question asked of every clause here is the one #137 contract 2 and ADR-005d
+Decision 2 actually pose: **which identified code-owned operation — in play,
+explanation, or correction — needs a separate structured field, and what
+concretely fails if the field is absent?** Planned v1 uses count even before
+their consumers are implemented, so neither "no closed vocabulary models it"
+nor "nothing reads it today" is an answer. `no_identified_structured_use` says
+what the policy catalog says it says — *the meaning is reducible, but no
+identified code-owned use requires a separate structured field* — and each
+group below has to earn that.
+
+Answered per coherent group, not per field or per row. The thirteen components
+fall into six groups:
+
+| group | components | identified operation | consequence of omitting a field | disposition |
+|---|---|---|---|---|
+| **the bonus progression** | `proficiency_bonus_table` | resolve a level or CR to a bonus — the value a v1 character sheet renders and every later addition starts from | a consumer would have to read the number out of prose at runtime, which contract 2 forbids outright: *"choosing prose does not authorize runtime interpretation into trusted values"* | **STRUCTURED** — 8 `ProficiencyBonusBandFact`s |
+| **where the bonus comes from, and what it can reach** | `proficiency_bonus_basis`, `proficiency_bonus_application` | explain why a creature's bonus is the number it is, and which D20 Tests the bonus can reach at all | none identified. The *value* is the group above; the *selection* — which skills, saves and items this creature is proficient with — is character-sheet state (Invariant 9), not corpus state, so a field here would state a condition whose operand this corpus does not hold | **PROSE_BOUND** |
+| **applying it** | `skill_proficiency_application`, `saving_throw_proficiency`, `weapon_proficiency`, `tool_proficiency` (part) | add the bonus to the roll the proficiency covers | no v1 operation is blocked today, and the validated application path for a GameMaster-selected effect is **15c's** — named in contract 2 and listed in this issue's out-of-scope items. The honest limit is recorded as residue (§8 #8), not asserted away | **PROSE_BOUND** |
+| **the stacking limits** | `bonus_does_not_stack` | correct a computation that would add, multiply or divide the bonus more than once | same 15c consumer as the group above; there is no computation in v1 to constrain until that path exists | **PROSE_BOUND** |
+| **which skill is relevant** | `skill_relevance_sources`, `skill_relevance_judgment` | select the skill an action calls for | split between the two components, for two different reasons — see below | **PROSE_BOUND**, two reason codes |
+| **pointers to data held elsewhere** | `skill_list`, `determining_skills`, `equipment_proficiency` | navigate to the Skills table, to character creation, to a class or a stat block | none here. The data is another unit's to represent; a field would pre-empt a batch that has not reviewed its source | **PROSE_BOUND** |
+
+**What the inspection looked for and did not find.** Every existing family was
+checked for one that could carry "add the Proficiency Bonus to *X*"; none can.
+The closest, `DerivedQuantityFact`, derives a value from an ability modifier
+over a `TimeUnit` and is not a proficiency application. That absence is *not*
+the argument for prose — an absent vocabulary is exactly what minting a family
+fixes, as the band table shows. The argument is the consequence column: the one
+input in this section that a v1 consumer cannot derive and cannot get anywhere
+else is the progression, and it is typed. **No concrete required input is
+missing**, so nothing was added and the proposal's meaning and identity are
+unchanged by this review.
+
+Four choices still want a reviewer's attention directly.
 
 **The bonus table is the only fully typed component.** Eight
 `ProficiencyBonusBandFact`s, no prose bindings, `STRUCTURED`. The bands are the
@@ -248,21 +279,50 @@ say" is not reducible at all; it is the source handing the decision to a human,
 which is `gamemaster_latitude`. Collapsing them would have forced one honest
 reason to be replaced by a convenient one.
 
-**`tool_proficiency` is `MIXED`, and the fact does not displace the prose.** The
+**`tool_proficiency` is `MIXED`, and neither half certifies the other.** The
 Advantage is typed — `AdvantageFact(ADVANTAGE, roll=SUBJECT/ABILITY_CHECK)` —
 because Advantage on an ability check is exactly what the existing structured
 vocabulary is for. Its *trigger*, "the skill that's also used with that check",
-is in no closed applicability vocabulary and would have to be guessed. So the
-clause stays exact governing prose, its binding is the `PRIMARY` owner, and the
-fact claims the same span **`CONTEXTUAL`**. A runtime may use the fact to know
-Advantage is in play; it may not infer *when* from anything but the prose.
+is in no closed applicability vocabulary. So the clause stays exact governing
+prose, its binding is the `PRIMARY` owner, and the fact claims the same span
+**`CONTEXTUAL`**.
 
-**Exactly one new fact family, for one identified use.** Schema 13 adds
-`ProficiencyBonusBandFact` (§9) and nothing else: the level/CR → bonus lookup a
-v1 character sheet cannot render without. No other field was added:
-`AdvantageFact`, `RollSpec`, `RollActor` and `RollContext` are reused as-is, and
-every other clause reuses an existing prose-retention code. Nothing was invented
-for tidiness, and no field here is speculative.
+What that combination does and does not license, stated exactly:
+
+* The exact governing prose stays available for **explanation**. A GameMaster
+  view can show this rule verbatim with its source reference, which is what
+  Decision 2 means by prose being part of the bound rule authority rather than
+  a footnote.
+* **No consumer may infer trusted applicability from it.** An earlier draft of
+  this packet said a runtime "may not infer *when* from anything but the
+  prose", which permits precisely the inference contract 2 forbids —
+  *"choosing prose does not authorize runtime interpretation into trusted
+  values"*. Reading the sentence and concluding the rule applies to a
+  particular check is that interpretation. The correct statement is that
+  nothing here authorizes any consumer to decide applicability, from the prose
+  or from anywhere else.
+* **Nor may any consumer apply Advantage unconditionally from the fact.** The
+  `CONTEXTUAL` provenance role records that the fact's meaning lives in that
+  span; `MIXED` records that the component's meaning lives in both halves.
+  Both are statements about *where meaning is recorded*. Neither certifies that
+  the rule may be executed, and a fact carrying no trigger is not a fact that
+  always fires.
+* Any validated application of this Advantage to an actual check belongs to
+  **15c's typed application path for GameMaster-selected effects** — a separate
+  obligation that contract 2 names explicitly and that prose representation
+  does not discharge. This branch adds no runtime consumer of this fact, and
+  this finding does not by itself call for a new trigger family or any runtime
+  code.
+
+**One new family, and three new fields.** Schema 13 adds
+`ProficiencyBonusBandFact` (§9) and nothing else. The family is new **and so
+are its three fields** — `bonus: int`, `maximum: int`, `minimum: int | None` —
+which is the minimum that states one printed row: a bonus, the top of the band,
+and a bottom that the first row does not print. An earlier draft of this packet
+said "no other field was added"; that was inaccurate. What is true is narrower:
+**no existing family, vocabulary or component field was widened.**
+`AdvantageFact`, `RollSpec`, `RollActor` and `RollContext` are reused
+unchanged, and every other clause reuses an existing prose-retention code.
 
 **Two 5c artifacts are bound, not repaired.** The table caption text
 ` Proficiency Bonus` was absorbed into the trailing end of the body paragraph
@@ -271,30 +331,66 @@ of `f848a0fb`. Both are real printed text in a leaf this batch reviews, so both
 get a supporting-authority span pointing at the component they caption. They
 are *not* fixed: that would reopen 5c. See §8.
 
-## 7. Outward references, and what is recommended for each
+## 7. Outward references: authored, deferred, and navigational
 
-The section makes five outward pointers. Two are authored as `ReferenceDraft`s;
-three are not. The line drawn is deliberate and is the main thing this pilot
-asks the Owner to confirm.
+The section makes five outward pointers and one internal one. They are not the
+same kind of thing, and the distinction that decides each is contract 4's:
+**a source-authored mechanical reference resolves at build time through
+committed source scope, aliases and exact target semantic keys, and an
+ambiguous, unresolved, invalid or cross-release one blocks publication.**
+Navigation that names no mechanical input is not such a reference.
 
-**A reference is authored exactly where the printed pointer names a *record*
-under a key convention already committed.** The Rules Glossary is such a
-convention: 62 accepted references already use scope `srd-5.2.1/rules-glossary`,
-and glossary entries are records. Section titles and table names are not
-records; minting keys for them would pin a naming decision the Owner has not
-made and would silently widen this pilot.
+Three facts about the mechanism, because they do the work here:
 
-| printed pointer | clause | authored? | disposition and recommendation |
+1. **A `ReferenceDraft` targets a record.** Its fields are `scope_key` and
+   `target_record_key`; there is no pointer-to-a-heading form. The Rules
+   Glossary is a committed scope — 62 accepted references use
+   `srd-5.2.1/rules-glossary`, and glossary entries are records. A section
+   title and a table name are not records and have no committed scope here, so
+   a key invented for one now would be a key no assembled record will ever
+   carry: it would **misdirect** a later build rather than block it, and
+   `validate_representation` would report it as unresolved for the wrong
+   reason. Choosing the eventual key is an ordinary engineering choice for the
+   batch that assembles that record. No policy or ownership is affected and no
+   Owner naming decision is requested.
+2. **Nothing validates an absence.** `validate_representation` reports a
+   reference whose target record does not exist. It cannot report a pointer
+   nobody authored. `RecordObligation`s are derived per record from its own
+   membership and are refused unless the committed set matches exactly, so they
+   are not a home for a note about a reference either.
+3. **Build-time resolution is not waived for any of these.** The deferral is
+   temporary by construction. Contract 2 makes inventory gaps and unreviewed
+   units publication blockers, so the Skills table and the *Actions* section
+   cannot stay unreviewed while the projection publishes; when they are
+   reviewed, their pointers are ordinary source-authored mechanical references
+   that must resolve like every other. **Nothing here creates a standing
+   exception to build-time resolution, and nothing here authorizes a new corpus
+   batch.**
+
+| printed pointer | clause | kind | state and recommendation |
 |---|---|---|---|
-| "see 'Rules Glossary'" → **Challenge Rating** | `main.monster_cr` | **yes** | `glossary.challenge_rating`, scope `srd-5.2.1/rules-glossary`. Target record not authored yet, so `validate_representation` reports one `unknown target record`. That is the intended state for a forward citation and matches speed-1's precedent. |
-| "see 'Rules Glossary'" → **Expertise** | `stack.expertise` | **yes** | `glossary.expertise`, same scope, same unresolved finding. **Recommendation:** author the Expertise glossary entry in a later glossary batch; this reference then resolves with no change here. |
-| **the Skills table** | `list.skills_table` | no | The pointer names a table, not a record. **Recommendation:** treat the Skills table as its own future batch (57 leaves, container `d818241d`, under *Actions* in *Playing the Game*) and give it a record key at that time; add the reference then. See the correction below. |
-| "see 'Actions' later in 'Playing the Game'" | `skill.sources` | no | Names a section title. **Recommendation:** do not mint a section-title key. Twelve per-action records already exist (`action.attack` … `action.utilize`, accepted by actions-1 over the Rules Glossary `[Action]` entries) and `AbilityCheckFact` already carries a `skill` field, currently `None` on them. The durable representation is therefore an action record naming its skill — no new field and no section-title key — decided by a future batch over the *Actions* section, not by changing accepted content. |
-| "described in 'Character Creation'" | `main.character_levels` | no | Names a section that no accepted or proposed batch covers. **Recommendation:** leave as governing prose until a batch covers Character Creation. |
+| "see 'Rules Glossary'" → **Challenge Rating** | `main.monster_cr` | authored mechanical reference | `glossary.challenge_rating`, scope `srd-5.2.1/rules-glossary`. The target record is not authored yet, so `validate_representation` reports one `unknown target record`. That is the intended state for a forward citation and matches speed-1's precedent — and under contract 4 it blocks publication until the glossary batch lands. |
+| "see 'Rules Glossary'" → **Expertise** | `stack.expertise` | authored mechanical reference | `glossary.expertise`, same scope, same unresolved finding, same publication block. **Recommendation:** author the Expertise entry in a later glossary batch; this reference then resolves with no change here. |
+| **the Skills table** | `list.skills_table` | **deferred mechanical link** | The pointer names mechanical content — the table "notes example uses for each skill proficiency as well as the ability check the skill most often applies to". It is a mechanical reference in substance and is simply not authorable yet: the table is not an assembled record (57 leaves, container `d818241d`, under *Actions* in *Playing the Game*, reviewed by no batch). **Recommendation:** review the Skills table as its own unit, give it a record key there, and author this reference at that time. See the correction below. |
+| "see 'Actions' later in 'Playing the Game'" | `skill.sources` | **deferred mechanical link** | Also mechanical in substance — it says where the skill an action calls for is specified — and also not authorable as one edge: the sentence points at a whole series, and twelve per-action records already exist (`action.attack` … `action.utilize`, accepted by actions-1 over the Rules Glossary `[Action]` entries) with no single target among them. `AbilityCheckFact` already carries a `skill` field, currently `None` on all twelve. **Recommendation:** the durable representation is each action record naming its skill — no new field and no section-title key — decided by a future batch over the *Actions* section, not by changing accepted content. |
+| "described in 'Character Creation'" | `main.character_levels` | **informational navigation** | The parenthetical says where character level advancement is described. This unit's rule is complete without it: the table gives the bonus for every level and CR it prints, and nothing in the clause needs a value from Character Creation. **Recommendation:** leave as governing prose; there is no deferred mechanical edge to record. |
+| "The Proficiency Bonus table shows how the bonus is determined" | `main.table_pointer` | **internal navigation** | Points inside this same unit, at the component this proposal already contains, and is bound as supporting authority. No reference is needed or possible. |
 
-In all three unauthored cases the pointer's **wording survives verbatim** inside
-the bound governing prose, so nothing about the citation is lost — only the
+In every unauthored case the pointer's **wording survives verbatim** inside the
+bound governing prose, so nothing about the citation is lost — only the
 machine-followable edge is deferred.
+
+### How the two deferred links stay visible
+
+Honestly, and with the limit stated: they are visible because they are written
+down **here, in §8, and in the PR description** — and that is a documentation
+mechanism, not a gate. No check fails today because `list.skills_table` has no
+`ReferenceDraft`; as above, a validator cannot report a pointer nobody
+authored. What bounds the window is not this packet but contract 2's coverage
+rule, which will not let those sections stay unreviewed while a complete
+projection publishes, and contract 4, which will not let their references stay
+unresolved once authored. Until that batch exists, this packet is the only
+place the obligation is recorded. It is named as residue (§8 #7), not decided.
 
 ### Correction to the identification note
 
@@ -335,14 +431,54 @@ reviewable.
    actually sits.
 6. **No consumer is wired.** The band facts are proposed, not published; no
    runtime reads them. That is the correct state for an unaccepted proposal.
+7. **Two deferred mechanical links** (§7): the Skills table and the *Actions*
+   section. Both are source-authored mechanical pointers that are not yet
+   authorable as `ReferenceDraft`s because neither target is an assembled
+   record. Nothing validates their absence, so this packet is the record. They
+   are **not** a permanent exception to build-time resolution: contract 2 makes
+   the unreviewed sections publication blockers and contract 4 makes the
+   references resolve once authored. No batch is authorized here to fix it.
+8. **The application rules are prose, and 15c owns what would change that.**
+   `skill_proficiency_application`, `saving_throw_proficiency`,
+   `weapon_proficiency`, `tool_proficiency` and `bonus_does_not_stack` state
+   where the bonus is added and how often. No v1 operation reads them today and
+   none is blocked, which is what `no_identified_structured_use` asserts — but
+   the honest limit is that the assertion is about *today's* identified
+   operations. When 15c defines its validated application path for
+   GameMaster-selected effects, if that path needs typed eligibility or a typed
+   stacking constraint, contract 2 requires the field to be supplied **before**
+   the operation relies on the rule. Prose representation does not discharge
+   that obligation and is not claimed to. Recorded so a later batch inherits the
+   question rather than the conclusion.
 
 ## 9. What the pilot cost
 
-Reported as measured. No review time, throughput target or completion
-percentage is estimated here, because none was measured.
+Reported from run timestamps and the git history, with elapsed work, waiting,
+and code footprint kept apart, because they scale for different reasons. No
+throughput target, completion percentage or historical baseline is estimated
+here. There is no recorded per-batch authoring time for any earlier batch, so
+there is nothing to compare elapsed time against and none is invented.
+
+### Elapsed time, waiting, and footprint are three different numbers
+
+| what | measured | how |
+|---|---|---|
+| **elapsed on the branch** | **2 h 17 m** (`72fab6e` 2026-09-16 23:41:41 −07:00 → `23f49d2` 2026-09-17 01:58:25 −07:00) | commit timestamps. A **lower bound** on authoring: it excludes reading and source review before the first commit, and it includes one context compaction and at least two full-suite passes. It is *not* hands-on time. |
+| **local gate wait, final pass** | **1,198 s ≈ 20 m** | `tests/ingestion` 867.97 s + `tests --ignore=tests/ingestion` 330.03 s. Waiting, not work, and it recurs on every pass. |
+| **CI wait, final head** | **31 m 44 s** | run `35202642012`, created 08:59:15 Z, updated 09:30:59 Z, conclusion `success`. Also waiting. |
+| **production footprint** | **199 insertions, 2 deletions, 3 files** | `representation.py` 128/1, `projection.py` 19/1, `schema_lift.py` 52/0. |
+| **batch-specific footprint** | **1,109** generator + **224** proposal-test lines, no accept script | new files in `23f49d2`, plus the 1,744-line `PROPOSAL.json` and this packet, which are data and prose rather than program. |
+| **mint maintenance** | **101 insertions, 41 deletions across 19 pre-existing files** | the schema-hash restamp; see the diagnosis below. |
+
+The two waits are not interchangeable with the elapsed figure. The local suite
+runs **inside** the 2 h 17 m window and ran more than once, so at least ~20 m
+of that window is machine time, not authoring. CI ran **after** it — the run
+was created at 01:59:15 local, fifty seconds after the final commit — so its
+31 m 44 s sits outside the window entirely and is pure additional latency
+before the branch could be reported as green.
 
 **Batch-specific code: one generator, 1,109 lines.** Against the accepted
-batches' generators:
+batches' generators — read as a footprint table, not a throughput result:
 
 | batch | generator lines |
 |---|---|
@@ -355,14 +491,21 @@ batches' generators:
 | **speed-1** | **3,604** (+1,846 accept script, +327 reproduction test) |
 | **proficiency-1** | **1,109** (+224 test, no accept script) |
 
-Speed-1 is the fair comparison: it was the last batch authored before the
-shared workflow merged, and it is a comparable regular-corpus batch. **1,109 vs
-3,604 is a 69% reduction**, and the shape of the difference matters more than
-the ratio: proficiency-1's generator is almost entirely *data* — a 47-row clause
-table, a 13-row component table, an 8-row band table — plus three calls into
-merged services. It reimplements nothing. There is no accept script at all,
-because `accept_proposal` is now a shared service and acceptance is the Owner's
-decision, not a script in this directory.
+**These are file sizes, and a ratio between two of them is not a throughput
+result.** Speed-1 is the nearest structural neighbour — the last batch authored
+before the shared workflow merged — but its 3,604 lines and this batch's 1,109
+are over different sections with different clause counts, authored under
+different methods, and neither number is an hours figure. The line counts also
+conflate two changes: the merged workflow removed the per-batch accept script
+and reproduction test, *and* the earlier generators partitioned every character
+of every leaf, which the Owner Decision of 2026-09-16 made optional. What can
+be said without inventing a baseline is structural: proficiency-1's generator
+is almost entirely *data* — a 47-row clause table, a 13-row component table, an
+8-row band table — plus three calls into merged services, and it reimplements
+nothing. There is no accept script at all, because `accept_proposal` is a
+shared service and acceptance is the Owner's decision, not a script in this
+directory. Whether that shape holds for a section with a harder source is the
+question the next pilot answers, not this one.
 
 **Supporting engineering: schema 13, one fact family.**
 
@@ -377,29 +520,66 @@ That is the whole production footprint: a new `ProficiencyBonusBandFact`
 family, its projection wiring, and one lift step. Additive — the same bounded
 shape as the schema-12 mint at `eef9a08`.
 
-**Schema-13 test fallout, measured in five passes:** 76 → 25 → 4 → 0, then 1.
-The 76 → 25 step was one surgical restamp of `bounded_oracle.json`'s schema
-block; 25 → 4 was a 37-site pin pass across 17 test files; 4 → 0 was a 5-site
-residual pass. The full-suite gate then found one further canary outside the
-ingestion tree — `tests/services/rules_authority/`'s patch-layer schema-hash
-assertion, which exists precisely to move when the representation does — and
-restamping it closed the sequence.
+### Diagnosis 1 — the schema restamp is the real recurring maintenance
 
-Final gates on the branch head: `black` and `ruff` clean over 478 files, `mypy`
-clean over 225 source files, and the suite in two chunks — `tests/ingestion`
-**3,226 passed** in 867.97s, `tests --ignore=tests/ingestion` **2,775 passed,
-10 skipped** in 330.03s, total coverage **94.39%**.
+**Test fallout from minting schema 13, measured in five passes:** 76 → 25 → 4 →
+0, then 1. The 76 → 25 step was one surgical restamp of `bounded_oracle.json`'s
+schema block; 25 → 4 was a 37-site pin pass across 17 test files; 4 → 0 was a
+5-site residual pass. The full-suite gate then found one further canary outside
+the ingestion tree — `tests/services/rules_authority/`'s patch-layer
+schema-hash assertion, which exists precisely to move when the representation
+does — and restamping it closed the sequence.
 
-**Diagnosis the brief asks for: the pilot did *not* need a large custom
-program.** The entire batch-scoped proof is three calls into merged services —
-`validate_partition(..., require_complete=False)` per leaf,
-`review_unit_violations`, and standalone `validate_representation` — plus the
-mutation check. Nothing about a regular section, as opposed to a glossary entry
-list, required new machinery. The one thing that *did* need a code change was a
-new fact family for a table the section prints, which is the expected cost of
-typing a new kind of rule, not an obstacle to scaling. The obstacle to scaling
-another section is authoring judgment (which clauses are one rule, what reason
-a prose retention honestly states), not tooling.
+That cost is **not** proportional to the size of the schema change, and this is
+measured rather than asserted. The schema-12 mint at `eef9a08` added seven
+families with their vocabularies — 612 insertions across 11 `src/` files — and
+restamped **19 pre-existing non-`src` files**. This mint added one family — 199
+insertions across 3 `src/` files — and restamped **the same 19 pre-existing
+files**, 101 insertions and 41 deletions. The driver is the number of committed
+sites that pin a schema hash, not the section, not the family count.
+
+Stated plainly rather than acted on: those pins exist deliberately — each one
+is a canary that fails when representation meaning moves, which is exactly what
+they are for, and an accepted batch's frozen-prior test *must* keep asserting a
+literal. A sixth mint will pay the same price. Whether that is worth a
+consolidated pin fixture is a real question, but **no tooling refactor is
+requested or attempted here**, and none should be inferred from this paragraph.
+
+### Diagnosis 2 — what is left that is batch-specific
+
+The pilot did **not** need a large custom program. The entire batch-scoped
+proof is three calls into merged services — `validate_partition(...,
+require_complete=False)` per leaf, `review_unit_violations`, and standalone
+`validate_representation` — plus the mutation check. Nothing about a regular
+section, as opposed to a glossary entry list, required new machinery.
+
+What remains genuinely per-batch, honestly:
+
+* **The clause/component/fact tables in the generator.** This is source review
+  written down. It is not removable tooling and should not be targeted.
+* **A hand-written proposal test per batch** (224 lines here). It pins the
+  identity and the source-reviewed expectations, which by contract 4 must not
+  be regenerated from the output they check. Also not removable.
+* **The schema restamp**, when a batch mints a schema — Diagnosis 1.
+* **Nothing else.** No accept script, no reproduction implementation, no
+  private-parser reload.
+
+So the honest answer to "is this ready to scale?" is: the *tooling* obstacle is
+gone for a section of this shape, and the remaining recurring cost is the
+restamp plus roughly twenty minutes of local suite and half an hour of CI per
+pass. The remaining *authoring* obstacle is judgment — which clauses are one
+rule, and which prose retentions honestly earn their reason code — and this
+pilot produced no evidence that judgment gets cheaper with repetition. One
+section is one data point.
+
+Final local gates on the branch head at the time the pilot was reported:
+`black` and `ruff` clean over 478 files, `mypy` clean over 225 source files,
+and the suite in two chunks — `tests/ingestion` **3,226 passed** in 867.97 s,
+`tests --ignore=tests/ingestion` **2,775 passed, 10 skipped** in 330.03 s,
+total coverage **94.39%**. `pip-audit` reports 29 pre-existing advisories
+across 10 third-party packages, unchanged by this branch. Gates for the
+correction round that produced this revision are reported in the PR
+description, which can cite the CI run for a head this file is part of.
 
 ## 10. How to verify this packet
 
@@ -409,6 +589,9 @@ python .claude/review-notes/issue-5d-batch-proficiency-1-generator.py
 
 # the committed retained proposal, through the production path
 pytest tests/ingestion/mechanical/test_proficiency_1_proposal.py -q --no-cov
+
+# the new family's numeric contract and the schema-12/13 boundary
+pytest tests/ingestion/mechanical/test_schema_13_proficiency.py -q --no-cov
 ```
 
 The test pins the identity, runs `review_unit_violations` on the loaded
@@ -418,3 +601,17 @@ in memory — with `reviewer="test-evidence-only"` — asserting the committed
 oracle is byte-identical before and after. That acceptance is isolated test
 evidence that the proposal is structurally acceptable. **It is not a semantic
 acceptance and confers none.**
+
+`test_schema_13_proficiency.py` covers what is specific to the new family and
+deliberately does not repeat what the suite already has. Generic family
+behaviour — payload round-tripping for every declared family, unknown-family
+refusal, persistence — stays in `test_fact_families.py` and the per-schema
+modules. What is here: every printed band including the one **open below**
+(`minimum=None` survives the payload as an explicit null rather than
+defaulting to 1); the numeric contract, one case each for a bonus that adds
+nothing, an upper bound below the first level or CR, a lower bound below it,
+and a band that runs backwards; non-integer field values including `bool`,
+which matters because `isinstance(True, int)` is true in Python; and the schema
+boundary asserted on the committed proposal itself — **schema 12 refuses it for
+exactly the eight band facts and nothing else**, schema 13 admits it with no
+violation, and the crossing is one registered lift step.
