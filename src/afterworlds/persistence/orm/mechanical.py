@@ -223,6 +223,26 @@ class MechanicalAcceptanceORM(_ProjectionScoped):
     accepted_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
 
 
+class MechanicalReviewUnitAcceptanceORM(_ProjectionScoped):
+    """One explicit acceptance of one review unit.
+
+    The exact sibling of ``rp_mech_acceptances``, and stored separately for the
+    same reason the inventory is: a batch that accepted only review units writes
+    no span acceptance row at all, so without this its reviewer, timestamp and
+    batch attribution would exist nowhere in persisted state.
+    """
+
+    __tablename__ = "rp_mech_review_unit_acceptances"
+
+    projection_uuid: Mapped[str] = _ProjectionScoped._projection_fk()
+    unit_id: Mapped[str] = mapped_column(sa.String(255), nullable=False, index=True)
+    batch_id: Mapped[str | None] = mapped_column(
+        sa.String(64), nullable=True, index=True
+    )
+    reviewer: Mapped[str] = mapped_column(sa.String(255), nullable=False)
+    accepted_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+
+
 class MechanicalRecordORM(_ProjectionScoped):
     """One semantic record."""
 
@@ -246,6 +266,16 @@ class MechanicalComponentORM(_ProjectionScoped):
     semantic_key: Mapped[str] = mapped_column(sa.String(255), nullable=False)
     handling: Mapped[str] = mapped_column(sa.String(16), nullable=False)
     irreducibility_reason_code: Mapped[str | None] = mapped_column(
+        sa.String(64), nullable=True
+    )
+    #: Why the source prose is retained when applying the meaning does *not*
+    #: require judgement: the meaning is reducible and no identified
+    #: code-owned use in play, explanation or correction needs a separate
+    #: structured field for it. Schema 12. NULL on every row written before
+    #: that contract, which is the correct value rather than a placeholder:
+    #: those rows stated an irreducibility reason, and exactly one of the two
+    #: is stated.
+    prose_retention_reason_code: Mapped[str | None] = mapped_column(
         sa.String(64), nullable=True
     )
     #: The closed applicability qualifier, or NULL when the component applies
@@ -324,8 +354,23 @@ class MechanicalProseBindingORM(_ProjectionScoped):
     span_id: Mapped[str] = mapped_column(sa.String(64), nullable=False, index=True)
     chunk_char_start: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     chunk_char_end: Mapped[int] = mapped_column(sa.Integer, nullable=False)
-    irreducibility_reason_code: Mapped[str] = mapped_column(
-        sa.String(64), nullable=False
+    #: Why applying this passage's meaning requires judgement, or NULL when
+    #: it does not. Nullable since schema 12: a binding retained for a
+    #: reducibility reason states no irreducibility reason rather than a
+    #: false one, and the amendment forbids relabelling reducible meaning
+    #: with an irreducibility code in those words.
+    irreducibility_reason_code: Mapped[str | None] = mapped_column(
+        sa.String(64), nullable=True
+    )
+    #: Why the source prose is retained when applying the meaning does *not*
+    #: require judgement: the meaning is reducible and no identified
+    #: code-owned use in play, explanation or correction needs a separate
+    #: structured field for it. Schema 12. NULL on every row written before
+    #: that contract, which is the correct value rather than a placeholder:
+    #: those rows stated an irreducibility reason, and exactly one of the two
+    #: is stated.
+    prose_retention_reason_code: Mapped[str | None] = mapped_column(
+        sa.String(64), nullable=True
     )
     #: The option of the component's actor choice this binding governs, or the
     #: empty string when it governs the whole component. Schema 6, and stored
@@ -375,3 +420,95 @@ class MechanicalProvenanceORM(_ProjectionScoped):
     target_key: Mapped[list[str]] = mapped_column(sa.JSON, nullable=False)
     span_id: Mapped[str] = mapped_column(sa.String(36), nullable=False, index=True)
     role: Mapped[str] = mapped_column(sa.String(16), nullable=False)
+
+
+class MechanicalReviewUnitORM(_ProjectionScoped):
+    """One coherent stretch of source a human reviewed as a whole.
+
+    ``(projection_uuid, unit_id)`` is the logical identity its expectation rows
+    are matched on, unique at the database level for the same defence-in-depth
+    reason the batch header is: reconstruction still proves the relation.
+
+    ``leaf_ids`` is a JSON list of plain strings, validated as such before
+    reconstruction, for the reason ``rp_mech_provenance.target_key`` already is
+    — a list of strings is not a relation, and giving each leaf a row would buy
+    a join and no invariant. Expected rules and the unit's supporting and
+    excluded groups do get their own tables, because each of those is a
+    structured decision with its own fields.
+    """
+
+    __tablename__ = "rp_mech_review_units"
+    __table_args__ = (
+        sa.UniqueConstraint(
+            "projection_uuid", "unit_id", name="uq_rp_mech_review_unit_identity"
+        ),
+    )
+
+    projection_uuid: Mapped[str] = _ProjectionScoped._projection_fk()
+    unit_id: Mapped[str] = mapped_column(sa.String(255), nullable=False, index=True)
+    kind: Mapped[str] = mapped_column(sa.String(16), nullable=False)
+    leaf_ids: Mapped[list[str]] = mapped_column(sa.JSON, nullable=False)
+
+
+class MechanicalReviewExpectationORM(_ProjectionScoped):
+    """One rule a reviewer read in the source and requires to have a home.
+
+    ``fact_family`` is NULL when the reviewer accepted exact governing prose as
+    the rule's home. That NULL is a recorded judgement rather than a missing
+    value, which is why the column is nullable and the row is not: dropping the
+    row would say the reviewer never read the rule.
+
+    The family is stored as the wire string it was accepted as, not as this
+    build's enum. A persisted expectation naming a family a later build no
+    longer declares must still reconstruct and then be *reported*, and an
+    unreadable row cannot be reported.
+    """
+
+    __tablename__ = "rp_mech_review_expectations"
+
+    projection_uuid: Mapped[str] = _ProjectionScoped._projection_fk()
+    unit_id: Mapped[str] = mapped_column(sa.String(255), nullable=False, index=True)
+    record_key: Mapped[str] = mapped_column(sa.String(255), nullable=False, index=True)
+    component_key: Mapped[str] = mapped_column(sa.String(255), nullable=False)
+    fact_family: Mapped[str | None] = mapped_column(sa.String(64), nullable=True)
+    #: The accepted spans this rule was read from. Not empty in any valid row:
+    #: an expectation with no source is one nothing in the source vouches for,
+    #: and it cannot distinguish two rules of one family in one component.
+    source_span_ids: Mapped[list[str]] = mapped_column(sa.JSON, nullable=False)
+
+
+#: The two ``rp_mech_review_groups.role`` values. One definition, imported by
+#: the writer, by reconstruction and by the raw-state closure, so a role can
+#: never be spelled one way on the way in and another on the way out.
+REVIEW_GROUP_SUPPORTING = "supporting"
+REVIEW_GROUP_EXCLUDED = "excluded"
+
+
+class MechanicalReviewGroupORM(_ProjectionScoped):
+    """One coherent group inside a review unit, and the decision made about it.
+
+    Two decisions in one table because they are one obligation: a unit relaxes
+    the complete-partition rule only for the source it accounts for, and a
+    group is how a reviewer accounts for a whole coherent stretch at once
+    rather than character by character.
+
+    ``role`` says which decision this is. ``supports_record_key`` and
+    ``supports_component_key`` are the authority a supporting group explains —
+    the component key empty when it supports the record as a whole — and
+    ``reason`` is why an excluded group carries no mechanic. Each is NULL for
+    the other role, and reconstruction checks that rather than trusting it.
+    """
+
+    __tablename__ = "rp_mech_review_groups"
+
+    projection_uuid: Mapped[str] = _ProjectionScoped._projection_fk()
+    unit_id: Mapped[str] = mapped_column(sa.String(255), nullable=False, index=True)
+    role: Mapped[str] = mapped_column(sa.String(16), nullable=False)
+    leaf_ids: Mapped[list[str]] = mapped_column(sa.JSON, nullable=False)
+    supports_record_key: Mapped[str | None] = mapped_column(
+        sa.String(255), nullable=True
+    )
+    supports_component_key: Mapped[str | None] = mapped_column(
+        sa.String(255), nullable=True
+    )
+    reason: Mapped[str | None] = mapped_column(sa.Text, nullable=True)

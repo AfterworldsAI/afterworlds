@@ -29,10 +29,14 @@ from afterworlds.ingestion.mechanical.gate import (
 )
 from afterworlds.ingestion.mechanical.models import (
     AcceptanceRecord,
+    ClassificationLedger,
     ComponentHandling,
     ReviewState,
+    ReviewUnit,
+    ReviewUnitKind,
     SemanticDisposition,
     SemanticSpan,
+    SupportingGroup,
 )
 from afterworlds.ingestion.mechanical.oracle import AcceptedOracle
 from afterworlds.ingestion.mechanical.persistence import (
@@ -43,12 +47,17 @@ from afterworlds.ingestion.mechanical.projection import (
     ProjectionCandidate,
     identify_projection,
 )
+from afterworlds.ingestion.mechanical.publication import (
+    PublicationOutcome,
+    _publish_projection,
+)
 from afterworlds.ingestion.mechanical.representation import (
     ComponentDraft,
     ProvenanceClaim,
     ProvenanceRole,
     ProvenanceTargetKind,
     ReferenceDraft,
+    RepresentationDraft,
     fact_key,
 )
 from afterworlds.persistence.orm.mechanical import (
@@ -64,12 +73,16 @@ from tests.ingestion.mechanical.conftest import (
     NOW,
     OPEN_ENDED_KEY,
     PROSE_SPAN,
+    REVIEW_UNITS,
     SPELL_KEY,
     SPELL_SPAN,
+    SUPPORT_LEAF,
     SUPPORT_SPAN,
     build_candidate,
     build_ledger,
     build_representation,
+    reviewed_candidate,
+    unit_acceptances,
 )
 
 
@@ -670,3 +683,189 @@ def test_extra_acceptance_evidence_does_not_change_the_verdict(
         session, dataclasses.replace(build_candidate(), classification=relabelled)
     )
     assert run_publication_gate(session, uuid, committed_oracle).passed
+
+
+# ---------------------------------------------------------------------------
+# The accepted review inventory
+# ---------------------------------------------------------------------------
+#
+# The gate reads the inventory twice, for two different reasons. In step 3 it
+# widens what counts as covering a represented leaf, because a reviewer who read
+# a section and recorded that nothing in it states a rule has accounted for that
+# leaf. In step 6 it compares the inventory element by element as accepted
+# authority, which is what stops step 3 from being a claim a projection can make
+# about itself.
+
+
+#: The one unit the coverage controls below turn on: a section whose leaf the
+#: reviewer read, left with no spans at all, and decided explains the spell
+#: rather than stating a rule of its own. The decision is what makes the leaf
+#: reviewed — a unit that named the leaf and decided nothing would relax the
+#: partition in exchange for nothing, and is refused.
+SUPPORT_UNIT = ReviewUnit(
+    unit_id="unit-support-section",
+    kind=ReviewUnitKind.SECTION,
+    leaf_ids=(SUPPORT_LEAF,),
+    supporting_groups=(SupportingGroup((SUPPORT_LEAF,), SPELL_KEY),),
+)
+
+
+def _support_leaf_states_no_rule() -> tuple[ClassificationLedger, RepresentationDraft]:
+    """The bounded fixture with the support leaf carrying no span.
+
+    The 5c release is untouched — it still represents three leaves — so this is
+    the real case: a leaf the release represents, that classification left
+    empty. The support span's one contextual edge is re-homed onto the spell
+    span, which states the same record, because dropping the span without
+    dropping the edge would only prove that provenance closure works.
+    """
+    spans = tuple(s for s in build_ledger().spans if s.span_id != SUPPORT_SPAN)
+    representation = build_representation(
+        provenance=tuple(
+            (
+                dataclasses.replace(p, span_id=SPELL_SPAN)
+                if p.span_id == SUPPORT_SPAN
+                else p
+            )
+            for p in build_representation().provenance
+        )
+    )
+    return build_ledger(spans), representation
+
+
+def _reviewed_pair(
+    committed_oracle: AcceptedOracle,
+    units: tuple[ReviewUnit, ...],
+) -> tuple[ProjectionCandidate, AcceptedOracle]:
+    """A candidate and the oracle that accepted exactly it, both over *units*."""
+    ledger, representation = _support_leaf_states_no_rule()
+    ledger = dataclasses.replace(
+        ledger, review_unit_acceptances=unit_acceptances(units)
+    )
+    candidate = dataclasses.replace(
+        build_candidate(),
+        classification=ledger,
+        representation=representation,
+        review_units=units,
+    )
+    oracle = dataclasses.replace(
+        committed_oracle,
+        spans=ledger.spans,
+        representation=representation,
+        review_units=units,
+    )
+    return candidate, oracle
+
+
+def test_a_represented_leaf_with_no_span_is_covered_by_an_accepted_review_unit(
+    session: Session, committed_oracle: AcceptedOracle
+) -> None:
+    """The positive control for step 3's coverage union.
+
+    Nothing was classified in ``leaf-support`` and the release still represents
+    it. What makes this publishable is the accepted decision that a reviewer
+    read that section — not the projection's silence about it.
+    """
+    candidate, oracle = _reviewed_pair(committed_oracle, (SUPPORT_UNIT,))
+    result = run_publication_gate(session, persist(session, candidate), oracle)
+    assert result.passed, result.failures
+    assert result.diagnostics["represented_leaves"] == 3
+    assert result.diagnostics["classified_leaves"] == 2
+    # The number that explains the gap in a passing report.
+    assert result.diagnostics["reviewed_leaves"] == 1
+
+
+def test_the_same_projection_claiming_no_unit_is_refused_as_incomplete(
+    session: Session, committed_oracle: AcceptedOracle
+) -> None:
+    """The negative control, and the partial-publication refusal.
+
+    Identical content, minus the accepted decision that anyone read the leaf.
+    Publication refuses rather than recording an evidence report for a
+    projection that covers two of the release's three leaves.
+    """
+    candidate, oracle = _reviewed_pair(committed_oracle, ())
+    uuid = persist(session, candidate)
+    found = categories(session, uuid, oracle)
+    assert GateFailureCategory.POPULATION_MISMATCH.value in found
+
+    result = _publish_projection(session, uuid, oracle, now=NOW)
+    assert result.outcome is PublicationOutcome.INCOMPLETE
+    # A refused publication still carries its gate report — it is an auditable
+    # decision — but nothing is persisted for it.
+    assert result.evidence_report_hash is None
+    assert (
+        session.execute(
+            select(MechanicalProjectionORM).where(
+                MechanicalProjectionORM.projection_uuid == uuid
+            )
+        ).scalar_one()
+    ).evidence_report_hash is None
+
+
+def test_a_unit_naming_a_leaf_the_release_does_not_represent_is_refused(
+    session: Session, committed_oracle: AcceptedOracle
+) -> None:
+    """Coverage is read from the release, so a unit cannot invent a leaf.
+
+    Reported twice on purpose, by the two authorities that each own half of it:
+    the release says there is no such leaf, and the candidate validator says a
+    unit named a leaf this projection does not have.
+    """
+    invented = ReviewUnit(
+        unit_id="unit-elsewhere",
+        kind=ReviewUnitKind.SECTION,
+        leaf_ids=("leaf-outside",),
+    )
+    candidate, oracle = _reviewed_pair(committed_oracle, (SUPPORT_UNIT, invented))
+    found = categories(session, persist(session, candidate), oracle)
+    assert GateFailureCategory.POPULATION_MISMATCH.value in found
+    assert GateFailureCategory.SEMANTIC_VALIDATION.value in found
+
+
+def test_an_inventory_no_accepted_authority_declares_is_unexpected(
+    session: Session, committed_oracle: AcceptedOracle
+) -> None:
+    """A projection cannot add its own review evidence after acceptance."""
+    uuid = persist(session, reviewed_candidate())
+    found = categories(session, uuid, committed_oracle)
+    assert GateFailureCategory.UNEXPECTED_AUTHORITY.value in found
+    assert GateFailureCategory.IDENTITY_MISMATCH.value in found
+    assert GateFailureCategory.POPULATION_MISMATCH.value not in found
+
+
+def test_an_accepted_inventory_the_projection_dropped_is_missing(
+    session: Session, committed_oracle: AcceptedOracle
+) -> None:
+    """And it cannot quietly discard review evidence either."""
+    uuid = persist(session)
+    found = categories(
+        session, uuid, dataclasses.replace(committed_oracle, review_units=REVIEW_UNITS)
+    )
+    assert GateFailureCategory.MISSING_AUTHORITY.value in found
+    assert GateFailureCategory.IDENTITY_MISMATCH.value in found
+
+
+def test_a_reviewed_unit_whose_expectations_differ_is_compared_element_by_element(
+    session: Session, committed_oracle: AcceptedOracle
+) -> None:
+    """One field of one unit, changed on the projection side only.
+
+    The identity comparison would catch this alone; the element comparison is
+    what says *which* unit disagrees, which is the difference between an
+    auditable refusal and "something moved".
+    """
+    tampered = tuple(
+        (
+            dataclasses.replace(u, kind=ReviewUnitKind.TABLE)
+            if u.leaf_ids == (SUPPORT_LEAF,)
+            else u
+        )
+        for u in REVIEW_UNITS
+    )
+    uuid = persist(session, reviewed_candidate(tampered))
+    found = categories(
+        session, uuid, dataclasses.replace(committed_oracle, review_units=REVIEW_UNITS)
+    )
+    assert GateFailureCategory.MISSING_AUTHORITY.value in found
+    assert GateFailureCategory.UNEXPECTED_AUTHORITY.value in found

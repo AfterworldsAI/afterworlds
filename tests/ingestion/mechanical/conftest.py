@@ -80,10 +80,16 @@ from afterworlds.ingestion.mechanical.models import (
     AcceptanceRecord,
     ClassificationLedger,
     ComponentHandling,
+    ExcludedGroup,
+    ExpectedRule,
     ReviewState,
+    ReviewUnit,
+    ReviewUnitAcceptance,
+    ReviewUnitKind,
     SemanticDiffEntry,
     SemanticDisposition,
     SemanticSpan,
+    SupportingGroup,
 )
 from afterworlds.ingestion.mechanical.oracle import (
     AcceptedOracle,
@@ -149,9 +155,9 @@ BOUNDED_ORACLE_PATH = DATA_DIR / "bounded_oracle.json"
 #: readable placeholder: acceptance validation requires the canonical 64-lowercase-
 #: hex shape ``hash_obj`` emits, and an invented-looking value would fail it. The
 #: first draft of this constant was 65 characters and did exactly that.
-REVIEWED_PROPOSAL_IDENTITY = (
-    "aae73b3d1cb9b87b0da2ee35565e6664d43be68732bdbc4e3b0e158a1e02f5e9"
-)
+# A real digest rather than a readable placeholder, so detect-secrets sees a
+# genuine hex string here and is told, inline, that it is fixture data.
+REVIEWED_PROPOSAL_IDENTITY = "aae73b3d1cb9b87b0da2ee35565e6664d43be68732bdbc4e3b0e158a1e02f5e9"  # noqa: E501  # pragma: allowlist secret
 
 SPELL_LEAF = "leaf-spell"
 PROSE_LEAF = "leaf-prose"
@@ -768,6 +774,83 @@ OBLIGATIONS = (
         prose_bound_components=frozenset(),
     ),
 )
+
+
+#: An accepted review inventory over this same bounded fixture.
+#:
+#: Two units, so the canonical ordering is actually exercised rather than
+#: trivially satisfied, and all three decision kinds appear. The entry unit
+#: expects one rule with a structured home and one the reviewer accepted as
+#: governing prose — the two cases that fail differently — each naming the
+#: accepted span it was read from, and it excludes a group. The support unit
+#: states no rule at all: its leaf explains the spell rather than stating one,
+#: which is a legitimate whole-unit decision and the case a coverage check must
+#: accept rather than demand expectations for.
+#:
+#: It is *not* part of :func:`build_candidate`. The default candidate accepts a
+#: complete span partition and claims no unit, which is what every existing
+#: accepted batch looks like; a test that wants an inventory says so.
+REVIEW_UNITS = (
+    ReviewUnit(
+        unit_id="unit-wish-entry",
+        kind=ReviewUnitKind.ENTRY,
+        leaf_ids=(SPELL_LEAF, PROSE_LEAF),
+        expected_rules=(
+            ExpectedRule(
+                SPELL_KEY,
+                DESCRIPTOR_KEY,
+                DESCRIPTOR_FACT.FAMILY.value,
+                (SPELL_SPAN,),
+            ),
+            ExpectedRule(SPELL_KEY, OPEN_ENDED_KEY, None, (PROSE_SPAN,)),
+        ),
+        # The same leaf states the rule and carries the heading above it: spans
+        # are sub-leaf and groups are leaf-level, so one leaf legitimately
+        # appears in two decisions.
+        excluded_groups=(
+            ExcludedGroup(
+                (SPELL_LEAF,),
+                "the spell-list heading in this leaf is navigation, not a rule",
+            ),
+        ),
+    ),
+    ReviewUnit(
+        unit_id="unit-support-section",
+        kind=ReviewUnitKind.SECTION,
+        leaf_ids=(SUPPORT_LEAF,),
+        supporting_groups=(SupportingGroup((SUPPORT_LEAF,), SPELL_KEY),),
+    ),
+)
+
+
+def unit_acceptances(
+    units: tuple[ReviewUnit, ...] = REVIEW_UNITS,
+) -> tuple[ReviewUnitAcceptance, ...]:
+    """One acceptance per unit, on the terms :func:`build_ledger` accepts spans.
+
+    That ledger predates batches — its span acceptances name no batch — so the
+    unit half of the same acceptance names none either. Attribution to a named
+    batch is what ``accept_proposal`` records, and the tests that exercise it
+    assert it there.
+    """
+    return tuple(
+        ReviewUnitAcceptance(u.unit_id, None, "owner", "2026-07-31T00:00:00Z")
+        for u in units
+    )
+
+
+def reviewed_candidate(
+    units: tuple[ReviewUnit, ...] = REVIEW_UNITS, **overrides: object
+) -> ProjectionCandidate:
+    """:func:`build_candidate`, with an accepted review inventory attached."""
+    candidate = build_candidate(**overrides)
+    return replace(
+        candidate,
+        review_units=units,
+        classification=replace(
+            candidate.classification, review_unit_acceptances=unit_acceptances(units)
+        ),
+    )
 
 
 def accepted_oracle() -> AcceptedOracle:

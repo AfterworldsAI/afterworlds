@@ -30,7 +30,11 @@ from afterworlds.ingestion.mechanical.gate import (
     GateFailureCategory,
     run_publication_gate,
 )
-from afterworlds.ingestion.mechanical.models import ComponentHandling
+from afterworlds.ingestion.mechanical.models import (
+    ComponentHandling,
+    ExpectedRule,
+    ReviewUnit,
+)
 from afterworlds.ingestion.mechanical.oracle import (
     COMMITTED_ORACLE_DIR,
     OracleLoadError,
@@ -53,9 +57,13 @@ from afterworlds.ingestion.mechanical.policy import (
 )
 from afterworlds.ingestion.mechanical.projection import identify_projection
 from afterworlds.ingestion.mechanical.proposal import (
+    PROPOSAL_SCHEMA_VERSION_2,
     MechanicalProposal,
+    ProposalLoadError,
     ProposedSpan,
+    load_proposal,
     proposal_identity,
+    proposal_payload,
 )
 from afterworlds.ingestion.mechanical.publication import (
     PublicationOutcome,
@@ -77,9 +85,11 @@ from tests.ingestion.mechanical.conftest import (
     NOW,
     PACKAGE_UUID,
     RELEASE_BINDING,
+    REVIEW_UNITS,
     SCHEMA_HASH,
     SCHEMA_VERSION,
     SPELL_KEY,
+    SPELL_LEAF,
     bound_corpus,
     build_ledger,
     build_representation,
@@ -93,7 +103,14 @@ PRODUCTION_PACKAGE = "4458fa10-4a66-5e0e-9ecc-ea37530ad2b4"
 PRODUCTION_RELEASE = "5.2.1-corpus.36b786d8-fa2"
 
 
-def _proposal(**overrides: object) -> MechanicalProposal:
+def _proposal(
+    units: tuple[ReviewUnit, ...] = (), **overrides: object
+) -> MechanicalProposal:
+    """``units`` states an inventory, which only a ``5d-proposal-2`` may do.
+
+    A proposal that states none stays on ``5d-proposal-1`` and writes the exact
+    payload the seven retained proposals were identified from.
+    """
     base = dict(
         binding=RELEASE_BINDING,
         policy_version=SEMANTIC_POLICY_VERSION,
@@ -107,11 +124,14 @@ def _proposal(**overrides: object) -> MechanicalProposal:
         proposed_representation=build_representation(),
         proposal_origin="tool:proposer@0",
     )
+    if units:
+        base["proposal_schema_version"] = PROPOSAL_SCHEMA_VERSION_2
+        base["proposed_review_units"] = units
     return MechanicalProposal(**{**base, **overrides})  # type: ignore[arg-type]
 
 
-def _accept(**overrides: object):  # type: ignore[no-untyped-def]
-    proposal = _proposal()
+def _accept(proposal: MechanicalProposal | None = None, **overrides: object):  # type: ignore[no-untyped-def]
+    proposal = _proposal() if proposal is None else proposal
     base = dict(
         batch_id="batch-1",
         rule="every span of the bounded fixture, reviewed together",
@@ -805,3 +825,381 @@ def test_a_corrupted_persisted_proposal_identity_fails_the_publication_gate(
     assert not result.passed
     assert GateFailureCategory.SEMANTIC_VALIDATION in result.categories()
     assert any("is not a canonical SHA-256 digest" in f.detail for f in result.failures)
+
+
+# -- the review inventory an acceptance records -------------------------------
+#
+# Three separate things, and the split is the point:
+#
+# * a **proposal** states the inventory it was authored with, under
+#   ``5d-proposal-2``, so what a reviewer was asked to read is inside
+#   ``proposal_identity`` and a widened inventory is a different proposal;
+# * an **acceptance** names which of those units it accepted, so silence over a
+#   proposed unit is not acceptance of it; and
+# * each accepted unit is retained as a :class:`ReviewUnitAcceptance` naming the
+#   unit, the batch that accepted it, the reviewer and the time.
+#
+# The inventory is still checked against the *merged* representation, because a
+# unit may legitimately expect a rule an earlier batch structured.
+
+UNIT_IDS = tuple(u.unit_id for u in REVIEW_UNITS)
+
+
+def test_an_acceptance_records_what_its_reviewer_read(tmp_path: Path) -> None:
+    """Through the committed form, because that is where the inventory has to
+    survive: accepted in memory, written to the artifact, read back by the
+    loader the build uses."""
+    inputs = _accept(_proposal(REVIEW_UNITS), resolved_review_units=UNIT_IDS)
+    assert inputs.oracle.review_units == REVIEW_UNITS
+    assert {
+        (a.unit_id, a.batch_id, a.reviewer, a.accepted_at)
+        for a in inputs.review_unit_acceptances
+    } == {(unit_id, "batch-1", "owner", "2026-08-09T00:00:00Z") for unit_id in UNIT_IDS}
+
+    path = tmp_path / "accepted.json"
+    path.write_text(json.dumps(accepted_inputs_payload(inputs)), encoding="utf-8")
+    reloaded = load_accepted_inputs(path)
+    assert oracle_identity(reloaded.oracle) == oracle_identity(inputs.oracle)
+    # The canonical writer sorts the inventory, so compare by id: what has to
+    # survive the round trip is which units were accepted, not their order.
+    assert {u.unit_id for u in reloaded.oracle.review_units} == set(UNIT_IDS)
+    assert set(reloaded.review_unit_acceptances) == set(inputs.review_unit_acceptances)
+
+
+def test_an_acceptance_recording_nothing_read_is_the_existing_shape() -> None:
+    """Every one of the seven accepted batches passes no unit, and still works.
+
+    The evidence key is *absent* rather than empty, which is what keeps their
+    committed bytes and recorded persisted-state digests exactly as reviewed.
+    """
+    inputs = _accept()
+    assert inputs.oracle.review_units == ()
+    assert inputs.review_unit_acceptances == ()
+    assert "review_unit_records" not in accepted_inputs_payload(inputs)["acceptance"]
+
+
+def test_a_proposed_unit_the_acceptance_did_not_name_is_not_accepted() -> None:
+    """Silence is not acceptance. The proposal offers two units; this action
+    accepts one, and only that one becomes accepted authority."""
+    inputs = _accept(_proposal(REVIEW_UNITS), resolved_review_units=(UNIT_IDS[0],))
+    assert inputs.oracle.review_units == (REVIEW_UNITS[0],)
+    assert [a.unit_id for a in inputs.review_unit_acceptances] == [UNIT_IDS[0]]
+
+
+def test_a_unit_no_proposal_proposed_cannot_be_accepted() -> None:
+    with pytest.raises(AcceptanceError, match="did not propose"):
+        _accept(_proposal((REVIEW_UNITS[0],)), resolved_review_units=UNIT_IDS)
+
+
+# -- a proposal's own ids have to be unique -----------------------------------
+#
+# Both selection collections are keyed by id at the acceptance boundary, and a
+# dictionary comprehension over a repeated id keeps the last definition. The
+# resolved id then accepts that one while ``proposal_identity`` — derived from
+# the ordered list — names both, so the discarded definition is certified by an
+# acceptance that never saw it and never reaches the accepted-candidate
+# duplicate validator. Refusing counts ids only: rejecting an invalid
+# identifier must not depend on what the duplicate definition says or on
+# whether this action accepts it.
+
+
+def _duplicated_span_proposal() -> MechanicalProposal:
+    """Four proposed entries, three distinct span ids.
+
+    The fourth restates the first under a different rationale, which is the
+    shape that loses a definition: keying keeps the later rationale and the
+    reviewed one disappears.
+    """
+    spans = build_ledger().spans[:3]
+    proposed = tuple(
+        ProposedSpan(span, "tool:classifier@0", "stated basis") for span in spans
+    )
+    return _proposal(
+        proposed_spans=proposed
+        + (ProposedSpan(spans[0], "tool:classifier@0", "restated basis"),)
+    )
+
+
+def _unique_scope(proposal: MechanicalProposal) -> tuple[str, ...]:
+    """The proposal's span ids without repeats, in first-seen order.
+
+    Passing the raw list instead would trip the existing *resolved scope*
+    refusal, and these tests would pass for the wrong reason.
+    """
+    return tuple(dict.fromkeys(p.span.span_id for p in proposal.proposed_spans))
+
+
+def test_a_proposal_stating_one_unit_id_twice_is_refused() -> None:
+    """Two kinds under one ``unit_id``: entry and section.
+
+    This action resolves no unit at all, so the refusal cannot be coming from
+    anything the duplicate definition was asked to cover. An invalid identifier
+    is refused for being invalid.
+    """
+    conflicting = replace(REVIEW_UNITS[1], unit_id=UNIT_IDS[0])
+    with pytest.raises(AcceptanceError, match="review units more than once"):
+        _accept(_proposal(REVIEW_UNITS + (conflicting,)))
+
+
+def test_a_repeated_unit_definition_is_refused_even_when_it_is_identical() -> None:
+    """Nothing downstream can say which entry a resolved id meant, and a second
+    identical statement adds nothing the first did not say."""
+    with pytest.raises(AcceptanceError, match="review units more than once"):
+        _accept(_proposal(REVIEW_UNITS + (REVIEW_UNITS[0],)))
+
+
+def test_a_proposal_stating_one_span_id_twice_is_refused() -> None:
+    """The sibling: the same last-wins loss in the proposed span dictionary.
+
+    Without this, the four-entry proposal accepts as three spans and the batch
+    retains an identity naming four.
+    """
+    proposal = _duplicated_span_proposal()
+    assert len(proposal.proposed_spans) == 4
+    assert len(_unique_scope(proposal)) == 3
+    with pytest.raises(AcceptanceError, match="spans more than once"):
+        _accept(proposal, resolved_scope=_unique_scope(proposal))
+
+
+def test_a_repeated_span_definition_is_refused_even_when_it_is_identical() -> None:
+    spans = build_ledger().spans[:3]
+    proposed = tuple(
+        ProposedSpan(span, "tool:classifier@0", "stated basis") for span in spans
+    )
+    proposal = _proposal(proposed_spans=proposed + (proposed[0],))
+    with pytest.raises(AcceptanceError, match="spans more than once"):
+        _accept(proposal, resolved_scope=_unique_scope(proposal))
+
+
+def test_an_inventory_stated_outside_its_declared_proposal_shape_is_refused() -> None:
+    """``5d-proposal-1`` states no inventory, so one carried under it would sit
+    outside the identity an acceptance records."""
+    with pytest.raises(ValueError, match="payload states none"):
+        proposal_payload(
+            _proposal(REVIEW_UNITS, proposal_schema_version="5d-proposal-1")
+        )
+
+
+def test_altering_a_proposed_expectation_is_a_different_proposal(
+    tmp_path: Path,
+) -> None:
+    """The refusal the contract exists for: an inventory edited after review
+    cannot inherit the acceptance of the one that was reviewed."""
+    reviewed = _proposal(REVIEW_UNITS)
+    identity = proposal_identity(reviewed)
+
+    widened = _proposal((replace(REVIEW_UNITS[0], expected_rules=()), REVIEW_UNITS[1]))
+    assert proposal_identity(widened) != identity
+
+    path = tmp_path / "proposal.json"
+    path.write_text(json.dumps(proposal_payload(widened)), encoding="utf-8")
+    with pytest.raises(ProposalLoadError, match="not the .* this caller named"):
+        load_proposal(path, expected_identity=identity)
+
+
+def _rule_spans(unit: ReviewUnit) -> tuple[str, ...]:
+    """The accepted spans *unit*'s rules were read from, in first-seen order.
+
+    A batch that accepts a unit has to accept the source its rules name: an
+    expectation read from text this acceptance does not hold is not coverage of
+    anything it accepted.
+    """
+    return tuple(
+        dict.fromkeys(
+            span_id for rule in unit.expected_rules for span_id in rule.source_span_ids
+        )
+    )
+
+
+def test_a_second_batch_carries_the_first_batchs_inventory_forward() -> None:
+    proposal = _proposal(REVIEW_UNITS)
+    entry_spans = _rule_spans(REVIEW_UNITS[0])
+    rest = [
+        p.span.span_id
+        for p in proposal.proposed_spans
+        if p.span.span_id not in entry_spans
+    ]
+    first = _accept(
+        proposal, resolved_scope=entry_spans, resolved_review_units=(UNIT_IDS[0],)
+    )
+    second = accept_proposal(
+        proposal,
+        batch_id="batch-2",
+        rule="the remaining spans",
+        resolved_scope=tuple(rest),
+        reviewer="owner",
+        accepted_at="2026-08-10T00:00:00Z",
+        prior=first,
+        resolved_review_units=(UNIT_IDS[1],),
+    )
+    assert second.oracle.review_units == REVIEW_UNITS
+    # Each unit is attributed to the action that accepted it, not to the batch
+    # that happened to be beside it.
+    assert {a.unit_id: a.batch_id for a in second.review_unit_acceptances} == {
+        UNIT_IDS[0]: "batch-1",
+        UNIT_IDS[1]: "batch-2",
+    }
+
+
+def test_a_unit_id_a_prior_batch_recorded_is_refused() -> None:
+    """Two units under one id would make every expectation's parentage ambiguous."""
+    proposal = _proposal(REVIEW_UNITS)
+    entry_spans = _rule_spans(REVIEW_UNITS[0])
+    rest = [
+        p.span.span_id
+        for p in proposal.proposed_spans
+        if p.span.span_id not in entry_spans
+    ]
+    twin = replace(REVIEW_UNITS[0], leaf_ids=(SPELL_LEAF,), expected_rules=())
+    with pytest.raises(AcceptanceError, match="already recorded by a prior batch"):
+        accept_proposal(
+            _proposal((twin,)),
+            batch_id="batch-2",
+            rule="the remaining spans",
+            resolved_scope=tuple(rest),
+            reviewer="owner",
+            accepted_at="2026-08-10T00:00:00Z",
+            prior=_accept(
+                proposal,
+                resolved_scope=entry_spans,
+                resolved_review_units=(UNIT_IDS[0],),
+            ),
+            resolved_review_units=(UNIT_IDS[0],),
+        )
+
+
+def test_an_expectation_with_no_home_in_the_representation_is_refused() -> None:
+    """Refused before an artifact exists, not after the loader rejects one."""
+    homeless = replace(
+        REVIEW_UNITS[0],
+        expected_rules=(ExpectedRule(SPELL_KEY, "component:nowhere"),),
+    )
+    with pytest.raises(AcceptanceError, match="not coverage of what it claims"):
+        _accept(_proposal((homeless,)), resolved_review_units=(homeless.unit_id,))
+
+
+def test_a_unit_expecting_a_rule_an_earlier_batch_structured_is_accepted() -> None:
+    """Checked against the merged representation, not against this batch's.
+
+    The second batch accepts one span and records a unit expecting the
+    descriptor component — which the first batch's representation already
+    carries. Against this batch's proposal alone that is indistinguishable from
+    the homeless expectation above.
+    """
+    proposal = _proposal(REVIEW_UNITS)
+    first_span, *rest = [p.span.span_id for p in proposal.proposed_spans]
+    second = accept_proposal(
+        proposal,
+        batch_id="batch-2",
+        rule="the remaining spans",
+        resolved_scope=tuple(rest),
+        reviewer="owner",
+        accepted_at="2026-08-10T00:00:00Z",
+        prior=_accept(proposal, resolved_scope=(first_span,)),
+        resolved_review_units=(UNIT_IDS[0],),
+    )
+    assert second.oracle.review_units == (REVIEW_UNITS[0],)
+
+
+# -- a batch that accepted only a coherent unit -------------------------------
+#
+# The support section is read, found to state no mechanical rule, and its one
+# leaf is recorded as reviewed. There is nothing to classify and nothing to
+# structure, so the action names no span. Requiring one would mean classifying
+# extra text to record a legitimate review.
+
+
+def _unit_only_second_batch() -> Any:
+    proposal = _proposal(REVIEW_UNITS)
+    first = _accept(proposal, resolved_review_units=(UNIT_IDS[0],))
+    return accept_proposal(
+        proposal,
+        batch_id="batch-support",
+        rule="the support section, read and found to state no mechanical rule",
+        resolved_scope=(),
+        reviewer="owner",
+        accepted_at="2026-08-11T00:00:00Z",
+        prior=first,
+        resolved_review_units=(UNIT_IDS[1],),
+    )
+
+
+def test_a_batch_may_accept_a_review_unit_and_no_span() -> None:
+    inputs = _unit_only_second_batch()
+    (support,) = [b for b in inputs.batches if b.batch_id == "batch-support"]
+    assert support.resolved_scope == ()
+    assert inputs.oracle.review_units == REVIEW_UNITS
+    assert {a.unit_id: a.batch_id for a in inputs.review_unit_acceptances} == {
+        UNIT_IDS[0]: "batch-1",
+        UNIT_IDS[1]: "batch-support",
+    }
+    # A span-free batch is complete evidence, not incomplete evidence.
+    assert validate_acceptance(inputs.classification()) == ()
+
+
+def test_an_acceptance_action_naming_nothing_at_all_is_still_refused() -> None:
+    with pytest.raises(AcceptanceError, match="at least one span or one review unit"):
+        _accept(_proposal(REVIEW_UNITS), resolved_scope=())
+
+
+def test_a_unit_only_batch_survives_the_artifact_and_the_gate(
+    session: Session, tmp_path: Path
+) -> None:
+    """Production acceptance, committed artifact, persistence and the gate."""
+    inputs = _unit_only_second_batch()
+
+    path = tmp_path / "accepted.json"
+    path.write_text(json.dumps(accepted_inputs_payload(inputs)), encoding="utf-8")
+    reloaded = load_accepted_inputs(path)
+    assert reloaded.review_unit_acceptances == inputs.review_unit_acceptances
+
+    identified = identify_projection(candidate_from_accepted_inputs(reloaded))
+    persist_draft(session, identified, now=NOW)
+    record_persisted_state_digest(session, identified.projection_uuid)
+    session.flush()
+    assert verify_persisted_state(session, identified.projection_uuid) == ()
+
+    rebuilt = reconstruct_candidate(session, identified.projection_uuid)
+    assert {
+        (a.unit_id, a.batch_id, a.reviewer, a.accepted_at)
+        for a in rebuilt.classification.review_unit_acceptances
+    } == {
+        (a.unit_id, a.batch_id, a.reviewer, a.accepted_at)
+        for a in inputs.review_unit_acceptances
+    }
+    assert identify_projection(rebuilt).projection_uuid == identified.projection_uuid
+
+    mark_release_published(session)
+    result = run_publication_gate(session, identified.projection_uuid, reloaded.oracle)
+    assert result.passed, [f.detail for f in result.failures]
+
+
+def test_an_artifact_whose_unit_no_action_accepted_is_refused(tmp_path: Path) -> None:
+    """The widened-inventory refusal at the loader: the file states a unit, and
+    no acceptance record names it."""
+    inputs = _accept(_proposal(REVIEW_UNITS), resolved_review_units=UNIT_IDS)
+    payload = accepted_inputs_payload(inputs)
+    records = payload["acceptance"]["review_unit_records"]  # type: ignore[index]
+    payload["acceptance"]["review_unit_records"] = [  # type: ignore[index]
+        r for r in records if r["unit_id"] != UNIT_IDS[1]
+    ]
+
+    path = tmp_path / "accepted.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(OracleLoadError, match="no acceptance action records accepting"):
+        load_accepted_inputs(path)
+
+
+def test_an_acceptance_record_naming_a_unit_the_artifact_lacks_is_refused(
+    tmp_path: Path,
+) -> None:
+    inputs = _accept(_proposal(REVIEW_UNITS), resolved_review_units=UNIT_IDS)
+    payload = accepted_inputs_payload(inputs)
+    payload["review_units"] = [  # type: ignore[index]
+        u for u in payload["review_units"] if u["unit_id"] != UNIT_IDS[1]  # type: ignore[index,union-attr]
+    ]
+
+    path = tmp_path / "accepted.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(OracleLoadError, match="does not state"):
+        load_accepted_inputs(path)

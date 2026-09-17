@@ -38,8 +38,8 @@ from afterworlds.ingestion.mechanical.persistence import (
     verify_persisted_state,
 )
 from afterworlds.ingestion.mechanical.policy import (
-    SEMANTIC_POLICY_VERSION,
-    semantic_policy_hash,
+    POLICY_1_HASH,
+    POLICY_1_VERSION,
 )
 from afterworlds.ingestion.mechanical.projection import (
     SCHEMA_1_VERSION,
@@ -116,8 +116,16 @@ _BINDING = ReleaseBinding(
 _LEDGER = ClassificationLedger(
     package_uuid="pkg-schema1",
     release_version="rel-schema1",
-    policy_version=SEMANTIC_POLICY_VERSION,
-    policy_hash=semantic_policy_hash(),
+    # The policy the captured identities were derived under, pinned literally.
+    # Reading the build constant here made a *historical* identity depend on a
+    # *current* one: when the Owner Decision of 2026-09-16 minted
+    # ``5d-semantic-policy-2``, every literal below stopped reproducing, and
+    # the module whose whole point is that old code and new code agree would
+    # have been "fixed" by recapturing them under new code. Same discipline as
+    # the schema literals above — a historical pin names the contract it was
+    # captured under.
+    policy_version=POLICY_1_VERSION,
+    policy_hash=POLICY_1_HASH,
     spans=(),
     batches=(),
     acceptances=(),

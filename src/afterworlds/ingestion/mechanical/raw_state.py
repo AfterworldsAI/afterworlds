@@ -36,6 +36,8 @@ from sqlalchemy.orm import Session
 
 from afterworlds.ingestion.mechanical.representation import RECORD_OWNED_REFERENCE
 from afterworlds.persistence.orm.mechanical import (
+    REVIEW_GROUP_EXCLUDED,
+    REVIEW_GROUP_SUPPORTING,
     MechanicalAcceptanceBatchORM,
     MechanicalAcceptanceORM,
     MechanicalBatchDiffORM,
@@ -49,6 +51,10 @@ from afterworlds.persistence.orm.mechanical import (
     MechanicalRecordORM,
     MechanicalReferenceORM,
     MechanicalRelationshipORM,
+    MechanicalReviewExpectationORM,
+    MechanicalReviewGroupORM,
+    MechanicalReviewUnitAcceptanceORM,
+    MechanicalReviewUnitORM,
     MechanicalSpanORM,
 )
 
@@ -116,6 +122,16 @@ class RawProjectionState:
     #: Empty for any component that states a conjunction rather than a choice,
     #: which is every component built before schema 2.
     component_options: Sequence[MechanicalComponentOptionORM] = ()
+    #: Empty for every projection accepted before review units existed, and for
+    #: any projection whose partition is complete without them.
+    review_units: Sequence[MechanicalReviewUnitORM] = ()
+    review_expectations: Sequence[MechanicalReviewExpectationORM] = ()
+    #: The unit's supporting and excluded groups, in one table discriminated by
+    #: ``role`` because they are one obligation: what this unit decided about
+    #: the source it named.
+    review_groups: Sequence[MechanicalReviewGroupORM] = ()
+    #: One per accepted unit, and empty exactly when the inventory is.
+    review_unit_acceptances: Sequence[MechanicalReviewUnitAcceptanceORM] = ()
 
 
 def load_raw_state(
@@ -148,15 +164,20 @@ def load_raw_state(
         relationships=rows(MechanicalRelationshipORM),
         references=rows(MechanicalReferenceORM),
         provenance=rows(MechanicalProvenanceORM),
+        review_units=rows(MechanicalReviewUnitORM),
+        review_expectations=rows(MechanicalReviewExpectationORM),
+        review_groups=rows(MechanicalReviewGroupORM),
+        review_unit_acceptances=rows(MechanicalReviewUnitAcceptanceORM),
     )
 
 
-def _valid_target_key(value: object) -> bool:
-    """A persisted provenance target key must be a list of plain strings.
+def _is_string_list(value: object) -> bool:
+    """A JSON column declared as a list of plain strings really holds one.
 
     The column is JSON, so it can hold anything. Only a list of strings can
     become the declared immutable tuple; a nested structure or a number would
-    have to be coerced, and a coerced key addresses an element nobody declared.
+    have to be coerced, and a coerced provenance key addresses an element nobody
+    declared, just as a coerced leaf id names source nobody reviewed.
     """
     return isinstance(value, list) and all(type(v) is str for v in value)
 
@@ -344,11 +365,110 @@ def validate_raw_closure(raw: RawProjectionState) -> None:
             )
 
     for claim in raw.provenance:
-        if not _valid_target_key(claim.target_key):
+        if not _is_string_list(claim.target_key):
             problems.append(
                 f"rp_mech_provenance row {claim.row_id}: target_key "
                 f"{claim.target_key!r} is not a list of strings"
             )
+
+    # Review units own a logical identity of (projection_uuid, unit_id), and
+    # their expectation rows are matched on it. Structure only: whether the
+    # expectations are *satisfied* is the candidate validator's question, and
+    # answering it here would put the same rule in two places.
+    unit_ids: set[str] = set()
+    for unit in raw.review_units:
+        if unit.unit_id in unit_ids:
+            problems.append(
+                f"rp_mech_review_units: duplicate unit_id {unit.unit_id!r} "
+                "in one projection"
+            )
+        unit_ids.add(unit.unit_id)
+        if not _is_string_list(unit.leaf_ids):
+            problems.append(
+                f"rp_mech_review_units row {unit.row_id}: leaf_ids "
+                f"{unit.leaf_ids!r} is not a list of strings"
+            )
+
+    for expectation in raw.review_expectations:
+        if expectation.unit_id not in unit_ids:
+            problems.append(
+                f"rp_mech_review_expectations row {expectation.row_id}: names "
+                f"review unit {expectation.unit_id!r} with no header in this "
+                "projection"
+            )
+        if not _is_string_list(expectation.source_span_ids):
+            problems.append(
+                f"rp_mech_review_expectations row {expectation.row_id}: "
+                f"source_span_ids {expectation.source_span_ids!r} is not a list "
+                "of strings"
+            )
+
+    # Structure only, again: whether a group's leaves are inside its unit and
+    # whether what it supports exists are the candidate validator's questions.
+    # What cannot be answered there is whether the row means anything at all —
+    # a role this build has no reading for, or a row carrying the other role's
+    # fields, reconstructs into a decision nobody recorded.
+    for group in raw.review_groups:
+        if group.unit_id not in unit_ids:
+            problems.append(
+                f"rp_mech_review_groups row {group.row_id}: names review unit "
+                f"{group.unit_id!r} with no header in this projection"
+            )
+        if not _is_string_list(group.leaf_ids):
+            problems.append(
+                f"rp_mech_review_groups row {group.row_id}: leaf_ids "
+                f"{group.leaf_ids!r} is not a list of strings"
+            )
+        if group.role == REVIEW_GROUP_SUPPORTING:
+            if group.supports_record_key is None or group.reason is not None:
+                problems.append(
+                    f"rp_mech_review_groups row {group.row_id}: a supporting "
+                    "group names the authority it supports and no exclusion "
+                    "reason"
+                )
+        elif group.role == REVIEW_GROUP_EXCLUDED:
+            if group.reason is None or group.supports_record_key is not None:
+                problems.append(
+                    f"rp_mech_review_groups row {group.row_id}: an excluded "
+                    "group states a reason and supports nothing"
+                )
+        else:
+            problems.append(
+                f"rp_mech_review_groups row {group.row_id}: role "
+                f"{group.role!r} is not a decision this build can read"
+            )
+
+    # Both directions, because both are losable. A row naming no unit is
+    # evidence of an acceptance nothing holds; a unit with no row is an
+    # inventory nobody is recorded as having accepted, which is the state the
+    # table exists to make impossible.
+    accepted_unit_ids: set[str] = set()
+    for unit_acceptance in raw.review_unit_acceptances:
+        if unit_acceptance.unit_id not in unit_ids:
+            problems.append(
+                f"rp_mech_review_unit_acceptances row {unit_acceptance.row_id}: "
+                f"names review unit {unit_acceptance.unit_id!r} with no header "
+                "in this projection"
+            )
+        if unit_acceptance.unit_id in accepted_unit_ids:
+            problems.append(
+                "rp_mech_review_unit_acceptances: duplicate acceptance of unit "
+                f"{unit_acceptance.unit_id!r} in one projection"
+            )
+        accepted_unit_ids.add(unit_acceptance.unit_id)
+        if (
+            unit_acceptance.batch_id is not None
+            and unit_acceptance.batch_id not in batch_ids
+        ):
+            problems.append(
+                f"rp_mech_review_unit_acceptances row {unit_acceptance.row_id}: "
+                f"names batch {unit_acceptance.batch_id!r} with no header in "
+                "this projection"
+            )
+    for unit_id in sorted(unit_ids - accepted_unit_ids):
+        problems.append(
+            f"rp_mech_review_units: unit {unit_id!r} has no acceptance record"
+        )
 
     if problems:
         raise PersistedStateReconstructionError(

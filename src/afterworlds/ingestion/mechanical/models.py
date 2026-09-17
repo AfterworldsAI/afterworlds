@@ -53,14 +53,46 @@ class ReviewState(StrEnum):
 class ComponentHandling(StrEnum):
     """How a publishable component's meaning is represented (#137 contract 2).
 
-    ``PROSE_BOUND`` is an affirmative judgement backed by a closed
-    irreducibility reason — never a backlog state and never a synonym for
-    "the adapter cannot execute it".
+    ``PROSE_BOUND`` is an affirmative judgement backed by exactly one closed
+    reason — never a backlog state and never a synonym for "the adapter cannot
+    execute it". Since schema 12 there are two catalogs it may be backed by,
+    and which one applies is itself the judgement: an
+    :class:`IrreducibilityReason` says the meaning requires judgement to apply,
+    and a :class:`ProseRetentionReason` says the meaning is reducible but no
+    identified code-owned use in play, explanation or correction needs a
+    separate structured field for it. Stating the first for the second is the
+    relabelling ADR-005d forbids (Owner Decision 2026-09-16); stating both is a
+    contradiction, and :mod:`~afterworlds.ingestion.mechanical.validation`
+    refuses each.
     """
 
     STRUCTURED = "structured"
     PROSE_BOUND = "prose_bound"
     MIXED = "mixed"
+
+
+class ReviewUnitKind(StrEnum):
+    """The coherent source boundary one review unit was reviewed at.
+
+    ADR-005d Decision 2 names exactly these three: "meaningful section, entry,
+    or table boundaries". A closed catalog rather than free text, and carried in
+    the semantic policy payload beside the reason catalogs, because a unit's
+    kind is a claim stated in accepted authority — the boundary a reviewer says
+    they read the source at — and a build that admitted a fourth kind would be
+    validating coverage under a contract nothing recorded.
+    """
+
+    SECTION = "section"
+    ENTRY = "entry"
+    TABLE = "table"
+
+
+@dataclass(frozen=True)
+class ReviewUnitKindEntry:
+    """One entry of the closed, identity-bound review-unit kind catalog."""
+
+    code: str
+    description: str
 
 
 @dataclass(frozen=True)
@@ -74,6 +106,19 @@ class NonMechanicalReason:
 @dataclass(frozen=True)
 class IrreducibilityReason:
     """One entry of the closed prose-bound irreducibility catalog."""
+
+    code: str
+    description: str
+
+
+@dataclass(frozen=True)
+class ProseRetentionReason:
+    """One entry of the closed prose-retention catalog.
+
+    Distinct from :class:`IrreducibilityReason` and never interchangeable with
+    it: an irreducibility reason claims the meaning cannot be reduced, a
+    retention reason claims only that nothing identified needs it reduced.
+    """
 
     code: str
     description: str
@@ -100,6 +145,135 @@ class SemanticSpan:
     # Required exactly when disposition is NON_MECHANICAL; must name a code in
     # the frozen catalog.
     non_mechanical_reason_code: str | None = None
+
+
+@dataclass(frozen=True)
+class ExpectedRule:
+    """One rule a reviewer read in the source and requires to have a home.
+
+    Derived from the source during review and checked against the
+    representation — never read back out of it. ADR-005d Decision 2 is explicit
+    that expected entries and table rows "must be derived from the source and
+    checked in review, not inferred from the output being tested", which is why
+    nothing in this codebase derives an :class:`ExpectedRule` from a
+    ``RepresentationDraft``. An expectation that an omission could not violate
+    is not coverage evidence.
+
+    Granularity is the component plus, where the reviewer decided it, the
+    structured family that must carry the meaning, plus the exact source text
+    the rule was read from. The component and family alone cannot carry the
+    obligation: one paragraph may state two exceptions of one family in one
+    component, and a check that asked only whether *some* fact of that family
+    survived would pass while one of them was dropped. ``source_span_ids`` is
+    what tells them apart, and it costs the reviewer nothing to state — the
+    spans are the ones already being proposed and accepted.
+
+    Still nothing here predicts a fact identity. The expectation names source
+    text; the build is what decides which structure carries it.
+    """
+
+    record_key: str
+    component_key: str
+    #: The structured family that must carry this rule, or ``None`` when the
+    #: reviewer accepted exact governing prose as its home. ``None`` is a
+    #: judgement, not an absence: it says the component must exist and must be
+    #: prose-bound or mixed, so dropping the passage still fails.
+    fact_family: str | None = None
+    #: The accepted spans, inside this unit's leaves, whose text states this
+    #: rule. Required in substance — an expectation naming none is reported as
+    #: a violation rather than refused at construction, because an inventory
+    #: that cannot be read cannot be reported on. Several spans are legitimate:
+    #: a rule stated across two sentences is one rule, and **each named span
+    #: is required, not an alternative** — every one of them must have the
+    #: appropriate actual authority home, or the rule is reported as unmet
+    #: naming exactly the spans that do not.
+    #:
+    #: A structure may legitimately be the home of more than one expectation —
+    #: one shared representation of a statement the source repeats — because a
+    #: fact may carry a provenance claim to each span that states it.
+    source_span_ids: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class SupportingGroup:
+    """Source text inside a unit that explains authority rather than stating it.
+
+    The Owner Decision of 2026-09-16 removed the obligation to partition every
+    character of a reviewed leaf, not the obligation to say what the reviewer
+    decided about the text. Supporting material is the case that decision makes
+    easiest to lose: an example, a worked calculation, or a "see also" is not a
+    rule, so nothing requires it to have a home, and under unit accounting it
+    could vanish from the record entirely.
+
+    So it keeps one decision per *group* — not per character and not per
+    fragment — naming which leaves it covers and which authority it supports.
+    ``supports_component_key`` is empty when the group supports the record as a
+    whole, which is what a section's introductory example usually does.
+    """
+
+    leaf_ids: tuple[str, ...]
+    supports_record_key: str
+    supports_component_key: str = ""
+
+
+@dataclass(frozen=True)
+class ExcludedGroup:
+    """Source text inside a unit the reviewer decided carries no mechanic.
+
+    The sibling of :class:`SupportingGroup`, and deliberately the same shape:
+    exact leaf membership plus one honest decision about it. ``reason`` is free
+    prose, one sentence per group, because the amendment asks for "a reason for
+    the applicable group" and a closed catalog here would force a reviewer to
+    pick the nearest wrong word. The excluded text remains in the immutable 5c
+    source either way.
+    """
+
+    leaf_ids: tuple[str, ...]
+    reason: str
+
+
+@dataclass(frozen=True)
+class ReviewUnit:
+    """One coherent stretch of source that a human actually reviewed.
+
+    ADR-005d Decision 2, as amended by the Owner Decision of 2026-09-16. The
+    inventory of units is the review scope and the coverage evidence; it is not
+    a second copy of the source, and a unit "need not become a record or
+    component" (Decision 3). What it must do is resolve to *exact* source
+    membership, which is why ``leaf_ids`` names 5c leaves rather than a title
+    or a page range.
+
+    A unit is the alternative to partitioning every character interval of a
+    leaf into accepted spans: the amendment says such rows "are not required",
+    while existing accepted partitions "remain valid and are not rewritten".
+    Both therefore count as coverage, and a leaf may be covered by either.
+    Exact subspans remain where a fact, rule, qualification, citation, or
+    correction needs one.
+
+    **A unit relaxes the partition only to the extent it accounts for itself.**
+    Three kinds of decision, and every leaf the unit names must be reached by at
+    least one of them: a rule read from source text inside the unit, a
+    supporting group, or an excluded group. Accounting at group granularity is
+    the whole point of the amendment — one decision may cover a whole coherent
+    group, and nothing here asks for a row per character or per extraction
+    fragment. What it does not permit is a unit that names leaves and decides
+    nothing about them: blank accounting is not review, and accepting it as
+    coverage would drop exactly the heading, example and explanation links the
+    span partition used to hold.
+
+    Audit metadata — who reviewed it, when, and their comments — is deliberately
+    absent. A unit states what was reviewed and what must be there, and those
+    are the only parts that bear on identity.
+    """
+
+    unit_id: str
+    kind: ReviewUnitKind
+    #: Exact 5c leaf membership. Held sorted in every payload so that two
+    #: reviewers naming the same leaves in different orders record one unit.
+    leaf_ids: tuple[str, ...]
+    expected_rules: tuple[ExpectedRule, ...] = ()
+    supporting_groups: tuple[SupportingGroup, ...] = ()
+    excluded_groups: tuple[ExcludedGroup, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -177,6 +351,38 @@ class AcceptanceRecord:
 
 
 @dataclass(frozen=True)
+class ReviewUnitAcceptance:
+    """Evidence that one :class:`ReviewUnit` was explicitly accepted.
+
+    The exact sibling of :class:`AcceptanceRecord`, and deliberately a separate
+    record rather than a field on :class:`AcceptanceBatch`. A unit is accepted
+    by the same kind of action a span is — a named reviewer, at a named time,
+    as part of a named batch — and giving it the same shape means the two
+    halves of one acceptance are audited by the same rules instead of by a
+    second mechanism that would eventually disagree.
+
+    Without this, a batch that accepted only review units recorded nobody: its
+    scope was empty, so it produced no :class:`AcceptanceRecord`, and the
+    reviewer and timestamp handed to ``accept_proposal`` reached no retained
+    evidence at all. It also carries the attribution a span-bearing batch
+    already has — which action accepted *this* unit — which the merged
+    inventory on its own cannot state.
+
+    ``batch_id`` is ``None`` for an individually reviewed unit and otherwise
+    names an :class:`AcceptanceBatch`, exactly as it is on the sibling: being
+    audited by the same rules means having the same shape, and a ledger whose
+    span acceptances predate batches has review-unit acceptances that do too.
+    ``accept_proposal`` always names the batch it is taking, so every unit
+    accepted through the production path carries its attribution.
+    """
+
+    unit_id: str
+    batch_id: str | None
+    reviewer: str
+    accepted_at: str
+
+
+@dataclass(frozen=True)
 class ClassificationLedger:
     """The complete accepted semantic accounting for one bound 5c release.
 
@@ -205,3 +411,8 @@ class ClassificationLedger:
     spans: tuple[SemanticSpan, ...]
     batches: tuple[AcceptanceBatch, ...]
     acceptances: tuple[AcceptanceRecord, ...]
+    #: Empty for every ledger accepted before review units existed, which is all
+    #: seven accepted batches. The canonical evidence payload omits the key when
+    #: it is empty, so their committed bytes and recorded persisted-state
+    #: digests are unchanged.
+    review_unit_acceptances: tuple[ReviewUnitAcceptance, ...] = ()

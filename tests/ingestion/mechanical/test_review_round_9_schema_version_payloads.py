@@ -61,8 +61,8 @@ from afterworlds.ingestion.mechanical.persistence import (
     verify_persisted_state,
 )
 from afterworlds.ingestion.mechanical.policy import (
-    SEMANTIC_POLICY_VERSION,
-    semantic_policy_hash,
+    POLICY_1_HASH,
+    POLICY_1_VERSION,
 )
 from afterworlds.ingestion.mechanical.projection import (
     _MERGED_COMPONENT_FIELDS,
@@ -77,6 +77,7 @@ from afterworlds.ingestion.mechanical.projection import (
     SCHEMA_9_VERSION,
     SCHEMA_10_VERSION,
     SCHEMA_11_VERSION,
+    SCHEMA_12_VERSION,
     LegacySchemaPayloadError,
     ProjectionCandidate,
     ReleaseBinding,
@@ -173,8 +174,16 @@ _BINDING = ReleaseBinding(
 _LEDGER = ClassificationLedger(
     package_uuid="pkg-schema2",
     release_version="rel-schema2",
-    policy_version=SEMANTIC_POLICY_VERSION,
-    policy_hash=semantic_policy_hash(),
+    # The policy the captured identities were derived under, pinned literally.
+    # Reading the build constant here made a *historical* identity depend on a
+    # *current* one: when the Owner Decision of 2026-09-16 minted
+    # ``5d-semantic-policy-2``, every literal below stopped reproducing, and
+    # the module whose whole point is that old code and new code agree would
+    # have been "fixed" by recapturing them under new code. Same discipline as
+    # the schema literals above — a historical pin names the contract it was
+    # captured under.
+    policy_version=POLICY_1_VERSION,
+    policy_hash=POLICY_1_HASH,
     spans=(),
     batches=(),
     acceptances=(),
@@ -377,11 +386,12 @@ def test_the_current_schema_is_the_default_and_is_schema_3() -> None:
 
 UNKNOWN_VERSIONS = [
     # "5d-representation-schema-4" used to sit here as the next unminted
-    # version, then "…-6", "…-7", "…-8", "…-9", "…-10" and "…-11". Each is
-    # declared now, so the probe moves to the one after — the property is that
-    # an *unrecognised* version is refused, not that a particular string is.
+    # version, then "…-6", "…-7", "…-8", "…-9", "…-10", "…-11" and "…-12".
+    # Each is declared now, so the probe moves to the one after — the property
+    # is that an *unrecognised* version is refused, not that a particular
+    # string is.
     "5d-representation-schema-0",
-    "5d-representation-schema-12",
+    "5d-representation-schema-13",
     "representation-schema-3",
     "",
 ]
@@ -414,7 +424,7 @@ def test_an_unknown_version_is_refused_even_with_no_components() -> None:
         provenance=(),
     )
     with pytest.raises(UnsupportedSchemaVersionError):
-        representation_payload(empty, schema_version="5d-representation-schema-12")
+        representation_payload(empty, schema_version="5d-representation-schema-13")
 
 
 def test_the_refusal_names_the_versions_this_build_knows() -> None:
@@ -464,6 +474,7 @@ def test_each_merged_version_extends_the_one_before_it() -> None:
         SCHEMA_9_VERSION,
         SCHEMA_10_VERSION,
         SCHEMA_11_VERSION,
+        SCHEMA_12_VERSION,
     ]
     assert sorted(_MERGED_COMPONENT_FIELDS) == sorted(succession)
     for earlier, later in pairwise(succession):
@@ -488,7 +499,7 @@ def test_every_merged_version_states_its_own_key_set() -> None:
     assert REPRESENTATION_SCHEMA_VERSION in _MERGED_COMPONENT_FIELDS
     with pytest.raises(UnsupportedSchemaVersionError):
         representation_payload(
-            schema_2_draft(), schema_version="5d-representation-schema-12"
+            schema_2_draft(), schema_version="5d-representation-schema-13"
         )
 
 

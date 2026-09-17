@@ -131,6 +131,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_10_VERSION,
     SCHEMA_11_HASH,
     SCHEMA_11_VERSION,
+    accepted_schema_contracts,
     lift_accepted_inputs,
     lift_path,
 )
@@ -927,9 +928,14 @@ def test_the_mint_declares_seven_families_twelve_vocabularies_and_one_member() -
         if isinstance(fact, MovementPermissionFact)
     }
 
-    # This module is written against live authority.
-    assert REPRESENTATION_SCHEMA_VERSION == SCHEMA_11_VERSION
-    assert representation_schema_hash() == SCHEMA_11_HASH
+    # The pin this module is written against was the live one until the
+    # practical-reliability amendment minted schema 12. It is still a
+    # recognised contract and still the source of a registered crossing, and
+    # schema 11's own delta is what this module asserts, so the pin is read
+    # from the registry rather than from live authority.
+    assert (SCHEMA_11_VERSION, SCHEMA_11_HASH) in accepted_schema_contracts()
+    assert REPRESENTATION_SCHEMA_VERSION != SCHEMA_11_VERSION
+    assert representation_schema_hash() != SCHEMA_11_HASH
 
 
 def test_the_crossing_from_schema_10_is_exactly_one_registered_step() -> None:
@@ -1275,16 +1281,16 @@ def test_an_earlier_contract_refuses_the_jump_member_it_never_registered(
 
 
 def test_an_unminted_version_is_refused() -> None:
-    """Schema 12 does not exist, and the payload seam says so rather than guessing.
+    """Schema 13 does not exist, and the payload seam says so rather than guessing.
 
     Version legality is not ``declared_meaning_violations``'s question — it
     answers what a *recognised* schema can state. The emitter is where an
-    unrecognised version is refused, and it stays refused now that ``…-11`` is
-    real: the probe moves to the next unminted string rather than the assertion
-    being retired.
+    unrecognised version is refused, and it stays refused now that ``…-11`` and
+    ``…-12`` are both real: the probe moves to the next unminted string rather
+    than the assertion being retired.
     """
     with pytest.raises(UnsupportedSchemaVersionError):
-        representation_payload(_draft(), schema_version="5d-representation-schema-12")
+        representation_payload(_draft(), schema_version="5d-representation-schema-13")
     assert representation_payload(
         _draft(), schema_version=REPRESENTATION_SCHEMA_VERSION
     ) == representation_payload(_draft())

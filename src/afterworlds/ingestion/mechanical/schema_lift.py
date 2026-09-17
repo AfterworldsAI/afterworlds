@@ -99,6 +99,8 @@ __all__ = [
     "SCHEMA_10_VERSION",
     "SCHEMA_11_HASH",
     "SCHEMA_11_VERSION",
+    "SCHEMA_12_HASH",
+    "SCHEMA_12_VERSION",
     "SchemaLiftRecord",
     "UnknownSchemaLiftError",
     "lift_for",
@@ -132,6 +134,8 @@ SCHEMA_10_HASH = "c39e3a35e197a1d1db5c2c2b3445ff0cbf03395c91e3426353a4bce589be4b
 SCHEMA_11_VERSION = "5d-representation-schema-11"
 #: Pinned literally, for the same reason every predecessor is.
 SCHEMA_11_HASH = "605e8b4cfdaf0cb6d4f0b65fcf0d23f3e45c4734404c9568f41dc4261eefd037"  # noqa: E501  # pragma: allowlist secret
+SCHEMA_12_VERSION = "5d-representation-schema-12"
+SCHEMA_12_HASH = "a706d9df46d2232293d40fa5bfd7c2d3e0480cd26041461b21c8eeb5027af0e8"  # noqa: E501  # pragma: allowlist secret
 
 
 class SchemaLiftError(ValueError):
@@ -439,6 +443,61 @@ SCHEMA_LIFTS: dict[tuple[str, str], SchemaLift] = {
             "which verify_lift proves element by element rather than "
             "asserting. A schema-10 artifact is the only shape this "
             "succession carries, and it carries every one of them."
+        ),
+    ),
+    (SCHEMA_11_VERSION, SCHEMA_11_HASH): SchemaLift(
+        lift_id="5d-lift-schema-11-to-12",
+        from_version=SCHEMA_11_VERSION,
+        from_hash=SCHEMA_11_HASH,
+        to_version=SCHEMA_12_VERSION,
+        to_hash=SCHEMA_12_HASH,
+        rationale=(
+            "Schema 12 carries the Owner Decision of 2026-09-16 (ADR-005d, "
+            "#137 contract 2) into the serialized grammar, and nothing else. "
+            "It mints no fact family, no vocabulary, no vocabulary member, no "
+            "ownership form, no required field and no intrinsic invariant on "
+            "any family an earlier schema already had. "
+            "Its whole surface is one distinction the amendment requires and "
+            "schema 11 had no shape for: prose retained because judgement is "
+            "required, and prose retained because no identified code-owned "
+            "use in play, explanation or correction needs a separate "
+            "structured field. Schema 11 could state only the first, so "
+            "recording the second meant labelling reducible meaning with an "
+            "irreducibility code — the relabelling the amendment forbids in "
+            "those words. "
+            "The distinction is stated in two halves, and both are needed. "
+            "ComponentDraft and ProseBindingDraft gain "
+            "prose_retention_reason_code, and "
+            "ProseBindingDraft.irreducibility_reason_code becomes nullable so "
+            "a retained-for-reducibility binding states no irreducibility "
+            "reason rather than a false one. The nullable half is registered "
+            "in _OPTIONAL_SINCE, which refuses that null under schemas 1 "
+            "through 11 — where a binding stating no irreducibility reason is "
+            "a binding missing a mandatory one, not a binding retained for a "
+            "different reason. "
+            "prose_retention_reason_code is the first COMPONENT key any "
+            "schema has added since 4's recurs, and every row from schema 5 "
+            "to schema 11 in _MERGED_COMPONENT_FIELDS says in terms that it "
+            "adds none. That is the one movement here that could reach "
+            "accepted authority, and it does not, for a stated reason rather "
+            "than by assumption: the key is omitted when unset, exactly as "
+            "recurs is, and no component or prose binding among the seven "
+            "accepted batches states a retention reason. Every accepted "
+            "component payload, prose-binding payload, fact key, component "
+            "key and provenance coordinate therefore has the same canonical "
+            "form under both contracts, which verify_lift proves element by "
+            "element rather than asserting. "
+            "A component or binding that does state a retention reason under "
+            "an earlier declaration is refused by _POST_SCHEMA_3_FIELDS and "
+            "by the projection payload, never flattened, so the omission "
+            "cannot become a way to forge an identity an earlier reviewer "
+            "signed. "
+            "The policy half of the same decision is versioned separately and "
+            "deliberately: 5d-semantic-policy-2 mints the retention catalog "
+            "this key's values are drawn from, and a schema-12 artifact "
+            "declaring 5d-semantic-policy-1 may carry no retention reason at "
+            "all. A schema-11 artifact is the only shape this succession "
+            "carries, and it carries every one of them."
         ),
     ),
 }

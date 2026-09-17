@@ -240,6 +240,12 @@ class EffectiveComponent:
     semantic_key: str
     handling: ComponentHandling
     irreducibility_reason_code: str | None
+    #: Why the source prose is retained when applying its meaning does *not*
+    #: require judgement. Schema 12. Carried beside the irreducibility reason
+    #: rather than folded into it, because a reader that cannot tell the two
+    #: apart reads ``irreducibility_reason_code is None`` as "this component is
+    #: structured" — which it meant before schema 12 and does not mean now.
+    prose_retention_reason_code: str | None
     facts: tuple[EffectiveFact, ...]
     options: tuple[EffectiveOption, ...] = ()
     applies_when: Applicability | None = None
@@ -441,6 +447,7 @@ def _base_records(candidate: ProjectionCandidate) -> dict[str, EffectiveRecord]:
                 semantic_key=component.semantic_key,
                 handling=component.handling,
                 irreducibility_reason_code=component.irreducibility_reason_code,
+                prose_retention_reason_code=component.prose_retention_reason_code,
                 facts=facts,
                 options=options,
                 applies_when=component.applies_when,
@@ -537,7 +544,11 @@ def _component_from_body(
         record_key=record_key,
         semantic_key=semantic_key,
         handling=body.handling,
+        # Neither reason. Both answer "why is the *source* prose retained",
+        # and an override-supplied component has no source prose: its
+        # authority is the authored patch, which names its own override id.
         irreducibility_reason_code=None,
+        prose_retention_reason_code=None,
         facts=_supplied(body.facts, None),
         # Built fresh rather than by replacing the base component, so a
         # replacement that omits these fields genuinely removes the qualifier
@@ -729,11 +740,11 @@ def _finalize_component(
         handling = ComponentHandling.PROSE_BOUND
     else:
         handling = component.handling
-    reason = (
-        None
-        if handling is ComponentHandling.STRUCTURED
-        else component.irreducibility_reason_code
-    )
+    # Both retention reasons, cleared together: each explains why *prose* is
+    # retained, and a component that ends up STRUCTURED retains none.
+    structured = handling is ComponentHandling.STRUCTURED
+    reason = None if structured else component.irreducibility_reason_code
+    retention = None if structured else component.prose_retention_reason_code
     return replace(
         component,
         facts=facts,
@@ -744,6 +755,7 @@ def _finalize_component(
         options=options,
         handling=handling,
         irreducibility_reason_code=reason,
+        prose_retention_reason_code=retention,
     )
 
 
@@ -1036,15 +1048,20 @@ def _apply_prose_entry(
     before this overlay existed, rather than a value a prose operation
     computed mid-sequence.
 
-    ``irreducibility_reason_code`` is the one field this does touch, and only
-    on ``REPLACE``: that operation discards every prior governing-prose entry
+    The two retention reasons are the fields this does touch, and only on
+    ``REPLACE``: that operation discards every prior governing-prose entry
     — source or authored — for exactly one new authored passage, so a reason
     the base corpus recorded to justify the now-discarded *source* prose's
     irreducibility can no longer honestly describe what governs this
     component. Carrying it forward would present authored-only authority
     under a source-derived irreducibility claim, which ADR-005d forbids the
     same way it forbids a fabricated ``chunk_id`` or copied span provenance.
-    ``APPEND`` and ``DISABLE`` leave it untouched: ``APPEND`` only adds to
+    ``prose_retention_reason_code`` is cleared by the same sentence, word for
+    word: it too justifies the *source* prose ``REPLACE`` just discarded, and
+    schema 12 states exactly one of the two, so clearing one and keeping the
+    other would leave the component claiming its authored passage is retained
+    for a reason nobody reviewed it against.
+    ``APPEND`` and ``DISABLE`` leave them untouched: ``APPEND`` only adds to
     existing governing prose, so any source prose the reason describes
     remains effective; ``DISABLE``'s reason-preserving behavior for a
     now-empty ``PROSE_BOUND`` component is the already-settled exception
@@ -1073,7 +1090,10 @@ def _apply_prose_entry(
     )
     if isinstance(patch, ProseReplacementPatch):
         components[index] = replace(
-            component, governing_prose=(authored,), irreducibility_reason_code=None
+            component,
+            governing_prose=(authored,),
+            irreducibility_reason_code=None,
+            prose_retention_reason_code=None,
         )
         records[target.record_key] = replace(record, components=tuple(components))
         return True, "prose replaced"

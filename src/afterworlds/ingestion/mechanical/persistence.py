@@ -51,10 +51,16 @@ from afterworlds.ingestion.mechanical.models import (
     AcceptanceRecord,
     ClassificationLedger,
     ComponentHandling,
+    ExcludedGroup,
+    ExpectedRule,
     ReviewState,
+    ReviewUnit,
+    ReviewUnitAcceptance,
+    ReviewUnitKind,
     SemanticDiffEntry,
     SemanticDisposition,
     SemanticSpan,
+    SupportingGroup,
 )
 from afterworlds.ingestion.mechanical.projection import (
     IdentifiedProjection,
@@ -70,6 +76,7 @@ from afterworlds.ingestion.mechanical.projection import (
 )
 from afterworlds.ingestion.mechanical.raw_state import (
     PersistedStateReconstructionError,
+    RawProjectionState,
     load_raw_state,
     parse_enum,
     validate_raw_closure,
@@ -121,6 +128,8 @@ from afterworlds.ingestion.mechanical.representation import (
     recurrence_violations,
 )
 from afterworlds.persistence.orm.mechanical import (
+    REVIEW_GROUP_EXCLUDED,
+    REVIEW_GROUP_SUPPORTING,
     MechanicalAcceptanceBatchORM,
     MechanicalAcceptanceORM,
     MechanicalBatchDiffORM,
@@ -134,6 +143,10 @@ from afterworlds.persistence.orm.mechanical import (
     MechanicalRecordORM,
     MechanicalReferenceORM,
     MechanicalRelationshipORM,
+    MechanicalReviewExpectationORM,
+    MechanicalReviewGroupORM,
+    MechanicalReviewUnitAcceptanceORM,
+    MechanicalReviewUnitORM,
     MechanicalSpanORM,
 )
 
@@ -255,6 +268,64 @@ def persist_draft(
             )
         )
 
+    for unit_acceptance in ledger.review_unit_acceptances:
+        session.add(
+            MechanicalReviewUnitAcceptanceORM(
+                projection_uuid=uuid_,
+                unit_id=unit_acceptance.unit_id,
+                batch_id=unit_acceptance.batch_id,
+                reviewer=unit_acceptance.reviewer,
+                accepted_at=unit_acceptance.accepted_at,
+            )
+        )
+
+    # Leaf membership is stored sorted, and expectations and groups are not
+    # given an ordinal, because the accepted inventory is a set of
+    # decisions rather than a sequence: two reviewers who recorded the same
+    # units in a different order reviewed the same scope. Contrast the batch
+    # scope above, whose recorded order is retained evidence and is kept.
+    for unit in candidate.review_units:
+        session.add(
+            MechanicalReviewUnitORM(
+                projection_uuid=uuid_,
+                unit_id=unit.unit_id,
+                kind=unit.kind.value,
+                leaf_ids=sorted(unit.leaf_ids),
+            )
+        )
+        for rule in unit.expected_rules:
+            session.add(
+                MechanicalReviewExpectationORM(
+                    projection_uuid=uuid_,
+                    unit_id=unit.unit_id,
+                    record_key=rule.record_key,
+                    component_key=rule.component_key,
+                    fact_family=rule.fact_family,
+                    source_span_ids=sorted(rule.source_span_ids),
+                )
+            )
+        for supporting in unit.supporting_groups:
+            session.add(
+                MechanicalReviewGroupORM(
+                    projection_uuid=uuid_,
+                    unit_id=unit.unit_id,
+                    role=REVIEW_GROUP_SUPPORTING,
+                    leaf_ids=sorted(supporting.leaf_ids),
+                    supports_record_key=supporting.supports_record_key,
+                    supports_component_key=supporting.supports_component_key,
+                )
+            )
+        for excluded in unit.excluded_groups:
+            session.add(
+                MechanicalReviewGroupORM(
+                    projection_uuid=uuid_,
+                    unit_id=unit.unit_id,
+                    role=REVIEW_GROUP_EXCLUDED,
+                    leaf_ids=sorted(excluded.leaf_ids),
+                    reason=excluded.reason,
+                )
+            )
+
     for record in draft.records:
         session.add(
             MechanicalRecordORM(
@@ -276,6 +347,7 @@ def persist_draft(
                 semantic_key=component.semantic_key,
                 handling=component.handling.value,
                 irreducibility_reason_code=component.irreducibility_reason_code,
+                prose_retention_reason_code=component.prose_retention_reason_code,
                 applies_when=applicability_payload(component.applies_when),
                 recurs=recurrence_payload(component.recurs),
             )
@@ -330,6 +402,7 @@ def persist_draft(
                 chunk_char_start=binding.chunk_char_start,
                 chunk_char_end=binding.chunk_char_end,
                 irreducibility_reason_code=binding.irreducibility_reason_code,
+                prose_retention_reason_code=binding.prose_retention_reason_code,
                 option_key=binding.option_key,
             )
         )
@@ -587,6 +660,13 @@ def _fact_from_row(row: MechanicalFactORM) -> MechanicalFact:
     return fact
 
 
+def _unit_groups(
+    raw: RawProjectionState, unit_id: str, role: str
+) -> list[MechanicalReviewGroupORM]:
+    """The persisted groups of one unit in one role."""
+    return [g for g in raw.review_groups if g.unit_id == unit_id and g.role == role]
+
+
 def _header(session: Session, projection_uuid: str) -> MechanicalProjectionORM:
     row = session.execute(
         select(MechanicalProjectionORM).where(
@@ -738,6 +818,7 @@ def reconstruct_candidate(
                 "handling",
             ),
             irreducibility_reason_code=c.irreducibility_reason_code,
+            prose_retention_reason_code=c.prose_retention_reason_code,
             facts=tuple(
                 _fact_from_row(f)
                 for f in raw.facts
@@ -801,6 +882,7 @@ def reconstruct_candidate(
                 chunk_char_start=p.chunk_char_start,
                 chunk_char_end=p.chunk_char_end,
                 irreducibility_reason_code=p.irreducibility_reason_code,
+                prose_retention_reason_code=p.prose_retention_reason_code,
                 option_key=p.option_key,
             )
             for p in raw.prose_bindings
@@ -848,6 +930,56 @@ def reconstruct_candidate(
         ),
     )
 
+    review_units = tuple(
+        ReviewUnit(
+            unit_id=u.unit_id,
+            kind=parse_enum(
+                ReviewUnitKind, u.kind, "rp_mech_review_units", u.unit_id, "kind"
+            ),
+            leaf_ids=tuple(u.leaf_ids),
+            expected_rules=tuple(
+                ExpectedRule(
+                    record_key=e.record_key,
+                    component_key=e.component_key,
+                    fact_family=e.fact_family,
+                    source_span_ids=tuple(e.source_span_ids),
+                )
+                for e in sorted(
+                    (e for e in raw.review_expectations if e.unit_id == u.unit_id),
+                    key=lambda e: (
+                        e.record_key,
+                        e.component_key,
+                        e.fact_family or "",
+                        tuple(e.source_span_ids),
+                    ),
+                )
+            ),
+            supporting_groups=tuple(
+                SupportingGroup(
+                    leaf_ids=tuple(g.leaf_ids),
+                    supports_record_key=g.supports_record_key or "",
+                    supports_component_key=g.supports_component_key or "",
+                )
+                for g in sorted(
+                    _unit_groups(raw, u.unit_id, REVIEW_GROUP_SUPPORTING),
+                    key=lambda g: (
+                        g.supports_record_key or "",
+                        g.supports_component_key or "",
+                        tuple(g.leaf_ids),
+                    ),
+                )
+            ),
+            excluded_groups=tuple(
+                ExcludedGroup(leaf_ids=tuple(g.leaf_ids), reason=g.reason or "")
+                for g in sorted(
+                    _unit_groups(raw, u.unit_id, REVIEW_GROUP_EXCLUDED),
+                    key=lambda g: (g.reason or "", tuple(g.leaf_ids)),
+                )
+            ),
+        )
+        for u in sorted(raw.review_units, key=lambda u: u.unit_id)
+    )
+
     return ProjectionCandidate(
         binding=ReleaseBinding(
             package_uuid=header.package_uuid,
@@ -865,6 +997,19 @@ def reconstruct_candidate(
             spans=spans,
             batches=batches,
             acceptances=acceptances,
+            # Ordered by unit id, because the accepted inventory is a set of
+            # decisions rather than a sequence — the same rule the units
+            # themselves reconstruct under, and the reason two databases that
+            # stored one acceptance in a different row order digest alike.
+            review_unit_acceptances=tuple(
+                ReviewUnitAcceptance(
+                    unit_id=a.unit_id,
+                    batch_id=a.batch_id,
+                    reviewer=a.reviewer,
+                    accepted_at=a.accepted_at,
+                )
+                for a in sorted(raw.review_unit_acceptances, key=lambda a: a.unit_id)
+            ),
         ),
         representation=representation,
         # From the stored declaration, never from the module constants. A
@@ -872,6 +1017,7 @@ def reconstruct_candidate(
         # was, so a later mismatch is detectable instead of erased.
         schema_version=header.representation_schema_version,
         schema_hash=header.representation_schema_hash,
+        review_units=review_units,
     )
 
 
@@ -1145,6 +1291,10 @@ def delete_projection(session: Session, projection_uuid: str) -> None:
         MechanicalRelationshipORM,
         MechanicalReferenceORM,
         MechanicalProvenanceORM,
+        MechanicalReviewUnitORM,
+        MechanicalReviewExpectationORM,
+        MechanicalReviewGroupORM,
+        MechanicalReviewUnitAcceptanceORM,
     ):
         session.execute(delete(model).where(model.projection_uuid == projection_uuid))
     session.execute(

@@ -169,10 +169,12 @@ def test_the_registered_crossings_separate_the_prior_from_this_build() -> None:
 
     Schema 8 admitted one family this prior's contract cannot state, schema 9
     admitted seven more for ``areas-of-effect-1``, schema 10 five for
-    ``cover-1`` and schema 11 seven for ``speed-1``. The prior is therefore no
-    longer current and reading it as current is a *finding* rather than a silent
-    pass. The registered steps that close the gap are named here in order, and
-    the identity the Owner accepted survives them — ``lift`` re-declares the
+    ``cover-1``, schema 11 seven for ``speed-1``, and schema 12 the
+    retained-prose distinction the Owner adopted on 2026-09-16. The prior is
+    therefore no longer current and reading it as current is a *finding*
+    rather than a silent pass. The registered steps that close the gap are
+    named here in order, and the identity the Owner accepted survives them
+    — ``lift`` re-declares the
     binding and proves the content unmoved, it does not rewrite content.
 
     The list, not its length, is the claim: a step appearing here that nobody
@@ -195,6 +197,7 @@ def test_the_registered_crossings_separate_the_prior_from_this_build() -> None:
         "5d-lift-schema-8-to-9",
         "5d-lift-schema-9-to-10",
         "5d-lift-schema-10-to-11",
+        "5d-lift-schema-11-to-12",
     ]
     assert [step.lift_id for step in lift_path(prior, current)] == expected
     lifted, records = lift_accepted_inputs(inputs, current)

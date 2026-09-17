@@ -21,14 +21,15 @@ named in advance, made rather than deleted. Both fixture identities stay pinned
 — blob sha1 and LF sha256 — and every other pin below is derived by loading the
 file rather than transcribed.
 
-**Exactly one registered crossing separates this prior from this build.** The
-freeze was taken *at* schema 10, level with the checkout, and this module's
-crossing test named in advance what would have to change if ``speed-1`` needed
-a schema 11. It did: the two defining Speed sites print meanings schema 10
-cannot state, this build mints schema 11, and ``5d-lift-schema-10-to-11`` is
-the single registered step between the frozen prior and the checkout. The
-frozen bytes do not move; a crossing to a *later* union is a property of the
-pair, not a field the file gains.
+**The registered crossings are asserted.** The freeze was taken *at* schema
+10, level with the checkout, and this module's crossing test named in advance
+what would have to change if ``speed-1`` needed a schema 11. It did: the two
+defining Speed sites print meanings schema 10 cannot state, so schema 11 was
+minted. It was exactly one registered step until the practical-reliability
+amendment minted schema 12, which is the second. The path is read from the
+registry rather than counted, so a succession lengthens the list instead of
+breaking the claim. The frozen bytes do not move; a crossing to a *later*
+union is a property of the pair, not a field the file gains.
 
 **What this module does not do.** It proves nothing about representation, and
 nothing about the live artifact beyond the equality claim. Every pin describes
@@ -68,8 +69,8 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_9_HASH,
     SCHEMA_10_HASH,
     SCHEMA_10_VERSION,
-    SCHEMA_11_HASH,
-    SCHEMA_11_VERSION,
+    SCHEMA_12_HASH,
+    SCHEMA_12_VERSION,
     UnknownSchemaLiftError,
     lift_accepted_inputs,
     lift_path,
@@ -198,15 +199,17 @@ def test_the_prior_declares_schema_10_and_records_the_seven_lifts_that_got_it_th
     ]
 
 
-def test_exactly_one_registered_crossing_separates_the_prior_from_this_build() -> None:
+def test_the_registered_crossings_separate_the_prior_from_this_build() -> None:
     """The position after the mint, stated rather than assumed.
 
     This is the edit the previous form of this test named in advance. The freeze
     was taken level with the checkout; the checkpoint's question was whether
     ``speed-1`` needs a schema 11, and the answer was yes, so the assertions
-    invert: the prior's binding is no longer the current binding, reading it as
-    current is a *finding* rather than a silent pass, and exactly one registered
-    step closes the gap.
+    invert: the prior's binding is no longer the current binding, and reading
+    it as current is a *finding* rather than a silent pass. One registered step
+    closed the gap until the practical-reliability amendment minted schema 12,
+    which is the second; the path is read from the registry rather than
+    counted.
 
     **Two identities, two scopes.** The frozen authority is untouched on disk and
     keeps the identity the Owner accepted. Its lifted copy is a *different*
@@ -219,9 +222,11 @@ def test_exactly_one_registered_crossing_separates_the_prior_from_this_build() -
     **The six schema anchors cross untouched.** That is the assertion schema 11
     most needs to make, because like schema 10 it widens a vocabulary accepted
     authority already uses: ``MovementMode`` gains ``jump``, and four accepted
-    batches state members of that vocabulary. A lift that re-derived anchors
-    would erase the record of what each batch was accepted under, which is the
-    distinction the whole mechanism protects.
+    batches state members of that vocabulary. Schema 12 widens no vocabulary
+    at all — it adds one optional key to components and prose bindings — and
+    the anchors must survive it for the same reason. A lift that re-derived
+    anchors would erase the record of what each batch was accepted under,
+    which is the distinction the whole mechanism protects.
 
     A self-lift stays unregistered, so a generator that reached for one here
     would raise rather than silently no-op.
@@ -230,14 +235,17 @@ def test_exactly_one_registered_crossing_separates_the_prior_from_this_build() -
     current = (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
     prior = (inputs.oracle.schema_version, inputs.oracle.schema_hash)
     assert prior == (SCHEMA_10_VERSION, SCHEMA_10_HASH)
-    assert current == (SCHEMA_11_VERSION, SCHEMA_11_HASH)
+    assert current == (SCHEMA_12_VERSION, SCHEMA_12_HASH)
     assert prior != current
 
     findings = validate_schema_binding(candidate_from_accepted_inputs(inputs))
     assert findings, "reading a superseded prior as current must be visible"
     assert any(REPRESENTATION_SCHEMA_VERSION in f for f in findings), findings
 
-    expected = ["5d-lift-schema-10-to-11"]
+    expected = [
+        "5d-lift-schema-10-to-11",
+        "5d-lift-schema-11-to-12",
+    ]
     assert [step.lift_id for step in lift_path(prior, current)] == expected
     lifted, records = lift_accepted_inputs(inputs, current)
     assert [record.lift_id for record in records] == expected

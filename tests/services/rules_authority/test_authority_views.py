@@ -27,6 +27,9 @@ from tests.services.rules_authority.conftest import (
     NOW,
     OPEN_ENDED_KEY,
     PROSE_TEXT,
+    RETAINED_CHUNK,
+    RETAINED_KEY,
+    RETENTION_REASON,
     SPELL_KEY,
     WISH_CHUNK,
     RuntimeFixture,
@@ -150,6 +153,43 @@ def test_the_gamemaster_view_resolves_exact_governing_prose(
     assert passage.text == PROSE_TEXT
 
 
+def test_the_gamemaster_view_distinguishes_the_two_reasons_prose_is_retained(
+    runtime: RuntimeFixture,
+) -> None:
+    """Schema 12's distinction, at the surface that acts on it.
+
+    Both components below are ``PROSE_BOUND``, so ``handling`` cannot tell a
+    GameMaster which one is theirs to adjudicate. Before schema 12 the
+    irreducibility reason could: every prose-bound component named one, so
+    ``None`` meant "structured, read the facts". It no longer does — a
+    component may retain prose because the meaning is reducible and nothing in
+    play, explanation or correction wants a structured field for it. What
+    fails if this view states only the one reason is a GameMaster told to
+    exercise judgement over a rule that applies itself.
+    """
+    view = service(runtime).gamemaster_view(whole(runtime)).gamemaster_view
+    assert view is not None
+    by_key = {c.component_key: c for c in view.components}
+
+    judged = by_key[OPEN_ENDED_KEY]
+    retained = by_key[RETAINED_KEY]
+    assert judged.handling is retained.handling is ComponentHandling.PROSE_BOUND
+
+    assert judged.irreducibility_reason_code == "open_ended_effect"
+    assert judged.prose_retention_reason_code is None
+
+    assert retained.irreducibility_reason_code is None
+    assert retained.prose_retention_reason_code == RETENTION_REASON
+    #: Retained prose is still exact governing prose, read from the 5c chunk.
+    (passage,) = retained.governing_prose
+    assert passage.chunk_id == RETAINED_CHUNK
+    #: And it resolves: ``chunk_id`` comes from the binding, so only the text
+    #: proves the fixture actually seeded a chunk behind it. An unseeded chunk
+    #: resolves to ``text is None`` without raising, which would let this test
+    #: pass over a component whose passage was never stored.
+    assert passage.text == "x" * 26
+
+
 def test_the_gamemaster_view_carries_structured_context_and_handling(
     runtime: RuntimeFixture,
 ) -> None:
@@ -219,6 +259,7 @@ def test_a_record_selector_returns_that_record_whole(
     assert {c.semantic_key for c in record.components} == {
         DESCRIPTOR_KEY,
         OPEN_ENDED_KEY,
+        RETAINED_KEY,
     }
 
 
@@ -251,6 +292,7 @@ def test_the_broader_selector_wins_regardless_of_order(
     assert {c.semantic_key for c in record.components} == {
         DESCRIPTOR_KEY,
         OPEN_ENDED_KEY,
+        RETAINED_KEY,
     }
 
 

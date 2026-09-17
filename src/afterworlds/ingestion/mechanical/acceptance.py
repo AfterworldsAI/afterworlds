@@ -48,7 +48,8 @@ piling up duplicates.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections import Counter
+from collections.abc import Callable, Iterable
 from dataclasses import replace
 from typing import Any
 
@@ -57,6 +58,7 @@ from afterworlds.ingestion.mechanical.models import (
     AcceptanceBatch,
     AcceptanceRecord,
     ReviewState,
+    ReviewUnitAcceptance,
     SemanticDiffEntry,
     SemanticSpan,
 )
@@ -65,7 +67,17 @@ from afterworlds.ingestion.mechanical.oracle import (
     AcceptedOracle,
     derive_obligations,
 )
-from afterworlds.ingestion.mechanical.projection import LegacySchemaPayloadError
+from afterworlds.ingestion.mechanical.policy import (
+    PolicyTransitionRecord,
+    UnknownPolicyTransitionError,
+    accepted_policy_contracts,
+    policy_meaning_violations,
+    policy_transition_for,
+)
+from afterworlds.ingestion.mechanical.projection import (
+    LegacySchemaPayloadError,
+    review_unit_violations,
+)
 from afterworlds.ingestion.mechanical.proposal import (
     MechanicalProposal,
     proposal_identity,
@@ -222,6 +234,16 @@ def _merge_representation(
     )
 
 
+def _repeated(ids: Iterable[str]) -> list[str]:
+    """Ids stated more than once, sorted.
+
+    Every selection collection here is keyed by id somewhere downstream, and a
+    dictionary comprehension over a repeated id keeps the last definition and
+    discards the earlier one without saying so.
+    """
+    return sorted(i for i, count in Counter(ids).items() if count > 1)
+
+
 def accept_proposal(
     proposal: MechanicalProposal,
     *,
@@ -231,6 +253,7 @@ def accept_proposal(
     reviewer: str,
     accepted_at: str,
     prior: AcceptedInputs | None = None,
+    resolved_review_units: tuple[str, ...] = (),
 ) -> AcceptedInputs:
     """Record one explicit acceptance of *resolved_scope* from *proposal*.
 
@@ -244,37 +267,129 @@ def accept_proposal(
     the complete proposal reviewed, which is what ties the accepted
     *representation* to something a human looked at.
 
+    ``resolved_review_units`` names ``unit_id``s of units *this proposal
+    proposed* — the coherent sections, entries and tables the reviewer read,
+    which leaves each covers, and which rules each must contain. It is a scope
+    over the proposal's inventory on exactly the terms ``resolved_scope`` is a
+    scope over its spans: the units themselves are proposal content, inside the
+    ``proposal_identity`` this batch records, so an altered inventory derives a
+    different identity and cannot inherit this acceptance; and naming is what
+    accepts, so a proposed unit this action does not name is not accepted.
+    Accepted units accumulate across batches on the same terms as scopes — a
+    ``unit_id`` a prior batch already recorded cannot be recorded again — and
+    the accumulated inventory is checked against the *merged* representation,
+    because a unit may legitimately expect a rule an earlier batch structured.
+
+    An acceptance action must resolve *something*, but it need not be a span. A
+    reviewer who read a coherent unit and recorded that it states no rule this
+    build must carry has accounted for that source as deliberately as one who
+    classified a span in it; requiring a span anyway would retain the obsolete
+    demand to classify extra text as the price of a legitimate review.
+
     Extending *prior* requires a disjoint scope: a span it already accepted
     cannot be re-accepted here.
+
+    A proposal whose own proposed spans or proposed units repeat an id is
+    refused outright, before anything is resolved. Resolving such an id would
+    select whichever definition a dictionary kept last while the retained
+    ``proposal_identity`` names both.
     """
-    if not resolved_scope:
-        raise AcceptanceError("an acceptance action must name at least one span")
+    if not resolved_scope and not resolved_review_units:
+        raise AcceptanceError(
+            "an acceptance action must name at least one span or one review unit"
+        )
     if not reviewer.strip():
         raise AcceptanceError("an acceptance action must name its reviewer")
     if not rule.strip():
         raise AcceptanceError("an acceptance action must record its selection rule")
 
+    # The proposal's own selection collections, before either becomes a
+    # dictionary. A repeated id is not a hash collision — reversing the two
+    # definitions derives a different ``proposal_identity`` — it is an invalid
+    # identifier, and keying on it would accept one definition while the
+    # identity this batch retains as evidence names both. The discarded
+    # definition never reaches the accepted-candidate duplicate validator, so
+    # the refusal has to happen here, before anything is keyed.
+    #
+    # Identical repeats are refused on the same terms: resolving the id still
+    # names an entry no reader can point at, and a proposal stating one unit
+    # twice has said nothing the second statement adds. This counts ids only,
+    # so rejecting a duplicate identifier never depends on what the duplicate
+    # definition contains or on whether this action accepts it.
+    if repeats := _repeated(p.span.span_id for p in proposal.proposed_spans):
+        raise AcceptanceError(f"this proposal proposes spans more than once: {repeats}")
+    if repeats := _repeated(u.unit_id for u in proposal.proposed_review_units):
+        raise AcceptanceError(
+            f"this proposal proposes review units more than once: {repeats}"
+        )
+
     proposed_by_id = {p.span.span_id: p.span for p in proposal.proposed_spans}
-    if duplicates := sorted({s for s in resolved_scope if resolved_scope.count(s) > 1}):
+    if duplicates := _repeated(resolved_scope):
         raise AcceptanceError(f"resolved scope repeats spans {duplicates}")
     if unknown := sorted(set(resolved_scope) - proposed_by_id.keys()):
         raise AcceptanceError(
             f"resolved scope names spans this proposal did not propose: {unknown}"
         )
 
+    # The same three refusals, over the proposal's inventory. Resolving a unit
+    # the proposal does not state would record acceptance of an expectation set
+    # outside the ``proposal_identity`` this batch retains — which is the whole
+    # reason the inventory moved into the proposal.
+    proposed_units_by_id = {u.unit_id: u for u in proposal.proposed_review_units}
+    if repeats := _repeated(resolved_review_units):
+        raise AcceptanceError(f"resolved review units repeat {repeats}")
+    if unproposed := sorted(set(resolved_review_units) - proposed_units_by_id.keys()):
+        raise AcceptanceError(
+            "resolved review units name units this proposal did not propose: "
+            f"{unproposed}"
+        )
+    accepted_units = tuple(proposed_units_by_id[u] for u in resolved_review_units)
+
     if prior is not None and prior.oracle.binding != proposal.binding:
         raise AcceptanceError(
             "this proposal binds a different 5c release than the prior accepted "
             "authority it would extend"
         )
-    if prior is not None and (
-        prior.oracle.policy_version,
-        prior.oracle.policy_hash,
-    ) != (proposal.policy_version, proposal.policy_hash):
+    # Recognition first, on the proposal's own declaration. An invented hash,
+    # or a known version paired with another version's hash, names no policy
+    # this build can state the meaning of — so the reason codes it carries
+    # cannot be checked against any closed catalog, and accepting it would mint
+    # authority under a policy that does not exist. Same shape as the schema
+    # recognition below, for the same reason.
+    proposed_policy = (proposal.policy_version, proposal.policy_hash)
+    if proposed_policy not in accepted_policy_contracts():
         raise AcceptanceError(
-            "this proposal declares a different semantic policy than the prior "
-            "accepted authority it would extend"
+            f"this proposal declares semantic policy {proposal.policy_version!r} "
+            f"({proposal.policy_hash}), which is not a contract this build "
+            "accepts authority under"
         )
+
+    # A policy difference is refused unless an authorized transition covers this
+    # exact succession — the same table-not-comparison rule ``SCHEMA_LIFTS``
+    # follows. Crossing is what makes the older policy's codes still readable,
+    # and the crossing is recorded, so the artifact keeps saying which
+    # successions actually happened rather than being silently reinterpreted.
+    policy_steps: tuple[PolicyTransitionRecord, ...] = ()
+    if prior is not None:
+        prior_policy = (prior.oracle.policy_version, prior.oracle.policy_hash)
+        if prior_policy != proposed_policy:
+            try:
+                crossing = policy_transition_for(prior_policy, proposed_policy)
+            except UnknownPolicyTransitionError as exc:
+                raise AcceptanceError(
+                    "this proposal declares a different semantic policy than the "
+                    "prior accepted authority it would extend, and no registered "
+                    f"transition authorizes the difference: {exc}"
+                ) from exc
+            policy_steps = (
+                PolicyTransitionRecord(
+                    transition_id=crossing.transition_id,
+                    from_version=crossing.from_version,
+                    from_hash=crossing.from_hash,
+                    to_version=crossing.to_version,
+                    to_hash=crossing.to_hash,
+                ),
+            )
 
     # **The central invariant, and it runs before every branch below.** A
     # representation and the schema identity it declares are admissible together
@@ -317,6 +432,21 @@ def accept_proposal(
             f"the prior accepted authority declares representation schema "
             f"{prior.oracle.schema_version!r} but is not admissible under it, so "
             "it was not accepted under the schema it names: " + "; ".join(illegal)
+        )
+
+    # The same question of the *policy* the proposal declares, and a separate
+    # one. Schema 12 mints the ``prose_retention_reason_code`` key;
+    # ``5d-semantic-policy-2`` mints the catalog its values come from, and the
+    # two are versioned independently. A schema-12 proposal declaring
+    # ``5d-semantic-policy-1`` is legal and may simply state no retention
+    # reason — so the schema check above passes it, and only this one sees a
+    # reason code drawn from a catalog the declared policy does not have.
+    if unstatable := policy_meaning_violations(
+        proposal.proposed_representation, proposal.policy_version
+    ):
+        raise AcceptanceError(
+            f"this proposal declares semantic policy {proposal.policy_version!r} "
+            "but carries meaning that policy cannot state: " + "; ".join(unstatable)
         )
 
     # The prior's *evidence* is validated here, before anything is computed
@@ -420,11 +550,53 @@ def accept_proposal(
         )
         for span_id in resolved_scope
     )
+    # The sibling ledger, on the same terms: who accepted this unit, when, and
+    # as part of which action. A batch that resolved only units produces no
+    # ``AcceptanceRecord`` at all, so without this its reviewer and timestamp
+    # would reach no retained evidence and nothing would attribute the unit to
+    # the action that accepted it.
+    review_unit_acceptances = tuple(prior.review_unit_acceptances if prior else ()) + (
+        tuple(
+            ReviewUnitAcceptance(
+                unit_id=unit_id,
+                batch_id=batch_id,
+                reviewer=reviewer,
+                accepted_at=accepted_at,
+            )
+            for unit_id in resolved_review_units
+        )
+    )
 
     representation = _merge_representation(
         prior.oracle.representation if prior else None,
         proposal.proposed_representation,
     )
+
+    # The inventory accumulates like batch scopes do, and for the same reason:
+    # two units under one id would make every expectation's parentage ambiguous
+    # in the persisted rows and in the artifact alike.
+    prior_units = prior.oracle.review_units if prior else ()
+    if repeated := sorted(
+        set(resolved_review_units) & {u.unit_id for u in prior_units}
+    ):
+        raise AcceptanceError(
+            f"review units already recorded by a prior batch: {repeated}"
+        )
+    merged_units = prior_units + accepted_units
+    # Checked against the merged representation rather than this proposal's,
+    # because a unit may expect a rule an earlier batch structured. Refused here,
+    # before an artifact exists, rather than producing one the loader rejects —
+    # the same terms as the disjoint-scope refusal above.
+    # Against the merged spans for the same reason as the merged representation:
+    # a unit may have read its rule from a span an earlier batch accepted.
+    if violations := review_unit_violations(
+        merged_units, representation, proposal.policy_version, _ordered(spans)
+    ):
+        raise AcceptanceError(
+            "this acceptance would record a review inventory that is not "
+            f"coverage of what it claims: {violations}"
+        )
+
     return AcceptedInputs(
         oracle=AcceptedOracle(
             binding=proposal.binding,
@@ -435,9 +607,11 @@ def accept_proposal(
             spans=_ordered(spans),
             representation=representation,
             obligations=derive_obligations(representation),
+            review_units=merged_units,
         ),
         batches=tuple(prior.batches if prior else ()) + (batch,),
         acceptances=acceptances,
+        review_unit_acceptances=review_unit_acceptances,
         # Every retained batch states the schema it was *reviewed* under, and
         # this new one states the schema the proposal declares. A prior loaded
         # in the legacy unanchored form is anchored here at its own declaration,
@@ -456,6 +630,10 @@ def accept_proposal(
         # Oldest first, and append-only: an artifact records every succession it
         # was carried across, not merely the last one.
         lifts=tuple(prior.lifts if prior else ()) + lift_records,
+        # Append-only on the same terms, and empty for every artifact that never
+        # crossed a policy boundary — which is all seven accepted batches.
+        policy_transitions=tuple(prior.policy_transitions if prior else ())
+        + policy_steps,
     )
 
 

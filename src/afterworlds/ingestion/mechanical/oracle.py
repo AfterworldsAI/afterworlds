@@ -66,16 +66,30 @@ from afterworlds.ingestion.mechanical.models import (
     AcceptanceRecord,
     ClassificationLedger,
     ComponentHandling,
+    ExcludedGroup,
+    ExpectedRule,
     ReviewState,
+    ReviewUnit,
+    ReviewUnitAcceptance,
+    ReviewUnitKind,
     SemanticDiffEntry,
     SemanticDisposition,
     SemanticSpan,
+    SupportingGroup,
+)
+from afterworlds.ingestion.mechanical.policy import (
+    POLICY_TRANSITIONS,
+    PolicyTransitionRecord,
+    policy_meaning_violations,
+    policy_transition_violations,
 )
 from afterworlds.ingestion.mechanical.projection import (
     ProjectionCandidate,
     ReleaseBinding,
     applicability_payload_violations,
     representation_payload,
+    review_unit_payload,
+    review_unit_violations,
 )
 from afterworlds.ingestion.mechanical.representation import (
     COMPONENT_WIDE_PROSE,
@@ -146,6 +160,7 @@ __all__ = [
     "obligation_payload",
     "oracle_identity",
     "oracle_payload",
+    "serialize_accepted_inputs",
 ]
 
 #: Committed accepted authority, one JSON file per published 5c release.
@@ -215,6 +230,26 @@ class AcceptedOracle:
     spans: tuple[SemanticSpan, ...]
     representation: RepresentationDraft
     obligations: tuple[RecordObligation, ...]
+    #: The accepted review inventory (ADR-005d Decision 2, as amended by the
+    #: Owner Decision of 2026-09-16): which coherent sections, entries and
+    #: tables a human reviewed, their exact leaf membership, and the rules that
+    #: review found and requires to have a home.
+    #:
+    #: **Authored, unlike its neighbour.** ``obligations`` is *derived* —
+    #: :func:`derive_obligations` is the single definition and
+    #: :func:`load_oracle` refuses a committed file whose declared obligations
+    #: are not exactly that derivation, because two hand-written derivations
+    #: would eventually disagree. A review unit is the opposite by requirement:
+    #: ADR-005d Decision 2 says expected entries and table rows "must be derived
+    #: from the source and checked in review, not inferred from the output being
+    #: tested". There is deliberately no ``derive_review_units``, and nothing
+    #: here checks the inventory for equality against the representation — an
+    #: expectation read back out of the thing it is meant to test could not
+    #: catch an omission, which is the entire obligation.
+    #:
+    #: Empty for all seven accepted batches, and omitted from the payload when
+    #: empty, so their recorded identities do not move.
+    review_units: tuple[ReviewUnit, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -236,6 +271,11 @@ class AcceptedInputs:
     oracle: AcceptedOracle
     batches: tuple[AcceptanceBatch, ...]
     acceptances: tuple[AcceptanceRecord, ...]
+    #: The acceptance action that accepted each unit of :attr:`oracle`'s review
+    #: inventory. Empty for all seven accepted batches, which recorded no
+    #: inventory, and omitted from the written file when empty — so their
+    #: committed bytes and recorded digests are exactly as reviewed.
+    review_unit_acceptances: tuple[ReviewUnitAcceptance, ...] = ()
     #: The representation schema each retained batch was *reviewed* under.
     #: Empty only for the legacy pre-schema-4 form, where absence has one
     #: possible meaning; see ``schema_lift.succession_evidence_violations``.
@@ -246,6 +286,13 @@ class AcceptedInputs:
     #: acceptance criterion 11), so this sits beside the acceptance batches
     #: rather than inside :class:`AcceptedOracle`.
     lifts: tuple[SchemaLiftRecord, ...] = ()
+    #: Semantic-policy successions this artifact was carried across, oldest
+    #: first. Evidence on exactly the same terms as :attr:`lifts`, and kept in
+    #: its own field rather than folded into them because a schema lift and a
+    #: policy transition authorize different things: one says the accepted
+    #: *representation* is byte-identical under a wider type contract, the
+    #: other says the accepted *reason codes* still mean what they meant.
+    policy_transitions: tuple[PolicyTransitionRecord, ...] = ()
 
     def classification(self) -> ClassificationLedger:
         """The complete accepted ledger, result and evidence together."""
@@ -257,6 +304,7 @@ class AcceptedInputs:
             spans=self.oracle.spans,
             batches=self.batches,
             acceptances=self.acceptances,
+            review_unit_acceptances=self.review_unit_acceptances,
         )
 
 
@@ -321,11 +369,18 @@ def obligation_payload(obligation: RecordObligation) -> dict[str, object]:
 def oracle_payload(oracle: AcceptedOracle) -> dict[str, object]:
     """Canonical payload of the accepted oracle.
 
-    Reuses the projection's own payload builders for spans and representation,
-    so "the oracle and the projection agree" is a comparison of one canonical
-    form rather than of two hand-written serializations that could drift.
+    Reuses the projection's own payload builders for spans, representation and
+    the review inventory, so "the oracle and the projection agree" is a
+    comparison of one canonical form rather than of two hand-written
+    serializations that could drift.
+
+    ``review_units`` is emitted only when the artifact states one, the same
+    omit-when-empty discipline ``lifts`` and ``policy_transitions`` follow in
+    :func:`accepted_inputs_payload`, which composes this function — so this
+    single branch keeps both the oracle identity and the committed accepted-
+    inputs bytes of all seven batches exactly as they were reviewed.
     """
-    return {
+    payload: dict[str, object] = {
         "release_binding": {
             "package_uuid": oracle.binding.package_uuid,
             "release_version": oracle.binding.release_version,
@@ -354,6 +409,9 @@ def oracle_payload(oracle: AcceptedOracle) -> dict[str, object]:
             obligation_payload(o) for o in oracle.obligations
         ),
     }
+    if oracle.review_units:
+        payload["review_units"] = review_unit_payload(oracle.review_units)
+    return payload
 
 
 def oracle_identity(oracle: AcceptedOracle) -> str:
@@ -755,7 +813,16 @@ def _representation(payload: object) -> RepresentationDraft:
                 "facts",
             ),
             where,
-            optional=("applies_when", "options", "fact_qualifiers", "recurs"),
+            optional=(
+                "applies_when",
+                "options",
+                "fact_qualifiers",
+                "recurs",
+                # Schema 12, and absent from every payload written before it.
+                # The canonical form omits it when the component states no
+                # retention reason, so its absence has exactly one reading.
+                "prose_retention_reason_code",
+            ),
         )
         # The fact list is shape-checked here *before* delegation, because the
         # closed-union parser reads a mapping and a non-object element would
@@ -789,6 +856,10 @@ def _representation(payload: object) -> RepresentationDraft:
                 # dropped or misspelled anywhere upstream fails there rather
                 # than loading as silently empty.
                 recurs=_recurrence(c.get("recurs"), f"{where}.recurs"),
+                prose_retention_reason_code=_optional_string(
+                    c.get("prose_retention_reason_code"),
+                    f"{where}.prose_retention_reason_code",
+                ),
                 applies_when=_applicability(
                     c.get("applies_when"), f"{where}.applies_when"
                 ),
@@ -823,13 +894,20 @@ def _representation(payload: object) -> RepresentationDraft:
                 "span_id",
                 "chunk_char_start",
                 "chunk_char_end",
+                # Required *as a key* under every contract, and nullable since
+                # schema 12. A binding retained for a reducibility reason
+                # writes ``null`` here rather than omitting the key, so
+                # "retained for a different reason" and "written before this
+                # distinction existed" never share a payload shape.
                 "irreducibility_reason_code",
             ),
             where,
-            # Schema 6, and absent from every payload written before it. The
-            # canonical form omits it when the binding governs the whole
-            # component, so its absence has exactly one reading.
-            optional=("option_key",),
+            # Schema 6 and schema 12 respectively, and each absent from every
+            # payload written before it. The canonical form omits ``option_key``
+            # when the binding governs the whole component and
+            # ``prose_retention_reason_code`` when the binding states no
+            # retention reason, so each absence has exactly one reading.
+            optional=("option_key", "prose_retention_reason_code"),
         )
         prose_bindings.append(
             ProseBindingDraft(
@@ -841,9 +919,13 @@ def _representation(payload: object) -> RepresentationDraft:
                     b["chunk_char_start"], f"{where}.chunk_char_start"
                 ),
                 chunk_char_end=_offset(b["chunk_char_end"], f"{where}.chunk_char_end"),
-                irreducibility_reason_code=_string(
+                irreducibility_reason_code=_optional_string(
                     b["irreducibility_reason_code"],
                     f"{where}.irreducibility_reason_code",
+                ),
+                prose_retention_reason_code=_optional_string(
+                    b.get("prose_retention_reason_code"),
+                    f"{where}.prose_retention_reason_code",
                 ),
                 option_key=(
                     COMPONENT_WIDE_PROSE
@@ -935,6 +1017,111 @@ def _obligation(payload: object, index: int) -> RecordObligation:
     )
 
 
+def _expected_rule(payload: object, where: str) -> ExpectedRule:
+    r = _require(
+        payload,
+        ("record_key", "component_key", "source_span_ids"),
+        where,
+        # Omitted when the reviewer accepted exact governing prose as the
+        # rule's home, exactly as the canonical payload writes it.
+        optional=("fact_family",),
+    )
+    return ExpectedRule(
+        record_key=_string(r["record_key"], f"{where}.record_key"),
+        component_key=_string(r["component_key"], f"{where}.component_key"),
+        # Named by its wire value rather than parsed into ``FactFamily``: an
+        # expectation is a claim about the source, and a reviewer may legitimately
+        # expect a family this build does not implement — that is a finding for
+        # ``review_unit_violations`` to report against the representation, not a
+        # reason this file cannot be read at all.
+        fact_family=(
+            _string(r["fact_family"], f"{where}.fact_family")
+            if "fact_family" in r
+            else None
+        ),
+        # The exact accepted spans the rule was read from. Named rather than
+        # derived: the whole point is that this came from a reviewer reading
+        # source text, and anything this file could compute from the
+        # representation would be the output vouching for itself.
+        source_span_ids=tuple(
+            _string_list(r["source_span_ids"], f"{where}.source_span_ids")
+        ),
+    )
+
+
+def _supporting_group(payload: object, where: str) -> SupportingGroup:
+    g = _require(
+        payload,
+        ("leaf_ids", "supports_record_key", "supports_component_key"),
+        where,
+    )
+    return SupportingGroup(
+        leaf_ids=tuple(_string_list(g["leaf_ids"], f"{where}.leaf_ids")),
+        supports_record_key=_string(
+            g["supports_record_key"], f"{where}.supports_record_key"
+        ),
+        # Empty when the group supports the record as a whole. Written rather
+        # than omitted, unlike ``fact_family``, because "" is a real value here
+        # and not a second way of saying nothing.
+        supports_component_key=_string(
+            g["supports_component_key"], f"{where}.supports_component_key"
+        ),
+    )
+
+
+def _excluded_group(payload: object, where: str) -> ExcludedGroup:
+    g = _require(payload, ("leaf_ids", "reason"), where)
+    return ExcludedGroup(
+        leaf_ids=tuple(_string_list(g["leaf_ids"], f"{where}.leaf_ids")),
+        reason=_string(g["reason"], f"{where}.reason"),
+    )
+
+
+def _review_unit(
+    payload: object, index: int, *, key: str = "review_units"
+) -> ReviewUnit:
+    # ``key`` only names the field in the error message. A proposal states its
+    # inventory under ``proposed_review_units`` and an accepted artifact under
+    # ``review_units``; a refusal that named the wrong one would send a reader
+    # looking for a key their file does not have.
+    where = f"{key}[{index}]"
+    u = _require(
+        payload,
+        (
+            "unit_id",
+            "kind",
+            "leaf_ids",
+            "expected_rules",
+            "supporting_groups",
+            "excluded_groups",
+        ),
+        where,
+    )
+    return ReviewUnit(
+        unit_id=_string(u["unit_id"], f"{where}.unit_id"),
+        kind=_enum(ReviewUnitKind, u["kind"], f"{where}.kind"),
+        leaf_ids=tuple(_string_list(u["leaf_ids"], f"{where}.leaf_ids")),
+        expected_rules=tuple(
+            _expected_rule(r, f"{where}.expected_rules[{i}]")
+            for i, r in enumerate(
+                _object_list(u["expected_rules"], f"{where}.expected_rules")
+            )
+        ),
+        supporting_groups=tuple(
+            _supporting_group(g, f"{where}.supporting_groups[{i}]")
+            for i, g in enumerate(
+                _object_list(u["supporting_groups"], f"{where}.supporting_groups")
+            )
+        ),
+        excluded_groups=tuple(
+            _excluded_group(g, f"{where}.excluded_groups[{i}]")
+            for i, g in enumerate(
+                _object_list(u["excluded_groups"], f"{where}.excluded_groups")
+            )
+        ),
+    )
+
+
 def _check_obligations_closed(
     representation: RepresentationDraft,
     obligations: tuple[RecordObligation, ...],
@@ -1003,11 +1190,41 @@ def _acceptance(payload: object, where: str) -> tuple[
     tuple[AcceptanceRecord, ...],
     tuple[SchemaLiftRecord, ...],
     tuple[BatchSchemaAnchor, ...],
+    tuple[PolicyTransitionRecord, ...],
+    tuple[ReviewUnitAcceptance, ...],
 ]:
     """Load the review evidence half of a committed accepted-inputs file."""
     p = _require(
-        payload, ("batches", "records"), where, optional=("lifts", "schema_anchors")
+        payload,
+        ("batches", "records"),
+        where,
+        optional=(
+            "lifts",
+            "schema_anchors",
+            "policy_transitions",
+            # Absent from all seven accepted batches on the same terms as the
+            # inventory they accept: absent rather than empty, so their
+            # committed bytes are exactly what was reviewed.
+            "review_unit_records",
+        ),
     )
+
+    unit_records = []
+    for i, raw_unit in enumerate(
+        _object_list(p.get("review_unit_records", []), f"{where}.review_unit_records")
+    ):
+        at = f"{where}.review_unit_records[{i}]"
+        entry = _require(
+            raw_unit, ("unit_id", "batch_id", "reviewer", "accepted_at"), at
+        )
+        unit_records.append(
+            ReviewUnitAcceptance(
+                unit_id=_string(entry["unit_id"], f"{at}.unit_id"),
+                batch_id=_optional_string(entry["batch_id"], f"{at}.batch_id"),
+                reviewer=_string(entry["reviewer"], f"{at}.reviewer"),
+                accepted_at=_string(entry["accepted_at"], f"{at}.accepted_at"),
+            )
+        )
 
     anchors = []
     for i, raw_anchor in enumerate(
@@ -1059,6 +1276,40 @@ def _acceptance(payload: object, where: str) -> tuple[
                 ),
             )
         )
+
+    transitions = []
+    for i, raw_step in enumerate(
+        _object_list(p.get("policy_transitions", []), f"{where}.policy_transitions")
+    ):
+        at = f"{where}.policy_transitions[{i}]"
+        entry = _require(
+            raw_step,
+            ("transition_id", "from_version", "from_hash", "to_version", "to_hash"),
+            at,
+        )
+        step = PolicyTransitionRecord(
+            transition_id=_string(entry["transition_id"], f"{at}.transition_id"),
+            from_version=_string(entry["from_version"], f"{at}.from_version"),
+            from_hash=_string(entry["from_hash"], f"{at}.from_hash"),
+            to_version=_string(entry["to_version"], f"{at}.to_version"),
+            to_hash=_string(entry["to_hash"], f"{at}.to_hash"),
+        )
+        # A file can claim any crossing it likes; only a registered one
+        # actually authorizes carrying policy-1 reason codes forward. Checked
+        # on the same terms the schema chain is: against the committed
+        # registry, by exact pair, with no rule over version order.
+        registered = POLICY_TRANSITIONS.get((step.from_version, step.from_hash))
+        if registered is None or (
+            registered.transition_id,
+            registered.to_version,
+            registered.to_hash,
+        ) != (step.transition_id, step.to_version, step.to_hash):
+            raise OracleLoadError(
+                f"{at}: claims a semantic-policy transition "
+                f"{step.transition_id!r} from {step.from_version!r} to "
+                f"{step.to_version!r} that this build does not authorize"
+            )
+        transitions.append(step)
 
     batches = []
     for i, raw in enumerate(_object_list(p["batches"], f"{where}.batches")):
@@ -1138,7 +1389,14 @@ def _acceptance(payload: object, where: str) -> tuple[
                 accepted_at=_string(r["accepted_at"], f"{at}.accepted_at"),
             )
         )
-    return tuple(batches), tuple(records), tuple(lifts), tuple(anchors)
+    return (
+        tuple(batches),
+        tuple(records),
+        tuple(lifts),
+        tuple(anchors),
+        tuple(transitions),
+        tuple(unit_records),
+    )
 
 
 def load_accepted_inputs(path: Path) -> AcceptedInputs:
@@ -1180,6 +1438,11 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
             "obligations",
         ),
         path.name,
+        # Absent from all seven accepted batches, and absent rather than empty
+        # from any artifact that states no review inventory — which is what
+        # keeps their committed bytes and recorded identities exactly as
+        # reviewed.
+        optional=("review_units",),
     )
     binding_fields = (
         "package_uuid",
@@ -1199,8 +1462,17 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
         for i, o in enumerate(_object_list(p["obligations"], "obligations"))
     )
     _check_obligations_closed(representation, obligations, path.name)
+    # Deliberately no closure check against the representation. See
+    # ``AcceptedOracle.review_units``: an expectation derived from the output it
+    # exists to test could not catch an omitted rule.
+    review_units = tuple(
+        _review_unit(u, i)
+        for i, u in enumerate(_object_list(p.get("review_units", []), "review_units"))
+    )
     spans = tuple(_span(s, i) for i, s in enumerate(_object_list(p["spans"], "spans")))
-    batches, acceptances, lifts, anchors = _acceptance(p["acceptance"], "acceptance")
+    batches, acceptances, lifts, anchors, transitions, unit_records = _acceptance(
+        p["acceptance"], "acceptance"
+    )
     oracle = AcceptedOracle(
         binding=ReleaseBinding(
             **{k: _string(binding[k], f"release_binding.{k}") for k in binding_fields}
@@ -1212,6 +1484,7 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
         spans=spans,
         representation=representation,
         obligations=obligations,
+        review_units=review_units,
     )
     # Committed bytes are not self-proving either. The wire-shape checks above
     # establish that this file parses into the declared types; they say nothing
@@ -1230,17 +1503,68 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
             + "; ".join(illegal)
         )
 
+    # The policy contract is versioned independently of the schema one, so its
+    # legality is a separate question with its own answer: a schema-12 file
+    # declaring ``5d-semantic-policy-1`` passes the check above and may still
+    # carry a retention reason that policy has no catalog for.
+    if unstatable := policy_meaning_violations(
+        oracle.representation, oracle.policy_version
+    ):
+        raise OracleLoadError(
+            f"{path.name}: this artifact declares semantic policy "
+            f"{oracle.policy_version!r} but carries meaning that policy cannot "
+            "state: " + "; ".join(unstatable)
+        )
+
+    # The review inventory is held to the same two questions, and for the same
+    # reason: a unit declared under ``5d-semantic-policy-1`` names a boundary
+    # kind that policy has no catalog for, and an expected rule with no home is
+    # an inventory claiming coverage it does not have. Neither is a weaker
+    # oracle — an inventory that cannot be trusted to catch an omission is not
+    # coverage evidence at all.
+    if uncovered := review_unit_violations(
+        oracle.review_units,
+        oracle.representation,
+        oracle.policy_version,
+        oracle.spans,
+    ):
+        raise OracleLoadError(
+            f"{path.name}: the accepted review inventory is not coverage: "
+            + "; ".join(uncovered)
+        )
+
     # Loaded evidence is read from a file, so the wire-shape checks above prove
     # only that it is well-formed — never that the succession it claims was
     # authorized, happened, or could have happened. Validated against the
     # registry and against this artifact's own declaration before it becomes
     # part of the loaded inputs.
+    # Every accepted unit names one this artifact states, and every unit this
+    # artifact states was accepted by a recorded action. Without the second
+    # half, an inventory could be widened after the fact — new units, new
+    # expectations — and inherit the acceptance of the ones beside them, which
+    # is the claim the review-unit contract exists to make checkable.
+    inventory = {u.unit_id for u in oracle.review_units}
+    claimed = {a.unit_id for a in unit_records}
+    if stranded := sorted(claimed - inventory):
+        raise OracleLoadError(
+            f"{path.name}: acceptance records name review units this artifact "
+            f"does not state: {stranded}"
+        )
+    if unaccepted := sorted(inventory - claimed):
+        raise OracleLoadError(
+            f"{path.name}: review units {unaccepted} are stated but no "
+            "acceptance action records accepting them; an inventory nobody "
+            "accepted is not review evidence"
+        )
+
     inputs = AcceptedInputs(
         oracle=oracle,
         batches=batches,
         acceptances=acceptances,
+        review_unit_acceptances=unit_records,
         schema_anchors=anchors,
         lifts=lifts,
+        policy_transitions=transitions,
     )
 
     # Evidence is validated as strictly as the result it justifies. A file whose
@@ -1262,6 +1586,17 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
         raise OracleLoadError(
             "acceptance evidence does not describe an authorized succession of "
             "this artifact: " + "; ".join(drift)
+        )
+
+    # The same question for the policy half. The parse loop above proved each
+    # claimed step is a registered one; that is a statement about records, not
+    # about the chain they form or about the policy this artifact declares.
+    if crossings := policy_transition_violations(
+        transitions, (oracle.policy_version, oracle.policy_hash)
+    ):
+        raise OracleLoadError(
+            "acceptance evidence does not describe an authorized policy "
+            "succession of this artifact: " + "; ".join(crossings)
         )
     return inputs
 
@@ -1297,6 +1632,10 @@ def candidate_from_accepted_inputs(inputs: AcceptedInputs) -> ProjectionCandidat
         representation=inputs.oracle.representation,
         schema_version=inputs.oracle.schema_version,
         schema_hash=inputs.oracle.schema_hash,
+        # Carried, not re-derived. The inventory is identity-bearing on both
+        # sides, so a candidate that dropped it would persist a projection whose
+        # UUID could never match the oracle that judges it.
+        review_units=inputs.oracle.review_units,
     )
 
 
@@ -1372,6 +1711,30 @@ def _resolve_committed_oracle(
 # ---------------------------------------------------------------------------
 
 
+def serialize_accepted_inputs(inputs: AcceptedInputs) -> bytes:
+    """The one committed serialization form: indented, key-sorted, UTF-8, LF.
+
+    Every committed accepted-inputs artifact in ``oracles/`` is written this
+    way, and every reproduction of one compares against these exact bytes. That
+    made the form load-bearing while it existed only as a line each acceptance
+    program and each reproduction spelled out for itself — a stray ``indent``
+    would have shown up as an artifact that no longer reproduces, blamed on the
+    merge. It is stated once, here, beside the payload builder it serializes.
+
+    Bytes rather than ``str`` because the comparison this exists for is a byte
+    comparison against a file, and because the newline is part of the form.
+    """
+    return (
+        json.dumps(
+            accepted_inputs_payload(inputs),
+            indent=2,
+            sort_keys=True,
+            ensure_ascii=False,
+        )
+        + "\n"
+    ).encode("utf-8")
+
+
 def accepted_inputs_payload(inputs: AcceptedInputs) -> dict[str, object]:
     """Canonical JSON payload of one accepted-inputs artifact.
 
@@ -1387,6 +1750,12 @@ def accepted_inputs_payload(inputs: AcceptedInputs) -> dict[str, object]:
         "batches": evidence["batches"],
         "records": evidence["acceptances"],
     }
+    if "review_unit_records" in evidence:
+        # Present exactly when the evidence payload states it, which is exactly
+        # when a review unit was accepted. Same omit-when-empty discipline as
+        # the three fields below, and the reason the seven committed batches
+        # still round-trip byte-identically.
+        acceptance["review_unit_records"] = evidence["review_unit_records"]
     if inputs.schema_anchors:
         # Emitted only when stated, so the committed legacy artifact keeps the
         # exact bytes it was reviewed and committed with.
@@ -1414,6 +1783,21 @@ def accepted_inputs_payload(inputs: AcceptedInputs) -> dict[str, object]:
                 "verified_collections": list(lift.verified_collections),
             }
             for lift in inputs.lifts
+        ]
+    if inputs.policy_transitions:
+        # Same omit-when-empty discipline, and it is what keeps the committed
+        # seven-batch artifact byte-identical while this build applies a newer
+        # policy: an artifact that never crossed a policy succession says
+        # nothing about one.
+        acceptance["policy_transitions"] = [
+            {
+                "transition_id": step.transition_id,
+                "from_version": step.from_version,
+                "from_hash": step.from_hash,
+                "to_version": step.to_version,
+                "to_hash": step.to_hash,
+            }
+            for step in inputs.policy_transitions
         ]
     payload["acceptance"] = acceptance
     return payload

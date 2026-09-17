@@ -8133,7 +8133,27 @@ assert (
 #: contracts. Nothing here computes geometry, models a grid, or adjudicates:
 #: the rules are represented declaratively and consumed by hand-authored code
 #: (#137 "Out of scope", ADR-005d Decision 4).
-REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-11"
+#:
+#: Version ``12`` carries the Owner Decision of 2026-09-16 (ADR-005d, #137
+#: contract 2) into the serialized grammar, and nothing else. It adds one
+#: key, ``prose_retention_reason_code``, to :class:`ComponentDraft` and
+#: :class:`ProseBindingDraft`, and makes
+#: :attr:`ProseBindingDraft.irreducibility_reason_code` nullable. The two
+#: changes are one statement: prose retained because *judgement is
+#: required* and prose retained because *no separate structured use was
+#: identified* are different claims about the same passage, and schema 11
+#: could only make the first. Without the nullable half, recording the
+#: second would mean relabelling reducible meaning with an irreducibility
+#: code, which the amendment forbids in those words.
+#:
+#: **This is the first *component* key any schema has added since 4.** It
+#: is omitted when unset, registered in :data:`_POST_SCHEMA_3_FIELDS` and
+#: in ``projection._COMPONENT_FIELDS`` with ``omit_when_empty``, so every
+#: component and binding accepted under schemas 1-11 renders byte-identically
+#: under 12 and no accepted component key, provenance coordinate or
+#: projection identity moves. It adds no fact family, no vocabulary member,
+#: no ownership form and no required field.
+REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-12"
 
 
 class UnsupportedRepresentationShapeError(TypeError):
@@ -8656,8 +8676,14 @@ def _introductions() -> tuple[_Introduction, ...]:
             _Introduction("vocabulary_member", vocabulary, member, SCHEMA_11)
             for member in members
         )
+    # Schema 12 adds no family, no vocabulary member and no ownership form. Its
+    # two additions are a nullable key on ``ProseBindingDraft`` — registered in
+    # ``_OPTIONAL_SINCE`` and emitted by the loop below — and one omit-when-empty
+    # key on ``ComponentDraft`` and ``ProseBindingDraft``, registered in
+    # ``_POST_SCHEMA_3_FIELDS`` rather than here, exactly as schema 11's
+    # ``MovementAllowanceFact.window`` is.
     rows.extend(
-        _Introduction("nullable_field", _OPTIONAL_SINCE_FAMILIES[owner], key, arrived)
+        _Introduction("nullable_field", _OPTIONAL_SINCE_WIRE_NAMES[owner], key, arrived)
         for owner, keys in _OPTIONAL_SINCE.items()
         for key, arrived in keys.items()
     )
@@ -9241,6 +9267,12 @@ _SCHEMA_10_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
 
 SCHEMA_11 = "5d-representation-schema-11"
 
+#: Schema 12 mints no family and no vocabulary, so it has no ``_SCHEMA_12_*``
+#: companion tables. Its whole surface is the retention key registered in
+#: :data:`_POST_SCHEMA_3_FIELDS` and the nullable binding code registered in
+#: :data:`_OPTIONAL_SINCE`.
+SCHEMA_12 = "5d-representation-schema-12"
+
 #: The seven families schema 11 admitted, for batch ``speed-1``. One per
 #: distinct rule the Rules Glossary Speed entry and Playing the Game > Combat >
 #: Movement and Position print between them, named by member for the same
@@ -9363,14 +9395,27 @@ _REQUIRED_SINCE: dict[str, dict[str, str]] = {
 #: payload and every accepted ``fact_key`` is byte-identical either way.
 _OPTIONAL_SINCE: dict[str, dict[str, str]] = {
     "AbilityCheckFact": {"ability": SCHEMA_6},
+    # Schema 12, and the same movement for the same reason. Every binding
+    # accepted under schemas 1-11 states an irreducibility code, so every
+    # accepted payload is byte-identical either way; what a row here refuses is
+    # the *null* — a schema-11 declaration carrying a binding that states no
+    # irreducibility reason, which under schema 11 is a binding with the
+    # mandatory reason missing rather than one retained for a different reason.
+    "ProseBindingDraft": {"irreducibility_reason_code": SCHEMA_12},
 }
 
-#: The family discriminator each :data:`_OPTIONAL_SINCE` owner writes on the
-#: wire. Stated rather than derived from the class name for the reason
+#: The name each :data:`_OPTIONAL_SINCE` owner goes by **on the wire**. Stated
+#: rather than derived from the class name for the reason
 #: :func:`introduction_manifest` gives: no payload carries a type tag, so the
 #: manifest may not either.
-_OPTIONAL_SINCE_FAMILIES: dict[str, str] = {
+#:
+#: A fact owner is named by its family discriminator. A draft collection has no
+#: discriminator, so it is named by the serialized path a reader finds it at —
+#: the same identification :data:`_DRAFT_VOCABULARIES` uses, and for the same
+#: reason.
+_OPTIONAL_SINCE_WIRE_NAMES: dict[str, str] = {
     "AbilityCheckFact": FactFamily.ABILITY_CHECK.value,
+    "ProseBindingDraft": "prose_bindings[]",
 }
 
 _VERSION_STATES: dict[str, frozenset[str]] = {
@@ -9421,9 +9466,39 @@ _VERSION_STATES: dict[str, frozenset[str]] = {
             SCHEMA_11,
         }
     ),
+    SCHEMA_12: frozenset(
+        {
+            "5d-representation-schema-4",
+            SCHEMA_5,
+            SCHEMA_6,
+            SCHEMA_7,
+            SCHEMA_8,
+            SCHEMA_9,
+            SCHEMA_10,
+            SCHEMA_11,
+            SCHEMA_12,
+        }
+    ),
 }
 
 _register_post_schema_3(
+    # Schema 12, and the first *component* key any schema has added since 4's
+    # ``recurs``. Omitted when unset, so every component and prose binding
+    # accepted under schemas 1-11 keeps the exact canonical payload — and
+    # therefore the exact component key and provenance coordinate — it was
+    # accepted with, and ``verify_lift`` proves that element by element.
+    _PostSchema3Field(
+        owner="ComponentDraft",
+        key="prose_retention_reason_code",
+        introduced_in=SCHEMA_12,
+        is_empty=_empty_none,
+    ),
+    _PostSchema3Field(
+        owner="ProseBindingDraft",
+        key="prose_retention_reason_code",
+        introduced_in=SCHEMA_12,
+        is_empty=_empty_none,
+    ),
     # Schema 11. Omitted when unset, so ``Dash``'s two accepted movement
     # allowances and ``Ready``'s keep the exact canonical form they were
     # accepted with: the base allowance the speed-1 sites state is the only
@@ -9867,6 +9942,14 @@ class ComponentDraft:
     #: omitted from the canonical payload when unset — which is what keeps an
     #: inherited schema-3 component byte-identical under schema 4.
     recurs: Recurrence | None = None
+    #: Why this component's meaning is carried as exact governing prose *when
+    #: that meaning is reducible*. Schema 12, and never interchangeable with
+    #: ``irreducibility_reason_code``: exactly one of the two is stated on a
+    #: PROSE_BOUND or MIXED component, and stating the irreducibility code for
+    #: reducible meaning is the relabelling ADR-005d forbids. Omitted from the
+    #: canonical payload when unset, which is what keeps every component
+    #: accepted under schemas 1-11 byte-identical under 12.
+    prose_retention_reason_code: str | None = None
 
     def qualifier_for(self, fact: object, option_key: str = "") -> Applicability | None:
         """This component's own condition for *fact* in the given scope.
@@ -9932,7 +10015,10 @@ class ProseBindingDraft:
     #: Half-open offsets into ``chunk_id``'s own text.
     chunk_char_start: int
     chunk_char_end: int
-    irreducibility_reason_code: str
+    #: Why the bound passage is irreducible, or ``None`` when it is retained
+    #: under :attr:`prose_retention_reason_code` instead. Nullable since schema
+    #: 12; every binding accepted before that states one.
+    irreducibility_reason_code: str | None
     #: The :class:`ComponentOption` this binding governs, or
     #: :data:`COMPONENT_WIDE_PROSE` when it governs the whole component. Schema
     #: 6, and the same widening :attr:`FactQualifier.option_key` already
@@ -9950,6 +10036,10 @@ class ProseBindingDraft:
     #: so two of them would assert both benefits apply at once, which the source
     #: denies.
     option_key: str = ""
+    #: Why this passage is retained as exact prose when its meaning is
+    #: reducible. Schema 12; the binding-level half of the component field of
+    #: the same name, and validated to agree with it.
+    prose_retention_reason_code: str | None = None
 
 
 @dataclass(frozen=True)
@@ -10099,6 +10189,27 @@ def fact_qualifier_target_key(
     return (record_key, component_key, fact_key_, option_key)
 
 
+def _binding_reason(binding: ProseBindingDraft) -> str:
+    """The one reason a binding states, whichever catalog it comes from.
+
+    Schema 12 gives a binding two catalogs to be backed by and requires exactly
+    one of them, so the provenance coordinate names *the* reason rather than one
+    named field. The two catalogs are disjoint by construction, so a single
+    element still identifies one reason unambiguously, and every binding
+    accepted under schemas 1-11 states an irreducibility reason — so every
+    accepted key is the key it already had.
+
+    An empty string for a binding that states neither. That draft is refused by
+    :mod:`~afterworlds.ingestion.mechanical.validation`, and a coordinate
+    builder is not the place to raise about it: provenance is assembled for
+    drafts that are about to be *reported on*, so crashing here would replace a
+    stated finding with a traceback.
+    """
+    return (
+        binding.irreducibility_reason_code or binding.prose_retention_reason_code or ""
+    )
+
+
 def prose_binding_target_key(binding: ProseBindingDraft) -> tuple[str, ...]:
     """Provenance key of one prose binding.
 
@@ -10113,7 +10224,7 @@ def prose_binding_target_key(binding: ProseBindingDraft) -> tuple[str, ...]:
         binding.component_key,
         binding.chunk_id,
         binding.span_id,
-        binding.irreducibility_reason_code,
+        _binding_reason(binding),
     )
     # Appended only for an option-scoped binding, exactly as
     # ``fact_target_key`` appends its fourth element: every binding accepted

@@ -321,10 +321,19 @@ def _at(payload: dict[str, object], path: str, value: object) -> dict[str, objec
         pytest.param(
             "representation.prose_bindings[0].chunk_id", 9, id="chunk-id-as-number"
         ),
+        # ``null`` moved out of this list at schema 12, where it became the
+        # legal way to say a binding is retained for a reducibility reason
+        # rather than an irreducible one. The *key* is still mandatory and its
+        # type still closed, which is what these two assert.
         pytest.param(
             "representation.prose_bindings[0].irreducibility_reason_code",
-            None,
-            id="binding-reason-as-null",
+            4,
+            id="binding-reason-as-number",
+        ),
+        pytest.param(
+            "representation.prose_bindings[0].prose_retention_reason_code",
+            4,
+            id="binding-retention-as-number",
         ),
         pytest.param(
             "representation.relationships[0].source_record_key",

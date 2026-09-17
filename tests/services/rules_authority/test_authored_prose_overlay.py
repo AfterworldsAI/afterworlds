@@ -63,6 +63,8 @@ from tests.services.rules_authority.conftest import (
     PACKAGE_UUID,
     PROSE_TEXT,
     RELEASE_VERSION,
+    RETAINED_KEY,
+    RETENTION_REASON,
     SPELL_KEY,
     WISH_CHUNK,
     RuntimeFixture,
@@ -79,6 +81,11 @@ PROSE_BOUND_PROSE_TARGET = MechanicalTarget(
 #: attaching prose here is the STRUCTURED -> MIXED promotion case.
 STRUCTURED_PROSE_TARGET = MechanicalTarget(
     kind=MechanicalTargetKind.PROSE, record_key=SPELL_KEY, component_key=DESCRIPTOR_KEY
+)
+#: The schema-12 component: prose retained for a reducibility reason, naming
+#: no irreducibility reason at all.
+RETAINED_PROSE_TARGET = MechanicalTarget(
+    kind=MechanicalTargetKind.PROSE, record_key=SPELL_KEY, component_key=RETAINED_KEY
 )
 
 
@@ -334,6 +341,46 @@ def test_replace_prose_on_prose_bound_replaces_source_prose(
     assert entry.supplied_by_origin is OverrideOriginEnum.HOUSE_RULE
 
     gm = gm_component(runtime, OPEN_ENDED_KEY)
+    assert gm.irreducibility_reason_code is None
+
+
+def test_replace_prose_clears_a_retention_reason_the_same_way(
+    runtime: RuntimeFixture,
+) -> None:
+    """The sibling case, on the component that states the *other* reason.
+
+    ``REPLACE`` discards the source prose, and ``prose_retention_reason_code``
+    justified exactly that prose: it says nothing in play, explanation or
+    correction needed a structured field because the *source* wording carried
+    the meaning. Once the source wording is gone the claim is about nothing.
+    Carrying it forward would present an authored house rule as source prose
+    reviewed and found reducible, which nobody reviewed it as.
+
+    Both are cleared together rather than one at a time: schema 12 states
+    exactly one of the two, so leaving either behind would describe an
+    authored passage by a reason belonging to the discarded one.
+    """
+    before = typed_component(runtime, SPELL_KEY, RETAINED_KEY)
+    assert before.prose_retention_reason_code == RETENTION_REASON
+    assert before.irreducibility_reason_code is None
+
+    author_override(
+        runtime.session,
+        override_id="ov-replace-retained",
+        target=RETAINED_PROSE_TARGET,
+        operation=OverrideOperationEnum.REPLACE,
+        payload=replace_prose_payload("the authored replacement"),
+    )
+    component = typed_component(runtime, SPELL_KEY, RETAINED_KEY)
+    assert component.handling is ComponentHandling.PROSE_BOUND
+    assert component.prose_retention_reason_code is None
+    assert component.irreducibility_reason_code is None
+    (entry,) = component.governing_prose
+    assert isinstance(entry, AuthoredProse)
+    assert entry.text == "the authored replacement"
+
+    gm = gm_component(runtime, RETAINED_KEY)
+    assert gm.prose_retention_reason_code is None
     assert gm.irreducibility_reason_code is None
 
 

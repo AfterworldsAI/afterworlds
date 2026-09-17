@@ -165,6 +165,10 @@ def test_rules_package_tables_exist_with_rp_prefix() -> None:
         "rp_mech_relationships",
         "rp_mech_references",
         "rp_mech_provenance",
+        "rp_mech_review_units",
+        "rp_mech_review_expectations",
+        "rp_mech_review_groups",
+        "rp_mech_review_unit_acceptances",
         "rp_mech_active_projections",
         # CRD Issue 5d runtime authority (#137 contract 6).
         "rp_mech_overrides",

@@ -68,12 +68,14 @@ from afterworlds.ingestion.mechanical.persistence import (
     reconstruct_candidate,
     verify_persisted_state,
 )
+from afterworlds.ingestion.mechanical.policy import policy_meaning_violations
 from afterworlds.ingestion.mechanical.projection import (
     LegacySchemaPayloadError,
     ProjectionCandidate,
     UnsupportedSchemaVersionError,
     identify_projection,
     representation_payload,
+    review_unit_payload,
     validate_candidate,
     validate_schema_binding,
 )
@@ -132,7 +134,8 @@ class GateFailureCategory(StrEnum):
     #: cannot be established, so nothing here can be judged (ADR-005d
     #: Decisions 4 and 6).
     SCHEMA_MISMATCH = "schema_mismatch"
-    #: Classified leaves are not exactly the bound release's REPRESENTED set.
+    #: The leaves accounted for -- classified by a span or named by an accepted
+    #: review unit -- are not exactly the bound release's REPRESENTED set.
     POPULATION_MISMATCH = "population_mismatch"
     #: The accepted span partition differs from the oracle's.
     CLASSIFICATION_MISMATCH = "classification_mismatch"
@@ -424,6 +427,7 @@ def _accepted_identity(oracle: AcceptedOracle) -> str:
             representation=oracle.representation,
             schema_version=oracle.schema_version,
             schema_hash=oracle.schema_hash,
+            review_units=oracle.review_units,
         )
     ).projection_uuid
 
@@ -600,6 +604,14 @@ def run_publication_gate(
             f"{oracle.policy_hash[:12]}…, projection declares "
             f"{ledger.policy_version!r}/{ledger.policy_hash[:12]}…",
         )
+    # Agreement between the two declarations is not enough on its own, for the
+    # reason the schema block below gives about its own pair: both may agree on
+    # a policy whose catalog does not admit a reason code the representation
+    # actually states.
+    for violation in policy_meaning_violations(
+        candidate.representation, ledger.policy_version
+    ):
+        _fail(findings, GateFailureCategory.POLICY_MISMATCH, violation)
 
     # The closed representation contract, checked on both axes. Agreement
     # between the oracle and the projection is not enough on its own: two
@@ -625,22 +637,34 @@ def run_publication_gate(
     #    incomplete production projection fail structurally: a projection that
     #    classified a handful of leaves is not "mostly complete", it simply is
     #    not the release's REPRESENTED population.
+    #
+    #    A leaf is covered by a span over it *or* by an accepted review unit
+    #    naming it. The second is not a weakening: a reviewer who read a section
+    #    and recorded that nothing in it states a rule has accounted for that
+    #    leaf exactly as deliberately as one who classified a span in it, and
+    #    demanding a span anyway would make the inventory unusable for the
+    #    passages it exists to account for. The inventory is identity-bearing
+    #    and compared element by element in step 6, so this relies on an
+    #    accepted decision, not on a claim the projection makes about itself.
     corpus = bound_corpus_from_operational(operational_corpus)
     represented = set(corpus.leaf_lengths)
     classified = {s.leaf_id for s in ledger.spans}
-    for leaf_id in sorted(represented - classified):
+    reviewed = {leaf_id for unit in candidate.review_units for leaf_id in unit.leaf_ids}
+    covered = classified | reviewed
+    for leaf_id in sorted(represented - covered):
         _fail(
             findings,
             GateFailureCategory.POPULATION_MISMATCH,
             f"leaf {leaf_id}: represented by the bound 5c release, absent from the "
-            "accepted classification",
+            "accepted classification and named by no accepted review unit",
         )
-    for leaf_id in sorted(classified - represented):
+    for leaf_id in sorted(covered - represented):
         _fail(
             findings,
             GateFailureCategory.POPULATION_MISMATCH,
-            f"leaf {leaf_id}: classified, but not a represented leaf of the bound "
-            "5c release",
+            f"leaf {leaf_id}: "
+            + ("classified" if leaf_id in classified else "named by a review unit")
+            + ", but not a represented leaf of the bound 5c release",
         )
 
     # 4. Residue. Classified explicitly rather than read out of the validator's
@@ -691,6 +715,18 @@ def run_publication_gate(
         "spans",
         findings,
         _CLASSIFICATION_CATEGORIES,
+    )
+    # The review inventory is accepted authority in the ordinary categories: a
+    # unit the projection carries that nobody accepted is unexpected authority,
+    # and an accepted unit it dropped is missing authority. Deliberately outside
+    # the schema guard below, because an inventory canonicalizes under no
+    # representation schema — a declaration the renderer cannot read is no
+    # reason to stop comparing what was reviewed.
+    _compare_elements(
+        review_unit_payload(candidate.review_units),
+        review_unit_payload(oracle.review_units),
+        "review_units",
+        findings,
     )
     # Each side canonicalizes under its own declaration, so a side whose
     # declaration and content disagree cannot be rendered at all. That is a
@@ -744,6 +780,11 @@ def run_publication_gate(
     diagnostics = {
         "represented_leaves": len(represented),
         "classified_leaves": len(classified),
+        # Beside it rather than folded into it: a reviewed leaf with no span is
+        # accounted for, but it is not classified, and an auditor reading a
+        # passing report with fewer classified leaves than represented ones is
+        # owed the number that explains the gap.
+        "reviewed_leaves": len(reviewed),
         "accepted_spans": len(ledger.spans),
         "records": len(draft.records),
         "components": len(draft.components),
