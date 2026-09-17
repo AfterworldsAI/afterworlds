@@ -333,3 +333,95 @@ lift or publication is produced, and no candidate record key is proposed.**
 | `pip-audit` | installed venv | same pre-existing findings as above; no upgrade, no exclusion |
 
 CI now runs on this PR: it targets `main`, and the head is `0cb696c`.
+
+---
+
+## Finding 4 — a multi-source expectation verified one source and certified all of them
+
+Second independent review, on `0cb696c`. The correction that closed Finding 3
+gave `ExpectedRule` a `source_span_ids` list and explicitly allowed several
+spans, because a rule stated across two sentences is one rule. The checks read
+that list as *alternatives*.
+
+**Verified symptoms at `0cb696c`.**
+
+* One `ExpectedRule(SPELL_KEY, EXCEPTIONS_KEY, MOVEMENT_FAMILY, (CRAWL_SENTENCE,
+  CLIMB_SENTENCE))` against `_exceptions_draft(CRAWL_EXCEPTION)` returned no
+  violations, although the second expected source had no surviving authority.
+* One `ExpectedRule(SPELL_KEY, OPEN_ENDED_KEY, None, (SPELL_SPAN, PROSE_SPAN))`
+  returned no violations against the normal fixture, which binds prose for that
+  component from `PROSE_SPAN` only.
+
+`_expected_rule_violations` accepted governing prose if *any one* named source
+was bound; `_family_carried_from` likewise accepted a matching family fact read
+from any one named source. Meanwhile `_accounted_leaves` credited *every* named
+source leaf. So an expectation bought the partition relaxation on source
+material it never verified — the same source-expectation completeness family as
+Finding 3, with the multiple-source input the single-source tests of that round
+did not cover.
+
+**The correction.** Each named span is a required constituent, not an
+alternative.
+
+* Prose: the set of spans this component actually binds is computed once, and
+  the finding names `sorted(sources - bound)` — exactly the passages with no
+  home, not the whole list.
+* Structured: `_family_carried_from` (a bool) becomes
+  `_family_sources_without_authority`, which collects the target keys of the
+  component's facts of the expected family and returns the named spans no
+  provenance claim on those keys reaches. Same `fact_target_key`, same option
+  handling; only the direction of the question changed.
+* `_accounted_leaves` is unchanged and now honest: once every named source must
+  be verified, crediting every named source leaf credits nothing unverified.
+  `validate_candidate` runs `review_unit_violations` over the same candidate in
+  the same pass that grants the relaxation, so an unmet constituent fails the
+  gate rather than quietly widening coverage.
+* `ExpectedRule.source_span_ids` says so in the model, which is where the
+  ambiguity was.
+
+**No duplicate facts and no per-fragment classification.** One shared structure
+carrying a provenance claim to each passage that states it satisfies all of
+them — proven, with one fact, in
+`test_one_shared_fact_answers_for_both_sentences_it_was_read_from`. Nothing
+counts facts; source repetition is repetition, not duplication.
+
+**Proof.** Both of the independent review's reproductions are used literally as
+negative controls, and each asserts that the finding names *only* the
+unsupported span — which is what distinguishes "each source required" from
+"list rejected wholesale":
+`test_a_rule_read_from_two_passages_needs_a_home_for_both`,
+`test_one_rule_read_from_two_sentences_needs_authority_for_both`. Positive
+controls: `test_a_rule_read_from_two_passages_passes_when_both_are_bound` and
+the shared-authority test above. The production seam is exercised by
+`test_a_multi_source_rule_is_refused_at_the_gate`, which runs
+`validate_candidate(reviewed_candidate((unit,)), bound_corpus())` and asserts
+the honest inventory still returns no findings. The structured controls stay at
+`review_unit_violations` level for the reason recorded in Finding 3: their
+sub-leaf sentence spans overlap the fixture's leaf-wide span, which is
+`validate_partition`'s question, not this one.
+
+**Nothing recorded moved.** No stored shape changed, no migration was needed,
+and no accepted artifact, proposal identity, scope order, binding or digest is
+touched. The change is entirely in what the validator requires before an
+expectation becomes trusted coverage.
+
+Three of the previous round's assertions were reworded with the finding text:
+"carries that family from other source text only" was false once a *partial*
+list could fail, and is now "carries no fact of that family read from there".
+
+---
+
+## Gate results — head `fe66ff4` (multi-source expectation correction)
+
+| Gate | Scope | Result |
+| --- | --- | --- |
+| `black src/ tests/` | gate paths | clean (1 file reformatted, then clean) |
+| `ruff check src/ tests/` | gate paths | **All checks passed** |
+| `mypy src/` | 225 files | **Success** |
+| `pytest tests/ingestion/mechanical tests/services` | 3718 tests | **3718 passed** (240s) |
+| detect-secrets (pre-commit hook form) | staged files | clean; baseline unchanged |
+
+Targeted, not a full suite: the full local run belongs to `0cb696c` (5980
+passed, 10 skipped, 94.15% coverage) and is not re-attributed to this head. CI
+on the final pushed head is the full-suite evidence for this correction.
+
