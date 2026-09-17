@@ -154,6 +154,86 @@ CI. The gates below were run locally and are reported as such.
 
 ---
 
+## Finding 3 — a review unit could decide nothing and certify everything
+
+Reported on the `d38a162` review as comments 4026372087, 4026398077 (expected-
+rule precision and source links), 4026372100 (supporting linkage) and 4026398066
+(empty-unit accounting). One defect family, one correction, one patch round;
+duplicate bot comments were not treated as separate rounds. Comment 4026398055
+(acceptance evidence) was closed by `96c620b` and stays closed.
+
+**Verified at `34da498`, before the fix.**
+
+1. A `ReviewUnit` naming every leaf of the fixture, with no expectations, no
+   exclusions, an empty `RepresentationDraft`, zero spans and a unit acceptance
+   record, produced `validate_candidate(..., bound_corpus()) == ()`. The unit
+   relaxed the complete-partition rule for every leaf it named and gave nothing
+   back. `excluded_group_reasons` was a bare tuple of strings with no membership,
+   so a reason could not say which text it excused, and `ReviewUnit` carried no
+   source-scoped link from supporting material to the authority it explains.
+2. Replacing `REVIEW_UNITS[0].leaf_ids` with `(SUPPORT_LEAF,)` while keeping its
+   original expected rules produced **no** `review_unit_violations`.
+   `ExpectedRule` stored `record_key` / `component_key` / `fact_family` only, so a
+   family-presence check could not tell two rules or two exceptions of one family
+   apart: drop one of two exceptions and the survivor answered for both.
+
+**What was already sufficient, and is unchanged.** The exact accepted-oracle /
+output comparison still catches a changed build against an unchanged good
+oracle. The missing contract was source-reviewed expectations specific enough to
+detect omission or substitution, and group coverage of the text a unit reviewed.
+
+**The correction.**
+
+* `ExpectedRule.source_span_ids` names the accepted spans the rule was read from.
+  Costs the reviewer nothing to state — every fact and prose binding already
+  carries at least one admissible provenance edge (`PROVENANCE_REQUIRED_KINDS`),
+  and the check accepts any admissible role, so a shared representation claimed
+  `PRIMARY` from one span and `CONTEXTUAL` from another still passes.
+* `SupportingGroup(leaf_ids, supports_record_key, supports_component_key="")` and
+  `ExcludedGroup(leaf_ids, reason)` replace `excluded_group_reasons`. Exact
+  membership plus one decision, at **group** granularity — no row per character,
+  no row per extraction fragment, no automatic semantic classifier, no second
+  copy of the prose.
+* Every leaf a unit names must be reached by some decision — a rule read from a
+  span of that leaf, a supporting group, or an excluded group. `_accounted_leaves`
+  is the single definition, used both to report an unaccounted leaf and to decide
+  whether the unit earns the partition relaxation there, so the two can never
+  disagree.
+* Carried through proposal identity, explicit acceptance, the accepted artifact,
+  persistence and reconstruction, projection identity, raw-state closure and the
+  publication gate. Alembic `0035` adds `source_span_ids`, creates
+  `rp_mech_review_groups`, drops `excluded_group_reasons`, and refuses in both
+  directions rather than inventing a source span or a membership no reviewer
+  recorded.
+
+**Precision claimed, and its bound.** Component + family + source spans tells
+apart two exceptions of one family read from **different** spans, and catches a
+rule or passage substituted from the wrong source text. Two facts of one family
+read from the **same** span are not distinguished by the expectation check; that
+is the exact oracle comparison's job and no attempt is made to duplicate it.
+
+**Nothing recorded moved.** No committed JSON artifact contains `review_units`;
+all seven accepted artifacts declare `5d-proposal-1`, and `projection_payload`
+omits the key when empty. No recorded projection identity and no recorded
+`persisted_state_digest` changes. `0033` and `0034` are this branch's own and
+unreleased. The Speed data and its recorded scope order, the four-part bindings
+and override/replay behaviour are untouched.
+
+**Proof** — `tests/ingestion/mechanical/test_review_units.py`, 58 tests:
+round-trip of all three decision kinds through persistence and the committed
+artifact; a blank unit reporting both its unaccounted leaves and the uncovered
+text it used to excuse; rules left behind by narrowed membership; two
+`movement_permission` exceptions read from two sentences passing together and
+failing exactly the dropped one's expectation; wrong-source rule and prose
+substitution; unlinked, unreasoned, empty and out-of-unit groups; valid
+all-supporting and all-excluded units and a shared representation passing; and
+the group rows inside both `identify_projection` and
+`compute_persisted_state_digest`. `test_gate.py`'s support-section unit now
+states the supporting decision that makes its leaf reviewed — a unit that named
+the leaf and decided nothing is refused, which is the fix observed at the gate.
+
+---
+
 ## Gate results — head `5cce971` unless stated
 
 | Gate | Scope | Result |
@@ -211,9 +291,29 @@ lift or publication is produced, and no candidate record key is proposed.**
 * Ten cross-batch targets remain unresolved: `glossary.burrow_speed`,
   `climb_speed`, `climbing`, `concentration`, `crawling`, `fly_speed`, `flying`,
   `jumping`, `swim_speed`, `swimming`.
-* `excluded_group_reasons` remain free prose rather than a closed catalog —
-  deliberate, and revisitable if the vocabulary settles.
+* An excluded group's `reason` remains free prose rather than a closed catalog
+  — deliberate, and revisitable if the vocabulary settles.
+* An expectation cannot tell apart two facts of one family read from the same
+  span. The exact accepted-oracle comparison covers that case.
 * `bounded_oracle.json` does not round-trip through `accepted_inputs_payload`.
   Pre-existing and unrelated: the fixture is hand-authored, not writer-produced.
   The released artifact round-trips exactly.
-* CI has not run on this head, by trigger design.
+* Publication of this work is the Owner's; #170 stays draft until independent
+  review and the required gates are complete.
+
+---
+
+## Gate results — head `0cb696c` (coverage-decision round)
+
+| Gate | Scope | Result |
+| --- | --- | --- |
+| `black src/ tests/` | gate paths | clean (3 files reformatted, then clean) |
+| `ruff check src/ tests/` | gate paths | clean (3 `I001` autofixed) |
+| `mypy src/` | 225 files | **Success** |
+| `pytest tests/ingestion` | 3205 tests | **3205 passed** (857s) |
+| `pytest tests --ignore=tests/ingestion` | 2785 tests | **2775 passed, 10 skipped** (336s) |
+| combined coverage | both chunks, `--cov-append` | **94.15%** |
+| detect-secrets (pre-commit hook form) | staged files | clean; baseline unchanged |
+| `pip-audit` | installed venv | same pre-existing findings as above; no upgrade, no exclusion |
+
+CI now runs on this PR: it targets `main`, and the head is `0cb696c`.
