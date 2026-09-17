@@ -212,6 +212,22 @@ rule or passage substituted from the wrong source text. Two facts of one family
 read from the **same** span are not distinguished by the expectation check; that
 is the exact oracle comparison's job and no attempt is made to duplicate it.
 
+**The shapes that changed are this branch's own.** `review_unit_payload`, the
+artifact's `_review_unit` required keys and `5d-proposal-2` all changed without a
+further version bump, for the same reason `0033` and `0034` are edited in place
+rather than superseded: proposal shape 2 was introduced on this branch, nothing
+has ever been written under it, and every retained proposal and accepted artifact
+declares `5d-proposal-1`, which states no review inventory. A shape no recorded
+document uses is not yet a contract with anything.
+
+**A batch must accept the source its units' rules cite.** New observable
+constraint, and the reason two `test_accepted_inputs` batch tests were re-split:
+`accept_proposal` refuses a unit whose expected rules name spans outside the
+merged accepted scope of this acceptance and its priors. That is the intended
+reading — an expectation read from text no acceptance holds is not coverage of
+anything accepted — but it constrains how a multi-batch acceptance is cut, and
+the regular-section pilot should cut batches along unit boundaries because of it.
+
 **Nothing recorded moved.** No committed JSON artifact contains `review_units`;
 all seven accepted artifacts declare `5d-proposal-1`, and `projection_payload`
 omits the key when empty. No recorded projection identity and no recorded
