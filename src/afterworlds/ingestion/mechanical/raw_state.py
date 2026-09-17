@@ -36,6 +36,8 @@ from sqlalchemy.orm import Session
 
 from afterworlds.ingestion.mechanical.representation import RECORD_OWNED_REFERENCE
 from afterworlds.persistence.orm.mechanical import (
+    REVIEW_GROUP_EXCLUDED,
+    REVIEW_GROUP_SUPPORTING,
     MechanicalAcceptanceBatchORM,
     MechanicalAcceptanceORM,
     MechanicalBatchDiffORM,
@@ -50,6 +52,7 @@ from afterworlds.persistence.orm.mechanical import (
     MechanicalReferenceORM,
     MechanicalRelationshipORM,
     MechanicalReviewExpectationORM,
+    MechanicalReviewGroupORM,
     MechanicalReviewUnitAcceptanceORM,
     MechanicalReviewUnitORM,
     MechanicalSpanORM,
@@ -123,6 +126,10 @@ class RawProjectionState:
     #: any projection whose partition is complete without them.
     review_units: Sequence[MechanicalReviewUnitORM] = ()
     review_expectations: Sequence[MechanicalReviewExpectationORM] = ()
+    #: The unit's supporting and excluded groups, in one table discriminated by
+    #: ``role`` because they are one obligation: what this unit decided about
+    #: the source it named.
+    review_groups: Sequence[MechanicalReviewGroupORM] = ()
     #: One per accepted unit, and empty exactly when the inventory is.
     review_unit_acceptances: Sequence[MechanicalReviewUnitAcceptanceORM] = ()
 
@@ -159,6 +166,7 @@ def load_raw_state(
         provenance=rows(MechanicalProvenanceORM),
         review_units=rows(MechanicalReviewUnitORM),
         review_expectations=rows(MechanicalReviewExpectationORM),
+        review_groups=rows(MechanicalReviewGroupORM),
         review_unit_acceptances=rows(MechanicalReviewUnitAcceptanceORM),
     )
 
@@ -375,15 +383,11 @@ def validate_raw_closure(raw: RawProjectionState) -> None:
                 "in one projection"
             )
         unit_ids.add(unit.unit_id)
-        for field, value in (
-            ("leaf_ids", unit.leaf_ids),
-            ("excluded_group_reasons", unit.excluded_group_reasons),
-        ):
-            if not _is_string_list(value):
-                problems.append(
-                    f"rp_mech_review_units row {unit.row_id}: {field} "
-                    f"{value!r} is not a list of strings"
-                )
+        if not _is_string_list(unit.leaf_ids):
+            problems.append(
+                f"rp_mech_review_units row {unit.row_id}: leaf_ids "
+                f"{unit.leaf_ids!r} is not a list of strings"
+            )
 
     for expectation in raw.review_expectations:
         if expectation.unit_id not in unit_ids:
@@ -391,6 +395,47 @@ def validate_raw_closure(raw: RawProjectionState) -> None:
                 f"rp_mech_review_expectations row {expectation.row_id}: names "
                 f"review unit {expectation.unit_id!r} with no header in this "
                 "projection"
+            )
+        if not _is_string_list(expectation.source_span_ids):
+            problems.append(
+                f"rp_mech_review_expectations row {expectation.row_id}: "
+                f"source_span_ids {expectation.source_span_ids!r} is not a list "
+                "of strings"
+            )
+
+    # Structure only, again: whether a group's leaves are inside its unit and
+    # whether what it supports exists are the candidate validator's questions.
+    # What cannot be answered there is whether the row means anything at all —
+    # a role this build has no reading for, or a row carrying the other role's
+    # fields, reconstructs into a decision nobody recorded.
+    for group in raw.review_groups:
+        if group.unit_id not in unit_ids:
+            problems.append(
+                f"rp_mech_review_groups row {group.row_id}: names review unit "
+                f"{group.unit_id!r} with no header in this projection"
+            )
+        if not _is_string_list(group.leaf_ids):
+            problems.append(
+                f"rp_mech_review_groups row {group.row_id}: leaf_ids "
+                f"{group.leaf_ids!r} is not a list of strings"
+            )
+        if group.role == REVIEW_GROUP_SUPPORTING:
+            if group.supports_record_key is None or group.reason is not None:
+                problems.append(
+                    f"rp_mech_review_groups row {group.row_id}: a supporting "
+                    "group names the authority it supports and no exclusion "
+                    "reason"
+                )
+        elif group.role == REVIEW_GROUP_EXCLUDED:
+            if group.reason is None or group.supports_record_key is not None:
+                problems.append(
+                    f"rp_mech_review_groups row {group.row_id}: an excluded "
+                    "group states a reason and supports nothing"
+                )
+        else:
+            problems.append(
+                f"rp_mech_review_groups row {group.row_id}: role "
+                f"{group.role!r} is not a decision this build can read"
             )
 
     # Both directions, because both are losable. A row naming no unit is

@@ -553,8 +553,10 @@ def accept_proposal(
     # because a unit may expect a rule an earlier batch structured. Refused here,
     # before an artifact exists, rather than producing one the loader rejects —
     # the same terms as the disjoint-scope refusal above.
+    # Against the merged spans for the same reason as the merged representation:
+    # a unit may have read its rule from a span an earlier batch accepted.
     if violations := review_unit_violations(
-        merged_units, representation, proposal.policy_version
+        merged_units, representation, proposal.policy_version, _ordered(spans)
     ):
         raise AcceptanceError(
             "this acceptance would record a review inventory that is not "

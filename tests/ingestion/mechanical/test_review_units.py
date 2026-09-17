@@ -1,18 +1,29 @@
 """Accepted review units — CRD Issue 5d (#137), Owner Decision of 2026-09-16.
 
 A review unit records that a human read one coherent stretch of source and what
-they require to be present afterwards. Three separable obligations are proven
-here, and they fail in different places on purpose:
+they decided about it. Four separable obligations are proven here, and they
+fail in different places on purpose:
 
 * the inventory **persists, reconstructs and identifies** — it is part of what
   the projection means, so it enters the projection identity and the
   persisted-state digest and a tampered row is caught;
 * the inventory is **checked into the representation**, never read out of it —
   an expected rule with no home is a finding, while representation content no
-  unit expected is not; and
+  unit expected is not;
+* every leaf a unit names is **accounted for by some decision** — a rule read
+  from it, a supporting group, or an excluded group with a reason. A unit that
+  decided nothing certifies nothing, which is what stops blank accounting
+  buying the partition relaxation; and
 * a leaf a unit covers is **relieved of the complete-partition rule and of
   nothing else** — overlap, bad bounds and derived-id errors are still reported
   on exactly that leaf.
+
+The precision an expectation buys is bounded, and the bound is deliberate:
+naming the component, the family and the *source spans the rule was read from*
+tells apart two exceptions of one family read from different sentences, and
+catches a rule or passage substituted from the wrong source text. Two facts of
+one family read from the same span remain the exact accepted-oracle comparison's
+job, which already catches any changed build against an unchanged oracle.
 
 Negative controls perturb one thing each. The oracle is never perturbed to make
 a candidate pass.
@@ -32,12 +43,14 @@ from afterworlds.ingestion.mechanical.accounting import (
     validate_partition,
 )
 from afterworlds.ingestion.mechanical.models import (
+    ExcludedGroup,
     ExpectedRule,
     ReviewState,
     ReviewUnit,
     ReviewUnitKind,
     SemanticDisposition,
     SemanticSpan,
+    SupportingGroup,
 )
 from afterworlds.ingestion.mechanical.oracle import (
     OracleLoadError,
@@ -61,8 +74,22 @@ from afterworlds.ingestion.mechanical.projection import (
     review_unit_violations,
     validate_candidate,
 )
+from afterworlds.ingestion.mechanical.representation import (
+    ComponentDraft,
+    ComponentHandling,
+    MovementMode,
+    MovementPermissionFact,
+    ProvenanceClaim,
+    ProvenanceRole,
+    ProvenanceTargetKind,
+    RepresentationDraft,
+    fact_target_key,
+)
 from afterworlds.persistence.orm.mechanical import (
+    REVIEW_GROUP_EXCLUDED,
+    REVIEW_GROUP_SUPPORTING,
     MechanicalReviewExpectationORM,
+    MechanicalReviewGroupORM,
     MechanicalReviewUnitORM,
 )
 from tests.ingestion.mechanical.conftest import (
@@ -72,9 +99,11 @@ from tests.ingestion.mechanical.conftest import (
     NOW,
     OPEN_ENDED_KEY,
     PROSE_LEAF,
+    PROSE_SPAN,
     REVIEW_UNITS,
     SPELL_KEY,
     SPELL_LEAF,
+    SPELL_SPAN,
     SUPPORT_LEAF,
     bound_corpus,
     build_candidate,
@@ -91,6 +120,9 @@ DESCRIPTOR_FAMILY = DESCRIPTOR_FACT.FAMILY.value
 POLICY_2 = "5d-semantic-policy-2"
 POLICY_1 = "5d-semantic-policy-1"
 
+#: A span id no classification in this module states.
+UNSTATED_SPAN = derive_span_id(SPELL_LEAF, 5, 9)
+
 
 def _persist(session: Session, units: tuple[ReviewUnit, ...] = REVIEW_UNITS):  # type: ignore[no-untyped-def]
     identified = identify_projection(reviewed_candidate(units))
@@ -99,9 +131,33 @@ def _persist(session: Session, units: tuple[ReviewUnit, ...] = REVIEW_UNITS):  #
 
 
 def _violations(
-    units: tuple[ReviewUnit, ...], policy_version: str = POLICY_2
+    units: tuple[ReviewUnit, ...],
+    policy_version: str = POLICY_2,
+    *,
+    draft: RepresentationDraft | None = None,
+    spans: tuple[SemanticSpan, ...] | None = None,
 ) -> list[str]:
-    return review_unit_violations(units, build_representation(), policy_version)
+    return review_unit_violations(
+        units,
+        build_representation() if draft is None else draft,
+        policy_version,
+        build_ledger().spans if spans is None else spans,
+    )
+
+
+def _entry_unit(*rules: ExpectedRule) -> ReviewUnit:
+    """The entry unit narrowed to the spell leaf, stating *rules* and nothing else.
+
+    Its excluded group is kept, so the leaf stays accounted for however the
+    rule under test resolves and each control below reports exactly the one
+    thing it perturbs.
+    """
+    return replace(REVIEW_UNITS[0], leaf_ids=(SPELL_LEAF,), expected_rules=rules)
+
+
+def _wish_unit(*rules: ExpectedRule) -> ReviewUnit:
+    """The entry unit over both its leaves — for rules read from the prose leaf."""
+    return replace(REVIEW_UNITS[0], expected_rules=rules)
 
 
 # ---------------------------------------------------------------------------
@@ -121,16 +177,25 @@ def test_roundtrip_reconstructs_the_exact_review_inventory(session: Session) -> 
     assert entry.kind is ReviewUnitKind.ENTRY
     assert entry.leaf_ids == (PROSE_LEAF, SPELL_LEAF)
     assert entry.expected_rules == (
-        ExpectedRule(SPELL_KEY, DESCRIPTOR_KEY, DESCRIPTOR_FAMILY),
-        ExpectedRule(SPELL_KEY, OPEN_ENDED_KEY, None),
+        ExpectedRule(SPELL_KEY, DESCRIPTOR_KEY, DESCRIPTOR_FAMILY, (SPELL_SPAN,)),
+        ExpectedRule(SPELL_KEY, OPEN_ENDED_KEY, None, (PROSE_SPAN,)),
     )
-    assert entry.excluded_group_reasons == (
-        "the spell-list heading above this entry is navigation, not a rule",
+    assert entry.excluded_groups == (
+        ExcludedGroup(
+            (SPELL_LEAF,),
+            "the spell-list heading in this leaf is navigation, not a rule",
+        ),
     )
-    # The unit that claims nothing beyond its membership reconstructs as empty
-    # tuples rather than as a missing unit.
-    assert units["unit-support-section"].expected_rules == ()
-    assert units["unit-support-section"].excluded_group_reasons == ()
+    assert entry.supporting_groups == ()
+
+    # The unit that states one supporting decision and no rule reconstructs as
+    # that decision, not as an empty unit.
+    support = units["unit-support-section"]
+    assert support.supporting_groups == (
+        SupportingGroup((SUPPORT_LEAF,), SPELL_KEY, ""),
+    )
+    assert support.expected_rules == ()
+    assert support.excluded_groups == ()
 
 
 def test_a_rule_accepted_as_governing_prose_reconstructs_as_such(
@@ -144,6 +209,7 @@ def test_a_rule_accepted_as_governing_prose_reconstructs_as_such(
         )
     ).scalar_one()
     assert row.fact_family is None
+    assert row.source_span_ids == [PROSE_SPAN]
 
     rebuilt = reconstruct_candidate(session, identified.projection_uuid)
     prose_rule = next(
@@ -153,6 +219,7 @@ def test_a_rule_accepted_as_governing_prose_reconstructs_as_such(
         if r.component_key == OPEN_ENDED_KEY
     )
     assert prose_rule.fact_family is None
+    assert prose_rule.source_span_ids == (PROSE_SPAN,)
 
 
 def test_a_non_canonical_inventory_still_verifies_and_reidentifies(
@@ -199,6 +266,43 @@ def test_the_review_inventory_is_inside_the_projection_identity() -> None:
     assert fewer not in {without, with_units}
 
 
+def test_a_changed_coverage_decision_is_a_different_authority() -> None:
+    """The decisions this round adds carry meaning, so they move identity.
+
+    A different reason for excluding the same text, and the same rule with its
+    source text forgotten, are each a different claim about what was reviewed.
+    """
+    reviewed = identify_projection(reviewed_candidate()).projection_uuid
+
+    reworded = replace(
+        REVIEW_UNITS[0],
+        excluded_groups=(ExcludedGroup((SPELL_LEAF,), "boilerplate"),),
+    )
+    unsourced = replace(
+        REVIEW_UNITS[0],
+        expected_rules=tuple(
+            replace(rule, source_span_ids=()) for rule in REVIEW_UNITS[0].expected_rules
+        ),
+    )
+    relinked = replace(
+        REVIEW_UNITS[1],
+        supporting_groups=(
+            SupportingGroup((SUPPORT_LEAF,), SPELL_KEY, DESCRIPTOR_KEY),
+        ),
+    )
+    moved = {
+        identify_projection(reviewed_candidate((unit, REVIEW_UNITS[1]))).projection_uuid
+        for unit in (reworded, unsourced)
+    }
+    moved.add(
+        identify_projection(
+            reviewed_candidate((REVIEW_UNITS[0], relinked))
+        ).projection_uuid
+    )
+    assert reviewed not in moved
+    assert len(moved) == 3
+
+
 def test_a_candidate_claiming_no_unit_identifies_exactly_as_before() -> None:
     """The additive proof: the key is omitted, not emitted empty.
 
@@ -228,6 +332,42 @@ def test_tampering_an_expected_family_is_caught_by_the_digest(
     )
     findings = verify_persisted_state(session, identified.projection_uuid)
     assert findings != ()
+
+
+def test_tampering_an_excluded_reason_is_caught_by_the_digest(
+    session: Session,
+) -> None:
+    """The reason a stretch was excused is retained state, not a comment."""
+    identified = _persist(session)
+    recorded = record_persisted_state_digest(session, identified.projection_uuid)
+
+    row = session.execute(
+        select(MechanicalReviewGroupORM).where(
+            MechanicalReviewGroupORM.role == REVIEW_GROUP_EXCLUDED
+        )
+    ).scalar_one()
+    row.reason = "no rules here"
+    session.flush()
+
+    assert (
+        compute_persisted_state_digest(session, identified.projection_uuid) != recorded
+    )
+    assert verify_persisted_state(session, identified.projection_uuid) != ()
+
+
+def test_tampering_a_supporting_group_is_caught_by_reidentification(
+    session: Session,
+) -> None:
+    identified = _persist(session)
+    row = session.execute(
+        select(MechanicalReviewGroupORM).where(
+            MechanicalReviewGroupORM.role == REVIEW_GROUP_SUPPORTING
+        )
+    ).scalar_one()
+    row.supports_record_key = "spell:fireball"
+    session.flush()
+
+    assert verify_reconstruction(session, identified) != ()
 
 
 def test_tampering_a_unit_kind_is_caught_by_reidentification(
@@ -268,6 +408,7 @@ def test_deleting_a_projection_removes_its_review_inventory(
 
     assert session.execute(select(MechanicalReviewUnitORM)).scalars().all() == []
     assert session.execute(select(MechanicalReviewExpectationORM)).scalars().all() == []
+    assert session.execute(select(MechanicalReviewGroupORM)).scalars().all() == []
 
 
 # ---------------------------------------------------------------------------
@@ -282,9 +423,8 @@ def test_an_honest_inventory_is_not_a_finding() -> None:
 
 def test_an_expected_rule_with_no_component_is_reported() -> None:
     """The omission this inventory exists to catch."""
-    unit = replace(
-        REVIEW_UNITS[0],
-        expected_rules=(ExpectedRule(SPELL_KEY, "material-components", None),),
+    unit = _entry_unit(
+        ExpectedRule(SPELL_KEY, "material-components", None, (SPELL_SPAN,))
     )
     (finding,) = _violations((unit,))
     assert "spell:wish/material-components has no component" in finding
@@ -292,18 +432,14 @@ def test_an_expected_rule_with_no_component_is_reported() -> None:
 
 def test_a_rule_accepted_as_prose_against_a_structured_component_is_reported() -> None:
     """A component silently resolved to structured has dropped the passage."""
-    unit = replace(
-        REVIEW_UNITS[0],
-        expected_rules=(ExpectedRule(SPELL_KEY, DESCRIPTOR_KEY, None),),
-    )
+    unit = _entry_unit(ExpectedRule(SPELL_KEY, DESCRIPTOR_KEY, None, (SPELL_SPAN,)))
     (finding,) = _violations((unit,))
     assert "accepted as governing prose, but the component is structured" in finding
 
 
 def test_a_rule_naming_a_family_the_component_lacks_is_reported() -> None:
-    unit = replace(
-        REVIEW_UNITS[0],
-        expected_rules=(ExpectedRule(SPELL_KEY, DESCRIPTOR_KEY, "movement_cost"),),
+    unit = _entry_unit(
+        ExpectedRule(SPELL_KEY, DESCRIPTOR_KEY, "movement_cost", (SPELL_SPAN,))
     )
     (finding,) = _violations((unit,))
     assert "requires fact family 'movement_cost'" in finding
@@ -316,18 +452,63 @@ def test_a_family_this_build_does_not_declare_is_a_finding_not_a_crash() -> None
     has to be reportable, because a build that could not read the claim could
     not tell anyone it went unmet.
     """
-    unit = replace(
-        REVIEW_UNITS[0],
-        expected_rules=(ExpectedRule(SPELL_KEY, DESCRIPTOR_KEY, "not_a_family"),),
+    unit = _entry_unit(
+        ExpectedRule(SPELL_KEY, DESCRIPTOR_KEY, "not_a_family", (SPELL_SPAN,))
     )
     (finding,) = _violations((unit,))
     assert "requires fact family 'not_a_family'" in finding
 
 
+def test_an_expected_rule_naming_no_source_is_reported() -> None:
+    """An expectation nobody can trace to source text is not review evidence."""
+    unit = _entry_unit(ExpectedRule(SPELL_KEY, DESCRIPTOR_KEY, DESCRIPTOR_FAMILY, ()))
+    (finding,) = _violations((unit,))
+    assert "names no source span it was read from" in finding
+
+
+def test_an_expected_rule_naming_an_unclassified_span_is_reported() -> None:
+    """Reported twice on purpose: the link is bad *and* nothing was read there."""
+    unit = _entry_unit(
+        ExpectedRule(SPELL_KEY, DESCRIPTOR_KEY, DESCRIPTOR_FAMILY, (UNSTATED_SPAN,))
+    )
+    findings = _violations((unit,))
+    assert any("which the classification does not state" in f for f in findings)
+    assert any("carries that family from other source text only" in f for f in findings)
+
+
+def test_a_rule_read_from_source_this_unit_does_not_review_is_reported() -> None:
+    unit = _entry_unit(
+        ExpectedRule(SPELL_KEY, DESCRIPTOR_KEY, DESCRIPTOR_FAMILY, (PROSE_SPAN,))
+    )
+    findings = _violations((unit,))
+    assert any(
+        f"of leaf {PROSE_LEAF}, which this unit does not review" in f for f in findings
+    )
+
+
+def test_a_rule_substituted_from_the_wrong_source_text_is_reported() -> None:
+    """The family survives; the source link is what fails.
+
+    Same component, same family, read from a different passage. Without the
+    source link this is indistinguishable from the honest expectation.
+    """
+    unit = _wish_unit(
+        ExpectedRule(SPELL_KEY, DESCRIPTOR_KEY, DESCRIPTOR_FAMILY, (PROSE_SPAN,))
+    )
+    (finding,) = _violations((unit,))
+    assert "carries that family from other source text only" in finding
+
+
+def test_prose_substituted_from_the_wrong_source_text_is_reported() -> None:
+    """The prose half of the same substitution: bound, but to another passage."""
+    unit = _entry_unit(ExpectedRule(SPELL_KEY, OPEN_ENDED_KEY, None, (SPELL_SPAN,)))
+    (finding,) = _violations((unit,))
+    assert "binds no prose from" in finding
+
+
 def test_representation_content_no_unit_expected_is_not_a_violation() -> None:
     """A unit states what review found, not a census of what may be there."""
-    bare = replace(REVIEW_UNITS[0], expected_rules=())
-    assert _violations((bare,)) == []
+    assert _violations((_entry_unit(),)) == []
 
 
 def test_a_unit_covering_no_leaf_is_reported() -> None:
@@ -347,12 +528,277 @@ def test_a_duplicate_unit_id_is_reported() -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# Two exceptions of one family, read from two sentences
+# ---------------------------------------------------------------------------
+
+EXCEPTIONS_KEY = "movement-exceptions"
+CRAWL_SENTENCE = derive_span_id(SPELL_LEAF, 0, 20)
+CLIMB_SENTENCE = derive_span_id(SPELL_LEAF, 20, 40)
+CRAWL_EXCEPTION = MovementPermissionFact(mode=MovementMode.CRAWL)
+CLIMB_EXCEPTION = MovementPermissionFact(mode=MovementMode.CLIMB)
+MOVEMENT_FAMILY = CRAWL_EXCEPTION.FAMILY.value
+
+
+def _sentence_spans() -> tuple[SemanticSpan, ...]:
+    """The accepted ledger plus the two sentences of the spell leaf.
+
+    Sub-leaf spans, so they overlap the leaf-wide span the fixture accepts.
+    That is irrelevant here on purpose: ``review_unit_violations`` reads the
+    classification only to learn which leaf a span belongs to, and partition
+    soundness is :func:`validate_partition`'s question, proven separately below.
+    """
+    return build_ledger().spans + tuple(
+        SemanticSpan(
+            span_id=span_id,
+            leaf_id=SPELL_LEAF,
+            char_start=start,
+            char_end=end,
+            disposition=SemanticDisposition.SUBSTANTIVE,
+            review_state=ReviewState.ACCEPTED,
+        )
+        for span_id, start, end in (
+            (CRAWL_SENTENCE, 0, 20),
+            (CLIMB_SENTENCE, 20, 40),
+        )
+    )
+
+
+def _exceptions_draft(
+    *facts: MovementPermissionFact,
+) -> RepresentationDraft:
+    """The shared draft plus one component stating *facts* as exceptions.
+
+    Each exception carries its own provenance edge to the sentence that states
+    it, through the same :func:`fact_target_key` every claim in this codebase
+    is keyed by.
+    """
+    sources = {CRAWL_EXCEPTION: CRAWL_SENTENCE, CLIMB_EXCEPTION: CLIMB_SENTENCE}
+    base = build_representation()
+    return replace(
+        base,
+        components=(
+            *base.components,
+            ComponentDraft(
+                record_key=SPELL_KEY,
+                semantic_key=EXCEPTIONS_KEY,
+                handling=ComponentHandling.STRUCTURED,
+                facts=facts,
+            ),
+        ),
+        provenance=(
+            *base.provenance,
+            *(
+                ProvenanceClaim(
+                    ProvenanceTargetKind.FACT,
+                    fact_target_key(SPELL_KEY, EXCEPTIONS_KEY, fact),
+                    sources[fact],
+                    ProvenanceRole.PRIMARY,
+                )
+                for fact in facts
+            ),
+        ),
+    )
+
+
+def _exception_unit() -> ReviewUnit:
+    return _entry_unit(
+        ExpectedRule(SPELL_KEY, EXCEPTIONS_KEY, MOVEMENT_FAMILY, (CRAWL_SENTENCE,)),
+        ExpectedRule(SPELL_KEY, EXCEPTIONS_KEY, MOVEMENT_FAMILY, (CLIMB_SENTENCE,)),
+    )
+
+
+def test_two_exceptions_of_one_family_both_have_homes() -> None:
+    assert (
+        _violations(
+            (_exception_unit(),),
+            draft=_exceptions_draft(CRAWL_EXCEPTION, CLIMB_EXCEPTION),
+            spans=_sentence_spans(),
+        )
+        == []
+    )
+
+
+def test_dropping_one_of_two_exceptions_fails_exactly_its_expectation() -> None:
+    """The defect this round exists to close.
+
+    A family-presence check passes here: the component still carries a
+    ``movement_permission`` fact. The surviving exception answers for itself
+    and for nothing else, because the dropped one was read from another
+    sentence.
+    """
+    (finding,) = _violations(
+        (_exception_unit(),),
+        draft=_exceptions_draft(CRAWL_EXCEPTION),
+        spans=_sentence_spans(),
+    )
+    assert CLIMB_SENTENCE in finding
+    assert "carries that family from other source text only" in finding
+
+
+def test_a_shared_representation_satisfies_a_rule_read_from_either_span() -> None:
+    """One structure legitimately stated by two passages is not an omission.
+
+    The contrast with the wrong-source control above is the extra edge: the
+    fact really is claimed from the prose span, so the expectation read there
+    has a home.
+    """
+    base = build_representation()
+    shared = replace(
+        base,
+        provenance=(
+            *base.provenance,
+            ProvenanceClaim(
+                ProvenanceTargetKind.FACT,
+                fact_target_key(SPELL_KEY, DESCRIPTOR_KEY, DESCRIPTOR_FACT),
+                PROSE_SPAN,
+                ProvenanceRole.CONTEXTUAL,
+            ),
+        ),
+    )
+    unit = _wish_unit(
+        ExpectedRule(SPELL_KEY, DESCRIPTOR_KEY, DESCRIPTOR_FAMILY, (PROSE_SPAN,))
+    )
+    assert _violations((unit,), draft=shared) == []
+
+
+# ---------------------------------------------------------------------------
+# Supporting and excluded groups
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("group", "expected"),
+    [
+        (
+            SupportingGroup((SUPPORT_LEAF,), ""),
+            "names no authority it supports",
+        ),
+        (
+            SupportingGroup((SUPPORT_LEAF,), "spell:fireball"),
+            "supports record spell:fireball, which the representation does not carry",
+        ),
+        (
+            SupportingGroup((SUPPORT_LEAF,), SPELL_KEY, "material-components"),
+            "supports spell:wish/material-components, which the representation "
+            "does not carry",
+        ),
+    ],
+    ids=["unlinked", "unknown-record", "unknown-component"],
+)
+def test_supporting_material_must_link_to_the_authority_it_explains(
+    group: SupportingGroup, expected: str
+) -> None:
+    """Useful text kept with nothing saying what it is useful *for* explains nothing."""
+    unit = replace(REVIEW_UNITS[1], supporting_groups=(group,))
+    (finding,) = _violations((unit,))
+    assert expected in finding
+
+
 @pytest.mark.parametrize("reason", ["", "   ", "\n"])
 def test_an_excluded_group_with_a_blank_reason_is_reported(reason: str) -> None:
-    unit = replace(REVIEW_UNITS[0], excluded_group_reasons=(reason,))
-    assert any(
-        "an excluded group states an empty reason" in f for f in _violations((unit,))
+    unit = replace(
+        REVIEW_UNITS[0],
+        leaf_ids=(SPELL_LEAF,),
+        expected_rules=(),
+        excluded_groups=(ExcludedGroup((SPELL_LEAF,), reason),),
     )
+    (finding,) = _violations((unit,))
+    assert "excluded group ['leaf-spell'] states an empty reason" in finding
+
+
+@pytest.mark.parametrize(
+    "groups",
+    [
+        {"supporting_groups": (SupportingGroup((), SPELL_KEY),)},
+        {
+            "supporting_groups": (),
+            "excluded_groups": (ExcludedGroup((), "page furniture"),),
+        },
+    ],
+    ids=["supporting", "excluded"],
+)
+def test_a_group_naming_no_source_is_reported(groups: dict[str, object]) -> None:
+    unit = replace(REVIEW_UNITS[1], **groups)
+    assert any("group [] names no source leaves" in f for f in _violations((unit,)))
+
+
+@pytest.mark.parametrize(
+    "groups",
+    [
+        {"supporting_groups": (SupportingGroup((PROSE_LEAF,), SPELL_KEY),)},
+        {
+            "supporting_groups": (),
+            "excluded_groups": (ExcludedGroup((PROSE_LEAF,), "page furniture"),),
+        },
+    ],
+    ids=["supporting", "excluded"],
+)
+def test_a_group_deciding_source_outside_its_unit_is_reported(
+    groups: dict[str, object],
+) -> None:
+    """A decision reaching past the source a human read covers nothing here."""
+    unit = replace(REVIEW_UNITS[1], **groups)
+    findings = _violations((unit,))
+    assert any(
+        f"names ['{PROSE_LEAF}'], which this unit does not review" in f
+        for f in findings
+    )
+    # …and having decided nothing about its own leaf, the unit is unaccounted.
+    assert any("named by no expected rule" in f for f in findings)
+
+
+def test_a_wholly_supporting_or_wholly_excluded_unit_is_coverage() -> None:
+    """Neither kind of coherent group has to state a rule to account for itself."""
+    assert _violations((REVIEW_UNITS[1],)) == []
+
+    excluded_only = ReviewUnit(
+        unit_id="unit-prose-aside",
+        kind=ReviewUnitKind.SECTION,
+        leaf_ids=(PROSE_LEAF,),
+        excluded_groups=(
+            ExcludedGroup((PROSE_LEAF,), "the illustration caption states no rule"),
+        ),
+    )
+    assert _violations((excluded_only,)) == []
+
+
+def test_a_unit_that_decided_nothing_certifies_nothing() -> None:
+    """Blank accounting must not buy the partition relaxation.
+
+    A unit naming every leaf, with no rule, no supporting group and no
+    exclusion, used to validate clean and relieve all three leaves of
+    completeness. Now it reports the leaves it decided nothing about, and the
+    text it never accounted for is uncovered again.
+    """
+    blank = ReviewUnit(
+        unit_id="unit-blank",
+        kind=ReviewUnitKind.ENTRY,
+        leaf_ids=(SPELL_LEAF, PROSE_LEAF, SUPPORT_LEAF),
+    )
+    findings = validate_candidate(
+        reviewed_candidate((blank,)), bound_corpus(leaf_lengths=LONGER_SPELL_LEAF)
+    )
+    assert (
+        sum(
+            "named by no expected rule, supporting group or excluded group" in f
+            for f in findings
+        )
+        == 3
+    )
+    assert any("uncovered text [40,60)" in f for f in findings)
+
+
+def test_a_unit_whose_membership_leaves_its_rules_behind_is_reported() -> None:
+    """Narrowing the source a unit reviewed does not narrow what it certifies.
+
+    Replacing the entry unit's leaves while keeping its rules used to be silent:
+    the rules named a component and a family, and neither mentions source.
+    """
+    moved = replace(REVIEW_UNITS[0], leaf_ids=(SUPPORT_LEAF,), excluded_groups=())
+    findings = _violations((moved,))
+    assert sum("which this unit does not review" in f for f in findings) == 2
+    assert any("named by no expected rule" in f for f in findings)
 
 
 # ---------------------------------------------------------------------------
@@ -384,7 +830,10 @@ def test_an_unrecognised_policy_is_reported_not_raised() -> None:
 
 def test_an_empty_inventory_never_consults_the_policy_catalog() -> None:
     assert (
-        review_unit_violations((), build_representation(), "5d-semantic-policy-0") == []
+        review_unit_violations(
+            (), build_representation(), "5d-semantic-policy-0", build_ledger().spans
+        )
+        == []
     )
 
 
@@ -472,7 +921,11 @@ def test_a_covered_leaf_with_no_spans_at_all_is_accepted() -> None:
 
 def test_a_unit_naming_a_leaf_the_release_does_not_have_is_reported() -> None:
     """Named as a membership error, so a reviewer looks at the unit not at spans."""
-    stray = replace(REVIEW_UNITS[1], leaf_ids=("leaf-not-in-this-release",))
+    stray = replace(
+        REVIEW_UNITS[1],
+        leaf_ids=("leaf-not-in-this-release",),
+        supporting_groups=(SupportingGroup(("leaf-not-in-this-release",), SPELL_KEY),),
+    )
     findings = validate_candidate(
         reviewed_candidate((REVIEW_UNITS[0], stray)), bound_corpus()
     )
@@ -530,21 +983,51 @@ def test_an_accepted_artifact_carries_its_review_inventory(tmp_path) -> None:  #
     assert review_unit_payload(oracle.review_units) == expected_units
     assert oracle_payload(oracle)["review_units"] == expected_units
 
-    # And it is a real inventory afterwards, not just matching bytes.
+    # And it is a real inventory afterwards, not just matching bytes: every
+    # decision the reviewer recorded survives the committed form.
     entry = next(u for u in oracle.review_units if u.unit_id == "unit-wish-entry")
     assert entry.kind is ReviewUnitKind.ENTRY
     assert set(entry.leaf_ids) == {SPELL_LEAF, PROSE_LEAF}
-    assert ExpectedRule(SPELL_KEY, OPEN_ENDED_KEY, None) in entry.expected_rules
+    assert (
+        ExpectedRule(SPELL_KEY, OPEN_ENDED_KEY, None, (PROSE_SPAN,))
+        in entry.expected_rules
+    )
+    assert entry.excluded_groups == REVIEW_UNITS[0].excluded_groups
+
+    support = next(
+        u for u in oracle.review_units if u.unit_id == "unit-support-section"
+    )
+    assert support.supporting_groups == REVIEW_UNITS[1].supporting_groups
 
 
 def test_an_artifact_whose_expectation_has_no_home_is_refused(tmp_path) -> None:  # type: ignore[no-untyped-def]
     """A passing parse is not semantic acceptance."""
-    unit = replace(
-        REVIEW_UNITS[0],
-        expected_rules=(ExpectedRule(SPELL_KEY, "material-components", None),),
-    )
     payload = _bounded_payload()
-    payload["review_units"] = review_unit_payload((unit,))
+    payload["review_units"] = review_unit_payload(
+        (
+            _entry_unit(
+                ExpectedRule(SPELL_KEY, "material-components", None, (SPELL_SPAN,))
+            ),
+        )
+    )
+
+    with pytest.raises(OracleLoadError) as exc:
+        load_accepted_inputs(_write(tmp_path, payload))
+    assert "the accepted review inventory is not coverage" in str(exc.value)
+
+
+def test_an_artifact_whose_unit_accounts_for_nothing_is_refused(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """The accounting obligation reaches the committed form too."""
+    payload = _bounded_payload()
+    payload["review_units"] = review_unit_payload(
+        (
+            ReviewUnit(
+                unit_id="unit-blank",
+                kind=ReviewUnitKind.ENTRY,
+                leaf_ids=(SPELL_LEAF,),
+            ),
+        )
+    )
 
     with pytest.raises(OracleLoadError) as exc:
         load_accepted_inputs(_write(tmp_path, payload))

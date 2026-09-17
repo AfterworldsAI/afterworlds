@@ -51,6 +51,7 @@ from afterworlds.ingestion.mechanical.models import (
     AcceptanceRecord,
     ClassificationLedger,
     ComponentHandling,
+    ExcludedGroup,
     ExpectedRule,
     ReviewState,
     ReviewUnit,
@@ -59,6 +60,7 @@ from afterworlds.ingestion.mechanical.models import (
     SemanticDiffEntry,
     SemanticDisposition,
     SemanticSpan,
+    SupportingGroup,
 )
 from afterworlds.ingestion.mechanical.projection import (
     IdentifiedProjection,
@@ -74,6 +76,7 @@ from afterworlds.ingestion.mechanical.projection import (
 )
 from afterworlds.ingestion.mechanical.raw_state import (
     PersistedStateReconstructionError,
+    RawProjectionState,
     load_raw_state,
     parse_enum,
     validate_raw_closure,
@@ -125,6 +128,8 @@ from afterworlds.ingestion.mechanical.representation import (
     recurrence_violations,
 )
 from afterworlds.persistence.orm.mechanical import (
+    REVIEW_GROUP_EXCLUDED,
+    REVIEW_GROUP_SUPPORTING,
     MechanicalAcceptanceBatchORM,
     MechanicalAcceptanceORM,
     MechanicalBatchDiffORM,
@@ -139,6 +144,7 @@ from afterworlds.persistence.orm.mechanical import (
     MechanicalReferenceORM,
     MechanicalRelationshipORM,
     MechanicalReviewExpectationORM,
+    MechanicalReviewGroupORM,
     MechanicalReviewUnitAcceptanceORM,
     MechanicalReviewUnitORM,
     MechanicalSpanORM,
@@ -273,8 +279,8 @@ def persist_draft(
             )
         )
 
-    # Leaf membership and exclusion reasons are stored sorted, and expectations
-    # are not given an ordinal, because the accepted inventory is a set of
+    # Leaf membership is stored sorted, and expectations and groups are not
+    # given an ordinal, because the accepted inventory is a set of
     # decisions rather than a sequence: two reviewers who recorded the same
     # units in a different order reviewed the same scope. Contrast the batch
     # scope above, whose recorded order is retained evidence and is kept.
@@ -285,7 +291,6 @@ def persist_draft(
                 unit_id=unit.unit_id,
                 kind=unit.kind.value,
                 leaf_ids=sorted(unit.leaf_ids),
-                excluded_group_reasons=sorted(unit.excluded_group_reasons),
             )
         )
         for rule in unit.expected_rules:
@@ -296,6 +301,28 @@ def persist_draft(
                     record_key=rule.record_key,
                     component_key=rule.component_key,
                     fact_family=rule.fact_family,
+                    source_span_ids=sorted(rule.source_span_ids),
+                )
+            )
+        for supporting in unit.supporting_groups:
+            session.add(
+                MechanicalReviewGroupORM(
+                    projection_uuid=uuid_,
+                    unit_id=unit.unit_id,
+                    role=REVIEW_GROUP_SUPPORTING,
+                    leaf_ids=sorted(supporting.leaf_ids),
+                    supports_record_key=supporting.supports_record_key,
+                    supports_component_key=supporting.supports_component_key,
+                )
+            )
+        for excluded in unit.excluded_groups:
+            session.add(
+                MechanicalReviewGroupORM(
+                    projection_uuid=uuid_,
+                    unit_id=unit.unit_id,
+                    role=REVIEW_GROUP_EXCLUDED,
+                    leaf_ids=sorted(excluded.leaf_ids),
+                    reason=excluded.reason,
                 )
             )
 
@@ -633,6 +660,13 @@ def _fact_from_row(row: MechanicalFactORM) -> MechanicalFact:
     return fact
 
 
+def _unit_groups(
+    raw: RawProjectionState, unit_id: str, role: str
+) -> list[MechanicalReviewGroupORM]:
+    """The persisted groups of one unit in one role."""
+    return [g for g in raw.review_groups if g.unit_id == unit_id and g.role == role]
+
+
 def _header(session: Session, projection_uuid: str) -> MechanicalProjectionORM:
     row = session.execute(
         select(MechanicalProjectionORM).where(
@@ -908,13 +942,40 @@ def reconstruct_candidate(
                     record_key=e.record_key,
                     component_key=e.component_key,
                     fact_family=e.fact_family,
+                    source_span_ids=tuple(e.source_span_ids),
                 )
                 for e in sorted(
                     (e for e in raw.review_expectations if e.unit_id == u.unit_id),
-                    key=lambda e: (e.record_key, e.component_key, e.fact_family or ""),
+                    key=lambda e: (
+                        e.record_key,
+                        e.component_key,
+                        e.fact_family or "",
+                        tuple(e.source_span_ids),
+                    ),
                 )
             ),
-            excluded_group_reasons=tuple(u.excluded_group_reasons),
+            supporting_groups=tuple(
+                SupportingGroup(
+                    leaf_ids=tuple(g.leaf_ids),
+                    supports_record_key=g.supports_record_key or "",
+                    supports_component_key=g.supports_component_key or "",
+                )
+                for g in sorted(
+                    _unit_groups(raw, u.unit_id, REVIEW_GROUP_SUPPORTING),
+                    key=lambda g: (
+                        g.supports_record_key or "",
+                        g.supports_component_key or "",
+                        tuple(g.leaf_ids),
+                    ),
+                )
+            ),
+            excluded_groups=tuple(
+                ExcludedGroup(leaf_ids=tuple(g.leaf_ids), reason=g.reason or "")
+                for g in sorted(
+                    _unit_groups(raw, u.unit_id, REVIEW_GROUP_EXCLUDED),
+                    key=lambda g: (g.reason or "", tuple(g.leaf_ids)),
+                )
+            ),
         )
         for u in sorted(raw.review_units, key=lambda u: u.unit_id)
     )
@@ -1232,6 +1293,7 @@ def delete_projection(session: Session, projection_uuid: str) -> None:
         MechanicalProvenanceORM,
         MechanicalReviewUnitORM,
         MechanicalReviewExpectationORM,
+        MechanicalReviewGroupORM,
         MechanicalReviewUnitAcceptanceORM,
     ):
         session.execute(delete(model).where(model.projection_uuid == projection_uuid))

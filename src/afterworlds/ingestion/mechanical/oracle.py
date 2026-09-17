@@ -66,6 +66,7 @@ from afterworlds.ingestion.mechanical.models import (
     AcceptanceRecord,
     ClassificationLedger,
     ComponentHandling,
+    ExcludedGroup,
     ExpectedRule,
     ReviewState,
     ReviewUnit,
@@ -74,6 +75,7 @@ from afterworlds.ingestion.mechanical.models import (
     SemanticDiffEntry,
     SemanticDisposition,
     SemanticSpan,
+    SupportingGroup,
 )
 from afterworlds.ingestion.mechanical.policy import (
     POLICY_TRANSITIONS,
@@ -1018,7 +1020,7 @@ def _obligation(payload: object, index: int) -> RecordObligation:
 def _expected_rule(payload: object, where: str) -> ExpectedRule:
     r = _require(
         payload,
-        ("record_key", "component_key"),
+        ("record_key", "component_key", "source_span_ids"),
         where,
         # Omitted when the reviewer accepted exact governing prose as the
         # rule's home, exactly as the canonical payload writes it.
@@ -1037,6 +1039,41 @@ def _expected_rule(payload: object, where: str) -> ExpectedRule:
             if "fact_family" in r
             else None
         ),
+        # The exact accepted spans the rule was read from. Named rather than
+        # derived: the whole point is that this came from a reviewer reading
+        # source text, and anything this file could compute from the
+        # representation would be the output vouching for itself.
+        source_span_ids=tuple(
+            _string_list(r["source_span_ids"], f"{where}.source_span_ids")
+        ),
+    )
+
+
+def _supporting_group(payload: object, where: str) -> SupportingGroup:
+    g = _require(
+        payload,
+        ("leaf_ids", "supports_record_key", "supports_component_key"),
+        where,
+    )
+    return SupportingGroup(
+        leaf_ids=tuple(_string_list(g["leaf_ids"], f"{where}.leaf_ids")),
+        supports_record_key=_string(
+            g["supports_record_key"], f"{where}.supports_record_key"
+        ),
+        # Empty when the group supports the record as a whole. Written rather
+        # than omitted, unlike ``fact_family``, because "" is a real value here
+        # and not a second way of saying nothing.
+        supports_component_key=_string(
+            g["supports_component_key"], f"{where}.supports_component_key"
+        ),
+    )
+
+
+def _excluded_group(payload: object, where: str) -> ExcludedGroup:
+    g = _require(payload, ("leaf_ids", "reason"), where)
+    return ExcludedGroup(
+        leaf_ids=tuple(_string_list(g["leaf_ids"], f"{where}.leaf_ids")),
+        reason=_string(g["reason"], f"{where}.reason"),
     )
 
 
@@ -1050,7 +1087,14 @@ def _review_unit(
     where = f"{key}[{index}]"
     u = _require(
         payload,
-        ("unit_id", "kind", "leaf_ids", "expected_rules", "excluded_group_reasons"),
+        (
+            "unit_id",
+            "kind",
+            "leaf_ids",
+            "expected_rules",
+            "supporting_groups",
+            "excluded_groups",
+        ),
         where,
     )
     return ReviewUnit(
@@ -1063,8 +1107,17 @@ def _review_unit(
                 _object_list(u["expected_rules"], f"{where}.expected_rules")
             )
         ),
-        excluded_group_reasons=tuple(
-            _string_list(u["excluded_group_reasons"], f"{where}.excluded_group_reasons")
+        supporting_groups=tuple(
+            _supporting_group(g, f"{where}.supporting_groups[{i}]")
+            for i, g in enumerate(
+                _object_list(u["supporting_groups"], f"{where}.supporting_groups")
+            )
+        ),
+        excluded_groups=tuple(
+            _excluded_group(g, f"{where}.excluded_groups[{i}]")
+            for i, g in enumerate(
+                _object_list(u["excluded_groups"], f"{where}.excluded_groups")
+            )
         ),
     )
 
@@ -1470,7 +1523,10 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
     # oracle — an inventory that cannot be trusted to catch an omission is not
     # coverage evidence at all.
     if uncovered := review_unit_violations(
-        oracle.review_units, oracle.representation, oracle.policy_version
+        oracle.review_units,
+        oracle.representation,
+        oracle.policy_version,
+        oracle.spans,
     ):
         raise OracleLoadError(
             f"{path.name}: the accepted review inventory is not coverage: "

@@ -89,6 +89,7 @@ from tests.ingestion.mechanical.conftest import (
     SCHEMA_HASH,
     SCHEMA_VERSION,
     SPELL_KEY,
+    SPELL_LEAF,
     bound_corpus,
     build_ledger,
     build_representation,
@@ -916,11 +917,30 @@ def test_altering_a_proposed_expectation_is_a_different_proposal(
         load_proposal(path, expected_identity=identity)
 
 
+def _rule_spans(unit: ReviewUnit) -> tuple[str, ...]:
+    """The accepted spans *unit*'s rules were read from, in first-seen order.
+
+    A batch that accepts a unit has to accept the source its rules name: an
+    expectation read from text this acceptance does not hold is not coverage of
+    anything it accepted.
+    """
+    return tuple(
+        dict.fromkeys(
+            span_id for rule in unit.expected_rules for span_id in rule.source_span_ids
+        )
+    )
+
+
 def test_a_second_batch_carries_the_first_batchs_inventory_forward() -> None:
     proposal = _proposal(REVIEW_UNITS)
-    first_span, *rest = [p.span.span_id for p in proposal.proposed_spans]
+    entry_spans = _rule_spans(REVIEW_UNITS[0])
+    rest = [
+        p.span.span_id
+        for p in proposal.proposed_spans
+        if p.span.span_id not in entry_spans
+    ]
     first = _accept(
-        proposal, resolved_scope=(first_span,), resolved_review_units=(UNIT_IDS[0],)
+        proposal, resolved_scope=entry_spans, resolved_review_units=(UNIT_IDS[0],)
     )
     second = accept_proposal(
         proposal,
@@ -944,10 +964,16 @@ def test_a_second_batch_carries_the_first_batchs_inventory_forward() -> None:
 def test_a_unit_id_a_prior_batch_recorded_is_refused() -> None:
     """Two units under one id would make every expectation's parentage ambiguous."""
     proposal = _proposal(REVIEW_UNITS)
-    first_span, *rest = [p.span.span_id for p in proposal.proposed_spans]
+    entry_spans = _rule_spans(REVIEW_UNITS[0])
+    rest = [
+        p.span.span_id
+        for p in proposal.proposed_spans
+        if p.span.span_id not in entry_spans
+    ]
+    twin = replace(REVIEW_UNITS[0], leaf_ids=(SPELL_LEAF,), expected_rules=())
     with pytest.raises(AcceptanceError, match="already recorded by a prior batch"):
         accept_proposal(
-            _proposal((replace(REVIEW_UNITS[0], expected_rules=()),)),
+            _proposal((twin,)),
             batch_id="batch-2",
             rule="the remaining spans",
             resolved_scope=tuple(rest),
@@ -955,7 +981,7 @@ def test_a_unit_id_a_prior_batch_recorded_is_refused() -> None:
             accepted_at="2026-08-10T00:00:00Z",
             prior=_accept(
                 proposal,
-                resolved_scope=(first_span,),
+                resolved_scope=entry_spans,
                 resolved_review_units=(UNIT_IDS[0],),
             ),
             resolved_review_units=(UNIT_IDS[0],),

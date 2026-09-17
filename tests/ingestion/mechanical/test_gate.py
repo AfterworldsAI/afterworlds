@@ -36,6 +36,7 @@ from afterworlds.ingestion.mechanical.models import (
     ReviewUnitKind,
     SemanticDisposition,
     SemanticSpan,
+    SupportingGroup,
 )
 from afterworlds.ingestion.mechanical.oracle import AcceptedOracle
 from afterworlds.ingestion.mechanical.persistence import (
@@ -697,11 +698,15 @@ def test_extra_acceptance_evidence_does_not_change_the_verdict(
 
 
 #: The one unit the coverage controls below turn on: a section whose leaf the
-#: reviewer read and left with no spans at all.
+#: reviewer read, left with no spans at all, and decided explains the spell
+#: rather than stating a rule of its own. The decision is what makes the leaf
+#: reviewed — a unit that named the leaf and decided nothing would relax the
+#: partition in exchange for nothing, and is refused.
 SUPPORT_UNIT = ReviewUnit(
     unit_id="unit-support-section",
     kind=ReviewUnitKind.SECTION,
     leaf_ids=(SUPPORT_LEAF,),
+    supporting_groups=(SupportingGroup((SUPPORT_LEAF,), SPELL_KEY),),
 )
 
 

@@ -243,7 +243,8 @@ def test_an_inventory_carried_under_the_shape_that_states_none_is_refused(
                 "kind": "entry",
                 "leaf_ids": ["leaf-speed"],
                 "expected_rules": [],
-                "excluded_group_reasons": [],
+                "supporting_groups": [],
+                "excluded_groups": [],
             }
         ],
     )

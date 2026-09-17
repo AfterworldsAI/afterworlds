@@ -429,12 +429,12 @@ class MechanicalReviewUnitORM(_ProjectionScoped):
     are matched on, unique at the database level for the same defence-in-depth
     reason the batch header is: reconstruction still proves the relation.
 
-    ``leaf_ids`` and ``excluded_group_reasons`` are JSON lists of plain strings,
-    validated as such before reconstruction, for the reason
-    ``rp_mech_provenance.target_key`` already is — a list of strings is not a
-    relation, and giving each leaf a row would buy a join and no invariant.
-    Expected rules do get their own table, because each one is a structured
-    claim with its own fields.
+    ``leaf_ids`` is a JSON list of plain strings, validated as such before
+    reconstruction, for the reason ``rp_mech_provenance.target_key`` already is
+    — a list of strings is not a relation, and giving each leaf a row would buy
+    a join and no invariant. Expected rules and the unit's supporting and
+    excluded groups do get their own tables, because each of those is a
+    structured decision with its own fields.
     """
 
     __tablename__ = "rp_mech_review_units"
@@ -448,7 +448,6 @@ class MechanicalReviewUnitORM(_ProjectionScoped):
     unit_id: Mapped[str] = mapped_column(sa.String(255), nullable=False, index=True)
     kind: Mapped[str] = mapped_column(sa.String(16), nullable=False)
     leaf_ids: Mapped[list[str]] = mapped_column(sa.JSON, nullable=False)
-    excluded_group_reasons: Mapped[list[str]] = mapped_column(sa.JSON, nullable=False)
 
 
 class MechanicalReviewExpectationORM(_ProjectionScoped):
@@ -472,3 +471,44 @@ class MechanicalReviewExpectationORM(_ProjectionScoped):
     record_key: Mapped[str] = mapped_column(sa.String(255), nullable=False, index=True)
     component_key: Mapped[str] = mapped_column(sa.String(255), nullable=False)
     fact_family: Mapped[str | None] = mapped_column(sa.String(64), nullable=True)
+    #: The accepted spans this rule was read from. Not empty in any valid row:
+    #: an expectation with no source is one nothing in the source vouches for,
+    #: and it cannot distinguish two rules of one family in one component.
+    source_span_ids: Mapped[list[str]] = mapped_column(sa.JSON, nullable=False)
+
+
+#: The two ``rp_mech_review_groups.role`` values. One definition, imported by
+#: the writer, by reconstruction and by the raw-state closure, so a role can
+#: never be spelled one way on the way in and another on the way out.
+REVIEW_GROUP_SUPPORTING = "supporting"
+REVIEW_GROUP_EXCLUDED = "excluded"
+
+
+class MechanicalReviewGroupORM(_ProjectionScoped):
+    """One coherent group inside a review unit, and the decision made about it.
+
+    Two decisions in one table because they are one obligation: a unit relaxes
+    the complete-partition rule only for the source it accounts for, and a
+    group is how a reviewer accounts for a whole coherent stretch at once
+    rather than character by character.
+
+    ``role`` says which decision this is. ``supports_record_key`` and
+    ``supports_component_key`` are the authority a supporting group explains —
+    the component key empty when it supports the record as a whole — and
+    ``reason`` is why an excluded group carries no mechanic. Each is NULL for
+    the other role, and reconstruction checks that rather than trusting it.
+    """
+
+    __tablename__ = "rp_mech_review_groups"
+
+    projection_uuid: Mapped[str] = _ProjectionScoped._projection_fk()
+    unit_id: Mapped[str] = mapped_column(sa.String(255), nullable=False, index=True)
+    role: Mapped[str] = mapped_column(sa.String(16), nullable=False)
+    leaf_ids: Mapped[list[str]] = mapped_column(sa.JSON, nullable=False)
+    supports_record_key: Mapped[str | None] = mapped_column(
+        sa.String(255), nullable=True
+    )
+    supports_component_key: Mapped[str | None] = mapped_column(
+        sa.String(255), nullable=True
+    )
+    reason: Mapped[str | None] = mapped_column(sa.Text, nullable=True)

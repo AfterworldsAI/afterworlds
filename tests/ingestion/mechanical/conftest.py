@@ -80,6 +80,7 @@ from afterworlds.ingestion.mechanical.models import (
     AcceptanceRecord,
     ClassificationLedger,
     ComponentHandling,
+    ExcludedGroup,
     ExpectedRule,
     ReviewState,
     ReviewUnit,
@@ -88,6 +89,7 @@ from afterworlds.ingestion.mechanical.models import (
     SemanticDiffEntry,
     SemanticDisposition,
     SemanticSpan,
+    SupportingGroup,
 )
 from afterworlds.ingestion.mechanical.oracle import (
     AcceptedOracle,
@@ -777,10 +779,13 @@ OBLIGATIONS = (
 #: An accepted review inventory over this same bounded fixture.
 #:
 #: Two units, so the canonical ordering is actually exercised rather than
-#: trivially satisfied. The entry unit expects one rule with a structured home
-#: and one the reviewer accepted as governing prose — the two cases that fail
-#: differently — and it names an excluded group so the reason list is not
-#: always empty.
+#: trivially satisfied, and all three decision kinds appear. The entry unit
+#: expects one rule with a structured home and one the reviewer accepted as
+#: governing prose — the two cases that fail differently — each naming the
+#: accepted span it was read from, and it excludes a group. The support unit
+#: states no rule at all: its leaf explains the spell rather than stating one,
+#: which is a legitimate whole-unit decision and the case a coverage check must
+#: accept rather than demand expectations for.
 #:
 #: It is *not* part of :func:`build_candidate`. The default candidate accepts a
 #: complete span partition and claims no unit, which is what every existing
@@ -791,17 +796,29 @@ REVIEW_UNITS = (
         kind=ReviewUnitKind.ENTRY,
         leaf_ids=(SPELL_LEAF, PROSE_LEAF),
         expected_rules=(
-            ExpectedRule(SPELL_KEY, DESCRIPTOR_KEY, DESCRIPTOR_FACT.FAMILY.value),
-            ExpectedRule(SPELL_KEY, OPEN_ENDED_KEY),
+            ExpectedRule(
+                SPELL_KEY,
+                DESCRIPTOR_KEY,
+                DESCRIPTOR_FACT.FAMILY.value,
+                (SPELL_SPAN,),
+            ),
+            ExpectedRule(SPELL_KEY, OPEN_ENDED_KEY, None, (PROSE_SPAN,)),
         ),
-        excluded_group_reasons=(
-            "the spell-list heading above this entry is navigation, not a rule",
+        # The same leaf states the rule and carries the heading above it: spans
+        # are sub-leaf and groups are leaf-level, so one leaf legitimately
+        # appears in two decisions.
+        excluded_groups=(
+            ExcludedGroup(
+                (SPELL_LEAF,),
+                "the spell-list heading in this leaf is navigation, not a rule",
+            ),
         ),
     ),
     ReviewUnit(
         unit_id="unit-support-section",
         kind=ReviewUnitKind.SECTION,
         leaf_ids=(SUPPORT_LEAF,),
+        supporting_groups=(SupportingGroup((SUPPORT_LEAF,), SPELL_KEY),),
     ),
 )
 

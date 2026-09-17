@@ -38,6 +38,8 @@ from afterworlds.persistence.database import create_engine, create_session_facto
 from afterworlds.persistence.orm.base import Base
 from afterworlds.persistence.orm.corpus import CorpusReleaseORM
 from afterworlds.persistence.orm.mechanical import (
+    REVIEW_GROUP_EXCLUDED,
+    REVIEW_GROUP_SUPPORTING,
     MechanicalAcceptanceBatchORM,
     MechanicalAcceptanceORM,
     MechanicalActiveProjectionORM,
@@ -53,6 +55,7 @@ from afterworlds.persistence.orm.mechanical import (
     MechanicalReferenceORM,
     MechanicalRelationshipORM,
     MechanicalReviewExpectationORM,
+    MechanicalReviewGroupORM,
     MechanicalReviewUnitAcceptanceORM,
     MechanicalReviewUnitORM,
     MechanicalSpanORM,
@@ -97,6 +100,7 @@ TABLE_POLICY: dict[type, str] = {
     # both the projection identity and the persisted-state digest.
     MechanicalReviewUnitORM: "semantic",
     MechanicalReviewExpectationORM: "semantic",
+    MechanicalReviewGroupORM: "semantic",
     # "evidence", exactly like ``rp_mech_acceptances``: who accepted a unit and
     # when is retained and digested, but it is not part of what the projection
     # means, so it stays outside the projection identity.
@@ -561,6 +565,7 @@ def test_every_scoped_table_is_loaded_into_the_raw_state(session: Session) -> No
         "rp_mech_references",
         "rp_mech_review_units",
         "rp_mech_review_expectations",
+        "rp_mech_review_groups",
         "rp_mech_review_unit_acceptances",
     }
 
@@ -593,6 +598,7 @@ def test_a_reviewed_candidate_populates_both_review_tables(session: Session) -> 
 
     assert len(raw.review_units) == 2
     assert len(raw.review_expectations) == 2
+    assert len(raw.review_groups) == 2
     assert len(raw.review_unit_acceptances) == 2
     validate_raw_closure(raw)
 
@@ -606,6 +612,7 @@ def test_orphan_review_expectation_row_is_rejected(session: Session) -> None:
             record_key="spell:wish",
             component_key="descriptor",
             fact_family=None,
+            source_span_ids=[],
         )
     )
     session.flush()
@@ -632,16 +639,61 @@ def test_review_unit_leaf_ids_with_non_string_members_are_rejected(
     _assert_rejected(session, identified, "not a list of strings")
 
 
-def test_malformed_excluded_group_reasons_are_rejected(session: Session) -> None:
+def test_malformed_expectation_source_spans_are_rejected(session: Session) -> None:
     identified = _persist_reviewed(session)
-    row = session.execute(
-        select(MechanicalReviewUnitORM).where(
-            MechanicalReviewUnitORM.unit_id == "unit-wish-entry"
-        )
-    ).scalar_one()
-    row.excluded_group_reasons = [["nested"]]
+    row = session.execute(select(MechanicalReviewExpectationORM)).scalars().first()
+    assert row is not None
+    row.source_span_ids = [["nested"]]
     session.flush()
     _assert_rejected(session, identified, "not a list of strings")
+
+
+def test_malformed_group_leaf_ids_are_rejected(session: Session) -> None:
+    identified = _persist_reviewed(session)
+    row = session.execute(select(MechanicalReviewGroupORM)).scalars().first()
+    assert row is not None
+    row.leaf_ids = {"leaf": "leaf-spell"}
+    session.flush()
+    _assert_rejected(session, identified, "not a list of strings")
+
+
+def test_an_orphan_group_row_is_rejected(session: Session) -> None:
+    identified = _persist_reviewed(session)
+    session.add(
+        MechanicalReviewGroupORM(
+            projection_uuid=identified.projection_uuid,
+            unit_id="unit-nobody-reviewed",
+            role=REVIEW_GROUP_EXCLUDED,
+            leaf_ids=["leaf-spell"],
+            reason="a decision no unit made",
+        )
+    )
+    session.flush()
+    _assert_rejected(session, identified, "no header in this projection")
+
+
+def test_a_group_carrying_the_other_roles_fields_is_rejected(
+    session: Session,
+) -> None:
+    """A row that both supports and excuses is neither decision."""
+    identified = _persist_reviewed(session)
+    row = session.execute(
+        select(MechanicalReviewGroupORM).where(
+            MechanicalReviewGroupORM.role == REVIEW_GROUP_SUPPORTING
+        )
+    ).scalar_one()
+    row.reason = "and also no mechanic"
+    session.flush()
+    _assert_rejected(session, identified, "and no exclusion reason")
+
+
+def test_a_group_role_this_build_cannot_read_is_rejected(session: Session) -> None:
+    identified = _persist_reviewed(session)
+    row = session.execute(select(MechanicalReviewGroupORM)).scalars().first()
+    assert row is not None
+    row.role = "advisory"
+    session.flush()
+    _assert_rejected(session, identified, "is not a decision this build can read")
 
 
 def test_a_review_unit_naming_an_unknown_kind_is_reported_not_raised(
@@ -669,7 +721,6 @@ def test_duplicate_unit_id_makes_expectation_parentage_ambiguous() -> None:
             unit_id="unit-1",
             kind="section",
             leaf_ids=["leaf-spell"],
-            excluded_group_reasons=[],
         )
         for _ in range(2)
     )

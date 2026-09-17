@@ -41,7 +41,9 @@ from afterworlds.ingestion.mechanical.canonical import canonical_order
 from afterworlds.ingestion.mechanical.models import (
     ClassificationLedger,
     ComponentHandling,
+    ExpectedRule,
     ReviewUnit,
+    SemanticSpan,
 )
 from afterworlds.ingestion.mechanical.policy import (
     policy_meaning_violations,
@@ -55,6 +57,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ComponentDraft,
     FactFamily,
     ProseBindingDraft,
+    ProvenanceTargetKind,
     Recurrence,
     ReferenceDraft,
     RepresentationDraft,
@@ -62,6 +65,7 @@ from afterworlds.ingestion.mechanical.representation import (
     declared_meaning_violations,
     fact_key,
     fact_payload,
+    fact_target_key,
     representation_schema_hash,
 )
 from afterworlds.ingestion.mechanical.validation import validate_representation
@@ -181,6 +185,7 @@ def review_unit_payload(units: tuple[ReviewUnit, ...]) -> list[dict[str, object]
                             if rule.fact_family is not None
                             else {}
                         ),
+                        "source_span_ids": sorted(rule.source_span_ids),
                     }
                     for rule in unit.expected_rules
                 ),
@@ -188,12 +193,44 @@ def review_unit_payload(units: tuple[ReviewUnit, ...]) -> list[dict[str, object]
                     str(r["record_key"]),
                     str(r["component_key"]),
                     str(r.get("fact_family", "")),
+                    _joined(r["source_span_ids"]),
                 ),
             ),
-            "excluded_group_reasons": sorted(unit.excluded_group_reasons),
+            "supporting_groups": sorted(
+                (
+                    {
+                        "leaf_ids": sorted(group.leaf_ids),
+                        "supports_record_key": group.supports_record_key,
+                        "supports_component_key": group.supports_component_key,
+                    }
+                    for group in unit.supporting_groups
+                ),
+                key=lambda g: (
+                    str(g["supports_record_key"]),
+                    str(g["supports_component_key"]),
+                    _joined(g["leaf_ids"]),
+                ),
+            ),
+            "excluded_groups": sorted(
+                (
+                    {"leaf_ids": sorted(group.leaf_ids), "reason": group.reason}
+                    for group in unit.excluded_groups
+                ),
+                key=lambda g: (str(g["reason"]), _joined(g["leaf_ids"])),
+            ),
         }
         for unit in sorted(units, key=lambda u: u.unit_id)
     ]
+
+
+def _joined(value: object) -> str:
+    """Sort key for an already-sorted id list nested in a payload dict.
+
+    Only a tiebreak: two decisions that agree on every other field are ordered
+    by their membership so the payload is a function of the inventory and not
+    of the order somebody listed it in.
+    """
+    return "\x00".join(str(v) for v in value) if isinstance(value, list) else ""
 
 
 #: Handlings that actually carry governing prose. Named separately from
@@ -208,6 +245,7 @@ def review_unit_violations(
     units: tuple[ReviewUnit, ...],
     draft: RepresentationDraft,
     policy_version: str,
+    spans: tuple[SemanticSpan, ...],
 ) -> list[str]:
     """Return every way an accepted review inventory fails to be coverage.
 
@@ -221,14 +259,28 @@ def review_unit_violations(
 
     * the declared policy admits this unit's kind at all;
     * ids are unique, and membership is non-empty — a unit covering no leaf is
-      a review nobody could have performed; and
-    * **every expected rule has a home.** This is the coverage obligation
-      itself, and the direction matters: expectations are checked *into* the
+      a review nobody could have performed;
+    * **every expected rule has a home, and the home was built from the source
+      text the rule was read from.** This is the coverage obligation itself,
+      and the direction matters: expectations are checked *into* the
       representation, never read out of it. A rule the reviewer found in the
       source and the representation does not carry is the omission this
-      inventory exists to catch. The converse — representation content no unit
-      expected — is not a violation, because a unit states what review found,
-      not an exhaustive census of what may legitimately be there.
+      inventory exists to catch. Checking the provenance link as well as the
+      family is what makes two rules of one family in one component tell
+      apart — drop one exception and the surviving one no longer answers for
+      it. The converse — representation content no unit expected — is not a
+      violation, because a unit states what review found, not an exhaustive
+      census of what may legitimately be there; and
+    * **every leaf the unit names is accounted for by some decision.** A unit
+      is what relaxes the complete-partition rule for its leaves, so a unit
+      that decides nothing about a leaf relaxes the rule in exchange for
+      nothing. Group granularity throughout: one rule, one supporting group or
+      one excluded group may answer for a whole coherent stretch, and one leaf
+      may legitimately be reached by several.
+
+    ``spans`` is the accepted classification the inventory is read against —
+    needed because a rule's source is an exact span and a unit's membership is
+    leaves, and only the ledger joins the two.
     """
     if not units:
         # An unrecognised policy version is a finding ``policy_meaning_violations``
@@ -244,6 +296,7 @@ def review_unit_violations(
             f"{policy_version!r}, which states no review-unit kinds"
         ]
 
+    span_leaves = {span.span_id: span.leaf_id for span in spans}
     seen: set[str] = set()
     for unit in sorted(units, key=lambda u: u.unit_id):
         if unit.unit_id in seen:
@@ -259,62 +312,226 @@ def review_unit_violations(
             findings.append(f"review unit {unit.unit_id}: names no source leaves")
         if len(set(unit.leaf_ids)) != len(unit.leaf_ids):
             findings.append(f"review unit {unit.unit_id}: names a leaf twice")
-        for reason in unit.excluded_group_reasons:
-            if not reason.strip():
-                findings.append(
-                    f"review unit {unit.unit_id}: an excluded group states an "
-                    "empty reason"
-                )
 
-        findings.extend(_expected_rule_violations(unit, draft))
+        findings.extend(_unit_decision_violations(unit, draft, span_leaves))
 
     return findings
+
+
+def _unit_decision_violations(
+    unit: ReviewUnit, draft: RepresentationDraft, span_leaves: dict[str, str]
+) -> list[str]:
+    """Return every way *unit* fails to account for the source it claims.
+
+    One pass, because the three decision kinds answer one question between
+    them: which of this unit's leaves a human actually decided something about.
+    """
+    findings: list[str] = []
+    components = {(c.record_key, c.semantic_key): c for c in draft.components}
+    record_keys = {record.semantic_key for record in draft.records}
+    members = set(unit.leaf_ids)
+
+    for rule in unit.expected_rules:
+        findings.extend(
+            _expected_rule_violations(
+                unit, rule, components, draft, span_leaves, members
+            )
+        )
+
+    for supporting in unit.supporting_groups:
+        tag = (
+            f"review unit {unit.unit_id}: supporting group "
+            f"{sorted(supporting.leaf_ids)}"
+        )
+        findings.extend(_group_membership_violations(tag, supporting.leaf_ids, members))
+        # Supporting text that names no authority is the failure this group
+        # exists to prevent: material kept in the record as "useful" with
+        # nothing saying what it is useful *for* explains nothing and can be
+        # dropped without anything noticing.
+        if not supporting.supports_record_key.strip():
+            findings.append(f"{tag} names no authority it supports")
+        elif supporting.supports_component_key:
+            key = (supporting.supports_record_key, supporting.supports_component_key)
+            if key not in components:
+                findings.append(
+                    f"{tag} supports {supporting.supports_record_key}/"
+                    f"{supporting.supports_component_key}, which the "
+                    "representation does not carry"
+                )
+        elif supporting.supports_record_key not in record_keys:
+            findings.append(
+                f"{tag} supports record {supporting.supports_record_key}, which "
+                "the representation does not carry"
+            )
+
+    for excluded in unit.excluded_groups:
+        tag = f"review unit {unit.unit_id}: excluded group {sorted(excluded.leaf_ids)}"
+        findings.extend(_group_membership_violations(tag, excluded.leaf_ids, members))
+        if not excluded.reason.strip():
+            findings.append(f"{tag} states an empty reason")
+
+    for leaf_id in sorted(members - _accounted_leaves(unit, span_leaves)):
+        findings.append(
+            f"review unit {unit.unit_id}: leaf {leaf_id} is reviewed by this "
+            "unit but named by no expected rule, supporting group or excluded "
+            "group"
+        )
+    return findings
+
+
+def _accounted_leaves(unit: ReviewUnit, span_leaves: dict[str, str]) -> set[str]:
+    """Which of *unit*'s leaves some decision of *unit* actually reaches.
+
+    The single definition of "accounted for", used both to report an
+    unaccounted leaf and to decide whether the unit earns the partition
+    relaxation there. Two definitions of this would eventually disagree, and
+    the disagreement would be a leaf that is covered by one rule and
+    uncovered by the other.
+
+    A rule reaches the leaves of the spans it was read from; a group reaches
+    the leaves it names. Membership and linkage errors are reported by the
+    violation checks — a decision that names a leaf outside the unit accounts
+    for nothing here.
+    """
+    members = set(unit.leaf_ids)
+    reached = {
+        leaf_id
+        for rule in unit.expected_rules
+        for span_id in rule.source_span_ids
+        if (leaf_id := span_leaves.get(span_id)) is not None
+    }
+    for supporting in unit.supporting_groups:
+        reached.update(supporting.leaf_ids)
+    for excluded in unit.excluded_groups:
+        reached.update(excluded.leaf_ids)
+    return reached & members
+
+
+def _group_membership_violations(
+    tag: str, leaf_ids: tuple[str, ...], members: set[str]
+) -> list[str]:
+    """Check that one group names source this unit actually reviewed."""
+    if not leaf_ids:
+        return [f"{tag} names no source leaves"]
+    if outside := sorted(set(leaf_ids) - members):
+        return [f"{tag} names {outside}, which this unit does not review"]
+    return []
 
 
 def _expected_rule_violations(
-    unit: ReviewUnit, draft: RepresentationDraft
+    unit: ReviewUnit,
+    rule: ExpectedRule,
+    components: dict[tuple[str, str], ComponentDraft],
+    draft: RepresentationDraft,
+    span_leaves: dict[str, str],
+    members: set[str],
 ) -> list[str]:
-    """Return every expected rule of *unit* the representation does not carry."""
+    """Return every way the representation fails to carry one expected rule."""
     findings: list[str] = []
-    components = {(c.record_key, c.semantic_key): c for c in draft.components}
+    tag = (
+        f"review unit {unit.unit_id}: expected rule "
+        f"{rule.record_key}/{rule.component_key}"
+    )
 
-    for rule in unit.expected_rules:
-        key = (rule.record_key, rule.component_key)
-        component = components.get(key)
-        if component is None:
+    if not rule.source_span_ids:
+        findings.append(f"{tag} names no source span it was read from")
+    for span_id in sorted(set(rule.source_span_ids)):
+        leaf_id = span_leaves.get(span_id)
+        if leaf_id is None:
             findings.append(
-                f"review unit {unit.unit_id}: expected rule "
-                f"{rule.record_key}/{rule.component_key} has no component"
+                f"{tag} was read from span {span_id}, which the classification "
+                "does not state"
             )
-            continue
-        if rule.fact_family is None:
-            # The reviewer accepted exact governing prose as this rule's home,
-            # so the component must actually be one that carries prose. A
-            # component silently resolved to STRUCTURED has dropped the passage
-            # the expectation names.
-            if component.handling not in _PROSE_CARRYING_HANDLINGS:
-                findings.append(
-                    f"review unit {unit.unit_id}: expected rule "
-                    f"{rule.record_key}/{rule.component_key} was accepted as "
-                    f"governing prose, but the component is "
-                    f"{component.handling.value}"
-                )
-            continue
-        # ``FAMILY`` is the class attribute every typed fact declares and the
-        # one ``derive_obligations`` reads; nothing else on a fact names its
-        # family, so reading it any other way would be a second definition.
-        families = {
-            family.value
-            for f in component.all_facts()
-            if isinstance(family := getattr(f, "FAMILY", None), FactFamily)
-        }
-        if rule.fact_family not in families:
+        elif leaf_id not in members:
             findings.append(
-                f"review unit {unit.unit_id}: expected rule "
-                f"{rule.record_key}/{rule.component_key} requires fact family "
-                f"{rule.fact_family!r}, which the component does not carry"
+                f"{tag} was read from span {span_id} of leaf {leaf_id}, which "
+                "this unit does not review"
             )
+
+    component = components.get((rule.record_key, rule.component_key))
+    if component is None:
+        findings.append(f"{tag} has no component")
+        return findings
+
+    sources = set(rule.source_span_ids)
+    if rule.fact_family is None:
+        # The reviewer accepted exact governing prose as this rule's home, so
+        # the component must actually be one that carries prose, and the prose
+        # it binds must be the passage the rule was read from. A component
+        # silently resolved to STRUCTURED, or rebound to a different passage,
+        # has dropped the text the expectation names.
+        if component.handling not in _PROSE_CARRYING_HANDLINGS:
+            findings.append(
+                f"{tag} was accepted as governing prose, but the component is "
+                f"{component.handling.value}"
+            )
+        elif sources and not any(
+            binding.record_key == rule.record_key
+            and binding.component_key == rule.component_key
+            and binding.span_id in sources
+            for binding in draft.prose_bindings
+        ):
+            findings.append(
+                f"{tag} was accepted as governing prose, but the component "
+                f"binds no prose from {sorted(sources)}"
+            )
+        return findings
+
+    # ``FAMILY`` is the class attribute every typed fact declares and the one
+    # ``derive_obligations`` reads; nothing else on a fact names its family, so
+    # reading it any other way would be a second definition.
+    families = {
+        family.value
+        for f in component.all_facts()
+        if isinstance(family := getattr(f, "FAMILY", None), FactFamily)
+    }
+    if rule.fact_family not in families:
+        findings.append(
+            f"{tag} requires fact family {rule.fact_family!r}, which the "
+            "component does not carry"
+        )
+    elif sources and not _family_carried_from(component, rule, draft, sources):
+        findings.append(
+            f"{tag} requires fact family {rule.fact_family!r} read from "
+            f"{sorted(sources)}, and the component carries that family from "
+            "other source text only"
+        )
     return findings
+
+
+def _family_carried_from(
+    component: ComponentDraft,
+    rule: ExpectedRule,
+    draft: RepresentationDraft,
+    sources: set[str],
+) -> bool:
+    """Whether a fact of the expected family claims one of the rule's spans.
+
+    Option facts are addressed by their own four-element key, so a fact under
+    one option can never answer for an expectation the source stated under
+    another. Reuses the one ``fact_target_key`` definition rather than matching
+    on anything a caller could spell differently.
+    """
+    claimed = {
+        claim.target_key
+        for claim in draft.provenance
+        if claim.target_kind is ProvenanceTargetKind.FACT and claim.span_id in sources
+    }
+    owned = (
+        *(("", fact) for fact in component.facts),
+        *(
+            (option.semantic_key, fact)
+            for option in component.options
+            for fact in option.facts
+        ),
+    )
+    return any(
+        isinstance(family := getattr(fact, "FAMILY", None), FactFamily)
+        and family.value == rule.fact_family
+        and fact_target_key(rule.record_key, rule.component_key, fact, option_key)
+        in claimed
+        for option_key, fact in owned
+    )
 
 
 def release_binding_payload(binding: ReleaseBinding) -> dict[str, object]:
@@ -1233,10 +1450,21 @@ def validate_candidate(
     # sufficient; a leaf with a complete span partition was covered the older
     # way and stays valid. Deliberately not a second coverage metric and
     # deliberately not a percentage: a leaf is covered or it is not.
-    reviewed_leaves = {
+    # Only a unit that accounts for itself buys the relaxation. A unit whose
+    # decisions do not reach a leaf has reviewed nothing there, so that leaf is
+    # held to the complete partition exactly as an unreviewed one is — and
+    # ``review_unit_violations`` below reports why, rather than leaving a bare
+    # partition gap to explain an accounting one.
+    span_leaves = {span.span_id: span.leaf_id for span in ledger.spans}
+    named_leaves = {
         leaf_id for unit in candidate.review_units for leaf_id in unit.leaf_ids
     }
-    for leaf_id in sorted(claimed_leaves | reviewed_leaves | set(leaf_lengths)):
+    reviewed_leaves = {
+        leaf_id
+        for unit in candidate.review_units
+        for leaf_id in _accounted_leaves(unit, span_leaves)
+    }
+    for leaf_id in sorted(claimed_leaves | named_leaves | set(leaf_lengths)):
         if leaf_id not in leaf_lengths:
             # Named honestly for whichever side claimed it: a unit that resolves
             # to a leaf the release does not have is a membership error, not a
@@ -1258,7 +1486,10 @@ def validate_candidate(
 
     findings.extend(
         review_unit_violations(
-            candidate.review_units, candidate.representation, ledger.policy_version
+            candidate.review_units,
+            candidate.representation,
+            ledger.policy_version,
+            ledger.spans,
         )
     )
     findings.extend(validate_reason_codes(ledger.spans))

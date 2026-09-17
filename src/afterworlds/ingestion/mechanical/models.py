@@ -160,9 +160,16 @@ class ExpectedRule:
     is not coverage evidence.
 
     Granularity is the component plus, where the reviewer decided it, the
-    structured family that must carry the meaning. Finer than the component
-    would demand the reviewer predict fact identities; coarser could not catch
-    an omitted qualification or exception, which is the whole obligation.
+    structured family that must carry the meaning, plus the exact source text
+    the rule was read from. The component and family alone cannot carry the
+    obligation: one paragraph may state two exceptions of one family in one
+    component, and a check that asked only whether *some* fact of that family
+    survived would pass while one of them was dropped. ``source_span_ids`` is
+    what tells them apart, and it costs the reviewer nothing to state — the
+    spans are the ones already being proposed and accepted.
+
+    Still nothing here predicts a fact identity. The expectation names source
+    text; the build is what decides which structure carries it.
     """
 
     record_key: str
@@ -172,6 +179,54 @@ class ExpectedRule:
     #: judgement, not an absence: it says the component must exist and must be
     #: prose-bound or mixed, so dropping the passage still fails.
     fact_family: str | None = None
+    #: The accepted spans, inside this unit's leaves, whose text states this
+    #: rule. Required in substance — an expectation naming none is reported as
+    #: a violation rather than refused at construction, because an inventory
+    #: that cannot be read cannot be reported on. Several spans are legitimate:
+    #: a rule stated across two sentences is one rule.
+    #:
+    #: A structure may legitimately be the home of more than one expectation —
+    #: one shared representation of a statement the source repeats — because a
+    #: fact may carry a provenance claim to each span that states it.
+    source_span_ids: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class SupportingGroup:
+    """Source text inside a unit that explains authority rather than stating it.
+
+    The Owner Decision of 2026-09-16 removed the obligation to partition every
+    character of a reviewed leaf, not the obligation to say what the reviewer
+    decided about the text. Supporting material is the case that decision makes
+    easiest to lose: an example, a worked calculation, or a "see also" is not a
+    rule, so nothing requires it to have a home, and under unit accounting it
+    could vanish from the record entirely.
+
+    So it keeps one decision per *group* — not per character and not per
+    fragment — naming which leaves it covers and which authority it supports.
+    ``supports_component_key`` is empty when the group supports the record as a
+    whole, which is what a section's introductory example usually does.
+    """
+
+    leaf_ids: tuple[str, ...]
+    supports_record_key: str
+    supports_component_key: str = ""
+
+
+@dataclass(frozen=True)
+class ExcludedGroup:
+    """Source text inside a unit the reviewer decided carries no mechanic.
+
+    The sibling of :class:`SupportingGroup`, and deliberately the same shape:
+    exact leaf membership plus one honest decision about it. ``reason`` is free
+    prose, one sentence per group, because the amendment asks for "a reason for
+    the applicable group" and a closed catalog here would force a reviewer to
+    pick the nearest wrong word. The excluded text remains in the immutable 5c
+    source either way.
+    """
+
+    leaf_ids: tuple[str, ...]
+    reason: str
 
 
 @dataclass(frozen=True)
@@ -192,6 +247,17 @@ class ReviewUnit:
     Exact subspans remain where a fact, rule, qualification, citation, or
     correction needs one.
 
+    **A unit relaxes the partition only to the extent it accounts for itself.**
+    Three kinds of decision, and every leaf the unit names must be reached by at
+    least one of them: a rule read from source text inside the unit, a
+    supporting group, or an excluded group. Accounting at group granularity is
+    the whole point of the amendment — one decision may cover a whole coherent
+    group, and nothing here asks for a row per character or per extraction
+    fragment. What it does not permit is a unit that names leaves and decides
+    nothing about them: blank accounting is not review, and accepting it as
+    coverage would drop exactly the heading, example and explanation links the
+    span partition used to hold.
+
     Audit metadata — who reviewed it, when, and their comments — is deliberately
     absent. A unit states what was reviewed and what must be there, and those
     are the only parts that bear on identity.
@@ -203,13 +269,8 @@ class ReviewUnit:
     #: reviewers naming the same leaves in different orders record one unit.
     leaf_ids: tuple[str, ...]
     expected_rules: tuple[ExpectedRule, ...] = ()
-    #: Why a group inside this unit carries no mechanical authority — pure
-    #: flavor, navigation, licensing, or non-rule advice. Free prose, one
-    #: sentence per group, because the amendment asks for "a reason for the
-    #: applicable group" and a closed catalog here would force a reviewer to
-    #: pick the nearest wrong word. The excluded text remains in the immutable
-    #: 5c source either way.
-    excluded_group_reasons: tuple[str, ...] = ()
+    supporting_groups: tuple[SupportingGroup, ...] = ()
+    excluded_groups: tuple[ExcludedGroup, ...] = ()
 
 
 @dataclass(frozen=True)
