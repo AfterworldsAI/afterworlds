@@ -465,8 +465,9 @@ reviewable.
    field carries it. The one input that rail needs from this section is the
    progression, and that is typed. The honest limit is narrower than “15c will
    decide”: if a later operation needs an input this section holds only as prose
-   — typed saving-throw eligibility, say, or a typed constraint for a feature
-   that multiplies the bonus — contract 2 and ADR-005d Decision 2 require that
+   — the class-construction constraint of `saves.class_minimum` (“at least two
+   saving throws” per class), say, or the legality statement of `weapon.anyone`
+   — contract 2 and ADR-005d Decision 2 require that
    field **before** the operation relies on the rule. Prose representation does
    not discharge that obligation and is not claimed to. One clause does route
    through 15c on its own merits: `tool_proficiency`'s Advantage, whose trigger
