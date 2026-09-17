@@ -891,6 +891,86 @@ def test_a_unit_no_proposal_proposed_cannot_be_accepted() -> None:
         _accept(_proposal((REVIEW_UNITS[0],)), resolved_review_units=UNIT_IDS)
 
 
+# -- a proposal's own ids have to be unique -----------------------------------
+#
+# Both selection collections are keyed by id at the acceptance boundary, and a
+# dictionary comprehension over a repeated id keeps the last definition. The
+# resolved id then accepts that one while ``proposal_identity`` — derived from
+# the ordered list — names both, so the discarded definition is certified by an
+# acceptance that never saw it and never reaches the accepted-candidate
+# duplicate validator. Refusing counts ids only: rejecting an invalid
+# identifier must not depend on what the duplicate definition says or on
+# whether this action accepts it.
+
+
+def _duplicated_span_proposal() -> MechanicalProposal:
+    """Four proposed entries, three distinct span ids.
+
+    The fourth restates the first under a different rationale, which is the
+    shape that loses a definition: keying keeps the later rationale and the
+    reviewed one disappears.
+    """
+    spans = build_ledger().spans[:3]
+    proposed = tuple(
+        ProposedSpan(span, "tool:classifier@0", "stated basis") for span in spans
+    )
+    return _proposal(
+        proposed_spans=proposed
+        + (ProposedSpan(spans[0], "tool:classifier@0", "restated basis"),)
+    )
+
+
+def _unique_scope(proposal: MechanicalProposal) -> tuple[str, ...]:
+    """The proposal's span ids without repeats, in first-seen order.
+
+    Passing the raw list instead would trip the existing *resolved scope*
+    refusal, and these tests would pass for the wrong reason.
+    """
+    return tuple(dict.fromkeys(p.span.span_id for p in proposal.proposed_spans))
+
+
+def test_a_proposal_stating_one_unit_id_twice_is_refused() -> None:
+    """Two kinds under one ``unit_id``: entry and section.
+
+    This action resolves no unit at all, so the refusal cannot be coming from
+    anything the duplicate definition was asked to cover. An invalid identifier
+    is refused for being invalid.
+    """
+    conflicting = replace(REVIEW_UNITS[1], unit_id=UNIT_IDS[0])
+    with pytest.raises(AcceptanceError, match="review units more than once"):
+        _accept(_proposal(REVIEW_UNITS + (conflicting,)))
+
+
+def test_a_repeated_unit_definition_is_refused_even_when_it_is_identical() -> None:
+    """Nothing downstream can say which entry a resolved id meant, and a second
+    identical statement adds nothing the first did not say."""
+    with pytest.raises(AcceptanceError, match="review units more than once"):
+        _accept(_proposal(REVIEW_UNITS + (REVIEW_UNITS[0],)))
+
+
+def test_a_proposal_stating_one_span_id_twice_is_refused() -> None:
+    """The sibling: the same last-wins loss in the proposed span dictionary.
+
+    Without this, the four-entry proposal accepts as three spans and the batch
+    retains an identity naming four.
+    """
+    proposal = _duplicated_span_proposal()
+    assert len(proposal.proposed_spans) == 4
+    assert len(_unique_scope(proposal)) == 3
+    with pytest.raises(AcceptanceError, match="spans more than once"):
+        _accept(proposal, resolved_scope=_unique_scope(proposal))
+
+
+def test_a_repeated_span_definition_is_refused_even_when_it_is_identical() -> None:
+    spans = build_ledger().spans[:3]
+    proposed = tuple(
+        ProposedSpan(span, "tool:classifier@0", "stated basis") for span in spans
+    )
+    proposal = _proposal(proposed_spans=proposed + (proposed[0],))
+    with pytest.raises(AcceptanceError, match="spans more than once"):
+        _accept(proposal, resolved_scope=_unique_scope(proposal))
+
+
 def test_an_inventory_stated_outside_its_declared_proposal_shape_is_refused() -> None:
     """``5d-proposal-1`` states no inventory, so one carried under it would sit
     outside the identity an acceptance records."""

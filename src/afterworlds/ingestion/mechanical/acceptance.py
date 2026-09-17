@@ -48,7 +48,8 @@ piling up duplicates.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections import Counter
+from collections.abc import Callable, Iterable
 from dataclasses import replace
 from typing import Any
 
@@ -233,6 +234,16 @@ def _merge_representation(
     )
 
 
+def _repeated(ids: Iterable[str]) -> list[str]:
+    """Ids stated more than once, sorted.
+
+    Every selection collection here is keyed by id somewhere downstream, and a
+    dictionary comprehension over a repeated id keeps the last definition and
+    discards the earlier one without saying so.
+    """
+    return sorted(i for i, count in Counter(ids).items() if count > 1)
+
+
 def accept_proposal(
     proposal: MechanicalProposal,
     *,
@@ -277,6 +288,11 @@ def accept_proposal(
 
     Extending *prior* requires a disjoint scope: a span it already accepted
     cannot be re-accepted here.
+
+    A proposal whose own proposed spans or proposed units repeat an id is
+    refused outright, before anything is resolved. Resolving such an id would
+    select whichever definition a dictionary kept last while the retained
+    ``proposal_identity`` names both.
     """
     if not resolved_scope and not resolved_review_units:
         raise AcceptanceError(
@@ -287,8 +303,28 @@ def accept_proposal(
     if not rule.strip():
         raise AcceptanceError("an acceptance action must record its selection rule")
 
+    # The proposal's own selection collections, before either becomes a
+    # dictionary. A repeated id is not a hash collision — reversing the two
+    # definitions derives a different ``proposal_identity`` — it is an invalid
+    # identifier, and keying on it would accept one definition while the
+    # identity this batch retains as evidence names both. The discarded
+    # definition never reaches the accepted-candidate duplicate validator, so
+    # the refusal has to happen here, before anything is keyed.
+    #
+    # Identical repeats are refused on the same terms: resolving the id still
+    # names an entry no reader can point at, and a proposal stating one unit
+    # twice has said nothing the second statement adds. This counts ids only,
+    # so rejecting a duplicate identifier never depends on what the duplicate
+    # definition contains or on whether this action accepts it.
+    if repeats := _repeated(p.span.span_id for p in proposal.proposed_spans):
+        raise AcceptanceError(f"this proposal proposes spans more than once: {repeats}")
+    if repeats := _repeated(u.unit_id for u in proposal.proposed_review_units):
+        raise AcceptanceError(
+            f"this proposal proposes review units more than once: {repeats}"
+        )
+
     proposed_by_id = {p.span.span_id: p.span for p in proposal.proposed_spans}
-    if duplicates := sorted({s for s in resolved_scope if resolved_scope.count(s) > 1}):
+    if duplicates := _repeated(resolved_scope):
         raise AcceptanceError(f"resolved scope repeats spans {duplicates}")
     if unknown := sorted(set(resolved_scope) - proposed_by_id.keys()):
         raise AcceptanceError(
@@ -300,9 +336,7 @@ def accept_proposal(
     # outside the ``proposal_identity`` this batch retains — which is the whole
     # reason the inventory moved into the proposal.
     proposed_units_by_id = {u.unit_id: u for u in proposal.proposed_review_units}
-    if repeats := sorted(
-        {u for u in resolved_review_units if resolved_review_units.count(u) > 1}
-    ):
+    if repeats := _repeated(resolved_review_units):
         raise AcceptanceError(f"resolved review units repeat {repeats}")
     if unproposed := sorted(set(resolved_review_units) - proposed_units_by_id.keys()):
         raise AcceptanceError(
