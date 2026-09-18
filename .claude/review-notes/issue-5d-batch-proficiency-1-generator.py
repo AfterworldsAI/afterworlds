@@ -785,18 +785,34 @@ assert len(BINDINGS) == 23, len(BINDINGS)
 # ---------------------------------------------------------------------------
 # References
 # ---------------------------------------------------------------------------
-# A reference is authored exactly where the printed pointer names a **record**
-# under a key convention the accepted batches already committed. Both of these
-# do: the source says (see "Rules Glossary") in its own words, and the glossary
-# scope is the one the seven accepted batches resolve into.
+# A reference records that this section's prose points at another record. The
+# section prints five pointers, and they are not one kind of thing.
 #
-# The section prints three further pointers - the Skills table, "Actions" later
-# in "Playing the Game", and "Character Creation". None of them names a record:
-# a table and two section titles have no record key under any convention this
-# build has committed, and minting one here would pin a naming decision the
-# Owner has not made and silently widen the pilot. Their wording is preserved
-# verbatim inside the bound governing prose, and the review packet carries the
-# concrete recommendation for each.
+# Two name a record under a key convention the accepted batches already
+# committed - "Challenge Rating" and "Expertise", both Rules Glossary entries -
+# so they are authored resolved, into the scope the seven accepted batches
+# resolve into. Nothing new is minted.
+#
+# Two more point at destinations this build intends to represent and has not:
+# the Skills table, and the "Actions" section later in "Playing the Game".
+# Reviewing those destinations later does not complete the link that starts
+# here, so leaving them as prose and a packet note left no obligation anything
+# could fail on. They are authored as references with an **empty**
+# ``target_record_key``: the citing component, the printed wording, the scope
+# and the span are committed; only the destination is outstanding.
+#
+# Empty rather than a guessed key, deliberately. ``validate_representation``
+# already separates the two cases - an empty target is ``unresolved
+# reference``, a named target nothing has minted is ``unknown target record``
+# - and only the first cannot be discharged by accident: a guessed key
+# resolves silently the moment some later batch happens to mint that spelling,
+# which is destination coverage closing an obligation nobody reviewed. An
+# empty target is closed only by an edit to *this* reference. That edit is an
+# accepted-content change and is reviewed as one.
+#
+# The fifth pointer, "Character Creation", names no destination inside this
+# build's corpus scope - it points out of the mechanical corpus, not at an
+# unminted record in it - so it stays governing prose, unchanged.
 REFERENCES = (
     ReferenceDraft(
         from_record_key=RECORD,
@@ -812,10 +828,29 @@ REFERENCES = (
         scope_key=GLOSSARY_SCOPE,
         target_record_key="glossary.expertise",
     ),
+    ReferenceDraft(
+        from_record_key=RECORD,
+        from_component_key="skill_list",
+        source_text="Skills table",
+        scope_key=GLOSSARY_SCOPE,
+        target_record_key="",
+    ),
+    ReferenceDraft(
+        from_record_key=RECORD,
+        from_component_key="skill_relevance_sources",
+        source_text="Actions",
+        scope_key=GLOSSARY_SCOPE,
+        target_record_key="",
+    ),
 )
+#: Keyed by ``(component, source_text)``, not by target: two of the four have
+#: no target yet, and the span a pointer was read from is a property of where
+#: it is printed, not of where it will resolve.
 REFERENCE_SPANS = {
-    "glossary.challenge_rating": "main.monster_cr",
-    "glossary.expertise": "stack.expertise",
+    ("proficiency_bonus_basis", "Challenge Rating"): "main.monster_cr",
+    ("bonus_does_not_stack", "Expertise"): "stack.expertise",
+    ("skill_list", "Skills table"): "list.skills_table",
+    ("skill_relevance_sources", "Actions"): "skill.sources",
 }
 
 # ---------------------------------------------------------------------------
@@ -885,7 +920,7 @@ for ref in REFERENCES:
         ProvenanceClaim(
             ProvenanceTargetKind.REFERENCE,
             reference_target_key(ref),
-            sid(REFERENCE_SPANS[ref.target_record_key]),
+            sid(REFERENCE_SPANS[(ref.from_component_key, ref.source_text)]),
             ProvenanceRole.CONTEXTUAL,
         )
     )
@@ -1014,13 +1049,19 @@ units = review_unit_violations(
 assert units == [], units
 
 standalone = list(validate_representation(DRAFT, LEDGER, CORPUS))
-#: The only findings this batch may produce standalone are its two cross-batch
-#: citations, whose glossary entries no accepted batch has minted yet. Asserted
-#: as an exact tuple so a third finding of any kind fails here.
+#: The only findings this batch may produce standalone are its four citations:
+#: two named at glossary entries no accepted batch has minted yet, and two
+#: outstanding links whose destination is not named at all. Asserted as an
+#: exact tuple so a fifth finding of any kind fails here, and so that an
+#: outstanding link quietly acquiring a target fails here too.
 EXPECTED_FINDINGS = tuple(
     sorted(
-        f"reference {GLOSSARY_SCOPE}:{ref.source_text!r}: unknown target record "
-        f"{ref.target_record_key}"
+        f"reference {GLOSSARY_SCOPE}:{ref.source_text!r}: "
+        + (
+            f"unknown target record {ref.target_record_key}"
+            if ref.target_record_key
+            else "unresolved reference"
+        )
         for ref in REFERENCES
     )
 )
@@ -1105,6 +1146,6 @@ print(f"bands            {len(BAND_FACTS)}   expected rules {len(UNIT.expected_r
 print(f"provenance       {len(PROVENANCE)}   references {len(REFERENCES)}")
 print(f"partition        {len(partition)} findings")
 print(f"review units     {len(units)} findings")
-print(f"representation   {len(standalone)} findings (both unresolved citations)")
+print(f"representation   {len(standalone)} findings (two unminted, two outstanding)")
 for finding in sorted(standalone):
     print(f"  - {finding}")

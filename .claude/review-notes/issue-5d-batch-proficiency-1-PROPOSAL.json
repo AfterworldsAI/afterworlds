@@ -523,12 +523,36 @@
    },
    {
     "role": "contextual",
+    "span_id": "8a3f9441-c376-55c3-9ca1-c28d0e8864bb",
+    "target_key": [
+     "play.proficiency",
+     "skill_list",
+     "Skills table",
+     "srd-5.2.1/rules-glossary",
+     ""
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
     "span_id": "b2713604-2542-5cd4-b7ef-ad955d79940b",
     "target_key": [
      "play.proficiency",
      "equipment_proficiency"
     ],
     "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "be9dc626-eef4-5a02-91c5-8a284091ba66",
+    "target_key": [
+     "play.proficiency",
+     "skill_relevance_sources",
+     "Actions",
+     "srd-5.2.1/rules-glossary",
+     ""
+    ],
+    "target_kind": "reference"
    },
    {
     "role": "contextual",
@@ -996,6 +1020,20 @@
     "scope_key": "srd-5.2.1/rules-glossary",
     "source_text": "Challenge Rating",
     "target_record_key": "glossary.challenge_rating"
+   },
+   {
+    "from_component_key": "skill_list",
+    "from_record_key": "play.proficiency",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Skills table",
+    "target_record_key": ""
+   },
+   {
+    "from_component_key": "skill_relevance_sources",
+    "from_record_key": "play.proficiency",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Actions",
+    "target_record_key": ""
    }
   ],
   "relationships": []
