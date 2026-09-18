@@ -47,22 +47,23 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_11_VERSION,
     SCHEMA_12_VERSION,
     SCHEMA_13_VERSION,
-    SCHEMA_14_HASH,
     SCHEMA_14_VERSION,
+    SCHEMA_15_HASH,
+    SCHEMA_15_VERSION,
 )
 
 #: The contract this build declares. Two lines a mint edits, in place of the
 #: same pair restamped across four modules. Still a pin, not a lookup: it names
-#: schema 14 explicitly, so a build that changes ``REPRESENTATION_SCHEMA_VERSION``
+#: schema 15 explicitly, so a build that changes ``REPRESENTATION_SCHEMA_VERSION``
 #: without touching this line is caught by the canary in
 #: ``test_schema_6_succession``.
-CURRENT_SCHEMA_VERSION = SCHEMA_14_VERSION
-CURRENT_SCHEMA_HASH = SCHEMA_14_HASH
+CURRENT_SCHEMA_VERSION = SCHEMA_15_VERSION
+CURRENT_SCHEMA_HASH = SCHEMA_15_HASH
 
 #: The next version string no succession has minted. The payload-refusal probes
 #: move here when a mint makes the previous probe real, rather than being
 #: retired — which is the point of those tests.
-UNMINTED_SCHEMA_VERSION = "5d-representation-schema-15"
+UNMINTED_SCHEMA_VERSION = "5d-representation-schema-16"
 
 #: Every registered crossing, oldest first, as ``(from_version, lift_id)``.
 #: Written out rather than derived from version order: deriving
@@ -84,6 +85,7 @@ REGISTERED_CROSSINGS: tuple[tuple[str, str], ...] = (
     (SCHEMA_11_VERSION, "5d-lift-schema-11-to-12"),
     (SCHEMA_12_VERSION, "5d-lift-schema-12-to-13"),
     (SCHEMA_13_VERSION, "5d-lift-schema-13-to-14"),
+    (SCHEMA_14_VERSION, "5d-lift-schema-14-to-15"),
 )
 
 

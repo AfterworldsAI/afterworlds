@@ -105,6 +105,8 @@ __all__ = [
     "SCHEMA_13_VERSION",
     "SCHEMA_14_HASH",
     "SCHEMA_14_VERSION",
+    "SCHEMA_15_HASH",
+    "SCHEMA_15_VERSION",
     "SchemaLiftRecord",
     "UnknownSchemaLiftError",
     "lift_for",
@@ -146,6 +148,8 @@ SCHEMA_13_HASH = "39710a37985977105659000ff17af2913b63c98a141dd4db90ee489817cf55
 SCHEMA_14_VERSION = "5d-representation-schema-14"
 #: Pinned literally, for the same reason every predecessor is.
 SCHEMA_14_HASH = "14284d53773df10d8672cfea34b2b47771539a3e43d936577259817011b9498e"  # noqa: E501  # pragma: allowlist secret
+SCHEMA_15_VERSION = "5d-representation-schema-15"
+SCHEMA_15_HASH = "e87e0bacdc476b0bef092a04cbedd933e0b57b128651b08ef0ffbd0c94d186fd"  # noqa: E501  # pragma: allowlist secret
 
 
 class SchemaLiftError(ValueError):
@@ -608,6 +612,49 @@ SCHEMA_LIFTS: dict[tuple[str, str], SchemaLift] = {
             "or a non-empty requires_proficiencies, is refused by the "
             "introduction manifest and the omission registry, never "
             "flattened. "
+            "The policy contract does not move with it: 5d-semantic-policy-2 "
+            "is what proficiency-1 declares, and it is the same policy "
+            "schema 12 arrived with."
+        ),
+    ),
+    (SCHEMA_14_VERSION, SCHEMA_14_HASH): SchemaLift(
+        lift_id="5d-lift-schema-14-to-15",
+        from_version=SCHEMA_14_VERSION,
+        from_hash=SCHEMA_14_HASH,
+        to_version=SCHEMA_15_VERSION,
+        to_hash=SCHEMA_15_HASH,
+        rationale=(
+            "Schema 15 admits the two remaining uses the Proficiency "
+            "section's opening paragraph states, and nothing else. One fact "
+            "family -- proficiency_bonus_use -- and the one whole vocabulary "
+            "minted with it, ProficiencyBonusUse, whose two members are the "
+            "two uses that sentence prints: spell_attack and spell_save_dc. "
+            "No field on any family an earlier schema had, no ownership "
+            "form, no component key, no required field and no newly nullable "
+            "field. "
+            "The family exists because schema 14 typed where proficiency "
+            "applies as a proficiency kind paired with a roll, and this "
+            "sentence -- the bonus is also used for spell attacks and for "
+            "calculating the DC of saving throws for spells -- states two "
+            "uses that name no proficiency kind at all. Neither fits that "
+            "pairing: there is no spellcasting proficiency in the source's "
+            "four kinds, and a spell save DC is not a roll. Adding a fifth "
+            "ProficiencyKind member, or a spell-attack RollContext, would "
+            "author a rule the section does not print in order to reuse a "
+            "shape. "
+            "The family states the use and stops there. No formula, no "
+            "ability, no target DC, no character proficiency and no "
+            "consumer: the sentence states that the bonus is used for these "
+            "two things, and what else goes into either is stated elsewhere "
+            "and not read here. "
+            "Nothing accepted moves. No component of the seven accepted "
+            "batches states a fact of this family, and no accepted family "
+            "gained a field, so every accepted payload -- and its fact key "
+            "and provenance coordinate -- is byte-identical under both "
+            "contracts, which verify_lift proves element by element rather "
+            "than asserting. A schema-14 declaration carrying the new family "
+            "or either new vocabulary member is refused by the introduction "
+            "manifest, never flattened. "
             "The policy contract does not move with it: 5d-semantic-policy-2 "
             "is what proficiency-1 declares, and it is the same policy "
             "schema 12 arrived with."

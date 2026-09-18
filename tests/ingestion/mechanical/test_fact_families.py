@@ -141,6 +141,8 @@ from afterworlds.ingestion.mechanical.representation import (
     ProficiencyBonusBandFact,
     ProficiencyBonusOperation,
     ProficiencyBonusOperationLimitFact,
+    ProficiencyBonusUse,
+    ProficiencyBonusUseFact,
     ProficiencyKind,
     ProgressionEntryFact,
     QuantityMultiplierFact,
@@ -640,6 +642,13 @@ EXEMPLARS: dict[FactFamily, Any] = {
         operation=ProficiencyBonusOperation.ADD,
         maximum_applications=1,
         precedes=None,
+    ),
+    # Proficiency, opening paragraph: "The bonus is also used for spell
+    # attacks and for calculating the DC of saving throws for spells." One
+    # of the two uses that sentence states; neither names a proficiency
+    # kind, which is why they are not applications.
+    FactFamily.PROFICIENCY_BONUS_USE: ProficiencyBonusUseFact(
+        use=ProficiencyBonusUse.SPELL_ATTACK,
     ),
 }
 

@@ -153,6 +153,8 @@ from afterworlds.ingestion.mechanical.representation import (
     ProficiencyApplicationFact,
     ProficiencyBonusOperation,
     ProficiencyBonusOperationLimitFact,
+    ProficiencyBonusUse,
+    ProficiencyBonusUseFact,
     ProficiencyKind,
     Rational,
     ReactionProvocationFact,
@@ -225,7 +227,9 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_12_VERSION,
     SCHEMA_13_HASH,
     SCHEMA_13_VERSION,
+    SCHEMA_14_HASH,
     SCHEMA_14_VERSION,
+    SCHEMA_15_VERSION,
     SchemaLiftError,
     accepted_schema_contracts,
     lift_accepted_inputs,
@@ -772,6 +776,20 @@ SCHEMA_14_ONLY = [
 ]
 
 
+#: One live object per axis schema 15 added: the one family, carrying the one
+#: vocabulary minted with it. Both members are listed because the family's
+#: whole surface *is* the vocabulary -- there is no second field an earlier
+#: reader could trip on instead, so if a member went unregistered nothing else
+#: in the fact would refuse it.
+SCHEMA_15_ONLY = [
+    pytest.param(
+        ProficiencyBonusUseFact(use=use),
+        id=f"vocabulary-proficiency_bonus_use-{use.value}",
+    )
+    for use in ProficiencyBonusUse
+]
+
+
 # ---------------------------------------------------------------------------
 # The contract, driven from the manifest rather than from a hand-written list
 # ---------------------------------------------------------------------------
@@ -795,6 +813,7 @@ def test_every_manifest_row_has_an_exemplar_here() -> None:
         *SCHEMA_10_ONLY,
         *SCHEMA_11_ONLY,
         *SCHEMA_14_ONLY,
+        *SCHEMA_15_ONLY,
     ):
         (obj,) = param.values
         exercised |= _groups_exercised_by(obj)
@@ -974,6 +993,34 @@ def test_schema_13_refuses_every_schema_14_only_type_or_value(
 def test_schema_14_admits_what_it_introduced(obj: object) -> None:
     """And the other direction, so the rule is not "refuse everything newer"."""
     assert post_schema_3_violations(obj, SCHEMA_14_VERSION) == []
+
+
+@pytest.mark.parametrize("obj", SCHEMA_15_ONLY)
+def test_schema_14_refuses_every_schema_15_only_type_or_value(
+    obj: object,
+) -> None:
+    """The succession the two spell uses need, in the refusing direction.
+
+    Schema 14 already states where four proficiency kinds add the bonus, which
+    is exactly why this is asserted rather than assumed: stating those four
+    pairings is not stating the two uses the same paragraph adds without
+    naming a kind.
+    """
+    assert post_schema_3_violations(obj, SCHEMA_14_VERSION), obj
+
+
+@pytest.mark.parametrize("obj", SCHEMA_15_ONLY)
+def test_schema_15_admits_what_it_introduced(obj: object) -> None:
+    """And the other direction, so the rule is not "refuse everything newer"."""
+    assert post_schema_3_violations(obj, SCHEMA_15_VERSION) == []
+
+
+@pytest.mark.parametrize("obj", SCHEMA_14_ONLY)
+def test_schema_15_still_admits_every_schema_14_introduction(
+    obj: object,
+) -> None:
+    """A mint admits its predecessor's introductions; it does not replace them."""
+    assert post_schema_3_violations(obj, SCHEMA_15_VERSION) == []
 
 
 @pytest.mark.parametrize("obj", SCHEMA_8_ONLY)
@@ -1452,8 +1499,9 @@ def test_the_recognized_contracts_are_exactly_the_live_pair_and_the_registry() -
         # which is exactly how schema 3 and schema 4 are here. Schema 6 joins it
         # the same way at schema 7, schema 7 at schema 8, schema 8 at schema 9,
         # schema 9 at schema 10, schema 10 at schema 11 and schema 11 at schema
-        # 12, schema 12 at schema 13 and schema 13 at schema 14. The rule is
-        # the registry, not a list of versions somebody kept up to date.
+        # 12, schema 12 at schema 13, schema 13 at schema 14 and schema 14 at
+        # schema 15. The rule is the registry, not a list of versions somebody
+        # kept up to date.
         (SCHEMA_5_VERSION, SCHEMA_5_HASH),
         (SCHEMA_6_VERSION, SCHEMA_6_HASH),
         (SCHEMA_7_VERSION, SCHEMA_7_HASH),
@@ -1463,6 +1511,7 @@ def test_the_recognized_contracts_are_exactly_the_live_pair_and_the_registry() -
         (SCHEMA_11_VERSION, SCHEMA_11_HASH),
         (SCHEMA_12_VERSION, SCHEMA_12_HASH),
         (SCHEMA_13_VERSION, SCHEMA_13_HASH),
+        (SCHEMA_14_VERSION, SCHEMA_14_HASH),
     }
 
 

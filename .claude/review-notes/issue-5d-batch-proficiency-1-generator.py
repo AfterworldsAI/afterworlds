@@ -85,6 +85,8 @@ from afterworlds.ingestion.mechanical.representation import (  # noqa: E402
     ProficiencyBonusBandFact,
     ProficiencyBonusOperation,
     ProficiencyBonusOperationLimitFact,
+    ProficiencyBonusUse,
+    ProficiencyBonusUseFact,
     ProficiencyKind,
     ProseBindingDraft,
     ProvenanceClaim,
@@ -714,6 +716,20 @@ OPERATION_LIMITS: tuple[
 )
 assert len(OPERATION_LIMITS) == 3, len(OPERATION_LIMITS)
 
+#: The two uses the same opening paragraph states without naming a proficiency
+#: kind: "The bonus is also used for spell attacks and for calculating the DC
+#: of saving throws for spells." One fact per stated use, both read from
+#: ``main.spells``. Neither is an application: the sentence pairs the bonus
+#: with no skill, saving throw, weapon or tool, and a spell save DC is not a
+#: roll. Nothing here states a formula, an ability, a target DC or a
+#: spellcasting proficiency -- the sentence states two uses, not a spell
+#: attack's or a save DC's full arithmetic.
+SPELL_USES: tuple[ProficiencyBonusUseFact, ...] = tuple(
+    ProficiencyBonusUseFact(use=use)
+    for use in (ProficiencyBonusUse.SPELL_ATTACK, ProficiencyBonusUse.SPELL_SAVE_DC)
+)
+assert len(SPELL_USES) == 2, len(SPELL_USES)
+
 #: The tool Advantage, with its conjunction stated. Both proficiencies are
 #: required -- "If you have proficiency with a tool ... If you have proficiency
 #: in the skill that's also used with that check, you have Advantage on the
@@ -758,9 +774,18 @@ COMPONENTS: tuple[
         NO_USE,
         ("main.all_creatures", "main.character_levels", "main.monster_cr"),
     ),
+    # MIXED: the two uses ``main.spells`` states are typed, and the umbrella
+    # sentence is not. ``main.d20_test`` -- "applied to a D20 Test when the
+    # creature has proficiency in a skill, in a saving throw, or with an item"
+    # -- is one sentence *about* the four per-kind rules typed on their own
+    # components, and read as a rule of its own it would admit a weapon
+    # proficiency on a saving throw, so it stays exact governing prose. The
+    # spells sentence stays bound beside its facts for the same reason the
+    # stacking clauses do: "also" and "for calculating the DC of" carry
+    # meaning the two uses do not.
     (
         "proficiency_bonus_application",
-        ComponentHandling.PROSE_BOUND,
+        ComponentHandling.MIXED,
         None,
         NO_USE,
         ("main.d20_test", "main.spells"),
@@ -862,6 +887,7 @@ COMPONENTS: tuple[
 
 _FACTS = {
     "proficiency_bonus_table": BAND_FACTS,
+    "proficiency_bonus_application": SPELL_USES,
     "bonus_does_not_stack": tuple(fact for fact, _ in OPERATION_LIMITS),
     "skill_proficiency_application": (APPLICATION_BY_CLAUSE["skill.proficient"],),
     "saving_throw_proficiency": (APPLICATION_BY_CLAUSE["saves.bonus"],),
@@ -1026,6 +1052,19 @@ for _clause, _fact in APPLICATIONS:
         )
     )
 
+# Both spell uses are read from the one sentence that states them, and claim
+# it CONTEXTUAL for the reason every typed input here does: the clause's
+# primary home is the prose binding that governs it.
+for _fact in SPELL_USES:
+    PROVENANCE.append(
+        ProvenanceClaim(
+            ProvenanceTargetKind.FACT,
+            fact_target_key(RECORD, "proficiency_bonus_application", _fact),
+            sid("main.spells"),
+            ProvenanceRole.CONTEXTUAL,
+        )
+    )
+
 # A limit read from two clauses claims both. The arity and the ordering are
 # printed in different sentences, and a claim to only one would certify the
 # half nobody looked at.
@@ -1163,6 +1202,18 @@ APPLICATION_RULES = tuple(
     )
     for clause, _fact in APPLICATIONS
 )
+#: One expected rule, because the expectation is stated at the granularity a
+#: reviewer can check it at: ``ExpectedRule`` requires *some* fact of the named
+#: family read from each named span, and both uses are read from the one
+#: sentence. What tells the two apart is the source-reviewed expectation in
+#: ``test_schema_14_proficiency_inputs``, which names both members and fails if
+#: either is dropped.
+SPELL_USE_RULE = ExpectedRule(
+    RECORD,
+    "proficiency_bonus_application",
+    ProficiencyBonusUseFact.FAMILY.value,
+    (sid("main.spells"),),
+)
 LIMIT_RULES = tuple(
     ExpectedRule(
         RECORD,
@@ -1178,7 +1229,11 @@ UNIT = ReviewUnit(
     kind=ReviewUnitKind.SECTION,
     leaf_ids=SECTION_LEAVES,
     expected_rules=(
-        BAND_RULES + PROSE_RULES + (ADVANTAGE_RULE,) + APPLICATION_RULES + LIMIT_RULES
+        BAND_RULES
+        + PROSE_RULES
+        + (ADVANTAGE_RULE, SPELL_USE_RULE)
+        + APPLICATION_RULES
+        + LIMIT_RULES
     ),
     supporting_groups=(
         SupportingGroup(
@@ -1197,7 +1252,7 @@ UNIT = ReviewUnit(
         ),
     ),
 )
-assert len(UNIT.expected_rules) == 29, len(UNIT.expected_rules)
+assert len(UNIT.expected_rules) == 30, len(UNIT.expected_rules)
 
 # ---------------------------------------------------------------------------
 # Batch-scoped validation
@@ -1289,7 +1344,7 @@ PROPOSAL = MechanicalProposal(
     proposed_spans=tuple(PROPOSED),
     proposed_representation=DRAFT,
     proposal_origin=(
-        f"{ORIGIN} (CRD Issue 5d batch {BATCH_ID}, representation schema 14)"
+        f"{ORIGIN} (CRD Issue 5d batch {BATCH_ID}, representation schema 15)"
     ),
     proposal_schema_version=PROPOSAL_SCHEMA_VERSION_2,
     proposed_review_units=(UNIT,),
@@ -1327,7 +1382,8 @@ print(f"components       {len(COMPONENT_DRAFTS)}   bindings {len(BINDINGS)}")
 print(f"bands            {len(BAND_FACTS)}   expected rules {len(UNIT.expected_rules)}")
 print(
     f"typed inputs     {len(APPLICATIONS)} applications, "
-    f"{len(OPERATION_LIMITS)} operation limits, 1 tool advantage"
+    f"{len(OPERATION_LIMITS)} operation limits, {len(SPELL_USES)} bonus uses, "
+    "1 tool advantage"
 )
 print(f"provenance       {len(PROVENANCE)}   references {len(REFERENCES)}")
 print(f"partition        {len(partition)} findings")

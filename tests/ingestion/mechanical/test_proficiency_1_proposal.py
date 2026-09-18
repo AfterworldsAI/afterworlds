@@ -79,7 +79,7 @@ PROPOSAL_PATH = REVIEW_NOTES / "issue-5d-batch-proficiency-1-PROPOSAL.json"
 COMMITTED_ARTIFACT = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
 
 #: The identity the review packet reports and a reviewer would be shown.
-PROPOSAL_IDENTITY = "a6fc5285ced73ea55901ad6fbcbc94c399ca44491791385d5e28132359517fba"  # noqa: E501  # pragma: allowlist secret
+PROPOSAL_IDENTITY = "c71f81044f003e2845e33e95a844c995aeee00282b0808303320200f164e8ec4"  # noqa: E501  # pragma: allowlist secret
 
 RECORD = "play.proficiency"
 UNIT_ID = "proficiency-1-section"

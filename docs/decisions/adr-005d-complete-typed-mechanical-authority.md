@@ -993,7 +993,7 @@ before a proposal existed. They are corrected here rather than deleted, so the r
 > activated and retired **nothing**, and the full-corpus work Decision 5 requires remains
 > undischarged.
 
-**Amended by Owner Decision 2026-09-18 — representation schema 14, the Proficiency section's
+**Amended by Owner Decision 2026-09-18 — representation schemas 14 and 15, the Proficiency section's
 structured rule inputs.** The boundary the `proficiency-1` review raised is resolved, verbatim:
 
 > "For the Proficiency section, the Rules Package supplies structured inputs governing where
@@ -1028,6 +1028,17 @@ Schema 14 is the smallest closed representation of those three uses, and nothing
   rule, so every accepted `AdvantageFact` keeps its schema-3 payload and its fact key: no accepted
   artifact is restamped by this mint.
 
+**Schema 15 completes the first of those three uses under the same decision, and adds nothing to it.**
+A later source review found *where proficiency applies* represented in four places and silent in two.
+The opening paragraph's last sentence states two further uses of the bonus that no per-kind pairing
+restates: *"The bonus is also used for spell attacks and for calculating the DC of saving throws for
+spells."* `ProficiencyBonusUseFact(use)` states exactly those two over a closed two-member
+vocabulary — `spell_attack`, `spell_save_dc` — and nothing more: no formula, no spellcasting ability,
+no target DC, no proficiency that grants it, and no consumer. It carries a `use` and no `roll`,
+because a spell attack is a roll and a spell save DC is not, so a roll-shaped field would state
+something the sentence does not. This is the same authorized clause, not a new one; it required no
+further Owner Decision, and the boundary above is unchanged by it.
+
 What this amendment does **not** decide, in the Owner's words: it "does not require structuring every
 reducible passage or implementing downstream sheet/adapter behavior in 5d." No Character Sheet Model
 or adapter behavior, no runtime evaluation, no movement or 15c work, and no general rules DSL is
@@ -1038,8 +1049,9 @@ ignored rule-slice/override parameters on the current adapter are not evidence o
 No semantic acceptance was granted. The `proficiency-1` proposal stays **unaccepted**: two of its
 references — the Skills table and the Actions obligations — point into *Playing the Game* at
 destinations no accepted batch has minted, and the current append-only acceptance path cannot later
-replace an accepted empty-target reference. Schema 14 is registered in `schema_lift` as a recognized
-contract with one crossing from schema 13, and no accepted artifact declares it.
+replace an accepted empty-target reference. Schemas 14 and 15 are registered in `schema_lift` as recognized
+contracts with one crossing each, from schema 13 and from schema 14, and no accepted artifact
+declares either.
 
 ### Decision 5 — Exact completeness, not aggregate thresholds
 

@@ -50,6 +50,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_13_HASH,
     SCHEMA_13_VERSION,
     SCHEMA_14_VERSION,
+    SCHEMA_15_VERSION,
     lift_path,
 )
 
@@ -222,12 +223,15 @@ def test_schema_12_refuses_the_reviewed_draft_for_exactly_the_eight_bands() -> N
     narrowest statement of what schema 13 added: the eight band facts and
     nothing else.
 
-    That draft has since moved on to schema 14, which typed the section's rule
-    inputs, so schema 12 now refuses it for those too. The schema-13 claim is
-    therefore made over the share of the refusal schema 13 is named in -- the
-    same partitioning the schema-11 sibling below already needed. The remainder
-    is not dropped: schema 13 refusing exactly it, and the current contract
-    admitting the whole draft, are asserted here rather than assumed.
+    That draft has since moved on twice -- schema 14 typed the section's rule
+    inputs and schema 15 its two stated bonus uses -- so schema 12 now refuses
+    it for those too. The schema-13 claim is therefore made over the share of
+    the refusal schema 13 is named in -- the same partitioning the schema-11
+    sibling below already needed. The remainder is not dropped: schema 13
+    refusing exactly it, and the current contract admitting the whole draft, are
+    asserted here rather than assumed. Which of the two later schemas each
+    remaining violation belongs to is not this test's subject; the two-step
+    transition is asserted exactly in ``test_schema_14_proficiency_inputs``.
     """
     draft = load_proposal(PROPOSAL_PATH).proposed_representation
     violations = declared_meaning_violations(draft, SCHEMA_12_VERSION)
@@ -240,9 +244,9 @@ def test_schema_12_refuses_the_reviewed_draft_for_exactly_the_eight_bands() -> N
     # 13 refuses in its own right and for the later reason.
     later = declared_meaning_violations(draft, SCHEMA_13_VERSION)
     assert len(later) == len(violations) - len(PRINTED_BANDS)
-    assert all(SCHEMA_14_VERSION in v for v in later)
+    assert all(SCHEMA_14_VERSION in v or SCHEMA_15_VERSION in v for v in later)
 
-    assert declared_meaning_violations(draft, SCHEMA_14_VERSION) == []
+    assert declared_meaning_violations(draft, SCHEMA_15_VERSION) == []
 
 
 def test_schema_11_refuses_it_for_the_bands_and_the_schema_12_reason_codes() -> None:

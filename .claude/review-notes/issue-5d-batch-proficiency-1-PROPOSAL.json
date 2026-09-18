@@ -1,6 +1,6 @@
 {
  "artifact_kind": "machine_proposal",
- "proposal_origin": "issue-5d-batch-proficiency-1-generator.py (CRD Issue 5d batch proficiency-1, representation schema 14)",
+ "proposal_origin": "issue-5d-batch-proficiency-1-generator.py (CRD Issue 5d batch proficiency-1, representation schema 15)",
  "proposal_schema_version": "5d-proposal-2",
  "proposed_representation": {
   "components": [
@@ -35,17 +35,6 @@
     "prose_retention_reason_code": "no_identified_structured_use",
     "record_key": "play.proficiency",
     "semantic_key": "equipment_proficiency"
-   },
-   {
-    "applies_when": null,
-    "fact_qualifiers": [],
-    "facts": [],
-    "handling": "prose_bound",
-    "irreducibility_reason_code": null,
-    "options": [],
-    "prose_retention_reason_code": "no_identified_structured_use",
-    "record_key": "play.proficiency",
-    "semantic_key": "proficiency_bonus_application"
    },
    {
     "applies_when": null,
@@ -265,6 +254,26 @@
     "prose_retention_reason_code": "no_identified_structured_use",
     "record_key": "play.proficiency",
     "semantic_key": "bonus_does_not_stack"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "proficiency_bonus_use",
+      "use": "spell_attack"
+     },
+     {
+      "family": "proficiency_bonus_use",
+      "use": "spell_save_dc"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.proficiency",
+    "semantic_key": "proficiency_bonus_application"
    }
   ],
   "prose_bindings": [
@@ -664,6 +673,26 @@
      ""
     ],
     "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "8f87a8ad-da08-5f03-bdf4-0d58c871dead",
+    "target_key": [
+     "play.proficiency",
+     "proficiency_bonus_application",
+     "3f4e99a09d1b04bb"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "8f87a8ad-da08-5f03-bdf4-0d58c871dead",
+    "target_key": [
+     "play.proficiency",
+     "proficiency_bonus_application",
+     "617e75d62823502c"
+    ],
+    "target_kind": "fact"
    },
    {
     "role": "contextual",
@@ -1268,6 +1297,14 @@
      "source_span_ids": [
       "8f87a8ad-da08-5f03-bdf4-0d58c871dead",
       "ef8ac329-29da-5c20-98ed-8f3c3e423f1f"
+     ]
+    },
+    {
+     "component_key": "proficiency_bonus_application",
+     "fact_family": "proficiency_bonus_use",
+     "record_key": "play.proficiency",
+     "source_span_ids": [
+      "8f87a8ad-da08-5f03-bdf4-0d58c871dead"
      ]
     },
     {
@@ -1984,8 +2021,8 @@
   "transform_config_hash": "77720c2f3b8c9b88363d48050466fb8e3a26f8476b63145d1b5928ff2581ef3e"
  },
  "representation_schema": {
-  "hash": "14284d53773df10d8672cfea34b2b47771539a3e43d936577259817011b9498e",
-  "version": "5d-representation-schema-14"
+  "hash": "e87e0bacdc476b0bef092a04cbedd933e0b57b128651b08ef0ffbd0c94d186fd",
+  "version": "5d-representation-schema-15"
  },
  "semantic_policy_hash": "da63b8940c5b3997b44d53e02941389b68e2a2ba35250e73194d38bb1d74cde7",
  "semantic_policy_version": "5d-semantic-policy-2"

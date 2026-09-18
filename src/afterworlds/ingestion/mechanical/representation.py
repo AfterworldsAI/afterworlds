@@ -109,6 +109,7 @@ __all__ = [
     "FactFamily",
     "MovementMode",
     "ProficiencyBonusOperation",
+    "ProficiencyBonusUse",
     "ProficiencyKind",
     "ProvenanceRole",
     "ProvenanceTargetKind",
@@ -157,6 +158,7 @@ __all__ = [
     "ProficiencyApplicationFact",
     "ProficiencyBonusBandFact",
     "ProficiencyBonusOperationLimitFact",
+    "ProficiencyBonusUseFact",
     "ProgressionEntryFact",
     "ResourceRecoveryFact",
     "ScalingFact",
@@ -729,6 +731,23 @@ class ProficiencyBonusOperation(StrEnum):
     ADD = "add"
     MULTIPLY = "multiply"
     DIVIDE = "divide"
+
+
+class ProficiencyBonusUse(StrEnum):
+    """One use of the Proficiency Bonus the section states without pairing it
+    to a proficiency kind.
+
+    *"The bonus is also used for spell attacks and for calculating the DC of
+    saving throws for spells."* Two uses, in one sentence, and the sentence
+    names no skill, saving throw, weapon or tool to hold them against -- which
+    is why they are a vocabulary of their own rather than two more
+    :class:`ProficiencyKind` members. Closed at exactly what that sentence
+    prints: a use this vocabulary does not name is a use the section does not
+    state.
+    """
+
+    SPELL_ATTACK = "spell_attack"
+    SPELL_SAVE_DC = "spell_save_dc"
 
 
 class RollContext(StrEnum):
@@ -2075,6 +2094,7 @@ class FactFamily(StrEnum):
     PROFICIENCY_APPLICATION = "proficiency_application"
     PROFICIENCY_BONUS_BAND = "proficiency_bonus_band"
     PROFICIENCY_BONUS_OPERATION_LIMIT = "proficiency_bonus_operation_limit"
+    PROFICIENCY_BONUS_USE = "proficiency_bonus_use"
     PROGRESSION_ENTRY = "progression_entry"
     QUANTITY_MULTIPLIER = "quantity_multiplier"
     RESOURCE_RECOVERY = "resource_recovery"
@@ -2807,6 +2827,41 @@ class ProficiencyBonusOperationLimitFact:
     operation: ProficiencyBonusOperation
     maximum_applications: int
     precedes: ProficiencyBonusOperation | None
+
+
+@dataclass(frozen=True)
+class ProficiencyBonusUseFact:
+    """One use of the Proficiency Bonus the section states outside a pairing.
+
+    **Required use.** The section's opening paragraph states where the bonus
+    goes twice over. Four clauses pair a proficiency kind with a roll, and one
+    sentence adds two uses that name no kind at all: *"The bonus is also used
+    for spell attacks and for calculating the DC of saving throws for
+    spells."* One fact per stated use.
+
+    **Consequence of omission.** :class:`ProficiencyApplicationFact` is closed
+    on the four printed pairings, so with this family absent the typed inputs
+    say the bonus reaches ability checks, saves and attack rolls and nothing
+    else. A spell attack and a spell save DC would then be computed without a
+    bonus the source says is part of them -- a wrong number, from a sentence
+    that is printed in plain words.
+
+    **What this deliberately does not state.** No formula, no ability, no
+    target DC, no spellcasting proficiency and no consumer. The source
+    sentence states *that* the bonus is used for these two things; what else
+    goes into a spell attack or into "calculating the DC" is stated elsewhere
+    and is not read here. There is deliberately no ``roll``: a spell attack is
+    a roll and a spell save DC is not, and one field that was a roll for one
+    member and absent for the other would be a shape the sentence does not
+    have. ``DcKind.SPELL_SAVE_DC`` is not reused as this field's type for the
+    same reason -- it is a vocabulary of *how a DC is set*, and this is not a
+    DC-setting fact -- and :class:`AttackKind` is not reused because its
+    members force a melee/ranged distinction this sentence never draws.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.PROFICIENCY_BONUS_USE
+
+    use: ProficiencyBonusUse
 
 
 @dataclass(frozen=True)
@@ -4461,6 +4516,7 @@ MechanicalFact = (
     | MovementCompositionFact
     | ProficiencyApplicationFact
     | ProficiencyBonusOperationLimitFact
+    | ProficiencyBonusUseFact
 )
 
 _FACT_TYPES: dict[FactFamily, type] = {
@@ -4483,6 +4539,7 @@ _FACT_TYPES: dict[FactFamily, type] = {
     FactFamily.PROFICIENCY_APPLICATION: ProficiencyApplicationFact,
     FactFamily.PROFICIENCY_BONUS_BAND: ProficiencyBonusBandFact,
     FactFamily.PROFICIENCY_BONUS_OPERATION_LIMIT: (ProficiencyBonusOperationLimitFact),
+    FactFamily.PROFICIENCY_BONUS_USE: ProficiencyBonusUseFact,
     FactFamily.PROGRESSION_ENTRY: ProgressionEntryFact,
     FactFamily.RESOURCE_RECOVERY: ResourceRecoveryFact,
     FactFamily.SCALING: ScalingFact,
@@ -5093,6 +5150,14 @@ def _check_proficiency_bonus_operation_limit(
     if fact.precedes is fact.operation:
         findings.append(f"{fact.operation.value} is stated as preceding itself")
     return findings
+
+
+def _check_proficiency_bonus_use(fact: ProficiencyBonusUseFact) -> list[str]:
+    # The vocabulary is the whole invariant: the sentence states two uses and
+    # nothing about either of them beyond that it is one. A check that asked
+    # for more here would be asking the fact to carry a formula the source
+    # does not print.
+    return _enum_field(fact.use, ProficiencyBonusUse, "use")
 
 
 def _check_progression_entry(fact: ProgressionEntryFact) -> list[str]:
@@ -6616,6 +6681,7 @@ _FACT_INVARIANTS: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.PROFICIENCY_BONUS_OPERATION_LIMIT: (
         _check_proficiency_bonus_operation_limit
     ),
+    FactFamily.PROFICIENCY_BONUS_USE: _check_proficiency_bonus_use,
     FactFamily.PROGRESSION_ENTRY: _check_progression_entry,
     FactFamily.RESOURCE_RECOVERY: _check_resource_recovery,
     FactFamily.SCALING: _check_scaling,
@@ -7690,7 +7756,14 @@ def _build_resource_recovery(p: Mapping[str, Any]) -> ResourceRecoveryFact:
 
 
 def _build_advantage(p: Mapping[str, Any]) -> AdvantageFact:
-    raw_requires = p.get("requires_proficiencies") or ()
+    # ``get`` with an explicit default, never ``or ()``: the field is omitted
+    # when empty, so an *absent* key is the historical spelling every advantage
+    # accepted under schemas 3-13 carries and must keep building. A *present*
+    # value has been written deliberately, and ``or ()`` would erase ``False``,
+    # ``0``, ``""``, ``{}`` and an explicit ``null`` into the same empty tuple
+    # before the type check ever ran -- admitting five malformed payloads and
+    # canonicalizing them to one that no longer states what they said.
+    raw_requires = p.get("requires_proficiencies", ())
     if not isinstance(raw_requires, (list, tuple)):
         raise MalformedFactPayloadError("requires_proficiencies is not a list")
     _reject(
@@ -7807,6 +7880,14 @@ def _build_proficiency_bonus_operation_limit(
             None if p["precedes"] is None else ProficiencyBonusOperation(p["precedes"])
         ),
     )
+
+
+def _build_proficiency_bonus_use(p: Mapping[str, Any]) -> ProficiencyBonusUseFact:
+    _reject(
+        FactFamily.PROFICIENCY_BONUS_USE,
+        [*_json_enum(p["use"], ProficiencyBonusUse, "use")],
+    )
+    return ProficiencyBonusUseFact(use=ProficiencyBonusUse(p["use"]))
 
 
 def _build_proficiency_bonus_band(
@@ -8320,6 +8401,7 @@ _FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] 
     FactFamily.PROFICIENCY_BONUS_OPERATION_LIMIT: (
         _build_proficiency_bonus_operation_limit
     ),
+    FactFamily.PROFICIENCY_BONUS_USE: _build_proficiency_bonus_use,
     FactFamily.PROGRESSION_ENTRY: _build_progression_entry,
     FactFamily.RESOURCE_RECOVERY: _build_resource_recovery,
     FactFamily.SCALING: _build_scaling,
@@ -8521,7 +8603,7 @@ assert (
 #: while the table prints the total bonus for each band. Reusing any of them
 #: would mean authoring rows the source does not print.
 #:
-#: Version ``14`` admits two fact families,
+#: Version ``14`` admitted two fact families,
 #: :class:`ProficiencyApplicationFact` and
 #: :class:`ProficiencyBonusOperationLimitFact`, two whole vocabularies,
 #: :class:`ProficiencyKind` and :class:`ProficiencyBonusOperation`, and one
@@ -8543,7 +8625,23 @@ assert (
 #: The field exists because the source states one conjunction — tool
 #: proficiency *and* skill proficiency — and :class:`Applicability` refuses
 #: conjunction by design.
-REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-14"
+#:
+#: Version ``15`` admits one fact family, :class:`ProficiencyBonusUseFact`,
+#: and the one vocabulary minted with it, :class:`ProficiencyBonusUse`. It
+#: adds no field to any accepted family, no ownership form and no component
+#: key, and makes no accepted field required or nullable, so every accepted
+#: fact key and provenance coordinate has the same canonical form under 14
+#: and 15.
+#:
+#: The family exists because the Proficiency section's opening paragraph
+#: states two uses of the bonus that schema 14 left as prose: *"The bonus is
+#: also used for spell attacks and for calculating the DC of saving throws
+#: for spells."* Neither fits :class:`ProficiencyApplicationFact`, whose
+#: whole shape is a proficiency kind paired with the roll that kind's bonus
+#: is added to — this sentence names no kind, and a spell save DC is not a
+#: roll. Widening :class:`ProficiencyKind` to carry them would author a
+#: spellcasting proficiency the section never prints.
+REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-15"
 
 
 class UnsupportedRepresentationShapeError(TypeError):
@@ -9094,6 +9192,19 @@ def _introductions() -> tuple[_Introduction, ...]:
             _Introduction("vocabulary_member", vocabulary, member, SCHEMA_14)
             for member in members
         )
+    # Schema 15 adds one family and the one vocabulary minted with it. No
+    # field on any accepted family, no ownership form and no component key,
+    # so both hand-maintained tables above are the whole registration --
+    # which is the failure packet section 9 records as Diagnosis 1b.
+    rows.extend(
+        _Introduction("fact_family", "FactFamily", family.value, SCHEMA_15)
+        for family in _SCHEMA_15_FAMILIES
+    )
+    for vocabulary, members in _SCHEMA_15_VOCABULARY_MEMBERS.items():
+        rows.extend(
+            _Introduction("vocabulary_member", vocabulary, member, SCHEMA_15)
+            for member in members
+        )
     rows.extend(
         _Introduction("nullable_field", _OPTIONAL_SINCE_WIRE_NAMES[owner], key, arrived)
         for owner, keys in _OPTIONAL_SINCE.items()
@@ -9155,6 +9266,7 @@ def _vocabulary_shape(owner: str) -> list[str] | None:
         or _SCHEMA_10_VOCABULARY_ALL.get(owner)
         or _SCHEMA_11_VOCABULARY_ALL.get(owner)
         or _SCHEMA_14_VOCABULARY_ALL.get(owner)
+        or _SCHEMA_15_VOCABULARY_ALL.get(owner)
     )
     return None if members is None else sorted(members)
 
@@ -9251,6 +9363,7 @@ def _collect_post_schema_3(
             (_SCHEMA_10_MEMBER_INDEX, SCHEMA_10),
             (_SCHEMA_11_MEMBER_INDEX, SCHEMA_11),
             (_SCHEMA_14_MEMBER_INDEX, SCHEMA_14),
+            (_SCHEMA_15_MEMBER_INDEX, SCHEMA_15),
         ):
             if (
                 type(value).__name__,
@@ -9731,6 +9844,31 @@ _SCHEMA_14_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
     for member in members
 )
 
+SCHEMA_15 = "5d-representation-schema-15"
+
+#: The one family schema 15 admitted, for the two uses batch ``proficiency-1``
+#: read from ``main.spells``. Named by member for the same reason every
+#: predecessor's is.
+_SCHEMA_15_FAMILIES: tuple[FactFamily, ...] = (FactFamily.PROFICIENCY_BONUS_USE,)
+
+#: Every vocabulary value schema 15 admitted, by vocabulary. One vocabulary,
+#: new whole, reachable only through the family minted with it.
+_SCHEMA_15_VOCABULARY_MEMBERS: dict[str, tuple[str, ...]] = {
+    "ProficiencyBonusUse": tuple(sorted(u.value for u in ProficiencyBonusUse)),
+}
+
+#: New whole, so the rendering and the introduction are the same set, exactly
+#: as schema 14's are.
+_SCHEMA_15_VOCABULARY_ALL: dict[str, tuple[str, ...]] = dict(
+    _SCHEMA_15_VOCABULARY_MEMBERS
+)
+
+_SCHEMA_15_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
+    (vocabulary, member)
+    for vocabulary, members in _SCHEMA_15_VOCABULARY_MEMBERS.items()
+    for member in members
+)
+
 #: The seven families schema 11 admitted, for batch ``speed-1``. One per
 #: distinct rule the Rules Glossary Speed entry and Playing the Game > Combat >
 #: Movement and Position print between them, named by member for the same
@@ -9808,6 +9946,7 @@ _FAMILY_INTRODUCTIONS: tuple[tuple[tuple[FactFamily, ...], str], ...] = (
     (_SCHEMA_11_FAMILIES, SCHEMA_11),
     (_SCHEMA_13_FAMILIES, SCHEMA_13),
     (_SCHEMA_14_FAMILIES, SCHEMA_14),
+    (_SCHEMA_15_FAMILIES, SCHEMA_15),
 )
 
 #: Fields a later schema made **required** on a family an earlier schema already
@@ -9966,6 +10105,22 @@ _VERSION_STATES: dict[str, frozenset[str]] = {
             SCHEMA_12,
             SCHEMA_13,
             SCHEMA_14,
+        }
+    ),
+    SCHEMA_15: frozenset(
+        {
+            "5d-representation-schema-4",
+            SCHEMA_5,
+            SCHEMA_6,
+            SCHEMA_7,
+            SCHEMA_8,
+            SCHEMA_9,
+            SCHEMA_10,
+            SCHEMA_11,
+            SCHEMA_12,
+            SCHEMA_13,
+            SCHEMA_14,
+            SCHEMA_15,
         }
     ),
 }

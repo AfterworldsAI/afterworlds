@@ -575,7 +575,11 @@ def test_the_schema_hash_is_a_declared_contract_not_a_file_digest() -> None:
 #: byte representation without changing the contract it describes, so the value
 #: moves and the version does not: this is still the unmerged initial contract,
 #: and nothing accepted, persisted, or published exists under it.
-EXPECTED_SCHEMA_HASH = "14284d53773df10d8672cfea34b2b47771539a3e43d936577259817011b9498e"  # noqa: E501  # pragma: allowlist secret
+#:
+#: Restamped at schema 15, where the version moves with it: the union gained
+#: ``ProficiencyBonusUseFact`` and the vocabulary minted with it, which is a
+#: change to the contract itself and not to how it is rendered.
+EXPECTED_SCHEMA_HASH = "e87e0bacdc476b0bef092a04cbedd933e0b57b128651b08ef0ffbd0c94d186fd"  # noqa: E501  # pragma: allowlist secret
 
 
 def test_the_committed_union_still_hashes_to_its_recorded_value() -> None:

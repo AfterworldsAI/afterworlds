@@ -1,4 +1,9 @@
-"""The Proficiency section's typed rule inputs, schema 14 — CRD Issue 5d (#137).
+"""The Proficiency section's typed rule inputs — CRD Issue 5d (#137).
+
+Schemas 14 and 15, kept in one module because they type one section: 14 minted
+the three inputs below, and 15 minted the fourth after a source review found two
+stated uses of the bonus still sitting in prose. Splitting them would give the
+same section two suites that have to agree about the same draft.
 
 Schema 13 gave the *Playing the Game > Proficiency* section its one numeric
 input, the bonus band. Schema 14 gives it the three the Rules Package still
@@ -29,12 +34,22 @@ Advantage on a tool-and-skill check.
   judgment belongs to the GameMaster. So the requirement is represented and the
   relevance is not, and the fact is **not** moved to discretionary handling
   merely because a human decides the antecedent.
+* ``ProficiencyBonusUseFact`` carries the two uses the section's opening
+  paragraph states without pairing either to a proficiency kind: *"The bonus is
+  also used for spell attacks and for calculating the DC of saving throws for
+  spells."* Neither is an application — that sentence names no proficiency, and
+  a spell save DC is not a roll — so schema 15 mints a family rather than
+  widening one. Without it the corpus states where the bonus applies in four
+  places and stays silent about the two the same paragraph prints.
 
 **What is deliberately not here.** Nothing evaluates a roll, sums a bonus,
 halves anything or decides relevance. Which proficiencies a creature has is
 character state and lives on the sheet, never in this corpus. No adapter, sheet
-model or runtime judgment is implemented by this mint, and nothing in this
-module accepts the proposal or publishes anything.
+model or runtime judgment is implemented by these mints, and nothing in this
+module accepts the proposal or publishes anything. Neither bonus use carries a
+formula, an ability, a target DC, a spellcasting proficiency or a consumer: the
+source states that the bonus is used there, and that is the whole of what is
+represented.
 """
 
 from __future__ import annotations
@@ -45,6 +60,7 @@ from typing import get_args
 from uuid import NAMESPACE_URL, uuid5
 
 import pytest
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from afterworlds.ingestion.mechanical.models import ClassificationLedger
@@ -53,6 +69,7 @@ from afterworlds.ingestion.mechanical.oracle import (
     load_accepted_inputs,
 )
 from afterworlds.ingestion.mechanical.persistence import (
+    PersistedStateReconstructionError,
     persist_draft,
     reconstruct_candidate,
 )
@@ -69,6 +86,8 @@ from afterworlds.ingestion.mechanical.representation import (
     ProficiencyApplicationFact,
     ProficiencyBonusOperation,
     ProficiencyBonusOperationLimitFact,
+    ProficiencyBonusUse,
+    ProficiencyBonusUseFact,
     ProficiencyKind,
     ProvenanceRole,
     ProvenanceTargetKind,
@@ -88,11 +107,14 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_13_VERSION,
     SCHEMA_14_HASH,
     SCHEMA_14_VERSION,
+    SCHEMA_15_VERSION,
     lift_path,
 )
 from afterworlds.ingestion.mechanical.validation import validate_representation
 from afterworlds.models.enums import OverrideOperationEnum, OverrideOriginEnum
+from afterworlds.persistence.orm.mechanical import MechanicalFactORM
 from afterworlds.services.rules_authority.application import (
+    OverrideApplicationError,
     _base_records,
     apply_override_set,
 )
@@ -100,6 +122,10 @@ from afterworlds.services.rules_authority.binding import RulesPackageBinding
 from afterworlds.services.rules_authority.override_set import (
     EffectiveOverrideEntry,
     EffectiveOverrideSet,
+)
+from afterworlds.services.rules_authority.patches import (
+    InvalidPatchError,
+    patch_from_payload,
 )
 from afterworlds.services.rules_authority.targets import (
     MechanicalTarget,
@@ -149,10 +175,32 @@ PRINTED_LIMITS = {
 #: The conjunction the tool sentence states, in canonical order.
 PRINTED_CONJUNCTION = (ProficiencyKind.SKILL, ProficiencyKind.TOOL)
 
-NEW_FAMILIES = (
+#: The two uses the opening paragraph states, written out from the sentence
+#: rather than read back off the draft: *"The bonus is also used for spell
+#: attacks and for calculating the DC of saving throws for spells."* Dropping
+#: either one, or adding a third the sentence never prints, fails against this.
+PRINTED_BONUS_USES = {
+    ProficiencyBonusUse.SPELL_ATTACK,
+    ProficiencyBonusUse.SPELL_SAVE_DC,
+}
+
+#: The component the two uses hang on — the section's umbrella paragraph, which
+#: keeps its prose because the umbrella itself is not reduced to these facts.
+BONUS_USE_COMPONENT = "proficiency_bonus_application"
+
+SCHEMA_14_FAMILIES = (
     FactFamily.PROFICIENCY_APPLICATION,
     FactFamily.PROFICIENCY_BONUS_OPERATION_LIMIT,
 )
+
+SCHEMA_15_FAMILIES = (FactFamily.PROFICIENCY_BONUS_USE,)
+
+#: Every family these two mints made statable. The split above is what the
+#: declaration tests need — each schema's manifest rows are its own — and this
+#: union is what the round-trip, provenance, consumer and identity tests walk,
+#: so a family added to one mint is covered by all of them without a second
+#: suite.
+NEW_FAMILIES = SCHEMA_14_FAMILIES + SCHEMA_15_FAMILIES
 
 
 def _proposal():  # type: ignore[no-untyped-def]
@@ -217,6 +265,14 @@ def _tool_advantage(draft) -> AdvantageFact:  # type: ignore[no-untyped-def]
         if isinstance(f, AdvantageFact)
     ]
     return fact
+
+
+def _bonus_uses(draft) -> list[ProficiencyBonusUseFact]:  # type: ignore[no-untyped-def]
+    return [
+        f
+        for f in _component(draft, BONUS_USE_COMPONENT).facts
+        if isinstance(f, ProficiencyBonusUseFact)
+    ]
 
 
 def _new_facts(draft):  # type: ignore[no-untyped-def]
@@ -289,7 +345,7 @@ def test_the_mint_declares_two_families_and_two_whole_vocabularies() -> None:
     ]
     assert {row["kind"] for row in rows} == {"fact_family", "vocabulary_member"}, rows
     assert {row["name"] for row in rows if row["kind"] == "fact_family"} == {
-        family.value for family in NEW_FAMILIES
+        family.value for family in SCHEMA_14_FAMILIES
     }
 
     members = [row for row in rows if row["kind"] == "vocabulary_member"]
@@ -304,6 +360,32 @@ def test_the_mint_declares_two_families_and_two_whole_vocabularies() -> None:
     # already had. Its legality is the field registry's, not the manifest's, so
     # it deliberately has no row of its own.
     assert "requires_proficiencies" not in {row["name"] for row in rows}
+
+
+def test_the_later_mint_declares_one_family_and_one_whole_vocabulary() -> None:
+    """The second mint's claim, in the same place and on the same terms.
+
+    Schema 15 adds exactly one family and the vocabulary minted with it. A row
+    here for anything else — a second family, a member of an accepted
+    vocabulary widened to carry a spell use, a member arriving without its
+    closure — is the detector for a mint that grew past the sentence it was
+    read from.
+    """
+    rows = [
+        row
+        for row in introduction_manifest()
+        if row["introduced_in"] == SCHEMA_15_VERSION
+    ]
+    assert {row["kind"] for row in rows} == {"fact_family", "vocabulary_member"}, rows
+    assert {row["name"] for row in rows if row["kind"] == "fact_family"} == {
+        family.value for family in SCHEMA_15_FAMILIES
+    }
+
+    uses = tuple(sorted(use.value for use in ProficiencyBonusUse))
+    members = [row for row in rows if row["kind"] == "vocabulary_member"]
+    assert {row["name"] for row in members} == set(uses)
+    for row in members:
+        assert tuple(row["vocabulary"]) == uses, row
 
 
 def test_the_crossing_from_schema_13_is_exactly_one_registered_step() -> None:
@@ -403,6 +485,37 @@ def test_the_tool_advantage_states_both_halves_of_its_condition() -> None:
     component = _component(draft, "tool_proficiency")
     assert component.handling is ComponentHandling.MIXED
     assert [b for b in draft.prose_bindings if b.component_key == "tool_proficiency"]
+
+
+def test_the_two_bonus_uses_are_the_whole_of_what_the_paragraph_states() -> None:
+    """*"also used for spell attacks and for calculating the DC …"* — two uses.
+
+    The expectation is the sentence, written out above rather than derived from
+    the draft: a draft that dropped the save DC and kept the attack, or that
+    grew a third use, satisfies a derived check and fails this one. Both uses
+    come off one clause, and ``ExpectedRule`` detects a *family* missing from a
+    span, so this is where per-use omission is actually caught.
+
+    Nothing else is asserted about either use, because the source says nothing
+    else: no formula, no ability, no target DC, no proficiency that grants it.
+    """
+    draft = _draft()
+    uses = _bonus_uses(draft)
+    assert {fact.use for fact in uses} == PRINTED_BONUS_USES
+    assert len(uses) == len(PRINTED_BONUS_USES)
+    for fact in uses:
+        assert fact_invariant_violations(fact) == ()
+        assert set(fact_payload(fact)) == {"family", "use"}
+
+    # The umbrella paragraph states more than these two uses, so it keeps its
+    # prose beside them rather than being reduced to them.
+    component = _component(draft, BONUS_USE_COMPONENT)
+    assert component.handling is ComponentHandling.MIXED
+    assert [b for b in draft.prose_bindings if b.component_key == BONUS_USE_COMPONENT]
+
+    # And neither use was smuggled in as an application: that would name a
+    # proficiency kind the sentence does not name, and a save DC is not a roll.
+    assert not [f for f in component.facts if isinstance(f, ProficiencyApplicationFact)]
 
 
 def test_every_new_fact_round_trips_through_the_canonical_payload() -> None:
@@ -520,8 +633,15 @@ def test_a_well_typed_fact_that_states_nothing_printed_is_refused(
         ("bonus_does_not_stack", "maximum_applications", True, "maximum_applications"),
         ("bonus_does_not_stack", "operation", "subtract", "operation"),
         ("bonus_does_not_stack", "precedes", "subtract", "precedes"),
+        (BONUS_USE_COMPONENT, "use", "spell_damage", "use"),
     ],
-    ids=["unknown-kind", "bool-count", "unknown-operation", "unknown-precedes"],
+    ids=[
+        "unknown-kind",
+        "bool-count",
+        "unknown-operation",
+        "unknown-precedes",
+        "unknown-use",
+    ],
 )
 def test_a_payload_field_outside_its_closure_is_refused_at_the_builder(
     component_key: str, field: str, value: object, expected: str
@@ -538,12 +658,101 @@ def test_a_payload_field_outside_its_closure_is_refused_at_the_builder(
     assert expected in str(raised.value)
 
 
-def test_a_requirement_that_is_not_a_list_is_refused_rather_than_coerced() -> None:
-    """A string is iterable, so a permissive builder would read it letter by letter."""
+#: Every shape a *present* ``requires_proficiencies`` can take that is not a
+#: list of kinds. The falsy four are the ones a truthiness test silently erases:
+#: each states something — ``false`` and ``0`` and ``""`` and ``{}`` are written
+#: values, not omissions — and each would have been read as "no conjunction",
+#: canonicalized to a payload without the key, and given the ``fact_key`` of an
+#: advantage that was never authored. ``None`` is the same erasure spelled as an
+#: explicit null. The string is the older hazard: it is iterable, so a builder
+#: that only checked truthiness would read it letter by letter.
+MALFORMED_REQUIREMENTS = [
+    pytest.param("skill", id="a-string-is-iterable"),
+    pytest.param(False, id="explicit-false"),
+    pytest.param(0, id="explicit-zero"),
+    pytest.param("", id="empty-string"),
+    pytest.param({}, id="empty-object"),
+    pytest.param(None, id="explicit-null"),
+]
+
+
+def _fact_target(component_key: str, fact: MechanicalFact) -> MechanicalTarget:
+    return MechanicalTarget(
+        kind=MechanicalTargetKind.FACT,
+        record_key=RECORD,
+        component_key=component_key,
+        fact_key=fact_key(fact),
+    )
+
+
+def _malformed_advantage_payload(value: object) -> dict[str, object]:
     payload = dict(fact_payload(_tool_advantage(_draft())))
-    payload["requires_proficiencies"] = "skill"
+    payload["requires_proficiencies"] = value
+    return payload
+
+
+@pytest.mark.parametrize("value", MALFORMED_REQUIREMENTS)
+def test_a_present_requirement_of_the_wrong_type_is_refused_not_coerced(
+    value: object,
+) -> None:
+    """The serialization ingress: what a stored or authored payload crosses."""
     with pytest.raises(MalformedFactPayloadError, match="is not a list"):
-        fact_from_payload(payload)
+        fact_from_payload(_malformed_advantage_payload(value))
+
+
+@pytest.mark.parametrize("value", MALFORMED_REQUIREMENTS)
+def test_a_malformed_requirement_is_refused_at_the_override_ingress(
+    value: object,
+) -> None:
+    """The authoring ingress, which is where a hand-written payload arrives.
+
+    ``REPLACE`` on a fact target carries a complete replacement fact, so the
+    override surface reaches the same builder. It is asserted separately rather
+    than assumed: a patch layer that rebuilt facts its own way would refuse
+    nothing here while the test above still passed, and the ``match`` is what
+    shows this is the requirement's own refusal rather than a later rejection
+    of an unrelated shape.
+    """
+    payload = {
+        "patch": "replace_fact",
+        "fact": _malformed_advantage_payload(value),
+    }
+    with pytest.raises(InvalidPatchError, match="is not a list"):
+        patch_from_payload(
+            payload,
+            operation=OverrideOperationEnum.REPLACE,
+            target=_fact_target("tool_proficiency", _tool_advantage(_draft())),
+        )
+
+
+def test_a_malformed_requirement_is_refused_when_read_back_from_the_store(
+    session: Session,
+) -> None:
+    """The reconstruction ingress: rows that were written before the fix.
+
+    Only the advantage's own row is rewritten, so the refusal that fires is the
+    one this test is about. Reconstruction refuses rather than repairing: a row
+    whose requirement cannot be read is not an advantage with no conjunction,
+    and silently becoming one is exactly the erasure being closed.
+    """
+    identified = identify_projection(_candidate())
+    persist_draft(session, identified, now=NOW)
+    session.flush()
+
+    advantage = _tool_advantage(_draft())
+    result = session.execute(
+        update(MechanicalFactORM)
+        .where(
+            MechanicalFactORM.projection_uuid == identified.projection_uuid,
+            MechanicalFactORM.fact_key == fact_key(advantage),
+        )
+        .values(payload=_malformed_advantage_payload(None))
+    )
+    assert result.rowcount == 1
+    session.flush()
+
+    with pytest.raises(PersistedStateReconstructionError, match="is not a list"):
+        reconstruct_candidate(session, identified.projection_uuid)
 
 
 # ---------------------------------------------------------------------------
@@ -574,6 +783,20 @@ def test_an_advantage_without_the_requirement_keeps_its_schema_3_payload() -> No
 
     # The conjunction is what makes the two different facts with different keys.
     assert fact_key(plain) != fact_key(_tool_advantage(_draft()))
+
+    # Refusing *present* malformed values must not refuse the two spellings an
+    # advantage with no conjunction has ever had. The absent key is what the
+    # accepted corpus carries; an explicit empty list is what a payload written
+    # by hand against the schema-14 field most plainly says. Both build the same
+    # fact, with the same key, and both canonicalize back to the accepted three
+    # keys — so nothing already accepted has to be restamped and nothing
+    # genuinely empty is rejected.
+    explicit_empty = fact_from_payload(
+        dict(fact_payload(plain)) | {"requires_proficiencies": []}
+    )
+    assert explicit_empty == plain
+    assert fact_key(explicit_empty) == fact_key(plain)
+    assert set(fact_payload(explicit_empty)) == {"family", "roll", "state"}
 
 
 def test_no_accepted_advantage_fact_gained_a_key_from_this_widening() -> None:
@@ -631,12 +854,21 @@ def test_every_new_fact_cites_the_clause_that_states_it() -> None:
     assert claims
 
 
-def test_dropping_a_new_fact_s_provenance_is_reported() -> None:
-    """The omission check reaches the families this mint added, not just old ones."""
+@pytest.mark.parametrize(
+    "component_key",
+    ["weapon_proficiency", BONUS_USE_COMPONENT],
+    ids=["schema-14-application", "schema-15-bonus-use"],
+)
+def test_dropping_a_new_fact_s_provenance_is_reported(component_key: str) -> None:
+    """The omission check reaches the families these mints added, not just old ones."""
     proposal = _proposal()
     draft = proposal.proposed_representation
-    fact = _application(draft, "weapon_proficiency")
-    key = tuple(fact_target_key(RECORD, "weapon_proficiency", fact, None))
+    fact: MechanicalFact = (
+        _bonus_uses(draft)[0]
+        if component_key == BONUS_USE_COMPONENT
+        else _application(draft, component_key)
+    )
+    key = tuple(fact_target_key(RECORD, component_key, fact, None))
     kept = tuple(
         claim
         for claim in draft.provenance
@@ -649,7 +881,7 @@ def test_dropping_a_new_fact_s_provenance_is_reported() -> None:
     stripped = dataclasses.replace(draft, provenance=kept)
 
     findings = validate_representation(stripped, _ledger(proposal), _corpus(proposal))
-    assert any("weapon_proficiency" in f for f in findings), findings
+    assert any(component_key in f for f in findings), findings
 
 
 def test_the_typed_inputs_survive_persistence_and_reconstruction(
@@ -661,7 +893,9 @@ def test_the_typed_inputs_survive_persistence_and_reconstruction(
     cannot round trip fails here rather than the first time a real corpus
     carries it. ``requires_proficiencies`` is the load-bearing part: it is the
     first tuple this mint adds, and a conjunction that came back reordered or
-    emptied would be a different rule.
+    emptied would be a different rule. The bonus-use component is in the loop
+    for the same reason: a family the store cannot round trip is exactly as
+    broken whether it arrived with schema 14 or with 15.
     """
     proposal = _proposal()
     identified = identify_projection(_candidate(proposal))
@@ -672,7 +906,7 @@ def test_the_typed_inputs_survive_persistence_and_reconstruction(
     by_key = {
         (c.record_key, c.semantic_key): c for c in rebuilt.representation.components
     }
-    for component_key, _ in PRINTED_APPLICATIONS.items():
+    for component_key in (*PRINTED_APPLICATIONS, BONUS_USE_COMPONENT):
         assert (
             by_key[(RECORD, component_key)].facts
             == _component(proposal.proposed_representation, component_key).facts
@@ -744,19 +978,24 @@ def test_a_changed_requirement_changes_the_projection_identity(
 # ---------------------------------------------------------------------------
 
 
-def test_schema_13_refuses_the_reviewed_draft_for_the_typed_inputs_alone() -> None:
+def test_each_earlier_contract_refuses_exactly_what_arrived_after_it() -> None:
     """The succession is real in the refusing direction, on the reviewed artifact.
 
-    Schema 13 is the immediately preceding contract, so what it refuses is the
-    narrowest statement of what schema 14 added: the two new families, the two
-    new vocabularies wherever their members appear, and the
-    ``requires_proficiencies`` key. Every finding names schema 14, and the
-    current contract admits the whole draft.
+    Two mints, so the transition is asserted as two steps rather than one. What
+    schema 13 refuses is the narrowest statement of everything added since: the
+    three families, the three vocabularies wherever their members appear, and
+    the ``requires_proficiencies`` key — each finding naming the schema that
+    introduced the thing it refuses, 14 or 15, never a blanket "not current".
+    What schema 14 refuses is exactly schema 15's contribution and nothing else,
+    which is what shows the second mint is additive rather than a restatement of
+    the first. Schema 15 admits the whole draft.
     """
     draft = _draft()
     violations = declared_meaning_violations(draft, SCHEMA_13_VERSION)
     assert violations
-    assert all(SCHEMA_14_VERSION in v for v in violations), violations
+    assert all(
+        SCHEMA_14_VERSION in v or SCHEMA_15_VERSION in v for v in violations
+    ), violations
 
     families = [v for v in violations if "closed union has no" in v]
     assert len(families) == len(_new_facts(draft)) - 1  # the advantage is old
@@ -764,7 +1003,19 @@ def test_schema_13_refuses_the_reviewed_draft_for_the_typed_inputs_alone() -> No
         f.FAMILY.value for _, f in _new_facts(draft) if f.FAMILY in NEW_FAMILIES
     } == {family.value for family in NEW_FAMILIES}
 
-    assert declared_meaning_violations(draft, SCHEMA_14_VERSION) == []
+    # Schema 14 was the current contract when the first three inputs landed, so
+    # what it still refuses is the whole of the later mint and no part of its
+    # own.
+    later = declared_meaning_violations(draft, SCHEMA_14_VERSION)
+    assert later
+    assert all(SCHEMA_15_VERSION in v for v in later), later
+    assert {v for v in later if "closed union has no" in v} and all(
+        FactFamily.PROFICIENCY_BONUS_USE.value in v
+        for v in later
+        if "closed union has no" in v
+    ), later
+
+    assert declared_meaning_violations(draft, SCHEMA_15_VERSION) == []
 
 
 def test_the_requirement_is_refused_by_its_field_and_by_its_members() -> None:
@@ -861,3 +1112,103 @@ def test_an_override_can_address_a_new_fact_by_its_key() -> None:
     keys = {f.fact_key for f in component.facts}
     assert fact_key(advantage) not in keys
     assert fact_key(sibling) in keys
+
+
+def _override_view(
+    component_key: str,
+    fact: MechanicalFact,
+    operation: OverrideOperationEnum,
+    payload: dict[str, object],
+):  # type: ignore[no-untyped-def]
+    """One enabled entry against one fact of the reviewed draft, applied."""
+    entry = EffectiveOverrideEntry(
+        override_id=f"ov-{component_key}",
+        origin=OverrideOriginEnum.HOUSE_RULE,
+        target=_fact_target(component_key, fact),
+        operation=operation,
+        precedence=100,
+        apply_order=0,
+        is_enabled=True,
+        payload=payload,
+    )
+    state = EffectiveOverrideSet(
+        package_uuid=_PACKAGE_BINDING.package_uuid,
+        release_version=_PACKAGE_BINDING.release_version,
+        entries=(entry,),
+    )
+    return apply_override_set(_candidate(), state, _PACKAGE_BINDING)
+
+
+def test_a_limit_can_be_replaced_within_the_shape_its_family_admits() -> None:
+    """What ``REPLACE`` actually reaches, shown rather than claimed.
+
+    A replacement fact is rebuilt through the same builder and the same family
+    invariants as anything else, so a limit may be replaced by *any* limit those
+    invariants admit — here a house rule raising the multiplication ceiling from
+    the printed one to two, which is an admitted shape because the family's rule
+    is ``maximum_applications >= 1``, not ``== 1``. The effective view carries
+    the replacement, the other two limits are untouched, and the change is
+    attributed to the override that supplied it rather than to the source.
+    """
+    draft = _draft()
+    (original,) = [
+        f
+        for f in _component(draft, "bonus_does_not_stack").facts
+        if isinstance(f, ProficiencyBonusOperationLimitFact)
+        and f.operation is ProficiencyBonusOperation.MULTIPLY
+    ]
+    replacement = dataclasses.replace(original, maximum_applications=2)
+    assert fact_invariant_violations(replacement) == ()
+
+    view = _override_view(
+        "bonus_does_not_stack",
+        original,
+        OverrideOperationEnum.REPLACE,
+        {"patch": "replace_fact", "fact": dict(fact_payload(replacement))},
+    )
+
+    (applied,) = view.applied_overrides
+    assert applied.applied
+    (record,) = [r for r in view.records if r.semantic_key == RECORD]
+    (component,) = [
+        c for c in record.components if c.semantic_key == "bonus_does_not_stack"
+    ]
+    by_key = {f.fact_key: f for f in component.facts}
+    assert fact_key(original) not in by_key
+    assert by_key[fact_key(replacement)].fact == replacement
+    assert by_key[fact_key(replacement)].supplied_by_override_id == applied.override_id
+
+    # The printed addition and division limits are still the source's own.
+    others = [f for f in component.facts if f.fact_key != fact_key(replacement)]
+    assert others
+    assert all(f.supplied_by_override_id is None for f in others)
+
+
+def test_moving_a_proficiency_kind_s_roll_is_not_reachable_by_override() -> None:
+    """The pairing is closed by the schema, so an erratum moving it is a schema change.
+
+    ``_PROFICIENCY_APPLICATION_ROLLS`` states one roll per printed proficiency
+    kind, and the family invariant runs on a replacement fact exactly as it runs
+    on an authored one. So the one thing an override cannot do to these facts is
+    re-pair them: authoring *"skill proficiency applies to attack rolls"* fails
+    at the patch builder, before anything is applied, and stays failing however
+    the override is spelled. Re-pairing requires a later authorized change to
+    that table — a new schema — not an override.
+    """
+    application = _application(_draft(), "skill_proficiency_application")
+    moved = dataclasses.replace(
+        application,
+        roll=RollSpec(actor=RollActor.SUBJECT, context=RollContext.ATTACK_ROLL),
+    )
+    assert fact_invariant_violations(moved)
+
+    with pytest.raises(
+        OverrideApplicationError,
+        match="is stated as applying to ability_check, not attack_roll",
+    ):
+        _override_view(
+            "skill_proficiency_application",
+            application,
+            OverrideOperationEnum.REPLACE,
+            {"patch": "replace_fact", "fact": dict(fact_payload(moved))},
+        )
