@@ -4,7 +4,7 @@
 
 This packet is the human-readable half of an unaccepted proposal over
 **SRD 5.2.1 > Playing the Game > Proficiency**. It exists so a reviewer can
-check the proposal against the printed source without reading 54 KB of JSON,
+check the proposal against the printed source without reading 55 KB of JSON,
 and so the Owner's later semantic acceptance decision is made on the actual
 reviewed artifact rather than on a summary of it.
 
@@ -19,9 +19,10 @@ that cost.
 |---|---|
 | proposal | `.claude/review-notes/issue-5d-batch-proficiency-1-PROPOSAL.json` |
 | generator | `.claude/review-notes/issue-5d-batch-proficiency-1-generator.py` |
-| bytes | 54,507 |
-| `proposal_identity` | `c941c262081eb2ba485ee6963b90c0a2bf79578662a2790baf703f5ed1cac219` |
-| file sha256 | `b74b6056688a1a6a3750cd1271fa7af6eb670cc05c16b6bf5f8e68f2442dadfa` |
+| bytes | 55,439 |
+| `proposal_identity` | `11481e020ce08119938dcfd7e9df6a9f84c945f6ad63de2d5a47bcfc45110417` |
+| file sha256 | `a56829dde1db9281f8c3e1df78f0feb32f0496a2c50651739198deee8058a6c8` |
+| superseded, never accepted | identity `c941c262…`, sha256 `b74b6056…`, 54,507 bytes — regenerated in this review round to author §7's two outstanding obligations |
 | proposal schema | `5d-proposal-2` |
 | representation schema | `5d-representation-schema-13` |
 | source | `docs/sources/DnD5_5e_SRD_CC_v5_2_1.pdf`, printed pages 8–9 |
@@ -228,109 +229,167 @@ component.
 
 ## 6. Representation choices worth a reviewer's attention
 
-The question asked of every clause here is the one #137 contract 2 and ADR-005d
-Decision 2 actually pose: **which identified code-owned operation — in play,
-explanation, or correction — needs a separate structured field, and what
-concretely fails if the field is absent?** Planned v1 uses count even before
-their consumers are implemented, so neither "no closed vocabulary models it"
-nor "nothing reads it today" is an answer. `no_identified_structured_use` says
-what the policy catalog says it says — *the meaning is reducible, but no
-identified code-owned use requires a separate structured field* — and each
-group below has to earn that.
+An earlier version of this section asked of each clause "which **input** can the
+hand-authored algorithm not derive?", and answered several rows with *the
+algorithm is code's*. That argument is withdrawn, for two reasons in the
+authority rather than a change of taste:
 
-**The boundary each group is judged against is ownership, not availability.**
-ADR-015 Decision 7 divides this section cleanly: code owns the deterministic
-rails, and *“the bounded d20 Rules System Adapter is hand-authored and covers
-d20 semantics only: modifier assembly from sheet + rule slice + `RuleOverride`s…”*
-— while *“rules ingestion does not generate executable mechanics”*.
-`construction_readiness` repeats both halves for Issue 15: the bounded d20
-adapter is in scope, *“executable mechanics generated from ingestion”* is out
-of it. So the question a clause must answer is not whether a consumer exists
-today — one does, `_assemble_modifiers` in `pipeline/rpg/adapter.py`, and
-planned v1 uses would count regardless — but which **input** that hand-authored
-algorithm cannot derive and cannot read off the character sheet, which
-Invariant 9 makes the owner of a creature's proficiency selections. In this
-section exactly one input answers that, the level/CR → bonus progression, and
-it is typed. The rest is either the algorithm itself or sheet state.
+* ADR-005d rejects alternative **7**, *"Let adapter breadth decide
+  representation breadth. Rejected: representation and execution are
+  independent."*
+* #137 states that *"prose cannot conceal a field required by such a use"*.
 
-Answered per coherent group, not per field or per row. The thirteen components
-fall into six groups:
+Code owning an *operation* says nothing about what declarative data that
+operation consumes; the bounded d20 adapter is hand-authored **and** consumes
+typed rule data, and those are not in tension. So the boundary is rebuilt below
+out of what the accepted authority actually fixes.
 
-| group | components | identified operation | consequence of omitting a field | disposition |
-|---|---|---|---|---|
-| **the bonus progression** | `proficiency_bonus_table` | resolve a level or CR to a bonus — the value a v1 character sheet renders and every later addition starts from | a consumer would have to read the number out of prose at runtime, which contract 2 forbids outright: *"choosing prose does not authorize runtime interpretation into trusted values"* | **STRUCTURED** — 8 `ProficiencyBonusBandFact`s |
-| **where the bonus comes from, and what it can reach** | `proficiency_bonus_basis`, `proficiency_bonus_application` | explain why a creature's bonus is the number it is, and which D20 Tests the bonus can reach at all | none identified. The *value* is the group above; the *selection* — which skills, saves and items this creature is proficient with — is character-sheet state (Invariant 9), not corpus state, so a field here would state a condition whose operand this corpus does not hold | **PROSE_BOUND** |
-| **applying it** | `skill_proficiency_application`, `saving_throw_proficiency` (part), `weapon_proficiency` (part), `tool_proficiency` (part) | add the bonus to the roll the proficiency covers — already a code-owned v1 rail: ADR-015 Decision 7 gives modifier assembly to the hand-authored bounded d20 adapter | none. These clauses state the *algorithm*, and the algorithm is code's: Decision 7 also forbids ingestion from generating executable mechanics, and Issue 15 lists that out of scope explicitly. Both of its operands sit elsewhere — the *value* is the band family above, the *selection* is sheet state (Invariant 9) — so a field restating “add the bonus here” would supply no input and would be the ingested mechanic Decision 7 rules out | **PROSE_BOUND** |
-| **the stacking limits** | `bonus_does_not_stack` | add each proficiency term once; multiply or divide it at most once where a feature says so | none. This is a correctness property of that same code-owned algorithm rather than an input to it, and no corpus field makes an assembler that adds twice add once. The multiply/divide clause governs features — Expertise is the source's own example — that this section does not define and this corpus does not hold | **PROSE_BOUND** |
-| **which skill is relevant** | `skill_relevance_sources`, `skill_relevance_judgment` | select the skill an action calls for | split between the two components, for two different reasons — see below | **PROSE_BOUND**, two reason codes |
-| **pointers to data held elsewhere** | `skill_list`, `determining_skills`, `equipment_proficiency` | navigate to the Skills table, to character creation, to a class or a stat block | none here. The data is another unit's to represent; a field would pre-empt a batch that has not reviewed its source | **PROSE_BOUND** |
+### The four things a clause's operand can be
 
-**What the inspection looked for and did not find.** Every existing family was
-checked for one that could carry "add the Proficiency Bonus to *X*"; none can.
-The closest, `DerivedQuantityFact`, derives a value from an ability modifier
-over a `TimeUnit` and is not a proficiency application. That absence is *not*
-the argument for prose — an absent vocabulary is exactly what minting a family
-fixes, as the band table shows. The argument is the consequence column: the one
-input in this section that a v1 consumer cannot derive and cannot get anywhere
-else is the progression, and it is typed. **No concrete required input is
-missing**, so nothing was added and the proposal's meaning and identity are
-unchanged by this review.
+1. **Character state.** Level or CR, and which skills, saving throws, weapons
+   and tools this creature is proficient with. Invariant 9 makes the sheet the
+   first-class owner of those; this corpus does not hold them and must not
+   pretend to.
+2. **The rule authorizing the bonus.** Rules-Package content — this projection.
+   What the bonus is worth, and what the source says proficiency entitles you
+   to.
+3. **Applicable rule overrides.** #137's In scope, quoted at ADR-005d:599 —
+   *"Typed record/component/fact `RuleOverride` application with existing
+   precedence semantics"* — plus the separate `prose` grain from Owner Decision
+   2026-08-08. `services/rules_authority/targets.py` closes the addressable set
+   at record, component, fact, prose, and option-as-fact-container; there is no
+   path expression and no wildcard. So whether a clause is *behaviourally*
+   overridable is a function of whether it carries a typed fact: a component
+   with no facts admits only `DISABLE`/`REPLACE`/`APPEND` on its prose.
+4. **Fixed adapter semantics.** ADR-015 Decision 7, exactly: assembly consumes
+   *sheet + rule slice + `RuleOverride`s*, and the bounded adapter is
+   hand-authored covering *d20 semantics only*. That fixes the **input list**
+   and the adapter's **breadth**. It does not say which of those inputs carries
+   the proficiency-kind → D20 Test mapping, and no accepted text places that
+   mapping among the hand-authored semantics.
 
-Four choices still want a reviewer's attention directly.
+### What the current consumer shows, and what it cannot settle
 
-**The bonus table is the only fully typed component.** Eight
-`ProficiencyBonusBandFact`s, no prose bindings, `STRUCTURED`. The bands are the
-one thing in this section a v1 consumer demonstrably needs at runtime: a
-character sheet cannot render without resolving level → bonus. The first band
-carries `minimum=None` (§5 #1).
+`_assemble_modifiers`, `src/afterworlds/pipeline/rpg/adapter.py:188`. Its
+`_rule_slice` and `_overrides` parameters are underscore-prefixed and never read
+(lines 191-192). The skill branch takes `sheet.skills[label]`, which is the
+already-summed number — *"skills stores the computed modifier (ability mod +
+prof)"* (line 215). The save branch is ability-mod-only: *"v1: saves are
+ability-mod-only; no save-proficiency in sheet"* (line 223).
 
-**`skill_relevance_sources` and `skill_relevance_judgment` are deliberately two
-components, not one paragraph's worth of one.** A component states exactly one
-reason why its meaning is prose, and every binding on it must state the same
-one. These two clauses do not share a reason. "The descriptions of the actions
-you take … specify which skill applies" is *reducible and simply not modelled
-yet* — someday an action record could name its skill. "The GM has the ultimate
-say" is not reducible at all; it is the source handing the decision to a human,
-which is `gamemaster_latitude`. Collapsing them would have forced one honest
-reason to be replaced by a convenient one.
+Per CLAUDE.md that is evidence of the current implementation, not authority: an
+unread `rule_slice` argument does not establish that the intended input contract
+excludes rule data, and this packet does not argue from it in either direction.
 
-**`tool_proficiency` is `MIXED`, and neither half certifies the other.** The
-Advantage is typed — `AdvantageFact(ADVANTAGE, roll=SUBJECT/ABILITY_CHECK)` —
-because Advantage on an ability check is exactly what the existing structured
-vocabulary is for. Its *trigger*, "the skill that's also used with that check",
-is in no closed applicability vocabulary. So the clause stays exact governing
-prose, its binding is the `PRIMARY` owner, and the fact claims the same span
-**`CONTEXTUAL`**.
+It does expose a **third** live reading of the seam, which is the reason the
+question below is not this pilot's to answer. A sheet that stores the summed
+skill modifier has *already applied* proficiency before any adapter runs. Under
+that shape neither the adapter nor the rule slice needs the mapping at all — and
+which of them owns it is Character Sheet Model policy, #137's 2b, on this
+pilot's stop-list.
 
-What that combination does and does not license, stated exactly:
+### The one question this pilot cannot answer
 
-* The exact governing prose stays available for **explanation**. A GameMaster
-  view can show this rule verbatim with its source reference, which is what
-  Decision 2 means by prose being part of the bound rule authority rather than
-  a footnote.
-* **No consumer may infer trusted applicability from it.** An earlier draft of
-  this packet said a runtime "may not infer *when* from anything but the
-  prose", which permits precisely the inference contract 2 forbids —
-  *"choosing prose does not authorize runtime interpretation into trusted
-  values"*. Reading the sentence and concluding the rule applies to a
-  particular check is that interpretation. The correct statement is that
-  nothing here authorizes any consumer to decide applicability, from the prose
-  or from anywhere else.
-* **Nor may any consumer apply Advantage unconditionally from the fact.** The
-  `CONTEXTUAL` provenance role records that the fact's meaning lives in that
-  span; `MIXED` records that the component's meaning lives in both halves.
-  Both are statements about *where meaning is recorded*. Neither certifies that
-  the rule may be executed, and a fact carrying no trigger is not a fact that
-  always fires.
-* Any validated application of this Advantage to an actual check belongs to
-  **15c's typed application path for GameMaster-selected effects** — a separate
-  obligation that contract 2 names explicitly and that prose representation
-  does not discharge. That routing is specific to *this* clause, whose trigger
-  turns on the GM's skill-relevance judgment (§5 #9, #12); it does not extend to
-  the ordinary application and stacking clauses, which are fixed source rules
-  executed by a code-owned rail, not GameMaster-selected effects. This branch
-  adds no runtime consumer of this fact, and this finding does not by itself
-  call for a new trigger family or any runtime code.
+> **Is the mapping from a proficiency kind to the D20 Test its bonus reaches —
+> together with the add-once, multiply-or-divide-at-most-once constraint on that
+> sum — Rules-Package-supplied typed data, or is it fixed by sheet or adapter
+> semantics?**
+
+**Reading A — fixed by sheet or adapter semantics.** ADR-015 Decision 7's
+*"covers d20 semantics only"* permits the mapping to be one of those
+hand-authored semantics, and nothing accepted excludes it; the stored-skill-
+modifier shape above is a live implementation of exactly that. Under A the five
+clauses held below are complete as exact prose for explanation, no input is
+missing, and this pilot's representation is right as proposed.
+
+**Reading B — Rules-Package-supplied.** Decision 7 names the *rule slice* as an
+assembly input, and the rule slice is this projection's content, not the
+adapter's. ADR-005d's rejected alternative 7 forbids letting adapter breadth
+choose representation breadth, and #137 says prose *"cannot conceal a field
+required by such a use"*. Under B a typed application fact on each of the five
+is the missing input, and prose is concealing it.
+
+**Why the citations do not decide it.** Contract 2's test is *which identified
+code-owned operation needs a separate structured field*. Whether modifier
+assembly needs the mapping as a field is precisely what the ownership call
+determines, so the test is circular until that call is made. Neither reading can
+be derived from the other's evidence, and both are consistent with everything
+adopted. Classification: **`owner decision needed`**. Nothing is implemented
+against it, no field is invented to close it, and no consumer is authorized to
+read the mapping out of prose in the meantime.
+
+**What Reading B would cost, for sizing only, not proposed here.**
+`RollSpec`/`RollContext` already state which roll a fact is about —
+`ATTACK_ROLL`, `ABILITY_CHECK`, `SAVING_THROW`, `D20_TEST`
+(`representation.py:699`) — so the *target* vocabulary exists and would be
+reused. What does not exist is a family carrying *add the Proficiency Bonus to
+that roll*; the nearest, `DerivedQuantityFact`, derives a value from an ability
+modifier over a `TimeUnit`. So B is one new fact family reusing existing roll
+vocabulary, on the scale of the band family this pilot already minted — not a
+widening of anything accepted.
+
+### Every group against all four legs
+
+*Play* is runtime use by an intended consumer. *Explanation* is showing a
+Sojourner or GameMaster why a number is what it is. *Correction* is amending
+Rules-Package content: before acceptance that is regeneration, the route
+`conditions-1` took at schema 3; there is no post-acceptance supersede path, and
+that gap is classified `out of scope` in §7. *Supported overrides* are the five
+typed target grains in point 3 above.
+
+| group | components | operand is | play | explanation | correction | supported overrides | disposition |
+|---|---|---|---|---|---|---|---|
+| **the bonus progression** | `proficiency_bonus_table` | the rule (2) | a v1 sheet cannot render without resolving level or CR to a bonus, and contract 2 forbids reading it from prose: *"choosing prose does not authorize runtime interpretation into trusted values"* | the caption and column-header spans stay bound (§4C) | regeneration restates a band | `REPLACE` any `ProficiencyBonusBandFact`; `APPEND` a band onto the component. Fully addressable | **STRUCTURED** — 8 band facts |
+| **basis and umbrella** | `proficiency_bonus_basis`, `proficiency_bonus_application` | (1) plus (2) as a statement | none. The umbrella states *that* the bonus reaches D20 Tests a creature is proficient in; its two operands are the per-kind clauses below and sheet state, so a field here would restate one of those | exact prose bound, and the `Challenge Rating` pointer is authored (§7) | regeneration | prose grain only, and nothing behavioural depends on it under either reading | **PROSE_BOUND**, not held |
+| **applying it, per kind** | `skill_proficiency_application` (`skill.proficient`), `saving_throw_proficiency` (`saves.bonus`), `weapon_proficiency` (`weapon.attack_rolls`), `tool_proficiency` (`tool.checks`) | **the subject of the question above** | depends on the answer: under A nothing, under B the mapping itself | not impaired either way — the exact governing prose is bound with span-exact provenance | under A an erratum moving where the bonus applies changes no trusted value, because no trusted value states it | under A only the prose grain exists on a fact-less component, and contract 2 bars any consumer from reading the changed prose as a trusted value, so a behavioural override of *where* the bonus applies is unrepresentable. That is a consequence of Reading A, not authority forcing B: #137's In scope establishes the override *mechanism*, not that any particular rule must be overridable | as proposed: **PROSE_BOUND** (`tool_proficiency` **MIXED**). The typed-field decision is **held — `owner decision needed`** |
+| **the stacking limits** | `bonus_does_not_stack` (`stack.once`, `stack.scaling`, `stack.once_each`) | same subject: a constraint on the same sum | depends on the answer | exact prose bound; the `Expertise` pointer is authored (§7) | as above | as above | **held with the row above**, same question, same dependent decision |
+| **which skill is relevant** | `skill_relevance_sources`, `skill_relevance_judgment` | judgment, and an unmodelled pointer | none; see the tool-Advantage note below for how the judgment enters | both clauses bound, one reason code each | regeneration | prose grain | **PROSE_BOUND**, two reason codes |
+| **pointers to data held elsewhere** | `skill_list`, `determining_skills`, `equipment_proficiency` | another unit's content | none here; a field would pre-empt a batch that has not reviewed its source | exact prose bound | regeneration | prose grain | **PROSE_BOUND**; `skill_list` now also carries an **outstanding** `ReferenceDraft` to the Skills table, so the deferral is tracked rather than described (§7) |
+
+**What the family inspection found.** No existing family can carry "add the
+Proficiency Bonus to *X*"; the nearest is `DerivedQuantityFact`, above. That
+absence is not an argument for prose — an absent vocabulary is what minting a
+family fixes, as the band table shows — and it is not an argument for a field
+either. It is the sizing note above. **Item 1 changed no representation:** no
+field was added, no disposition moved, no vocabulary was widened. The proposal's
+identity did move this round, for §7's two outstanding references alone.
+
+### Tool Advantage: the judgment and the consequence are not one seam
+
+An earlier version of this section routed the whole tool-Advantage consequence
+through 15c because one of its inputs needs judgment. That was wrong, and is
+replaced by the split the two halves actually have.
+
+* **The consequence is deterministic and already typed.** Once relevance and the
+  creature's proficiencies are known, the source states one outcome and no
+  further choice: `AdvantageFact(ADVANTAGE, roll=SUBJECT/ABILITY_CHECK)`,
+  `CONTEXTUAL` on `tool.advantage`. Nothing discretionary remains inside it.
+* **The trigger has three operands, and only one of them is judgment.**
+  Proficiency with the tool and proficiency in the skill are both sheet state —
+  the source requires *both*, and says so in the supporting clause `tool.both`:
+  *"you can benefit from both skill proficiency and tool proficiency on the same
+  ability check"*. The third, whether that skill is *"also used with that
+  check"*, is the GameMaster's relevance call, which is why
+  `skill_relevance_judgment` carries `gamemaster_latitude` (§5 #9, #12).
+* **So what is missing to fire this fact is trigger operands, not a
+  discretionary application path.** 15c is one path that *supplies*
+  GameMaster-selected judgments; it is not where a deterministic consequence
+  goes to be executed, and routing the consequence there would misfile a fixed
+  source rule as a GM-selected effect. No closed applicability vocabulary states
+  that three-way conjunction, and this pilot mints none for it.
+* **What `MIXED` plus `CONTEXTUAL` therefore record.** The component's meaning
+  lives in both halves, and the fact's meaning lives in the span it claims. Both
+  are statements about *where meaning is recorded*. Neither certifies that the
+  rule may be executed, and a fact carrying no trigger is not a fact that always
+  fires: **no consumer may apply this Advantage unconditionally from the fact,
+  and none may decide applicability from the prose** — *"choosing prose does not
+  authorize runtime interpretation into trusted values"*. An earlier draft said a
+  runtime "may not infer *when* from anything but the prose", which licenses
+  exactly the interpretation contract 2 forbids.
+* This is a recorded representation gap, not a second Owner question, and it
+  adds no runtime consumer, no trigger family and no runtime code.
+
+### Two remaining choices, unchanged by this rebuild
 
 **One new family, and three new fields.** Schema 13 adds
 `ProficiencyBonusBandFact` (§9) and nothing else. The family is new **and so
@@ -340,7 +399,8 @@ and a bottom that the first row does not print. An earlier draft of this packet
 said "no other field was added"; that was inaccurate. What is true is narrower:
 **no existing family, vocabulary or component field was widened.**
 `AdvantageFact`, `RollSpec`, `RollActor` and `RollContext` are reused
-unchanged, and every other clause reuses an existing prose-retention code.
+unchanged, and every other clause reuses an existing prose-retention code. The
+first band carries `minimum=None` (§5 #1).
 
 **Two 5c artifacts are bound, not repaired.** The table caption text
 ` Proficiency Bonus` was absorbed into the trailing end of the body paragraph
@@ -349,7 +409,7 @@ of `f848a0fb`. Both are real printed text in a leaf this batch reviews, so both
 get a supporting-authority span pointing at the component they caption. They
 are *not* fixed: that would reopen 5c. See §8.
 
-## 7. Outward references: authored, deferred, and navigational
+## 7. Outward references: authored, deferred, and outstanding
 
 The section makes five outward pointers and one internal one. They are not the
 same kind of thing, and the distinction that decides each is contract 4's:
@@ -358,57 +418,106 @@ committed source scope, aliases and exact target semantic keys, and an
 ambiguous, unresolved, invalid or cross-release one blocks publication.**
 Navigation that names no mechanical input is not such a reference.
 
-Three facts about the mechanism, because they do the work here:
+Two of the five were previously described in prose and tracked in this packet's
+notes alone. That was the defect: reviewing the Skills table or *Actions* later
+does not ensure the originating Proficiency pointers are ever completed, and a
+note can be edited away. They are now **authored as outstanding obligations** in
+the proposal itself.
 
-1. **A `ReferenceDraft` targets a record.** Its fields are `scope_key` and
-   `target_record_key`; there is no pointer-to-a-heading form. The Rules
-   Glossary is a committed scope — 62 accepted references use
-   `srd-5.2.1/rules-glossary`, and glossary entries are records. A section
-   title and a table name are not records and have no committed scope here, so
-   a key invented for one now would be a key no assembled record will ever
-   carry: it would **misdirect** a later build rather than block it, and
-   `validate_representation` would report it as unresolved for the wrong
-   reason. Choosing the eventual key is an ordinary engineering choice for the
-   batch that assembles that record. No policy or ownership is affected and no
-   Owner naming decision is requested.
-2. **Nothing validates an absence.** `validate_representation` reports a
-   reference whose target record does not exist. It cannot report a pointer
-   nobody authored. `RecordObligation`s are derived per record from its own
-   membership and are refused unless the committed set matches exactly, so they
-   are not a home for a note about a reference either.
+### The mechanism, and why it is the existing one
+
+1. **An outstanding obligation is a `ReferenceDraft` with an empty
+   `target_record_key`.** Validation already distinguishes the two cases:
+   `validation.py` reports `unresolved reference` when the target is empty and
+   `unknown target record <key>` when the target names a record that does not
+   exist. Both block; they are different findings, and the first is the one that
+   says *this edge is not yet decided* rather than *this edge points somewhere
+   wrong*.
+2. **Empty, not a guessed key, because a guess can be discharged by accident.**
+   A key invented now — for a table name or a section title, neither of which is
+   a record — would resolve the moment some later batch happened to mint that
+   spelling, whether or not anyone connected it to this pointer. An empty target
+   cannot coincidentally match anything, so the obligation can only be closed by
+   an explicit edit that names the real destination. Choosing that eventual key
+   stays an ordinary engineering choice for the batch that assembles the record;
+   no final semantic identifier is invented here and no Owner naming decision is
+   requested.
 3. **Build-time resolution is not waived for any of these.** The deferral is
-   temporary by construction. Contract 2 makes inventory gaps and unreviewed
-   units publication blockers, so the Skills table and the *Actions* section
-   cannot stay unreviewed while the projection publishes; when they are
-   reviewed, their pointers are ordinary source-authored mechanical references
-   that must resolve like every other. **Nothing here creates a standing
-   exception to build-time resolution, and nothing here authorizes a new corpus
-   batch.**
+   temporary by construction and fail-closed:
+   `projection.validate_candidate` calls `validate_representation`, and
+   `gate.py` maps its findings to `GateFailureCategory.SEMANTIC_VALIDATION`, so
+   an outstanding obligation blocks publication exactly as an unresolved
+   reference always did. Contract 2 independently makes unreviewed units
+   publication blockers. **Nothing here creates a standing exception to
+   build-time resolution, and nothing here authorizes a new corpus batch.**
 
-| printed pointer | clause | kind | state and recommendation |
+| printed pointer | clause | kind | state |
 |---|---|---|---|
-| "see 'Rules Glossary'" → **Challenge Rating** | `main.monster_cr` | authored mechanical reference | `glossary.challenge_rating`, scope `srd-5.2.1/rules-glossary`. The target record is not authored yet, so `validate_representation` reports one `unknown target record`. That is the intended state for a forward citation and matches speed-1's precedent — and under contract 4 it blocks publication until the glossary batch lands. |
-| "see 'Rules Glossary'" → **Expertise** | `stack.expertise` | authored mechanical reference | `glossary.expertise`, same scope, same unresolved finding, same publication block. **Recommendation:** author the Expertise entry in a later glossary batch; this reference then resolves with no change here. |
-| **the Skills table** | `list.skills_table` | **deferred mechanical link** | The pointer names mechanical content — the table "notes example uses for each skill proficiency as well as the ability check the skill most often applies to". It is a mechanical reference in substance and is simply not authorable yet: the table is not an assembled record (57 leaves, container `d818241d`, under *Actions* in *Playing the Game*, reviewed by no batch). **Recommendation:** review the Skills table as its own unit, give it a record key there, and author this reference at that time. See the correction below. |
-| "see 'Actions' later in 'Playing the Game'" | `skill.sources` | **deferred mechanical link** | Also mechanical in substance — it says where the skill an action calls for is specified — and also not authorable as one edge: the sentence points at a whole series, and twelve per-action records already exist (`action.attack` … `action.utilize`, accepted by actions-1 over the Rules Glossary `[Action]` entries) with no single target among them. `AbilityCheckFact` already carries a `skill` field, currently `None` on all twelve. **Recommendation:** the durable representation is each action record naming its skill — no new field and no section-title key — decided by a future batch over the *Actions* section, not by changing accepted content. |
-| "described in 'Character Creation'" | `main.character_levels` | **informational navigation** | The parenthetical says where character level advancement is described. This unit's rule is complete without it: the table gives the bonus for every level and CR it prints, and nothing in the clause needs a value from Character Creation. **Recommendation:** leave as governing prose; there is no deferred mechanical edge to record. |
+| "see 'Rules Glossary'" → **Challenge Rating** | `main.monster_cr` | authored mechanical reference | `glossary.challenge_rating`, scope `srd-5.2.1/rules-glossary`. The target record is not authored yet, so validation reports one `unknown target record`. That is the intended state for a forward citation, matches speed-1's precedent, and blocks publication until the glossary batch lands. |
+| "see 'Rules Glossary'" → **Expertise** | `stack.expertise` | authored mechanical reference | `glossary.expertise`, same scope, same finding, same block. Resolves with no change here once the Expertise entry is authored. |
+| **the Skills table** | `list.skills_table` | **outstanding obligation** | Authored on `skill_list` with `source_text="Skills table"` and an empty target: validation reports `reference srd-5.2.1/rules-glossary:'Skills table': unresolved reference`. The pointer names mechanical content — the table "notes example uses for each skill proficiency as well as the ability check the skill most often applies to" — and is simply not authorable yet: the table is not an assembled record (57 leaves, container `d818241d`, under *Actions* in *Playing the Game*, reviewed by no batch). Closed by reviewing the Skills table as its own unit and filling in the key it mints. |
+| "see 'Actions' later in 'Playing the Game'" | `skill.sources` | **outstanding obligation** | Authored on `skill_relevance_sources` with `source_text="Actions"`, empty target, same `unresolved reference` finding. Mechanical in substance — it says where the skill an action calls for is specified — and not authorable as one edge today: the sentence points at a whole series, and twelve per-action records already exist (`action.attack` … `action.utilize`, accepted by actions-1 over the Rules Glossary `[Action]` entries) with no single target among them. `AbilityCheckFact` already carries a `skill` field, currently `None` on all twelve, so the durable destination is each action record naming its skill — decided by a future batch over the *Actions* section, not by changing accepted content. |
+| "described in 'Character Creation'" | `main.character_levels` | **informational navigation** | The parenthetical says where character level advancement is described. This unit's rule is complete without it: the table gives the bonus for every level and CR it prints, and nothing in the clause needs a value from Character Creation. It points outside the mechanical corpus, so there is no edge to record — it stays governing prose. |
 | "The Proficiency Bonus table shows how the bonus is determined" | `main.table_pointer` | **internal navigation** | Points inside this same unit, at the component this proposal already contains, and is bound as supporting authority. No reference is needed or possible. |
 
-In every unauthored case the pointer's **wording survives verbatim** inside the
-bound governing prose, so nothing about the citation is lost — only the
-machine-followable edge is deferred.
+In every case the pointer's **wording survives verbatim** inside the bound
+governing prose, so nothing about the citation is lost.
 
-### How the two deferred links stay visible
+### How the two outstanding obligations stay detectable
 
-Honestly, and with the limit stated: they are visible because they are written
-down **here, in §8, and in the PR description** — and that is a documentation
-mechanism, not a gate. No check fails today because `list.skills_table` has no
-`ReferenceDraft`; as above, a validator cannot report a pointer nobody
-authored. What bounds the window is not this packet but contract 2's coverage
-rule, which will not let those sections stay unreviewed while a complete
-projection publishes, and contract 4, which will not let their references stay
-unresolved once authored. Until that batch exists, this packet is the only
-place the obligation is recorded. It is named as residue (§8 #7), not decided.
+Each is two committed elements, not a note: the `ReferenceDraft` itself, and a
+`ProvenanceClaim` binding it to the 5c leaf subspan the pointer was read from
+(`list.skills_table`, `skill.sources`). `REFERENCE` is in
+`PROVENANCE_REQUIRED_KINDS`, so neither half is optional. Verified against the
+production validator and the production accept/load path:
+
+| attempt | what happens |
+|---|---|
+| leave it as authored | `unresolved reference` on both, every build, alongside the two `unknown target record` findings. Four reference findings exactly, no more. |
+| serialize and reconstruct | `accept_proposal` → `accepted_inputs_payload` → JSON → `load_accepted_inputs` returns both references with their empty targets and both provenance claims intact. The obligation survives persistence. |
+| delete the reference, keep the provenance | `provenance reference[…]: claim for an undeclared element`. |
+| delete the provenance, keep the reference | `reference […]: no provenance to a 5c leaf subspan`, **and** the `unresolved reference` finding persists. Removing the evidence does not remove the obligation. |
+| review the destination and cite the same words elsewhere | a resolved sibling reference with the same `(scope, source_text)` does **not** close it: the `unresolved reference` finding stays, and validation adds `ambiguous … resolves to ['', 'play.proficiency']`. Destination coverage alone cannot discharge it. |
+| fill in this reference's target | the finding disappears. This is the only thing that closes it. |
+
+Covered by five tests in
+`tests/ingestion/mechanical/test_proficiency_1_proposal.py`
+(`test_the_deferred_links_are_authored_as_outstanding_obligations`,
+`…_survives_serialization_and_reconstruction`,
+`test_deleting_either_half_of_an_outstanding_link_is_reported`,
+`test_a_resolved_sibling_citing_the_same_words_cannot_close_it`,
+`test_filling_in_this_reference_is_the_only_thing_that_closes_it`), all through
+production paths.
+
+**What closing one costs, stated plainly.** Resolution is an edit to this
+reference — that is, a change to Rules-Package content. Before acceptance the
+route is regeneration, which is what `conditions-1` did at schema 3 when a
+pre-acceptance identity was withdrawn. After acceptance there is no supersede
+path: `acceptance._merged_collection` has no mechanism for replacing an accepted
+reference, so an accepted outstanding obligation would have to be carried until
+one exists. That limitation is pre-existing, is not introduced by this proposal,
+and is **`out of scope`** for this pilot — it is not a defect this pilot may
+implement away, and it is the reason this packet does not recommend accepting
+the pilot before the two destinations are reviewed. The empty-target form does
+not make that risk worse than the alternative: a guessed key carries the same
+permanent-block risk *plus* the silent-coincidental-discharge risk above.
+
+### Proposal identity after this change
+
+The proposal was regenerated. Its meaning changed, so its identity changed:
+
+| | before | after |
+|---|---|---|
+| proposal identity | `c941c262081eb2ba485ee6963b90c0a2bf79578662a2790baf703f5ed1cac219` | `11481e020ce08119938dcfd7e9df6a9f84c945f6ad63de2d5a47bcfc45110417` |
+| file sha256 | `b74b6056688a1a6a3750cd1271fa7af6eb670cc05c16b6bf5f8e68f2442dadfa` | `a56829dde1db9281f8c3e1df78f0feb32f0496a2c50651739198deee8058a6c8` |
+| bytes | 54,507 | 55,439 |
+
+The exact semantic delta is **+2 `ReferenceDraft` elements with empty targets and
++2 `ProvenanceClaim` edges** (50 → 52). Nothing else moved: 47 spans, 13
+components, 23 bindings, 8 bands, 22 expected rules, 30 leaves, the four-part
+binding, and every prose/source binding are unchanged. **No new acceptance is
+authorized by this packet, and none is claimed;** the delta is recorded here so
+the new identity can be reviewed independently.
 
 ### Correction to the identification note
 
@@ -422,8 +531,8 @@ not.** Verified against the merged oracle:
 
 `actions-1` accepted **Rules Glossary `[Action]` entries only** — 92 leaves, 13
 records. The Skills table under *Playing the Game > Actions* is untouched
-corpus. This does not change any decision in this proposal (the reference is
-deferred either way), but it changes what a future batch may assume, so it is
+corpus. This does not change any decision in this proposal (the pointer is an
+outstanding obligation either way), but it changes what a future batch may assume, so it is
 recorded rather than quietly corrected.
 
 ## 8. Omissions, residue, and known boundaries
@@ -431,8 +540,10 @@ recorded rather than quietly corrected.
 Stated plainly, because a review packet that omits its own residue is not
 reviewable.
 
-1. **Two unresolved references** (§7). Expected, reported by the standalone
-   validator, asserted as an exact tuple by the generator.
+1. **Four reference findings, two of each kind** (§7): two `unknown target
+   record` forward citations into the Rules Glossary, and two `unresolved
+   reference` outstanding obligations. All four are expected, all four block
+   publication, and the generator asserts the set as an exact tuple.
 2. **The absorbed table caption.** `ce26a9f7` ends with the caption text
    ` Proficiency Bonus` rather than carrying it in the table container. A 5c
    extraction artifact. Bound as supporting authority; not repaired.
@@ -449,29 +560,45 @@ reviewable.
    actually sits.
 6. **No consumer is wired.** The band facts are proposed, not published; no
    runtime reads them. That is the correct state for an unaccepted proposal.
-7. **Two deferred mechanical links** (§7): the Skills table and the *Actions*
-   section. Both are source-authored mechanical pointers that are not yet
-   authorable as `ReferenceDraft`s because neither target is an assembled
-   record. Nothing validates their absence, so this packet is the record. They
-   are **not** a permanent exception to build-time resolution: contract 2 makes
-   the unreviewed sections publication blockers and contract 4 makes the
-   references resolve once authored. No batch is authorized here to fix it.
-8. **The application rules are prose because the algorithm is code-owned, not
-   because nothing reads them.** `skill_proficiency_application`,
-   `saving_throw_proficiency`, `weapon_proficiency`, `tool_proficiency` and
-   `bonus_does_not_stack` state where the bonus is added and how often — the
-   hand-authored bounded d20 rail of ADR-015 Decision 7, whose other half
-   (*“rules ingestion does not generate executable mechanics”*) is why no corpus
-   field carries it. The one input that rail needs from this section is the
-   progression, and that is typed. The honest limit is narrower than “15c will
-   decide”: if a later operation needs an input this section holds only as prose
-   — the class-construction constraint of `saves.class_minimum` (“at least two
-   saving throws” per class), say, or the legality statement of `weapon.anyone`
-   — contract 2 and ADR-005d Decision 2 require that
-   field **before** the operation relies on the rule. Prose representation does
-   not discharge that obligation and is not claimed to. One clause does route
-   through 15c on its own merits: `tool_proficiency`'s Advantage, whose trigger
-   is the GM's skill-relevance judgment (§6).
+7. **Two outstanding mechanical links** (§7): the Skills table and the *Actions*
+   section. Both are now authored in the proposal with empty targets, so both
+   fail validation until the real destination is named, and neither can be
+   discharged by a note or by coincidence. They are **not** a permanent exception
+   to build-time resolution. No batch is authorized here to review those
+   destinations. `patched` — the tracking defect is closed; the destinations
+   themselves stay future work.
+8. **No post-acceptance supersede path for an accepted reference** (§7).
+   `acceptance._merged_collection` can merge accepted content but cannot replace
+   an element of it, so an outstanding obligation accepted today would have to be
+   carried until such a path exists; pre-acceptance the route is regeneration,
+   as `conditions-1` did at schema 3. Pre-existing limitation, not introduced
+   here, and **`out of scope`** for this pilot. It is why this packet does not
+   recommend accepting the pilot ahead of the two destinations.
+9. **Whether the per-kind application clauses need a typed field is held, not
+   answered** (§6). `skill_proficiency_application`, `saving_throw_proficiency`,
+   `weapon_proficiency`, `tool_proficiency` and `bonus_does_not_stack` state
+   where the Proficiency Bonus is added and how often. Whether that mapping is
+   Rules-Package-supplied typed data or fixed by sheet or adapter semantics is
+   not settled by anything adopted: ADR-015 Decision 7 fixes the assembly
+   **input list** and the adapter's d20-only **breadth**, not which input carries
+   the mapping; ADR-005d's rejected alternative 7 and #137's *"prose cannot
+   conceal a field required by such a use"* forbid deciding it from adapter
+   coverage; and contract 2's own test is circular until the ownership call is
+   made. **`owner decision needed`** — the exact question, both readings with
+   their citations, and the cost of the affirmative answer are in §6. Nothing is
+   implemented against it and no field was invented to close it.
+10. **Prose does not discharge a later operation's field.** If an operation
+   later needs an input this section holds only as prose — the
+   class-construction constraint of `saves.class_minimum` ("at least two saving
+   throws" per class), say, or the legality statement of `weapon.anyone` —
+   contract 2 and ADR-005d Decision 2 require that field **before** the
+   operation relies on the rule. That obligation is not claimed to be
+   discharged here.
+11. **The tool-Advantage trigger is unrepresented, deliberately** (§6). Its
+   consequence is typed; its three operands are two sheet states and one
+   GameMaster judgment, and no closed applicability vocabulary states that
+   conjunction. Recorded as `MIXED` + `CONTEXTUAL`; no trigger family is minted
+   and no consumer is authorized to fire the fact.
 
 ## 9. What the pilot cost
 
@@ -490,7 +617,7 @@ there is nothing to compare elapsed time against and none is invented.
 | **local gate wait, final pass** | **1,198 s ≈ 20 m** | `tests/ingestion` 867.97 s + `tests --ignore=tests/ingestion` 330.03 s. Waiting, not work, and it recurs on every pass. |
 | **CI wait, final head** | **31 m 44 s** | run `35202642012`, created 08:59:15 Z, updated 09:30:59 Z, conclusion `success`. Also waiting. |
 | **production footprint** | **199 insertions, 2 deletions, 3 files** | `representation.py` 128/1, `projection.py` 19/1, `schema_lift.py` 52/0. |
-| **batch-specific footprint** | **1,109** generator + **224** proposal-test lines, no accept script | new files in `23f49d2`, plus the 1,744-line `PROPOSAL.json` and this packet, which are data and prose rather than program. |
+| **batch-specific footprint** | **1,151** generator + **534** proposal-test lines, no accept script | the generator and test as they now stand (1,109 and 224 at `23f49d2`; the growth is §7's outstanding-obligation authoring and its five proofs), plus the 1,782-line `PROPOSAL.json` and this packet, which are data and prose rather than program. |
 | **mint maintenance** | **101 insertions, 41 deletions across 19 pre-existing files** | the schema-hash restamp; see the diagnosis below. |
 
 Neither wait is interchangeable with either interval. The final local gate pass
@@ -501,7 +628,25 @@ and inside the 2 h 47 m run. The branch parent `72fab6e` is the PR #170 merge,
 not the start of this authoring, so parent-to-commit elapsed time bounds nothing
 here and is not reported.
 
-**Batch-specific code: one generator, 1,109 lines.** Against the accepted
+**The correction rounds are separate runs, and have cost more than the pilot
+did.** From the same launcher records, so these are the same kind of number as
+above — run intervals, not hands-on time:
+
+| round | interval | what it produced |
+|---|---|---|
+| review remediation 1 | **2 h 22 m 53 s** (`duration_ms` 8,572,767; `23f49d2` → `63e0ceb`), 133 agent turns, 2 compactions | the five-part correction round |
+| review remediation 2 | **1 h 54 m 11 s** (`duration_ms` 6,851,165; `63e0ceb` → `281cf54`), 76 agent turns, 2 compactions | the three-part correction round |
+| this Owner-review round | started 2026-09-18 03:22:33 Z from `281cf54`; its `…-usage.json` is written when the run ends, so no total is claimed for it here | items 1–3 of the Owner's review |
+
+Two things follow from those numbers rather than from optimism. **Review
+correction has taken more elapsed time than authoring the batch did** — 4 h 17 m
+across the two completed rounds against the 2 h 48 m pilot run, and this is a
+third round. And **most of those rounds' commits were documentation**, not code:
+the same packet sections rewritten. That is the maintenance evidence this pilot
+actually produced, and it argues against any claim that a second section would
+be cheap.
+
+**Batch-specific code: one generator, 1,151 lines.** Against the accepted
 batches' generators — read as a footprint table, not a throughput result:
 
 | batch | generator lines |
@@ -513,11 +658,11 @@ batches' generators — read as a footprint table, not a throughput result:
 | areas-of-effect-1 | 2,796 |
 | cover-1 | 3,308 |
 | **speed-1** | **3,604** (+1,846 accept script, +327 reproduction test) |
-| **proficiency-1** | **1,109** (+224 test, no accept script) |
+| **proficiency-1** | **1,151** (+534 test, no accept script) |
 
 **These are file sizes, and a ratio between two of them is not a throughput
 result.** Speed-1 is the nearest structural neighbour — the last batch authored
-before the shared workflow merged — but its 3,604 lines and this batch's 1,109
+before the shared workflow merged — but its 3,604 lines and this batch's 1,151
 are over different sections with different clause counts, authored under
 different methods, and neither number is an hours figure. The line counts also
 conflate two changes: the merged workflow removed the per-batch accept script
@@ -574,12 +719,66 @@ it also **added** test modules in the same commit; those additions are not
 restamp and are excluded here. Neither figure is pure hash-literal churn:
 a modified file may also have gained assertions in the same commit.
 
-Stated plainly rather than acted on: those pins exist deliberately — each one
-is a canary that fails when representation meaning moves, which is exactly what
-they are for, and an accepted batch's frozen-prior test *must* keep asserting a
-literal. A sixth mint will pay the same price. Whether that is worth a
-consolidated pin fixture is a real question, but **no tooling refactor is
-requested or attempted here**, and none should be inferred from this paragraph.
+### Diagnosis 1a — what was consolidated, and what stays pinned
+
+Those sites are not one kind of thing, and the earlier version of this section
+treated them as if they were. Separated:
+
+* **Immutable historical anchors.** Every `SCHEMA_<n>_VERSION`/`SCHEMA_<n>_HASH`
+  pair in `schema_lift.py`, and every accepted batch's frozen-prior assertion of
+  the schema *it* was accepted under. A mint must never move these, and none
+  were touched.
+* **Independent canaries.** Three literal current-schema hashes whose whole job
+  is to fail when representation meaning moves without review. They must not be
+  able to agree with a shared helper by construction, so they stay written out
+  where they are.
+* **Repeated expectations of the *current* schema.** Which contract this build
+  declares, which registered crossings a prior must make to reach it, and which
+  version string is still unminted. Every copy was transcribed from the same
+  registry, so a mint edited twenty transcriptions of one decision. This is the
+  duplication, and it is the only thing consolidated.
+
+The consolidation is one 99-line module in the suite's existing style,
+`tests/ingestion/mechanical/_schema_pins.py`, the same shape as
+`tests/api/_fixtures.py`. It states the three facts and a `crossings_from()`
+slice over a written-out crossing registry. No schema framework, no fixture
+indirection, no new test machinery.
+
+| site | what it pins | disposition |
+|---|---|---|
+| `_schema_pins.py` | the three current-schema facts, each written out rather than read back from the production value it checks | **new shared home** |
+| `test_speed_1_frozen_prior.py`, `test_cover_1_frozen_prior.py`, `test_areas_of_effect_1_frozen_prior.py`, `test_attitudes_1_frozen_prior.py` | each prior's expected crossing chain | `patched` — `crossings_from(SCHEMA_<n>_VERSION)`; each module's own historical anchor untouched |
+| `test_accept_across_schema_succession.py`, `test_schema_6_succession.py` | the chains from schema 3 and schema 5 | `patched` — same helper |
+| `test_committed_accepted_authority.py` | the 11-to-current chain, **and** the whole schema-3-to-current chain | `patched` for the first; the second **stays written out** as the independent full-chain canary |
+| `test_schema_4_invariant_closure.py`, `test_schema_5_representation_corrections.py`, `test_speed_1_frozen_prior.py` | the current version/hash pair | `patched` — `CURRENT_SCHEMA_*` |
+| `test_review_round_9_schema_version_payloads.py`, `test_schema_10_cover.py`, `test_schema_11_speed.py` | the next unminted version string | `patched` — `UNMINTED_SCHEMA_VERSION`, so the probe moves once per mint in one place instead of three |
+| `test_representation_schema_identity.py` (`EXPECTED_SCHEMA_HASH`), `test_review_round_7_draft_exact_types.py`, `tests/services/rules_authority/test_review_round_5_component_patch_schema2.py` | the current schema hash, as a literal | **stays fixed** — independent canaries |
+| `test_schema_12_practical_reliability.py`, `test_review_round_9_schema_version_payloads.py` (merged key-set rows) | one named version's own semantics: the sibling-refusal subtraction, and each version's merged component fields | **stays fixed** — per-version decisions, not repeats of which schema is current |
+| `test_schema_13_proficiency.py`, `data/bounded_oracle.json` | this mint's own contract, and the fixture artifact's declared schema block | **stays fixed** — the mint's own statement, restamped deliberately |
+
+One new test guards the consolidation itself:
+`test_the_shared_schema_pins_are_the_registry_and_the_live_contract` asserts that
+the crossing list *is* `lift_path` over the whole succession, that the declared
+pair *is* the live contract, and that the probe string is in no recognised
+contract. A mint that updates production and forgets the pins fails there, in one
+place, with the reason named — so mutation detection is preserved rather than
+traded away.
+
+**Measured effect.** Files under `tests/` that name a current-schema fact
+literally: **15 before, 6 after** (`git grep` over `SCHEMA_13_HASH`,
+`SCHEMA_13_VERSION`, `5d-representation-schema-14` and
+`5d-lift-schema-12-to-13`). Of the six, four are deliberate — the full-chain
+canary, the two per-version modules, and this mint's own module — one is the JSON
+fixture, and one is `_schema_pins.py` itself. The three literal-hash canaries sit
+outside that grep by construction and stay as they are. So a sixth mint's restamp
+is the fixture's schema block, this module's two lines plus one crossing row and
+one probe bump, the three canaries, the full-chain canary, and the per-version
+modules that genuinely state their own semantics.
+
+No historical test was weakened and no generic schema framework was introduced.
+The pins that remain exist deliberately: each is a canary that fails when
+representation meaning moves, which is exactly what they are for, and an accepted
+batch's frozen-prior test *must* keep asserting a literal.
 
 ### Diagnosis 2 — what is left that is batch-specific
 
@@ -593,9 +792,17 @@ What remains genuinely per-batch, honestly:
 
 * **The clause/component/fact tables in the generator.** This is source review
   written down. It is not removable tooling and should not be targeted.
-* **A hand-written proposal test per batch** (224 lines here). It pins the
-  identity and the source-reviewed expectations, which by contract 4 must not
-  be regenerated from the output they check. Also not removable.
+* **Independent source-reviewed expectations.** A batch's identity pin and its
+  expectations must not be regenerated from the output they check — that is
+  contract 4, and it is the requirement. An earlier version of this section said
+  a *hand-written test program per batch* is inherently non-removable; that
+  overstated it and is withdrawn. What is mandatory is the **independence** of
+  the expectations, not their form: a data table, a shared parameterized test and
+  hand-written code all satisfy it, and the schema-pin consolidation above is an
+  instance of moving from one form to another without weakening anything. This
+  batch's proposal test is a reasonable form, not the only admissible one — and
+  no new test framework is proposed, because no batch has demonstrated the need
+  for one.
 * **The schema restamp**, when a batch mints a schema — Diagnosis 1.
 * **Nothing else.** No accept script, no reproduction implementation, no
   private-parser reload.
@@ -613,9 +820,16 @@ Final local gates on the branch head at the time the pilot was reported:
 and the suite in two chunks — `tests/ingestion` **3,226 passed** in 867.97 s,
 `tests --ignore=tests/ingestion` **2,775 passed, 10 skipped** in 330.03 s,
 total coverage **94.39%**. `pip-audit` reports 29 pre-existing advisories
-across 10 third-party packages, unchanged by this branch. Gates for the
-correction round that produced this revision are reported in the PR
-description, which can cite the CI run for a head this file is part of.
+across 10 third-party packages, unchanged by this branch.
+
+For the round that produced this revision, proportional to its delta: the whole
+changed area, `tests/ingestion/mechanical`, **3,019 passed** in 178.65 s, and
+`black`/`ruff` clean over 480 files. `mypy src/` is not rerun and no result for
+it is claimed for this round — `src/` is untouched, and every change is under
+`tests/ingestion/mechanical` or `.claude/review-notes/`, so the second suite
+chunk (`tests --ignore=tests/ingestion`) has no changed input either. Full-suite
+and audit evidence for the final head is the CI run cited in the PR
+description.
 
 ## 10. How to verify this packet
 
@@ -628,11 +842,18 @@ pytest tests/ingestion/mechanical/test_proficiency_1_proposal.py -q --no-cov
 
 # the new family's numeric contract and the schema-12/13 boundary
 pytest tests/ingestion/mechanical/test_schema_13_proficiency.py -q --no-cov
+
+# the consolidated schema pins, against the registry and the live contract
+pytest tests/ingestion/mechanical/test_schema_6_succession.py -q --no-cov
 ```
 
-The test pins the identity, runs `review_unit_violations` on the loaded
-artifact, asserts **all eight bands** as an exact set, proves by mutation that
-dropping the 29–30 band **is reported**, and exercises `accept_proposal`
+`test_proficiency_1_proposal.py` pins the identity, runs
+`review_unit_violations` on the loaded artifact, asserts **all eight bands** as
+an exact set, proves by mutation that dropping the 29–30 band **is reported**,
+covers §7's two outstanding obligations in five tests — authored state,
+survival through `accepted_inputs_payload` and `load_accepted_inputs`, omission
+of either half, a resolved sibling failing to discharge one, and the single edit
+that does discharge one — and exercises `accept_proposal`
 in memory — with `reviewer="test-evidence-only"` — asserting the committed
 oracle is byte-identical before and after. That acceptance is isolated test
 evidence that the proposal is structurally acceptable. **It is not a semantic
