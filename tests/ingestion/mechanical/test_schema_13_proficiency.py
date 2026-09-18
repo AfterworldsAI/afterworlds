@@ -34,7 +34,6 @@ import pytest
 
 from afterworlds.ingestion.mechanical.proposal import load_proposal
 from afterworlds.ingestion.mechanical.representation import (
-    REPRESENTATION_SCHEMA_VERSION,
     FactFamily,
     MalformedFactPayloadError,
     ProficiencyBonusBandFact,
@@ -50,6 +49,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_12_VERSION,
     SCHEMA_13_HASH,
     SCHEMA_13_VERSION,
+    SCHEMA_14_VERSION,
     lift_path,
 )
 
@@ -220,17 +220,29 @@ def test_schema_12_refuses_the_reviewed_draft_for_exactly_the_eight_bands() -> N
     The committed ``proficiency-1`` proposal is the draft a reviewer is shown.
     Schema 12 is the immediately preceding contract, so its refusal is the
     narrowest statement of what schema 13 added: the eight band facts and
-    nothing else. Schema 13 admits the same draft with no violation at all.
+    nothing else.
+
+    That draft has since moved on to schema 14, which typed the section's rule
+    inputs, so schema 12 now refuses it for those too. The schema-13 claim is
+    therefore made over the share of the refusal schema 13 is named in -- the
+    same partitioning the schema-11 sibling below already needed. The remainder
+    is not dropped: schema 13 refusing exactly it, and the current contract
+    admitting the whole draft, are asserted here rather than assumed.
     """
     draft = load_proposal(PROPOSAL_PATH).proposed_representation
     violations = declared_meaning_violations(draft, SCHEMA_12_VERSION)
 
-    assert len(violations) == len(PRINTED_BANDS)
-    assert all(FactFamily.PROFICIENCY_BONUS_BAND.value in v for v in violations)
-    assert all(SCHEMA_13_VERSION in v for v in violations)
+    from_schema_13 = [v for v in violations if SCHEMA_13_VERSION in v]
+    assert len(from_schema_13) == len(PRINTED_BANDS)
+    assert all(FactFamily.PROFICIENCY_BONUS_BAND.value in v for v in from_schema_13)
 
-    assert REPRESENTATION_SCHEMA_VERSION == SCHEMA_13_VERSION
-    assert declared_meaning_violations(draft, REPRESENTATION_SCHEMA_VERSION) == []
+    # Everything schema 12 refuses that schema 13 could not have added, schema
+    # 13 refuses in its own right and for the later reason.
+    later = declared_meaning_violations(draft, SCHEMA_13_VERSION)
+    assert len(later) == len(violations) - len(PRINTED_BANDS)
+    assert all(SCHEMA_14_VERSION in v for v in later)
+
+    assert declared_meaning_violations(draft, SCHEMA_14_VERSION) == []
 
 
 def test_schema_11_refuses_it_for_the_bands_and_the_schema_12_reason_codes() -> None:

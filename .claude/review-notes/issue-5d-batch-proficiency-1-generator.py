@@ -81,7 +81,11 @@ from afterworlds.ingestion.mechanical.representation import (  # noqa: E402
     AdvantageState,
     ComponentDraft,
     ComponentHandling,
+    ProficiencyApplicationFact,
     ProficiencyBonusBandFact,
+    ProficiencyBonusOperation,
+    ProficiencyBonusOperationLimitFact,
+    ProficiencyKind,
     ProseBindingDraft,
     ProvenanceClaim,
     ProvenanceRole,
@@ -112,9 +116,26 @@ ARTIFACT = (
     REPO
     / "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-36b786d8-fa2.json"
 )
-#: The glossary is the only resolution scope this batch cites into, and it is
-#: the scope the seven accepted batches already committed. Nothing new is minted.
+#: ``scope_key`` is the committed resolution scope a pointer resolves *within*,
+#: so it must name where the destination is, not where the citing text happens
+#: to live. Two of this batch's four pointers name Rules Glossary entries and
+#: carry the glossary scope the seven accepted batches already committed.
 GLOSSARY_SCOPE = "srd-5.2.1/rules-glossary"
+#: The other two -- the Skills table and the "Actions" section -- point into
+#: *Playing the Game*, which the section says in its own words: *"see 'Actions'
+#: later in 'Playing the Game'"*. Carrying the glossary scope for those was a
+#: source-scope error: the same wording in two scopes is two references rather
+#: than one ambiguity, so a glossary-scoped "Actions" would resolve against
+#: glossary entries and could be discharged by one.
+#:
+#: Minted by the convention the one committed scope already follows,
+#: ``<release-family>/<section-slug>``. The 5c artifact carries no section slug
+#: of its own -- its spans are leaf ranges -- so there is nothing to derive it
+#: from, and inventing a *destination record key* would be the guess this batch
+#: refuses. A scope is not a destination: it says which resolution space the
+#: pointer belongs to, and ``target_record_key`` stays empty because no
+#: destination has been reviewed.
+PLAYING_THE_GAME_SCOPE = "srd-5.2.1/playing-the-game"
 
 # ---------------------------------------------------------------------------
 # The reviewed source: 31 leaves, reading order 252-282
@@ -625,9 +646,86 @@ BAND_FACTS = tuple(
     ProficiencyBonusBandFact(bonus=b, minimum=lo, maximum=hi) for b, lo, hi, _ in BANDS
 )
 
+# ---------------------------------------------------------------------------
+# The typed rule inputs (Owner Decision 2026-09-18)
+# ---------------------------------------------------------------------------
+# The Rules Package supplies where proficiency applies, its addition and
+# scaling limits, and the fixed condition granting tool-related Advantage.
+# Character-specific proficiencies stay on the sheet, relevance judgment stays
+# with the GameMaster, and handwritten code performs validation and execution.
+# Nothing below stores a creature-specific fact or evaluates anything.
+
+#: Where each printed proficiency kind adds the bonus. Four sentences, four
+#: facts. The umbrella sentence -- "applied to a D20 Test when the creature has
+#: proficiency in a skill, in a saving throw, or with an item" -- stays exact
+#: governing prose on ``proficiency_bonus_application``: it is one sentence
+#: *about* these four rules, and read as a rule of its own it would admit a
+#: weapon proficiency on a saving throw.
+APPLICATIONS: tuple[tuple[str, ProficiencyApplicationFact], ...] = tuple(
+    (
+        clause,
+        ProficiencyApplicationFact(
+            proficiency=kind,
+            roll=RollSpec(actor=RollActor.SUBJECT, context=context),
+        ),
+    )
+    for clause, kind, context in (
+        ("skill.proficient", ProficiencyKind.SKILL, RollContext.ABILITY_CHECK),
+        ("saves.bonus", ProficiencyKind.SAVING_THROW, RollContext.SAVING_THROW),
+        ("weapon.attack_rolls", ProficiencyKind.WEAPON, RollContext.ATTACK_ROLL),
+        ("tool.checks", ProficiencyKind.TOOL, RollContext.ABILITY_CHECK),
+    )
+)
+APPLICATION_BY_CLAUSE = dict(APPLICATIONS)
+assert len(APPLICATION_BY_CLAUSE) == 4, len(APPLICATION_BY_CLAUSE)
+
+#: The three printed arithmetic limits, and the one printed ordering.
+#: "can't be added ... more than once"; "multiplied or divided ... **before
+#: being added**"; "it can be multiplied only once and divided only once".
+#: The multiplication and division facts are read from two clauses each: the
+#: arity from ``stack.once_each`` and the ordering from ``stack.scaling``.
+OPERATION_LIMITS: tuple[
+    tuple[ProficiencyBonusOperationLimitFact, tuple[str, ...]], ...
+] = (
+    (
+        ProficiencyBonusOperationLimitFact(
+            operation=ProficiencyBonusOperation.ADD,
+            maximum_applications=1,
+            precedes=None,
+        ),
+        ("stack.once",),
+    ),
+    (
+        ProficiencyBonusOperationLimitFact(
+            operation=ProficiencyBonusOperation.MULTIPLY,
+            maximum_applications=1,
+            precedes=ProficiencyBonusOperation.ADD,
+        ),
+        ("stack.scaling", "stack.once_each"),
+    ),
+    (
+        ProficiencyBonusOperationLimitFact(
+            operation=ProficiencyBonusOperation.DIVIDE,
+            maximum_applications=1,
+            precedes=ProficiencyBonusOperation.ADD,
+        ),
+        ("stack.scaling", "stack.once_each"),
+    ),
+)
+assert len(OPERATION_LIMITS) == 3, len(OPERATION_LIMITS)
+
+#: The tool Advantage, with its conjunction stated. Both proficiencies are
+#: required -- "If you have proficiency with a tool ... If you have proficiency
+#: in the skill that's also used with that check, you have Advantage on the
+#: check too" -- and without the tuple the fact would read as unconditional
+#: Advantage on the check, which is a stronger rule than the source states.
+#: *Which* skill is relevant stays the GM's call and is not stated here; that
+#: the consequence is deterministic once the condition holds is why this is not
+#: a discretionary 15c matter.
 TOOL_ADVANTAGE = AdvantageFact(
     state=AdvantageState.ADVANTAGE,
     roll=RollSpec(actor=RollActor.SUBJECT, context=RollContext.ABILITY_CHECK),
+    requires_proficiencies=(ProficiencyKind.SKILL, ProficiencyKind.TOOL),
 )
 
 # ---------------------------------------------------------------------------
@@ -667,9 +765,13 @@ COMPONENTS: tuple[
         NO_USE,
         ("main.d20_test", "main.spells"),
     ),
+    # MIXED: the three printed limits and the printed ordering are typed, and
+    # the wording around them still carries meaning the facts do not -- "a die
+    # roll or another number", "Occasionally", "(doubled or halved, for
+    # example)" -- so the exact prose stays bound beside them.
     (
         "bonus_does_not_stack",
-        ComponentHandling.PROSE_BOUND,
+        ComponentHandling.MIXED,
         None,
         NO_USE,
         ("stack.once", "stack.scaling", "stack.once_each"),
@@ -692,9 +794,13 @@ COMPONENTS: tuple[
         None,
         ("skill.gm_say",),
     ),
+    # MIXED: where a skill proficiency applies is typed; the qualification
+    # that follows -- a creature without proficiency still makes the check and
+    # simply adds nothing -- stays exact prose, because the absence of a fact
+    # is not a statement that the check may still be made.
     (
         "skill_proficiency_application",
-        ComponentHandling.PROSE_BOUND,
+        ComponentHandling.MIXED,
         None,
         NO_USE,
         ("skill.proficient", "skill.without_a", "skill.without_b"),
@@ -713,9 +819,12 @@ COMPONENTS: tuple[
         NO_USE,
         ("determining.sources",),
     ),
+    # MIXED: where a saving-throw proficiency applies is typed. Which saves a
+    # monster or a class has is character state the sheet owns, so those two
+    # clauses stay prose.
     (
         "saving_throw_proficiency",
-        ComponentHandling.PROSE_BOUND,
+        ComponentHandling.MIXED,
         None,
         NO_USE,
         ("saves.bonus", "saves.monsters", "saves.class_minimum"),
@@ -727,17 +836,21 @@ COMPONENTS: tuple[
         NO_USE,
         ("equipment.sources",),
     ),
+    # MIXED: where a weapon proficiency applies is typed; "anyone can wield a
+    # weapon" is a permission, not an application, and stays prose.
     (
         "weapon_proficiency",
-        ComponentHandling.PROSE_BOUND,
+        ComponentHandling.MIXED,
         None,
         NO_USE,
         ("weapon.anyone", "weapon.attack_rolls"),
     ),
-    # MIXED: the advantage is typed, and the condition that triggers it - "the
-    # skill that's also used with that check" - is not in any closed
-    # applicability vocabulary, so the clause stays exact governing prose and
-    # the fact claims it CONTEXTUAL rather than displacing it.
+    # MIXED: where a tool proficiency applies is typed, and so is the
+    # conjunction that grants Advantage - both proficiencies, stated on the
+    # fact. *Which* skill is "also used with that check" is the GM's relevance
+    # call and is not in any closed vocabulary, so the clause stays exact
+    # governing prose and the facts claim it CONTEXTUAL rather than displacing
+    # it.
     (
         "tool_proficiency",
         ComponentHandling.MIXED,
@@ -749,7 +862,14 @@ COMPONENTS: tuple[
 
 _FACTS = {
     "proficiency_bonus_table": BAND_FACTS,
-    "tool_proficiency": (TOOL_ADVANTAGE,),
+    "bonus_does_not_stack": tuple(fact for fact, _ in OPERATION_LIMITS),
+    "skill_proficiency_application": (APPLICATION_BY_CLAUSE["skill.proficient"],),
+    "saving_throw_proficiency": (APPLICATION_BY_CLAUSE["saves.bonus"],),
+    "weapon_proficiency": (APPLICATION_BY_CLAUSE["weapon.attack_rolls"],),
+    "tool_proficiency": (
+        APPLICATION_BY_CLAUSE["tool.checks"],
+        TOOL_ADVANTAGE,
+    ),
 }
 
 COMPONENT_DRAFTS: list[ComponentDraft] = []
@@ -795,6 +915,10 @@ assert len(BINDINGS) == 23, len(BINDINGS)
 #
 # Two more point at destinations this build intends to represent and has not:
 # the Skills table, and the "Actions" section later in "Playing the Game".
+# Both resolve inside *Playing the Game*, not the glossary, so they carry
+# ``PLAYING_THE_GAME_SCOPE``. The scope is the committed resolution space, and
+# stating the wrong one would let a glossary entry named "Actions" discharge a
+# pointer that was never aimed at it.
 # Reviewing those destinations later does not complete the link that starts
 # here, so leaving them as prose and a packet note left no obligation anything
 # could fail on. They are authored as references with an **empty**
@@ -832,14 +956,14 @@ REFERENCES = (
         from_record_key=RECORD,
         from_component_key="skill_list",
         source_text="Skills table",
-        scope_key=GLOSSARY_SCOPE,
+        scope_key=PLAYING_THE_GAME_SCOPE,
         target_record_key="",
     ),
     ReferenceDraft(
         from_record_key=RECORD,
         from_component_key="skill_relevance_sources",
         source_text="Actions",
-        scope_key=GLOSSARY_SCOPE,
+        scope_key=PLAYING_THE_GAME_SCOPE,
         target_record_key="",
     ),
 )
@@ -880,6 +1004,41 @@ PROVENANCE.append(
         ProvenanceRole.CONTEXTUAL,
     )
 )
+
+# Each typed rule input claims the exact clause it was read from. CONTEXTUAL,
+# not PRIMARY, for the reason the tool advantage already is: the clause's
+# primary home is the prose binding that governs it, and one span may carry one
+# primary claim. The fact is derived from that governing text, not a second
+# copy of it.
+_APPLICATION_COMPONENTS = {
+    "skill.proficient": "skill_proficiency_application",
+    "saves.bonus": "saving_throw_proficiency",
+    "weapon.attack_rolls": "weapon_proficiency",
+    "tool.checks": "tool_proficiency",
+}
+for _clause, _fact in APPLICATIONS:
+    PROVENANCE.append(
+        ProvenanceClaim(
+            ProvenanceTargetKind.FACT,
+            fact_target_key(RECORD, _APPLICATION_COMPONENTS[_clause], _fact),
+            sid(_clause),
+            ProvenanceRole.CONTEXTUAL,
+        )
+    )
+
+# A limit read from two clauses claims both. The arity and the ordering are
+# printed in different sentences, and a claim to only one would certify the
+# half nobody looked at.
+for _fact, _clauses in OPERATION_LIMITS:
+    for _clause in _clauses:
+        PROVENANCE.append(
+            ProvenanceClaim(
+                ProvenanceTargetKind.FACT,
+                fact_target_key(RECORD, "bonus_does_not_stack", _fact),
+                sid(_clause),
+                ProvenanceRole.CONTEXTUAL,
+            )
+        )
 
 for binding in BINDINGS:
     PROVENANCE.append(
@@ -992,12 +1151,35 @@ ADVANTAGE_RULE = ExpectedRule(
     AdvantageFact.FAMILY.value,
     (sid("tool.advantage"),),
 )
+#: Source-reviewed expectations for the typed rule inputs, stated here and
+#: checked *into* the representation. Each names the clause the reviewer read
+#: the rule from, so dropping a fact is reported rather than absorbed.
+APPLICATION_RULES = tuple(
+    ExpectedRule(
+        RECORD,
+        _APPLICATION_COMPONENTS[clause],
+        ProficiencyApplicationFact.FAMILY.value,
+        (sid(clause),),
+    )
+    for clause, _fact in APPLICATIONS
+)
+LIMIT_RULES = tuple(
+    ExpectedRule(
+        RECORD,
+        "bonus_does_not_stack",
+        ProficiencyBonusOperationLimitFact.FAMILY.value,
+        tuple(sid(c) for c in clauses),
+    )
+    for _fact, clauses in OPERATION_LIMITS
+)
 
 UNIT = ReviewUnit(
     unit_id="proficiency-1-section",
     kind=ReviewUnitKind.SECTION,
     leaf_ids=SECTION_LEAVES,
-    expected_rules=BAND_RULES + PROSE_RULES + (ADVANTAGE_RULE,),
+    expected_rules=(
+        BAND_RULES + PROSE_RULES + (ADVANTAGE_RULE,) + APPLICATION_RULES + LIMIT_RULES
+    ),
     supporting_groups=(
         SupportingGroup(
             (CELL_LEVEL_OR_CR, CELL_BONUS),
@@ -1015,7 +1197,7 @@ UNIT = ReviewUnit(
         ),
     ),
 )
-assert len(UNIT.expected_rules) == 22, len(UNIT.expected_rules)
+assert len(UNIT.expected_rules) == 29, len(UNIT.expected_rules)
 
 # ---------------------------------------------------------------------------
 # Batch-scoped validation
@@ -1056,7 +1238,7 @@ standalone = list(validate_representation(DRAFT, LEDGER, CORPUS))
 #: outstanding link quietly acquiring a target fails here too.
 EXPECTED_FINDINGS = tuple(
     sorted(
-        f"reference {GLOSSARY_SCOPE}:{ref.source_text!r}: "
+        f"reference {ref.scope_key}:{ref.source_text!r}: "
         + (
             f"unknown target record {ref.target_record_key}"
             if ref.target_record_key
@@ -1107,7 +1289,7 @@ PROPOSAL = MechanicalProposal(
     proposed_spans=tuple(PROPOSED),
     proposed_representation=DRAFT,
     proposal_origin=(
-        f"{ORIGIN} (CRD Issue 5d batch {BATCH_ID}, representation schema 13)"
+        f"{ORIGIN} (CRD Issue 5d batch {BATCH_ID}, representation schema 14)"
     ),
     proposal_schema_version=PROPOSAL_SCHEMA_VERSION_2,
     proposed_review_units=(UNIT,),
@@ -1143,6 +1325,10 @@ print(f"leaves           {len(SECTION_LEAVES)} represented, 1 excluded by 5c")
 print(f"spans            {len(SPANS)}")
 print(f"components       {len(COMPONENT_DRAFTS)}   bindings {len(BINDINGS)}")
 print(f"bands            {len(BAND_FACTS)}   expected rules {len(UNIT.expected_rules)}")
+print(
+    f"typed inputs     {len(APPLICATIONS)} applications, "
+    f"{len(OPERATION_LIMITS)} operation limits, 1 tool advantage"
+)
 print(f"provenance       {len(PROVENANCE)}   references {len(REFERENCES)}")
 print(f"partition        {len(partition)} findings")
 print(f"review units     {len(units)} findings")

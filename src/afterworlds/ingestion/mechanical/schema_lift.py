@@ -103,6 +103,8 @@ __all__ = [
     "SCHEMA_12_VERSION",
     "SCHEMA_13_HASH",
     "SCHEMA_13_VERSION",
+    "SCHEMA_14_HASH",
+    "SCHEMA_14_VERSION",
     "SchemaLiftRecord",
     "UnknownSchemaLiftError",
     "lift_for",
@@ -141,6 +143,9 @@ SCHEMA_12_HASH = "a706d9df46d2232293d40fa5bfd7c2d3e0480cd26041461b21c8eeb5027af0
 SCHEMA_13_VERSION = "5d-representation-schema-13"
 #: Pinned literally, for the same reason every predecessor is.
 SCHEMA_13_HASH = "39710a37985977105659000ff17af2913b63c98a141dd4db90ee489817cf55bf"  # noqa: E501  # pragma: allowlist secret
+SCHEMA_14_VERSION = "5d-representation-schema-14"
+#: Pinned literally, for the same reason every predecessor is.
+SCHEMA_14_HASH = "14284d53773df10d8672cfea34b2b47771539a3e43d936577259817011b9498e"  # noqa: E501  # pragma: allowlist secret
 
 
 class SchemaLiftError(ValueError):
@@ -547,6 +552,62 @@ SCHEMA_LIFTS: dict[tuple[str, str], SchemaLift] = {
             "the introduction manifest, never flattened, so the addition "
             "cannot become a way to forge an identity an earlier reviewer "
             "signed. "
+            "The policy contract does not move with it: 5d-semantic-policy-2 "
+            "is what proficiency-1 declares, and it is the same policy "
+            "schema 12 arrived with."
+        ),
+    ),
+    (SCHEMA_13_VERSION, SCHEMA_13_HASH): SchemaLift(
+        lift_id="5d-lift-schema-13-to-14",
+        from_version=SCHEMA_13_VERSION,
+        from_hash=SCHEMA_13_HASH,
+        to_version=SCHEMA_14_VERSION,
+        to_hash=SCHEMA_14_HASH,
+        rationale=(
+            "Schema 14 admits the typed rule inputs the Owner Decision of "
+            "2026-09-18 resolved for the Proficiency section, and nothing "
+            "else. Two fact families -- proficiency_application and "
+            "proficiency_bonus_operation_limit -- two whole vocabularies, "
+            "ProficiencyKind and ProficiencyBonusOperation, and one "
+            "omit-when-empty field on a family schema 3 already had, "
+            "AdvantageFact.requires_proficiencies. No ownership form, no "
+            "component key, no required field and no newly nullable field on "
+            "any family an earlier schema had. "
+            "The application family exists because the section states four "
+            "times, once per proficiency kind, which roll the bonus is added "
+            "to, and no accepted family pairs a proficiency with a roll. "
+            "Reading the umbrella sentence instead -- applied to a D20 Test "
+            "when the creature has proficiency in a skill, in a saving throw, "
+            "or with an item -- states a stronger rule than the source does, "
+            "because it admits a weapon proficiency on a saving throw. "
+            "The operation-limit family exists because the section prints "
+            "three arithmetic limits and one ordering -- added no more than "
+            "once, multiplied only once, divided only once, and multiplied or "
+            "divided before being added -- and no accepted family can state "
+            "how many times an operation may touch a number or which "
+            "operation precedes which. ScalingFact states an increment at a "
+            "threshold and QuantityMultiplierFact states a factor; neither "
+            "governs arity or order. "
+            "requires_proficiencies exists because the source states one "
+            "conjunction: proficiency with the tool AND proficiency in the "
+            "skill also used with that check. Applicability is deliberately "
+            "not a predicate language -- ANY_OF is a flat disjunction, with "
+            "no operator, no nesting and no way to combine two terms into a "
+            "third -- so an ALL_OF beside it would open exactly the language "
+            "that contract refuses. A closed tuple of kinds local to one "
+            "family makes the conjunction explicit without it. The advantage "
+            "stays conditional: the field is what states the condition, so "
+            "the fact can never read as unconditional. "
+            "Nothing accepted moves. No component of the seven accepted "
+            "batches states a fact of either new family, and the one accepted "
+            "family that gained a field gained an omit-when-empty one, so "
+            "every accepted advantage payload -- and its fact key and "
+            "provenance coordinate -- is byte-identical under both contracts, "
+            "which verify_lift proves element by element rather than "
+            "asserting. A schema-13 declaration carrying either new family, "
+            "or a non-empty requires_proficiencies, is refused by the "
+            "introduction manifest and the omission registry, never "
+            "flattened. "
             "The policy contract does not move with it: 5d-semantic-policy-2 "
             "is what proficiency-1 declares, and it is the same policy "
             "schema 12 arrived with."

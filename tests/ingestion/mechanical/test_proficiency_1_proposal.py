@@ -79,16 +79,25 @@ PROPOSAL_PATH = REVIEW_NOTES / "issue-5d-batch-proficiency-1-PROPOSAL.json"
 COMMITTED_ARTIFACT = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
 
 #: The identity the review packet reports and a reviewer would be shown.
-PROPOSAL_IDENTITY = "11481e020ce08119938dcfd7e9df6a9f84c945f6ad63de2d5a47bcfc45110417"  # noqa: E501  # pragma: allowlist secret
+PROPOSAL_IDENTITY = "a6fc5285ced73ea55901ad6fbcbc94c399ca44491791385d5e28132359517fba"  # noqa: E501  # pragma: allowlist secret
 
 RECORD = "play.proficiency"
 UNIT_ID = "proficiency-1-section"
 SCOPE = "srd-5.2.1/rules-glossary"
+#: The two outstanding pointers resolve into *Playing the Game*, not the
+#: Rules Glossary: the Skills table is printed in that part and the Actions
+#: pointer names its section. ``scope_key`` is the committed resolution
+#: scope, so authoring them under the glossary scope would have stated that
+#: a glossary entry is the thing that closes them, and a later glossary
+#: review could then have looked like the discharge of an obligation it
+#: never carried. Neither destination is minted here.
+PLAYING_SCOPE = "srd-5.2.1/playing-the-game"
 
-#: The section's five printed pointers, as authored. Two name a Rules Glossary
-#: entry no accepted batch has minted; two name nothing yet and are the
-#: outstanding links; the fifth ("Character Creation") points outside this
-#: build's corpus and is prose, so it is absent here by design.
+#: The section's five printed pointers, as authored, with the scope each
+#: resolves in. Two name a Rules Glossary entry no accepted batch has minted;
+#: two name nothing yet, in Playing the Game, and are the outstanding links; the
+#: fifth ("Character Creation") points outside this build's corpus and is prose,
+#: so it is absent here by design.
 EXPECTED_REFERENCES = {
     ("proficiency_bonus_basis", "Challenge Rating", "glossary.challenge_rating"),
     ("bonus_does_not_stack", "Expertise", "glossary.expertise"),
@@ -96,15 +105,25 @@ EXPECTED_REFERENCES = {
     ("skill_relevance_sources", "Actions", ""),
 }
 
+#: Which scope each pointer is committed to resolve in, keyed by its printed
+#: wording. Written out rather than derived from the draft: the whole point of
+#: the correction is that the two are not the same scope.
+EXPECTED_SCOPES = {
+    "Challenge Rating": SCOPE,
+    "Expertise": SCOPE,
+    "Skills table": PLAYING_SCOPE,
+    "Actions": PLAYING_SCOPE,
+}
+
 #: The exact standalone report for the untampered proposal. Two unminted
 #: destinations and two outstanding links, and nothing else: a fifth finding of
 #: any kind, or an outstanding link quietly acquiring a target, fails here.
 EXPECTED_FINDINGS = (
-    f"reference {SCOPE}:'Actions': unresolved reference",
+    f"reference {PLAYING_SCOPE}:'Actions': unresolved reference",
+    f"reference {PLAYING_SCOPE}:'Skills table': unresolved reference",
     f"reference {SCOPE}:'Challenge Rating': unknown target record "
     "glossary.challenge_rating",
     f"reference {SCOPE}:'Expertise': unknown target record glossary.expertise",
-    f"reference {SCOPE}:'Skills table': unresolved reference",
 )
 
 #: ``(bonus, minimum, maximum)``. The first row prints "Up to 4", which states
@@ -360,7 +379,9 @@ def test_the_deferred_links_are_authored_as_outstanding_obligations() -> None:
         (r.from_component_key, r.source_text, r.target_record_key)
         for r in draft.references
     } == EXPECTED_REFERENCES
-    assert {r.scope_key for r in draft.references} == {SCOPE}
+    assert {(r.source_text, r.scope_key) for r in draft.references} == set(
+        EXPECTED_SCOPES.items()
+    )
     assert _findings(proposal, draft) == EXPECTED_FINDINGS
     # Each outstanding link carries its own provenance to the span the pointer
     # is printed in, so it is evidence of where the obligation came from.
@@ -406,8 +427,8 @@ def test_an_outstanding_link_survives_serialization_and_reconstruction(
         for r in reloaded.oracle.representation.references
         if not r.target_record_key
     } == {
-        (RECORD, "skill_list", "Skills table", SCOPE),
-        (RECORD, "skill_relevance_sources", "Actions", SCOPE),
+        (RECORD, "skill_list", "Skills table", PLAYING_SCOPE),
+        (RECORD, "skill_relevance_sources", "Actions", PLAYING_SCOPE),
     }
 
 
@@ -434,7 +455,7 @@ def test_deleting_either_half_of_an_outstanding_link_is_reported() -> None:
         f.startswith("provenance reference") and "undeclared element" in f
         for f in without_reference
     )
-    assert f"reference {SCOPE}:'Skills table': unresolved reference" not in (
+    assert f"reference {PLAYING_SCOPE}:'Skills table': unresolved reference" not in (
         without_reference
     )
 
@@ -455,7 +476,7 @@ def test_deleting_either_half_of_an_outstanding_link_is_reported() -> None:
     assert f"reference {list(key)}: no provenance to a 5c leaf subspan" in (
         without_provenance
     )
-    assert f"reference {SCOPE}:'Skills table': unresolved reference" in (
+    assert f"reference {PLAYING_SCOPE}:'Skills table': unresolved reference" in (
         without_provenance
     )
 
@@ -491,9 +512,9 @@ def test_a_resolved_sibling_citing_the_same_words_cannot_close_it() -> None:
             ),
         ),
     )
-    assert f"reference {SCOPE}:'Skills table': unresolved reference" in findings
+    assert f"reference {PLAYING_SCOPE}:'Skills table': unresolved reference" in findings
     (ambiguous,) = [f for f in findings if "ambiguous" in f]
-    assert ambiguous.startswith(f"reference {SCOPE}:'Skills table': ")
+    assert ambiguous.startswith(f"reference {PLAYING_SCOPE}:'Skills table': ")
     assert f"['', '{RECORD}']" in ambiguous
 
 

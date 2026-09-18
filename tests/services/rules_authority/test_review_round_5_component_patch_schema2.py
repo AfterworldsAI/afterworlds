@@ -761,11 +761,12 @@ def test_the_representation_schema_hash_is_untouched() -> None:
 
     The literal has moved with each deliberate representation change — schema 3,
     schema 7, schema 8, schema 9, schema 10, schema 11's seven added families,
-    schema 12's retained-prose distinction, and now schema 13's
-    ``ProficiencyBonusBandFact``. What this test asserts is
+    schema 12's retained-prose distinction, schema 13's
+    ``ProficiencyBonusBandFact``, and now schema 14's typed proficiency rule
+    inputs. What this test asserts is
     unchanged: the *patch layer* does not participate in representation
     identity, so this canary may only move when the representation itself does.
     """
     assert representation_schema_hash() == (
-        "39710a37985977105659000ff17af2913b63c98a141dd4db90ee489817cf55bf"  # noqa: E501  # pragma: allowlist secret
+        "14284d53773df10d8672cfea34b2b47771539a3e43d936577259817011b9498e"  # noqa: E501  # pragma: allowlist secret
     )

@@ -19,12 +19,12 @@ that cost.
 |---|---|
 | proposal | `.claude/review-notes/issue-5d-batch-proficiency-1-PROPOSAL.json` |
 | generator | `.claude/review-notes/issue-5d-batch-proficiency-1-generator.py` |
-| bytes | 55,439 |
-| `proposal_identity` | `11481e020ce08119938dcfd7e9df6a9f84c945f6ad63de2d5a47bcfc45110417` |
-| file sha256 | `a56829dde1db9281f8c3e1df78f0feb32f0496a2c50651739198deee8058a6c8` |
-| superseded, never accepted | identity `c941c262…`, sha256 `b74b6056…`, 54,507 bytes — regenerated in this review round to author §7's two outstanding obligations |
+| bytes | 60,468 |
+| `proposal_identity` | `a6fc5285ced73ea55901ad6fbcbc94c399ca44491791385d5e28132359517fba` |
+| file sha256 | `eb0fafb06c8891aeee0e9ccf416f46067b855b6504c6653c2172cdbd3bb71055` |
+| superseded, never accepted | identity `c941c262…`, sha256 `b74b6056…`, 54,507 bytes — the first regeneration, which authored §7's two outstanding obligations; then identity `11481e02…`, sha256 `a56829dd…`, 55,439 bytes — superseded by the typed rule inputs and the scope-key correction of this round (§7) |
 | proposal schema | `5d-proposal-2` |
-| representation schema | `5d-representation-schema-13` |
+| representation schema | `5d-representation-schema-14` |
 | source | `docs/sources/DnD5_5e_SRD_CC_v5_2_1.pdf`, printed pages 8–9 |
 | binding | `5.2.1-corpus.36b786d8-fa2` / `4458fa10-4a66-5e0e-9ecc-ea37530ad2b4` |
 
@@ -78,19 +78,20 @@ leaves those batches accepted.
 | leaves carried as supporting groups (no spans) | 4 |
 | components | 13 |
 | prose bindings | 23 |
-| typed facts | 9 (8 bonus bands + 1 advantage) |
-| expected rules on the unit | 22 |
-| provenance claims | 50 |
-| references | 2 |
+| typed facts | 16 (8 bonus bands + 4 applications + 3 operation limits + 1 advantage) |
+| expected rules on the unit | 29 |
+| provenance claims | 61 |
+| references | 4 |
 
 Findings from the merged services, on this batch's scope:
 
 * `validate_partition(..., require_complete=False)` per leaf — **0 findings**
 * `validate_reason_codes` — **0 findings**
 * `review_unit_violations` — **0 findings**
-* `validate_representation` — **2 findings**, both the expected
+* `validate_representation` — **4 findings**: two expected
   `unknown target record` for glossary citations whose target records are not
-  yet authored (§7).
+  yet authored, and two `unresolved reference` outstanding obligations in
+  *Playing the Game* (§7). All four block publication.
 
 ## 4. Source versus disposition
 
@@ -208,16 +209,16 @@ source states, and the clause that carries it.
 |---|---|---|---|
 | 1 | "Up to 4" names **no lower bound** on the first band | `cell.upto4` | band fact with `minimum=None`. Not 1 — the source does not say 1, and a defaulted 1 would be an invented claim about level 0 / CR 0 creatures. |
 | 2 | a character's bonus tracks **levels**, a monster's tracks **Challenge Rating** | `main.character_levels`, `main.monster_cr` | two separate governing-prose clauses, so neither is generalized into the other |
-| 3 | the bonus applies to a D20 Test **when** the creature has proficiency in a skill, in a saving throw, or with an item it uses to make that test | `main.d20_test` | exact prose; the applicability condition is not reduced |
+| 3 | the bonus applies to a D20 Test **when** the creature has proficiency in a skill, in a saving throw, or with an item it uses to make that test | `main.d20_test` | exact prose on the umbrella clause; the applicability condition is not reduced. The four per-kind clauses below it each carry one `ProficiencyApplicationFact` naming the roll the source states that kind's bonus reaches (§6) |
 | 4 | it is **also** used for spell attacks and spell save DCs | `main.spells` | exact prose, separate clause |
-| 5 | the bonus can't be added **more than once** to a roll or number | `stack.once` | exact prose; its own expected rule |
-| 6 | **exception:** it may occasionally be multiplied or divided before being added | `stack.scaling` | exact prose |
-| 7 | **limit on that exception:** multiplied only once and divided only once | `stack.once_each` | exact prose, same expected rule as #6, so the exception and its limit cannot be accepted apart |
+| 5 | the bonus can't be added **more than once** to a roll or number | `stack.once` | exact prose **and** `ProficiencyBonusOperationLimitFact(add, maximum_applications=1)`; its own expected rule |
+| 6 | **exception:** it may occasionally be multiplied or divided before being added | `stack.scaling` | exact prose, and the printed order is carried by `precedes=add` on both scaling limits — the source says *before* being added, and halving after adding is a different number |
+| 7 | **limit on that exception:** multiplied only once and divided only once | `stack.once_each` | exact prose **and** two limit facts, `multiply` and `divide`, each `maximum_applications=1`; same expected rule as #6, so the exception and its limit cannot be accepted apart |
 | 8 | Expertise doubles the bonus for certain ability checks | `stack.expertise` (supporting) + reference | the example is retained verbatim and cites the glossary record (§7) |
 | 9 | the **GM has the ultimate say** on whether a skill is relevant | `skill.gm_say` | its own component, `gamemaster_latitude` — see §6 |
 | 10 | without proficiency a creature **can still** make the check, but adds no bonus | `skill.without_a` + `skill.without_b` | one rule stated across the page break; both fragments are in one expected rule, so half of it cannot be accepted alone |
-| 11 | tool proficiency adds the bonus to **any ability check that uses the tool** | `tool.checks` | exact prose |
-| 12 | **and Advantage too**, **if** you have proficiency in the skill that's also used with that check | `tool.advantage` | typed `AdvantageFact` **and** exact prose — see §6 |
+| 11 | tool proficiency adds the bonus to **any ability check that uses the tool** | `tool.checks` | exact prose **and** `ProficiencyApplicationFact(tool → ability_check)`. Which tools the creature is proficient with, and whether this check uses one, stay off this corpus |
+| 12 | **and Advantage too**, **if** you have proficiency in the skill that's also used with that check | `tool.advantage` | typed `AdvantageFact` carrying `requires_proficiencies=(skill, tool)` — the conjunction the source prints, stated explicitly rather than left to a reader — **and** exact prose. The relevance half stays the GameMaster's; see §6 |
 | 13 | both skill and tool proficiency can benefit the **same** check | `tool.both` (supporting) | retained verbatim as supporting authority |
 | 14 | monsters' saving throw proficiencies live in **stat blocks** | `saves.monsters` | exact prose |
 | 15 | each class gives **at least two** saving throw proficiencies | `saves.class_minimum` | exact prose |
@@ -281,14 +282,15 @@ Per CLAUDE.md that is evidence of the current implementation, not authority: an
 unread `rule_slice` argument does not establish that the intended input contract
 excludes rule data, and this packet does not argue from it in either direction.
 
-It does expose a **third** live reading of the seam, which is the reason the
-question below is not this pilot's to answer. A sheet that stores the summed
-skill modifier has *already applied* proficiency before any adapter runs. Under
-that shape neither the adapter nor the rule slice needs the mapping at all — and
-which of them owns it is Character Sheet Model policy, #137's 2b, on this
-pilot's stop-list.
+It did expose a **third** live reading of the seam, which is why the question
+below was not this pilot's to answer. A sheet that stores the summed skill
+modifier has *already applied* proficiency before any adapter runs. Under that
+shape neither the adapter nor the rule slice needs the mapping at all — and which
+of them owns it is Character Sheet Model policy, #137's 2b, still on this pilot's
+stop-list and **not** decided by the Owner decision below, which settles what the
+Rules Package supplies and nothing about how a sheet stores it.
 
-### The one question this pilot cannot answer
+### The question this pilot put, and the Owner's answer
 
 > **Is the mapping from a proficiency kind to the D20 Test its bonus reaches —
 > together with the add-once, multiply-or-divide-at-most-once constraint on that
@@ -299,34 +301,81 @@ pilot's stop-list.
 *"covers d20 semantics only"* permits the mapping to be one of those
 hand-authored semantics, and nothing accepted excludes it; the stored-skill-
 modifier shape above is a live implementation of exactly that. Under A the five
-clauses held below are complete as exact prose for explanation, no input is
-missing, and this pilot's representation is right as proposed.
+clauses held below would be complete as exact prose for explanation, no input
+would be missing, and the pilot's representation would have been right as first
+proposed.
 
 **Reading B — Rules-Package-supplied.** Decision 7 names the *rule slice* as an
 assembly input, and the rule slice is this projection's content, not the
 adapter's. ADR-005d's rejected alternative 7 forbids letting adapter breadth
 choose representation breadth, and #137 says prose *"cannot conceal a field
 required by such a use"*. Under B a typed application fact on each of the five
-is the missing input, and prose is concealing it.
+is the missing input, and prose is concealing it. **This is the reading the Owner
+took**, in the bounded form stated below.
 
-**Why the citations do not decide it.** Contract 2's test is *which identified
+**Why the citations did not decide it.** Contract 2's test is *which identified
 code-owned operation needs a separate structured field*. Whether modifier
 assembly needs the mapping as a field is precisely what the ownership call
-determines, so the test is circular until that call is made. Neither reading can
-be derived from the other's evidence, and both are consistent with everything
-adopted. Classification: **`owner decision needed`**. Nothing is implemented
-against it, no field is invented to close it, and no consumer is authorized to
-read the mapping out of prose in the meantime.
+determines, so the test was circular until that call was made. Neither reading
+could be derived from the other's evidence, and both were consistent with
+everything adopted. That is why the question was put to the Owner rather than
+settled here.
 
-**What Reading B would cost, for sizing only, not proposed here.**
-`RollSpec`/`RollContext` already state which roll a fact is about —
-`ATTACK_ROLL`, `ABILITY_CHECK`, `SAVING_THROW`, `D20_TEST`
-(`representation.py:699`) — so the *target* vocabulary exists and would be
-reused. What does not exist is a family carrying *add the Proficiency Bonus to
-that roll*; the nearest, `DerivedQuantityFact`, derives a value from an ability
-modifier over a `TimeUnit`. So B is one new fact family reusing existing roll
-vocabulary, on the scale of the band family this pilot already minted — not a
-widening of anything accepted.
+**Resolved by Owner Decision 2026-09-18**, recorded at ADR-005d Decision 4 as an
+amendment. Verbatim:
+
+> "For the Proficiency section, the Rules Package supplies structured inputs
+> governing where proficiency applies, its addition and scaling limits, and the
+> fixed condition granting tool-related Advantage. Character-specific
+> proficiencies remain on the sheet; relevance judgment remains with the
+> GameMaster; handwritten code performs validation and execution.
+> This authorizes the smallest bounded representation and tests needed for those
+> uses. It does not require structuring every reducible passage or implementing
+> downstream sheet/adapter behavior in 5d."
+
+The authority for the change is that decision and nothing else. The adapter
+evidence above is not re-read as support for it — it was not evidence for either
+reading before, and a decision does not turn it into evidence after. **Reading A
+is superseded, Reading B is authorized in the bounded form the decision states,
+and neither is reopened here.** The held alternatives that this packet and the PR
+Architecture Notes carried are superseded with it.
+
+What that authorizes is narrower than Reading B as posed. The decision names
+three uses — where proficiency applies, the addition and scaling limits, and the
+tool-Advantage condition — and explicitly does not require structuring every
+reducible passage or any downstream sheet or adapter behavior. So schema 14 mints
+exactly those three and stops; §8 residue 10 still stands for everything else
+this section holds as prose.
+
+### What schema 14 adds, and why each field has to exist
+
+Two families and one field on an existing one. The justification for each is its
+**required use** and the **consequence of omitting it** — not that the prose
+happens to be reducible, and not that no vocabulary existed for it. Reducibility
+alone would justify structuring the whole section, which the decision declines;
+an absent vocabulary is a cost of minting, not a reason to mint.
+
+| field | required use | consequence of omission |
+|---|---|---|
+| `ProficiencyApplicationFact.proficiency` × `.roll` | The Rules Package is now the supplier of *which roll a kind of proficiency reaches*. Validation of an assembled D20 Test modifier reads the pairing from here. | The mapping would live only in this section's prose, and contract 2 bars a consumer from reading a trusted value out of prose: *"choosing prose does not authorize runtime interpretation into trusted values"*. An erratum moving where the bonus applies would then change no trusted value, and the pairing would be unrepresentable as an override target. |
+| `ProficiencyBonusOperationLimitFact.operation` × `.maximum_applications` | Validation of a sum: *"can't be added to a roll or another number more than once."* | Nothing in the projection would state the limit, so two effects each adding the bonus would be indistinguishable from one legal addition. The rule would be enforceable only by an adapter that had been told it out of band. |
+| `ProficiencyBonusOperationLimitFact.precedes` | Fixes the printed order: the multiplication or division happens **before** the addition. | The count alone leaves the arithmetic underdetermined. Halving after adding and adding after halving are different numbers, and the source prints one of them. A limit fact without the ordering would look complete and permit the wrong result. |
+| `AdvantageFact.requires_proficiencies` | States the section's one conjunction — proficiency in a skill **and** a tool that both apply to the check — on the fact whose consequence it gates. | The `AdvantageFact` would read as an unconditional Advantage on ability checks, which the source does not print. The alternative, leaving the condition to prose, is the same contract-2 problem: a consumer would have to interpret the sentence to know whether the typed consequence applies. |
+
+The three fields that are **not** here matter as much. `ProficiencyApplicationFact`
+carries no ability and no skill, and no field naming *which* skills, saving
+throws, weapons or tools a creature has: Invariant 9 makes the sheet the owner of
+that, and this corpus does not hold it. There is no relevance field, because
+whether a skill is *"also used with that check"* is the GameMaster's call
+(`skill_relevance_judgment`, `gamemaster_latitude`). And there is no trigger
+family and no evaluator: nothing here computes, fires, or decides applicability.
+
+The pairing is closed by invariant, not merely by what was authored:
+`ProficiencyApplicationFact(skill → attack_roll)` is refused with *"a skill
+proficiency is stated as applying to ability_check, not attack_roll"*, so a
+combination the source never prints cannot be stored. `requires_proficiencies`
+is likewise canonical — ordered, non-repeating, and never of length one, because
+a conjunction of one is the plain conditional the governing prose already states.
 
 ### Every group against all four legs
 
@@ -340,19 +389,22 @@ typed target grains in point 3 above.
 | group | components | operand is | play | explanation | correction | supported overrides | disposition |
 |---|---|---|---|---|---|---|---|
 | **the bonus progression** | `proficiency_bonus_table` | the rule (2) | a v1 sheet cannot render without resolving level or CR to a bonus, and contract 2 forbids reading it from prose: *"choosing prose does not authorize runtime interpretation into trusted values"* | the caption and column-header spans stay bound (§4C) | regeneration restates a band | `REPLACE` any `ProficiencyBonusBandFact`; `APPEND` a band onto the component. Fully addressable | **STRUCTURED** — 8 band facts |
-| **basis and umbrella** | `proficiency_bonus_basis`, `proficiency_bonus_application` | (1) plus (2) as a statement | none. The umbrella states *that* the bonus reaches D20 Tests a creature is proficient in; its two operands are the per-kind clauses below and sheet state, so a field here would restate one of those | exact prose bound, and the `Challenge Rating` pointer is authored (§7) | regeneration | prose grain only, and nothing behavioural depends on it under either reading | **PROSE_BOUND**, not held |
-| **applying it, per kind** | `skill_proficiency_application` (`skill.proficient`), `saving_throw_proficiency` (`saves.bonus`), `weapon_proficiency` (`weapon.attack_rolls`), `tool_proficiency` (`tool.checks`) | **the subject of the question above** | depends on the answer: under A nothing, under B the mapping itself | not impaired either way — the exact governing prose is bound with span-exact provenance | under A an erratum moving where the bonus applies changes no trusted value, because no trusted value states it | under A only the prose grain exists on a fact-less component, and contract 2 bars any consumer from reading the changed prose as a trusted value, so a behavioural override of *where* the bonus applies is unrepresentable. That is a consequence of Reading A, not authority forcing B: #137's In scope establishes the override *mechanism*, not that any particular rule must be overridable | as proposed: **PROSE_BOUND** (`tool_proficiency` **MIXED**). The typed-field decision is **held — `owner decision needed`** |
-| **the stacking limits** | `bonus_does_not_stack` (`stack.once`, `stack.scaling`, `stack.once_each`) | same subject: a constraint on the same sum | depends on the answer | exact prose bound; the `Expertise` pointer is authored (§7) | as above | as above | **held with the row above**, same question, same dependent decision |
+| **basis and umbrella** | `proficiency_bonus_basis`, `proficiency_bonus_application` | (1) plus (2) as a statement | none. The umbrella states *that* the bonus reaches D20 Tests a creature is proficient in; its two operands are the per-kind clauses below and sheet state, so a field here would restate the four `ProficiencyApplicationFact`s | exact prose bound, and the `Challenge Rating` pointer is authored (§7) | regeneration | prose grain only; nothing behavioural depends on the umbrella now that the per-kind pairings are typed | **PROSE_BOUND**, and deliberately so after the decision |
+| **applying it, per kind** | `skill_proficiency_application` (`skill.proficient`), `saving_throw_proficiency` (`saves.bonus`), `weapon_proficiency` (`weapon.attack_rolls`), `tool_proficiency` (`tool.checks`) | the rule (2), per Owner Decision 2026-09-18 | the pairing of a proficiency kind with the roll its bonus reaches, supplied as typed data rather than read from prose | unchanged — the exact governing prose stays bound with span-exact provenance beside the fact | regeneration restates a pairing, and an erratum moving where the bonus applies now changes a trusted value that states it | `REPLACE` any `ProficiencyApplicationFact`; `APPEND` one onto the component; the prose grain is unaffected. Fully addressable | **MIXED** — one `ProficiencyApplicationFact` each, plus the governing prose. `tool_proficiency` also keeps its `AdvantageFact` |
+| **the stacking limits** | `bonus_does_not_stack` (`stack.once`, `stack.scaling`, `stack.once_each`) | the rule (2), same decision | the add-once limit, the at-most-once multiply and divide, and the printed order between them | exact prose bound; the `Expertise` pointer is authored (§7) | regeneration restates a limit | `REPLACE` or `APPEND` a `ProficiencyBonusOperationLimitFact` | **MIXED** — three limit facts plus the governing prose |
 | **which skill is relevant** | `skill_relevance_sources`, `skill_relevance_judgment` | judgment, and an unmodelled pointer | none; see the tool-Advantage note below for how the judgment enters | both clauses bound, one reason code each | regeneration | prose grain | **PROSE_BOUND**, two reason codes |
 | **pointers to data held elsewhere** | `skill_list`, `determining_skills`, `equipment_proficiency` | another unit's content | none here; a field would pre-empt a batch that has not reviewed its source | exact prose bound | regeneration | prose grain | **PROSE_BOUND**; `skill_list` now also carries an **outstanding** `ReferenceDraft` to the Skills table, so the deferral is tracked rather than described (§7) |
 
-**What the family inspection found.** No existing family can carry "add the
-Proficiency Bonus to *X*"; the nearest is `DerivedQuantityFact`, above. That
-absence is not an argument for prose — an absent vocabulary is what minting a
-family fixes, as the band table shows — and it is not an argument for a field
-either. It is the sizing note above. **Item 1 changed no representation:** no
-field was added, no disposition moved, no vocabulary was widened. The proposal's
-identity did move this round, for §7's two outstanding references alone.
+**What the family inspection found.** No existing family could carry "add the
+Proficiency Bonus to *X*": the nearest, `DerivedQuantityFact`, derives a value
+from an ability modifier over a `TimeUnit`. `RollSpec`/`RollContext` already
+state which roll a fact is about — `ATTACK_ROLL`, `ABILITY_CHECK`,
+`SAVING_THROW`, `D20_TEST` — so the *target* vocabulary existed and is reused
+unchanged; what did not exist is the pairing family and the kinds it pairs. That
+absence was never itself the argument for minting, in either direction: the
+justification is the required-use table above. **The rebuild of this section
+changed no representation on its own** — the representation moved with Owner
+Decision 2026-09-18, and §7 records the resulting identity.
 
 ### Tool Advantage: the judgment and the consequence are not one seam
 
@@ -371,12 +423,23 @@ replaced by the split the two halves actually have.
   ability check"*. The third, whether that skill is *"also used with that
   check"*, is the GameMaster's relevance call, which is why
   `skill_relevance_judgment` carries `gamemaster_latitude` (§5 #9, #12).
+* **The conjunction of the two sheet-state operands is now explicit**, per Owner
+  Decision 2026-09-18: `requires_proficiencies=(skill, tool)` on the same
+  `AdvantageFact` that carries the consequence. It states *that both are
+  required*, in the source's order of mention made canonical; it does not name
+  which skill or which tool, and it does not carry the relevance operand. A
+  reader of the fact can no longer mistake the Advantage for unconditional, and
+  a consumer still cannot fire it, because the two proficiencies are sheet state
+  and the third operand is a judgment.
 * **So what is missing to fire this fact is trigger operands, not a
   discretionary application path.** 15c is one path that *supplies*
   GameMaster-selected judgments; it is not where a deterministic consequence
   goes to be executed, and routing the consequence there would misfile a fixed
-  source rule as a GM-selected effect. No closed applicability vocabulary states
-  that three-way conjunction, and this pilot mints none for it.
+  source rule as a GM-selected effect. The decision is explicit on this: the
+  consequence "must neither become unconditional nor be assigned to
+  discretionary 15c simply because relevance requires judgment." No closed
+  applicability vocabulary states the relevance operand, and this pilot mints
+  none for it.
 * **What `MIXED` plus `CONTEXTUAL` therefore record.** The component's meaning
   lives in both halves, and the fact's meaning lives in the span it claims. Both
   are statements about *where meaning is recorded*. Neither certifies that the
@@ -391,16 +454,23 @@ replaced by the split the two halves actually have.
 
 ### Two remaining choices, unchanged by this rebuild
 
-**One new family, and three new fields.** Schema 13 adds
-`ProficiencyBonusBandFact` (§9) and nothing else. The family is new **and so
-are its three fields** — `bonus: int`, `maximum: int`, `minimum: int | None` —
-which is the minimum that states one printed row: a bonus, the top of the band,
-and a bottom that the first row does not print. An earlier draft of this packet
-said "no other field was added"; that was inaccurate. What is true is narrower:
-**no existing family, vocabulary or component field was widened.**
-`AdvantageFact`, `RollSpec`, `RollActor` and `RollContext` are reused
-unchanged, and every other clause reuses an existing prose-retention code. The
-first band carries `minimum=None` (§5 #1).
+**Three new families, and one widened one.** Schema 13 added
+`ProficiencyBonusBandFact` — `bonus: int`, `maximum: int`, `minimum: int | None`,
+the minimum that states one printed row, with the first band carrying
+`minimum=None` (§5 #1). Schema 14 adds `ProficiencyApplicationFact` and
+`ProficiencyBonusOperationLimitFact` with the two vocabularies they need,
+`ProficiencyKind` and `ProficiencyBonusOperation`.
+
+**`AdvantageFact` is widened, and that is a change from what this packet
+previously claimed.** Earlier revisions said "no existing family, vocabulary or
+component field was widened"; that was true of schema 13 and is **no longer
+true**. `requires_proficiencies: tuple[ProficiencyKind, ...]` is a new field on
+an accepted family. It is registered omit-when-empty under ADR-005d Decision 6's
+post-schema-3 rule, so every one of the 26 `AdvantageFact`s in the committed
+accepted authority still serializes as exactly `['family', 'roll', 'state']` and
+keeps its fact key and its identity: **no accepted artifact is restamped by this
+mint.** `RollSpec`, `RollActor` and `RollContext` are reused unchanged, and every
+other clause reuses an existing prose-retention code.
 
 **Two 5c artifacts are bound, not repaired.** The table caption text
 ` Proficiency Bonus` was absorbed into the trailing end of the body paragraph
@@ -455,13 +525,49 @@ the proposal itself.
 |---|---|---|---|
 | "see 'Rules Glossary'" → **Challenge Rating** | `main.monster_cr` | authored mechanical reference | `glossary.challenge_rating`, scope `srd-5.2.1/rules-glossary`. The target record is not authored yet, so validation reports one `unknown target record`. That is the intended state for a forward citation, matches speed-1's precedent, and blocks publication until the glossary batch lands. |
 | "see 'Rules Glossary'" → **Expertise** | `stack.expertise` | authored mechanical reference | `glossary.expertise`, same scope, same finding, same block. Resolves with no change here once the Expertise entry is authored. |
-| **the Skills table** | `list.skills_table` | **outstanding obligation** | Authored on `skill_list` with `source_text="Skills table"` and an empty target: validation reports `reference srd-5.2.1/rules-glossary:'Skills table': unresolved reference`. The pointer names mechanical content — the table "notes example uses for each skill proficiency as well as the ability check the skill most often applies to" — and is simply not authorable yet: the table is not an assembled record (57 leaves, container `d818241d`, under *Actions* in *Playing the Game*, reviewed by no batch). Closed by reviewing the Skills table as its own unit and filling in the key it mints. |
-| "see 'Actions' later in 'Playing the Game'" | `skill.sources` | **outstanding obligation** | Authored on `skill_relevance_sources` with `source_text="Actions"`, empty target, same `unresolved reference` finding. Mechanical in substance — it says where the skill an action calls for is specified — and not authorable as one edge today: the sentence points at a whole series, and twelve per-action records already exist (`action.attack` … `action.utilize`, accepted by actions-1 over the Rules Glossary `[Action]` entries) with no single target among them. `AbilityCheckFact` already carries a `skill` field, currently `None` on all twelve, so the durable destination is each action record naming its skill — decided by a future batch over the *Actions* section, not by changing accepted content. |
+| **the Skills table** | `list.skills_table` | **outstanding obligation** | Authored on `skill_list` with `source_text="Skills table"`, scope `srd-5.2.1/playing-the-game` and an empty target: validation reports `reference srd-5.2.1/playing-the-game:'Skills table': unresolved reference`. The pointer names mechanical content — the table "notes example uses for each skill proficiency as well as the ability check the skill most often applies to" — and is simply not authorable yet: the table is not an assembled record (57 leaves, container `d818241d`, under *Actions* in *Playing the Game*, reviewed by no batch). Closed by reviewing the Skills table as its own unit and filling in the key it mints. |
+| "see 'Actions' later in 'Playing the Game'" | `skill.sources` | **outstanding obligation** | Authored on `skill_relevance_sources` with `source_text="Actions"`, scope `srd-5.2.1/playing-the-game`, empty target, same `unresolved reference` finding. Mechanical in substance — it says where the skill an action calls for is specified — and not authorable as one edge today: the sentence points at a whole series, and twelve per-action records already exist (`action.attack` … `action.utilize`, accepted by actions-1 over the Rules Glossary `[Action]` entries) with no single target among them. `AbilityCheckFact` already carries a `skill` field, currently `None` on all twelve, so the durable destination is each action record naming its skill — decided by a future batch over the *Actions* section, not by changing accepted content. |
 | "described in 'Character Creation'" | `main.character_levels` | **informational navigation** | The parenthetical says where character level advancement is described. This unit's rule is complete without it: the table gives the bonus for every level and CR it prints, and nothing in the clause needs a value from Character Creation. It points outside the mechanical corpus, so there is no edge to record — it stays governing prose. |
 | "The Proficiency Bonus table shows how the bonus is determined" | `main.table_pointer` | **internal navigation** | Points inside this same unit, at the component this proposal already contains, and is bound as supporting authority. No reference is needed or possible. |
 
 In every case the pointer's **wording survives verbatim** inside the bound
 governing prose, so nothing about the citation is lost.
+
+### Correction: the two outstanding pointers resolve in *Playing the Game*
+
+Both outstanding obligations were authored with
+`scope_key = "srd-5.2.1/rules-glossary"`. That was wrong, and is corrected to
+`srd-5.2.1/playing-the-game` for those two only.
+
+`ReferenceDraft.scope_key` is the **committed resolution scope** — where this
+edge is to be resolved, not where the citing text sits. Both of these point into
+*Playing the Game*: the Skills table is printed in that part, under *Actions*,
+and the *Actions* pointer names a section of it in so many words ("see 'Actions'
+later in 'Playing the Game'"). Committing them to the glossary scope stated that
+a glossary entry is the thing that closes them, which is false in both cases and
+carries a specific hazard: a later Rules Glossary batch reviewed in that scope
+could have looked like the discharge of an obligation it never carried. The
+originating obligation must not be silently discharged by a destination reviewed
+elsewhere.
+
+The two genuinely glossary-directed references, `Challenge Rating` and
+`Expertise`, are **unchanged** — those really do resolve against glossary
+records, and their `unknown target record` findings are unchanged too.
+
+Nothing else moves with this. Both destinations stay **empty**; no final target
+identifier is invented, no destination is ingested, and no acceptance is
+implied. The standalone finding set changes only in which scope it names:
+
+```
+reference srd-5.2.1/playing-the-game:'Actions': unresolved reference
+reference srd-5.2.1/playing-the-game:'Skills table': unresolved reference
+reference srd-5.2.1/rules-glossary:'Challenge Rating': unknown target record glossary.challenge_rating
+reference srd-5.2.1/rules-glossary:'Expertise': unknown target record glossary.expertise
+```
+
+`test_proficiency_1_proposal.py` asserts the `(source_text, scope_key)` set
+exactly, so the correction cannot silently revert, and the five
+outstanding-obligation proofs above run against the corrected scope.
 
 ### How the two outstanding obligations stay detectable
 
@@ -502,9 +608,12 @@ the pilot before the two destinations are reviewed. The empty-target form does
 not make that risk worse than the alternative: a guessed key carries the same
 permanent-block risk *plus* the silent-coincidental-discharge risk above.
 
-### Proposal identity after this change
+### Proposal identity after each change
 
-The proposal was regenerated. Its meaning changed, so its identity changed:
+The proposal was regenerated in each round. Its meaning changed, so its identity
+changed. Both steps are recorded; neither intermediate artifact was accepted.
+
+**Round 1 — authoring the two outstanding obligations.**
 
 | | before | after |
 |---|---|---|
@@ -512,10 +621,33 @@ The proposal was regenerated. Its meaning changed, so its identity changed:
 | file sha256 | `b74b6056688a1a6a3750cd1271fa7af6eb670cc05c16b6bf5f8e68f2442dadfa` | `a56829dde1db9281f8c3e1df78f0feb32f0496a2c50651739198deee8058a6c8` |
 | bytes | 54,507 | 55,439 |
 
-The exact semantic delta is **+2 `ReferenceDraft` elements with empty targets and
-+2 `ProvenanceClaim` edges** (50 → 52). Nothing else moved: 47 spans, 13
-components, 23 bindings, 8 bands, 22 expected rules, 30 leaves, the four-part
-binding, and every prose/source binding are unchanged. **No new acceptance is
+The delta was **+2 `ReferenceDraft` elements with empty targets and +2
+`ProvenanceClaim` edges** (50 → 52). Nothing else moved.
+
+**Round 2 — the typed rule inputs and the scope-key correction.**
+
+| | before | after |
+|---|---|---|
+| proposal identity | `11481e020ce08119938dcfd7e9df6a9f84c945f6ad63de2d5a47bcfc45110417` | `a6fc5285ced73ea55901ad6fbcbc94c399ca44491791385d5e28132359517fba` |
+| file sha256 | `a56829dde1db9281f8c3e1df78f0feb32f0496a2c50651739198deee8058a6c8` | `eb0fafb06c8891aeee0e9ccf416f46067b855b6504c6653c2172cdbd3bb71055` |
+| bytes | 55,439 | 60,468 |
+| representation schema | `5d-representation-schema-13` / `39710a37…` | `5d-representation-schema-14` / `14284d53…` |
+
+The exact semantic delta, component by component:
+
+| change | where |
+|---|---|
+| **+4 `ProficiencyApplicationFact`** | `skill_proficiency_application` (skill → ability_check), `saving_throw_proficiency` (saving_throw → saving_throw), `weapon_proficiency` (weapon → attack_roll), `tool_proficiency` (tool → ability_check) |
+| **+3 `ProficiencyBonusOperationLimitFact`** | `bonus_does_not_stack`: `add`/1, `multiply`/1 `precedes=add`, `divide`/1 `precedes=add` |
+| **+1 field on 1 existing fact** | `requires_proficiencies=('skill','tool')` on `tool_proficiency`'s `AdvantageFact` |
+| **4 components move `prose_bound` → `mixed`** | the four above; `tool_proficiency` was already `mixed` |
+| **+9 `ProvenanceClaim` edges** | 52 → 61, one per new fact, each `CONTEXTUAL` onto the span its clause was read from |
+| **+7 expected rules** | 22 → 29 |
+| **2 `scope_key` corrections** | the two outstanding obligations, `rules-glossary` → `playing-the-game` |
+
+Unchanged: 47 spans, 13 components, 23 prose bindings, 8 bands, 30 leaves (1
+excluded by 5c), 4 references, the four-part release binding, the Speed-style
+data/scope order, and every prose/source binding. **No new acceptance is
 authorized by this packet, and none is claimed;** the delta is recorded here so
 the new identity can be reviewed independently.
 
@@ -574,19 +706,15 @@ reviewable.
    as `conditions-1` did at schema 3. Pre-existing limitation, not introduced
    here, and **`out of scope`** for this pilot. It is why this packet does not
    recommend accepting the pilot ahead of the two destinations.
-9. **Whether the per-kind application clauses need a typed field is held, not
-   answered** (§6). `skill_proficiency_application`, `saving_throw_proficiency`,
-   `weapon_proficiency`, `tool_proficiency` and `bonus_does_not_stack` state
-   where the Proficiency Bonus is added and how often. Whether that mapping is
-   Rules-Package-supplied typed data or fixed by sheet or adapter semantics is
-   not settled by anything adopted: ADR-015 Decision 7 fixes the assembly
-   **input list** and the adapter's d20-only **breadth**, not which input carries
-   the mapping; ADR-005d's rejected alternative 7 and #137's *"prose cannot
-   conceal a field required by such a use"* forbid deciding it from adapter
-   coverage; and contract 2's own test is circular until the ownership call is
-   made. **`owner decision needed`** — the exact question, both readings with
-   their citations, and the cost of the affirmative answer are in §6. Nothing is
-   implemented against it and no field was invented to close it.
+9. **The per-kind application question is answered, and the answer is bounded**
+   (§6). Owner Decision 2026-09-18 makes the Rules Package the supplier of where
+   proficiency applies, its addition and scaling limits, and the tool-Advantage
+   condition; ADR-005d Decision 4 carries the amendment. Schema 14 represents
+   those three and stops. What the decision explicitly does **not** do is require
+   structuring every reducible passage or settle any downstream sheet or adapter
+   behavior — Character Sheet Model policy (#137's 2b) and adapter execution
+   (15c) are untouched, and ADR-005d Decision 11 is unchanged. `patched` for the
+   question; the downstream seams stay where Decision 11 leaves them.
 10. **Prose does not discharge a later operation's field.** If an operation
    later needs an input this section holds only as prose — the
    class-construction constraint of `saves.class_minimum` ("at least two saving
@@ -594,11 +722,33 @@ reviewable.
    contract 2 and ADR-005d Decision 2 require that field **before** the
    operation relies on the rule. That obligation is not claimed to be
    discharged here.
-11. **The tool-Advantage trigger is unrepresented, deliberately** (§6). Its
-   consequence is typed; its three operands are two sheet states and one
-   GameMaster judgment, and no closed applicability vocabulary states that
-   conjunction. Recorded as `MIXED` + `CONTEXTUAL`; no trigger family is minted
-   and no consumer is authorized to fire the fact.
+11. **The tool-Advantage trigger is partly represented, deliberately** (§6). The
+   consequence is typed, and the conjunction of its two sheet-state operands is
+   now explicit on the fact — `requires_proficiencies=('skill','tool')`. The
+   third operand, whether the skill is *"also used with that check"*, is the
+   GameMaster's relevance call and stays unrepresented: no closed applicability
+   vocabulary states it, no trigger family is minted, and **no consumer is
+   authorized to fire the fact**. The consequence is neither made unconditional
+   nor moved to discretionary 15c handling.
+
+12. **`AdvantageFact` is widened, and the widening is invisible to accepted
+   content by construction** (§6). `requires_proficiencies` is registered
+   omit-when-empty under ADR-005d Decision 6's post-schema-3 rule. All 26
+   `AdvantageFact`s in the committed accepted authority still serialize as
+   exactly `['family', 'roll', 'state']` and read back with an empty
+   requirement; `test_schema_14_proficiency_inputs.py` asserts that over the
+   committed artifact, and `test_committed_accepted_authority.py` separately
+   asserts that the oracle identity survives the schema-14 lift unchanged. No
+   accepted artifact is restamped. Stated as residue because "no accepted family was
+   widened" was true of schema 13 and is no longer true of this proposal.
+
+13. **The two outstanding pointers' `scope_key` was wrong and is corrected**
+   (§7). Both were authored under `srd-5.2.1/rules-glossary` though both point
+   into *Playing the Game*. `scope_key` is the committed resolution scope, so the
+   original authoring stated that a glossary entry would close them — which would
+   have let a later glossary review look like the discharge of an obligation it
+   never carried. `patched`; both destinations stay empty, the two genuinely
+   glossary-directed references are unchanged, and nothing is ingested.
 
 ## 9. What the pilot cost
 
@@ -616,9 +766,11 @@ there is nothing to compare elapsed time against and none is invented.
 | **whole pilot run** | **2 h 47 m 50 s** (dispatch → 09:36:46.529 Z) | the matching `…-usage.json` `finished_utc`: the same run carried through CI waiting and reporting after the commit. That file also records **seven** context compactions and 306 agent turns. |
 | **local gate wait, final pass** | **1,198 s ≈ 20 m** | `tests/ingestion` 867.97 s + `tests --ignore=tests/ingestion` 330.03 s. Waiting, not work, and it recurs on every pass. |
 | **CI wait, final head** | **31 m 44 s** | run `35202642012`, created 08:59:15 Z, updated 09:30:59 Z, conclusion `success`. Also waiting. |
-| **production footprint** | **199 insertions, 2 deletions, 3 files** | `representation.py` 128/1, `projection.py` 19/1, `schema_lift.py` 52/0. |
-| **batch-specific footprint** | **1,151** generator + **534** proposal-test lines, no accept script | the generator and test as they now stand (1,109 and 224 at `23f49d2`; the growth is §7's outstanding-obligation authoring and its five proofs), plus the 1,782-line `PROPOSAL.json` and this packet, which are data and prose rather than program. |
-| **mint maintenance** | **101 insertions, 41 deletions across 19 pre-existing files** | the schema-hash restamp; see the diagnosis below. |
+| **production footprint, schema 13** | **199 insertions, 2 deletions, 3 files** | `representation.py` 128/1, `projection.py` 19/1, `schema_lift.py` 52/0. |
+| **production footprint, schema 14** | **454 insertions, 4 deletions, the same 3 files** | `representation.py` 375/3, `schema_lift.py` 61/0, `projection.py` 18/1. Two families, two vocabularies, one widened field, one lift step — **and** the manifest-rendering repair diagnosed below, which is maintenance rather than mint. |
+| **batch-specific footprint** | **1,337** generator + **555** proposal-test + **863** schema-14-test lines, no accept script | the generator and tests as they now stand (1,109 / 224 at `23f49d2`; the growth is §7's outstanding-obligation authoring and its five proofs, then this round's typed inputs and their 35 proofs), plus the 1,991-line `PROPOSAL.json` and this packet, which are data and prose rather than program. |
+| **mint maintenance, schema 13** | **101 insertions, 41 deletions across 19 pre-existing files** | the schema-hash restamp; see the diagnosis below. |
+| **mint maintenance, schema 14** | **201 insertions, 44 deletions across 13 pre-existing non-`src` files** | of which 7 files are restamp or probe-bump and 6 gained real new assertions; see the diagnosis below. |
 
 Neither wait is interchangeable with either interval. The final local gate pass
 falls **inside** the 2 h 09 m interval, so ~20 m of it is machine time rather
@@ -636,7 +788,13 @@ above — run intervals, not hands-on time:
 |---|---|---|
 | review remediation 1 | **2 h 22 m 53 s** (`duration_ms` 8,572,767; `23f49d2` → `63e0ceb`), 133 agent turns, 2 compactions | the five-part correction round |
 | review remediation 2 | **1 h 54 m 11 s** (`duration_ms` 6,851,165; `63e0ceb` → `281cf54`), 76 agent turns, 2 compactions | the three-part correction round |
-| this Owner-review round | started 2026-09-18 03:22:33 Z from `281cf54`; its `…-usage.json` is written when the run ends, so no total is claimed for it here | items 1–3 of the Owner's review |
+| this Owner-review round | started 2026-09-18 03:22:33 Z from `281cf54`; its `…-usage.json` is written when the run ends, so no total is claimed for it here | items 1–3 of the Owner's review, ending at `7e7ed28` |
+| typed-inputs round, first attempt | **stopped during inspection with no final result**; cause unknown, stderr empty | nothing. The tracked tree was clean at `7e7ed28` when it stopped, so no work was lost and none was silently carried forward. |
+| typed-inputs round, retry | no launcher or usage record for either the stopped attempt or this retry is reachable from the repository, so **no interval is claimed for either** | Owner Decision 2026-09-18, schema 14, the scope-key correction and this reconciliation |
+
+The stopped attempt is recorded rather than dropped: a failed run is part of
+the cost even when it produced no commit, and the honest figure for it is
+*unknown*, not *zero*. No elapsed time is invented for it.
 
 Two things follow from those numbers rather than from optimism. **Review
 correction has taken more elapsed time than authoring the batch did** — 4 h 17 m
@@ -685,9 +843,28 @@ src/afterworlds/ingestion/mechanical/schema_lift.py     |  52 ++
 3 files changed, 199 insertions(+), 2 deletions(-)
 ```
 
-That is the whole production footprint: a new `ProficiencyBonusBandFact`
-family, its projection wiring, and one lift step. Additive: it adds a family and
-its wiring and widens no existing family, vocabulary or field.
+That was the whole schema-13 production footprint: a new
+`ProficiencyBonusBandFact` family, its projection wiring, and one lift step.
+Additive, and widening no existing family, vocabulary or field.
+
+**Supporting engineering: schema 14, two families, two vocabularies and one
+widened field.**
+
+```
+src/afterworlds/ingestion/mechanical/representation.py  | 378 +++-
+src/afterworlds/ingestion/mechanical/schema_lift.py     |  61 ++
+src/afterworlds/ingestion/mechanical/projection.py      |  19 +-
+3 files changed, 454 insertions(+), 4 deletions(-)
+```
+
+The same three files, and roughly twice the delta for a mint that is, in schema
+terms, about twice the size. Three things inside that number are worth separating
+from the mint itself: the widened `AdvantageFact` field and its omit-when-empty
+registration; the manifest-rendering repair diagnosed below, which is maintenance
+of a pre-existing table rather than new contract; and black's reformatting of
+neighbouring checker and builder code, which the gate applied to pre-existing
+lines in the same file. The line count is therefore an upper bound on what the
+two new families cost, not a measurement of them.
 
 ### Diagnosis 1 — the schema restamp is the real recurring maintenance
 
@@ -712,7 +889,62 @@ serialized grammar. This mint is 199/2 across 3 files and adds one family. What
 the two share is the restamp, and two mints is two data points rather than a
 trend.
 
-A counting note, so the figures are not read as more than they are. All four
+**Schema 14 is the third data point, and it is not smaller.** 13 pre-existing
+non-`src` files, 201 insertions and 44 deletions, measured the same way. Seven of
+those files are restamp or probe-bump in the narrow sense — `bounded_oracle.json`
+(2 hash sites), `test_representation_schema_identity.py`,
+`test_review_round_7_draft_exact_types.py`,
+`tests/services/rules_authority/test_review_round_5_component_patch_schema2.py`
+(one literal each), `_schema_pins.py`'s declared pair, and the two unminted-probe
+bumps. The other six gained real new assertions. So the consolidation did what it
+was meant to do — the repeats moved to one place — and the **literal canaries
+still cost one edit each, by design.**
+
+**And the restamp happened twice this round**, which is the part worth reading.
+The schema-14 hash was first pinned as `c0e5a4d3…` across five files, then moved
+to `14284d53…` when the manifest-rendering gap below was repaired, and all five
+were edited again. Nothing detected the first value as wrong, because the hash is
+computed over the same manifest the rendering produces: a self-consistent wrong
+answer.
+
+### Diagnosis 1b — the mint had to hand-extend a table, and nothing noticed
+
+This is the clearest piece of repeated-schema-maintenance evidence the pilot
+produced, and it was found by review rather than by a test.
+
+`representation.py` carries two hand-maintained per-schema tables:
+`_vocabulary_shape`, which renders each declared-meaning manifest row, and
+`_collect_post_schema_3`, which holds one member index per schema so
+`declared_meaning_violations` can refuse a *member* an earlier contract never
+admitted. Every schema from 3 onward has an entry in both. **The schema-14 mint
+had to add both by hand, and the first version of it added neither.**
+
+The consequence was silent. All seven schema-14 `vocabulary_member` manifest
+rows rendered `vocabulary: null` — contradicting the manifest's own rule that a
+vocabulary is identified by its complete admitted value set — and the schema hash
+computed over that manifest matched its pin exactly, because the pin had been
+generated from the same broken rendering. No test failed. The declared-meaning
+refusals that should have fired at member level did not fire, so
+`declared_meaning_violations(draft, SCHEMA_13_VERSION)` reported 8 findings where
+it should have reported 19.
+
+Repairing it cost: two table entries, a new module-level member index, one
+`_vocabulary_shape` chain link, the second restamp of five files above — and
+then a **second** latent gap surfaced immediately.
+`test_schema_version_legality.py::test_every_manifest_row_has_an_exemplar_here`
+began failing on `['add', 'divide', 'multiply']`: the `ProficiencyBonusOperation`
+vocabulary group had no exemplar, and had been invisible to that check for as
+long as the rows rendered null. Closing it took a new `SCHEMA_14_ONLY` exemplar
+set and two directional tests, one per direction of the succession.
+
+Neither gap was a legality hole in accepted content — no accepted artifact
+declares schema 14 — but both were false statements by the code about its own
+contract, and both were reachable only by reading the manifest a mint produces.
+**A fourth mint should expect the same two hand-extensions, and there is still no
+check that fails when a mint forgets them.** Building one is not in this pilot's
+scope, and it is named here so the cost is not rediscovered a fourth time.
+
+A counting note, so the figures are not read as more than they are. All the
 restamp numbers above are `--diff-filter=M` over pre-existing files only.
 `eef9a08`'s *total* non-`src` delta is larger — 769/97 across 22 files — because
 it also **added** test modules in the same commit; those additions are not
@@ -770,10 +1002,18 @@ literally: **15 before, 6 after** (`git grep` over `SCHEMA_13_HASH`,
 `5d-lift-schema-12-to-13`). Of the six, four are deliberate — the full-chain
 canary, the two per-version modules, and this mint's own module — one is the JSON
 fixture, and one is `_schema_pins.py` itself. The three literal-hash canaries sit
-outside that grep by construction and stay as they are. So a sixth mint's restamp
-is the fixture's schema block, this module's two lines plus one crossing row and
-one probe bump, the three canaries, the full-chain canary, and the per-version
-modules that genuinely state their own semantics.
+outside that grep by construction and stay as they are.
+
+**Re-measured after the schema-14 mint**, over the equivalent terms
+(`SCHEMA_14_HASH`, `SCHEMA_14_VERSION`, `5d-representation-schema-15`,
+`5d-lift-schema-13-to-14`): **8 files**. Seven are the same categories one
+schema later — `_schema_pins.py`, the fixture, the full-chain canary, the two
+unminted-probe sites, and the two per-version modules that state their own
+semantics — plus `test_schema_version_legality.py`, which now names schema 14
+because it holds the manifest exemplars. The eighth is this mint's own module,
+`test_schema_14_proficiency_inputs.py`. The consolidation held: the count did not
+grow back toward 15, and the growth that did occur is one new per-version module,
+which is the pattern the packet already describes as deliberate.
 
 No historical test was weakened and no generic schema framework was introduced.
 The pins that remain exist deliberately: each is a canary that fails when
@@ -807,13 +1047,31 @@ What remains genuinely per-batch, honestly:
 * **Nothing else.** No accept script, no reproduction implementation, no
   private-parser reload.
 
-So the honest answer to "is this ready to scale?" is: the *tooling* obstacle is
-gone for a section of this shape, and the remaining recurring cost is the
-restamp plus roughly twenty minutes of local suite and half an hour of CI per
-pass. The remaining *authoring* obstacle is judgment — which clauses are one
-rule, and which prose retentions honestly earn their reason code — and this
-pilot produced no evidence that judgment gets cheaper with repetition. One
-section is one data point.
+So the honest answer to "is this ready to scale?" is narrower than an earlier
+revision of this section claimed. That revision said the *tooling obstacle is
+gone*. **That conclusion is withdrawn; it is not supported by what was
+measured.** What is supported:
+
+* **Shared reuse is demonstrated on one section.** The merged services carried
+  this batch with no new machinery: `validate_partition`, `review_unit_violations`
+  and standalone `validate_representation`, plus the mutation check. No accept
+  script, no reproduction implementation, no private-parser reload.
+* **Cheap scaling and improved throughput are unproven.** One section is one data
+  point, and nothing here measures throughput. The generator line counts in the
+  table above are **file sizes**, not hours and not output rate; code footprint is
+  not throughput, and a smaller generator than speed-1's is not evidence that the
+  next section will be faster to author.
+* **The recurring cost is visible and did not shrink.** Three mints, three
+  restamps — the third of them done twice (Diagnosis 1 and 1b) — plus two
+  hand-maintained per-schema tables with no check that fails when a mint forgets
+  them, roughly twenty minutes of local suite and half an hour of CI per pass,
+  and a correction overhead that has now exceeded the authoring interval: 4 h 17 m
+  across the two completed correction rounds against the 2 h 48 m pilot run,
+  before this round and its stopped attempt.
+* **The remaining *authoring* obstacle is judgment** — which clauses are one
+  rule, which prose retentions honestly earn their reason code, and which rule
+  inputs a decision actually requires — and this pilot produced no evidence that
+  judgment gets cheaper with repetition.
 
 Final local gates on the branch head at the time the pilot was reported:
 `black` and `ruff` clean over 478 files, `mypy` clean over 225 source files,
@@ -822,14 +1080,26 @@ and the suite in two chunks — `tests/ingestion` **3,226 passed** in 867.97 s,
 total coverage **94.39%**. `pip-audit` reports 29 pre-existing advisories
 across 10 third-party packages, unchanged by this branch.
 
-For the round that produced this revision, proportional to its delta: the whole
-changed area, `tests/ingestion/mechanical`, **3,019 passed** in 178.65 s, and
-`black`/`ruff` clean over 480 files. `mypy src/` is not rerun and no result for
-it is claimed for this round — `src/` is untouched, and every change is under
-`tests/ingestion/mechanical` or `.claude/review-notes/`, so the second suite
-chunk (`tests --ignore=tests/ingestion`) has no changed input either. Full-suite
-and audit evidence for the final head is the CI run cited in the PR
-description.
+For the round that produced this revision, the full set was rerun, because
+unlike the previous round this one changes `src/`: `ruff check --fix src/ tests/`
+made one correction and `black src/ tests/` reformatted one file, after which
+`ruff check src/ tests/` and `black` are clean over 481 files and `mypy src/`
+succeeds over **225 source files**. The suite ran in the usual two chunks —
+`tests/ingestion` **3,317 passed** in 878.80 s, then
+`tests --ignore=tests/ingestion --cov-append` **2,775 passed, 10 skipped** in
+332.78 s, total coverage **94.29%**. (The first chunk's own coverage gate fails
+on a partial run by design; the figure that counts is the appended total.)
+`pip-audit` reports **28 advisories across 10 third-party packages** — chromadb,
+click, cryptography, idna, mako, msgpack, pip, pydantic-settings, setuptools,
+urllib3 — all pre-existing and none introduced by this branch. `detect-secrets`
+was run exactly as `.pre-commit-config.yaml` configures it, over the staged
+change, and exits clean after the two already-registered blocks
+(`issue-5d-batch-proficiency-1-PROPOSAL.json`, `bounded_oracle.json`) were
+rescanned additively; CI does not run that hook, so this local invocation is its
+only evidence. The generator was rerun and produced byte-identical output —
+sha256 `eb0fafb0…` — which is the determinism check, not `git diff --quiet`
+against a HEAD that still holds the previous proposal. Full-suite and audit
+evidence for the final head is the CI run cited in the PR description.
 
 ## 10. How to verify this packet
 
@@ -840,8 +1110,14 @@ python .claude/review-notes/issue-5d-batch-proficiency-1-generator.py
 # the committed retained proposal, through the production path
 pytest tests/ingestion/mechanical/test_proficiency_1_proposal.py -q --no-cov
 
-# the new family's numeric contract and the schema-12/13 boundary
+# the band family's numeric contract and the schema-12/13 boundary
 pytest tests/ingestion/mechanical/test_schema_13_proficiency.py -q --no-cov
+
+# the typed rule inputs, the schema-13/14 boundary, and the override view
+pytest tests/ingestion/mechanical/test_schema_14_proficiency_inputs.py -q --no-cov
+
+# both directions of the schema-14 legality succession, and manifest exemplars
+pytest tests/ingestion/mechanical/test_schema_version_legality.py -q --no-cov
 
 # the consolidated schema pins, against the registry and the live contract
 pytest tests/ingestion/mechanical/test_schema_6_succession.py -q --no-cov
@@ -859,7 +1135,7 @@ oracle is byte-identical before and after. That acceptance is isolated test
 evidence that the proposal is structurally acceptable. **It is not a semantic
 acceptance and confers none.**
 
-`test_schema_13_proficiency.py` covers what is specific to the new family and
+`test_schema_13_proficiency.py` covers what is specific to the band family and
 deliberately does not repeat what the suite already has. Generic family
 behaviour — payload round-tripping for every declared family, unknown-family
 refusal, persistence — stays in `test_fact_families.py` and the per-schema
@@ -869,6 +1145,28 @@ defaulting to 1); the numeric contract, one case each for a bonus that adds
 nothing, an upper bound below the first level or CR, a lower bound below it,
 and a band that runs backwards; non-integer field values including `bool`,
 which matters because `isinstance(True, int)` is true in Python; and the schema
-boundary asserted on the committed proposal itself — **schema 12 refuses it for
-exactly the eight band facts and nothing else**, schema 13 admits it with no
-violation, and the crossing is one registered lift step.
+boundary asserted on the committed proposal itself. That last claim is now made
+as a **partition**, because the same draft has moved on to schema 14: schema 12
+refuses it for exactly the eight band facts *plus* the schema-14 reasons, so the
+module asserts the schema-13 share by the version each finding names, asserts
+that schema 13 refuses exactly the remainder and refuses it for the later reason,
+and asserts that schema 14 admits the whole draft. Nothing is dropped from the
+older claim; it is stated over the share schema 13 is responsible for.
+
+`test_schema_14_proficiency_inputs.py` is this round's module, 35 tests over the
+committed proposal and the production paths. Its docstring states each new
+field's required use and the consequence of omitting it, and names what is
+deliberately absent: no evaluation, no character state, no adapter or sheet
+behaviour, nothing accepted. What it proves: the four printed applications and
+the three operation limits exactly as §5 lists them; the tool conjunction with
+its prose binding retained; typed round-tripping of every new fact; seven
+invariant refusals and five builder refusals; that the omit-when-empty field
+leaves a plain `AdvantageFact` payload as exactly `['family', 'roll', 'state']`;
+that all 26 accepted
+`AdvantageFact`s still carry the schema-3 payload; span-exact `CONTEXTUAL`
+provenance for every new fact and the finding reported when a claim is stripped; persistence and reconstruction with the projection
+identity preserved, and the identity moving when the conjunction is dropped;
+`DISABLE` override addressing through `apply_override_set` and the effective
+view; the one-step schema-13→14 crossing; and that schema 13 refuses the draft by
+the field **and** by its vocabulary members, which is what proves the member
+index of Diagnosis 1b is actually wired.

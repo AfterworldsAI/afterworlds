@@ -137,7 +137,11 @@ from afterworlds.ingestion.mechanical.representation import (
     MovementTransportFact,
     MovementWindow,
     ParticipantRole,
+    ProficiencyApplicationFact,
     ProficiencyBonusBandFact,
+    ProficiencyBonusOperation,
+    ProficiencyBonusOperationLimitFact,
+    ProficiencyKind,
     ProgressionEntryFact,
     QuantityMultiplierFact,
     RangeKind,
@@ -620,6 +624,22 @@ EXEMPLARS: dict[FactFamily, Any] = {
     # entire move."
     FactFamily.MOVEMENT_COMPOSITION: MovementCompositionFact(
         composes=MovementComposition.COMBINED_WITH_REGULAR_MOVEMENT,
+    ),
+    # Skill Proficiencies: "If a creature is proficient in a skill, the
+    # creature applies its Proficiency Bonus to ability checks involving
+    # that skill." One of the section's four printed applications; the
+    # other three name saving throws, weapons and tools.
+    FactFamily.PROFICIENCY_APPLICATION: ProficiencyApplicationFact(
+        proficiency=ProficiencyKind.SKILL,
+        roll=RollSpec(actor=RollActor.SUBJECT, context=RollContext.ABILITY_CHECK),
+    ),
+    # The Bonus Doesn't Stack: "Your Proficiency Bonus can't be added to a
+    # die roll or another number more than once." The arity is printed;
+    # addition is the operation nothing is printed as preceding.
+    FactFamily.PROFICIENCY_BONUS_OPERATION_LIMIT: ProficiencyBonusOperationLimitFact(
+        operation=ProficiencyBonusOperation.ADD,
+        maximum_applications=1,
+        precedes=None,
     ),
 }
 

@@ -1,6 +1,6 @@
 {
  "artifact_kind": "machine_proposal",
- "proposal_origin": "issue-5d-batch-proficiency-1-generator.py (CRD Issue 5d batch proficiency-1, representation schema 13)",
+ "proposal_origin": "issue-5d-batch-proficiency-1-generator.py (CRD Issue 5d batch proficiency-1, representation schema 14)",
  "proposal_schema_version": "5d-proposal-2",
  "proposed_representation": {
   "components": [
@@ -13,17 +13,6 @@
     "options": [],
     "record_key": "play.proficiency",
     "semantic_key": "skill_relevance_judgment"
-   },
-   {
-    "applies_when": null,
-    "fact_qualifiers": [],
-    "facts": [],
-    "handling": "prose_bound",
-    "irreducibility_reason_code": null,
-    "options": [],
-    "prose_retention_reason_code": "no_identified_structured_use",
-    "record_key": "play.proficiency",
-    "semantic_key": "bonus_does_not_stack"
    },
    {
     "applies_when": null,
@@ -78,17 +67,6 @@
     "options": [],
     "prose_retention_reason_code": "no_identified_structured_use",
     "record_key": "play.proficiency",
-    "semantic_key": "saving_throw_proficiency"
-   },
-   {
-    "applies_when": null,
-    "fact_qualifiers": [],
-    "facts": [],
-    "handling": "prose_bound",
-    "irreducibility_reason_code": null,
-    "options": [],
-    "prose_retention_reason_code": "no_identified_structured_use",
-    "record_key": "play.proficiency",
     "semantic_key": "skill_list"
    },
    {
@@ -100,29 +78,7 @@
     "options": [],
     "prose_retention_reason_code": "no_identified_structured_use",
     "record_key": "play.proficiency",
-    "semantic_key": "skill_proficiency_application"
-   },
-   {
-    "applies_when": null,
-    "fact_qualifiers": [],
-    "facts": [],
-    "handling": "prose_bound",
-    "irreducibility_reason_code": null,
-    "options": [],
-    "prose_retention_reason_code": "no_identified_structured_use",
-    "record_key": "play.proficiency",
     "semantic_key": "skill_relevance_sources"
-   },
-   {
-    "applies_when": null,
-    "fact_qualifiers": [],
-    "facts": [],
-    "handling": "prose_bound",
-    "irreducibility_reason_code": null,
-    "options": [],
-    "prose_retention_reason_code": "no_identified_structured_use",
-    "record_key": "play.proficiency",
-    "semantic_key": "weapon_proficiency"
    },
    {
     "applies_when": null,
@@ -189,12 +145,25 @@
     "facts": [
      {
       "family": "advantage",
+      "requires_proficiencies": [
+       "skill",
+       "tool"
+      ],
       "roll": {
        "ability": null,
        "actor": "subject",
        "context": "ability_check"
       },
       "state": "advantage"
+     },
+     {
+      "family": "proficiency_application",
+      "proficiency": "tool",
+      "roll": {
+       "ability": null,
+       "actor": "subject",
+       "context": "ability_check"
+      }
      }
     ],
     "handling": "mixed",
@@ -203,6 +172,99 @@
     "prose_retention_reason_code": "no_identified_structured_use",
     "record_key": "play.proficiency",
     "semantic_key": "tool_proficiency"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "proficiency_application",
+      "proficiency": "saving_throw",
+      "roll": {
+       "ability": null,
+       "actor": "subject",
+       "context": "saving_throw"
+      }
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.proficiency",
+    "semantic_key": "saving_throw_proficiency"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "proficiency_application",
+      "proficiency": "skill",
+      "roll": {
+       "ability": null,
+       "actor": "subject",
+       "context": "ability_check"
+      }
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.proficiency",
+    "semantic_key": "skill_proficiency_application"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "proficiency_application",
+      "proficiency": "weapon",
+      "roll": {
+       "ability": null,
+       "actor": "subject",
+       "context": "attack_roll"
+      }
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.proficiency",
+    "semantic_key": "weapon_proficiency"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "proficiency_bonus_operation_limit",
+      "maximum_applications": 1,
+      "operation": "add",
+      "precedes": null
+     },
+     {
+      "family": "proficiency_bonus_operation_limit",
+      "maximum_applications": 1,
+      "operation": "divide",
+      "precedes": "add"
+     },
+     {
+      "family": "proficiency_bonus_operation_limit",
+      "maximum_applications": 1,
+      "operation": "multiply",
+      "precedes": "add"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.proficiency",
+    "semantic_key": "bonus_does_not_stack"
    }
   ],
   "prose_bindings": [
@@ -448,11 +510,21 @@
    },
    {
     "role": "contextual",
+    "span_id": "120d037c-5783-5923-84a2-e62c90286ea8",
+    "target_key": [
+     "play.proficiency",
+     "saving_throw_proficiency",
+     "952d38049c97b0da"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
     "span_id": "1425564a-aa9a-59bc-a657-53e825d8d1eb",
     "target_key": [
      "play.proficiency",
      "tool_proficiency",
-     "c234bac28992f36b"
+     "a3b119819c85b509"
     ],
     "target_kind": "fact"
    },
@@ -488,11 +560,31 @@
    },
    {
     "role": "contextual",
+    "span_id": "25ecaf72-0f86-58af-b6ed-191d43ab53f3",
+    "target_key": [
+     "play.proficiency",
+     "bonus_does_not_stack",
+     "a8da4a76b676b90a"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
     "span_id": "27ea6091-6b62-5286-b6c7-c50305a694fc",
     "target_key": [
      "play.proficiency"
     ],
     "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "2c96d390-620f-5221-a312-ebdb3edab1b0",
+    "target_key": [
+     "play.proficiency",
+     "weapon_proficiency",
+     "6df96106d475bb20"
+    ],
+    "target_kind": "fact"
    },
    {
     "role": "contextual",
@@ -502,6 +594,26 @@
      "proficiency_bonus_table"
     ],
     "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "35aad074-449b-52a9-be70-0789a7e7673f",
+    "target_key": [
+     "play.proficiency",
+     "bonus_does_not_stack",
+     "92cbea2059470b1d"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "35aad074-449b-52a9-be70-0789a7e7673f",
+    "target_key": [
+     "play.proficiency",
+     "bonus_does_not_stack",
+     "bd98d680f53886c6"
+    ],
+    "target_kind": "fact"
    },
    {
     "role": "contextual",
@@ -523,15 +635,55 @@
    },
    {
     "role": "contextual",
+    "span_id": "72bc5b6c-406d-5ca3-b80a-748ed43f798c",
+    "target_key": [
+     "play.proficiency",
+     "bonus_does_not_stack",
+     "92cbea2059470b1d"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "72bc5b6c-406d-5ca3-b80a-748ed43f798c",
+    "target_key": [
+     "play.proficiency",
+     "bonus_does_not_stack",
+     "bd98d680f53886c6"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
     "span_id": "8a3f9441-c376-55c3-9ca1-c28d0e8864bb",
     "target_key": [
      "play.proficiency",
      "skill_list",
      "Skills table",
-     "srd-5.2.1/rules-glossary",
+     "srd-5.2.1/playing-the-game",
      ""
     ],
     "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "9394c1d2-4d5c-589a-9d82-559880829bc8",
+    "target_key": [
+     "play.proficiency",
+     "tool_proficiency",
+     "a94bbe729b664ab9"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "9bbd64a5-10e0-5feb-8580-d1eb91979369",
+    "target_key": [
+     "play.proficiency",
+     "skill_proficiency_application",
+     "334a40e5c8ad7e09"
+    ],
+    "target_kind": "fact"
    },
    {
     "role": "contextual",
@@ -549,7 +701,7 @@
      "play.proficiency",
      "skill_relevance_sources",
      "Actions",
-     "srd-5.2.1/rules-glossary",
+     "srd-5.2.1/playing-the-game",
      ""
     ],
     "target_kind": "reference"
@@ -1024,14 +1176,14 @@
    {
     "from_component_key": "skill_list",
     "from_record_key": "play.proficiency",
-    "scope_key": "srd-5.2.1/rules-glossary",
+    "scope_key": "srd-5.2.1/playing-the-game",
     "source_text": "Skills table",
     "target_record_key": ""
    },
    {
     "from_component_key": "skill_relevance_sources",
     "from_record_key": "play.proficiency",
-    "scope_key": "srd-5.2.1/rules-glossary",
+    "scope_key": "srd-5.2.1/playing-the-game",
     "source_text": "Actions",
     "target_record_key": ""
    }
@@ -1064,6 +1216,32 @@
     },
     {
      "component_key": "bonus_does_not_stack",
+     "record_key": "play.proficiency",
+     "source_span_ids": [
+      "35aad074-449b-52a9-be70-0789a7e7673f",
+      "72bc5b6c-406d-5ca3-b80a-748ed43f798c"
+     ]
+    },
+    {
+     "component_key": "bonus_does_not_stack",
+     "fact_family": "proficiency_bonus_operation_limit",
+     "record_key": "play.proficiency",
+     "source_span_ids": [
+      "25ecaf72-0f86-58af-b6ed-191d43ab53f3"
+     ]
+    },
+    {
+     "component_key": "bonus_does_not_stack",
+     "fact_family": "proficiency_bonus_operation_limit",
+     "record_key": "play.proficiency",
+     "source_span_ids": [
+      "35aad074-449b-52a9-be70-0789a7e7673f",
+      "72bc5b6c-406d-5ca3-b80a-748ed43f798c"
+     ]
+    },
+    {
+     "component_key": "bonus_does_not_stack",
+     "fact_family": "proficiency_bonus_operation_limit",
      "record_key": "play.proficiency",
      "source_span_ids": [
       "35aad074-449b-52a9-be70-0789a7e7673f",
@@ -1179,6 +1357,14 @@
      ]
     },
     {
+     "component_key": "saving_throw_proficiency",
+     "fact_family": "proficiency_application",
+     "record_key": "play.proficiency",
+     "source_span_ids": [
+      "120d037c-5783-5923-84a2-e62c90286ea8"
+     ]
+    },
+    {
      "component_key": "skill_list",
      "record_key": "play.proficiency",
      "source_span_ids": [
@@ -1191,6 +1377,14 @@
      "source_span_ids": [
       "38a95007-8038-5f16-b217-7b0af54b393d",
       "8bbd30f1-6fad-5280-89fd-314de843bda7",
+      "9bbd64a5-10e0-5feb-8580-d1eb91979369"
+     ]
+    },
+    {
+     "component_key": "skill_proficiency_application",
+     "fact_family": "proficiency_application",
+     "record_key": "play.proficiency",
+     "source_span_ids": [
       "9bbd64a5-10e0-5feb-8580-d1eb91979369"
      ]
     },
@@ -1225,11 +1419,27 @@
      ]
     },
     {
+     "component_key": "tool_proficiency",
+     "fact_family": "proficiency_application",
+     "record_key": "play.proficiency",
+     "source_span_ids": [
+      "9394c1d2-4d5c-589a-9d82-559880829bc8"
+     ]
+    },
+    {
      "component_key": "weapon_proficiency",
      "record_key": "play.proficiency",
      "source_span_ids": [
       "2c96d390-620f-5221-a312-ebdb3edab1b0",
       "76d0fe9a-6eef-5dc7-8cc3-8740e28ab010"
+     ]
+    },
+    {
+     "component_key": "weapon_proficiency",
+     "fact_family": "proficiency_application",
+     "record_key": "play.proficiency",
+     "source_span_ids": [
+      "2c96d390-620f-5221-a312-ebdb3edab1b0"
      ]
     }
    ],
@@ -1774,8 +1984,8 @@
   "transform_config_hash": "77720c2f3b8c9b88363d48050466fb8e3a26f8476b63145d1b5928ff2581ef3e"
  },
  "representation_schema": {
-  "hash": "39710a37985977105659000ff17af2913b63c98a141dd4db90ee489817cf55bf",
-  "version": "5d-representation-schema-13"
+  "hash": "14284d53773df10d8672cfea34b2b47771539a3e43d936577259817011b9498e",
+  "version": "5d-representation-schema-14"
  },
  "semantic_policy_hash": "da63b8940c5b3997b44d53e02941389b68e2a2ba35250e73194d38bb1d74cde7",
  "semantic_policy_version": "5d-semantic-policy-2"

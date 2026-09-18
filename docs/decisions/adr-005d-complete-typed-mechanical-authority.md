@@ -993,6 +993,54 @@ before a proposal existed. They are corrected here rather than deleted, so the r
 > activated and retired **nothing**, and the full-corpus work Decision 5 requires remains
 > undischarged.
 
+**Amended by Owner Decision 2026-09-18 — representation schema 14, the Proficiency section's
+structured rule inputs.** The boundary the `proficiency-1` review raised is resolved, verbatim:
+
+> "For the Proficiency section, the Rules Package supplies structured inputs governing where
+> proficiency applies, its addition and scaling limits, and the fixed condition granting tool-related
+> Advantage. Character-specific proficiencies remain on the sheet; relevance judgment remains with the
+> GameMaster; handwritten code performs validation and execution.
+> This authorizes the smallest bounded representation and tests needed for those uses. It does not
+> require structuring every reducible passage or implementing downstream sheet/adapter behavior in 5d.
+> Consolidate this work with the source-scope correction and accurate reporting. Keep the proposal
+> unaccepted until its outstanding references can be completed correctly."
+
+Schema 14 is the smallest closed representation of those three uses, and nothing else:
+
+* **Where the bonus applies.** `ProficiencyApplicationFact(proficiency, roll)` pairs one
+  `ProficiencyKind` — `skill`, `saving_throw`, `weapon`, `tool` — with the roll the section states it
+  is added to. The pairing is closed by a printed table, so a combination the source never states
+  cannot be authored. The roll is the proficient creature's own and carries no skill and no ability:
+  **which** proficiencies a creature has is character state owned by the sheet (Invariant 9), and
+  which one is relevant is the GameMaster's judgment. Neither is stored here.
+* **The addition and scaling limits.** `ProficiencyBonusOperationLimitFact(operation,
+  maximum_applications, precedes)` carries *"don't add it more than once"*, *"don't multiply it more
+  than once"* and *"don't divide it more than once"* with the printed order — a multiplication or
+  division precedes the addition. The count alone would leave the arithmetic underdetermined, because
+  halving after adding is a different number from adding after halving. Nothing computes either.
+* **The tool condition.** `AdvantageFact.requires_proficiencies: tuple[ProficiencyKind, ...]` states
+  the section's one conjunction — proficiency in a skill **and** a tool that both apply. The
+  conjunction is explicit and canonical: ordered, non-repeating, and never of length one, because a
+  conjunction of one is the plain conditional the component's governing prose already states. The
+  consequence stays exactly what the source prints and stays deterministic. The fact is **not** moved
+  to discretionary 15c handling merely because a human judges the antecedent, and the Advantage is
+  never made unconditional. The field is registered omit-when-empty under Decision 6's post-schema-3
+  rule, so every accepted `AdvantageFact` keeps its schema-3 payload and its fact key: no accepted
+  artifact is restamped by this mint.
+
+What this amendment does **not** decide, in the Owner's words: it "does not require structuring every
+reducible passage or implementing downstream sheet/adapter behavior in 5d." No Character Sheet Model
+or adapter behavior, no runtime evaluation, no movement or 15c work, and no general rules DSL is
+authorized here; Decision 11 is unchanged. The held alternatives recorded in the `proficiency-1`
+review packet and the PR Architecture Notes are superseded by this decision and are not reopened. The
+ignored rule-slice/override parameters on the current adapter are not evidence of fixed behavior.
+
+No semantic acceptance was granted. The `proficiency-1` proposal stays **unaccepted**: two of its
+references — the Skills table and the Actions obligations — point into *Playing the Game* at
+destinations no accepted batch has minted, and the current append-only acceptance path cannot later
+replace an accepted empty-target reference. Schema 14 is registered in `schema_lift` as a recognized
+contract with one crossing from schema 13, and no accepted artifact declares it.
+
 ### Decision 5 — Exact completeness, not aggregate thresholds
 
 Publication is proven through the complete reviewed source inventory and accepted expected rules,
