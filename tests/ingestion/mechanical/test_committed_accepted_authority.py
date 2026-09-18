@@ -96,6 +96,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_11_VERSION,
     lift_accepted_inputs,
 )
+from tests.ingestion.mechanical._schema_pins import crossings_from
 
 PACKAGE_UUID = "4458fa10-4a66-5e0e-9ecc-ea37530ad2b4"
 RELEASE_VERSION = "5.2.1-corpus.36b786d8-fa2"
@@ -570,10 +571,7 @@ def test_accepted_authority_is_lifted_rather_than_restamped() -> None:
     lifted, records = lift_accepted_inputs(
         inputs, (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
     )
-    assert [r.lift_id for r in records] == [
-        "5d-lift-schema-11-to-12",
-        "5d-lift-schema-12-to-13",
-    ]
+    assert [r.lift_id for r in records] == crossings_from(SCHEMA_11_VERSION)
     assert lifted.oracle.representation is inputs.oracle.representation
     assert lifted.oracle.schema_version == REPRESENTATION_SCHEMA_VERSION
     assert lifted.oracle.schema_hash == representation_schema_hash()

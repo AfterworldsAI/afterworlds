@@ -145,6 +145,7 @@ from afterworlds.services.rules_authority.views import (
     build_gamemaster_view,
     build_typed_view,
 )
+from tests.ingestion.mechanical._schema_pins import UNMINTED_SCHEMA_VERSION
 from tests.ingestion.mechanical.conftest import (
     NOW,
     RELEASE_BINDING,
@@ -1290,7 +1291,7 @@ def test_an_unminted_version_is_refused() -> None:
     string rather than the assertion being retired.
     """
     with pytest.raises(UnsupportedSchemaVersionError):
-        representation_payload(_draft(), schema_version="5d-representation-schema-14")
+        representation_payload(_draft(), schema_version=UNMINTED_SCHEMA_VERSION)
     assert representation_payload(
         _draft(), schema_version=REPRESENTATION_SCHEMA_VERSION
     ) == representation_payload(_draft())
