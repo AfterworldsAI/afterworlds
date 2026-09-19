@@ -98,6 +98,9 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_11_VERSION,
     SCHEMA_12_HASH,
     SCHEMA_12_VERSION,
+    SCHEMA_13_VERSION,
+    SCHEMA_14_VERSION,
+    SCHEMA_15_VERSION,
     accepted_schema_contracts,
     lift_path,
 )
@@ -129,8 +132,20 @@ IRREDUCIBLE = "open_ended_effect"
 #: introduced. Derived from the succession registry rather than transcribed:
 #: registering a lift is what admits a contract, so a version list kept by hand
 #: here would be a second statement of the same fact, free to drift.
+#: Every recognised contract that predates schema 12. Schemas 13, 14 and 15
+#: are subtracted beside 12 itself rather than left in: a later succession
+#: states every earlier one's meaning, so each admits the shapes this module is
+#: about and would fail the refusal parametrization for the right reason. Written
+#: out rather than derived from version order, for the reason every registry
+#: in this area is written out: an unreviewed inheritance is the failure.
 EARLIER_CONTRACTS = sorted(
-    {version for version, _ in accepted_schema_contracts()} - {SCHEMA_12_VERSION}
+    {version for version, _ in accepted_schema_contracts()}
+    - {
+        SCHEMA_12_VERSION,
+        SCHEMA_13_VERSION,
+        SCHEMA_14_VERSION,
+        SCHEMA_15_VERSION,
+    }
 )
 
 
@@ -197,11 +212,17 @@ def _findings(draft: RepresentationDraft) -> tuple[str, ...]:
 # ---------------------------------------------------------------------------
 
 
-def test_this_build_declares_schema_12() -> None:
-    assert (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash()) == (
-        SCHEMA_12_VERSION,
-        SCHEMA_12_HASH,
-    )
+def test_schema_12_is_still_a_recognised_contract() -> None:
+    """The pin this module is written against, read from the registry.
+
+    It was live authority until the proficiency-1 pilot minted schema 13.
+    It is still a recognised contract and still the source of a registered
+    crossing, and schema 12's own delta is what this module asserts, so the
+    pin comes from the registry rather than from live authority.
+    """
+    assert (SCHEMA_12_VERSION, SCHEMA_12_HASH) in accepted_schema_contracts()
+    assert REPRESENTATION_SCHEMA_VERSION != SCHEMA_12_VERSION
+    assert representation_schema_hash() != SCHEMA_12_HASH
 
 
 def test_schema_12_is_reached_by_exactly_one_registered_crossing() -> None:

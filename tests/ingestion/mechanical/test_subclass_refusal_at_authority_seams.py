@@ -61,6 +61,8 @@ from afterworlds.ingestion.mechanical.representation import (
     AbilityScore,
     ActionCost,
     ActionEconomyFact,
+    AdvantageFact,
+    AdvantageState,
     Applicability,
     ApplicabilityKind,
     AreaDimension,
@@ -89,6 +91,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ObscurementState,
     ParticipantRole,
     Phase,
+    ProficiencyKind,
     ProvenanceRole,
     ProvenanceTargetKind,
     Rational,
@@ -829,6 +832,14 @@ def _movement_depletion(until: object) -> MovementDepletionFact:
     )
 
 
+def _tool_advantage(requires_proficiencies: object) -> AdvantageFact:
+    return AdvantageFact(
+        state=AdvantageState.ADVANTAGE,
+        roll=RollSpec(actor=RollActor.SUBJECT, context=RollContext.ABILITY_CHECK),
+        requires_proficiencies=cast(Any, requires_proficiencies),
+    )
+
+
 def _size_applicability(any_of: object) -> Applicability:
     return Applicability(
         kind=ApplicabilityKind.SIZE_COMPARISON,
@@ -939,6 +950,13 @@ NESTED_TUPLE_FIELDS = [
         ),
         "until",
         id="MovementDepletionFact.until",
+    ),
+    pytest.param(
+        lambda c: _with_fact(
+            _tool_advantage(c((ProficiencyKind.SKILL, ProficiencyKind.TOOL)))
+        ),
+        "requires_proficiencies",
+        id="AdvantageFact.requires_proficiencies",
     ),
     pytest.param(
         lambda c: _with_applicability(_size_applicability(c(SIZE_COMPARISONS))),

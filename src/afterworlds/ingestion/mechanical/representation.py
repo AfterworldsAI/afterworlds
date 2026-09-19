@@ -108,6 +108,9 @@ __all__ = [
     "DurationKind",
     "FactFamily",
     "MovementMode",
+    "ProficiencyBonusOperation",
+    "ProficiencyBonusUse",
+    "ProficiencyKind",
     "ProvenanceRole",
     "ProvenanceTargetKind",
     "RangeKind",
@@ -152,6 +155,10 @@ __all__ = [
     "EquipmentDescriptorFact",
     "HealingFact",
     "MechanicalFact",
+    "ProficiencyApplicationFact",
+    "ProficiencyBonusBandFact",
+    "ProficiencyBonusOperationLimitFact",
+    "ProficiencyBonusUseFact",
     "ProgressionEntryFact",
     "ResourceRecoveryFact",
     "ScalingFact",
@@ -693,6 +700,54 @@ class AdvantageState(StrEnum):
 
     ADVANTAGE = "advantage"
     DISADVANTAGE = "disadvantage"
+
+
+class ProficiencyKind(StrEnum):
+    """What a creature is proficient *with*, in the source's own four kinds.
+
+    The Proficiency section names exactly these and treats each differently:
+    a skill and a saving throw are proficiencies in a roll, a weapon and a
+    tool are proficiencies with an object used to make one. Which specific
+    skills, saves, weapons or tools a creature has is character state and
+    lives on the sheet; this vocabulary names only the kinds the *rule*
+    distinguishes.
+    """
+
+    SKILL = "skill"
+    SAVING_THROW = "saving_throw"
+    WEAPON = "weapon"
+    TOOL = "tool"
+
+
+class ProficiencyBonusOperation(StrEnum):
+    """One arithmetic operation the source states a limit on.
+
+    *"can't be added ... more than once"*, *"it can be multiplied only once
+    and divided only once"*. Three operations, each with its own printed
+    limit, and the multiplication and division are printed as happening
+    *before* the addition.
+    """
+
+    ADD = "add"
+    MULTIPLY = "multiply"
+    DIVIDE = "divide"
+
+
+class ProficiencyBonusUse(StrEnum):
+    """One use of the Proficiency Bonus the section states without pairing it
+    to a proficiency kind.
+
+    *"The bonus is also used for spell attacks and for calculating the DC of
+    saving throws for spells."* Two uses, in one sentence, and the sentence
+    names no skill, saving throw, weapon or tool to hold them against -- which
+    is why they are a vocabulary of their own rather than two more
+    :class:`ProficiencyKind` members. Closed at exactly what that sentence
+    prints: a use this vocabulary does not name is a use the section does not
+    state.
+    """
+
+    SPELL_ATTACK = "spell_attack"
+    SPELL_SAVE_DC = "spell_save_dc"
 
 
 class RollContext(StrEnum):
@@ -2036,6 +2091,10 @@ class FactFamily(StrEnum):
     MOVEMENT_COST = "movement_cost"
     MOVEMENT_PERMISSION = "movement_permission"
     MOVEMENT_TRANSPORT = "movement_transport"
+    PROFICIENCY_APPLICATION = "proficiency_application"
+    PROFICIENCY_BONUS_BAND = "proficiency_bonus_band"
+    PROFICIENCY_BONUS_OPERATION_LIMIT = "proficiency_bonus_operation_limit"
+    PROFICIENCY_BONUS_USE = "proficiency_bonus_use"
     PROGRESSION_ENTRY = "progression_entry"
     QUANTITY_MULTIPLIER = "quantity_multiplier"
     RESOURCE_RECOVERY = "resource_recovery"
@@ -2677,6 +2736,135 @@ class SpellDescriptorFact:
 
 
 @dataclass(frozen=True)
+class ProficiencyBonusBandFact:
+    """One printed row of the Proficiency Bonus table.
+
+    **The index is the source's own "Level or CR" column**, which reads two
+    ways in one column: a character's level, or a monster's Challenge Rating.
+    That is not an ambiguity to resolve here. The table prints one progression
+    and a creature brings whichever index it has, so this family states the band
+    and the bonus, and nothing infers a second axis from the numbers.
+
+    ``minimum`` is nullable because the first row is printed ``Up to 4``, which
+    states no lower bound at all. Writing 1 there would author a bound the
+    source does not print, and would silently exclude every Challenge Rating
+    below 1 -- CR 0, 1/8, 1/4 and 1/2 are all real -- from the only band that
+    covers them. It carries no default, so an open band is a stated ``None``
+    rather than a forgotten argument.
+
+    A band, never a per-level row. Expanding ``5-8`` into four
+    :class:`ProgressionEntryFact` entries would state four levels the table
+    never prints, would drop the Challenge Rating reading entirely, and would
+    need ``entitlement_key`` to carry the bonus -- which that field's own
+    contract forbids in those words.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.PROFICIENCY_BONUS_BAND
+
+    bonus: int
+    maximum: int
+    minimum: int | None
+
+
+@dataclass(frozen=True)
+class ProficiencyApplicationFact:
+    """Where one kind of proficiency adds the Proficiency Bonus.
+
+    **Required use.** Validation and execution need to know, for a given roll,
+    whether a proficiency the sheet records adds the bonus to it at all. The
+    section states that four times, once per kind, and each names a different
+    roll: a skill proficiency adds to ability checks, a saving-throw
+    proficiency to saves, a weapon proficiency to attack rolls, a tool
+    proficiency to ability checks made using the tool.
+
+    **Consequence of omission.** Left as prose, the four collapse into the
+    umbrella sentence *"applied to a D20 Test when the creature has proficiency
+    in a skill, in a saving throw, or with an item"*, which reads as *any* D20
+    Test for *any* proficiency — a weapon proficiency adding to saves, a
+    saving-throw proficiency adding to attack rolls. The umbrella is one
+    sentence about four rules, not one rule.
+
+    **What this deliberately does not state.** *Which* skill, save, weapon or
+    tool a creature has is character state owned by the sheet, and whether a
+    given skill or tool is relevant to the check in front of the table is the
+    GameMaster's call by the source's own words. This says only where the bonus
+    applies once those two answers exist. ``roll`` reuses :class:`RollSpec`
+    rather than minting a roll field, and names no ability: the source says
+    *"saves that use a particular ability"* and never which.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.PROFICIENCY_APPLICATION
+
+    proficiency: ProficiencyKind
+    roll: RollSpec
+
+
+@dataclass(frozen=True)
+class ProficiencyBonusOperationLimitFact:
+    """How many times one arithmetic operation may touch the bonus, and when.
+
+    **Required use.** The section prints three limits and an order:
+    *"can't be added to a die roll or another number more than once"*;
+    *"might be multiplied or divided (doubled or halved, for example)
+    **before being added**"*; *"Whenever the bonus is used, it can be
+    multiplied only once and divided only once"*.
+
+    **Consequence of omission.** Arithmetic. Code that adds the bonus and then
+    doubles it produces a different number from code that doubles and then
+    adds, and code that adds twice from two sources produces a third. Each is
+    wrong against a rule the source prints in plain words, and none of the
+    three is detectable from the bonus value alone.
+
+    ``precedes`` is the printed ordering and nothing more: ``MULTIPLY`` and
+    ``DIVIDE`` are stated to happen before ``ADD``. It is ``None`` on the
+    addition itself, which the source orders against nothing. No relative
+    order between multiplication and division is stated, so none is authored
+    here.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.PROFICIENCY_BONUS_OPERATION_LIMIT
+
+    operation: ProficiencyBonusOperation
+    maximum_applications: int
+    precedes: ProficiencyBonusOperation | None
+
+
+@dataclass(frozen=True)
+class ProficiencyBonusUseFact:
+    """One use of the Proficiency Bonus the section states outside a pairing.
+
+    **Required use.** The section's opening paragraph states where the bonus
+    goes twice over. Four clauses pair a proficiency kind with a roll, and one
+    sentence adds two uses that name no kind at all: *"The bonus is also used
+    for spell attacks and for calculating the DC of saving throws for
+    spells."* One fact per stated use.
+
+    **Consequence of omission.** :class:`ProficiencyApplicationFact` is closed
+    on the four printed pairings, so with this family absent the typed inputs
+    say the bonus reaches ability checks, saves and attack rolls and nothing
+    else. A spell attack and a spell save DC would then be computed without a
+    bonus the source says is part of them -- a wrong number, from a sentence
+    that is printed in plain words.
+
+    **What this deliberately does not state.** No formula, no ability, no
+    target DC, no spellcasting proficiency and no consumer. The source
+    sentence states *that* the bonus is used for these two things; what else
+    goes into a spell attack or into "calculating the DC" is stated elsewhere
+    and is not read here. There is deliberately no ``roll``: a spell attack is
+    a roll and a spell save DC is not, and one field that was a roll for one
+    member and absent for the other would be a shape the sentence does not
+    have. ``DcKind.SPELL_SAVE_DC`` is not reused as this field's type for the
+    same reason -- it is a vocabulary of *how a DC is set*, and this is not a
+    DC-setting fact -- and :class:`AttackKind` is not reused because its
+    members force a melee/ranged distinction this sentence never draws.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.PROFICIENCY_BONUS_USE
+
+    use: ProficiencyBonusUse
+
+
+@dataclass(frozen=True)
 class ProgressionEntryFact:
     """One level-indexed entitlement from a progression table.
 
@@ -2936,6 +3124,28 @@ class AdvantageFact:
     #: Without it the grant reads as unlimited advantage until the expiry, which
     #: is a stronger rule than the source states.
     use_limit: BenefitUseLimit | None = None
+    #: The proficiencies a creature must hold **together** for this advantage
+    #: to apply. Schema 14, and omitted from the canonical payload when empty,
+    #: so every advantage accepted before it keeps the exact key it already
+    #: had.
+    #:
+    #: Tool proficiency states the one conjunction this corpus has met: *"If
+    #: you have proficiency with a tool, you can add your Proficiency Bonus to
+    #: any ability check you make that uses the tool. If you have proficiency
+    #: in the skill that's also used with that check, you have Advantage on the
+    #: check too."* Two proficiencies, both required. Left off, the fact reads
+    #: as unconditional Advantage on the check, which is a stronger rule than
+    #: the source states; pushed into :class:`Applicability`, it would need a
+    #: conjunction that structure deliberately does not have — ``ANY_OF`` is a
+    #: flat disjunction, and adding an ``ALL_OF`` beside it would open the
+    #: predicate language that contract refuses in its own words.
+    #:
+    #: A closed tuple of kinds, local to this family, is therefore the whole
+    #: extension: it says *which* proficiencies, not *which skill* or *which
+    #: tool* — those are sheet state — and it cannot combine into a third
+    #: term. Canonically ordered and without repeats, so one requirement has
+    #: one payload.
+    requires_proficiencies: tuple[ProficiencyKind, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -4259,6 +4469,7 @@ MechanicalFact = (
     | DamageResponseFact
     | EquipmentDescriptorFact
     | HealingFact
+    | ProficiencyBonusBandFact
     | ProgressionEntryFact
     | ResourceRecoveryFact
     | ScalingFact
@@ -4303,6 +4514,9 @@ MechanicalFact = (
     | SpeedChangePropagationFact
     | SpecialSpeedFact
     | MovementCompositionFact
+    | ProficiencyApplicationFact
+    | ProficiencyBonusOperationLimitFact
+    | ProficiencyBonusUseFact
 )
 
 _FACT_TYPES: dict[FactFamily, type] = {
@@ -4322,6 +4536,10 @@ _FACT_TYPES: dict[FactFamily, type] = {
     FactFamily.DAMAGE_RESPONSE: DamageResponseFact,
     FactFamily.EQUIPMENT_DESCRIPTOR: EquipmentDescriptorFact,
     FactFamily.HEALING: HealingFact,
+    FactFamily.PROFICIENCY_APPLICATION: ProficiencyApplicationFact,
+    FactFamily.PROFICIENCY_BONUS_BAND: ProficiencyBonusBandFact,
+    FactFamily.PROFICIENCY_BONUS_OPERATION_LIMIT: (ProficiencyBonusOperationLimitFact),
+    FactFamily.PROFICIENCY_BONUS_USE: ProficiencyBonusUseFact,
     FactFamily.PROGRESSION_ENTRY: ProgressionEntryFact,
     FactFamily.RESOURCE_RECOVERY: ResourceRecoveryFact,
     FactFamily.SCALING: ScalingFact,
@@ -4840,6 +5058,106 @@ def _check_spell_descriptor(fact: SpellDescriptorFact) -> list[str]:
             f"{fact.duration.concentration}"
         )
     return findings
+
+
+def _check_proficiency_bonus_band(fact: ProficiencyBonusBandFact) -> list[str]:
+    findings = [
+        *_int_field(fact.bonus, "bonus"),
+        *_int_field(fact.maximum, "maximum"),
+        *_optional_int_field(fact.minimum, "minimum"),
+    ]
+    if findings:
+        return findings
+    if fact.bonus < 1:
+        findings.append(f"proficiency bonus {fact.bonus} adds nothing")
+    if fact.maximum < 1:
+        findings.append(f"band upper bound {fact.maximum} covers no level or CR")
+    if fact.minimum is not None:
+        # A band open below states no minimum. It does not state one nothing can
+        # reach, which would read as a bound the source printed.
+        if fact.minimum < 1:
+            findings.append(
+                f"band lower bound {fact.minimum} is below the first level or "
+                "CR; a band open below states no minimum instead"
+            )
+        elif fact.minimum > fact.maximum:
+            findings.append(f"band {fact.minimum}-{fact.maximum} runs backwards")
+    return findings
+
+
+def _check_proficiency_application(fact: ProficiencyApplicationFact) -> list[str]:
+    findings = [
+        *_enum_field(fact.proficiency, ProficiencyKind, "proficiency"),
+        *_check_rollspec(fact.roll, "roll"),
+    ]
+    if findings:
+        return findings
+    # The four the section prints, each against the roll it names. A pairing
+    # the source does not print -- a weapon proficiency on a saving throw --
+    # is the umbrella sentence read as four rules instead of one, which is
+    # exactly what this family exists to stop.
+    expected = _PROFICIENCY_APPLICATION_ROLLS[fact.proficiency]
+    if fact.roll.context is not expected:
+        findings.append(
+            f"a {fact.proficiency.value} proficiency is stated as applying to "
+            f"{expected.value}, not {fact.roll.context.value}"
+        )
+    if fact.roll.actor is not RollActor.SUBJECT:
+        findings.append(
+            "a proficiency applies to the proficient creature's own roll; "
+            f"this states {fact.roll.actor.value}"
+        )
+    if fact.roll.skill is not None:
+        findings.append(
+            "this states which skill the proficiency is in; which skills a "
+            "creature has is character state, and which one is relevant is "
+            "the GM's call"
+        )
+    if fact.roll.ability is not None:
+        findings.append(
+            "this names an ability; the source says saves that use a "
+            "particular ability and never which"
+        )
+    return findings
+
+
+#: Which roll each printed proficiency kind adds the bonus to. One row per
+#: sentence the section prints, so a pairing nothing states cannot be authored.
+_PROFICIENCY_APPLICATION_ROLLS: dict[ProficiencyKind, RollContext] = {
+    ProficiencyKind.SKILL: RollContext.ABILITY_CHECK,
+    ProficiencyKind.SAVING_THROW: RollContext.SAVING_THROW,
+    ProficiencyKind.WEAPON: RollContext.ATTACK_ROLL,
+    ProficiencyKind.TOOL: RollContext.ABILITY_CHECK,
+}
+
+
+def _check_proficiency_bonus_operation_limit(
+    fact: ProficiencyBonusOperationLimitFact,
+) -> list[str]:
+    findings = [
+        *_enum_field(fact.operation, ProficiencyBonusOperation, "operation"),
+        *_int_field(fact.maximum_applications, "maximum_applications"),
+        *_optional_enum_field(fact.precedes, ProficiencyBonusOperation, "precedes"),
+    ]
+    if findings:
+        return findings
+    if fact.maximum_applications < 1:
+        findings.append(
+            f"a limit of {fact.maximum_applications} applications forbids the "
+            "operation outright; the source states how many times it may "
+            "happen, not that it may not"
+        )
+    if fact.precedes is fact.operation:
+        findings.append(f"{fact.operation.value} is stated as preceding itself")
+    return findings
+
+
+def _check_proficiency_bonus_use(fact: ProficiencyBonusUseFact) -> list[str]:
+    # The vocabulary is the whole invariant: the sentence states two uses and
+    # nothing about either of them beyond that it is one. A check that asked
+    # for more here would be asking the fact to carry a formula the source
+    # does not print.
+    return _enum_field(fact.use, ProficiencyBonusUse, "use")
 
 
 def _check_progression_entry(fact: ProgressionEntryFact) -> list[str]:
@@ -5860,10 +6178,36 @@ def _check_resource_recovery(fact: ResourceRecoveryFact) -> list[str]:
 
 
 def _check_advantage(fact: AdvantageFact) -> list[str]:
-    return [
+    findings = [
         *_enum_field(fact.state, AdvantageState, "state"),
         *_check_rollspec(fact.roll, "roll"),
     ]
+    if drift := exact_tuple_violations(
+        fact.requires_proficiencies, "requires_proficiencies"
+    ):
+        return [*findings, *drift]
+    for index, kind in enumerate(fact.requires_proficiencies):
+        findings.extend(
+            _enum_field(kind, ProficiencyKind, f"requires_proficiencies[{index}]")
+        )
+    if findings:
+        return findings
+    # A requirement is a set the source states together, so one requirement has
+    # exactly one payload: canonical order, no repeat. A single-member tuple is
+    # refused because a conjunction of one is the plain conditional the fact
+    # already carries through its component's governing prose, and admitting it
+    # would give the same rule two shapes.
+    codes = [kind.value for kind in fact.requires_proficiencies]
+    if codes != sorted(codes):
+        findings.append("requires_proficiencies is not in canonical order")
+    if len(set(codes)) != len(codes):
+        findings.append("requires_proficiencies repeats a proficiency kind")
+    elif len(codes) == 1:
+        findings.append(
+            "requires_proficiencies states one kind; a conjunction of one is "
+            "the condition the component's governing prose already states"
+        )
+    return findings
 
 
 def _check_scaling(fact: ScalingFact) -> list[str]:
@@ -6332,6 +6676,12 @@ _FACT_INVARIANTS: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.DAMAGE_RESPONSE: _check_damage_response,
     FactFamily.EQUIPMENT_DESCRIPTOR: _check_equipment_descriptor,
     FactFamily.HEALING: _check_healing,
+    FactFamily.PROFICIENCY_APPLICATION: _check_proficiency_application,
+    FactFamily.PROFICIENCY_BONUS_BAND: _check_proficiency_bonus_band,
+    FactFamily.PROFICIENCY_BONUS_OPERATION_LIMIT: (
+        _check_proficiency_bonus_operation_limit
+    ),
+    FactFamily.PROFICIENCY_BONUS_USE: _check_proficiency_bonus_use,
     FactFamily.PROGRESSION_ENTRY: _check_progression_entry,
     FactFamily.RESOURCE_RECOVERY: _check_resource_recovery,
     FactFamily.SCALING: _check_scaling,
@@ -7406,11 +7756,28 @@ def _build_resource_recovery(p: Mapping[str, Any]) -> ResourceRecoveryFact:
 
 
 def _build_advantage(p: Mapping[str, Any]) -> AdvantageFact:
+    # ``get`` with an explicit default, never ``or ()``: the field is omitted
+    # when empty, so an *absent* key is the historical spelling every advantage
+    # accepted under schemas 3-13 carries and must keep building. A *present*
+    # value has been written deliberately, and ``or ()`` would erase ``False``,
+    # ``0``, ``""``, ``{}`` and an explicit ``null`` into the same empty tuple
+    # before the type check ever ran -- admitting five malformed payloads and
+    # canonicalizing them to one that no longer states what they said.
+    raw_requires = p.get("requires_proficiencies", ())
+    if not isinstance(raw_requires, (list, tuple)):
+        raise MalformedFactPayloadError("requires_proficiencies is not a list")
     _reject(
         FactFamily.ADVANTAGE,
         [
             *_json_enum(p["state"], AdvantageState, "state"),
             *_optional_json_enum(p.get("use_limit"), BenefitUseLimit, "use_limit"),
+            *[
+                finding
+                for index, kind in enumerate(raw_requires)
+                for finding in _json_enum(
+                    kind, ProficiencyKind, f"requires_proficiencies[{index}]"
+                )
+            ],
         ],
     )
     return AdvantageFact(
@@ -7419,6 +7786,7 @@ def _build_advantage(p: Mapping[str, Any]) -> AdvantageFact:
         use_limit=(
             None if p.get("use_limit") is None else BenefitUseLimit(p["use_limit"])
         ),
+        requires_proficiencies=tuple(ProficiencyKind(k) for k in raw_requires),
     )
 
 
@@ -7478,6 +7846,65 @@ def _build_weapon_property(p: Mapping[str, Any]) -> WeaponPropertyFact:
         ),
         thrown_range_normal_feet=p["thrown_range_normal_feet"],
         thrown_range_long_feet=p["thrown_range_long_feet"],
+    )
+
+
+def _build_proficiency_application(
+    p: Mapping[str, Any],
+) -> ProficiencyApplicationFact:
+    _reject(
+        FactFamily.PROFICIENCY_APPLICATION,
+        [*_json_enum(p["proficiency"], ProficiencyKind, "proficiency")],
+    )
+    return ProficiencyApplicationFact(
+        proficiency=ProficiencyKind(p["proficiency"]),
+        roll=_build_rollspec(p["roll"], "roll"),
+    )
+
+
+def _build_proficiency_bonus_operation_limit(
+    p: Mapping[str, Any],
+) -> ProficiencyBonusOperationLimitFact:
+    _reject(
+        FactFamily.PROFICIENCY_BONUS_OPERATION_LIMIT,
+        [
+            *_json_enum(p["operation"], ProficiencyBonusOperation, "operation"),
+            *_int_field(p["maximum_applications"], "maximum_applications"),
+            *_optional_json_enum(p["precedes"], ProficiencyBonusOperation, "precedes"),
+        ],
+    )
+    return ProficiencyBonusOperationLimitFact(
+        operation=ProficiencyBonusOperation(p["operation"]),
+        maximum_applications=p["maximum_applications"],
+        precedes=(
+            None if p["precedes"] is None else ProficiencyBonusOperation(p["precedes"])
+        ),
+    )
+
+
+def _build_proficiency_bonus_use(p: Mapping[str, Any]) -> ProficiencyBonusUseFact:
+    _reject(
+        FactFamily.PROFICIENCY_BONUS_USE,
+        [*_json_enum(p["use"], ProficiencyBonusUse, "use")],
+    )
+    return ProficiencyBonusUseFact(use=ProficiencyBonusUse(p["use"]))
+
+
+def _build_proficiency_bonus_band(
+    p: Mapping[str, Any],
+) -> ProficiencyBonusBandFact:
+    _reject(
+        FactFamily.PROFICIENCY_BONUS_BAND,
+        [
+            *_int_field(p["bonus"], "bonus"),
+            *_int_field(p["maximum"], "maximum"),
+            *_optional_int_field(p["minimum"], "minimum"),
+        ],
+    )
+    return ProficiencyBonusBandFact(
+        bonus=p["bonus"],
+        maximum=p["maximum"],
+        minimum=p["minimum"],
     )
 
 
@@ -7969,6 +8396,12 @@ _FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] 
     FactFamily.DAMAGE_RESPONSE: _build_damage_response,
     FactFamily.EQUIPMENT_DESCRIPTOR: _build_equipment_descriptor,
     FactFamily.HEALING: _build_healing,
+    FactFamily.PROFICIENCY_APPLICATION: _build_proficiency_application,
+    FactFamily.PROFICIENCY_BONUS_BAND: _build_proficiency_bonus_band,
+    FactFamily.PROFICIENCY_BONUS_OPERATION_LIMIT: (
+        _build_proficiency_bonus_operation_limit
+    ),
+    FactFamily.PROFICIENCY_BONUS_USE: _build_proficiency_bonus_use,
     FactFamily.PROGRESSION_ENTRY: _build_progression_entry,
     FactFamily.RESOURCE_RECOVERY: _build_resource_recovery,
     FactFamily.SCALING: _build_scaling,
@@ -8153,7 +8586,62 @@ assert (
 #: under 12 and no accepted component key, provenance coordinate or
 #: projection identity moves. It adds no fact family, no vocabulary member,
 #: no ownership form and no required field.
-REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-12"
+#:
+#: Version ``13`` admitted one fact family, :class:`ProficiencyBonusBandFact`,
+#: for batch ``proficiency-1``. It mints no vocabulary -- every field is an
+#: integer or a nullable integer -- adds no field to an accepted family, makes
+#: no accepted field required or nullable, adds no component key and changes no
+#: ownership form, so every accepted fact key and provenance coordinate has the
+#: same canonical form under 12 and 13.
+#:
+#: The family exists because no accepted one can hold a *band*. The Proficiency
+#: Bonus table prints eight rows indexed by a single ``Level or CR`` column, and
+#: the three families that come closest each state something else:
+#: :class:`ProgressionEntryFact` is indexed by one integer level and carries
+#: what is granted as a semantic key; :class:`SpellSlotProgressionFact` is two
+#: exact levels; and :class:`ScalingFact` states an *increment* at a threshold,
+#: while the table prints the total bonus for each band. Reusing any of them
+#: would mean authoring rows the source does not print.
+#:
+#: Version ``14`` admitted two fact families,
+#: :class:`ProficiencyApplicationFact` and
+#: :class:`ProficiencyBonusOperationLimitFact`, two whole vocabularies,
+#: :class:`ProficiencyKind` and :class:`ProficiencyBonusOperation`, and one
+#: omit-when-empty field on a family schema 3 already had,
+#: ``AdvantageFact.requires_proficiencies``. It adds no ownership form, no
+#: component key, and makes no accepted field required or nullable, so every
+#: accepted fact key and provenance coordinate has the same canonical form
+#: under 13 and 14.
+#:
+#: The families exist because the Proficiency section states two things no
+#: accepted family can hold. *Where* a proficiency adds the bonus is a pairing
+#: of a proficiency kind with a roll, and the closest accepted families state
+#: the roll without the proficiency. *How many times* the bonus may be added,
+#: multiplied or divided, and in which printed order, is arithmetic governance
+#: rather than a quantity: :class:`ScalingFact` states an increment at a
+#: threshold and :class:`QuantityMultiplierFact` states a factor, and neither
+#: can say "only once, and before the addition".
+#:
+#: The field exists because the source states one conjunction — tool
+#: proficiency *and* skill proficiency — and :class:`Applicability` refuses
+#: conjunction by design.
+#:
+#: Version ``15`` admits one fact family, :class:`ProficiencyBonusUseFact`,
+#: and the one vocabulary minted with it, :class:`ProficiencyBonusUse`. It
+#: adds no field to any accepted family, no ownership form and no component
+#: key, and makes no accepted field required or nullable, so every accepted
+#: fact key and provenance coordinate has the same canonical form under 14
+#: and 15.
+#:
+#: The family exists because the Proficiency section's opening paragraph
+#: states two uses of the bonus that schema 14 left as prose: *"The bonus is
+#: also used for spell attacks and for calculating the DC of saving throws
+#: for spells."* Neither fits :class:`ProficiencyApplicationFact`, whose
+#: whole shape is a proficiency kind paired with the roll that kind's bonus
+#: is added to — this sentence names no kind, and a spell save DC is not a
+#: roll. Widening :class:`ProficiencyKind` to carry them would author a
+#: spellcasting proficiency the section never prints.
+REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-15"
 
 
 class UnsupportedRepresentationShapeError(TypeError):
@@ -8682,6 +9170,41 @@ def _introductions() -> tuple[_Introduction, ...]:
     # key on ``ComponentDraft`` and ``ProseBindingDraft``, registered in
     # ``_POST_SCHEMA_3_FIELDS`` rather than here, exactly as schema 11's
     # ``MovementAllowanceFact.window`` is.
+    # Schema 13 adds one family and nothing else: no vocabulary whole, no
+    # member on a vocabulary an earlier schema had, no ownership form, no
+    # component key, and no field on any family an earlier schema had.
+    rows.extend(
+        _Introduction("fact_family", "FactFamily", family.value, SCHEMA_13)
+        for family in _SCHEMA_13_FAMILIES
+    )
+    # Schema 14 adds two families and two whole vocabularies, and one
+    # omit-when-empty field on a family schema 3 already had --
+    # ``AdvantageFact.requires_proficiencies``, registered in
+    # :data:`_POST_SCHEMA_3_FIELDS` rather than here, exactly as schema 11's
+    # ``MovementAllowanceFact.window`` is. No ownership form, no component key,
+    # and no newly required or newly nullable field on any accepted family.
+    rows.extend(
+        _Introduction("fact_family", "FactFamily", family.value, SCHEMA_14)
+        for family in _SCHEMA_14_FAMILIES
+    )
+    for vocabulary, members in _SCHEMA_14_VOCABULARY_MEMBERS.items():
+        rows.extend(
+            _Introduction("vocabulary_member", vocabulary, member, SCHEMA_14)
+            for member in members
+        )
+    # Schema 15 adds one family and the one vocabulary minted with it. No
+    # field on any accepted family, no ownership form and no component key,
+    # so both hand-maintained tables above are the whole registration --
+    # which is the failure packet section 9 records as Diagnosis 1b.
+    rows.extend(
+        _Introduction("fact_family", "FactFamily", family.value, SCHEMA_15)
+        for family in _SCHEMA_15_FAMILIES
+    )
+    for vocabulary, members in _SCHEMA_15_VOCABULARY_MEMBERS.items():
+        rows.extend(
+            _Introduction("vocabulary_member", vocabulary, member, SCHEMA_15)
+            for member in members
+        )
     rows.extend(
         _Introduction("nullable_field", _OPTIONAL_SINCE_WIRE_NAMES[owner], key, arrived)
         for owner, keys in _OPTIONAL_SINCE.items()
@@ -8742,6 +9265,8 @@ def _vocabulary_shape(owner: str) -> list[str] | None:
         or _SCHEMA_9_VOCABULARY_ALL.get(owner)
         or _SCHEMA_10_VOCABULARY_ALL.get(owner)
         or _SCHEMA_11_VOCABULARY_ALL.get(owner)
+        or _SCHEMA_14_VOCABULARY_ALL.get(owner)
+        or _SCHEMA_15_VOCABULARY_ALL.get(owner)
     )
     return None if members is None else sorted(members)
 
@@ -8837,6 +9362,8 @@ def _collect_post_schema_3(
             (_SCHEMA_9_MEMBER_INDEX, SCHEMA_9),
             (_SCHEMA_10_MEMBER_INDEX, SCHEMA_10),
             (_SCHEMA_11_MEMBER_INDEX, SCHEMA_11),
+            (_SCHEMA_14_MEMBER_INDEX, SCHEMA_14),
+            (_SCHEMA_15_MEMBER_INDEX, SCHEMA_15),
         ):
             if (
                 type(value).__name__,
@@ -9273,6 +9800,75 @@ SCHEMA_11 = "5d-representation-schema-11"
 #: :data:`_OPTIONAL_SINCE`.
 SCHEMA_12 = "5d-representation-schema-12"
 
+SCHEMA_13 = "5d-representation-schema-13"
+
+#: The one family schema 13 admitted, for batch ``proficiency-1``. Named by
+#: member for the same reason schema 4's, 6's, 8's, 9's, 10's and 11's are.
+#: It has no ``_SCHEMA_13_VOCABULARY_MEMBERS`` companion because the family
+#: mints no vocabulary: its three fields are two integers and a nullable
+#: integer, so there is no member index a schema-12 declaration could trip on.
+_SCHEMA_13_FAMILIES: tuple[FactFamily, ...] = (FactFamily.PROFICIENCY_BONUS_BAND,)
+
+SCHEMA_14 = "5d-representation-schema-14"
+
+#: The two families schema 14 admitted, for batch ``proficiency-1``'s typed
+#: rule inputs. Named by member for the same reason every predecessor's are.
+_SCHEMA_14_FAMILIES: tuple[FactFamily, ...] = (
+    FactFamily.PROFICIENCY_APPLICATION,
+    FactFamily.PROFICIENCY_BONUS_OPERATION_LIMIT,
+)
+
+#: Every vocabulary value schema 14 admitted, by vocabulary. Both vocabularies
+#: are new whole, so every member is listed; :class:`ProficiencyKind` is
+#: reachable through the new application family *and* through
+#: ``AdvantageFact.requires_proficiencies``, which is a field on a family
+#: schema 3 already had, so listing it here is what makes the legality contract
+#: see the members on that second path too.
+_SCHEMA_14_VOCABULARY_MEMBERS: dict[str, tuple[str, ...]] = {
+    "ProficiencyKind": tuple(sorted(k.value for k in ProficiencyKind)),
+    "ProficiencyBonusOperation": tuple(
+        sorted(o.value for o in ProficiencyBonusOperation)
+    ),
+}
+
+#: Both vocabularies are new whole, so the rendering and the introduction are
+#: the same set: there is no earlier member a schema-14 row would fail to name.
+#: Schema 11's companion exists only because ``MovementMode`` was widened.
+_SCHEMA_14_VOCABULARY_ALL: dict[str, tuple[str, ...]] = dict(
+    _SCHEMA_14_VOCABULARY_MEMBERS
+)
+
+_SCHEMA_14_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
+    (vocabulary, member)
+    for vocabulary, members in _SCHEMA_14_VOCABULARY_MEMBERS.items()
+    for member in members
+)
+
+SCHEMA_15 = "5d-representation-schema-15"
+
+#: The one family schema 15 admitted, for the two uses batch ``proficiency-1``
+#: read from ``main.spells``. Named by member for the same reason every
+#: predecessor's is.
+_SCHEMA_15_FAMILIES: tuple[FactFamily, ...] = (FactFamily.PROFICIENCY_BONUS_USE,)
+
+#: Every vocabulary value schema 15 admitted, by vocabulary. One vocabulary,
+#: new whole, reachable only through the family minted with it.
+_SCHEMA_15_VOCABULARY_MEMBERS: dict[str, tuple[str, ...]] = {
+    "ProficiencyBonusUse": tuple(sorted(u.value for u in ProficiencyBonusUse)),
+}
+
+#: New whole, so the rendering and the introduction are the same set, exactly
+#: as schema 14's are.
+_SCHEMA_15_VOCABULARY_ALL: dict[str, tuple[str, ...]] = dict(
+    _SCHEMA_15_VOCABULARY_MEMBERS
+)
+
+_SCHEMA_15_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
+    (vocabulary, member)
+    for vocabulary, members in _SCHEMA_15_VOCABULARY_MEMBERS.items()
+    for member in members
+)
+
 #: The seven families schema 11 admitted, for batch ``speed-1``. One per
 #: distinct rule the Rules Glossary Speed entry and Playing the Game > Combat >
 #: Movement and Position print between them, named by member for the same
@@ -9348,6 +9944,9 @@ _FAMILY_INTRODUCTIONS: tuple[tuple[tuple[FactFamily, ...], str], ...] = (
     (_SCHEMA_9_FAMILIES, SCHEMA_9),
     (_SCHEMA_10_FAMILIES, SCHEMA_10),
     (_SCHEMA_11_FAMILIES, SCHEMA_11),
+    (_SCHEMA_13_FAMILIES, SCHEMA_13),
+    (_SCHEMA_14_FAMILIES, SCHEMA_14),
+    (_SCHEMA_15_FAMILIES, SCHEMA_15),
 )
 
 #: Fields a later schema made **required** on a family an earlier schema already
@@ -9479,9 +10078,64 @@ _VERSION_STATES: dict[str, frozenset[str]] = {
             SCHEMA_12,
         }
     ),
+    SCHEMA_13: frozenset(
+        {
+            "5d-representation-schema-4",
+            SCHEMA_5,
+            SCHEMA_6,
+            SCHEMA_7,
+            SCHEMA_8,
+            SCHEMA_9,
+            SCHEMA_10,
+            SCHEMA_11,
+            SCHEMA_12,
+            SCHEMA_13,
+        }
+    ),
+    SCHEMA_14: frozenset(
+        {
+            "5d-representation-schema-4",
+            SCHEMA_5,
+            SCHEMA_6,
+            SCHEMA_7,
+            SCHEMA_8,
+            SCHEMA_9,
+            SCHEMA_10,
+            SCHEMA_11,
+            SCHEMA_12,
+            SCHEMA_13,
+            SCHEMA_14,
+        }
+    ),
+    SCHEMA_15: frozenset(
+        {
+            "5d-representation-schema-4",
+            SCHEMA_5,
+            SCHEMA_6,
+            SCHEMA_7,
+            SCHEMA_8,
+            SCHEMA_9,
+            SCHEMA_10,
+            SCHEMA_11,
+            SCHEMA_12,
+            SCHEMA_13,
+            SCHEMA_14,
+            SCHEMA_15,
+        }
+    ),
 }
 
 _register_post_schema_3(
+    # Schema 14. Omitted when empty, so every advantage accepted under schemas
+    # 3-13 keeps the exact canonical payload -- and therefore the exact fact
+    # key and provenance coordinate -- it was accepted with. Only the tool
+    # advantage states a conjunction, and it is unaccepted.
+    _PostSchema3Field(
+        owner="AdvantageFact",
+        key="requires_proficiencies",
+        introduced_in=SCHEMA_14,
+        is_empty=_empty_seq,
+    ),
     # Schema 12, and the first *component* key any schema has added since 4's
     # ``recurs``. Omitted when unset, so every component and prose binding
     # accepted under schemas 1-11 keeps the exact canonical payload — and

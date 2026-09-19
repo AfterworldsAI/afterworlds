@@ -98,6 +98,9 @@ __all__ = [
     "SCHEMA_10_VERSION",
     "SCHEMA_11_VERSION",
     "SCHEMA_12_VERSION",
+    "SCHEMA_13_VERSION",
+    "SCHEMA_14_VERSION",
+    "SCHEMA_15_VERSION",
     "UnsupportedSchemaVersionError",
     "validate_schema_binding",
 ]
@@ -582,6 +585,9 @@ SCHEMA_9_VERSION = "5d-representation-schema-9"
 SCHEMA_10_VERSION = "5d-representation-schema-10"
 SCHEMA_11_VERSION = "5d-representation-schema-11"
 SCHEMA_12_VERSION = "5d-representation-schema-12"
+SCHEMA_13_VERSION = "5d-representation-schema-13"
+SCHEMA_14_VERSION = "5d-representation-schema-14"
+SCHEMA_15_VERSION = "5d-representation-schema-15"
 
 
 class LegacySchemaPayloadError(ValueError):
@@ -794,6 +800,43 @@ _MERGED_COMPONENT_FIELDS: dict[str, frozenset[str]] = {
             "prose_retention_reason_code",
         }
     ),
+    # Schema 13 adds one fact family and no component key, so its row repeats
+    # schema 12's -- written out rather than aliased for the reason every row
+    # above is: a succession must not silently inherit a set nobody reviewed.
+    SCHEMA_13_VERSION: frozenset(
+        {
+            "applies_when",
+            "options",
+            "fact_qualifiers",
+            "recurs",
+            "prose_retention_reason_code",
+        }
+    ),
+    # Schema 14 adds two fact families, two vocabularies and one
+    # omit-when-empty *fact* field, and no component key, so its row repeats
+    # schema 13's -- written out rather than aliased for the reason every row
+    # above is.
+    SCHEMA_14_VERSION: frozenset(
+        {
+            "applies_when",
+            "options",
+            "fact_qualifiers",
+            "recurs",
+            "prose_retention_reason_code",
+        }
+    ),
+    # Schema 15 adds one fact family and one vocabulary and no component key,
+    # so its row repeats schema 14's -- written out rather than aliased for
+    # the reason every row above is.
+    SCHEMA_15_VERSION: frozenset(
+        {
+            "applies_when",
+            "options",
+            "fact_qualifiers",
+            "recurs",
+            "prose_retention_reason_code",
+        }
+    ),
 }
 
 # Minting a new schema without giving it a row here would leave the current
@@ -838,6 +881,9 @@ _RECORD_OWNED_REFERENCE_VERSIONS: frozenset[str] = frozenset(
         SCHEMA_10_VERSION,
         SCHEMA_11_VERSION,
         SCHEMA_12_VERSION,
+        SCHEMA_13_VERSION,
+        SCHEMA_14_VERSION,
+        SCHEMA_15_VERSION,
     }
 )
 
@@ -853,6 +899,9 @@ _OPTION_SCOPED_PROSE_VERSIONS: frozenset[str] = frozenset(
         SCHEMA_10_VERSION,
         SCHEMA_11_VERSION,
         SCHEMA_12_VERSION,
+        SCHEMA_13_VERSION,
+        SCHEMA_14_VERSION,
+        SCHEMA_15_VERSION,
     }
 )
 
@@ -861,7 +910,9 @@ _OPTION_SCOPED_PROSE_VERSIONS: frozenset[str] = frozenset(
 #: row in ``_MERGED_COMPONENT_FIELDS`` for the reason the two registries above
 #: are their own — that table answers which *component* keys a version emits,
 #: and this is a prose-binding key.
-_RETENTION_REASON_PROSE_VERSIONS: frozenset[str] = frozenset({SCHEMA_12_VERSION})
+_RETENTION_REASON_PROSE_VERSIONS: frozenset[str] = frozenset(
+    {SCHEMA_12_VERSION, SCHEMA_13_VERSION, SCHEMA_14_VERSION, SCHEMA_15_VERSION}
+)
 
 
 def _prose_binding_payload(

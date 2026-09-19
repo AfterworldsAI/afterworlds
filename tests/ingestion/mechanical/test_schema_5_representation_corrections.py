@@ -86,6 +86,10 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     lift_accepted_inputs,
     lift_path,
 )
+from tests.ingestion.mechanical._schema_pins import (
+    CURRENT_SCHEMA_HASH,
+    CURRENT_SCHEMA_VERSION,
+)
 
 #: The **legacy specimen**: the committed accepted artifact exactly as it stood
 #: before hazards-1 was accepted into it - the conditions-1 batch alone,
@@ -694,8 +698,8 @@ def test_schema_5_stays_pinned_as_the_source_of_a_registered_succession() -> Non
         SCHEMA_LIFTS,
     )
 
-    assert REPRESENTATION_SCHEMA_VERSION == SCHEMA_12_VERSION
-    assert representation_schema_hash() == SCHEMA_12_HASH
+    assert REPRESENTATION_SCHEMA_VERSION == CURRENT_SCHEMA_VERSION
+    assert representation_schema_hash() == CURRENT_SCHEMA_HASH
     lift = SCHEMA_LIFTS[(SCHEMA_5_VERSION, SCHEMA_5_HASH)]
     assert (lift.to_version, lift.to_hash) == (SCHEMA_6_VERSION, SCHEMA_6_HASH)
     # And the steps after it, so the chain from schema 5 is asserted whole.

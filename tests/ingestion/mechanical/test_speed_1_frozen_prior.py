@@ -69,11 +69,14 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_9_HASH,
     SCHEMA_10_HASH,
     SCHEMA_10_VERSION,
-    SCHEMA_12_HASH,
-    SCHEMA_12_VERSION,
     UnknownSchemaLiftError,
     lift_accepted_inputs,
     lift_path,
+)
+from tests.ingestion.mechanical._schema_pins import (
+    CURRENT_SCHEMA_HASH,
+    CURRENT_SCHEMA_VERSION,
+    crossings_from,
 )
 
 DATA = pathlib.Path(__file__).resolve().parent / "data"
@@ -235,17 +238,14 @@ def test_the_registered_crossings_separate_the_prior_from_this_build() -> None:
     current = (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
     prior = (inputs.oracle.schema_version, inputs.oracle.schema_hash)
     assert prior == (SCHEMA_10_VERSION, SCHEMA_10_HASH)
-    assert current == (SCHEMA_12_VERSION, SCHEMA_12_HASH)
+    assert current == (CURRENT_SCHEMA_VERSION, CURRENT_SCHEMA_HASH)
     assert prior != current
 
     findings = validate_schema_binding(candidate_from_accepted_inputs(inputs))
     assert findings, "reading a superseded prior as current must be visible"
     assert any(REPRESENTATION_SCHEMA_VERSION in f for f in findings), findings
 
-    expected = [
-        "5d-lift-schema-10-to-11",
-        "5d-lift-schema-11-to-12",
-    ]
+    expected = crossings_from(SCHEMA_10_VERSION)
     assert [step.lift_id for step in lift_path(prior, current)] == expected
     lifted, records = lift_accepted_inputs(inputs, current)
     assert [record.lift_id for record in records] == expected

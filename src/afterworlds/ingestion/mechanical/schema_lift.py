@@ -101,6 +101,12 @@ __all__ = [
     "SCHEMA_11_VERSION",
     "SCHEMA_12_HASH",
     "SCHEMA_12_VERSION",
+    "SCHEMA_13_HASH",
+    "SCHEMA_13_VERSION",
+    "SCHEMA_14_HASH",
+    "SCHEMA_14_VERSION",
+    "SCHEMA_15_HASH",
+    "SCHEMA_15_VERSION",
     "SchemaLiftRecord",
     "UnknownSchemaLiftError",
     "lift_for",
@@ -136,6 +142,14 @@ SCHEMA_11_VERSION = "5d-representation-schema-11"
 SCHEMA_11_HASH = "605e8b4cfdaf0cb6d4f0b65fcf0d23f3e45c4734404c9568f41dc4261eefd037"  # noqa: E501  # pragma: allowlist secret
 SCHEMA_12_VERSION = "5d-representation-schema-12"
 SCHEMA_12_HASH = "a706d9df46d2232293d40fa5bfd7c2d3e0480cd26041461b21c8eeb5027af0e8"  # noqa: E501  # pragma: allowlist secret
+SCHEMA_13_VERSION = "5d-representation-schema-13"
+#: Pinned literally, for the same reason every predecessor is.
+SCHEMA_13_HASH = "39710a37985977105659000ff17af2913b63c98a141dd4db90ee489817cf55bf"  # noqa: E501  # pragma: allowlist secret
+SCHEMA_14_VERSION = "5d-representation-schema-14"
+#: Pinned literally, for the same reason every predecessor is.
+SCHEMA_14_HASH = "14284d53773df10d8672cfea34b2b47771539a3e43d936577259817011b9498e"  # noqa: E501  # pragma: allowlist secret
+SCHEMA_15_VERSION = "5d-representation-schema-15"
+SCHEMA_15_HASH = "e87e0bacdc476b0bef092a04cbedd933e0b57b128651b08ef0ffbd0c94d186fd"  # noqa: E501  # pragma: allowlist secret
 
 
 class SchemaLiftError(ValueError):
@@ -498,6 +512,152 @@ SCHEMA_LIFTS: dict[tuple[str, str], SchemaLift] = {
             "declaring 5d-semantic-policy-1 may carry no retention reason at "
             "all. A schema-11 artifact is the only shape this succession "
             "carries, and it carries every one of them."
+        ),
+    ),
+    (SCHEMA_12_VERSION, SCHEMA_12_HASH): SchemaLift(
+        lift_id="5d-lift-schema-12-to-13",
+        from_version=SCHEMA_12_VERSION,
+        from_hash=SCHEMA_12_HASH,
+        to_version=SCHEMA_13_VERSION,
+        to_hash=SCHEMA_13_HASH,
+        rationale=(
+            "Schema 13 admits one fact family, proficiency_bonus_band, for "
+            "batch proficiency-1, and nothing else. It mints no vocabulary, "
+            "no vocabulary member, no ownership form, no component key, no "
+            "field on any family an earlier schema already had, and no "
+            "required or nullable field on one. Its whole surface is the new "
+            "family's row in _SCHEMA_13_FAMILIES and the introduction that "
+            "row renders. "
+            "The family exists because the Proficiency Bonus table prints "
+            "BANDS and no accepted family can hold one. The table's eight "
+            "rows are indexed by a single printed column, 'Level or CR', and "
+            "the three families that come closest each state something else. "
+            "ProgressionEntryFact is indexed by one integer level and names "
+            "what is granted with a semantic key its own contract says is "
+            "never a place to smuggle a second dimension; expanding 5-8 into "
+            "four of those would state four levels the table never prints and "
+            "would drop the Challenge Rating reading entirely. "
+            "SpellSlotProgressionFact is two exact levels, not a range. "
+            "ScalingFact states an increment at a threshold, while each "
+            "printed row is the total bonus for its band, so a faithful "
+            "reuse would have to author increments the source does not print "
+            "and an unbounded final band would grant +9 above CR 30. "
+            "minimum is nullable and carries no default because the first row "
+            "is printed 'Up to 4' and states no lower bound; writing 1 there "
+            "would author a bound the source does not print and would exclude "
+            "CR 0, 1/8, 1/4 and 1/2 from the only band that covers them. "
+            "Nothing accepted moves. No component of the seven accepted "
+            "batches states a fact of this family -- it did not exist when "
+            "they were reviewed -- so every accepted fact key, component key, "
+            "prose-binding payload and provenance coordinate has the same "
+            "canonical form under both contracts, which verify_lift proves "
+            "element by element rather than asserting. A schema-12 "
+            "declaration carrying a proficiency_bonus_band fact is refused by "
+            "the introduction manifest, never flattened, so the addition "
+            "cannot become a way to forge an identity an earlier reviewer "
+            "signed. "
+            "The policy contract does not move with it: 5d-semantic-policy-2 "
+            "is what proficiency-1 declares, and it is the same policy "
+            "schema 12 arrived with."
+        ),
+    ),
+    (SCHEMA_13_VERSION, SCHEMA_13_HASH): SchemaLift(
+        lift_id="5d-lift-schema-13-to-14",
+        from_version=SCHEMA_13_VERSION,
+        from_hash=SCHEMA_13_HASH,
+        to_version=SCHEMA_14_VERSION,
+        to_hash=SCHEMA_14_HASH,
+        rationale=(
+            "Schema 14 admits the typed rule inputs the Owner Decision of "
+            "2026-09-18 resolved for the Proficiency section, and nothing "
+            "else. Two fact families -- proficiency_application and "
+            "proficiency_bonus_operation_limit -- two whole vocabularies, "
+            "ProficiencyKind and ProficiencyBonusOperation, and one "
+            "omit-when-empty field on a family schema 3 already had, "
+            "AdvantageFact.requires_proficiencies. No ownership form, no "
+            "component key, no required field and no newly nullable field on "
+            "any family an earlier schema had. "
+            "The application family exists because the section states four "
+            "times, once per proficiency kind, which roll the bonus is added "
+            "to, and no accepted family pairs a proficiency with a roll. "
+            "Reading the umbrella sentence instead -- applied to a D20 Test "
+            "when the creature has proficiency in a skill, in a saving throw, "
+            "or with an item -- states a stronger rule than the source does, "
+            "because it admits a weapon proficiency on a saving throw. "
+            "The operation-limit family exists because the section prints "
+            "three arithmetic limits and one ordering -- added no more than "
+            "once, multiplied only once, divided only once, and multiplied or "
+            "divided before being added -- and no accepted family can state "
+            "how many times an operation may touch a number or which "
+            "operation precedes which. ScalingFact states an increment at a "
+            "threshold and QuantityMultiplierFact states a factor; neither "
+            "governs arity or order. "
+            "requires_proficiencies exists because the source states one "
+            "conjunction: proficiency with the tool AND proficiency in the "
+            "skill also used with that check. Applicability is deliberately "
+            "not a predicate language -- ANY_OF is a flat disjunction, with "
+            "no operator, no nesting and no way to combine two terms into a "
+            "third -- so an ALL_OF beside it would open exactly the language "
+            "that contract refuses. A closed tuple of kinds local to one "
+            "family makes the conjunction explicit without it. The advantage "
+            "stays conditional: the field is what states the condition, so "
+            "the fact can never read as unconditional. "
+            "Nothing accepted moves. No component of the seven accepted "
+            "batches states a fact of either new family, and the one accepted "
+            "family that gained a field gained an omit-when-empty one, so "
+            "every accepted advantage payload -- and its fact key and "
+            "provenance coordinate -- is byte-identical under both contracts, "
+            "which verify_lift proves element by element rather than "
+            "asserting. A schema-13 declaration carrying either new family, "
+            "or a non-empty requires_proficiencies, is refused by the "
+            "introduction manifest and the omission registry, never "
+            "flattened. "
+            "The policy contract does not move with it: 5d-semantic-policy-2 "
+            "is what proficiency-1 declares, and it is the same policy "
+            "schema 12 arrived with."
+        ),
+    ),
+    (SCHEMA_14_VERSION, SCHEMA_14_HASH): SchemaLift(
+        lift_id="5d-lift-schema-14-to-15",
+        from_version=SCHEMA_14_VERSION,
+        from_hash=SCHEMA_14_HASH,
+        to_version=SCHEMA_15_VERSION,
+        to_hash=SCHEMA_15_HASH,
+        rationale=(
+            "Schema 15 admits the two remaining uses the Proficiency "
+            "section's opening paragraph states, and nothing else. One fact "
+            "family -- proficiency_bonus_use -- and the one whole vocabulary "
+            "minted with it, ProficiencyBonusUse, whose two members are the "
+            "two uses that sentence prints: spell_attack and spell_save_dc. "
+            "No field on any family an earlier schema had, no ownership "
+            "form, no component key, no required field and no newly nullable "
+            "field. "
+            "The family exists because schema 14 typed where proficiency "
+            "applies as a proficiency kind paired with a roll, and this "
+            "sentence -- the bonus is also used for spell attacks and for "
+            "calculating the DC of saving throws for spells -- states two "
+            "uses that name no proficiency kind at all. Neither fits that "
+            "pairing: there is no spellcasting proficiency in the source's "
+            "four kinds, and a spell save DC is not a roll. Adding a fifth "
+            "ProficiencyKind member, or a spell-attack RollContext, would "
+            "author a rule the section does not print in order to reuse a "
+            "shape. "
+            "The family states the use and stops there. No formula, no "
+            "ability, no target DC, no character proficiency and no "
+            "consumer: the sentence states that the bonus is used for these "
+            "two things, and what else goes into either is stated elsewhere "
+            "and not read here. "
+            "Nothing accepted moves. No component of the seven accepted "
+            "batches states a fact of this family, and no accepted family "
+            "gained a field, so every accepted payload -- and its fact key "
+            "and provenance coordinate -- is byte-identical under both "
+            "contracts, which verify_lift proves element by element rather "
+            "than asserting. A schema-14 declaration carrying the new family "
+            "or either new vocabulary member is refused by the introduction "
+            "manifest, never flattened. "
+            "The policy contract does not move with it: 5d-semantic-policy-2 "
+            "is what proficiency-1 declares, and it is the same policy "
+            "schema 12 arrived with."
         ),
     ),
 }

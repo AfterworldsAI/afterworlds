@@ -36,15 +36,32 @@ from tests.entitlement.conftest import (
 
 
 class _StubOrchestrator:
-    def __init__(self, result_factory, *, delay: float = 0.0):
+    def __init__(self, result_factory, *, delay: float = 0.0, barrier=None):
         self._result_factory = result_factory
         self._delay = delay
+        # Rendezvous seam: with a barrier, every call waits for its partner
+        # inside orchestrate_turn, so "did two turns actually run at the same
+        # time?" is answered by whether they met -- not by wall-clock
+        # arithmetic over the whole request pair.
+        self._barrier = barrier
         self.calls: list[tuple] = []
+        self.overlapped: bool | None = None
 
     def orchestrate_turn(
         self, story_id, node_id, user_input, sojourner_id, access_path, **kw
     ):
         self.calls.append((story_id, node_id, user_input, sojourner_id, access_path))
+        if self._barrier is not None:
+            try:
+                self._barrier.wait()
+                self.overlapped = True
+            except threading.BrokenBarrierError:
+                # Serialized execution: the first caller waited out the
+                # barrier timeout alone, which breaks the barrier for every
+                # later caller too. Record it and return a normal result --
+                # the test asserts on this flag, and an exception escaping
+                # the stub would be indistinguishable from a route defect.
+                self.overlapped = False
         if self._delay:
             time.sleep(self._delay)
         return self._result_factory()
@@ -347,7 +364,14 @@ def test_concurrent_submissions_different_stories_do_not_serialize(client) -> No
     story_a = _create_story(client)
     story_b = _create_story(client)
     _seed_hosted(client)
-    stub = _StubOrchestrator(make_delivered_result, delay=0.3)
+    # Both turns must meet inside orchestrate_turn. If the per-story locks (or
+    # the ``asyncio.to_thread`` hand-off) serialized different stories, the
+    # first caller would wait out the timeout alone and the barrier would
+    # break -- so a green run is positive evidence of real overlap rather than
+    # a wall-clock reading that also moves with runner load. Only the failure
+    # path pays the timeout.
+    barrier = threading.Barrier(2, timeout=5)
+    stub = _StubOrchestrator(make_delivered_result, barrier=barrier)
     client.app.dependency_overrides[get_orchestrator] = lambda: stub
 
     results: dict[str, int] = {}
@@ -356,18 +380,37 @@ def test_concurrent_submissions_different_stories_do_not_serialize(client) -> No
         r = client.post(f"/api/stories/{story_id}/turns", json={"user_input": "x"})
         results[story_id] = r.status_code
 
-    start = time.monotonic()
-    t1 = threading.Thread(target=_fire, args=(story_a,))
-    t2 = threading.Thread(target=_fire, args=(story_b,))
-    t1.start()
-    t2.start()
-    t1.join(timeout=5)
-    t2.join(timeout=5)
-    elapsed = time.monotonic() - start
+    threads = [threading.Thread(target=_fire, args=(s,)) for s in (story_a, story_b)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=10)  # > the barrier timeout, so failure still converges
 
+    assert not any(t.is_alive() for t in threads)
     assert results == {story_a: 200, story_b: 200}
-    # Serialized would take ~2x the per-call delay; concurrent should be ~1x.
-    assert elapsed < 0.55
+    assert len(stub.calls) == 2
+    assert stub.overlapped is True
+
+
+def test_overlap_check_rejects_serialized_submissions(client) -> None:  # type: ignore[no-untyped-def]
+    """Negative control for the test above: two submissions that are known to
+    be serialized -- issued one after the other on this thread -- must leave
+    ``overlapped`` False, so a green overlap assertion cannot be satisfied by
+    two eventual successful responses alone.
+    """
+    story_a = _create_story(client)
+    story_b = _create_story(client)
+    _seed_hosted(client)
+    barrier = threading.Barrier(2, timeout=0.2)
+    stub = _StubOrchestrator(make_delivered_result, barrier=barrier)
+    client.app.dependency_overrides[get_orchestrator] = lambda: stub
+
+    for story_id in (story_a, story_b):
+        resp = client.post(f"/api/stories/{story_id}/turns", json={"user_input": "x"})
+        assert resp.status_code == 200, resp.text
+
+    assert len(stub.calls) == 2
+    assert stub.overlapped is False
 
 
 def test_lock_released_after_delivered_non_delivered_and_error(client) -> None:  # type: ignore[no-untyped-def]

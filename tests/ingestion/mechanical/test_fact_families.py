@@ -137,6 +137,13 @@ from afterworlds.ingestion.mechanical.representation import (
     MovementTransportFact,
     MovementWindow,
     ParticipantRole,
+    ProficiencyApplicationFact,
+    ProficiencyBonusBandFact,
+    ProficiencyBonusOperation,
+    ProficiencyBonusOperationLimitFact,
+    ProficiencyBonusUse,
+    ProficiencyBonusUseFact,
+    ProficiencyKind,
     ProgressionEntryFact,
     QuantityMultiplierFact,
     RangeKind,
@@ -251,6 +258,11 @@ EXEMPLARS: dict[FactFamily, Any] = {
         duration=SpellDuration(kind=DurationKind.INSTANTANEOUS),
     ),
     # A class table's "Class Features" column
+    # The Proficiency Bonus table's opening row: 'Up to 4' states no lower
+    # bound, so the band is open below rather than starting at 1.
+    FactFamily.PROFICIENCY_BONUS_BAND: ProficiencyBonusBandFact(
+        bonus=2, maximum=4, minimum=None
+    ),
     FactFamily.PROGRESSION_ENTRY: ProgressionEntryFact(
         level=5, entitlement_key="feature:extra-attack"
     ),
@@ -614,6 +626,29 @@ EXEMPLARS: dict[FactFamily, Any] = {
     # entire move."
     FactFamily.MOVEMENT_COMPOSITION: MovementCompositionFact(
         composes=MovementComposition.COMBINED_WITH_REGULAR_MOVEMENT,
+    ),
+    # Skill Proficiencies: "If a creature is proficient in a skill, the
+    # creature applies its Proficiency Bonus to ability checks involving
+    # that skill." One of the section's four printed applications; the
+    # other three name saving throws, weapons and tools.
+    FactFamily.PROFICIENCY_APPLICATION: ProficiencyApplicationFact(
+        proficiency=ProficiencyKind.SKILL,
+        roll=RollSpec(actor=RollActor.SUBJECT, context=RollContext.ABILITY_CHECK),
+    ),
+    # The Bonus Doesn't Stack: "Your Proficiency Bonus can't be added to a
+    # die roll or another number more than once." The arity is printed;
+    # addition is the operation nothing is printed as preceding.
+    FactFamily.PROFICIENCY_BONUS_OPERATION_LIMIT: ProficiencyBonusOperationLimitFact(
+        operation=ProficiencyBonusOperation.ADD,
+        maximum_applications=1,
+        precedes=None,
+    ),
+    # Proficiency, opening paragraph: "The bonus is also used for spell
+    # attacks and for calculating the DC of saving throws for spells." One
+    # of the two uses that sentence states; neither names a proficiency
+    # kind, which is why they are not applications.
+    FactFamily.PROFICIENCY_BONUS_USE: ProficiencyBonusUseFact(
+        use=ProficiencyBonusUse.SPELL_ATTACK,
     ),
 }
 

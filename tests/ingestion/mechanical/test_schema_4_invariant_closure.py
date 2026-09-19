@@ -121,13 +121,13 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_8_VERSION,
     SCHEMA_9_HASH,
     SCHEMA_9_VERSION,
-    SCHEMA_12_HASH,
     UnknownSchemaLiftError,
     lift_for,
     schema_binding_violations,
 )
 from afterworlds.services.rules_authority.patches import InvalidPatchError
 from afterworlds.services.rules_authority.patches import _build_fact as build_fact_patch
+from tests.ingestion.mechanical._schema_pins import CURRENT_SCHEMA_HASH
 
 # ---------------------------------------------------------------------------
 # The rolls Falling actually prints, and the shapes around them
@@ -1121,7 +1121,7 @@ def test_the_registered_lift_still_reaches_the_finalized_destination() -> None:
     assert SCHEMA_3_HASH == (
         "43ed330d3b3630d37ed92122fd87cc2c170863bab4465e53c727f1b8c6b86e05"  # noqa: E501  # pragma: allowlist secret
     )
-    assert representation_schema_hash() == SCHEMA_12_HASH
+    assert representation_schema_hash() == CURRENT_SCHEMA_HASH
 
 
 # ---------------------------------------------------------------------------
