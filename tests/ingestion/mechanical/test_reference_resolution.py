@@ -44,6 +44,7 @@ from afterworlds.ingestion.mechanical.acceptance import (
 )
 from afterworlds.ingestion.mechanical.accounting import derive_span_id
 from afterworlds.ingestion.mechanical.gate import (
+    GateFailureCategory,
     _accepted_identity,
     run_publication_gate,
 )
@@ -387,6 +388,10 @@ def test_the_publication_gate_judges_the_resolved_view(session: Session) -> None
             session, identified.projection_uuid, resolved.oracle
         )
         assert result.passed is expected, result.failures
+        if not expected:
+            # The refusal is the identity one: the stored view derives a
+            # different projection than the decision does.
+            assert GateFailureCategory.IDENTITY_MISMATCH in result.categories()
 
 
 # -- persistence, serialization, replay ---------------------------------------
@@ -559,11 +564,13 @@ def test_a_resolution_that_states_no_id_of_its_own_is_refused() -> None:
 def test_a_resolution_the_artifact_already_states_as_a_sibling_is_refused() -> None:
     """The post-hoc form of the edge this exists for, and it is still refused.
 
-    An artifact that already carries both the empty citation and the same
-    citation resolved is one no supported path can produce — ``accept_proposal``
-    refuses to author it. Resolving the empty edge inside it would publish one
-    citation twice rather than close anything, so the resolution is refused and
-    the pre-existing ambiguity is left visible for whoever has to explain it.
+    A *first* acceptance can author both the empty citation and the same
+    citation resolved: the retarget guard runs only against a ``prior``, so
+    what refuses the pair is publication, which reports it as ambiguous. A
+    later batch cannot author it. Resolving the empty edge inside such an
+    artifact would publish one citation twice rather than close anything, so
+    the resolution is refused and the pre-existing ambiguity is left visible
+    for whoever has to explain it.
     """
     prior = _accepted(
         representation=_representation(

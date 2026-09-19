@@ -1259,7 +1259,8 @@ this decision an accepted empty target is an obligation no supported action coul
   the authority it names — wrong release, no such unresolved citation, a citation already resolved,
   provenance that is not what review read, or an effective view publication would refuse — fails closed
   with nothing recorded.
-- A resolution whose id is already recorded is **refused, not absorbed**, on the same terms as a `batch_id`
+- Repeat behaviour is **implemented as** refusal rather than absorption: a resolution whose id is
+  already recorded is refused, on the same terms as a `batch_id`
   `accept_proposal` already holds: a replay is deterministic and leaves the artifact exactly as it was.
 - A later batch may neither drop a resolution it inherits nor invalidate one. Carried decisions are
   re-checked against the merged result, and an extension that would leave one describing something else is
@@ -1278,7 +1279,7 @@ one.
 
 The capability is implemented and demonstrated on isolated evidence. No accepted citation of the corpus is
 resolved by it, and the reviewed destinations proposal states four honest empty targets — *Stat Block*,
-*Combat Encounters*, *Combat*, *Opportunity Attack* — which remain open obligations after its acceptance
+*Combat Encounters*, *Combat*, *Opportunity Attack* — which would remain open obligations after any acceptance
 until genuinely reviewed destinations exist.
 
 ### Decision 8 — Persist, reconstruct, prove, then publish

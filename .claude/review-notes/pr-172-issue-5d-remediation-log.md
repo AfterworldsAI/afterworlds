@@ -332,7 +332,7 @@ unsupported succession refusing, deterministic replay refusal, and negative
 controls for unattributed, idless, conflicting, release-mismatched,
 provenance-mismatched, citationless, destinationless, retargeting,
 unknown-destination, ambiguity-introducing and sibling-duplicating inputs — plus
-six loader refusals over mutated committed JSON and five later-batch boundary
+seven loader refusals over mutated committed JSON and five later-batch boundary
 cases.
 
 The four real citations are deliberately **not** resolved: resolving one would
