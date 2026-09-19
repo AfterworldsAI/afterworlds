@@ -795,8 +795,16 @@ test: the destination records exist in the other proposal, not in the accepted
 oracle. In the merged data — accepted corpus plus both proposals — all four
 resolve to exactly one existing record each, which is what
 `test_proficiency_references_resolve.py` proves. The two scope keys corrected
-above are what makes `play.skills` and `play.actions` resolvable at all; they
-would still be unresolvable in the glossary scope.
+above are a **semantic** correction and not a mechanical one, and the earlier
+draft of this paragraph got that wrong. The checker resolves
+`target_record_key` against the whole merged record set — `validation.py`'s
+`elif ref.target_record_key not in record_keys` — so both pointers would report
+resolved under either scope; repointing either one back at
+`srd-5.2.1/rules-glossary` in the merged data leaves the finding list
+byte-identical. What the corrected scope fixes is which review can legitimately
+discharge them, and mechanically it is `(scope_key, source_text)` that the
+ambiguity grouping keys on, so the scope still has to be right for a genuine
+collision *in that scope* to be detectable.
 
 **The `Actions` destination is not the one Round 1 predicted.** That row said the
 durable destination would be "each action record naming its skill", with
