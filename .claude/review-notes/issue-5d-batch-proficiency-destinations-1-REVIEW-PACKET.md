@@ -22,9 +22,9 @@ identity from these bytes to prove it.
 |---|---|
 | proposal | `.claude/review-notes/issue-5d-batch-proficiency-destinations-1-PROPOSAL.json` |
 | generator | `.claude/review-notes/issue-5d-batch-proficiency-destinations-1-generator.py` |
-| bytes | 137,439 |
-| `proposal_identity` | `01603c7f9a3b14f9c90e63e03e32da7c75b119109f0c251e8b428d91b0765a5d` |
-| file sha256 | `2a2fa620e4379d28651b3ab83b038d59861d0133671d311d36edf1357dd43d85` |
+| bytes | 139,405 |
+| `proposal_identity` | `723bba6246e3a325141705be984c6c28fb016d36a7a6ff1b78fb7b0e21aeac3e` |
+| file sha256 | `6a88c886f320aa05cb6c9363b9a5bd1ab5d5c0b551d21832ab2dd2daf035fe1d` |
 | proposal schema | `5d-proposal-2` |
 | representation schema | `5d-representation-schema-15` |
 | schema hash | `e87e0bacdc476b0bef092a04cbedd933e0b57b128651b08ef0ffbd0c94d186fd` |
@@ -100,8 +100,8 @@ among its 48 records.
 | prose bindings | 70 |
 | typed facts | 2 |
 | relationships | 0 |
-| references | 13 |
-| provenance claims | 134 |
+| references | 17 (13 resolved on merge, 4 outstanding) |
+| provenance claims | 138 |
 | expected rules | 50 |
 
 Irreducibility reason codes, and how many bindings carry each:
@@ -110,9 +110,12 @@ Irreducibility reason codes, and how many bindings carry each:
 |---|---|
 | `contextual_applicability` | 1 |
 | `gamemaster_latitude` | 1 |
-| `natural_language_exception` | 2 |
 | `open_ended_effect` | 1 |
 | `subjective_judgment` | 2 |
+
+Five of the seventy bindings, therefore; the other sixty-five carry the
+retention reason. `natural_language_exception` is **not** used by this batch —
+see §6a for the two assignments that were corrected and why.
 
 Every other substantive binding carries `no_identified_structured_use`: the
 clause is reducible in principle, and this build has no identified consumer for
@@ -287,7 +290,7 @@ rather than certified on the surviving clause's evidence.
 | `glossary.challenge_rating` / `threat_comparison` | `subjective_judgment` | CR is lower, the monster likely poses little threat. |
 | `glossary.challenge_rating` / `threat_comparison` | `subjective_judgment` | Compare a monster’s CR to the characters’ level. If the CR is higher, the monster is likely a danger. If the |
 | `glossary.expertise` / `expertise_definition` | `no_identified_structured_use` | Expertise is a feature that enhances your use of a skill proficiency. |
-| `glossary.expertise` / `expertise_doubling` | `natural_language_exception` | When you make an ability check with a skill proficiency in which you have Expertise, your Proficiency Bonus is doubled for that check unless the bonus is doubled by another feature. |
+| `glossary.expertise` / `expertise_doubling` | `no_identified_structured_use` | When you make an ability check with a skill proficiency in which you have Expertise, your Proficiency Bonus is doubled for that check unless the bonus is doubled by another feature. |
 | `glossary.expertise` / `expertise_grant` | `no_identified_structured_use` | If you gain Expertise, you gain it in one skill in which you have proficiency. |
 | `glossary.expertise` / `expertise_grant` | `no_identified_structured_use` | You can’t have Expertise in the same skill proficiency more than once. |
 | `play.actions` / `action_default` | `no_identified_structured_use` | When you do something other than moving or communicating, you typically take an action. |
@@ -302,7 +305,7 @@ rather than certified on the surviving clause's evidence.
 | `play.actions` / `reaction_allowance` | `no_identified_structured_use` | When you take a Reaction, you can’t take another one until the start of your next turn. |
 | `play.actions` / `reaction_definition` | `no_identified_structured_use` | Certain special abilities, spells, and situations allow you to take a special action called a Reaction. A Reaction is an instant response to a trigger of some kind, which can occur on your turn or on someone else’s. |
 | `play.actions` / `reaction_interruption` | `no_identified_structured_use` | If the reaction interrupts another creature’s turn, that creature can continue its turn right after the Reaction. |
-| `play.actions` / `reaction_timing` | `natural_language_exception` | In terms of timing, a Reaction takes place immediately after its trigger unless the Reaction’s description says otherwise. |
+| `play.actions` / `reaction_timing` | `no_identified_structured_use` | In terms of timing, a Reaction takes place immediately after its trigger unless the Reaction’s description says otherwise. |
 
 ## 6. Why only two typed facts
 
@@ -329,8 +332,12 @@ something the source does not say.
 * **Reaction timing** — "immediately after its trigger unless the Reaction's
   description says otherwise." `TriggeredResolutionFact.optional` carries no
   negative arm for a stated override, so the exception would have been dropped
-  while the rule read as absolute. It is carried as prose under
-  `natural_language_exception`.
+  while the rule read as absolute.
+
+"No shape fits this sentence" is a statement about schema 15, not about the
+source, so none of the three is recorded as irreducible. All three keep their
+exact prose under `no_identified_structured_use`. §6a is the audit that made
+that distinction across every reason this batch assigns.
 
 The *Example Uses* column of the Skills table and the *Summary* column of the
 Action table are illustrative rather than governing, so both are accounted for
@@ -341,9 +348,53 @@ cells it is read from. The generator cross-checks every pair against the
 accepted `SKILL_ABILITY` mapping rather than restating 18 pairs by hand, so a
 misread row fails the build.
 
-## 7. The links: thirteen authored here, four closed in `proficiency-1`
+## 6a. Reason-code audit: irreducible, or merely untyped?
 
-### The thirteen this batch authors
+The closed catalog gives two different kinds of answer to "why is this meaning
+prose?", and they are not interchangeable. An **irreducibility** code says the
+source's own meaning cannot be reduced without executable interpretation. The
+**retention** code, `no_identified_structured_use`, says the meaning *is*
+reducible and this build has no identified code-owned use that needs a separate
+structured field, so the exact governing prose carries it. `policy.py` says so in
+as many words: relabelling reducible meaning with an irreducibility code "would
+make the catalog say something false about the source."
+
+Two assignments in an earlier draft of this batch failed that test, and both are
+corrected here. Defect family: **treating a stated exception, or the absence of a
+schema shape, as irreducibility.** Trigger: independent review of this batch
+raised `expertise_doubling`; the sibling sweep below found the second.
+
+| component | was | is | why |
+|---|---|---|---|
+| `glossary.expertise` / `expertise_doubling` | `natural_language_exception` | `no_identified_structured_use` | "unless the bonus is doubled by another feature" is a **fixed** exception: it states its condition and its consequence outright. The arithmetic limit it points at is already accepted authority on `play.proficiency/bonus_does_not_stack`. Reducible — and nothing in this task's authority identifies a code-owned use for a doubling factor, since sheet and adapter execution are out of scope. `patched` |
+| `play.actions` / `reaction_timing` | `natural_language_exception` | `no_identified_structured_use` | "unless the Reaction's description says otherwise" states a default ordering plus an override that defers to another rule's own text — a rule a later batch will classify, not meaning that resists reduction. Its own sibling in the same section, `act.bonus_timing` ("unless the Bonus Action's timing is specified") inside `bonus_action_allowance`, already carried the retention reason, and one shape cannot carry two reasons. `patched` |
+
+The whole clause stays bound in both cases. Nothing was extracted, no new fact
+family was minted, and no typed field was invented for either — the correction is
+to what the batch *says about* the prose, not to the prose.
+
+Siblings inspected, and their dispositions:
+
+| assignment | disposition |
+|---|---|
+| `threat_comparison` = `subjective_judgment` | `already safe` — the source hedges both arms with "likely"; it tells the reader what to expect rather than what follows |
+| `encounter_circumstances` = `contextual_applicability` | `already safe` — whether the rating describes the actual threat depends on circumstances and party size in play, fiction the projection cannot enumerate |
+| `improvised_action_options` = `open_ended_effect` | `already safe` — "other abilities provide additional action options" has an unbounded effect space |
+| `improvised_action_judgment` = `gamemaster_latitude` | `already safe` — the source hands the decision to the GM in its own words |
+| the 15 remaining components = `no_identified_structured_use` | `already safe` — reducible, no identified consumer; this is the reason the corrected two now carry |
+| `proficiency-1`'s only irreducibility code, `skill_relevance_judgment` = `gamemaster_latitude` | `already safe` — the GM decides which skill is relevant; its other eleven prose components all carry the retention reason. That proposal is unchanged by this correction and keeps identity `f0becb8b…` |
+| conditions-1's `glossary.condition/condition_definition` = `natural_language_exception` | `out of scope` — the one accepted use of that code, and accepted history. Not re-opened, not rewritten |
+
+After the correction this batch uses **no** `natural_language_exception`
+assignment at all, and the four irreducibility codes it does use each name a
+property of the printed sentence rather than a gap in schema 15.
+`test_the_prose_reasons_say_why_each_clause_is_prose` pins the whole map, and
+asserts that every component and every binding states exactly one of the two
+kinds of reason.
+
+## 7. The links: seventeen authored here, four closed in `proficiency-1`
+
+### The thirteen this batch authors with a destination
 
 | from | printed wording | resolution scope | destination |
 |---|---|---|---|
@@ -394,26 +445,79 @@ returns the approved identity
 | approved under PR #171 | `c71f81044f003e2845e33e95a844c995aeee00282b0808303320200f164e8ec4` | `55ac577f1ff25f37c8676a49c63e246588ec5c52cff58bb79205a4a459be8324` | 61,329 |
 | revised in this branch | `f0becb8bd87fcbb41aced983c55f59beb3f25b52d4eca549257d51d9b86d345a` | `c4c12fd321019e28d8eb05c986c80cc4d3b4f206fd50fdb26c04fb17ace85d5d` | 61,375 |
 
-### The pointers deliberately left as prose
+### The pointers whose destinations do not exist yet
 
-A reference is minted only where the destination exists in accepted or in-flight
-data. Minting one at a key nothing has reviewed would author an obligation this
-build cannot discharge and would let a later batch close it by accident, simply
-by choosing a matching key. These pointers are therefore carried as exact source
-prose with no reference:
+Four. Each is an explicit citation the source states, at a heading that really is
+in the bound release, for which no accepted or in-flight batch has minted a
+record. Each is authored as a reference with an **empty** `target_record_key`, so
+`_validate_relationships_and_references` reports it as `unresolved reference`.
 
-* the Challenge Rating entry's `See also` → `"Stat Block."`, and its mention of
-  the Gameplay Toolbox's Combat Encounters material;
-* the Expertise entry's `See also` → Playing the Game (Proficiency), which is
-  the *record-owned* reference in the table above and is the one of these that
-  does have a destination;
-* the Actions section's mentions of Combat, Opportunity Attack and Cunning
-  Action; and
-* the illustrative Influence / Search / Help / Utilize mentions inside Summary
-  and Example Uses cells, which name actions in passing rather than citing them.
+| from | printed wording | resolution scope | destination in the source | provenance span |
+|---|---|---|---|---|
+| `glossary.challenge_rating` *(record-owned)* | Stat Block | `srd-5.2.1/rules-glossary` | Rules Glossary entry *Stat Block*, printed p. 188 | `cr.stat_block` |
+| `glossary.challenge_rating` *(record-owned)* | Combat Encounters | `srd-5.2.1/gameplay-toolbox` | *Combat Encounters* subsection of *Gameplay Toolbox*, printed p. 202 | `cr.toolbox_a` |
+| `play.actions` *(record-owned)* | Combat | `srd-5.2.1/playing-the-game` | *Combat* subsection of *Playing the Game*, printed p. 13 | `act.one_thing_combat` |
+| `play.actions` *(record-owned)* | Opportunity Attack | `srd-5.2.1/playing-the-game` | *Opportunity Attack* entry inside that subsection, printed p. 15 | `act.reaction_opportunity` |
 
-Each is visible in §4 as source text with a supporting-authority disposition, so
-a reviewer can see what was read and not linked.
+**Why authored rather than withheld.** An earlier draft of this batch applied the
+rule "mint a reference only where the destination record already exists", and so
+recorded none of these four. Their prose survived, but the reference checker could
+not report their destinations, and the combined report then read as if this task's
+only outstanding reference residue were the ten pre-existing `glossary.speed`
+pointers. A citation the source states does not stop existing because nobody has
+reviewed its destination; what changes is only whether the build can see it. Under
+CRD Issue 5d contract 4 and ADR-005d Decision 7 the honest form is the reported
+one, and `proficiency-1` used exactly this form — an empty target — for its own
+two *Playing the Game* pointers before this branch closed them.
+
+**Why no key is guessed.** An empty target cannot be closed by accident: only the
+batch that mints the destination record can fill it in, and doing so changes the
+proposal's bytes and its identity. Naming a plausible key (`glossary.stat_block`,
+say) would be the failure mode the old rule was trying to avoid, and it is the one
+thing this correction does not do.
+
+**Ownership and scope.** All four are record-owned, on the Expertise pointer's
+precedent: the entry or the section states the citation and no one of its rule
+components does. Their scopes follow the same precedent — the outer part name is
+the resolution space, the quoted inner heading is the `source_text`.
+`srd-5.2.1/gameplay-toolbox` is a new scope string, formed from the source's own
+part name under the `<release-family>/<section-slug>` convention the two existing
+scopes already use. `scope_key` is a free-form review space with no closed
+vocabulary and is not a record key, so naming one invents no destination. The
+clause each citation is printed in keeps its existing component or record
+provenance claim; the reference adds its own `CONTEXTUAL` claim on that same span,
+because the sentence both supports its rule and cites a destination.
+
+**Ambiguity is not introduced.** The accepted corpus's 62 references are all in
+`srd-5.2.1/rules-glossary` and none of them cites *Stat Block*, *Combat*, *Combat
+Encounters*, *Gameplay Toolbox* or *Opportunity Attack*, so no `(scope, wording)`
+pair gains a second resolution. The merged report is pinned as an exact
+fourteen-item list — the Speed ten plus these four — in
+`test_proficiency_references_resolve.py`, and the four survive the production
+serialization and reconstruction round trip there.
+
+### The mentions that are not citations
+
+Source role decides this, not mention matching. Each of these is already
+classified as supporting authority for the rule it illustrates, which is visible
+in §4 as source text with a supporting-authority disposition:
+
+* **Cunning Action** — the source introduces it with its own words *"The Cunning
+  Action feature, **for example**, allows a Rogue to take a Bonus Action"*
+  (`act.bonus_example_a`/`_b`). An example of the rule stated beside it, not a
+  pointer to a definition.
+* **Influence / Search / Help / Utilize** in *One Thing at a Time*
+  (`act.one_thing_examples`) — illustrations of the one-action-at-a-time
+  principle, in running prose, and the same four words appear again as Action
+  table rows where they *are* cited, with destinations, in the table above.
+* **The Summary and Example Uses cells** — the same words in passing inside
+  columns whose own headers say what they are.
+* **"defined in more detail in 'Rules Glossary'"** (`act.table_pointer`) — names
+  the *scope* the twelve row references already resolve in. Not a thirteenth
+  destination.
+
+This is the same ground on which `proficiency-1` minted nothing for `D20 Test`,
+`Advantage` or `Athletics`.
 
 ## 8. Omissions, residue, and boundaries
 
@@ -435,6 +539,13 @@ a reviewer can see what was read and not linked.
   the honest state, and the movement entries they name are a later batch's work.
   A test pins that list exactly, so this task cannot silence one and a later
   movement batch has to change the list to close them.
+* **Four outward citations this batch opens** (§7) — Challenge Rating's
+  *Stat Block* and *Combat Encounters*, and the Actions section's *Combat* and
+  *Opportunity Attack*. Real citations in the source, at real headings in the
+  bound release, whose destination records no batch has minted. Authored with an
+  empty target so the production check reports each one, and pinned in the same
+  exact list as the Speed ten: fourteen outstanding obligations in the merged
+  data, not ten. Only the batch that mints a destination can close one.
 * **Nothing here is accepted.** The four records are proposed. Publication or
   activation of a partial Rules Package is not authorized and is not attempted.
 
@@ -444,12 +555,12 @@ a reviewer can see what was read and not linked.
 # regenerate the proposal (deterministic; overwrites with identical bytes)
 python .claude/review-notes/issue-5d-batch-proficiency-destinations-1-generator.py
 
-# this batch: identity, unit shape, the thirteen links, the two typed facts
+# this batch: identity, unit shape, the seventeen links, the reason codes
 pytest tests/ingestion/mechanical/test_proficiency_destinations_1_proposal.py -q
 
 # the revised proficiency-1, and the two-string reconstruction of PR #171's bytes
 pytest tests/ingestion/mechanical/test_proficiency_1_proposal.py -q
 
-# the four links resolving uniquely in the merged data, and the failures
+# the four links resolving uniquely, and the fourteen reported obligations
 pytest tests/ingestion/mechanical/test_proficiency_references_resolve.py -q
 ```

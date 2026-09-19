@@ -16,8 +16,10 @@ reviews all four destinations from source and completes the links.
 review inventory against the *merged* representation and requires the batch's
 resolved scope to be disjoint from what is already accepted; it runs no
 reference validation, so reference resolution is a property of the merged
-representation proved separately (``_merged_resolution`` below, and the
-proportionate tests). The two glossary entries are ``ENTRY`` units because that
+representation and is proved separately, by
+``tests/ingestion/mechanical/test_proficiency_references_resolve.py`` running
+the production check over the merged authority. This generator proves only the
+standalone state. The two glossary entries are ``ENTRY`` units because that
 is how the Rules Glossary presents them; the Skills table is a ``TABLE`` unit so
 that an omitted row is a missing expected rule; the ``Actions`` section is a
 ``SECTION`` unit including its three subsections, its exceptions and its
@@ -47,29 +49,65 @@ all stay prose. The only typed facts are two ``ActionAllowanceFact`` instances
 that the existing family states exactly, in the shape ``glossary.action``
 already uses it.
 
-**When a pointer becomes a reference.** A reference is minted only where the
-destination record exists in accepted data or in this batch's own chain:
+**When a pointer becomes a reference.** Every explicit citation these four units
+author becomes a reference. Where the destination record exists, the reference
+names it; where no accepted or in-flight batch has minted the destination yet,
+the reference carries an empty ``target_record_key`` and the production checker
+reports it as an outstanding obligation. Withholding the citation instead would
+leave the obligation undetectable, which is the opposite of what a reference
+relation is for, and an empty target is the form ``proficiency-1`` itself used
+for exactly this state.
+
+Resolved here, 13:
 
 * the 12 Action-table name cells -> the 12 accepted ``action.*`` records, in the
-  glossary scope 284 names in its own words (*"defined in more detail in 'Rules
-  Glossary'"*); identical ``(scope, source_text, target)`` triples to the ones
-  ``glossary.action`` already publishes, so they resolve uniquely rather than
-  ambiguously, and a different ``from_record_key`` keeps them out of the
+  glossary scope the section names in its own words (*"defined in more detail in
+  'Rules Glossary'"*); identical ``(scope, source_text, target)`` triples to the
+  ones ``glossary.action`` already publishes, so they resolve uniquely rather
+  than ambiguously, and a different ``from_record_key`` keeps them out of the
   duplicated-citation rule;
 * Expertise's *"See also 'Playing the Game' ('Proficiency')"* -> the
   ``play.proficiency`` record ``proficiency-1`` proposes, as a record-owned
   reference because the entry states it and no one of its rule components does.
 
-Every other pointer stays exact governing prose: ``"Stat Block."``, *"Gameplay
-Toolbox" ("Combat Encounters")*, *"Combat"*, ``Opportunity Attack`` and
-``Cunning Action`` all name destinations no accepted or in-flight batch has
-minted. That is ``proficiency-1``'s own precedent -- it left *"(described in
-'Character Creation')"* as prose rather than minting an unresolvable pointer --
-and it means this batch opens no new outstanding obligation while closing four.
-Illustrative mentions of named actions inside prose (``Influence``, ``Search``,
-``Help``, ``Utilize`` in *One Thing at a Time*) are likewise not definitional
-pointers, exactly as ``proficiency-1`` minted nothing for ``D20 Test``,
-``Advantage`` or ``Athletics``.
+Outstanding here, 4. Each names a real heading in the bound release that no
+batch has minted a record for, so its target is honestly empty rather than
+guessed, and each is reported by ``_validate_relationships_and_references`` as
+``unresolved reference``:
+
+* Challenge Rating's *"See also ... 'Stat Block.'"* -> the Rules Glossary *Stat
+  Block* entry, printed p. 188, scope ``srd-5.2.1/rules-glossary``;
+* Challenge Rating's *"'Gameplay Toolbox' ('Combat Encounters')"* -> the *Combat
+  Encounters* subsection of *Gameplay Toolbox*, printed p. 202, scope
+  ``srd-5.2.1/gameplay-toolbox``;
+* Actions' *"as explained in 'Combat' later in 'Playing the Game'"* -> the
+  *Combat* subsection of *Playing the Game*, printed p. 13, scope
+  ``srd-5.2.1/playing-the-game``;
+* Actions' *"The Opportunity Attack, described later in 'Playing the Game'"* ->
+  the *Opportunity Attack* entry inside that same subsection, printed p. 15,
+  same scope.
+
+All four are record-owned on the ``exp.pointer`` precedent: the entry or the
+section states the pointer, and no one of its rule components does. Their scopes
+follow that same precedent -- the outer part name is the resolution space, the
+quoted inner heading is the ``source_text``. ``srd-5.2.1/gameplay-toolbox`` is a
+new scope string formed from the source's own part name under the existing
+``<release-family>/<section-slug>`` convention; a ``scope_key`` is a review
+space with no closed vocabulary, not a destination key, so naming one guesses
+nothing. The supporting clause each citation is printed in keeps its existing
+component or record claim; the reference adds its own ``CONTEXTUAL`` claim on
+that span, because the sentence both supports its rule and cites a destination.
+
+**What is not a citation.** Source role decides this, not mention matching. The
+source introduces ``Cunning Action`` with its own words *"for example"*
+(``act.bonus_example_a``/``_b``), and ``Influence``, ``Search``, ``Help`` and
+``Utilize`` appear as illustrations of the one-action-at-a-time principle
+(``act.one_thing_examples``); both were already classified as supporting
+authority for the rule they illustrate rather than as pointers, which is the
+same ground on which ``proficiency-1`` minted nothing for ``D20 Test``,
+``Advantage`` or ``Athletics``. *"defined in more detail in 'Rules Glossary'"*
+(``act.table_pointer``) names the *scope* the twelve row references already
+resolve in, not a further destination.
 """
 
 from __future__ import annotations
@@ -172,6 +210,34 @@ PROFICIENCY = "play.proficiency"
 #: The two committed resolution scopes ``proficiency-1`` used, unchanged.
 GLOSSARY_SCOPE = "srd-5.2.1/rules-glossary"
 PLAYING_THE_GAME_SCOPE = "srd-5.2.1/playing-the-game"
+#: One further review space, for Challenge Rating's *"Gameplay Toolbox"*
+#: citation. Formed from the source's own part name under the convention the two
+#: scopes above already use, ``<release-family>/<section-slug>``. A scope is the
+#: space a citation is reviewed and discharged in; it is not a record key, so
+#: naming it invents no destination.
+GAMEPLAY_TOOLBOX_SCOPE = "srd-5.2.1/gameplay-toolbox"
+
+#: What a reference states when the citation is real and the destination record
+#: does not exist yet. ``_validate_relationships_and_references`` reports every
+#: one of these as ``unresolved reference``, which is the point: the obligation
+#: is detectable, and only the batch that mints the destination can close it.
+UNRESOLVED_TARGET = ""
+
+#: ``(from_record, source_text, scope, provenance span)`` for the four explicit
+#: citations in these units whose destinations no accepted or in-flight batch has
+#: minted. The span is the clause the citation is printed in -- never a guess at
+#: the destination, which is what ``UNRESOLVED_TARGET`` records instead.
+OUTSTANDING_CITATIONS: tuple[tuple[str, str, str, str], ...] = (
+    (CR, "Stat Block", GLOSSARY_SCOPE, "cr.stat_block"),
+    (CR, "Combat Encounters", GAMEPLAY_TOOLBOX_SCOPE, "cr.toolbox_a"),
+    (ACTIONS, "Combat", PLAYING_THE_GAME_SCOPE, "act.one_thing_combat"),
+    (
+        ACTIONS,
+        "Opportunity Attack",
+        PLAYING_THE_GAME_SCOPE,
+        "act.reaction_opportunity",
+    ),
+)
 
 # ---------------------------------------------------------------------------
 # The reviewed source
@@ -714,6 +780,10 @@ REACTION_ALLOWANCE = ActionAllowanceFact(
 #   ``TriggeredResolutionFact``, whose ``optional`` field is documented as
 #   stated *"because the source states its own negative arm outright"*. This
 #   sentence states no negative arm, so either value would be an invention.
+#
+# "No shape fits" is a statement about this schema, not about the source. None
+# of the three is therefore classified as irreducible; all three keep the
+# retention reason, and their exact prose stays bound whole.
 
 # ---------------------------------------------------------------------------
 # Components
@@ -722,8 +792,20 @@ NO_USE = "no_identified_structured_use"
 GM = "gamemaster_latitude"
 JUDGMENT = "subjective_judgment"
 CONTEXT = "contextual_applicability"
-EXCEPTION = "natural_language_exception"
 OPEN_ENDED = "open_ended_effect"
+
+# ``natural_language_exception`` is deliberately absent. Every clause in these
+# four units that carries a stated exception states that exception's condition
+# and consequence outright, or defers to another rule's own text -- reducible
+# either way. The one accepted use of that code (conditions-1,
+# ``glossary.condition/condition_definition``) is untouched history.
+#
+# The four irreducibility codes above each name a property of the printed
+# sentence rather than a gap in the schema: a judgement the source hedges
+# ("likely" in both arms), applicability that depends on fiction the projection
+# cannot enumerate, an unbounded effect space, and a decision the source hands
+# to the GM in its own words. Everything else is reducible with no identified
+# code-owned use, which is the retention reason, not an irreducibility one.
 
 #: ``(record, component_key, handling, irreducibility, retention, clauses)``.
 COMPONENTS: tuple[
@@ -771,18 +853,24 @@ COMPONENTS: tuple[
         NO_USE,
         ("exp.definition",),
     ),
-    # The doubling carries its own exception -- "unless the bonus is doubled by
-    # another feature" -- which is why this component states the exception
-    # reason rather than the retention one. The arithmetic limit it points at is
-    # already accepted authority on ``play.proficiency/bonus_does_not_stack``,
-    # read from that section's own spans; restating it here would publish one
-    # source rule as two copies.
+    # "unless the bonus is doubled by another feature" is a *fixed* exception: it
+    # names one stated condition with one stated consequence, and the arithmetic
+    # limit it points at is already accepted authority on
+    # ``play.proficiency/bonus_does_not_stack``, read from that section's own
+    # spans. Reducible meaning, therefore, and the closed irreducibility catalog
+    # defines ``natural_language_exception`` as an exception that *cannot* be
+    # reduced without executable interpretation -- so using it here would make
+    # the catalog say something false about the source. Nothing in this task's
+    # authority identifies a code-owned use for a doubling factor (no sheet or
+    # adapter execution is in scope), so the whole clause stays exact governing
+    # prose under the honest retention reason, and restating the limit as a
+    # second structured copy is not attempted.
     (
         EXP,
         "expertise_doubling",
         ComponentHandling.PROSE_BOUND,
-        EXCEPTION,
         None,
+        NO_USE,
         ("exp.doubling",),
     ),
     (
@@ -909,12 +997,19 @@ COMPONENTS: tuple[
         NO_USE,
         ("act.reaction_interrupt",),
     ),
+    # Same family as ``act.bonus_timing`` in ``bonus_action_allowance`` above,
+    # and therefore the same reason: "unless the Reaction's description says
+    # otherwise" states a default ordering plus an override that defers to
+    # another rule's own text. Deferring to a rule a later batch will classify
+    # is not meaning that cannot be reduced -- and that no schema shape fits the
+    # whole sentence today (see the untyped note above) establishes nothing
+    # about reducibility either. The exact prose stays bound whole.
     (
         ACTIONS,
         "reaction_timing",
         ComponentHandling.PROSE_BOUND,
-        EXCEPTION,
         None,
+        NO_USE,
         ("act.reaction_timing",),
     ),
 )
@@ -978,12 +1073,30 @@ REFERENCES: tuple[ReferenceDraft, ...] = tuple(
         scope_key=PLAYING_THE_GAME_SCOPE,
         target_record_key=PROFICIENCY,
     ),
+) + tuple(
+    # The four explicit citations whose destinations no batch has minted. Same
+    # ownership form and the same scope convention as the Expertise pointer
+    # above; the only difference is an empty ``target_record_key``, which is how
+    # this representation states an obligation that is real and not yet
+    # dischargeable. See the module docstring for the printed page of each
+    # destination and why none of these keys may be guessed.
+    ReferenceDraft(
+        from_record_key=record,
+        from_component_key=RECORD_OWNED_REFERENCE,
+        source_text=text,
+        scope_key=scope,
+        target_record_key=UNRESOLVED_TARGET,
+    )
+    for record, text, scope, _span in OUTSTANDING_CITATIONS
 )
-assert len(REFERENCES) == 13, len(REFERENCES)
+assert len(REFERENCES) == 17, len(REFERENCES)
 REFERENCE_SPANS = {
     (ACTIONS, name): f"act.row.{i}.name" for i, name in enumerate(ACTION_NAMES)
 }
 REFERENCE_SPANS[(EXP, "Proficiency")] = "exp.pointer"
+for _record, _text, _scope, _span in OUTSTANDING_CITATIONS:
+    REFERENCE_SPANS[(_record, _text)] = _span
+assert len(REFERENCE_SPANS) == 17, len(REFERENCE_SPANS)
 
 # ---------------------------------------------------------------------------
 # Provenance
@@ -1074,7 +1187,7 @@ for ref in REFERENCES:
             ProvenanceRole.CONTEXTUAL,
         )
     )
-assert len(PROVENANCE) == 134, len(PROVENANCE)
+assert len(PROVENANCE) == 138, len(PROVENANCE)
 
 DRAFT = RepresentationDraft(
     records=(
@@ -1252,19 +1365,32 @@ units = review_unit_violations(UNITS, DRAFT, SEMANTIC_POLICY_VERSION, LEDGER.spa
 assert units == [], units
 
 standalone = list(validate_representation(DRAFT, LEDGER, CORPUS))
-#: Standalone, this batch's thirteen references name records it does not declare
-#: itself: twelve accepted ``action.*`` records and the ``play.proficiency``
-#: record ``proficiency-1`` proposes. That is the honest and detectable state --
-#: the same ``unknown target record`` finding ``proficiency-1`` reported for the
-#: two glossary entries this batch now mints -- and every one of them resolves
-#: in the merged representation, proved below.
+#: Standalone, thirteen of this batch's seventeen references name records it does
+#: not declare itself: twelve accepted ``action.*`` records and the
+#: ``play.proficiency`` record ``proficiency-1`` proposes. That is the honest and
+#: detectable state -- the same ``unknown target record`` finding
+#: ``proficiency-1`` reported for the two glossary entries this batch now mints
+#: -- and every one of the thirteen resolves in the merged representation, which
+#: ``test_proficiency_references_resolve.py`` proves and this generator does not.
+#:
+#: The other four carry no target at all and are reported as ``unresolved
+#: reference``. They stay reported in the merged representation too: no batch in
+#: this chain mints *Stat Block*, *Combat Encounters*, *Combat* or *Opportunity
+#: Attack*, so these are this batch's own outstanding obligations and merging
+#: cannot close them.
 EXPECTED_FINDINGS = tuple(
     sorted(
-        f"reference {ref.scope_key}:{ref.source_text!r}: "
-        f"unknown target record {ref.target_record_key}"
+        (
+            f"reference {ref.scope_key}:{ref.source_text!r}: "
+            f"unknown target record {ref.target_record_key}"
+            if ref.target_record_key
+            else f"reference {ref.scope_key}:{ref.source_text!r}: "
+            "unresolved reference"
+        )
         for ref in REFERENCES
     )
 )
+assert sum("unresolved reference" in f for f in EXPECTED_FINDINGS) == 4
 assert tuple(sorted(standalone)) == EXPECTED_FINDINGS, standalone
 
 #: Dropping any one Skills-table row must be *reported*, not absorbed: the
@@ -1349,6 +1475,9 @@ print(f"typed facts      2 action allowances (bonus action, reaction)")
 print(f"provenance       {len(PROVENANCE)}   references {len(REFERENCES)}")
 print(f"partition        {len(partition)} findings")
 print(f"review units     {len(units)} findings")
-print(f"representation   {len(standalone)} findings (all thirteen citations)")
+print(
+    f"representation   {len(standalone)} findings "
+    "(13 unminted-destination citations, 4 outstanding obligations)"
+)
 for finding in sorted(standalone):
     print(f"  - {finding}")

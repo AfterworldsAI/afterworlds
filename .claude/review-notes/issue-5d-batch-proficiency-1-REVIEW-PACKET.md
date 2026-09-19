@@ -1380,7 +1380,7 @@ pytest tests/ingestion/mechanical/test_schema_version_legality.py -q --no-cov
 # the consolidated schema pins, against the registry and the live contract
 pytest tests/ingestion/mechanical/test_schema_6_succession.py -q --no-cov
 
-# Round 4's four destinations: identity, unit shape, the thirteen links
+# Round 4's four destinations: identity, unit shape, the seventeen links
 pytest tests/ingestion/mechanical/test_proficiency_destinations_1_proposal.py -q --no-cov
 
 # Round 4: all four pointers resolving uniquely in the merged data, and the failures

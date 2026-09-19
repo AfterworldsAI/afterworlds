@@ -29,26 +29,6 @@
     "fact_qualifiers": [],
     "facts": [],
     "handling": "prose_bound",
-    "irreducibility_reason_code": "natural_language_exception",
-    "options": [],
-    "record_key": "glossary.expertise",
-    "semantic_key": "expertise_doubling"
-   },
-   {
-    "applies_when": null,
-    "fact_qualifiers": [],
-    "facts": [],
-    "handling": "prose_bound",
-    "irreducibility_reason_code": "natural_language_exception",
-    "options": [],
-    "record_key": "play.actions",
-    "semantic_key": "reaction_timing"
-   },
-   {
-    "applies_when": null,
-    "fact_qualifiers": [],
-    "facts": [],
-    "handling": "prose_bound",
     "irreducibility_reason_code": "open_ended_effect",
     "options": [],
     "record_key": "play.actions",
@@ -85,6 +65,17 @@
     "prose_retention_reason_code": "no_identified_structured_use",
     "record_key": "glossary.expertise",
     "semantic_key": "expertise_definition"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.expertise",
+    "semantic_key": "expertise_doubling"
    },
    {
     "applies_when": null,
@@ -173,6 +164,17 @@
     "prose_retention_reason_code": "no_identified_structured_use",
     "record_key": "play.actions",
     "semantic_key": "reaction_interruption"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "semantic_key": "reaction_timing"
    },
    {
     "applies_when": null,
@@ -437,7 +439,8 @@
     "chunk_char_start": 70,
     "chunk_id": "30c6a095-c0b9-5956-b46e-5837b841e663",
     "component_key": "expertise_doubling",
-    "irreducibility_reason_code": "natural_language_exception",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
     "record_key": "glossary.expertise",
     "span_id": "4dd554ad-195c-5793-a407-ab570cda1cbc"
    },
@@ -694,7 +697,8 @@
     "chunk_char_start": 518,
     "chunk_id": "2a050cea-a66d-5d6e-ad05-d0ed3a86336c",
     "component_key": "reaction_timing",
-    "irreducibility_reason_code": "natural_language_exception",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
     "record_key": "play.actions",
     "span_id": "826d1dab-406b-5dce-9158-4716fc3f4343"
    },
@@ -1074,6 +1078,18 @@
     "span_id": "43ec5b29-c4e9-5883-964c-ee85cbbff2e0",
     "target_key": [
      "glossary.challenge_rating",
+     "",
+     "Combat Encounters",
+     "srd-5.2.1/gameplay-toolbox",
+     ""
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "43ec5b29-c4e9-5883-964c-ee85cbbff2e0",
+    "target_key": [
+     "glossary.challenge_rating",
      "encounter_circumstances"
     ],
     "target_kind": "component"
@@ -1334,6 +1350,18 @@
     "span_id": "a3ad8b51-4599-512e-bf50-e239c1928809",
     "target_key": [
      "play.actions",
+     "",
+     "Opportunity Attack",
+     "srd-5.2.1/playing-the-game",
+     ""
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "a3ad8b51-4599-512e-bf50-e239c1928809",
+    "target_key": [
+     "play.actions",
      "reaction_definition"
     ],
     "target_kind": "component"
@@ -1397,6 +1425,18 @@
     "span_id": "c9b0bd38-aa76-5614-93df-405076aadbad",
     "target_key": [
      "play.actions",
+     "",
+     "Combat",
+     "srd-5.2.1/playing-the-game",
+     ""
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "c9b0bd38-aa76-5614-93df-405076aadbad",
+    "target_key": [
+     "play.actions",
      "one_action_at_a_time"
     ],
     "target_kind": "component"
@@ -1427,6 +1467,18 @@
      "skills_table"
     ],
     "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "dc1737c9-b510-51a8-91ac-2502bb776289",
+    "target_key": [
+     "glossary.challenge_rating",
+     "",
+     "Stat Block",
+     "srd-5.2.1/rules-glossary",
+     ""
+    ],
+    "target_kind": "reference"
    },
    {
     "role": "contextual",
@@ -1876,7 +1928,7 @@
      "expertise_doubling",
      "30c6a095-c0b9-5956-b46e-5837b841e663",
      "4dd554ad-195c-5793-a407-ab570cda1cbc",
-     "natural_language_exception"
+     "no_identified_structured_use"
     ],
     "target_kind": "prose_binding"
    },
@@ -2020,7 +2072,7 @@
      "reaction_timing",
      "2a050cea-a66d-5d6e-ad05-d0ed3a86336c",
      "826d1dab-406b-5dce-9158-4716fc3f4343",
-     "natural_language_exception"
+     "no_identified_structured_use"
     ],
     "target_kind": "prose_binding"
    },
@@ -2398,10 +2450,38 @@
   "references": [
    {
     "from_component_key": "",
+    "from_record_key": "glossary.challenge_rating",
+    "scope_key": "srd-5.2.1/gameplay-toolbox",
+    "source_text": "Combat Encounters",
+    "target_record_key": ""
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.challenge_rating",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Stat Block",
+    "target_record_key": ""
+   },
+   {
+    "from_component_key": "",
     "from_record_key": "glossary.expertise",
     "scope_key": "srd-5.2.1/playing-the-game",
     "source_text": "Proficiency",
     "target_record_key": "play.proficiency"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "play.actions",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "Combat",
+    "target_record_key": ""
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "play.actions",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "Opportunity Attack",
+    "target_record_key": ""
    },
    {
     "from_component_key": "action_table",

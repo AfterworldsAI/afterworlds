@@ -14,6 +14,15 @@ Proficiency — and checks the merged representation. Nothing is accepted into t
 corpus here: ``accept_proposal`` returns an in-memory value, has no output path,
 and the committed artifact is asserted byte-identical afterwards.
 
+The merged report is asserted as an exact list, and that list is **not** empty.
+It holds the accepted ``glossary.speed`` entry's ten pre-existing obligations,
+which this task must not touch, and the four this task opens: explicit citations
+the reviewed destinations print at *Stat Block*, *Combat Encounters*, the
+*Combat* subsection and *Opportunity Attack*, none of which any batch has minted
+a record for. Reporting them is what makes them obligations; an earlier draft
+withheld the citations entirely, and the merged report then read as if this task
+had closed four links and left nothing behind.
+
 ``_validate_relationships_and_references`` is called directly rather than through
 ``validate_representation``, because the merged draft's prose extent is over 5c's
 whole release and the reference relation is the only part of the report this
@@ -78,9 +87,10 @@ ORIGINATING_LINKS = {
 #: authors from source at destinations no batch has reviewed yet. They are
 #: reported, which is the honest state: 5c prints them, ``speed-1`` represented
 #: them, and the movement entries they name are a later batch's work and outside
-#: this task. The merged report must be *exactly* these ten — this task neither
-#: silences one nor adds an eleventh, and a later movement batch closing them
-#: has to change this list to do it.
+#: this task. This task neither silences one of them nor adds an eleventh to
+#: them, and a later movement batch closing them has to change this list to do
+#: it. The obligations this task does open are listed separately below, so the
+#: two kinds cannot be confused for each other.
 PREEXISTING_OUTWARD = tuple(
     f"reference {GLOSSARY_SCOPE}:{text!r}: unknown target record {target}"
     for text, target in sorted(
@@ -98,6 +108,34 @@ PREEXISTING_OUTWARD = tuple(
         }.items()
     )
 )
+
+#: The four outward pointers **this task opens**: explicit citations the four
+#: reviewed destinations print at headings no batch has minted a record for. They
+#: carry no target at all, so the checker reports ``unresolved reference`` rather
+#: than naming a key nobody reviewed.
+#:
+#: Merging cannot close them — that is the point of listing them beside the Speed
+#: ten. Closing one is the work of whichever batch reviews *Stat Block*, *Combat
+#: Encounters*, the *Combat* subsection or *Opportunity Attack*, and that batch
+#: has to change this list to do it. Suppressing the citations instead, which an
+#: earlier draft of the destinations generator did, is what made the merged report
+#: read as if this task left no residue behind.
+TOOLBOX_SCOPE = "srd-5.2.1/gameplay-toolbox"
+NEW_OUTWARD = tuple(
+    f"reference {scope}:{text!r}: unresolved reference"
+    for scope, text in sorted(
+        {
+            (GLOSSARY_SCOPE, "Stat Block"),
+            (TOOLBOX_SCOPE, "Combat Encounters"),
+            (PLAYING_SCOPE, "Combat"),
+            (PLAYING_SCOPE, "Opportunity Attack"),
+        }
+    )
+)
+
+#: The whole merged report: ten accepted obligations this task must not touch,
+#: four it opens.
+EXPECTED_OUTWARD = tuple(sorted(PREEXISTING_OUTWARD + NEW_OUTWARD))
 
 
 def _merged():  # type: ignore[no-untyped-def]
@@ -169,13 +207,15 @@ def _replace_reference(draft, old, new):  # type: ignore[no-untyped-def]
 
 
 def test_all_four_originating_links_resolve_in_the_merged_data() -> None:
-    """The point of the batch pair: no finding of this task's survives the merge.
+    """The point of the batch pair: the four printed pointers land somewhere.
 
     Each of the four resolves to exactly one record and that record is carried
-    by the merged representation. The report is then asserted whole, against the
-    accepted corpus's own ten pre-existing outward pointers, rather than filtered
-    for the four words this task is about: a filtered assertion would pass while
-    this task's thirteen destination links quietly broke something else.
+    by the merged representation. The report is then asserted whole — the
+    accepted corpus's ten pre-existing outward pointers plus the four citations
+    this task opens — rather than filtered for the four words this task closes. A
+    filtered assertion would pass while one of the seventeen destination links
+    quietly broke something else, and it would also let a dropped obligation go
+    unnoticed.
     """
     merged = _merged().oracle.representation
     record_keys = {r.semantic_key for r in merged.records}
@@ -186,7 +226,7 @@ def test_all_four_originating_links_resolve_in_the_merged_data() -> None:
         assert destination in record_keys
 
     assert tuple(sorted(_validate_relationships_and_references(merged))) == (
-        PREEXISTING_OUTWARD
+        EXPECTED_OUTWARD
     )
 
 
@@ -210,11 +250,11 @@ def test_every_citation_in_the_merged_data_resolves_uniquely() -> None:
     assert multiply_resolved == {}
 
     # Every accepted citation still resolves where it did, and the merge is
-    # additive: the four new links plus the destinations' thirteen.
+    # additive: ``proficiency-1``'s four links plus the destinations' seventeen.
     before = _targets_by_citation(accepted.oracle.representation)
     after = _targets_by_citation(merged)
     assert all(after[citation] == targets for citation, targets in before.items())
-    assert len(merged.references) == len(accepted.oracle.representation.references) + 17
+    assert len(merged.references) == len(accepted.oracle.representation.references) + 21
 
 
 def test_a_missing_destination_record_reopens_the_link() -> None:
@@ -300,7 +340,7 @@ def test_the_resolution_survives_the_production_writer_and_loader(
                 _validate_relationships_and_references(reloaded.oracle.representation)
             )
         )
-        == PREEXISTING_OUTWARD
+        == EXPECTED_OUTWARD
     )
     assert _targets_by_citation(reloaded.oracle.representation) == (
         _targets_by_citation(merged.oracle.representation)

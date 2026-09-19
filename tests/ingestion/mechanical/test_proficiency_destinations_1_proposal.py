@@ -33,7 +33,14 @@ What is pinned, and why:
 * only two typed facts, both ``ActionAllowanceFact``. The section's other
   clauses are carried as exact governing prose under an
   ``ExpectedRule(fact_family=None)``, because no accepted fact family states
-  what they say; and
+  what they say;
+* every explicit citation these units print, including the four whose
+  destinations no batch has minted — *Stat Block*, *Combat Encounters*, *Combat*
+  and *Opportunity Attack*. Those carry an empty target and are **reported** as
+  ``unresolved reference``; a citation the source states cannot become
+  undetectable because its destination has not been reviewed yet;
+* which reason each prose clause states, and that no clause is labelled
+  irreducible for lacking a schema shape; and
 * the mutations that matter for a table-shaped review: dropping one Skills row's
   ability cell, and dropping one Action row's name cell, are each reported
   against the component that lost them.
@@ -88,7 +95,7 @@ PROPOSAL_PATH = REVIEW_NOTES / "issue-5d-batch-proficiency-destinations-1-PROPOS
 COMMITTED_ARTIFACT = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
 
 #: The identity the review packet reports and a reviewer would be shown.
-PROPOSAL_IDENTITY = "01603c7f9a3b14f9c90e63e03e32da7c75b119109f0c251e8b428d91b0765a5d"  # noqa: E501  # pragma: allowlist secret
+PROPOSAL_IDENTITY = "723bba6246e3a325141705be984c6c28fb016d36a7a6ff1b78fb7b0e21aeac3e"  # noqa: E501  # pragma: allowlist secret
 
 CR = "glossary.challenge_rating"
 EXP = "glossary.expertise"
@@ -98,6 +105,10 @@ PROFICIENCY = "play.proficiency"
 
 GLOSSARY_SCOPE = "srd-5.2.1/rules-glossary"
 PLAYING_SCOPE = "srd-5.2.1/playing-the-game"
+#: Challenge Rating's *"Gameplay Toolbox" ("Combat Encounters")* citation is
+#: reviewed in the *Gameplay Toolbox* space, which no accepted batch has used
+#: yet. A scope is a review space, not a record key.
+TOOLBOX_SCOPE = "srd-5.2.1/gameplay-toolbox"
 
 ACTIONS_UNIT = "proficiency-destinations-1-actions-section"
 SKILLS_UNIT = "proficiency-destinations-1-skills-table"
@@ -138,17 +149,38 @@ ACTION_NAMES = (
     "Utilize",
 )
 
-#: Every link this batch authors: the table's twelve action names, and the
-#: *Proficiency* pointer the Expertise entry prints. The Expertise one is
-#: record-owned — the entry as a whole cites it — so its component key is empty.
-EXPECTED_REFERENCES = {
-    (ACTIONS, "action_table", name, GLOSSARY_SCOPE, f"action.{name.lower()}")
-    for name in ACTION_NAMES
-} | {(EXP, "", "Proficiency", PLAYING_SCOPE, PROFICIENCY)}
+#: The four explicit citations in these units whose destinations no batch has
+#: minted: ``(from_record, source_text, scope)``. Each is an obligation this
+#: batch opens and cannot close — the source names a real heading, and guessing
+#: its eventual record key is what an empty target exists to avoid. They are
+#: record-owned on the Expertise pointer's terms: the entry or the section states
+#: the citation and no one of its rule components does.
+OUTSTANDING_CITATIONS = (
+    (CR, "Stat Block", GLOSSARY_SCOPE),
+    (CR, "Combat Encounters", TOOLBOX_SCOPE),
+    (ACTIONS, "Combat", PLAYING_SCOPE),
+    (ACTIONS, "Opportunity Attack", PLAYING_SCOPE),
+)
 
-#: The exact standalone report. Thirteen destinations that exist in accepted or
-#: in-flight data but not in *this* draft, and nothing else: a fourteenth
-#: finding of any kind, or a link quietly losing its destination, fails here.
+#: Every link this batch authors: the table's twelve action names, the
+#: *Proficiency* pointer the Expertise entry prints, and the four outstanding
+#: citations. The record-owned ones — the entry or section as a whole cites
+#: them — have an empty component key, and an outstanding one has an empty
+#: target as well.
+EXPECTED_REFERENCES = (
+    {
+        (ACTIONS, "action_table", name, GLOSSARY_SCOPE, f"action.{name.lower()}")
+        for name in ACTION_NAMES
+    }
+    | {(EXP, "", "Proficiency", PLAYING_SCOPE, PROFICIENCY)}
+    | {(record, "", text, scope, "") for record, text, scope in OUTSTANDING_CITATIONS}
+)
+
+#: The exact standalone report, seventeen findings. Thirteen destinations that
+#: exist in accepted or in-flight data but not in *this* draft, and the four
+#: citations whose destinations exist nowhere yet. An eighteenth finding of any
+#: kind, or a link quietly losing its destination — or an outstanding citation
+#: quietly disappearing so the report looks shorter — fails here.
 EXPECTED_FINDINGS = tuple(
     sorted(
         [
@@ -159,6 +191,10 @@ EXPECTED_FINDINGS = tuple(
             f"reference {GLOSSARY_SCOPE}:{name!r}: unknown target record "
             f"action.{name.lower()}"
             for name in ACTION_NAMES
+        ]
+        + [
+            f"reference {scope}:{text!r}: unresolved reference"
+            for _record, text, scope in OUTSTANDING_CITATIONS
         ]
     )
 )
@@ -324,10 +360,12 @@ def test_the_skills_table_is_reviewed_one_printed_row_at_a_time() -> None:
 def test_the_actions_section_types_only_the_two_allowances_it_states() -> None:
     """One Bonus Action and one Reaction per turn. Everything else is prose.
 
-    The rest of the section is judgment, latitude and stated exceptions with no
-    accepted fact family that says what they say, so each is carried as exact
-    governing prose under a rule with no family. Typing them would have
-    invented a rule the source does not state.
+    The rest of the section is judgment, latitude, and reducible meaning with no
+    identified code-owned use, so each is carried as exact governing prose under
+    a rule with no family. Typing them would have invented a rule the source does
+    not state; see
+    :func:`test_the_prose_reasons_say_why_each_clause_is_prose` for why "no shape
+    fits" is never recorded as irreducibility.
     """
     proposal = _proposal()
     draft = proposal.proposed_representation
@@ -351,6 +389,64 @@ def test_the_actions_section_types_only_the_two_allowances_it_states() -> None:
     assert {c.handling for c in draft.components if c.semantic_key not in typed} == {
         ComponentHandling.PROSE_BOUND
     }
+
+
+def test_the_prose_reasons_say_why_each_clause_is_prose() -> None:
+    """Irreducible means irreducible, not "this schema has no shape for it".
+
+    The closed catalog defines ``natural_language_exception`` as an exception that
+    cannot be reduced without executable interpretation. A clause that states its
+    exception's condition and consequence outright — Expertise's *"unless the
+    bonus is doubled by another feature"* — or that defers to another rule's own
+    text — *"unless the Reaction's description says otherwise"* — is reducible,
+    and labelling it irreducible would make the catalog say something false about
+    the source. Those keep the whole clause and the honest retention reason
+    instead, which is also what the sibling ``act.bonus_timing`` already carried,
+    so one shape does not get two reasons.
+
+    The four irreducibility codes this batch does use each name a property of the
+    printed sentence rather than a gap in the schema.
+    """
+    proposal = _proposal()
+    draft = proposal.proposed_representation
+
+    assert {
+        c.semantic_key: c.irreducibility_reason_code
+        for c in draft.components
+        if c.irreducibility_reason_code
+    } == {
+        "threat_comparison": "subjective_judgment",
+        "encounter_circumstances": "contextual_applicability",
+        "improvised_action_options": "open_ended_effect",
+        "improvised_action_judgment": "gamemaster_latitude",
+    }
+    # Every other component states the retention reason, and no component and no
+    # binding states both or neither.
+    for c in draft.components:
+        if c.handling is ComponentHandling.PROSE_BOUND or c.all_facts():
+            assert bool(c.irreducibility_reason_code) != bool(
+                c.prose_retention_reason_code
+            ), c.semantic_key
+    for b in draft.prose_bindings:
+        assert bool(b.irreducibility_reason_code) != bool(
+            b.prose_retention_reason_code
+        ), b.span_id
+
+    # The two corrected components: whole clause, one binding each, no facts
+    # extracted from either, and the retention reason rather than a legacy code.
+    corrected = {
+        c.semantic_key: c
+        for c in draft.components
+        if c.semantic_key in ("expertise_doubling", "reaction_timing")
+    }
+    assert len(corrected) == 2
+    for key, component in corrected.items():
+        assert component.handling is ComponentHandling.PROSE_BOUND, key
+        assert component.all_facts() == (), key
+        assert component.irreducibility_reason_code is None, key
+        assert component.prose_retention_reason_code == "no_identified_structured_use"
+        bindings = [b for b in draft.prose_bindings if b.component_key == key]
+        assert len(bindings) == 1, key
 
 
 def test_the_action_table_links_resolve_where_the_accepted_glossary_says() -> None:
@@ -386,14 +482,54 @@ def test_the_action_table_links_resolve_where_the_accepted_glossary_says() -> No
     assert {
         (r.source_text, r.scope_key): r.target_record_key
         for r in draft.references
-        if r.from_record_key == ACTIONS
+        if r.from_record_key == ACTIONS and r.from_component_key == "action_table"
     } == accepted
 
 
-def test_the_untampered_report_is_exactly_the_thirteen_open_destinations() -> None:
-    """Thirteen links this draft does not itself carry, and nothing else."""
+def test_the_four_outstanding_citations_are_authored_as_unresolved() -> None:
+    """A citation the source states, with no destination to name yet.
+
+    The rule this replaces was "mint a reference only where the record already
+    exists", which silently turned four printed citations into prose nobody could
+    detect. What makes an obligation honest is that it is *reported*: exact scope,
+    exact printed wording, provenance on the clause it is printed in, and an empty
+    target until the batch that mints the destination closes it. Guessing a key
+    would be the other failure — a link that resolves by spelling coincidence.
+    """
+    proposal = _proposal()
+    draft = proposal.proposed_representation
+    outstanding = {
+        (r.from_record_key, r.source_text, r.scope_key)
+        for r in draft.references
+        if not r.target_record_key
+    }
+    assert outstanding == set(OUTSTANDING_CITATIONS)
+
+    by_citation = {(r.from_record_key, r.source_text): r for r in draft.references}
+    spans = {p.span.span_id: p.span for p in proposal.proposed_spans}
+    for record, text, _scope in OUTSTANDING_CITATIONS:
+        ref = by_citation[(record, text)]
+        # Record-owned, exactly like the Expertise pointer: no rule component of
+        # the entry or section states the citation, the whole record does.
+        assert ref.from_component_key == ""
+        # And it carries provenance to the 5c subspan the citation is printed
+        # in, so a reviewer can read the sentence the obligation came from.
+        claims = [
+            c
+            for c in draft.provenance
+            if c.target_kind.value == "reference"
+            and c.target_key[2] == text
+            and c.target_key[0] == record
+        ]
+        assert len(claims) == 1, (record, text, claims)
+        assert claims[0].span_id in spans
+
+
+def test_the_untampered_report_is_exactly_the_seventeen_open_obligations() -> None:
+    """Thirteen links this draft does not carry, four with no destination yet."""
     proposal = _proposal()
     assert _findings(proposal, proposal.proposed_representation) == EXPECTED_FINDINGS
+    assert sum("unresolved reference" in f for f in EXPECTED_FINDINGS) == 4
     # The premise of the fake snapshot: one chunk per bound leaf, covering the
     # whole leaf. If that stopped holding, the report above would be extent
     # noise rather than the reference report.
