@@ -127,8 +127,12 @@ GLOSSARY_SCOPE = "srd-5.2.1/rules-glossary"
 #: *Playing the Game*, which the section says in its own words: *"see 'Actions'
 #: later in 'Playing the Game'"*. Carrying the glossary scope for those was a
 #: source-scope error: the same wording in two scopes is two references rather
-#: than one ambiguity, so a glossary-scoped "Actions" would resolve against
-#: glossary entries and could be discharged by one.
+#: than one ambiguity, so a glossary-scoped "Actions" would be *reviewed* as a
+#: glossary obligation and could be signed off by a glossary batch that never
+#: carried it. The checker does not enforce that -- it resolves
+#: ``target_record_key`` against every record in the data, whatever the scope --
+#: which is exactly why the scope has to be authored correctly rather than
+#: caught later.
 #:
 #: Minted by the convention the one committed scope already follows,
 #: ``<release-family>/<section-slug>``. The 5c artifact carries no section slug
@@ -137,8 +141,10 @@ GLOSSARY_SCOPE = "srd-5.2.1/rules-glossary"
 #: scope is not a destination: it says which resolution space the pointer
 #: belongs to. The two destinations are now reviewed -- ``play.skills`` and
 #: ``play.actions``, minted by ``proficiency-destinations-1`` from the Skills
-#: table and the ``Actions`` section themselves -- and this scope is what makes
-#: those the records the two pointers resolve against.
+#: table and the ``Actions`` section themselves -- and the two pointers name
+#: them. The scope is not what makes them resolve: ``target_record_key`` names
+#: the record and the checker looks it up corpus-wide. The scope records which
+#: review space the link belongs to, and groups the ambiguity check.
 PLAYING_THE_GAME_SCOPE = "srd-5.2.1/playing-the-game"
 
 # ---------------------------------------------------------------------------
@@ -945,8 +951,9 @@ assert len(BINDINGS) == 23, len(BINDINGS)
 # the Skills table, and the "Actions" section later in "Playing the Game".
 # Both resolve inside *Playing the Game*, not the glossary, so they carry
 # ``PLAYING_THE_GAME_SCOPE``. The scope is the committed resolution space, and
-# stating the wrong one would let a glossary entry named "Actions" discharge a
-# pointer that was never aimed at it.
+# stating the wrong one would let a glossary entry named "Actions" be *reviewed*
+# as the discharge of a pointer that was never aimed at it. The checker would
+# not object either way, which is the point: this has to be right when authored.
 # Reviewing those destinations later does not complete the link that starts
 # here, so leaving them as prose and a packet note left no obligation anything
 # could fail on. They were first authored as references with an **empty**
