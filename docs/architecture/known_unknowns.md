@@ -574,6 +574,22 @@ published or activated, and later batches extend the same release artifact throu
 `MechanicalEntity` path and the legacy chunk-targeting prose override path both remain in place
 pending the final activation/legacy-retirement PR.
 
+**Two kinds of outstanding reference, and they close by different means.** The ten above are
+*named-but-unminted*: accepted content states a destination key and no accepted batch has minted a record
+for it yet, so each closes the moment some batch does — the citation's own key never changes, nothing is
+decided, and `attitudes-1`, `cover-1` and `speed-1` each closed targets exactly that way. The second kind
+is an *empty target*: review read a citation the source plainly makes and could state no destination key at
+all. **None is accepted today.** Four arrive with the Proficiency destinations batch — *Stat Block*,
+*Combat Encounters*, *Combat* and *Opportunity Attack* — and they will not close the way the ten do,
+because a reference's key includes its target: a later batch authoring the destination states a *different*
+key, and the accepted empty edge survives beside it, reported both unresolved and ambiguous. An accepted
+empty target closes only through an explicit reviewed reference resolution under Owner Decision 2026-09-19
+(ADR-005d Decision 7), which records who authorized the destination and leaves the accepted history intact.
+That capability exists and is demonstrated on isolated evidence; **no accepted citation has been resolved
+by it, and those four stay open obligations until genuinely reviewed destinations exist.** Neither kind is
+a Known Unknown of its own: both are the 5d corpus incompleteness this entry already records, distinguished
+here so the two are not read as one thing that closes one way.
+
 **This does not move CRD Issue 15c's boundary.** Publishing a mechanical projection proves complete
 *representation*, never adapter capability. The bounded-d20 adapter's capability manifest, certified
 executable coverage, adjudication failure behaviour, and any typed application path for a

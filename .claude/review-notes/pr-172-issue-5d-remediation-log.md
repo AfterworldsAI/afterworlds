@@ -93,10 +93,14 @@ The four citations are now authored as `ReferenceDraft`s with an **empty**
   supports its rule and cites a destination, and `_validate_provenance`
   (`validation.py:626–720`) admits multiple `CONTEXTUAL` claims on one span for
   different targets. Only `PRIMARY` claims conflict per span.
-* **No key is guessed.** An empty target cannot be closed by accident. Only the
-  batch that mints the destination record can fill it in, and doing so changes
-  that proposal's bytes and its identity. No destination beyond the four
-  authorized units was ingested.
+* **No key is guessed.** An empty target cannot be closed by accident. Filling
+  one in while it is still a proposal changes that proposal's bytes and its
+  identity; once accepted, no later batch can close it at all — a reference's key
+  includes its target, so authoring the destination leaves the accepted empty edge
+  beside the new one, reported both unresolved and ambiguous. That is the edge
+  Option A closes, through an explicit reviewed reference resolution under Owner
+  Decision 2026-09-19. No destination beyond the four authorized units was
+  ingested, and none of these four is resolved.
 
 ### Why an empty target is admissible at every layer
 
@@ -200,6 +204,144 @@ uses no `natural_language_exception` assignment at all.
 
 ---
 
+## Finding 3 — an accepted empty target no supported action could close
+
+Owner authorization, 2026-09-19: *"Option A is clearly the best choice. You are
+authorized to implement A."* Recorded as an amendment to ADR-005d Decision 7.
+
+### The verified edge
+
+`representation.reference_target_key` includes `target_record_key`, and
+`accept_proposal`'s merge is a keyed union. So a later batch that authors the
+destination for an accepted empty citation states a **different** key: the union
+retains both, and `relationship_and_reference_violations` then reports the one
+citation twice — `unresolved reference` for the accepted empty edge and
+`ambiguous` for the pair. The four citations Finding 1 restored are therefore
+obligations that, once accepted, nothing in the repository could discharge.
+Finding 1's own artifacts said the opposite ("only the batch that mints the
+destination can close it"); every instance of that claim is corrected in this
+change.
+
+### What was built
+
+* `models.ReferenceResolution` — the identity-bearing decision: the citation it
+  resolves (source record, owning component, printed wording, committed scope),
+  the reviewed destination, the release it was reviewed against, and the
+  provenance spans review read the citation from. `citation_key()` is the
+  four-part citation.
+* `models.ReferenceResolutionAcceptance` — the evidence beside it: who authorized
+  it, under which reference, which reviewer, and when. Not identity-bearing, for
+  the reason `ReviewUnitAcceptance` is not.
+* `reference_resolution.effective_representation` — the accepted representation
+  as its resolutions state it. The empty-target reference is replaced **in
+  place**, never appended beside (appending is the defect), and the matching
+  `REFERENCE` provenance claims move with it because their `target_key` includes
+  the target and `REFERENCE` is in `PROVENANCE_REQUIRED_KINDS`. Returns the
+  argument itself when there is nothing to remap, and never applies a resolution
+  to an already-targeted reference — a view that did would make the retarget
+  refusal unenforceable.
+* `reference_resolution.reference_resolution_violations` — reported, not raised,
+  on the terms `schema_binding_violations` and `review_unit_violations` use, so
+  the acceptance seam and the loader enforce one rule set. The final check is a
+  **delta** against the accepted view rather than a restatement of the reference
+  rules: a resolution applies only where the resolved view reports nothing the
+  accepted view does not already report. Ambiguity stays defined once, in
+  `validation`.
+* `acceptance.resolve_reference` — the only other acceptance action the module
+  states, and an append exactly like `accept_proposal`. Refuses before building
+  anything, so a caught `AcceptanceError` leaves the artifact untouched. A
+  repeated `resolution_id` is **refused, not absorbed** — replay is deterministic
+  and changes nothing — on the same terms as a `batch_id` already held.
+* `acceptance._refuse_reference_retargeting` — runs on every acceptance with a
+  `prior`. Two refusals in their own words: authoring a destination for a citation
+  accepted with none (and it names `resolve_reference`), and retargeting a
+  citation already resolved (unauthorized). Carried resolutions are re-checked
+  against the *merged* representation, so an extension that would leave one
+  describing something else is refused before an artifact exists, and are carried
+  forward rather than re-derived, so an extension cannot silently reopen a
+  citation the Owner closed.
+* `oracle` — `AcceptedOracle.reference_resolutions`,
+  `AcceptedInputs.reference_resolution_acceptances`, strict payload parsing (all
+  nine keys required, unexpected keys refused), both halves of the
+  stated-versus-authorized cross-check, and omit-when-empty emission.
+* `validation._validate_relationships_and_references` promoted to public
+  `relationship_and_reference_violations` — one definition, two seams.
+
+### No schema bump
+
+`reference_resolutions` lives on `AcceptedOracle`, not on `RepresentationDraft`,
+so `schema_binding_violations` never sees it and no representation schema states a
+new form. With omit-when-empty emission, all seven accepted batches stay
+byte-identical and the accepted oracle identity is unchanged
+(`d395e4ed79045d0b3ef015240d61fd91445a4b38a77a5f75b0e537ca74eaa29f`), asserted by
+test against the committed artifact.
+
+### Sibling audit — every consumer of the stored representation
+
+**Defect family:** a production path reading `oracle.representation` where it
+should read the effective view would report a resolved citation as still
+unresolved, which is history mistaken for a second active citation.
+**Trigger:** this change introduces a second view of one artifact. Every hit of
+`oracle\.representation` / `.representation.references` in `src/afterworlds`,
+dispositioned:
+
+| site | reads | disposition |
+|---|---|---|
+| `oracle.py:1831` `candidate_from_accepted_inputs` | effective | **patched** — the build/persistence/query seam |
+| `gate.py:438`, `gate.py:757` `_accepted_identity` | effective | **patched** — both the identity and the element comparison |
+| `publication.py:627` → `_publish_projection` → `run_publication_gate` | effective, via `gate` | **already safe** — no direct read |
+| `oracle.py:438` `oracle_payload` | stored + resolutions | **already safe** — identity is stored content plus the decisions about it |
+| `oracle.py:1628` `schema_binding_violations`, `1641` `policy_meaning_violations`, `1657` `review_unit_violations` | stored | **already safe** — they judge what was accepted |
+| `oracle.py:1698` `reference_resolution_violations` | stored | **patched** — new; applicability is a question about the accepted view |
+| `acceptance.py:447`, `506`, `591`, `595`, `814` | stored | **already safe** — merge, succession evidence, retarget guard |
+| `schema_lift.py:1227`, `1237` | stored | **already safe** — a lift proves stored content crossed unchanged |
+| `oracle.py:350` `derive_obligations` | stored | **already safe** — reads records and components only; references are not obligation-bearing, so a resolution cannot move an obligation and the loader's exact-equality check stays valid |
+
+Nothing outside `ingestion/mechanical` reads either view. `rules_authority`'s
+override path is reference-free in this sense — `patches.py:476` `reference=` is a
+`ParticipantRole` — so ADR-015's sibling surface is **already safe**.
+
+### Governing documentation reconciled in the same change
+
+* `docs/decisions/adr-005d-complete-typed-mechanical-authority.md` — Decision 7
+  gains **Amended by Owner Decision 2026-09-19**: the authorization quoted once,
+  the edge it closes, what a resolution must state, that the decision bears
+  identity and its authorization evidence does not, that Decision 7 is otherwise
+  unchanged (unresolved still blocks publication), replay, the later-batch rules,
+  and the verbatim list of what is **not** authorized.
+* `docs/architecture/known_unknowns.md` — the two kinds of outstanding reference
+  distinguished: *named-but-unminted* (the ten; each closes when some batch mints
+  the key it already names) versus *empty target* (none accepted; four arrive with
+  the destinations batch; closes only by an explicit reviewed resolution).
+* Finding 1's artifacts — the generator, the review packet, the proposal test and
+  this log — corrected wherever they said a minting batch could close an empty
+  target.
+
+### Demonstrated on isolated evidence, not on the corpus
+
+`tests/ingestion/mechanical/test_reference_resolution.py` — 44 tests, 100 % of
+`reference_resolution.py` — exercises the workflow on the bounded fixture:
+acceptance of an unresolved citation that stays detectably unresolved, explicit
+resolution to one effective destination, provenance moving with it, history
+unrewritten, obligations unmoved, authorization evidence not reminting the
+projection, gate/build identity lockstep **and** the publication gate passing the
+resolved projection while refusing the stored view's, persistence round trip,
+committed round trip, the pre-decision committed state still loading as
+unresolved, omit-when-empty, a real 14→15 succession carrying the decision, an
+unsupported succession refusing, deterministic replay refusal, and negative
+controls for unattributed, idless, conflicting, release-mismatched,
+provenance-mismatched, citationless, destinationless, retargeting,
+unknown-destination, ambiguity-introducing and sibling-duplicating inputs — plus
+six loader refusals over mutated committed JSON and five later-batch boundary
+cases.
+
+The four real citations are deliberately **not** resolved: resolving one would
+mean inventing a destination. `test_proficiency_references_resolve.py` continues
+to run the real `accept_proposal(prior=<committed corpus>)` for both real
+proposals in memory, so the new guards are exercised against the artifacts the
+Owner has authorized accepting next, and the committed corpus is asserted
+byte-identical afterwards.
+
 ## Artifacts and identities
 
 | artifact | identity | file sha256 | bytes |
@@ -209,6 +351,7 @@ uses no `natural_language_exception` assignment at all.
 | `proficiency-1`, unchanged by this remediation | `f0becb8bd87fcbb41aced983c55f59beb3f25b52d4eca549257d51d9b86d345a` | `c4c12fd321019e28d8eb05c986c80cc4d3b4f206fd50fdb26c04fb17ace85d5d` | 61,375 |
 | `proficiency-1` as approved in #171, reproducible, never accepted | `c71f81044f003e2845e33e95a844c995aeee00282b0808303320200f164e8ec4` | `55ac577f1ff25f37c8676a49c63e246588ec5c52cff58bb79205a4a459be8324` | 61,329 |
 
+Neither proposal is accepted, and neither carries a reference resolution.
 Representation schema is `5d-representation-schema-15` / `e87e0bac…`, unchanged.
 Byte-determinism of the corrected proposal was proved by regenerating twice and
 comparing with `cmp`.
@@ -222,9 +365,9 @@ partition 0 findings   review units 0 findings
 representation 17 findings (13 unminted-destination citations, 4 outstanding obligations)
 ```
 
-## Test coverage of both corrections
+## Test coverage of the first two corrections
 
-33 tests across three modules.
+33 tests across three modules. Finding 3's own coverage is above.
 
 * `test_the_four_outstanding_citations_are_authored_as_unresolved` — the exact
   outstanding set, record-owned ownership, and exactly one REFERENCE provenance
@@ -250,7 +393,9 @@ representation 17 findings (13 unminted-destination citations, 4 outstanding obl
 
 No corpus-wide reference cleanup; no destination ingestion beyond the four
 authorized units; no accepted Action uniformity rewrite; no schema-framework
-work; no post-acceptance supersede mechanism; no 5c change; no movement, 15c,
+work; no generic post-acceptance supersede mechanism and no parallel acceptance
+system, `resolve_reference` being bounded to empty-target resolution and
+refusing every retarget; no 5c change; no movement, 15c,
 sheet or adapter execution; no dependency or audit-exclusion change; no progress
 accounting or settings change. Seven accepted batches, historical
 schemas/identities, Speed scope order, the four-part release binding and

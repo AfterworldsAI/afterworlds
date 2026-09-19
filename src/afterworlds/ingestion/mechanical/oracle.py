@@ -49,6 +49,7 @@ rather than replacing them; the machinery that judges the result lives here.
 from __future__ import annotations
 
 import json
+from collections import Counter
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -68,6 +69,8 @@ from afterworlds.ingestion.mechanical.models import (
     ComponentHandling,
     ExcludedGroup,
     ExpectedRule,
+    ReferenceResolution,
+    ReferenceResolutionAcceptance,
     ReviewState,
     ReviewUnit,
     ReviewUnitAcceptance,
@@ -90,6 +93,11 @@ from afterworlds.ingestion.mechanical.projection import (
     representation_payload,
     review_unit_payload,
     review_unit_violations,
+)
+from afterworlds.ingestion.mechanical.reference_resolution import (
+    effective_representation,
+    reference_resolution_payload,
+    reference_resolution_violations,
 )
 from afterworlds.ingestion.mechanical.representation import (
     COMPONENT_WIDE_PROSE,
@@ -250,6 +258,24 @@ class AcceptedOracle:
     #: Empty for all seven accepted batches, and omitted from the payload when
     #: empty, so their recorded identities do not move.
     review_units: tuple[ReviewUnit, ...] = ()
+    #: Reviewed destinations for accepted references that had none — the bounded
+    #: capability the Owner Decision of 2026-09-19 authorizes, under ADR-005d
+    #: Decision 7. See :mod:`reference_resolution` for what it is and is not.
+    #:
+    #: **Identity-bearing, and beside the representation rather than inside it.**
+    #: A resolution changes what the accepted authority means, so
+    #: :func:`oracle_identity` moves when one is recorded and the effective
+    #: reference is what the build persists and the gate judges. It lives here
+    #: and not in :class:`~.representation.RepresentationDraft` because it is a
+    #: *decision about* accepted content, not accepted content: keeping it out
+    #: means no representation schema succession is needed, ``schema_binding_
+    #: violations`` never sees it, and every accepted batch's representation
+    #: canonicalizes under schema 15 exactly as reviewed.
+    #:
+    #: Empty for all seven accepted batches and omitted from the payload when
+    #: empty, on the same terms as :attr:`review_units` and for the same reason:
+    #: their committed bytes and recorded identities do not move.
+    reference_resolutions: tuple[ReferenceResolution, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -293,6 +319,12 @@ class AcceptedInputs:
     #: *representation* is byte-identical under a wider type contract, the
     #: other says the accepted *reason codes* still mean what they meant.
     policy_transitions: tuple[PolicyTransitionRecord, ...] = ()
+    #: Who authorized each of :attr:`oracle`'s reference resolutions, under what
+    #: authority, and when. The evidence half of the same split
+    #: :attr:`review_unit_acceptances` makes: the decision is identity-bearing
+    #: because it changes meaning, while the reviewer and timestamp that recorded
+    #: it are audit metadata and must not remint a projection.
+    reference_resolution_acceptances: tuple[ReferenceResolutionAcceptance, ...] = ()
 
     def classification(self) -> ClassificationLedger:
         """The complete accepted ledger, result and evidence together."""
@@ -411,6 +443,14 @@ def oracle_payload(oracle: AcceptedOracle) -> dict[str, object]:
     }
     if oracle.review_units:
         payload["review_units"] = review_unit_payload(oracle.review_units)
+    if oracle.reference_resolutions:
+        # Identity-bearing, and emitted on exactly the same omit-when-empty
+        # terms: a reviewed destination changes what one accepted reference
+        # means, so it belongs in the identity, and an artifact that states no
+        # resolution says nothing about one.
+        payload["reference_resolutions"] = reference_resolution_payload(
+            oracle.reference_resolutions
+        )
     return payload
 
 
@@ -1122,6 +1162,47 @@ def _review_unit(
     )
 
 
+def _reference_resolution(payload: object, index: int) -> ReferenceResolution:
+    """One reviewed reference resolution, as strictly as any other element.
+
+    Strict on the same terms as its neighbours, and the strictness matters more
+    here than almost anywhere: a defaulted coordinate would resolve a citation
+    nobody reviewed, and a silently ignored misspelling would apply a decision
+    to the wrong one.
+    """
+    where = f"reference_resolutions[{index}]"
+    r = _require(
+        payload,
+        (
+            "resolution_id",
+            "from_record_key",
+            "from_component_key",
+            "source_text",
+            "scope_key",
+            "target_record_key",
+            "package_uuid",
+            "release_version",
+            "provenance_span_ids",
+        ),
+        where,
+    )
+    return ReferenceResolution(
+        resolution_id=_string(r["resolution_id"], f"{where}.resolution_id"),
+        from_record_key=_string(r["from_record_key"], f"{where}.from_record_key"),
+        from_component_key=_string(
+            r["from_component_key"], f"{where}.from_component_key"
+        ),
+        source_text=_string(r["source_text"], f"{where}.source_text"),
+        scope_key=_string(r["scope_key"], f"{where}.scope_key"),
+        target_record_key=_string(r["target_record_key"], f"{where}.target_record_key"),
+        package_uuid=_string(r["package_uuid"], f"{where}.package_uuid"),
+        release_version=_string(r["release_version"], f"{where}.release_version"),
+        provenance_span_ids=tuple(
+            _string_list(r["provenance_span_ids"], f"{where}.provenance_span_ids")
+        ),
+    )
+
+
 def _check_obligations_closed(
     representation: RepresentationDraft,
     obligations: tuple[RecordObligation, ...],
@@ -1192,6 +1273,7 @@ def _acceptance(payload: object, where: str) -> tuple[
     tuple[BatchSchemaAnchor, ...],
     tuple[PolicyTransitionRecord, ...],
     tuple[ReviewUnitAcceptance, ...],
+    tuple[ReferenceResolutionAcceptance, ...],
 ]:
     """Load the review evidence half of a committed accepted-inputs file."""
     p = _require(
@@ -1206,8 +1288,42 @@ def _acceptance(payload: object, where: str) -> tuple[
             # inventory they accept: absent rather than empty, so their
             # committed bytes are exactly what was reviewed.
             "review_unit_records",
+            # And absent on the same terms again: no accepted batch resolved a
+            # reference, so none of them states who authorized one.
+            "reference_resolution_records",
         ),
     )
+
+    resolution_records = []
+    for i, raw_decision in enumerate(
+        _object_list(
+            p.get("reference_resolution_records", []),
+            f"{where}.reference_resolution_records",
+        )
+    ):
+        at = f"{where}.reference_resolution_records[{i}]"
+        entry = _require(
+            raw_decision,
+            (
+                "resolution_id",
+                "authorized_by",
+                "authorization_reference",
+                "reviewer",
+                "resolved_at",
+            ),
+            at,
+        )
+        resolution_records.append(
+            ReferenceResolutionAcceptance(
+                resolution_id=_string(entry["resolution_id"], f"{at}.resolution_id"),
+                authorized_by=_string(entry["authorized_by"], f"{at}.authorized_by"),
+                authorization_reference=_string(
+                    entry["authorization_reference"], f"{at}.authorization_reference"
+                ),
+                reviewer=_string(entry["reviewer"], f"{at}.reviewer"),
+                resolved_at=_string(entry["resolved_at"], f"{at}.resolved_at"),
+            )
+        )
 
     unit_records = []
     for i, raw_unit in enumerate(
@@ -1396,6 +1512,7 @@ def _acceptance(payload: object, where: str) -> tuple[
         tuple(anchors),
         tuple(transitions),
         tuple(unit_records),
+        tuple(resolution_records),
     )
 
 
@@ -1442,7 +1559,7 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
         # from any artifact that states no review inventory — which is what
         # keeps their committed bytes and recorded identities exactly as
         # reviewed.
-        optional=("review_units",),
+        optional=("review_units", "reference_resolutions"),
     )
     binding_fields = (
         "package_uuid",
@@ -1469,10 +1586,22 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
         _review_unit(u, i)
         for i, u in enumerate(_object_list(p.get("review_units", []), "review_units"))
     )
-    spans = tuple(_span(s, i) for i, s in enumerate(_object_list(p["spans"], "spans")))
-    batches, acceptances, lifts, anchors, transitions, unit_records = _acceptance(
-        p["acceptance"], "acceptance"
+    reference_resolutions = tuple(
+        _reference_resolution(r, i)
+        for i, r in enumerate(
+            _object_list(p.get("reference_resolutions", []), "reference_resolutions")
+        )
     )
+    spans = tuple(_span(s, i) for i, s in enumerate(_object_list(p["spans"], "spans")))
+    (
+        batches,
+        acceptances,
+        lifts,
+        anchors,
+        transitions,
+        unit_records,
+        resolution_records,
+    ) = _acceptance(p["acceptance"], "acceptance")
     oracle = AcceptedOracle(
         binding=ReleaseBinding(
             **{k: _string(binding[k], f"release_binding.{k}") for k in binding_fields}
@@ -1485,6 +1614,7 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
         representation=representation,
         obligations=obligations,
         review_units=review_units,
+        reference_resolutions=reference_resolutions,
     )
     # Committed bytes are not self-proving either. The wire-shape checks above
     # establish that this file parses into the declared types; they say nothing
@@ -1557,6 +1687,65 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
             "accepted is not review evidence"
         )
 
+    # The reference resolutions, held to both halves of the same question and
+    # for the same reasons. A resolution that does not apply to this accepted
+    # authority — wrong release, no such unresolved citation, a citation already
+    # resolved, provenance that is not what review read, or an effective view
+    # publication would refuse — is not a weaker artifact: applying it would
+    # change what one accepted reference means on the strength of a decision
+    # nobody could have made about it.
+    if inapplicable := reference_resolution_violations(
+        oracle.representation, oracle.reference_resolutions, oracle.binding
+    ):
+        raise OracleLoadError(
+            f"{path.name}: the stated reference resolutions do not apply to this "
+            "accepted authority: " + "; ".join(inapplicable)
+        )
+    # And an authorized decision is the only kind there is. Without the second
+    # half a resolution could be added to a committed file after the fact and
+    # inherit the authorization of the ones beside it, which is exactly what
+    # "machine suggestions never become authority implicitly" forbids.
+    decided = {r.resolution_id for r in oracle.reference_resolutions}
+    authorized = {a.resolution_id for a in resolution_records}
+    if stranded := sorted(authorized - decided):
+        raise OracleLoadError(
+            f"{path.name}: acceptance records authorize reference resolutions "
+            f"this artifact does not state: {stranded}"
+        )
+    if unauthorized := sorted(decided - authorized):
+        raise OracleLoadError(
+            f"{path.name}: reference resolutions {unauthorized} are stated but "
+            "no acceptance action records authorizing them; a resolution nobody "
+            "authorized is not a reviewed decision"
+        )
+    if repeated := sorted(
+        i
+        for i, count in Counter(a.resolution_id for a in resolution_records).items()
+        if count > 1
+    ):
+        raise OracleLoadError(
+            f"{path.name}: reference resolutions {repeated} are authorized more "
+            "than once; two authorizations of one decision cannot both be the "
+            "one that took it"
+        )
+    for authority in resolution_records:
+        blank = sorted(
+            field
+            for field, value in (
+                ("authorized_by", authority.authorized_by),
+                ("authorization_reference", authority.authorization_reference),
+                ("reviewer", authority.reviewer),
+                ("resolved_at", authority.resolved_at),
+            )
+            if not value.strip()
+        )
+        if blank:
+            raise OracleLoadError(
+                f"{path.name}: the authorization of reference resolution "
+                f"{authority.resolution_id!r} states no {blank}; an unattributed "
+                "authorization is not evidence that anyone decided it"
+            )
+
     inputs = AcceptedInputs(
         oracle=oracle,
         batches=batches,
@@ -1565,6 +1754,7 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
         schema_anchors=anchors,
         lifts=lifts,
         policy_transitions=transitions,
+        reference_resolution_acceptances=resolution_records,
     )
 
     # Evidence is validated as strictly as the result it justifies. A file whose
@@ -1629,7 +1819,17 @@ def candidate_from_accepted_inputs(inputs: AcceptedInputs) -> ProjectionCandidat
     return ProjectionCandidate(
         binding=inputs.oracle.binding,
         classification=inputs.classification(),
-        representation=inputs.oracle.representation,
+        # The **effective** view, not the stored one. This is the single seam
+        # every production consumer of accepted authority reaches persistence
+        # through, so a reviewed resolution has to apply here or it would apply
+        # nowhere: the build would persist the empty edge, the query path would
+        # read it, and an override would address a citation with no destination.
+        # The stored representation keeps stating what each reviewer accepted;
+        # ``effective_representation`` is the identity function for all seven
+        # accepted batches, which state no resolution.
+        representation=effective_representation(
+            inputs.oracle.representation, inputs.oracle.reference_resolutions
+        ),
         schema_version=inputs.oracle.schema_version,
         schema_hash=inputs.oracle.schema_hash,
         # Carried, not re-derived. The inventory is identity-bearing on both
@@ -1798,6 +1998,23 @@ def accepted_inputs_payload(inputs: AcceptedInputs) -> dict[str, object]:
                 "to_hash": step.to_hash,
             }
             for step in inputs.policy_transitions
+        ]
+    if inputs.reference_resolution_acceptances:
+        # Same omit-when-empty discipline as every field above, and the reason
+        # the seven committed batches still round-trip byte-identically while
+        # this build can record a resolution at all.
+        acceptance["reference_resolution_records"] = [
+            {
+                "resolution_id": decision.resolution_id,
+                "authorized_by": decision.authorized_by,
+                "authorization_reference": decision.authorization_reference,
+                "reviewer": decision.reviewer,
+                "resolved_at": decision.resolved_at,
+            }
+            for decision in sorted(
+                inputs.reference_resolution_acceptances,
+                key=lambda d: d.resolution_id,
+            )
         ]
     payload["acceptance"] = acceptance
     return payload

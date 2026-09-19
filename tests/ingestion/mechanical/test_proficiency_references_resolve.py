@@ -23,7 +23,7 @@ a record for. Reporting them is what makes them obligations; an earlier draft
 withheld the citations entirely, and the merged report then read as if this task
 had closed four links and left nothing behind.
 
-``_validate_relationships_and_references`` is called directly rather than through
+``relationship_and_reference_violations`` is called directly rather than through
 ``validate_representation``, because the merged draft's prose extent is over 5c's
 whole release and the reference relation is the only part of the report this
 module is about. The proposal modules each run the full ``validate_representation``
@@ -51,7 +51,7 @@ from afterworlds.ingestion.mechanical.proposal import (
     proposal_payload,
 )
 from afterworlds.ingestion.mechanical.validation import (
-    _validate_relationships_and_references,
+    relationship_and_reference_violations,
 )
 
 REVIEW_NOTES = pathlib.Path(__file__).resolve().parents[3] / ".claude" / "review-notes"
@@ -225,7 +225,7 @@ def test_all_four_originating_links_resolve_in_the_merged_data() -> None:
         assert targets[citation] == {destination}, citation
         assert destination in record_keys
 
-    assert tuple(sorted(_validate_relationships_and_references(merged))) == (
+    assert tuple(sorted(relationship_and_reference_violations(merged))) == (
         EXPECTED_OUTWARD
     )
 
@@ -264,7 +264,7 @@ def test_a_missing_destination_record_reopens_the_link() -> None:
         merged,
         records=tuple(r for r in merged.records if r.semantic_key != "play.skills"),
     )
-    findings = _validate_relationships_and_references(without_skills)
+    findings = relationship_and_reference_violations(without_skills)
     assert (
         f"reference {PLAYING_SCOPE}:'Skills table': unknown target record play.skills"
         in findings
@@ -275,7 +275,7 @@ def test_a_blanked_destination_reopens_the_link_as_unresolved() -> None:
     """Losing a destination is a different failure and still a failure."""
     merged = _merged().oracle.representation
     ref = _reference(merged, "Actions", PROFICIENCY)
-    findings = _validate_relationships_and_references(
+    findings = relationship_and_reference_violations(
         _replace_reference(merged, ref, dataclasses.replace(ref, target_record_key=""))
     )
     assert f"reference {PLAYING_SCOPE}:'Actions': unresolved reference" in findings
@@ -293,7 +293,7 @@ def test_repointing_a_link_at_the_wrong_record_is_ambiguous() -> None:
     merged = _merged().oracle.representation
     ref = _reference(merged, "Attack", "play.actions")
     assert ref.target_record_key == "action.attack"
-    findings = _validate_relationships_and_references(
+    findings = relationship_and_reference_violations(
         _replace_reference(
             merged, ref, dataclasses.replace(ref, target_record_key="action.dash")
         )
@@ -337,7 +337,7 @@ def test_the_resolution_survives_the_production_writer_and_loader(
     assert (
         tuple(
             sorted(
-                _validate_relationships_and_references(reloaded.oracle.representation)
+                relationship_and_reference_violations(reloaded.oracle.representation)
             )
         )
         == EXPECTED_OUTWARD

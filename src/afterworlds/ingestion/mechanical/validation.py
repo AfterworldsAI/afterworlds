@@ -63,7 +63,7 @@ from afterworlds.ingestion.mechanical.representation import (
     representation_draft_violations,
 )
 
-__all__ = ["validate_representation"]
+__all__ = ["relationship_and_reference_violations", "validate_representation"]
 
 #: Dispositions whose text may serve as a component's governing prose. A
 #: non-mechanical or unresolved span states no mechanic, so binding authority to
@@ -408,7 +408,18 @@ def _validate_prose_bindings(
     return findings
 
 
-def _validate_relationships_and_references(draft: RepresentationDraft) -> list[str]:
+def relationship_and_reference_violations(draft: RepresentationDraft) -> list[str]:
+    """Every finding one representation's relationships and references state.
+
+    Public because a second seam depends on it. A reference resolution is only
+    applicable where the resolved view introduces no finding this function does
+    not already report of the accepted view — ambiguity above all — and deciding
+    that with a second hand-written scan over ``(scope, source_text)`` would be
+    two definitions of ambiguity that eventually disagree. Named like the other
+    cross-module checks (``schema_binding_violations``,
+    ``policy_meaning_violations``) rather than like the private validators it
+    sits among.
+    """
     findings: list[str] = []
     record_keys = {r.semantic_key for r in draft.records}
     component_keys = {(c.record_key, c.semantic_key) for c in draft.components}
@@ -836,7 +847,7 @@ def validate_representation(
     findings.extend(_validate_records(draft))
     findings.extend(_validate_components(draft))
     findings.extend(_validate_prose_bindings(draft, ledger, corpus))
-    findings.extend(_validate_relationships_and_references(draft))
+    findings.extend(relationship_and_reference_violations(draft))
     findings.extend(_validate_provenance(draft, ledger, corpus))
     findings.extend(_validate_duplicated_fact_authority(draft, ledger))
     return tuple(findings)

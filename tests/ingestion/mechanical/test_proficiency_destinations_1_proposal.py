@@ -493,8 +493,10 @@ def test_the_four_outstanding_citations_are_authored_as_unresolved() -> None:
     exists", which silently turned four printed citations into prose nobody could
     detect. What makes an obligation honest is that it is *reported*: exact scope,
     exact printed wording, provenance on the clause it is printed in, and an empty
-    target until the batch that mints the destination closes it. Guessing a key
-    would be the other failure — a link that resolves by spelling coincidence.
+    target until an explicit reviewed resolution supplies one — a later batch
+    authoring the destination cannot close it, because a reference's key includes
+    its target (``reference_resolution``, Owner Decision 2026-09-19). Guessing a
+    key would be the other failure — a link that resolves by spelling coincidence.
     """
     proposal = _proposal()
     draft = proposal.proposed_representation

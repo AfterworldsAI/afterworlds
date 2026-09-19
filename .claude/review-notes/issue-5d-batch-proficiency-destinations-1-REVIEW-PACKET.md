@@ -470,11 +470,17 @@ CRD Issue 5d contract 4 and ADR-005d Decision 7 the honest form is the reported
 one, and `proficiency-1` used exactly this form — an empty target — for its own
 two *Playing the Game* pointers before this branch closed them.
 
-**Why no key is guessed.** An empty target cannot be closed by accident: only the
-batch that mints the destination record can fill it in, and doing so changes the
-proposal's bytes and its identity. Naming a plausible key (`glossary.stat_block`,
-say) would be the failure mode the old rule was trying to avoid, and it is the one
-thing this correction does not do.
+**Why no key is guessed.** An empty target cannot be closed by accident. In this
+proposal, filling one in changes the proposal's bytes and its identity. Once the
+proposal is accepted, no later batch can close it either: a reference's key
+includes its target, so authoring the destination states a *different* key, the
+keyed union retains the accepted empty edge beside it, and the citation is then
+reported both unresolved and ambiguous. Closing an accepted empty target takes an
+explicit reviewed reference resolution under Owner Decision 2026-09-19 (ADR-005d
+Decision 7), which names who authorized the destination and leaves the accepted
+history intact. Naming a plausible key (`glossary.stat_block`, say) would be the
+failure mode the old rule was trying to avoid, and it is the one thing this
+correction does not do.
 
 **Ownership and scope.** All four are record-owned, on the Expertise pointer's
 precedent: the entry or the section states the citation and no one of its rule
@@ -545,7 +551,10 @@ This is the same ground on which `proficiency-1` minted nothing for `D20 Test`,
   bound release, whose destination records no batch has minted. Authored with an
   empty target so the production check reports each one, and pinned in the same
   exact list as the Speed ten: fourteen outstanding obligations in the merged
-  data, not ten. Only the batch that mints a destination can close one.
+  data, not ten. The Speed ten close when some batch mints the record each one
+  already names; these four do not, because their key carries no name to mint
+  against — each closes only through an explicit reviewed reference resolution
+  under Owner Decision 2026-09-19, and none has been authorized.
 * **Nothing here is accepted.** The four records are proposed. Publication or
   activation of a partial Rules Package is not authorized and is not attempted.
 

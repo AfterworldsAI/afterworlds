@@ -383,6 +383,92 @@ class ReviewUnitAcceptance:
 
 
 @dataclass(frozen=True)
+class ReferenceResolution:
+    """A reviewed destination for one accepted reference that had none.
+
+    Owner Decision of 2026-09-19 (ADR-005d Decision 7). An accepted reference
+    whose ``target_record_key`` is empty is an honest unresolved obligation: the
+    source authored the citation, review found no destination key it could state
+    exactly, and erasing the citation to avoid the finding would lose source
+    authority. Acceptance is append-only and keyed, so the destination cannot
+    arrive as a second reference — ``representation.reference_target_key``
+    includes the target, so a resolved sibling is a *different* key and the empty
+    edge survives beside it, reported both unresolved and ambiguous.
+
+    This record is the bounded resolution: it names the exact accepted citation
+    by the four coordinates that identify it independently of its target, and
+    the destination review approved. The original reference is not edited, and
+    the seven accepted batches are not rewritten —
+    ``reference_resolution.effective_representation`` derives the resolved view
+    the build, gate, query and override paths see, while the accepted
+    representation keeps stating exactly what each reviewer accepted.
+
+    **Identity-bearing, and deliberately so.** A resolution changes what the
+    accepted authority *means*: one reference now has a destination. Its
+    sibling :class:`ReferenceResolutionAcceptance` carries who authorized it and
+    when, which is evidence and reaches no identity — the same split
+    :class:`ReviewUnit` and :class:`ReviewUnitAcceptance` already make.
+
+    ``package_uuid`` and ``release_version`` restate the release this resolution
+    was reviewed against. They are not redundant with the oracle's binding: they
+    are what makes a resolution pasted into another release's artifact a
+    mismatch rather than a silent re-application of a decision nobody made about
+    that release.
+
+    ``provenance_span_ids`` names the source spans the accepted citation's
+    provenance claims cite, sorted. Review approved a destination *for a citation
+    read out of exactly those spans*; if the accepted citation's provenance later
+    cites others, this decision no longer describes it and must not be applied.
+    """
+
+    resolution_id: str
+    from_record_key: str
+    from_component_key: str
+    source_text: str
+    scope_key: str
+    target_record_key: str
+    package_uuid: str
+    release_version: str
+    provenance_span_ids: tuple[str, ...]
+
+    def citation_key(self) -> tuple[str, str, str, str]:
+        """The accepted citation this resolves, independently of its target.
+
+        The first four elements of ``reference_target_key`` — which is exactly
+        the part of a reference's identity a resolution may not change.
+        """
+        return (
+            self.from_record_key,
+            self.from_component_key,
+            self.source_text,
+            self.scope_key,
+        )
+
+
+@dataclass(frozen=True)
+class ReferenceResolutionAcceptance:
+    """Evidence that one :class:`ReferenceResolution` was explicitly authorized.
+
+    The third instance of the shape :class:`AcceptanceRecord` and
+    :class:`ReviewUnitAcceptance` already have, for the same reason: a
+    resolution is taken by a named person, at a named time, under a named
+    authority, and auditing it by the same rules means giving it the same shape.
+
+    ``authorized_by`` and ``authorization_reference`` are the pair that keeps a
+    machine suggestion from becoming authority implicitly. A resolution is only
+    applied where the record says who decided it and cites the decision —
+    Owner Decision, review, or issue — rather than inheriting the acceptance of
+    the batch that authored the unresolved citation.
+    """
+
+    resolution_id: str
+    authorized_by: str
+    authorization_reference: str
+    reviewer: str
+    resolved_at: str
+
+
+@dataclass(frozen=True)
 class ClassificationLedger:
     """The complete accepted semantic accounting for one bound 5c release.
 

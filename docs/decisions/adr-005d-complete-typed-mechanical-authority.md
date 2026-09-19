@@ -1229,6 +1229,58 @@ This ownership widening is a *domain* widening of the existing owner field rathe
 field beside it, precisely so that no accepted reference's canonical payload or provenance coordinate
 moves.
 
+**Amended by Owner Decision 2026-09-19 — an accepted empty target is closed by an explicit reviewed
+decision, never by a later batch.** *"Option A is clearly the best choice. You are authorized to implement
+A."* What that authorizes is the resolution of an accepted reference whose reviewed target is **empty**, and
+nothing wider.
+
+The edge it closes: acceptance is append-only and keyed, and a reference's key includes its target. A later
+batch that authors the destination for an empty citation therefore states a *different* key — the keyed
+union retains both, and publication reports the one citation twice: `unresolved reference` for the accepted
+empty edge and `ambiguous` for the pair. Authoring a destination cannot close an empty target, so without
+this decision an accepted empty target is an obligation no supported action could ever discharge.
+
+- An accepted empty target is resolved only by an explicit **reference resolution**: a record naming the
+  previously accepted citation — its source record, owning component, printed wording and committed scope —
+  together with the reviewed destination, the release it was reviewed against, and the provenance spans
+  review read the citation from.
+- The decision bears identity and its **authorization evidence does not**. Which destination one accepted
+  citation resolves to is part of what that citation means, so a resolution belongs inside the accepted
+  authority's identity exactly as Decision 6 requires of meaning. Who authorized it, under which reference,
+  which reviewer saw it, and when are retained beside it as evidence and bear no identity: reminting
+  mechanical meaning for recording a reviewer's name would make honest evidence expensive to keep.
+- Nothing accepted is edited. The accepted representation goes on stating the empty citation every reviewer
+  accepted; the **effective** representation — that same representation as its resolutions state it — is
+  what the build persists, the gate judges, and the query and override paths read. Both views derive from
+  the one artifact, so the history stays reconstructable and no accepted batch is rewritten.
+- **This decision is otherwise unchanged.** An unresolved reference still blocks publication. A resolution
+  supplies a destination; it does not exempt a citation from the rule. A citation with no resolution stays
+  detectably unresolved, and history is never a second active citation. A resolution that does not apply to
+  the authority it names — wrong release, no such unresolved citation, a citation already resolved,
+  provenance that is not what review read, or an effective view publication would refuse — fails closed
+  with nothing recorded.
+- A resolution whose id is already recorded is **refused, not absorbed**, on the same terms as a `batch_id`
+  `accept_proposal` already holds: a replay is deterministic and leaves the artifact exactly as it was.
+- A later batch may neither drop a resolution it inherits nor invalidate one. Carried decisions are
+  re-checked against the merged result, and an extension that would leave one describing something else is
+  refused before an artifact exists.
+
+**Not authorized by this decision:** retargeting an already resolved citation, arbitrary accepted prose or
+fact edits, generic supersession, additional source ingestion, and automatic destination guessing. A machine
+suggestion never becomes authority implicitly — a resolution nobody is recorded as having decided is not
+one.
+
+This is bounded to the empty-target case, which is not the outstanding cross-batch-target case recorded in
+`docs/architecture/known_unknowns.md`. A citation naming a destination key no accepted batch has minted yet
+resolves the moment some batch mints it: the citation's own key never changes and no decision is needed. An
+empty target is the case where review could state no key at all, and only an explicit decision can supply
+one.
+
+The capability is implemented and demonstrated on isolated evidence. No accepted citation of the corpus is
+resolved by it, and the reviewed destinations proposal states four honest empty targets — *Stat Block*,
+*Combat Encounters*, *Combat*, *Opportunity Attack* — which remain open obligations after its acceptance
+until genuinely reviewed destinations exist.
+
 ### Decision 8 — Persist, reconstruct, prove, then publish
 
 5d follows:

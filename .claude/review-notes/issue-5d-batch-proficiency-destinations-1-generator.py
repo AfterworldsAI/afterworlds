@@ -220,7 +220,11 @@ GAMEPLAY_TOOLBOX_SCOPE = "srd-5.2.1/gameplay-toolbox"
 #: What a reference states when the citation is real and the destination record
 #: does not exist yet. ``_validate_relationships_and_references`` reports every
 #: one of these as ``unresolved reference``, which is the point: the obligation
-#: is detectable, and only the batch that mints the destination can close it.
+#: is detectable. Closing it takes an explicit reviewed reference resolution
+#: (Owner Decision 2026-09-19, ADR-005d Decision 7). A later batch *authoring*
+#: the destination cannot close it: a reference's key includes its target, so the
+#: accepted empty edge survives beside the new one and is then reported both
+#: unresolved and ambiguous.
 UNRESOLVED_TARGET = ""
 
 #: ``(from_record, source_text, scope, provenance span)`` for the four explicit
