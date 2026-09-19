@@ -18,15 +18,22 @@ What is pinned, and why each pin is the one that would catch a real regression:
   band set is asserted as an exact set of triples rather than a count; and
 * dropping one of those later rows is *reported*. That is the whole claim the
   review unit makes, so it is proved by mutation rather than assumed; and
-* the two links whose destination this build has not represented yet are
-  **outstanding obligations**, not notes. Each is a reference with an empty
-  ``target_record_key``, so ``validate_representation`` reports it as
-  ``unresolved reference`` and the publication gate is fail-closed on it. The
-  mutations below prove the properties that make it an obligation rather than a
-  comment: it survives serialization and reconstruction, deleting either half of
-  it is reported, a *resolved sibling* citing the same words cannot close it,
-  and the only thing that does close it is filling in this reference's own
-  destination.
+* **all four** of the section's represented pointers now name a destination.
+  Two name Rules Glossary entries and two name *Playing the Game* records, all
+  four minted by ``proficiency-destinations-1`` from reviewed source; none of
+  them is in the committed accepted artifact, so the untampered report is four
+  ``unknown target record`` findings and the publication gate stays fail-closed
+  until that batch is accepted. The mutations below prove the properties that
+  make each one a checked link rather than a comment: it survives serialization
+  and reconstruction, deleting either half of it is reported, a sibling citing
+  the same words with a different destination is *ambiguous* rather than
+  silently preferred, and blanking a destination reopens it as ``unresolved
+  reference``; and
+* exactly two target strings separate these bytes from the identity reviewed
+  under PR #171. Blanking the two *Playing the Game* destinations and their two
+  derived provenance keys reproduces ``c71f8104…`` through the production
+  payload path, so "the only content change is two target keys" is a checked
+  claim rather than a diff a reader has to trust.
 
 Deliberately not added to ``test_retained_proposals.py``: that module is over
 proposals an accepted batch names, and no batch names this one.
@@ -79,31 +86,40 @@ PROPOSAL_PATH = REVIEW_NOTES / "issue-5d-batch-proficiency-1-PROPOSAL.json"
 COMMITTED_ARTIFACT = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
 
 #: The identity the review packet reports and a reviewer would be shown.
-PROPOSAL_IDENTITY = "c71f81044f003e2845e33e95a844c995aeee00282b0808303320200f164e8ec4"  # noqa: E501  # pragma: allowlist secret
+PROPOSAL_IDENTITY = "f0becb8bd87fcbb41aced983c55f59beb3f25b52d4eca549257d51d9b86d345a"  # noqa: E501  # pragma: allowlist secret
+
+#: The identity reviewed under PR #171, when the two *Playing the Game*
+#: pointers still had an empty destination. Retained as the target of the
+#: reconstruction below, not as a second thing to load: the reviewed content is
+#: reachable from these bytes by blanking two strings, which is the whole claim
+#: the revision makes about itself.
+REVIEWED_WITHOUT_TARGETS = "c71f81044f003e2845e33e95a844c995aeee00282b0808303320200f164e8ec4"  # noqa: E501  # pragma: allowlist secret
 
 RECORD = "play.proficiency"
 UNIT_ID = "proficiency-1-section"
 SCOPE = "srd-5.2.1/rules-glossary"
-#: The two outstanding pointers resolve into *Playing the Game*, not the
-#: Rules Glossary: the Skills table is printed in that part and the Actions
-#: pointer names its section. ``scope_key`` is the committed resolution
-#: scope, so authoring them under the glossary scope would have stated that
-#: a glossary entry is the thing that closes them, and a later glossary
-#: review could then have looked like the discharge of an obligation it
-#: never carried. Neither destination is minted here.
+#: Two of the four pointers resolve into *Playing the Game*, not the Rules
+#: Glossary: the Skills table is printed in that part and the Actions pointer
+#: names its section. ``scope_key`` is the committed resolution scope, so
+#: authoring them under the glossary scope would have stated that a glossary
+#: entry is the thing that closes them, and a later glossary review could then
+#: have looked like the discharge of an obligation it never carried.
 PLAYING_SCOPE = "srd-5.2.1/playing-the-game"
 
 #: The section's five printed pointers, as authored, with the scope each
-#: resolves in. Two name a Rules Glossary entry no accepted batch has minted;
-#: two name nothing yet, in Playing the Game, and are the outstanding links; the
+#: resolves in. Four name a destination ``proficiency-destinations-1`` mints; the
 #: fifth ("Character Creation") points outside this build's corpus and is prose,
 #: so it is absent here by design.
 EXPECTED_REFERENCES = {
     ("proficiency_bonus_basis", "Challenge Rating", "glossary.challenge_rating"),
     ("bonus_does_not_stack", "Expertise", "glossary.expertise"),
-    ("skill_list", "Skills table", ""),
-    ("skill_relevance_sources", "Actions", ""),
+    ("skill_list", "Skills table", "play.skills"),
+    ("skill_relevance_sources", "Actions", "play.actions"),
 }
+
+#: The two destinations the revision names, keyed by printed wording. Both are
+#: *Playing the Game* records, and both are the only fields these bytes change.
+PLAYING_TARGETS = {"Skills table": "play.skills", "Actions": "play.actions"}
 
 #: Which scope each pointer is committed to resolve in, keyed by its printed
 #: wording. Written out rather than derived from the draft: the whole point of
@@ -115,12 +131,15 @@ EXPECTED_SCOPES = {
     "Actions": PLAYING_SCOPE,
 }
 
-#: The exact standalone report for the untampered proposal. Two unminted
-#: destinations and two outstanding links, and nothing else: a fifth finding of
-#: any kind, or an outstanding link quietly acquiring a target, fails here.
+#: The exact standalone report for the untampered proposal. Four named
+#: destinations no *accepted* batch has minted yet, and nothing else: a fifth
+#: finding of any kind, or a link quietly losing its destination, fails here.
+#: ``proficiency-destinations-1`` is what turns these four into resolutions, and
+#: it does so only once accepted — see
+#: ``test_proficiency_references_resolve.py``.
 EXPECTED_FINDINGS = (
-    f"reference {PLAYING_SCOPE}:'Actions': unresolved reference",
-    f"reference {PLAYING_SCOPE}:'Skills table': unresolved reference",
+    f"reference {PLAYING_SCOPE}:'Actions': unknown target record play.actions",
+    f"reference {PLAYING_SCOPE}:'Skills table': unknown target record play.skills",
     f"reference {SCOPE}:'Challenge Rating': unknown target record "
     "glossary.challenge_rating",
     f"reference {SCOPE}:'Expertise': unknown target record glossary.expertise",
@@ -201,12 +220,8 @@ def _findings(proposal, draft) -> tuple[str, ...]:  # type: ignore[no-untyped-de
     )
 
 
-def _outstanding(draft, source_text: str):  # type: ignore[no-untyped-def]
-    (ref,) = [
-        r
-        for r in draft.references
-        if r.source_text == source_text and not r.target_record_key
-    ]
+def _reference(draft, source_text: str):  # type: ignore[no-untyped-def]
+    (ref,) = [r for r in draft.references if r.source_text == source_text]
     return ref
 
 
@@ -364,14 +379,14 @@ def test_in_memory_acceptance_is_evidence_and_writes_nothing() -> None:
     assert hashlib.sha256(COMMITTED_ARTIFACT.read_bytes()).hexdigest() == before
 
 
-def test_the_deferred_links_are_authored_as_outstanding_obligations() -> None:
-    """A note about a missing link cannot fail. An unresolved reference does.
+def test_all_four_printed_pointers_name_a_reviewed_destination() -> None:
+    """A note about a missing link cannot fail. A named destination does.
 
-    Both links are committed with their citing component, their printed wording
-    and their span; only the destination is absent. The report distinguishes
-    that from a named destination nothing has minted, which is the distinction
-    that makes accidental closure impossible: no key exists that a later batch
-    could mint to resolve these.
+    Each link is committed with its citing component, its printed wording, its
+    resolution scope, its span and now its destination. Until
+    ``proficiency-destinations-1`` is accepted the report says the destination is
+    unknown, which is a failure and not a silence: nothing can publish this
+    section while the records it points at do not exist.
     """
     proposal = _proposal()
     draft = proposal.proposed_representation
@@ -382,27 +397,83 @@ def test_the_deferred_links_are_authored_as_outstanding_obligations() -> None:
     assert {(r.source_text, r.scope_key) for r in draft.references} == set(
         EXPECTED_SCOPES.items()
     )
+    assert all(r.target_record_key for r in draft.references)
     assert _findings(proposal, draft) == EXPECTED_FINDINGS
-    # Each outstanding link carries its own provenance to the span the pointer
-    # is printed in, so it is evidence of where the obligation came from.
+    # Each link carries its own provenance to the span the pointer is printed
+    # in, so it is evidence of where the citation came from.
     for text, clause_leaf in (
         ("Skills table", "skill_list"),
         ("Actions", "skill_relevance_sources"),
+        ("Challenge Rating", "proficiency_bonus_basis"),
+        ("Expertise", "bonus_does_not_stack"),
     ):
-        ref = _outstanding(draft, text)
+        ref = _reference(draft, text)
         assert ref.from_component_key == clause_leaf
         assert _claim_for(draft, ref).role is ProvenanceRole.CONTEXTUAL
 
 
-def test_an_outstanding_link_survives_serialization_and_reconstruction(
+def test_exactly_two_target_strings_separate_this_from_the_reviewed_bytes() -> None:
+    """The revision is two destinations and nothing else, proved by rebuild.
+
+    PR #171 reviewed a proposal whose two *Playing the Game* pointers were
+    empty. Blanking exactly those two ``target_record_key`` fields and the two
+    provenance keys they derive, then deriving the identity through the
+    production payload path, returns the reviewed identity. A rule, span,
+    component, fact, binding or expectation that had also changed would not
+    reproduce it, so this is the check that makes the claim in the generator's
+    own comment true rather than asserted.
+    """
+    proposal = _proposal()
+    draft = proposal.proposed_representation
+    blanked = {}
+    for text in PLAYING_TARGETS:
+        ref = _reference(draft, text)
+        assert ref.target_record_key == PLAYING_TARGETS[text]
+        blanked[reference_target_key(ref)] = dataclasses.replace(
+            ref, target_record_key=""
+        )
+    assert len(blanked) == 2
+
+    reverted = dataclasses.replace(
+        draft,
+        references=tuple(
+            blanked.get(reference_target_key(r), r) for r in draft.references
+        ),
+        provenance=tuple(
+            (
+                dataclasses.replace(
+                    c,
+                    target_key=reference_target_key(blanked[tuple(c.target_key)]),
+                )
+                if (
+                    c.target_kind is ProvenanceTargetKind.REFERENCE
+                    and tuple(c.target_key) in blanked
+                )
+                else c
+            )
+            for c in draft.provenance
+        ),
+    )
+    assert (
+        proposal_identity(
+            dataclasses.replace(proposal, proposed_representation=reverted)
+        )
+        == REVIEWED_WITHOUT_TARGETS
+    )
+    # And the same edit in the other direction: these bytes are not the reviewed
+    # ones, so a reader cannot confuse the two.
+    assert PROPOSAL_IDENTITY != REVIEWED_WITHOUT_TARGETS
+
+
+def test_a_named_link_survives_serialization_and_reconstruction(
     tmp_path: pathlib.Path,
 ) -> None:
     """Through the production writer and loader, not a copy of the draft.
 
-    An obligation that lives only in the in-memory draft would be discharged by
-    the next persistence round trip. This writes the accepted payload the
-    production serializer produces to a temporary path and reads it back with
-    the production loader.
+    A destination that lives only in the in-memory draft would be lost by the
+    next persistence round trip, and the section would silently return to
+    pointing nowhere. This writes the accepted payload the production serializer
+    produces to a temporary path and reads it back with the production loader.
     """
     proposal = _proposal()
     accepted = accept_proposal(
@@ -422,28 +493,35 @@ def test_an_outstanding_link_survives_serialization_and_reconstruction(
         newline="\n",
     )
     reloaded = load_accepted_inputs(path)
-    assert {
-        (r.from_record_key, r.from_component_key, r.source_text, r.scope_key)
+    reloaded_refs = {
+        (r.from_component_key, r.source_text, r.scope_key, r.target_record_key)
         for r in reloaded.oracle.representation.references
-        if not r.target_record_key
-    } == {
-        (RECORD, "skill_list", "Skills table", PLAYING_SCOPE),
-        (RECORD, "skill_relevance_sources", "Actions", PLAYING_SCOPE),
+        if r.from_record_key == RECORD
     }
+    assert reloaded_refs == {
+        (component, text, EXPECTED_SCOPES[text], target)
+        for component, text, target in EXPECTED_REFERENCES
+    }
+    assert not [
+        r for r in reloaded.oracle.representation.references if not r.target_record_key
+    ]
 
 
-def test_deleting_either_half_of_an_outstanding_link_is_reported() -> None:
+def test_deleting_either_half_of_a_named_link_is_reported() -> None:
     """Omission is a finding, in both directions, through the closed relation.
 
     Dropping the reference leaves its provenance claiming an element nobody
     declared. Dropping the provenance leaves a reference with no evidence of
     where it was read. Either way the report names the exact link, so the
-    obligation cannot be removed quietly.
+    citation cannot be removed quietly once the destination exists.
     """
     proposal = _proposal()
     draft = proposal.proposed_representation
-    ref = _outstanding(draft, "Skills table")
+    ref = _reference(draft, "Skills table")
     key = reference_target_key(ref)
+    named = (
+        f"reference {PLAYING_SCOPE}:'Skills table': unknown target record play.skills"
+    )
 
     without_reference = _findings(
         proposal,
@@ -455,9 +533,7 @@ def test_deleting_either_half_of_an_outstanding_link_is_reported() -> None:
         f.startswith("provenance reference") and "undeclared element" in f
         for f in without_reference
     )
-    assert f"reference {PLAYING_SCOPE}:'Skills table': unresolved reference" not in (
-        without_reference
-    )
+    assert named not in without_reference
 
     without_provenance = _findings(
         proposal,
@@ -476,25 +552,23 @@ def test_deleting_either_half_of_an_outstanding_link_is_reported() -> None:
     assert f"reference {list(key)}: no provenance to a 5c leaf subspan" in (
         without_provenance
     )
-    assert f"reference {PLAYING_SCOPE}:'Skills table': unresolved reference" in (
-        without_provenance
-    )
+    assert named in without_provenance
 
 
-def test_a_resolved_sibling_citing_the_same_words_cannot_close_it() -> None:
-    """The realistic premature closure, and it is refused twice over.
+def test_a_sibling_citing_the_same_words_elsewhere_is_ambiguous() -> None:
+    """One scope and one wording may not resolve two ways.
 
-    A later batch authoring the same printed wording with a real destination
-    does not resolve *this* link. The report keeps the unresolved finding and
-    adds an ambiguity finding, because one scope and one wording now resolve
-    two ways.
+    The realistic error once destinations exist is a second batch citing the
+    same printed words at a different record, which would make "what does
+    *Skills table* mean here" depend on which reference a reader happened to
+    read. The report refuses it rather than preferring one.
     """
     proposal = _proposal()
     draft = proposal.proposed_representation
-    ref = _outstanding(draft, "Skills table")
-    # ``play.proficiency`` stands in for a real destination: it is the one
-    # record this draft declares, so the sibling is resolved and *known*, which
-    # is the strongest form the premature closure could take.
+    ref = _reference(draft, "Skills table")
+    # ``play.proficiency`` stands in for the wrong destination: it is the one
+    # record this draft declares, so the sibling is as *known* as a sibling can
+    # be, which is the strongest form the collision could take.
     sibling = dataclasses.replace(ref, target_record_key=RECORD)
     findings = _findings(
         proposal,
@@ -512,33 +586,34 @@ def test_a_resolved_sibling_citing_the_same_words_cannot_close_it() -> None:
             ),
         ),
     )
-    assert f"reference {PLAYING_SCOPE}:'Skills table': unresolved reference" in findings
     (ambiguous,) = [f for f in findings if "ambiguous" in f]
     assert ambiguous.startswith(f"reference {PLAYING_SCOPE}:'Skills table': ")
-    assert f"['', '{RECORD}']" in ambiguous
+    assert f"['{RECORD}', 'play.skills']" in ambiguous
 
 
-def test_filling_in_this_reference_is_the_only_thing_that_closes_it() -> None:
-    """And when it is filled in, the obligation is gone — not suppressed.
+def test_blanking_a_destination_reopens_it_as_unresolved() -> None:
+    """Losing a destination is a different failure, and still a failure.
 
-    The closing edit is to this reference's own destination, which is an
-    accepted-content change and reviewed as one.
+    The revision's only content change is two target keys, so the mutation that
+    undoes it must not go quiet: an empty destination is reported as
+    ``unresolved reference``, which is what kept the section fail-closed before
+    these records were reviewed.
     """
     proposal = _proposal()
     draft = proposal.proposed_representation
-    ref = _outstanding(draft, "Skills table")
+    ref = _reference(draft, "Skills table")
     key = reference_target_key(ref)
-    resolved = dataclasses.replace(ref, target_record_key=RECORD)
+    blanked = dataclasses.replace(ref, target_record_key="")
     findings = _findings(
         proposal,
         dataclasses.replace(
             draft,
-            references=tuple(resolved if r == ref else r for r in draft.references),
+            references=tuple(blanked if r == ref else r for r in draft.references),
             provenance=tuple(
                 (
                     ProvenanceClaim(
                         ProvenanceTargetKind.REFERENCE,
-                        reference_target_key(resolved),
+                        reference_target_key(blanked),
                         c.span_id,
                         c.role,
                     )
@@ -552,4 +627,10 @@ def test_filling_in_this_reference_is_the_only_thing_that_closes_it() -> None:
             ),
         ),
     )
-    assert findings == tuple(f for f in EXPECTED_FINDINGS if "'Skills table'" not in f)
+    assert f"reference {PLAYING_SCOPE}:'Skills table': unresolved reference" in findings
+    assert findings == tuple(
+        sorted(
+            (f"reference {PLAYING_SCOPE}:'Skills table': unresolved reference",)
+            + tuple(f for f in EXPECTED_FINDINGS if "'Skills table'" not in f)
+        )
+    )

@@ -670,7 +670,7 @@
      "skill_list",
      "Skills table",
      "srd-5.2.1/playing-the-game",
-     ""
+     "play.skills"
     ],
     "target_kind": "reference"
    },
@@ -731,7 +731,7 @@
      "skill_relevance_sources",
      "Actions",
      "srd-5.2.1/playing-the-game",
-     ""
+     "play.actions"
     ],
     "target_kind": "reference"
    },
@@ -1207,14 +1207,14 @@
     "from_record_key": "play.proficiency",
     "scope_key": "srd-5.2.1/playing-the-game",
     "source_text": "Skills table",
-    "target_record_key": ""
+    "target_record_key": "play.skills"
    },
    {
     "from_component_key": "skill_relevance_sources",
     "from_record_key": "play.proficiency",
     "scope_key": "srd-5.2.1/playing-the-game",
     "source_text": "Actions",
-    "target_record_key": ""
+    "target_record_key": "play.actions"
    }
   ],
   "relationships": []
