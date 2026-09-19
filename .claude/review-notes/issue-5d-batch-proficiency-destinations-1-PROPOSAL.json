@@ -1,0 +1,4333 @@
+{
+ "artifact_kind": "machine_proposal",
+ "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py (CRD Issue 5d batch proficiency-destinations-1, representation schema 15)",
+ "proposal_schema_version": "5d-proposal-2",
+ "proposed_representation": {
+  "components": [
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.challenge_rating",
+    "semantic_key": "encounter_circumstances"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "options": [],
+    "record_key": "play.actions",
+    "semantic_key": "improvised_action_judgment"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "natural_language_exception",
+    "options": [],
+    "record_key": "glossary.expertise",
+    "semantic_key": "expertise_doubling"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "natural_language_exception",
+    "options": [],
+    "record_key": "play.actions",
+    "semantic_key": "reaction_timing"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "open_ended_effect",
+    "options": [],
+    "record_key": "play.actions",
+    "semantic_key": "improvised_action_options"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "subjective_judgment",
+    "options": [],
+    "record_key": "glossary.challenge_rating",
+    "semantic_key": "threat_comparison"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.challenge_rating",
+    "semantic_key": "challenge_rating_meaning"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.expertise",
+    "semantic_key": "expertise_definition"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.expertise",
+    "semantic_key": "expertise_grant"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "semantic_key": "action_default"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "semantic_key": "action_table"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "semantic_key": "bonus_action_availability"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "semantic_key": "bonus_action_deprivation"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "semantic_key": "one_action_at_a_time"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "semantic_key": "reaction_definition"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "semantic_key": "reaction_interruption"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "semantic_key": "skills_table"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "activity": null,
+      "cost": "bonus_action",
+      "count": 1,
+      "family": "action_allowance",
+      "per": "turn"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "semantic_key": "bonus_action_allowance"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "activity": null,
+      "cost": "reaction",
+      "count": 1,
+      "family": "action_allowance",
+      "per": "turn"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "semantic_key": "reaction_allowance"
+   }
+  ],
+  "prose_bindings": [
+   {
+    "chunk_char_end": 10,
+    "chunk_char_start": 0,
+    "chunk_id": "08c24db2-de5b-57ee-9fe0-33da5b299b46",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "9c4cab20-550a-5a32-94f3-d5c5fb00bec6"
+   },
+   {
+    "chunk_char_end": 10,
+    "chunk_char_start": 0,
+    "chunk_id": "2fd939ce-55b1-5c4f-b9bc-d2ff093937ab",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "42e3d51b-52e2-597c-a7d0-1913e05a1771"
+   },
+   {
+    "chunk_char_end": 10,
+    "chunk_char_start": 0,
+    "chunk_id": "d138dab5-e4a9-5aaf-8612-fb542c1d9059",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "09638d45-b512-5856-ba96-dce4a217596b"
+   },
+   {
+    "chunk_char_end": 104,
+    "chunk_char_start": 0,
+    "chunk_id": "13170a47-5a79-5e9f-b28f-7104fdbb9f9d",
+    "component_key": "one_action_at_a_time",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "span_id": "a81c1196-e4f7-5d6e-959b-526ed88d2e41"
+   },
+   {
+    "chunk_char_end": 11,
+    "chunk_char_start": 0,
+    "chunk_id": "963719b5-28b2-51d8-94b9-1e84ec7df779",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "33996d8b-1253-552a-8a3e-509d0ba889e5"
+   },
+   {
+    "chunk_char_end": 12,
+    "chunk_char_start": 0,
+    "chunk_id": "0e0bdc90-d360-557f-b525-facdf0d0bfdf",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "443f088b-070b-5cab-a9bb-7308fdd06570"
+   },
+   {
+    "chunk_char_end": 12,
+    "chunk_char_start": 0,
+    "chunk_id": "2bec9ded-6fd3-58b6-99b2-8ae9823f07d7",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "0437f088-3ad7-57ed-9518-dcb7b208103c"
+   },
+   {
+    "chunk_char_end": 12,
+    "chunk_char_start": 0,
+    "chunk_id": "342a8f38-dccb-51aa-832d-225eb9a1c296",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "35659aa7-2e0c-55e7-b8af-f3262250e3cd"
+   },
+   {
+    "chunk_char_end": 12,
+    "chunk_char_start": 0,
+    "chunk_id": "453b8a28-9502-5fe3-8997-ffd6319ea314",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "f1808a9f-5caf-5d43-b0be-0c0d5881cdd7"
+   },
+   {
+    "chunk_char_end": 12,
+    "chunk_char_start": 0,
+    "chunk_id": "4f9c5bed-db9c-5878-ac3f-b3c6b8c69bad",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "4da7c0a3-4e4a-5967-8778-a43116257aa0"
+   },
+   {
+    "chunk_char_end": 12,
+    "chunk_char_start": 0,
+    "chunk_id": "cd63c53c-4dc8-5067-a82a-67238f8bb070",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "481b5698-0671-5767-aabc-36b91bb3b6c1"
+   },
+   {
+    "chunk_char_end": 121,
+    "chunk_char_start": 0,
+    "chunk_id": "acff623f-b1cc-5023-9b5c-657f9314a863",
+    "component_key": "bonus_action_availability",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "span_id": "b6f79bd9-a4c0-52e6-8694-f1f82e6f1172"
+   },
+   {
+    "chunk_char_end": 122,
+    "chunk_char_start": 0,
+    "chunk_id": "2956afa9-3623-5f93-97be-3c356d330cf0",
+    "component_key": "encounter_circumstances",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.challenge_rating",
+    "span_id": "579edd53-c223-55b0-a45f-8036e1949cb8"
+   },
+   {
+    "chunk_char_end": 13,
+    "chunk_char_start": 0,
+    "chunk_id": "c95ca862-6c65-5354-9267-70d6b460f5e5",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "0e5782a0-faba-5ff4-a983-c42715f7ba2f"
+   },
+   {
+    "chunk_char_end": 15,
+    "chunk_char_start": 0,
+    "chunk_id": "0e76792c-bfbf-58bb-b510-b66f716d649d",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "2b861ce8-8d3c-5d70-96df-46e8fe6e9b38"
+   },
+   {
+    "chunk_char_end": 15,
+    "chunk_char_start": 0,
+    "chunk_id": "a5844038-93ae-5d56-8423-6f658162d7e8",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "7af94041-831d-53d2-b74f-390055a4ab26"
+   },
+   {
+    "chunk_char_end": 189,
+    "chunk_char_start": 88,
+    "chunk_id": "23fba6eb-8e66-544e-a663-b286d23f0f2d",
+    "component_key": "action_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "span_id": "290b6127-890b-508a-a5ce-72a209d815b4"
+   },
+   {
+    "chunk_char_end": 191,
+    "chunk_char_start": 0,
+    "chunk_id": "bf478515-03c5-514d-aef4-dc9418753c5a",
+    "component_key": "improvised_action_options",
+    "irreducibility_reason_code": "open_ended_effect",
+    "record_key": "play.actions",
+    "span_id": "0b8d22a5-a99a-57e5-9dcd-e0a561ca77f0"
+   },
+   {
+    "chunk_char_end": 206,
+    "chunk_char_start": 98,
+    "chunk_id": "a56438dd-78b6-5267-b35c-f7d80828e997",
+    "component_key": "threat_comparison",
+    "irreducibility_reason_code": "subjective_judgment",
+    "record_key": "glossary.challenge_rating",
+    "span_id": "ab21c840-fe1f-56f3-99f8-04d062346f5e"
+   },
+   {
+    "chunk_char_end": 215,
+    "chunk_char_start": 0,
+    "chunk_id": "2a050cea-a66d-5d6e-ad05-d0ed3a86336c",
+    "component_key": "reaction_definition",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "span_id": "896517c4-9a16-5f73-a112-480eeaf1c1c9"
+   },
+   {
+    "chunk_char_end": 245,
+    "chunk_char_start": 48,
+    "chunk_id": "9659137e-7465-57c6-88d9-1bd67a469e53",
+    "component_key": "bonus_action_availability",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "span_id": "16c08c4c-60e9-58ca-9414-9850723f9b02"
+   },
+   {
+    "chunk_char_end": 251,
+    "chunk_char_start": 70,
+    "chunk_id": "30c6a095-c0b9-5956-b46e-5837b841e663",
+    "component_key": "expertise_doubling",
+    "irreducibility_reason_code": "natural_language_exception",
+    "record_key": "glossary.expertise",
+    "span_id": "4dd554ad-195c-5793-a407-ab570cda1cbc"
+   },
+   {
+    "chunk_char_end": 330,
+    "chunk_char_start": 252,
+    "chunk_id": "30c6a095-c0b9-5956-b46e-5837b841e663",
+    "component_key": "expertise_grant",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.expertise",
+    "span_id": "84868926-496d-5c15-9819-8a2f5acab373"
+   },
+   {
+    "chunk_char_end": 366,
+    "chunk_char_start": 192,
+    "chunk_id": "bf478515-03c5-514d-aef4-dc9418753c5a",
+    "component_key": "improvised_action_judgment",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "play.actions",
+    "span_id": "a6529a9e-8ec8-5d9e-bd98-a215f72e2242"
+   },
+   {
+    "chunk_char_end": 376,
+    "chunk_char_start": 246,
+    "chunk_id": "9659137e-7465-57c6-88d9-1bd67a469e53",
+    "component_key": "bonus_action_allowance",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "span_id": "ad7584f4-a369-5173-8513-e684d9cf76a5"
+   },
+   {
+    "chunk_char_end": 4,
+    "chunk_char_start": 0,
+    "chunk_id": "3685ad61-5554-5ffc-aa93-aa621f7de98a",
+    "component_key": "action_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "span_id": "65e222a2-5f5e-5aa7-bf51-a40fd8c2890b"
+   },
+   {
+    "chunk_char_end": 4,
+    "chunk_char_start": 0,
+    "chunk_id": "61dcf7fc-b7d0-5d55-b89e-ef4c8a0f36c9",
+    "component_key": "action_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "span_id": "ef152512-6826-5579-9bfd-5dbd72d20862"
+   },
+   {
+    "chunk_char_end": 4,
+    "chunk_char_start": 0,
+    "chunk_id": "ccbb2795-3988-573e-8b9d-445691a40fb2",
+    "component_key": "action_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "span_id": "5188727a-34d1-5351-84fa-4f3b054af937"
+   },
+   {
+    "chunk_char_end": 401,
+    "chunk_char_start": 331,
+    "chunk_id": "30c6a095-c0b9-5956-b46e-5837b841e663",
+    "component_key": "expertise_grant",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.expertise",
+    "span_id": "b5d08772-e5f2-55e0-9a47-4c69d80e79ad"
+   },
+   {
+    "chunk_char_end": 403,
+    "chunk_char_start": 316,
+    "chunk_id": "2a050cea-a66d-5d6e-ad05-d0ed3a86336c",
+    "component_key": "reaction_allowance",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "span_id": "a15bcd0e-3418-5931-80f6-19530533cd2b"
+   },
+   {
+    "chunk_char_end": 479,
+    "chunk_char_start": 377,
+    "chunk_id": "9659137e-7465-57c6-88d9-1bd67a469e53",
+    "component_key": "bonus_action_allowance",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "span_id": "16b95238-9fb2-59b4-bdf1-1ecce9e83c6d"
+   },
+   {
+    "chunk_char_end": 5,
+    "chunk_char_start": 0,
+    "chunk_id": "78f0b210-1d43-5179-b973-c1c48d9b1dce",
+    "component_key": "action_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "span_id": "4690ee45-9cb6-5493-9740-7770278f5d3a"
+   },
+   {
+    "chunk_char_end": 5,
+    "chunk_char_start": 0,
+    "chunk_id": "9ac6e8eb-7758-579e-ae37-6077c00a3254",
+    "component_key": "action_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "span_id": "4dfc320f-51e7-568e-b999-490420f1cc63"
+   },
+   {
+    "chunk_char_end": 5,
+    "chunk_char_start": 0,
+    "chunk_id": "c691c9fe-970c-5472-b48d-686351d174e6",
+    "component_key": "action_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "span_id": "79c20fea-2262-539a-9454-834853db6ade"
+   },
+   {
+    "chunk_char_end": 5,
+    "chunk_char_start": 0,
+    "chunk_id": "e5af2ed5-89b9-5c96-8226-ae0a8a6579bd",
+    "component_key": "action_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "span_id": "31540f45-3a05-509d-ace8-4898332b9114"
+   },
+   {
+    "chunk_char_end": 517,
+    "chunk_char_start": 404,
+    "chunk_id": "2a050cea-a66d-5d6e-ad05-d0ed3a86336c",
+    "component_key": "reaction_interruption",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "span_id": "9e97d459-0aee-5165-9b37-21e541216ddf"
+   },
+   {
+    "chunk_char_end": 52,
+    "chunk_char_start": 0,
+    "chunk_id": "bbf4485f-8d5e-5d6a-a854-77c378b0c00c",
+    "component_key": "threat_comparison",
+    "irreducibility_reason_code": "subjective_judgment",
+    "record_key": "glossary.challenge_rating",
+    "span_id": "49821e2a-0418-5411-9c28-677ed8b70877"
+   },
+   {
+    "chunk_char_end": 584,
+    "chunk_char_start": 480,
+    "chunk_id": "9659137e-7465-57c6-88d9-1bd67a469e53",
+    "component_key": "bonus_action_deprivation",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "span_id": "c6de6139-c8c9-5af1-9dc3-7fa8dc5bb1d4"
+   },
+   {
+    "chunk_char_end": 6,
+    "chunk_char_start": 0,
+    "chunk_id": "14dbc8d3-0b0a-57b7-bff5-5de372670f8d",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "5aef742e-1ade-5415-8e9d-d9fecc871e4b"
+   },
+   {
+    "chunk_char_end": 6,
+    "chunk_char_start": 0,
+    "chunk_id": "254f431d-44b0-52a2-98c4-5784cec043bc",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "543f1584-23d6-5fbe-8b6e-eadc70f32b92"
+   },
+   {
+    "chunk_char_end": 6,
+    "chunk_char_start": 0,
+    "chunk_id": "25e062c4-34f8-5998-9d32-0ab323323c6c",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "acbc8c2b-dfcb-5ce6-afbd-84c9303f01de"
+   },
+   {
+    "chunk_char_end": 6,
+    "chunk_char_start": 0,
+    "chunk_id": "2b04d63f-de45-5b4b-9df6-b0531cae39cb",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "8d5f85b0-6dca-514d-899a-ebe4be27dfdb"
+   },
+   {
+    "chunk_char_end": 6,
+    "chunk_char_start": 0,
+    "chunk_id": "2f430d19-f885-555a-a884-4ac0e221de53",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "aa4536bd-a89e-51e0-a8a2-072d11627329"
+   },
+   {
+    "chunk_char_end": 6,
+    "chunk_char_start": 0,
+    "chunk_id": "564bf702-b7ba-544a-9cd5-0411166d6ff6",
+    "component_key": "action_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "span_id": "4dd69e02-09ed-5e4c-9657-47738ea61a58"
+   },
+   {
+    "chunk_char_end": 6,
+    "chunk_char_start": 0,
+    "chunk_id": "b67f6d23-0c87-5537-8825-e631e0497adf",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "993a5c77-75fd-5371-9310-c27f4cde137e"
+   },
+   {
+    "chunk_char_end": 6,
+    "chunk_char_start": 0,
+    "chunk_id": "de40649b-e390-5cc2-b1fd-e3ba611f156c",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "072d7ba0-9a38-52f4-9d9a-803f4f5c7963"
+   },
+   {
+    "chunk_char_end": 6,
+    "chunk_char_start": 0,
+    "chunk_id": "e71743af-391f-5938-8864-90d166127195",
+    "component_key": "action_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "span_id": "e06641fe-db95-59aa-81a7-d4608e232635"
+   },
+   {
+    "chunk_char_end": 640,
+    "chunk_char_start": 518,
+    "chunk_id": "2a050cea-a66d-5d6e-ad05-d0ed3a86336c",
+    "component_key": "reaction_timing",
+    "irreducibility_reason_code": "natural_language_exception",
+    "record_key": "play.actions",
+    "span_id": "826d1dab-406b-5dce-9158-4716fc3f4343"
+   },
+   {
+    "chunk_char_end": 69,
+    "chunk_char_start": 0,
+    "chunk_id": "30c6a095-c0b9-5956-b46e-5837b841e663",
+    "component_key": "expertise_definition",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.expertise",
+    "span_id": "4b06357c-47f4-50e5-9d63-d2bb0d35b515"
+   },
+   {
+    "chunk_char_end": 7,
+    "chunk_char_start": 0,
+    "chunk_id": "986aa1b1-ac85-5a1e-ba60-e098108fa15e",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "4338966e-1909-564a-bf6b-173b1846f940"
+   },
+   {
+    "chunk_char_end": 7,
+    "chunk_char_start": 0,
+    "chunk_id": "98949238-a05f-52c2-b468-72252440e3d6",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "80e3cb51-55c1-5884-8e18-3dd5a7e657f8"
+   },
+   {
+    "chunk_char_end": 7,
+    "chunk_char_start": 0,
+    "chunk_id": "a6fc8c0d-2e76-5fda-8def-4769a0522b03",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "9d74f39a-22cc-51f0-9613-a9eae55e078c"
+   },
+   {
+    "chunk_char_end": 7,
+    "chunk_char_start": 0,
+    "chunk_id": "e4f463e4-9242-5910-b3ca-09c92b1355dc",
+    "component_key": "action_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "span_id": "93241fbe-9060-5d2c-a709-2bb80499f463"
+   },
+   {
+    "chunk_char_end": 8,
+    "chunk_char_start": 0,
+    "chunk_id": "033062db-0ea1-508d-bdff-cb942438b1ca",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "2e0004e2-2f4d-5978-b8b4-7945c8cdc61c"
+   },
+   {
+    "chunk_char_end": 8,
+    "chunk_char_start": 0,
+    "chunk_id": "16bd3666-dff4-5d43-bdc5-2fe8d7dccde7",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "963d7cc5-bdf8-57b4-87ef-b857ffc2a087"
+   },
+   {
+    "chunk_char_end": 8,
+    "chunk_char_start": 0,
+    "chunk_id": "3f43f26b-cc69-5e37-8fa6-7cca5daf8130",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "8a39ce7a-ce6f-5c9c-8f76-10f492f1927e"
+   },
+   {
+    "chunk_char_end": 8,
+    "chunk_char_start": 0,
+    "chunk_id": "444b5bad-71fd-5302-bedf-f226a29dd9c0",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "d68f0296-35fb-5d5e-9050-9e10e745a96c"
+   },
+   {
+    "chunk_char_end": 8,
+    "chunk_char_start": 0,
+    "chunk_id": "6e8a3e87-1264-59c7-8d77-e0bbb4a166c2",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "28d4de27-6de6-5163-9ae4-f8c35774b439"
+   },
+   {
+    "chunk_char_end": 8,
+    "chunk_char_start": 0,
+    "chunk_id": "a7e0a7d2-da2f-51ce-a5e8-14656b5c673d",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "da2e906e-2d5c-5ae5-bf7c-ec62675e13fd"
+   },
+   {
+    "chunk_char_end": 8,
+    "chunk_char_start": 0,
+    "chunk_id": "e110ffae-1769-5ec5-b4be-b794de4a34ec",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "1131d4dd-6100-51a7-982c-0ce93e94112d"
+   },
+   {
+    "chunk_char_end": 8,
+    "chunk_char_start": 0,
+    "chunk_id": "fdaeb6fb-0c91-5682-bfc3-79a049c1fc78",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "e8e149bf-4f57-5cc9-874a-3af7ecaa1961"
+   },
+   {
+    "chunk_char_end": 87,
+    "chunk_char_start": 0,
+    "chunk_id": "23fba6eb-8e66-544e-a663-b286d23f0f2d",
+    "component_key": "action_default",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "span_id": "2ffa3561-5881-5f36-8fc1-aef88ac9432a"
+   },
+   {
+    "chunk_char_end": 9,
+    "chunk_char_start": 0,
+    "chunk_id": "2bc938a0-fd5e-50a8-97c5-0392f9ab7998",
+    "component_key": "action_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "span_id": "05923c2f-909f-500f-988f-a34baf300cb2"
+   },
+   {
+    "chunk_char_end": 9,
+    "chunk_char_start": 0,
+    "chunk_id": "3daeff84-4bab-54b9-a59e-c9353d1c2cd3",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "61b8ee3e-6855-58b4-91c1-b6f6841673ce"
+   },
+   {
+    "chunk_char_end": 9,
+    "chunk_char_start": 0,
+    "chunk_id": "4a3029d4-0219-5102-b2f3-2028857984f3",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "2003bc13-5eca-53e1-9fb8-d820fd9f91b9"
+   },
+   {
+    "chunk_char_end": 9,
+    "chunk_char_start": 0,
+    "chunk_id": "640e1306-c16e-547b-a92e-183701a05bb4",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "ae88f88f-cf88-5397-af89-c7ba86a1765d"
+   },
+   {
+    "chunk_char_end": 9,
+    "chunk_char_start": 0,
+    "chunk_id": "d9c8c6d4-e4e8-576f-aacc-d5677ba16391",
+    "component_key": "action_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.actions",
+    "span_id": "4a59025c-2a9d-50b3-9a58-91cad8ca5e73"
+   },
+   {
+    "chunk_char_end": 9,
+    "chunk_char_start": 0,
+    "chunk_id": "ee53d985-424a-5812-9e45-7dcef0999cc3",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "988dcfed-4547-5c48-90ac-50c17569c1ca"
+   },
+   {
+    "chunk_char_end": 9,
+    "chunk_char_start": 0,
+    "chunk_id": "fbd8179c-95e3-513f-9fe9-e39ff8d71c83",
+    "component_key": "skills_table",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.skills",
+    "span_id": "1e517119-2310-5e94-9398-986cf113d5be"
+   },
+   {
+    "chunk_char_end": 97,
+    "chunk_char_start": 0,
+    "chunk_id": "a56438dd-78b6-5267-b35c-f7d80828e997",
+    "component_key": "challenge_rating_meaning",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.challenge_rating",
+    "span_id": "90444dcc-d94f-548b-a2ee-3918f971cd51"
+   }
+  ],
+  "provenance": [
+   {
+    "role": "contextual",
+    "span_id": "05923c2f-909f-500f-988f-a34baf300cb2",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "Influence",
+     "srd-5.2.1/rules-glossary",
+     "action.influence"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "09d65dac-7226-5eb0-8162-15d977e93f7f",
+    "target_key": [
+     "glossary.challenge_rating",
+     "encounter_circumstances"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0e6ffa84-2ec3-5b07-b174-84adcd156f10",
+    "target_key": [
+     "play.skills",
+     "skills_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "14148e78-1f0c-582a-93ef-64e8c1461f65",
+    "target_key": [
+     "play.actions",
+     "action_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "14744918-02c4-5222-b7a2-20ec340c831b",
+    "target_key": [
+     "play.skills",
+     "skills_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "14ff4a98-1be0-5d02-b880-4625f2e8e5e4",
+    "target_key": [
+     "play.skills",
+     "skills_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "1a6c2e6b-1283-5fb9-bf9b-8441ee1b66f6",
+    "target_key": [
+     "play.actions",
+     "one_action_at_a_time"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "1c81b8ae-e9c2-5287-bd74-c0309fad0d6c",
+    "target_key": [
+     "play.actions",
+     "action_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "1edb9bfd-22b8-595c-aaef-629cc9768e60",
+    "target_key": [
+     "play.actions",
+     "action_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "1eea05e2-845f-5f23-80ae-78706183a374",
+    "target_key": [
+     "play.skills",
+     "skills_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "25aec9eb-b25c-55eb-88c6-52ec0332e31d",
+    "target_key": [
+     "play.actions",
+     "action_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "2f211b14-13fe-50ee-94ec-bcbff664e0ab",
+    "target_key": [
+     "play.actions"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "31540f45-3a05-509d-ace8-4898332b9114",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "Dodge",
+     "srd-5.2.1/rules-glossary",
+     "action.dodge"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "350e187f-061a-5255-b3b4-fb7655c0c669",
+    "target_key": [
+     "play.skills",
+     "skills_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3d4def3c-864b-5a00-8e1a-864d4b74f668",
+    "target_key": [
+     "play.actions",
+     "action_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3da12366-4df3-55a6-817d-c244ba6f9bd4",
+    "target_key": [
+     "play.actions",
+     "action_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "43ec5b29-c4e9-5883-964c-ee85cbbff2e0",
+    "target_key": [
+     "glossary.challenge_rating",
+     "encounter_circumstances"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "448be42e-d25c-5300-9cfc-3bebae549533",
+    "target_key": [
+     "play.actions",
+     "action_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "4690ee45-9cb6-5493-9740-7770278f5d3a",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "Magic",
+     "srd-5.2.1/rules-glossary",
+     "action.magic"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "4a59025c-2a9d-50b3-9a58-91cad8ca5e73",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "Disengage",
+     "srd-5.2.1/rules-glossary",
+     "action.disengage"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "4dd69e02-09ed-5e4c-9657-47738ea61a58",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "Search",
+     "srd-5.2.1/rules-glossary",
+     "action.search"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "4dfc320f-51e7-568e-b999-490420f1cc63",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "Study",
+     "srd-5.2.1/rules-glossary",
+     "action.study"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "5188727a-34d1-5351-84fa-4f3b054af937",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "Help",
+     "srd-5.2.1/rules-glossary",
+     "action.help"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "524b2c8f-bee6-576d-a417-738b90fcd40e",
+    "target_key": [
+     "play.actions",
+     "bonus_action_availability"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "5410a3ba-f1ab-535a-a93a-5fe52bad47fd",
+    "target_key": [
+     "play.skills",
+     "skills_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "56ed4416-dbdc-5692-9b13-1e5b53a8d6d9",
+    "target_key": [
+     "play.actions",
+     "action_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "62ef5944-bc8b-5ff5-a1ec-158e16cc1f9e",
+    "target_key": [
+     "play.skills",
+     "skills_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "63e8189d-60cd-5afe-9a0a-159795644737",
+    "target_key": [
+     "glossary.expertise",
+     "",
+     "Proficiency",
+     "srd-5.2.1/playing-the-game",
+     "play.proficiency"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "65e222a2-5f5e-5aa7-bf51-a40fd8c2890b",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "Hide",
+     "srd-5.2.1/rules-glossary",
+     "action.hide"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "695de6a7-246b-55f9-8085-beb0080dd7eb",
+    "target_key": [
+     "play.actions",
+     "action_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "69ef93dd-6e1b-5875-9bfb-a9c3ab8ac048",
+    "target_key": [
+     "play.actions",
+     "action_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "6c0b1e8c-9837-59f4-a861-608af32e0c28",
+    "target_key": [
+     "play.skills"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "6d879119-c453-5d21-b75a-1b545073502d",
+    "target_key": [
+     "play.actions",
+     "action_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "718dd3d2-fb43-5f64-b663-b6ff17336fdd",
+    "target_key": [
+     "play.skills",
+     "skills_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "7211f93a-f957-5aaf-b887-4f8490775a12",
+    "target_key": [
+     "play.skills",
+     "skills_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "79c20fea-2262-539a-9454-834853db6ade",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "Ready",
+     "srd-5.2.1/rules-glossary",
+     "action.ready"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "7a7caf00-5484-58e4-916e-842cf46b2e90",
+    "target_key": [
+     "glossary.challenge_rating"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "7cacf3c0-ca9a-5b53-91bd-6da7ea730938",
+    "target_key": [
+     "play.skills",
+     "skills_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "87d60ebc-4286-59f1-8e82-cf9787c9ebf2",
+    "target_key": [
+     "play.skills",
+     "skills_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "93241fbe-9060-5d2c-a709-2bb80499f463",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "Utilize",
+     "srd-5.2.1/rules-glossary",
+     "action.utilize"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "948d2e71-b4dd-5892-a908-e3eefef02159",
+    "target_key": [
+     "play.skills",
+     "skills_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "a15bcd0e-3418-5931-80f6-19530533cd2b",
+    "target_key": [
+     "play.actions",
+     "reaction_allowance",
+     "676f63b31724ba90"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "a3ad8b51-4599-512e-bf50-e239c1928809",
+    "target_key": [
+     "play.actions",
+     "reaction_definition"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "a9974d19-485f-53f3-8d52-3b4e6f1326e1",
+    "target_key": [
+     "glossary.expertise"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "abbd4dc0-791b-5900-9763-5726a1267120",
+    "target_key": [
+     "play.actions",
+     "action_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ad5368b0-d0bd-5510-9b1e-7b82beda985c",
+    "target_key": [
+     "play.actions",
+     "action_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ad7584f4-a369-5173-8513-e684d9cf76a5",
+    "target_key": [
+     "play.actions",
+     "bonus_action_allowance",
+     "d20454854c7f8d66"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "b2aca997-0a57-562f-bc30-5aadc7a1010a",
+    "target_key": [
+     "play.skills",
+     "skills_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "b790d644-2abe-5b43-8c83-88147740c157",
+    "target_key": [
+     "play.skills",
+     "skills_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "c9b0bd38-aa76-5614-93df-405076aadbad",
+    "target_key": [
+     "play.actions",
+     "one_action_at_a_time"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "cb52d546-7aa6-5bdc-b1ec-b3f7fad6440e",
+    "target_key": [
+     "play.skills",
+     "skills_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "cbce6c99-3e27-5773-9a79-ffda4a60c175",
+    "target_key": [
+     "play.actions",
+     "bonus_action_availability"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "cd6d4b08-474b-5601-98c5-737430776548",
+    "target_key": [
+     "play.skills",
+     "skills_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "dc1737c9-b510-51a8-91ac-2502bb776289",
+    "target_key": [
+     "glossary.challenge_rating"
+    ],
+    "target_kind": "record"
+   },
+   {
+    "role": "contextual",
+    "span_id": "deb31bdc-180f-5aa8-89cd-45808395b8f4",
+    "target_key": [
+     "play.actions",
+     "action_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "df311e0f-4ceb-58a2-9bd8-759bdae1c3c2",
+    "target_key": [
+     "play.actions",
+     "action_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "df82fb87-5082-5cb9-8ad5-090c701c41c2",
+    "target_key": [
+     "play.skills",
+     "skills_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "e06641fe-db95-59aa-81a7-d4608e232635",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "Attack",
+     "srd-5.2.1/rules-glossary",
+     "action.attack"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ef152512-6826-5579-9bfd-5dbd72d20862",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "Dash",
+     "srd-5.2.1/rules-glossary",
+     "action.dash"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ef788616-d142-569c-9d61-1b0f8e5c99e7",
+    "target_key": [
+     "play.skills",
+     "skills_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "f212b70b-d08f-54e1-aca6-6e8026dadf1e",
+    "target_key": [
+     "play.actions",
+     "action_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "f25e82e3-71dd-5b4a-8933-bfb0853c3bc7",
+    "target_key": [
+     "play.skills",
+     "skills_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "f4aefc6a-5440-56be-bfcb-c06c8eac2ca0",
+    "target_key": [
+     "play.skills",
+     "skills_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "f983d033-37c7-5301-bebd-05608ebefbd0",
+    "target_key": [
+     "play.skills",
+     "skills_table"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "0437f088-3ad7-57ed-9518-dcb7b208103c",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "2bec9ded-6fd3-58b6-99b2-8ae9823f07d7",
+     "0437f088-3ad7-57ed-9518-dcb7b208103c",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "05923c2f-909f-500f-988f-a34baf300cb2",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "2bc938a0-fd5e-50a8-97c5-0392f9ab7998",
+     "05923c2f-909f-500f-988f-a34baf300cb2",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "072d7ba0-9a38-52f4-9d9a-803f4f5c7963",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "de40649b-e390-5cc2-b1fd-e3ba611f156c",
+     "072d7ba0-9a38-52f4-9d9a-803f4f5c7963",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "09638d45-b512-5856-ba96-dce4a217596b",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "d138dab5-e4a9-5aaf-8612-fb542c1d9059",
+     "09638d45-b512-5856-ba96-dce4a217596b",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "0b8d22a5-a99a-57e5-9dcd-e0a561ca77f0",
+    "target_key": [
+     "play.actions",
+     "improvised_action_options",
+     "bf478515-03c5-514d-aef4-dc9418753c5a",
+     "0b8d22a5-a99a-57e5-9dcd-e0a561ca77f0",
+     "open_ended_effect"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "0e5782a0-faba-5ff4-a983-c42715f7ba2f",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "c95ca862-6c65-5354-9267-70d6b460f5e5",
+     "0e5782a0-faba-5ff4-a983-c42715f7ba2f",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "1131d4dd-6100-51a7-982c-0ce93e94112d",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "e110ffae-1769-5ec5-b4be-b794de4a34ec",
+     "1131d4dd-6100-51a7-982c-0ce93e94112d",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "16b95238-9fb2-59b4-bdf1-1ecce9e83c6d",
+    "target_key": [
+     "play.actions",
+     "bonus_action_allowance",
+     "9659137e-7465-57c6-88d9-1bd67a469e53",
+     "16b95238-9fb2-59b4-bdf1-1ecce9e83c6d",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "16c08c4c-60e9-58ca-9414-9850723f9b02",
+    "target_key": [
+     "play.actions",
+     "bonus_action_availability",
+     "9659137e-7465-57c6-88d9-1bd67a469e53",
+     "16c08c4c-60e9-58ca-9414-9850723f9b02",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "1e517119-2310-5e94-9398-986cf113d5be",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "fbd8179c-95e3-513f-9fe9-e39ff8d71c83",
+     "1e517119-2310-5e94-9398-986cf113d5be",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "2003bc13-5eca-53e1-9fb8-d820fd9f91b9",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "4a3029d4-0219-5102-b2f3-2028857984f3",
+     "2003bc13-5eca-53e1-9fb8-d820fd9f91b9",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "28d4de27-6de6-5163-9ae4-f8c35774b439",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "6e8a3e87-1264-59c7-8d77-e0bbb4a166c2",
+     "28d4de27-6de6-5163-9ae4-f8c35774b439",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "290b6127-890b-508a-a5ce-72a209d815b4",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "23fba6eb-8e66-544e-a663-b286d23f0f2d",
+     "290b6127-890b-508a-a5ce-72a209d815b4",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "2b861ce8-8d3c-5d70-96df-46e8fe6e9b38",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "0e76792c-bfbf-58bb-b510-b66f716d649d",
+     "2b861ce8-8d3c-5d70-96df-46e8fe6e9b38",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "2e0004e2-2f4d-5978-b8b4-7945c8cdc61c",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "033062db-0ea1-508d-bdff-cb942438b1ca",
+     "2e0004e2-2f4d-5978-b8b4-7945c8cdc61c",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "2ffa3561-5881-5f36-8fc1-aef88ac9432a",
+    "target_key": [
+     "play.actions",
+     "action_default",
+     "23fba6eb-8e66-544e-a663-b286d23f0f2d",
+     "2ffa3561-5881-5f36-8fc1-aef88ac9432a",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "31540f45-3a05-509d-ace8-4898332b9114",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "e5af2ed5-89b9-5c96-8226-ae0a8a6579bd",
+     "31540f45-3a05-509d-ace8-4898332b9114",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "33996d8b-1253-552a-8a3e-509d0ba889e5",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "963719b5-28b2-51d8-94b9-1e84ec7df779",
+     "33996d8b-1253-552a-8a3e-509d0ba889e5",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "35659aa7-2e0c-55e7-b8af-f3262250e3cd",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "342a8f38-dccb-51aa-832d-225eb9a1c296",
+     "35659aa7-2e0c-55e7-b8af-f3262250e3cd",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "42e3d51b-52e2-597c-a7d0-1913e05a1771",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "2fd939ce-55b1-5c4f-b9bc-d2ff093937ab",
+     "42e3d51b-52e2-597c-a7d0-1913e05a1771",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "4338966e-1909-564a-bf6b-173b1846f940",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "986aa1b1-ac85-5a1e-ba60-e098108fa15e",
+     "4338966e-1909-564a-bf6b-173b1846f940",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "443f088b-070b-5cab-a9bb-7308fdd06570",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "0e0bdc90-d360-557f-b525-facdf0d0bfdf",
+     "443f088b-070b-5cab-a9bb-7308fdd06570",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "4690ee45-9cb6-5493-9740-7770278f5d3a",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "78f0b210-1d43-5179-b973-c1c48d9b1dce",
+     "4690ee45-9cb6-5493-9740-7770278f5d3a",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "481b5698-0671-5767-aabc-36b91bb3b6c1",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "cd63c53c-4dc8-5067-a82a-67238f8bb070",
+     "481b5698-0671-5767-aabc-36b91bb3b6c1",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "49821e2a-0418-5411-9c28-677ed8b70877",
+    "target_key": [
+     "glossary.challenge_rating",
+     "threat_comparison",
+     "bbf4485f-8d5e-5d6a-a854-77c378b0c00c",
+     "49821e2a-0418-5411-9c28-677ed8b70877",
+     "subjective_judgment"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "4a59025c-2a9d-50b3-9a58-91cad8ca5e73",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "d9c8c6d4-e4e8-576f-aacc-d5677ba16391",
+     "4a59025c-2a9d-50b3-9a58-91cad8ca5e73",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "4b06357c-47f4-50e5-9d63-d2bb0d35b515",
+    "target_key": [
+     "glossary.expertise",
+     "expertise_definition",
+     "30c6a095-c0b9-5956-b46e-5837b841e663",
+     "4b06357c-47f4-50e5-9d63-d2bb0d35b515",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "4da7c0a3-4e4a-5967-8778-a43116257aa0",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "4f9c5bed-db9c-5878-ac3f-b3c6b8c69bad",
+     "4da7c0a3-4e4a-5967-8778-a43116257aa0",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "4dd554ad-195c-5793-a407-ab570cda1cbc",
+    "target_key": [
+     "glossary.expertise",
+     "expertise_doubling",
+     "30c6a095-c0b9-5956-b46e-5837b841e663",
+     "4dd554ad-195c-5793-a407-ab570cda1cbc",
+     "natural_language_exception"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "4dd69e02-09ed-5e4c-9657-47738ea61a58",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "564bf702-b7ba-544a-9cd5-0411166d6ff6",
+     "4dd69e02-09ed-5e4c-9657-47738ea61a58",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "4dfc320f-51e7-568e-b999-490420f1cc63",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "9ac6e8eb-7758-579e-ae37-6077c00a3254",
+     "4dfc320f-51e7-568e-b999-490420f1cc63",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "5188727a-34d1-5351-84fa-4f3b054af937",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "ccbb2795-3988-573e-8b9d-445691a40fb2",
+     "5188727a-34d1-5351-84fa-4f3b054af937",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "543f1584-23d6-5fbe-8b6e-eadc70f32b92",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "254f431d-44b0-52a2-98c4-5784cec043bc",
+     "543f1584-23d6-5fbe-8b6e-eadc70f32b92",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "579edd53-c223-55b0-a45f-8036e1949cb8",
+    "target_key": [
+     "glossary.challenge_rating",
+     "encounter_circumstances",
+     "2956afa9-3623-5f93-97be-3c356d330cf0",
+     "579edd53-c223-55b0-a45f-8036e1949cb8",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "5aef742e-1ade-5415-8e9d-d9fecc871e4b",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "14dbc8d3-0b0a-57b7-bff5-5de372670f8d",
+     "5aef742e-1ade-5415-8e9d-d9fecc871e4b",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "61b8ee3e-6855-58b4-91c1-b6f6841673ce",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "3daeff84-4bab-54b9-a59e-c9353d1c2cd3",
+     "61b8ee3e-6855-58b4-91c1-b6f6841673ce",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "65e222a2-5f5e-5aa7-bf51-a40fd8c2890b",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "3685ad61-5554-5ffc-aa93-aa621f7de98a",
+     "65e222a2-5f5e-5aa7-bf51-a40fd8c2890b",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "79c20fea-2262-539a-9454-834853db6ade",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "c691c9fe-970c-5472-b48d-686351d174e6",
+     "79c20fea-2262-539a-9454-834853db6ade",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "7af94041-831d-53d2-b74f-390055a4ab26",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "a5844038-93ae-5d56-8423-6f658162d7e8",
+     "7af94041-831d-53d2-b74f-390055a4ab26",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "80e3cb51-55c1-5884-8e18-3dd5a7e657f8",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "98949238-a05f-52c2-b468-72252440e3d6",
+     "80e3cb51-55c1-5884-8e18-3dd5a7e657f8",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "826d1dab-406b-5dce-9158-4716fc3f4343",
+    "target_key": [
+     "play.actions",
+     "reaction_timing",
+     "2a050cea-a66d-5d6e-ad05-d0ed3a86336c",
+     "826d1dab-406b-5dce-9158-4716fc3f4343",
+     "natural_language_exception"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "84868926-496d-5c15-9819-8a2f5acab373",
+    "target_key": [
+     "glossary.expertise",
+     "expertise_grant",
+     "30c6a095-c0b9-5956-b46e-5837b841e663",
+     "84868926-496d-5c15-9819-8a2f5acab373",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "896517c4-9a16-5f73-a112-480eeaf1c1c9",
+    "target_key": [
+     "play.actions",
+     "reaction_definition",
+     "2a050cea-a66d-5d6e-ad05-d0ed3a86336c",
+     "896517c4-9a16-5f73-a112-480eeaf1c1c9",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "8a39ce7a-ce6f-5c9c-8f76-10f492f1927e",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "3f43f26b-cc69-5e37-8fa6-7cca5daf8130",
+     "8a39ce7a-ce6f-5c9c-8f76-10f492f1927e",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "8d5f85b0-6dca-514d-899a-ebe4be27dfdb",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "2b04d63f-de45-5b4b-9df6-b0531cae39cb",
+     "8d5f85b0-6dca-514d-899a-ebe4be27dfdb",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "90444dcc-d94f-548b-a2ee-3918f971cd51",
+    "target_key": [
+     "glossary.challenge_rating",
+     "challenge_rating_meaning",
+     "a56438dd-78b6-5267-b35c-f7d80828e997",
+     "90444dcc-d94f-548b-a2ee-3918f971cd51",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "93241fbe-9060-5d2c-a709-2bb80499f463",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "e4f463e4-9242-5910-b3ca-09c92b1355dc",
+     "93241fbe-9060-5d2c-a709-2bb80499f463",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "963d7cc5-bdf8-57b4-87ef-b857ffc2a087",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "16bd3666-dff4-5d43-bdc5-2fe8d7dccde7",
+     "963d7cc5-bdf8-57b4-87ef-b857ffc2a087",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "988dcfed-4547-5c48-90ac-50c17569c1ca",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "ee53d985-424a-5812-9e45-7dcef0999cc3",
+     "988dcfed-4547-5c48-90ac-50c17569c1ca",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "993a5c77-75fd-5371-9310-c27f4cde137e",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "b67f6d23-0c87-5537-8825-e631e0497adf",
+     "993a5c77-75fd-5371-9310-c27f4cde137e",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "9c4cab20-550a-5a32-94f3-d5c5fb00bec6",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "08c24db2-de5b-57ee-9fe0-33da5b299b46",
+     "9c4cab20-550a-5a32-94f3-d5c5fb00bec6",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "9d74f39a-22cc-51f0-9613-a9eae55e078c",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "a6fc8c0d-2e76-5fda-8def-4769a0522b03",
+     "9d74f39a-22cc-51f0-9613-a9eae55e078c",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "9e97d459-0aee-5165-9b37-21e541216ddf",
+    "target_key": [
+     "play.actions",
+     "reaction_interruption",
+     "2a050cea-a66d-5d6e-ad05-d0ed3a86336c",
+     "9e97d459-0aee-5165-9b37-21e541216ddf",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "a15bcd0e-3418-5931-80f6-19530533cd2b",
+    "target_key": [
+     "play.actions",
+     "reaction_allowance",
+     "2a050cea-a66d-5d6e-ad05-d0ed3a86336c",
+     "a15bcd0e-3418-5931-80f6-19530533cd2b",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "a6529a9e-8ec8-5d9e-bd98-a215f72e2242",
+    "target_key": [
+     "play.actions",
+     "improvised_action_judgment",
+     "bf478515-03c5-514d-aef4-dc9418753c5a",
+     "a6529a9e-8ec8-5d9e-bd98-a215f72e2242",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "a81c1196-e4f7-5d6e-959b-526ed88d2e41",
+    "target_key": [
+     "play.actions",
+     "one_action_at_a_time",
+     "13170a47-5a79-5e9f-b28f-7104fdbb9f9d",
+     "a81c1196-e4f7-5d6e-959b-526ed88d2e41",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "aa4536bd-a89e-51e0-a8a2-072d11627329",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "2f430d19-f885-555a-a884-4ac0e221de53",
+     "aa4536bd-a89e-51e0-a8a2-072d11627329",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "ab21c840-fe1f-56f3-99f8-04d062346f5e",
+    "target_key": [
+     "glossary.challenge_rating",
+     "threat_comparison",
+     "a56438dd-78b6-5267-b35c-f7d80828e997",
+     "ab21c840-fe1f-56f3-99f8-04d062346f5e",
+     "subjective_judgment"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "acbc8c2b-dfcb-5ce6-afbd-84c9303f01de",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "25e062c4-34f8-5998-9d32-0ab323323c6c",
+     "acbc8c2b-dfcb-5ce6-afbd-84c9303f01de",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "ad7584f4-a369-5173-8513-e684d9cf76a5",
+    "target_key": [
+     "play.actions",
+     "bonus_action_allowance",
+     "9659137e-7465-57c6-88d9-1bd67a469e53",
+     "ad7584f4-a369-5173-8513-e684d9cf76a5",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "ae88f88f-cf88-5397-af89-c7ba86a1765d",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "640e1306-c16e-547b-a92e-183701a05bb4",
+     "ae88f88f-cf88-5397-af89-c7ba86a1765d",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "b5d08772-e5f2-55e0-9a47-4c69d80e79ad",
+    "target_key": [
+     "glossary.expertise",
+     "expertise_grant",
+     "30c6a095-c0b9-5956-b46e-5837b841e663",
+     "b5d08772-e5f2-55e0-9a47-4c69d80e79ad",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "b6f79bd9-a4c0-52e6-8694-f1f82e6f1172",
+    "target_key": [
+     "play.actions",
+     "bonus_action_availability",
+     "acff623f-b1cc-5023-9b5c-657f9314a863",
+     "b6f79bd9-a4c0-52e6-8694-f1f82e6f1172",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "c6de6139-c8c9-5af1-9dc3-7fa8dc5bb1d4",
+    "target_key": [
+     "play.actions",
+     "bonus_action_deprivation",
+     "9659137e-7465-57c6-88d9-1bd67a469e53",
+     "c6de6139-c8c9-5af1-9dc3-7fa8dc5bb1d4",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "d68f0296-35fb-5d5e-9050-9e10e745a96c",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "444b5bad-71fd-5302-bedf-f226a29dd9c0",
+     "d68f0296-35fb-5d5e-9050-9e10e745a96c",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "da2e906e-2d5c-5ae5-bf7c-ec62675e13fd",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "a7e0a7d2-da2f-51ce-a5e8-14656b5c673d",
+     "da2e906e-2d5c-5ae5-bf7c-ec62675e13fd",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "e06641fe-db95-59aa-81a7-d4608e232635",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "e71743af-391f-5938-8864-90d166127195",
+     "e06641fe-db95-59aa-81a7-d4608e232635",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "e8e149bf-4f57-5cc9-874a-3af7ecaa1961",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "fdaeb6fb-0c91-5682-bfc3-79a049c1fc78",
+     "e8e149bf-4f57-5cc9-874a-3af7ecaa1961",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "ef152512-6826-5579-9bfd-5dbd72d20862",
+    "target_key": [
+     "play.actions",
+     "action_table",
+     "61dcf7fc-b7d0-5d55-b89e-ef4c8a0f36c9",
+     "ef152512-6826-5579-9bfd-5dbd72d20862",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "f1808a9f-5caf-5d43-b0be-0c0d5881cdd7",
+    "target_key": [
+     "play.skills",
+     "skills_table",
+     "453b8a28-9502-5fe3-8997-ffd6319ea314",
+     "f1808a9f-5caf-5d43-b0be-0c0d5881cdd7",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   }
+  ],
+  "records": [
+   {
+    "kind": "general_rule",
+    "parent_key": null,
+    "semantic_key": "play.actions"
+   },
+   {
+    "kind": "general_rule",
+    "parent_key": null,
+    "semantic_key": "play.skills"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.challenge_rating"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.expertise"
+   }
+  ],
+  "references": [
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.expertise",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "Proficiency",
+    "target_record_key": "play.proficiency"
+   },
+   {
+    "from_component_key": "action_table",
+    "from_record_key": "play.actions",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Attack",
+    "target_record_key": "action.attack"
+   },
+   {
+    "from_component_key": "action_table",
+    "from_record_key": "play.actions",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Dash",
+    "target_record_key": "action.dash"
+   },
+   {
+    "from_component_key": "action_table",
+    "from_record_key": "play.actions",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Disengage",
+    "target_record_key": "action.disengage"
+   },
+   {
+    "from_component_key": "action_table",
+    "from_record_key": "play.actions",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Dodge",
+    "target_record_key": "action.dodge"
+   },
+   {
+    "from_component_key": "action_table",
+    "from_record_key": "play.actions",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Help",
+    "target_record_key": "action.help"
+   },
+   {
+    "from_component_key": "action_table",
+    "from_record_key": "play.actions",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Hide",
+    "target_record_key": "action.hide"
+   },
+   {
+    "from_component_key": "action_table",
+    "from_record_key": "play.actions",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Influence",
+    "target_record_key": "action.influence"
+   },
+   {
+    "from_component_key": "action_table",
+    "from_record_key": "play.actions",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Magic",
+    "target_record_key": "action.magic"
+   },
+   {
+    "from_component_key": "action_table",
+    "from_record_key": "play.actions",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Ready",
+    "target_record_key": "action.ready"
+   },
+   {
+    "from_component_key": "action_table",
+    "from_record_key": "play.actions",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Search",
+    "target_record_key": "action.search"
+   },
+   {
+    "from_component_key": "action_table",
+    "from_record_key": "play.actions",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Study",
+    "target_record_key": "action.study"
+   },
+   {
+    "from_component_key": "action_table",
+    "from_record_key": "play.actions",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Utilize",
+    "target_record_key": "action.utilize"
+   }
+  ],
+  "relationships": []
+ },
+ "proposed_review_units": [
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "16344390-d779-57cb-bcdd-a39878c7feaf",
+      "41963047-b661-58f4-a5ea-a75ac114e4b8",
+      "abee3b23-cb97-5a09-9270-cdd4bd69c4ae",
+      "c3d0f853-4b97-5ce8-bdd4-847f6c630331"
+     ],
+     "reason": "section and entry headings: each names the rules stated below it and states no rule itself"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "action_default",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "2ffa3561-5881-5f36-8fc1-aef88ac9432a"
+     ]
+    },
+    {
+     "component_key": "action_table",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "05923c2f-909f-500f-988f-a34baf300cb2"
+     ]
+    },
+    {
+     "component_key": "action_table",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "290b6127-890b-508a-a5ce-72a209d815b4"
+     ]
+    },
+    {
+     "component_key": "action_table",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "31540f45-3a05-509d-ace8-4898332b9114"
+     ]
+    },
+    {
+     "component_key": "action_table",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "4690ee45-9cb6-5493-9740-7770278f5d3a"
+     ]
+    },
+    {
+     "component_key": "action_table",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "4a59025c-2a9d-50b3-9a58-91cad8ca5e73"
+     ]
+    },
+    {
+     "component_key": "action_table",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "4dd69e02-09ed-5e4c-9657-47738ea61a58"
+     ]
+    },
+    {
+     "component_key": "action_table",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "4dfc320f-51e7-568e-b999-490420f1cc63"
+     ]
+    },
+    {
+     "component_key": "action_table",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "5188727a-34d1-5351-84fa-4f3b054af937"
+     ]
+    },
+    {
+     "component_key": "action_table",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "65e222a2-5f5e-5aa7-bf51-a40fd8c2890b"
+     ]
+    },
+    {
+     "component_key": "action_table",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "79c20fea-2262-539a-9454-834853db6ade"
+     ]
+    },
+    {
+     "component_key": "action_table",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "93241fbe-9060-5d2c-a709-2bb80499f463"
+     ]
+    },
+    {
+     "component_key": "action_table",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "e06641fe-db95-59aa-81a7-d4608e232635"
+     ]
+    },
+    {
+     "component_key": "action_table",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "ef152512-6826-5579-9bfd-5dbd72d20862"
+     ]
+    },
+    {
+     "component_key": "bonus_action_allowance",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "16b95238-9fb2-59b4-bdf1-1ecce9e83c6d",
+      "ad7584f4-a369-5173-8513-e684d9cf76a5"
+     ]
+    },
+    {
+     "component_key": "bonus_action_allowance",
+     "fact_family": "action_allowance",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "ad7584f4-a369-5173-8513-e684d9cf76a5"
+     ]
+    },
+    {
+     "component_key": "bonus_action_availability",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "16c08c4c-60e9-58ca-9414-9850723f9b02",
+      "b6f79bd9-a4c0-52e6-8694-f1f82e6f1172"
+     ]
+    },
+    {
+     "component_key": "bonus_action_deprivation",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "c6de6139-c8c9-5af1-9dc3-7fa8dc5bb1d4"
+     ]
+    },
+    {
+     "component_key": "improvised_action_judgment",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "a6529a9e-8ec8-5d9e-bd98-a215f72e2242"
+     ]
+    },
+    {
+     "component_key": "improvised_action_options",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "0b8d22a5-a99a-57e5-9dcd-e0a561ca77f0"
+     ]
+    },
+    {
+     "component_key": "one_action_at_a_time",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "a81c1196-e4f7-5d6e-959b-526ed88d2e41"
+     ]
+    },
+    {
+     "component_key": "reaction_allowance",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "a15bcd0e-3418-5931-80f6-19530533cd2b"
+     ]
+    },
+    {
+     "component_key": "reaction_allowance",
+     "fact_family": "action_allowance",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "a15bcd0e-3418-5931-80f6-19530533cd2b"
+     ]
+    },
+    {
+     "component_key": "reaction_definition",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "896517c4-9a16-5f73-a112-480eeaf1c1c9"
+     ]
+    },
+    {
+     "component_key": "reaction_interruption",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "9e97d459-0aee-5165-9b37-21e541216ddf"
+     ]
+    },
+    {
+     "component_key": "reaction_timing",
+     "record_key": "play.actions",
+     "source_span_ids": [
+      "826d1dab-406b-5dce-9158-4716fc3f4343"
+     ]
+    }
+   ],
+   "kind": "section",
+   "leaf_ids": [
+    "16344390-d779-57cb-bcdd-a39878c7feaf",
+    "2779f91f-c11c-5c3a-80b4-7cfc52f78dfd",
+    "2b508d04-01b6-5978-beec-ec3dc03c46db",
+    "37ac01d8-cb90-53e3-8b24-0594bdbd9504",
+    "41963047-b661-58f4-a5ea-a75ac114e4b8",
+    "5ab98f2c-0860-5f50-8b58-f267051782d8",
+    "661c8629-569c-5d60-9208-a6e4c5fb688b",
+    "680dedb4-66df-573a-aece-22c645ff85f3",
+    "7de88c77-ebcd-5d6e-a67e-b2a5ae191390",
+    "7e0ea8ff-bacd-5d47-9466-8c6a6a844492",
+    "95dcd286-3500-5a32-96fb-3e96124d04ed",
+    "997c3986-23f6-50e4-bd7d-1841c07ca968",
+    "9cf50cae-a251-5394-981b-82ff9ead227c",
+    "a38b56a2-260f-5924-b4aa-f2d417d72290",
+    "a417357c-5868-5c8e-a5fe-2694d0e208d3",
+    "ab85acb0-197c-56f4-9939-02d13f5bc3b2",
+    "abee3b23-cb97-5a09-9270-cdd4bd69c4ae",
+    "b2ace586-a286-524d-960c-933b449f6dbe",
+    "b4462ac0-815c-5c5b-aac2-812750a2f84e",
+    "b4ac1177-98e3-5f4a-a426-86d3c8be659a",
+    "b5de13a2-df05-5899-84b5-156d9535f8cb",
+    "b5f5f483-cbdf-5c9a-be94-87260c756f32",
+    "b70c4e1a-5187-5ee5-911e-c4c503975a45",
+    "b837da82-c466-5a90-aae1-983828335347",
+    "bd10fc1c-ef58-508e-a535-75d8c70c4148",
+    "bf349e19-06e6-575e-8854-f3f7ce153550",
+    "c05db2e7-6378-5a61-b32c-bc2f5ce7232b",
+    "c2a58596-4f3f-593c-b7a7-b229d3659393",
+    "c3d0f853-4b97-5ce8-bdd4-847f6c630331",
+    "c5320ca0-cd30-5b6d-a653-0d04f817ee62",
+    "c71c7205-a07f-5103-943f-377e83aa7159",
+    "c8605be9-a34b-51ab-9435-5245e5906ed0",
+    "d3380484-68ee-5525-aa62-e5e672264065",
+    "d4b47fe3-f4b8-5be9-acb5-801286edd5b8",
+    "eb7692db-9f44-5116-9c61-761d1be5eeb7",
+    "ee579a3f-2843-5410-bd93-4e8b68d62dd3",
+    "f0452450-9a9b-573c-b81f-00032de1ec90",
+    "f82cb55c-3810-5652-8c07-5337694e2f01"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "2779f91f-c11c-5c3a-80b4-7cfc52f78dfd",
+      "5ab98f2c-0860-5f50-8b58-f267051782d8",
+      "661c8629-569c-5d60-9208-a6e4c5fb688b",
+      "95dcd286-3500-5a32-96fb-3e96124d04ed",
+      "997c3986-23f6-50e4-bd7d-1841c07ca968",
+      "9cf50cae-a251-5394-981b-82ff9ead227c",
+      "a38b56a2-260f-5924-b4aa-f2d417d72290",
+      "b4462ac0-815c-5c5b-aac2-812750a2f84e",
+      "b4ac1177-98e3-5f4a-a426-86d3c8be659a",
+      "b5de13a2-df05-5899-84b5-156d9535f8cb",
+      "b5f5f483-cbdf-5c9a-be94-87260c756f32",
+      "b70c4e1a-5187-5ee5-911e-c4c503975a45",
+      "bf349e19-06e6-575e-8854-f3f7ce153550",
+      "c5320ca0-cd30-5b6d-a653-0d04f817ee62",
+      "d3380484-68ee-5525-aa62-e5e672264065",
+      "eb7692db-9f44-5116-9c61-761d1be5eeb7"
+     ],
+     "supports_component_key": "action_table",
+     "supports_record_key": "play.actions"
+    }
+   ],
+   "unit_id": "proficiency-destinations-1-actions-section"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "571a52eb-f575-5936-ae92-afd073130e4c"
+     ],
+     "reason": "section and entry headings: each names the rules stated below it and states no rule itself"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "challenge_rating_meaning",
+     "record_key": "glossary.challenge_rating",
+     "source_span_ids": [
+      "90444dcc-d94f-548b-a2ee-3918f971cd51"
+     ]
+    },
+    {
+     "component_key": "encounter_circumstances",
+     "record_key": "glossary.challenge_rating",
+     "source_span_ids": [
+      "579edd53-c223-55b0-a45f-8036e1949cb8"
+     ]
+    },
+    {
+     "component_key": "threat_comparison",
+     "record_key": "glossary.challenge_rating",
+     "source_span_ids": [
+      "49821e2a-0418-5411-9c28-677ed8b70877",
+      "ab21c840-fe1f-56f3-99f8-04d062346f5e"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "5468f170-63be-55a4-a5d3-a7beeb13eb92",
+    "571a52eb-f575-5936-ae92-afd073130e4c",
+    "6111b141-5229-5c07-a3af-16d421f7e058",
+    "a5c8fb2b-9278-55d9-9028-836a14783e7b",
+    "abdc1b9d-7895-52c2-ac09-a97541667b9e",
+    "b28983f8-4762-525f-9912-e47ca2c74a8e",
+    "b6e98c19-4f03-58bc-a006-9e05857999af"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "6111b141-5229-5c07-a3af-16d421f7e058",
+      "a5c8fb2b-9278-55d9-9028-836a14783e7b"
+     ],
+     "supports_component_key": "",
+     "supports_record_key": "glossary.challenge_rating"
+    },
+    {
+     "leaf_ids": [
+      "b6e98c19-4f03-58bc-a006-9e05857999af"
+     ],
+     "supports_component_key": "encounter_circumstances",
+     "supports_record_key": "glossary.challenge_rating"
+    }
+   ],
+   "unit_id": "proficiency-destinations-1-challenge-rating"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "b77603de-fb7c-5b28-9b79-fa4e9a5d9c4f"
+     ],
+     "reason": "section and entry headings: each names the rules stated below it and states no rule itself"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "expertise_definition",
+     "record_key": "glossary.expertise",
+     "source_span_ids": [
+      "4b06357c-47f4-50e5-9d63-d2bb0d35b515"
+     ]
+    },
+    {
+     "component_key": "expertise_doubling",
+     "record_key": "glossary.expertise",
+     "source_span_ids": [
+      "4dd554ad-195c-5793-a407-ab570cda1cbc"
+     ]
+    },
+    {
+     "component_key": "expertise_grant",
+     "record_key": "glossary.expertise",
+     "source_span_ids": [
+      "84868926-496d-5c15-9819-8a2f5acab373",
+      "b5d08772-e5f2-55e0-9a47-4c69d80e79ad"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "8f6717a9-e8d7-57df-885d-1ad018fb1473",
+    "b77603de-fb7c-5b28-9b79-fa4e9a5d9c4f",
+    "f17fb7e0-57fc-567e-8f96-3a8bac917a94",
+    "f3d54e2e-5c6b-59e4-8f00-020548a1f33a"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "8f6717a9-e8d7-57df-885d-1ad018fb1473",
+      "f3d54e2e-5c6b-59e4-8f00-020548a1f33a"
+     ],
+     "supports_component_key": "",
+     "supports_record_key": "glossary.expertise"
+    }
+   ],
+   "unit_id": "proficiency-destinations-1-expertise"
+  },
+  {
+   "excluded_groups": [],
+   "expected_rules": [
+    {
+     "component_key": "skills_table",
+     "record_key": "play.skills",
+     "source_span_ids": [
+      "0437f088-3ad7-57ed-9518-dcb7b208103c",
+      "2e0004e2-2f4d-5978-b8b4-7945c8cdc61c"
+     ]
+    },
+    {
+     "component_key": "skills_table",
+     "record_key": "play.skills",
+     "source_span_ids": [
+      "072d7ba0-9a38-52f4-9d9a-803f4f5c7963",
+      "481b5698-0671-5767-aabc-36b91bb3b6c1"
+     ]
+    },
+    {
+     "component_key": "skills_table",
+     "record_key": "play.skills",
+     "source_span_ids": [
+      "09638d45-b512-5856-ba96-dce4a217596b",
+      "61b8ee3e-6855-58b4-91c1-b6f6841673ce"
+     ]
+    },
+    {
+     "component_key": "skills_table",
+     "record_key": "play.skills",
+     "source_span_ids": [
+      "0e5782a0-faba-5ff4-a983-c42715f7ba2f",
+      "443f088b-070b-5cab-a9bb-7308fdd06570"
+     ]
+    },
+    {
+     "component_key": "skills_table",
+     "record_key": "play.skills",
+     "source_span_ids": [
+      "1131d4dd-6100-51a7-982c-0ce93e94112d",
+      "33996d8b-1253-552a-8a3e-509d0ba889e5"
+     ]
+    },
+    {
+     "component_key": "skills_table",
+     "record_key": "play.skills",
+     "source_span_ids": [
+      "1e517119-2310-5e94-9398-986cf113d5be",
+      "80e3cb51-55c1-5884-8e18-3dd5a7e657f8"
+     ]
+    },
+    {
+     "component_key": "skills_table",
+     "record_key": "play.skills",
+     "source_span_ids": [
+      "2003bc13-5eca-53e1-9fb8-d820fd9f91b9",
+      "d68f0296-35fb-5d5e-9050-9e10e745a96c"
+     ]
+    },
+    {
+     "component_key": "skills_table",
+     "record_key": "play.skills",
+     "source_span_ids": [
+      "28d4de27-6de6-5163-9ae4-f8c35774b439",
+      "f1808a9f-5caf-5d43-b0be-0c0d5881cdd7"
+     ]
+    },
+    {
+     "component_key": "skills_table",
+     "record_key": "play.skills",
+     "source_span_ids": [
+      "2b861ce8-8d3c-5d70-96df-46e8fe6e9b38",
+      "988dcfed-4547-5c48-90ac-50c17569c1ca"
+     ]
+    },
+    {
+     "component_key": "skills_table",
+     "record_key": "play.skills",
+     "source_span_ids": [
+      "35659aa7-2e0c-55e7-b8af-f3262250e3cd",
+      "9d74f39a-22cc-51f0-9613-a9eae55e078c"
+     ]
+    },
+    {
+     "component_key": "skills_table",
+     "record_key": "play.skills",
+     "source_span_ids": [
+      "42e3d51b-52e2-597c-a7d0-1913e05a1771",
+      "543f1584-23d6-5fbe-8b6e-eadc70f32b92"
+     ]
+    },
+    {
+     "component_key": "skills_table",
+     "record_key": "play.skills",
+     "source_span_ids": [
+      "4338966e-1909-564a-bf6b-173b1846f940",
+      "5aef742e-1ade-5415-8e9d-d9fecc871e4b"
+     ]
+    },
+    {
+     "component_key": "skills_table",
+     "record_key": "play.skills",
+     "source_span_ids": [
+      "4da7c0a3-4e4a-5967-8778-a43116257aa0",
+      "993a5c77-75fd-5371-9310-c27f4cde137e"
+     ]
+    },
+    {
+     "component_key": "skills_table",
+     "record_key": "play.skills",
+     "source_span_ids": [
+      "7af94041-831d-53d2-b74f-390055a4ab26",
+      "8d5f85b0-6dca-514d-899a-ebe4be27dfdb"
+     ]
+    },
+    {
+     "component_key": "skills_table",
+     "record_key": "play.skills",
+     "source_span_ids": [
+      "8a39ce7a-ce6f-5c9c-8f76-10f492f1927e",
+      "aa4536bd-a89e-51e0-a8a2-072d11627329"
+     ]
+    },
+    {
+     "component_key": "skills_table",
+     "record_key": "play.skills",
+     "source_span_ids": [
+      "963d7cc5-bdf8-57b4-87ef-b857ffc2a087",
+      "9c4cab20-550a-5a32-94f3-d5c5fb00bec6"
+     ]
+    },
+    {
+     "component_key": "skills_table",
+     "record_key": "play.skills",
+     "source_span_ids": [
+      "acbc8c2b-dfcb-5ce6-afbd-84c9303f01de",
+      "da2e906e-2d5c-5ae5-bf7c-ec62675e13fd"
+     ]
+    },
+    {
+     "component_key": "skills_table",
+     "record_key": "play.skills",
+     "source_span_ids": [
+      "ae88f88f-cf88-5397-af89-c7ba86a1765d",
+      "e8e149bf-4f57-5cc9-874a-3af7ecaa1961"
+     ]
+    }
+   ],
+   "kind": "table",
+   "leaf_ids": [
+    "016f297b-f184-5e70-8ff4-b27d6bf44c3a",
+    "03269e2b-b255-5edc-a132-fbc3484cd9fd",
+    "0dea9a22-8750-5a50-a2d8-baa1dbb140a1",
+    "0ed5a3c4-e89f-51b4-b6f3-90d8ecf88763",
+    "155735a7-44a9-5e38-92f1-38167f759815",
+    "16223e50-1c59-58f3-9e34-d9495fcb37a4",
+    "1b28c292-0e8a-5f9e-a652-fd30fe383e73",
+    "1f211206-d184-5ed6-ba3d-7737f7f588bf",
+    "2500ca2f-9120-5ee2-a040-ef16ce51146a",
+    "295552e5-d1d9-580b-a49f-b0e47299a090",
+    "2fce8f7b-43db-5ac9-af56-7be1dfcbbf49",
+    "38fa8fb1-e965-59e7-b442-88a1df88720b",
+    "412c976c-a0a3-56cd-8a7b-986ed5d272bc",
+    "4743c9fe-50a8-56f2-a64e-007a2c04f4fe",
+    "4998d20b-97a4-5bd2-b735-b3b13d84a80b",
+    "4b8a9871-09b2-5762-b2b1-cbfeca971fa7",
+    "4e0b7e87-2b6f-5cb6-bb46-bd38397961b7",
+    "4f23fc63-93e9-575c-9d03-761fa6f9f0e9",
+    "518e7851-ba90-5158-b3dc-d0343e9b80a7",
+    "52334082-5405-5f3e-b441-521d8d696741",
+    "5820836e-3bc1-5aa4-8692-7ee83d2cdaed",
+    "5d0d1230-ea80-5187-b125-0da7fed9503a",
+    "5f10f84a-6942-5967-9894-34fec4d74e7b",
+    "64df74b4-e605-5254-b3d4-4984dec13fc9",
+    "707fa349-3d5c-54b0-bcc5-4fb284f353e4",
+    "73d9c0ba-d017-5199-a268-531c5b120042",
+    "78b36880-6916-5074-b249-8c1b625d5e69",
+    "7c6f7fc5-87f1-53b9-a592-ac75361844b5",
+    "7eed297d-013b-55bf-9465-bcd6e4651ffa",
+    "84572b8c-b340-5a0e-8c20-f1c4bc10aaab",
+    "865b91e9-4f4c-53e6-9d46-7b9c731f57b6",
+    "8a1174c6-4bc7-5fc6-9341-964359af0fa8",
+    "8b2d0245-8306-5791-974e-5e720f5e15ea",
+    "8e76d1bd-0fb1-598c-a356-90dedaa2b879",
+    "8f8b5351-1e47-5702-b56b-7c6256ffab74",
+    "92b15884-afcd-54bf-bf43-8e9885d86c89",
+    "9751e128-a7fa-5ff7-acbe-62f5d0211661",
+    "991fe5da-39aa-5559-92f7-826f7ca3f03b",
+    "a350eaf8-b674-525a-8ff9-8ffbd2515615",
+    "a35b66d7-a7c8-5a9d-be40-9c9d80a8a639",
+    "a36b5ba2-3960-545e-ae70-421687c0cab0",
+    "a7c659e7-c62f-51de-b453-1840836d98dc",
+    "aa1d0e7b-005f-54b4-9b0e-ca1a3a22ffab",
+    "c4be7de2-2206-5897-b5c7-11d4221be8a2",
+    "c4df93ea-38e8-5b2e-ba43-580b41504d24",
+    "d66684f4-de73-5d14-a544-5e1d2250fdcb",
+    "dba47af8-32c8-5d57-ad4e-46f29df47ecc",
+    "deb9b28e-b755-5f30-8958-103c469cdde8",
+    "e1fa3508-0286-5f47-b852-c2eeb62d101b",
+    "e238a28d-5ab3-5bee-97d9-be7dfe9eab97",
+    "e51a87fb-f553-5d0b-a643-a13f5bf32128",
+    "ed70a005-92a7-5b0f-aa2d-7eefaf4cde4f",
+    "f233de8b-251c-5c22-a44b-6c399194bb97",
+    "f29fec23-489e-5145-96b5-7bad9b68994c",
+    "f3bce0a5-637d-5ead-b748-dedba8430aa6",
+    "f7ba24a5-6eef-58ac-bfb3-528c868c02ce",
+    "fc19a7e5-e9d1-54d8-b464-7da3eee0170e",
+    "ff623921-7da0-5029-aadc-b246e16f556b"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "016f297b-f184-5e70-8ff4-b27d6bf44c3a",
+      "16223e50-1c59-58f3-9e34-d9495fcb37a4",
+      "2500ca2f-9120-5ee2-a040-ef16ce51146a",
+      "295552e5-d1d9-580b-a49f-b0e47299a090",
+      "38fa8fb1-e965-59e7-b442-88a1df88720b",
+      "4b8a9871-09b2-5762-b2b1-cbfeca971fa7",
+      "518e7851-ba90-5158-b3dc-d0343e9b80a7",
+      "707fa349-3d5c-54b0-bcc5-4fb284f353e4",
+      "7c6f7fc5-87f1-53b9-a592-ac75361844b5",
+      "7eed297d-013b-55bf-9465-bcd6e4651ffa",
+      "865b91e9-4f4c-53e6-9d46-7b9c731f57b6",
+      "8a1174c6-4bc7-5fc6-9341-964359af0fa8",
+      "a350eaf8-b674-525a-8ff9-8ffbd2515615",
+      "a35b66d7-a7c8-5a9d-be40-9c9d80a8a639",
+      "c4be7de2-2206-5897-b5c7-11d4221be8a2",
+      "d66684f4-de73-5d14-a544-5e1d2250fdcb",
+      "dba47af8-32c8-5d57-ad4e-46f29df47ecc",
+      "e238a28d-5ab3-5bee-97d9-be7dfe9eab97",
+      "e51a87fb-f553-5d0b-a643-a13f5bf32128",
+      "ed70a005-92a7-5b0f-aa2d-7eefaf4cde4f",
+      "f29fec23-489e-5145-96b5-7bad9b68994c",
+      "ff623921-7da0-5029-aadc-b246e16f556b"
+     ],
+     "supports_component_key": "skills_table",
+     "supports_record_key": "play.skills"
+    }
+   ],
+   "unit_id": "proficiency-destinations-1-skills-table"
+  }
+ ],
+ "proposed_spans": [
+  {
+   "char_end": 10,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "1f211206-d184-5ed6-ba3d-7737f7f588bf",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "42e3d51b-52e2-597c-a7d0-1913e05a1771"
+  },
+  {
+   "char_end": 10,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "8b2d0245-8306-5791-974e-5e720f5e15ea",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "9c4cab20-550a-5a32-94f3-d5c5fb00bec6"
+  },
+  {
+   "char_end": 10,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "8f8b5351-1e47-5702-b56b-7c6256ffab74",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "09638d45-b512-5856-ba96-dce4a217596b"
+  },
+  {
+   "char_end": 104,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "7de88c77-ebcd-5d6e-a67e-b2a5ae191390",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "a81c1196-e4f7-5d6e-959b-526ed88d2e41"
+  },
+  {
+   "char_end": 11,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "deb9b28e-b755-5f30-8958-103c469cdde8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "33996d8b-1253-552a-8a3e-509d0ba889e5"
+  },
+  {
+   "char_end": 12,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "0dea9a22-8750-5a50-a2d8-baa1dbb140a1",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "443f088b-070b-5cab-a9bb-7308fdd06570"
+  },
+  {
+   "char_end": 12,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "155735a7-44a9-5e38-92f1-38167f759815",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "0437f088-3ad7-57ed-9518-dcb7b208103c"
+  },
+  {
+   "char_end": 12,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "5820836e-3bc1-5aa4-8692-7ee83d2cdaed",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "f1808a9f-5caf-5d43-b0be-0c0d5881cdd7"
+  },
+  {
+   "char_end": 12,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "5d0d1230-ea80-5187-b125-0da7fed9503a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "4da7c0a3-4e4a-5967-8778-a43116257aa0"
+  },
+  {
+   "char_end": 12,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "aa1d0e7b-005f-54b4-9b0e-ca1a3a22ffab",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "481b5698-0671-5767-aabc-36b91bb3b6c1"
+  },
+  {
+   "char_end": 12,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "fc19a7e5-e9d1-54d8-b464-7da3eee0170e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "35659aa7-2e0c-55e7-b8af-f3262250e3cd"
+  },
+  {
+   "char_end": 12,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "ff623921-7da0-5029-aadc-b246e16f556b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "f25e82e3-71dd-5b4a-8933-bfb0853c3bc7"
+  },
+  {
+   "char_end": 121,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "b837da82-c466-5a90-aae1-983828335347",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "b6f79bd9-a4c0-52e6-8694-f1f82e6f1172"
+  },
+  {
+   "char_end": 122,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "abdc1b9d-7895-52c2-ac09-a97541667b9e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "579edd53-c223-55b0-a45f-8036e1949cb8"
+  },
+  {
+   "char_end": 13,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "92b15884-afcd-54bf-bf43-8e9885d86c89",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "0e5782a0-faba-5ff4-a983-c42715f7ba2f"
+  },
+  {
+   "char_end": 13,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "a5c8fb2b-9278-55d9-9028-836a14783e7b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "dc1737c9-b510-51a8-91ac-2502bb776289"
+  },
+  {
+   "char_end": 135,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "661c8629-569c-5d60-9208-a6e4c5fb688b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "448be42e-d25c-5300-9cfc-3bebae549533"
+  },
+  {
+   "char_end": 15,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "78b36880-6916-5074-b249-8c1b625d5e69",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "7af94041-831d-53d2-b74f-390055a4ab26"
+  },
+  {
+   "char_end": 15,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "8e76d1bd-0fb1-598c-a356-90dedaa2b879",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "2b861ce8-8d3c-5d70-96df-46e8fe6e9b38"
+  },
+  {
+   "char_end": 153,
+   "char_start": 122,
+   "disposition": "supporting_authority",
+   "leaf_id": "b837da82-c466-5a90-aae1-983828335347",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "524b2c8f-bee6-576d-a417-738b90fcd40e"
+  },
+  {
+   "char_end": 189,
+   "char_start": 88,
+   "disposition": "substantive",
+   "leaf_id": "a417357c-5868-5c8e-a5fe-2694d0e208d3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "290b6127-890b-508a-a5ce-72a209d815b4"
+  },
+  {
+   "char_end": 191,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "c05db2e7-6378-5a61-b32c-bc2f5ce7232b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "0b8d22a5-a99a-57e5-9dcd-e0a561ca77f0"
+  },
+  {
+   "char_end": 197,
+   "char_start": 190,
+   "disposition": "supporting_authority",
+   "leaf_id": "a417357c-5868-5c8e-a5fe-2694d0e208d3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "2f211b14-13fe-50ee-94ec-bcbff664e0ab"
+  },
+  {
+   "char_end": 200,
+   "char_start": 123,
+   "disposition": "supporting_authority",
+   "leaf_id": "abdc1b9d-7895-52c2-ac09-a97541667b9e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "43ec5b29-c4e9-5883-964c-ee85cbbff2e0"
+  },
+  {
+   "char_end": 202,
+   "char_start": 105,
+   "disposition": "supporting_authority",
+   "leaf_id": "7de88c77-ebcd-5d6e-a67e-b2a5ae191390",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "c9b0bd38-aa76-5614-93df-405076aadbad"
+  },
+  {
+   "char_end": 206,
+   "char_start": 98,
+   "disposition": "substantive",
+   "leaf_id": "5468f170-63be-55a4-a5d3-a7beeb13eb92",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "ab21c840-fe1f-56f3-99f8-04d062346f5e"
+  },
+  {
+   "char_end": 215,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "680dedb4-66df-573a-aece-22c645ff85f3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "896517c4-9a16-5f73-a112-480eeaf1c1c9"
+  },
+  {
+   "char_end": 216,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "b70c4e1a-5187-5ee5-911e-c4c503975a45",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "6d879119-c453-5d21-b75a-1b545073502d"
+  },
+  {
+   "char_end": 24,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "a38b56a2-260f-5924-b4aa-f2d417d72290",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "df311e0f-4ceb-58a2-9bd8-759bdae1c3c2"
+  },
+  {
+   "char_end": 245,
+   "char_start": 48,
+   "disposition": "substantive",
+   "leaf_id": "2b508d04-01b6-5978-beec-ec3dc03c46db",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "16c08c4c-60e9-58ca-9414-9850723f9b02"
+  },
+  {
+   "char_end": 251,
+   "char_start": 70,
+   "disposition": "substantive",
+   "leaf_id": "f17fb7e0-57fc-567e-8f96-3a8bac917a94",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "4dd554ad-195c-5793-a407-ab570cda1cbc"
+  },
+  {
+   "char_end": 315,
+   "char_start": 216,
+   "disposition": "supporting_authority",
+   "leaf_id": "680dedb4-66df-573a-aece-22c645ff85f3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "a3ad8b51-4599-512e-bf50-e239c1928809"
+  },
+  {
+   "char_end": 33,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "b5f5f483-cbdf-5c9a-be94-87260c756f32",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "1c81b8ae-e9c2-5287-bd74-c0309fad0d6c"
+  },
+  {
+   "char_end": 330,
+   "char_start": 252,
+   "disposition": "substantive",
+   "leaf_id": "f17fb7e0-57fc-567e-8f96-3a8bac917a94",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "84868926-496d-5c15-9819-8a2f5acab373"
+  },
+  {
+   "char_end": 35,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "f3d54e2e-5c6b-59e4-8f00-020548a1f33a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "63e8189d-60cd-5afe-9a0a-159795644737"
+  },
+  {
+   "char_end": 366,
+   "char_start": 192,
+   "disposition": "substantive",
+   "leaf_id": "c05db2e7-6378-5a61-b32c-bc2f5ce7232b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "a6529a9e-8ec8-5d9e-bd98-a215f72e2242"
+  },
+  {
+   "char_end": 376,
+   "char_start": 246,
+   "disposition": "substantive",
+   "leaf_id": "2b508d04-01b6-5978-beec-ec3dc03c46db",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "ad7584f4-a369-5173-8513-e684d9cf76a5"
+  },
+  {
+   "char_end": 39,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "d66684f4-de73-5d14-a544-5e1d2250fdcb",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "14744918-02c4-5222-b7a2-20ec340c831b"
+  },
+  {
+   "char_end": 4,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "37ac01d8-cb90-53e3-8b24-0594bdbd9504",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "ef152512-6826-5579-9bfd-5dbd72d20862"
+  },
+  {
+   "char_end": 4,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "b2ace586-a286-524d-960c-933b449f6dbe",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "5188727a-34d1-5351-84fa-4f3b054af937"
+  },
+  {
+   "char_end": 4,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "d4b47fe3-f4b8-5be9-acb5-801286edd5b8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "65e222a2-5f5e-5aa7-bf51-a40fd8c2890b"
+  },
+  {
+   "char_end": 401,
+   "char_start": 331,
+   "disposition": "substantive",
+   "leaf_id": "f17fb7e0-57fc-567e-8f96-3a8bac917a94",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "b5d08772-e5f2-55e0-9a47-4c69d80e79ad"
+  },
+  {
+   "char_end": 403,
+   "char_start": 316,
+   "disposition": "substantive",
+   "leaf_id": "680dedb4-66df-573a-aece-22c645ff85f3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "a15bcd0e-3418-5931-80f6-19530533cd2b"
+  },
+  {
+   "char_end": 42,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "bf349e19-06e6-575e-8854-f3f7ce153550",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "695de6a7-246b-55f9-8085-beb0080dd7eb"
+  },
+  {
+   "char_end": 43,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "16223e50-1c59-58f3-9e34-d9495fcb37a4",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "5410a3ba-f1ab-535a-a93a-5fe52bad47fd"
+  },
+  {
+   "char_end": 46,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "b6e98c19-4f03-58bc-a006-9e05857999af",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "09d65dac-7226-5eb0-8162-15d977e93f7f"
+  },
+  {
+   "char_end": 47,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "2b508d04-01b6-5978-beec-ec3dc03c46db",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "cbce6c99-3e27-5773-9a79-ffda4a60c175"
+  },
+  {
+   "char_end": 479,
+   "char_start": 377,
+   "disposition": "substantive",
+   "leaf_id": "2b508d04-01b6-5978-beec-ec3dc03c46db",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "16b95238-9fb2-59b4-bdf1-1ecce9e83c6d"
+  },
+  {
+   "char_end": 49,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "dba47af8-32c8-5d57-ad4e-46f29df47ecc",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "14ff4a98-1be0-5d02-b880-4625f2e8e5e4"
+  },
+  {
+   "char_end": 5,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "c2a58596-4f3f-593c-b7a7-b229d3659393",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "79c20fea-2262-539a-9454-834853db6ade"
+  },
+  {
+   "char_end": 5,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "c71c7205-a07f-5103-943f-377e83aa7159",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "4690ee45-9cb6-5493-9740-7770278f5d3a"
+  },
+  {
+   "char_end": 5,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "ee579a3f-2843-5410-bd93-4e8b68d62dd3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "31540f45-3a05-509d-ace8-4898332b9114"
+  },
+  {
+   "char_end": 5,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f82cb55c-3810-5652-8c07-5337694e2f01",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "4dfc320f-51e7-568e-b999-490420f1cc63"
+  },
+  {
+   "char_end": 5,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "c4be7de2-2206-5897-b5c7-11d4221be8a2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "718dd3d2-fb43-5f64-b663-b6ff17336fdd"
+  },
+  {
+   "char_end": 517,
+   "char_start": 404,
+   "disposition": "substantive",
+   "leaf_id": "680dedb4-66df-573a-aece-22c645ff85f3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "9e97d459-0aee-5165-9b37-21e541216ddf"
+  },
+  {
+   "char_end": 52,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "b28983f8-4762-525f-9912-e47ca2c74a8e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "49821e2a-0418-5411-9c28-677ed8b70877"
+  },
+  {
+   "char_end": 54,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "ed70a005-92a7-5b0f-aa2d-7eefaf4cde4f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "1eea05e2-845f-5f23-80ae-78706183a374"
+  },
+  {
+   "char_end": 55,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "8a1174c6-4bc7-5fc6-9341-964359af0fa8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "948d2e71-b4dd-5892-a908-e3eefef02159"
+  },
+  {
+   "char_end": 56,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "865b91e9-4f4c-53e6-9d46-7b9c731f57b6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "7cacf3c0-ca9a-5b53-91bd-6da7ea730938"
+  },
+  {
+   "char_end": 57,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "38fa8fb1-e965-59e7-b442-88a1df88720b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "cb52d546-7aa6-5bdc-b1ec-b3f7fad6440e"
+  },
+  {
+   "char_end": 57,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "b5de13a2-df05-5899-84b5-156d9535f8cb",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "3da12366-4df3-55a6-817d-c244ba6f9bd4"
+  },
+  {
+   "char_end": 584,
+   "char_start": 480,
+   "disposition": "substantive",
+   "leaf_id": "2b508d04-01b6-5978-beec-ec3dc03c46db",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "c6de6139-c8c9-5af1-9dc3-7fa8dc5bb1d4"
+  },
+  {
+   "char_end": 6,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "1b28c292-0e8a-5f9e-a652-fd30fe383e73",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "aa4536bd-a89e-51e0-a8a2-072d11627329"
+  },
+  {
+   "char_end": 6,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "2fce8f7b-43db-5ac9-af56-7be1dfcbbf49",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "8d5f85b0-6dca-514d-899a-ebe4be27dfdb"
+  },
+  {
+   "char_end": 6,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "4e0b7e87-2b6f-5cb6-bb46-bd38397961b7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "5aef742e-1ade-5415-8e9d-d9fecc871e4b"
+  },
+  {
+   "char_end": 6,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "52334082-5405-5f3e-b441-521d8d696741",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "072d7ba0-9a38-52f4-9d9a-803f4f5c7963"
+  },
+  {
+   "char_end": 6,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "73d9c0ba-d017-5199-a268-531c5b120042",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "acbc8c2b-dfcb-5ce6-afbd-84c9303f01de"
+  },
+  {
+   "char_end": 6,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "a7c659e7-c62f-51de-b453-1840836d98dc",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "993a5c77-75fd-5371-9310-c27f4cde137e"
+  },
+  {
+   "char_end": 6,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "bd10fc1c-ef58-508e-a535-75d8c70c4148",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "4dd69e02-09ed-5e4c-9657-47738ea61a58"
+  },
+  {
+   "char_end": 6,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f0452450-9a9b-573c-b81f-00032de1ec90",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "e06641fe-db95-59aa-81a7-d4608e232635"
+  },
+  {
+   "char_end": 6,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f3bce0a5-637d-5ead-b748-dedba8430aa6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "543f1584-23d6-5fbe-8b6e-eadc70f32b92"
+  },
+  {
+   "char_end": 6,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "707fa349-3d5c-54b0-bcc5-4fb284f353e4",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "6c0b1e8c-9837-59f4-a861-608af32e0c28"
+  },
+  {
+   "char_end": 6,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "b4462ac0-815c-5c5b-aac2-812750a2f84e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "deb31bdc-180f-5aa8-89cd-45808395b8f4"
+  },
+  {
+   "char_end": 6,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "eb7692db-9f44-5116-9c61-761d1be5eeb7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "14148e78-1f0c-582a-93ef-64e8c1461f65"
+  },
+  {
+   "char_end": 60,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "295552e5-d1d9-580b-a49f-b0e47299a090",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "7211f93a-f957-5aaf-b887-4f8490775a12"
+  },
+  {
+   "char_end": 62,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "a350eaf8-b674-525a-8ff9-8ffbd2515615",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "f983d033-37c7-5301-bebd-05608ebefbd0"
+  },
+  {
+   "char_end": 62,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "c5320ca0-cd30-5b6d-a653-0d04f817ee62",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "25aec9eb-b25c-55eb-88c6-52ec0332e31d"
+  },
+  {
+   "char_end": 624,
+   "char_start": 203,
+   "disposition": "supporting_authority",
+   "leaf_id": "7de88c77-ebcd-5d6e-a67e-b2a5ae191390",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "1a6c2e6b-1283-5fb9-bf9b-8441ee1b66f6"
+  },
+  {
+   "char_end": 640,
+   "char_start": 518,
+   "disposition": "substantive",
+   "leaf_id": "680dedb4-66df-573a-aece-22c645ff85f3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "826d1dab-406b-5dce-9158-4716fc3f4343"
+  },
+  {
+   "char_end": 65,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "2500ca2f-9120-5ee2-a040-ef16ce51146a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "ef788616-d142-569c-9d61-1b0f8e5c99e7"
+  },
+  {
+   "char_end": 65,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "7c6f7fc5-87f1-53b9-a592-ac75361844b5",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "62ef5944-bc8b-5ff5-a1ec-158e16cc1f9e"
+  },
+  {
+   "char_end": 65,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "b4ac1177-98e3-5f4a-a426-86d3c8be659a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "ad5368b0-d0bd-5510-9b1e-7b82beda985c"
+  },
+  {
+   "char_end": 65,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "e51a87fb-f553-5d0b-a643-a13f5bf32128",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "b2aca997-0a57-562f-bc30-5aadc7a1010a"
+  },
+  {
+   "char_end": 67,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "7eed297d-013b-55bf-9465-bcd6e4651ffa",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "df82fb87-5082-5cb9-8ad5-090c701c41c2"
+  },
+  {
+   "char_end": 67,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "a35b66d7-a7c8-5a9d-be40-9c9d80a8a639",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "87d60ebc-4286-59f1-8e82-cf9787c9ebf2"
+  },
+  {
+   "char_end": 68,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "4b8a9871-09b2-5762-b2b1-cbfeca971fa7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "0e6ffa84-2ec3-5b07-b174-84adcd156f10"
+  },
+  {
+   "char_end": 69,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f17fb7e0-57fc-567e-8f96-3a8bac917a94",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "4b06357c-47f4-50e5-9d63-d2bb0d35b515"
+  },
+  {
+   "char_end": 69,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "e238a28d-5ab3-5bee-97d9-be7dfe9eab97",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "cd6d4b08-474b-5601-98c5-737430776548"
+  },
+  {
+   "char_end": 7,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "03269e2b-b255-5edc-a132-fbc3484cd9fd",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "4338966e-1909-564a-bf6b-173b1846f940"
+  },
+  {
+   "char_end": 7,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "4998d20b-97a4-5bd2-b735-b3b13d84a80b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "80e3cb51-55c1-5884-8e18-3dd5a7e657f8"
+  },
+  {
+   "char_end": 7,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "9751e128-a7fa-5ff7-acbe-62f5d0211661",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "9d74f39a-22cc-51f0-9613-a9eae55e078c"
+  },
+  {
+   "char_end": 7,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "ab85acb0-197c-56f4-9939-02d13f5bc3b2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "93241fbe-9060-5d2c-a709-2bb80499f463"
+  },
+  {
+   "char_end": 7,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "016f297b-f184-5e70-8ff4-b27d6bf44c3a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "b790d644-2abe-5b43-8c83-88147740c157"
+  },
+  {
+   "char_end": 7,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "2779f91f-c11c-5c3a-80b4-7cfc52f78dfd",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "1edb9bfd-22b8-595c-aaef-629cc9768e60"
+  },
+  {
+   "char_end": 7,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "95dcd286-3500-5a32-96fb-3e96124d04ed",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "3d4def3c-864b-5a00-8e1a-864d4b74f668"
+  },
+  {
+   "char_end": 71,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "f29fec23-489e-5145-96b5-7bad9b68994c",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "f4aefc6a-5440-56be-bfcb-c06c8eac2ca0"
+  },
+  {
+   "char_end": 73,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "518e7851-ba90-5158-b3dc-d0343e9b80a7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "350e187f-061a-5255-b3b4-fb7655c0c669"
+  },
+  {
+   "char_end": 75,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "997c3986-23f6-50e4-bd7d-1841c07ca968",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "56ed4416-dbdc-5692-9b13-1e5b53a8d6d9"
+  },
+  {
+   "char_end": 75,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "9cf50cae-a251-5394-981b-82ff9ead227c",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "f212b70b-d08f-54e1-aca6-6e8026dadf1e"
+  },
+  {
+   "char_end": 78,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "d3380484-68ee-5525-aa62-e5e672264065",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "abbd4dc0-791b-5900-9763-5726a1267120"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "4743c9fe-50a8-56f2-a64e-007a2c04f4fe",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "2e0004e2-2f4d-5978-b8b4-7945c8cdc61c"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "4f23fc63-93e9-575c-9d03-761fa6f9f0e9",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "da2e906e-2d5c-5ae5-bf7c-ec62675e13fd"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "84572b8c-b340-5a0e-8c20-f1c4bc10aaab",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "1131d4dd-6100-51a7-982c-0ce93e94112d"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "991fe5da-39aa-5559-92f7-826f7ca3f03b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "8a39ce7a-ce6f-5c9c-8f76-10f492f1927e"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "c4df93ea-38e8-5b2e-ba43-580b41504d24",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "963d7cc5-bdf8-57b4-87ef-b857ffc2a087"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "e1fa3508-0286-5f47-b852-c2eeb62d101b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "d68f0296-35fb-5d5e-9050-9e10e745a96c"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f233de8b-251c-5c22-a44b-6c399194bb97",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "28d4de27-6de6-5163-9ae4-f8c35774b439"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f7ba24a5-6eef-58ac-bfb3-528c868c02ce",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "e8e149bf-4f57-5cc9-874a-3af7ecaa1961"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "6111b141-5229-5c07-a3af-16d421f7e058",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "7a7caf00-5484-58e4-916e-842cf46b2e90"
+  },
+  {
+   "char_end": 8,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "8f6717a9-e8d7-57df-885d-1ad018fb1473",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "a9974d19-485f-53f3-8d52-3b4e6f1326e1"
+  },
+  {
+   "char_end": 81,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "5ab98f2c-0860-5f50-8b58-f267051782d8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "identifies, exemplifies or contextualizes a rule stated elsewhere in this review unit",
+   "span_id": "69ef93dd-6e1b-5875-9bfb-a9c3ab8ac048"
+  },
+  {
+   "char_end": 87,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "a417357c-5868-5c8e-a5fe-2694d0e208d3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "2ffa3561-5881-5f36-8fc1-aef88ac9432a"
+  },
+  {
+   "char_end": 9,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "0ed5a3c4-e89f-51b4-b6f3-90d8ecf88763",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "61b8ee3e-6855-58b4-91c1-b6f6841673ce"
+  },
+  {
+   "char_end": 9,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "412c976c-a0a3-56cd-8a7b-986ed5d272bc",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "ae88f88f-cf88-5397-af89-c7ba86a1765d"
+  },
+  {
+   "char_end": 9,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "5f10f84a-6942-5967-9894-34fec4d74e7b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "1e517119-2310-5e94-9398-986cf113d5be"
+  },
+  {
+   "char_end": 9,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "64df74b4-e605-5254-b3d4-4984dec13fc9",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "2003bc13-5eca-53e1-9fb8-d820fd9f91b9"
+  },
+  {
+   "char_end": 9,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "7e0ea8ff-bacd-5d47-9466-8c6a6a844492",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "4a59025c-2a9d-50b3-9a58-91cad8ca5e73"
+  },
+  {
+   "char_end": 9,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "a36b5ba2-3960-545e-ae70-421687c0cab0",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "988dcfed-4547-5c48-90ac-50c17569c1ca"
+  },
+  {
+   "char_end": 9,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "c8605be9-a34b-51ab-9435-5245e5906ed0",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "05923c2f-909f-500f-988f-a34baf300cb2"
+  },
+  {
+   "char_end": 97,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "5468f170-63be-55a4-a5d3-a7beeb13eb92",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-batch-proficiency-destinations-1-generator.py",
+   "rationale": "states a rule of this review unit that the representation carries",
+   "span_id": "90444dcc-d94f-548b-a2ee-3918f971cd51"
+  }
+ ],
+ "release_binding": {
+  "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+  "bundle_root_hash": "03353dfb79790aee7260b9ed96055b7296cd6f70e3e6f97d6cbe0a2484279685",
+  "package_uuid": "4458fa10-4a66-5e0e-9ecc-ea37530ad2b4",
+  "persisted_corpus_digest": "c1f547962b7d9096986f0b8e75624f9f8803dfc281c16033e1c2250cad5a929b",
+  "release_version": "5.2.1-corpus.36b786d8-fa2",
+  "transform_config_hash": "77720c2f3b8c9b88363d48050466fb8e3a26f8476b63145d1b5928ff2581ef3e"
+ },
+ "representation_schema": {
+  "hash": "e87e0bacdc476b0bef092a04cbedd933e0b57b128651b08ef0ffbd0c94d186fd",
+  "version": "5d-representation-schema-15"
+ },
+ "semantic_policy_hash": "da63b8940c5b3997b44d53e02941389b68e2a2ba35250e73194d38bb1d74cde7",
+ "semantic_policy_version": "5d-semantic-policy-2"
+}
