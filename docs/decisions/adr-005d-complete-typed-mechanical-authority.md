@@ -1264,9 +1264,10 @@ this decision an accepted empty target is an obligation no supported action coul
   from whether the resolved view happens to word a new complaint: publication tags a reference finding by
   its scope and wording alone, so sibling citations of one phrase produce identical findings and an
   invalid destination could otherwise stand behind one already reported.
-- **Consistent citations of one wording are one decision.** Two components of a record may legitimately
-  cite the same wording in the same scope — each is its own claim with its own provenance — but
-  `(scope, wording)` resolves to exactly one record or it is ambiguous. Such citations are therefore
+- Consistent citations of one wording are **resolved as** one decision under this authorization. Two
+  components of a record may legitimately cite the same wording in the same scope — each is its own
+  claim with its own provenance — but `(scope, wording)` resolves to exactly one record or it is
+  ambiguous. Such citations are therefore
   resolved in a single reviewed action, validated together and applied whole or not at all, with each
   citation keeping its exact source, its own reviewed provenance spans and its own authorization record
   under the one authorization named. This does not weaken ambiguity: citations of one wording sent to

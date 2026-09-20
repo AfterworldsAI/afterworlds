@@ -435,7 +435,7 @@ still one the seam would have produced.
 
 ### Coverage
 
-Thirteen new tests in `test_reference_resolution.py` cover this family (57 in
+Fifteen new tests in `test_reference_resolution.py` cover this family (59 in
 the module, up from 44), including Codex's exact reproduction, the joint production
 path with serialization and reconstruction, joint-versus-stepwise identity,
 carried joint decisions across a later batch, effective consumer behaviour
@@ -444,10 +444,26 @@ valid/invalid leaves the prior artifact byte-identical, replay and partial repla
 refuse whole, one citation stated twice in one action conflicts, differing
 destinations stay ambiguous, and half a joint decision in committed bytes does not
 load. `reference_resolution.py` is at 100% statement coverage; the acceptance
-module's new branches are covered.
+module's new branches are covered. Both figures are from the appended split-suite
+run on head, and the acceptance module's six uncovered lines are all pre-existing
+and outside `resolve_references`.
 
-Both defects were verified reproducible before the fix: with the correction
-reverted, the reproduction test reports `DID NOT RAISE`.
+All three ways one wording can be cited twice are covered, because only the
+middle one is legitimate: two **components** of a record resolve together; a
+record and a component stating it directly and through a component are a pair
+publication already refuses, and resolving both at once does not launder it; two
+**scopes** citing the same phrase are independent decisions and may go to
+different records in one action.
+
+Defect 1 was verified reproducible before the fix, and its two corrections were
+verified independently: with both reverted to the original set difference the
+reproduction test reports `DID NOT RAISE`, and with only the direct destination
+check removed it still refuses — by the delta, which now reports the second
+occurrence of the finding rather than absorbing it. Defect 2 is structural rather than
+reproducible: the previous signature admitted exactly one resolution, and
+`test_resolving_one_of_two_consistent_citations_alone_is_still_refused` pins that
+the single-resolution path refuses, so no supported single-action path reached
+the valid joint end state.
 
 ## Artifacts and identities
 

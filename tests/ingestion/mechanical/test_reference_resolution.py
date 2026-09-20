@@ -239,11 +239,54 @@ OTHER_UNRESOLVED = ReferenceDraft(
 )
 
 
+#: The *record* stating the same citation directly, beside the component that
+#: states it. Publication already refuses this pair — a record owns a reference
+#: only where no component states it — and a joint resolution must not launder
+#: it by moving both to one destination.
+RECORD_OWNED_SIBLING = ReferenceDraft(
+    from_record_key=SPELL_KEY,
+    from_component_key=RECORD_OWNED_REFERENCE,
+    source_text="the servant",
+    scope_key="spell:wish",
+    target_record_key="",
+)
+
+#: The same wording cited in a *different* scope. Scope is part of both the
+#: citation key and the ambiguity key, so these two citations are independent
+#: decisions and may legitimately go to different records.
+OTHER_SCOPE_UNRESOLVED = ReferenceDraft(
+    from_record_key=SPELL_KEY,
+    from_component_key=OPEN_ENDED_KEY,
+    source_text="the servant",
+    scope_key="spell:simulacrum",
+    target_record_key="",
+)
+
+
 def _sibling_resolution(**overrides: object) -> ReferenceResolution:
     """The decision about ``SIBLING_UNRESOLVED`` — its own id and its own citation."""
     return _resolution(
         resolution_id="resolve-the-servant-open-ended-1",
         from_component_key=OPEN_ENDED_KEY,
+        **overrides,
+    )
+
+
+def _record_owned_resolution(**overrides: object) -> ReferenceResolution:
+    """The decision about ``RECORD_OWNED_SIBLING``."""
+    return _resolution(
+        resolution_id="resolve-the-servant-record-owned-1",
+        from_component_key=RECORD_OWNED_REFERENCE,
+        **overrides,
+    )
+
+
+def _other_scope_resolution(**overrides: object) -> ReferenceResolution:
+    """The decision about ``OTHER_SCOPE_UNRESOLVED``."""
+    return _resolution(
+        resolution_id="resolve-the-servant-simulacrum-1",
+        from_component_key=OPEN_ENDED_KEY,
+        scope_key="spell:simulacrum",
         **overrides,
     )
 
@@ -1041,6 +1084,53 @@ def test_two_citations_of_one_wording_sent_to_different_records_are_refused() ->
             _resolution(),
             _sibling_resolution(target_record_key=SPELL_KEY),
         )
+
+
+def test_a_record_and_component_citing_one_wording_cannot_be_resolved_together() -> (
+    None
+):
+    """A joint action may not launder a pair publication already refuses.
+
+    Overlap by *owner* rather than by component: the record states the citation
+    directly and a component states it too. That pair is one citation published
+    twice whatever its destination, so resolving both together does not repair
+    it — and because the finding names the target, the resolved wording is a
+    finding the accepted view does not state and the action is refused.
+    """
+    accepted = _accepted(representation=_representation(RECORD_OWNED_SIBLING))
+    assert any(
+        "states it both directly" in finding
+        for finding in relationship_and_reference_violations(
+            accepted.oracle.representation
+        )
+    )
+    with pytest.raises(AcceptanceError, match="states it both directly"):
+        _resolve(accepted, _resolution(), _record_owned_resolution())
+
+
+def test_one_wording_cited_in_two_scopes_resolves_to_two_records() -> None:
+    """Scope survives resolution: different scopes are different decisions.
+
+    Overlap by *wording alone*. ``(scope, source_text)`` is what has one
+    destination, so two scopes citing the same phrase may be sent to different
+    records — in one action, since a reviewer deciding both at once is ordinary.
+    """
+    accepted = _accepted(representation=_representation(OTHER_SCOPE_UNRESOLVED))
+    resolved = _resolve(
+        accepted,
+        _resolution(),
+        _other_scope_resolution(target_record_key=SPELL_KEY),
+    )
+
+    effective = effective_representation(
+        resolved.oracle.representation, resolved.oracle.reference_resolutions
+    )
+    assert relationship_and_reference_violations(effective) == []
+    assert {
+        (ref.scope_key, ref.target_record_key)
+        for ref in effective.references
+        if ref.source_text == "the servant"
+    } == {("spell:wish", DESTINATION), ("spell:simulacrum", SPELL_KEY)}
 
 
 def test_a_joint_action_with_one_invalid_decision_records_no_part_of_it() -> None:
