@@ -1259,9 +1259,23 @@ this decision an accepted empty target is an obligation no supported action coul
   the authority it names — wrong release, no such unresolved citation, a citation already resolved,
   provenance that is not what review read, or an effective view publication would refuse — fails closed
   with nothing recorded.
+- The reviewed destination must be a record the accepted authority **actually states**. A decision
+  naming no real record is invalid as a decision and is refused in its own words, rather than inferred
+  from whether the resolved view happens to word a new complaint: publication tags a reference finding by
+  its scope and wording alone, so sibling citations of one phrase produce identical findings and an
+  invalid destination could otherwise stand behind one already reported.
+- **Consistent citations of one wording are one decision.** Two components of a record may legitimately
+  cite the same wording in the same scope — each is its own claim with its own provenance — but
+  `(scope, wording)` resolves to exactly one record or it is ambiguous. Such citations are therefore
+  resolved in a single reviewed action, validated together and applied whole or not at all, with each
+  citation keeping its exact source, its own reviewed provenance spans and its own authorization record
+  under the one authorization named. This does not weaken ambiguity: citations of one wording sent to
+  different records are refused whether stated in one action or several, and a half-applied decision
+  remains unreachable.
 - Repeat behaviour is **implemented as** refusal rather than absorption: a resolution whose id is
   already recorded is refused, on the same terms as a `batch_id`
   `accept_proposal` already holds: a replay is deterministic and leaves the artifact exactly as it was.
+  Any already-recorded id refuses the **whole** action, so a partial replay records no part of itself.
 - A later batch may neither drop a resolution it inherits nor invalidate one. Carried decisions are
   re-checked against the merged result, and an extension that would leave one describing something else is
   refused before an artifact exists.

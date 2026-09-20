@@ -26,8 +26,8 @@ Retargeting an already-resolved citation is refused, as is editing accepted pros
 or facts, general supersession of an accepted claim, ingesting a source, and
 guessing a destination. There is no second acceptance system: a resolution is a
 record on the accepted oracle, validated by the validator the rest of the build
-already uses, and taken through :func:`~.acceptance.resolve_reference` — the same
-seam ``accept_proposal`` lives at.
+already uses, and taken through :func:`~.acceptance.resolve_references` — the
+same seam ``accept_proposal`` lives at.
 
 **Two views, one artifact.** The accepted representation keeps stating exactly
 what each of the seven accepted batches' reviewers accepted, including the empty
@@ -39,6 +39,7 @@ silently closed.
 
 from __future__ import annotations
 
+from collections import Counter
 from dataclasses import replace
 
 from afterworlds.ingestion.mechanical.models import ReferenceResolution
@@ -138,19 +139,28 @@ def reference_resolution_violations(
     before a committed file becomes authority. Both call this, so an artifact
     that loads is one the seam would have produced.
 
-    The final check is a **delta against the accepted view**, not a restatement
-    of the reference rules. A resolution is applicable only where the resolved
-    view reports nothing :func:`~.validation.relationship_and_reference_violations`
-    does not already report of the accepted view — which is what refuses an
-    unknown destination record, an ambiguity the destination would create, and
-    the record-owned/component cross-form case, each in the words the validator
-    already uses for it. Restating any of those here would be a second
-    definition of ambiguity that eventually disagrees with the one publication
-    is judged by.
+    **The destination is checked directly, and the delta is a multiset.** A
+    decision that names a record this authority does not state is invalid as a
+    decision, not merely inconvenient as a consequence, so it is refused here in
+    its own words rather than inferred from the resolved view. Inference was
+    unsound: :func:`~.validation.relationship_and_reference_violations` tags a
+    reference by ``scope:source_text`` alone, so two components legitimately
+    citing one wording produce byte-identical findings, and a set difference
+    silently absorbed the second one — an invalid destination could hide behind
+    a sibling's pre-existing finding. The delta below therefore subtracts
+    :class:`~collections.Counter` multisets: two occurrences of one finding minus
+    one occurrence still reports one.
+
+    The delta stays a **delta against the accepted view** rather than a
+    restatement of the reference rules, and still owns ambiguity, the
+    record-owned/component cross-form case and anything else the validator
+    grows, each in the words publication is judged by. Restating ambiguity here
+    would be a second definition of it that eventually disagrees.
     """
     findings: list[str] = []
     seen_ids: set[str] = set()
     seen_citations: dict[tuple[str, str, str, str], str] = {}
+    record_keys = {r.semantic_key for r in representation.records}
     by_key = {reference_target_key(r): r for r in representation.references}
     provenance_by_key: dict[tuple[str, ...], set[str]] = {}
     for claim in representation.provenance:
@@ -171,6 +181,20 @@ def reference_resolution_violations(
             # An empty destination resolves nothing: it is the state being
             # resolved, recorded as though it were the decision.
             findings.append(f"{tag}: names no destination record")
+            continue
+
+        # The destination must be a record this accepted authority actually
+        # states. Bound here rather than read off the resolved view: a decision
+        # pointing at nothing is invalid on its own terms, and the resolved
+        # view's wording for it is shared with every sibling citation of the
+        # same phrase, which is how a missing destination used to hide.
+        if resolution.target_record_key not in record_keys:
+            findings.append(
+                f"{tag}: names the destination "
+                f"{resolution.target_record_key!r}, which this accepted "
+                "authority states no record for; a resolution binds a "
+                "destination review read here, and cannot mint one"
+            )
             continue
 
         # Two decisions about one citation. Neither is stale on its face and
@@ -246,11 +270,10 @@ def reference_resolution_violations(
         # consequences of the refusals above as if they were separate defects.
         return findings
 
-    accepted_findings = set(relationship_and_reference_violations(representation))
+    accepted_findings = Counter(relationship_and_reference_violations(representation))
     effective = effective_representation(representation, resolutions)
-    if introduced := sorted(
-        set(relationship_and_reference_violations(effective)) - accepted_findings
-    ):
+    effective_findings = Counter(relationship_and_reference_violations(effective))
+    if introduced := sorted((effective_findings - accepted_findings).elements()):
         findings.append(
             "applying these resolutions would make the effective references "
             "state something publication refuses: " + "; ".join(introduced)

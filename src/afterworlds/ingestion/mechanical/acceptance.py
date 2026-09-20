@@ -47,8 +47,8 @@ across several disjoint span batches, whose representations merge as a keyed
 union rather than piling up duplicates.
 
 One bounded second action exists beside that one, and it is not a correction.
-:func:`resolve_reference` records an explicitly authorized destination for an
-accepted reference that was accepted with **none** — the Owner Decision of
+:func:`resolve_references` records explicitly authorized destinations for
+accepted references that were accepted with **none** — the Owner Decision of
 2026-09-19 under ADR-005d Decision 7, implemented in
 :mod:`reference_resolution`. It is an append like every other acceptance: the
 unresolved citation and its acceptance evidence stay exactly as reviewed, the
@@ -123,7 +123,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     verify_lift_path,
 )
 
-__all__ = ["AcceptanceError", "accept_proposal", "resolve_reference"]
+__all__ = ["AcceptanceError", "accept_proposal", "resolve_references"]
 
 
 class AcceptanceError(ValueError):
@@ -699,7 +699,7 @@ def _refuse_reference_retargeting(
     Two cases, both refused here and each in its own words:
 
     * the accepted target is **empty** — authoring a destination cannot close an
-      unresolved citation, whatever it says. :func:`resolve_reference` is the
+      unresolved citation, whatever it says. :func:`resolve_references` is the
       supported path, and pointing at it is the whole value of failing here;
     * the accepted target is **already a destination** — retargeting an accepted
       reference is not authorized by the Owner Decision of 2026-09-19, which
@@ -729,7 +729,7 @@ def _refuse_reference_retargeting(
                 "none. Authoring a destination cannot close an unresolved "
                 "citation — the accepted empty edge is a different key and "
                 "survives beside it, reported both unresolved and ambiguous. "
-                "Resolve it through resolve_reference, which records who "
+                "Resolve it through resolve_references, which records who "
                 "authorized the destination and leaves the accepted history "
                 "intact."
             )
@@ -741,25 +741,42 @@ def _refuse_reference_retargeting(
         )
 
 
-def resolve_reference(
+def resolve_references(
     prior: AcceptedInputs,
     *,
-    resolution: ReferenceResolution,
+    resolutions: tuple[ReferenceResolution, ...],
     authorized_by: str,
     authorization_reference: str,
     reviewer: str,
     resolved_at: str,
 ) -> AcceptedInputs:
-    """Record one explicitly authorized resolution of an accepted empty target.
+    """Record one explicitly authorized decision over accepted empty targets.
 
     The second acceptance action this module states, and deliberately the only
     other one. It is an **append**, exactly like :func:`accept_proposal`: two
-    ledger entries are added — the identity-bearing decision and the evidence of
-    who authorized it — and nothing already accepted is edited. The accepted
-    representation keeps stating the unresolved citation every reviewer accepted;
-    :func:`~.reference_resolution.effective_representation` is what the build
-    persists and the gate judges, so the effective authority has exactly one
-    destination while the history stays reconstructable.
+    ledger entries per resolution are added — the identity-bearing decision and
+    the evidence of who authorized it — and nothing already accepted is edited.
+    The accepted representation keeps stating the unresolved citation every
+    reviewer accepted; :func:`~.reference_resolution.effective_representation` is
+    what the build persists and the gate judges, so the effective authority has
+    exactly one destination while the history stays reconstructable.
+
+    **Why one action carries several resolutions.** Two components of one record
+    may legitimately cite the same wording in the same scope — each is its own
+    claim with its own provenance, and :mod:`validation` says so. Their
+    destination, though, is shared: ``(scope, source_text)`` resolving to more
+    than one record is the ambiguity publication refuses. So consistent
+    same-scope citations cannot be resolved one at a time — the intermediate
+    artifact would state ``['', destination]`` for one wording, which is exactly
+    the refusal that must not be weakened. They are one reviewed decision and
+    this action records them as one: validated together against the accepted
+    authority, applied whole or not at all. Each resolution keeps its own
+    citation, its own reviewed provenance spans and its own
+    ``ReferenceResolutionAcceptance``; what they share is the authorization this
+    call names. Nothing about a single resolution changes — it is
+    ``resolutions=(one,)`` — and a *genuine* ambiguity, two citations of one
+    wording sent to different records, is still refused whether stated in one
+    action or several.
 
     **What it refuses, and why it refuses rather than reports.** A half-recorded
     resolution is worse than none, on the same terms as a half-recorded
@@ -767,11 +784,13 @@ def resolve_reference(
     happens before the returned value is built, so a caller that catches
     :class:`AcceptanceError` holds exactly the artifact it held before —
 
+    * **no** resolution at all. An action that decides nothing is not a decision;
     * a ``resolution_id`` a prior decision already recorded. **Repeat is refused,
       not absorbed**: the same rule ``accept_proposal`` applies to a ``batch_id``
-      it already holds. Replaying an identical resolution is therefore
+      it already holds. Replaying an identical decision is therefore
       deterministic — it raises, and the artifact is unchanged — rather than
-      appending a second authorization of one decision;
+      appending a second authorization of one decision. Any already-recorded id
+      refuses the **whole** action, so a partial replay records no part of it;
     * a second, differently-identified decision about one citation, which is a
       conflict nothing here can choose between;
     * a citation this authority does not state as unresolved, including one
@@ -800,19 +819,26 @@ def resolve_reference(
                 "resolution is not a reviewed decision"
             )
 
-    if resolution.resolution_id in {
-        r.resolution_id for r in prior.oracle.reference_resolutions
-    }:
+    if not resolutions:
         raise AcceptanceError(
-            f"reference resolution {resolution.resolution_id!r} is already "
-            "recorded by this accepted authority; a repeat is refused rather "
-            "than recorded twice, so replaying this action leaves the artifact "
-            "exactly as it was"
+            "a reference resolution action must state at least one resolution; "
+            "an action that resolves nothing is not a reviewed decision"
+        )
+
+    if already := sorted(
+        {r.resolution_id for r in resolutions}
+        & {r.resolution_id for r in prior.oracle.reference_resolutions}
+    ):
+        raise AcceptanceError(
+            f"reference resolution {already} is already recorded by this "
+            "accepted authority; a repeat is refused rather than recorded "
+            "twice, so replaying this action leaves the artifact exactly as it "
+            "was"
         )
 
     if inapplicable := reference_resolution_violations(
         prior.oracle.representation,
-        prior.oracle.reference_resolutions + (resolution,),
+        prior.oracle.reference_resolutions + resolutions,
         prior.oracle.binding,
     ):
         raise AcceptanceError(
@@ -824,17 +850,18 @@ def resolve_reference(
         prior,
         oracle=replace(
             prior.oracle,
-            reference_resolutions=prior.oracle.reference_resolutions + (resolution,),
+            reference_resolutions=prior.oracle.reference_resolutions + resolutions,
         ),
         reference_resolution_acceptances=prior.reference_resolution_acceptances
-        + (
+        + tuple(
             ReferenceResolutionAcceptance(
                 resolution_id=resolution.resolution_id,
                 authorized_by=authorized_by,
                 authorization_reference=authorization_reference,
                 reviewer=reviewer,
                 resolved_at=resolved_at,
-            ),
+            )
+            for resolution in resolutions
         ),
     )
 

@@ -21,6 +21,9 @@ What each group proves:
 * meaning versus evidence — the decision moves identity, the authorization does
   not;
 * persistence, serialization and replay — the same artifact, deterministically;
+* one decision over several citations — two components of one record may cite
+  the same wording legitimately, but ``(scope, source_text)`` has one
+  destination, so those citations are resolved *together*, whole or not at all;
 * the negative controls — unauthorized, stale, conflicting, mismatched, missing
   and tampered inputs each fail closed, and nothing is partly recorded;
 * the boundary — a later batch can neither author a destination for an
@@ -40,7 +43,7 @@ from sqlalchemy.orm import Session
 from afterworlds.ingestion.mechanical.acceptance import (
     AcceptanceError,
     accept_proposal,
-    resolve_reference,
+    resolve_references,
 )
 from afterworlds.ingestion.mechanical.accounting import derive_span_id
 from afterworlds.ingestion.mechanical.gate import (
@@ -192,15 +195,67 @@ def _resolution(**overrides: object) -> ReferenceResolution:
     return ReferenceResolution(**{**base, **overrides})  # type: ignore[arg-type]
 
 
-def _resolve(prior: AcceptedInputs, **overrides: object) -> AcceptedInputs:
+def _resolve(
+    prior: AcceptedInputs,
+    *resolutions: ReferenceResolution,
+    **overrides: object,
+) -> AcceptedInputs:
+    """One reviewed decision over ``resolutions``, defaulting to the single one.
+
+    ``resolutions`` is positional because the whole point of the plural seam is
+    that one action carries however many citations the decision covers; every
+    scenario that cares about the authorization states it as a keyword.
+    """
     base = dict(
-        resolution=_resolution(),
+        resolutions=resolutions or (_resolution(),),
         authorized_by="Owner",
         authorization_reference="Owner Decision 2026-09-19 (ADR-005d Decision 7)",
         reviewer="Codex",
         resolved_at="2026-09-19T12:00:00Z",
     )
-    return resolve_reference(prior, **{**base, **overrides})  # type: ignore[arg-type]
+    return resolve_references(prior, **{**base, **overrides})  # type: ignore[arg-type]
+
+
+#: A second *component* of the same record citing the same wording in the same
+#: scope. Legal by design — each component's citation is its own claim with its
+#: own provenance — and the reason one decision has to be able to cover both:
+#: ``(scope, source_text)`` resolves to exactly one record or it is ambiguous.
+SIBLING_UNRESOLVED = ReferenceDraft(
+    from_record_key=SPELL_KEY,
+    from_component_key=OPEN_ENDED_KEY,
+    source_text="the servant",
+    scope_key="spell:wish",
+    target_record_key="",
+)
+
+#: An unrelated second unresolved citation: different wording, so its
+#: destination is nobody else's business and it may be resolved on its own.
+OTHER_UNRESOLVED = ReferenceDraft(
+    from_record_key=SPELL_KEY,
+    from_component_key=OPEN_ENDED_KEY,
+    source_text="the wish it was cast from",
+    scope_key="spell:wish",
+    target_record_key="",
+)
+
+
+def _sibling_resolution(**overrides: object) -> ReferenceResolution:
+    """The decision about ``SIBLING_UNRESOLVED`` — its own id and its own citation."""
+    return _resolution(
+        resolution_id="resolve-the-servant-open-ended-1",
+        from_component_key=OPEN_ENDED_KEY,
+        **overrides,
+    )
+
+
+def _other_resolution(**overrides: object) -> ReferenceResolution:
+    """The decision about ``OTHER_UNRESOLVED``."""
+    return _resolution(
+        resolution_id="resolve-the-wish-1",
+        from_component_key=OPEN_ENDED_KEY,
+        source_text="the wish it was cast from",
+        **overrides,
+    )
 
 
 # -- the production path ------------------------------------------------------
@@ -530,7 +585,7 @@ def test_a_second_decision_about_one_citation_is_refused() -> None:
     with pytest.raises(AcceptanceError, match="conflicts with"):
         _resolve(
             resolved,
-            resolution=_resolution(
+            _resolution(
                 resolution_id="resolve-the-servant-2", target_record_key=SPELL_KEY
             ),
         )
@@ -540,7 +595,7 @@ def test_a_resolution_reviewed_against_another_release_is_refused() -> None:
     with pytest.raises(AcceptanceError, match="was reviewed against release"):
         _resolve(
             _accepted(),
-            resolution=_resolution(release_version="5.2.1-corpus.other"),
+            _resolution(release_version="5.2.1-corpus.other"),
         )
 
 
@@ -549,16 +604,14 @@ def test_a_resolution_whose_provenance_is_not_what_review_read_is_refused() -> N
     with pytest.raises(AcceptanceError, match="was reviewed against provenance spans"):
         _resolve(
             _accepted(),
-            resolution=_resolution(
-                provenance_span_ids=(derive_span_id("leaf-elsewhere", 0, 10),)
-            ),
+            _resolution(provenance_span_ids=(derive_span_id("leaf-elsewhere", 0, 10),)),
         )
 
 
 def test_a_resolution_that_states_no_id_of_its_own_is_refused() -> None:
     """The id is what an authorization names, so an unnamed decision is nothing."""
     with pytest.raises(AcceptanceError, match="must state its own id"):
-        _resolve(_accepted(), resolution=_resolution(resolution_id="   "))
+        _resolve(_accepted(), _resolution(resolution_id="   "))
 
 
 def test_a_resolution_the_artifact_already_states_as_a_sibling_is_refused() -> None:
@@ -585,14 +638,14 @@ def test_a_resolution_naming_no_accepted_citation_is_refused() -> None:
     with pytest.raises(AcceptanceError, match="states no unresolved citation"):
         _resolve(
             _accepted(),
-            resolution=_resolution(source_text="a phrase the source never prints"),
+            _resolution(source_text="a phrase the source never prints"),
         )
 
 
 def test_a_resolution_with_no_destination_is_refused() -> None:
     """The state being resolved, recorded as though it were the decision."""
     with pytest.raises(AcceptanceError, match="names no destination record"):
-        _resolve(_accepted(), resolution=_resolution(target_record_key=""))
+        _resolve(_accepted(), _resolution(target_record_key=""))
 
 
 def test_retargeting_an_already_resolved_citation_is_refused() -> None:
@@ -611,15 +664,56 @@ def test_retargeting_an_already_resolved_citation_is_refused() -> None:
         reference_resolution_acceptances=(),
     )
     with pytest.raises(AcceptanceError, match="retargeting a resolved citation"):
-        _resolve(reresolve, resolution=_resolution(target_record_key=SPELL_KEY))
+        _resolve(reresolve, _resolution(target_record_key=SPELL_KEY))
 
 
 def test_a_destination_the_representation_does_not_state_is_refused() -> None:
-    """Reported in the validator's own words, not a second definition of them."""
-    with pytest.raises(AcceptanceError, match="unknown target record"):
-        _resolve(
-            _accepted(), resolution=_resolution(target_record_key="glossary.invented")
-        )
+    """Bound directly: a decision pointing at no record is invalid as a decision.
+
+    Not inferred from the resolved view. The validator words this finding by
+    ``scope:source_text`` alone, so every sibling citation of the same phrase
+    produces the same string and a pre-existing one would cover for this — see
+    ``test_an_invalid_destination_is_refused_behind_a_sibling_stating_it``.
+    """
+    with pytest.raises(AcceptanceError, match="states no record for"):
+        _resolve(_accepted(), _resolution(target_record_key="glossary.invented"))
+
+
+def test_an_invalid_destination_is_refused_behind_a_sibling_already_stating_it(
+    tmp_path: Path,
+) -> None:
+    """A pre-existing finding must not cover for a newly invalid destination.
+
+    Codex's probe. A sibling component cites the same wording and names the same
+    missing record, so the accepted view already reports ``unknown target record
+    glossary.invented`` — and the validator words that finding by
+    ``scope:source_text`` alone, so the resolved view's *second* occurrence of it
+    is byte-identical to the first. Subtracting sets absorbed it: the resolution
+    was admitted, the artifact serialized and loaded, and the effective view
+    reported an unknown destination twice with nothing accounting for it.
+    """
+    sibling = ReferenceDraft(
+        from_record_key=SPELL_KEY,
+        from_component_key=OPEN_ENDED_KEY,
+        source_text="the servant",
+        scope_key="spell:wish",
+        target_record_key="glossary.invented",
+    )
+    accepted = _accepted(representation=_representation(sibling))
+    # The accepted view already states it, once, in the words the resolved view
+    # would state it in again.
+    assert (
+        "reference spell:wish:'the servant': unknown target record glossary.invented"
+        in relationship_and_reference_violations(accepted.oracle.representation)
+    )
+    before = serialize_accepted_inputs(accepted)
+
+    with pytest.raises(AcceptanceError, match="states no record for"):
+        _resolve(accepted, _resolution(target_record_key="glossary.invented"))
+
+    assert accepted.oracle.reference_resolutions == ()
+    assert accepted.reference_resolution_acceptances == ()
+    assert serialize_accepted_inputs(accepted) == before
 
 
 def test_a_destination_that_would_make_the_citation_ambiguous_is_refused() -> None:
@@ -764,7 +858,7 @@ def test_a_later_batch_cannot_author_a_destination_for_an_unresolved_citation() 
     and publication would report the citation unresolved *and* ambiguous.
     """
     resolved_sibling = replace(UNRESOLVED, target_record_key=DESTINATION)
-    with pytest.raises(AcceptanceError, match="Resolve it through resolve_reference"):
+    with pytest.raises(AcceptanceError, match="Resolve it through resolve_references"):
         _second_batch(_accepted(), resolved_sibling)
 
 
@@ -880,3 +974,220 @@ def test_the_accepted_corpus_is_untouched_by_this_capability() -> None:
     assert inputs.reference_resolution_acceptances == ()
     assert oracle_identity(inputs.oracle) == ACCEPTED_ORACLE_IDENTITY
     assert serialize_accepted_inputs(inputs) == PRODUCTION_ORACLE.read_bytes()
+
+
+# -- one decision, several citations of one wording ---------------------------
+
+
+def test_two_components_citing_one_wording_are_resolved_in_one_action() -> None:
+    """The end state the single-action seam offered no path to.
+
+    Both citations are legitimate and both are empty, but their destination is
+    shared: resolving either alone would state ``['', destination]`` for one
+    wording, which publication refuses as ambiguous and which this capability
+    must go on refusing. One action, two decisions, each keeping its own
+    citation and its own reviewed spans.
+    """
+    accepted = _accepted(representation=_representation(SIBLING_UNRESOLVED))
+    resolved = _resolve(accepted, _resolution(), _sibling_resolution())
+    effective = effective_representation(
+        resolved.oracle.representation, resolved.oracle.reference_resolutions
+    )
+
+    assert {
+        r.from_component_key: r.target_record_key for r in effective.references
+    } == {
+        DESCRIPTOR_KEY: DESTINATION,
+        OPEN_ENDED_KEY: DESTINATION,
+    }
+    assert relationship_and_reference_violations(effective) == []
+    # Per-citation source and provenance, one shared authorization.
+    assert [
+        (r.from_component_key, r.source_text, r.provenance_span_ids)
+        for r in resolved.oracle.reference_resolutions
+    ] == [
+        (DESCRIPTOR_KEY, "the servant", (SPELL_SPAN,)),
+        (OPEN_ENDED_KEY, "the servant", (SPELL_SPAN,)),
+    ]
+    assert {
+        (a.resolution_id, a.authorized_by, a.reviewer, a.resolved_at)
+        for a in resolved.reference_resolution_acceptances
+    } == {
+        ("resolve-the-servant-1", "Owner", "Codex", "2026-09-19T12:00:00Z"),
+        ("resolve-the-servant-open-ended-1", "Owner", "Codex", "2026-09-19T12:00:00Z"),
+    }
+    # And the accepted history still states what the reviewers accepted.
+    assert resolved.oracle.representation == accepted.oracle.representation
+
+
+def test_resolving_one_of_two_consistent_citations_alone_is_still_refused() -> None:
+    """The intermediate state is ambiguous, and stays refused.
+
+    This is not a gap the joint action papers over: it is why the joint action
+    exists. A half-applied decision about one wording is exactly the artifact
+    publication must not be able to hold.
+    """
+    accepted = _accepted(representation=_representation(SIBLING_UNRESOLVED))
+    with pytest.raises(AcceptanceError, match="ambiguous"):
+        _resolve(accepted)
+
+
+def test_two_citations_of_one_wording_sent_to_different_records_are_refused() -> None:
+    """True ambiguity is refused whether stated in one action or two."""
+    accepted = _accepted(representation=_representation(SIBLING_UNRESOLVED))
+    with pytest.raises(AcceptanceError, match="ambiguous"):
+        _resolve(
+            accepted,
+            _resolution(),
+            _sibling_resolution(target_record_key=SPELL_KEY),
+        )
+
+
+def test_a_joint_action_with_one_invalid_decision_records_no_part_of_it() -> None:
+    """Whole or not at all: the valid half is not quietly kept."""
+    accepted = _accepted(representation=_representation(SIBLING_UNRESOLVED))
+    before = serialize_accepted_inputs(accepted)
+    with pytest.raises(AcceptanceError, match="states no record for"):
+        _resolve(
+            accepted,
+            _resolution(),
+            _sibling_resolution(target_record_key="glossary.invented"),
+        )
+    assert accepted.oracle.reference_resolutions == ()
+    assert accepted.reference_resolution_acceptances == ()
+    assert serialize_accepted_inputs(accepted) == before
+
+
+def test_an_action_that_resolves_nothing_is_refused() -> None:
+    """An action that decides nothing is not a decision."""
+    with pytest.raises(AcceptanceError, match="at least one resolution"):
+        resolve_references(
+            _accepted(),
+            resolutions=(),
+            authorized_by="Owner",
+            authorization_reference="Owner Decision 2026-09-19 (ADR-005d Decision 7)",
+            reviewer="Codex",
+            resolved_at="2026-09-19T12:00:00Z",
+        )
+
+
+def test_one_citation_stated_twice_in_one_action_is_refused() -> None:
+    """Two decisions about one citation, in one breath, is still a conflict."""
+    accepted = _accepted(representation=_representation(SIBLING_UNRESOLVED))
+    with pytest.raises(AcceptanceError, match="conflicts with"):
+        _resolve(
+            accepted,
+            _resolution(),
+            _resolution(resolution_id="resolve-the-servant-again-1"),
+        )
+
+
+def test_replaying_a_joint_action_is_refused_and_changes_nothing() -> None:
+    accepted = _accepted(representation=_representation(SIBLING_UNRESOLVED))
+    resolved = _resolve(accepted, _resolution(), _sibling_resolution())
+    with pytest.raises(AcceptanceError, match="already recorded"):
+        _resolve(resolved, _resolution(), _sibling_resolution())
+    assert len(resolved.oracle.reference_resolutions) == 2
+    assert len(resolved.reference_resolution_acceptances) == 2
+
+
+def test_an_action_repeating_one_recorded_decision_is_refused_whole() -> None:
+    """A partial replay records no part of itself, including the genuinely new half."""
+    accepted = _accepted(representation=_representation(OTHER_UNRESOLVED))
+    first = _resolve(accepted)
+    with pytest.raises(AcceptanceError, match="already recorded"):
+        _resolve(first, _resolution(), _other_resolution())
+    assert [r.resolution_id for r in first.oracle.reference_resolutions] == [
+        "resolve-the-servant-1"
+    ]
+    assert len(first.reference_resolution_acceptances) == 1
+
+
+def test_one_action_and_two_actions_reach_the_same_accepted_authority() -> None:
+    """Whether a decision was recorded jointly is evidence, not part of the result.
+
+    Two independent citations can be resolved either way, so the two paths are
+    comparable — and they must not identify differently, or the shape of the
+    review session would leak into the oracle's identity.
+    """
+    accepted = _accepted(representation=_representation(OTHER_UNRESOLVED))
+    joint = _resolve(accepted, _resolution(), _other_resolution())
+    stepwise = _resolve(_resolve(accepted), _other_resolution())
+
+    assert oracle_identity(joint.oracle) == oracle_identity(stepwise.oracle)
+    assert serialize_accepted_inputs(joint) == serialize_accepted_inputs(stepwise)
+
+
+def test_a_jointly_resolved_artifact_reconstructs_from_its_committed_bytes(
+    tmp_path: Path,
+) -> None:
+    accepted = _accepted(representation=_representation(SIBLING_UNRESOLVED))
+    resolved = _resolve(accepted, _resolution(), _sibling_resolution())
+    path = tmp_path / "jointly-resolved.json"
+    path.write_bytes(serialize_accepted_inputs(resolved))
+
+    reloaded = load_accepted_inputs(path)
+    assert (
+        reloaded.oracle.reference_resolutions == resolved.oracle.reference_resolutions
+    )
+    assert (
+        reloaded.reference_resolution_acceptances
+        == resolved.reference_resolution_acceptances
+    )
+    assert oracle_identity(reloaded.oracle) == oracle_identity(resolved.oracle)
+    assert serialize_accepted_inputs(reloaded) == path.read_bytes()
+    # And the effective consumer sees one destination for both citations.
+    candidate = candidate_from_accepted_inputs(reloaded)
+    assert {r.target_record_key for r in candidate.representation.references} == {
+        DESTINATION
+    }
+    assert relationship_and_reference_violations(candidate.representation) == []
+
+
+def test_half_a_joint_decision_is_not_loadable(tmp_path: Path) -> None:
+    """Committed bytes stating one of the two decisions leave the pair ambiguous."""
+    accepted = _accepted(representation=_representation(SIBLING_UNRESOLVED))
+    resolved = _resolve(accepted, _resolution(), _sibling_resolution())
+    payload = json.loads(serialize_accepted_inputs(resolved).decode("utf-8"))
+    payload["reference_resolutions"] = [
+        r
+        for r in payload["reference_resolutions"]
+        if r["resolution_id"] == "resolve-the-servant-1"
+    ]
+    payload["acceptance"]["reference_resolution_records"] = [
+        r
+        for r in payload["acceptance"]["reference_resolution_records"]
+        if r["resolution_id"] == "resolve-the-servant-1"
+    ]
+    path = tmp_path / "half.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(OracleLoadError, match="do not apply to this accepted"):
+        load_accepted_inputs(path)
+
+
+def test_a_later_batch_carries_a_joint_decision_forward() -> None:
+    accepted = _accepted(representation=_representation(SIBLING_UNRESOLVED))
+    resolved = _resolve(accepted, _resolution(), _sibling_resolution())
+    unrelated = ReferenceDraft(
+        from_record_key=CREATURE_KEY,
+        from_component_key=RECORD_OWNED_REFERENCE,
+        source_text="the spell that summoned it",
+        scope_key="creature:servant",
+        target_record_key=SPELL_KEY,
+    )
+    extended = _second_batch(resolved, unrelated)
+
+    assert (
+        extended.oracle.reference_resolutions == resolved.oracle.reference_resolutions
+    )
+    assert (
+        extended.reference_resolution_acceptances
+        == resolved.reference_resolution_acceptances
+    )
+    assert {
+        r.target_record_key
+        for r in effective_representation(
+            extended.oracle.representation, extended.oracle.reference_resolutions
+        ).references
+    } == {DESTINATION, SPELL_KEY}

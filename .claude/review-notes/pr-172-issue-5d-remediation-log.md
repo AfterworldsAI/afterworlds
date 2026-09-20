@@ -242,19 +242,23 @@ change.
   refusal unenforceable.
 * `reference_resolution.reference_resolution_violations` — reported, not raised,
   on the terms `schema_binding_violations` and `review_unit_violations` use, so
-  the acceptance seam and the loader enforce one rule set. The final check is a
-  **delta** against the accepted view rather than a restatement of the reference
-  rules: a resolution applies only where the resolved view reports nothing the
-  accepted view does not already report. Ambiguity stays defined once, in
-  `validation`.
-* `acceptance.resolve_reference` — the only other acceptance action the module
+  the acceptance seam and the loader enforce one rule set. The reviewed
+  destination is checked directly against the records the accepted authority
+  states; everything else is a **multiset delta** against the accepted view
+  rather than a restatement of the reference rules, so a resolution applies only
+  where the resolved view reports more than the accepted view already reports.
+  Ambiguity stays defined once, in `validation`. See Finding 4 — the delta was
+  originally a set difference and the destination was inferred from it.
+* `acceptance.resolve_references` — the only other acceptance action the module
   states, and an append exactly like `accept_proposal`. Refuses before building
   anything, so a caught `AcceptanceError` leaves the artifact untouched. A
   repeated `resolution_id` is **refused, not absorbed** — replay is deterministic
-  and changes nothing — on the same terms as a `batch_id` already held.
+  and changes nothing — on the same terms as a `batch_id` already held. One
+  action carries one or more resolutions, applied whole or not at all (Finding
+  4); it was singular when first written.
 * `acceptance._refuse_reference_retargeting` — runs on every acceptance with a
   `prior`. Two refusals in their own words: authoring a destination for a citation
-  accepted with none (and it names `resolve_reference`), and retargeting a
+  accepted with none (and it names `resolve_references`), and retargeting a
   citation already resolved (unauthorized). Carried resolutions are re-checked
   against the *merged* representation, so an extension that would leave one
   describing something else is refused before an artifact exists, and are carried
@@ -342,6 +346,109 @@ proposals in memory, so the new guards are exercised against the artifacts the
 Owner has authorized accepting next, and the committed corpus is asserted
 byte-identical afterwards.
 
+## Finding 4 — overlapping citations of one wording
+
+Codex's independent review of the Option A implementation at `90faa38`. Two
+verified P1 defects, one root cause, corrected together.
+
+### The root cause
+
+`validation.relationship_and_reference_violations` tags a reference finding
+`reference {scope}:{source_text!r}` — **no owning record or component**. That is
+deliberate: two *components* of one record may legitimately cite the same
+wording, each its own claim with its own provenance. The consequence is that
+sibling citations of one phrase produce byte-identical finding strings, and the
+resolution seam was built on top of that in two places that both assumed a
+citation's wording identified it.
+
+### Defect 1 — an invalid destination hid behind a sibling's finding
+
+`reference_resolution_violations` ended in `set(effective) - set(accepted)`, and
+the reviewed destination's existence was **inferred** from that delta rather than
+checked. Codex's reproduction: give the `test_reference_resolution` fixture a
+sibling reference from `OPEN_ENDED_KEY` with the same wording and scope and
+`target_record_key='glossary.invented'`, accept it, then resolve the original
+citation to `'glossary.invented'`. The accepted view already reports
+`unknown target record glossary.invented` once; the resolved view reports it
+twice; the two strings are identical, so the set difference is empty. The
+resolution was **admitted**, and the artifact serialized and loaded while its
+effective view reported an unknown destination twice with nothing accounting for
+it.
+
+Corrected in two independent ways, because absence of newly worded diagnostics is
+not evidence a destination exists:
+
+* the destination is now bound directly — `target_record_key` must be a record
+  the accepted representation states, refused in its own words before the delta
+  runs. This is what refuses the reproduction;
+* the delta subtracts `collections.Counter` multisets, so a second occurrence of
+  an existing finding is reported rather than absorbed. This removes the masking
+  *mechanism*, so a finding the validator words by scope and wording in future
+  cannot reopen the family.
+
+### Defect 2 — a valid joint end state no single action could reach
+
+With the same sibling but `target_record_key=''`, both citations are legitimate
+and both are empty. Their destination, though, is shared: `validation` keys
+ambiguity on `(scope_key, source_text)`, so resolving either one alone makes that
+key resolve to `['', DESTINATION]` and the resolution is refused for an ambiguity
+it introduced. `resolve_reference` took exactly one `ReferenceResolution`, so the
+valid, consistent, jointly resolved end state was unreachable through any
+supported path.
+
+`acceptance.resolve_references` now records one reviewed action over one **or
+more** resolutions: validated together against the accepted authority, applied
+whole or not at all. Each resolution keeps its exact citation, its own reviewed
+provenance spans and its own `ReferenceResolutionAcceptance`; what they share is
+the single authorization the action names. Nothing about a single resolution
+changed — it is `resolutions=(one,)` — and the singular/plural paths reach the
+same accepted authority and the same oracle identity, asserted by test, because
+how a decision was recorded is evidence and not part of the result.
+
+True ambiguity is not weakened: two citations of one wording sent to different
+records are refused whether stated in one action or several, and resolving one of
+two consistent citations alone is still refused. Any already-recorded
+`resolution_id` refuses the whole action, so a partial replay records no part of
+itself, and an action stating no resolution at all is refused.
+
+### Sibling audit — set-subtracted diagnostics
+
+Family: *a diagnostic delta computed over strings that are not unique per
+element*. Trigger: two review rounds on the reference-resolution seam. Searched
+every set subtraction in `src/afterworlds/ingestion/`. Dispositions:
+
+| site | disposition |
+|---|---|
+| `reference_resolution.reference_resolution_violations` | **patched** — multiset delta, plus a direct destination check |
+| `oracle._require_keys` / `representation._require_keys` (`supplied - set(keys)`) | **already safe** — over payload key names, unique by construction |
+| `corpus.source_completeness`, `corpus.table_inventory`, `corpus.vector_publication` | **already safe** — over ids and printed-name keys, and the multiplicity question does not arise |
+
+No other diagnostic delta in the repository subtracts sets of finding strings.
+
+### The three call sites inherit the fix
+
+`reference_resolution_violations` has exactly three callers, and all three are
+corrected by the one change: `acceptance.resolve_references` (the writer),
+`accept_proposal`'s carried-decision re-check over the merged representation, and
+`oracle.load_accepted_inputs` over committed bytes. An artifact that loads is
+still one the seam would have produced.
+
+### Coverage
+
+Thirteen new tests in `test_reference_resolution.py` cover this family (57 in
+the module, up from 44), including Codex's exact reproduction, the joint production
+path with serialization and reconstruction, joint-versus-stepwise identity,
+carried joint decisions across a later batch, effective consumer behaviour
+through `candidate_from_accepted_inputs`, and the negative controls: mixed
+valid/invalid leaves the prior artifact byte-identical, replay and partial replay
+refuse whole, one citation stated twice in one action conflicts, differing
+destinations stay ambiguous, and half a joint decision in committed bytes does not
+load. `reference_resolution.py` is at 100% statement coverage; the acceptance
+module's new branches are covered.
+
+Both defects were verified reproducible before the fix: with the correction
+reverted, the reproduction test reports `DID NOT RAISE`.
+
 ## Artifacts and identities
 
 | artifact | identity | file sha256 | bytes |
@@ -394,7 +501,7 @@ representation 17 findings (13 unminted-destination citations, 4 outstanding obl
 No corpus-wide reference cleanup; no destination ingestion beyond the four
 authorized units; no accepted Action uniformity rewrite; no schema-framework
 work; no generic post-acceptance supersede mechanism and no parallel acceptance
-system, `resolve_reference` being bounded to empty-target resolution and
+system, `resolve_references` being bounded to empty-target resolution and
 refusing every retarget; no 5c change; no movement, 15c,
 sheet or adapter execution; no dependency or audit-exclusion change; no progress
 accounting or settings change. Seven accepted batches, historical
