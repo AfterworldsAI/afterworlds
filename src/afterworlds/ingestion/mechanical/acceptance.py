@@ -100,6 +100,7 @@ from afterworlds.ingestion.mechanical.proposal import (
     proposal_identity,
 )
 from afterworlds.ingestion.mechanical.reference_resolution import (
+    reference_resolution_shape_violations,
     reference_resolution_violations,
 )
 from afterworlds.ingestion.mechanical.representation import (
@@ -784,6 +785,11 @@ def resolve_references(
     happens before the returned value is built, so a caller that catches
     :class:`AcceptanceError` holds exactly the artifact it held before —
 
+    * anything that is not exactly a closed :class:`ReferenceResolution` in an
+      exact ``tuple``, refused **before this action reads a single field**. The
+      replay check below keys on ``resolution_id`` and the applicability check
+      keys on the citation, so a subclass supplying either through a method or
+      an overridden ``__eq__`` would decide its own admission;
     * **no** resolution at all. An action that decides nothing is not a decision;
     * a ``resolution_id`` a prior decision already recorded. **Repeat is refused,
       not absorbed**: the same rule ``accept_proposal`` applies to a ``batch_id``
@@ -795,7 +801,8 @@ def resolve_references(
       conflict nothing here can choose between;
     * a citation this authority does not state as unresolved, including one
       already resolved — retargeting is not authorized;
-    * a destination, release binding, or provenance that is not what review saw;
+    * a destination, provenance, or any one of the six release-binding
+      coordinates that is not what review saw;
     * a resolution whose effective view publication would refuse, ambiguity
       above all;
     * an authorization missing its authority, its reference, its reviewer or its
@@ -818,6 +825,18 @@ def resolve_references(
                 f"a reference resolution must name its {field}; an unattributed "
                 "resolution is not a reviewed decision"
             )
+
+    # Before ``not resolutions``, before the id set below, and before
+    # ``reference_resolution_violations`` — which repeats this pass for the
+    # loader's sake. The replay check reads ``resolution_id`` into a set, so a
+    # ``str`` subclass with its own ``__hash__`` would answer the
+    # already-recorded question about itself, and a resolution subclass would
+    # execute a property to do it (#137 round 13).
+    if malformed := reference_resolution_shape_violations(resolutions):
+        raise AcceptanceError(
+            "this resolution action does not state reference resolutions: "
+            + "; ".join(malformed)
+        )
 
     if not resolutions:
         raise AcceptanceError(

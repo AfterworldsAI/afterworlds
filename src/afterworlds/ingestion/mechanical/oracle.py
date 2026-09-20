@@ -477,6 +477,20 @@ def oracle_identity(oracle: AcceptedOracle) -> str:
 # what publication tolerates.
 
 
+#: The six keys a release binding states on the wire. Named once because two
+#: payloads carry one — the artifact's own binding and every reference
+#: resolution's — and a loader that spelled the set twice is how a resolution
+#: came to be admitted on two of the six (#137 round 13).
+_RELEASE_BINDING_FIELDS: tuple[str, ...] = (
+    "package_uuid",
+    "release_version",
+    "authoritative_source_hash",
+    "transform_config_hash",
+    "bundle_root_hash",
+    "persisted_corpus_digest",
+)
+
+
 def _require(
     payload: object,
     keys: tuple[str, ...],
@@ -1172,6 +1186,14 @@ def _reference_resolution(payload: object, index: int) -> ReferenceResolution:
     here than almost anywhere: a defaulted coordinate would resolve a citation
     nobody reviewed, and a silently ignored misspelling would apply a decision
     to the wrong one.
+
+    ``release_binding`` is required as a nested object stating all six
+    coordinates. A payload written before this stated ``package_uuid`` and
+    ``release_version`` loose beside the citation; it is refused as missing its
+    binding rather than completed from the artifact that happens to hold it.
+    Filling in the four absent coordinates from the surrounding file would be
+    the defect itself: it would produce, on load, exactly the agreement the
+    decision never proved (#137 round 13).
     """
     where = f"reference_resolutions[{index}]"
     r = _require(
@@ -1183,11 +1205,13 @@ def _reference_resolution(payload: object, index: int) -> ReferenceResolution:
             "source_text",
             "scope_key",
             "target_record_key",
-            "package_uuid",
-            "release_version",
+            "release_binding",
             "provenance_span_ids",
         ),
         where,
+    )
+    binding = _require(
+        r["release_binding"], _RELEASE_BINDING_FIELDS, f"{where}.release_binding"
     )
     return ReferenceResolution(
         resolution_id=_string(r["resolution_id"], f"{where}.resolution_id"),
@@ -1198,8 +1222,12 @@ def _reference_resolution(payload: object, index: int) -> ReferenceResolution:
         source_text=_string(r["source_text"], f"{where}.source_text"),
         scope_key=_string(r["scope_key"], f"{where}.scope_key"),
         target_record_key=_string(r["target_record_key"], f"{where}.target_record_key"),
-        package_uuid=_string(r["package_uuid"], f"{where}.package_uuid"),
-        release_version=_string(r["release_version"], f"{where}.release_version"),
+        release_binding=ReleaseBinding(
+            **{
+                k: _string(binding[k], f"{where}.release_binding.{k}")
+                for k in _RELEASE_BINDING_FIELDS
+            }
+        ),
         provenance_span_ids=tuple(
             _string_list(r["provenance_span_ids"], f"{where}.provenance_span_ids")
         ),
@@ -1564,15 +1592,7 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
         # reviewed.
         optional=("review_units", "reference_resolutions"),
     )
-    binding_fields = (
-        "package_uuid",
-        "release_version",
-        "authoritative_source_hash",
-        "transform_config_hash",
-        "bundle_root_hash",
-        "persisted_corpus_digest",
-    )
-    binding = _require(p["release_binding"], binding_fields, "release_binding")
+    binding = _require(p["release_binding"], _RELEASE_BINDING_FIELDS, "release_binding")
     schema = _require(
         p["representation_schema"], ("version", "hash"), "representation_schema"
     )
@@ -1607,7 +1627,10 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
     ) = _acceptance(p["acceptance"], "acceptance")
     oracle = AcceptedOracle(
         binding=ReleaseBinding(
-            **{k: _string(binding[k], f"release_binding.{k}") for k in binding_fields}
+            **{
+                k: _string(binding[k], f"release_binding.{k}")
+                for k in _RELEASE_BINDING_FIELDS
+            }
         ),
         policy_version=_string(p["semantic_policy_version"], "semantic_policy_version"),
         policy_hash=_string(p["semantic_policy_hash"], "semantic_policy_hash"),

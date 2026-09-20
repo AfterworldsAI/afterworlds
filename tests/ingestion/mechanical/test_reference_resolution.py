@@ -34,7 +34,7 @@ What each group proves:
 from __future__ import annotations
 
 import json
-from dataclasses import replace
+from dataclasses import fields, replace
 from pathlib import Path
 
 import pytest
@@ -53,6 +53,7 @@ from afterworlds.ingestion.mechanical.gate import (
 )
 from afterworlds.ingestion.mechanical.models import (
     ReferenceResolution,
+    ReleaseBinding,
     ReviewState,
     SemanticDisposition,
     SemanticSpan,
@@ -79,6 +80,8 @@ from afterworlds.ingestion.mechanical.policy import (
 from afterworlds.ingestion.mechanical.projection import identify_projection
 from afterworlds.ingestion.mechanical.proposal import MechanicalProposal, ProposedSpan
 from afterworlds.ingestion.mechanical.reference_resolution import (
+    _BINDING_FIELDS,
+    _RESOLUTION_STRING_FIELDS,
     effective_representation,
 )
 from afterworlds.ingestion.mechanical.representation import (
@@ -104,6 +107,7 @@ from tests.ingestion.mechanical.conftest import (
     DESCRIPTOR_KEY,
     NOW,
     OPEN_ENDED_KEY,
+    PROSE_SPAN,
     RELEASE_BINDING,
     SCHEMA_HASH,
     SCHEMA_VERSION,
@@ -188,8 +192,7 @@ def _resolution(**overrides: object) -> ReferenceResolution:
         source_text="the servant",
         scope_key="spell:wish",
         target_record_key=DESTINATION,
-        package_uuid=RELEASE_BINDING.package_uuid,
-        release_version=RELEASE_BINDING.release_version,
+        release_binding=RELEASE_BINDING,
         provenance_span_ids=(SPELL_SPAN,),
     )
     return ReferenceResolution(**{**base, **overrides})  # type: ignore[arg-type]
@@ -634,12 +637,84 @@ def test_a_second_decision_about_one_citation_is_refused() -> None:
         )
 
 
-def test_a_resolution_reviewed_against_another_release_is_refused() -> None:
-    with pytest.raises(AcceptanceError, match="was reviewed against release"):
-        _resolve(
-            _accepted(),
-            _resolution(release_version="5.2.1-corpus.other"),
-        )
+@pytest.mark.parametrize("coordinate", [f.name for f in fields(ReleaseBinding)])
+def test_every_release_binding_coordinate_is_held_independently(
+    coordinate: str,
+) -> None:
+    """All six, not the two that name the release (#137 round 13).
+
+    A resolution used to restate ``package_uuid`` and ``release_version`` alone,
+    so a decision whose ``authoritative_source_hash``, ``transform_config_hash``,
+    ``bundle_root_hash`` or ``persisted_corpus_digest`` said it was reviewed
+    against *other content* was admitted unchanged. Those four are exactly the
+    coordinates that move when the content does. Each one is perturbed on its
+    own here, so a check that held five would still fail.
+    """
+    elsewhere = replace(RELEASE_BINDING, **{coordinate: "0" * 64})
+    with pytest.raises(AcceptanceError, match="was reviewed against release") as raised:
+        _resolve(_accepted(), _resolution(release_binding=elsewhere))
+    assert coordinate in str(raised.value)
+
+
+def test_a_binding_that_differs_in_several_coordinates_names_all_of_them() -> None:
+    elsewhere = replace(
+        RELEASE_BINDING,
+        bundle_root_hash="0" * 64,
+        persisted_corpus_digest="1" * 64,
+    )
+    with pytest.raises(AcceptanceError) as raised:
+        _resolve(_accepted(), _resolution(release_binding=elsewhere))
+    assert "bundle_root_hash" in str(raised.value)
+    assert "persisted_corpus_digest" in str(raised.value)
+
+
+@pytest.mark.parametrize("coordinate", [f.name for f in fields(ReleaseBinding)])
+def test_a_committed_resolution_bound_to_other_content_is_not_loadable(
+    tmp_path: Path, coordinate: str
+) -> None:
+    """The loader holds every coordinate too, over bytes the seam never produced."""
+    resolved = _resolve(_accepted())
+    payload = json.loads(serialize_accepted_inputs(resolved).decode("utf-8"))
+    payload["reference_resolutions"][0]["release_binding"][coordinate] = "0" * 64
+    path = tmp_path / "rebound.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(OracleLoadError, match="do not apply to this accepted"):
+        load_accepted_inputs(path)
+
+
+@pytest.mark.parametrize("coordinate", [f.name for f in fields(ReleaseBinding)])
+def test_a_committed_resolution_missing_a_coordinate_is_not_loadable(
+    tmp_path: Path, coordinate: str
+) -> None:
+    """Absent proof is refused, never completed from the artifact holding it."""
+    resolved = _resolve(_accepted())
+    payload = json.loads(serialize_accepted_inputs(resolved).decode("utf-8"))
+    del payload["reference_resolutions"][0]["release_binding"][coordinate]
+    path = tmp_path / "partial.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(OracleLoadError, match=f"missing \\['{coordinate}'\\]"):
+        load_accepted_inputs(path)
+
+
+def test_a_resolution_payload_written_before_the_whole_binding_is_refused(
+    tmp_path: Path,
+) -> None:
+    """An old two-coordinate payload is not blessed with today's missing proof.
+
+    The four coordinates it never recorded are exactly the ones that would have
+    to come from the artifact that happens to hold it — which would manufacture,
+    on load, the agreement the decision never proved.
+    """
+    resolved = _resolve(_accepted())
+    payload = json.loads(serialize_accepted_inputs(resolved).decode("utf-8"))
+    stated = payload["reference_resolutions"][0]
+    del stated["release_binding"]
+    stated["package_uuid"] = RELEASE_BINDING.package_uuid
+    stated["release_version"] = RELEASE_BINDING.release_version
+    path = tmp_path / "legacy.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(OracleLoadError, match="release_binding"):
+        load_accepted_inputs(path)
 
 
 def test_a_resolution_whose_provenance_is_not_what_review_read_is_refused() -> None:
@@ -856,6 +931,260 @@ def test_an_unknown_key_in_a_resolution_is_refused(tmp_path: Path) -> None:
     path = tmp_path / "widened.json"
     path.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(OracleLoadError, match="unexpected"):
+        load_accepted_inputs(path)
+
+
+# -- closed shapes, checked before anything reads them ------------------------
+
+
+def _as(cls: type, **overrides: object) -> object:
+    """One resolution rebuilt as *cls*, which may be an undeclared subclass."""
+    base = _resolution()
+    stated = {f.name: getattr(base, f.name) for f in fields(ReferenceResolution)}
+    return cls(**{**stated, **overrides})
+
+
+class _CitationImpostor(ReferenceResolution):
+    """A subclass answering the citation question with something else.
+
+    The reported P2: ``citation_key`` returned the citation the accepted
+    authority does state while ``source_text`` held another, so the seam keyed
+    on the method, admitted the decision, and wrote bytes whose declared fields
+    could not be loaded back.
+    """
+
+    def citation_key(self) -> tuple[str, str, str, str]:
+        return (SPELL_KEY, DESCRIPTOR_KEY, "the servant", "spell:wish")
+
+
+class _ObservedImpostor(ReferenceResolution):
+    """A subclass that reports the moment anything asks it the citation."""
+
+    def citation_key(self) -> tuple[str, str, str, str]:
+        raise AssertionError("observed before it was admitted")
+
+
+class _SneakyId(str):
+    """A ``str`` subclass that reports the moment a set hashes it."""
+
+    def __hash__(self) -> int:
+        raise AssertionError("observed before it was admitted")
+
+
+class _WiderBinding(ReleaseBinding):
+    """A binding subclass: identical payload, undeclared meaning."""
+
+
+def test_the_reported_citation_impostor_is_refused_at_the_seam() -> None:
+    """Not accepted-then-unloadable: refused before the decision is recorded."""
+    with pytest.raises(AcceptanceError, match="must be ReferenceResolution"):
+        _resolve(_accepted(), _as(_CitationImpostor, source_text="something else"))
+
+
+def test_a_subclass_is_refused_before_its_method_can_run() -> None:
+    """The AssertionError proves the ordering: nothing read it to refuse it."""
+    with pytest.raises(AcceptanceError, match="must be ReferenceResolution"):
+        _resolve(_accepted(), _as(_ObservedImpostor))
+
+
+def test_a_string_subclass_is_refused_before_the_replay_set_hashes_it() -> None:
+    """``resolution_id`` reaches a set before any semantic check sees it."""
+    with pytest.raises(AcceptanceError, match="resolution_id must be str"):
+        _resolve(_accepted(), _resolution(resolution_id=_SneakyId("resolve-1")))
+
+
+@pytest.mark.parametrize(
+    "field_name",
+    [
+        "resolution_id",
+        "from_record_key",
+        "from_component_key",
+        "source_text",
+        "scope_key",
+        "target_record_key",
+    ],
+)
+def test_a_primitive_impostor_in_any_string_field_is_refused(field_name: str) -> None:
+    with pytest.raises(AcceptanceError, match=f"{field_name} must be str"):
+        _resolve(_accepted(), _resolution(**{field_name: _SneakyId("x")}))
+
+
+def test_a_binding_subclass_is_refused() -> None:
+    """Identical declared fields, undeclared meaning, identical canonical bytes."""
+    wider = _WiderBinding(
+        **{f.name: getattr(RELEASE_BINDING, f.name) for f in fields(ReleaseBinding)}
+    )
+    with pytest.raises(AcceptanceError, match="release_binding must be ReleaseBinding"):
+        _resolve(_accepted(), _resolution(release_binding=wider))
+
+
+def test_a_binding_coordinate_that_is_not_a_string_is_refused() -> None:
+    wider = replace(RELEASE_BINDING, bundle_root_hash=_SneakyId("0" * 64))
+    with pytest.raises(
+        AcceptanceError, match="release_binding.bundle_root_hash must be str"
+    ):
+        _resolve(_accepted(), _resolution(release_binding=wider))
+
+
+def test_a_list_where_the_span_tuple_is_declared_is_refused() -> None:
+    """A list is not a tuple: it is mutable after the decision was validated."""
+    with pytest.raises(AcceptanceError, match="provenance_span_ids must be tuple"):
+        _resolve(_accepted(), _resolution(provenance_span_ids=[SPELL_SPAN]))
+
+
+def test_a_span_id_that_is_not_a_string_is_refused() -> None:
+    with pytest.raises(AcceptanceError, match=r"provenance_span_ids\[0\] must be str"):
+        _resolve(_accepted(), _resolution(provenance_span_ids=(_SneakyId(SPELL_SPAN),)))
+
+
+def test_a_list_of_resolutions_is_refused() -> None:
+    """The container is admitted before any element is reached."""
+    with pytest.raises(AcceptanceError, match="reference_resolutions must be tuple"):
+        _resolve(_accepted(), resolutions=[_resolution()])
+
+
+def test_one_impostor_refuses_the_whole_action_and_records_no_part_of_it() -> None:
+    """Deterministic and atomic, like every other refusal at this seam."""
+    accepted = _accepted(representation=_representation(SIBLING_UNRESOLVED))
+    before = serialize_accepted_inputs(accepted)
+    with pytest.raises(AcceptanceError, match="must be ReferenceResolution"):
+        _resolve(
+            accepted,
+            _resolution(),
+            _as(
+                _ObservedImpostor,
+                resolution_id="resolve-the-servant-open-ended-1",
+                from_component_key=OPEN_ENDED_KEY,
+            ),
+        )
+    assert accepted.oracle.reference_resolutions == ()
+    assert accepted.reference_resolution_acceptances == ()
+    assert serialize_accepted_inputs(accepted) == before
+
+
+def test_the_shape_pass_classifies_every_declared_field() -> None:
+    """A field added to the record joins the pass, or this fails.
+
+    The defect being closed was a hand-written list of two coordinates that did
+    not grow with its contract, so the inventory is derived — and asserted
+    exhaustive here rather than trusted.
+    """
+    declared = {f.name for f in fields(ReferenceResolution)}
+    assert (
+        set(_RESOLUTION_STRING_FIELDS)
+        | {
+            "release_binding",
+            "provenance_span_ids",
+        }
+        == declared
+    )
+    assert set(_BINDING_FIELDS) == {f.name for f in fields(ReleaseBinding)}
+
+
+# -- one accepted set of spans, one canonical identity ------------------------
+
+#: The same citation read out of two spans. Semantically a set: review read the
+#: phrase in both places, and neither is "first".
+TWO_SPANS = (SPELL_SPAN, PROSE_SPAN)
+
+
+def _two_span_accepted() -> AcceptedInputs:
+    """The bounded fixture whose unresolved citation cites two spans."""
+    base = build_representation()
+    representation = build_representation(
+        references=(UNRESOLVED,),
+        provenance=base.provenance
+        + tuple(reference_claim(UNRESOLVED, span_id) for span_id in TWO_SPANS),
+    )
+    return _accepted(representation=representation)
+
+
+def test_two_spans_in_canonical_order_are_accepted() -> None:
+    resolved = _resolve(
+        _two_span_accepted(), _resolution(provenance_span_ids=tuple(sorted(TWO_SPANS)))
+    )
+    assert resolved.oracle.reference_resolutions[0].provenance_span_ids == tuple(
+        sorted(TWO_SPANS)
+    )
+
+
+def test_the_other_order_of_the_same_spans_is_refused() -> None:
+    """One accepted meaning, one accepted order, one identity (#137 round 13).
+
+    Both orders used to be accepted, and the effective views compared equal —
+    but ``provenance_span_ids`` reaches the canonical payload, so the artifact
+    identified two ways. Refused rather than silently sorted: sorting would make
+    the accepted in-memory decision differ from the one its own bytes reload as.
+    """
+    permuted = tuple(reversed(sorted(TWO_SPANS)))
+    with pytest.raises(AcceptanceError, match="not in canonical order"):
+        _resolve(_two_span_accepted(), _resolution(provenance_span_ids=permuted))
+
+
+def test_the_refusal_names_the_canonical_order() -> None:
+    permuted = tuple(reversed(sorted(TWO_SPANS)))
+    with pytest.raises(AcceptanceError) as raised:
+        _resolve(_two_span_accepted(), _resolution(provenance_span_ids=permuted))
+    assert str(sorted(TWO_SPANS)) in str(raised.value)
+
+
+def test_one_span_stated_twice_is_refused() -> None:
+    """Duplicate evidence is not more evidence, and it changes the payload."""
+    with pytest.raises(AcceptanceError, match="names the same span more than once"):
+        _resolve(
+            _two_span_accepted(),
+            _resolution(provenance_span_ids=(SPELL_SPAN, SPELL_SPAN)),
+        )
+
+
+def test_a_blank_span_is_refused() -> None:
+    with pytest.raises(AcceptanceError, match="names a blank span"):
+        _resolve(_accepted(), _resolution(provenance_span_ids=("   ",)))
+
+
+def test_the_canonical_decision_keeps_one_identity_through_its_own_bytes(
+    tmp_path: Path,
+) -> None:
+    """Accept, serialize, reload: one identity, and the bytes do not move."""
+    resolved = _resolve(
+        _two_span_accepted(), _resolution(provenance_span_ids=tuple(sorted(TWO_SPANS)))
+    )
+    path = tmp_path / "two-span.json"
+    path.write_bytes(serialize_accepted_inputs(resolved))
+    reloaded = load_accepted_inputs(path)
+
+    assert (
+        reloaded.oracle.reference_resolutions == resolved.oracle.reference_resolutions
+    )
+    assert oracle_identity(reloaded.oracle) == oracle_identity(resolved.oracle)
+    assert serialize_accepted_inputs(reloaded) == path.read_bytes()
+    # Set-compared: the loader canonicalizes element order, which is its own
+    # long-standing contract and not what this test is about.
+    assert {
+        (r.scope_key, r.source_text, r.target_record_key)
+        for r in effective_representation(
+            reloaded.oracle.representation, reloaded.oracle.reference_resolutions
+        ).references
+    } == {
+        (r.scope_key, r.source_text, r.target_record_key)
+        for r in effective_representation(
+            resolved.oracle.representation, resolved.oracle.reference_resolutions
+        ).references
+    }
+
+
+def test_a_committed_permutation_is_not_loadable(tmp_path: Path) -> None:
+    """The loader owns this too: bytes in the other order are not authority."""
+    resolved = _resolve(
+        _two_span_accepted(), _resolution(provenance_span_ids=tuple(sorted(TWO_SPANS)))
+    )
+    payload = json.loads(serialize_accepted_inputs(resolved).decode("utf-8"))
+    payload["reference_resolutions"][0]["provenance_span_ids"] = list(
+        reversed(sorted(TWO_SPANS))
+    )
+    path = tmp_path / "permuted.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(OracleLoadError, match="not in canonical order"):
         load_accepted_inputs(path)
 
 

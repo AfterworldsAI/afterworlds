@@ -40,13 +40,16 @@ silently closed.
 from __future__ import annotations
 
 from collections import Counter
-from dataclasses import replace
+from dataclasses import fields, replace
+from typing import cast
 
-from afterworlds.ingestion.mechanical.models import ReferenceResolution
-from afterworlds.ingestion.mechanical.projection import ReleaseBinding
+from afterworlds.ingestion.mechanical.models import ReferenceResolution, ReleaseBinding
+from afterworlds.ingestion.mechanical.projection import release_binding_payload
 from afterworlds.ingestion.mechanical.representation import (
     ProvenanceTargetKind,
     RepresentationDraft,
+    exact_tuple_violations,
+    exact_type_violations,
     reference_target_key,
 )
 from afterworlds.ingestion.mechanical.validation import (
@@ -56,8 +59,131 @@ from afterworlds.ingestion.mechanical.validation import (
 __all__ = [
     "effective_representation",
     "reference_resolution_payload",
+    "reference_resolution_shape_violations",
     "reference_resolution_violations",
 ]
+
+#: The six coordinates :class:`ReleaseBinding` declares, derived from the
+#: dataclass rather than listed. A seventh coordinate joins the comparison and
+#: the shape pass by being declared, which is the only way a hand-written list
+#: of six names would not have drifted — the defect this module is closing is
+#: exactly a hand-written list of *two* (#137 round 13).
+_BINDING_FIELDS: tuple[str, ...] = tuple(f.name for f in fields(ReleaseBinding))
+
+#: Every ``str``-declared field of :class:`ReferenceResolution`. The two fields
+#: this does not name — ``release_binding`` and ``provenance_span_ids`` — are
+#: checked explicitly below, and ``test_reference_resolution`` asserts the three
+#: groups exhaust the declaration, so a field added later cannot be admitted
+#: unchecked.
+_RESOLUTION_STRING_FIELDS: tuple[str, ...] = tuple(
+    f.name for f in fields(ReferenceResolution) if str(f.type) == "str"
+)
+
+
+def reference_resolution_shape_violations(resolutions: object) -> list[str]:
+    """Every reason these values may not be *read* as reference resolutions.
+
+    The closed-structure admission :mod:`representation` states for the accepted
+    representation, applied to the resolution family — and it runs before any
+    reader of *resolutions* does. Nothing here trusts a declared annotation, a
+    method, or a field's apparent type: a value is admitted by its exact runtime
+    type or it is refused, in the documented order
+
+        parent exact runtime type -> held-container exact runtime type ->
+        child exact runtime type -> semantic observation
+
+    and each step returns before the next one reads anything.
+
+    **Why a method could not be trusted.** ``ReferenceResolution.citation_key``
+    derives the citation a decision resolves from four declared fields, and the
+    seam keyed on its result. A subclass overriding it returned the citation the
+    accepted authority does state while ``source_text`` held another, so the
+    decision was admitted against a citation nobody reviewed — and the serialized
+    bytes, which are written from the declared fields, could not be loaded back
+    (#137 round 13). A ``str`` subclass, a ``list`` where a ``tuple`` is
+    declared, and a :class:`ReleaseBinding` subclass are the same defect in the
+    other two shapes: each canonicalizes as the closed type it impersonates
+    while carrying undeclared state or overridden behaviour.
+
+    **Canonical span evidence, refused rather than reordered.** The spans a
+    review read are an unordered set, but ``provenance_span_ids`` reaches the
+    canonical payload and therefore the oracle's identity. Two permutations of
+    one decision compared equal in the effective view and minted two identities.
+    Quietly sorting would have been worse: the accepted in-memory object and the
+    object reloaded from its own bytes would differ. So exactly one order is
+    admitted — sorted, unique, non-blank — and a permutation is refused with the
+    canonical form named.
+
+    Reported rather than raised, like every other violation function here; both
+    the acceptance seam and the loader turn findings into a refusal.
+    """
+    if container := exact_tuple_violations(resolutions, "reference_resolutions"):
+        return container
+    admitted = cast("tuple[object, ...]", resolutions)
+
+    if elements := [
+        v
+        for index, resolution in enumerate(admitted)
+        for v in exact_type_violations(
+            resolution, ReferenceResolution, f"reference_resolutions[{index}]"
+        )
+    ]:
+        # Every element is admitted before any element's fields are read. One
+        # impostor in the tuple must not be reported alongside observations made
+        # on its neighbours, because those observations would already have run.
+        return elements
+
+    typed = cast("tuple[ReferenceResolution, ...]", resolutions)
+    findings: list[str] = []
+    for index, resolution in enumerate(typed):
+        tag = f"reference_resolutions[{index}]"
+        for name in _RESOLUTION_STRING_FIELDS:
+            findings.extend(
+                exact_type_violations(getattr(resolution, name), str, f"{tag}.{name}")
+            )
+        binding = exact_type_violations(
+            resolution.release_binding, ReleaseBinding, f"{tag}.release_binding"
+        )
+        findings.extend(binding)
+        if not binding:
+            for name in _BINDING_FIELDS:
+                findings.extend(
+                    exact_type_violations(
+                        getattr(resolution.release_binding, name),
+                        str,
+                        f"{tag}.release_binding.{name}",
+                    )
+                )
+        spans = exact_tuple_violations(
+            resolution.provenance_span_ids, f"{tag}.provenance_span_ids"
+        )
+        findings.extend(spans)
+        if not spans:
+            for position, span_id in enumerate(resolution.provenance_span_ids):
+                findings.extend(
+                    exact_type_violations(
+                        span_id, str, f"{tag}.provenance_span_ids[{position}]"
+                    )
+                )
+    if findings:
+        return findings
+
+    for index, resolution in enumerate(typed):
+        tag = f"reference_resolutions[{index}]"
+        span_ids = resolution.provenance_span_ids
+        if any(not span_id.strip() for span_id in span_ids):
+            findings.append(f"{tag}.provenance_span_ids names a blank span")
+        elif len(set(span_ids)) != len(span_ids):
+            findings.append(
+                f"{tag}.provenance_span_ids names the same span more than once"
+            )
+        elif list(span_ids) != sorted(span_ids):
+            findings.append(
+                f"{tag}.provenance_span_ids is not in canonical order; the spans "
+                "a review read are unordered evidence but this tuple reaches the "
+                f"accepted identity, so state them as {sorted(span_ids)}"
+            )
+    return findings
 
 
 def effective_representation(
@@ -87,7 +213,19 @@ def effective_representation(
     if not resolutions:
         return representation
 
-    by_citation = {r.citation_key(): r for r in resolutions}
+    # Keyed from the declared fields rather than through ``citation_key``.
+    # This view is reached by the gate and the loader with values the seam has
+    # already admitted, but a derived view must not be the one place a method
+    # could still supply the coordinates the payload does not (#137 round 13).
+    by_citation = {
+        (
+            r.from_record_key,
+            r.from_component_key,
+            r.source_text,
+            r.scope_key,
+        ): r
+        for r in resolutions
+    }
     remapped: dict[tuple[str, ...], tuple[str, ...]] = {}
     references = []
     for ref in representation.references:
@@ -156,7 +294,15 @@ def reference_resolution_violations(
     record-owned/component cross-form case and anything else the validator
     grows, each in the words publication is judged by. Restating ambiguity here
     would be a second definition of it that eventually disagrees.
+
+    **Shape before meaning.** Nothing below reads a resolution until
+    :func:`reference_resolution_shape_violations` has admitted every one of
+    them, and a shape finding returns immediately: an observation about a value
+    that may not be read at all is an observation already made.
     """
+    if shape := reference_resolution_shape_violations(resolutions):
+        return shape
+
     findings: list[str] = []
     seen_ids: set[str] = set()
     seen_citations: dict[tuple[str, str, str, str], str] = {}
@@ -210,14 +356,25 @@ def reference_resolution_violations(
             continue
         seen_citations[citation] = resolution.resolution_id
 
-        if (resolution.package_uuid, resolution.release_version) != (
-            binding.package_uuid,
-            binding.release_version,
-        ):
+        # Every coordinate of the binding, compared one declared field at a
+        # time. The pair that names a release was not enough: a package uuid and
+        # a release version can be carried over a re-run source, a changed
+        # transform, a different bundle root or a different persisted corpus,
+        # and a decision admitted on that pair alone is re-applied to authority
+        # review never read. Field-by-field rather than ``!=`` so no ``__eq__``
+        # on either side decides its own admission, and derived from
+        # ``fields(ReleaseBinding)`` so a seventh coordinate is compared by
+        # being declared (#137 round 13).
+        if differing := [
+            name
+            for name in _BINDING_FIELDS
+            if getattr(resolution.release_binding, name) != getattr(binding, name)
+        ]:
             findings.append(
-                f"{tag}: was reviewed against release {resolution.package_uuid}/"
-                f"{resolution.release_version}, not {binding.package_uuid}/"
-                f"{binding.release_version}"
+                f"{tag}: was reviewed against release "
+                f"{resolution.release_binding.package_uuid}/"
+                f"{resolution.release_binding.release_version}, which is not the "
+                f"release this accepted authority is bound to: {differing} differ"
             )
             continue
 
@@ -256,7 +413,10 @@ def reference_resolution_violations(
         # Source-bound exactness. The decision approved a destination for a
         # citation read out of exactly these spans; a citation whose provenance
         # now cites others is not the one review saw, whatever its wording.
-        recorded = tuple(sorted(resolution.provenance_span_ids))
+        # No ``sorted`` on the recorded side: the shape pass admits only the
+        # canonical order, so re-sorting here would hide a non-canonical tuple
+        # from the very check that owns it.
+        recorded = resolution.provenance_span_ids
         actual = tuple(sorted(provenance_by_key.get(unresolved_key, ())))
         if recorded != actual:
             findings.append(
@@ -290,6 +450,18 @@ def reference_resolution_payload(
     for the reason ``acceptance._ordered`` orders spans by content: the sequence
     review happened in is evidence, not part of the accepted result, and letting
     it into the payload would make the oracle's identity depend on it.
+
+    The release nests under one ``release_binding`` key, emitted by the same
+    :func:`~.projection.release_binding_payload` the artifact's own binding uses,
+    rather than as loose coordinates beside the citation. A payload written
+    before this stated ``package_uuid`` and ``release_version`` alone; the loader
+    refuses it as missing its binding rather than reconstructing the four
+    coordinates it never recorded from whichever artifact happens to hold it
+    (#137 round 13).
+
+    ``provenance_span_ids`` is emitted exactly as recorded, because the shape
+    pass admits exactly one order — sorting here instead would give a
+    non-canonical accepted object and its own serialized bytes two identities.
     """
     return [
         {
@@ -299,8 +471,7 @@ def reference_resolution_payload(
             "source_text": r.source_text,
             "scope_key": r.scope_key,
             "target_record_key": r.target_record_key,
-            "package_uuid": r.package_uuid,
-            "release_version": r.release_version,
+            "release_binding": release_binding_payload(r.release_binding),
             "provenance_span_ids": list(r.provenance_span_ids),
         }
         for r in sorted(resolutions, key=lambda r: r.resolution_id)

@@ -524,3 +524,159 @@ accounting or settings change. Seven accepted batches, historical
 schemas/identities, Speed scope order, the four-part release binding and
 override/replay are all preserved. No validator was weakened and no finding
 excluded.
+
+## Round 13 — the reference-resolution input-integrity family
+
+Three automated-review findings on `1fd4b302`, independently reproduced with the
+production `accept_proposal` / `resolve_references` / `serialize` / `load` over
+`test_reference_resolution`'s isolated fixture. Classified together and fixed in
+one commit: all three are the same defect — **a reviewed decision was admitted
+on less evidence than it claims to carry**, and the boundary check fired because
+this is the same lifecycle hotspot round 12's overlap correction touched.
+
+### Finding 1 (P1) — a decision bound to two of six release coordinates
+
+`ReferenceResolution` stored `package_uuid` and `release_version`, and
+`reference_resolution_violations` compared exactly that pair. `ReleaseBinding`
+requires six, and the four it did not carry — `authoritative_source_hash`,
+`transform_config_hash`, `bundle_root_hash`, `persisted_corpus_digest` — are the
+ones that move when the *content* does. Modifying any one of them on the prior
+binding and re-running the acceptance still admitted the original decision: the
+release name is reusable over a re-run source, a changed transform, a different
+bundle root or a different persisted corpus, so a decision admitted on the name
+alone is re-applied to authority review never read.
+
+The record now carries `release_binding: ReleaseBinding` whole.
+`ReleaseBinding` moved from `projection` to `models` — a leaf module importing
+nothing from the package, so a reviewed decision that names its release does not
+depend on the build pipeline to say so. `projection` imports and re-exports it
+and already listed it in `__all__`, so every existing importer is unchanged.
+The check is now field-by-field over `fields(ReleaseBinding)`: derived, so a
+seventh coordinate joins by being declared; field-by-field rather than `!=`, so
+no `__eq__` on either side decides its own admission; and the refusal names each
+differing coordinate.
+
+On the wire the binding nests under one `release_binding` key emitted by the
+same `release_binding_payload` the artifact's own binding uses. A payload
+written before this — two loose coordinates — is refused by `_require` as
+missing its binding. It is **not** completed from the artifact holding it: the
+four absent coordinates would then be manufactured on load into exactly the
+agreement the decision never proved. `_RELEASE_BINDING_FIELDS` is now one
+module constant in `oracle`, shared by both parse sites, because a loader that
+spelled the key set twice is how the two-coordinate version survived.
+
+### Finding 2 (P2) — a method, not the declared fields, supplied the citation
+
+`effective_representation` and `reference_resolution_violations` keyed on
+`ReferenceResolution.citation_key()`. A subclass overriding it returned the
+citation the accepted authority does state while `source_text` held another;
+the seam admitted the decision and wrote bytes whose declared fields could not
+be loaded back (`OracleLoadError`) — ordinary malformed input failing
+non-deterministically and non-atomically.
+
+`reference_resolution_shape_violations` is the closed-shape admission the
+`representation` module already states for the accepted representation, applied
+to this family and following its documented order — parent exact runtime type,
+held-container exact runtime type, child exact runtime type, semantic
+observation — with each step returning before the next reads anything. No
+`repr` of a rejected value anywhere, for the reason `exact_type_violations`
+documents. `effective_representation` now builds its key from the declared
+fields rather than through the method.
+
+It is a **separate public helper** rather than a block inside
+`reference_resolution_violations` because `resolve_references` reads
+`{r.resolution_id for r in resolutions}` for the replay check *before* it calls
+the violations function: a `str` subclass with its own `__hash__` would have
+answered the already-recorded question about itself, and a resolution subclass
+would have executed a property to do it. The seam now calls the shape pass
+first — before `not resolutions`, before the id set, before anything — and the
+violations function calls it first too, so the loader inherits it unchanged.
+
+### Finding 3 (P2) — unordered evidence reaching the identity
+
+`provenance_span_ids` is semantically a set: `reference_resolution_violations`
+already sorted both sides before comparing. But the tuple reaches
+`reference_resolution_payload` verbatim and therefore the oracle identity, so
+the same decision stated in two orders was accepted twice, compared equal in the
+effective view, and produced two `oracle_identity` values.
+
+Resolved by **refusing** non-canonical input rather than canonicalizing it.
+Canonicalizing only in the payload would leave the accepted in-memory decision
+differing from the object its own bytes reload as. The shape pass admits exactly
+one order — sorted, unique, non-blank — and names the canonical form in the
+refusal. `models.ReferenceResolution` already documented these ids as "sorted";
+that sentence is now a requirement the seam and the loader both hold. The
+redundant `sorted()` on the recorded side of the provenance-exactness check is
+gone, because re-sorting there would hide a non-canonical tuple from the check
+that owns it.
+
+### Sibling disposition map
+
+Family: *a reviewed decision admitted on less evidence than it claims to carry*.
+Trigger: three findings in one round on `reference_resolution`, the same
+lifecycle hotspot as round 12's overlap correction.
+
+| Sibling | Disposition |
+| --- | --- |
+| `reference_resolution.reference_resolution_violations` | **patched** — shape pass first, whole binding, canonical spans |
+| `reference_resolution.effective_representation` | **patched** — keys on declared fields, not `citation_key()` |
+| `reference_resolution.reference_resolution_payload` | **patched** — nests `release_binding`, emits spans as recorded |
+| `acceptance.resolve_references` | **patched** — shape pass before the replay set reads `resolution_id` |
+| `acceptance.accept_proposal` carried-decision check (l. 594-607) | **already safe** — routes through `reference_resolution_violations`, so it inherits the shape pass; carries `prior.oracle.reference_resolutions`, already admitted |
+| `oracle._reference_resolution` (loader) | **patched** — requires the nested six-coordinate binding; old flat payloads refused, not completed |
+| `oracle._load` binding parse | **patched** — shares `_RELEASE_BINDING_FIELDS` with the resolution parse |
+| `oracle._load` post-parse re-validation (l. 1701) | **already safe** — calls `reference_resolution_violations` |
+| `oracle.candidate_from_accepted_inputs` (l. 1831) | **already safe** — reads only seam/loader-admitted resolutions |
+| `gate.run_publication_gate` / `gate._accepted_identity` | **already safe** — same; neither constructs nor accepts a resolution from outside |
+| `models.ReferenceResolutionAcceptance` | **already safe** — constructed internally by `resolve_references` from its own validated kwargs, parsed strictly by the loader; not an entry point |
+| `persistence`, `publication`, `raw_state`, `report` | **already safe** — no reference-resolution surface (grepped) |
+| `proposal.MechanicalProposal` / `ReviewUnit` paths | **out of scope** — the representation closed-shape defenses are a reference pattern here, not permission to refactor unrelated entry points |
+| Corpus-wide closed-shape sweep | **out of scope** — the brief bounds this to the resolution family |
+
+### Regression coverage
+
+`tests/ingestion/mechanical/test_reference_resolution.py`: 78 test functions
+collecting 101 cases, up from 56 functions collecting 59. New, in three
+groups:
+
+* **binding** — each of the six coordinates perturbed on its own, parametrized
+  over `fields(ReleaseBinding)`, refused with the coordinate named; several
+  differing coordinates all named; each coordinate tampered in committed bytes
+  refused on load; each coordinate *deleted* from committed bytes refused on
+  load; a pre-nesting flat payload refused rather than completed;
+* **shape** — the reported `citation_key` impostor refused at the seam rather
+  than accepted-then-unloadable; a subclass whose method raises if read, proving
+  the type check ran first; a `str` subclass refused before the replay set
+  hashes it, and in every declared string field; a `ReleaseBinding` subclass; a
+  non-string binding coordinate; a `list` where the span tuple is declared; a
+  non-string span id; a `list` of resolutions; one impostor refusing a joint
+  action whole with byte-identical `prior`; and an exhaustiveness assertion that
+  the derived field inventories cover every declared field;
+* **canonical spans** — a two-span citation accepted in sorted order, the
+  permutation refused with the canonical order named, a duplicate refused, a
+  blank refused, one identity held through accept → serialize → reload, and a
+  committed permutation refused by the loader.
+
+### Preserved, and verified
+
+The accepted artifact is byte-identical: `srd-5-2-1-corpus-36b786d8-fa2.json`
+sha256 `995976ac1c2b0227d419fc4a7b65a966358e311c7806a1a8f0457a535b4300d7`,
+1,083,169 bytes, unmodified in the working tree. `reference_resolutions` is
+empty in it, so no accepted content migrates and no re-acceptance is needed. The
+Proficiency acceptance script replays clean under `--verify`: 9 batches, 761
+spans, 5 review units, oracle `3b8941ce9039…`, blob `ec645c7e89a1…`, 14
+reference obligations outstanding, four original completed Proficiency links
+intact. Round 12's overlap membership / `Counter` multiset / atomic
+joint-resolution fixes are untouched and still covered.
+
+### Boundaries not crossed (round 13)
+
+No new Owner policy: ADR-005d Decision 7 as amended already requires a
+resolution to name "the release it was reviewed against" and "the provenance
+spans review read the citation from" (l. 1292), and keeps canonical ordering
+among the reference properties that fail closed (l. 1269); and
+`models.ReferenceResolution` already documented these span ids as "sorted" —
+these are implementation catching up to a recorded contract, so no ADR amendment
+was written. No new source ingestion, no real citation resolution, no generic
+supersession, no retargeting. No corpus-wide cleanup, no unrelated closed-shape
+refactor, no dependency or audit-exclusion change, no settings change.

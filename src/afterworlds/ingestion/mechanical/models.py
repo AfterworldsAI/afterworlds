@@ -383,6 +383,30 @@ class ReviewUnitAcceptance:
 
 
 @dataclass(frozen=True)
+class ReleaseBinding:
+    """The exact published 5c release a projection is built over (#137 contract 1).
+
+    All six values are required. A matching slug, display name, source label, or
+    filename is not a binding — these are the reconstructable proof identities
+    CRD Issue 5c already publishes, so a projection cannot claim a release it
+    was not actually built from.
+
+    Declared here rather than in :mod:`projection`, where it was first written,
+    because :class:`ReferenceResolution` carries one: this module is a leaf that
+    imports nothing from the package, and a reviewed decision that names its
+    release must not depend on the build pipeline to say so.
+    :mod:`projection` re-exports it, so every existing importer is unchanged.
+    """
+
+    package_uuid: str
+    release_version: str
+    authoritative_source_hash: str
+    transform_config_hash: str
+    bundle_root_hash: str
+    persisted_corpus_digest: str
+
+
+@dataclass(frozen=True)
 class ReferenceResolution:
     """A reviewed destination for one accepted reference that had none.
 
@@ -409,16 +433,30 @@ class ReferenceResolution:
     when, which is evidence and reaches no identity — the same split
     :class:`ReviewUnit` and :class:`ReviewUnitAcceptance` already make.
 
-    ``package_uuid`` and ``release_version`` restate the release this resolution
-    was reviewed against. They are not redundant with the oracle's binding: they
-    are what makes a resolution pasted into another release's artifact a
-    mismatch rather than a silent re-application of a decision nobody made about
-    that release.
+    ``release_binding`` restates the **whole** release this resolution was
+    reviewed against — all six coordinates :class:`ReleaseBinding` requires, not
+    the two that name it. It is not redundant with the oracle's binding: it is
+    what makes a resolution pasted into another release's artifact a mismatch
+    rather than a silent re-application of a decision nobody made about that
+    release. Two coordinates were not enough to say that. A release version and
+    package uuid can be reused over a rebuilt source, a changed transform, a
+    different bundle root or a different persisted corpus, and a decision
+    admitted on that pair alone would have been re-applied to authority review
+    never read. The four hash coordinates are the ones that actually change when
+    the content does, so the record states them and the seam holds every one
+    (#137 round 13).
 
     ``provenance_span_ids`` names the source spans the accepted citation's
-    provenance claims cite, sorted. Review approved a destination *for a citation
-    read out of exactly those spans*; if the accepted citation's provenance later
-    cites others, this decision no longer describes it and must not be applied.
+    provenance claims cite, sorted, unique and non-blank — and that is a
+    requirement, not a description. The spans a review read are unordered
+    evidence, but this tuple reaches the canonical payload and therefore the
+    oracle identity, so two permutations of one decision would mint two
+    identities for one accepted meaning. Exactly one order is admitted; a
+    permutation is refused rather than quietly reordered, so what was accepted
+    and what was serialized are the same object. Review approved a destination
+    *for a citation read out of exactly those spans*; if the accepted citation's
+    provenance later cites others, this decision no longer describes it and must
+    not be applied.
     """
 
     resolution_id: str
@@ -427,8 +465,7 @@ class ReferenceResolution:
     source_text: str
     scope_key: str
     target_record_key: str
-    package_uuid: str
-    release_version: str
+    release_binding: ReleaseBinding
     provenance_span_ids: tuple[str, ...]
 
     def citation_key(self) -> tuple[str, str, str, str]:
