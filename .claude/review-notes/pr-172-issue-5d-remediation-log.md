@@ -628,7 +628,7 @@ lifecycle hotspot as round 12's overlap correction.
 | `oracle._load` post-parse re-validation (l. 1701) | **already safe** — calls `reference_resolution_violations` |
 | `oracle.candidate_from_accepted_inputs` (l. 1831) | **already safe** — reads only seam/loader-admitted resolutions |
 | `gate.run_publication_gate` / `gate._accepted_identity` | **already safe** — same; neither constructs nor accepts a resolution from outside |
-| `models.ReferenceResolutionAcceptance` | **already safe** — constructed internally by `resolve_references` from its own validated kwargs, parsed strictly by the loader; not an entry point |
+| `models.ReferenceResolutionAcceptance` | **patched (round 14)** — this disposition was wrong. Its four authorization values arrive as `resolve_references` keyword arguments and were never admitted: the "validated kwargs" were only `.strip()`-checked, which asks the value about itself. See round 14 below |
 | `persistence`, `publication`, `raw_state`, `report` | **already safe** — no reference-resolution surface (grepped) |
 | `proposal.MechanicalProposal` / `ReviewUnit` paths | **out of scope** — the representation closed-shape defenses are a reference pattern here, not permission to refactor unrelated entry points |
 | Corpus-wide closed-shape sweep | **out of scope** — the brief bounds this to the resolution family |
@@ -680,3 +680,109 @@ these are implementation catching up to a recorded contract, so no ADR amendment
 was written. No new source ingestion, no real citation resolution, no generic
 supersession, no retargeting. No corpus-wide cleanup, no unrelated closed-shape
 refactor, no dependency or audit-exclusion change, no settings change.
+
+
+## Round 14 — the authorization ingress of the same seam
+
+**Comment 4056524056 (P2), verified at `a5ea2d39cd28a96ccd1bf84851e33374f4c53bfc`.**
+
+### What was wrong
+
+`acceptance.resolve_references` admitted its four authorization arguments by
+calling `value.strip()` on them — the first thing the function did, before the
+round-13 closed-shape pass and before every other refusal. A `str` subclass
+answering `strip` for itself therefore supplied its own admission:
+
+```python
+class Blank(str):
+    def strip(self, chars=None):
+        return "forged audit proof"
+```
+
+`Blank("")` passed independently as `authorized_by`, `authorization_reference`,
+`reviewer` or `resolved_at` was accepted in all four cases. What
+`serialize_accepted_inputs` then wrote was the actual value — blank — so the
+artifact stated an unattributed authorization, and `load_accepted_inputs`
+refused to read back the evidence this seam had just produced:
+`OracleLoadError: the authorization of reference resolution
+'resolve-the-servant-1' states no ...`. Ordinary wrong types were no better:
+`None` and `42` failed as `AttributeError`, an incidental exception rather than
+a refusal. Prior bytes were unchanged in every probe — the defect was admission,
+not atomicity.
+
+The reason this one survived round 13 is recorded above: the sibling map called
+`ReferenceResolutionAcceptance` "already safe ... from its own validated
+kwargs". The resolution DTO, the tuple, the release binding and the provenance
+spans all got an exact-shape check in round 13; the four values naming *who
+decided* did not. That asymmetry is the whole finding — a seam whose own loader
+constructs plain `str` and rejects blank evidence must not return evidence that
+loader refuses.
+
+### The correction
+
+One change, at the named root cause. `resolve_references` now builds the four
+`(label, field, value)` triples once, collects `exact_type_violations(value,
+str, field)` across all four, and raises a single `AcceptanceError` naming every
+undeclared value before anything reads one. `exact_type_violations` compares
+`type(value) is str` and reports the type name only — it never calls a method
+on, iterates or `repr`s what it refuses. The existing blank pass then runs
+unchanged, with its message verbatim, so `"   "` still fails with "must name its
+authorizing authority; an unattributed resolution is not a reviewed decision".
+
+Nothing normalizes the admitted text: a stated authorization persists exactly as
+given. Authorization stays separate from authority — admission checks the type
+of the four audit values and has no opinion about who may decide. Every refusal
+still precedes the single `replace(...)` return, so the action remains whole.
+
+### Sibling audit — the four-field authorization ingress
+
+*Family:* closed-input / serialization-integrity at the reference-resolution
+lifecycle hotspot — the same family as rounds 12 and 13, now at the
+authorization arguments rather than the resolution payload. *Trigger:* a
+verified sibling defect immediately after a narrow fix that should have checked
+it, plus the incorrect round-13 disposition.
+
+| Seam | Disposition |
+| --- | --- |
+| `acceptance.resolve_references` authorization loop | **patched** — exact-`str` admission of all four fields before any observation |
+| `models.ReferenceResolutionAcceptance` | **patched** — round-13 row corrected above; its only producer is now the admitted seam |
+| `acceptance.accept_proposal` carry of `prior.reference_resolution_acceptances` (l. 682-683, 896) | **already safe** — carried verbatim, never rebuilt; the tuple can only come from this seam (now admitted) or the loader (plain `str`) |
+| `oracle._acceptance` parse of the five fields | **already safe** — `_require` on the exact key set, each value through `_string`, which raises unless `type(value) is str` |
+| `oracle._load` authorization blank pass (l. 1757-1772) | **already safe** — independently refuses blank/missing evidence with `OracleLoadError` |
+| `oracle` acceptance-record emitter (l. 2028-2044) | **already safe** — writes the five declared values sorted by `resolution_id`, omitted when empty |
+| `acceptance.accept_proposal` `reviewer.strip()` / `rule.strip()` (l. 322-325) | **out of scope** — *identical shape, not fixed here.* The brief bounds this round away from "unrelated proposal/review-unit authoring rewrite". Surfaced, not silently patched: the same forged-`strip` probe would pass there |
+| Corpus-wide `.strip()`-before-admission sweep | **out of scope** — same bound |
+
+### Regression coverage
+
+`tests/ingestion/mechanical/test_reference_resolution.py`: 127 cases, up from
+101. The new group parametrizes over the field inventory derived from
+`fields(ReferenceResolutionAcceptance)` minus `resolution_id`, so a newly
+declared audit field breaks the tests rather than slipping past them:
+
+* the reported `_ForgedAudit(str)` blank refused in each of the four fields;
+* an `_ObservedAudit(str)` whose `strip` raises, refused in each of the four —
+  proof that admission precedes invocation;
+* `None`, `42`, `b"Owner"` and `["Owner"]` in each of the four, each an
+  `AcceptanceError` rather than an incidental exception;
+* a joint action over two valid resolutions with one forged authorization:
+  refused whole, `reference_resolutions == ()`, acceptances `()`, prior bytes
+  byte-identical;
+* a stated authorization that persists and reloads verbatim, with all four
+  values plain `str` — and an assertion that the four cover the declaration.
+
+The existing negative control `test_an_unattributed_resolution_is_refused`
+(blank plain strings, all four fields) is unchanged and still passes, as is all
+round-12/13 binding, shape, canonical-span, overlap, joint-action, replay and
+lift coverage.
+
+### Preserved, and verified
+
+The accepted artifact is byte-identical: `srd-5-2-1-corpus-36b786d8-fa2.json`
+sha256 `995976ac1c2b0227d419fc4a7b65a966358e311c7806a1a8f0457a535b4300d7`,
+1,083,169 bytes, oracle `3b8941ce9039...`, unmodified in the working tree. Both
+proposal files, the nine accepted batches, the fourteen obligations and the four
+completed Proficiency links are untouched. No source ingestion, no real citation
+resolution, no retargeting, no dependency or audit-exclusion change, no settings
+change. No ADR amendment is indicated: admitting a declared `str` as a `str` is
+implementation catching up to the recorded contract, not a new decision.

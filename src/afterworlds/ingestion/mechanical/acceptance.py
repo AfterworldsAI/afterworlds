@@ -107,6 +107,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ProvenanceClaim,
     RepresentationDraft,
     component_target_key,
+    exact_type_violations,
     held_structure_violations,
     prose_binding_target_key,
     record_target_key,
@@ -805,6 +806,9 @@ def resolve_references(
       coordinates that is not what review saw;
     * a resolution whose effective view publication would refuse, ambiguity
       above all;
+    * an authorization whose authority, reference, reviewer or timestamp is not
+      exactly a ``str``, refused before anything asks the value about itself, so
+      a ``str`` subclass cannot supply its own admission;
     * an authorization missing its authority, its reference, its reviewer or its
       timestamp. ``authorized_by`` and ``authorization_reference`` are required
       for the reason the whole record exists: a machine suggestion must not
@@ -814,12 +818,30 @@ def resolve_references(
     ``prior`` is required and has no default. There is no such thing as
     resolving a reference in an artifact that accepted none.
     """
-    for field, value in (
-        ("authorizing authority", authorized_by),
-        ("authorization reference", authorization_reference),
-        ("reviewer", reviewer),
-        ("resolution timestamp", resolved_at),
-    ):
+    authorization = (
+        ("authorizing authority", "authorized_by", authorized_by),
+        ("authorization reference", "authorization_reference", authorization_reference),
+        ("reviewer", "reviewer", reviewer),
+        ("resolution timestamp", "resolved_at", resolved_at),
+    )
+
+    # Admission before observation. ``ReferenceResolutionAcceptance`` declares
+    # these four as ``str`` and the loader reads them back through a check that
+    # accepts nothing else, so a ``str`` subclass answering ``strip`` for itself
+    # would put audit evidence in the artifact that this seam's own loader
+    # refuses. Asking the type first means no refused value is ever invoked
+    # (#137 round 14).
+    if undeclared := [
+        message
+        for _, name, value in authorization
+        for message in exact_type_violations(value, str, name)
+    ]:
+        raise AcceptanceError(
+            "this resolution action does not state its authorization: "
+            + "; ".join(undeclared)
+        )
+
+    for field, _, value in authorization:
         if not value.strip():
             raise AcceptanceError(
                 f"a reference resolution must name its {field}; an unattributed "

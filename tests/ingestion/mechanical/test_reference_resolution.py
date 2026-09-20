@@ -53,6 +53,7 @@ from afterworlds.ingestion.mechanical.gate import (
 )
 from afterworlds.ingestion.mechanical.models import (
     ReferenceResolution,
+    ReferenceResolutionAcceptance,
     ReleaseBinding,
     ReviewState,
     SemanticDisposition,
@@ -1079,6 +1080,91 @@ def test_the_shape_pass_classifies_every_declared_field() -> None:
         == declared
     )
     assert set(_BINDING_FIELDS) == {f.name for f in fields(ReleaseBinding)}
+
+
+# -- the authorization admitted before anything reads it ----------------------
+
+#: Derived from the record this seam writes, minus the one field it does not
+#: authorize. A newly declared audit field joins every case below, or the
+#: parametrized calls fail on an unexpected keyword.
+_AUTHORIZATION_FIELDS = tuple(
+    f.name for f in fields(ReferenceResolutionAcceptance) if f.name != "resolution_id"
+)
+
+
+class _ForgedAudit(str):
+    """The reported P2: a blank that answers ``strip`` with something else.
+
+    The blank is what ``serialize_accepted_inputs`` writes, so the artifact
+    stated an unattributed authorization that ``load_accepted_inputs`` refuses
+    — evidence admitted on behalf of a value nobody declared.
+    """
+
+    def strip(self, chars: str | None = None) -> str:
+        return "forged audit proof"
+
+
+class _ObservedAudit(str):
+    """A ``str`` subclass that reports the moment anything strips it."""
+
+    def strip(self, chars: str | None = None) -> str:
+        raise AssertionError("observed before it was admitted")
+
+
+@pytest.mark.parametrize("name", _AUTHORIZATION_FIELDS)
+def test_a_forged_authorization_is_refused(name: str) -> None:
+    """Each of the four fields independently, on the reported probe."""
+    with pytest.raises(AcceptanceError, match=f"{name} must be str"):
+        _resolve(_accepted(), **{name: _ForgedAudit("")})
+
+
+@pytest.mark.parametrize("name", _AUTHORIZATION_FIELDS)
+def test_an_authorization_is_admitted_before_it_is_read(name: str) -> None:
+    """The type answers first; a refused value is never invoked."""
+    with pytest.raises(AcceptanceError, match=f"{name} must be str"):
+        _resolve(_accepted(), **{name: _ObservedAudit("Owner")})
+
+
+@pytest.mark.parametrize("value", [None, 42, b"Owner", ["Owner"]])
+@pytest.mark.parametrize("name", _AUTHORIZATION_FIELDS)
+def test_an_authorization_of_another_type_fails_as_a_refusal(
+    name: str, value: object
+) -> None:
+    """Deterministically ``AcceptanceError``, not an incidental ``AttributeError``."""
+    with pytest.raises(AcceptanceError, match="does not state its authorization"):
+        _resolve(_accepted(), **{name: value})
+
+
+def test_a_forged_authorization_refuses_the_whole_action() -> None:
+    """Whole-action atomicity holds for this refusal like every other one."""
+    accepted = _accepted(representation=_representation(SIBLING_UNRESOLVED))
+    before = serialize_accepted_inputs(accepted)
+    with pytest.raises(AcceptanceError, match="does not state its authorization"):
+        _resolve(
+            accepted,
+            _resolution(),
+            _sibling_resolution(),
+            reviewer=_ForgedAudit(""),
+        )
+    assert accepted.oracle.reference_resolutions == ()
+    assert accepted.reference_resolution_acceptances == ()
+    assert serialize_accepted_inputs(accepted) == before
+
+
+def test_a_stated_authorization_persists_and_reloads_verbatim(tmp_path: Path) -> None:
+    """Admission checks the type and changes no audit text."""
+    stated = {
+        "authorized_by": "Owner",
+        "authorization_reference": "Owner Decision 2026-09-19 (ADR-005d Decision 7)",
+        "reviewer": "Codex",
+        "resolved_at": "2026-09-19T12:00:00Z",
+    }
+    assert set(stated) == set(_AUTHORIZATION_FIELDS)
+    path = tmp_path / "authorized.json"
+    path.write_bytes(serialize_accepted_inputs(_resolve(_accepted(), **stated)))
+    record = load_accepted_inputs(path).reference_resolution_acceptances[0]
+    assert {name: getattr(record, name) for name in stated} == stated
+    assert {type(getattr(record, name)) for name in stated} == {str}
 
 
 # -- one accepted set of spans, one canonical identity ------------------------
