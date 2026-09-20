@@ -127,16 +127,24 @@ GLOSSARY_SCOPE = "srd-5.2.1/rules-glossary"
 #: *Playing the Game*, which the section says in its own words: *"see 'Actions'
 #: later in 'Playing the Game'"*. Carrying the glossary scope for those was a
 #: source-scope error: the same wording in two scopes is two references rather
-#: than one ambiguity, so a glossary-scoped "Actions" would resolve against
-#: glossary entries and could be discharged by one.
+#: than one ambiguity, so a glossary-scoped "Actions" would be *reviewed* as a
+#: glossary obligation and could be signed off by a glossary batch that never
+#: carried it. The checker does not enforce that -- it resolves
+#: ``target_record_key`` against every record in the data, whatever the scope --
+#: which is exactly why the scope has to be authored correctly rather than
+#: caught later.
 #:
 #: Minted by the convention the one committed scope already follows,
 #: ``<release-family>/<section-slug>``. The 5c artifact carries no section slug
 #: of its own -- its spans are leaf ranges -- so there is nothing to derive it
-#: from, and inventing a *destination record key* would be the guess this batch
-#: refuses. A scope is not a destination: it says which resolution space the
-#: pointer belongs to, and ``target_record_key`` stays empty because no
-#: destination has been reviewed.
+#: from, and inventing a *destination record key* would have been a guess. A
+#: scope is not a destination: it says which resolution space the pointer
+#: belongs to. The two destinations are now reviewed -- ``play.skills`` and
+#: ``play.actions``, minted by ``proficiency-destinations-1`` from the Skills
+#: table and the ``Actions`` section themselves -- and the two pointers name
+#: them. The scope is not what makes them resolve: ``target_record_key`` names
+#: the record and the checker looks it up corpus-wide. The scope records which
+#: review space the link belongs to, and groups the ambiguity check.
 PLAYING_THE_GAME_SCOPE = "srd-5.2.1/playing-the-game"
 
 # ---------------------------------------------------------------------------
@@ -943,13 +951,14 @@ assert len(BINDINGS) == 23, len(BINDINGS)
 # the Skills table, and the "Actions" section later in "Playing the Game".
 # Both resolve inside *Playing the Game*, not the glossary, so they carry
 # ``PLAYING_THE_GAME_SCOPE``. The scope is the committed resolution space, and
-# stating the wrong one would let a glossary entry named "Actions" discharge a
-# pointer that was never aimed at it.
+# stating the wrong one would let a glossary entry named "Actions" be *reviewed*
+# as the discharge of a pointer that was never aimed at it. The checker would
+# not object either way, which is the point: this has to be right when authored.
 # Reviewing those destinations later does not complete the link that starts
 # here, so leaving them as prose and a packet note left no obligation anything
-# could fail on. They are authored as references with an **empty**
+# could fail on. They were first authored as references with an **empty**
 # ``target_record_key``: the citing component, the printed wording, the scope
-# and the span are committed; only the destination is outstanding.
+# and the span committed, the destination outstanding.
 #
 # Empty rather than a guessed key, deliberately. ``validate_representation``
 # already separates the two cases - an empty target is ``unresolved
@@ -959,6 +968,16 @@ assert len(BINDINGS) == 23, len(BINDINGS)
 # which is destination coverage closing an obligation nobody reviewed. An
 # empty target is closed only by an edit to *this* reference. That edit is an
 # accepted-content change and is reviewed as one.
+#
+# Both are now named. ``proficiency-destinations-1`` reviewed the Skills table
+# and the ``Actions`` section from source and minted ``play.skills`` and
+# ``play.actions``, so the two outstanding links are closed here by exactly the
+# edit described above - two target keys, nothing else - and this proposal
+# carries a new identity for that content change. No rule, span, component,
+# fact, binding or expectation of this batch changes: the regenerated proposal
+# with these two targets blanked again reproduces the reviewed identity
+# ``c71f81044f003e2845e33e95a844c995aeee00282b0808303320200f164e8ec4``
+# exactly, which the proposal test proves through the production payload path.
 #
 # The fifth pointer, "Character Creation", names no destination inside this
 # build's corpus scope - it points out of the mechanical corpus, not at an
@@ -983,19 +1002,19 @@ REFERENCES = (
         from_component_key="skill_list",
         source_text="Skills table",
         scope_key=PLAYING_THE_GAME_SCOPE,
-        target_record_key="",
+        target_record_key="play.skills",
     ),
     ReferenceDraft(
         from_record_key=RECORD,
         from_component_key="skill_relevance_sources",
         source_text="Actions",
         scope_key=PLAYING_THE_GAME_SCOPE,
-        target_record_key="",
+        target_record_key="play.actions",
     ),
 )
-#: Keyed by ``(component, source_text)``, not by target: two of the four have
-#: no target yet, and the span a pointer was read from is a property of where
-#: it is printed, not of where it will resolve.
+#: Keyed by ``(component, source_text)``, not by target: the span a pointer was
+#: read from is a property of where it is printed, not of where it resolves, and
+#: two of these four keys were minted before their destination existed.
 REFERENCE_SPANS = {
     ("proficiency_bonus_basis", "Challenge Rating"): "main.monster_cr",
     ("bonus_does_not_stack", "Expertise"): "stack.expertise",
@@ -1286,19 +1305,17 @@ units = review_unit_violations(
 assert units == [], units
 
 standalone = list(validate_representation(DRAFT, LEDGER, CORPUS))
-#: The only findings this batch may produce standalone are its four citations:
-#: two named at glossary entries no accepted batch has minted yet, and two
-#: outstanding links whose destination is not named at all. Asserted as an
-#: exact tuple so a fifth finding of any kind fails here, and so that an
-#: outstanding link quietly acquiring a target fails here too.
+#: The only findings this batch may produce standalone are its four citations,
+#: each naming a destination ``proficiency-destinations-1`` mints and this batch
+#: does not declare itself. Asserted as an exact tuple so a fifth finding of any
+#: kind fails here, and so that a link quietly losing or changing its target
+#: fails here too. All four resolve in the merged representation, which the
+#: proposal test proves through ``accept_proposal``.
+assert all(ref.target_record_key for ref in REFERENCES), REFERENCES
 EXPECTED_FINDINGS = tuple(
     sorted(
         f"reference {ref.scope_key}:{ref.source_text!r}: "
-        + (
-            f"unknown target record {ref.target_record_key}"
-            if ref.target_record_key
-            else "unresolved reference"
-        )
+        f"unknown target record {ref.target_record_key}"
         for ref in REFERENCES
     )
 )
@@ -1388,6 +1405,6 @@ print(
 print(f"provenance       {len(PROVENANCE)}   references {len(REFERENCES)}")
 print(f"partition        {len(partition)} findings")
 print(f"review units     {len(units)} findings")
-print(f"representation   {len(standalone)} findings (two unminted, two outstanding)")
+print(f"representation   {len(standalone)} findings (all four citations)")
 for finding in sorted(standalone):
     print(f"  - {finding}")

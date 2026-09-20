@@ -257,5 +257,7 @@ def test_the_committed_artifact_extends_this_copy_by_the_batches_since() -> None
         "areas-of-effect-1",
         "cover-1",
         "speed-1",
+        "proficiency-destinations-1",
+        "proficiency-1",
     }
     assert {k: committed[k] for k in frozen} == frozen

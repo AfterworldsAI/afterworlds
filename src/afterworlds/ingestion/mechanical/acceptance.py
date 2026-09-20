@@ -38,12 +38,27 @@ Accepting over a prior artifact extends it. Batch scopes accumulate and must
 stay **disjoint**: a span already accepted cannot be re-accepted here, because
 re-acceptance would strand the earlier batch's evidence — its scope member would
 name a different batch than the one that recorded it, and the ledger would fail
-its own acceptance validation. Correcting an earlier acceptance therefore needs
-a history model with supersession semantics, which this module deliberately does
-not have and this PR does not add. What it does support is the workflow
-full-corpus review actually needs: one complete proposal reviewed across several
-disjoint span batches, whose representations merge as a keyed union rather than
-piling up duplicates.
+its own acceptance validation. **Correcting** an earlier acceptance therefore
+needs a history model with supersession semantics, which this module deliberately
+does not have: no accepted span's disposition, prose, fact or reason code can be
+edited here, and nothing supersedes an accepted claim. What it does support is
+the workflow full-corpus review actually needs: one complete proposal reviewed
+across several disjoint span batches, whose representations merge as a keyed
+union rather than piling up duplicates.
+
+One bounded second action exists beside that one, and it is not a correction.
+:func:`resolve_references` records explicitly authorized destinations for
+accepted references that were accepted with **none** — the Owner Decision of
+2026-09-19 under ADR-005d Decision 7, implemented in
+:mod:`reference_resolution`. It is an append like every other acceptance: the
+unresolved citation and its acceptance evidence stay exactly as reviewed, the
+decision and its authorization are added beside them, and the resolved view is
+*derived* rather than written back. It is not general supersession and confers
+none: it cannot retarget a citation that already resolves, cannot touch prose or
+facts, and cannot guess a destination. The reason it has to exist at all is the
+keyed union above — a reference's key includes its target, so a later batch that
+authors the destination produces a *different* key and the accepted empty edge
+survives beside it, reported both unresolved and ambiguous.
 """
 
 from __future__ import annotations
@@ -57,6 +72,8 @@ from afterworlds.ingestion.mechanical.accounting import batch_diff_hash
 from afterworlds.ingestion.mechanical.models import (
     AcceptanceBatch,
     AcceptanceRecord,
+    ReferenceResolution,
+    ReferenceResolutionAcceptance,
     ReviewState,
     ReviewUnitAcceptance,
     SemanticDiffEntry,
@@ -82,10 +99,15 @@ from afterworlds.ingestion.mechanical.proposal import (
     MechanicalProposal,
     proposal_identity,
 )
+from afterworlds.ingestion.mechanical.reference_resolution import (
+    reference_resolution_shape_violations,
+    reference_resolution_violations,
+)
 from afterworlds.ingestion.mechanical.representation import (
     ProvenanceClaim,
     RepresentationDraft,
     component_target_key,
+    exact_type_violations,
     held_structure_violations,
     prose_binding_target_key,
     record_target_key,
@@ -103,7 +125,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     verify_lift_path,
 )
 
-__all__ = ["AcceptanceError", "accept_proposal"]
+__all__ = ["AcceptanceError", "accept_proposal", "resolve_references"]
 
 
 class AcceptanceError(ValueError):
@@ -571,6 +593,20 @@ def accept_proposal(
         prior.oracle.representation if prior else None,
         proposal.proposed_representation,
     )
+    if prior is not None:
+        _refuse_reference_retargeting(prior.oracle.representation, representation)
+        # The carried decisions are re-checked against the *merged* result, for
+        # the reason the review inventory is: a later batch changes what the
+        # accepted representation states, and a resolution that no longer
+        # applies to it must not be carried into the artifact as though it did.
+        if inapplicable := reference_resolution_violations(
+            representation, prior.oracle.reference_resolutions, prior.oracle.binding
+        ):
+            raise AcceptanceError(
+                "this acceptance would extend accepted authority in a way its "
+                "existing reviewed reference resolutions no longer describe: "
+                + "; ".join(inapplicable)
+            )
 
     # The inventory accumulates like batch scopes do, and for the same reason:
     # two units under one id would make every expectation's parentage ambiguous
@@ -608,6 +644,11 @@ def accept_proposal(
             representation=representation,
             obligations=derive_obligations(representation),
             review_units=merged_units,
+            # Carried, never re-derived and never dropped. A reviewed resolution
+            # is accepted authority in its own right; an extension that lost it
+            # would silently reopen a citation the Owner closed, and the artifact
+            # would state an unresolved reference nobody had decided to reopen.
+            reference_resolutions=(prior.oracle.reference_resolutions if prior else ()),
         ),
         batches=tuple(prior.batches if prior else ()) + (batch,),
         acceptances=acceptances,
@@ -634,6 +675,235 @@ def accept_proposal(
         # crossed a policy boundary — which is all seven accepted batches.
         policy_transitions=tuple(prior.policy_transitions if prior else ())
         + policy_steps,
+        # The authorization evidence for the carried resolutions, on the same
+        # terms: the decision and the record of who took it are one artifact's
+        # two halves, and an extension that kept one without the other would
+        # fail its own loader cross-check.
+        reference_resolution_acceptances=(
+            prior.reference_resolution_acceptances if prior else ()
+        ),
+    )
+
+
+def _refuse_reference_retargeting(
+    prior: RepresentationDraft, merged: RepresentationDraft
+) -> None:
+    """Refuse an acceptance that would give an accepted citation a new target.
+
+    The keyed union retains an element whose key was already accepted and
+    appends a genuinely new one — and a reference's key
+    (``representation.reference_target_key``) **includes its target**. So a
+    proposal restating an accepted citation with a different destination is a
+    new key, not a conflict, and the union used to keep both: the accepted edge
+    and the new one, which :mod:`validation` then reports as an ambiguity
+    nothing in the artifact explains.
+
+    Two cases, both refused here and each in its own words:
+
+    * the accepted target is **empty** — authoring a destination cannot close an
+      unresolved citation, whatever it says. :func:`resolve_references` is the
+      supported path, and pointing at it is the whole value of failing here;
+    * the accepted target is **already a destination** — retargeting an accepted
+      reference is not authorized by the Owner Decision of 2026-09-19, which
+      covers empty-target resolution and nothing else.
+
+    A batch that legitimately mints the record an accepted citation already
+    names is untouched: it defines a *record*, and the citation's own key never
+    changes, which is why the ten cross-batch targets outstanding in
+    ``docs/architecture/known_unknowns.md`` need none of this.
+    """
+    accepted: dict[tuple[str, ...], set[str]] = {}
+    for ref in prior.references:
+        accepted.setdefault(reference_target_key(ref)[:4], set()).add(
+            ref.target_record_key
+        )
+    for ref in merged.references:
+        citation = reference_target_key(ref)[:4]
+        targets = accepted.get(citation)
+        if targets is None or ref.target_record_key in targets:
+            continue
+        scope, text = citation[3], citation[2]
+        tag = f"reference {scope}:{text!r} of record {citation[0]}"
+        if "" in targets:
+            raise AcceptanceError(
+                f"{tag}: this acceptance would state the destination "
+                f"{ref.target_record_key!r} for a citation already accepted with "
+                "none. Authoring a destination cannot close an unresolved "
+                "citation — the accepted empty edge is a different key and "
+                "survives beside it, reported both unresolved and ambiguous. "
+                "Resolve it through resolve_references, which records who "
+                "authorized the destination and leaves the accepted history "
+                "intact."
+            )
+        raise AcceptanceError(
+            f"{tag}: this acceptance would retarget a citation already accepted "
+            f"as resolving to {sorted(targets)}. Retargeting an accepted "
+            "reference is not authorized; the Owner Decision of 2026-09-19 "
+            "covers resolving an empty target and nothing else."
+        )
+
+
+def resolve_references(
+    prior: AcceptedInputs,
+    *,
+    resolutions: tuple[ReferenceResolution, ...],
+    authorized_by: str,
+    authorization_reference: str,
+    reviewer: str,
+    resolved_at: str,
+) -> AcceptedInputs:
+    """Record one explicitly authorized decision over accepted empty targets.
+
+    The second acceptance action this module states, and deliberately the only
+    other one. It is an **append**, exactly like :func:`accept_proposal`: two
+    ledger entries per resolution are added — the identity-bearing decision and
+    the evidence of who authorized it — and nothing already accepted is edited.
+    The accepted representation keeps stating the unresolved citation every
+    reviewer accepted; :func:`~.reference_resolution.effective_representation` is
+    what the build persists and the gate judges, so the effective authority has
+    exactly one destination while the history stays reconstructable.
+
+    **Why one action carries several resolutions.** Two components of one record
+    may legitimately cite the same wording in the same scope — each is its own
+    claim with its own provenance, and :mod:`validation` says so. Their
+    destination, though, is shared: ``(scope, source_text)`` resolving to more
+    than one record is the ambiguity publication refuses. So consistent
+    same-scope citations cannot be resolved one at a time — the intermediate
+    artifact would state ``['', destination]`` for one wording, which is exactly
+    the refusal that must not be weakened. They are one reviewed decision and
+    this action records them as one: validated together against the accepted
+    authority, applied whole or not at all. Each resolution keeps its own
+    citation, its own reviewed provenance spans and its own
+    ``ReferenceResolutionAcceptance``; what they share is the authorization this
+    call names. Nothing about a single resolution changes — it is
+    ``resolutions=(one,)`` — and a *genuine* ambiguity, two citations of one
+    wording sent to different records, is still refused whether stated in one
+    action or several.
+
+    **What it refuses, and why it refuses rather than reports.** A half-recorded
+    resolution is worse than none, on the same terms as a half-recorded
+    acceptance: the artifact would claim a decision nobody took. Every refusal
+    happens before the returned value is built, so a caller that catches
+    :class:`AcceptanceError` holds exactly the artifact it held before —
+
+    * anything that is not exactly a closed :class:`ReferenceResolution` in an
+      exact ``tuple``, refused **before this action reads a single field**. The
+      replay check below keys on ``resolution_id`` and the applicability check
+      keys on the citation, so a subclass supplying either through a method or
+      an overridden ``__eq__`` would decide its own admission;
+    * **no** resolution at all. An action that decides nothing is not a decision;
+    * a ``resolution_id`` a prior decision already recorded. **Repeat is refused,
+      not absorbed**: the same rule ``accept_proposal`` applies to a ``batch_id``
+      it already holds. Replaying an identical decision is therefore
+      deterministic — it raises, and the artifact is unchanged — rather than
+      appending a second authorization of one decision. Any already-recorded id
+      refuses the **whole** action, so a partial replay records no part of it;
+    * a second, differently-identified decision about one citation, which is a
+      conflict nothing here can choose between;
+    * a citation this authority does not state as unresolved, including one
+      already resolved — retargeting is not authorized;
+    * a destination, provenance, or any one of the six release-binding
+      coordinates that is not what review saw;
+    * a resolution whose effective view publication would refuse, ambiguity
+      above all;
+    * an authorization whose authority, reference, reviewer or timestamp is not
+      exactly a ``str``, refused before anything asks the value about itself, so
+      a ``str`` subclass cannot supply its own admission;
+    * an authorization missing its authority, its reference, its reviewer or its
+      timestamp. ``authorized_by`` and ``authorization_reference`` are required
+      for the reason the whole record exists: a machine suggestion must not
+      become authority implicitly, so a resolution nobody is recorded as having
+      decided is not one.
+
+    ``prior`` is required and has no default. There is no such thing as
+    resolving a reference in an artifact that accepted none.
+    """
+    authorization = (
+        ("authorizing authority", "authorized_by", authorized_by),
+        ("authorization reference", "authorization_reference", authorization_reference),
+        ("reviewer", "reviewer", reviewer),
+        ("resolution timestamp", "resolved_at", resolved_at),
+    )
+
+    # Admission before observation. ``ReferenceResolutionAcceptance`` declares
+    # these four as ``str`` and the loader reads them back through a check that
+    # accepts nothing else, so a ``str`` subclass answering ``strip`` for itself
+    # would put audit evidence in the artifact that this seam's own loader
+    # refuses. Asking the type first means no refused value is ever invoked
+    # (#137 round 14).
+    if undeclared := [
+        message
+        for _, name, value in authorization
+        for message in exact_type_violations(value, str, name)
+    ]:
+        raise AcceptanceError(
+            "this resolution action does not state its authorization: "
+            + "; ".join(undeclared)
+        )
+
+    for field, _, value in authorization:
+        if not value.strip():
+            raise AcceptanceError(
+                f"a reference resolution must name its {field}; an unattributed "
+                "resolution is not a reviewed decision"
+            )
+
+    # Before ``not resolutions``, before the id set below, and before
+    # ``reference_resolution_violations`` — which repeats this pass for the
+    # loader's sake. The replay check reads ``resolution_id`` into a set, so a
+    # ``str`` subclass with its own ``__hash__`` would answer the
+    # already-recorded question about itself, and a resolution subclass would
+    # execute a property to do it (#137 round 13).
+    if malformed := reference_resolution_shape_violations(resolutions):
+        raise AcceptanceError(
+            "this resolution action does not state reference resolutions: "
+            + "; ".join(malformed)
+        )
+
+    if not resolutions:
+        raise AcceptanceError(
+            "a reference resolution action must state at least one resolution; "
+            "an action that resolves nothing is not a reviewed decision"
+        )
+
+    if already := sorted(
+        {r.resolution_id for r in resolutions}
+        & {r.resolution_id for r in prior.oracle.reference_resolutions}
+    ):
+        raise AcceptanceError(
+            f"reference resolution {already} is already recorded by this "
+            "accepted authority; a repeat is refused rather than recorded "
+            "twice, so replaying this action leaves the artifact exactly as it "
+            "was"
+        )
+
+    if inapplicable := reference_resolution_violations(
+        prior.oracle.representation,
+        prior.oracle.reference_resolutions + resolutions,
+        prior.oracle.binding,
+    ):
+        raise AcceptanceError(
+            "this resolution does not apply to the accepted authority it would "
+            "resolve: " + "; ".join(inapplicable)
+        )
+
+    return replace(
+        prior,
+        oracle=replace(
+            prior.oracle,
+            reference_resolutions=prior.oracle.reference_resolutions + resolutions,
+        ),
+        reference_resolution_acceptances=prior.reference_resolution_acceptances
+        + tuple(
+            ReferenceResolutionAcceptance(
+                resolution_id=resolution.resolution_id,
+                authorized_by=authorized_by,
+                authorization_reference=authorization_reference,
+                reviewer=reviewer,
+                resolved_at=resolved_at,
+            )
+            for resolution in resolutions
+        ),
     )
 
 

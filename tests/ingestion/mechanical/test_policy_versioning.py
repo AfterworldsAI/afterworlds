@@ -19,12 +19,19 @@ assumed anywhere else:
 * the committed artifact is not rewritten by any of this. It is byte-identical
   after a policy-2 acceptance is built over it in memory.
 
-The prior used for the crossing is the **real committed artifact**, not a
-fixture: the file a reviewer actually accepted is the only prior that can prove
-the crossing costs that reviewer nothing.
+The prior used for the crossing is the **real seven-batch accepted artifact**,
+not a synthesized one: the file a reviewer actually accepted is the only prior
+that can prove the crossing costs that reviewer nothing. It was the live file
+until the Owner accepted the two Proficiency batches across this very
+transition; it is now the frozen copy of that state, retained as a committed
+fixture for exactly this purpose, and the live file's own side of the crossing -
+that it declares policy 2 and records the one registered transition - is
+asserted at the end of this module.
 """
 
 from __future__ import annotations
+
+import pathlib
 
 import pytest
 
@@ -75,6 +82,16 @@ from afterworlds.ingestion.mechanical.representation import (
     representation_schema_hash,
 )
 from tests.ingestion.mechanical.test_committed_accepted_authority import ARTIFACT_PATH
+
+#: The seven-batch accepted state, accepted under policy 1. The specimen for
+#: every claim in this module about what policy-1 authority looks like and what a
+#: crossing built over it may not touch.
+POLICY_1_ARTIFACT = (
+    pathlib.Path(__file__).resolve().parent
+    / "data"
+    / "accepted_prior_conditions_1_hazards_1_actions_1"
+    "_attitudes_1_areas_of_effect_1_cover_1_speed_1.json"
+)
 
 #: A leaf the committed artifact does not touch, so the new scope is disjoint.
 NEW_LEAF = "leaf-policy-crossing-probe"
@@ -209,7 +226,7 @@ def test_an_unrecognized_policy_payload_cannot_be_reproduced() -> None:
 
 
 def _prior():
-    return load_accepted_inputs(ARTIFACT_PATH)
+    return load_accepted_inputs(POLICY_1_ARTIFACT)
 
 
 def _proposal(prior, *, version: str, policy_hash: str) -> MechanicalProposal:
@@ -269,7 +286,7 @@ def _accept(prior, proposal):
     )
 
 
-def test_the_committed_artifact_was_accepted_under_policy_1() -> None:
+def test_the_seven_batch_artifact_was_accepted_under_policy_1() -> None:
     prior = _prior()
     assert prior.oracle.policy_version == POLICY_1_VERSION
     assert prior.oracle.policy_hash == POLICY_1_HASH
@@ -312,14 +329,16 @@ def test_a_policy_2_proposal_extends_policy_1_accepted_authority() -> None:
     assert (step.to_version, step.to_hash) == (POLICY_2_VERSION, POLICY_2_HASH)
 
 
-def test_the_committed_file_is_untouched_by_a_crossing_built_over_it() -> None:
+def test_the_policy_1_file_is_untouched_by_a_crossing_built_over_it() -> None:
     """Acceptance is a pure function over loaded bytes. Nothing is written back.
 
     The strongest available statement that this phase changed no accepted
-    meaning: the committed artifact's bytes, its payload, and its oracle
-    identity are all what they were before the crossing was constructed.
+    meaning: the policy-1 artifact's bytes, its payload, and its oracle identity
+    are all what they were before the crossing was constructed. The real
+    crossing, when the Owner authorized one, wrote a *new* nine-batch artifact
+    and left this file exactly as it is.
     """
-    before = ARTIFACT_PATH.read_bytes()
+    before = POLICY_1_ARTIFACT.read_bytes()
     prior = _prior()
     identity_before = oracle_identity(prior.oracle)
     payload_before = accepted_inputs_payload(prior)
@@ -328,7 +347,7 @@ def test_the_committed_file_is_untouched_by_a_crossing_built_over_it() -> None:
         prior, _proposal(prior, version=POLICY_2_VERSION, policy_hash=POLICY_2_HASH)
     )
 
-    assert ARTIFACT_PATH.read_bytes() == before
+    assert POLICY_1_ARTIFACT.read_bytes() == before
     reloaded = _prior()
     assert oracle_identity(reloaded.oracle) == identity_before
     assert accepted_inputs_payload(reloaded) == payload_before
@@ -369,3 +388,31 @@ def test_a_recognized_version_with_the_wrong_hash_is_refused() -> None:
             prior,
             _proposal(prior, version=POLICY_2_VERSION, policy_hash=POLICY_1_HASH),
         )
+
+
+def test_the_committed_artifact_crossed_once_and_records_it() -> None:
+    """The live file's side of the seam, after a real Owner acceptance used it.
+
+    Everything above builds the crossing in memory from the policy-1 artifact.
+    This reads the artifact the Owner's acceptance of the two Proficiency batches
+    actually wrote: it declares policy 2, it records ``5d-policy-1-to-2`` exactly
+    once, and the two batches accepted across it are the only ones that could
+    have carried it. A second transition record, or a policy-2 declaration with
+    no transition behind it, is what this refuses.
+    """
+    committed = load_accepted_inputs(ARTIFACT_PATH)
+    assert committed.oracle.policy_version == POLICY_2_VERSION
+    assert committed.oracle.policy_hash == POLICY_2_HASH
+    assert [s.transition_id for s in committed.policy_transitions] == [
+        "5d-policy-1-to-2"
+    ]
+    step = committed.policy_transitions[0]
+    assert (step.from_version, step.from_hash) == (POLICY_1_VERSION, POLICY_1_HASH)
+    assert (step.to_version, step.to_hash) == (POLICY_2_VERSION, POLICY_2_HASH)
+
+    prior = _prior()
+    assert prior.oracle.policy_version == POLICY_1_VERSION
+    assert prior.policy_transitions == ()
+    assert {b.batch_id for b in committed.batches} - {
+        b.batch_id for b in prior.batches
+    } == {"proficiency-destinations-1", "proficiency-1"}

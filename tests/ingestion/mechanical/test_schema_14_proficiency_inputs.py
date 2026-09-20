@@ -145,6 +145,17 @@ PROPOSAL_PATH = (
 #: only to prove the widened ``AdvantageFact`` left every one of them alone.
 ACCEPTED_AUTHORITY_PATH = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
 
+#: The seven-batch accepted state, every one of its facts reviewed *before* this
+#: widening existed. The specimen for "a widened family did not move anything
+#: already accepted", which the live artifact can no longer be: it now also holds
+#: the one reviewed fact that uses the new field.
+PRE_WIDENING_AUTHORITY_PATH = (
+    pathlib.Path(__file__).resolve().parent
+    / "data"
+    / "accepted_prior_conditions_1_hazards_1_actions_1"
+    "_attitudes_1_areas_of_effect_1_cover_1_speed_1.json"
+)
+
 RECORD = "play.proficiency"
 
 #: ``component key -> (kind, the roll the section says it applies to)``, written
@@ -803,22 +814,44 @@ def test_no_accepted_advantage_fact_gained_a_key_from_this_widening() -> None:
     """The rule above, asserted over the artifact it exists to protect.
 
     The previous test proves the shape on a fact this module builds. That is
-    the contract; this is the evidence. The committed accepted authority holds
-    ``AdvantageFact``s reviewed under schema 11, and every one of them must
-    still serialize to the three keys it was accepted with — a widened family
-    whose new field were written unconditionally would move all of them, and
-    with them the oracle identity seven batches were accepted against.
+    the contract; this is the evidence. The pre-widening accepted authority holds
+    twenty-six ``AdvantageFact``s reviewed under schema 11, and every one of them
+    must still serialize to the three keys it was accepted with — a widened
+    family whose new field were written unconditionally would move all of them,
+    and with them the oracle identity those seven batches were accepted against.
+
+    The live artifact is asserted the same way and then one step further: the
+    Owner has since accepted ``proficiency-1``, whose Expertise clause is the
+    reason this field exists, so exactly one of its twenty-seven facts carries
+    the key and the other twenty-six are byte-for-byte the pre-widening set. That
+    is the widening working as specified rather than a restamp — had it been a
+    restamp, all twenty-seven would carry it.
     """
-    inputs = load_accepted_inputs(ACCEPTED_AUTHORITY_PATH)
+    pre = load_accepted_inputs(PRE_WIDENING_AUTHORITY_PATH)
     payloads = [
         fact_payload(fact)
-        for component in inputs.oracle.representation.components
+        for component in pre.oracle.representation.components
         for fact in component.facts
         if isinstance(fact, AdvantageFact)
     ]
     assert payloads, "the accepted corpus should hold advantage facts"
     assert all(set(p) == {"family", "roll", "state"} for p in payloads)
     assert all(fact_from_payload(p).requires_proficiencies == () for p in payloads)
+
+    live = [
+        fact_payload(fact)
+        for component in load_accepted_inputs(
+            ACCEPTED_AUTHORITY_PATH
+        ).oracle.representation.components
+        for fact in component.facts
+        if isinstance(fact, AdvantageFact)
+    ]
+    narrow = [p for p in live if set(p) == {"family", "roll", "state"}]
+    widened = [p for p in live if set(p) != {"family", "roll", "state"}]
+    assert sorted(map(repr, narrow)) == sorted(map(repr, payloads))
+    assert len(widened) == 1
+    assert set(widened[0]) == {"family", "roll", "state", "requires_proficiencies"}
+    assert fact_from_payload(widened[0]).requires_proficiencies == ("skill", "tool")
 
 
 # ---------------------------------------------------------------------------

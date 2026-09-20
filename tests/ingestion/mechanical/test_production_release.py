@@ -242,58 +242,55 @@ def test_the_bound_release_supplies_the_accounting_population(
 def test_the_accepted_oracle_for_the_production_release_resolves(
     production: ProductionFixture,
 ) -> None:
-    """Accepted authority exists for the real SRD release — seven accepted batches.
+    """Accepted authority exists for the real SRD release — nine accepted batches.
 
-    It judges 48 records — 15 conditions, 5 hazards, 12 actions, 3 attitudes and
+    It judges 53 records — 15 conditions, 5 hazards, 12 actions, 3 attitudes and
     6 areas of effect, plus the glossary entry that defines each of those five
-    lists, the Cover glossary rule and the Speed glossary rule, neither of which
-    names a list of its own — and nothing else, which is exactly why the
-    publication test below still refuses: the SRD has far more than 48 records.
+    lists, the Cover and Speed glossary rules, neither of which names a list of
+    its own, and the five the two Proficiency batches added: Challenge Rating,
+    Expertise, the Skills table, the Actions section and Proficiency — and
+    nothing else, which is exactly why the publication test below still refuses:
+    the SRD has far more than 53 records.
     """
     resolved = committed_oracle_for(
         production.binding.package_uuid, production.binding.release_version
     )
     assert resolved is not None
     assert resolved.binding == production.binding
-    assert len(resolved.representation.records) == 48
-    assert len(resolved.spans) == 594
+    assert len(resolved.representation.records) == 53
+    assert len(resolved.spans) == 761
 
 
 def test_the_production_path_refuses_the_real_release(
     production: ProductionFixture,
 ) -> None:
-    """``publish_from_committed_oracle`` still fails closed — now at two boundaries.
+    """``publish_from_committed_oracle`` still fails closed — now on population.
 
     Before ``conditions-1`` was accepted this returned ``ABSENT``: no authority
     judged the release at all. Authority now exists and resolves, and it is
-    still nowhere near the release — the committed artifact covers 48 records
-    (15 conditions, 5 hazards, 12 actions, 3 attitudes and 6 areas of effect,
-    plus the glossary entry defining each of those five lists, Cover and Speed)
+    still nowhere near the release — the committed artifact covers 53 records
     while the persisted projection covers the whole SRD. That incompleteness is
     asserted below and is unchanged.
 
-    The reported outcome is ``MISMATCHED_RELEASE`` rather than ``INCOMPLETE``
-    because this build applies ``5d-semantic-policy-2`` while the committed
-    artifact was accepted under ``5d-semantic-policy-1``. Publication demands
-    the live policy exactly (``accounting.validate_policy_binding``), so until
-    an accepted batch crosses the committed artifact through the registered
-    ``5d-policy-1-to-2`` transition, the policy boundary is reached first and
-    ``_OUTCOME_PRECEDENCE`` reports it ahead of the population failure. No
-    accepted meaning changed: the artifact still loads, replays and reproduces
-    its identities under this build — see the frozen-prior and reproduction
-    modules — it is simply not publishable across a policy boundary it has not
-    been re-accepted over. ``_publish_projection`` against an oracle already at
-    the live policy still refuses as ``INCOMPLETE`` below, which is the claim
-    this module exists to make.
+    The reported outcome moved back from ``MISMATCHED_RELEASE`` to
+    ``INCOMPLETE``, and the reason is the point rather than a loosening. This
+    build applies ``5d-semantic-policy-2``; between the policy's minting and the
+    Owner's acceptance of the two Proficiency batches the committed artifact
+    still declared policy 1, publication demands the live policy exactly
+    (``accounting.validate_policy_binding``), and ``_OUTCOME_PRECEDENCE`` reported
+    that boundary ahead of the population failure. The Proficiency acceptance
+    crossed the artifact through the registered ``5d-policy-1-to-2`` transition,
+    so the policy boundary is gone and what remains is the one this module exists
+    to make: the corpus is a real fraction of the release and refuses to publish
+    as one. ``POLICY_MISMATCH`` is asserted *absent* rather than dropped, so a
+    future artifact that drifted off the live policy would fail here again.
     """
     result = publish_from_committed_oracle(
         production.session, production.projection_uuid, now=NOW
     )
-    assert result.outcome is PublicationOutcome.MISMATCHED_RELEASE
+    assert result.outcome is PublicationOutcome.INCOMPLETE
     assert result.gate is not None
-    assert GateFailureCategory.POLICY_MISMATCH in result.gate.categories()
-    # The corpus is still unfinished behind that boundary; crossing the policy
-    # would expose the same per-leaf population failure, not a publishable one.
+    assert GateFailureCategory.POLICY_MISMATCH not in result.gate.categories()
     assert GateFailureCategory.POPULATION_MISMATCH in result.gate.categories()
     assert (
         resolve_active_projection(

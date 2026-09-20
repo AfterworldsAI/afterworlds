@@ -79,6 +79,9 @@ from afterworlds.ingestion.mechanical.projection import (
     validate_candidate,
     validate_schema_binding,
 )
+from afterworlds.ingestion.mechanical.reference_resolution import (
+    effective_representation,
+)
 from afterworlds.ingestion.mechanical.representation import (
     FactFamily,
     RepresentationDraft,
@@ -407,8 +410,15 @@ def _accepted_identity(oracle: AcceptedOracle) -> str:
     """The projection identity the accepted authority alone derives.
 
     Built from the oracle's own binding, declared policy, accepted spans, and
-    accepted representation — never from the persisted state it is compared
-    with. Acceptance evidence is empty because it is not identity-bearing
+    accepted representation as its reviewed resolutions state it — never from
+    the persisted state it is compared with.
+
+    The **effective** representation, in lockstep with
+    ``oracle.candidate_from_accepted_inputs``. The two must move together by
+    construction: that function is what persistence is built from and this is
+    what the persisted result is judged against, so a resolution applied to one
+    and not the other would make every resolved build fail as a mismatched
+    projection. Acceptance evidence is empty because it is not identity-bearing
     (:mod:`accounting`), so an oracle need not — and must not — restate how
     review happened in order to say what was accepted.
     """
@@ -424,7 +434,9 @@ def _accepted_identity(oracle: AcceptedOracle) -> str:
                 batches=(),
                 acceptances=(),
             ),
-            representation=oracle.representation,
+            representation=effective_representation(
+                oracle.representation, oracle.reference_resolutions
+            ),
             schema_version=oracle.schema_version,
             schema_hash=oracle.schema_hash,
             review_units=oracle.review_units,
@@ -741,7 +753,10 @@ def run_publication_gate(
             candidate.representation, candidate.schema_version
         )
         accepted_collections = _comparable_collections(
-            oracle.representation, oracle.schema_version
+            effective_representation(
+                oracle.representation, oracle.reference_resolutions
+            ),
+            oracle.schema_version,
         )
     except (UnsupportedSchemaVersionError, LegacySchemaPayloadError) as exc:
         _fail(

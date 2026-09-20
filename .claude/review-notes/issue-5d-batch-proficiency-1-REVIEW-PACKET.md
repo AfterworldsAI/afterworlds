@@ -1,8 +1,15 @@
 # `proficiency-1` review packet — CRD Issue 5d, first regular-section pilot
 
-**Status: PROPOSED. Not accepted. Nothing in this branch accepts it.**
+**Status: ACCEPTED 2026-09-20 (UTC) by the Owner, as reviewed.** This
+packet described an unaccepted proposal when it was written and is kept as
+written; the proposal it describes is now accepted authority, recorded in
+`issue-5d-proficiency-ACCEPTANCE-CHECKPOINT.md` and committed in
+`src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-36b786d8-fa2.json`.
+Nothing here was edited to match the acceptance, so every claim below is
+still the claim the reviewer read. Acceptance published, activated and
+merged **nothing**.
 
-This packet is the human-readable half of an unaccepted proposal over
+This packet is the human-readable half of the proposal over
 **SRD 5.2.1 > Playing the Game > Proficiency**. It exists so a reviewer can
 check the proposal against the printed source without reading 60 KB of JSON,
 and so the Owner's later semantic acceptance decision is made on the actual
@@ -19,9 +26,10 @@ that cost.
 |---|---|
 | proposal | `.claude/review-notes/issue-5d-batch-proficiency-1-PROPOSAL.json` |
 | generator | `.claude/review-notes/issue-5d-batch-proficiency-1-generator.py` |
-| bytes | 61,329 |
-| `proposal_identity` | `c71f81044f003e2845e33e95a844c995aeee00282b0808303320200f164e8ec4` |
-| file sha256 | `55ac577f1ff25f37c8676a49c63e246588ec5c52cff58bb79205a4a459be8324` |
+| bytes | 61,375 |
+| `proposal_identity` | `f0becb8bd87fcbb41aced983c55f59beb3f25b52d4eca549257d51d9b86d345a` |
+| file sha256 | `c4c12fd321019e28d8eb05c986c80cc4d3b4f206fd50fdb26c04fb17ace85d5d` |
+| reviewed and approved in PR #171, superseded by §7's Round 4, **never accepted into the corpus** | identity `c71f81044f003e2845e33e95a844c995aeee00282b0808303320200f164e8ec4`, sha256 `55ac577f1ff25f37c8676a49c63e246588ec5c52cff58bb79205a4a459be8324`, 61,329 bytes — those are the bytes the Owner approved, and they are reproducible from the current ones by blanking exactly two target strings (§7, Round 4), which a test does |
 | superseded, never accepted | identity `c941c262…`, sha256 `b74b6056…`, 54,507 bytes — the first regeneration, which authored §7's two outstanding obligations; then identity `11481e02…`, sha256 `a56829dd…`, 55,439 bytes — superseded by the typed rule inputs and the scope-key correction; then identity `a6fc5285…`, sha256 `eb0fafb0…`, 60,468 bytes — superseded by the two stated bonus uses (§6) |
 | proposal schema | `5d-proposal-2` |
 | representation schema | `5d-representation-schema-15` |
@@ -88,10 +96,10 @@ Findings from the merged services, on this batch's scope:
 * `validate_partition(..., require_complete=False)` per leaf — **0 findings**
 * `validate_reason_codes` — **0 findings**
 * `review_unit_violations` — **0 findings**
-* `validate_representation` — **4 findings**: two expected
-  `unknown target record` for glossary citations whose target records are not
-  yet authored, and two `unresolved reference` outstanding obligations in
-  *Playing the Game* (§7). All four block publication.
+* `validate_representation` — **4 findings**, all `unknown target record`: two
+  glossary citations and two *Playing the Game* citations, naming the four
+  records `proficiency-destinations-1` proposes (§7, Round 4). All four block
+  publication of this proposal alone; all four resolve in the merged data.
 
 ## 4. Source versus disposition
 
@@ -564,6 +572,14 @@ does not ensure the originating Proficiency pointers are ever completed, and a
 note can be edited away. They are now **authored as outstanding obligations** in
 the proposal itself.
 
+> **Read Round 4 first.** Everything below that calls those two pointers
+> *outstanding* records the state the Owner approved in PR #171. All four
+> pointers now name a reviewed destination. The rows, the finding block and the
+> five test names in the rest of §7 are superseded by **Round 4** at the end of
+> this section; they are kept because the approved bytes are still reproducible
+> from the current ones, and because the reasoning for the empty-target
+> mechanism is what constrains the keys that replaced it.
+
 ### The mechanism, and why it is the existing one
 
 1. **An outstanding obligation is a `ReferenceDraft` with an empty
@@ -744,6 +760,96 @@ excluded by 5c), 4 references, the four-part release binding, the Speed-style
 data/scope order, every prose/source binding, and every fact schema 14 minted.
 **No new acceptance is authorized by this packet, and none is claimed.**
 
+### Round 4 — all four pointers name a reviewed destination
+
+The Owner approved the Round 3 bytes and authorized reviewing and authoring the
+four destinations. They are proposed in a second batch,
+`.claude/review-notes/issue-5d-batch-proficiency-destinations-1-PROPOSAL.json`
+(identity `01603c7f9a3b14f9c90e63e03e32da7c75b119109f0c251e8b428d91b0765a5d`),
+reviewed in its own packet,
+`.claude/review-notes/issue-5d-batch-proficiency-destinations-1-REVIEW-PACKET.md`.
+This proposal changes only to point at them.
+
+| | before | after |
+|---|---|---|
+| proposal identity | `c71f81044f003e2845e33e95a844c995aeee00282b0808303320200f164e8ec4` | `f0becb8bd87fcbb41aced983c55f59beb3f25b52d4eca549257d51d9b86d345a` |
+| file sha256 | `55ac577f1ff25f37c8676a49c63e246588ec5c52cff58bb79205a4a459be8324` | `c4c12fd321019e28d8eb05c986c80cc4d3b4f206fd50fdb26c04fb17ace85d5d` |
+| bytes | 61,329 | 61,375 |
+| representation schema | `5d-representation-schema-15` / `e87e0bac…` | **unchanged** |
+
+**The whole delta is four scalars.** Diffed leaf by leaf against the committed
+Round 3 JSON: `references[2].target_record_key` and `references[3]` gain
+`play.skills` and `play.actions`, and the two `ProvenanceClaim.target_key`
+tuples that identify those same references gain the same two strings in their
+fifth position. +46 bytes is exactly `play.skills` and `play.actions` twice.
+No span, component, fact, band, prose binding, expected rule, leaf or binding
+part moves, and no schema is restamped — which is why the approved bytes are
+still reproducible, and `test_exactly_two_target_strings_separate_this_from_the_reviewed_bytes`
+blanks those two targets and their two provenance tuples and derives
+`c71f8104…` again.
+
+The standalone finding set is now four of one kind rather than two of each:
+
+```
+reference srd-5.2.1/playing-the-game:'Actions': unknown target record play.actions
+reference srd-5.2.1/playing-the-game:'Skills table': unknown target record play.skills
+reference srd-5.2.1/rules-glossary:'Challenge Rating': unknown target record glossary.challenge_rating
+reference srd-5.2.1/rules-glossary:'Expertise': unknown target record glossary.expertise
+```
+
+All four are `unknown target record` because this proposal stands alone in the
+test: the destination records exist in the other proposal, not in the accepted
+oracle. In the merged data — accepted corpus plus both proposals — all four
+resolve to exactly one existing record each, which is what
+`test_proficiency_references_resolve.py` proves. The two scope keys corrected
+above are a **semantic** correction and not a mechanical one, and the earlier
+draft of this paragraph got that wrong. The checker resolves
+`target_record_key` against the whole merged record set — `validation.py`'s
+`elif ref.target_record_key not in record_keys` — so both pointers would report
+resolved under either scope; repointing either one back at
+`srd-5.2.1/rules-glossary` in the merged data leaves the finding list
+byte-identical. What the corrected scope fixes is which review can legitimately
+discharge them, and mechanically it is `(scope_key, source_text)` that the
+ambiguity grouping keys on, so the scope still has to be right for a genuine
+collision *in that scope* to be detectable.
+
+**The `Actions` destination is not the one Round 1 predicted.** That row said the
+durable destination would be "each action record naming its skill", with
+`AbilityCheckFact.skill` filled in on the twelve accepted `action.*` records.
+That is not what was done, and deliberately so. The printed sentence points at
+the *Actions section of Playing the Game* — a named part of the book — not at the
+Rules Glossary `[Action]` entries `actions-1` accepted, and the two are different
+source material. So the destination is `play.actions`, one record over that
+section, and the twelve accepted records are left untouched. Typing each action's
+skill would also mean writing a skill the source does not print for that action;
+it has no identified use under this task's authority, and it would rewrite
+accepted content. It stays available to a later batch that has a use for it.
+
+**Unit size, 57 versus 58.** The two counts below (Skills table "57 leaves,
+container `d818241d`") are the container's leaves. The destinations batch reviews
+**58**: the same 57 plus the paragraph leaf `707fa349`, which is the printed
+*Skills* heading — 5c captured it as a paragraph sibling of the container rather
+than opening a subsection, so a unit over the container alone would leave the
+heading reviewed by nobody. That packet's §2 carries the container evidence.
+
+**The five detectability tests are replaced by six**, over named links rather
+than empty ones:
+`test_all_four_printed_pointers_name_a_reviewed_destination`,
+`test_exactly_two_target_strings_separate_this_from_the_reviewed_bytes`,
+`test_a_named_link_survives_serialization_and_reconstruction`,
+`test_deleting_either_half_of_a_named_link_is_reported`,
+`test_a_sibling_citing_the_same_words_elsewhere_is_ambiguous`, and
+`test_blanking_a_destination_reopens_it_as_unresolved`. The sibling row's
+reported value changes with them: a resolved sibling citing "Skills table" in
+this scope now reports `ambiguous … resolves to ['play.proficiency',
+'play.skills']`, not `['', 'play.proficiency']`. The last test is the old
+mechanism kept as a failure case: blanking a target reopens `unresolved
+reference`, so a destination cannot be dropped silently.
+
+**Nothing here is accepted.** Both proposals are proposed; the accepted oracle is
+byte-identical before and after every test in this batch, and formal corpus
+acceptance waits on independent review of these exact artifacts.
+
 ### Correction to the identification note
 
 `.claude/review-notes/issue-5d-regular-section-pilot-IDENTIFICATION.md` states
@@ -765,10 +871,12 @@ recorded rather than quietly corrected.
 Stated plainly, because a review packet that omits its own residue is not
 reviewable.
 
-1. **Four reference findings, two of each kind** (§7): two `unknown target
-   record` forward citations into the Rules Glossary, and two `unresolved
-   reference` outstanding obligations. All four are expected, all four block
-   publication, and the generator asserts the set as an exact tuple.
+1. **Four reference findings, all `unknown target record`** (§7, Round 4): two
+   forward citations into the Rules Glossary and two into *Playing the Game*.
+   All four are expected of this proposal *standing alone*, all four block
+   publication, and the generator asserts the set as an exact tuple. All four
+   resolve in the merged data once `proficiency-destinations-1` is in it, and
+   nothing in either batch is accepted.
 2. **The absorbed table caption.** `ce26a9f7` ends with the caption text
    ` Proficiency Bonus` rather than carrying it in the table container. A 5c
    extraction artifact. Bound as supporting authority; not repaired.
@@ -786,19 +894,21 @@ reviewable.
 6. **No consumer is wired.** The band facts are proposed, not published; no
    runtime reads them. That is the correct state for an unaccepted proposal.
 7. **Two outstanding mechanical links** (§7): the Skills table and the *Actions*
-   section. Both are now authored in the proposal with empty targets, so both
-   fail validation until the real destination is named, and neither can be
-   discharged by a note or by coincidence. They are **not** a permanent exception
-   to build-time resolution. No batch is authorized here to review those
-   destinations. `patched` — the tracking defect is closed; the destinations
-   themselves stay future work.
+   section. Both were authored with empty targets, so both failed validation
+   until the real destination was named, and neither could be discharged by a
+   note or by coincidence. **Closed in Round 4** under the Owner's later
+   authorization: both now name `play.skills` and `play.actions`, records
+   reviewed in `proficiency-destinations-1`, and the empty-target form survives
+   as a failure case a test still exercises. `patched`.
 8. **No post-acceptance supersede path for an accepted reference** (§7).
    `acceptance._merged_collection` can merge accepted content but cannot replace
    an element of it, so an outstanding obligation accepted today would have to be
    carried until such a path exists; pre-acceptance the route is regeneration,
    as `conditions-1` did at schema 3. Pre-existing limitation, not introduced
-   here, and **`out of scope`** for this pilot. It is why this packet does not
-   recommend accepting the pilot ahead of the two destinations.
+   here, and **`out of scope`** for this pilot. It is why this packet did not
+   recommend accepting the pilot ahead of the two destinations — and why Round 4
+   closes them by pre-acceptance regeneration rather than by superseding an
+   accepted reference. The limitation itself is untouched.
 9. **The per-kind application question is answered, and the answer is bounded**
    (§6). Owner Decision 2026-09-18 makes the Rules Package the supplier of where
    proficiency applies, its addition and scaling limits, and the tool-Advantage
@@ -1276,15 +1386,22 @@ pytest tests/ingestion/mechanical/test_schema_version_legality.py -q --no-cov
 
 # the consolidated schema pins, against the registry and the live contract
 pytest tests/ingestion/mechanical/test_schema_6_succession.py -q --no-cov
+
+# Round 4's four destinations: identity, unit shape, the seventeen links
+pytest tests/ingestion/mechanical/test_proficiency_destinations_1_proposal.py -q --no-cov
+
+# Round 4: all four pointers resolving uniquely in the merged data, and the failures
+pytest tests/ingestion/mechanical/test_proficiency_references_resolve.py -q --no-cov
 ```
 
 `test_proficiency_1_proposal.py` pins the identity, runs
 `review_unit_violations` on the loaded artifact, asserts **all eight bands** as
 an exact set, proves by mutation that dropping the 29–30 band **is reported**,
-covers §7's two outstanding obligations in five tests — authored state,
+covers §7's four named links in six tests (Round 4) — all four naming a reviewed
+destination, the two target strings that reproduce PR #171's approved bytes,
 survival through `accepted_inputs_payload` and `load_accepted_inputs`, omission
-of either half, a resolved sibling failing to discharge one, and the single edit
-that does discharge one — and exercises `accept_proposal`
+of either half, a sibling citing the same words elsewhere turning ambiguous, and
+blanking a destination reopening it — and exercises `accept_proposal`
 in memory — with `reviewer="test-evidence-only"` — asserting the committed
 oracle is byte-identical before and after. That acceptance is isolated test
 evidence that the proposal is structurally acceptable. **It is not a semantic

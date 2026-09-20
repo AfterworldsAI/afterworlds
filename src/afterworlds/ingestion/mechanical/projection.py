@@ -42,6 +42,7 @@ from afterworlds.ingestion.mechanical.models import (
     ClassificationLedger,
     ComponentHandling,
     ExpectedRule,
+    ReleaseBinding,
     ReviewUnit,
     SemanticSpan,
 )
@@ -104,24 +105,6 @@ __all__ = [
     "UnsupportedSchemaVersionError",
     "validate_schema_binding",
 ]
-
-
-@dataclass(frozen=True)
-class ReleaseBinding:
-    """The exact published 5c release a projection is built over (#137 contract 1).
-
-    All six values are required. A matching slug, display name, source label, or
-    filename is not a binding — these are the reconstructable proof identities
-    CRD Issue 5c already publishes, so a projection cannot claim a release it
-    was not actually built from.
-    """
-
-    package_uuid: str
-    release_version: str
-    authoritative_source_hash: str
-    transform_config_hash: str
-    bundle_root_hash: str
-    persisted_corpus_digest: str
 
 
 @dataclass(frozen=True)

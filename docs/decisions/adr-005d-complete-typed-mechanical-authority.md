@@ -1053,6 +1053,53 @@ replace an accepted empty-target reference. Schemas 14 and 15 are registered in 
 contracts with one crossing each, from schema 13 and from schema 14, and no accepted artifact
 declares either.
 
+> **Historical — the state at the schema-14/15 registration, superseded by Owner Decision
+> 2026-09-20 (UTC).** The paragraph above records the state when schemas 14 and 15 were
+> registered and is kept as written; its "No semantic acceptance was granted", its
+> "`proficiency-1` proposal stays **unaccepted**" and its "no accepted artifact declares
+> either" have all since ended. On 2026-09-20 UTC — 2026-09-19 in the Owner's local time, the
+> first acceptance whose two calendar dates differ — the Owner accepted the two independently
+> reviewed proposals in one action, destinations before Proficiency:
+> `723bba6246e3a325141705be984c6c28fb016d36a7a6ff1b78fb7b0e21aeac3e` as batch
+> `proficiency-destinations-1` (120 spans) and
+> `f0becb8bd87fcbb41aced983c55f59beb3f25b52d4eca549257d51d9b86d345a` as batch `proficiency-1`
+> (47 spans), each the complete representation of its proposal, extending the preserved
+> seven-batch prior through the registered transitions. **No unresolved architectural choice
+> remains here and no further Owner ruling is required**; this note reconciles the description
+> with a decision already recorded, and amends no contract.
+>
+> What the acceptance changed: the committed artifact now declares schema 15 rather than schema
+> 11 and `5d-semantic-policy-2` rather than `5d-semantic-policy-1`, and carries an eighth and a
+> ninth anchor, both at schema 15. The registered schema path resolved as the eight crossings
+> already recorded plus `5d-lift-schema-11-to-12` → `12-to-13` → `13-to-14` → `14-to-15`, and
+> the policy crossed once, through `5d-policy-1-to-2`; the prior was lifted rather than
+> rewritten. It is also the first accepted artifact to record a review inventory: five review
+> units, four discharged by the destinations batch and one by `proficiency-1`. What it did not
+> change: every earlier anchor stays where each batch was reviewed — `conditions-1` at schema 3
+> through `speed-1` at schema 11 — and the seven earlier batches, acceptances and spans are
+> carried in byte-identically, which `test_proficiency_acceptance_reproduction` asserts element
+> by element against the frozen seven-batch prior
+> (`accepted_prior_conditions_1_hazards_1_actions_1_attitudes_1_areas_of_effect_1_cover_1_speed_1.json`,
+> still `d395e4ed79045d0b3ef015240d61fd91445a4b38a77a5f75b0e537ca74eaa29f` over 48 records and
+> 594 spans). The accepted mechanical identity is now
+> `3b8941ce9039a78e72fd3ddf05952d0da4bed18dc4d38fb99b8b80db137fb407`, over 53 records and 761
+> spans. Because the artifact declares the schema this build implements, no lift stands between
+> the committed file and current authority.
+>
+> What it resolved, and what it did not. All four references `proficiency-1` prints resolve
+> uniquely against the destinations batch accepted immediately before it, which is why the two
+> were authorized in that order and accepted in it: between the two merges the artifact names
+> `play.proficiency` and nothing defines it, and the second merge closes exactly that one
+> obligation. The ten named-but-unminted targets `speed-1` and `conditions-1` left are
+> **unchanged**. Four citations of the second kind are now accepted with an empty target —
+> *Stat Block*, *Combat Encounters*, *Combat* and *Opportunity Attack* — exactly as the entry
+> in `known_unknowns.md` predicted they would arrive; no destination was ingested and no target
+> was invented for any of them, and `reference_resolutions` is empty in this artifact, so no
+> reviewed reference resolution was invoked. Those four close only through an explicit reviewed
+> resolution under Decision 7 as amended. All fourteen are explicit publication blockers, so the
+> corpus stays incomplete and runtime-unpublished, the acceptance published, activated and
+> retired **nothing**, and the full-corpus work Decision 5 requires remains undischarged.
+
 ### Decision 5 — Exact completeness, not aggregate thresholds
 
 Publication is proven through the complete reviewed source inventory and accepted expected rules,
@@ -1228,6 +1275,74 @@ source **record** or one named **component** of that record.
 This ownership widening is a *domain* widening of the existing owner field rather than a new ownership
 field beside it, precisely so that no accepted reference's canonical payload or provenance coordinate
 moves.
+
+**Amended by Owner Decision 2026-09-19 — an accepted empty target is closed by an explicit reviewed
+decision, never by a later batch.** *"Option A is clearly the best choice. You are authorized to implement
+A."* What that authorizes is the resolution of an accepted reference whose reviewed target is **empty**, and
+nothing wider.
+
+The edge it closes: acceptance is append-only and keyed, and a reference's key includes its target. A later
+batch that authors the destination for an empty citation therefore states a *different* key — the keyed
+union retains both, and publication reports the one citation twice: `unresolved reference` for the accepted
+empty edge and `ambiguous` for the pair. Authoring a destination cannot close an empty target, so without
+this decision an accepted empty target is an obligation no supported action could ever discharge.
+
+- An accepted empty target is resolved only by an explicit **reference resolution**: a record naming the
+  previously accepted citation — its source record, owning component, printed wording and committed scope —
+  together with the reviewed destination, the release it was reviewed against, and the provenance spans
+  review read the citation from.
+- The decision bears identity and its **authorization evidence does not**. Which destination one accepted
+  citation resolves to is part of what that citation means, so a resolution belongs inside the accepted
+  authority's identity exactly as Decision 6 requires of meaning. Who authorized it, under which reference,
+  which reviewer saw it, and when are retained beside it as evidence and bear no identity: reminting
+  mechanical meaning for recording a reviewer's name would make honest evidence expensive to keep.
+- Nothing accepted is edited. The accepted representation goes on stating the empty citation every reviewer
+  accepted; the **effective** representation — that same representation as its resolutions state it — is
+  what the build persists, the gate judges, and the query and override paths read. Both views derive from
+  the one artifact, so the history stays reconstructable and no accepted batch is rewritten.
+- **This decision is otherwise unchanged.** An unresolved reference still blocks publication. A resolution
+  supplies a destination; it does not exempt a citation from the rule. A citation with no resolution stays
+  detectably unresolved, and history is never a second active citation. A resolution that does not apply to
+  the authority it names — wrong release, no such unresolved citation, a citation already resolved,
+  provenance that is not what review read, or an effective view publication would refuse — fails closed
+  with nothing recorded.
+- The reviewed destination must be a record the accepted authority **actually states**. A decision
+  naming no real record is invalid as a decision and is refused in its own words, rather than inferred
+  from whether the resolved view happens to word a new complaint: publication tags a reference finding by
+  its scope and wording alone, so sibling citations of one phrase produce identical findings and an
+  invalid destination could otherwise stand behind one already reported.
+- Consistent citations of one wording are **resolved as** one decision under this authorization. Two
+  components of a record may legitimately cite the same wording in the same scope — each is its own
+  claim with its own provenance — but `(scope, wording)` resolves to exactly one record or it is
+  ambiguous. Such citations are therefore
+  resolved in a single reviewed action, validated together and applied whole or not at all, with each
+  citation keeping its exact source, its own reviewed provenance spans and its own authorization record
+  under the one authorization named. This does not weaken ambiguity: citations of one wording sent to
+  different records are refused whether stated in one action or several, and a half-applied decision
+  remains unreachable.
+- Repeat behaviour is **implemented as** refusal rather than absorption: a resolution whose id is
+  already recorded is refused, on the same terms as a `batch_id`
+  `accept_proposal` already holds: a replay is deterministic and leaves the artifact exactly as it was.
+  Any already-recorded id refuses the **whole** action, so a partial replay records no part of itself.
+- A later batch may neither drop a resolution it inherits nor invalidate one. Carried decisions are
+  re-checked against the merged result, and an extension that would leave one describing something else is
+  refused before an artifact exists.
+
+**Not authorized by this decision:** retargeting an already resolved citation, arbitrary accepted prose or
+fact edits, generic supersession, additional source ingestion, and automatic destination guessing. A machine
+suggestion never becomes authority implicitly — a resolution nobody is recorded as having decided is not
+one.
+
+This is bounded to the empty-target case, which is not the outstanding cross-batch-target case recorded in
+`docs/architecture/known_unknowns.md`. A citation naming a destination key no accepted batch has minted yet
+resolves the moment some batch mints it: the citation's own key never changes and no decision is needed. An
+empty target is the case where review could state no key at all, and only an explicit decision can supply
+one.
+
+The capability is implemented and demonstrated on isolated evidence. No accepted citation of the corpus is
+resolved by it, and the reviewed destinations proposal states four honest empty targets — *Stat Block*,
+*Combat Encounters*, *Combat*, *Opportunity Attack* — which would remain open obligations after any acceptance
+until genuinely reviewed destinations exist.
 
 ### Decision 8 — Persist, reconstruct, prove, then publish
 
