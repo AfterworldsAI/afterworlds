@@ -94,6 +94,21 @@ REVIEW_NOTES = pathlib.Path(__file__).resolve().parents[3] / ".claude" / "review
 PROPOSAL_PATH = REVIEW_NOTES / "issue-5d-batch-proficiency-destinations-1-PROPOSAL.json"
 COMMITTED_ARTIFACT = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
 
+#: The seven-batch state the Owner accepted this batch *against*. The live
+#: artifact now holds the acceptance, so it can no longer stand in for the prior
+#: an in-memory rehearsal merges onto: doing that would re-accept spans the
+#: artifact already carries and the production path refuses it, correctly. The
+#: rehearsal below is unchanged in what it proves; only the prior it reads moved.
+FROZEN_PRIOR = (
+    pathlib.Path(__file__).resolve().parent
+    / "data"
+    / "accepted_prior_conditions_1_hazards_1_actions_1"
+    "_attitudes_1_areas_of_effect_1_cover_1_speed_1.json"
+)
+
+#: The batch id the Owner accepted this proposal as.
+BATCH_ID = "proficiency-destinations-1"
+
 #: The identity the review packet reports and a reviewer would be shown.
 PROPOSAL_IDENTITY = "723bba6246e3a325141705be984c6c28fb016d36a7a6ff1b78fb7b0e21aeac3e"  # noqa: E501  # pragma: allowlist secret
 
@@ -297,18 +312,36 @@ def test_the_proposal_derives_its_reviewed_identity_under_schema_fifteen() -> No
     assert proposal.binding == prior.oracle.binding
 
 
-def test_nothing_in_this_proposal_is_accepted() -> None:
-    """It is a proposal, and the records it mints are new to the corpus."""
+def test_the_accepted_batch_names_exactly_this_proposal() -> None:
+    """It is still a proposal file, and it is the one the Owner accepted from.
+
+    The earlier form of this test asserted the opposite - that no batch named
+    this identity and that the records it mints were new to the corpus - and was
+    true until the Owner accepted it. Inverted rather than deleted: what it
+    covered is that the retained bytes and the accepted artifact agree about
+    which proposal was reviewed, and that claim outlives the acceptance. The
+    file itself still says ``PROPOSED`` on every row, because review state is
+    stamped by ``accept_proposal`` and never by authorship.
+
+    The disjointness half moves onto the seven-batch prior, where it is still the
+    live claim: the batch did not re-review source another batch owns.
+    """
     proposal = _proposal()
     assert {p.span.review_state for p in proposal.proposed_spans} == {
         ReviewState.PROPOSED
     }
-    prior = load_accepted_inputs(COMMITTED_ARTIFACT)
+    accepted = load_accepted_inputs(COMMITTED_ARTIFACT)
+    assert {
+        b.proposal_identity for b in accepted.batches if b.batch_id == BATCH_ID
+    } == {PROPOSAL_IDENTITY}
+    accepted_records = {r.semantic_key for r in accepted.oracle.representation.records}
+    assert set(EXPECTED_RECORDS) <= accepted_records
+
+    prior = load_accepted_inputs(FROZEN_PRIOR)
     assert PROPOSAL_IDENTITY not in {b.proposal_identity for b in prior.batches}
-    accepted_records = {r.semantic_key for r in prior.oracle.representation.records}
-    assert accepted_records.isdisjoint(EXPECTED_RECORDS)
-    # And nothing already accepted is restated: the spans are disjoint too, so
-    # this batch cannot be re-reviewing source another batch owns.
+    assert {r.semantic_key for r in prior.oracle.representation.records}.isdisjoint(
+        set(EXPECTED_RECORDS)
+    )
     assert {p.span.span_id for p in proposal.proposed_spans}.isdisjoint(
         {s.span_id for s in prior.oracle.spans}
     )
@@ -585,7 +618,7 @@ def test_in_memory_acceptance_is_evidence_and_writes_nothing() -> None:
     """
     before = hashlib.sha256(COMMITTED_ARTIFACT.read_bytes()).hexdigest()
     proposal = _proposal()
-    prior = load_accepted_inputs(COMMITTED_ARTIFACT)
+    prior = load_accepted_inputs(FROZEN_PRIOR)
 
     accepted = accept_proposal(
         proposal,

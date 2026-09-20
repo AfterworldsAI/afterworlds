@@ -16,8 +16,9 @@ any of them.
 `srd-5-2-1-corpus-36b786d8-fa2.json` — accepted authority for the SRD 5.2.1
 release (`4458fa10-4a66-5e0e-9ecc-ea37530ad2b4` /
 `5.2.1-corpus.36b786d8-fa2`), currently holding **batches `conditions-1`,
-`hazards-1`, `actions-1`, `attitudes-1`, `areas-of-effect-1`, `cover-1` and
-`speed-1`** — 48 accepted records over 594 accepted spans.
+`hazards-1`, `actions-1`, `attitudes-1`, `areas-of-effect-1`, `cover-1`,
+`speed-1`, `proficiency-destinations-1` and `proficiency-1`** — 53 accepted
+records over 761 accepted spans.
 
 The file is named for the release, not for the batch, because the resolver
 matches on the release binding and refuses outright when two artifacts claim one
@@ -30,12 +31,20 @@ accepted on 2026-09-10 over all three — that one also crossing a schema, from 
 to 8, through the registered lift rather than by restamping the file — and how
 `areas-of-effect-1` was accepted on 2026-09-11 over all four, crossing from 8 to
 9 the same way, how `cover-1` was accepted later the same day over all five,
-crossing from 9 to 10, and how `speed-1` was accepted on 2026-09-12 over all
-six, crossing from 10 to 11.
+crossing from 9 to 10, how `speed-1` was accepted on 2026-09-12 over all six,
+crossing from 10 to 11, and how the two Proficiency batches were accepted on
+2026-09-20 UTC over all seven — `proficiency-destinations-1` first and
+`proficiency-1` three seconds later, both reviewed under schema 15, crossing
+from 11 to 15 through the four registered lifts and crossing the semantic
+policy from `5d-semantic-policy-1` to `5d-semantic-policy-2` through its one
+registered transition. That order is load-bearing: the `Expertise`
+destination cites `Proficiency`, which `proficiency-1` is the batch to
+define.
 
 **The CRD Issue 5d corpus is incomplete, so this release still cannot publish.**
-Batches beyond `speed-1` have not begun, ten cross-batch reference targets named
-by accepted content are still unresolved, and nothing is published or activated:
+Batches beyond `proficiency-1` have not begun, ten cross-batch reference targets
+named by accepted content are still unresolved, four accepted citations name no
+target at all, and nothing is published or activated:
 `glossary.concentration`, inherited and untouched since `conditions-1`, plus the
 nine movement entries `speed-1` cites without defining — `glossary.burrow_speed`,
 `glossary.climb_speed`, `glossary.climbing`, `glossary.crawling`,
@@ -48,6 +57,20 @@ cited, not ingested — no record, component, fact or span was created for any o
 them, and no target was invented. Accepting a complete source class can widen
 the residue as well as narrow it, and neither direction is a reason to accept or
 withhold a batch.
+
+The two Proficiency batches left those ten **unchanged** and added a residue of
+the second kind: four accepted citations whose target key is empty — *Stat
+Block* in the Rules Glossary, *Combat Encounters* in the Gameplay Toolbox, and
+*Combat* and *Opportunity Attack* in Playing the Game. Review read each
+citation the source plainly makes and could state no destination key, so none
+was invented and no destination was ingested for them. They are honest empties,
+not resolutions: `reference_resolutions` is empty in this artifact, so no
+reviewed reference resolution was invoked for any of the fourteen. Those four
+stay open obligations until genuinely reviewed destinations exist; they close
+only through an explicit reviewed resolution under ADR-005d Decision 7, never
+by a later batch happening to mint a plausible target. What the Proficiency
+batches did close is internal: all four references `proficiency-1` prints
+resolve uniquely against the destinations batch accepted immediately before it.
 Accepted authority now exists and resolves, but the publication gate compares it
 against the *whole* persisted projection: a projection carrying any record this
 artifact does not accept fails with `MISSING_AUTHORITY` / `UNEXPECTED_AUTHORITY`.

@@ -31,10 +31,14 @@ literal below and is asserted to be inside it. Everything the identity covers �
 every span, disposition, component, fact, reference, obligation, anchor and lift
 — is rebuilt.
 
-The comparison target here *is* the live committed artifact, because ``speed-1``
-is the newest acceptance and nothing has extended the file since. The day an
-eighth batch is accepted this comparison moves to a frozen copy of the
-seven-batch result, as ``cover-1``'s did when this batch landed.
+The comparison target is the frozen seven-batch fixture, which is byte-for-byte
+what this acceptance wrote — Git blob ``4fcfab6f…``, the live artifact's own blob
+until the two Proficiency acceptances moved it. The previous form of this
+paragraph named that day and named this replacement, so retargeting here rather
+than loosening the comparison is that replacement, exactly as ``cover-1``'s was
+when this batch landed. That the live artifact still carries this result
+unchanged is asserted in ``test_speed_1_frozen_prior``, which is where the
+fixture is attached to the file it was copied from.
 
 The third test is the one that earns the first. It shows that the merge can
 differ in a way the committed artifact's own pins cannot see: handing
@@ -59,7 +63,6 @@ from afterworlds.ingestion.mechanical.accounting import (
     validate_acceptance,
 )
 from afterworlds.ingestion.mechanical.oracle import (
-    COMMITTED_ORACLE_DIR,
     AcceptedInputs,
     _representation,
     _span,
@@ -88,9 +91,14 @@ FROZEN_PRIOR = (
     / "accepted_prior_conditions_1_hazards_1_actions_1"
     "_attitudes_1_areas_of_effect_1_cover_1.json"
 )
-#: What this acceptance produced: the live committed artifact, because nothing
-#: has extended it since. See the module docstring.
-FROZEN_RESULT = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
+#: What this acceptance produced, frozen. See the module docstring: the live
+#: artifact has moved on by two batches, this file has not.
+FROZEN_RESULT = (
+    pathlib.Path(__file__).resolve().parent
+    / "data"
+    / "accepted_prior_conditions_1_hazards_1_actions_1"
+    "_attitudes_1_areas_of_effect_1_cover_1_speed_1.json"
+)
 
 BATCH_ID = "speed-1"
 REVIEWER = "Ravenlok (Owner)"

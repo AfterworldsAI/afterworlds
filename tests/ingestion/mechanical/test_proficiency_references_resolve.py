@@ -61,6 +61,21 @@ DESTINATIONS_PATH = (
 PROFICIENCY_PATH = REVIEW_NOTES / "issue-5d-batch-proficiency-1-PROPOSAL.json"
 COMMITTED_ARTIFACT = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
 
+#: The seven-batch state the Owner accepted these two batches against. The live
+#: artifact now holds both, so it can no longer stand in for the prior the
+#: rehearsal merges onto - re-accepting spans it already carries is refused by
+#: the production path, correctly. The rehearsal below proves the same property
+#: it always did, on the same inputs, from the prior they were reviewed against;
+#: the last test now also checks that the rehearsal and the accepted artifact
+#: report the same thing, which is what makes the rehearsal evidence about the
+#: corpus rather than about itself.
+FROZEN_PRIOR = (
+    pathlib.Path(__file__).resolve().parent
+    / "data"
+    / "accepted_prior_conditions_1_hazards_1_actions_1"
+    "_attitudes_1_areas_of_effect_1_cover_1_speed_1.json"
+)
+
 PROFICIENCY = "play.proficiency"
 GLOSSARY_SCOPE = "srd-5.2.1/rules-glossary"
 PLAYING_SCOPE = "srd-5.2.1/playing-the-game"
@@ -144,7 +159,7 @@ def _merged():  # type: ignore[no-untyped-def]
     In acceptance order: a destination has to exist before the batch that points
     at it can be accepted, which is the ordering this task's handoff states.
     """
-    accepted = load_accepted_inputs(COMMITTED_ARTIFACT)
+    accepted = load_accepted_inputs(FROZEN_PRIOR)
     for path, batch_id, units in (
         (
             DESTINATIONS_PATH,
@@ -239,7 +254,7 @@ def test_every_citation_in_the_merged_data_resolves_uniquely() -> None:
     the whole merged reference relation is checked rather than this task's own
     additions.
     """
-    accepted = load_accepted_inputs(COMMITTED_ARTIFACT)
+    accepted = load_accepted_inputs(FROZEN_PRIOR)
     merged = _merged().oracle.representation
 
     multiply_resolved = {
@@ -348,22 +363,47 @@ def test_the_resolution_survives_the_production_writer_and_loader(
 
 
 def test_the_accepted_corpus_is_untouched_by_all_of_this() -> None:
-    """Seven accepted batches, forty-eight records, and the same bytes on disk.
+    """Seven prior batches, forty-eight records, and the same bytes on disk.
 
-    This module's whole subject is a merge that has not been accepted. If the
-    merge ever became a write, this is the assertion that would say so.
+    This module's whole subject is a merge this module does not accept. If the
+    merge ever became a write, this is the assertion that would say so. The
+    merge *has* since been accepted, by the ACCEPT script beside the proposals
+    and not by any test, so the file the digest guards is now the nine-batch
+    artifact rather than the prior; the prior it merges onto is the frozen copy.
     """
     before = hashlib.sha256(COMMITTED_ARTIFACT.read_bytes()).hexdigest()
-    accepted = load_accepted_inputs(COMMITTED_ARTIFACT)
+    prior = load_accepted_inputs(FROZEN_PRIOR)
     merged = _merged()
 
-    assert len(merged.batches) == len(accepted.batches) + 2
-    assert merged.batches[: len(accepted.batches)] == accepted.batches
-    assert {r.semantic_key for r in accepted.oracle.representation.records} < {
+    assert len(merged.batches) == len(prior.batches) + 2
+    assert merged.batches[: len(prior.batches)] == prior.batches
+    assert {r.semantic_key for r in prior.oracle.representation.records} < {
         r.semantic_key for r in merged.oracle.representation.records
     }
     assert (
         len(merged.oracle.representation.records)
-        == len(accepted.oracle.representation.records) + 5
+        == len(prior.oracle.representation.records) + 5
     )
     assert hashlib.sha256(COMMITTED_ARTIFACT.read_bytes()).hexdigest() == before
+
+
+def test_the_rehearsal_and_the_accepted_artifact_report_the_same_thing() -> None:
+    """The rehearsal is now a check on the corpus, not only on itself.
+
+    Everything above merges in memory from the retained proposals. The Owner has
+    since accepted exactly those proposals, so the committed artifact must agree
+    with the rehearsal about what resolves and what remains outstanding - not
+    byte-for-byte, because the accepted batch ids, rules, reviewer and timestamps
+    are real where the rehearsal's are placeholders, but in the reference
+    relation, which is the whole subject of this module. If the two ever
+    disagreed, one of them would be describing a corpus that does not exist.
+    """
+    committed = load_accepted_inputs(COMMITTED_ARTIFACT).oracle.representation
+    rehearsed = _merged().oracle.representation
+
+    assert tuple(sorted(relationship_and_reference_violations(committed))) == (
+        EXPECTED_OUTWARD
+    )
+    assert _targets_by_citation(committed) == _targets_by_citation(rehearsed)
+    for citation, target in ORIGINATING_LINKS.items():
+        assert _targets_by_citation(committed)[citation] == {target}

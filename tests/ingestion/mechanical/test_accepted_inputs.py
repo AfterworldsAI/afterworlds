@@ -311,6 +311,8 @@ def test_exactly_one_accepted_artifact_is_committed_for_the_release() -> None:
         "conditions-1",
         "cover-1",
         "hazards-1",
+        "proficiency-1",
+        "proficiency-destinations-1",
         "speed-1",
     ]
     assert [a.batch_id for a in inputs.schema_anchors] == [
@@ -321,6 +323,8 @@ def test_exactly_one_accepted_artifact_is_committed_for_the_release() -> None:
         "areas-of-effect-1",
         "cover-1",
         "speed-1",
+        "proficiency-destinations-1",
+        "proficiency-1",
     ]
 
 

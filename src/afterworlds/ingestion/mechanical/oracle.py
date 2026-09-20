@@ -298,9 +298,12 @@ class AcceptedInputs:
     batches: tuple[AcceptanceBatch, ...]
     acceptances: tuple[AcceptanceRecord, ...]
     #: The acceptance action that accepted each unit of :attr:`oracle`'s review
-    #: inventory. Empty for all seven accepted batches, which recorded no
-    #: inventory, and omitted from the written file when empty — so their
-    #: committed bytes and recorded digests are exactly as reviewed.
+    #: inventory. Empty for the seven batches accepted before
+    #: ``proficiency-destinations-1``, which recorded no inventory, and omitted
+    #: from the written file when empty — so their committed bytes and recorded
+    #: digests are exactly as reviewed. The two Proficiency batches are the
+    #: first to record one: five units, four discharged by the destinations
+    #: batch and one by ``proficiency-1``.
     review_unit_acceptances: tuple[ReviewUnitAcceptance, ...] = ()
     #: The representation schema each retained batch was *reviewed* under.
     #: Empty only for the legacy pre-schema-4 form, where absence has one

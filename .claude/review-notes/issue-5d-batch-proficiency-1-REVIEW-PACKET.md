@@ -1,8 +1,15 @@
 # `proficiency-1` review packet — CRD Issue 5d, first regular-section pilot
 
-**Status: PROPOSED. Not accepted. Nothing in this branch accepts it.**
+**Status: ACCEPTED 2026-09-20 (UTC) by the Owner, as reviewed.** This
+packet described an unaccepted proposal when it was written and is kept as
+written; the proposal it describes is now accepted authority, recorded in
+`issue-5d-proficiency-ACCEPTANCE-CHECKPOINT.md` and committed in
+`src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-36b786d8-fa2.json`.
+Nothing here was edited to match the acceptance, so every claim below is
+still the claim the reviewer read. Acceptance published, activated and
+merged **nothing**.
 
-This packet is the human-readable half of an unaccepted proposal over
+This packet is the human-readable half of the proposal over
 **SRD 5.2.1 > Playing the Game > Proficiency**. It exists so a reviewer can
 check the proposal against the printed source without reading 60 KB of JSON,
 and so the Owner's later semantic acceptance decision is made on the actual

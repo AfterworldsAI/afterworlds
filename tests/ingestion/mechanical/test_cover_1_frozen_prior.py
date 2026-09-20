@@ -327,8 +327,9 @@ def test_the_committed_artifact_extends_this_copy_by_the_batches_since() -> None
     replacement rather than a deletion: the live artifact is this prior plus
     exactly the batches accepted since, and every batch the freeze holds is
     still present and identical, which is the part that would catch a merge
-    rewriting history. The Owner's acceptance of ``speed-1`` makes that two,
-    so the claim is generalized rather than re-pinned to a single batch name.
+    rewriting history. The Owner's acceptances of ``speed-1`` and then the two
+    Proficiency batches make that four, so the claim is generalized rather than
+    re-pinned to a single batch name.
 
     The fixture's own two pins are asserted above and are unchanged by the
     acceptance; what moved is the live file, so its digest is asserted to
@@ -344,5 +345,7 @@ def test_the_committed_artifact_extends_this_copy_by_the_batches_since() -> None
     assert set(committed) - set(frozen) == {
         "cover-1",
         "speed-1",
+        "proficiency-destinations-1",
+        "proficiency-1",
     }
     assert {k: committed[k] for k in frozen} == frozen

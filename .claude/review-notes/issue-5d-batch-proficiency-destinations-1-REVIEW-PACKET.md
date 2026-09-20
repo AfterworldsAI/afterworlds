@@ -1,8 +1,15 @@
 # `proficiency-destinations-1` review packet — CRD Issue 5d
 
-**Status: PROPOSED. Not accepted. Nothing in this branch accepts it.**
+**Status: ACCEPTED 2026-09-20 (UTC) by the Owner, as reviewed.** This
+packet described an unaccepted proposal when it was written and is kept as
+written; the proposal it describes is now accepted authority, recorded in
+`issue-5d-proficiency-ACCEPTANCE-CHECKPOINT.md` and committed in
+`src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-36b786d8-fa2.json`.
+Nothing here was edited to match the acceptance, so every claim below is
+still the claim the reviewer read. Acceptance published, activated and
+merged **nothing**.
 
-This packet is the human-readable half of an unaccepted proposal over the four
+This packet is the human-readable half of the proposal over the four
 destinations `proficiency-1` cites: the Rules Glossary entries **Challenge
 Rating** and **Expertise**, the **Skills table**, and the **Actions** section of
 Playing the Game. It exists so a reviewer can check the proposal against the

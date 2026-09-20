@@ -8,7 +8,7 @@ Owner accepted proposal ``bd9d4942…``" stops being checkable.
 Nothing checked that for the corpus as a whole. Three reproduction modules each
 rebuilt *their own* batch's proposal, with their own copy of the rebuild, and
 the four batches with no reproduction module were unchecked. This is the one
-parameterized check over all seven, through the production loader.
+parameterized check over all nine, through the production loader.
 
 It is deliberately not a reproduction: it loads and derives, it does not merge.
 The byte-level proof that a loaded proposal still produces the committed
@@ -53,6 +53,10 @@ REVIEWED_PROPOSALS = {
     "areas-of-effect-1": "issue-5d-batch-areas-of-effect-1-PROPOSAL.json",
     "cover-1": "issue-5d-batch-cover-1-PROPOSAL.json",
     "speed-1": "issue-5d-batch-speed-1-PROPOSAL.json",
+    "proficiency-destinations-1": (
+        "issue-5d-batch-proficiency-destinations-1-PROPOSAL.json"
+    ),
+    "proficiency-1": "issue-5d-batch-proficiency-1-PROPOSAL.json",
 }
 
 

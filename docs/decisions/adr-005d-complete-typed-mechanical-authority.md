@@ -1053,6 +1053,53 @@ replace an accepted empty-target reference. Schemas 14 and 15 are registered in 
 contracts with one crossing each, from schema 13 and from schema 14, and no accepted artifact
 declares either.
 
+> **Historical — the state at the schema-14/15 registration, superseded by Owner Decision
+> 2026-09-20 (UTC).** The paragraph above records the state when schemas 14 and 15 were
+> registered and is kept as written; its "No semantic acceptance was granted", its
+> "`proficiency-1` proposal stays **unaccepted**" and its "no accepted artifact declares
+> either" have all since ended. On 2026-09-20 UTC — 2026-09-19 in the Owner's local time, the
+> first acceptance whose two calendar dates differ — the Owner accepted the two independently
+> reviewed proposals in one action, destinations before Proficiency:
+> `723bba6246e3a325141705be984c6c28fb016d36a7a6ff1b78fb7b0e21aeac3e` as batch
+> `proficiency-destinations-1` (120 spans) and
+> `f0becb8bd87fcbb41aced983c55f59beb3f25b52d4eca549257d51d9b86d345a` as batch `proficiency-1`
+> (47 spans), each the complete representation of its proposal, extending the preserved
+> seven-batch prior through the registered transitions. **No unresolved architectural choice
+> remains here and no further Owner ruling is required**; this note reconciles the description
+> with a decision already recorded, and amends no contract.
+>
+> What the acceptance changed: the committed artifact now declares schema 15 rather than schema
+> 11 and `5d-semantic-policy-2` rather than `5d-semantic-policy-1`, and carries an eighth and a
+> ninth anchor, both at schema 15. The registered schema path resolved as the eight crossings
+> already recorded plus `5d-lift-schema-11-to-12` → `12-to-13` → `13-to-14` → `14-to-15`, and
+> the policy crossed once, through `5d-policy-1-to-2`; the prior was lifted rather than
+> rewritten. It is also the first accepted artifact to record a review inventory: five review
+> units, four discharged by the destinations batch and one by `proficiency-1`. What it did not
+> change: every earlier anchor stays where each batch was reviewed — `conditions-1` at schema 3
+> through `speed-1` at schema 11 — and the seven earlier batches, acceptances and spans are
+> carried in byte-identically, which `test_proficiency_acceptance_reproduction` asserts element
+> by element against the frozen seven-batch prior
+> (`accepted_prior_conditions_1_hazards_1_actions_1_attitudes_1_areas_of_effect_1_cover_1_speed_1.json`,
+> still `d395e4ed79045d0b3ef015240d61fd91445a4b38a77a5f75b0e537ca74eaa29f` over 48 records and
+> 594 spans). The accepted mechanical identity is now
+> `3b8941ce9039a78e72fd3ddf05952d0da4bed18dc4d38fb99b8b80db137fb407`, over 53 records and 761
+> spans. Because the artifact declares the schema this build implements, no lift stands between
+> the committed file and current authority.
+>
+> What it resolved, and what it did not. All four references `proficiency-1` prints resolve
+> uniquely against the destinations batch accepted immediately before it, which is why the two
+> were authorized in that order and accepted in it: between the two merges the artifact names
+> `play.proficiency` and nothing defines it, and the second merge closes exactly that one
+> obligation. The ten named-but-unminted targets `speed-1` and `conditions-1` left are
+> **unchanged**. Four citations of the second kind are now accepted with an empty target —
+> *Stat Block*, *Combat Encounters*, *Combat* and *Opportunity Attack* — exactly as the entry
+> in `known_unknowns.md` predicted they would arrive; no destination was ingested and no target
+> was invented for any of them, and `reference_resolutions` is empty in this artifact, so no
+> reviewed reference resolution was invoked. Those four close only through an explicit reviewed
+> resolution under Decision 7 as amended. All fourteen are explicit publication blockers, so the
+> corpus stays incomplete and runtime-unpublished, the acceptance published, activated and
+> retired **nothing**, and the full-corpus work Decision 5 requires remains undischarged.
+
 ### Decision 5 — Exact completeness, not aggregate thresholds
 
 Publication is proven through the complete reviewed source inventory and accepted expected rules,

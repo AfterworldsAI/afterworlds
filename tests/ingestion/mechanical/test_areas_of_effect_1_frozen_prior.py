@@ -283,9 +283,10 @@ def test_the_committed_artifact_extends_this_copy_by_the_batches_since() -> None
     the thing that would end it and named what should replace it, so this is
     that replacement rather than a deletion: the live artifact is this prior
     plus exactly the batches accepted since, and every batch the freeze holds
-    is still present and identical. ``cover-1`` and ``speed-1`` make
-    that three, so the claim is generalized rather than re-pinned to a single
-    batch name, following ``test_attitudes_1_frozen_prior``.
+    is still present and identical. ``cover-1``, ``speed-1``,
+    ``proficiency-destinations-1`` and ``proficiency-1`` make that five, so the
+    claim is generalized rather than re-pinned to a single batch name,
+    following ``test_attitudes_1_frozen_prior``.
     """
     assert _lf_digest(FROZEN_PRIOR) == FROZEN_CONTENT_SHA256
     assert _lf_digest(COMMITTED) != FROZEN_CONTENT_SHA256
@@ -296,5 +297,7 @@ def test_the_committed_artifact_extends_this_copy_by_the_batches_since() -> None
         "areas-of-effect-1",
         "cover-1",
         "speed-1",
+        "proficiency-destinations-1",
+        "proficiency-1",
     }
     assert {k: committed[k] for k in frozen} == frozen

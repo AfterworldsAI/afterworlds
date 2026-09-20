@@ -999,10 +999,10 @@ PRODUCTION_ORACLE = (
     / "srd-5-2-1-corpus-36b786d8-fa2.json"
 )
 
-#: The accepted oracle identity of the seven accepted batches, unchanged by this
+#: The accepted oracle identity of the nine accepted batches, unchanged by this
 #: capability. Pinned here because "the artifact still round-trips" and "the
 #: artifact still *identifies* the same" are two claims.
-ACCEPTED_ORACLE_IDENTITY = "d395e4ed79045d0b3ef015240d61fd91445a4b38a77a5f75b0e537ca74eaa29f"  # noqa: E501  # pragma: allowlist secret
+ACCEPTED_ORACLE_IDENTITY = "3b8941ce9039a78e72fd3ddf05952d0da4bed18dc4d38fb99b8b80db137fb407"  # noqa: E501  # pragma: allowlist secret
 
 
 def test_the_accepted_corpus_is_untouched_by_this_capability() -> None:

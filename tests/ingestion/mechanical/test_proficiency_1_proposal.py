@@ -85,6 +85,21 @@ REVIEW_NOTES = pathlib.Path(__file__).resolve().parents[3] / ".claude" / "review
 PROPOSAL_PATH = REVIEW_NOTES / "issue-5d-batch-proficiency-1-PROPOSAL.json"
 COMMITTED_ARTIFACT = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
 
+#: The seven-batch state the Owner accepted this batch *against*. The live
+#: artifact now holds the acceptance, so it can no longer stand in for the prior
+#: an in-memory rehearsal merges onto: doing that would re-accept spans the
+#: artifact already carries and the production path refuses it, correctly. The
+#: rehearsal below is unchanged in what it proves; only the prior it reads moved.
+FROZEN_PRIOR = (
+    pathlib.Path(__file__).resolve().parent
+    / "data"
+    / "accepted_prior_conditions_1_hazards_1_actions_1"
+    "_attitudes_1_areas_of_effect_1_cover_1_speed_1.json"
+)
+
+#: The batch id the Owner accepted this proposal as.
+BATCH_ID = "proficiency-1"
+
 #: The identity the review packet reports and a reviewer would be shown.
 PROPOSAL_IDENTITY = "f0becb8bd87fcbb41aced983c55f59beb3f25b52d4eca549257d51d9b86d345a"  # noqa: E501  # pragma: allowlist secret
 
@@ -245,17 +260,30 @@ def test_the_retained_bytes_still_derive_the_reviewed_identity() -> None:
     assert proposal.policy_version == SEMANTIC_POLICY_VERSION
 
 
-def test_nothing_in_this_proposal_is_accepted() -> None:
-    """It is a proposal. Every proposed row says so, and no batch names it."""
+def test_the_accepted_batch_names_exactly_this_proposal() -> None:
+    """It is still a proposal file, and it is the one the Owner accepted from.
+
+    The earlier form asserted that no batch named this identity, and was true
+    until the Owner accepted it. Inverted rather than deleted: the claim worth
+    keeping is that the retained bytes and the accepted artifact agree about
+    which proposal was reviewed. Every proposed row still reads ``PROPOSED``,
+    because review state is stamped by ``accept_proposal`` and never by
+    authorship - a file that could declare its own spans accepted would be
+    acceptance by authorship. The seven-batch prior is where "no batch names
+    this" is still true, and it is asserted there.
+    """
     proposal = _proposal()
     assert {p.span.review_state for p in proposal.proposed_spans} == {
         ReviewState.PROPOSED
     }
-    named = {
+    assert {
         batch.proposal_identity
         for batch in load_accepted_inputs(COMMITTED_ARTIFACT).batches
+        if batch.batch_id == BATCH_ID
+    } == {PROPOSAL_IDENTITY}
+    assert PROPOSAL_IDENTITY not in {
+        batch.proposal_identity for batch in load_accepted_inputs(FROZEN_PRIOR).batches
     }
-    assert PROPOSAL_IDENTITY not in named
 
 
 def test_the_section_is_reviewed_as_one_unit_over_thirty_leaves() -> None:
@@ -356,7 +384,7 @@ def test_in_memory_acceptance_is_evidence_and_writes_nothing() -> None:
     """
     before = hashlib.sha256(COMMITTED_ARTIFACT.read_bytes()).hexdigest()
     proposal = _proposal()
-    prior = load_accepted_inputs(COMMITTED_ARTIFACT)
+    prior = load_accepted_inputs(FROZEN_PRIOR)
 
     accepted = accept_proposal(
         proposal,
@@ -483,7 +511,7 @@ def test_a_named_link_survives_serialization_and_reconstruction(
         resolved_scope=tuple(p.span.span_id for p in proposal.proposed_spans),
         reviewer="test-evidence-only",
         accepted_at="2026-09-17T00:00:00Z",
-        prior=load_accepted_inputs(COMMITTED_ARTIFACT),
+        prior=load_accepted_inputs(FROZEN_PRIOR),
         resolved_review_units=(UNIT_ID,),
     )
     path = tmp_path / "reconstructed.json"

@@ -590,6 +590,21 @@ by it, and those four stay open obligations until genuinely reviewed destination
 a Known Unknown of its own: both are the 5d corpus incompleteness this entry already records, distinguished
 here so the two are not read as one thing that closes one way.
 
+**Corrected at the Proficiency acceptance (2026-09-20 UTC), appended rather than rewritten.** Two counts
+above have moved and one prediction has come true. "Seven batches are accepted" is now **nine**: the Owner
+accepted `proficiency-destinations-1` and then `proficiency-1` in one action on 2026-09-20 UTC, and the
+committed oracle now covers **53 records and 761 spans** rather than 48 and 594 — the five added records are
+`play.actions`, `play.skills`, `glossary.challenge_rating`, `glossary.expertise` and the `play.proficiency`
+rule the last of those cites. The ten named-but-unminted targets listed above are **unchanged**: the
+Proficiency batches closed none of them and opened none. What did arrive is the second kind this entry
+predicted — the four empty-target citations *Stat Block*, *Combat Encounters*, *Combat* and *Opportunity
+Attack* are now accepted, so "**None is accepted today**" above has expired while everything it says about
+how they close still stands. No destination was ingested for them, no target was invented, and
+`reference_resolutions` is empty in the committed artifact, so no reviewed reference resolution was invoked
+for any of the fourteen; those four remain open obligations. The publication path still returns `INCOMPLETE`
+and the runtime binding still reports `UNPUBLISHED`; the acceptance published, activated and retired
+**nothing**, and the corpus incompleteness this entry records is unchanged in kind.
+
 **This does not move CRD Issue 15c's boundary.** Publishing a mechanical projection proves complete
 *representation*, never adapter capability. The bounded-d20 adapter's capability manifest, certified
 executable coverage, adjudication failure behaviour, and any typed application path for a
