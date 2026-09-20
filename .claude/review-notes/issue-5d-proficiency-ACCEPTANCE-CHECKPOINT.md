@@ -21,7 +21,7 @@ repository file, because it is not one and the script does not read it.
 |---|---|
 | Batches | `proficiency-destinations-1`, then `proficiency-1` |
 | Reviewer (accepting) | Ravenlok (Owner) |
-| Accepted at | `2026-09-20T02:50:55Z` (120 destination records) and `2026-09-20T02:50:58Z` (47 Proficiency records) — one timestamp per batch |
+| Accepted at | `2026-09-20T02:50:55Z` (the destinations batch's 120 spans and 4 records) and `2026-09-20T02:50:58Z` (`proficiency-1`'s 47 spans and 1 record) — one timestamp per batch |
 | Proposal identities | `723bba6246e3a325141705be984c6c28fb016d36a7a6ff1b78fb7b0e21aeac3e` · `f0becb8bd87fcbb41aced983c55f59beb3f25b52d4eca549257d51d9b86d345a` |
 | Proposal content SHA-256 | `6a88c886…f035fe1d` · `c4c12fd3…ace85d5d` — the two digests the authorization names, asserted before the merge |
 | Proposal Git blob / bytes | `871bda15…2d91` / 139,405 · `ea7e515c…04b7` / 61,375 — unchanged by the acceptance |
@@ -86,7 +86,7 @@ values are **stale and must not be reused**. The oracle identity was unaffected 
 prose is evidence, not identity — which is exactly why the content digest and blob are pinned beside
 it and why only they moved.
 
-## Two modes, and what may be run again
+## Three modes, and what may be run again
 
 | Mode | Prior read | Purpose |
 |---|---|---|
@@ -273,7 +273,7 @@ suite ran against hashes to
 | `ruff check src/ tests/` | All checks passed |
 | `mypy src/` | Success: no issues found in 226 source files |
 | detect-secrets, invoked as `.pre-commit-config.yaml` configures it (`python -m detect_secrets.pre_commit_hook --baseline .secrets.baseline <staged files>`) | exit 1 before the splice, **exit 0** after |
-| `pytest tests/ingestion -q -p no:randomly` | **3436 passed**, 2 warnings, 912.11s, exit 0 |
+| `pytest tests/ingestion -q -p no:randomly --cov-fail-under=0 --cov-report=` | **3436 passed**, 2 warnings, 912.11s, exit 0 |
 | `pytest tests --ignore=tests/ingestion -q -p no:randomly --cov-append` | **2776 passed, 10 skipped**, 246 warnings, 351.88s, **total coverage 94.36%** against the 80% floor, exit 0 |
 | `pip-audit` | **exit 1** — see below |
 | `…-and-proficiency-1-ACCEPT.py --verify` | exit 0 |
@@ -308,6 +308,13 @@ accepted batches. The local failure and the configured clean CI audit are **dist
 permission to change dependencies**; dependency maintenance is out of scope here and was not
 performed, nothing was suppressed, and no audit ignore was added.
 
+**This document was corrected after the acceptance commit, in a docs-only follow-up.** The
+acceptance commit is `6cefa51`; the follow-up changes this file and nothing else, so the suite was not
+rerun and `6cefa51`'s CI run is the full-suite evidence for both. `black src/ tests/`,
+`ruff check src/ tests/` and `mypy src/` were rerun on the follow-up head and are clean; detect-secrets
+was rerun as the hook configures it over the staged file and exits 0 without a baseline change, which
+is the only gate that reaches `.claude/review-notes/` at all.
+
 ## Architecture Notes
 
 `No drift from design principles`, with three disclosures that are properties of the accepted content
@@ -315,7 +322,7 @@ rather than deviations from the contract:
 
 1. **The committed artifact declares current authority for the first time since `conditions-1`.** It
    is accepted at schema 15, which is the schema this build implements, so the "committed authority is
-   one or more lifts behind the build" property that every earlier acceptance exhibited is no longer
+   one or more lifts behind the build" property that has held since `conditions-1` is no longer
    true of the live file. The property has not been deleted: it now reads the frozen seven-batch
    prior, which still needs four crossings, beside the legacy schema-3 specimen. `crossings_from` over
    schema 15 raises, and is never called.
