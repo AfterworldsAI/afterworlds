@@ -36,6 +36,32 @@ pip-audit
 
 Run applicable gates on the exact branch head before pushing. If blocked, say what could not run.
 
+### Focused regression diagnostics
+
+Finish edits and formatting before starting an expensive test run. For selected
+regression checks during iteration, use the active Python 3.12 environment:
+
+```bash
+python -m black path/to/changed.py tests/path/test_changed.py
+python scripts/run_focused_tests.py --check path/to/changed.py tests/path/test_changed.py::test_behavior
+```
+
+Repeat `--check` for every changed Python file relevant to the run. Selected test
+files are also checked automatically. The runner checks Black formatting before
+starting pytest and stops if that check fails. It accepts explicit test files or
+node IDs, not directories; it does not format or modify source files itself.
+
+This command labels its output **FOCUSED DIAGNOSTICS ONLY** and disables coverage
+for that invocation. A successful diagnostic is not acceptance or full-gate
+evidence. Plain `pytest` retains the configured coverage collection and 80%
+threshold. Required full acceptance, final-head gates, CI, and Codex review remain
+mandatory under the governing issue and repository guidance. Do not substitute
+diagnostic success for them or relabel historical coverage failures as green.
+
+Avoid editing files participating in an active validation run. If they change,
+identify the affected evidence and rerun the invalidated checks after formatting;
+report interrupted runs and remaining required gates accurately.
+
 ## Architecture Invariants
 
 These are non-negotiable. Violations must be surfaced, not quietly patched.
