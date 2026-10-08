@@ -1,0 +1,17 @@
+{
+  "input_sha256": "def7caa1625458a40c1f635db153268082cf52d5e25c28f57fd29518e44de58c",
+  "source_store_sha256": "f2067b83d5ba9cbcd8165540517a826c08c023b9aa94a0e1d3e8cca3d2d57c4b",
+  "projection_uuid": "8d8cb42c-aefe-559c-9d85-6ba975c038af",
+  "payload_hash": "69299de5cf89bc37f78b835058320d8bbfbafcef277b734e9c45f0145238e2aa",
+  "checks": {
+    "native_verification_zero_findings": true,
+    "six_field_binding_exact": true,
+    "complete_native_projection_payload_exact": true,
+    "complete_native_acceptance_evidence_exact": true,
+    "projection_uuid_exact": true,
+    "payload_hash_exact": true,
+    "source_store_bytes_unchanged": true
+  },
+  "findings": [],
+  "scope": "Draft persistence into a disposable copy only; no publication, activation or shared-store write."
+}

@@ -1,0 +1,61 @@
+start 2026-10-07T03:18:46.024629+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/_sp/release-order-candidate/reader_proof.py .claude/_sp/release-order-candidate/candidate/srd-5-2-1-corpus-8781d4e0-a3b.json .claude/_sp/release-order-candidate/candidate/reader-proof.json
+input e7f92bf1edba97d7b83f110cb2621b44376a93f01bfe752a218ef81372aa2145  .claude/_sp/release-order-candidate/reader_proof.py
+input 8a6a9a9c305f41207190c0deb55875a027019116ce3f825a6a0425a3a115b4bf  .claude/_sp/release-order-candidate/candidate/srd-5-2-1-corpus-8781d4e0-a3b.json
+Traceback (most recent call last):
+  File "D:\AI\Claude\afterworlds\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "D:\AI\Claude\afterworlds\venv\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+sqlite3.OperationalError: no such table: rp_mech_projections
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\AI\Claude\afterworlds\.claude\_sp\release-order-candidate\reader_proof.py", line 101, in <module>
+    persist_draft(s, identified, now=NOW)
+  File "D:\AI\Claude\afterworlds\src\afterworlds\ingestion\mechanical\persistence.py", line 207, in persist_draft
+    session.flush()
+  File "D:\AI\Claude\afterworlds\venv\Lib\site-packages\sqlalchemy\orm\session.py", line 4331, in flush
+    self._flush(objects)
+  File "D:\AI\Claude\afterworlds\venv\Lib\site-packages\sqlalchemy\orm\session.py", line 4466, in _flush
+    with util.safe_reraise():
+         ^^^^^^^^^^^^^^^^^^^
+  File "D:\AI\Claude\afterworlds\venv\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 121, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "D:\AI\Claude\afterworlds\venv\Lib\site-packages\sqlalchemy\orm\session.py", line 4427, in _flush
+    flush_context.execute()
+  File "D:\AI\Claude\afterworlds\venv\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "D:\AI\Claude\afterworlds\venv\Lib\site-packages\sqlalchemy\orm\unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "D:\AI\Claude\afterworlds\venv\Lib\site-packages\sqlalchemy\orm\persistence.py", line 93, in save_obj
+    _emit_insert_statements(
+  File "D:\AI\Claude\afterworlds\venv\Lib\site-packages\sqlalchemy\orm\persistence.py", line 1048, in _emit_insert_statements
+    result = connection.execute(
+             ^^^^^^^^^^^^^^^^^^^
+  File "D:\AI\Claude\afterworlds\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+           ^^^^^
+  File "D:\AI\Claude\afterworlds\venv\Lib\site-packages\sqlalchemy\sql\elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\AI\Claude\afterworlds\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\AI\Claude\afterworlds\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\AI\Claude\afterworlds\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "D:\AI\Claude\afterworlds\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "D:\AI\Claude\afterworlds\venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "D:\AI\Claude\afterworlds\venv\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such table: rp_mech_projections
+[SQL: INSERT INTO rp_mech_projections (projection_uuid, package_uuid, release_version, authoritative_source_hash, transform_config_hash, bundle_root_hash, persisted_corpus_digest, semantic_policy_version, semantic_policy_hash, representation_schema_version, representation_schema_hash, payload_hash, persisted_state_digest, publication_status, created_at, oracle_identity, evidence_report_hash, published_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)]
+[parameters: ('498a9a0a-c693-53e5-8bcd-32143034fbe0', '67c81736-15fd-5e82-8523-e84922f0a7c6', '5.2.1-corpus.3fe24ff6-4e3', '8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87', '648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947', '87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760', '8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42', '5d-semantic-policy-2', 'da63b8940c5b3997b44d53e02941389b68e2a2ba35250e73194d38bb1d74cde7', '5d-representation-schema-17', '4881e51fb2fa73e52f7ff951ad7d00b863188c1a22133fb0e2873c7d32d10ada', 'f67c9507cd69cb273ac786197947e56fe2fedac330492de99b3da102f6d3b6c9', None, 'draft', '2026-10-06T00:00:00Z', None, None, None)]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+end 2026-10-07T03:18:58.987744+00:00 exit 1

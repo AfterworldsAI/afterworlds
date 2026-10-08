@@ -1,0 +1,3070 @@
+[
+  {
+    "resolution_id": "resolve-classes-barbarian-core-traits-explorer-s-pack-equipment-cited-1",
+    "from_record_key": "classes.barbarian",
+    "from_component_key": "core_traits",
+    "source_text": "Explorer's Pack",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.explorers_pack",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "1b44dce7-3c45-59ff-a269-a042e0826857"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-barbarian-core-traits-greataxe-equipment-cited-1",
+    "from_record_key": "classes.barbarian",
+    "from_component_key": "core_traits",
+    "source_text": "Greataxe",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.greataxe",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "1b44dce7-3c45-59ff-a269-a042e0826857"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-barbarian-core-traits-handaxes-equipment-cited-1",
+    "from_record_key": "classes.barbarian",
+    "from_component_key": "core_traits",
+    "source_text": "Handaxes",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.handaxe",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "1b44dce7-3c45-59ff-a269-a042e0826857"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-bard-core-traits-entertainer-s-pack-equipment-cited-1",
+    "from_record_key": "classes.bard",
+    "from_component_key": "core_traits",
+    "source_text": "Entertainer's Pack",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.entertainers_pack",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "73a15de1-87fe-504d-9fc1-8253175bfad7"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-bard-core-traits-leather-armor-equipment-cited-1",
+    "from_record_key": "classes.bard",
+    "from_component_key": "core_traits",
+    "source_text": "Leather Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.leather_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "73a15de1-87fe-504d-9fc1-8253175bfad7"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-bard-core-traits-musical-instrument-equipment-cited-1",
+    "from_record_key": "classes.bard",
+    "from_component_key": "core_traits",
+    "source_text": "Musical Instrument",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.tools.musical_instrument",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "73a15de1-87fe-504d-9fc1-8253175bfad7"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-bard-core-traits-musical-instruments-equipment-cited-1",
+    "from_record_key": "classes.bard",
+    "from_component_key": "core_traits",
+    "source_text": "Musical Instruments",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.tools.musical_instrument",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "73a15de1-87fe-504d-9fc1-8253175bfad7"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-cleric-core-traits-chain-shirt-equipment-cited-1",
+    "from_record_key": "classes.cleric",
+    "from_component_key": "core_traits",
+    "source_text": "Chain Shirt",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.chain_shirt",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "1b3e6f7f-bf6a-5b29-8bac-45808cafd3bc"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-cleric-core-traits-mace-equipment-cited-1",
+    "from_record_key": "classes.cleric",
+    "from_component_key": "core_traits",
+    "source_text": "Mace",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.mace",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "1b3e6f7f-bf6a-5b29-8bac-45808cafd3bc"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-cleric-core-traits-priest-s-pack-equipment-cited-1",
+    "from_record_key": "classes.cleric",
+    "from_component_key": "core_traits",
+    "source_text": "Priest's Pack",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.priests_pack",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "1b3e6f7f-bf6a-5b29-8bac-45808cafd3bc"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-druid-core-traits-explorer-s-pack-equipment-cited-1",
+    "from_record_key": "classes.druid",
+    "from_component_key": "core_traits",
+    "source_text": "Explorer's Pack",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.explorers_pack",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "5e29d7a9-14b0-5b46-984f-32941631b224"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-druid-core-traits-leather-armor-equipment-cited-1",
+    "from_record_key": "classes.druid",
+    "from_component_key": "core_traits",
+    "source_text": "Leather Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.leather_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "5e29d7a9-14b0-5b46-984f-32941631b224"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-druid-core-traits-sickle-equipment-cited-1",
+    "from_record_key": "classes.druid",
+    "from_component_key": "core_traits",
+    "source_text": "Sickle",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.sickle",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "5e29d7a9-14b0-5b46-984f-32941631b224"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-fighter-core-traits-chain-mail-equipment-cited-1",
+    "from_record_key": "classes.fighter",
+    "from_component_key": "core_traits",
+    "source_text": "Chain Mail",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.chain_mail",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "5bae2240-b5c8-5e5e-8069-1c077312521f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-fighter-core-traits-dungeoneer-s-pack-equipment-cited-1",
+    "from_record_key": "classes.fighter",
+    "from_component_key": "core_traits",
+    "source_text": "Dungeoneer's Pack",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.dungeoneers_pack",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "5bae2240-b5c8-5e5e-8069-1c077312521f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-fighter-core-traits-flail-equipment-cited-1",
+    "from_record_key": "classes.fighter",
+    "from_component_key": "core_traits",
+    "source_text": "Flail",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.flail",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "5bae2240-b5c8-5e5e-8069-1c077312521f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-fighter-core-traits-greatsword-equipment-cited-1",
+    "from_record_key": "classes.fighter",
+    "from_component_key": "core_traits",
+    "source_text": "Greatsword",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.greatsword",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "5bae2240-b5c8-5e5e-8069-1c077312521f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-fighter-core-traits-javelins-equipment-cited-1",
+    "from_record_key": "classes.fighter",
+    "from_component_key": "core_traits",
+    "source_text": "Javelins",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.javelin",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "5bae2240-b5c8-5e5e-8069-1c077312521f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-fighter-core-traits-longbow-equipment-cited-1",
+    "from_record_key": "classes.fighter",
+    "from_component_key": "core_traits",
+    "source_text": "Longbow",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.longbow",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "5bae2240-b5c8-5e5e-8069-1c077312521f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-fighter-core-traits-scimitar-equipment-cited-1",
+    "from_record_key": "classes.fighter",
+    "from_component_key": "core_traits",
+    "source_text": "Scimitar",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.scimitar",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "5bae2240-b5c8-5e5e-8069-1c077312521f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-fighter-core-traits-shortsword-equipment-cited-1",
+    "from_record_key": "classes.fighter",
+    "from_component_key": "core_traits",
+    "source_text": "Shortsword",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.shortsword",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "5bae2240-b5c8-5e5e-8069-1c077312521f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-fighter-core-traits-studded-leather-armor-equipment-cited-1",
+    "from_record_key": "classes.fighter",
+    "from_component_key": "core_traits",
+    "source_text": "Studded Leather Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.studded_leather_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "5bae2240-b5c8-5e5e-8069-1c077312521f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-monk-core-traits-explorer-s-pack-equipment-cited-1",
+    "from_record_key": "classes.monk",
+    "from_component_key": "core_traits",
+    "source_text": "Explorer's Pack",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.explorers_pack",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "ffecf855-ed96-5042-8654-49f86f398b6f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-monk-core-traits-musical-instrument-equipment-cited-1",
+    "from_record_key": "classes.monk",
+    "from_component_key": "core_traits",
+    "source_text": "Musical Instrument",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.tools.musical_instrument",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "ffecf855-ed96-5042-8654-49f86f398b6f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-paladin-core-traits-chain-mail-equipment-cited-1",
+    "from_record_key": "classes.paladin",
+    "from_component_key": "core_traits",
+    "source_text": "Chain Mail",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.chain_mail",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "4186658b-3701-57d4-b064-028906ee7375"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-paladin-core-traits-javelins-equipment-cited-1",
+    "from_record_key": "classes.paladin",
+    "from_component_key": "core_traits",
+    "source_text": "Javelins",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.javelin",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "4186658b-3701-57d4-b064-028906ee7375"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-paladin-core-traits-longsword-equipment-cited-1",
+    "from_record_key": "classes.paladin",
+    "from_component_key": "core_traits",
+    "source_text": "Longsword",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.longsword",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "4186658b-3701-57d4-b064-028906ee7375"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-paladin-core-traits-priest-s-pack-equipment-cited-1",
+    "from_record_key": "classes.paladin",
+    "from_component_key": "core_traits",
+    "source_text": "Priest's Pack",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.priests_pack",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "4186658b-3701-57d4-b064-028906ee7375"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-ranger-core-traits-explorer-s-pack-equipment-cited-1",
+    "from_record_key": "classes.ranger",
+    "from_component_key": "core_traits",
+    "source_text": "Explorer's Pack",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.explorers_pack",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e357b4c1-dc21-545f-9c2b-dd3dc20b10e3"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-ranger-core-traits-longbow-equipment-cited-1",
+    "from_record_key": "classes.ranger",
+    "from_component_key": "core_traits",
+    "source_text": "Longbow",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.longbow",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e357b4c1-dc21-545f-9c2b-dd3dc20b10e3"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-ranger-core-traits-scimitar-equipment-cited-1",
+    "from_record_key": "classes.ranger",
+    "from_component_key": "core_traits",
+    "source_text": "Scimitar",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.scimitar",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e357b4c1-dc21-545f-9c2b-dd3dc20b10e3"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-ranger-core-traits-shortsword-equipment-cited-1",
+    "from_record_key": "classes.ranger",
+    "from_component_key": "core_traits",
+    "source_text": "Shortsword",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.shortsword",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e357b4c1-dc21-545f-9c2b-dd3dc20b10e3"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-ranger-core-traits-studded-leather-armor-equipment-cited-1",
+    "from_record_key": "classes.ranger",
+    "from_component_key": "core_traits",
+    "source_text": "Studded Leather Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.studded_leather_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e357b4c1-dc21-545f-9c2b-dd3dc20b10e3"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-rogue-core-traits-burglar-s-pack-equipment-cited-1",
+    "from_record_key": "classes.rogue",
+    "from_component_key": "core_traits",
+    "source_text": "Burglar's Pack",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.burglars_pack",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e15857ee-0ac7-5b19-bf6d-ddd9069b70f0"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-rogue-core-traits-leather-armor-equipment-cited-1",
+    "from_record_key": "classes.rogue",
+    "from_component_key": "core_traits",
+    "source_text": "Leather Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.leather_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e15857ee-0ac7-5b19-bf6d-ddd9069b70f0"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-rogue-core-traits-shortsword-equipment-cited-1",
+    "from_record_key": "classes.rogue",
+    "from_component_key": "core_traits",
+    "source_text": "Shortsword",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.shortsword",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e15857ee-0ac7-5b19-bf6d-ddd9069b70f0"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-sorcerer-core-traits-dungeoneer-s-pack-equipment-cited-1",
+    "from_record_key": "classes.sorcerer",
+    "from_component_key": "core_traits",
+    "source_text": "Dungeoneer's Pack",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.dungeoneers_pack",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "81821344-a26a-58b6-ab15-fd971182ab7b"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-warlock-core-traits-leather-armor-equipment-cited-1",
+    "from_record_key": "classes.warlock",
+    "from_component_key": "core_traits",
+    "source_text": "Leather Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.leather_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "347f4f5f-2de3-5072-b4a6-e6809f51e0bd"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-warlock-core-traits-scholar-s-pack-equipment-cited-1",
+    "from_record_key": "classes.warlock",
+    "from_component_key": "core_traits",
+    "source_text": "Scholar's Pack",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.scholars_pack",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "347f4f5f-2de3-5072-b4a6-e6809f51e0bd"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-warlock-core-traits-sickle-equipment-cited-1",
+    "from_record_key": "classes.warlock",
+    "from_component_key": "core_traits",
+    "source_text": "Sickle",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.sickle",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "347f4f5f-2de3-5072-b4a6-e6809f51e0bd"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-wizard-core-traits-scholar-s-pack-equipment-cited-1",
+    "from_record_key": "classes.wizard",
+    "from_component_key": "core_traits",
+    "source_text": "Scholar's Pack",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.scholars_pack",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "6b37ee42-7341-50da-ba0c-cf9778c8edf0"
+    ]
+  },
+  {
+    "resolution_id": "resolve-gameplay-toolbox-poison-harvesting-poison-poisoner-s-kit-equipment-cited-1",
+    "from_record_key": "gameplay_toolbox.poison",
+    "from_component_key": "harvesting_poison",
+    "source_text": "Poisoner's Kit",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.tools.poisoners_kit",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "d89f4179-ad5d-50f1-b7bd-99c6da61d937"
+    ]
+  },
+  {
+    "resolution_id": "resolve-gameplay-toolbox-traps-falling-net-falling-net-adventuring-gear-equipment-cited-1",
+    "from_record_key": "gameplay_toolbox.traps.falling_net",
+    "from_component_key": "falling_net",
+    "source_text": "Adventuring Gear",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.net",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "443bf2ba-809d-57ac-a118-5a440b3c00c6"
+    ]
+  },
+  {
+    "resolution_id": "resolve-gameplay-toolbox-traps-falling-net-falling-net-net-equipment-cited-1",
+    "from_record_key": "gameplay_toolbox.traps.falling_net",
+    "from_component_key": "falling_net",
+    "source_text": "Net",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.net",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "1593a0a6-c16f-52b3-888a-b784bcb30f11",
+      "37814220-d6d5-5645-8b49-d0f579b78cbe",
+      "443bf2ba-809d-57ac-a118-5a440b3c00c6",
+      "5a1eed7d-79d7-53ec-93f1-095aa3dc88ec",
+      "8116a953-f7d5-5121-b6bd-c1338be78d24",
+      "915e5147-085f-5272-bfa6-1c2823e0a724",
+      "ca1ba9b4-a084-5d50-87d7-4e9176c7e2a5"
+    ]
+  },
+  {
+    "resolution_id": "resolve-gameplay-toolbox-traps-fire-casting-statue-fire-casting-statue-iron-spike-equipment-cited-1",
+    "from_record_key": "gameplay_toolbox.traps.fire_casting_statue",
+    "from_component_key": "fire_casting_statue",
+    "source_text": "Iron Spike",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.spikes_iron",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "33a3c764-acd7-59d5-aecd-656303c320a7"
+    ]
+  },
+  {
+    "resolution_id": "resolve-gameplay-toolbox-traps-hidden-pit-hidden-pit-iron-spike-equipment-cited-1",
+    "from_record_key": "gameplay_toolbox.traps.hidden_pit",
+    "from_component_key": "hidden_pit",
+    "source_text": "Iron Spike",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.spikes_iron",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "75e4ac68-9108-5cc9-bb68-59a8236ebb5b"
+    ]
+  },
+  {
+    "resolution_id": "resolve-gameplay-toolbox-traps-poisoned-darts-poisoned-darts-iron-spike-equipment-cited-1",
+    "from_record_key": "gameplay_toolbox.traps.poisoned_darts",
+    "from_component_key": "poisoned_darts",
+    "source_text": "Iron Spike",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.spikes_iron",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b4d0bbe6-0c48-54d4-98c3-b0cb3678251c"
+    ]
+  },
+  {
+    "resolution_id": "resolve-gameplay-toolbox-traps-rolling-stone-rolling-stone-iron-spike-equipment-cited-1",
+    "from_record_key": "gameplay_toolbox.traps.rolling_stone",
+    "from_component_key": "rolling_stone",
+    "source_text": "Iron Spike",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.spikes_iron",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "8dae6ea8-a400-5c7f-9380-ce8e76f5f257"
+    ]
+  },
+  {
+    "resolution_id": "resolve-gameplay-toolbox-traps-spiked-pit-spiked-pit-iron-spike-equipment-cited-1",
+    "from_record_key": "gameplay_toolbox.traps.spiked_pit",
+    "from_component_key": "spiked_pit",
+    "source_text": "Iron Spike",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.spikes_iron",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "89d9c52b-0fd8-5f83-9432-d9fc53717e4f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bracers-of-archery-bracers-of-archery-longbow-equipment-cited-1",
+    "from_record_key": "magic_items.bracers_of_archery",
+    "from_component_key": "bracers_of_archery",
+    "source_text": "Longbow",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.longbow",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "3c1a424d-2f81-5a43-8522-f4c8d46e23ad"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-crafting-magic-items-time-and-cost-plate-armor-equipment-cited-1",
+    "from_record_key": "magic_items.crafting_magic_items",
+    "from_component_key": "time_and_cost",
+    "source_text": "Plate Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.plate_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "d5d97869-3ec0-5091-b447-22d91d2d78b5"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-crafting-magic-items-tools-alchemist-s-supplies-equipment-cited-1",
+    "from_record_key": "magic_items.crafting_magic_items",
+    "from_component_key": "tools",
+    "source_text": "Alchemist's Supplies",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.tools.alchemists_supplies",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "4e8cdbcb-4277-52dd-bd95-7b2d7d07138c"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-crafting-magic-items-tools-jeweler-s-tools-equipment-cited-1",
+    "from_record_key": "magic_items.crafting_magic_items",
+    "from_component_key": "tools",
+    "source_text": "Jeweler's Tools",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.tools.jewelers_tools",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "4e8cdbcb-4277-52dd-bd95-7b2d7d07138c"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-crafting-magic-items-tools-leatherworker-s-tools-equipment-cited-1",
+    "from_record_key": "magic_items.crafting_magic_items",
+    "from_component_key": "tools",
+    "source_text": "Leatherworker's Tools",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.tools.leatherworkers_tools",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "4e8cdbcb-4277-52dd-bd95-7b2d7d07138c"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-crafting-magic-items-tools-smith-s-tools-equipment-cited-1",
+    "from_record_key": "magic_items.crafting_magic_items",
+    "from_component_key": "tools",
+    "source_text": "Smith's Tools",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.tools.smiths_tools",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "4e8cdbcb-4277-52dd-bd95-7b2d7d07138c"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-crafting-magic-items-tools-tinker-s-tools-equipment-cited-1",
+    "from_record_key": "magic_items.crafting_magic_items",
+    "from_component_key": "tools",
+    "source_text": "Tinker's Tools",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.tools.tinkers_tools",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "4e8cdbcb-4277-52dd-bd95-7b2d7d07138c"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-crafting-magic-items-tools-weaver-s-tools-equipment-cited-1",
+    "from_record_key": "magic_items.crafting_magic_items",
+    "from_component_key": "tools",
+    "source_text": "Weaver's Tools",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.tools.weavers_tools",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "4e8cdbcb-4277-52dd-bd95-7b2d7d07138c"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-crafting-magic-items-tools-woodcarver-s-tools-equipment-cited-1",
+    "from_record_key": "magic_items.crafting_magic_items",
+    "from_component_key": "tools",
+    "source_text": "Woodcarver's Tools",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.tools.woodcarvers_tools",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "4e8cdbcb-4277-52dd-bd95-7b2d7d07138c"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-efficient-quiver-efficient-quiver-bolts-equipment-cited-1",
+    "from_record_key": "magic_items.efficient_quiver",
+    "from_component_key": "efficient_quiver",
+    "source_text": "Bolts",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.bolts",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "ac606bee-4547-59a1-9374-91ad891204a6"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-folding-boat-folding-boat-keelboat-equipment-cited-1",
+    "from_record_key": "magic_items.folding_boat",
+    "from_component_key": "folding_boat",
+    "source_text": "Keelboat",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.mounts_and_vehicles.keelboat",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "9fc720fe-58c3-52d7-8cdb-92cbe62d0c5b",
+      "c5d40317-2aef-562c-b60f-56d1809a04aa"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-folding-boat-folding-boat-rowboat-equipment-cited-1",
+    "from_record_key": "magic_items.folding_boat",
+    "from_component_key": "folding_boat",
+    "source_text": "Rowboat",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.mounts_and_vehicles.rowboat",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "62951c5f-3bb6-5fb8-874c-b9ebae61d676",
+      "9fc720fe-58c3-52d7-8cdb-92cbe62d0c5b"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-hat-of-many-spells-hat-of-many-spells-alchemist-s-fire-equipment-cited-1",
+    "from_record_key": "magic_items.hat_of_many_spells",
+    "from_component_key": "hat_of_many_spells",
+    "source_text": "Alchemist's Fire",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.alchemists_fire",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "3ecc65a7-33a6-5565-9abc-1c5510d76012"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-hat-of-many-spells-hat-of-many-spells-caltrops-equipment-cited-1",
+    "from_record_key": "magic_items.hat_of_many_spells",
+    "from_component_key": "hat_of_many_spells",
+    "source_text": "Caltrops",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.caltrops",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "3ecc65a7-33a6-5565-9abc-1c5510d76012"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-hat-of-many-spells-hat-of-many-spells-grappling-hook-equipment-cited-1",
+    "from_record_key": "magic_items.hat_of_many_spells",
+    "from_component_key": "hat_of_many_spells",
+    "source_text": "Grappling Hook",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.grappling_hook",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "3ecc65a7-33a6-5565-9abc-1c5510d76012"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-hat-of-many-spells-hat-of-many-spells-rope-equipment-cited-1",
+    "from_record_key": "magic_items.hat_of_many_spells",
+    "from_component_key": "hat_of_many_spells",
+    "source_text": "Rope",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.rope",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "3ecc65a7-33a6-5565-9abc-1c5510d76012"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-hat-of-many-spells-hat-of-many-spells-torch-equipment-cited-1",
+    "from_record_key": "magic_items.hat_of_many_spells",
+    "from_component_key": "hat_of_many_spells",
+    "source_text": "Torch",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.torch",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "3ecc65a7-33a6-5565-9abc-1c5510d76012"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-magic-item-categories-armor-chain-mail-equipment-cited-1",
+    "from_record_key": "magic_items.magic_item_categories",
+    "from_component_key": "armor",
+    "source_text": "Chain Mail",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.chain_mail",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "f20e75f5-4053-5800-99fa-fbacf1d682bb"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-magic-item-categories-armor-plate-armor-equipment-cited-1",
+    "from_record_key": "magic_items.magic_item_categories",
+    "from_component_key": "armor",
+    "source_text": "Plate Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.plate_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "f20e75f5-4053-5800-99fa-fbacf1d682bb"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-magic-item-categories-weapons-longbow-equipment-cited-1",
+    "from_record_key": "magic_items.magic_item_categories",
+    "from_component_key": "weapons",
+    "source_text": "Longbow",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.longbow",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e43f5e79-08f4-52f1-bcb4-54de7dc4c2d7"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-magic-item-categories-weapons-longsword-equipment-cited-1",
+    "from_record_key": "magic_items.magic_item_categories",
+    "from_component_key": "weapons",
+    "source_text": "Longsword",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.longsword",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e43f5e79-08f4-52f1-bcb4-54de7dc4c2d7"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-magic-item-rarity-magic-item-values-by-rarity-plate-armor-equipment-cited-1",
+    "from_record_key": "magic_items.magic_item_rarity",
+    "from_component_key": "magic_item_values_by_rarity",
+    "source_text": "Plate Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.plate_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "2909e2fc-8085-5114-810c-8eb656af6b29"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-quarterstaff-of-the-acrobat-quarterstaff-of-the-acrobat-pole-equipment-cited-1",
+    "from_record_key": "magic_items.quarterstaff_of_the_acrobat",
+    "from_component_key": "quarterstaff_of_the_acrobat",
+    "source_text": "Pole",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.pole",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "c1bf0f11-f82f-5883-ac2b-a0f688585a08"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-robe-of-useful-items-robe-of-useful-items-bullseye-lantern-equipment-cited-1",
+    "from_record_key": "magic_items.robe_of_useful_items",
+    "from_component_key": "robe_of_useful_items",
+    "source_text": "Bullseye Lantern",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.lantern_bullseye",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "d09d4237-efea-5a50-8351-089bb7ede57d"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-robe-of-useful-items-robe-of-useful-items-mirror-equipment-cited-1",
+    "from_record_key": "magic_items.robe_of_useful_items",
+    "from_component_key": "robe_of_useful_items",
+    "source_text": "Mirror",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.mirror",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "d09d4237-efea-5a50-8351-089bb7ede57d"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-robe-of-useful-items-robe-of-useful-items-pole-equipment-cited-1",
+    "from_record_key": "magic_items.robe_of_useful_items",
+    "from_component_key": "robe_of_useful_items",
+    "source_text": "Pole",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.pole",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "d09d4237-efea-5a50-8351-089bb7ede57d"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-robe-of-useful-items-robe-of-useful-items-rope-equipment-cited-1",
+    "from_record_key": "magic_items.robe_of_useful_items",
+    "from_component_key": "robe_of_useful_items",
+    "source_text": "Rope",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.rope",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "d09d4237-efea-5a50-8351-089bb7ede57d"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-robe-of-useful-items-robe-of-useful-items-rowboat-equipment-cited-1",
+    "from_record_key": "magic_items.robe_of_useful_items",
+    "from_component_key": "robe_of_useful_items",
+    "source_text": "Rowboat",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.mounts_and_vehicles.rowboat",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "7a5606af-468b-54ba-93b5-012bb3e33cdd"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-robe-of-useful-items-robe-of-useful-items-sack-equipment-cited-1",
+    "from_record_key": "magic_items.robe_of_useful_items",
+    "from_component_key": "robe_of_useful_items",
+    "source_text": "Sack",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.sack",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "d09d4237-efea-5a50-8351-089bb7ede57d"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-rod-of-lordly-might-rod-of-lordly-might-battleaxe-equipment-cited-1",
+    "from_record_key": "magic_items.rod_of_lordly_might",
+    "from_component_key": "rod_of_lordly_might",
+    "source_text": "Battleaxe",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.battleaxe",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b0686dc8-73d0-52ab-bcab-33405dcc2584"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-rod-of-lordly-might-rod-of-lordly-might-longsword-equipment-cited-1",
+    "from_record_key": "magic_items.rod_of_lordly_might",
+    "from_component_key": "rod_of_lordly_might",
+    "source_text": "Longsword",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.longsword",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "ccf93865-2659-50c8-9b3d-c96393e37a81"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-rod-of-lordly-might-rod-of-lordly-might-mace-equipment-cited-1",
+    "from_record_key": "magic_items.rod_of_lordly_might",
+    "from_component_key": "rod_of_lordly_might",
+    "source_text": "Mace",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.mace",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "ac9fd61e-f1fb-5cb6-8bb2-aedfaccffee1"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-rod-of-lordly-might-rod-of-lordly-might-shortsword-equipment-cited-1",
+    "from_record_key": "magic_items.rod_of_lordly_might",
+    "from_component_key": "rod_of_lordly_might",
+    "source_text": "Shortsword",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.shortsword",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "ccf93865-2659-50c8-9b3d-c96393e37a81"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-sun-blade-sun-blade-longsword-equipment-cited-1",
+    "from_record_key": "magic_items.sun_blade",
+    "from_component_key": "sun_blade",
+    "source_text": "Longsword",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.longsword",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "1e03eb29-bf39-5353-ba48-02f8f6ddd241",
+      "338a0fd1-63f7-5789-894d-cd005cdbb67d"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-assassin-assassin-assassin-light-crossbow-equipment-cited-1",
+    "from_record_key": "monsters.assassin.assassin",
+    "from_component_key": "assassin",
+    "source_text": "Light Crossbow",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.light_crossbow",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "de503114-cdd5-5db0-9ffc-d062127b95e8"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-assassin-assassin-assassin-shortsword-equipment-cited-1",
+    "from_record_key": "monsters.assassin.assassin",
+    "from_component_key": "assassin",
+    "source_text": "Shortsword",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.shortsword",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "de503114-cdd5-5db0-9ffc-d062127b95e8"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-assassin-assassin-assassin-studded-leather-armor-equipment-cited-1",
+    "from_record_key": "monsters.assassin.assassin",
+    "from_component_key": "assassin",
+    "source_text": "Studded Leather Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.studded_leather_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "de503114-cdd5-5db0-9ffc-d062127b95e8"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-bandits-bandit-bandit-leather-armor-equipment-cited-1",
+    "from_record_key": "monsters.bandits.bandit",
+    "from_component_key": "bandit",
+    "source_text": "Leather Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.leather_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "3c87ea31-d4b4-5947-b78a-0bdf913bb4f9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-bandits-bandit-bandit-light-crossbow-equipment-cited-1",
+    "from_record_key": "monsters.bandits.bandit",
+    "from_component_key": "bandit",
+    "source_text": "Light Crossbow",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.light_crossbow",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "3c87ea31-d4b4-5947-b78a-0bdf913bb4f9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-bandits-bandit-bandit-scimitar-equipment-cited-1",
+    "from_record_key": "monsters.bandits.bandit",
+    "from_component_key": "bandit",
+    "source_text": "Scimitar",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.scimitar",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "3c87ea31-d4b4-5947-b78a-0bdf913bb4f9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-bandits-bandit-captain-bandit-captain-pistol-equipment-cited-1",
+    "from_record_key": "monsters.bandits.bandit_captain",
+    "from_component_key": "bandit_captain",
+    "source_text": "Pistol",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.pistol",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "44864065-c5db-5f38-b07b-8339b39d331c"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-bandits-bandit-captain-bandit-captain-scimitar-equipment-cited-1",
+    "from_record_key": "monsters.bandits.bandit_captain",
+    "from_component_key": "bandit_captain",
+    "source_text": "Scimitar",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.scimitar",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "44864065-c5db-5f38-b07b-8339b39d331c"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-bandits-bandit-captain-bandit-captain-studded-leather-armor-equipment-cited-1",
+    "from_record_key": "monsters.bandits.bandit_captain",
+    "from_component_key": "bandit_captain",
+    "source_text": "Studded Leather Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.studded_leather_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "44864065-c5db-5f38-b07b-8339b39d331c"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-berserker-berserker-berserker-greataxe-equipment-cited-1",
+    "from_record_key": "monsters.berserker.berserker",
+    "from_component_key": "berserker",
+    "source_text": "Greataxe",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.greataxe",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "5eb0d3e9-1192-56aa-abde-3f3a6ae5cd7b"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-bugbears-bugbear-stalker-bugbear-stalker-chain-shirt-equipment-cited-1",
+    "from_record_key": "monsters.bugbears.bugbear_stalker",
+    "from_component_key": "bugbear_stalker",
+    "source_text": "Chain Shirt",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.chain_shirt",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "aa1dbba3-59ba-5516-866e-a2981e74bd0e"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-bugbears-bugbear-stalker-bugbear-stalker-javelins-equipment-cited-1",
+    "from_record_key": "monsters.bugbears.bugbear_stalker",
+    "from_component_key": "bugbear_stalker",
+    "source_text": "Javelins",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.javelin",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "aa1dbba3-59ba-5516-866e-a2981e74bd0e"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-bugbears-bugbear-stalker-bugbear-stalker-morningstar-equipment-cited-1",
+    "from_record_key": "monsters.bugbears.bugbear_stalker",
+    "from_component_key": "bugbear_stalker",
+    "source_text": "Morningstar",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.morningstar",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "aa1dbba3-59ba-5516-866e-a2981e74bd0e"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-centaur-centaur-trooper-centaur-trooper-breastplate-equipment-cited-1",
+    "from_record_key": "monsters.centaur.centaur_trooper",
+    "from_component_key": "centaur_trooper",
+    "source_text": "Breastplate",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.breastplate",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "af28874c-d5a1-5099-8ed0-98114984128c"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-centaur-centaur-trooper-centaur-trooper-longbow-equipment-cited-1",
+    "from_record_key": "monsters.centaur.centaur_trooper",
+    "from_component_key": "centaur_trooper",
+    "source_text": "Longbow",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.longbow",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "af28874c-d5a1-5099-8ed0-98114984128c"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-centaur-centaur-trooper-centaur-trooper-pike-equipment-cited-1",
+    "from_record_key": "monsters.centaur.centaur_trooper",
+    "from_component_key": "centaur_trooper",
+    "source_text": "Pike",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.pike",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "af28874c-d5a1-5099-8ed0-98114984128c"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-cultists-cultist-cultist-leather-armor-equipment-cited-1",
+    "from_record_key": "monsters.cultists.cultist",
+    "from_component_key": "cultist",
+    "source_text": "Leather Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.leather_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "46e0feeb-1fed-510c-a7df-6c929a951270"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-cultists-cultist-cultist-sickle-equipment-cited-1",
+    "from_record_key": "monsters.cultists.cultist",
+    "from_component_key": "cultist",
+    "source_text": "Sickle",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.sickle",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "46e0feeb-1fed-510c-a7df-6c929a951270"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-cultists-cultist-fanatic-cultist-fanatic-leather-armor-equipment-cited-1",
+    "from_record_key": "monsters.cultists.cultist_fanatic",
+    "from_component_key": "cultist_fanatic",
+    "source_text": "Leather Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.leather_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "43a84aa3-7ae9-5c44-b509-504fb48945d3"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-druid-druid-druid-studded-leather-armor-equipment-cited-1",
+    "from_record_key": "monsters.druid.druid",
+    "from_component_key": "druid",
+    "source_text": "Studded Leather Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.studded_leather_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "5ba40a04-4619-5d9d-b670-0f316d84e4fe"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-ettin-ettin-ettin-battleaxe-equipment-cited-1",
+    "from_record_key": "monsters.ettin.ettin",
+    "from_component_key": "ettin",
+    "source_text": "Battleaxe",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.battleaxe",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "7b35e8d1-3c84-5953-82bd-a14813cc6975"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-ettin-ettin-ettin-morningstar-equipment-cited-1",
+    "from_record_key": "monsters.ettin.ettin",
+    "from_component_key": "ettin",
+    "source_text": "Morningstar",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.morningstar",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "7b35e8d1-3c84-5953-82bd-a14813cc6975"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-gladiator-gladiator-gladiator-studded-leather-armor-equipment-cited-1",
+    "from_record_key": "monsters.gladiator.gladiator",
+    "from_component_key": "gladiator",
+    "source_text": "Studded Leather Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.studded_leather_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "72884613-a75b-521b-98c4-9c8f9ad51489"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-goblins-goblin-boss-goblin-boss-chain-shirt-equipment-cited-1",
+    "from_record_key": "monsters.goblins.goblin_boss",
+    "from_component_key": "goblin_boss",
+    "source_text": "Chain Shirt",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.chain_shirt",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "21c2ea83-a7eb-585c-b42d-7f9fe7122dbe"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-goblins-goblin-boss-goblin-boss-scimitar-equipment-cited-1",
+    "from_record_key": "monsters.goblins.goblin_boss",
+    "from_component_key": "goblin_boss",
+    "source_text": "Scimitar",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.scimitar",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "21c2ea83-a7eb-585c-b42d-7f9fe7122dbe"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-goblins-goblin-warrior-goblin-warrior-leather-armor-equipment-cited-1",
+    "from_record_key": "monsters.goblins.goblin_warrior",
+    "from_component_key": "goblin_warrior",
+    "source_text": "Leather Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.leather_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "21a32302-5062-5414-9e49-aece9aa8aab3"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-goblins-goblin-warrior-goblin-warrior-scimitar-equipment-cited-1",
+    "from_record_key": "monsters.goblins.goblin_warrior",
+    "from_component_key": "goblin_warrior",
+    "source_text": "Scimitar",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.scimitar",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "21a32302-5062-5414-9e49-aece9aa8aab3"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-guards-guard-captain-guard-captain-breastplate-equipment-cited-1",
+    "from_record_key": "monsters.guards.guard_captain",
+    "from_component_key": "guard_captain",
+    "source_text": "Breastplate",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.breastplate",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "79ed318a-64a4-5c05-b587-b904d3b4e1d4"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-guards-guard-captain-guard-captain-javelins-equipment-cited-1",
+    "from_record_key": "monsters.guards.guard_captain",
+    "from_component_key": "guard_captain",
+    "source_text": "Javelins",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.javelin",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "79ed318a-64a4-5c05-b587-b904d3b4e1d4"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-guards-guard-captain-guard-captain-longsword-equipment-cited-1",
+    "from_record_key": "monsters.guards.guard_captain",
+    "from_component_key": "guard_captain",
+    "source_text": "Longsword",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.longsword",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "79ed318a-64a4-5c05-b587-b904d3b4e1d4"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-guards-guard-guard-chain-shirt-equipment-cited-1",
+    "from_record_key": "monsters.guards.guard",
+    "from_component_key": "guard",
+    "source_text": "Chain Shirt",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.chain_shirt",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "18fb14ab-3a29-5197-b0c5-31fbd070466b"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-hobgoblins-hobgoblin-captain-hobgoblin-captain-greatsword-equipment-cited-1",
+    "from_record_key": "monsters.hobgoblins.hobgoblin_captain",
+    "from_component_key": "hobgoblin_captain",
+    "source_text": "Greatsword",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.greatsword",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "6b0a0520-29c5-5b36-bf0f-c9e63c6023fb"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-hobgoblins-hobgoblin-captain-hobgoblin-captain-half-plate-armor-equipment-cited-1",
+    "from_record_key": "monsters.hobgoblins.hobgoblin_captain",
+    "from_component_key": "hobgoblin_captain",
+    "source_text": "Half Plate Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.half_plate_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "6b0a0520-29c5-5b36-bf0f-c9e63c6023fb"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-hobgoblins-hobgoblin-captain-hobgoblin-captain-longbow-equipment-cited-1",
+    "from_record_key": "monsters.hobgoblins.hobgoblin_captain",
+    "from_component_key": "hobgoblin_captain",
+    "source_text": "Longbow",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.longbow",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "6b0a0520-29c5-5b36-bf0f-c9e63c6023fb"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-hobgoblins-hobgoblin-warrior-hobgoblin-warrior-half-plate-armor-equipment-cited-1",
+    "from_record_key": "monsters.hobgoblins.hobgoblin_warrior",
+    "from_component_key": "hobgoblin_warrior",
+    "source_text": "Half Plate Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.half_plate_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "0333372b-6f2a-5c0e-a949-710a805a1096"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-hobgoblins-hobgoblin-warrior-hobgoblin-warrior-longbow-equipment-cited-1",
+    "from_record_key": "monsters.hobgoblins.hobgoblin_warrior",
+    "from_component_key": "hobgoblin_warrior",
+    "source_text": "Longbow",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.longbow",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "0333372b-6f2a-5c0e-a949-710a805a1096"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-hobgoblins-hobgoblin-warrior-hobgoblin-warrior-longsword-equipment-cited-1",
+    "from_record_key": "monsters.hobgoblins.hobgoblin_warrior",
+    "from_component_key": "hobgoblin_warrior",
+    "source_text": "Longsword",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.longsword",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "0333372b-6f2a-5c0e-a949-710a805a1096"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-knight-knight-knight-greatsword-equipment-cited-1",
+    "from_record_key": "monsters.knight.knight",
+    "from_component_key": "knight",
+    "source_text": "Greatsword",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.greatsword",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "f041b588-a307-59be-9270-b4ae4bc44a0b"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-knight-knight-knight-heavy-crossbow-equipment-cited-1",
+    "from_record_key": "monsters.knight.knight",
+    "from_component_key": "knight",
+    "source_text": "Heavy Crossbow",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.heavy_crossbow",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "f041b588-a307-59be-9270-b4ae4bc44a0b"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-knight-knight-knight-plate-armor-equipment-cited-1",
+    "from_record_key": "monsters.knight.knight",
+    "from_component_key": "knight",
+    "source_text": "Plate Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.plate_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "f041b588-a307-59be-9270-b4ae4bc44a0b"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-lich-lich-lich-component-pouch-equipment-cited-1",
+    "from_record_key": "monsters.lich.lich",
+    "from_component_key": "lich",
+    "source_text": "Component Pouch",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.component_pouch",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "1205ce9a-488c-55fa-b2dc-1d290615b48e"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-mages-archmage-archmage-wand-equipment-cited-1",
+    "from_record_key": "monsters.mages.archmage",
+    "from_component_key": "archmage",
+    "source_text": "Wand",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.wand",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "a0f20ad8-f0c5-54c9-8f17-a7e25b9a967a"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-mages-mage-mage-wand-equipment-cited-1",
+    "from_record_key": "monsters.mages.mage",
+    "from_component_key": "mage",
+    "source_text": "Wand",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.wand",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "7742a046-56c2-52e7-bfb1-378a1264cec2"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-noble-noble-noble-breastplate-equipment-cited-1",
+    "from_record_key": "monsters.noble.noble",
+    "from_component_key": "noble",
+    "source_text": "Breastplate",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.breastplate",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "797ebcbf-cc44-5b6b-a709-42f8905e788f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-noble-noble-noble-rapier-equipment-cited-1",
+    "from_record_key": "monsters.noble.noble",
+    "from_component_key": "noble",
+    "source_text": "Rapier",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.rapier",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "797ebcbf-cc44-5b6b-a709-42f8905e788f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-ogre-ogre-ogre-greatclub-equipment-cited-1",
+    "from_record_key": "monsters.ogre.ogre",
+    "from_component_key": "ogre",
+    "source_text": "Greatclub",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.greatclub",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "edbf60d6-2891-56ce-a850-5c48d71e564f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-ogre-ogre-ogre-javelins-equipment-cited-1",
+    "from_record_key": "monsters.ogre.ogre",
+    "from_component_key": "ogre",
+    "source_text": "Javelins",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.javelin",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "edbf60d6-2891-56ce-a850-5c48d71e564f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-pirates-pirate-captain-pirate-captain-pistol-equipment-cited-1",
+    "from_record_key": "monsters.pirates.pirate_captain",
+    "from_component_key": "pirate_captain",
+    "source_text": "Pistol",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.pistol",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b3d3526f-5e21-589e-b3b8-27e85274fdda"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-pirates-pirate-captain-pirate-captain-rapier-equipment-cited-1",
+    "from_record_key": "monsters.pirates.pirate_captain",
+    "from_component_key": "pirate_captain",
+    "source_text": "Rapier",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.rapier",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b3d3526f-5e21-589e-b3b8-27e85274fdda"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-pirates-pirate-pirate-leather-armor-equipment-cited-1",
+    "from_record_key": "monsters.pirates.pirate",
+    "from_component_key": "pirate",
+    "source_text": "Leather Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.leather_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "ddf68069-60e4-5f9e-9d61-162782577876"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-priests-priest-acolyte-priest-acolyte-chain-shirt-equipment-cited-1",
+    "from_record_key": "monsters.priests.priest_acolyte",
+    "from_component_key": "priest_acolyte",
+    "source_text": "Chain Shirt",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.chain_shirt",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "f65f970f-5be6-5566-9ca7-b1a8c86e6dc8"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-priests-priest-acolyte-priest-acolyte-mace-equipment-cited-1",
+    "from_record_key": "monsters.priests.priest_acolyte",
+    "from_component_key": "priest_acolyte",
+    "source_text": "Mace",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.mace",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "f65f970f-5be6-5566-9ca7-b1a8c86e6dc8"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-priests-priest-priest-chain-shirt-equipment-cited-1",
+    "from_record_key": "monsters.priests.priest",
+    "from_component_key": "priest",
+    "source_text": "Chain Shirt",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.chain_shirt",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "fcf09668-e3b9-5c75-b065-a154d3c0a3bf"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-priests-priest-priest-mace-equipment-cited-1",
+    "from_record_key": "monsters.priests.priest",
+    "from_component_key": "priest",
+    "source_text": "Mace",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.mace",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "fcf09668-e3b9-5c75-b065-a154d3c0a3bf"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-scout-scout-scout-leather-armor-equipment-cited-1",
+    "from_record_key": "monsters.scout.scout",
+    "from_component_key": "scout",
+    "source_text": "Leather Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.leather_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e9a8fd1f-3533-5fc6-802c-9d7e6efb3a49"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-scout-scout-scout-longbow-equipment-cited-1",
+    "from_record_key": "monsters.scout.scout",
+    "from_component_key": "scout",
+    "source_text": "Longbow",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.longbow",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e9a8fd1f-3533-5fc6-802c-9d7e6efb3a49"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-scout-scout-scout-shortsword-equipment-cited-1",
+    "from_record_key": "monsters.scout.scout",
+    "from_component_key": "scout",
+    "source_text": "Shortsword",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.shortsword",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e9a8fd1f-3533-5fc6-802c-9d7e6efb3a49"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-skeletons-skeleton-skeleton-shortsword-equipment-cited-1",
+    "from_record_key": "monsters.skeletons.skeleton",
+    "from_component_key": "skeleton",
+    "source_text": "Shortsword",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.shortsword",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "1d210ff4-bf74-5706-8ec2-0c4f3c63f626"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-spy-spy-spy-hand-crossbow-equipment-cited-1",
+    "from_record_key": "monsters.spy.spy",
+    "from_component_key": "spy",
+    "source_text": "Hand Crossbow",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.hand_crossbow",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "7ee254d1-ac70-5685-999d-9cff527e751a"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-spy-spy-spy-shortsword-equipment-cited-1",
+    "from_record_key": "monsters.spy.spy",
+    "from_component_key": "spy",
+    "source_text": "Shortsword",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.shortsword",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "7ee254d1-ac70-5685-999d-9cff527e751a"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-toughs-tough-boss-tough-boss-chain-mail-equipment-cited-1",
+    "from_record_key": "monsters.toughs.tough_boss",
+    "from_component_key": "tough_boss",
+    "source_text": "Chain Mail",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.chain_mail",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "4e46339c-dd19-5bb9-b817-94219bfb2d38"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-toughs-tough-boss-tough-boss-heavy-crossbow-equipment-cited-1",
+    "from_record_key": "monsters.toughs.tough_boss",
+    "from_component_key": "tough_boss",
+    "source_text": "Heavy Crossbow",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.heavy_crossbow",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "4e46339c-dd19-5bb9-b817-94219bfb2d38"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-toughs-tough-boss-tough-boss-warhammer-equipment-cited-1",
+    "from_record_key": "monsters.toughs.tough_boss",
+    "from_component_key": "tough_boss",
+    "source_text": "Warhammer",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.warhammer",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "4e46339c-dd19-5bb9-b817-94219bfb2d38"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-toughs-tough-tough-heavy-crossbow-equipment-cited-1",
+    "from_record_key": "monsters.toughs.tough",
+    "from_component_key": "tough",
+    "source_text": "Heavy Crossbow",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.heavy_crossbow",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "250dd03d-4052-5255-ba2c-22a2556e0992"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-toughs-tough-tough-leather-armor-equipment-cited-1",
+    "from_record_key": "monsters.toughs.tough",
+    "from_component_key": "tough",
+    "source_text": "Leather Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.leather_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "250dd03d-4052-5255-ba2c-22a2556e0992"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-toughs-tough-tough-mace-equipment-cited-1",
+    "from_record_key": "monsters.toughs.tough",
+    "from_component_key": "tough",
+    "source_text": "Mace",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.mace",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "250dd03d-4052-5255-ba2c-22a2556e0992"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-warriors-veteran-warrior-veteran-warrior-greatsword-equipment-cited-1",
+    "from_record_key": "monsters.warriors.veteran_warrior",
+    "from_component_key": "veteran_warrior",
+    "source_text": "Greatsword",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.greatsword",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "4f8520c5-eeb9-588c-a355-6dd9af2780b7"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-warriors-veteran-warrior-veteran-warrior-heavy-crossbow-equipment-cited-1",
+    "from_record_key": "monsters.warriors.veteran_warrior",
+    "from_component_key": "veteran_warrior",
+    "source_text": "Heavy Crossbow",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.heavy_crossbow",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "4f8520c5-eeb9-588c-a355-6dd9af2780b7"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-warriors-veteran-warrior-veteran-warrior-splint-armor-equipment-cited-1",
+    "from_record_key": "monsters.warriors.veteran_warrior",
+    "from_component_key": "veteran_warrior",
+    "source_text": "Splint Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.splint_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "4f8520c5-eeb9-588c-a355-6dd9af2780b7"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-warriors-warrior-infantry-warrior-infantry-chain-shirt-equipment-cited-1",
+    "from_record_key": "monsters.warriors.warrior_infantry",
+    "from_component_key": "warrior_infantry",
+    "source_text": "Chain Shirt",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.chain_shirt",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "28ba840d-181d-5c7f-a81a-a860fdba8111"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-werebear-werebear-werebear-handaxes-equipment-cited-1",
+    "from_record_key": "monsters.werebear.werebear",
+    "from_component_key": "werebear",
+    "source_text": "Handaxes",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.handaxe",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "89186f42-32dc-5eac-9003-5effad26266a"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-wereboar-wereboar-wereboar-javelins-equipment-cited-1",
+    "from_record_key": "monsters.wereboar.wereboar",
+    "from_component_key": "wereboar",
+    "source_text": "Javelins",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.javelin",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "1a94afa4-10fc-5a3a-98ff-23d8a2d02aa7"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-wererat-wererat-wererat-hand-crossbow-equipment-cited-1",
+    "from_record_key": "monsters.wererat.wererat",
+    "from_component_key": "wererat",
+    "source_text": "Hand Crossbow",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.hand_crossbow",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "0a9487bf-7af5-5288-afed-af0bc84cb099"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-weretiger-weretiger-weretiger-longbow-equipment-cited-1",
+    "from_record_key": "monsters.weretiger.weretiger",
+    "from_component_key": "weretiger",
+    "source_text": "Longbow",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.longbow",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "d52de4c3-27d1-576f-839b-99f758c258d3"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-werewolf-werewolf-werewolf-longbow-equipment-cited-1",
+    "from_record_key": "monsters.werewolf.werewolf",
+    "from_component_key": "werewolf",
+    "source_text": "Longbow",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons.longbow",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "809d4174-9f1d-5c3a-a278-859cc9639fcc"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-wight-wight-wight-studded-leather-armor-equipment-cited-1",
+    "from_record_key": "monsters.wight.wight",
+    "from_component_key": "wight",
+    "source_text": "Studded Leather Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.studded_leather_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "86436269-69eb-5e32-90e6-84bf87d93d9c"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-components-component-pouch-and-focus-component-pouch-equipment-cited-1",
+    "from_record_key": "spells.components",
+    "from_component_key": "component_pouch_and_focus",
+    "source_text": "Component Pouch",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.component_pouch",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "32591758-96b7-53a5-8ef7-db655b3c2372"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-protection-from-evil-and-good-descriptor-holy-water-equipment-cited-1",
+    "from_record_key": "spells.protection_from_evil_and_good",
+    "from_component_key": "descriptor",
+    "source_text": "Holy Water",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.adventuring_gear.holy_water",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "76ddc7e2-ca1d-574f-b9d1-1f9fd887c87d"
+    ]
+  }
+]

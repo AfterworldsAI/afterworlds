@@ -1,0 +1,21 @@
+start 2026-10-07T14:46:46.255114+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe scripts/run_focused_tests.py --check tests/ingestion/mechanical/test_equipment_spell_references_candidate.py tests/ingestion/mechanical/test_equipment_spell_references_candidate.py
+input ef6969b5f09e59ebd4001aad2137ade7ca74509d4075753de73336d7595050e9  scripts/run_focused_tests.py
+input 29f3133cd2768b08f981c10740733074340f708c7bad208bf50e91389d051c36  tests/ingestion/mechanical/test_equipment_spell_references_candidate.py
+input 29f3133cd2768b08f981c10740733074340f708c7bad208bf50e91389d051c36  tests/ingestion/mechanical/test_equipment_spell_references_candidate.py
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+All done! ✨ 🍰 ✨
+1 file would be left unchanged.
+........................................F..........                      [100%]
+================================== FAILURES ===================================
+______________ test_the_deferred_gear_citation_stays_unresolved _______________
+tests\ingestion\mechanical\test_equipment_spell_references_candidate.py:257: in test_the_deferred_gear_citation_stays_unresolved
+    assert result.outcome is AuthorityOutcome.INVALID_REFERENCE
+E   AssertionError: assert <AuthorityOutcome.RESOLVED: 'resolved'> is <AuthorityOutcome.INVALID_REFERENCE: 'invalid_reference'>
+E    +  where <AuthorityOutcome.RESOLVED: 'resolved'> = AuthorityResult(outcome=<AuthorityOutcome.RESOLVED: 'resolved'>, binding=RulesPackageBinding(package_uuid=UUID('129948..., ''), ('equipment.adventuring_gear.arcane_focus', ''))), ('Gear: Warhammer', (('equipment.weapons.warhammer', ''),)))).outcome
+E    +  and   <AuthorityOutcome.INVALID_REFERENCE: 'invalid_reference'> = AuthorityOutcome.INVALID_REFERENCE
+=========================== short test summary info ===========================
+FAILED tests/ingestion/mechanical/test_equipment_spell_references_candidate.py::test_the_deferred_gear_citation_stays_unresolved
+1 failed, 50 passed in 1272.55s (0:21:12)
+Focused diagnostics FAILED (exit 1). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+end 2026-10-07T15:08:01.820198+00:00 exit 1

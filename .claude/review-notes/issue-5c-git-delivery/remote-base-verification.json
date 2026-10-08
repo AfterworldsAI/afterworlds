@@ -1,0 +1,25 @@
+{
+  "live_main": "f5a78aa638243297ca2a280b8548f6f542c231dd",
+  "cached_main": "1c484e3a83f736bed212fd415114dcef96c15bcf",
+  "live_main_tree": "7c92fdf7237af33ac890b18e10a4e6e2bf6eda2e",
+  "equivalent_local_tree_commit": "d3bc34ae0255d8028baf59bf30f6b966bbec5d7f",
+  "cached_to_live_ahead": 2,
+  "cached_to_live_behind": 0,
+  "new_main_commits": [
+    "d3bc34ae0255d8028baf59bf30f6b966bbec5d7f",
+    "f5a78aa638243297ca2a280b8548f6f542c231dd"
+  ],
+  "changed_files": [
+    "CLAUDE.md",
+    "scripts/run_focused_tests.py",
+    "tests/test_focused_test_runner.py"
+  ],
+  "remote_restart_branch_returned": false,
+  "sources": [
+    "git ls-remote --heads origin main codex/5c-5d-clean-restart",
+    "GitHub compare API cached main...live main",
+    "GitHub git/commits API live main",
+    "local git rev-parse d3bc34a^{tree}"
+  ],
+  "local_refs_modified": false
+}

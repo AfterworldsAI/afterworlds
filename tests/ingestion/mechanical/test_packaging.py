@@ -259,7 +259,7 @@ def _probe_installed(target: Path, cwd: Path) -> dict[str, object]:
 
 
 def test_the_production_oracle_directory_ships_only_reviewed_content() -> None:
-    """The real directory holds the accepted SRD artifact and nothing else.
+    """The real directory holds the accepted SRD artifacts and nothing else.
 
     Guards the sentinel from leaking into the checkout — its release is chosen
     to collide with nothing, so its presence here would mean a test wrote into
@@ -267,7 +267,10 @@ def test_the_production_oracle_directory_ships_only_reviewed_content() -> None:
     """
     assert _PRODUCTION_ORACLES.is_dir()
     assert sorted(p.name for p in _PRODUCTION_ORACLES.glob("*.json")) == [
-        "srd-5-2-1-corpus-36b786d8-fa2.json"
+        "srd-5-2-1-corpus-36b786d8-fa2.json",
+        "srd-5-2-1-corpus-3fe24ff6-4e3.json",
+        "srd-5-2-1-corpus-574662e9-0ef.json",
+        "srd-5-2-1-corpus-8781d4e0-a3b.json",
     ]
     assert not list(_PRODUCTION_ORACLES.glob(f"*{SENTINEL_PACKAGE}*"))
 

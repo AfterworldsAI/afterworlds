@@ -120,7 +120,6 @@ from afterworlds.ingestion.mechanical.schema_lift import (
 from afterworlds.ingestion.mechanical.validation import validate_representation
 from afterworlds.services.rules_authority.application import (
     EffectiveAuthority,
-    _base_records,
 )
 from afterworlds.services.rules_authority.binding import RulesPackageBinding
 from afterworlds.services.rules_authority.views import (
@@ -130,6 +129,7 @@ from afterworlds.services.rules_authority.views import (
 from tests.ingestion.mechanical.conftest import (
     NOW,
     RELEASE_BINDING,
+    base_records,
     bound_corpus,
     build_ledger,
     candidate_of,
@@ -587,7 +587,7 @@ def _corpus() -> BoundCorpusSnapshot:
 
 
 def _authority() -> EffectiveAuthority:
-    records = _base_records(candidate_of(RELEASE_BINDING, _ledger(), _draft()))
+    records = base_records(candidate_of(RELEASE_BINDING, _ledger(), _draft()))
     return EffectiveAuthority(
         binding=RulesPackageBinding(
             package_uuid=uuid5(NAMESPACE_URL, "pkg-5d"),
@@ -1202,7 +1202,7 @@ def test_the_class_reaches_a_consumer_as_closed_vocabulary_members() -> None:
     anywhere: the whole class arrives as declared enum members with span ids for
     provenance, which is the entire consumer-visible effect of this mint.
     """
-    records = _base_records(candidate_of(RELEASE_BINDING, _ledger(), _draft()))
+    records = base_records(candidate_of(RELEASE_BINDING, _ledger(), _draft()))
     assert set(records) == set(RECORDS)
     for record_key, component_key, fact, clauses in COMPOSITION:
         component = next(

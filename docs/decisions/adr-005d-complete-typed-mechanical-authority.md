@@ -1,5 +1,27 @@
 # ADR-005d — Complete Typed Mechanical Authority and Deterministic Rules-Package Binding
 
+> **Amended in part by the [2026-09-21 Owner Decision: clean source and fresh 5c/5d
+> construction](owner-decision-2026-09-21-5c-5d-clean-restart.md).** The existing 5c
+> corpus release and 5d accepted authority products are quarantined and are no longer
+> available as active authority. The existing accepted typed authority, its acceptance
+> records, source identities, batch boundaries, provenance, leaf IDs and schema versions
+> are **not inherited authority** for the fresh construction; there is no obligation to
+> migrate them, reproduce historical batch counts, or retain schemas solely for
+> compatibility with the quarantined products. The exclusion is the Owner's clean-start
+> decision, not a finding that the old accepted meaning was wrong. The 5d design
+> decisions themselves -- typed mechanical authority, deterministic binding,
+> override-set identity, replay evidence, source/interpretation separation -- remain
+> accepted and are the target the fresh construction builds toward.
+>
+> What remains binding: exact source identification, complete and faithful
+> representation, source/interpretation separation, stable immutable releases,
+> meaningful-change versioning, accidental-corruption and stale-reuse detection,
+> fail-closed publication, rebuildability and diagnosability, campaign version
+> stability, deliberate house-rule precedence, and the code-owned
+> deterministic/trust-relevant responsibilities of `CLAUDE.md` invariants 8 and 10. The
+> Owner Decision changes *which products* hold authority and *which machine-readable
+> representation* is canonical; it does not relax any operational outcome.
+
 **Issue:** CRD Issue 5d  
 **Date:** 2026-07-30  
 **Status:** Accepted — finalized by Owner 2026-07-30; amended by Owner Decision 2026-07-30 (PR #138
@@ -155,6 +177,13 @@ component (Decision 10), is not a prose binding under this decision and does not
 many-to-many 5c subspan provenance. Authored prose is never assigned a 5c leaf subspan, a chunk identity,
 or an irreducibility claim copied from base-projection authority; its provenance is the authored override
 record and the retained override-set version that supplied it (Decision 9).
+
+**Amended by Owner Decision 2026-09-24 (see Decision 9).** A named item or rule has one authoritative
+record. It may own an exact subspan of a source table (its row) as PRIMARY and read that table's head and
+group row as CONTEXTUAL. Its section does not also bind the spans the record owns.
+**Amended by Owner Decision 2026-09-27 (see Decision 9).** One such record may be printed in two catalogues:
+each catalogue's rows are PRIMARY to a component of the one record, and a section printing them reads them
+only as CONTEXTUAL.
 
 ### Decision 4 — Closed typed facts, no generated rules engine
 
@@ -1276,6 +1305,10 @@ This ownership widening is a *domain* widening of the existing owner field rathe
 field beside it, precisely so that no accepted reference's canonical payload or provenance coordinate
 moves.
 
+**Amended by Owner Decision 2026-09-24 (see Decision 9).** A citation of a named item resolves to that
+item's one record, not to the section that prints it. This includes a pointer inside the same batch (for
+example, Equipment's Club and Shield). A pointer that cites a section as such still targets the section.
+
 **Amended by Owner Decision 2026-09-19 — an accepted empty target is closed by an explicit reviewed
 decision, never by a later batch.** *"Option A is clearly the best choice. You are authorized to implement
 A."* What that authorizes is the resolution of an accepted reference whose reviewed target is **empty**, and
@@ -1343,6 +1376,109 @@ The capability is implemented and demonstrated on isolated evidence. No accepted
 resolved by it, and the reviewed destinations proposal states four honest empty targets — *Stat Block*,
 *Combat Encounters*, *Combat*, *Opportunity Attack* — which would remain open obligations after any acceptance
 until genuinely reviewed destinations exist.
+
+**Amended by Owner Decision — a citation is identified by where it occurs as well as what it says.**
+*"I agree we should identify a citation by where it occurs as well as what it says."* Given after the
+core-play-dependencies review packet (`.claude/review-notes/issue-5d-core-play-dependencies-REVIEW-PACKET.md`,
+§5) explained the boundary: the accepted *Combat* attack-roll citation of "Playing the Game", already resolved
+to `play.d20_tests`, and two *Stat Block* citations printing the same words in the same scope with no
+destination were judged one `(scope, wording)` pair, so proposing the Stat Block pointers made the recorded
+resolution inapplicable. No decision date is recorded here because none was stated. The decision authorizes
+this contract and validator correction and nothing else. It does not accept the core-play-dependencies batch
+or record any resolution.
+
+- A citation's identity is the four coordinates a reference resolution already names: **source record,
+  owning component, printed wording and committed scope**, the first four elements of
+  `reference_target_key`. A citation is **ambiguous** when that one citation resolves to more than one
+  target. That still includes an accepted empty edge beside the same citation resolved, so a later batch
+  still cannot close an empty target by authoring a destination.
+- Distinct citations of identical wording in one scope, from different records or from different
+  components of one record, are distinct claims. They may resolve to different records, or one may resolve
+  while another stays unresolved. The premise of the 2026-09-19 bullet above, that `(scope, wording)`
+  resolves to exactly one record, is withdrawn. Its mechanics stay: one reviewed action may still resolve
+  several citations, validated together and applied whole or not at all. It is no longer *required* for
+  sibling citations of one wording.
+- The Decision 5 reference-ownership rule is judged without the target. A record and one of its
+  components stating the same citation publish it twice, whatever destination each names; before this
+  amendment, differing destinations were caught only as ambiguity.
+- **Unchanged and fail-closed:** unresolved and invalid references still block publication. Also unchanged:
+  missing or unknown destinations, release-binding mismatch, provenance mismatch, duplicate and cross-form
+  ownership, repeated resolution ids, retargeting an already-resolved citation, re-checking inherited
+  resolutions against a later batch, and atomic application of a multi-resolution action. Publication's
+  per-reference findings still read `scope:wording`, so the resolution seam's multiset delta and its direct
+  destination check remain what stop an invalid destination hiding behind a sibling.
+- Whether a distinct citation names the *right* record is a review question. The validator cannot answer
+  it by comparing the citation with a sibling of the same wording, and must not.
+
+**Amendment (Owner Decisions 2026-10-01) — ACCEPTED 2026-10-01. A citation may resolve to labelled,
+conditional routes.** *"Okay, do that then."* approved one identity per feat, with class-labelled
+destinations. *"You might as well do the other ones we worked on as well with this batch (if that's
+reasonable)."* extended the same approach to the other worked inventory findings. Neither statement
+accepted a batch or recorded a resolution. The candidate and its evidence are in
+`.claude/review-notes/issue-5d-reference-alternatives-review.md`. The Owner then accepted it, verbatim:
+*"I accept the exact 13-finding reference batch and its schema/route reconciliation, retaining 33
+reference findings, zero uncovered leaves, and the partial-publication block."* That acceptance covers
+this schema/route reconciliation and those thirteen resolutions only; it accepts no other target-contract
+proposal and leaves every earlier decision as written. It was recorded on 2026-10-01 (19:01:31Z UTC) by
+`.claude/review-notes/issue-5d-reference-alternatives-ACCEPT.py`; the record is
+`.claude/review-notes/issue-5d-reference-alternatives-recorded-followup.md`. It does not publish or
+activate anything, and the release's part order still awaits its one bounded pass before publication.
+
+- **Routes, not ambiguity.** Some citations name something reached by different routes depending on the
+  reader's character, such as "Fighting Style feature" (Fighter level 1, Paladin level 2, Ranger level 2).
+  This kind of citation may state two or more destinations, each with a non-empty, trimmed **label**.
+  Destinations sharing a label are one **route** and are read together, in their reviewed order: the first
+  is where the reader lands, and the rest is the supporting text that route needs (the instructions that
+  grant from a table, or the rule that qualifies it). A route's conditions belong to the route, so every
+  member states the same ones. Routes are **not** mutually exclusive: several may apply to one reader, for
+  example a multiclass character who qualifies through more than one class, and none needs every class to
+  qualify. Two or more unlabelled destinations for one citation are still **ambiguous**. A single labelled
+  destination standing alone is also a finding, because it routes between nothing.
+- **A group is one route, not a set of choices.** Where the source names a group by a heading that owns
+  nothing — "Origin Feats" (`feats.md` 19–58) — the citation's one route lists the group's members in source
+  order. The members stay owned by their existing catalogue (`feats.feat_descriptions`, through its
+  `CATALOGUE_MEMBER` edges); the route adds no ownership, no record and no taxonomy, and a reader reads the
+  members as examples under the heading, not as every member of the category. Review checks release, source
+  containment, order and category against the pinned source.
+- **Section and component precision.** A destination may name a **target component** of its target record
+  when the citation points at one feature description or one rule paragraph rather than the whole record.
+  The component must exist within that record. No record or component is ever minted to receive a citation.
+  A class label is never a substitute for a precise destination. A whole-record destination reads the
+  record and, one `CATALOGUE_MEMBER` hop away, the records it prints — a class's table and its Level N
+  feature descriptions.
+- **Conditions are data, not selection.** A route may state a **situation** (initial character, later level,
+  entering a class, advancing a class, single class, multiclass), a **class record** (which must be a class
+  record that exists), and a **minimum class level** from 0 to 20 (which requires a class). Class level
+  always means the level in that class. It never means total level, a sum, or the highest class level.
+  Where total level governs (multiclass advancement, a new class's first-level hit points), the route
+  includes the rule that says so.
+- **The reference contract stays filter-only.** A consumer may drop routes whose stated conditions it
+  *knows* are false: a known situation that does not hold, a class it knows the citation is not read for,
+  and — independently — a known level in that class below the minimum. Anything it does not know keeps the
+  route, so a missing choice is never guessed. The one reader is
+  `RulesAuthorityService.citation_view`, which reads the surviving routes' destinations through the
+  ordinary selectors, so overrides apply and a missing or disabled destination is `INVALID_REFERENCE`. The
+  citing source must be in effect too: if the effective citing record, component or prose no longer carries
+  the citation's provenance (disabled or replaced), the citation is `INVALID_REFERENCE`. The returned view
+  lists routes in stated order, each route's landing before its support, and each destination in its own
+  source order. This is not a character builder, an eligibility engine or a sheet mutation. It does not grant features, Core
+  Traits, feats or spellcasting.
+- **Identity and compatibility.** The new fields are introduced at representation schema 17 and are omitted
+  when empty. A singleton reference therefore keeps its accepted canonical payload and its provenance
+  coordinate. An earlier schema refuses any stated route field rather than restamp it — in the accepted
+  representation and, through the same `declared_meaning_violations` check, in the **effective** view a
+  resolution produces, at the acceptance seam and at load alike. A reference's key includes its component
+  and label only when either is stated.
+- **Resolution.** A 2026-09-19 reference resolution may state either one destination or two or more labelled
+  destinations, never both. The effective representation fans the citation out in the stated order, with
+  each destination keeping the citation's reviewed provenance. Every existing fail-closed rule applies to
+  each destination: release binding, provenance, existence, wrong grain, repeated or conflicting
+  resolution, and the publication gate on the effective view. `resolve_references(..., lift_to=...)` lifts
+  an artifact through the registered crossings and resolves in one action, recording each crossing; omitted,
+  the action is unchanged.
+- **Not authorized:** feat cloning, a general runtime selector, destination guessing, eligibility
+  inference, a general section or group facet, or using this form for a citation whose destination does not
+  exist in the accepted authority.
 
 ### Decision 8 — Persist, reconstruct, prove, then publish
 
@@ -1512,6 +1648,146 @@ the override-set UUID exactly as changing any other enumerated field does; it ne
 and component identity — but is a distinct target kind (Decision 10), so a prose operation and a component
 operation against the same record/component pair are two different targets and never collide.
 
+**Amended by Owner Decision 2026-09-23 — a catalogue section reaches its explicit members.** The Owner
+approved Codex's recommendation "to explicitly link each section to its member records so catalogue
+references reach the actual options": "I approve". A catalogue section's own record holds only its
+introduction, so a reference or selector that names the section must still reach the entries it prints.
+This decides the relationship and its consumer contract only; it accepts no proposal and records no
+reference resolution.
+
+- **Representation** (an implementation choice under review; the Owner decided that the link exists, not
+  its carrier). Membership is its own relationship kind, `CATALOGUE_MEMBER`, member → section, one edge
+  per member, with required `RELATIONSHIP` provenance (contextual, on the member's first reviewed clause in
+  printed order). Representation schema 16 introduces that one vocabulary member and nothing else; the
+  registered lift `5d-lift-schema-15-to-16` carries schema-15 authority by identity (no accepted batch
+  holds a relationship), and schema 15 refuses the new kind. `SCOPED_WITHIN` and every other existing kind
+  keep their meaning: no consumer reads them as membership, and no prose or ordering requirement is added
+  to them. Every accepted identity, byte and replay is unchanged: an authored batch declares the schema it
+  was reviewed under (default: current), so each committed schema-15 batch still re-derives its schema-15
+  bytes, a batch whose content that schema cannot state is refused rather than restamped, and schema-15
+  authority reaches the publication gate only after crossing the registered lift. An entry that is a
+  `CATALOGUE_MEMBER` of more than one section is refused as inconsistent membership unless each edge
+  declares which of its components that section prints (amended by Owner Decision 2026-09-27, below).
+- **Source support.** Membership is declared, never inferred from key prefixes, similarity or storage
+  order. Where a batch declares it, authoring refuses the list unless it is exactly the batch's entries
+  whose leaves all lie in the section's release container; a duplicate, unknown, unplaced or cross-section
+  member, or a member with no reviewed clause to cite, is refused.
+- **Consumer.** Effective authority carries each surviving section's surviving members in source reading
+  order, derived only from `CATALOGUE_MEMBER` edges and placed by each edge's own provenance span, so a
+  member needs no prose binding of its own. A record selector for a section also returns its members
+  whole — one hop, never recursively into a member's own catalogue references. The rule slice and both
+  views read the section's introduction and then its members in printed order; other selected records
+  keep key order, independent of selector order. Within a record, components read as the source prints
+  them, each at the first passage it owns; a component owning no passage reads after the placed ones, by
+  key, and an appended authored component, having no printed position, reads after the source's. A component selector narrows, keeps that order, and never expands. A listed member the effective authority does not hold is `INVALID_REFERENCE`, not a slice
+  that silently reads the introduction as the whole catalogue.
+- **Suppression and fail-closed.** Overrides apply first; a disabled member or section is omitted and is
+  not resurrected by membership. An edge naming a record the projection does not hold, or an edge with no
+  classified provenance span to place its member by, is persisted state that no longer describes one authority and fails as
+  reconstruction (`STALE` at runtime; an error in replay).
+- **Eligibility.** Reaching a catalogue grants nothing. Each member keeps its own category, prerequisites
+  and repeatability, and a citing passage's own restriction (for example, *Versatile*'s "an Origin feat")
+  still governs what may be chosen.
+
+Not decided here: publication-gate re-verification of containment from persisted leaves (checked at
+authoring today), and exposing membership on the typed or GameMaster view (the views carry the reached
+records, in order, not the grouping).
+
+**Amended by Owner Decision 2026-09-24 — one authoritative record per named item, reached where it is
+printed.** The Owner approved the bounded extension "Equipment: one item wherever it is displayed": "I
+approve the bounded correction." It extends the 2026-09-23 amendment above to table-row items and
+interleaved section text. It accepts no Equipment semantics and records no reference resolution; the
+approved chain (136 records, six resolutions) is unchanged.
+
+- **One authority.** A named item or rule has exactly one authoritative record. Its section reaches that
+  record as a `CATALOGUE_MEMBER` instead of keeping its own reading of the member's governing text: the
+  section's components do not bind a span the member owns as their own (authoring refuses "section …
+  rereads … owned by …"); they may read it as CONTEXTUAL (amended by Owner Decision 2026-09-27, below).
+- **Table-part members.** A member may be supported by exact reviewed subspans of a source table — its
+  own row as PRIMARY, and the table head and group row it is read under as CONTEXTUAL, which the section
+  keeps as its own. Membership stays declared, never inferred: a batch declares each record with the one
+  entry it belongs to, a component may name only a record declared for its own entry, and every text it
+  reads must be located among that entry's own reviewed leaves. No key prefix, similarity or relaxed
+  source check establishes membership. Whole-entry catalogue declarations under the 2026-09-23 amendment
+  keep their container check unchanged. The edge's `RELATIONSHIP` provenance is the member's first owned
+  span. That position is used only for what has no printed position of its own: authored text, or a
+  component with no passage left.
+- **Source order.** The approved decision requires section text and member records together in original
+  source order. The GameMaster view of a section therefore reads every passage the section and its members
+  own at that passage's own printed position. Consecutive passages of one component form a run. A member
+  printed in more than one place reads in more than one run, each where it is printed: an item's table row
+  inside the table, its later description after the passages printed before it. These runs are still
+  one effective record. A member's contextual table head and group row are not read again with the member:
+  the section reads each once, where it is printed. A direct read of the member keeps them as its context.
+  So does a direct read of a member split out of its section keep the section passages that govern it, as
+  CONTEXTUAL provenance on the entry's reviewed spans, the section's or another member's: a mastery reads
+  that only a feature unlocks it, a weapon row the Mastery and Weapon Proficiency rules, an armor row Armor
+  Training and One at a Time, and a tool the Utilize, variant and proficiency rules. A pointer is cited from the member's own words that print it; only one its own
+  words do not print is cited from its context.
+  Authored text has no printed position. It reads after the passage it follows in its component, or,
+  with none, at the member's `CATALOGUE_MEMBER` position; no source provenance is invented for it. This
+  replaces "the section's introduction and then its members" for the GameMaster view; the rule slice and
+  typed view still list the section and then its members in printed order.
+- **Overrides.** A member is reached as its effective record: a disabled member is not brought back by
+  its section, and a replaced member reads replaced at its printed position. A passage read as context is
+  its owner's authority. Once an override disables or replaces the owner's reading of that passage, no
+  other record's context brings it back, in a section view or a direct read. Exact-target override
+  semantics are otherwise unchanged (Decision 10).
+- **Selection.** Selecting a section and a member it reaches returns that member once. A component
+  selector still narrows and never expands; a section narrowed to some components does not read its
+  members through it.
+- **Representation.** No new relationship kind, schema version or schema hash: this uses schema 16's
+  `CATALOGUE_MEMBER` as defined above.
+- **Scope.** Applied to Equipment's named targets of the existing resolution drafts, its internal
+  citations of items it prints (Club, Shield, Bullet …), and the in-Equipment rules needed to interpret
+  them. Uncited items stay the section's own components; nothing expands into external catalogues or
+  revisits accepted batches.
+
+**Amended by Owner Decision 2026-09-27 — one authoritative item in two catalogues.** The Owner decided:
+"allow one authoritative item to appear in both Equipment and Magic Items, with consistent replacement and
+disabling behavior." It amends the refusal of a second catalogue parent above and nothing else. It accepts
+no Magic Items semantics and records no reference resolution.
+
+- **One identity.** An item printed by two catalogues is one record, under the key it already has; the
+  second catalogue adds components for what it prints (the Magic Items family table's rows for the basic
+  Potion of Healing and the cantrip and level 1 Spell Scroll) and a `CATALOGUE_MEMBER` edge. The wider
+  family stays its own record: its other variants, prices and shared rules are not folded into the item,
+  and the item is not folded into the family. A section never binds the member's rows as PRIMARY; it may
+  read them as CONTEXTUAL where its own passages need them. The item's component reads its rows with what
+  governs them, all CONTEXTUAL and owned where printed: the rules a direct read of the family carries,
+  the family's type line and the paragraphs stating rules the rows are subject to (description that
+  rules nothing is not read), and the table's head and close. The family table is cut into head, rows,
+  the rest and its close, which rejoin byte for byte; each piece has one PRIMARY owner.
+- **Declared parts.** Each edge's `RELATIONSHIP` provenance cites a span the member owns (PRIMARY) where
+  that section prints it; the edge names exactly the components owning the spans it cites. Every
+  span-owning component of the member is named by exactly one edge; a component owning no source span
+  belongs to every catalogue. An edge citing none of the member's own spans, a component two edges name,
+  a component no edge names, and any membership cycle are refused (`validation.catalogue_parts`). No key
+  prefix, similarity or position decides a part.
+- **Placement.** That check is internal to the member; it does not show that the cited text prints in the
+  claimed catalogue. The review inventory does: each edge of a member of more than one catalogue must cite
+  only spans in leaves a review unit reviews while expecting a rule of that catalogue's section
+  (`projection.review_unit_violations`, run at acceptance, oracle load, authoring and the gate). An edge
+  moved to an unrelated section or class feature, keeping its span, is refused. A member of one catalogue
+  is not re-checked there.
+- **Consumer.** A section's reading reaches only the member components that section prints, each at its
+  own printed position. A catalogue whose member prints parts of its own member (Magic Items A-Z, whose
+  family prints the item's rows) reads those declared parts, and nothing else of that record, where the
+  member prints them, so its reading matches the member's own; one hop further, never recursively. The
+  item is then in that catalogue's slice narrowed to those components. Selecting both catalogues reads
+  each such component once, in the catalogue that prints it; what no selected catalogue prints reads once,
+  after the selected catalogues' readings, in the order they list their members (so *Equipment* alone
+  reads each item's family rows, with their governing context, after its own reading). A direct read of
+  the item reads all of its components. Membership grants no eligibility.
+- **Overrides.** Overrides target the one record and its components (Decision 10), so a DISABLE or
+  REPLACE of the item, of either catalogue's component, or of a section's governing passage holds in every
+  view that reaches it: a REPLACE of the item's rows reads at their printed place in the family, A-Z and
+  *Equipment* alike. Disabling or replacing the family omits the family's own passages (head, close,
+  paragraphs) from the item's read and leaves the item, which keeps its rows and the rules owned
+  elsewhere; nothing suppresses unrelated family variants.
+- **Representation.** No new relationship kind, schema version or schema hash. Persisted parts that no
+  longer satisfy the rule fail reconstruction (`STALE` at runtime; an error in replay).
+
 ### Decision 10 — Typed override completion
 
 ADR-0007's entity-targeting override deferral is discharged by 5d.
@@ -1657,7 +1933,14 @@ identity unchanged**, so no previously recorded binding is reminted or orphaned 
 it names. It does **not** change representation schema identity: `OPTION` is an override target grain, not
 a representation structure, and the representation schema version and hash are unaffected.
 
+**Amended by Owner Decision 2026-09-24 (see Decision 9).** Override targets and operations are unchanged,
+and so is what they mean for an exact target. What changes is how a section reads a member: it reaches
+the member's effective record. A `DISABLE` of the member therefore also removes it from every section
+that reaches it. A `REPLACE` of the member is what the section reads at the member's printed position.
+A passage's suppression also holds wherever another record reads it as context.
+
 ### Decision 11 — Downstream ownership remains downstream
+
 
 5d does not decide:
 

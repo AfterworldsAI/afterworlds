@@ -1,0 +1,112 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "afterworlds"
+version = "0.1.0"
+description = "Afterworlds interactive storytelling platform built on the Sojourn Story State Machine"
+requires-python = ">=3.12"
+dependencies = [
+    "pydantic>=2.7",
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "chromadb>=0.5",
+    "anthropic>=0.40",
+    "keyring>=24.0",
+    "openai>=1.0",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    # SRD corpus transform (CRD Issue 5c). Pinning the extractor protects
+    # operationally meaningful extraction behavior. Deliberate compatibility
+    # changes bump the semantic transform version and yield a new draft release.
+    "pdfplumber==0.11.10",
+    "pdfminer.six==20260107",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black==26.3.1",
+    "ruff>=0.4",
+    "mypy>=1.10",
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "pytest-asyncio>=0.24",
+    "pip-audit>=2.7",
+    "detect-secrets>=1.5",
+    "httpx>=0.27",
+    # Packaging smoke test (CRD Issue 5c): builds wheel+sdist to verify the
+    # committed table inventory ships and loads from an installed distribution.
+    # `build --no-isolation` uses the current env's build backend, so the declared
+    # `[build-system].requires` (setuptools>=68, wheel) must be present here too
+    # (R17: a clean CI runner lacked `wheel`, so the build exited 1).
+    "build>=1.0",
+    "setuptools>=68",
+    "wheel",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+afterworlds = [
+    "modes/personas/profiles/*.json",
+    # CRD Issue 5c committed expected-table oracle, read at runtime via
+    # importlib.resources (table_inventory.py); required by candidate
+    # construction/finalization, so it must ship in the wheel.
+    "ingestion/corpus/srd_table_inventory.json",
+    # CRD Issue 5d committed accepted oracles, resolved at runtime by
+    # oracle.committed_oracle_for from the fixed packaged directory. The
+    # directory holds one production artifact today — the SRD 5.2.1 release,
+    # carrying accepted batches conditions-1, hazards-1, actions-1, attitudes-1,
+    # areas-of-effect-1, cover-1, speed-1, proficiency-destinations-1 and
+    # proficiency-1 — so the glob must ship it, or an
+    # installed distribution would resolve no accepted authority and publication
+    # would return ABSENT rather than the honest INCOMPLETE.
+    "ingestion/mechanical/oracles/*.json",
+]
+
+# ---------------------------------------------------------------------------
+# Black
+# ---------------------------------------------------------------------------
+[tool.black]
+target-version = ["py312"]
+line-length = 88
+
+# ---------------------------------------------------------------------------
+# Ruff
+# ---------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+# FastAPI's dependency-injection idiom is `param: T = Depends(...)`; this is
+# not the mutable-default-argument footgun B008 targets.
+"src/afterworlds/api/routes/*.py" = ["B008"]
+
+# ---------------------------------------------------------------------------
+# mypy
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src"]
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+# ---------------------------------------------------------------------------
+# pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--tb=short --cov=src/afterworlds --cov-report=term-missing --cov-fail-under=80"
+pythonpath = ["."]

@@ -1,0 +1,5 @@
+start 2026-10-07T08:38:18.050312+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/_sp/release-readiness-20261007/leaf_overlap.py
+input 7f8c0ba1961894ecfdda428f445629541cf1b1739503c1b97a3f3da620a35c82  .claude/_sp/release-readiness-20261007/leaf_overlap.py
+old 10464 new 10464 shared 10464
+end 2026-10-07T08:38:31.254780+00:00 exit 0

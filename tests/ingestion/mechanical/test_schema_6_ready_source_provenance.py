@@ -126,7 +126,6 @@ from afterworlds.ingestion.mechanical.representation import (
 from afterworlds.ingestion.mechanical.validation import validate_representation
 from afterworlds.services.rules_authority.application import (
     EffectiveAuthority,
-    _base_records,
 )
 from afterworlds.services.rules_authority.binding import RulesPackageBinding
 from afterworlds.services.rules_authority.views import (
@@ -137,6 +136,7 @@ from tests.ingestion.mechanical.conftest import (
     PACKAGE_UUID,
     RELEASE_BINDING,
     RELEASE_VERSION,
+    base_records,
     bound_corpus,
     build_ledger,
     candidate_of,
@@ -393,9 +393,7 @@ def ready_ledger() -> ClassificationLedger:
 
 
 def _authority() -> EffectiveAuthority:
-    records = _base_records(
-        candidate_of(RELEASE_BINDING, ready_ledger(), ready_draft())
-    )
+    records = base_records(candidate_of(RELEASE_BINDING, ready_ledger(), ready_draft()))
     return EffectiveAuthority(
         binding=RulesPackageBinding(
             package_uuid=uuid5(NAMESPACE_URL, PACKAGE_UUID),
@@ -646,9 +644,7 @@ def test_the_typed_view_carries_both_arms_and_the_grant_that_precedes_them() -> 
 
 def test_every_fact_reaches_a_consumer_under_its_own_span() -> None:
     """Provenance survives to the effective record, keyed per arm."""
-    records = _base_records(
-        candidate_of(RELEASE_BINDING, ready_ledger(), ready_draft())
-    )
+    records = base_records(candidate_of(RELEASE_BINDING, ready_ledger(), ready_draft()))
     choice = next(
         c for c in records[READY_KEY].components if c.semantic_key == CHOICE_KEY
     )

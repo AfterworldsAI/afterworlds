@@ -89,7 +89,6 @@ from afterworlds.ingestion.mechanical.validation import validate_representation
 from afterworlds.services.rules_authority.application import (
     EffectiveAuthority,
     SourceProse,
-    _base_records,
 )
 from afterworlds.services.rules_authority.binding import RulesPackageBinding
 from afterworlds.services.rules_authority.views import (
@@ -103,6 +102,7 @@ from tests.ingestion.mechanical.conftest import (
     SPELL_KEY,
     SPELL_LEAF,
     SPELL_SPAN,
+    base_records,
     bound_corpus,
     build_ledger,
     build_representation,
@@ -330,7 +330,7 @@ def test_help_publishes_each_clause_against_the_arm_it_governs() -> None:
     an extent its span did not accept. What the scope adds is which *arm* each
     clause governs, which no extent states.
     """
-    records = _base_records(
+    records = base_records(
         candidate_of(RELEASE_BINDING, _ledger(2, prose=True), _help_draft())
     )
     prose = records[SPELL_KEY].components[0].governing_prose
@@ -349,7 +349,7 @@ def test_moving_a_clause_between_arms_changes_the_effective_record() -> None:
     """
 
     def prose_of(draft: object) -> tuple[SourceProse, ...]:
-        records = _base_records(
+        records = base_records(
             candidate_of(RELEASE_BINDING, _ledger(2, prose=True), draft)
         )
         return records[SPELL_KEY].components[0].governing_prose  # type: ignore[return-value]
@@ -392,14 +392,14 @@ def test_component_wide_prose_stays_distinguishable_from_an_arm_s_own() -> None:
         ),
     )
     assert validate_representation(component_wide, _ledger(2), bound_corpus()) == ()
-    records = _base_records(candidate_of(RELEASE_BINDING, _ledger(2), component_wide))
+    records = base_records(candidate_of(RELEASE_BINDING, _ledger(2), component_wide))
     entries = records[SPELL_KEY].components[0].governing_prose
     assert [e.option_key for e in entries] == [""]  # type: ignore[union-attr]
 
     scoped = (
-        _base_records(candidate_of(RELEASE_BINDING, _ledger(2), _help_draft()))[
-            SPELL_KEY
-        ]
+        base_records(
+            candidate_of(RELEASE_BINDING, _ledger(2, prose=True), _help_draft())
+        )[SPELL_KEY]
         .components[0]
         .governing_prose
     )
@@ -415,7 +415,7 @@ def test_the_gamemaster_view_keeps_each_clause_bound_to_its_arm() -> None:
     this to adjudicate — would get two passages and no way to tell which
     benefit each one describes.
     """
-    records = _base_records(
+    records = base_records(
         candidate_of(RELEASE_BINDING, _ledger(2, prose=True), _help_draft())
     )
     authority = EffectiveAuthority(
@@ -622,7 +622,7 @@ def test_both_arms_state_the_reaction_and_only_one_states_the_movement() -> None
     whichever arm is taken, and one that put the cost on only one arm would say
     the other is free.
     """
-    records = _base_records(
+    records = base_records(
         candidate_of(RELEASE_BINDING, _ready_ledger(), _ready_draft())
     )
     choice = next(
@@ -644,7 +644,7 @@ def test_each_arm_s_clause_is_bound_to_that_arm() -> None:
     arm 1's prose. A component-grain binding would say the clause governs the
     movement arm too, which is false about the arm it does not describe.
     """
-    records = _base_records(
+    records = base_records(
         candidate_of(RELEASE_BINDING, _ready_ledger(), _ready_draft())
     )
     choice = next(
@@ -660,7 +660,7 @@ def test_swapping_the_two_clauses_changes_the_effective_record() -> None:
     """The scope is authority, not decoration — keyed by extent so only it moves."""
 
     def governed(draft: object) -> dict[tuple[int, int], str]:
-        records = _base_records(candidate_of(RELEASE_BINDING, _ready_ledger(), draft))
+        records = base_records(candidate_of(RELEASE_BINDING, _ready_ledger(), draft))
         choice = next(
             c for c in records[SPELL_KEY].components if c.semantic_key == CHOICE_KEY
         )
@@ -679,7 +679,7 @@ def test_swapping_the_two_clauses_changes_the_effective_record() -> None:
 
 def test_the_choice_reaches_the_gamemaster_with_both_arms_and_both_clauses() -> None:
     """The view a GameMaster adjudicates from carries the whole alternation."""
-    records = _base_records(
+    records = base_records(
         candidate_of(RELEASE_BINDING, _ready_ledger(), _ready_draft())
     )
     authority = EffectiveAuthority(
@@ -717,7 +717,7 @@ def test_a_readied_spell_s_requirements_do_not_reach_the_movement_arm() -> None:
     the Concentration duty would read as requirements of the choice itself — so
     a subject who readied a **move** would appear to expend casting resources.
     """
-    records = _base_records(
+    records = base_records(
         candidate_of(RELEASE_BINDING, _ready_ledger(), _ready_draft())
     )
     by_key = {c.semantic_key: c for c in records[SPELL_KEY].components}
@@ -736,7 +736,7 @@ def test_a_readied_spell_s_requirements_do_not_reach_the_movement_arm() -> None:
 
 def test_ready_publishes_every_clause_it_states() -> None:
     """Each fact reaches a consumer under its own key and its own provenance."""
-    records = _base_records(
+    records = base_records(
         candidate_of(RELEASE_BINDING, _ready_ledger(), _ready_draft())
     )
     published = [

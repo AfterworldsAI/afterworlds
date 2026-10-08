@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import replace
+from typing import TypedDict
 
 import pytest
 from sqlalchemy import select
@@ -50,6 +51,7 @@ from afterworlds.ingestion.mechanical.accounting import (
     validate_partition,
 )
 from afterworlds.ingestion.mechanical.models import (
+    ComponentHandling,
     ExcludedGroup,
     ExpectedRule,
     ReviewState,
@@ -83,7 +85,6 @@ from afterworlds.ingestion.mechanical.projection import (
 )
 from afterworlds.ingestion.mechanical.representation import (
     ComponentDraft,
-    ComponentHandling,
     MovementMode,
     MovementPermissionFact,
     ProvenanceClaim,
@@ -135,6 +136,13 @@ def _persist(session: Session, units: tuple[ReviewUnit, ...] = REVIEW_UNITS):  #
     identified = identify_projection(reviewed_candidate(units))
     persist_draft(session, identified, now=NOW)
     return identified
+
+
+class _Groups(TypedDict, total=False):
+    """The group fields a parametrized case overrides on a review unit."""
+
+    supporting_groups: tuple[SupportingGroup, ...]
+    excluded_groups: tuple[ExcludedGroup, ...]
 
 
 def _violations(
@@ -829,7 +837,7 @@ def test_an_excluded_group_with_a_blank_reason_is_reported(reason: str) -> None:
     ],
     ids=["supporting", "excluded"],
 )
-def test_a_group_naming_no_source_is_reported(groups: dict[str, object]) -> None:
+def test_a_group_naming_no_source_is_reported(groups: _Groups) -> None:
     unit = replace(REVIEW_UNITS[1], **groups)
     assert any("group [] names no source leaves" in f for f in _violations((unit,)))
 
@@ -846,7 +854,7 @@ def test_a_group_naming_no_source_is_reported(groups: dict[str, object]) -> None
     ids=["supporting", "excluded"],
 )
 def test_a_group_deciding_source_outside_its_unit_is_reported(
-    groups: dict[str, object],
+    groups: _Groups,
 ) -> None:
     """A decision reaching past the source a human read covers nothing here."""
     unit = replace(REVIEW_UNITS[1], **groups)

@@ -1,6 +1,16 @@
 #!/usr/bin/env python
 """CLI — build and publish the authoritative SRD 5.2.1 corpus release.
 
+RETIRED by the Recorded Owner Decision 2026-09-21 clean restart. This command is
+the production entry point of the quarantined PDF-geometric corpus, so it refuses
+as its first action — before the PDF check, before the retrieval configuration is
+resolved, and therefore before ``upgrade_to_head`` migrates the target database or
+``build_chroma_client`` creates a vector store. The refusal is unconditional: the
+retired thing is this command, not a value it computes, so neither reconfiguring
+the embedding model nor editing the transform source reopens it. The offline reference
+helpers this module's imports reach (``build_candidate``, page extraction) remain
+callable directly; what is closed is the command that publishes their output.
+
 CRD Issue 5c (#132) / ADR-005c Completion Contract A. This script runs the
 deterministic corpus pipeline directly from the authoritative PDF
 (``docs/sources/DnD5_5e_SRD_CC_v5_2_1.pdf``), then persists, reconstructs,
@@ -46,6 +56,7 @@ from afterworlds.pipeline.retrieval.client import build_chroma_client  # noqa: E
 from afterworlds.pipeline.retrieval.config import (  # noqa: E402
     RetrievalMemoryConfig,
 )
+from afterworlds.quarantine import QuarantinedAuthorityError  # noqa: E402
 
 _DEFAULT_PDF = "docs/sources/DnD5_5e_SRD_CC_v5_2_1.pdf"
 
@@ -60,6 +71,16 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    # Retired command: refuse before any store effect. Nothing below this line
+    # runs, so no Alembic migration is applied to --db-url and no Chroma persist
+    # directory is created. Unconditional rather than keyed: everything below
+    # drives the retired PDF-geometric transform, and a computed key would silently
+    # re-admit the command the moment someone edited the transform source. The
+    # replacement corpus gets its own command, not this one.
+    raise QuarantinedAuthorityError(
+        "obsolete corpus ingestion command (scripts/ingest_srd.py)",
+        ("command=scripts/ingest_srd.py",),
+    )
     args = parse_args()
     pdf_path = Path(args.pdf_path)
     if not pdf_path.exists():

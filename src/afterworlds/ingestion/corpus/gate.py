@@ -21,7 +21,7 @@ from afterworlds.ingestion.corpus.bundle import (
     persisted_corpus_digest,
     reconciliation_hash,
 )
-from afterworlds.ingestion.corpus.concordance import check_concordance
+from afterworlds.ingestion.corpus.concordance import verify_citations
 from afterworlds.ingestion.corpus.hashing import hash_obj
 from afterworlds.ingestion.corpus.ledger import ledger_hash
 from afterworlds.ingestion.corpus.models import (
@@ -39,6 +39,7 @@ from afterworlds.ingestion.corpus.policy import (
     policy_payload,
 )
 from afterworlds.ingestion.corpus.report import report_hash
+from afterworlds.quarantine import refuse_quarantined
 
 
 @dataclass(frozen=True)
@@ -66,6 +67,11 @@ def run_gate(
     evidence: PublicationEvidence,
 ) -> GateResult:
     """Run the publication gate over the release record (Component I)."""
+    refuse_quarantined(
+        "corpus publication gate",
+        package_uuid=artifacts.release.package_uuid,
+        release_version=artifacts.release.release_version,
+    )
     a = artifacts
     chunk_membership_violations = evidence.chunk_membership_violations
     sql_persist_ok = evidence.sql_persist_ok
@@ -198,9 +204,21 @@ def run_gate(
     if recon.findings.orphans:
         f.append("orphan output record (no leaf link)")
 
-    # 15. Concordance passes (re-run independently).
-    if not check_concordance(a.members.chunks, a.pages).passed:
-        f.append("concordance failed")
+    # 15. Citation verification passes (re-run independently, in whichever
+    #     mode the release's tamper-checked transform_config declares -- the
+    #     same dispatcher the build report and the reconstruct path use, so the
+    #     gate cannot be checking a weaker proposition than the one reported).
+    citation = verify_citations(
+        a.members.chunks,
+        a.pages,
+        rel.transform_config,
+        source_texts=a.source_texts,
+    )
+    if not citation.passed:
+        f.append(
+            "citation verification failed"
+            + (f" ({len(citation.omissions)} omitted)" if citation.omissions else "")
+        )
     if not all(c.passed for c in a.canaries):
         f.append("version canary failed")
 

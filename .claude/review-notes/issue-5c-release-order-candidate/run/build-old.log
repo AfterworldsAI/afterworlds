@@ -1,0 +1,32 @@
+start 2026-10-07T03:03:02.011206+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/_sp/release-order-candidate/build.py .claude/_sp/release-order-candidate/rel-old
+input 0ccb212c285e27b7016be1939b007e035d54c5c3df374d94633e9a9bf3062960  .claude/_sp/release-order-candidate/build.py
+{
+ "corpus_files": [
+  "legal-information.md",
+  "animals.md",
+  "character-creation.md",
+  "character-origins.md",
+  "classes.md",
+  "equipment.md",
+  "feats.md",
+  "gameplay-toolbox.md",
+  "magic-items.md",
+  "monsters.md",
+  "monsters-A-Z.md",
+  "playing-the-game.md",
+  "rules-glossary.md",
+  "spells.md"
+ ],
+ "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+ "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+ "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+ "ledger_hash": "67bd4a59f3012718903671ebb824551cea63ef3134a4e850d4115366edc77932",
+ "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+ "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+ "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+ "units": 10464,
+ "containers": 2877,
+ "chunks": 10464
+}
+end 2026-10-07T03:04:28.049382+00:00 exit 0

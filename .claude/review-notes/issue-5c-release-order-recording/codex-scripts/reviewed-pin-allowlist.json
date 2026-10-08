@@ -1,0 +1,10 @@
+[
+  ".secrets.baseline",
+  "docs/architecture/issue-5c-5d-clean-restart.md",
+  "src/afterworlds/ingestion/mechanical/oracles/README.md",
+  "tests/ingestion/mechanical/test_accepted_inputs.py",
+  "tests/ingestion/mechanical/test_committed_accepted_authority.py",
+  "tests/ingestion/mechanical/test_oracle.py",
+  "tests/ingestion/mechanical/test_packaging.py",
+  "tests/ingestion/mechanical/test_source_release_readiness.py"
+]

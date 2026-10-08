@@ -1,0 +1,21 @@
+start 2026-10-07T15:51:32.715839+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe scripts/run_focused_tests.py --check tests/ingestion/mechanical/test_character_creation_foundations_acceptance.py --check tests/ingestion/mechanical/test_character_creation_foundations_proposal.py --check tests/ingestion/mechanical/test_character_origins_feats_proposal.py --check tests/ingestion/mechanical/test_core_play_completion_acceptance.py --check tests/ingestion/mechanical/test_equipment_proposal.py --check tests/ingestion/mechanical/test_spellcasting_proposal.py tests/ingestion/mechanical/test_character_creation_foundations_acceptance.py tests/ingestion/mechanical/test_character_creation_foundations_proposal.py tests/ingestion/mechanical/test_character_origins_feats_proposal.py tests/ingestion/mechanical/test_core_play_completion_acceptance.py tests/ingestion/mechanical/test_equipment_proposal.py tests/ingestion/mechanical/test_spellcasting_proposal.py
+input ef6969b5f09e59ebd4001aad2137ade7ca74509d4075753de73336d7595050e9  scripts/run_focused_tests.py
+input 885e094cfae6b05c134870fdc8a3b121142037d53e2c2391eefbfa5f58ee8d9d  tests/ingestion/mechanical/test_character_creation_foundations_acceptance.py
+input a2244135405285057278dbc7eb4ad521a676c254b3dc232dfafba96949b7e4dc  tests/ingestion/mechanical/test_character_creation_foundations_proposal.py
+input 7161d6c7db427313b25233484e271fd440f60b6d5d5f4058c43c91b9a20fe345  tests/ingestion/mechanical/test_character_origins_feats_proposal.py
+input 1939203c07e1e621edbd838cd70780fde26a8a6f4ed3469e76bd26e09e51c654  tests/ingestion/mechanical/test_core_play_completion_acceptance.py
+input 626185c684fbd47983a8ef54a4cfa8b754a526445cace5f1a0335d681e9b7d5e  tests/ingestion/mechanical/test_equipment_proposal.py
+input d8fd5cfb951a3a549be2183f6a42f049a894b98647f259bde59443b9ecb7a1e8  tests/ingestion/mechanical/test_spellcasting_proposal.py
+input 885e094cfae6b05c134870fdc8a3b121142037d53e2c2391eefbfa5f58ee8d9d  tests/ingestion/mechanical/test_character_creation_foundations_acceptance.py
+input a2244135405285057278dbc7eb4ad521a676c254b3dc232dfafba96949b7e4dc  tests/ingestion/mechanical/test_character_creation_foundations_proposal.py
+input 7161d6c7db427313b25233484e271fd440f60b6d5d5f4058c43c91b9a20fe345  tests/ingestion/mechanical/test_character_origins_feats_proposal.py
+input 1939203c07e1e621edbd838cd70780fde26a8a6f4ed3469e76bd26e09e51c654  tests/ingestion/mechanical/test_core_play_completion_acceptance.py
+input 626185c684fbd47983a8ef54a4cfa8b754a526445cace5f1a0335d681e9b7d5e  tests/ingestion/mechanical/test_equipment_proposal.py
+input d8fd5cfb951a3a549be2183f6a42f049a894b98647f259bde59443b9ecb7a1e8  tests/ingestion/mechanical/test_spellcasting_proposal.py
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+All done! ✨ 🍰 ✨
+6 files would be left unchanged.
+........................................................................ [ 27%]
+...........................Focused diagnostics FAILED (exit 4294967295). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+end 2026-10-07T15:57:35.399763+00:00 exit 4294967295

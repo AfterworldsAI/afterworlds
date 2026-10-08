@@ -1,0 +1,11 @@
+start 2026-10-07T08:53:15.323648+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe scripts/run_focused_tests.py --check tests/ingestion/mechanical/test_spell_descriptions_proposal.py tests/ingestion/mechanical/test_spell_descriptions_proposal.py::test_scope_is_the_section_s_2036_leaves tests/ingestion/mechanical/test_spell_descriptions_proposal.py::test_no_recorded_leaf_or_record_is_an_accepted_one
+input ef6969b5f09e59ebd4001aad2137ade7ca74509d4075753de73336d7595050e9  scripts/run_focused_tests.py
+input 5b557e4b55f2b690f150ad18475173fbf5bce499345e63620d8d31dc4bea626c  tests/ingestion/mechanical/test_spell_descriptions_proposal.py
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+All done! ✨ 🍰 ✨
+1 file would be left unchanged.
+..                                                                       [100%]
+2 passed in 271.84s (0:04:31)
+Focused diagnostics PASSED (exit 0). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+end 2026-10-07T08:57:49.960480+00:00 exit 0

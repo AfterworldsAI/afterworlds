@@ -1,0 +1,70 @@
+## spans: -0 +1
++ {"char_end": 20, "char_start": 0, "disposition": "substantive", "leaf_id": "7eaded98-5e17-59bb-ae18-bc9e040b99bd", "non_mechanical_reason_code": null, "span_id": "fe74a641-8b2a-525d-827a-8953c881c379"}
+    fe74a641 '# Character Creation'
+## review_units: -0 +1
++ {"excluded_groups": [], "expected_rules": [{"component_key": "character_creation", "record_key": "character_creation.character_creation", "source_span_ids": ["fe74a641-8b2a-525d-827a-8953c881c379"]}], "kind": "section", "leaf_ids": ["7eaded98-5e17-59bb-ae18-bc9e040b99bd"], "supporting_groups": [], "unit_id": "character-creation-catalogue/character_creation"}
+## obligations: -0 +1
++ {"kind": "general_rule", "prose_bound_components": ["character_creation"], "record_key": "character_creation.character_creation", "structured_fact_families": []}
+## reference_resolutions: -0 +2
++ {"from_component_key": "", "from_record_key": "glossary.character_sheet", "provenance_span_ids": ["00b2af35-97d1-5651-b429-887254dcafcd"], "release_binding": {"authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87", "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760", "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6", "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42", "release_version": "5.2.1-corpus.3fe24ff6-4e3", "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"}, "resolution_id": "resolve-glossary-character-sheet-record-character-creation-character-creation-catalogue-1", "scope_key": "srd-5.2.1/character-creation", "source_text": "Character Creation", "target_record_key": "character_creation.character_creation"}
+    00b2af35 '_See also_ "Character Creation."'
++ {"from_component_key": "", "from_record_key": "glossary.player_character", "provenance_span_ids": ["78ab87ef-8471-54d0-968b-8ab25734d877"], "release_binding": {"authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87", "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760", "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6", "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42", "release_version": "5.2.1-corpus.3fe24ff6-4e3", "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"}, "resolution_id": "resolve-glossary-player-character-record-character-creation-character-creation-catalogue-1", "scope_key": "srd-5.2.1/character-creation", "source_text": "Character Creation", "target_record_key": "character_creation.character_creation"}
+    78ab87ef '_See also_ "Character Creation."'
+## representation.records: -0 +1
++ {"kind": "general_rule", "parent_key": null, "semantic_key": "character_creation.character_creation"}
+## representation.components: -0 +1
++ {"applies_when": null, "fact_qualifiers": [], "facts": [], "handling": "prose_bound", "irreducibility_reason_code": null, "options": [], "prose_retention_reason_code": "no_identified_structured_use", "record_key": "character_creation.character_creation", "semantic_key": "character_creation"}
+## representation.relationships: -0 +6
++ {"kind": "catalogue_member", "source_record_key": "character_creation.character_sheet", "target_record_key": "character_creation.character_creation"}
++ {"kind": "catalogue_member", "source_record_key": "character_creation.create_your_character", "target_record_key": "character_creation.character_creation"}
++ {"kind": "catalogue_member", "source_record_key": "character_creation.level_advancement", "target_record_key": "character_creation.character_creation"}
++ {"kind": "catalogue_member", "source_record_key": "character_creation.multiclassing", "target_record_key": "character_creation.character_creation"}
++ {"kind": "catalogue_member", "source_record_key": "character_creation.starting_at_higher_levels", "target_record_key": "character_creation.character_creation"}
++ {"kind": "catalogue_member", "source_record_key": "character_creation.trinkets", "target_record_key": "character_creation.character_creation"}
+## representation.prose_bindings: -0 +1
++ {"chunk_char_end": 20, "chunk_char_start": 0, "chunk_id": "e57ef9ad-4cad-50a2-9250-b2c82c912495", "component_key": "character_creation", "irreducibility_reason_code": null, "prose_retention_reason_code": "no_identified_structured_use", "record_key": "character_creation.character_creation", "span_id": "fe74a641-8b2a-525d-827a-8953c881c379"}
+    fe74a641 '# Character Creation'
+## representation.provenance: -0 +7
++ {"role": "primary", "span_id": "fe74a641-8b2a-525d-827a-8953c881c379", "target_key": ["character_creation.character_creation", "character_creation", "e57ef9ad-4cad-50a2-9250-b2c82c912495", "fe74a641-8b2a-525d-827a-8953c881c379", "no_identified_structured_use"], "target_kind": "prose_binding"}
+    fe74a641 '# Character Creation'
++ {"role": "contextual", "span_id": "20f80aa1-beb8-5f0c-9598-82ab5db3b4fd", "target_key": ["character_creation.character_sheet", "character_creation.character_creation", "catalogue_member"], "target_kind": "relationship"}
+    20f80aa1 'You\'ll record the main details of your character on a character sheet. Throughout this chapter, we use the term "character sheet" to mean whatever you use to track your character\'s details, whether it\'s a printed character sheet, a digital character sheet, or plain paper. Choose whichever style of sheet works for you, and then embark on creating a character!'
++ {"role": "contextual", "span_id": "e9a6e7ac-64c2-5c5c-8cba-aa556640ff02", "target_key": ["character_creation.create_your_character", "character_creation.character_creation", "catalogue_member"], "target_kind": "relationship"}
+    e9a6e7ac "1. **Choose a Class.** Every adventurer is a member of a class. A class broadly describes a character's vocation, special talents, and favored tactics.\n2. **Determine Origin.** A character's origin includes two elements: background and species. How did the character spend the years leading up to a life of adventure? Who are the character's ancestors? You can also choose your character's languages.\n3. **Determine Ability Scores.** Much of what your character does in the game depends on the character's six abilities.\n4. **Choose an Alignment.** Alignment is a shorthand for your character's moral compass.\n5. **Fill in Details.** Using the choices you've made, fill in the remaining details on your character sheet."
++ {"role": "contextual", "span_id": "3c5dbefe-bb71-58ef-bb12-ae5d2caf3f8f", "target_key": ["character_creation.level_advancement", "character_creation.character_creation", "catalogue_member"], "target_kind": "relationship"}
+    3c5dbefe 'While going on adventures, your character gains experience, represented by Experience Points (XP). A character who reaches a specified Experience Point total advances in capability. This advancement is called gaining a level.'
++ {"role": "contextual", "span_id": "0d8df777-756d-5a94-9c98-25d6309e4953", "target_key": ["character_creation.starting_at_higher_levels", "character_creation.character_creation", "catalogue_member"], "target_kind": "relationship"}
+    0d8df777 "Your GM might start your group's characters at a level higher than 1. It is particularly recommended to start at level 3 if your group is composed of seasoned D&D players."
++ {"role": "contextual", "span_id": "ecf8d21c-6b0d-55d0-8d07-e12a264c2f7d", "target_key": ["character_creation.multiclassing", "character_creation.character_creation", "catalogue_member"], "target_kind": "relationship"}
+    ecf8d21c 'Multiclassing allows you to gain levels in multiple classes. With this rule, you have the option of gaining a level in a new class whenever you advance in level instead of gaining a level in your current class. Doing so lets you mix the abilities of those classes to realize a character concept that might not be reflected in a single class.'
++ {"role": "contextual", "span_id": "4e5253bb-0a2e-5421-a0d8-8744ad270d1f", "target_key": ["character_creation.trinkets", "character_creation.character_creation", "catalogue_member"], "target_kind": "relationship"}
+    4e5253bb "When you make your character, you can roll once on the Trinkets table to gain a Tiny trinket, a simple item lightly touched by mystery. The GM might also use this table. It can help stock a room in a dungeon or fill a creature's pockets."
+## acceptance.batches: -0 +1
++ {"batch_id": "character-creation-catalogue", "diff": [{"accepted_disposition": "substantive", "accepted_reason_code": null, "prior_disposition": null, "prior_reason_code": null, "span_id": "fe74a641-8b2a-525d-827a-8953c881c379"}], "proposal_identity": "cee3b640f955a34ed627fb720b8f9ec121d605dda6f792ba469ebe7ac429a5be", "resolved_scope": ["fe74a641-8b2a-525d-827a-8953c881c379"], "rule": "<evidence>", "semantic_diff_hash": "dad9e4d6c9effdc1a882263d72db2c5655256f068e3a0cb7de726778c6f72ad6"}
+## acceptance.records: -0 +1
++ {"accepted_at": "<evidence>", "batch_id": "character-creation-catalogue", "reviewer": "<evidence>", "span_id": "fe74a641-8b2a-525d-827a-8953c881c379"}
+    fe74a641 '# Character Creation'
+## acceptance.review_unit_records: -0 +1
++ {"accepted_at": "<evidence>", "batch_id": "character-creation-catalogue", "reviewer": "<evidence>", "unit_id": "character-creation-catalogue/character_creation"}
+## acceptance.reference_resolution_records: -0 +2
++ {"authorization_reference": "SIMULATION ONLY: in-memory composition check; records no acceptance", "authorized_by": "SIMULATION - not an Owner approval", "resolution_id": "resolve-glossary-character-sheet-record-character-creation-character-creation-catalogue-1", "resolved_at": "<evidence>", "reviewer": "<evidence>"}
++ {"authorization_reference": "SIMULATION ONLY: in-memory composition check; records no acceptance", "authorized_by": "SIMULATION - not an Owner approval", "resolution_id": "resolve-glossary-player-character-record-character-creation-character-creation-catalogue-1", "resolved_at": "<evidence>", "reviewer": "<evidence>"}
+## acceptance.schema_anchors: -0 +1
++ {"batch_id": "character-creation-catalogue", "proposal_identity": "cee3b640f955a34ed627fb720b8f9ec121d605dda6f792ba469ebe7ac429a5be", "schema_hash": "7fb9254b11da1d6772ea6ee72ffde9b5e9d39e8885188777874c65e86ad9a941", "schema_version": "5d-representation-schema-16"}
+## character_creation.character_creation members, printed order, first span full text
++ member character_creation.character_sheet @843 span 20f80aa1-beb8-5f0c-9598-82ab5db3b4fd
+    | You'll record the main details of your character on a character sheet. Throughout this chapter, we use the term "character sheet" to mean whatever you use to track your character's details, whether it's a printed character sheet, a digital character sheet, or plain paper. Choose whichever style of sheet works for you, and then embark on creating a character!
++ member character_creation.create_your_character @846 span e9a6e7ac-64c2-5c5c-8cba-aa556640ff02
+    | 1. **Choose a Class.** Every adventurer is a member of a class. A class broadly describes a character's vocation, special talents, and favored tactics.
+    | 2. **Determine Origin.** A character's origin includes two elements: background and species. How did the character spend the years leading up to a life of adventure? Who are the character's ancestors? You can also choose your character's languages.
+    | 3. **Determine Ability Scores.** Much of what your character does in the game depends on the character's six abilities.
+    | 4. **Choose an Alignment.** Alignment is a shorthand for your character's moral compass.
+    | 5. **Fill in Details.** Using the choices you've made, fill in the remaining details on your character sheet.
++ member character_creation.level_advancement @942 span 3c5dbefe-bb71-58ef-bb12-ae5d2caf3f8f
+    | While going on adventures, your character gains experience, represented by Experience Points (XP). A character who reaches a specified Experience Point total advances in capability. This advancement is called gaining a level.
++ member character_creation.starting_at_higher_levels @964 span 0d8df777-756d-5a94-9c98-25d6309e4953
+    | Your GM might start your group's characters at a level higher than 1. It is particularly recommended to start at level 3 if your group is composed of seasoned D&D players.
++ member character_creation.multiclassing @973 span ecf8d21c-6b0d-55d0-8d07-e12a264c2f7d
+    | Multiclassing allows you to gain levels in multiple classes. With this rule, you have the option of gaining a level in a new class whenever you advance in level instead of gaining a level in your current class. Doing so lets you mix the abilities of those classes to realize a character concept that might not be reflected in a single class.
++ member character_creation.trinkets @1006 span 4e5253bb-0a2e-5421-a0d8-8744ad270d1f
+    | When you make your character, you can roll once on the Trinkets table to gain a Tiny trinket, a simple item lightly touched by mystery. The GM might also use this table. It can help stock a room in a dungeon or fill a creature's pockets.

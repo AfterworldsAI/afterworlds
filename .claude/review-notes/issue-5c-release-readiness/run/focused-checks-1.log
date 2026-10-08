@@ -1,0 +1,11 @@
+start 2026-10-07T08:53:48.185709+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe scripts/run_focused_tests.py --check tests/ingestion/mechanical/test_checks_actions_rests_proposal.py tests/ingestion/mechanical/test_checks_actions_rests_proposal.py::test_the_generator_builds_over_the_current_release tests/ingestion/mechanical/test_checks_actions_rests_proposal.py::test_composed_the_five_targets_close_and_118_leaves_gain_coverage tests/ingestion/mechanical/test_checks_actions_rests_proposal.py::test_once_accepted_the_draft_resolves_through_the_native_seam tests/ingestion/mechanical/test_checks_actions_rests_proposal.py::test_the_artifact_is_an_unaccepted_proposal_by_shape
+input ef6969b5f09e59ebd4001aad2137ade7ca74509d4075753de73336d7595050e9  scripts/run_focused_tests.py
+input 6f9b6f779c6b3ec366a1a7bdf6d734d39d14a8887c9e9c301ed4ab4048aeae90  tests/ingestion/mechanical/test_checks_actions_rests_proposal.py
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+All done! ✨ 🍰 ✨
+1 file would be left unchanged.
+....                                                                     [100%]
+4 passed in 116.02s (0:01:56)
+Focused diagnostics PASSED (exit 0). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+end 2026-10-07T08:55:47.235918+00:00 exit 0

@@ -1,0 +1,5 @@
+start 2026-10-07T08:56:02.702626+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe -m mypy --strict tests/ingestion/mechanical/test_checks_actions_rests_proposal.py
+input 6f9b6f779c6b3ec366a1a7bdf6d734d39d14a8887c9e9c301ed4ab4048aeae90  tests/ingestion/mechanical/test_checks_actions_rests_proposal.py
+Success: no issues found in 1 source file
+end 2026-10-07T08:56:05.199403+00:00 exit 0

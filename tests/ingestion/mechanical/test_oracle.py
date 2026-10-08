@@ -8,7 +8,9 @@ it judges.
 from __future__ import annotations
 
 import ast
+import hashlib
 import json
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -17,25 +19,31 @@ import pytest
 from afterworlds.ingestion.mechanical import oracle as oracle_module
 from afterworlds.ingestion.mechanical.oracle import (
     COMMITTED_ORACLE_DIR,
+    SUPERSEDED_RELEASE_VERSIONS,
     AcceptedOracle,
     OracleLoadError,
     _resolve_committed_oracle,
+    committed_inputs_for,
+    committed_oracle_for,
     derive_obligations,
     load_accepted_inputs,
     load_oracle,
     oracle_identity,
     oracle_payload,
+    serialize_accepted_inputs,
 )
 from tests.ingestion.mechanical.conftest import (
     BOUNDED_ORACLE_PATH,
     PACKAGE_UUID,
     RELEASE_VERSION,
     accepted_oracle,
+    json_array,
+    json_object,
 )
 
 
 def _payload() -> dict[str, object]:
-    return json.loads(BOUNDED_ORACLE_PATH.read_text(encoding="utf-8"))
+    return json_object(json.loads(BOUNDED_ORACLE_PATH.read_text(encoding="utf-8")))
 
 
 def _write(tmp_path: Path, payload: object, name: str = "o.json") -> Path:
@@ -83,7 +91,12 @@ def test_the_committed_oracle_directory_holds_one_artifact_per_release() -> None
     invariant, not "one in total".
     """
     committed = sorted(p.name for p in COMMITTED_ORACLE_DIR.glob("*.json"))
-    assert committed == ["srd-5-2-1-corpus-36b786d8-fa2.json"]
+    assert committed == [
+        "srd-5-2-1-corpus-36b786d8-fa2.json",
+        "srd-5-2-1-corpus-3fe24ff6-4e3.json",
+        "srd-5-2-1-corpus-574662e9-0ef.json",
+        "srd-5-2-1-corpus-8781d4e0-a3b.json",
+    ]
     releases = [
         (
             load_accepted_inputs(
@@ -177,7 +190,7 @@ def test_loaded_oracle_carries_every_accepted_element() -> None:
     ],
 )
 def test_a_malformed_oracle_is_rejected_not_defaulted(
-    tmp_path: Path, mutate, fragment: str  # type: ignore[no-untyped-def]
+    tmp_path: Path, mutate: Callable[[dict[str, object]], None], fragment: str
 ) -> None:
     """Every rejection is a raise, never a quietly narrower oracle.
 
@@ -202,7 +215,7 @@ def test_unreadable_file_is_a_load_error(tmp_path: Path) -> None:
 def test_review_state_is_not_a_field_a_file_may_set(tmp_path: Path) -> None:
     """A committed oracle is accepted authority by construction."""
     payload = _payload()
-    payload["spans"][0]["review_state"] = "proposed"
+    json_object(json_array(payload["spans"])[0])["review_state"] = "proposed"
     with pytest.raises(OracleLoadError) as exc:
         load_oracle(_write(tmp_path, payload))
     assert "unexpected ['review_state']" in str(exc.value)
@@ -232,6 +245,60 @@ def test_two_oracles_for_one_release_is_rejected(tmp_path: Path) -> None:
     with pytest.raises(OracleLoadError) as exc:
         _resolve_committed_oracle(PACKAGE_UUID, RELEASE_VERSION, tmp_path)
     assert "2 committed oracles" in str(exc.value)
+
+
+#: The superseded releases, each still matched by its unchanged file.
+SUPERSEDED = (
+    ("67c81736-15fd-5e82-8523-e84922f0a7c6", "5.2.1-corpus.3fe24ff6-4e3"),
+    ("ebdd9333-eeed-5df1-b3e1-8b97c2f65f80", "5.2.1-corpus.574662e9-0ef"),
+)
+
+
+def test_a_superseded_release_is_refused_although_its_file_matches() -> None:
+    """A superseded file is historical evidence, never selectable authority.
+
+    Refused rather than ``None`` because the file still matches its binding and
+    every caller treats ``None`` as a releasable absence. The current release
+    still resolves, to exactly its committed bytes.
+    """
+    assert {release for _, release in SUPERSEDED} == SUPERSEDED_RELEASE_VERSIONS
+    for package_uuid, release_version in SUPERSEDED:
+        stem = release_version.removeprefix("5.2.1-corpus.")
+        on_disk = load_accepted_inputs(
+            COMMITTED_ORACLE_DIR / f"srd-5-2-1-corpus-{stem}.json"
+        ).oracle.binding
+        assert (on_disk.package_uuid, on_disk.release_version) == (
+            package_uuid,
+            release_version,
+        )
+        for resolve in (committed_inputs_for, committed_oracle_for):
+            with pytest.raises(OracleLoadError, match="is superseded"):
+                resolve(package_uuid, release_version)
+    current = committed_inputs_for(
+        "1299484e-c72d-509b-bd8d-d0169ee1f8d2", "5.2.1-corpus.8781d4e0-a3b"
+    )
+    assert current is not None
+    assert hashlib.sha256(serialize_accepted_inputs(current)).hexdigest() == (
+        "def7caa1625458a40c1f635db153268082cf52d5e25c28f57fd29518e44de58c"
+    )
+
+
+class _RehashedStr(str):
+    """Equal to its plain value, but hashed differently: misses a frozenset."""
+
+    def __hash__(self) -> int:
+        return str.__hash__(self) ^ 1
+
+
+def test_a_str_subclass_cannot_select_a_superseded_release() -> None:
+    for package_uuid, release_version in SUPERSEDED:
+        disguised = _RehashedStr(release_version)
+        assert disguised not in SUPERSEDED_RELEASE_VERSIONS  # the bypass it tries
+        for resolve in (committed_inputs_for, committed_oracle_for):
+            with pytest.raises(OracleLoadError, match="is superseded"):
+                resolve(_RehashedStr(package_uuid), disguised)
+    with pytest.raises(TypeError):
+        committed_inputs_for(SUPERSEDED[0][0], None)  # type: ignore[arg-type]
 
 
 # ---------------------------------------------------------------------------
@@ -388,8 +455,11 @@ def test_a_wrongly_typed_oracle_value_fails_to_load(
 def test_a_malformed_fact_payload_is_an_oracle_load_error(tmp_path: Path) -> None:
     """The closed-union parser's own rejections are wrapped, not duplicated."""
     payload = _payload()
-    facts = payload["representation"]["components"][0]["facts"]  # type: ignore[index]
-    facts[0] = {**facts[0], "family": "not_a_declared_family"}  # type: ignore[index]
+    representation = json_object(payload["representation"])
+    facts = json_array(
+        json_object(json_array(representation["components"])[0])["facts"]
+    )
+    facts[0] = {**json_object(facts[0]), "family": "not_a_declared_family"}
     with pytest.raises(OracleLoadError):
         load_oracle(_write(tmp_path, payload))
 
@@ -499,7 +569,11 @@ def test_an_unclosed_obligation_relation_fails_to_load(
 def test_identity_changes_with_accepted_meaning(tmp_path: Path) -> None:
     base = load_oracle(BOUNDED_ORACLE_PATH)
     payload = _payload()
-    payload["representation"]["components"][0]["facts"][0]["level"] = 8
+    representation = json_object(payload["representation"])
+    facts = json_array(
+        json_object(json_array(representation["components"])[0])["facts"]
+    )
+    json_object(facts[0])["level"] = 8
     assert oracle_identity(load_oracle(_write(tmp_path, payload))) != oracle_identity(
         base
     )
@@ -508,9 +582,9 @@ def test_identity_changes_with_accepted_meaning(tmp_path: Path) -> None:
 def test_identity_is_stable_across_authoring_order(tmp_path: Path) -> None:
     """Two files stating the same authority in different orders are one oracle."""
     payload = _payload()
-    payload["spans"].reverse()
-    payload["representation"]["records"].reverse()
-    payload["obligations"].reverse()
+    json_array(payload["spans"]).reverse()
+    json_array(json_object(payload["representation"])["records"]).reverse()
+    json_array(payload["obligations"]).reverse()
     assert oracle_identity(load_oracle(_write(tmp_path, payload))) == oracle_identity(
         load_oracle(BOUNDED_ORACLE_PATH)
     )

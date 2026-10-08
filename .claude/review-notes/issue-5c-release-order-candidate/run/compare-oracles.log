@@ -1,0 +1,54 @@
+start 2026-10-07T03:17:10.064382+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/_sp/release-order-candidate/compare_oracles.py .claude/_sp/release-order-candidate/candidate/srd-5-2-1-corpus-8781d4e0-a3b.json .claude/_sp/release-order-candidate/candidate/oracle-delta.json
+input d22c4fefe155dc407d3a11a0814e4ee08a4b58a28d75f03c89567bb35f417346  .claude/_sp/release-order-candidate/compare_oracles.py
+input 8a6a9a9c305f41207190c0deb55875a027019116ce3f825a6a0425a3a115b4bf  .claude/_sp/release-order-candidate/candidate/srd-5-2-1-corpus-8781d4e0-a3b.json
+normalized {'binding': 7435, 'chunk': 32800}
+difference patterns 23
+      24  $.acceptance.batches[*].proposal_identity
+          e.g. '86d51bf772cb977aded2b43beeee6c34f3bd91816b9af0d05bee8c5a904401d2' -> '51d72a0e059958dd33b2912e14c628aad6c2a9c02f1af8f070b7d3dcd33cf014'
+      24  $.acceptance.batches[*].rule
+          e.g. 'I accept both exact items in the corrected Monsters packet and approve their reference res' -> 'SIMULATION ONLY: release-order replacement candidate, mechanical rebind of accepted batch '
+   10493  $.acceptance.records[*].accepted_at
+          e.g. '2026-09-28T09:39:56Z' -> '2026-10-06T00:00:00Z'
+    7771  $.acceptance.records[*].batch_id
+          e.g. 'class-option-catalogues' -> 'animals'
+   10493  $.acceptance.records[*].reviewer
+          e.g. 'Ravenlok (Owner)' -> 'SIMULATION - not an Owner approval'
+   10418  $.acceptance.records[*].span_id
+          e.g. '00ec801f-521d-53f0-8584-94478aade58e' -> '0021cc9b-18c0-5691-88e1-fb5a95850a56'
+    1486  $.acceptance.reference_resolution_records[*].authorization_reference
+          e.g. 'Owner decision on issue-5d-reference-alternatives-review.md (SHA-256 0a2ca621ec8ad36a2ca29' -> 'SIMULATION ONLY: release-order replacement candidate, mechanical rebind of resolution step'
+    1486  $.acceptance.reference_resolution_records[*].authorized_by
+          e.g. 'Ravenlok (Owner)' -> 'SIMULATION - not an Owner approval'
+    1486  $.acceptance.reference_resolution_records[*].resolved_at
+          e.g. '2026-10-01T19:01:31Z' -> '2026-10-06T00:00:00Z'
+    1486  $.acceptance.reference_resolution_records[*].reviewer
+          e.g. 'Ravenlok (Owner)' -> 'SIMULATION - not an Owner approval'
+    1476  $.acceptance.review_unit_records[*].accepted_at
+          e.g. '2026-09-28T09:39:56Z' -> '2026-10-06T00:00:00Z'
+    1260  $.acceptance.review_unit_records[*].batch_id
+          e.g. 'class-option-catalogues' -> 'animals'
+    1476  $.acceptance.review_unit_records[*].reviewer
+          e.g. 'Ravenlok (Owner)' -> 'SIMULATION - not an Owner approval'
+    1463  $.acceptance.review_unit_records[*].unit_id
+          e.g. 'class-option-catalogues/agonizing_blast' -> 'animals/allosaurus'
+      24  $.acceptance.schema_anchors[*].proposal_identity
+          e.g. 'b6447a9348cd4be1f7072b80dbdbc5b9e8b876b4db4553101e095455f436e4cd' -> 'cb758b9991e8a7ad859091d8d418f2204dd3a8f0eb9bc7c15fb28cf09c2b37fb'
+    9667  $.representation.prose_bindings[*].chunk_id
+          e.g. '00693099-14e5-5d11-a0ab-fb0e938bc96d' -> 'cf2ed049-3fea-50eb-8831-af822d9295fb'
+   10716  $.representation.prose_bindings[*].component_key
+          e.g. 'traits' -> 'pegasus'
+     859  $.representation.prose_bindings[*].irreducibility_reason_code
+          e.g. 'None' -> 'gamemaster_latitude'
+     844  $.representation.prose_bindings[*].prose_retention_reason_code
+          e.g. 'no_identified_structured_use' -> '<absent>'
+   13841  $.representation.prose_bindings[*].record_key
+          e.g. 'animals.swarm_of_bats' -> 'monsters.pegasus'
+    9667  $.representation.prose_bindings[*].span_id
+          e.g. '0858b44a-19e5-56d2-ab22-990712c590f5' -> 'cf11ef6f-83ed-5f18-a38e-16cfa6990c72'
+     292  $.representation.provenance[*].target_key[*]
+          e.g. '4e6dcd5d-4f95-50b1-9869-acc84a29c85b' -> 'Melee'
+      78  $.representation.provenance[*].target_kind
+          e.g. 'prose_binding' -> 'reference'
+report .claude\_sp\release-order-candidate\candidate\oracle-delta.json 8884f75161d6fccc227092581a40967d81ce6dfe6576d0e149d1e9b598d1ab53
+end 2026-10-07T03:17:13.351950+00:00 exit 0

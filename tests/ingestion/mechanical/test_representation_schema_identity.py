@@ -55,6 +55,7 @@ from afterworlds.ingestion.mechanical.projection import (
     validate_schema_binding,
 )
 from afterworlds.ingestion.mechanical.representation import (
+    RECORD_OWNED_REFERENCE,
     REPRESENTATION_SCHEMA_VERSION,
     AbilityCheckFact,
     AbilityScore,
@@ -66,6 +67,8 @@ from afterworlds.ingestion.mechanical.representation import (
     FactFamily,
     RecordDraft,
     RecordKind,
+    ReferenceDraft,
+    ReferenceSituation,
     RepresentationDraft,
     RollActor,
     RollContext,
@@ -81,10 +84,12 @@ from afterworlds.ingestion.mechanical.validation import validate_representation
 from afterworlds.persistence.orm.mechanical import MechanicalProjectionORM
 from tests.ingestion.mechanical.conftest import (
     BOUNDED_ORACLE_PATH,
+    CREATURE_KEY,
     NOW,
     RELEASE_BINDING,
     SCHEMA_HASH,
     SCHEMA_VERSION,
+    SPELL_KEY,
     bound_corpus,
     build_ledger,
     build_representation,
@@ -546,6 +551,7 @@ def test_the_schema_payload_describes_the_serialized_contract() -> None:
         "provenance[].role",
         "provenance[].target_kind",
         "records[].kind",
+        "references[].situation",
         "relationships[].kind",
     }
 
@@ -579,7 +585,16 @@ def test_the_schema_hash_is_a_declared_contract_not_a_file_digest() -> None:
 #: Restamped at schema 15, where the version moves with it: the union gained
 #: ``ProficiencyBonusUseFact`` and the vocabulary minted with it, which is a
 #: change to the contract itself and not to how it is rendered.
-EXPECTED_SCHEMA_HASH = "e87e0bacdc476b0bef092a04cbedd933e0b57b128651b08ef0ffbd0c94d186fd"  # noqa: E501  # pragma: allowlist secret
+#:
+#: Restamped at schema 16 the same way: ``RelationshipKind`` gained
+#: ``catalogue_member`` (Owner Decision 2026-09-23), a contract change.
+#:
+#: Restamped at schema 17 the same way: ``ReferenceDraft`` gained a destination
+#: component and one labelled alternative's conditions, with the
+#: ``ReferenceSituation`` vocabulary (Owner Decisions 2026-10-01).
+EXPECTED_SCHEMA_HASH = (
+    "4881e51fb2fa73e52f7ff951ad7d00b863188c1a22133fb0e2873c7d32d10ada"  # noqa: E501
+)
 
 
 def test_the_committed_union_still_hashes_to_its_recorded_value() -> None:
@@ -1019,8 +1034,26 @@ def test_every_declared_draft_path_resolves_in_a_real_payload() -> None:
     a moved key would otherwise leave the descriptor naming a path nothing
     emits, silently. Each collection must be non-empty and every element must
     carry the key, or the resolution would pass by describing nothing.
+
+    The shared draft cites nothing, so the reference path is proved on one
+    labelled alternative: ``situation`` is omitted when unset, and a reference
+    without one would describe nothing here.
     """
-    payload = representation_payload(build_representation())
+    payload = representation_payload(
+        build_representation(
+            references=(
+                ReferenceDraft(
+                    SPELL_KEY,
+                    RECORD_OWNED_REFERENCE,
+                    "creature",
+                    "scope",
+                    CREATURE_KEY,
+                    alternative_label="initial",
+                    situation=ReferenceSituation.INITIAL_CHARACTER,
+                ),
+            )
+        )
+    )
     for entry in _draft_vocabularies():
         collection, _, key = entry["path"].partition("[].")
         items = cast("list[dict[str, Any]]", payload[collection])

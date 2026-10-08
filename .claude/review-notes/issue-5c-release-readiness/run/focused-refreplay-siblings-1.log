@@ -1,0 +1,13 @@
+start 2026-10-07T09:22:22.404921+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe scripts/run_focused_tests.py --check tests/ingestion/mechanical/test_gameplay_toolbox_proposal.py --check tests/ingestion/mechanical/test_spell_descriptions_proposal.py --check tests/ingestion/mechanical/test_monsters_proposal.py tests/ingestion/mechanical/test_gameplay_toolbox_proposal.py::test_accepted_then_resolved_in_memory_preserves_everything tests/ingestion/mechanical/test_spell_descriptions_proposal.py::test_accepted_then_resolved_in_memory_preserves_everything tests/ingestion/mechanical/test_monsters_proposal.py::test_accepted_then_resolved_in_memory_preserves_everything tests/ingestion/mechanical/test_monsters_proposal.py::test_the_committed_oracle_records_the_owner_acceptance
+input ef6969b5f09e59ebd4001aad2137ade7ca74509d4075753de73336d7595050e9  scripts/run_focused_tests.py
+input 8f013647b6c8f417fb3517d66c434c3a8da7d356e749294c67582505e5590af4  tests/ingestion/mechanical/test_gameplay_toolbox_proposal.py
+input 1cd0f401ae2226d19d3df0ca615154b1ee064001cc5b77ecf4907489397487f7  tests/ingestion/mechanical/test_spell_descriptions_proposal.py
+input ce5e5824417efa2d3898df0ace4d4d0973d9e965cc1bee7f1a21767e992cc1e3  tests/ingestion/mechanical/test_monsters_proposal.py
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+All done! ✨ 🍰 ✨
+3 files would be left unchanged.
+....                                                                     [100%]
+4 passed in 166.52s (0:02:46)
+Focused diagnostics PASSED (exit 0). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+end 2026-10-07T09:25:11.607547+00:00 exit 0

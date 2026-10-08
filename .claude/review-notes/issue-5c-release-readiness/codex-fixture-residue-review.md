@@ -1,0 +1,33 @@
+# Codex fixture residue review — 7 October 2026
+
+These are concrete same-family test-evidence corrections, not new semantic or ownership decisions. Readiness-family review already samples the three-way current source / historical replay / current reader boundary. Do not edit a file participating in an active run: finish that run and preserve its captured input/result, then make the correction and use a small affected diagnostic or the final settled-tree full gate.
+
+## P2 — Origins reference replay still depends on an empty old-package corpus
+
+`tests/ingestion/mechanical/test_character_origins_feats_acceptance.py` lines 379–381 loads `corpus` from the current `source_release_db` session using `_binding = PROPOSAL.binding` (the historical release). `test_three_citations_resolve_and_91_findings_stay` lines 417–439 validates historical candidates against that snapshot and filters away everything except reference findings. Its actual focused run passed 10 tests; the concern is the misleading cross-release dependency, not an observed test failure. The neighboring obsolete uncovered-leaf check was retired, but this fixture remains.
+
+Preserve the useful 29/94/91 reference finding and three-citation replay assertions. Make them explicitly representation/reference-only through the native validation seam that supplies the same findings, without pretending the current DB holds a historical corpus. `candidate_from_accepted_inputs` already applies effective reference resolutions; `validation.relationship_and_reference_violations` is the native seam used by representation validation. Remove the no-longer-needed corpus fixture/imports if that is sufficient. Keep the separate current catalogue-reader test on the current source session. No historical corpus rebuild is necessary for representation-only reference checks.
+
+## P2 — Gameplay scope disjointness crosses release identities
+
+`tests/ingestion/mechanical/test_gameplay_toolbox_proposal.py` lines 267–286 combines current `rows` and `built.proposal` with `prior.oracle = through('spell-descriptions')`, the historical chain. The leaf disjointness can pass simply because the bindings differ, so it does not prove composition of either coherent state. The selected Gameplay run is currently active on hash beginning `5415a5c6`; wait for its actual exit before changing this file.
+
+Keep current-source scope/heading/leaf membership/uniqueness checks on `built`. Preserve historical proposal-versus-historical prior disjointness using the already existing `recorded` fixture (as Classes/Glossary do), or another explicitly coherent prior. Do not drop the disjointness assertion or label a cross-binding comparison as accepted-state evidence. Recheck the small affected node after formatting, or let the required settled full suite cover it.
+
+## Same-family sibling — Spell Descriptions scope disjointness
+
+The converted `test_spell_descriptions_proposal.py` (reviewed hash beginning `e167bce7`) retains historical replay, resolution legality, the 2036-leaf delta and a coherent current reader fixture, but `test_scope_is_the_section_s_2036_leaves` lines 263–284 still compares current `built`/ledger with historical `prior` at lines 280–284. Apply the same binding-consistent disjointness correction as Gameplay after any active Spell Descriptions run exits.
+
+**Recurrence gate:** the same current-source/historical-prior disjointness pattern now appears in Gameplay and Spell Descriptions. Audit this specific pattern in the remaining converted family before declaring the increment finished, rather than another narrow patch/re-review loop. Classes/Glossary provide representative already-correct splits. Record the sampled structures and dispositions briefly; this is issue-scoped test correction, not a broader source/semantic audit or Known Unknown. Stop once this family's coherent remedy is established.
+
+**Useful reference replay coverage:** the Gameplay/Spell Descriptions conversions remove historical composition's exact post-resolution reference findings (Gameplay's 166 unresolved pointers; Spell Descriptions' 143 remaining pointers and class-edge closure). Keep the useful representation/reference assertions through the same native source-independent validation seam used for Origins, with coherent historical effective representations. `reference_resolution_violations == []` checks legality of the supplied resolutions but alone does not establish the expected remainder of the reference graph. Retire historical corpus-dependent publication/leaf-count expectations where obsolete; preserve the still-useful reference replay without inventing a historical corpus or rerunning old native release construction.
+
+Magic Items' inspected conversion has the same reference-replay removal: the drafted Carpet of Flying closure and exact 315 unresolved remainder were discarded with the historical-corpus helper. Include this in the same bounded reference-replay retention map after its active pilot exits. Source-independent reference checks can preserve these useful assertions on the recorded proposal/prior; this does not require restoring obsolete uncovered-leaf counts or rerunning the historical corpus.
+
+The remaining selector-only conversions were still in progress during review and are completion checks, not findings against a claimed finished increment. Inspect their final deltas before final gates. Accepted artifact bytes, current native persistence/readers and historical approvals remain unchanged by these test corrections.
+
+## P2 — Animals current-reader expectation still pins the old chapter order
+
+The Animals conversion correctly persists `current()` and uses its binding, but `_read` (around lines 859–869) and the module docstring still state that Animals precedes Monsters. `_read` appends own Animal text before its governing Monster rules. That contradicts the accepted release-order candidate: `issue-5c-release-order-candidate.md` and `reports/reader-proof2.json` already prove that the three sampled current Animal mixed components read the governing Monster rules first and Animal text last, with all other content unchanged. Reuse that evidence; no new whole native ordering proof is needed.
+
+After the active Animals run exits, correct the independent expected-text order and stale description to the current source order, retaining exact text, within-file/per-component order, single-read/deduplication and disable/override negative checks. Do not derive expectations from the returned service result or weaken equality to a set. Keep the separate historical replay checks on their old binding. This is the same current/historical fixture family, not a new source-order policy or accepted payload change.

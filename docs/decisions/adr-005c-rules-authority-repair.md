@@ -1,5 +1,26 @@
 # ADR-005c: Rules Authority Repair
 
+> **Amended in part by the [2026-09-21 Owner Decision: clean source and fresh 5c/5d
+> construction](owner-decision-2026-09-21-5c-5d-clean-restart.md).** The existing 5c
+> corpus release and 5d accepted authority products are quarantined and are no longer
+> available as active authority. Requirements that prescribe PDF-geometric atoms as the
+> canonical interface between the source corpus and its consumers, or that require
+> downstream reconstruction of PDF page layout, are amended: the canonical
+> machine-readable representation is a corrected, pinned Markdown source verified
+> against the official PDF, which remains the ultimate source authority and is not
+> replaced as such. The Completion Contract A proof architecture is not to be reproduced
+> for the fresh corpus, and the quarantined corpus release need not be preserved in its
+> existing format for historical compatibility.
+>
+> What remains binding: exact source identification, complete and faithful
+> representation, source/interpretation separation, stable immutable releases,
+> meaningful-change versioning, accidental-corruption and stale-reuse detection,
+> fail-closed publication, rebuildability and diagnosability, campaign version
+> stability, deliberate house-rule precedence, and the code-owned
+> deterministic/trust-relevant responsibilities of `CLAUDE.md` invariants 8 and 10. The
+> Owner Decision changes *which products* hold authority and *which machine-readable
+> representation* is canonical; it does not relax any operational outcome.
+
 **Issue:** Cross-issue architecture defect — discovered during investigation of the Rules Package,
 SRD 5.2.1 ingestion, the bounded d20 adapter, and frozen PR #129 (CRD Issue 15b Phase 2). Not scoped to
 a single CRD issue; this ADR establishes the repair order for CRD Issues 5c, 5d, 2b, and 15c below.

@@ -1,0 +1,26 @@
+start 2026-10-07T05:56:49.153724+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe -m mypy --strict tests/ingestion/mechanical/test_accepted_inputs.py tests/ingestion/mechanical/test_committed_accepted_authority.py tests/ingestion/mechanical/test_oracle.py tests/ingestion/mechanical/test_source_release_readiness.py
+input 616213db9dfb8dd70ddd9fda16358fbccab3879e19552100e04d97629db27a37  tests/ingestion/mechanical/test_accepted_inputs.py
+input 905fc3c6ca750e44010b78054d1b6400a643513d56c8ebe4e3e8d95bdac6a89c  tests/ingestion/mechanical/test_committed_accepted_authority.py
+input 22958826c5e0c7f68b69af33d303af47cf15702885f00242fe6b25042629e823  tests/ingestion/mechanical/test_oracle.py
+input a6b9b4d8b485ec9dd7ed36d0871d7257001d8948d22cf89bc13cd9a3f63a8d91  tests/ingestion/mechanical/test_source_release_readiness.py
+tests\ingestion\mechanical\conftest.py:764: error: Argument "representation" to "ProjectionCandidate" has incompatible type "object"; expected "RepresentationDraft"  [arg-type]
+tests\ingestion\mechanical\conftest.py:1010: error: The return type of a generator function should be "Generator" or one of its supertypes  [misc]
+tests\ingestion\mechanical\conftest.py:1010: note: Error code "misc" not covered by "type: ignore" comment
+tests\ingestion\mechanical\conftest.py:763: error: Unused "type: ignore" comment  [unused-ignore]
+tests\ingestion\mechanical\test_oracle.py:38: error: Returning Any from function declared to return "dict[str, object]"  [no-any-return]
+tests\ingestion\mechanical\test_oracle.py:184: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\mechanical\test_oracle.py:185: error: Unused "type: ignore" comment  [unused-ignore]
+tests\ingestion\mechanical\test_oracle.py:210: error: Value of type "object" is not indexable  [index]
+tests\ingestion\mechanical\test_oracle.py:397: error: Unused "type: ignore" comment  [unused-ignore]
+tests\ingestion\mechanical\test_oracle.py:507: error: Value of type "object" is not indexable  [index]
+tests\ingestion\mechanical\test_oracle.py:516: error: "object" has no attribute "reverse"  [attr-defined]
+tests\ingestion\mechanical\test_oracle.py:517: error: Value of type "object" is not indexable  [index]
+tests\ingestion\mechanical\test_oracle.py:518: error: "object" has no attribute "reverse"  [attr-defined]
+tests\ingestion\mechanical\test_accepted_inputs.py:909: error: Unsupported right operand type for in ("object")  [operator]
+tests\ingestion\mechanical\test_accepted_inputs.py:1229: error: Unused "type: ignore" comment  [unused-ignore]
+tests\ingestion\mechanical\test_accepted_inputs.py:1230: error: Unused "type: ignore[index, union-attr]" comment  [unused-ignore]
+tests\ingestion\mechanical\test_accepted_inputs.py:1230: error: "object" has no attribute "__iter__"; maybe "__dir__" or "__str__"? (not iterable)  [attr-defined]
+tests\ingestion\mechanical\test_accepted_inputs.py:1230: note: Error code "attr-defined" not covered by "type: ignore" comment
+Found 16 errors in 3 files (checked 4 source files)
+end 2026-10-07T05:56:51.626312+00:00 exit 1

@@ -1,0 +1,5 @@
+start 2026-10-07T03:28:29.120950+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe -m mypy --strict src/afterworlds/ingestion/corpus/source_units.py
+input 4240742cf5decdaa998566274855c06b55f9dd3888daa35c548d586d56df3be7  src/afterworlds/ingestion/corpus/source_units.py
+Success: no issues found in 1 source file
+end 2026-10-07T03:28:29.679749+00:00 exit 0

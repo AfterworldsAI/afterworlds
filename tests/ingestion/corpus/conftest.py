@@ -8,11 +8,12 @@ lifecycle rather than an in-memory approximation. Adversarial gate/findings
 tests use small synthetic ledgers built by :func:`synthetic_release` and run
 fast.
 
-``full_candidate``, ``full_release``, and ``finalize_in_fresh_db`` live in the
-parent ``tests/ingestion/conftest.py``: the CRD Issue 5d production-corpus
-control needs the same real release, and one session-scoped definition means
-one build rather than two. They are re-exported here so this suite's modules
-keep importing them from ``.conftest``.
+``full_candidate``, ``full_release``, ``source_candidate`` and
+``finalize_in_fresh_db`` live in the parent ``tests/ingestion/conftest.py``:
+the CRD Issue 5d production-corpus control and shared-tool readiness proof need
+the same real releases, and one session-scoped definition means one build
+rather than two. They are re-exported here so this suite's modules keep
+importing them from ``.conftest``.
 """
 
 from __future__ import annotations
@@ -45,7 +46,10 @@ from afterworlds.ingestion.corpus.pdf_source import (
     ExtractedPage,
     extraction_config,
 )
-from afterworlds.ingestion.corpus.pipeline import CandidateRelease, ReleaseArtifacts
+from afterworlds.ingestion.corpus.pipeline import (
+    CandidateRelease,
+    ReleaseArtifacts,
+)
 from afterworlds.ingestion.corpus.policy import FROZEN_POLICY, policy_hash
 from afterworlds.ingestion.corpus.reconcile import reconcile
 from afterworlds.ingestion.corpus.transform import build_corpus
@@ -59,6 +63,7 @@ from tests.ingestion.conftest import (  # noqa: F401  (re-exported for this suit
     NOW,
     PDF_PATH,
     finalize_in_fresh_db,
+    source_candidate,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[3]

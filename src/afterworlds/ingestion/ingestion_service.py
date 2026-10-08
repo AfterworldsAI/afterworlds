@@ -47,6 +47,7 @@ from afterworlds.persistence.orm.rules_package import (
     RulesPackageManifestORM,
     RulesPackageORM,
 )
+from afterworlds.quarantine import refuse_quarantined
 
 # ---------------------------------------------------------------------------
 # Result types
@@ -166,6 +167,17 @@ class IngestionService:
         IngestionResult
             Counts and package/source IDs.
         """
+        # Recorded Owner Decision 2026-09-21 clean restart: this generic service
+        # is a second way into the same authority, so it consults the quarantine
+        # before the parse and therefore before any write. The configured version
+        # is checked because _upsert_package keys the row on
+        # (package_name, package_version, system) — the version is what would
+        # locate or recreate the quarantined release here.
+        refuse_quarantined(
+            "generic package ingestion",
+            release_version=self._config.package_version,
+        )
+
         # 0. Parse everything first — no DB writes yet.
         # If either raises ParseError, the session is untouched and the caller
         # sees a clean failure with no partial package/source/chunk state.
@@ -176,6 +188,11 @@ class IngestionService:
 
         # 1. Upsert package row
         package_id = self._upsert_package(session, now)
+        # The row that logical key resolved to is checked as well: a quarantined
+        # package already present under a different version would otherwise be
+        # written into from here. Nothing is committed until step 7, so raising
+        # leaves the caller's transaction to roll back with no rows persisted.
+        refuse_quarantined("generic package ingestion", package_uuid=package_id)
 
         # 2. Upsert source row
         source_id = self._upsert_source(session, package_id, now)
@@ -268,7 +285,15 @@ class IngestionService:
         ------
         PublicationError
             If any gate check fails.
+        QuarantinedAuthorityError
+            If the package, or the release version its row carries, is
+            quarantined by the Recorded Owner Decision 2026-09-21 clean restart.
+            Publication is the transition that turns a draft row into authority,
+            so it is refused here rather than left to the corpus finalizer: this
+            service publishes the same rows without going through it.
         """
+        refuse_quarantined("generic package publication", package_uuid=package_id)
+
         # Gate 1: package exists and is enabled.
         # Publishing a disabled package would create contradictory lifecycle
         # state: the package would be marked published but excluded from all
@@ -286,6 +311,11 @@ class IngestionService:
             raise PublicationError(
                 f"Package {package_id!r} is disabled — cannot publish."
             )
+        # The stored version, now that the row is in hand: a quarantined release
+        # recorded under a fresh package UUID is the same retired authority.
+        refuse_quarantined(
+            "generic package publication", release_version=pkg_row.version
+        )
 
         # Gate 2: manifest exists
         manifest_row = session.execute(

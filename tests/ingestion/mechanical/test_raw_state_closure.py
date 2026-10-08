@@ -17,6 +17,7 @@ from collections.abc import Iterator
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import set_attribute
 
 from afterworlds.ingestion.mechanical.persistence import (
     compute_persisted_state_digest,
@@ -388,7 +389,8 @@ def test_malformed_provenance_target_key_is_rejected(session: Session) -> None:
     identified = _persist(session)
     row = session.execute(select(MechanicalProvenanceORM)).scalars().first()
     assert row is not None
-    row.target_key = {"record": "spell:wish"}  # a dict, not a list of strings
+    # a dict, not a list of strings
+    set_attribute(row, "target_key", {"record": "spell:wish"})
     session.flush()
     _assert_rejected(session, identified, "not a list of strings")
 
@@ -397,7 +399,7 @@ def test_target_key_with_non_string_members_is_rejected(session: Session) -> Non
     identified = _persist(session)
     row = session.execute(select(MechanicalProvenanceORM)).scalars().first()
     assert row is not None
-    row.target_key = ["spell:wish", 7]
+    set_attribute(row, "target_key", ["spell:wish", 7])
     session.flush()
     _assert_rejected(session, identified, "not a list of strings")
 
@@ -446,7 +448,7 @@ def test_invalid_persisted_enum_is_reported_not_raised(
     session: Session, label: str, model: type, field: str, table: str
 ) -> None:
     identified = _persist_batch(session)
-    row = session.execute(select(model)).scalars().first()  # type: ignore[arg-type]
+    row = session.execute(select(model)).scalars().first()
     assert row is not None, label
     setattr(row, field, "corrupt")
     session.flush()
@@ -544,7 +546,7 @@ def test_every_scoped_table_is_loaded_into_the_raw_state(session: Session) -> No
 
     raw = load_raw_state(session, identified.projection_uuid, header)
     loaded = {
-        type(row).__tablename__  # type: ignore[attr-defined]
+        type(row).__tablename__
         for field in RawProjectionState.__dataclass_fields__
         if field not in {"projection_uuid", "header"}
         for row in getattr(raw, field)
@@ -623,7 +625,8 @@ def test_malformed_review_unit_leaf_ids_are_rejected(session: Session) -> None:
     identified = _persist_reviewed(session)
     row = session.execute(select(MechanicalReviewUnitORM)).scalars().first()
     assert row is not None
-    row.leaf_ids = {"leaf": "leaf-spell"}  # a dict, not a list of strings
+    # a dict, not a list of strings
+    set_attribute(row, "leaf_ids", {"leaf": "leaf-spell"})
     session.flush()
     _assert_rejected(session, identified, "not a list of strings")
 
@@ -634,7 +637,7 @@ def test_review_unit_leaf_ids_with_non_string_members_are_rejected(
     identified = _persist_reviewed(session)
     row = session.execute(select(MechanicalReviewUnitORM)).scalars().first()
     assert row is not None
-    row.leaf_ids = ["leaf-spell", 7]
+    set_attribute(row, "leaf_ids", ["leaf-spell", 7])
     session.flush()
     _assert_rejected(session, identified, "not a list of strings")
 
@@ -643,7 +646,7 @@ def test_malformed_expectation_source_spans_are_rejected(session: Session) -> No
     identified = _persist_reviewed(session)
     row = session.execute(select(MechanicalReviewExpectationORM)).scalars().first()
     assert row is not None
-    row.source_span_ids = [["nested"]]
+    set_attribute(row, "source_span_ids", [["nested"]])
     session.flush()
     _assert_rejected(session, identified, "not a list of strings")
 
@@ -652,7 +655,7 @@ def test_malformed_group_leaf_ids_are_rejected(session: Session) -> None:
     identified = _persist_reviewed(session)
     row = session.execute(select(MechanicalReviewGroupORM)).scalars().first()
     assert row is not None
-    row.leaf_ids = {"leaf": "leaf-spell"}
+    set_attribute(row, "leaf_ids", {"leaf": "leaf-spell"})
     session.flush()
     _assert_rejected(session, identified, "not a list of strings")
 

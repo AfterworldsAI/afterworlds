@@ -1,0 +1,5 @@
+start 2026-10-07T08:01:02.304328+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/_sp/release-readiness-20261007/codex_selector_probe.py
+input 21113783b1a26add28b2b5767d32cab10cd220c634d7d50c3438c7500b3bcc4d  .claude/_sp/release-readiness-20261007/codex_selector_probe.py
+{"retired_binding_refused": false, "retired_inputs_returned": true}
+end 2026-10-07T08:01:16.884425+00:00 exit 1

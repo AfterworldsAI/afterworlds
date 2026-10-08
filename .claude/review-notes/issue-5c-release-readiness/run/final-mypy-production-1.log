@@ -1,0 +1,4 @@
+start 2026-10-07T09:43:04.500777+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe -m mypy src/
+Success: no issues found in 235 source files
+end 2026-10-07T09:43:15.865765+00:00 exit 0

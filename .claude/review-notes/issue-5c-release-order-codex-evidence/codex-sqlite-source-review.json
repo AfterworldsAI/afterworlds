@@ -1,0 +1,23 @@
+{
+  "results": [
+    {
+      "source_store": "rel-old",
+      "checked_leaves": 10464,
+      "checked_chunks": 10464,
+      "release_binding_matches_export": true,
+      "all_exported_values_match_actual_sqlite": true,
+      "errors": [],
+      "read_only_connection": true
+    },
+    {
+      "source_store": "rel-new",
+      "checked_leaves": 10464,
+      "checked_chunks": 10464,
+      "release_binding_matches_export": true,
+      "all_exported_values_match_actual_sqlite": true,
+      "errors": [],
+      "read_only_connection": true
+    }
+  ],
+  "all_pass": true
+}

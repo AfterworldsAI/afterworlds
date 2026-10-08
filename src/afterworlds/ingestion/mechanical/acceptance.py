@@ -120,6 +120,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SchemaLiftError,
     SchemaLiftRecord,
     carried_anchors,
+    lift_accepted_inputs,
     lift_path,
     schema_binding_violations,
     verify_lift_path,
@@ -600,7 +601,10 @@ def accept_proposal(
         # accepted representation states, and a resolution that no longer
         # applies to it must not be carried into the artifact as though it did.
         if inapplicable := reference_resolution_violations(
-            representation, prior.oracle.reference_resolutions, prior.oracle.binding
+            representation,
+            prior.oracle.reference_resolutions,
+            prior.oracle.binding,
+            schema_version=proposal.schema_version,
         ):
             raise AcceptanceError(
                 "this acceptance would extend accepted authority in a way its "
@@ -751,6 +755,7 @@ def resolve_references(
     authorization_reference: str,
     reviewer: str,
     resolved_at: str,
+    lift_to: tuple[str, str] | None = None,
 ) -> AcceptedInputs:
     """Record one explicitly authorized decision over accepted empty targets.
 
@@ -763,22 +768,18 @@ def resolve_references(
     what the build persists and the gate judges, so the effective authority has
     exactly one destination while the history stays reconstructable.
 
-    **Why one action carries several resolutions.** Two components of one record
-    may legitimately cite the same wording in the same scope — each is its own
-    claim with its own provenance, and :mod:`validation` says so. Their
-    destination, though, is shared: ``(scope, source_text)`` resolving to more
-    than one record is the ambiguity publication refuses. So consistent
-    same-scope citations cannot be resolved one at a time — the intermediate
-    artifact would state ``['', destination]`` for one wording, which is exactly
-    the refusal that must not be weakened. They are one reviewed decision and
-    this action records them as one: validated together against the accepted
-    authority, applied whole or not at all. Each resolution keeps its own
-    citation, its own reviewed provenance spans and its own
-    ``ReferenceResolutionAcceptance``; what they share is the authorization this
-    call names. Nothing about a single resolution changes — it is
-    ``resolutions=(one,)`` — and a *genuine* ambiguity, two citations of one
-    wording sent to different records, is still refused whether stated in one
-    action or several.
+    **Why one action carries several resolutions.** One review may decide
+    several citations at once, and this action records that decision as one:
+    validated together against the accepted authority, applied whole or not at
+    all. Each resolution keeps its own citation, its own reviewed provenance
+    spans and its own ``ReferenceResolutionAcceptance``; what they share is the
+    authorization this call names. Nothing about a single resolution changes —
+    it is ``resolutions=(one,)``. A citation is identified by source record,
+    owning component, printed wording and committed scope (the Owner's
+    citation-identity decision under ADR-005d Decision 7), so sibling citations
+    of one wording may be resolved separately or to different records; two
+    decisions about the *same* citation are still refused, in one action or
+    several.
 
     **What it refuses, and why it refuses rather than reports.** A half-recorded
     resolution is worse than none, on the same terms as a half-recorded
@@ -817,6 +818,14 @@ def resolve_references(
 
     ``prior`` is required and has no default. There is no such thing as
     resolving a reference in an artifact that accepted none.
+
+    **``lift_to`` carries the artifact first, in the same action.** A decision
+    that needs meaning the prior's schema cannot state — routes are schema 17 —
+    names the schema to reach. The prior is lifted through every registered
+    step exactly as ``accept_proposal`` lifts it, each crossing appended to
+    ``lifts``, and the resolutions are then judged under the lifted schema. The
+    two halves are one action: any refusal of either leaves the caller holding
+    exactly the artifact it passed. Omitted, the action is unchanged.
     """
     authorization = (
         ("authorizing authority", "authorized_by", authorized_by),
@@ -860,6 +869,16 @@ def resolve_references(
             + "; ".join(malformed)
         )
 
+    if lift_to is not None:
+        try:
+            lifted, lift_records = lift_accepted_inputs(prior, lift_to)
+        except (SchemaLiftError, LegacySchemaPayloadError) as exc:
+            raise AcceptanceError(
+                "this resolution action names a schema the prior accepted "
+                f"authority cannot be lifted to: {exc}"
+            ) from exc
+        prior = replace(lifted, lifts=tuple(lifted.lifts) + lift_records)
+
     if not resolutions:
         raise AcceptanceError(
             "a reference resolution action must state at least one resolution; "
@@ -881,6 +900,7 @@ def resolve_references(
         prior.oracle.representation,
         prior.oracle.reference_resolutions + resolutions,
         prior.oracle.binding,
+        schema_version=prior.oracle.schema_version,
     ):
         raise AcceptanceError(
             "this resolution does not apply to the accepted authority it would "

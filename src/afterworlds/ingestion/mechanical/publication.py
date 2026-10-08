@@ -79,6 +79,7 @@ from afterworlds.persistence.orm.mechanical import (
     MechanicalActiveProjectionORM,
     MechanicalProjectionORM,
 )
+from afterworlds.quarantine import refuse_quarantined
 
 __all__ = [
     "ActiveProjection",
@@ -338,6 +339,9 @@ def resolve_active_projection(session: Session, package_uuid: str) -> ActiveProj
     binding on read is CRD Issue 5d PR 3's; this stays a read-only assertion
     about what the database records.
     """
+    refuse_quarantined(
+        "publication active-projection resolution", package_uuid=package_uuid
+    )
     row = _active_row(session, package_uuid)
     if row is None:
         return ActiveProjection(
@@ -383,6 +387,7 @@ def _activate_projection(
 
     Flushes rather than commits; :func:`_publish_projection` owns the commit.
     """
+    refuse_quarantined("projection activation", projection_uuid=projection_uuid)
     header = _header(session, projection_uuid)
     if header is None:
         return PublicationResult(PublicationOutcome.ABSENT, projection_uuid)
@@ -609,20 +614,22 @@ def publish_from_committed_oracle(
     Re-publication and re-activation enter here too, and re-run the complete
     proof. There is no cheaper door.
 
-    Accepted authority *is* committed for the production SRD 5.2.1 release, but
-    it covers CRD Issue 5d batches ``conditions-1``, ``hazards-1``,
-    ``actions-1``, ``attitudes-1``, ``areas-of-effect-1``, ``cover-1`` and
-    ``speed-1`` only — 48 records over 594 spans — so this path currently returns
-    ``INCOMPLETE`` for the production projection: the oracle resolves, and the
-    gate then finds persisted records it does not accept. That is the honest
-    state — the refusal is about coverage, not about absence — and until the
-    remaining batches are reviewed and accepted, nothing over that release can
-    be published.
+    Accepted authority *is* committed for the current production SRD 5.2.1
+    release: the Owner's recorded chain. What it accepts, and what this path
+    returns for a projection over that release, is the gate's to decide and the
+    tests' to pin (``tests/ingestion/mechanical/test_source_release_readiness.py``
+    among them), not this docstring's to restate.
     ``ABSENT`` still answers the different question of a release no committed
     artifact judges at all.
     """
+    refuse_quarantined("publication entry", projection_uuid=projection_uuid)
     header = _header(session, projection_uuid)
     if header is None:
         return PublicationResult(PublicationOutcome.ABSENT, projection_uuid)
+    refuse_quarantined(
+        "publication entry",
+        package_uuid=header.package_uuid,
+        release_version=header.release_version,
+    )
     oracle = committed_oracle_for(header.package_uuid, header.release_version)
     return _publish_projection(session, projection_uuid, oracle, now=now)

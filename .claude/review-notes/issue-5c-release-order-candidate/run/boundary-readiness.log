@@ -1,0 +1,26 @@
+start 2026-10-07T03:19:45.018980+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe scripts/run_focused_tests.py --check src/afterworlds/ingestion/corpus/source_units.py tests/ingestion/mechanical/test_source_release_readiness.py
+input ef6969b5f09e59ebd4001aad2137ade7ca74509d4075753de73336d7595050e9  scripts/run_focused_tests.py
+input 4240742cf5decdaa998566274855c06b55f9dd3888daa35c548d586d56df3be7  src/afterworlds/ingestion/corpus/source_units.py
+input 509cb13d43846ac37d4d6b5a224914508832a8c1fadd4ae9f58eb09fa859be3e  tests/ingestion/mechanical/test_source_release_readiness.py
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+All done! ✨ 🍰 ✨
+2 files would be left unchanged.
+......FF.......                                                          [100%]
+================================== FAILURES ===================================
+_______ test_the_replacement_release_has_only_the_two_pilot_authorities _______
+tests\ingestion\mechanical\test_source_release_readiness.py:395: in test_the_replacement_release_has_only_the_two_pilot_authorities
+    assert inputs is not None
+E   assert None is not None
+__________ test_publishing_an_unreviewed_projection_is_typed_refused __________
+tests\ingestion\mechanical\test_source_release_readiness.py:423: in test_publishing_an_unreviewed_projection_is_typed_refused
+    assert result.outcome is PublicationOutcome.UNRESOLVED
+E   AssertionError: assert <PublicationOutcome.ABSENT: 'absent'> is <PublicationOutcome.UNRESOLVED: 'unresolved'>
+E    +  where <PublicationOutcome.ABSENT: 'absent'> = PublicationResult(outcome=<PublicationOutcome.ABSENT: 'absent'>, projection_uuid='026bbd46-9836-56c5-b9bc-26244efe80a9', gate=None, report=None, evidence_report_hash=None).outcome
+E    +  and   <PublicationOutcome.UNRESOLVED: 'unresolved'> = PublicationOutcome.UNRESOLVED
+=========================== short test summary info ===========================
+FAILED tests/ingestion/mechanical/test_source_release_readiness.py::test_the_replacement_release_has_only_the_two_pilot_authorities
+FAILED tests/ingestion/mechanical/test_source_release_readiness.py::test_publishing_an_unreviewed_projection_is_typed_refused
+2 failed, 13 passed in 114.00s (0:01:54)
+Focused diagnostics FAILED (exit 1). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+end 2026-10-07T03:21:41.410107+00:00 exit 1

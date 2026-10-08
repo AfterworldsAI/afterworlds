@@ -1,0 +1,101 @@
+{
+  "source_candidate_sha256": "8a6a9a9c305f41207190c0deb55875a027019116ce3f825a6a0425a3a115b4bf",
+  "batches": [
+    {
+      "batch_id": "actions-pilot",
+      "proposal_identity": "51d72a0e059958dd33b2912e14c628aad6c2a9c02f1af8f070b7d3dcd33cf014"
+    },
+    {
+      "batch_id": "animals",
+      "proposal_identity": "9241c2b876b8cee294948463d6fde415b0741e32b91fbb4301dc50e8d75f8e69"
+    },
+    {
+      "batch_id": "character-creation-catalogue",
+      "proposal_identity": "d4c62a9c6a84ec60f5a483080c5c984f4175a9ec3cc1a4eb920acbe138fec323"
+    },
+    {
+      "batch_id": "character-creation-foundations",
+      "proposal_identity": "0d7648019d7d51d72fc50ea7a98709bd81561e8d68a4297dfeadf44358e5c2c9"
+    },
+    {
+      "batch_id": "character-origins-feats",
+      "proposal_identity": "6120f64771725581d478b9bdcd29a13588ee3dd9f9776c42d2628c2ad6bf3702"
+    },
+    {
+      "batch_id": "checks-actions-rests",
+      "proposal_identity": "d96c50a32e269ae17bac1b312b643ba468ed2065e89fcfef7030ce59a55a113a"
+    },
+    {
+      "batch_id": "class-option-catalogues",
+      "proposal_identity": "6d11f46a95c5a03d519be29ccaea43895ede4930d678116c7b0615e9a24236c2"
+    },
+    {
+      "batch_id": "classes",
+      "proposal_identity": "ab357393ce9c3d3bcbc06e7f18ff9c6cadb13c852fdb8dce09fb0ec43737df54"
+    },
+    {
+      "batch_id": "combat-damage-breaking",
+      "proposal_identity": "b11159c1f9663a28b64e1351f7c1a954cb42de2fd1e79e8818bff965f942df51"
+    },
+    {
+      "batch_id": "combat-turn-1",
+      "proposal_identity": "252dd80fe05787a50381f8c0740e0bfbadcbf8e3799acffc722b1200190336c8"
+    },
+    {
+      "batch_id": "conditions-pilot",
+      "proposal_identity": "cb758b9991e8a7ad859091d8d418f2204dd3a8f0eb9bc7c15fb28cf09c2b37fb"
+    },
+    {
+      "batch_id": "core-play-completion",
+      "proposal_identity": "96afa186fb7be74d70bd6864327efc7ad7f91ecd97dc02a7b376382233615bd2"
+    },
+    {
+      "batch_id": "core-play-dependencies",
+      "proposal_identity": "bff0773c8f2bd790265a229eafc31f03f2b920cbef7e792291f3c9750b57b037"
+    },
+    {
+      "batch_id": "damage-and-hit-points",
+      "proposal_identity": "41d03ab49b5c0707c97625b94f0115a274f71cc869c5bb8b26832cd723a0e5f1"
+    },
+    {
+      "batch_id": "equipment",
+      "proposal_identity": "390f63672ea035abb0c8f0ae2efd4cffda81753df8089daee372931b5618d728"
+    },
+    {
+      "batch_id": "framing-coverage",
+      "proposal_identity": "ea611567cce289a74b71a83ba26890ac09e3ba31f3ad8ed2b35a84d816d5cb78"
+    },
+    {
+      "batch_id": "gameplay-toolbox",
+      "proposal_identity": "8a5add7321cd98d1d83f1761aaa91acc6504a7a2e7f1a9bbd0022f10bf81e49a"
+    },
+    {
+      "batch_id": "magic-items",
+      "proposal_identity": "54a402acd35a15887b94f286a30804a87dd32e92e91d2b075bbb2367324eed5a"
+    },
+    {
+      "batch_id": "monsters",
+      "proposal_identity": "bc559c6ec6bd1e84a000c5656682067b24a9cd868d98440ac19ec1e61ed2c48a"
+    },
+    {
+      "batch_id": "movement-closure",
+      "proposal_identity": "ba2bae69724d8948e2195ed5a0fca90132c984bcce47445d5276fb25002f238a"
+    },
+    {
+      "batch_id": "reference-closure",
+      "proposal_identity": "c4a017a7909ae1198844b1117fe45c06b08b5d2ac04ee72f5f1db69be647d000"
+    },
+    {
+      "batch_id": "rules-glossary-completion",
+      "proposal_identity": "38dc2df713e64a8da6a7713f19b4ecb4ce58fbd47303de2c68d2b9195b2db34f"
+    },
+    {
+      "batch_id": "spell-descriptions",
+      "proposal_identity": "93c816fba0698f551123cac5124f161e7b1ef2c7780b8d5bd35ab42dd4205d83"
+    },
+    {
+      "batch_id": "spellcasting",
+      "proposal_identity": "4783913aeda24baed59b4d5c61487f6cfb64a25563d6203ab8d6ff8c3873fb8e"
+    }
+  ]
+}

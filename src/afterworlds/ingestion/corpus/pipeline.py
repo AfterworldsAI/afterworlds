@@ -45,6 +45,7 @@ from afterworlds.ingestion.corpus.bundle import (
     transform_config_payload,
 )
 from afterworlds.ingestion.corpus.concordance import CanaryResult, ConcordanceResult
+from afterworlds.ingestion.corpus.hashing import hash_obj
 from afterworlds.ingestion.corpus.ledger import build_ledger, ledger_hash
 from afterworlds.ingestion.corpus.models import (
     CanonicalBundle,
@@ -56,6 +57,7 @@ from afterworlds.ingestion.corpus.models import (
     SourceLedger,
 )
 from afterworlds.ingestion.corpus.pdf_source import (
+    PDF_REPO_PATH,
     PDF_SHA256,
     ExtractedPage,
     extract_pages,
@@ -64,6 +66,14 @@ from afterworlds.ingestion.corpus.pdf_source import (
 from afterworlds.ingestion.corpus.policy import FROZEN_POLICY, policy_hash
 from afterworlds.ingestion.corpus.reconcile import reconcile
 from afterworlds.ingestion.corpus.report import EvidenceReport
+from afterworlds.ingestion.corpus.source_citations import CitationReport
+from afterworlds.ingestion.corpus.source_ledger import (
+    build_source_ledger,
+    chunk_locators,
+    load_pinned_sources,
+    source_transform_config_payload,
+    verify_official_pdf,
+)
 from afterworlds.ingestion.corpus.transform import build_corpus
 from afterworlds.models.retrieval import rules_corpus_vector_identity
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
@@ -93,6 +103,17 @@ class CandidateRelease:
     ledger_hash: str
     policy_hash: str
     reconciliation_hash: str
+    # The digest-verified pinned snapshot this candidate was parsed from, for a
+    # release whose transform_config declares source_partition citation
+    # verification. None for a PDF-geometric release, which needs no such input.
+    source_texts: dict[str, str] | None = None
+    # The citation pass's own accounting: how many units anchored on wording
+    # unique to one official page, how many inherited their page from document
+    # order, which resolved to nothing, and which body pages nothing cites. The
+    # build already refuses on an unresolved unit or an uncited body page; this
+    # carries the honest numbers behind that refusal into the evidence report
+    # instead of discarding them. None for a PDF-geometric release.
+    citation_report: CitationReport | None = None
 
 
 def build_candidate(
@@ -160,6 +181,82 @@ def build_candidate(
     )
 
 
+def build_source_candidate(
+    root: Path,
+    *,
+    policy: ReconciliationPolicy = FROZEN_POLICY,
+    retrieval_config: RetrievalMemoryConfig,
+) -> CandidateRelease:
+    """Build a candidate from the qualified snapshot, citing the official PDF.
+
+    The Markdown-native sibling of :func:`build_candidate`, and the only entry
+    that produces a ``source_partition`` release. Same acyclic a0–b order, same
+    refusal to claim persistence; what differs is where structure comes from.
+
+    Both wrong-source refusals run before any parsing: the PDF must hash to the
+    official constant, and every pinned file must hash to the digest the pin
+    manifest records for it. A build therefore cannot quietly proceed from a
+    locally edited snapshot or a substituted document.
+    """
+    # a0 — freeze policy + resolve the vector identity (both committed inputs).
+    p_hash = policy_hash(policy)
+    vector_identity = rules_corpus_vector_identity(retrieval_config.embedding_model_id)
+
+    pdf_path = root / PDF_REPO_PATH
+    verify_official_pdf(pdf_path)
+    sources = load_pinned_sources(root)
+
+    # a1 — parse the pinned source into units and cite each to its official
+    # page(s). Refuses on a file whose units do not tile it, on an uncited unit,
+    # and on a body page nothing cites.
+    pages = extract_pages(pdf_path)
+    ledger, citations, report = build_source_ledger(sources, pages)
+    l_hash = ledger_hash(ledger)
+
+    tconfig = source_transform_config_payload(
+        ledger.extraction_config,
+        policy,
+        vector_identity,
+        primary_pages=tuple(sorted({leaf.printed_page for leaf in ledger.leaves})),
+    )
+    thash = hash_obj(tconfig)
+    package_uuid = derive_package_uuid(PDF_SHA256, thash)
+    release_version = derive_release_version(PDF_SHA256, thash)
+
+    # a2 — canonical corpus members, each carrying the citation its unit
+    # resolved to, so the locator the consumer is served is the locator the
+    # verification re-derives.
+    members = build_corpus(
+        ledger, package_uuid, locators=chunk_locators(ledger, citations)
+    )
+
+    # a3 — reconciliation by applying only the frozen policy.
+    recon = reconcile(ledger, members, policy)
+    r_hash = reconciliation_hash(recon)
+
+    # b — bundle-root hash.
+    bundle = build_bundle(ledger, members, recon)
+
+    return CandidateRelease(
+        pages=pages,
+        ledger=ledger,
+        members=members,
+        reconciliation=recon,
+        policy=policy,
+        bundle=bundle,
+        package_uuid=package_uuid,
+        release_version=release_version,
+        authoritative_source_hash=PDF_SHA256,
+        transform_config_hash=thash,
+        transform_config=tconfig,
+        ledger_hash=l_hash,
+        policy_hash=p_hash,
+        reconciliation_hash=r_hash,
+        source_texts=sources,
+        citation_report=report,
+    )
+
+
 @dataclass(frozen=True)
 class ReleaseArtifacts:
     """The completed, post-persistence release (Component K steps a0–g).
@@ -189,3 +286,6 @@ class ReleaseArtifacts:
     # defect family 1). A plain serializable payload so the gate can recompute
     # the persisted-corpus digest without a Chroma dependency of its own.
     vector_state: dict[str, object]
+    # Carried from the candidate so the gate can re-derive the corpus for a
+    # source_partition release. None makes that verification fail, not pass.
+    source_texts: dict[str, str] | None = None

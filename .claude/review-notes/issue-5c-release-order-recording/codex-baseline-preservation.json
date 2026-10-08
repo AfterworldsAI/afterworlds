@@ -1,0 +1,10 @@
+{
+  "operation": "Verify all original baseline rows remain exact; no restoration needed",
+  "baseline_before_restoration_sha256": "1f84998b5e5f7525ccfc9abd0d4227a1771e8c8cdf8f80cd77ef3004f2e55161",
+  "prior_rows_exact": true,
+  "settings_exact": true,
+  "reviewed_new_entries_retained": true,
+  "restored_rows": [],
+  "no_detector_settings_or_secret_classification_changed": true,
+  "no_staging": true
+}

@@ -1,0 +1,666 @@
+diff --git a/docs/sources/community/dnd-5e-srd-markdown/monsters-A-Z.md b/.claude/_sp/msc/cand/docs/sources/community/dnd-5e-srd-markdown/monsters-A-Z.md
+index ceff068..52366ca 100644
+--- a/docs/sources/community/dnd-5e-srd-markdown/monsters-A-Z.md
++++ b/.claude/_sp/msc/cand/docs/sources/community/dnd-5e-srd-markdown/monsters-A-Z.md
+@@ -16744,7 +16744,7 @@ _Huge Giant, Chaotic Good_
+ 
+ _Medium Fiend, Neutral Evil_
+ 
+-**AC** 15 <br>
++**AC** 15 **Initiative** +3 (13) <br>
+ **HP** 71 (13d8 + 13) <br>
+ **Speed** 30 ft., Fly 60 ft. <br>
+ 
+@@ -16803,8 +16803,6 @@ _Medium Fiend, Neutral Evil_
+ **Languages** Abyssal, Common, Infernal; telepathy 60 ft.<br>
+ **CR** 4 (XP 1,100; PB +2)
+ 
+-**Initiative** +3 (13)
+-
+ #### Traits
+ 
+ <hr>
+@@ -17898,7 +17896,7 @@ _Medium or Small Humanoid, Neutral_
+ 
+ **_Spear._** _Melee or Ranged Attack Roll:_ +3, reach 5 ft. or range 20/60 ft. _Hit:_ 4 (1d6 + 1) Piercing damage.
+ 
+-### Warrior Veteran
++### Veteran Warrior
+ 
+ _Medium or Small Humanoid, Neutral_
+ 
+@@ -18608,7 +18606,7 @@ _Large Dragon (Chromatic), Chaotic Evil_
+       <td><strong>INT</strong></td>
+       <td>6</td>
+       <td>−2</td>
+-      <td>2</td>
++      <td>−2</td>
+       <td><strong>WIS</strong></td>
+       <td>11</td>
+       <td>+0</td>
+diff --git a/docs/sources/community/dnd-5e-srd-markdown/source_pin.json b/.claude/_sp/msc/cand/docs/sources/community/dnd-5e-srd-markdown/source_pin.json
+index 0e34dfd..5f02df2 100644
+--- a/docs/sources/community/dnd-5e-srd-markdown/source_pin.json
++++ b/.claude/_sp/msc/cand/docs/sources/community/dnd-5e-srd-markdown/source_pin.json
+@@ -21,7 +21,7 @@
+   "upstream_tracked_files": 21,
+   "vendored_files": 16,
+   "vendored_bytes": 1893352,
+-  "controlled_vendored_bytes": 1893027,
++  "controlled_vendored_bytes": 1893029,
+   "files": [
+     {
+       "path": ".github/ISSUE_TEMPLATE/bug_report.md",
+@@ -344,8 +344,8 @@
+       "vendored": true,
+       "upstream_sha256": "7ed4f82bc5991ac6aeebcd894e75872c8f4ce2b13fb22fe68838dc3ecd9ddfaa",
+       "upstream_bytes": 517205,
+-      "sha256": "61dcfe5a4a6af3da5497ed8035088b44dc37ecd2e1b4f04c09913f887a75d3cc",
+-      "bytes": 517136,
++      "sha256": "e6581e2a330cd900dacbc321d9cb9533362f3b81e3f4adef342baf1b1a4864c2",
++      "bytes": 517138,
+       "corrections": [
+         {
+           "official_pages": [
+@@ -370,6 +370,30 @@
+           "section": "Monsters A-Z > Will-o'-Wisp > ability grid",
+           "change": "Restored the missing STR score cell (1) and dropped the stray 'DEX' value cell that had taken its place.",
+           "why": "Without it the row carried eleven values for twelve columns and STR 1 was absent from the snapshot entirely."
++        },
++        {
++          "official_pages": [
++            331
++          ],
++          "section": "Monsters A-Z > Succubus > header",
++          "change": "Moved 'Initiative +3 (13)' from a standalone paragraph after the CR line onto the AC line, as '**AC** 15 **Initiative** +3 (13)'.",
++          "why": "The official page prints 'AC 15 Initiative +3 (13)' on one line before HP and Speed, which is the form every other stat block in this file carries; the conversion emitted it after CR. The value is unchanged; only its printed position was wrong."
++        },
++        {
++          "official_pages": [
++            337
++          ],
++          "section": "Monsters A-Z > Warriors > Warrior Veteran",
++          "change": "Heading 'Warrior Veteran' becomes 'Veteran Warrior'.",
++          "why": "OWNER CORRECTION, not publisher text: the official PDF (p.337) names the stat block 'Warrior Veteran', while Deck of Illusions (magic-items.md) names the same creature 'Veteran Warrior'. Owner decision (monsters-source-corrections-research.md): the canonical name is Veteran Warrior. Same creature, same stat block; no second authority and no alias."
++        },
++        {
++          "official_pages": [
++            340
++          ],
++          "section": "Monsters A-Z > Young White Dragon > ability grid",
++          "change": "INT saving throw cell '2' becomes '−2'.",
++          "why": "OFFICIAL-SOURCE-BACKED CORRECTION, not publisher SRD text and not an Owner decision: proposed under the Owner-requested lookup (monsters-source-corrections-research.md), pending the Owner's exact acceptance. The official SRD 5.2.1 p.340 and its Basic Rules rendering (https://www.dndbeyond.com/sources/dnd/br-2024/creature-stat-blocks) print 'INT 6 -2 2'. The current official individual stat block (https://www.dndbeyond.com/monsters/5195287-young-white-dragon, Monster Manual p.328; same AC 17, HP 123, CR 6) prints the save as -2, matching its MOD. Errata checked first, on 2026-09-27: the D&D Beyond SRD page (https://www.dndbeyond.com/srd) lists no SRD 5.2/5.2.1 errata document, and the official Monster Manual (2025) errata v1.0 (https://media.dndbeyond.com/compendium-images/errata/MM-25/MM-2025_v1.pdf) has no Young White Dragon entry. No applicable formal erratum was found in those sources; that is not evidence that none exists, and none is claimed. The official sources disagree and that disagreement is recorded here."
+         }
+       ]
+     },
+@@ -509,18 +533,8 @@
+       ]
+     }
+   ],
+-  "corrections_applied": 32,
+-  "preserved_official_defects": [
+-    {
+-      "path": "monsters-A-Z.md",
+-      "official_pages": [
+-        340
+-      ],
+-      "section": "Monsters A-Z > Young White Dragon > ability grid",
+-      "what": "The INT saving throw cell reads '2' where every other save cell in the document carries a sign.",
+-      "why": "The official PDF prints it that way: 'INT 6 -2 2'. The snapshot reproduces the official page faithfully, so there is nothing to correct in the snapshot. Confirmed against a rendering of p.340. Recorded here because it is the one ability row in the corrected source that does not have the shape every other ability row has."
+-    }
+-  ],
++  "corrections_applied": 35,
++  "preserved_official_defects": [],
+   "controlled_additions": [
+     {
+       "path": "legal-information.md",
+diff --git a/docs/sources/community/dnd-5e-srd-markdown/PINNED-SOURCE.md b/.claude/_sp/msc/cand/docs/sources/community/dnd-5e-srd-markdown/PINNED-SOURCE.md
+index 55da4af..4ca2d4e 100644
+--- a/docs/sources/community/dnd-5e-srd-markdown/PINNED-SOURCE.md
++++ b/.claude/_sp/msc/cand/docs/sources/community/dnd-5e-srd-markdown/PINNED-SOURCE.md
+@@ -21,9 +21,9 @@ Established under Step 2 of the Recorded Owner Decision of 21 September 2026
+ | Upstream commit | `1b4b99dcb786cdd1a2fb26f8acec1551191f1ca4` |
+ | Pinned on | 2026-09-21 |
+ | Upstream tracked files at that commit | 21 |
+-| Files vendored here | 16 (1,893,352 bytes upstream; 1,893,027 as corrected) |
++| Files vendored here | 16 (1,893,352 bytes upstream; 1,893,029 as corrected) |
+ | Controlled additions | 1 (`legal-information.md`, official p.1) |
+-| Corrections applied | 32, across 7 files (7 of them Owner corrections) |
++| Corrections applied | 35, across 7 files (8 of them Owner corrections, 1 official-source-backed) |
+ 
+ `source_pin.json` records the SHA-256 and byte length of **all 21** upstream
+ tracked files, including the five deliberately not vendored and the reason for
+@@ -46,7 +46,7 @@ source text rather than normalized on the way in.
+ 
+ ## Corrections and additions
+ 
+-Thirty-two corrections are applied, each recorded in `source_pin.json` against
++Thirty-five corrections are applied, each recorded in `source_pin.json` against
+ the official page and section it was checked at, with what changed and why:
+ three creature ability grids whose cell boundaries were lost, five grids whose
+ MOD/SAVE legend sat over the wrong columns, two class tables with a sixteenth
+@@ -57,13 +57,20 @@ heading depth of the entry that summons them, which had ended those entries
+ and captured the entries after them, one glossary heading emitted at the wrong
+ rank, one two-row table header flattened into a header and a data row, two
+ tables whose italic group labels had become data rows (one of them also a
+-paired-column list read row-major), and one table caption the conversion did
+-not carry. Seven more are **Owner corrections, not publisher text**: four
++paired-column list read row-major), one table caption the conversion did
++not carry, and one stat-block Initiative emitted after the CR line instead of
++beside AC. Eight more are **Owner corrections, not publisher text**: four
+ Level 2 class spell tables (Bard, Druid, Sorcerer, Wizard) are made to agree
+ with the spell descriptions the official PDF prints, by the Owner's decision
+-that the descriptions are correct and those table cells wrong; each carries
+-`OWNER CORRECTION, not publisher text` in its manifest `why`, and the official
+-PDF itself is unchanged and remains the evidence. The reasoning and the evidence are in
++that the descriptions are correct and those table cells wrong; the stat block
++the PDF names *Warrior Veteran* is named *Veteran Warrior*, the name Deck of
++Illusions prints for it. Each carries `OWNER CORRECTION, not publisher text`
++in its manifest `why`. One more is an **official-source-backed correction,
++not publisher text and not an Owner decision**: the Young White Dragon's INT
++save carries the minus sign the current official individual stat block
++prints, where the SRD page and the Basic Rules print it unsigned; it was
++proposed under an Owner-requested lookup and awaits the Owner's exact
++acceptance. The official PDF itself is unchanged and remains the evidence. The reasoning and the evidence are in
+ `docs/architecture/issue-5c-5d-community-source-corrections.md`.
+ 
+ `legal-information.md` is a **controlled addition**, not upstream content: the
+@@ -77,11 +84,9 @@ They are the community repository's own process and licence history, are not
+ ingested as SRD content, and are not part of the thirteen content files the
+ comparison covers.
+ 
+-One difference is deliberately **not** corrected: the Young White Dragon's INT
+-saving throw on official p.340, which the PDF itself prints without a sign. The
+-snapshot reproduces the official page, so there is nothing in the snapshot to
+-fix; it is recorded in `preserved_official_defects` so the one ability row that
+-does not have the shape every other row has is explained rather than anomalous.
++`preserved_official_defects` is empty. It held the Young White Dragon's
++unsigned INT save until the official-source-backed correction above replaced
++it.
+ 
+ ## Authority
+ 
+diff --git a/src/afterworlds/ingestion/corpus/source_units.py b/.claude/_sp/msc/cand/src/afterworlds/ingestion/corpus/source_units.py
+index 1cc10b6..f2b6b9c 100644
+--- a/src/afterworlds/ingestion/corpus/source_units.py
++++ b/.claude/_sp/msc/cand/src/afterworlds/ingestion/corpus/source_units.py
+@@ -43,17 +43,32 @@ from afterworlds.ingestion.corpus.models import (
+     Leaf,
+     LeafType,
+ )
+-from afterworlds.ingestion.source.community_compare import (
+-    CONTENT_FILES,
+-    markdown_text,
+-)
++from afterworlds.ingestion.source.community_compare import markdown_text
+ from afterworlds.ingestion.source.community_tokens import normalized
+ 
+ #: The thirteen upstream content files plus the controlled attribution addition,
+-#: page 1 first. Only the *within-file* order matters to citation — the partition
+-#: enforces document order per file — but a fixed tuple is what makes the build
+-#: reproducible and what the transform identity records.
+-CORPUS_FILES: tuple[str, ...] = ("legal-information.md",) + CONTENT_FILES
++#: page 1 first. Citation needs only within-file order — the partition enforces
++#: document order per file — but the tuple is also the release's reading order:
++#: each leaf's ``occurrence_index`` follows it, and direct reads order passages
++#: by that index. The official Monsters rules (pp.254-257) therefore precede
++#: Monsters A-Z (p.258 onward), which the alphabetical ``CONTENT_FILES`` reverses.
++#: The tuple is also what the transform identity records.
++CORPUS_FILES: tuple[str, ...] = (
++    "legal-information.md",
++    "animals.md",
++    "character-creation.md",
++    "character-origins.md",
++    "classes.md",
++    "equipment.md",
++    "feats.md",
++    "gameplay-toolbox.md",
++    "magic-items.md",
++    "monsters.md",
++    "monsters-A-Z.md",
++    "playing-the-game.md",
++    "rules-glossary.md",
++    "spells.md",
++)
+ 
+ #: ``legal-information.md`` reproduces official page 1 and carries the CC-BY-4.0
+ #: attribution the licence requires to travel with any derived work. Its units
+diff --git a/docs/architecture/issue-5c-5d-community-source-corrections.md b/.claude/_sp/msc/cand/docs/architecture/issue-5c-5d-community-source-corrections.md
+index 5e5a2f0..3152d16 100644
+--- a/docs/architecture/issue-5c-5d-community-source-corrections.md
++++ b/.claude/_sp/msc/cand/docs/architecture/issue-5c-5d-community-source-corrections.md
+@@ -23,8 +23,9 @@ the rules mean is decided by the Rules Package, not by this file.
+ 
+ ## The corrections
+ 
+-Thirty-two edits across seven files, seven of them Owner corrections (family
+-L). Upstream digests are preserved in the
++Thirty-five edits across seven files: eight of them Owner corrections (family
++L and the Veteran Warrior edit in family N), and one an official-source-backed
++correction proposed under an Owner-requested lookup (family N). Upstream digests are preserved in the
+ manifest beside the corrected ones, so every edit is visible as a transition
+ rather than as a silently rewritten expectation.
+ 
+@@ -248,19 +249,61 @@ Inserted rows go in each table's alphabetical order. The reviewable diff is
+ Family L post-dates the `b70d016` review and the coverage record's
+ `qualification_review`, which read the pre-correction bytes.
+ 
+-## Preserved rather than corrected
+-
+-`monsters-A-Z.md`, official p.340, Young White Dragon. The INT saving throw
+-cell reads `2` where every other save cell in the document carries a sign. The
+-official PDF prints it that way — `INT 6 −2 2` — confirmed against a rendering
+-of p.340. The snapshot reproduces the official page faithfully, so there is
+-nothing in the snapshot to correct. It is recorded in the manifest as a
+-preserved official defect and is the single expected exception in
+-`test_every_ability_row_is_label_score_modifier_save_three_times`. The page was
+-rendered and read again independently in review, which is why it is settled at
+-this stage rather than held open. It stays here as an anomaly note about the
+-official text: it is not a judgement that an unsigned save is correct, and it
+-asks nothing of any later runtime, which reads the Rules Package.
++### M. A stat-block field emitted out of its printed position — 1 edit
++
++`monsters-A-Z.md`, official p.331 (Succubus). The page prints `AC 15
++Initiative +3 (13)` on one line, then HP and Speed — the form every other stat
++block in the file carries. The conversion emitted `**AC** 15` alone and put
++`**Initiative** +3 (13)` in a paragraph of its own after the CR line. The line
++is now `**AC** 15 **Initiative** +3 (13) <br>` and the stray paragraph is gone.
++No value changed. A scan of all 235 `**AC**` lines finds this one without
++Initiative, and one standalone `**Initiative**` line, this one.
++
++### N. Monsters A–Z: an Owner correction and an official-source-backed correction — 2 edits
++
++**Neither edit is publisher SRD text.** The pinned PDF is unchanged and stays
++the evidence for what the publisher printed
++(`monsters-source-corrections-research.md`). The two edits have different
++provenance, and neither is a semantic acceptance.
++
++* **Veteran Warrior** (p.337). The PDF, and its contents, name the stat block
++  *Warrior Veteran*; Deck of Illusions (`magic-items.md`) names the same
++  creature *Veteran Warrior*. **Owner correction**, as for family L: the Owner
++  decided the canonical name is Veteran Warrior. The heading is renamed; it is the same stat block, with no alias
++  and no second entry. No other text in the source names it.
++* **Young White Dragon INT save** (p.340). **Official-source-backed correction,
++  not an Owner decision**: proposed under the Owner-requested lookup, pending
++  the Owner's exact acceptance. The SRD 5.2.1 page and its Basic
++  Rules rendering
++  (<https://www.dndbeyond.com/sources/dnd/br-2024/creature-stat-blocks>) print
++  `INT 6 −2 2`. The current official individual stat block
++  (<https://www.dndbeyond.com/monsters/5195287-young-white-dragon>, Monster
++  Manual p.328, the same AC 17, HP 123 and CR 6 block) prints the save as −2,
++  matching its MOD. Errata were checked first (2026-09-27): the D&D Beyond SRD
++  page (<https://www.dndbeyond.com/srd>) lists no SRD 5.2/5.2.1 errata
++  document, and the official Monster Manual (2025) errata v1.0
++  (<https://media.dndbeyond.com/compendium-images/errata/MM-25/MM-2025_v1.pdf>)
++  has no Young White Dragon entry. No applicable formal erratum was found in
++  those sources; that is not evidence that none exists, and none is claimed.
++  On the individual stat block's evidence the cell is now `−2`: the official
++  sources disagree, and this records which one the snapshot follows. It replaces the preserved-official-defect note this
++  document used to carry, so `preserved_official_defects` is empty and no
++  ability row is an expected exception any more.
++
++Families M and N post-date the `b70d016` review.
++
++## Reading order across files
++
++The corpus reads its files in the order `CORPUS_FILES`
++(`src/afterworlds/ingestion/corpus/source_units.py`) gives them, and each
++leaf's `occurrence_index` follows it. That order is what a direct read orders
++passages by. The official document prints the general Monsters rules
++(pp.254–257) before Monsters A–Z (p.258 onward), so `monsters.md` precedes
++`monsters-A-Z.md`. No byte of either file changes for this. The other files
++stay in the alphabetical order `CONTENT_FILES` gives them, which is not the
++official chapter order (for example, `animals.md` comes first). Reordering
++them is deferred: it is outside this bounded Monsters correction, not an
++undecided Owner rule, and nothing here corrects it.
+ 
+ ## Sibling audit
+ 
+@@ -341,7 +384,8 @@ them.
+ | Telekinesis continuation (F) | patched, reversible; settled on two independent renderings of p.168, kept as an anomaly note |
+ | Stat block at its owner's depth (G) | patched, 6 edits |
+ | Glossary entry at the wrong rank (H) | patched, 1 edit |
+-| Young White Dragon unsigned save | already safe: the snapshot matches the official page, admitted by two independent renderings of p.340 rather than by the cell describing itself |
++| Stat-block field out of its printed position (M) | patched, 1 edit; bounded by a scan of all 235 `**AC**` lines and every standalone `**Initiative**` line in `monsters-A-Z.md` |
++| Young White Dragon unsigned save | official-source-backed correction (N), not an Owner decision: the official page prints it unsigned; the snapshot follows the current official individual stat block. The scan of all 672 ability rows finds no other unsigned save |
+ | Tables, grids and arithmetic triples not listed above | already safe *for the properties the scans check*: every table's row widths agree, every ability row is twelve cells in `LABEL SCORE MOD SAVE` order, and every one of the 2,016 score/modifier pairs recomputes. Admitted by the scans in the table above, which report zero further departures. These checks say nothing about wording, meaning, or which record a value belongs to |
+ | Record ownership outside the six blocks | **superseded by family H, and the reason is the admission mechanism.** This row's evidence was a *per-stat-block* report, which admits nothing about a run that holds no stat block — the glossary is exactly that run, and family H is the residue it could not see. What the row correctly admits is unchanged and restated here: the ownership scan reads every heading in all thirteen content files and reports, per stat block, its own depth and the depth of the entry it resolves to; outside the six, every block resolves to the creature entry directly above it, and the six were read against their official pages. (A count of blocks at or above their owner's depth was also reported and has been removed: the owner is selected as the nearest *shallower* heading, so that count could never be anything but zero.) The label-escape scan, which looks for a Traits/Actions/Bonus Actions/Reactions heading resolving to something other than a stat block, admits six: `monsters.md` 369, 373 and 415, all under `## Parts of a Stat Block`, the chapter explaining what a stat block contains; and `playing-the-game.md` 610, 683 and 691, which are the rules chapter on actions and its own subsections. Each was read. None is a block label that escaped its block; each is a section of rule text that happens to carry that word |
+ | Whether the rules the source states are correct | out of scope: this is a fidelity qualification against the official PDF. What the rules mean belongs to the Rules Package |
+@@ -351,8 +395,10 @@ qualification was changed.
+ 
+ ## What remains different, and why none of it is a correction
+ 
+-Seventy of the 360 body pages still show a token difference. Each was read.
+-They fall into five families, and none of them changes what the source says.
++Seventy-two of the 360 body pages still show a token difference. Each was read.
++All but one fall into five families, and none of them changes what the source
++says. The one that does is official p.340, where the snapshot carries the
++official-source-backed INT save `−2` against the page's `2` (family N).
+ 
+ 1. **A table header the PDF reprints at a page break** — the snapshot carries
+    it once. `Spell | School | Special` on nine spell-list pages, `1d100` on
+@@ -379,7 +425,8 @@ They fall into five families, and none of them changes what the source says.
+ 
+ Sixty-four body pages differ in the order of their numeric tokens. All were
+ read. Every one is a two-column page whose reading order differs from the
+-snapshot's single column, with three exceptions. Official pp.101–102 hold the
++snapshot's single column, with four exceptions. Official p.340 carries the
++family N official-source-backed correction, so one number differs. Official pp.101–102 hold the
+ Food list that became correction I: the corrected file carries it in the order
+ the pages print it, and the extraction still reads across its paired
+ sub-columns. The Staff of the Magi table became correction E. Official p.222 joined the list with family G: the page
+diff --git a/docs/architecture/issue-5c-5d-community-source-coverage.json b/.claude/_sp/msc/cand/docs/architecture/issue-5c-5d-community-source-coverage.json
+index c533af3..74c6578 100644
+--- a/docs/architecture/issue-5c-5d-community-source-coverage.json
++++ b/.claude/_sp/msc/cand/docs/architecture/issue-5c-5d-community-source-coverage.json
+@@ -45,8 +45,8 @@
+  },
+  "coverage": {
+   "windows": 1107973,
+-  "matched": 1068390,
+-  "fraction": 0.9642744001884522,
++  "matched": 1068429,
++  "fraction": 0.9643095996021563,
+   "front_matter_pages": [
+    1,
+    2,
+@@ -54,8 +54,8 @@
+    4
+   ],
+   "windows_excluding_front_matter": 1077833,
+-  "matched_excluding_front_matter": 1068390,
+-  "fraction_excluding_front_matter": 0.9912389025015935,
++  "matched_excluding_front_matter": 1068429,
++  "fraction_excluding_front_matter": 0.9912750862146548,
+   "pages_fully_covered": 270,
+   "lowest_pages": [
+    {
+@@ -404,9 +404,9 @@
+    ],
+    "monsters-A-Z.md": [
+     {
+-     "offset": 207093,
+-     "length": 109,
+-     "excerpt": "common,infernal;telepathy60ft.cr4(xp1,100;pb+2)initiative+3(13)traitsincubusform.whenthesuccubusfinishesalongrest,itcanshapeshiftintoanincubus,usingthatstatblockinsteadofthisone.actionsmultiattack.thesuccubusmakesonefiendishtouchattackandus"
++     "offset": 224176,
++     "length": 108,
++     "excerpt": "h5ft.orrange20/60ft.hit:4(1d6+1)piercingdamage.veteranwarriormediumorsmallhumanoid,neutralac17initiative+3(13)hp65(10d8+20)speed30ft.modsavemodsavemodsavestr16+3+3dex13+1+1con14+2+2int10+0+0wis11+0+0cha10+0+0skillsathletics+5,perception+2ge"
+     }
+    ],
+    "playing-the-game.md": [
+@@ -477,10 +477,10 @@
+   "note": "Text present in the snapshot and absent from the document. Some is the snapshot's own navigation and heading scaffolding; each run still needs reading before the source can be qualified."
+  },
+  "discrepancies": {
+-  "runs_over_floor": 57,
+-  "chars_over_floor": 37452,
+-  "runs_below_floor": 114,
+-  "chars_below_floor": 10168,
++  "runs_over_floor": 58,
++  "chars_over_floor": 37560,
++  "runs_below_floor": 111,
++  "chars_below_floor": 9927,
+   "below_floor_note": "Unresolved, not cleared. The 2 * window bound holds for one separated junction; adjacent junctions merge runs and can absorb a genuine omission, so these need reading at qualification.",
+   "runs": [
+    {
+@@ -729,6 +729,12 @@
+     "front_matter": false,
+     "excerpt": "a3,acrowbar;ona4,alittorch.6670yousufferaboutof\"magicsickness\"andhavethepoisonedconditionfor1hour.7175youhavethepetrifiedconditionuntiltheendofyournextturn.7680youpullanonmagicalobjectoutofthehat.roll1d4todeterminetheobject:ona1,adagger;ona"
+    },
++   {
++    "printed_page": 337,
++    "length": 108,
++    "front_matter": false,
++    "excerpt": "h5ft.orrange20/60ft.hit:4(1d6+1)piercingdamage.warriorveteranmediumorsmallhumanoid,neutralac17initiative+3(13)hp65(10d8+20)speed30ft.modsavemodsavemodsavestr16+3+3dex13+1+1con14+2+2int10+0+0wis11+0+0cha10+0+0skillsathletics+5,perception+2ge"
++   },
+    {
+     "printed_page": 95,
+     "length": 107,
+@@ -1099,9 +1105,9 @@
+    "module": "afterworlds.ingestion.source.community_tokens",
+    "comparison": "per-official-page token multisets, minus sign preserved, order-immune",
+    "body_pages": 360,
+-   "quiet_body_pages": 289,
+-   "pdf_only_tokens_outside_front_matter": 198,
+-   "snapshot_only_tokens_outside_front_matter": 85,
++   "quiet_body_pages": 288,
++   "pdf_only_tokens_outside_front_matter": 199,
++   "snapshot_only_tokens_outside_front_matter": 86,
+    "pages_with_residue": [
+     {
+      "printed_page": 7,
+@@ -1965,6 +1971,18 @@
+       "cha": 1
+      }
+     },
++    {
++     "printed_page": 340,
++     "files": [
++      "monsters-A-Z.md"
++     ],
++     "pdf_only": {
++      "2": 1
++     },
++     "snapshot_only": {
++      "-2": 1
++     }
++    },
+     {
+      "printed_page": 350,
+      "files": [
+@@ -1999,7 +2017,7 @@
+    "why": "A multiset cancels a difference that stays on one page. Read in order, a dropped table row and a swapped pair of cells do not cancel. Pages whose sequences differ were read; a page printed in two columns legitimately differs.",
+    "body_pages": 360,
+    "pages_with_the_same_number_order": 296,
+-   "each_differing_page_was_read": "The families are recorded in the corrections notes. Three are not page-column reading order. Official pp.101-102 set the Food, Drink, and Lodging list in paired sub-columns that the extraction reads across, while the corrected file carries the list in the order the pages print it (correction family I). The Staff of the Magi table on official pages 246-247 had lost a row under the header the document reprints at the page break. Official p.222 differs because the Giant Fly stat block was moved to the end of the Figurine of Wondrous Power entry, so its numbers now follow the figurine variants the official page prints past it rather than preceding them.",
++   "each_differing_page_was_read": "The families are recorded in the corrections notes. Four are not page-column reading order. Official pp.101-102 set the Food, Drink, and Lodging list in paired sub-columns that the extraction reads across, while the corrected file carries the list in the order the pages print it (correction family I). The Staff of the Magi table on official pages 246-247 had lost a row under the header the document reprints at the page break. Official p.222 differs because the Giant Fly stat block was moved to the end of the Figurine of Wondrous Power entry, so its numbers now follow the figurine variants the official page prints past it rather than preceding them. Official p.340 prints the Young White Dragon's INT save as '2'; the snapshot carries the official-source-backed '-2' (correction family N).",
+    "pages_read_because_their_number_order_differs": [
+     5,
+     6,
+@@ -2062,7 +2080,7 @@
+     295,
+     318,
+     319,
+-    331,
++    340,
+     343,
+     344
+    ]
+@@ -2071,7 +2089,7 @@
+    "establishes": "every contents entry is the title of some heading in the snapshot",
+    "does_not_establish": "the depth of that heading, what it owns, or the placement of the headings the contents does not list",
+    "entries": 481,
+-   "entries_whose_title_matches_a_heading": 477,
++   "entries_whose_title_matches_a_heading": 476,
+    "entries_without_a_heading": [
+     {
+      "title": "Legal Information",
+@@ -2092,6 +2110,11 @@
+      "title": "Index of Stat Blocks Aboleth",
+      "official_page": 258,
+      "disposition": "Two contents entries the split above merged, because the section label carries no dot leader. 'Index of Stat Blocks' is navigation; the index itself begins at the Aboleth heading monsters-A-Z.md owns. Official page 258 is quiet in the token pass."
++    },
++    {
++     "title": "Warrior Veteran",
++     "official_page": 337,
++     "disposition": "OWNER CORRECTION, not publisher text: the stat block the contents and official page 337 name 'Warrior Veteran' is headed 'Veteran Warrior' in monsters-A-Z.md, the name Deck of Illusions prints for it. Same stat block; recorded in source_pin.json under Monsters A-Z > Warriors > Warrior Veteran."
+     }
+    ]
+   },
+@@ -2189,40 +2212,28 @@
+    "ragged_tables": 0,
+    "ability_grids": 333,
+    "ability_rows": 672,
+-   "ability_rows_not_in_label_score_mod_save_shape": [
+-    "monsters-A-Z.md:18607 ['INT', '6', '−2', '2', 'WIS', '11', '+0', '+3', 'CHA', '12', '+1', '+1']"
+-   ],
++   "ability_rows_not_in_label_score_mod_save_shape": [],
+    "score_to_modifier_triples": 2016,
+    "score_to_modifier_mismatches": []
+   },
+   "window_pass_runs_over_floor": {
+-   "total": 57,
++   "total": 58,
+    "on_a_page_the_token_pass_also_reports": 39,
+    "front_matter": 4,
+    "note": "A run on a page the token pass reports quiet holds the same tokens with the same multiplicities in the same page, so it is a reading-order difference, not missing or altered content."
+   },
+   "corrections": {
+-   "applied": 32,
++   "applied": 35,
+    "files": {
+     "classes.md": 9,
+     "equipment.md": 3,
+     "magic-items.md": 6,
+-    "monsters-A-Z.md": 3,
++    "monsters-A-Z.md": 6,
+     "playing-the-game.md": 1,
+     "rules-glossary.md": 1,
+     "spells.md": 9
+    },
+-   "preserved_official_defects": [
+-    {
+-     "path": "monsters-A-Z.md",
+-     "official_pages": [
+-      340
+-     ],
+-     "section": "Monsters A-Z > Young White Dragon > ability grid",
+-     "what": "The INT saving throw cell reads '2' where every other save cell in the document carries a sign.",
+-     "why": "The official PDF prints it that way: 'INT 6 -2 2'. The snapshot reproduces the official page faithfully, so there is nothing to correct in the snapshot. Confirmed against a rendering of p.340. Recorded here because it is the one ability row in the corrected source that does not have the shape every other ability row has."
+-    }
+-   ],
++   "preserved_official_defects": [],
+    "controlled_additions": [
+     {
+      "path": "legal-information.md",
+@@ -2238,8 +2249,8 @@
+   "remaining": [
+    "Qualification is of the source and is complete when the source's own defects are resolved and the evidence has been reviewed independently. A later consumer reading these bytes is a different question and cannot be what qualifies them; a corpus built from this source is qualified separately, on its own evidence.",
+    "legal-information.md is a controlled addition and is not one of the thirteen content files the comparison covers, because it has no upstream counterpart. Ingestion must pick it up separately so the attribution travels with the corpus.",
+-   "One difference is preserved rather than corrected, because the snapshot reproduces the official page and the official page is what is odd: the unsigned INT save on p.340. It is recorded in the manifest as a preserved official defect, not as a correction.",
+-   "Two places where the official document itself reads oddly were rendered from the PDF and read directly, by this work and again independently: the Telekinesis sentence truncated mid-clause at the foot of p.168, and the unsigned INT save on p.340. The PDF prints both as the snapshot now holds them. Matching the PDF is what a source-stage qualification requires, so both stand here as anomaly notes about the official text. Neither says anything about how a later runtime should read them, and neither is a judgement that the content is correct. The Telekinesis wording removed is quoted verbatim in the manifest and reverses in one step."
++   "No difference is preserved as an official defect. The official page prints the Young White Dragon's INT save on p.340 unsigned, as does the Basic Rules rendering; the current official individual stat block prints it -2. The snapshot follows the individual stat block (correction family N, an official-source disagreement recorded as a correction, not an Owner decision and not a formal erratum), so preserved_official_defects is empty.",
++   "Two places where the official document itself reads oddly were rendered from the PDF and read directly, by this work and again independently: the Telekinesis sentence truncated mid-clause at the foot of p.168, and the unsigned INT save on p.340. The PDF prints the first as the snapshot now holds it; the second is now corrected on official-source evidence (see above), and the PDF page stays the evidence of what it prints. Both stand here as anomaly notes about the official text. Neither says anything about how a later runtime should read them, and neither is a judgement that the content is correct. The Telekinesis wording removed is quoted verbatim in the manifest and reverses in one step."
+   ]
+  }
+ }
+diff --git a/scripts/regen_community_source_coverage.py b/.claude/_sp/msc/cand/scripts/regen_community_source_coverage.py
+index 252f8d4..876e31f 100644
+--- a/scripts/regen_community_source_coverage.py
++++ b/.claude/_sp/msc/cand/scripts/regen_community_source_coverage.py
+@@ -200,7 +200,7 @@ def headings(raw: dict[str, str]) -> dict[str, object]:
+     }
+ 
+ 
+-# The four contents entries that match no heading, each read against the source.
++# The five contents entries that match no heading, each read against the source.
+ DISPOSITIONS = {
+     "Legal Information": (
+         "Owned by the controlled addition legal-information.md, which is not "
+@@ -222,6 +222,13 @@ DISPOSITIONS = {
+         "the index itself begins at the Aboleth heading monsters-A-Z.md owns. "
+         "Official page 258 is quiet in the token pass."
+     ),
++    "Warrior Veteran": (
++        "OWNER CORRECTION, not publisher text: the stat block the contents and "
++        "official page 337 name 'Warrior Veteran' is headed 'Veteran Warrior' "
++        "in monsters-A-Z.md, the name Deck of Illusions prints for it. Same "
++        "stat block; recorded in source_pin.json under Monsters A-Z > "
++        "Warriors > Warrior Veteran."
++    ),
+ }
+ 
+ 
+@@ -391,7 +398,7 @@ def main() -> int:
+                 1 for row in body if order[row.printed_page].same_order
+             ),
+             "each_differing_page_was_read": (
+-                "The families are recorded in the corrections notes. Three are "
++                "The families are recorded in the corrections notes. Four are "
+                 "not page-column reading order. Official pp.101-102 set the "
+                 "Food, Drink, and Lodging list in paired sub-columns that the "
+                 "extraction reads across, while the corrected file carries the "
+@@ -402,7 +409,9 @@ def main() -> int:
+                 "the Giant Fly stat block was moved to the end of the "
+                 "Figurine of Wondrous Power entry, so its numbers now follow "
+                 "the figurine variants the official page prints past it "
+-                "rather than preceding them."
++                "rather than preceding them. Official p.340 prints the Young "
++                "White Dragon's INT save as '2'; the snapshot carries the "
++                "official-source-backed '-2' (correction family N)."
+             ),
+             "pages_read_because_their_number_order_differs": sorted(
+                 row.printed_page
+@@ -453,17 +462,20 @@ def main() -> int:
+             "the thirteen content files the comparison covers, because it has "
+             "no upstream counterpart. Ingestion must pick it up separately so "
+             "the attribution travels with the corpus.",
+-            "One difference is preserved rather than corrected, because the "
+-            "snapshot reproduces the official page and the official page is "
+-            "what is odd: the unsigned INT save on p.340. It is recorded in "
+-            "the manifest as a preserved official defect, not as a "
+-            "correction.",
++            "No difference is preserved as an official defect. The official "
++            "page prints the Young White Dragon's INT save on p.340 unsigned, "
++            "as does the Basic Rules rendering; the current official "
++            "individual stat block prints it -2. The snapshot follows the "
++            "individual stat block (correction family N, an official-source "
++            "disagreement recorded as a correction, not an Owner decision and "
++            "not a formal erratum), so preserved_official_defects is empty.",
+             "Two places where the official document itself reads oddly were "
+             "rendered from the PDF and read directly, by this work and again "
+             "independently: the Telekinesis sentence truncated mid-clause at "
+             "the foot of p.168, and the unsigned INT save on p.340. The PDF "
+-            "prints both as the snapshot now holds them. Matching the PDF is "
+-            "what a source-stage qualification requires, so both stand here as "
++            "prints the first as the snapshot now holds it; the second is now "
++            "corrected on official-source evidence (see above), and the PDF "
++            "page stays the evidence of what it prints. Both stand here as "
+             "anomaly notes about the official text. Neither says anything "
+             "about how a later runtime should read them, and neither is a "
+             "judgement that the content is correct. The Telekinesis wording "
+diff --git a/tests/ingestion/source/test_community_source_structure.py b/.claude/_sp/msc/cand/tests/ingestion/source/test_community_source_structure.py
+index 4db4bd2..7feb3e1 100644
+--- a/tests/ingestion/source/test_community_source_structure.py
++++ b/.claude/_sp/msc/cand/tests/ingestion/source/test_community_source_structure.py
+@@ -115,19 +115,16 @@ def test_every_row_of_every_table_fills_the_same_number_of_columns() -> None:
+ 
+ 
+ def test_every_ability_row_is_label_score_modifier_save_three_times() -> None:
+-    """The stat-block grid's shape, with every departure from it explained.
++    """The stat-block grid's shape, with no departure from it.
+ 
+     A merged or shifted cell in one of these rows moves a number under the wrong
+     ability or the wrong quantity while leaving the same characters on the page,
+-    which is exactly what a character comparison cannot see. One row in the
+-    corrected source does not have this shape, and it is not an error here: the
+-    official PDF prints it that way, so the manifest records it as a preserved
+-    official defect rather than the snapshot being wrong.
++    which is exactly what a character comparison cannot see. The one row the
++    official PDF prints unsigned, the Young White Dragon's INT save on p.340,
++    carries the official-source-backed ``−2`` (correction family N), so no row is an
++    expected exception.
+     """
+-    preserved = {
+-        (str(d["path"]), str(d["section"]))
+-        for d in MANIFEST["preserved_official_defects"]
+-    }
++    assert MANIFEST["preserved_official_defects"] == []
+     malformed = []
+     for name, line, cells in _ability_rows():
+         ok = all(
+@@ -141,12 +138,8 @@ def test_every_ability_row_is_label_score_modifier_save_three_times() -> None:
+         )
+         if not ok:
+             malformed.append((name, line, cells))
+-    assert len(malformed) == 1, malformed
+-    assert len(RECORD["ability_rows_not_in_label_score_mod_save_shape"]) == 1
+-    name, _line, cells = malformed[0]
+-    assert (name, "Monsters A-Z > Young White Dragon > ability grid") in preserved
+-    # The unsigned cell is the one the PDF prints unsigned, and nothing else.
+-    assert cells[:4] == ["INT", "6", f"{MINUS}2", "2"]
++    assert malformed == []
++    assert RECORD["ability_rows_not_in_label_score_mod_save_shape"] == []
+ 
+ 
+ def test_every_modifier_follows_arithmetically_from_its_score() -> None:

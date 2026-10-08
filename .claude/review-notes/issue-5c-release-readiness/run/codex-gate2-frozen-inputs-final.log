@@ -1,0 +1,12 @@
+start 2026-10-07T21:42:40.956610+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/_sp/release-readiness-20261007/codex_frozen_code.py verify .claude/_sp/release-readiness-20261007/final-code-inputs-2.json
+input 1a260be2bfb6ddb8f5a49b580b580900b2794c534e51ce9d960067c7da760150  .claude/_sp/release-readiness-20261007/codex_frozen_code.py
+input 3e576fb571992f6a2cd587be54987c23c0691f44d5548c2f3e76db5f96dc0531  .claude/_sp/release-readiness-20261007/final-code-inputs-2.json
+{
+  "frozen_inputs_unchanged": true,
+  "changed": [],
+  "immutable_input_count": 616,
+  "generated_bytecode_changes": 13,
+  "generated_packaging_changes": []
+}
+end 2026-10-07T21:42:43.353389+00:00 exit 0

@@ -1,0 +1,21 @@
+start 2026-10-07T09:11:43.284738+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe scripts/run_focused_tests.py --check tests/ingestion/mechanical/test_animals_proposal.py tests/ingestion/mechanical/test_animals_proposal.py::test_the_records_are_the_stat_blocks
+input ef6969b5f09e59ebd4001aad2137ade7ca74509d4075753de73336d7595050e9  scripts/run_focused_tests.py
+input cf107969d0f709951c2502a82c5794cf753eb28b019fd786cb0533a00ddb453b  tests/ingestion/mechanical/test_animals_proposal.py
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+All done! ✨ 🍰 ✨
+1 file would be left unchanged.
+F                                                                        [100%]
+================================== FAILURES ===================================
+____________________ test_the_records_are_the_stat_blocks _____________________
+tests\ingestion\mechanical\test_animals_proposal.py:281: in test_the_records_are_the_stat_blocks
+    assert owl == ["giant_owl", "traits", "actions"]
+E   AssertionError: assert ['actions', '...wl', 'traits'] == ['giant_owl',...s', 'actions']
+E     
+E     At index 0 diff: 'actions' != 'giant_owl'
+E     Use -v to get more diff
+=========================== short test summary info ===========================
+FAILED tests/ingestion/mechanical/test_animals_proposal.py::test_the_records_are_the_stat_blocks
+1 failed in 36.67s
+Focused diagnostics FAILED (exit 1). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+end 2026-10-07T09:12:22.156589+00:00 exit 1

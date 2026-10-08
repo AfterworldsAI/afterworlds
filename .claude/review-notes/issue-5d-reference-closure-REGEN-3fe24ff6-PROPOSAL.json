@@ -1,0 +1,3342 @@
+{
+ "artifact_kind": "machine_proposal",
+ "proposal_origin": "issue-5d-reference-closure-generator.py (CRD Issue 5d fresh reference-closure batch; unaccepted)",
+ "proposal_schema_version": "5d-proposal-2",
+ "proposed_representation": {
+  "components": [
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.friendly",
+    "semantic_key": "influence_advantage"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.hostile",
+    "semantic_key": "influence_disadvantage"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.burrow_speed",
+    "semantic_key": "burrowing"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.climb_speed",
+    "semantic_key": "climb_speed_use"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.concentration",
+    "semantic_key": "another_concentration_effect"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.concentration",
+    "semantic_key": "damage"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.concentration",
+    "semantic_key": "maximum_duration"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.fly_speed",
+    "semantic_key": "fly_speed_use"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.flying",
+    "semantic_key": "falling"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.friendly",
+    "semantic_key": "disposition"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.hostile",
+    "semantic_key": "disposition"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.indifferent",
+    "semantic_key": "disposition"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.jumping",
+    "semantic_key": "jump_kinds"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.swim_speed",
+    "semantic_key": "swim_speed_use"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "ability": "strength",
+      "context": "ability_check",
+      "dc_kind": "fixed",
+      "dc_value": 15,
+      "family": "ability_check",
+      "skill": "athletics"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "options": [],
+    "record_key": "glossary.climbing",
+    "semantic_key": "difficult_climb"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "ability": "strength",
+      "context": "ability_check",
+      "dc_kind": "fixed",
+      "dc_value": 15,
+      "family": "ability_check",
+      "skill": "athletics"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "options": [],
+    "record_key": "glossary.swimming",
+    "semantic_key": "rough_water"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "accounting": "subtract_distance_already_moved",
+      "family": "speed_switch_limit",
+      "when_nonpositive": "forbids_using_the_new_speed"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.speed",
+    "semantic_key": "switching"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "amount": "feet",
+      "family": "movement_cost",
+      "feet": 1,
+      "kind": "per_foot_surcharge",
+      "payer": "subject",
+      "rounding": null
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.climbing",
+    "semantic_key": "extra_cost"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "amount": "feet",
+      "family": "movement_cost",
+      "feet": 1,
+      "kind": "per_foot_surcharge",
+      "payer": "subject",
+      "rounding": null
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.crawling",
+    "semantic_key": "extra_cost"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "amount": "feet",
+      "family": "movement_cost",
+      "feet": 1,
+      "kind": "per_foot_surcharge",
+      "payer": "subject",
+      "rounding": null
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.swimming",
+    "semantic_key": "extra_cost"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "attitude": "indifferent",
+      "family": "default_attitude"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.indifferent",
+    "semantic_key": "default_attitude"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "cost": "none",
+      "family": "action_economy"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.concentration",
+    "semantic_key": "end_at_will"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "duration": "same_duration",
+      "family": "speed_change_propagation",
+      "magnitude": "equal_amount",
+      "to": "every_special_speed"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.speed",
+    "semantic_key": "changes_propagate"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "special_speed",
+      "listing": "named_in_a_non_exhaustive_list",
+      "mode": "burrow"
+     },
+     {
+      "family": "special_speed",
+      "listing": "named_in_a_non_exhaustive_list",
+      "mode": "climb"
+     },
+     {
+      "family": "special_speed",
+      "listing": "named_in_a_non_exhaustive_list",
+      "mode": "fly"
+     },
+     {
+      "family": "special_speed",
+      "listing": "named_in_a_non_exhaustive_list",
+      "mode": "swim"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.speed",
+    "semantic_key": "special_speeds"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "speed_definition",
+      "unit": "foot",
+      "window": "own_turn"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.speed",
+    "semantic_key": "definition"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "speed_selection",
+      "permits": "choose_before_moving"
+     },
+     {
+      "family": "speed_selection",
+      "permits": "switch_during_move"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.speed",
+    "semantic_key": "speed_selection"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [
+     {
+      "applies_when": {
+       "any_of": [],
+       "comparison": null,
+       "effect_state": "concentration_broken",
+       "kind": "effect_state",
+       "negated": false,
+       "phase": null,
+       "quantity": null,
+       "trigger": null,
+       "value": null
+      },
+      "fact_key": "08d4572fe00ecf1e",
+      "option_key": ""
+     }
+    ],
+    "facts": [
+     {
+      "family": "effect_termination",
+      "scope": "owning_effect"
+     },
+     {
+      "family": "sustained_state_requirement",
+      "state": "concentration"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.concentration",
+    "semantic_key": "concentration_effects"
+   },
+   {
+    "applies_when": {
+     "any_of": [],
+     "any_of_terms": [
+      {
+       "any_of": [],
+       "comparison": null,
+       "condition": "incapacitated",
+       "kind": "condition_state",
+       "negated": false,
+       "phase": null,
+       "quantity": null,
+       "trigger": null,
+       "value": null
+      },
+      {
+       "any_of": [],
+       "comparison": null,
+       "effect_state": "dies",
+       "kind": "effect_state",
+       "negated": false,
+       "phase": null,
+       "quantity": null,
+       "trigger": null,
+       "value": null
+      }
+     ],
+     "comparison": null,
+     "kind": "any_of",
+     "negated": false,
+     "phase": null,
+     "quantity": null,
+     "trigger": null,
+     "value": null
+    },
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "effect": "concentration_broken",
+      "family": "state_effect"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.concentration",
+    "semantic_key": "incapacitated_or_dead"
+   }
+  ],
+  "prose_bindings": [
+   {
+    "chunk_char_end": 100,
+    "chunk_char_start": 0,
+    "chunk_id": "1df7ca05-7090-5a0d-9ed4-e22fe56a69c7",
+    "component_key": "extra_cost",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.climbing",
+    "span_id": "0812d145-16a5-5e92-8c32-9682663495e5"
+   },
+   {
+    "chunk_char_end": 100,
+    "chunk_char_start": 0,
+    "chunk_id": "94e8512e-cfec-5b27-9d0d-73a981a2f94c",
+    "component_key": "extra_cost",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.swimming",
+    "span_id": "df75c526-7e9c-53c1-b145-427df7a8355e"
+   },
+   {
+    "chunk_char_end": 100,
+    "chunk_char_start": 0,
+    "chunk_id": "e2adfaf6-8c32-5689-8dad-db466d86b5a0",
+    "component_key": "extra_cost",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.crawling",
+    "span_id": "cf948fc3-0047-5997-a671-1d2cf7a163ca"
+   },
+   {
+    "chunk_char_end": 104,
+    "chunk_char_start": 0,
+    "chunk_id": "5bd77981-20a4-586e-8b18-debd2bb5cc78",
+    "component_key": "damage",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.concentration",
+    "span_id": "19b00fed-7270-50bc-8e32-a2fa4629efd0"
+   },
+   {
+    "chunk_char_end": 104,
+    "chunk_char_start": 0,
+    "chunk_id": "8ce2ed72-00c0-5f6b-a5ad-b2b333d46cfc",
+    "component_key": "swim_speed_use",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.swim_speed",
+    "span_id": "50445c7b-7b62-52cd-b007-bec9dedbc2fe"
+   },
+   {
+    "chunk_char_end": 105,
+    "chunk_char_start": 0,
+    "chunk_id": "b0673082-a512-5afc-8efe-4304872cebd5",
+    "component_key": "concentration_effects",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.concentration",
+    "span_id": "51c48e20-1fab-54d1-9a7f-fb2679e7e461"
+   },
+   {
+    "chunk_char_end": 113,
+    "chunk_char_start": 41,
+    "chunk_id": "ee9b5441-69a4-5080-a7a3-c1b5c1df14b3",
+    "component_key": "influence_advantage",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.friendly",
+    "span_id": "d63ec8b3-5b52-5417-8f00-a2e3b901968b"
+   },
+   {
+    "chunk_char_end": 116,
+    "chunk_char_start": 42,
+    "chunk_id": "03e372cc-c638-5529-ba74-8eeec257aad5",
+    "component_key": "influence_disadvantage",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.hostile",
+    "span_id": "df3249e4-aeb7-587c-878c-57a7192de63b"
+   },
+   {
+    "chunk_char_end": 127,
+    "chunk_char_start": 51,
+    "chunk_id": "799d99d3-4fa9-59c6-9a10-1b538c9d7487",
+    "component_key": "fly_speed_use",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.fly_speed",
+    "span_id": "88f36e2b-98d8-5db2-871f-ad019b570183"
+   },
+   {
+    "chunk_char_end": 146,
+    "chunk_char_start": 0,
+    "chunk_id": "8320df3b-71f9-5634-8d7a-6c4825dc0a6f",
+    "component_key": "climb_speed_use",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.climb_speed",
+    "span_id": "5a2e78ab-421b-5bea-b6fc-c5039906f797"
+   },
+   {
+    "chunk_char_end": 152,
+    "chunk_char_start": 46,
+    "chunk_id": "4833aa6b-0e74-577d-b913-8570a0b383ab",
+    "component_key": "falling",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.flying",
+    "span_id": "cecf5dc2-9511-5083-a109-80bb173a51c7"
+   },
+   {
+    "chunk_char_end": 167,
+    "chunk_char_start": 106,
+    "chunk_id": "b0673082-a512-5afc-8efe-4304872cebd5",
+    "component_key": "concentration_effects",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.concentration",
+    "span_id": "bf1d227d-4cab-57cc-bca4-b8e29e869c37"
+   },
+   {
+    "chunk_char_end": 172,
+    "chunk_char_start": 101,
+    "chunk_id": "94e8512e-cfec-5b27-9d0d-73a981a2f94c",
+    "component_key": "extra_cost",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.swimming",
+    "span_id": "2822e35a-9047-5000-a41d-49af31e61246"
+   },
+   {
+    "chunk_char_end": 174,
+    "chunk_char_start": 101,
+    "chunk_id": "1df7ca05-7090-5a0d-9ed4-e22fe56a69c7",
+    "component_key": "extra_cost",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.climbing",
+    "span_id": "5bebd5f5-1ad6-5b52-a6e8-5587f3dad5d7"
+   },
+   {
+    "chunk_char_end": 188,
+    "chunk_char_start": 0,
+    "chunk_id": "10b9db1e-682b-54f8-98db-d3c8f536821e",
+    "component_key": "another_concentration_effect",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.concentration",
+    "span_id": "a9cdab1c-64cd-5e33-b018-ef4dfd7ef979"
+   },
+   {
+    "chunk_char_end": 197,
+    "chunk_char_start": 96,
+    "chunk_id": "6e15d393-ede6-58ba-b330-5798a73069e6",
+    "component_key": "burrowing",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.burrow_speed",
+    "span_id": "6b366604-373a-5cbc-9317-0e14c8d11dd5"
+   },
+   {
+    "chunk_char_end": 212,
+    "chunk_char_start": 153,
+    "chunk_id": "4833aa6b-0e74-577d-b913-8570a0b383ab",
+    "component_key": "falling",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.flying",
+    "span_id": "c9db0c2d-7df2-59df-9121-32ecff1d10d4"
+   },
+   {
+    "chunk_char_end": 214,
+    "chunk_char_start": 105,
+    "chunk_id": "5bd77981-20a4-586e-8b18-debd2bb5cc78",
+    "component_key": "damage",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.concentration",
+    "span_id": "33be7cf5-97cb-5f92-b509-8726101c870a"
+   },
+   {
+    "chunk_char_end": 288,
+    "chunk_char_start": 173,
+    "chunk_id": "94e8512e-cfec-5b27-9d0d-73a981a2f94c",
+    "component_key": "rough_water",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "glossary.swimming",
+    "span_id": "06bab0fa-6558-55b2-ab3d-0bba9ef42bba"
+   },
+   {
+    "chunk_char_end": 309,
+    "chunk_char_start": 175,
+    "chunk_id": "1df7ca05-7090-5a0d-9ed4-e22fe56a69c7",
+    "component_key": "difficult_climb",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "glossary.climbing",
+    "span_id": "e0eb6a4e-a18f-5fdc-bd45-55b0419cf23c"
+   },
+   {
+    "chunk_char_end": 332,
+    "chunk_char_start": 168,
+    "chunk_id": "b0673082-a512-5afc-8efe-4304872cebd5",
+    "component_key": "maximum_duration",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.concentration",
+    "span_id": "e21d358f-7961-5571-a1cb-78373c503b42"
+   },
+   {
+    "chunk_char_end": 40,
+    "chunk_char_start": 0,
+    "chunk_id": "ee9b5441-69a4-5080-a7a3-c1b5c1df14b3",
+    "component_key": "disposition",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.friendly",
+    "span_id": "9729f1a0-7527-5a2a-83b9-46973ab9264d"
+   },
+   {
+    "chunk_char_end": 400,
+    "chunk_char_start": 333,
+    "chunk_id": "b0673082-a512-5afc-8efe-4304872cebd5",
+    "component_key": "end_at_will",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.concentration",
+    "span_id": "92b69ede-c37c-5ca3-8f19-310dfa9d4afd"
+   },
+   {
+    "chunk_char_end": 41,
+    "chunk_char_start": 0,
+    "chunk_id": "03e372cc-c638-5529-ba74-8eeec257aad5",
+    "component_key": "disposition",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.hostile",
+    "span_id": "ac0c1ee7-7ddc-593c-858f-18f6a4e99c0d"
+   },
+   {
+    "chunk_char_end": 50,
+    "chunk_char_start": 0,
+    "chunk_id": "799d99d3-4fa9-59c6-9a10-1b538c9d7487",
+    "component_key": "fly_speed_use",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.fly_speed",
+    "span_id": "33d3e633-76a7-5590-88f0-abaa8dfa77aa"
+   },
+   {
+    "chunk_char_end": 60,
+    "chunk_char_start": 0,
+    "chunk_id": "c2537066-0b1c-5bf9-826d-0632f6388472",
+    "component_key": "disposition",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.indifferent",
+    "span_id": "88ab6760-e294-5e65-9b4a-5e42da39fb6e"
+   },
+   {
+    "chunk_char_end": 82,
+    "chunk_char_start": 0,
+    "chunk_id": "a2212569-ed5d-5c35-8c8e-0d9b09147f83",
+    "component_key": "jump_kinds",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.jumping",
+    "span_id": "ebac0ab8-e2e1-5ce8-9468-991de6660ab4"
+   },
+   {
+    "chunk_char_end": 95,
+    "chunk_char_start": 0,
+    "chunk_id": "6e15d393-ede6-58ba-b330-5798a73069e6",
+    "component_key": "burrowing",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.burrow_speed",
+    "span_id": "22084937-21df-5639-a1c0-c797b3e719c0"
+   }
+  ],
+  "provenance": [
+   {
+    "role": "contextual",
+    "span_id": "06bab0fa-6558-55b2-ab3d-0bba9ef42bba",
+    "target_key": [
+     "glossary.swimming",
+     "rough_water",
+     "ca994917b65d0905"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0812d145-16a5-5e92-8c32-9682663495e5",
+    "target_key": [
+     "glossary.climbing",
+     "extra_cost",
+     "Difficult Terrain",
+     "srd-5.2.1/rules-glossary",
+     "glossary.difficult_terrain"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0812d145-16a5-5e92-8c32-9682663495e5",
+    "target_key": [
+     "glossary.climbing",
+     "extra_cost",
+     "a3e057ea5d438d09"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "09572948-d8a1-573e-8dfe-c79128fe3eda",
+    "target_key": [
+     "glossary.speed",
+     "",
+     "Climbing",
+     "srd-5.2.1/rules-glossary",
+     "glossary.climbing"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "09572948-d8a1-573e-8dfe-c79128fe3eda",
+    "target_key": [
+     "glossary.speed",
+     "",
+     "Combat",
+     "srd-5.2.1/playing-the-game",
+     "play.combat"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "09572948-d8a1-573e-8dfe-c79128fe3eda",
+    "target_key": [
+     "glossary.speed",
+     "",
+     "Crawling",
+     "srd-5.2.1/rules-glossary",
+     "glossary.crawling"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "09572948-d8a1-573e-8dfe-c79128fe3eda",
+    "target_key": [
+     "glossary.speed",
+     "",
+     "Flying",
+     "srd-5.2.1/rules-glossary",
+     "glossary.flying"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "09572948-d8a1-573e-8dfe-c79128fe3eda",
+    "target_key": [
+     "glossary.speed",
+     "",
+     "Jumping",
+     "srd-5.2.1/rules-glossary",
+     "glossary.jumping"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "09572948-d8a1-573e-8dfe-c79128fe3eda",
+    "target_key": [
+     "glossary.speed",
+     "",
+     "Swimming",
+     "srd-5.2.1/rules-glossary",
+     "glossary.swimming"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "145857bf-d5a6-569c-811b-3644fa041894",
+    "target_key": [
+     "glossary.flying",
+     "",
+     "Falling",
+     "srd-5.2.1/rules-glossary",
+     "glossary.falling"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "145857bf-d5a6-569c-811b-3644fa041894",
+    "target_key": [
+     "glossary.flying",
+     "falling",
+     "Fly Speed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.fly_speed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "14d3d17f-5720-53e5-a159-5c2d2d453b4b",
+    "target_key": [
+     "glossary.fly_speed",
+     "",
+     "Flying",
+     "srd-5.2.1/rules-glossary",
+     "glossary.flying"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "14d3d17f-5720-53e5-a159-5c2d2d453b4b",
+    "target_key": [
+     "glossary.fly_speed",
+     "",
+     "Speed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.speed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "1d50d92c-523f-51b6-9fbc-a7d4a36afd72",
+    "target_key": [
+     "glossary.speed",
+     "switching"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "1ec74b8a-51eb-51f6-b312-d95ea2a72608",
+    "target_key": [
+     "glossary.speed",
+     "changes_propagate",
+     "34ca484dd89df3de"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "1f14b449-764b-5088-aa82-f873f17d0d5a",
+    "target_key": [
+     "glossary.speed",
+     "changes_propagate"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "20b59ba7-e642-5495-9038-5cbbb0297e0b",
+    "target_key": [
+     "glossary.burrow_speed",
+     "",
+     "Speed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.speed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "2822e35a-9047-5000-a41d-49af31e61246",
+    "target_key": [
+     "glossary.swimming",
+     "extra_cost",
+     "Swim Speed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.swim_speed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "2822e35a-9047-5000-a41d-49af31e61246",
+    "target_key": [
+     "glossary.swimming",
+     "extra_cost",
+     "a3e057ea5d438d09"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "51c48e20-1fab-54d1-9a7f-fb2679e7e461",
+    "target_key": [
+     "glossary.concentration",
+     "concentration_effects",
+     "08d4572fe00ecf1e",
+     ""
+    ],
+    "target_kind": "fact_qualifier"
+   },
+   {
+    "role": "contextual",
+    "span_id": "51c48e20-1fab-54d1-9a7f-fb2679e7e461",
+    "target_key": [
+     "glossary.concentration",
+     "concentration_effects",
+     "08d4572fe00ecf1e"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "51c48e20-1fab-54d1-9a7f-fb2679e7e461",
+    "target_key": [
+     "glossary.concentration",
+     "concentration_effects",
+     "97d8386ce7f85d18"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "5bebd5f5-1ad6-5b52-a6e8-5587f3dad5d7",
+    "target_key": [
+     "glossary.climbing",
+     "extra_cost",
+     "Climb Speed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.climb_speed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "5bebd5f5-1ad6-5b52-a6e8-5587f3dad5d7",
+    "target_key": [
+     "glossary.climbing",
+     "extra_cost",
+     "a3e057ea5d438d09"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "5f6b8f87-3e52-5214-a7da-c4f3d5bf722d",
+    "target_key": [
+     "glossary.concentration",
+     "another_concentration_effect"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "5f6b8f87-3e52-5214-a7da-c4f3d5bf722d",
+    "target_key": [
+     "glossary.concentration",
+     "damage"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "5f6b8f87-3e52-5214-a7da-c4f3d5bf722d",
+    "target_key": [
+     "glossary.concentration",
+     "incapacitated_or_dead"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "62c4d342-9259-56a3-a55f-2355d030202d",
+    "target_key": [
+     "glossary.speed",
+     "definition",
+     "914a54e5de269f65"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "6cbe81c3-b9d8-586e-aa95-fe4acc945b65",
+    "target_key": [
+     "glossary.friendly",
+     "",
+     "Influence",
+     "srd-5.2.1/rules-glossary",
+     "glossary.influence"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "6e7472a3-7677-517c-99e9-b506774e9580",
+    "target_key": [
+     "glossary.speed",
+     "switching",
+     "a032d62d4775e314"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "70ac6fc1-ef63-5b46-b762-b931b5728f91",
+    "target_key": [
+     "glossary.climb_speed",
+     "",
+     "Climbing",
+     "srd-5.2.1/rules-glossary",
+     "glossary.climbing"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "70ac6fc1-ef63-5b46-b762-b931b5728f91",
+    "target_key": [
+     "glossary.climb_speed",
+     "",
+     "Speed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.speed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "7ed58b4b-a734-5b56-8f72-6abdf9cc0cd8",
+    "target_key": [
+     "glossary.flying",
+     "falling"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "8803e938-afa7-5aee-bb05-c2116c9d3e8a",
+    "target_key": [
+     "glossary.concentration",
+     "incapacitated_or_dead",
+     "291608048c4d913a"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "8803e938-afa7-5aee-bb05-c2116c9d3e8a",
+    "target_key": [
+     "glossary.concentration",
+     "incapacitated_or_dead",
+     "Incapacitated",
+     "srd-5.2.1/rules-glossary",
+     "glossary.incapacitated"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "8e77d6af-3189-5442-935a-12a447d43c8b",
+    "target_key": [
+     "glossary.speed",
+     "special_speeds",
+     "1f1c43e2bcf12c9b"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "8e77d6af-3189-5442-935a-12a447d43c8b",
+    "target_key": [
+     "glossary.speed",
+     "special_speeds",
+     "39233c12435680cf"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "8e77d6af-3189-5442-935a-12a447d43c8b",
+    "target_key": [
+     "glossary.speed",
+     "special_speeds",
+     "8f915ca769180442"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "8e77d6af-3189-5442-935a-12a447d43c8b",
+    "target_key": [
+     "glossary.speed",
+     "special_speeds",
+     "Burrow Speed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.burrow_speed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "8e77d6af-3189-5442-935a-12a447d43c8b",
+    "target_key": [
+     "glossary.speed",
+     "special_speeds",
+     "Climb Speed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.climb_speed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "8e77d6af-3189-5442-935a-12a447d43c8b",
+    "target_key": [
+     "glossary.speed",
+     "special_speeds",
+     "Fly Speed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.fly_speed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "8e77d6af-3189-5442-935a-12a447d43c8b",
+    "target_key": [
+     "glossary.speed",
+     "special_speeds",
+     "Swim Speed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.swim_speed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "8e77d6af-3189-5442-935a-12a447d43c8b",
+    "target_key": [
+     "glossary.speed",
+     "special_speeds",
+     "d63b59cf59df0573"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "92b69ede-c37c-5ca3-8f19-310dfa9d4afd",
+    "target_key": [
+     "glossary.concentration",
+     "end_at_will",
+     "05be3b1992abae47"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "92e7ae0c-1a35-5980-ae54-3bbfe81c18d6",
+    "target_key": [
+     "glossary.indifferent",
+     "default_attitude",
+     "390ab69baf5b1cf2"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "92e8dae8-d0db-56cd-9928-542a8e5d7fdd",
+    "target_key": [
+     "glossary.swim_speed",
+     "",
+     "Speed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.speed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "92e8dae8-d0db-56cd-9928-542a8e5d7fdd",
+    "target_key": [
+     "glossary.swim_speed",
+     "",
+     "Swimming",
+     "srd-5.2.1/rules-glossary",
+     "glossary.swimming"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "9a727342-c735-54b9-b4c3-e13b5f7ff620",
+    "target_key": [
+     "glossary.indifferent",
+     "",
+     "Influence",
+     "srd-5.2.1/rules-glossary",
+     "glossary.influence"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ac71e3f9-ab3b-563c-89e1-893854504ac3",
+    "target_key": [
+     "glossary.speed",
+     "speed_selection",
+     "257515e28b0731a4"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ac71e3f9-ab3b-563c-89e1-893854504ac3",
+    "target_key": [
+     "glossary.speed",
+     "speed_selection",
+     "d0989a0d3ec89589"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "be58a300-e5a0-5c76-833d-d5c2ef0d9e13",
+    "target_key": [
+     "glossary.speed",
+     "switching",
+     "a032d62d4775e314"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "bf1d227d-4cab-57cc-bca4-b8e29e869c37",
+    "target_key": [
+     "glossary.concentration",
+     "concentration_effects",
+     "08d4572fe00ecf1e",
+     ""
+    ],
+    "target_kind": "fact_qualifier"
+   },
+   {
+    "role": "contextual",
+    "span_id": "bf1d227d-4cab-57cc-bca4-b8e29e869c37",
+    "target_key": [
+     "glossary.concentration",
+     "concentration_effects",
+     "08d4572fe00ecf1e"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "bf1d227d-4cab-57cc-bca4-b8e29e869c37",
+    "target_key": [
+     "glossary.concentration",
+     "concentration_effects",
+     "97d8386ce7f85d18"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "bfe2d766-4325-57b5-b4de-a1dc5bf7e7bf",
+    "target_key": [
+     "glossary.hostile",
+     "",
+     "Influence",
+     "srd-5.2.1/rules-glossary",
+     "glossary.influence"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "c45f997d-68e6-500e-95e5-b0b31d920c08",
+    "target_key": [
+     "glossary.speed",
+     "changes_propagate"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "cecf5dc2-9511-5083-a109-80bb173a51c7",
+    "target_key": [
+     "glossary.flying",
+     "falling",
+     "Fly Speed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.fly_speed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "cecf5dc2-9511-5083-a109-80bb173a51c7",
+    "target_key": [
+     "glossary.flying",
+     "falling",
+     "Incapacitated",
+     "srd-5.2.1/rules-glossary",
+     "glossary.incapacitated"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "cecf5dc2-9511-5083-a109-80bb173a51c7",
+    "target_key": [
+     "glossary.flying",
+     "falling",
+     "Prone",
+     "srd-5.2.1/rules-glossary",
+     "glossary.prone"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "cf948fc3-0047-5997-a671-1d2cf7a163ca",
+    "target_key": [
+     "glossary.crawling",
+     "extra_cost",
+     "Difficult Terrain",
+     "srd-5.2.1/rules-glossary",
+     "glossary.difficult_terrain"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "cf948fc3-0047-5997-a671-1d2cf7a163ca",
+    "target_key": [
+     "glossary.crawling",
+     "extra_cost",
+     "a3e057ea5d438d09"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "da1f4234-0cf0-5077-81cd-2fa1e9caeb77",
+    "target_key": [
+     "glossary.jumping",
+     "jump_kinds",
+     "High Jump",
+     "srd-5.2.1/rules-glossary",
+     "glossary.high_jump"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "da1f4234-0cf0-5077-81cd-2fa1e9caeb77",
+    "target_key": [
+     "glossary.jumping",
+     "jump_kinds",
+     "Long Jump",
+     "srd-5.2.1/rules-glossary",
+     "glossary.long_jump"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "df75c526-7e9c-53c1-b145-427df7a8355e",
+    "target_key": [
+     "glossary.swimming",
+     "extra_cost",
+     "Difficult Terrain",
+     "srd-5.2.1/rules-glossary",
+     "glossary.difficult_terrain"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "df75c526-7e9c-53c1-b145-427df7a8355e",
+    "target_key": [
+     "glossary.swimming",
+     "extra_cost",
+     "a3e057ea5d438d09"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "e0eb6a4e-a18f-5fdc-bd45-55b0419cf23c",
+    "target_key": [
+     "glossary.climbing",
+     "difficult_climb",
+     "ca994917b65d0905"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "eb05a128-b9c3-582a-b0a8-f1b14e2a953a",
+    "target_key": [
+     "glossary.speed",
+     "switching",
+     "a032d62d4775e314"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ebac0ab8-e2e1-5ce8-9468-991de6660ab4",
+    "target_key": [
+     "glossary.jumping",
+     "jump_kinds",
+     "High Jump",
+     "srd-5.2.1/rules-glossary",
+     "glossary.high_jump"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ebac0ab8-e2e1-5ce8-9468-991de6660ab4",
+    "target_key": [
+     "glossary.jumping",
+     "jump_kinds",
+     "Long Jump",
+     "srd-5.2.1/rules-glossary",
+     "glossary.long_jump"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "f8ee28d8-5af9-5595-b760-ed1a636d13db",
+    "target_key": [
+     "glossary.crawling",
+     "",
+     "Speed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.speed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "primary",
+    "span_id": "06bab0fa-6558-55b2-ab3d-0bba9ef42bba",
+    "target_key": [
+     "glossary.swimming",
+     "rough_water",
+     "94e8512e-cfec-5b27-9d0d-73a981a2f94c",
+     "06bab0fa-6558-55b2-ab3d-0bba9ef42bba",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "0812d145-16a5-5e92-8c32-9682663495e5",
+    "target_key": [
+     "glossary.climbing",
+     "extra_cost",
+     "1df7ca05-7090-5a0d-9ed4-e22fe56a69c7",
+     "0812d145-16a5-5e92-8c32-9682663495e5",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "19b00fed-7270-50bc-8e32-a2fa4629efd0",
+    "target_key": [
+     "glossary.concentration",
+     "damage",
+     "5bd77981-20a4-586e-8b18-debd2bb5cc78",
+     "19b00fed-7270-50bc-8e32-a2fa4629efd0",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "1ec74b8a-51eb-51f6-b312-d95ea2a72608",
+    "target_key": [
+     "glossary.speed",
+     "changes_propagate"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "22084937-21df-5639-a1c0-c797b3e719c0",
+    "target_key": [
+     "glossary.burrow_speed",
+     "burrowing",
+     "6e15d393-ede6-58ba-b330-5798a73069e6",
+     "22084937-21df-5639-a1c0-c797b3e719c0",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "2822e35a-9047-5000-a41d-49af31e61246",
+    "target_key": [
+     "glossary.swimming",
+     "extra_cost",
+     "94e8512e-cfec-5b27-9d0d-73a981a2f94c",
+     "2822e35a-9047-5000-a41d-49af31e61246",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "33be7cf5-97cb-5f92-b509-8726101c870a",
+    "target_key": [
+     "glossary.concentration",
+     "damage",
+     "5bd77981-20a4-586e-8b18-debd2bb5cc78",
+     "33be7cf5-97cb-5f92-b509-8726101c870a",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "33d3e633-76a7-5590-88f0-abaa8dfa77aa",
+    "target_key": [
+     "glossary.fly_speed",
+     "fly_speed_use",
+     "799d99d3-4fa9-59c6-9a10-1b538c9d7487",
+     "33d3e633-76a7-5590-88f0-abaa8dfa77aa",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "50445c7b-7b62-52cd-b007-bec9dedbc2fe",
+    "target_key": [
+     "glossary.swim_speed",
+     "swim_speed_use",
+     "8ce2ed72-00c0-5f6b-a5ad-b2b333d46cfc",
+     "50445c7b-7b62-52cd-b007-bec9dedbc2fe",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "51c48e20-1fab-54d1-9a7f-fb2679e7e461",
+    "target_key": [
+     "glossary.concentration",
+     "concentration_effects",
+     "b0673082-a512-5afc-8efe-4304872cebd5",
+     "51c48e20-1fab-54d1-9a7f-fb2679e7e461",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "5a2e78ab-421b-5bea-b6fc-c5039906f797",
+    "target_key": [
+     "glossary.climb_speed",
+     "climb_speed_use",
+     "8320df3b-71f9-5634-8d7a-6c4825dc0a6f",
+     "5a2e78ab-421b-5bea-b6fc-c5039906f797",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "5bebd5f5-1ad6-5b52-a6e8-5587f3dad5d7",
+    "target_key": [
+     "glossary.climbing",
+     "extra_cost",
+     "1df7ca05-7090-5a0d-9ed4-e22fe56a69c7",
+     "5bebd5f5-1ad6-5b52-a6e8-5587f3dad5d7",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "62c4d342-9259-56a3-a55f-2355d030202d",
+    "target_key": [
+     "glossary.speed",
+     "definition"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "6b366604-373a-5cbc-9317-0e14c8d11dd5",
+    "target_key": [
+     "glossary.burrow_speed",
+     "burrowing",
+     "6e15d393-ede6-58ba-b330-5798a73069e6",
+     "6b366604-373a-5cbc-9317-0e14c8d11dd5",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "6e7472a3-7677-517c-99e9-b506774e9580",
+    "target_key": [
+     "glossary.speed",
+     "switching"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "8803e938-afa7-5aee-bb05-c2116c9d3e8a",
+    "target_key": [
+     "glossary.concentration",
+     "incapacitated_or_dead"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "88ab6760-e294-5e65-9b4a-5e42da39fb6e",
+    "target_key": [
+     "glossary.indifferent",
+     "disposition",
+     "c2537066-0b1c-5bf9-826d-0632f6388472",
+     "88ab6760-e294-5e65-9b4a-5e42da39fb6e",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "88f36e2b-98d8-5db2-871f-ad019b570183",
+    "target_key": [
+     "glossary.fly_speed",
+     "fly_speed_use",
+     "799d99d3-4fa9-59c6-9a10-1b538c9d7487",
+     "88f36e2b-98d8-5db2-871f-ad019b570183",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "8e77d6af-3189-5442-935a-12a447d43c8b",
+    "target_key": [
+     "glossary.speed",
+     "special_speeds"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "92b69ede-c37c-5ca3-8f19-310dfa9d4afd",
+    "target_key": [
+     "glossary.concentration",
+     "end_at_will",
+     "b0673082-a512-5afc-8efe-4304872cebd5",
+     "92b69ede-c37c-5ca3-8f19-310dfa9d4afd",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "92e7ae0c-1a35-5980-ae54-3bbfe81c18d6",
+    "target_key": [
+     "glossary.indifferent",
+     "default_attitude"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "9729f1a0-7527-5a2a-83b9-46973ab9264d",
+    "target_key": [
+     "glossary.friendly",
+     "disposition",
+     "ee9b5441-69a4-5080-a7a3-c1b5c1df14b3",
+     "9729f1a0-7527-5a2a-83b9-46973ab9264d",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "a9cdab1c-64cd-5e33-b018-ef4dfd7ef979",
+    "target_key": [
+     "glossary.concentration",
+     "another_concentration_effect",
+     "10b9db1e-682b-54f8-98db-d3c8f536821e",
+     "a9cdab1c-64cd-5e33-b018-ef4dfd7ef979",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "ac0c1ee7-7ddc-593c-858f-18f6a4e99c0d",
+    "target_key": [
+     "glossary.hostile",
+     "disposition",
+     "03e372cc-c638-5529-ba74-8eeec257aad5",
+     "ac0c1ee7-7ddc-593c-858f-18f6a4e99c0d",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "ac71e3f9-ab3b-563c-89e1-893854504ac3",
+    "target_key": [
+     "glossary.speed",
+     "speed_selection"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "be58a300-e5a0-5c76-833d-d5c2ef0d9e13",
+    "target_key": [
+     "glossary.speed",
+     "switching"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "bf1d227d-4cab-57cc-bca4-b8e29e869c37",
+    "target_key": [
+     "glossary.concentration",
+     "concentration_effects",
+     "b0673082-a512-5afc-8efe-4304872cebd5",
+     "bf1d227d-4cab-57cc-bca4-b8e29e869c37",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "c9db0c2d-7df2-59df-9121-32ecff1d10d4",
+    "target_key": [
+     "glossary.flying",
+     "falling",
+     "4833aa6b-0e74-577d-b913-8570a0b383ab",
+     "c9db0c2d-7df2-59df-9121-32ecff1d10d4",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "cecf5dc2-9511-5083-a109-80bb173a51c7",
+    "target_key": [
+     "glossary.flying",
+     "falling",
+     "4833aa6b-0e74-577d-b913-8570a0b383ab",
+     "cecf5dc2-9511-5083-a109-80bb173a51c7",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "cf948fc3-0047-5997-a671-1d2cf7a163ca",
+    "target_key": [
+     "glossary.crawling",
+     "extra_cost",
+     "e2adfaf6-8c32-5689-8dad-db466d86b5a0",
+     "cf948fc3-0047-5997-a671-1d2cf7a163ca",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "d63ec8b3-5b52-5417-8f00-a2e3b901968b",
+    "target_key": [
+     "glossary.friendly",
+     "influence_advantage",
+     "ee9b5441-69a4-5080-a7a3-c1b5c1df14b3",
+     "d63ec8b3-5b52-5417-8f00-a2e3b901968b",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "df3249e4-aeb7-587c-878c-57a7192de63b",
+    "target_key": [
+     "glossary.hostile",
+     "influence_disadvantage",
+     "03e372cc-c638-5529-ba74-8eeec257aad5",
+     "df3249e4-aeb7-587c-878c-57a7192de63b",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "df75c526-7e9c-53c1-b145-427df7a8355e",
+    "target_key": [
+     "glossary.swimming",
+     "extra_cost",
+     "94e8512e-cfec-5b27-9d0d-73a981a2f94c",
+     "df75c526-7e9c-53c1-b145-427df7a8355e",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "e0eb6a4e-a18f-5fdc-bd45-55b0419cf23c",
+    "target_key": [
+     "glossary.climbing",
+     "difficult_climb",
+     "1df7ca05-7090-5a0d-9ed4-e22fe56a69c7",
+     "e0eb6a4e-a18f-5fdc-bd45-55b0419cf23c",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "e21d358f-7961-5571-a1cb-78373c503b42",
+    "target_key": [
+     "glossary.concentration",
+     "maximum_duration",
+     "b0673082-a512-5afc-8efe-4304872cebd5",
+     "e21d358f-7961-5571-a1cb-78373c503b42",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "eb05a128-b9c3-582a-b0a8-f1b14e2a953a",
+    "target_key": [
+     "glossary.speed",
+     "switching"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "ebac0ab8-e2e1-5ce8-9468-991de6660ab4",
+    "target_key": [
+     "glossary.jumping",
+     "jump_kinds",
+     "a2212569-ed5d-5c35-8c8e-0d9b09147f83",
+     "ebac0ab8-e2e1-5ce8-9468-991de6660ab4",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   }
+  ],
+  "records": [
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.burrow_speed"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.climb_speed"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.climbing"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.concentration"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.crawling"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.fly_speed"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.flying"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.friendly"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.hostile"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.indifferent"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.jumping"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.speed"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.swim_speed"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.swimming"
+   }
+  ],
+  "references": [
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.burrow_speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Speed",
+    "target_record_key": "glossary.speed"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.climb_speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Climbing",
+    "target_record_key": "glossary.climbing"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.climb_speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Speed",
+    "target_record_key": "glossary.speed"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.crawling",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Speed",
+    "target_record_key": "glossary.speed"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.fly_speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Flying",
+    "target_record_key": "glossary.flying"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.fly_speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Speed",
+    "target_record_key": "glossary.speed"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.flying",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Falling",
+    "target_record_key": "glossary.falling"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.friendly",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Influence",
+    "target_record_key": "glossary.influence"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.hostile",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Influence",
+    "target_record_key": "glossary.influence"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.indifferent",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Influence",
+    "target_record_key": "glossary.influence"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.speed",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "Combat",
+    "target_record_key": "play.combat"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Climbing",
+    "target_record_key": "glossary.climbing"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Crawling",
+    "target_record_key": "glossary.crawling"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Flying",
+    "target_record_key": "glossary.flying"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Jumping",
+    "target_record_key": "glossary.jumping"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Swimming",
+    "target_record_key": "glossary.swimming"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.swim_speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Speed",
+    "target_record_key": "glossary.speed"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.swim_speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Swimming",
+    "target_record_key": "glossary.swimming"
+   },
+   {
+    "from_component_key": "extra_cost",
+    "from_record_key": "glossary.climbing",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Climb Speed",
+    "target_record_key": "glossary.climb_speed"
+   },
+   {
+    "from_component_key": "extra_cost",
+    "from_record_key": "glossary.climbing",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Difficult Terrain",
+    "target_record_key": "glossary.difficult_terrain"
+   },
+   {
+    "from_component_key": "extra_cost",
+    "from_record_key": "glossary.crawling",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Difficult Terrain",
+    "target_record_key": "glossary.difficult_terrain"
+   },
+   {
+    "from_component_key": "extra_cost",
+    "from_record_key": "glossary.swimming",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Difficult Terrain",
+    "target_record_key": "glossary.difficult_terrain"
+   },
+   {
+    "from_component_key": "extra_cost",
+    "from_record_key": "glossary.swimming",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Swim Speed",
+    "target_record_key": "glossary.swim_speed"
+   },
+   {
+    "from_component_key": "falling",
+    "from_record_key": "glossary.flying",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Fly Speed",
+    "target_record_key": "glossary.fly_speed"
+   },
+   {
+    "from_component_key": "falling",
+    "from_record_key": "glossary.flying",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Incapacitated",
+    "target_record_key": "glossary.incapacitated"
+   },
+   {
+    "from_component_key": "falling",
+    "from_record_key": "glossary.flying",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Prone",
+    "target_record_key": "glossary.prone"
+   },
+   {
+    "from_component_key": "incapacitated_or_dead",
+    "from_record_key": "glossary.concentration",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Incapacitated",
+    "target_record_key": "glossary.incapacitated"
+   },
+   {
+    "from_component_key": "jump_kinds",
+    "from_record_key": "glossary.jumping",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "High Jump",
+    "target_record_key": "glossary.high_jump"
+   },
+   {
+    "from_component_key": "jump_kinds",
+    "from_record_key": "glossary.jumping",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Long Jump",
+    "target_record_key": "glossary.long_jump"
+   },
+   {
+    "from_component_key": "special_speeds",
+    "from_record_key": "glossary.speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Burrow Speed",
+    "target_record_key": "glossary.burrow_speed"
+   },
+   {
+    "from_component_key": "special_speeds",
+    "from_record_key": "glossary.speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Climb Speed",
+    "target_record_key": "glossary.climb_speed"
+   },
+   {
+    "from_component_key": "special_speeds",
+    "from_record_key": "glossary.speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Fly Speed",
+    "target_record_key": "glossary.fly_speed"
+   },
+   {
+    "from_component_key": "special_speeds",
+    "from_record_key": "glossary.speed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Swim Speed",
+    "target_record_key": "glossary.swim_speed"
+   }
+  ],
+  "relationships": []
+ },
+ "proposed_review_units": [
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "93f27121-2faa-5034-baec-1492349252ca"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "burrowing",
+     "record_key": "glossary.burrow_speed",
+     "source_span_ids": [
+      "22084937-21df-5639-a1c0-c797b3e719c0",
+      "6b366604-373a-5cbc-9317-0e14c8d11dd5"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "74d0a87f-3b14-501e-bc68-22d83b5106fb",
+    "93f27121-2faa-5034-baec-1492349252ca"
+   ],
+   "supporting_groups": [],
+   "unit_id": "reference-closure/burrow_speed"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "b5c673a2-18ec-592b-a951-67c0d31e51b9"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "climb_speed_use",
+     "record_key": "glossary.climb_speed",
+     "source_span_ids": [
+      "5a2e78ab-421b-5bea-b6fc-c5039906f797"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "67e4c778-f1c6-57ac-95ee-67b97bd02512",
+    "b5c673a2-18ec-592b-a951-67c0d31e51b9"
+   ],
+   "supporting_groups": [],
+   "unit_id": "reference-closure/climb_speed"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "567569e6-eb94-53ed-843b-9d886cec5ff6"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "difficult_climb",
+     "record_key": "glossary.climbing",
+     "source_span_ids": [
+      "e0eb6a4e-a18f-5fdc-bd45-55b0419cf23c"
+     ]
+    },
+    {
+     "component_key": "difficult_climb",
+     "fact_family": "ability_check",
+     "record_key": "glossary.climbing",
+     "source_span_ids": [
+      "e0eb6a4e-a18f-5fdc-bd45-55b0419cf23c"
+     ]
+    },
+    {
+     "component_key": "extra_cost",
+     "record_key": "glossary.climbing",
+     "source_span_ids": [
+      "0812d145-16a5-5e92-8c32-9682663495e5",
+      "5bebd5f5-1ad6-5b52-a6e8-5587f3dad5d7"
+     ]
+    },
+    {
+     "component_key": "extra_cost",
+     "fact_family": "movement_cost",
+     "record_key": "glossary.climbing",
+     "source_span_ids": [
+      "0812d145-16a5-5e92-8c32-9682663495e5",
+      "5bebd5f5-1ad6-5b52-a6e8-5587f3dad5d7"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "1b46881c-9983-5fa3-80a0-d9143ea14fa9",
+    "567569e6-eb94-53ed-843b-9d886cec5ff6"
+   ],
+   "supporting_groups": [],
+   "unit_id": "reference-closure/climbing"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "5d4da7c1-072e-5521-9015-14a846b1128f"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "another_concentration_effect",
+     "record_key": "glossary.concentration",
+     "source_span_ids": [
+      "a9cdab1c-64cd-5e33-b018-ef4dfd7ef979"
+     ]
+    },
+    {
+     "component_key": "concentration_effects",
+     "record_key": "glossary.concentration",
+     "source_span_ids": [
+      "51c48e20-1fab-54d1-9a7f-fb2679e7e461",
+      "bf1d227d-4cab-57cc-bca4-b8e29e869c37"
+     ]
+    },
+    {
+     "component_key": "concentration_effects",
+     "fact_family": "effect_termination",
+     "record_key": "glossary.concentration",
+     "source_span_ids": [
+      "51c48e20-1fab-54d1-9a7f-fb2679e7e461",
+      "bf1d227d-4cab-57cc-bca4-b8e29e869c37"
+     ]
+    },
+    {
+     "component_key": "concentration_effects",
+     "fact_family": "sustained_state_requirement",
+     "record_key": "glossary.concentration",
+     "source_span_ids": [
+      "51c48e20-1fab-54d1-9a7f-fb2679e7e461",
+      "bf1d227d-4cab-57cc-bca4-b8e29e869c37"
+     ]
+    },
+    {
+     "component_key": "damage",
+     "record_key": "glossary.concentration",
+     "source_span_ids": [
+      "19b00fed-7270-50bc-8e32-a2fa4629efd0",
+      "33be7cf5-97cb-5f92-b509-8726101c870a"
+     ]
+    },
+    {
+     "component_key": "end_at_will",
+     "record_key": "glossary.concentration",
+     "source_span_ids": [
+      "92b69ede-c37c-5ca3-8f19-310dfa9d4afd"
+     ]
+    },
+    {
+     "component_key": "end_at_will",
+     "fact_family": "action_economy",
+     "record_key": "glossary.concentration",
+     "source_span_ids": [
+      "92b69ede-c37c-5ca3-8f19-310dfa9d4afd"
+     ]
+    },
+    {
+     "component_key": "incapacitated_or_dead",
+     "fact_family": "state_effect",
+     "record_key": "glossary.concentration",
+     "source_span_ids": [
+      "8803e938-afa7-5aee-bb05-c2116c9d3e8a"
+     ]
+    },
+    {
+     "component_key": "maximum_duration",
+     "record_key": "glossary.concentration",
+     "source_span_ids": [
+      "e21d358f-7961-5571-a1cb-78373c503b42"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "3869beb1-40e2-577b-b385-8b0f74c04f8c",
+    "5d4da7c1-072e-5521-9015-14a846b1128f",
+    "69a428ba-7141-5c28-8987-3c034d535280",
+    "71e36686-53cf-57ef-8583-8a3aaa8ed7d1",
+    "e99ddb9e-b862-5241-8549-f3ab63e6046f"
+   ],
+   "supporting_groups": [],
+   "unit_id": "reference-closure/concentration"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "3c38b127-0e64-51b2-93aa-3d008228a151"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "extra_cost",
+     "record_key": "glossary.crawling",
+     "source_span_ids": [
+      "cf948fc3-0047-5997-a671-1d2cf7a163ca"
+     ]
+    },
+    {
+     "component_key": "extra_cost",
+     "fact_family": "movement_cost",
+     "record_key": "glossary.crawling",
+     "source_span_ids": [
+      "cf948fc3-0047-5997-a671-1d2cf7a163ca"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "3c38b127-0e64-51b2-93aa-3d008228a151",
+    "a94c4bd4-0ce4-5567-9756-a15b75a9914f"
+   ],
+   "supporting_groups": [],
+   "unit_id": "reference-closure/crawling"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "6bcb3784-e4ce-5080-995e-3b1041f6dc80"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "fly_speed_use",
+     "record_key": "glossary.fly_speed",
+     "source_span_ids": [
+      "33d3e633-76a7-5590-88f0-abaa8dfa77aa",
+      "88f36e2b-98d8-5db2-871f-ad019b570183"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "6bcb3784-e4ce-5080-995e-3b1041f6dc80",
+    "bf0cc15f-8f77-5d2d-9648-f0d517de2676"
+   ],
+   "supporting_groups": [],
+   "unit_id": "reference-closure/fly_speed"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "6c8e2873-f0c8-5deb-b0c7-3e9c22eb272a"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "falling",
+     "record_key": "glossary.flying",
+     "source_span_ids": [
+      "c9db0c2d-7df2-59df-9121-32ecff1d10d4",
+      "cecf5dc2-9511-5083-a109-80bb173a51c7"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "20393980-c7b3-5e67-8c92-a61c7faf2cce",
+    "6c8e2873-f0c8-5deb-b0c7-3e9c22eb272a"
+   ],
+   "supporting_groups": [],
+   "unit_id": "reference-closure/flying"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "75f20a10-f0cf-5117-add9-2074a45062ed"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "disposition",
+     "record_key": "glossary.friendly",
+     "source_span_ids": [
+      "9729f1a0-7527-5a2a-83b9-46973ab9264d"
+     ]
+    },
+    {
+     "component_key": "influence_advantage",
+     "record_key": "glossary.friendly",
+     "source_span_ids": [
+      "d63ec8b3-5b52-5417-8f00-a2e3b901968b"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "75f20a10-f0cf-5117-add9-2074a45062ed",
+    "9a671ef0-99b3-55a8-b696-ee6d44ea7bf1"
+   ],
+   "supporting_groups": [],
+   "unit_id": "reference-closure/friendly"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "e4587cac-8bba-502d-a006-46824109303c"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "disposition",
+     "record_key": "glossary.hostile",
+     "source_span_ids": [
+      "ac0c1ee7-7ddc-593c-858f-18f6a4e99c0d"
+     ]
+    },
+    {
+     "component_key": "influence_disadvantage",
+     "record_key": "glossary.hostile",
+     "source_span_ids": [
+      "df3249e4-aeb7-587c-878c-57a7192de63b"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "2ba1e0b6-2e2d-52f2-be13-7313e11f351c",
+    "e4587cac-8bba-502d-a006-46824109303c"
+   ],
+   "supporting_groups": [],
+   "unit_id": "reference-closure/hostile"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "02f8895a-ea01-5c6a-8e1d-b62074ccaaed"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "default_attitude",
+     "fact_family": "default_attitude",
+     "record_key": "glossary.indifferent",
+     "source_span_ids": [
+      "92e7ae0c-1a35-5980-ae54-3bbfe81c18d6"
+     ]
+    },
+    {
+     "component_key": "disposition",
+     "record_key": "glossary.indifferent",
+     "source_span_ids": [
+      "88ab6760-e294-5e65-9b4a-5e42da39fb6e"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "02f8895a-ea01-5c6a-8e1d-b62074ccaaed",
+    "4b2cb462-f4e1-5da8-9c17-70031b2be1e1"
+   ],
+   "supporting_groups": [],
+   "unit_id": "reference-closure/indifferent"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "f79da7f6-f6b7-547a-9421-807edc1094ff"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "jump_kinds",
+     "record_key": "glossary.jumping",
+     "source_span_ids": [
+      "ebac0ab8-e2e1-5ce8-9468-991de6660ab4"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "f79da7f6-f6b7-547a-9421-807edc1094ff",
+    "fa1f259e-e1b8-5912-b8cd-b1c0a8a0acae"
+   ],
+   "supporting_groups": [],
+   "unit_id": "reference-closure/jumping"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "1cc83243-a4ea-5030-92b1-5e775919a4b1"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "changes_propagate",
+     "fact_family": "speed_change_propagation",
+     "record_key": "glossary.speed",
+     "source_span_ids": [
+      "1ec74b8a-51eb-51f6-b312-d95ea2a72608"
+     ]
+    },
+    {
+     "component_key": "definition",
+     "fact_family": "speed_definition",
+     "record_key": "glossary.speed",
+     "source_span_ids": [
+      "62c4d342-9259-56a3-a55f-2355d030202d"
+     ]
+    },
+    {
+     "component_key": "special_speeds",
+     "fact_family": "special_speed",
+     "record_key": "glossary.speed",
+     "source_span_ids": [
+      "8e77d6af-3189-5442-935a-12a447d43c8b"
+     ]
+    },
+    {
+     "component_key": "speed_selection",
+     "fact_family": "speed_selection",
+     "record_key": "glossary.speed",
+     "source_span_ids": [
+      "ac71e3f9-ab3b-563c-89e1-893854504ac3"
+     ]
+    },
+    {
+     "component_key": "switching",
+     "fact_family": "speed_switch_limit",
+     "record_key": "glossary.speed",
+     "source_span_ids": [
+      "6e7472a3-7677-517c-99e9-b506774e9580",
+      "be58a300-e5a0-5c76-833d-d5c2ef0d9e13",
+      "eb05a128-b9c3-582a-b0a8-f1b14e2a953a"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "1cc83243-a4ea-5030-92b1-5e775919a4b1",
+    "67976b21-f693-572f-9eb3-0e1b4be5cb35",
+    "a920c9c5-4328-534a-a472-016987e1477f",
+    "d2dc1fef-ec20-573f-8866-d1b41c4c2608"
+   ],
+   "supporting_groups": [],
+   "unit_id": "reference-closure/speed"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "ae6c067b-95ec-5e80-abb0-8247e9d79758"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "swim_speed_use",
+     "record_key": "glossary.swim_speed",
+     "source_span_ids": [
+      "50445c7b-7b62-52cd-b007-bec9dedbc2fe"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "ae6c067b-95ec-5e80-abb0-8247e9d79758",
+    "cc62dc68-a6fa-551b-ab7d-bc5005e97f4f"
+   ],
+   "supporting_groups": [],
+   "unit_id": "reference-closure/swim_speed"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "25e749e6-7ea0-571e-a28d-d796c49fc50a"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "extra_cost",
+     "record_key": "glossary.swimming",
+     "source_span_ids": [
+      "2822e35a-9047-5000-a41d-49af31e61246",
+      "df75c526-7e9c-53c1-b145-427df7a8355e"
+     ]
+    },
+    {
+     "component_key": "extra_cost",
+     "fact_family": "movement_cost",
+     "record_key": "glossary.swimming",
+     "source_span_ids": [
+      "2822e35a-9047-5000-a41d-49af31e61246",
+      "df75c526-7e9c-53c1-b145-427df7a8355e"
+     ]
+    },
+    {
+     "component_key": "rough_water",
+     "record_key": "glossary.swimming",
+     "source_span_ids": [
+      "06bab0fa-6558-55b2-ab3d-0bba9ef42bba"
+     ]
+    },
+    {
+     "component_key": "rough_water",
+     "fact_family": "ability_check",
+     "record_key": "glossary.swimming",
+     "source_span_ids": [
+      "06bab0fa-6558-55b2-ab3d-0bba9ef42bba"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "25e749e6-7ea0-571e-a28d-d796c49fc50a",
+    "41d353e8-7764-512e-8580-f550a2bd5031"
+   ],
+   "supporting_groups": [],
+   "unit_id": "reference-closure/swimming"
+  }
+ ],
+ "proposed_spans": [
+  {
+   "char_end": 100,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "1b46881c-9983-5fa3-80a0-d9143ea14fa9",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "0812d145-16a5-5e92-8c32-9682663495e5"
+  },
+  {
+   "char_end": 100,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "41d353e8-7764-512e-8580-f550a2bd5031",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "df75c526-7e9c-53c1-b145-427df7a8355e"
+  },
+  {
+   "char_end": 100,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "71e36686-53cf-57ef-8583-8a3aaa8ed7d1",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "8803e938-afa7-5aee-bb05-c2116c9d3e8a"
+  },
+  {
+   "char_end": 100,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "a94c4bd4-0ce4-5567-9756-a15b75a9914f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "cf948fc3-0047-5997-a671-1d2cf7a163ca"
+  },
+  {
+   "char_end": 103,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "67976b21-f693-572f-9eb3-0e1b4be5cb35",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "62c4d342-9259-56a3-a55f-2355d030202d"
+  },
+  {
+   "char_end": 104,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "69a428ba-7141-5c28-8987-3c034d535280",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "19b00fed-7270-50bc-8e32-a2fa4629efd0"
+  },
+  {
+   "char_end": 104,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "cc62dc68-a6fa-551b-ab7d-bc5005e97f4f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "50445c7b-7b62-52cd-b007-bec9dedbc2fe"
+  },
+  {
+   "char_end": 105,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "e99ddb9e-b862-5241-8549-f3ab63e6046f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "51c48e20-1fab-54d1-9a7f-fb2679e7e461"
+  },
+  {
+   "char_end": 110,
+   "char_start": 61,
+   "disposition": "substantive",
+   "leaf_id": "4b2cb462-f4e1-5da8-9c17-70031b2be1e1",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "92e7ae0c-1a35-5980-ae54-3bbfe81c18d6"
+  },
+  {
+   "char_end": 113,
+   "char_start": 41,
+   "disposition": "substantive",
+   "leaf_id": "9a671ef0-99b3-55a8-b696-ee6d44ea7bf1",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "d63ec8b3-5b52-5417-8f00-a2e3b901968b"
+  },
+  {
+   "char_end": 116,
+   "char_start": 42,
+   "disposition": "substantive",
+   "leaf_id": "2ba1e0b6-2e2d-52f2-be13-7313e11f351c",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "df3249e4-aeb7-587c-878c-57a7192de63b"
+  },
+  {
+   "char_end": 120,
+   "char_start": 101,
+   "disposition": "supporting_authority",
+   "leaf_id": "a94c4bd4-0ce4-5567-9756-a15b75a9914f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "f8ee28d8-5af9-5595-b760-ed1a636d13db"
+  },
+  {
+   "char_end": 122,
+   "char_start": 83,
+   "disposition": "supporting_authority",
+   "leaf_id": "fa1f259e-e1b8-5912-b8cd-b1c0a8a0acae",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "da1f4234-0cf0-5077-81cd-2fa1e9caeb77"
+  },
+  {
+   "char_end": 127,
+   "char_start": 51,
+   "disposition": "substantive",
+   "leaf_id": "bf0cc15f-8f77-5d2d-9648-f0d517de2676",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "88f36e2b-98d8-5db2-871f-ad019b570183"
+  },
+  {
+   "char_end": 134,
+   "char_start": 111,
+   "disposition": "supporting_authority",
+   "leaf_id": "4b2cb462-f4e1-5da8-9c17-70031b2be1e1",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "9a727342-c735-54b9-b4c3-e13b5f7ff620"
+  },
+  {
+   "char_end": 137,
+   "char_start": 114,
+   "disposition": "supporting_authority",
+   "leaf_id": "9a671ef0-99b3-55a8-b696-ee6d44ea7bf1",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "6cbe81c3-b9d8-586e-aa95-fe4acc945b65"
+  },
+  {
+   "char_end": 139,
+   "char_start": 105,
+   "disposition": "supporting_authority",
+   "leaf_id": "cc62dc68-a6fa-551b-ab7d-bc5005e97f4f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "92e8dae8-d0db-56cd-9928-542a8e5d7fdd"
+  },
+  {
+   "char_end": 140,
+   "char_start": 117,
+   "disposition": "supporting_authority",
+   "leaf_id": "2ba1e0b6-2e2d-52f2-be13-7313e11f351c",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "bfe2d766-4325-57b5-b4de-a1dc5bf7e7bf"
+  },
+  {
+   "char_end": 146,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "67e4c778-f1c6-57ac-95ee-67b97bd02512",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "5a2e78ab-421b-5bea-b6fc-c5039906f797"
+  },
+  {
+   "char_end": 152,
+   "char_start": 46,
+   "disposition": "substantive",
+   "leaf_id": "20393980-c7b3-5e67-8c92-a61c7faf2cce",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "cecf5dc2-9511-5083-a109-80bb173a51c7"
+  },
+  {
+   "char_end": 159,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "a920c9c5-4328-534a-a472-016987e1477f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "8e77d6af-3189-5442-935a-12a447d43c8b"
+  },
+  {
+   "char_end": 160,
+   "char_start": 128,
+   "disposition": "supporting_authority",
+   "leaf_id": "bf0cc15f-8f77-5d2d-9648-f0d517de2676",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "14d3d17f-5720-53e5-a159-5c2d2d453b4b"
+  },
+  {
+   "char_end": 167,
+   "char_start": 106,
+   "disposition": "substantive",
+   "leaf_id": "e99ddb9e-b862-5241-8549-f3ab63e6046f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "bf1d227d-4cab-57cc-bca4-b8e29e869c37"
+  },
+  {
+   "char_end": 172,
+   "char_start": 101,
+   "disposition": "substantive",
+   "leaf_id": "41d353e8-7764-512e-8580-f550a2bd5031",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "2822e35a-9047-5000-a41d-49af31e61246"
+  },
+  {
+   "char_end": 174,
+   "char_start": 101,
+   "disposition": "substantive",
+   "leaf_id": "1b46881c-9983-5fa3-80a0-d9143ea14fa9",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "5bebd5f5-1ad6-5b52-a6e8-5587f3dad5d7"
+  },
+  {
+   "char_end": 176,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "d2dc1fef-ec20-573f-8866-d1b41c4c2608",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "1ec74b8a-51eb-51f6-b312-d95ea2a72608"
+  },
+  {
+   "char_end": 181,
+   "char_start": 147,
+   "disposition": "supporting_authority",
+   "leaf_id": "67e4c778-f1c6-57ac-95ee-67b97bd02512",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "70ac6fc1-ef63-5b46-b762-b931b5728f91"
+  },
+  {
+   "char_end": 188,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "3869beb1-40e2-577b-b385-8b0f74c04f8c",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "a9cdab1c-64cd-5e33-b018-ef4dfd7ef979"
+  },
+  {
+   "char_end": 197,
+   "char_start": 96,
+   "disposition": "substantive",
+   "leaf_id": "74d0a87f-3b14-501e-bc68-22d83b5106fb",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "6b366604-373a-5cbc-9317-0e14c8d11dd5"
+  },
+  {
+   "char_end": 205,
+   "char_start": 104,
+   "disposition": "supporting_authority",
+   "leaf_id": "67976b21-f693-572f-9eb3-0e1b4be5cb35",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "09572948-d8a1-573e-8dfe-c79128fe3eda"
+  },
+  {
+   "char_end": 212,
+   "char_start": 153,
+   "disposition": "substantive",
+   "leaf_id": "20393980-c7b3-5e67-8c92-a61c7faf2cce",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "c9db0c2d-7df2-59df-9121-32ecff1d10d4"
+  },
+  {
+   "char_end": 214,
+   "char_start": 105,
+   "disposition": "substantive",
+   "leaf_id": "69a428ba-7141-5c28-8987-3c034d535280",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "33be7cf5-97cb-5f92-b509-8726101c870a"
+  },
+  {
+   "char_end": 217,
+   "char_start": 198,
+   "disposition": "supporting_authority",
+   "leaf_id": "74d0a87f-3b14-501e-bc68-22d83b5106fb",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "20b59ba7-e642-5495-9038-5cbbb0297e0b"
+  },
+  {
+   "char_end": 250,
+   "char_start": 213,
+   "disposition": "supporting_authority",
+   "leaf_id": "20393980-c7b3-5e67-8c92-a61c7faf2cce",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "145857bf-d5a6-569c-811b-3644fa041894"
+  },
+  {
+   "char_end": 283,
+   "char_start": 160,
+   "disposition": "substantive",
+   "leaf_id": "a920c9c5-4328-534a-a472-016987e1477f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "ac71e3f9-ab3b-563c-89e1-893854504ac3"
+  },
+  {
+   "char_end": 286,
+   "char_start": 177,
+   "disposition": "supporting_authority",
+   "leaf_id": "d2dc1fef-ec20-573f-8866-d1b41c4c2608",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "1f14b449-764b-5088-aa82-f873f17d0d5a"
+  },
+  {
+   "char_end": 288,
+   "char_start": 173,
+   "disposition": "substantive",
+   "leaf_id": "41d353e8-7764-512e-8580-f550a2bd5031",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "06bab0fa-6558-55b2-ab3d-0bba9ef42bba"
+  },
+  {
+   "char_end": 309,
+   "char_start": 175,
+   "disposition": "substantive",
+   "leaf_id": "1b46881c-9983-5fa3-80a0-d9143ea14fa9",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "e0eb6a4e-a18f-5fdc-bd45-55b0419cf23c"
+  },
+  {
+   "char_end": 332,
+   "char_start": 168,
+   "disposition": "substantive",
+   "leaf_id": "e99ddb9e-b862-5241-8549-f3ab63e6046f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "e21d358f-7961-5571-a1cb-78373c503b42"
+  },
+  {
+   "char_end": 360,
+   "char_start": 284,
+   "disposition": "substantive",
+   "leaf_id": "a920c9c5-4328-534a-a472-016987e1477f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "eb05a128-b9c3-582a-b0a8-f1b14e2a953a"
+  },
+  {
+   "char_end": 378,
+   "char_start": 287,
+   "disposition": "supporting_authority",
+   "leaf_id": "d2dc1fef-ec20-573f-8866-d1b41c4c2608",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "c45f997d-68e6-500e-95e5-b0b31d920c08"
+  },
+  {
+   "char_end": 40,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "9a671ef0-99b3-55a8-b696-ee6d44ea7bf1",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "9729f1a0-7527-5a2a-83b9-46973ab9264d"
+  },
+  {
+   "char_end": 400,
+   "char_start": 333,
+   "disposition": "substantive",
+   "leaf_id": "e99ddb9e-b862-5241-8549-f3ab63e6046f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "92b69ede-c37c-5ca3-8f19-310dfa9d4afd"
+  },
+  {
+   "char_end": 41,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "2ba1e0b6-2e2d-52f2-be13-7313e11f351c",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "ac0c1ee7-7ddc-593c-858f-18f6a4e99c0d"
+  },
+  {
+   "char_end": 413,
+   "char_start": 361,
+   "disposition": "substantive",
+   "leaf_id": "a920c9c5-4328-534a-a472-016987e1477f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "be58a300-e5a0-5c76-833d-d5c2ef0d9e13"
+  },
+  {
+   "char_end": 443,
+   "char_start": 401,
+   "disposition": "supporting_authority",
+   "leaf_id": "e99ddb9e-b862-5241-8549-f3ab63e6046f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "5f6b8f87-3e52-5214-a7da-c4f3d5bf722d"
+  },
+  {
+   "char_end": 45,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "20393980-c7b3-5e67-8c92-a61c7faf2cce",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "7ed58b4b-a734-5b56-8f72-6abdf9cc0cd8"
+  },
+  {
+   "char_end": 494,
+   "char_start": 414,
+   "disposition": "substantive",
+   "leaf_id": "a920c9c5-4328-534a-a472-016987e1477f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "6e7472a3-7677-517c-99e9-b506774e9580"
+  },
+  {
+   "char_end": 50,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "bf0cc15f-8f77-5d2d-9648-f0d517de2676",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "33d3e633-76a7-5590-88f0-abaa8dfa77aa"
+  },
+  {
+   "char_end": 60,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "4b2cb462-f4e1-5da8-9c17-70031b2be1e1",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "88ab6760-e294-5e65-9b4a-5e42da39fb6e"
+  },
+  {
+   "char_end": 636,
+   "char_start": 495,
+   "disposition": "supporting_authority",
+   "leaf_id": "a920c9c5-4328-534a-a472-016987e1477f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "1d50d92c-523f-51b6-9fbc-a7d4a36afd72"
+  },
+  {
+   "char_end": 82,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "fa1f259e-e1b8-5912-b8cd-b1c0a8a0acae",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "ebac0ab8-e2e1-5ce8-9468-991de6660ab4"
+  },
+  {
+   "char_end": 95,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "74d0a87f-3b14-501e-bc68-22d83b5106fb",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-reference-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "22084937-21df-5639-a1c0-c797b3e719c0"
+  }
+ ],
+ "release_binding": {
+  "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+  "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+  "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+  "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+  "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+  "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+ },
+ "representation_schema": {
+  "hash": "e87e0bacdc476b0bef092a04cbedd933e0b57b128651b08ef0ffbd0c94d186fd",
+  "version": "5d-representation-schema-15"
+ },
+ "semantic_policy_hash": "da63b8940c5b3997b44d53e02941389b68e2a2ba35250e73194d38bb1d74cde7",
+ "semantic_policy_version": "5d-semantic-policy-2"
+}

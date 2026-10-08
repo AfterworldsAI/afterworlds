@@ -1,0 +1,6 @@
+start 2026-10-07T05:59:41.445715+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe -m ruff check tests/ingestion/mechanical/test_packaging.py tests/ingestion/mechanical/test_committed_accepted_authority.py
+input cebfc75861736ade1a37cbdd4293944a052990376726e222d295d5bed5b1de00  tests/ingestion/mechanical/test_packaging.py
+input 15865b0b30f43bf2dcc1c7e8b001c2152293fc300031ed4c84d25b2c90b46ae7  tests/ingestion/mechanical/test_committed_accepted_authority.py
+All checks passed!
+end 2026-10-07T05:59:41.524446+00:00 exit 0

@@ -1,0 +1,5 @@
+start 2026-10-07T16:18:53.124859+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/_sp/release-readiness-20261007/codex_baseline_review_fingerprints.py
+input f1c72d6484b026400885f95ba2a1884fa41ad7f23765f0e0cb28817600f89feb  .claude/_sp/release-readiness-20261007/codex_baseline_review_fingerprints.py
+Added exactly 2 inspected detector-fingerprint rows; every earlier row, key order, metadata and setting preserved.
+end 2026-10-07T16:18:54.318494+00:00 exit 0

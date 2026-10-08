@@ -230,12 +230,101 @@ def build_gamemaster_view(
     2026-08-08) already carries its own exact text and never claims 5c
     provenance — see :mod:`afterworlds.services.rules_authority.application`.
     """
+    by_key = {record.semantic_key: record for record in authority.records}
+    readings = dict(authority.readings)
+    # A catalogue section reads its own passages and its members' in source
+    # order (Owner Decision 2026-09-24), so a member it reaches is read there,
+    # once, and not again on its own. A section that is itself a member reads
+    # where its own section is not read first -- nothing is read twice.
+    reached = {m for _, members in authority.members for m in members}
+    covered = {
+        m for s, members in authority.members if s not in reached for m in members
+    } | {
+        r
+        for s, reading in authority.readings
+        if s not in reached
+        for r, _, _ in reading
+    } - {
+        s for s, _ in authority.readings if s not in reached
+    }
+    # A member printed by two catalogues (Owner Decision 2026-09-27) is read
+    # in each for the components that catalogue prints, so the guard against
+    # a second reading is per component, not per record; what no selected
+    # catalogue prints is read at the member's own place, so every selected
+    # component is read once.
+    will = {
+        (r, k)
+        for s, reading in authority.readings
+        if s not in reached
+        for r, k, _ in reading
+    }
+    read: set[str] = set()
+    done: set[tuple[str, str]] = set()
+    picked: list[tuple[str, RecordKind, EffectiveComponent]] = []
+    for record in authority.records:
+        if record.semantic_key in covered:
+            left = [
+                c
+                for c in record.components
+                if (record.semantic_key, c.semantic_key) not in will
+            ]
+            picked.extend((record.semantic_key, record.kind, c) for c in left)
+            done.update((record.semantic_key, c.semantic_key) for c in left)
+            continue
+        if record.semantic_key in read:
+            continue
+        read.add(record.semantic_key)
+        reading = readings.get(record.semantic_key)
+        if reading is None:
+            picked.extend(
+                (record.semantic_key, record.kind, c) for c in record.components
+            )
+            done.update(
+                (record.semantic_key, c.semantic_key) for c in record.components
+            )
+            continue
+        for record_key, key, indices in reading:
+            if (record_key, key) in done and record_key != record.semantic_key:
+                continue
+            run_of = by_key[record_key]
+            own = {c.semantic_key: c for c in run_of.components}
+            if key not in own:  # narrowed away by a component selector
+                continue
+            run = replace(
+                own[key],
+                governing_prose=tuple(own[key].governing_prose[i] for i in indices),
+            )
+            picked.append((record_key, run_of.kind, run))
+        read.update(record_key for record_key, _, _ in reading)
+        done.update((record_key, key) for record_key, key, _ in reading)
+    # Context is its owner's authority: read where the owner is read, and
+    # otherwise once, at its first reader -- never twice in one view.
+    owner_of = {span: (r, c) for span, r, c in authority.context_owners}
+    shown = {(r, c.semantic_key) for r, _, c in picked}
+    seen: set[str] = set()
+    components: list[GameMasterComponent] = []
+    for record_key, kind, component in picked:
+        reader = (record_key, component.semantic_key)
+        kept: list[GoverningProseEntry] = []
+        for entry in component.governing_prose:
+            if (
+                isinstance(entry, SourceProse)
+                and owner_of.get(entry.span_id, reader) != reader
+            ):
+                if owner_of[entry.span_id] in shown or entry.span_id in seen:
+                    continue
+                seen.add(entry.span_id)
+            kept.append(entry)
+        components.append(
+            _gamemaster_component(
+                record_key,
+                kind,
+                replace(component, governing_prose=tuple(kept)),
+                prose,
+            )
+        )
     return GameMasterAuthorityView(
         binding=authority.binding,
-        components=tuple(
-            _gamemaster_component(record.semantic_key, record.kind, component, prose)
-            for record in authority.records
-            for component in record.components
-        ),
+        components=tuple(components),
         applied_overrides=authority.applied_overrides,
     )

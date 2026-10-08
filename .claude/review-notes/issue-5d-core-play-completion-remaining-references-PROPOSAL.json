@@ -1,0 +1,3862 @@
+{
+ "artifact_kind": "machine_proposal",
+ "proposal_origin": "issue-5d-core-play-completion-generator.py (CRD Issue 5d core-play completion batch; unaccepted)",
+ "proposal_schema_version": "5d-proposal-2",
+ "proposed_representation": {
+  "components": [
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [
+     {
+      "applies_when": null,
+      "facts": [
+       {
+        "family": "advantage",
+        "roll": {
+         "ability": "dexterity",
+         "actor": "subject",
+         "context": "ability_check",
+         "skill": "stealth"
+        },
+        "state": "disadvantage"
+       },
+       {
+        "family": "advantage",
+        "roll": {
+         "ability": "wisdom",
+         "actor": "subject",
+         "context": "ability_check",
+         "skill": "perception"
+        },
+        "state": "disadvantage"
+       },
+       {
+        "family": "advantage",
+        "roll": {
+         "ability": "wisdom",
+         "actor": "subject",
+         "context": "ability_check",
+         "skill": "survival"
+        },
+        "state": "disadvantage"
+       }
+      ],
+      "semantic_key": "fast"
+     },
+     {
+      "applies_when": null,
+      "facts": [
+       {
+        "family": "advantage",
+        "roll": {
+         "ability": "dexterity",
+         "actor": "subject",
+         "context": "ability_check",
+         "skill": "stealth"
+        },
+        "state": "disadvantage"
+       }
+      ],
+      "semantic_key": "normal"
+     },
+     {
+      "applies_when": null,
+      "facts": [
+       {
+        "family": "advantage",
+        "roll": {
+         "ability": "wisdom",
+         "actor": "subject",
+         "context": "ability_check",
+         "skill": "perception"
+        },
+        "state": "advantage"
+       },
+       {
+        "family": "advantage",
+        "roll": {
+         "ability": "wisdom",
+         "actor": "subject",
+         "context": "ability_check",
+         "skill": "survival"
+        },
+        "state": "advantage"
+       }
+      ],
+      "semantic_key": "slow"
+     }
+    ],
+    "record_key": "play.exploration.travel_pace",
+    "semantic_key": "pace_effects"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.armor_class",
+    "semantic_key": "base_ac"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "play.exploration",
+    "semantic_key": "light"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "play.exploration",
+    "semantic_key": "time_limited_interactions"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "play.exploration",
+    "semantic_key": "vehicles"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "play.exploration.travel_pace",
+    "semantic_key": "travel_pace"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "play.rhythm_of_play",
+    "semantic_key": "every_session"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "play.six_abilities",
+    "semantic_key": "ability_scores"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "play.six_abilities",
+    "semantic_key": "exceptions_supersede"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "options": [],
+    "record_key": "glossary.challenge_rating",
+    "semantic_key": "challenge_rating"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "options": [],
+    "record_key": "play.exploration",
+    "semantic_key": "carrying_objects"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "options": [],
+    "record_key": "play.exploration",
+    "semantic_key": "finding_hidden_objects"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "options": [],
+    "record_key": "play.exploration",
+    "semantic_key": "hiding"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "options": [],
+    "record_key": "play.exploration",
+    "semantic_key": "interacting_with_objects"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "options": [],
+    "record_key": "play.exploration",
+    "semantic_key": "travel"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "options": [],
+    "record_key": "play.exploration",
+    "semantic_key": "weapons_beyond_battle"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "options": [],
+    "record_key": "play.rhythm_of_play",
+    "semantic_key": "basic_pattern"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "options": [],
+    "record_key": "play.social_interaction",
+    "semantic_key": "influencing_npcs"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "options": [],
+    "record_key": "play.social_interaction",
+    "semantic_key": "npc_reactions"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "options": [],
+    "record_key": "play.social_interaction",
+    "semantic_key": "social_checks"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "options": [],
+    "record_key": "play.social_interaction",
+    "semantic_key": "social_interaction"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.armor_class",
+    "semantic_key": "armor_class"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.expertise",
+    "semantic_key": "expertise"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.expertise",
+    "semantic_key": "gaining_expertise"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.exploration",
+    "semantic_key": "equipment_help"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.exploration",
+    "semantic_key": "hazards"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.exploration",
+    "semantic_key": "special_senses"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.exploration",
+    "semantic_key": "what_is_an_object"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.six_abilities",
+    "semantic_key": "ability_modifiers"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.six_abilities",
+    "semantic_key": "round_down"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.six_abilities",
+    "semantic_key": "six_abilities"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.social_interaction",
+    "semantic_key": "attitudes"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.social_interaction",
+    "semantic_key": "roleplaying"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.social_interaction",
+    "semantic_key": "skill_approach"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "condition": "blinded",
+      "effect": "applies",
+      "family": "condition_effect"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "play.exploration",
+    "semantic_key": "heavily_obscured"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": "wisdom",
+       "actor": "subject",
+       "context": "ability_check",
+       "skill": "perception"
+      },
+      "state": "disadvantage"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "play.exploration",
+    "semantic_key": "lightly_obscured"
+   }
+  ],
+  "prose_bindings": [
+   {
+    "chunk_char_end": 102,
+    "chunk_char_start": 0,
+    "chunk_id": "830e2d08-b280-505c-9d3b-65b87ca66728",
+    "component_key": "light",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "play.exploration",
+    "span_id": "ed4f885e-dad6-525d-b9c5-28ef2d384a67"
+   },
+   {
+    "chunk_char_end": 107,
+    "chunk_char_start": 0,
+    "chunk_id": "6baee3b7-43b2-5666-aaf7-d41d4f135d39",
+    "component_key": "npc_reactions",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "play.social_interaction",
+    "span_id": "6b720e45-d156-5b39-8aaf-47163e96a03e"
+   },
+   {
+    "chunk_char_end": 111,
+    "chunk_char_start": 0,
+    "chunk_id": "05364ea0-c56c-5ce5-8cb3-50802ea4637b",
+    "component_key": "armor_class",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.armor_class",
+    "span_id": "6178a42a-e8fb-5d21-b00c-8f61850bb7ca"
+   },
+   {
+    "chunk_char_end": 118,
+    "chunk_char_start": 0,
+    "chunk_id": "eab5a357-a2e5-5f27-9c43-96ba9732f48b",
+    "component_key": "hazards",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.exploration",
+    "span_id": "26458ea8-91d7-566d-a3bd-e19347f4baf5"
+   },
+   {
+    "chunk_char_end": 133,
+    "chunk_char_start": 0,
+    "chunk_id": "8769415e-373a-5611-902c-9ee9f6fd46b8",
+    "component_key": "pace_effects",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "play.exploration.travel_pace",
+    "span_id": "b3be5aa5-3168-542e-9aca-d31db4fcc145"
+   },
+   {
+    "chunk_char_end": 143,
+    "chunk_char_start": 0,
+    "chunk_id": "c34dd97a-b970-5d06-89b2-d54cf64ddaa8",
+    "component_key": "special_senses",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.exploration",
+    "span_id": "6bd62a87-5e7c-5504-b79f-86124b59cbf2"
+   },
+   {
+    "chunk_char_end": 149,
+    "chunk_char_start": 0,
+    "chunk_id": "d5c9952c-e1e9-5be2-9f8f-e2708db18e4e",
+    "component_key": "gaining_expertise",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.expertise",
+    "span_id": "06f13127-47a3-554c-9e0e-e2d1ffee9355"
+   },
+   {
+    "chunk_char_end": 150,
+    "chunk_char_start": 0,
+    "chunk_id": "1ef49980-022e-5724-8786-7be4fe929f96",
+    "component_key": "six_abilities",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.six_abilities",
+    "span_id": "aeade3c0-1928-513c-89bc-4ca2d1c36d3a"
+   },
+   {
+    "chunk_char_end": 152,
+    "chunk_char_start": 0,
+    "chunk_id": "3e0c4419-52fb-5e2f-93d9-43519b70ab4b",
+    "component_key": "finding_hidden_objects",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "play.exploration",
+    "span_id": "762857aa-0e70-5f5f-9a36-305fa6cb8082"
+   },
+   {
+    "chunk_char_end": 158,
+    "chunk_char_start": 0,
+    "chunk_id": "20bd8e57-1fbf-59cc-a148-cca54b383825",
+    "component_key": "skill_approach",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.social_interaction",
+    "span_id": "d024c7ee-9d4c-56f1-99cf-144ed981ed9c"
+   },
+   {
+    "chunk_char_end": 168,
+    "chunk_char_start": 0,
+    "chunk_id": "f36b2cb6-7dd2-5352-96c4-fa9db2464d44",
+    "component_key": "basic_pattern",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "play.rhythm_of_play",
+    "span_id": "582c3c78-1e72-56f5-970b-6f0bfbf5db5c"
+   },
+   {
+    "chunk_char_end": 175,
+    "chunk_char_start": 0,
+    "chunk_id": "11b99cdb-8548-5073-a2f5-90412c0369e8",
+    "component_key": "base_ac",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.armor_class",
+    "span_id": "851c00a1-4e45-5452-b60d-84e455ac2970"
+   },
+   {
+    "chunk_char_end": 183,
+    "chunk_char_start": 0,
+    "chunk_id": "5c6389ed-d2ce-5581-afd0-6708e6c15821",
+    "component_key": "heavily_obscured",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "play.exploration",
+    "span_id": "134be17c-49aa-5f3c-ab9f-f441391a2358"
+   },
+   {
+    "chunk_char_end": 184,
+    "chunk_char_start": 0,
+    "chunk_id": "8bfee2de-a956-56d2-a0fe-f02efbfa7d94",
+    "component_key": "basic_pattern",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "play.rhythm_of_play",
+    "span_id": "d6381b49-8248-51c4-83d2-b875eb0cf57e"
+   },
+   {
+    "chunk_char_end": 185,
+    "chunk_char_start": 0,
+    "chunk_id": "5d1750fe-0d26-5b4f-a81e-52d075aa62e5",
+    "component_key": "influencing_npcs",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "play.social_interaction",
+    "span_id": "230903ad-ce7d-5c78-93a8-0fb6b34cd16d"
+   },
+   {
+    "chunk_char_end": 189,
+    "chunk_char_start": 0,
+    "chunk_id": "f04dc638-e017-5764-9643-5179eab41282",
+    "component_key": "attitudes",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.social_interaction",
+    "span_id": "31ea2bb7-1199-51f4-acce-7fbe11f25dbe"
+   },
+   {
+    "chunk_char_end": 195,
+    "chunk_char_start": 0,
+    "chunk_id": "05e3d55e-2f09-5750-a0d2-1b23f814a890",
+    "component_key": "light",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "play.exploration",
+    "span_id": "86939f07-789e-5180-9f72-292982e56737"
+   },
+   {
+    "chunk_char_end": 197,
+    "chunk_char_start": 0,
+    "chunk_id": "233c80d1-b3a7-5872-839d-8c86c2fdeeae",
+    "component_key": "what_is_an_object",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.exploration",
+    "span_id": "bd9f9d41-67c2-5924-b060-2384135fc98d"
+   },
+   {
+    "chunk_char_end": 197,
+    "chunk_char_start": 0,
+    "chunk_id": "644f27af-d20c-5deb-9cfe-d671ff2d599e",
+    "component_key": "ability_scores",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "play.six_abilities",
+    "span_id": "2bafc091-3244-5266-beb5-a4a1cf010d3a"
+   },
+   {
+    "chunk_char_end": 202,
+    "chunk_char_start": 0,
+    "chunk_id": "773ce871-18fa-52bd-92ae-c7ca659e837c",
+    "component_key": "light",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "play.exploration",
+    "span_id": "4ac4115f-0008-5073-8362-8f0899b61bbb"
+   },
+   {
+    "chunk_char_end": 205,
+    "chunk_char_start": 0,
+    "chunk_id": "b1583b44-7460-568a-9379-1fcc0382896f",
+    "component_key": "ability_modifiers",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.six_abilities",
+    "span_id": "4a53259e-7110-530f-83a9-b3c89b28a5a9"
+   },
+   {
+    "chunk_char_end": 206,
+    "chunk_char_start": 0,
+    "chunk_id": "680ead0d-ec73-5858-b3da-664a81f82546",
+    "component_key": "social_interaction",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "play.social_interaction",
+    "span_id": "fad024eb-819d-500e-8ac1-981c2eaa7fd7"
+   },
+   {
+    "chunk_char_end": 208,
+    "chunk_char_start": 0,
+    "chunk_id": "56790859-99aa-5431-ab48-df1ba1b43cb2",
+    "component_key": "lightly_obscured",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "play.exploration",
+    "span_id": "2218404f-f8e8-5afb-8cdf-9aa8aa371b35"
+   },
+   {
+    "chunk_char_end": 216,
+    "chunk_char_start": 21,
+    "chunk_id": "50d03b9a-67d5-5962-a551-729f9f1f9005",
+    "component_key": "round_down",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.six_abilities",
+    "span_id": "8bdce724-4798-5fb0-8b15-3ff4e88223d8"
+   },
+   {
+    "chunk_char_end": 227,
+    "chunk_char_start": 0,
+    "chunk_id": "469b509d-7d20-5212-a371-b75beda61c5c",
+    "component_key": "hiding",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "play.exploration",
+    "span_id": "354468b7-5a26-5408-b1bc-a9606857be13"
+   },
+   {
+    "chunk_char_end": 247,
+    "chunk_char_start": 0,
+    "chunk_id": "daa47a53-93a1-5c36-b8de-e705d6572a83",
+    "component_key": "travel",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "play.exploration",
+    "span_id": "9512c85b-f7ec-5a12-b329-a54d3f2d8162"
+   },
+   {
+    "chunk_char_end": 250,
+    "chunk_char_start": 0,
+    "chunk_id": "bcf1b3be-9725-5347-b25c-a20c45543efc",
+    "component_key": "roleplaying",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.social_interaction",
+    "span_id": "065ebd16-00e7-5904-b743-64fb65882c98"
+   },
+   {
+    "chunk_char_end": 251,
+    "chunk_char_start": 0,
+    "chunk_id": "3c2dcfe9-66ee-5c07-aac6-72533d8e56ab",
+    "component_key": "expertise",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.expertise",
+    "span_id": "b2e27031-3a01-5c74-b0f1-e3c60e2e6e0d"
+   },
+   {
+    "chunk_char_end": 269,
+    "chunk_char_start": 0,
+    "chunk_id": "7c30eb79-7411-5d9c-bb24-cdae26b5b2ca",
+    "component_key": "every_session",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "play.rhythm_of_play",
+    "span_id": "f5d645b0-4ef9-5b07-9a2a-ad3b9e6672a5"
+   },
+   {
+    "chunk_char_end": 271,
+    "chunk_char_start": 0,
+    "chunk_id": "5b1b1704-beb3-56af-b60b-a8e46bdc22be",
+    "component_key": "carrying_objects",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "play.exploration",
+    "span_id": "182b24a5-e413-57ec-94f0-6222a4405ece"
+   },
+   {
+    "chunk_char_end": 278,
+    "chunk_char_start": 0,
+    "chunk_id": "0e6b5b00-6442-5705-814b-540d34c5aed1",
+    "component_key": "light",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "play.exploration",
+    "span_id": "1be80828-27b5-518e-9ecc-151865013395"
+   },
+   {
+    "chunk_char_end": 286,
+    "chunk_char_start": 0,
+    "chunk_id": "7750d989-35c0-5f92-803e-b28ce49ede8a",
+    "component_key": "time_limited_interactions",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "play.exploration",
+    "span_id": "0d11fa63-6900-5764-b5ae-fb19e93d9910"
+   },
+   {
+    "chunk_char_end": 291,
+    "chunk_char_start": 0,
+    "chunk_id": "7f36cb4f-8817-53f0-b7bd-8f16ae46259c",
+    "component_key": "finding_hidden_objects",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "play.exploration",
+    "span_id": "cb5f9c3c-a554-520b-b659-38bca46a4cca"
+   },
+   {
+    "chunk_char_end": 298,
+    "chunk_char_start": 0,
+    "chunk_id": "4d107ad1-561b-5662-ad12-f3cd38996931",
+    "component_key": "interacting_with_objects",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "play.exploration",
+    "span_id": "79d44e4a-efee-5a3a-ae54-68abbd69f59a"
+   },
+   {
+    "chunk_char_end": 302,
+    "chunk_char_start": 0,
+    "chunk_id": "0819a67b-a3d6-53b3-b9ba-49aced711d85",
+    "component_key": "influencing_npcs",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "play.social_interaction",
+    "span_id": "5d2328e1-1733-5b3a-91f9-338e60df27ff"
+   },
+   {
+    "chunk_char_end": 315,
+    "chunk_char_start": 194,
+    "chunk_id": "3439d476-d7a9-57b7-8c1b-ee80ffe1c889",
+    "component_key": "exceptions_supersede",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "play.six_abilities",
+    "span_id": "41775306-416b-5ee2-a583-08068a954dd8"
+   },
+   {
+    "chunk_char_end": 325,
+    "chunk_char_start": 151,
+    "chunk_id": "b70809ed-9d38-5c43-9396-870c23dbba20",
+    "component_key": "weapons_beyond_battle",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "play.exploration",
+    "span_id": "1b03e279-aa57-532e-a009-7fd7b35f0a5a"
+   },
+   {
+    "chunk_char_end": 334,
+    "chunk_char_start": 0,
+    "chunk_id": "6011b2a3-edb6-5545-b82d-2f97befda879",
+    "component_key": "social_checks",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "play.social_interaction",
+    "span_id": "8f5840a4-54c9-53be-aef4-55ecb1c377af"
+   },
+   {
+    "chunk_char_end": 338,
+    "chunk_char_start": 0,
+    "chunk_id": "71f2607c-1d3b-5ca0-8c9c-13cfe2f5cecb",
+    "component_key": "vehicles",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "play.exploration",
+    "span_id": "8a5e47ef-595f-55eb-b8f7-534dbb1f780e"
+   },
+   {
+    "chunk_char_end": 382,
+    "chunk_char_start": 0,
+    "chunk_id": "134048e0-7956-5303-b9c5-1eb17dd23da6",
+    "component_key": "challenge_rating",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "glossary.challenge_rating",
+    "span_id": "9e41f5e8-59a7-56e4-9a38-8dff90d0188d"
+   },
+   {
+    "chunk_char_end": 392,
+    "chunk_char_start": 308,
+    "chunk_id": "680ead0d-ec73-5858-b3da-664a81f82546",
+    "component_key": "social_interaction",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "play.social_interaction",
+    "span_id": "371c0482-18a8-5cd3-b63d-388d766a6dfb"
+   },
+   {
+    "chunk_char_end": 503,
+    "chunk_char_start": 0,
+    "chunk_id": "e8056dc8-951c-59a9-a011-913b62bfca92",
+    "component_key": "basic_pattern",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "play.rhythm_of_play",
+    "span_id": "c8e70688-68a8-5828-9821-d318548d8659"
+   },
+   {
+    "chunk_char_end": 51,
+    "chunk_char_start": 0,
+    "chunk_id": "19bc91d0-d850-51fc-93a6-68fe831977e8",
+    "component_key": "special_senses",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.exploration",
+    "span_id": "62c189df-7669-53fd-9e9f-84e501e206a8"
+   },
+   {
+    "chunk_char_end": 515,
+    "chunk_char_start": 0,
+    "chunk_id": "2b3675b1-2e62-5b40-843a-aaef12ea2a52",
+    "component_key": "travel_pace",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "play.exploration.travel_pace",
+    "span_id": "41f2ce66-b485-5e4c-a428-5443942d831e"
+   },
+   {
+    "chunk_char_end": 53,
+    "chunk_char_start": 0,
+    "chunk_id": "0e2196c8-5a90-5a84-955c-d974cf271be6",
+    "component_key": "pace_effects",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "play.exploration.travel_pace",
+    "span_id": "3e762e2e-8a7c-5b01-80f9-e9f9d04bc74d"
+   },
+   {
+    "chunk_char_end": 555,
+    "chunk_char_start": 320,
+    "chunk_id": "3439d476-d7a9-57b7-8c1b-ee80ffe1c889",
+    "component_key": "exceptions_supersede",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "play.six_abilities",
+    "span_id": "0882106a-7583-56f2-a8b4-e52c4f2a8d03"
+   },
+   {
+    "chunk_char_end": 565,
+    "chunk_char_start": 0,
+    "chunk_id": "8f66b61e-42ff-569a-bb06-04ced6ec4b7f",
+    "component_key": "basic_pattern",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "play.rhythm_of_play",
+    "span_id": "bd4ca96b-f88b-557c-b0aa-13d7f8241b61"
+   },
+   {
+    "chunk_char_end": 593,
+    "chunk_char_start": 0,
+    "chunk_id": "ec79411e-efaf-51e3-89ea-ab13a94866be",
+    "component_key": "travel_pace",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "play.exploration.travel_pace",
+    "span_id": "b2b517d6-e7e4-55c9-8271-721569ece0d9"
+   },
+   {
+    "chunk_char_end": 62,
+    "chunk_char_start": 0,
+    "chunk_id": "01adcfee-44c2-5a45-8808-2003347f6585",
+    "component_key": "hazards",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.exploration",
+    "span_id": "fa90f780-ecc1-59c7-9b4e-d7c750daaa1b"
+   },
+   {
+    "chunk_char_end": 664,
+    "chunk_char_start": 0,
+    "chunk_id": "c2c8a253-888a-5b27-8081-42175db7671c",
+    "component_key": "six_abilities",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.six_abilities",
+    "span_id": "f0bb88bc-02d8-5548-8689-41fd00e153ff"
+   },
+   {
+    "chunk_char_end": 67,
+    "chunk_char_start": 0,
+    "chunk_id": "8197f56f-4e26-5770-9bb1-ded91b13b55c",
+    "component_key": "equipment_help",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.exploration",
+    "span_id": "4b10956d-e6ae-563a-b039-9cb448056293"
+   },
+   {
+    "chunk_char_end": 88,
+    "chunk_char_start": 0,
+    "chunk_id": "8a42b0fe-7276-53b9-abec-53692143ed3f",
+    "component_key": "pace_effects",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "play.exploration.travel_pace",
+    "span_id": "f3a70dd3-7793-5a27-8247-40ce2596f953"
+   },
+   {
+    "chunk_char_end": 88,
+    "chunk_char_start": 45,
+    "chunk_id": "3439d476-d7a9-57b7-8c1b-ee80ffe1c889",
+    "component_key": "exceptions_supersede",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "play.six_abilities",
+    "span_id": "51c04a69-8aac-5357-a709-0608b17b10b1"
+   },
+   {
+    "chunk_char_end": 898,
+    "chunk_char_start": 0,
+    "chunk_id": "f4ef8a55-4ea0-5ad5-a580-98c03b45c11d",
+    "component_key": "ability_scores",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "play.six_abilities",
+    "span_id": "e7777d46-821f-58a3-b882-cfb700a20466"
+   },
+   {
+    "chunk_char_end": 90,
+    "chunk_char_start": 0,
+    "chunk_id": "8cc5cf3b-f5ca-5941-8ce7-40d8a075e516",
+    "component_key": "roleplaying",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.social_interaction",
+    "span_id": "33f6e5c1-0399-5a82-9383-9e8345baeac3"
+   },
+   {
+    "chunk_char_end": 92,
+    "chunk_char_start": 0,
+    "chunk_id": "158cdf0c-0014-5d83-a1a9-dad28eb27a88",
+    "component_key": "pace_effects",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "play.exploration.travel_pace",
+    "span_id": "2c53c606-b5b5-579e-8293-b87a3bf4e1c4"
+   },
+   {
+    "chunk_char_end": 952,
+    "chunk_char_start": 0,
+    "chunk_id": "c880f71f-2c4c-5e38-a139-2a4ff73f2cae",
+    "component_key": "ability_modifiers",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "play.six_abilities",
+    "span_id": "5f623b22-aeca-5989-a66f-6fe874ee4d58"
+   }
+  ],
+  "provenance": [
+   {
+    "role": "contextual",
+    "span_id": "05ba3ca5-a4d1-5c58-8280-13c1d315896f",
+    "target_key": [
+     "play.social_interaction",
+     "npc_reactions"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0d11fa63-6900-5764-b5ae-fb19e93d9910",
+    "target_key": [
+     "play.exploration",
+     "time_limited_interactions",
+     "Combat",
+     "srd-5.2.1/playing-the-game",
+     "play.combat"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0d11fa63-6900-5764-b5ae-fb19e93d9910",
+    "target_key": [
+     "play.exploration",
+     "time_limited_interactions",
+     "Utilize",
+     "srd-5.2.1/rules-glossary",
+     "glossary.utilize"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "134be17c-49aa-5f3c-ab9f-f441391a2358",
+    "target_key": [
+     "play.exploration",
+     "heavily_obscured",
+     "6f274c4624cdcff9"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "134be17c-49aa-5f3c-ab9f-f441391a2358",
+    "target_key": [
+     "play.exploration",
+     "heavily_obscured",
+     "Blinded",
+     "srd-5.2.1/rules-glossary",
+     "glossary.blinded"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "182b24a5-e413-57ec-94f0-6222a4405ece",
+    "target_key": [
+     "play.exploration",
+     "carrying_objects",
+     "carrying capacity",
+     "srd-5.2.1/rules-glossary",
+     "glossary.carrying_capacity"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "1b03e279-aa57-532e-a009-7fd7b35f0a5a",
+    "target_key": [
+     "play.exploration",
+     "weapons_beyond_battle",
+     "The weapons in \"Equipment\"",
+     "srd-5.2.1/equipment",
+     ""
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "2218404f-f8e8-5afb-8cdf-9aa8aa371b35",
+    "target_key": [
+     "play.exploration",
+     "lightly_obscured",
+     "fd9b5286cd7b16aa"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "2c53c606-b5b5-579e-8293-b87a3bf4e1c4",
+    "target_key": [
+     "play.exploration.travel_pace",
+     "pace_effects",
+     "486f971494a956d1",
+     "slow"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "2c53c606-b5b5-579e-8293-b87a3bf4e1c4",
+    "target_key": [
+     "play.exploration.travel_pace",
+     "pace_effects",
+     "e0aee94ddc368508",
+     "slow"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "2e7f7342-7ba4-5fb6-9b24-1debb8ccfad9",
+    "target_key": [
+     "play.exploration",
+     "",
+     "See \"Equipment\" for rules on many items",
+     "srd-5.2.1/equipment",
+     ""
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "31ea2bb7-1199-51f4-acce-7fbe11f25dbe",
+    "target_key": [
+     "play.social_interaction",
+     "attitudes",
+     "Friendly",
+     "srd-5.2.1/rules-glossary",
+     "glossary.friendly"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "31ea2bb7-1199-51f4-acce-7fbe11f25dbe",
+    "target_key": [
+     "play.social_interaction",
+     "attitudes",
+     "Hostile",
+     "srd-5.2.1/rules-glossary",
+     "glossary.hostile"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "31ea2bb7-1199-51f4-acce-7fbe11f25dbe",
+    "target_key": [
+     "play.social_interaction",
+     "attitudes",
+     "Indifferent",
+     "srd-5.2.1/rules-glossary",
+     "glossary.indifferent"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "354468b7-5a26-5408-b1bc-a9606857be13",
+    "target_key": [
+     "play.exploration",
+     "hiding",
+     "Hide",
+     "srd-5.2.1/rules-glossary",
+     "glossary.hide"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3e762e2e-8a7c-5b01-80f9-e9f9d04bc74d",
+    "target_key": [
+     "play.exploration.travel_pace",
+     "pace_effects",
+     "129d9c3bd98f637e",
+     "fast"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3e762e2e-8a7c-5b01-80f9-e9f9d04bc74d",
+    "target_key": [
+     "play.exploration.travel_pace",
+     "pace_effects",
+     "486f971494a956d1",
+     "slow"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3e762e2e-8a7c-5b01-80f9-e9f9d04bc74d",
+    "target_key": [
+     "play.exploration.travel_pace",
+     "pace_effects",
+     "e0aee94ddc368508",
+     "slow"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3e762e2e-8a7c-5b01-80f9-e9f9d04bc74d",
+    "target_key": [
+     "play.exploration.travel_pace",
+     "pace_effects",
+     "e897e116c53b071a",
+     "fast"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3e762e2e-8a7c-5b01-80f9-e9f9d04bc74d",
+    "target_key": [
+     "play.exploration.travel_pace",
+     "pace_effects",
+     "e897e116c53b071a",
+     "normal"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3e762e2e-8a7c-5b01-80f9-e9f9d04bc74d",
+    "target_key": [
+     "play.exploration.travel_pace",
+     "pace_effects",
+     "fd9b5286cd7b16aa",
+     "fast"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "41f2ce66-b485-5e4c-a428-5443942d831e",
+    "target_key": [
+     "play.exploration.travel_pace",
+     "play.exploration",
+     "catalogue_member"
+    ],
+    "target_kind": "relationship"
+   },
+   {
+    "role": "contextual",
+    "span_id": "41f2ce66-b485-5e4c-a428-5443942d831e",
+    "target_key": [
+     "play.exploration.travel_pace",
+     "travel_pace",
+     "Equipment",
+     "srd-5.2.1/equipment",
+     ""
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "41f2ce66-b485-5e4c-a428-5443942d831e",
+    "target_key": [
+     "play.exploration.travel_pace",
+     "travel_pace",
+     "Gameplay Toolbox",
+     "srd-5.2.1/gameplay-toolbox",
+     ""
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "41f2ce66-b485-5e4c-a428-5443942d831e",
+    "target_key": [
+     "play.exploration.travel_pace",
+     "travel_pace",
+     "Long Rest",
+     "srd-5.2.1/rules-glossary",
+     "glossary.long_rest"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "41f2ce66-b485-5e4c-a428-5443942d831e",
+    "target_key": [
+     "play.exploration.travel_pace",
+     "travel_pace",
+     "Short or Long Rest",
+     "srd-5.2.1/rules-glossary",
+     "glossary.short_rest"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "4a53259e-7110-530f-83a9-b3c89b28a5a9",
+    "target_key": [
+     "play.six_abilities",
+     "ability_modifiers",
+     "D20 Tests",
+     "srd-5.2.1/playing-the-game",
+     "play.d20_tests"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "62c189df-7669-53fd-9e9f-84e501e206a8",
+    "target_key": [
+     "play.exploration",
+     "special_senses",
+     "Blindsight",
+     "srd-5.2.1/rules-glossary",
+     "glossary.blindsight"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "62c189df-7669-53fd-9e9f-84e501e206a8",
+    "target_key": [
+     "play.exploration",
+     "special_senses",
+     "Darkvision",
+     "srd-5.2.1/rules-glossary",
+     "glossary.darkvision"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "62c189df-7669-53fd-9e9f-84e501e206a8",
+    "target_key": [
+     "play.exploration",
+     "special_senses",
+     "Tremorsense",
+     "srd-5.2.1/rules-glossary",
+     "glossary.tremorsense"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "62c189df-7669-53fd-9e9f-84e501e206a8",
+    "target_key": [
+     "play.exploration",
+     "special_senses",
+     "Truesight",
+     "srd-5.2.1/rules-glossary",
+     "glossary.truesight"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "6b86a40c-3db8-5196-8143-f3d576188609",
+    "target_key": [
+     "play.social_interaction",
+     "skill_approach"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "7858c0d4-8220-5c5a-883c-0fdb3281a5e2",
+    "target_key": [
+     "glossary.challenge_rating",
+     "",
+     "Combat Encounters",
+     "srd-5.2.1/gameplay-toolbox",
+     ""
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "8a5e47ef-595f-55eb-b8f7-534dbb1f780e",
+    "target_key": [
+     "play.exploration",
+     "vehicles",
+     "Equipment",
+     "srd-5.2.1/equipment",
+     ""
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "8f5840a4-54c9-53be-aef4-55ecb1c377af",
+    "target_key": [
+     "play.social_interaction",
+     "social_checks",
+     "Influence",
+     "srd-5.2.1/rules-glossary",
+     "glossary.influence"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "9ac9e8ab-948c-55c9-b604-3b49a78c2e7a",
+    "target_key": [
+     "play.social_interaction",
+     "social_interaction"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "a7ae8fda-dfb0-59a7-807f-865421eaa303",
+    "target_key": [
+     "play.six_abilities",
+     "round_down"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "a9d52ba6-512e-5bd3-bd8f-eefbe854ef7b",
+    "target_key": [
+     "play.exploration",
+     "time_limited_interactions",
+     "Combat",
+     "srd-5.2.1/playing-the-game",
+     "play.combat"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "b0c23f4b-2d71-5719-ade7-17adb2872dd6",
+    "target_key": [
+     "play.six_abilities",
+     "exceptions_supersede"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "b3be5aa5-3168-542e-9aca-d31db4fcc145",
+    "target_key": [
+     "play.exploration.travel_pace",
+     "pace_effects",
+     "129d9c3bd98f637e",
+     "fast"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "b3be5aa5-3168-542e-9aca-d31db4fcc145",
+    "target_key": [
+     "play.exploration.travel_pace",
+     "pace_effects",
+     "e897e116c53b071a",
+     "fast"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "b3be5aa5-3168-542e-9aca-d31db4fcc145",
+    "target_key": [
+     "play.exploration.travel_pace",
+     "pace_effects",
+     "fd9b5286cd7b16aa",
+     "fast"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "b3e75093-996e-52f4-98ca-b25f663153a7",
+    "target_key": [
+     "play.six_abilities",
+     "exceptions_supersede"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "bcdabf11-cf81-5e02-8e99-076454e0f4ee",
+    "target_key": [
+     "glossary.challenge_rating",
+     "",
+     "Stat Block",
+     "srd-5.2.1/rules-glossary",
+     "glossary.stat_block"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "c2850332-4238-5a68-acec-dff1d1fa05c5",
+    "target_key": [
+     "glossary.expertise",
+     "",
+     "Proficiency",
+     "srd-5.2.1/playing-the-game",
+     "play.proficiency"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ded2b536-c3a2-5bbd-bdf0-8b9938fd0eb7",
+    "target_key": [
+     "play.six_abilities",
+     "exceptions_supersede"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "eafdfeb2-21ca-594c-aab6-33e65149235e",
+    "target_key": [
+     "play.exploration",
+     "equipment_help"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "edbc3164-1904-50b5-b01d-e0514c780954",
+    "target_key": [
+     "glossary.armor_class",
+     "",
+     "Attack Roll",
+     "srd-5.2.1/rules-glossary",
+     "glossary.attack_roll"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "f3a70dd3-7793-5a27-8247-40ce2596f953",
+    "target_key": [
+     "play.exploration.travel_pace",
+     "pace_effects",
+     "e897e116c53b071a",
+     "normal"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "fa90f780-ecc1-59c7-9b4e-d7c750daaa1b",
+    "target_key": [
+     "play.exploration",
+     "hazards",
+     "Burning",
+     "srd-5.2.1/rules-glossary",
+     "glossary.burning"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "fa90f780-ecc1-59c7-9b4e-d7c750daaa1b",
+    "target_key": [
+     "play.exploration",
+     "hazards",
+     "Dehydration",
+     "srd-5.2.1/rules-glossary",
+     "glossary.dehydration"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "fa90f780-ecc1-59c7-9b4e-d7c750daaa1b",
+    "target_key": [
+     "play.exploration",
+     "hazards",
+     "Falling",
+     "srd-5.2.1/rules-glossary",
+     "glossary.falling"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "fa90f780-ecc1-59c7-9b4e-d7c750daaa1b",
+    "target_key": [
+     "play.exploration",
+     "hazards",
+     "Malnutrition",
+     "srd-5.2.1/rules-glossary",
+     "glossary.malnutrition"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "fa90f780-ecc1-59c7-9b4e-d7c750daaa1b",
+    "target_key": [
+     "play.exploration",
+     "hazards",
+     "Suffocation",
+     "srd-5.2.1/rules-glossary",
+     "glossary.suffocation"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "primary",
+    "span_id": "065ebd16-00e7-5904-b743-64fb65882c98",
+    "target_key": [
+     "play.social_interaction",
+     "roleplaying",
+     "bcf1b3be-9725-5347-b25c-a20c45543efc",
+     "065ebd16-00e7-5904-b743-64fb65882c98",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "06f13127-47a3-554c-9e0e-e2d1ffee9355",
+    "target_key": [
+     "glossary.expertise",
+     "gaining_expertise",
+     "d5c9952c-e1e9-5be2-9f8f-e2708db18e4e",
+     "06f13127-47a3-554c-9e0e-e2d1ffee9355",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "0882106a-7583-56f2-a8b4-e52c4f2a8d03",
+    "target_key": [
+     "play.six_abilities",
+     "exceptions_supersede",
+     "3439d476-d7a9-57b7-8c1b-ee80ffe1c889",
+     "0882106a-7583-56f2-a8b4-e52c4f2a8d03",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "0d11fa63-6900-5764-b5ae-fb19e93d9910",
+    "target_key": [
+     "play.exploration",
+     "time_limited_interactions",
+     "7750d989-35c0-5f92-803e-b28ce49ede8a",
+     "0d11fa63-6900-5764-b5ae-fb19e93d9910",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "134be17c-49aa-5f3c-ab9f-f441391a2358",
+    "target_key": [
+     "play.exploration",
+     "heavily_obscured",
+     "5c6389ed-d2ce-5581-afd0-6708e6c15821",
+     "134be17c-49aa-5f3c-ab9f-f441391a2358",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "182b24a5-e413-57ec-94f0-6222a4405ece",
+    "target_key": [
+     "play.exploration",
+     "carrying_objects",
+     "5b1b1704-beb3-56af-b60b-a8e46bdc22be",
+     "182b24a5-e413-57ec-94f0-6222a4405ece",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "1b03e279-aa57-532e-a009-7fd7b35f0a5a",
+    "target_key": [
+     "play.exploration",
+     "weapons_beyond_battle",
+     "b70809ed-9d38-5c43-9396-870c23dbba20",
+     "1b03e279-aa57-532e-a009-7fd7b35f0a5a",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "1be80828-27b5-518e-9ecc-151865013395",
+    "target_key": [
+     "play.exploration",
+     "light",
+     "0e6b5b00-6442-5705-814b-540d34c5aed1",
+     "1be80828-27b5-518e-9ecc-151865013395",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "2218404f-f8e8-5afb-8cdf-9aa8aa371b35",
+    "target_key": [
+     "play.exploration",
+     "lightly_obscured",
+     "56790859-99aa-5431-ab48-df1ba1b43cb2",
+     "2218404f-f8e8-5afb-8cdf-9aa8aa371b35",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "230903ad-ce7d-5c78-93a8-0fb6b34cd16d",
+    "target_key": [
+     "play.social_interaction",
+     "influencing_npcs",
+     "5d1750fe-0d26-5b4f-a81e-52d075aa62e5",
+     "230903ad-ce7d-5c78-93a8-0fb6b34cd16d",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "26458ea8-91d7-566d-a3bd-e19347f4baf5",
+    "target_key": [
+     "play.exploration",
+     "hazards",
+     "eab5a357-a2e5-5f27-9c43-96ba9732f48b",
+     "26458ea8-91d7-566d-a3bd-e19347f4baf5",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "2bafc091-3244-5266-beb5-a4a1cf010d3a",
+    "target_key": [
+     "play.six_abilities",
+     "ability_scores",
+     "644f27af-d20c-5deb-9cfe-d671ff2d599e",
+     "2bafc091-3244-5266-beb5-a4a1cf010d3a",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "2c53c606-b5b5-579e-8293-b87a3bf4e1c4",
+    "target_key": [
+     "play.exploration.travel_pace",
+     "pace_effects",
+     "158cdf0c-0014-5d83-a1a9-dad28eb27a88",
+     "2c53c606-b5b5-579e-8293-b87a3bf4e1c4",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "31ea2bb7-1199-51f4-acce-7fbe11f25dbe",
+    "target_key": [
+     "play.social_interaction",
+     "attitudes",
+     "f04dc638-e017-5764-9643-5179eab41282",
+     "31ea2bb7-1199-51f4-acce-7fbe11f25dbe",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "33f6e5c1-0399-5a82-9383-9e8345baeac3",
+    "target_key": [
+     "play.social_interaction",
+     "roleplaying",
+     "8cc5cf3b-f5ca-5941-8ce7-40d8a075e516",
+     "33f6e5c1-0399-5a82-9383-9e8345baeac3",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "354468b7-5a26-5408-b1bc-a9606857be13",
+    "target_key": [
+     "play.exploration",
+     "hiding",
+     "469b509d-7d20-5212-a371-b75beda61c5c",
+     "354468b7-5a26-5408-b1bc-a9606857be13",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "371c0482-18a8-5cd3-b63d-388d766a6dfb",
+    "target_key": [
+     "play.social_interaction",
+     "social_interaction",
+     "680ead0d-ec73-5858-b3da-664a81f82546",
+     "371c0482-18a8-5cd3-b63d-388d766a6dfb",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "3e762e2e-8a7c-5b01-80f9-e9f9d04bc74d",
+    "target_key": [
+     "play.exploration.travel_pace",
+     "pace_effects",
+     "0e2196c8-5a90-5a84-955c-d974cf271be6",
+     "3e762e2e-8a7c-5b01-80f9-e9f9d04bc74d",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "41775306-416b-5ee2-a583-08068a954dd8",
+    "target_key": [
+     "play.six_abilities",
+     "exceptions_supersede",
+     "3439d476-d7a9-57b7-8c1b-ee80ffe1c889",
+     "41775306-416b-5ee2-a583-08068a954dd8",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "41f2ce66-b485-5e4c-a428-5443942d831e",
+    "target_key": [
+     "play.exploration.travel_pace",
+     "travel_pace",
+     "2b3675b1-2e62-5b40-843a-aaef12ea2a52",
+     "41f2ce66-b485-5e4c-a428-5443942d831e",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "4a53259e-7110-530f-83a9-b3c89b28a5a9",
+    "target_key": [
+     "play.six_abilities",
+     "ability_modifiers",
+     "b1583b44-7460-568a-9379-1fcc0382896f",
+     "4a53259e-7110-530f-83a9-b3c89b28a5a9",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "4ac4115f-0008-5073-8362-8f0899b61bbb",
+    "target_key": [
+     "play.exploration",
+     "light",
+     "773ce871-18fa-52bd-92ae-c7ca659e837c",
+     "4ac4115f-0008-5073-8362-8f0899b61bbb",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "4b10956d-e6ae-563a-b039-9cb448056293",
+    "target_key": [
+     "play.exploration",
+     "equipment_help",
+     "8197f56f-4e26-5770-9bb1-ded91b13b55c",
+     "4b10956d-e6ae-563a-b039-9cb448056293",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "51c04a69-8aac-5357-a709-0608b17b10b1",
+    "target_key": [
+     "play.six_abilities",
+     "exceptions_supersede",
+     "3439d476-d7a9-57b7-8c1b-ee80ffe1c889",
+     "51c04a69-8aac-5357-a709-0608b17b10b1",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "582c3c78-1e72-56f5-970b-6f0bfbf5db5c",
+    "target_key": [
+     "play.rhythm_of_play",
+     "basic_pattern",
+     "f36b2cb6-7dd2-5352-96c4-fa9db2464d44",
+     "582c3c78-1e72-56f5-970b-6f0bfbf5db5c",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "5d2328e1-1733-5b3a-91f9-338e60df27ff",
+    "target_key": [
+     "play.social_interaction",
+     "influencing_npcs",
+     "0819a67b-a3d6-53b3-b9ba-49aced711d85",
+     "5d2328e1-1733-5b3a-91f9-338e60df27ff",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "5f623b22-aeca-5989-a66f-6fe874ee4d58",
+    "target_key": [
+     "play.six_abilities",
+     "ability_modifiers",
+     "c880f71f-2c4c-5e38-a139-2a4ff73f2cae",
+     "5f623b22-aeca-5989-a66f-6fe874ee4d58",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "6178a42a-e8fb-5d21-b00c-8f61850bb7ca",
+    "target_key": [
+     "glossary.armor_class",
+     "armor_class",
+     "05364ea0-c56c-5ce5-8cb3-50802ea4637b",
+     "6178a42a-e8fb-5d21-b00c-8f61850bb7ca",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "62c189df-7669-53fd-9e9f-84e501e206a8",
+    "target_key": [
+     "play.exploration",
+     "special_senses",
+     "19bc91d0-d850-51fc-93a6-68fe831977e8",
+     "62c189df-7669-53fd-9e9f-84e501e206a8",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "6b720e45-d156-5b39-8aaf-47163e96a03e",
+    "target_key": [
+     "play.social_interaction",
+     "npc_reactions",
+     "6baee3b7-43b2-5666-aaf7-d41d4f135d39",
+     "6b720e45-d156-5b39-8aaf-47163e96a03e",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "6bd62a87-5e7c-5504-b79f-86124b59cbf2",
+    "target_key": [
+     "play.exploration",
+     "special_senses",
+     "c34dd97a-b970-5d06-89b2-d54cf64ddaa8",
+     "6bd62a87-5e7c-5504-b79f-86124b59cbf2",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "762857aa-0e70-5f5f-9a36-305fa6cb8082",
+    "target_key": [
+     "play.exploration",
+     "finding_hidden_objects",
+     "3e0c4419-52fb-5e2f-93d9-43519b70ab4b",
+     "762857aa-0e70-5f5f-9a36-305fa6cb8082",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "79d44e4a-efee-5a3a-ae54-68abbd69f59a",
+    "target_key": [
+     "play.exploration",
+     "interacting_with_objects",
+     "4d107ad1-561b-5662-ad12-f3cd38996931",
+     "79d44e4a-efee-5a3a-ae54-68abbd69f59a",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "851c00a1-4e45-5452-b60d-84e455ac2970",
+    "target_key": [
+     "glossary.armor_class",
+     "base_ac",
+     "11b99cdb-8548-5073-a2f5-90412c0369e8",
+     "851c00a1-4e45-5452-b60d-84e455ac2970",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "86939f07-789e-5180-9f72-292982e56737",
+    "target_key": [
+     "play.exploration",
+     "light",
+     "05e3d55e-2f09-5750-a0d2-1b23f814a890",
+     "86939f07-789e-5180-9f72-292982e56737",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "8a5e47ef-595f-55eb-b8f7-534dbb1f780e",
+    "target_key": [
+     "play.exploration",
+     "vehicles",
+     "71f2607c-1d3b-5ca0-8c9c-13cfe2f5cecb",
+     "8a5e47ef-595f-55eb-b8f7-534dbb1f780e",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "8bdce724-4798-5fb0-8b15-3ff4e88223d8",
+    "target_key": [
+     "play.six_abilities",
+     "round_down",
+     "50d03b9a-67d5-5962-a551-729f9f1f9005",
+     "8bdce724-4798-5fb0-8b15-3ff4e88223d8",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "8f5840a4-54c9-53be-aef4-55ecb1c377af",
+    "target_key": [
+     "play.social_interaction",
+     "social_checks",
+     "6011b2a3-edb6-5545-b82d-2f97befda879",
+     "8f5840a4-54c9-53be-aef4-55ecb1c377af",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "9512c85b-f7ec-5a12-b329-a54d3f2d8162",
+    "target_key": [
+     "play.exploration",
+     "travel",
+     "daa47a53-93a1-5c36-b8de-e705d6572a83",
+     "9512c85b-f7ec-5a12-b329-a54d3f2d8162",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "9e41f5e8-59a7-56e4-9a38-8dff90d0188d",
+    "target_key": [
+     "glossary.challenge_rating",
+     "challenge_rating",
+     "134048e0-7956-5303-b9c5-1eb17dd23da6",
+     "9e41f5e8-59a7-56e4-9a38-8dff90d0188d",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "aeade3c0-1928-513c-89bc-4ca2d1c36d3a",
+    "target_key": [
+     "play.six_abilities",
+     "six_abilities",
+     "1ef49980-022e-5724-8786-7be4fe929f96",
+     "aeade3c0-1928-513c-89bc-4ca2d1c36d3a",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "b2b517d6-e7e4-55c9-8271-721569ece0d9",
+    "target_key": [
+     "play.exploration.travel_pace",
+     "travel_pace",
+     "ec79411e-efaf-51e3-89ea-ab13a94866be",
+     "b2b517d6-e7e4-55c9-8271-721569ece0d9",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "b2e27031-3a01-5c74-b0f1-e3c60e2e6e0d",
+    "target_key": [
+     "glossary.expertise",
+     "expertise",
+     "3c2dcfe9-66ee-5c07-aac6-72533d8e56ab",
+     "b2e27031-3a01-5c74-b0f1-e3c60e2e6e0d",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "b3be5aa5-3168-542e-9aca-d31db4fcc145",
+    "target_key": [
+     "play.exploration.travel_pace",
+     "pace_effects",
+     "8769415e-373a-5611-902c-9ee9f6fd46b8",
+     "b3be5aa5-3168-542e-9aca-d31db4fcc145",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "bd4ca96b-f88b-557c-b0aa-13d7f8241b61",
+    "target_key": [
+     "play.rhythm_of_play",
+     "basic_pattern",
+     "8f66b61e-42ff-569a-bb06-04ced6ec4b7f",
+     "bd4ca96b-f88b-557c-b0aa-13d7f8241b61",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "bd9f9d41-67c2-5924-b060-2384135fc98d",
+    "target_key": [
+     "play.exploration",
+     "what_is_an_object",
+     "233c80d1-b3a7-5872-839d-8c86c2fdeeae",
+     "bd9f9d41-67c2-5924-b060-2384135fc98d",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "c8e70688-68a8-5828-9821-d318548d8659",
+    "target_key": [
+     "play.rhythm_of_play",
+     "basic_pattern",
+     "e8056dc8-951c-59a9-a011-913b62bfca92",
+     "c8e70688-68a8-5828-9821-d318548d8659",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "cb5f9c3c-a554-520b-b659-38bca46a4cca",
+    "target_key": [
+     "play.exploration",
+     "finding_hidden_objects",
+     "7f36cb4f-8817-53f0-b7bd-8f16ae46259c",
+     "cb5f9c3c-a554-520b-b659-38bca46a4cca",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "d024c7ee-9d4c-56f1-99cf-144ed981ed9c",
+    "target_key": [
+     "play.social_interaction",
+     "skill_approach",
+     "20bd8e57-1fbf-59cc-a148-cca54b383825",
+     "d024c7ee-9d4c-56f1-99cf-144ed981ed9c",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "d6381b49-8248-51c4-83d2-b875eb0cf57e",
+    "target_key": [
+     "play.rhythm_of_play",
+     "basic_pattern",
+     "8bfee2de-a956-56d2-a0fe-f02efbfa7d94",
+     "d6381b49-8248-51c4-83d2-b875eb0cf57e",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "e7777d46-821f-58a3-b882-cfb700a20466",
+    "target_key": [
+     "play.six_abilities",
+     "ability_scores",
+     "f4ef8a55-4ea0-5ad5-a580-98c03b45c11d",
+     "e7777d46-821f-58a3-b882-cfb700a20466",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "ed4f885e-dad6-525d-b9c5-28ef2d384a67",
+    "target_key": [
+     "play.exploration",
+     "light",
+     "830e2d08-b280-505c-9d3b-65b87ca66728",
+     "ed4f885e-dad6-525d-b9c5-28ef2d384a67",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "f0bb88bc-02d8-5548-8689-41fd00e153ff",
+    "target_key": [
+     "play.six_abilities",
+     "six_abilities",
+     "c2c8a253-888a-5b27-8081-42175db7671c",
+     "f0bb88bc-02d8-5548-8689-41fd00e153ff",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "f3a70dd3-7793-5a27-8247-40ce2596f953",
+    "target_key": [
+     "play.exploration.travel_pace",
+     "pace_effects",
+     "8a42b0fe-7276-53b9-abec-53692143ed3f",
+     "f3a70dd3-7793-5a27-8247-40ce2596f953",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "f5d645b0-4ef9-5b07-9a2a-ad3b9e6672a5",
+    "target_key": [
+     "play.rhythm_of_play",
+     "every_session",
+     "7c30eb79-7411-5d9c-bb24-cdae26b5b2ca",
+     "f5d645b0-4ef9-5b07-9a2a-ad3b9e6672a5",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "fa90f780-ecc1-59c7-9b4e-d7c750daaa1b",
+    "target_key": [
+     "play.exploration",
+     "hazards",
+     "01adcfee-44c2-5a45-8808-2003347f6585",
+     "fa90f780-ecc1-59c7-9b4e-d7c750daaa1b",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "fad024eb-819d-500e-8ac1-981c2eaa7fd7",
+    "target_key": [
+     "play.social_interaction",
+     "social_interaction",
+     "680ead0d-ec73-5858-b3da-664a81f82546",
+     "fad024eb-819d-500e-8ac1-981c2eaa7fd7",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   }
+  ],
+  "records": [
+   {
+    "kind": "general_rule",
+    "parent_key": null,
+    "semantic_key": "play.exploration"
+   },
+   {
+    "kind": "general_rule",
+    "parent_key": null,
+    "semantic_key": "play.exploration.travel_pace"
+   },
+   {
+    "kind": "general_rule",
+    "parent_key": null,
+    "semantic_key": "play.rhythm_of_play"
+   },
+   {
+    "kind": "general_rule",
+    "parent_key": null,
+    "semantic_key": "play.six_abilities"
+   },
+   {
+    "kind": "general_rule",
+    "parent_key": null,
+    "semantic_key": "play.social_interaction"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.armor_class"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.challenge_rating"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.expertise"
+   }
+  ],
+  "references": [
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.armor_class",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Attack Roll",
+    "target_record_key": "glossary.attack_roll"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.challenge_rating",
+    "scope_key": "srd-5.2.1/gameplay-toolbox",
+    "source_text": "Combat Encounters",
+    "target_record_key": ""
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.challenge_rating",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Stat Block",
+    "target_record_key": "glossary.stat_block"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.expertise",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "Proficiency",
+    "target_record_key": "play.proficiency"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "play.exploration",
+    "scope_key": "srd-5.2.1/equipment",
+    "source_text": "See \"Equipment\" for rules on many items",
+    "target_record_key": ""
+   },
+   {
+    "from_component_key": "ability_modifiers",
+    "from_record_key": "play.six_abilities",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "D20 Tests",
+    "target_record_key": "play.d20_tests"
+   },
+   {
+    "from_component_key": "attitudes",
+    "from_record_key": "play.social_interaction",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Friendly",
+    "target_record_key": "glossary.friendly"
+   },
+   {
+    "from_component_key": "attitudes",
+    "from_record_key": "play.social_interaction",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Hostile",
+    "target_record_key": "glossary.hostile"
+   },
+   {
+    "from_component_key": "attitudes",
+    "from_record_key": "play.social_interaction",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Indifferent",
+    "target_record_key": "glossary.indifferent"
+   },
+   {
+    "from_component_key": "carrying_objects",
+    "from_record_key": "play.exploration",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "carrying capacity",
+    "target_record_key": "glossary.carrying_capacity"
+   },
+   {
+    "from_component_key": "hazards",
+    "from_record_key": "play.exploration",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Burning",
+    "target_record_key": "glossary.burning"
+   },
+   {
+    "from_component_key": "hazards",
+    "from_record_key": "play.exploration",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Dehydration",
+    "target_record_key": "glossary.dehydration"
+   },
+   {
+    "from_component_key": "hazards",
+    "from_record_key": "play.exploration",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Falling",
+    "target_record_key": "glossary.falling"
+   },
+   {
+    "from_component_key": "hazards",
+    "from_record_key": "play.exploration",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Malnutrition",
+    "target_record_key": "glossary.malnutrition"
+   },
+   {
+    "from_component_key": "hazards",
+    "from_record_key": "play.exploration",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Suffocation",
+    "target_record_key": "glossary.suffocation"
+   },
+   {
+    "from_component_key": "heavily_obscured",
+    "from_record_key": "play.exploration",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Blinded",
+    "target_record_key": "glossary.blinded"
+   },
+   {
+    "from_component_key": "hiding",
+    "from_record_key": "play.exploration",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Hide",
+    "target_record_key": "glossary.hide"
+   },
+   {
+    "from_component_key": "social_checks",
+    "from_record_key": "play.social_interaction",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Influence",
+    "target_record_key": "glossary.influence"
+   },
+   {
+    "from_component_key": "special_senses",
+    "from_record_key": "play.exploration",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Blindsight",
+    "target_record_key": "glossary.blindsight"
+   },
+   {
+    "from_component_key": "special_senses",
+    "from_record_key": "play.exploration",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Darkvision",
+    "target_record_key": "glossary.darkvision"
+   },
+   {
+    "from_component_key": "special_senses",
+    "from_record_key": "play.exploration",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Tremorsense",
+    "target_record_key": "glossary.tremorsense"
+   },
+   {
+    "from_component_key": "special_senses",
+    "from_record_key": "play.exploration",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Truesight",
+    "target_record_key": "glossary.truesight"
+   },
+   {
+    "from_component_key": "time_limited_interactions",
+    "from_record_key": "play.exploration",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "Combat",
+    "target_record_key": "play.combat"
+   },
+   {
+    "from_component_key": "time_limited_interactions",
+    "from_record_key": "play.exploration",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Utilize",
+    "target_record_key": "glossary.utilize"
+   },
+   {
+    "from_component_key": "travel_pace",
+    "from_record_key": "play.exploration.travel_pace",
+    "scope_key": "srd-5.2.1/equipment",
+    "source_text": "Equipment",
+    "target_record_key": ""
+   },
+   {
+    "from_component_key": "travel_pace",
+    "from_record_key": "play.exploration.travel_pace",
+    "scope_key": "srd-5.2.1/gameplay-toolbox",
+    "source_text": "Gameplay Toolbox",
+    "target_record_key": ""
+   },
+   {
+    "from_component_key": "travel_pace",
+    "from_record_key": "play.exploration.travel_pace",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Long Rest",
+    "target_record_key": "glossary.long_rest"
+   },
+   {
+    "from_component_key": "travel_pace",
+    "from_record_key": "play.exploration.travel_pace",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Short or Long Rest",
+    "target_record_key": "glossary.short_rest"
+   },
+   {
+    "from_component_key": "vehicles",
+    "from_record_key": "play.exploration",
+    "scope_key": "srd-5.2.1/equipment",
+    "source_text": "Equipment",
+    "target_record_key": ""
+   },
+   {
+    "from_component_key": "weapons_beyond_battle",
+    "from_record_key": "play.exploration",
+    "scope_key": "srd-5.2.1/equipment",
+    "source_text": "The weapons in \"Equipment\"",
+    "target_record_key": ""
+   }
+  ],
+  "relationships": [
+   {
+    "kind": "catalogue_member",
+    "source_record_key": "play.exploration.travel_pace",
+    "target_record_key": "play.exploration"
+   }
+  ]
+ },
+ "proposed_review_units": [
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "8ad5c6a5-1a66-59e2-bcdd-0f395c00e40d"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "armor_class",
+     "record_key": "glossary.armor_class",
+     "source_span_ids": [
+      "6178a42a-e8fb-5d21-b00c-8f61850bb7ca"
+     ]
+    },
+    {
+     "component_key": "base_ac",
+     "record_key": "glossary.armor_class",
+     "source_span_ids": [
+      "851c00a1-4e45-5452-b60d-84e455ac2970"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "4a2cb12f-76f5-5caa-8dfa-52d18fafc1d6",
+    "8ad5c6a5-1a66-59e2-bcdd-0f395c00e40d",
+    "939798a0-ec48-5597-9e97-cc36f1bd1692"
+   ],
+   "supporting_groups": [],
+   "unit_id": "core-play-completion/armor_class"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "acc6bb38-b2b4-5170-b511-105d9372b3aa"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "challenge_rating",
+     "record_key": "glossary.challenge_rating",
+     "source_span_ids": [
+      "9e41f5e8-59a7-56e4-9a38-8dff90d0188d"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "26a9bf2b-fac4-5580-a0db-9a3dce5ee073",
+    "acc6bb38-b2b4-5170-b511-105d9372b3aa"
+   ],
+   "supporting_groups": [],
+   "unit_id": "core-play-completion/challenge_rating"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "07eb6b24-f6f0-5515-bb6d-f378d076ca4d"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "expertise",
+     "record_key": "glossary.expertise",
+     "source_span_ids": [
+      "b2e27031-3a01-5c74-b0f1-e3c60e2e6e0d"
+     ]
+    },
+    {
+     "component_key": "gaining_expertise",
+     "record_key": "glossary.expertise",
+     "source_span_ids": [
+      "06f13127-47a3-554c-9e0e-e2d1ffee9355"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "07eb6b24-f6f0-5515-bb6d-f378d076ca4d",
+    "0c20e3a3-d5ae-5108-bc69-a1e7114f2ea5",
+    "5d0e4c81-946f-5a16-990c-510fc721f793",
+    "708e6f78-f1ed-5b6f-9334-485ffe18fc39"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "0c20e3a3-d5ae-5108-bc69-a1e7114f2ea5"
+     ],
+     "supports_component_key": "",
+     "supports_record_key": "glossary.expertise"
+    }
+   ],
+   "unit_id": "core-play-completion/expertise"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "13cf6bc8-48d3-5884-a5e2-f2b7a2c4bf40"
+     ],
+     "reason": "section heading: names the section and states no rule"
+    },
+    {
+     "leaf_ids": [
+      "378c6e57-2a8a-5956-843a-2a5c28cca15d",
+      "3c50e3b3-4d51-5d2a-a2f0-e41339086654",
+      "4106005c-4930-5bc8-91f1-bf8fefd3ab52",
+      "60ad87f3-495d-54f1-9333-a81af3bf3ca6",
+      "64152647-dbfe-5fc8-9174-2743fe7d3a40",
+      "6e285f68-5267-54d2-a9d4-0f703f206e71",
+      "80b1726e-9cf2-54dc-bc18-28943e6c642a",
+      "8845f233-b454-5a10-a1bc-280a85957a77",
+      "a0765021-162c-5d59-bdda-5c506d00e72e",
+      "abb01070-bbf6-5650-bf25-9f6351b3d9a3",
+      "bcc629c6-2df1-5344-a62d-e310f8a0c026",
+      "d18e192b-c4a3-5cc3-8c44-c77f177661a5",
+      "d5aa6b9a-4208-5b7d-ad09-796cf3e8427a",
+      "d866650a-5772-57f2-a106-d59511cb7ac0",
+      "f95f5716-4f5b-5970-979f-d6ace2d54562"
+     ],
+     "reason": "subsection heading: names a subsection and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "carrying_objects",
+     "record_key": "play.exploration",
+     "source_span_ids": [
+      "182b24a5-e413-57ec-94f0-6222a4405ece"
+     ]
+    },
+    {
+     "component_key": "equipment_help",
+     "record_key": "play.exploration",
+     "source_span_ids": [
+      "4b10956d-e6ae-563a-b039-9cb448056293"
+     ]
+    },
+    {
+     "component_key": "finding_hidden_objects",
+     "record_key": "play.exploration",
+     "source_span_ids": [
+      "762857aa-0e70-5f5f-9a36-305fa6cb8082",
+      "cb5f9c3c-a554-520b-b659-38bca46a4cca"
+     ]
+    },
+    {
+     "component_key": "hazards",
+     "record_key": "play.exploration",
+     "source_span_ids": [
+      "26458ea8-91d7-566d-a3bd-e19347f4baf5",
+      "fa90f780-ecc1-59c7-9b4e-d7c750daaa1b"
+     ]
+    },
+    {
+     "component_key": "heavily_obscured",
+     "record_key": "play.exploration",
+     "source_span_ids": [
+      "134be17c-49aa-5f3c-ab9f-f441391a2358"
+     ]
+    },
+    {
+     "component_key": "heavily_obscured",
+     "fact_family": "condition_effect",
+     "record_key": "play.exploration",
+     "source_span_ids": [
+      "134be17c-49aa-5f3c-ab9f-f441391a2358"
+     ]
+    },
+    {
+     "component_key": "hiding",
+     "record_key": "play.exploration",
+     "source_span_ids": [
+      "354468b7-5a26-5408-b1bc-a9606857be13"
+     ]
+    },
+    {
+     "component_key": "interacting_with_objects",
+     "record_key": "play.exploration",
+     "source_span_ids": [
+      "79d44e4a-efee-5a3a-ae54-68abbd69f59a"
+     ]
+    },
+    {
+     "component_key": "light",
+     "record_key": "play.exploration",
+     "source_span_ids": [
+      "1be80828-27b5-518e-9ecc-151865013395",
+      "4ac4115f-0008-5073-8362-8f0899b61bbb",
+      "86939f07-789e-5180-9f72-292982e56737",
+      "ed4f885e-dad6-525d-b9c5-28ef2d384a67"
+     ]
+    },
+    {
+     "component_key": "lightly_obscured",
+     "record_key": "play.exploration",
+     "source_span_ids": [
+      "2218404f-f8e8-5afb-8cdf-9aa8aa371b35"
+     ]
+    },
+    {
+     "component_key": "lightly_obscured",
+     "fact_family": "advantage",
+     "record_key": "play.exploration",
+     "source_span_ids": [
+      "2218404f-f8e8-5afb-8cdf-9aa8aa371b35"
+     ]
+    },
+    {
+     "component_key": "special_senses",
+     "record_key": "play.exploration",
+     "source_span_ids": [
+      "62c189df-7669-53fd-9e9f-84e501e206a8",
+      "6bd62a87-5e7c-5504-b79f-86124b59cbf2"
+     ]
+    },
+    {
+     "component_key": "time_limited_interactions",
+     "record_key": "play.exploration",
+     "source_span_ids": [
+      "0d11fa63-6900-5764-b5ae-fb19e93d9910"
+     ]
+    },
+    {
+     "component_key": "travel",
+     "record_key": "play.exploration",
+     "source_span_ids": [
+      "9512c85b-f7ec-5a12-b329-a54d3f2d8162"
+     ]
+    },
+    {
+     "component_key": "vehicles",
+     "record_key": "play.exploration",
+     "source_span_ids": [
+      "8a5e47ef-595f-55eb-b8f7-534dbb1f780e"
+     ]
+    },
+    {
+     "component_key": "weapons_beyond_battle",
+     "record_key": "play.exploration",
+     "source_span_ids": [
+      "1b03e279-aa57-532e-a009-7fd7b35f0a5a"
+     ]
+    },
+    {
+     "component_key": "what_is_an_object",
+     "record_key": "play.exploration",
+     "source_span_ids": [
+      "bd9f9d41-67c2-5924-b060-2384135fc98d"
+     ]
+    },
+    {
+     "component_key": "pace_effects",
+     "record_key": "play.exploration.travel_pace",
+     "source_span_ids": [
+      "2c53c606-b5b5-579e-8293-b87a3bf4e1c4",
+      "3e762e2e-8a7c-5b01-80f9-e9f9d04bc74d",
+      "b3be5aa5-3168-542e-9aca-d31db4fcc145",
+      "f3a70dd3-7793-5a27-8247-40ce2596f953"
+     ]
+    },
+    {
+     "component_key": "pace_effects",
+     "fact_family": "advantage",
+     "record_key": "play.exploration.travel_pace",
+     "source_span_ids": [
+      "2c53c606-b5b5-579e-8293-b87a3bf4e1c4",
+      "3e762e2e-8a7c-5b01-80f9-e9f9d04bc74d",
+      "b3be5aa5-3168-542e-9aca-d31db4fcc145",
+      "f3a70dd3-7793-5a27-8247-40ce2596f953"
+     ]
+    },
+    {
+     "component_key": "travel_pace",
+     "record_key": "play.exploration.travel_pace",
+     "source_span_ids": [
+      "41f2ce66-b485-5e4c-a428-5443942d831e",
+      "b2b517d6-e7e4-55c9-8271-721569ece0d9"
+     ]
+    }
+   ],
+   "kind": "section",
+   "leaf_ids": [
+    "00843bd1-e63d-50ab-b2ae-f0514e4d60ec",
+    "040114c2-fbc4-5ad5-9e48-e8608df0a19e",
+    "0948b98f-ec54-5de7-92f5-e005e1746583",
+    "0ad56a96-7139-58f9-95d7-d1c814c5a65d",
+    "13cf6bc8-48d3-5884-a5e2-f2b7a2c4bf40",
+    "1e698727-8792-5b48-bdfe-0a0c79de7a9d",
+    "21e58624-c603-5c4a-8eab-52f5aa24ec1d",
+    "2b8c1432-df52-5158-915f-05b950f49288",
+    "31e3b3ac-b85c-5bc6-bb19-78816e06e8f4",
+    "353ef1db-0ce7-568a-be17-ae1562ec691e",
+    "378c6e57-2a8a-5956-843a-2a5c28cca15d",
+    "3c50e3b3-4d51-5d2a-a2f0-e41339086654",
+    "4106005c-4930-5bc8-91f1-bf8fefd3ab52",
+    "462c0059-5afa-5b6c-ae25-34cb8af66946",
+    "4d2cb5d1-3f07-5662-939e-cb19709f968e",
+    "57587fcb-50ac-5eca-bd93-99ef639d1423",
+    "5cb3bb93-be5c-531f-a796-0f3a6c8e6a2f",
+    "60ad87f3-495d-54f1-9333-a81af3bf3ca6",
+    "64152647-dbfe-5fc8-9174-2743fe7d3a40",
+    "68afa722-1423-57f7-856b-3f25e102418e",
+    "6e285f68-5267-54d2-a9d4-0f703f206e71",
+    "7d243727-5757-5bc8-a435-df4acc396c99",
+    "80b1726e-9cf2-54dc-bc18-28943e6c642a",
+    "8845f233-b454-5a10-a1bc-280a85957a77",
+    "908d0a84-651b-5087-a5e8-e5a057560c41",
+    "909161d4-98a6-58c0-abed-ba2f355b005c",
+    "95293d07-85f2-55fc-a306-9d2ee94eeace",
+    "9a6ebdda-0762-52d6-8564-68df1285609b",
+    "a0765021-162c-5d59-bdda-5c506d00e72e",
+    "a6f9827f-9036-5bf2-bcd5-ac91b16b9a77",
+    "abb01070-bbf6-5650-bf25-9f6351b3d9a3",
+    "ae89a844-fda1-5a7f-a49f-bc5ae2abef1b",
+    "b6e4e22f-b0eb-5a6d-85e7-9fc1157e3faa",
+    "bcabb1da-0843-5721-8c27-d44ad1e3e983",
+    "bcc629c6-2df1-5344-a62d-e310f8a0c026",
+    "c1a1ac46-e2f6-5024-a175-64afaab33eee",
+    "c4a59f94-0917-59a0-8011-bf9f3e5acd63",
+    "c859dc78-ca2f-5cbe-8afc-98597257fa91",
+    "d13f0936-aa60-50ab-ada5-9bd7077f880d",
+    "d18e192b-c4a3-5cc3-8c44-c77f177661a5",
+    "d5aa6b9a-4208-5b7d-ad09-796cf3e8427a",
+    "d866650a-5772-57f2-a106-d59511cb7ac0",
+    "ed191983-7f3f-5299-ae6b-a64dd6c3b729",
+    "f0dd62f9-e028-5f78-b3b4-9e7e18b59f93",
+    "f3c3af1d-d921-5624-9e76-e9eeccb9151f",
+    "f95f5716-4f5b-5970-979f-d6ace2d54562"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "0948b98f-ec54-5de7-92f5-e005e1746583",
+      "a6f9827f-9036-5bf2-bcd5-ac91b16b9a77"
+     ],
+     "supports_component_key": "",
+     "supports_record_key": "play.exploration"
+    },
+    {
+     "leaf_ids": [
+      "ae89a844-fda1-5a7f-a49f-bc5ae2abef1b"
+     ],
+     "supports_component_key": "",
+     "supports_record_key": "play.exploration"
+    }
+   ],
+   "unit_id": "core-play-completion/exploration"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "9cbf983b-88d8-58e3-af04-39194cc97c15"
+     ],
+     "reason": "section heading: names the section and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "basic_pattern",
+     "record_key": "play.rhythm_of_play",
+     "source_span_ids": [
+      "582c3c78-1e72-56f5-970b-6f0bfbf5db5c",
+      "bd4ca96b-f88b-557c-b0aa-13d7f8241b61",
+      "c8e70688-68a8-5828-9821-d318548d8659",
+      "d6381b49-8248-51c4-83d2-b875eb0cf57e"
+     ]
+    },
+    {
+     "component_key": "every_session",
+     "record_key": "play.rhythm_of_play",
+     "source_span_ids": [
+      "f5d645b0-4ef9-5b07-9a2a-ad3b9e6672a5"
+     ]
+    }
+   ],
+   "kind": "section",
+   "leaf_ids": [
+    "21015f33-0227-58e7-a883-00bffc7ada55",
+    "849f0ccb-f6f6-5026-864a-b111541deaf2",
+    "976fb75d-3111-59c5-8b7e-480419b80d05",
+    "9c8b0f58-b7b5-5102-bdfe-c3b2e308da84",
+    "9cbf983b-88d8-58e3-af04-39194cc97c15",
+    "e54cc126-a8f0-5fe9-bd7e-56276499c34b"
+   ],
+   "supporting_groups": [],
+   "unit_id": "core-play-completion/rhythm_of_play"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "272050ad-3ed7-50ec-97d8-513fb25134e1"
+     ],
+     "reason": "section heading: names the section and states no rule"
+    },
+    {
+     "leaf_ids": [
+      "20569ec5-9a4e-5ae5-8a27-148a3dacd3ca",
+      "e8e902ab-bee0-5b29-8845-11d3619fed0d"
+     ],
+     "reason": "subsection heading: names a subsection and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "ability_modifiers",
+     "record_key": "play.six_abilities",
+     "source_span_ids": [
+      "4a53259e-7110-530f-83a9-b3c89b28a5a9",
+      "5f623b22-aeca-5989-a66f-6fe874ee4d58"
+     ]
+    },
+    {
+     "component_key": "ability_scores",
+     "record_key": "play.six_abilities",
+     "source_span_ids": [
+      "2bafc091-3244-5266-beb5-a4a1cf010d3a",
+      "e7777d46-821f-58a3-b882-cfb700a20466"
+     ]
+    },
+    {
+     "component_key": "exceptions_supersede",
+     "record_key": "play.six_abilities",
+     "source_span_ids": [
+      "0882106a-7583-56f2-a8b4-e52c4f2a8d03",
+      "41775306-416b-5ee2-a583-08068a954dd8",
+      "51c04a69-8aac-5357-a709-0608b17b10b1"
+     ]
+    },
+    {
+     "component_key": "round_down",
+     "record_key": "play.six_abilities",
+     "source_span_ids": [
+      "8bdce724-4798-5fb0-8b15-3ff4e88223d8"
+     ]
+    },
+    {
+     "component_key": "six_abilities",
+     "record_key": "play.six_abilities",
+     "source_span_ids": [
+      "aeade3c0-1928-513c-89bc-4ca2d1c36d3a",
+      "f0bb88bc-02d8-5548-8689-41fd00e153ff"
+     ]
+    }
+   ],
+   "kind": "section",
+   "leaf_ids": [
+    "20569ec5-9a4e-5ae5-8a27-148a3dacd3ca",
+    "272050ad-3ed7-50ec-97d8-513fb25134e1",
+    "5f542d06-ba5f-5cb6-a207-656cf0adcdb8",
+    "6ba965ef-e3ff-5ea5-b7f8-9fc41be635b7",
+    "794bb20c-6b05-5cb5-9b65-84eaaaf669ba",
+    "9247149f-614f-55d0-bef3-bc0c80081a0c",
+    "925a7146-276c-5305-9f74-84368bbef0a9",
+    "a3dc104a-8009-5401-a4da-e70891e4ee80",
+    "b55a4d84-a187-5245-8c52-cf061901aaee",
+    "ca9d8516-4086-5ada-9c39-263bedc42efc",
+    "e8e902ab-bee0-5b29-8845-11d3619fed0d"
+   ],
+   "supporting_groups": [],
+   "unit_id": "core-play-completion/six_abilities"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "975876c6-4366-5662-a662-97aad66693d9"
+     ],
+     "reason": "section heading: names the section and states no rule"
+    },
+    {
+     "leaf_ids": [
+      "069438f6-4b4e-536b-a393-54546520515b",
+      "d0822d0b-33e8-5c6c-abff-836276ebf971"
+     ],
+     "reason": "subsection heading: names a subsection and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "attitudes",
+     "record_key": "play.social_interaction",
+     "source_span_ids": [
+      "31ea2bb7-1199-51f4-acce-7fbe11f25dbe"
+     ]
+    },
+    {
+     "component_key": "influencing_npcs",
+     "record_key": "play.social_interaction",
+     "source_span_ids": [
+      "230903ad-ce7d-5c78-93a8-0fb6b34cd16d",
+      "5d2328e1-1733-5b3a-91f9-338e60df27ff"
+     ]
+    },
+    {
+     "component_key": "npc_reactions",
+     "record_key": "play.social_interaction",
+     "source_span_ids": [
+      "6b720e45-d156-5b39-8aaf-47163e96a03e"
+     ]
+    },
+    {
+     "component_key": "roleplaying",
+     "record_key": "play.social_interaction",
+     "source_span_ids": [
+      "065ebd16-00e7-5904-b743-64fb65882c98",
+      "33f6e5c1-0399-5a82-9383-9e8345baeac3"
+     ]
+    },
+    {
+     "component_key": "skill_approach",
+     "record_key": "play.social_interaction",
+     "source_span_ids": [
+      "d024c7ee-9d4c-56f1-99cf-144ed981ed9c"
+     ]
+    },
+    {
+     "component_key": "social_checks",
+     "record_key": "play.social_interaction",
+     "source_span_ids": [
+      "8f5840a4-54c9-53be-aef4-55ecb1c377af"
+     ]
+    },
+    {
+     "component_key": "social_interaction",
+     "record_key": "play.social_interaction",
+     "source_span_ids": [
+      "371c0482-18a8-5cd3-b63d-388d766a6dfb",
+      "fad024eb-819d-500e-8ac1-981c2eaa7fd7"
+     ]
+    }
+   ],
+   "kind": "section",
+   "leaf_ids": [
+    "002775f0-5970-580d-b974-c20c784fbc15",
+    "00977f69-f67d-5889-8226-b61a44dad943",
+    "069438f6-4b4e-536b-a393-54546520515b",
+    "1a365d0c-6369-5e25-9004-08d3aefa64ee",
+    "4e44d164-1219-58c6-b57f-7d7c088b284b",
+    "86795f32-ac7b-560b-afcb-9dda8edfcd2a",
+    "91d1f2dd-f8e3-5325-927b-c3241911b620",
+    "975876c6-4366-5662-a662-97aad66693d9",
+    "a72e661a-6548-5e04-970e-9ac1fcc724b6",
+    "aa60ef9a-9a88-5f34-9f73-d6578306e5ba",
+    "d0822d0b-33e8-5c6c-abff-836276ebf971",
+    "d3bff67c-02fb-5608-ba19-c3ad8cab203d",
+    "f7a5e7db-8329-5ba0-8882-8f56d2bbdd1b"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "002775f0-5970-580d-b974-c20c784fbc15"
+     ],
+     "supports_component_key": "",
+     "supports_record_key": "play.social_interaction"
+    }
+   ],
+   "unit_id": "core-play-completion/social_interaction"
+  }
+ ],
+ "proposed_spans": [
+  {
+   "char_end": 102,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "57587fcb-50ac-5eca-bd93-99ef639d1423",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "ed4f885e-dad6-525d-b9c5-28ef2d384a67"
+  },
+  {
+   "char_end": 107,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "00977f69-f67d-5889-8226-b61a44dad943",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "6b720e45-d156-5b39-8aaf-47163e96a03e"
+  },
+  {
+   "char_end": 111,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "4a2cb12f-76f5-5caa-8dfa-52d18fafc1d6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "6178a42a-e8fb-5d21-b00c-8f61850bb7ca"
+  },
+  {
+   "char_end": 118,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "c859dc78-ca2f-5cbe-8afc-98597257fa91",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "26458ea8-91d7-566d-a3bd-e19347f4baf5"
+  },
+  {
+   "char_end": 132,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "ae89a844-fda1-5a7f-a49f-bc5ae2abef1b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "a9d52ba6-512e-5bd3-bd8f-eefbe854ef7b"
+  },
+  {
+   "char_end": 133,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "d13f0936-aa60-50ab-ada5-9bd7077f880d",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "b3be5aa5-3168-542e-9aca-d31db4fcc145"
+  },
+  {
+   "char_end": 143,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "462c0059-5afa-5b6c-ae25-34cb8af66946",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "6bd62a87-5e7c-5504-b79f-86124b59cbf2"
+  },
+  {
+   "char_end": 149,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "708e6f78-f1ed-5b6f-9334-485ffe18fc39",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "06f13127-47a3-554c-9e0e-e2d1ffee9355"
+  },
+  {
+   "char_end": 150,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "9247149f-614f-55d0-bef3-bc0c80081a0c",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "aeade3c0-1928-513c-89bc-4ca2d1c36d3a"
+  },
+  {
+   "char_end": 150,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "0ad56a96-7139-58f9-95d7-d1c814c5a65d",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "2e7f7342-7ba4-5fb6-9b24-1debb8ccfad9"
+  },
+  {
+   "char_end": 152,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "7d243727-5757-5bc8-a435-df4acc396c99",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "762857aa-0e70-5f5f-9a36-305fa6cb8082"
+  },
+  {
+   "char_end": 158,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f7a5e7db-8329-5ba0-8882-8f56d2bbdd1b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "d024c7ee-9d4c-56f1-99cf-144ed981ed9c"
+  },
+  {
+   "char_end": 16,
+   "char_start": 2,
+   "disposition": "supporting_authority",
+   "leaf_id": "794bb20c-6b05-5cb5-9b65-84eaaaf669ba",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "a7ae8fda-dfb0-59a7-807f-865421eaa303"
+  },
+  {
+   "char_end": 168,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "9c8b0f58-b7b5-5102-bdfe-c3b2e308da84",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "582c3c78-1e72-56f5-970b-6f0bfbf5db5c"
+  },
+  {
+   "char_end": 175,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "939798a0-ec48-5597-9e97-cc36f1bd1692",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "851c00a1-4e45-5452-b60d-84e455ac2970"
+  },
+  {
+   "char_end": 183,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "ed191983-7f3f-5299-ae6b-a64dd6c3b729",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "134be17c-49aa-5f3c-ab9f-f441391a2358"
+  },
+  {
+   "char_end": 184,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "849f0ccb-f6f6-5026-864a-b111541deaf2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "d6381b49-8248-51c4-83d2-b875eb0cf57e"
+  },
+  {
+   "char_end": 185,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "a72e661a-6548-5e04-970e-9ac1fcc724b6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "230903ad-ce7d-5c78-93a8-0fb6b34cd16d"
+  },
+  {
+   "char_end": 189,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "1a365d0c-6369-5e25-9004-08d3aefa64ee",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "31ea2bb7-1199-51f4-acce-7fbe11f25dbe"
+  },
+  {
+   "char_end": 193,
+   "char_start": 89,
+   "disposition": "supporting_authority",
+   "leaf_id": "a3dc104a-8009-5401-a4da-e70891e4ee80",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "ded2b536-c3a2-5bbd-bdf0-8b9938fd0eb7"
+  },
+  {
+   "char_end": 195,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "c1a1ac46-e2f6-5024-a175-64afaab33eee",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "86939f07-789e-5180-9f72-292982e56737"
+  },
+  {
+   "char_end": 197,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "bcabb1da-0843-5721-8c27-d44ad1e3e983",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "bd9f9d41-67c2-5924-b060-2384135fc98d"
+  },
+  {
+   "char_end": 197,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "ca9d8516-4086-5ada-9c39-263bedc42efc",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "2bafc091-3244-5266-beb5-a4a1cf010d3a"
+  },
+  {
+   "char_end": 201,
+   "char_start": 176,
+   "disposition": "supporting_authority",
+   "leaf_id": "939798a0-ec48-5597-9e97-cc36f1bd1692",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "edbc3164-1904-50b5-b01d-e0514c780954"
+  },
+  {
+   "char_end": 202,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "21e58624-c603-5c4a-8eab-52f5aa24ec1d",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "4ac4115f-0008-5073-8362-8f0899b61bbb"
+  },
+  {
+   "char_end": 205,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "5f542d06-ba5f-5cb6-a207-656cf0adcdb8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "4a53259e-7110-530f-83a9-b3c89b28a5a9"
+  },
+  {
+   "char_end": 206,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "86795f32-ac7b-560b-afcb-9dda8edfcd2a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "fad024eb-819d-500e-8ac1-981c2eaa7fd7"
+  },
+  {
+   "char_end": 208,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "353ef1db-0ce7-568a-be17-ae1562ec691e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "2218404f-f8e8-5afb-8cdf-9aa8aa371b35"
+  },
+  {
+   "char_end": 216,
+   "char_start": 21,
+   "disposition": "substantive",
+   "leaf_id": "794bb20c-6b05-5cb5-9b65-84eaaaf669ba",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "8bdce724-4798-5fb0-8b15-3ff4e88223d8"
+  },
+  {
+   "char_end": 227,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "9a6ebdda-0762-52d6-8564-68df1285609b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "354468b7-5a26-5408-b1bc-a9606857be13"
+  },
+  {
+   "char_end": 247,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "909161d4-98a6-58c0-abed-ba2f355b005c",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "9512c85b-f7ec-5a12-b329-a54d3f2d8162"
+  },
+  {
+   "char_end": 250,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "d3bff67c-02fb-5608-ba19-c3ad8cab203d",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "065ebd16-00e7-5904-b743-64fb65882c98"
+  },
+  {
+   "char_end": 251,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "5d0e4c81-946f-5a16-990c-510fc721f793",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "b2e27031-3a01-5c74-b0f1-e3c60e2e6e0d"
+  },
+  {
+   "char_end": 267,
+   "char_start": 108,
+   "disposition": "supporting_authority",
+   "leaf_id": "00977f69-f67d-5889-8226-b61a44dad943",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "05ba3ca5-a4d1-5c58-8280-13c1d315896f"
+  },
+  {
+   "char_end": 269,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "21015f33-0227-58e7-a883-00bffc7ada55",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "f5d645b0-4ef9-5b07-9a2a-ad3b9e6672a5"
+  },
+  {
+   "char_end": 271,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "68afa722-1423-57f7-856b-3f25e102418e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "182b24a5-e413-57ec-94f0-6222a4405ece"
+  },
+  {
+   "char_end": 278,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "040114c2-fbc4-5ad5-9e48-e8608df0a19e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "1be80828-27b5-518e-9ecc-151865013395"
+  },
+  {
+   "char_end": 286,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "00843bd1-e63d-50ab-b2ae-f0514e4d60ec",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "0d11fa63-6900-5764-b5ae-fb19e93d9910"
+  },
+  {
+   "char_end": 291,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "2b8c1432-df52-5158-915f-05b950f49288",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "cb5f9c3c-a554-520b-b659-38bca46a4cca"
+  },
+  {
+   "char_end": 298,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "b6e4e22f-b0eb-5a6d-85e7-9fc1157e3faa",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "79d44e4a-efee-5a3a-ae54-68abbd69f59a"
+  },
+  {
+   "char_end": 302,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "4e44d164-1219-58c6-b57f-7d7c088b284b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "5d2328e1-1733-5b3a-91f9-338e60df27ff"
+  },
+  {
+   "char_end": 307,
+   "char_start": 207,
+   "disposition": "supporting_authority",
+   "leaf_id": "86795f32-ac7b-560b-afcb-9dda8edfcd2a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "9ac9e8ab-948c-55c9-b604-3b49a78c2e7a"
+  },
+  {
+   "char_end": 309,
+   "char_start": 159,
+   "disposition": "supporting_authority",
+   "leaf_id": "f7a5e7db-8329-5ba0-8882-8f56d2bbdd1b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "6b86a40c-3db8-5196-8143-f3d576188609"
+  },
+  {
+   "char_end": 315,
+   "char_start": 194,
+   "disposition": "substantive",
+   "leaf_id": "a3dc104a-8009-5401-a4da-e70891e4ee80",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "41775306-416b-5ee2-a583-08068a954dd8"
+  },
+  {
+   "char_end": 322,
+   "char_start": 68,
+   "disposition": "supporting_authority",
+   "leaf_id": "95293d07-85f2-55fc-a306-9d2ee94eeace",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "eafdfeb2-21ca-594c-aab6-33e65149235e"
+  },
+  {
+   "char_end": 325,
+   "char_start": 151,
+   "disposition": "substantive",
+   "leaf_id": "0ad56a96-7139-58f9-95d7-d1c814c5a65d",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "1b03e279-aa57-532e-a009-7fd7b35f0a5a"
+  },
+  {
+   "char_end": 334,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "aa60ef9a-9a88-5f34-9f73-d6578306e5ba",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "8f5840a4-54c9-53be-aef4-55ecb1c377af"
+  },
+  {
+   "char_end": 338,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "908d0a84-651b-5087-a5e8-e5a057560c41",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "8a5e47ef-595f-55eb-b8f7-534dbb1f780e"
+  },
+  {
+   "char_end": 382,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "26a9bf2b-fac4-5580-a0db-9a3dce5ee073",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "9e41f5e8-59a7-56e4-9a38-8dff90d0188d"
+  },
+  {
+   "char_end": 392,
+   "char_start": 308,
+   "disposition": "substantive",
+   "leaf_id": "86795f32-ac7b-560b-afcb-9dda8edfcd2a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "371c0482-18a8-5cd3-b63d-388d766a6dfb"
+  },
+  {
+   "char_end": 40,
+   "char_start": 2,
+   "disposition": "supporting_authority",
+   "leaf_id": "a3dc104a-8009-5401-a4da-e70891e4ee80",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "b3e75093-996e-52f4-98ca-b25f663153a7"
+  },
+  {
+   "char_end": 46,
+   "char_start": 0,
+   "disposition": "supporting_authority",
+   "leaf_id": "0c20e3a3-d5ae-5108-bc69-a1e7114f2ea5",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "c2850332-4238-5a68-acec-dff1d1fa05c5"
+  },
+  {
+   "char_end": 503,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "e54cc126-a8f0-5fe9-bd7e-56276499c34b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "c8e70688-68a8-5828-9821-d318548d8659"
+  },
+  {
+   "char_end": 507,
+   "char_start": 383,
+   "disposition": "supporting_authority",
+   "leaf_id": "26a9bf2b-fac4-5580-a0db-9a3dce5ee073",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "7858c0d4-8220-5c5a-883c-0fdb3281a5e2"
+  },
+  {
+   "char_end": 51,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f3c3af1d-d921-5624-9e76-e9eeccb9151f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "62c189df-7669-53fd-9e9f-84e501e206a8"
+  },
+  {
+   "char_end": 515,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f0dd62f9-e028-5f78-b3b4-9e7e18b59f93",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "41f2ce66-b485-5e4c-a428-5443942d831e"
+  },
+  {
+   "char_end": 53,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "c4a59f94-0917-59a0-8011-bf9f3e5acd63",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "3e762e2e-8a7c-5b01-80f9-e9f9d04bc74d"
+  },
+  {
+   "char_end": 532,
+   "char_start": 508,
+   "disposition": "supporting_authority",
+   "leaf_id": "26a9bf2b-fac4-5580-a0db-9a3dce5ee073",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "bcdabf11-cf81-5e02-8e99-076454e0f4ee"
+  },
+  {
+   "char_end": 555,
+   "char_start": 320,
+   "disposition": "substantive",
+   "leaf_id": "a3dc104a-8009-5401-a4da-e70891e4ee80",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "0882106a-7583-56f2-a8b4-e52c4f2a8d03"
+  },
+  {
+   "char_end": 565,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "976fb75d-3111-59c5-8b7e-480419b80d05",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "bd4ca96b-f88b-557c-b0aa-13d7f8241b61"
+  },
+  {
+   "char_end": 593,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "4d2cb5d1-3f07-5662-939e-cb19709f968e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "b2b517d6-e7e4-55c9-8271-721569ece0d9"
+  },
+  {
+   "char_end": 62,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "5cb3bb93-be5c-531f-a796-0f3a6c8e6a2f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "fa90f780-ecc1-59c7-9b4e-d7c750daaa1b"
+  },
+  {
+   "char_end": 664,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "6ba965ef-e3ff-5ea5-b7f8-9fc41be635b7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "f0bb88bc-02d8-5548-8689-41fd00e153ff"
+  },
+  {
+   "char_end": 67,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "95293d07-85f2-55fc-a306-9d2ee94eeace",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "4b10956d-e6ae-563a-b039-9cb448056293"
+  },
+  {
+   "char_end": 709,
+   "char_start": 556,
+   "disposition": "supporting_authority",
+   "leaf_id": "a3dc104a-8009-5401-a4da-e70891e4ee80",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "b0c23f4b-2d71-5719-ade7-17adb2872dd6"
+  },
+  {
+   "char_end": 88,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "1e698727-8792-5b48-bdfe-0a0c79de7a9d",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "f3a70dd3-7793-5a27-8247-40ce2596f953"
+  },
+  {
+   "char_end": 88,
+   "char_start": 45,
+   "disposition": "substantive",
+   "leaf_id": "a3dc104a-8009-5401-a4da-e70891e4ee80",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "51c04a69-8aac-5357-a709-0608b17b10b1"
+  },
+  {
+   "char_end": 898,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "925a7146-276c-5305-9f74-84368bbef0a9",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "e7777d46-821f-58a3-b882-cfb700a20466"
+  },
+  {
+   "char_end": 90,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "91d1f2dd-f8e3-5325-927b-c3241911b620",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "33f6e5c1-0399-5a82-9383-9e8345baeac3"
+  },
+  {
+   "char_end": 92,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "31e3b3ac-b85c-5bc6-bb19-78816e06e8f4",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "2c53c606-b5b5-579e-8293-b87a3bf4e1c4"
+  },
+  {
+   "char_end": 952,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "b55a4d84-a187-5245-8c52-cf061901aaee",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-completion-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "5f623b22-aeca-5989-a66f-6fe874ee4d58"
+  }
+ ],
+ "release_binding": {
+  "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+  "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+  "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+  "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+  "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+  "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+ },
+ "representation_schema": {
+  "hash": "7fb9254b11da1d6772ea6ee72ffde9b5e9d39e8885188777874c65e86ad9a941",
+  "version": "5d-representation-schema-16"
+ },
+ "semantic_policy_hash": "da63b8940c5b3997b44d53e02941389b68e2a2ba35250e73194d38bb1d74cde7",
+ "semantic_policy_version": "5d-semantic-policy-2"
+}

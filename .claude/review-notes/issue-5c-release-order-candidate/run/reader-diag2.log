@@ -1,0 +1,38 @@
+start 2026-10-07T03:23:07.952059+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/_sp/release-order-candidate/reader_proof.py .claude/_sp/release-order-candidate/candidate/srd-5-2-1-corpus-8781d4e0-a3b.json .claude/_sp/release-order-candidate/_diag2.json character_origins.acolyte,character_creation.level_advancement,classes.barbarian.as_a_multiclass_character
+input 748cb1127410d876b05711273d5f72d32abafde63804994877a02d9ab7a8eef8  .claude/_sp/release-order-candidate/reader_proof.py
+input 8a6a9a9c305f41207190c0deb55875a027019116ce3f825a6a0425a3a115b4bf  .claude/_sp/release-order-candidate/candidate/srd-5-2-1-corpus-8781d4e0-a3b.json
+persisted old projection 498a9a0a-c693-53e5-8bcd-32143034fbe0 in 6s
+persisted new projection 8d8cb42c-aefe-559c-9d85-6ba975c038af in 6s
+same record keys in the same order True
+read 3 records x2 in 48s: {'prose order only': 3}
+reordered records by files read: {'character-origins.md': 1, 'character-creation.md': 1, 'classes.md': 1}
+no semantic difference in any read True
+every order difference is a file-order difference True
+every reordered record reads Animals with a Monsters file False
+old animals.wolf: own Animals text before governing Monsters rules True
+old animals.wolf: own Animals text before governing Monsters rules True
+old animals.wolf: own Animals text before governing Monsters rules True
+new animals.wolf: governing Monsters rules before own Animals text True
+new animals.wolf: governing Monsters rules before own Animals text True
+new animals.wolf: governing Monsters rules before own Animals text True
+animals.wolf same texts both releases True
+old animals.giant_owl: own Animals text before governing Monsters rules True
+old animals.giant_owl: own Animals text before governing Monsters rules True
+old animals.giant_owl: own Animals text before governing Monsters rules True
+new animals.giant_owl: governing Monsters rules before own Animals text True
+new animals.giant_owl: governing Monsters rules before own Animals text True
+new animals.giant_owl: governing Monsters rules before own Animals text True
+animals.giant_owl same texts both releases True
+old animals.swarm_of_insects: own Animals text before governing Monsters rules True
+old animals.swarm_of_insects: own Animals text before governing Monsters rules True
+old animals.swarm_of_insects: own Animals text before governing Monsters rules True
+new animals.swarm_of_insects: governing Monsters rules before own Animals text True
+new animals.swarm_of_insects: governing Monsters rules before own Animals text True
+new animals.swarm_of_insects: governing Monsters rules before own Animals text True
+animals.swarm_of_insects same texts both releases True
+monsters direct read identical monsters.parts_of_a_stat_block True
+monsters direct read identical monsters.aboleth.aboleth True
+cross-file controls identical (1 records) False
+resolution-bearing records: 189 identical 187 file-order-only 2
+end 2026-10-07T03:25:42.469343+00:00 exit 4294967295

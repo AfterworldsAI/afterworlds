@@ -33,6 +33,14 @@ independent accepted authority with its own publication proof. Re-declaring
 28,109 leaf ids in a committed file would add a second place to drift from 5c
 without adding a second opinion.
 
+**Quarantined by the Recorded Owner Decision of 21 September 2026.** The
+committed artifact described below is refused at every seam that could make
+it active authority — resolution, activation, publication, gating, slice
+selection and retrieval. The independence properties above still describe
+this module's construction; the artifact they were built to judge is being
+replaced, not migrated. See
+``docs/decisions/owner-decision-2026-09-21-5c-5d-clean-restart.md``.
+
 **What is committed today.** ``oracles/`` holds accepted authority for the
 production SRD 5.2.1 release covering CRD Issue 5d batches ``conditions-1``,
 ``hazards-1``, ``actions-1``, ``attitudes-1``, ``areas-of-effect-1``, ``cover-1``
@@ -69,6 +77,7 @@ from afterworlds.ingestion.mechanical.models import (
     ComponentHandling,
     ExcludedGroup,
     ExpectedRule,
+    ReferenceDestination,
     ReferenceResolution,
     ReferenceResolutionAcceptance,
     ReviewState,
@@ -128,6 +137,7 @@ from afterworlds.ingestion.mechanical.representation import (
     Recurrence,
     RecurrenceBoundary,
     ReferenceDraft,
+    ReferenceSituation,
     RelationshipDraft,
     RelationshipKind,
     RepresentationDraft,
@@ -150,10 +160,12 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     schema_binding_violations,
     succession_evidence_violations,
 )
+from afterworlds.quarantine import refuse_quarantined
 
 __all__ = [
     "ACCEPTED_ARTIFACT_KIND",
     "COMMITTED_ORACLE_DIR",
+    "SUPERSEDED_RELEASE_VERSIONS",
     "AcceptedInputs",
     "AcceptedOracle",
     "OracleLoadError",
@@ -173,6 +185,14 @@ __all__ = [
 
 #: Committed accepted authority, one JSON file per published 5c release.
 COMMITTED_ORACLE_DIR = Path(__file__).resolve().parent / "oracles"
+
+#: Releases whose committed artifact the clean restart has superseded. Their
+#: files stay in :data:`COMMITTED_ORACLE_DIR` as historical evidence only;
+#: resolution refuses them so they cannot become active authority again (Owner
+#: Decision 2026-09-21, "Retire superseded work").
+SUPERSEDED_RELEASE_VERSIONS = frozenset(
+    {"5.2.1-corpus.3fe24ff6-4e3", "5.2.1-corpus.574662e9-0ef"}
+)
 
 #: The discriminator a committed accepted-inputs artifact must declare. A
 #: machine proposal declares something else and has a different shape besides
@@ -488,6 +508,15 @@ _RELEASE_BINDING_FIELDS: tuple[str, ...] = (
     "transform_config_hash",
     "bundle_root_hash",
     "persisted_corpus_digest",
+)
+
+#: The optional schema-17 keys of a reference payload.
+_REFERENCE_ALTERNATIVE: tuple[str, ...] = (
+    "target_component_key",
+    "alternative_label",
+    "situation",
+    "class_record_key",
+    "minimum_class_level",
 )
 
 
@@ -1020,10 +1049,34 @@ def _representation(payload: object) -> RepresentationDraft:
     )
     for i, raw in enumerate(_object_list(p["references"], "representation.references")):
         where = f"representation.references[{i}]"
-        ref = _require(raw, reference_fields, where)
+        # Schema 17's alternative-destination keys, each absent from every
+        # payload written before it and omitted when empty, so absence has
+        # exactly one reading.
+        ref = _require(raw, reference_fields, where, optional=_REFERENCE_ALTERNATIVE)
+        situation = ref.get("situation")
+        level = ref.get("minimum_class_level", 0)
+        if type(level) is not int:
+            raise OracleLoadError(
+                f"{where}.minimum_class_level: expected an integer, got "
+                f"{type(level).__name__} {level!r}"
+            )
         references.append(
             ReferenceDraft(
-                **{k: _string(ref[k], f"{where}.{k}") for k in reference_fields}
+                **{k: _string(ref[k], f"{where}.{k}") for k in reference_fields},
+                **{
+                    k: _string(ref.get(k, ""), f"{where}.{k}")
+                    for k in (
+                        "target_component_key",
+                        "alternative_label",
+                        "class_record_key",
+                    )
+                },
+                situation=(
+                    None
+                    if situation is None
+                    else _enum(ReferenceSituation, situation, f"{where}.situation")
+                ),
+                minimum_class_level=level,
             )
         )
 
@@ -1209,6 +1262,9 @@ def _reference_resolution(payload: object, index: int) -> ReferenceResolution:
             "provenance_span_ids",
         ),
         where,
+        # Absent from every resolution with one destination, which is every
+        # resolution written before alternatives existed.
+        optional=("destinations",),
     )
     binding = _require(
         r["release_binding"], _RELEASE_BINDING_FIELDS, f"{where}.release_binding"
@@ -1231,7 +1287,42 @@ def _reference_resolution(payload: object, index: int) -> ReferenceResolution:
         provenance_span_ids=tuple(
             _string_list(r["provenance_span_ids"], f"{where}.provenance_span_ids")
         ),
+        destinations=tuple(
+            _reference_destination(d, f"{where}.destinations[{i}]")
+            for i, d in enumerate(
+                _object_list(r.get("destinations", []), f"{where}.destinations")
+            )
+        ),
     )
+
+
+def _reference_destination(payload: object, where: str) -> ReferenceDestination:
+    """One labelled alternative of a resolution; every key stated."""
+    d = _require(payload, _DESTINATION_FIELDS, where)
+    level = d["minimum_class_level"]
+    if type(level) is not int:
+        raise OracleLoadError(
+            f"{where}.minimum_class_level: expected an integer, got "
+            f"{type(level).__name__} {level!r}"
+        )
+    return ReferenceDestination(
+        **{
+            k: _string(d[k], f"{where}.{k}")
+            for k in _DESTINATION_FIELDS
+            if k != "minimum_class_level"
+        },
+        minimum_class_level=level,
+    )
+
+
+_DESTINATION_FIELDS: tuple[str, ...] = (
+    "target_record_key",
+    "target_component_key",
+    "alternative_label",
+    "situation",
+    "class_record_key",
+    "minimum_class_level",
+)
 
 
 def _check_obligations_closed(
@@ -1721,7 +1812,10 @@ def load_accepted_inputs(path: Path) -> AcceptedInputs:
     # change what one accepted reference means on the strength of a decision
     # nobody could have made about it.
     if inapplicable := reference_resolution_violations(
-        oracle.representation, oracle.reference_resolutions, oracle.binding
+        oracle.representation,
+        oracle.reference_resolutions,
+        oracle.binding,
+        schema_version=oracle.schema_version,
     ):
         raise OracleLoadError(
             f"{path.name}: the stated reference resolutions do not apply to this "
@@ -1907,7 +2001,31 @@ def _resolve_committed_inputs(
 
     Two committed artifacts for one release is a rejection, not a choice.
     Picking one would make publication depend on filesystem ordering.
+
+    A quarantined release is refused here rather than returning ``None``: the
+    committed artifact is still on disk and still matches, so "absent" would be
+    a false statement about the tree, and every caller treats ``None`` as a
+    releasable state.
+
+    Both identities are admitted as exact ``str`` first, through the unbound
+    ``str.__str__``, so a ``str`` subclass cannot supply its own hash or equality
+    and pass the superseded set while still matching a retired artifact.
     """
+    if not (isinstance(package_uuid, str) and isinstance(release_version, str)):
+        raise TypeError("package_uuid and release_version must be str")
+    package_uuid = str.__str__(package_uuid)
+    release_version = str.__str__(release_version)
+    refuse_quarantined(
+        "oracle committed accepted-authority resolution",
+        package_uuid=package_uuid,
+        release_version=release_version,
+    )
+    # Refused, not ``None``, for the reason quarantine is: the file still matches.
+    if release_version in SUPERSEDED_RELEASE_VERSIONS:
+        raise OracleLoadError(
+            f"release {package_uuid}/{release_version} is superseded; its "
+            "committed artifact is historical evidence, not accepted authority"
+        )
     matches = [
         inputs
         for inputs in (

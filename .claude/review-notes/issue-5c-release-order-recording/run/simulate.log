@@ -1,0 +1,17 @@
+start 2026-10-07T05:34:52.226741+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/review-notes/issue-5c-release-order-recording/RECORD.py --simulate
+input 5f670a2c348e5aa83d21b03c8b49e67cfdc7332376ea98e8a40b006affb995cb  .claude/review-notes/issue-5c-release-order-recording/RECORD.py
+pin True b5d82c71c6b42d3eb4d7b114f7f2c98dcbcaa986db65168925af0315efa72a0e  .claude/review-notes/issue-5c-release-order-candidate/chain/live-chain.pkl
+pin True 8a6a9a9c305f41207190c0deb55875a027019116ce3f825a6a0425a3a115b4bf  .claude/review-notes/issue-5c-release-order-candidate/candidate/srd-5-2-1-corpus-8781d4e0-a3b.json
+pin True efe48d9b3f5c7f33591763ed823a2938519d276c2e5d6e3776ac22be6d4cd5e3  .claude/review-notes/issue-5c-release-order-recording/owner-acceptance.json
+pin False 51e826b75fe02a2a77c2e02d55a0163cc1da6ce73ce3e8e58150c60ba75b1820  .claude/review-notes/issue-5c-release-order-candidate-codex-review.md
+Traceback (most recent call last):
+  File "D:\AI\Claude\afterworlds\.claude\review-notes\issue-5c-release-order-recording\RECORD.py", line 440, in <module>
+    main(sys.argv[1])
+  File "D:\AI\Claude\afterworlds\.claude\review-notes\issue-5c-release-order-recording\RECORD.py", line 338, in main
+    check_pins()
+  File "D:\AI\Claude\afterworlds\.claude\review-notes\issue-5c-release-order-recording\RECORD.py", line 111, in check_pins
+    assert got == want, p
+           ^^^^^^^^^^^
+AssertionError: D:\AI\Claude\afterworlds\.claude\review-notes\issue-5c-release-order-candidate-codex-review.md
+end 2026-10-07T05:34:52.842474+00:00 exit 1

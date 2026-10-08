@@ -1,0 +1,636 @@
+{
+ "artifact_kind": "machine_proposal",
+ "proposal_origin": "issue-5d-framing-coverage-generator.py (CRD Issue 5d framing-coverage batch; unaccepted)",
+ "proposal_schema_version": "5d-proposal-2",
+ "proposed_representation": {
+  "components": [
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.glossary_conventions",
+    "semantic_key": "abbreviations"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.glossary_conventions",
+    "semantic_key": "no_obsolete_terms"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.glossary_conventions",
+    "semantic_key": "see_also"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.glossary_conventions",
+    "semantic_key": "tags_in_brackets"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.glossary_conventions",
+    "semantic_key": "you"
+   }
+  ],
+  "prose_bindings": [
+   {
+    "chunk_char_end": 101,
+    "chunk_char_start": 0,
+    "chunk_id": "de868bb4-e5a4-58e1-9c4f-8dc87d3ece07",
+    "component_key": "abbreviations",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.glossary_conventions",
+    "span_id": "a0103739-593e-547c-80da-ce61ccb702c5"
+   },
+   {
+    "chunk_char_end": 154,
+    "chunk_char_start": 0,
+    "chunk_id": "1e19be51-9296-5ba2-9b11-3bfc7cfeb9fe",
+    "component_key": "see_also",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.glossary_conventions",
+    "span_id": "2ed9ecb1-395e-5dee-bf81-40af1b6e7247"
+   },
+   {
+    "chunk_char_end": 185,
+    "chunk_char_start": 0,
+    "chunk_id": "1f15b963-4d4e-5f2a-a0a7-ddeed76bbb60",
+    "component_key": "no_obsolete_terms",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.glossary_conventions",
+    "span_id": "c32e4a92-dd11-52e5-95b2-b80172e3b1f7"
+   },
+   {
+    "chunk_char_end": 2273,
+    "chunk_char_start": 0,
+    "chunk_id": "42fb7d08-eba1-560d-99a0-83af5e1de1dd",
+    "component_key": "abbreviations",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.glossary_conventions",
+    "span_id": "4d536c41-ac95-51b3-adb4-0ec73d8aa299"
+   },
+   {
+    "chunk_char_end": 256,
+    "chunk_char_start": 0,
+    "chunk_id": "c1b6aed3-f553-5c6b-9ac5-30beff06fece",
+    "component_key": "tags_in_brackets",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.glossary_conventions",
+    "span_id": "92cf3dde-8b39-586b-84e6-a8f8a893cc54"
+   },
+   {
+    "chunk_char_end": 317,
+    "chunk_char_start": 0,
+    "chunk_id": "f51f18d4-4302-5d0a-b16b-0f825a62e21d",
+    "component_key": "you",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.glossary_conventions",
+    "span_id": "514d49df-a341-5066-abab-58e9523d059a"
+   }
+  ],
+  "provenance": [
+   {
+    "role": "primary",
+    "span_id": "2ed9ecb1-395e-5dee-bf81-40af1b6e7247",
+    "target_key": [
+     "glossary.glossary_conventions",
+     "see_also",
+     "1e19be51-9296-5ba2-9b11-3bfc7cfeb9fe",
+     "2ed9ecb1-395e-5dee-bf81-40af1b6e7247",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "4d536c41-ac95-51b3-adb4-0ec73d8aa299",
+    "target_key": [
+     "glossary.glossary_conventions",
+     "abbreviations",
+     "42fb7d08-eba1-560d-99a0-83af5e1de1dd",
+     "4d536c41-ac95-51b3-adb4-0ec73d8aa299",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "514d49df-a341-5066-abab-58e9523d059a",
+    "target_key": [
+     "glossary.glossary_conventions",
+     "you",
+     "f51f18d4-4302-5d0a-b16b-0f825a62e21d",
+     "514d49df-a341-5066-abab-58e9523d059a",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "92cf3dde-8b39-586b-84e6-a8f8a893cc54",
+    "target_key": [
+     "glossary.glossary_conventions",
+     "tags_in_brackets",
+     "c1b6aed3-f553-5c6b-9ac5-30beff06fece",
+     "92cf3dde-8b39-586b-84e6-a8f8a893cc54",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "a0103739-593e-547c-80da-ce61ccb702c5",
+    "target_key": [
+     "glossary.glossary_conventions",
+     "abbreviations",
+     "de868bb4-e5a4-58e1-9c4f-8dc87d3ece07",
+     "a0103739-593e-547c-80da-ce61ccb702c5",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "c32e4a92-dd11-52e5-95b2-b80172e3b1f7",
+    "target_key": [
+     "glossary.glossary_conventions",
+     "no_obsolete_terms",
+     "1f15b963-4d4e-5f2a-a0a7-ddeed76bbb60",
+     "c32e4a92-dd11-52e5-95b2-b80172e3b1f7",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   }
+  ],
+  "records": [
+   {
+    "kind": "general_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.glossary_conventions"
+   }
+  ],
+  "references": [],
+  "relationships": []
+ },
+ "proposed_review_units": [
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "7eaded98-5e17-59bb-ae18-bc9e040b99bd"
+     ],
+     "reason": "Part heading: names the Character Creation part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed. The whole-part citations that name this part stay unresolved."
+    }
+   ],
+   "expected_rules": [],
+   "kind": "section",
+   "leaf_ids": [
+    "7eaded98-5e17-59bb-ae18-bc9e040b99bd"
+   ],
+   "supporting_groups": [],
+   "unit_id": "framing-coverage/character_creation"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "431c6ac5-ebab-5fde-9ca0-fc0dd326d651"
+     ],
+     "reason": "Part heading: names the Character Origins part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed."
+    }
+   ],
+   "expected_rules": [],
+   "kind": "section",
+   "leaf_ids": [
+    "431c6ac5-ebab-5fde-9ca0-fc0dd326d651"
+   ],
+   "supporting_groups": [],
+   "unit_id": "framing-coverage/character_origins"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "cd2c6c97-273f-565a-b9a4-fdedf0b9d94b"
+     ],
+     "reason": "Part heading: names the Classes part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed. The whole-part citations that name this part stay unresolved."
+    }
+   ],
+   "expected_rules": [],
+   "kind": "section",
+   "leaf_ids": [
+    "cd2c6c97-273f-565a-b9a4-fdedf0b9d94b"
+   ],
+   "supporting_groups": [],
+   "unit_id": "framing-coverage/classes"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "1394b233-4862-500c-85dd-e1b511566a48"
+     ],
+     "reason": "Part heading: names the Equipment part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed. The whole-part citations that name this part stay unresolved."
+    }
+   ],
+   "expected_rules": [],
+   "kind": "section",
+   "leaf_ids": [
+    "1394b233-4862-500c-85dd-e1b511566a48"
+   ],
+   "supporting_groups": [],
+   "unit_id": "framing-coverage/equipment"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "f15a6fc7-9f9f-509e-84f2-09cb279bffd9"
+     ],
+     "reason": "Part heading: names the Feats part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed."
+    }
+   ],
+   "expected_rules": [],
+   "kind": "section",
+   "leaf_ids": [
+    "f15a6fc7-9f9f-509e-84f2-09cb279bffd9"
+   ],
+   "supporting_groups": [],
+   "unit_id": "framing-coverage/feats"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "90b2e8ed-8404-57e3-a5a7-0a3cb00c49ce"
+     ],
+     "reason": "Part heading: names the Gameplay Toolbox part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed."
+    }
+   ],
+   "expected_rules": [],
+   "kind": "section",
+   "leaf_ids": [
+    "90b2e8ed-8404-57e3-a5a7-0a3cb00c49ce"
+   ],
+   "supporting_groups": [],
+   "unit_id": "framing-coverage/gameplay_toolbox"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "6514f550-e588-5c1f-bfe2-ef452259a5b5"
+     ],
+     "reason": "section heading: names the section and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "abbreviations",
+     "record_key": "glossary.glossary_conventions",
+     "source_span_ids": [
+      "4d536c41-ac95-51b3-adb4-0ec73d8aa299",
+      "a0103739-593e-547c-80da-ce61ccb702c5"
+     ]
+    },
+    {
+     "component_key": "no_obsolete_terms",
+     "record_key": "glossary.glossary_conventions",
+     "source_span_ids": [
+      "c32e4a92-dd11-52e5-95b2-b80172e3b1f7"
+     ]
+    },
+    {
+     "component_key": "see_also",
+     "record_key": "glossary.glossary_conventions",
+     "source_span_ids": [
+      "2ed9ecb1-395e-5dee-bf81-40af1b6e7247"
+     ]
+    },
+    {
+     "component_key": "tags_in_brackets",
+     "record_key": "glossary.glossary_conventions",
+     "source_span_ids": [
+      "92cf3dde-8b39-586b-84e6-a8f8a893cc54"
+     ]
+    },
+    {
+     "component_key": "you",
+     "record_key": "glossary.glossary_conventions",
+     "source_span_ids": [
+      "514d49df-a341-5066-abab-58e9523d059a"
+     ]
+    }
+   ],
+   "kind": "section",
+   "leaf_ids": [
+    "0b8d0b3f-b3e0-5698-a4da-2496b02ac386",
+    "37509aef-9353-5bd7-9b0e-933b9242b1df",
+    "5d8e3e9c-f44e-5541-88e5-96f3dc80f91e",
+    "6514f550-e588-5c1f-bfe2-ef452259a5b5",
+    "69f82978-fdc9-56fa-a976-0b143e13f883",
+    "6b8dc958-95e7-5e27-9120-9b0a56fb6da0",
+    "7f4799fe-d987-5499-9192-9f1a12e34e71",
+    "c48715d7-c6e7-55b1-bb25-69d4b079bda5"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "69f82978-fdc9-56fa-a976-0b143e13f883"
+     ],
+     "supports_component_key": "",
+     "supports_record_key": "glossary.glossary_conventions"
+    }
+   ],
+   "unit_id": "framing-coverage/glossary_conventions"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "ed74ff28-7680-5548-acdc-aa80f5df935b"
+     ],
+     "reason": "Attribution limits: no other attribution to Wizards or its parent or affiliates, and the permitted “compatible with fifth edition” or “5E compatible” statement; a publication obligation, not a game mechanic, which exclusion from mechanical canon does not waive."
+    },
+    {
+     "leaf_ids": [
+      "9cbfa5a4-d400-5f62-9d74-790fa07a6d69"
+     ],
+     "reason": "Heading of the SRD 5.2.1 legal notice: names the notice and states no game rule."
+    },
+    {
+     "leaf_ids": [
+      "3efc8e2d-816c-55ae-a884-62bd16dbc920"
+     ],
+     "reason": "Liability notice: CC-BY-4.0 Section 5's disclaimer of warranties and limitation of liability; legal text that states no game rule."
+    },
+    {
+     "leaf_ids": [
+      "a269f6e1-2e6f-5e43-83e0-c67d8a0f1d80"
+     ],
+     "reason": "Licence terms: the SRD 5.2.1 is offered under CC-BY-4.0 on condition that any work using it includes the attribution statement that follows; a licensing obligation, not a game mechanic, excluded from mechanical canon only and never from publication, which must honour it."
+    },
+    {
+     "leaf_ids": [
+      "9630b55e-12e5-5928-b243-4d5c2818642b"
+     ],
+     "reason": "The attribution statement CC-BY-4.0 requires any work using this material to include: legal text, not a game mechanic; excluded from mechanical canon only, and still required, verbatim, wherever this material is published."
+    }
+   ],
+   "expected_rules": [],
+   "kind": "section",
+   "leaf_ids": [
+    "3efc8e2d-816c-55ae-a884-62bd16dbc920",
+    "9630b55e-12e5-5928-b243-4d5c2818642b",
+    "9cbfa5a4-d400-5f62-9d74-790fa07a6d69",
+    "a269f6e1-2e6f-5e43-83e0-c67d8a0f1d80",
+    "ed74ff28-7680-5548-acdc-aa80f5df935b"
+   ],
+   "supporting_groups": [],
+   "unit_id": "framing-coverage/legal_information"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "9aaa218e-1298-5364-9752-518b3850a742"
+     ],
+     "reason": "Introductory flavour: where magic items are found and that they grant uncommon capabilities; it neither states nor contextualizes the rule of any item."
+    },
+    {
+     "leaf_ids": [
+      "9eaf34f5-e493-5c64-9439-dc5dc231fa1b"
+     ],
+     "reason": "Part heading: names the Magic Items part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed."
+    }
+   ],
+   "expected_rules": [],
+   "kind": "section",
+   "leaf_ids": [
+    "9aaa218e-1298-5364-9752-518b3850a742",
+    "9eaf34f5-e493-5c64-9439-dc5dc231fa1b"
+   ],
+   "supporting_groups": [],
+   "unit_id": "framing-coverage/magic_items"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "a5d1c9cf-7afa-5434-82b2-0e83bae80858"
+     ],
+     "reason": "Part heading: names the Monsters part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed."
+    }
+   ],
+   "expected_rules": [],
+   "kind": "section",
+   "leaf_ids": [
+    "a5d1c9cf-7afa-5434-82b2-0e83bae80858"
+   ],
+   "supporting_groups": [],
+   "unit_id": "framing-coverage/monsters"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "776fa4e0-31ff-5dcf-952b-0e6533725527"
+     ],
+     "reason": "Part heading: names the Monsters A–Z part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed."
+    }
+   ],
+   "expected_rules": [],
+   "kind": "section",
+   "leaf_ids": [
+    "776fa4e0-31ff-5dcf-952b-0e6533725527"
+   ],
+   "supporting_groups": [],
+   "unit_id": "framing-coverage/monsters_a_z"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "d328aecf-0e56-5c02-8d0b-df8e6f9adb70"
+     ],
+     "reason": "Part heading: names the Playing the Game part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed."
+    }
+   ],
+   "expected_rules": [],
+   "kind": "section",
+   "leaf_ids": [
+    "d328aecf-0e56-5c02-8d0b-df8e6f9adb70"
+   ],
+   "supporting_groups": [],
+   "unit_id": "framing-coverage/playing_the_game"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "3f00f8d2-f6d0-5b04-8c49-2bd5364d104f"
+     ],
+     "reason": "One-line introduction: announces the definitions that follow and states, qualifies or contextualizes no rule of any of them."
+    },
+    {
+     "leaf_ids": [
+      "a8b868f8-a207-5189-837e-ad8f52230944"
+     ],
+     "reason": "Section heading: names the Rules Definitions section, whose entries the accepted glossary batches author, and states no rule. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed."
+    }
+   ],
+   "expected_rules": [],
+   "kind": "section",
+   "leaf_ids": [
+    "3f00f8d2-f6d0-5b04-8c49-2bd5364d104f",
+    "a8b868f8-a207-5189-837e-ad8f52230944"
+   ],
+   "supporting_groups": [],
+   "unit_id": "framing-coverage/rules_definitions"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "a91f2607-17d8-5247-83e6-f5e178df3338"
+     ],
+     "reason": "Part heading: names the Rules Glossary part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed."
+    }
+   ],
+   "expected_rules": [],
+   "kind": "section",
+   "leaf_ids": [
+    "a91f2607-17d8-5247-83e6-f5e178df3338"
+   ],
+   "supporting_groups": [],
+   "unit_id": "framing-coverage/rules_glossary"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "27b720ba-f917-5a11-9369-3bd6154786ad"
+     ],
+     "reason": "Part heading: names the Spells part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed. The whole-part citations that name this part stay unresolved."
+    }
+   ],
+   "expected_rules": [],
+   "kind": "section",
+   "leaf_ids": [
+    "27b720ba-f917-5a11-9369-3bd6154786ad"
+   ],
+   "supporting_groups": [],
+   "unit_id": "framing-coverage/spells"
+  }
+ ],
+ "proposed_spans": [
+  {
+   "char_end": 101,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "37509aef-9353-5bd7-9b0e-933b9242b1df",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-framing-coverage-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "a0103739-593e-547c-80da-ce61ccb702c5"
+  },
+  {
+   "char_end": 154,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "c48715d7-c6e7-55b1-bb25-69d4b079bda5",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-framing-coverage-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "2ed9ecb1-395e-5dee-bf81-40af1b6e7247"
+  },
+  {
+   "char_end": 185,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "0b8d0b3f-b3e0-5698-a4da-2496b02ac386",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-framing-coverage-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "c32e4a92-dd11-52e5-95b2-b80172e3b1f7"
+  },
+  {
+   "char_end": 2273,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "7f4799fe-d987-5499-9192-9f1a12e34e71",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-framing-coverage-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "4d536c41-ac95-51b3-adb4-0ec73d8aa299"
+  },
+  {
+   "char_end": 256,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "5d8e3e9c-f44e-5541-88e5-96f3dc80f91e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-framing-coverage-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "92cf3dde-8b39-586b-84e6-a8f8a893cc54"
+  },
+  {
+   "char_end": 317,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "6b8dc958-95e7-5e27-9120-9b0a56fb6da0",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-framing-coverage-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "514d49df-a341-5066-abab-58e9523d059a"
+  }
+ ],
+ "release_binding": {
+  "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+  "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+  "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+  "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+  "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+  "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+ },
+ "representation_schema": {
+  "hash": "7fb9254b11da1d6772ea6ee72ffde9b5e9d39e8885188777874c65e86ad9a941",
+  "version": "5d-representation-schema-16"
+ },
+ "semantic_policy_hash": "da63b8940c5b3997b44d53e02941389b68e2a2ba35250e73194d38bb1d74cde7",
+ "semantic_policy_version": "5d-semantic-policy-2"
+}

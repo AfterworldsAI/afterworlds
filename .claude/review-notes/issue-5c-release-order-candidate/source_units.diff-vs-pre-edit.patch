@@ -1,0 +1,43 @@
+--- pre-edit/src/afterworlds/ingestion/corpus/source_units.py
++++ current/src/afterworlds/ingestion/corpus/source_units.py
+@@ -47,27 +47,28 @@
+ from afterworlds.ingestion.source.community_tokens import normalized
+ 
+ #: The thirteen upstream content files plus the controlled attribution addition,
+-#: page 1 first. Citation needs only within-file order — the partition enforces
+-#: document order per file — but the tuple is also the release's reading order:
+-#: each leaf's ``occurrence_index`` follows it, and direct reads order passages
+-#: by that index. The official Monsters rules (pp.254-257) therefore precede
+-#: Monsters A-Z (p.258 onward), which the alphabetical ``CONTENT_FILES`` reverses.
+-#: The tuple is also what the transform identity records.
++#: in the official document's chapter order, page 1 first. Citation needs only
++#: within-file order — the partition enforces document order per file — but the
++#: tuple is also the release's reading order: each leaf's ``occurrence_index``
++#: follows it, and direct reads order passages by that index. The official
++#: Monsters rules (pp.254-257) therefore precede Monsters A-Z (p.258 onward),
++#: which the alphabetical ``CONTENT_FILES`` reverses, and Animals (p.344 onward)
++#: follows both. The tuple is also what the transform identity records.
+ CORPUS_FILES: tuple[str, ...] = (
+     "legal-information.md",
+-    "animals.md",
++    "playing-the-game.md",
+     "character-creation.md",
++    "classes.md",
+     "character-origins.md",
+-    "classes.md",
++    "feats.md",
+     "equipment.md",
+-    "feats.md",
++    "spells.md",
++    "rules-glossary.md",
+     "gameplay-toolbox.md",
+     "magic-items.md",
+     "monsters.md",
+     "monsters-A-Z.md",
+-    "playing-the-game.md",
+-    "rules-glossary.md",
+-    "spells.md",
++    "animals.md",
+ )
+ 
+ #: ``legal-information.md`` reproduces official page 1 and carries the CC-BY-4.0

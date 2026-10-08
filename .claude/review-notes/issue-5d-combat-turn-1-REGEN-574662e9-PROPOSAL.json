@@ -1,0 +1,981 @@
+{
+ "artifact_kind": "machine_proposal",
+ "proposal_origin": "issue-5d-combat-turn-1-generator.py (CRD Issue 5d fresh combat-turn-1 batch; unaccepted)",
+ "proposal_schema_version": "5d-proposal-2",
+ "proposed_representation": {
+  "components": [
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "options": [],
+    "record_key": "glossary.initiative",
+    "semantic_key": "score_instead_of_roll"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.initiative",
+    "semantic_key": "initiative_score"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.initiative",
+    "semantic_key": "turn_order"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.occupied_space",
+    "semantic_key": "definition"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.reach",
+    "semantic_key": "default_reach"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.unoccupied_space",
+    "semantic_key": "definition"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "activity": "attack_roll",
+      "cost": null,
+      "count": 1,
+      "family": "action_allowance",
+      "per": "owning_effect"
+     },
+     {
+      "cost": "reaction",
+      "family": "action_economy"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.opportunity_attacks",
+    "semantic_key": "opportunity_attack"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": null,
+       "actor": "subject",
+       "context": "initiative"
+      },
+      "state": "disadvantage"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.surprise",
+    "semantic_key": "surprised"
+   }
+  ],
+  "prose_bindings": [
+   {
+    "chunk_char_end": 145,
+    "chunk_char_start": 0,
+    "chunk_id": "c9e1f88c-83ca-599b-9cc4-70bf80813576",
+    "component_key": "surprised",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.surprise",
+    "span_id": "af900f7c-421c-5a19-8782-6c45ba17afd4"
+   },
+   {
+    "chunk_char_end": 157,
+    "chunk_char_start": 0,
+    "chunk_id": "34ae84fb-d141-5b52-96cd-2499a687637d",
+    "component_key": "opportunity_attack",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.opportunity_attacks",
+    "span_id": "ec8cbcc1-278c-5d4f-a050-2ceb29df3e18"
+   },
+   {
+    "chunk_char_end": 157,
+    "chunk_char_start": 96,
+    "chunk_id": "e961fdad-5703-5289-ab8a-96347df43e89",
+    "component_key": "initiative_score",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.initiative",
+    "span_id": "c98c1c90-1584-5b77-804e-9989de35a683"
+   },
+   {
+    "chunk_char_end": 237,
+    "chunk_char_start": 158,
+    "chunk_id": "e961fdad-5703-5289-ab8a-96347df43e89",
+    "component_key": "initiative_score",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.initiative",
+    "span_id": "759c4937-cc84-525c-b33e-4e97b5e5dc62"
+   },
+   {
+    "chunk_char_end": 297,
+    "chunk_char_start": 158,
+    "chunk_id": "34ae84fb-d141-5b52-96cd-2499a687637d",
+    "component_key": "opportunity_attack",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.opportunity_attacks",
+    "span_id": "6dbcb0ab-51c6-5217-bc80-1a6fb6de167f"
+   },
+   {
+    "chunk_char_end": 304,
+    "chunk_char_start": 238,
+    "chunk_id": "e961fdad-5703-5289-ab8a-96347df43e89",
+    "component_key": "initiative_score",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.initiative",
+    "span_id": "1613987c-b4b6-5707-af93-9be1a2942923"
+   },
+   {
+    "chunk_char_end": 360,
+    "chunk_char_start": 298,
+    "chunk_id": "34ae84fb-d141-5b52-96cd-2499a687637d",
+    "component_key": "opportunity_attack",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.opportunity_attacks",
+    "span_id": "64aafe66-f3ae-500d-b740-5e37f8b14107"
+   },
+   {
+    "chunk_char_end": 55,
+    "chunk_char_start": 0,
+    "chunk_id": "d0e853a7-54d2-510a-92b9-f10102900c8b",
+    "component_key": "turn_order",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.initiative",
+    "span_id": "7e47f338-80fa-5378-aecb-59bcc48e6242"
+   },
+   {
+    "chunk_char_end": 62,
+    "chunk_char_start": 0,
+    "chunk_id": "714364eb-4e66-59ac-b873-7020bf954434",
+    "component_key": "default_reach",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.reach",
+    "span_id": "ee5aa3d5-61a5-5230-b863-9b0d20b41642"
+   },
+   {
+    "chunk_char_end": 84,
+    "chunk_char_start": 0,
+    "chunk_id": "7fd75632-308b-5822-a601-6a98bcf89aa7",
+    "component_key": "definition",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.occupied_space",
+    "span_id": "a9065511-349c-56e5-87d5-6f5201a4d412"
+   },
+   {
+    "chunk_char_end": 90,
+    "chunk_char_start": 0,
+    "chunk_id": "7f3f2973-03df-5676-9314-031a042d020b",
+    "component_key": "definition",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.unoccupied_space",
+    "span_id": "0f6303b4-d618-57b8-a3f8-658d4f6bbf65"
+   },
+   {
+    "chunk_char_end": 95,
+    "chunk_char_start": 0,
+    "chunk_id": "e961fdad-5703-5289-ab8a-96347df43e89",
+    "component_key": "score_instead_of_roll",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "glossary.initiative",
+    "span_id": "ba7cacfc-f832-51b9-802b-635b924ea8e0"
+   }
+  ],
+  "provenance": [
+   {
+    "role": "contextual",
+    "span_id": "64aafe66-f3ae-500d-b740-5e37f8b14107",
+    "target_key": [
+     "glossary.opportunity_attacks",
+     "opportunity_attack",
+     "4262815dc9e75637"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "64aafe66-f3ae-500d-b740-5e37f8b14107",
+    "target_key": [
+     "glossary.opportunity_attacks",
+     "opportunity_attack",
+     "9a446b7e43c85d53"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "64aafe66-f3ae-500d-b740-5e37f8b14107",
+    "target_key": [
+     "glossary.opportunity_attacks",
+     "opportunity_attack",
+     "reach",
+     "srd-5.2.1/rules-glossary",
+     "glossary.reach"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "6dbcb0ab-51c6-5217-bc80-1a6fb6de167f",
+    "target_key": [
+     "glossary.opportunity_attacks",
+     "opportunity_attack",
+     "4262815dc9e75637"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "6dbcb0ab-51c6-5217-bc80-1a6fb6de167f",
+    "target_key": [
+     "glossary.opportunity_attacks",
+     "opportunity_attack",
+     "9a446b7e43c85d53"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "6dbcb0ab-51c6-5217-bc80-1a6fb6de167f",
+    "target_key": [
+     "glossary.opportunity_attacks",
+     "opportunity_attack",
+     "Unarmed Strike",
+     "srd-5.2.1/rules-glossary",
+     "glossary.unarmed_strike"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "9be2a06f-d516-5c39-ad16-c8121dd0cb10",
+    "target_key": [
+     "glossary.initiative",
+     "",
+     "Combat",
+     "srd-5.2.1/playing-the-game",
+     "play.combat"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "af900f7c-421c-5a19-8782-6c45ba17afd4",
+    "target_key": [
+     "glossary.surprise",
+     "surprised",
+     "234e134cb8d3dd85"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ce41e3bf-d0e0-5a06-b91d-f61f5da97202",
+    "target_key": [
+     "glossary.initiative",
+     "turn_order"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "df97cf77-5f6f-54ea-b57e-1844ad19a1d5",
+    "target_key": [
+     "glossary.surprise",
+     "",
+     "Combat",
+     "srd-5.2.1/playing-the-game",
+     "play.combat"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ec8cbcc1-278c-5d4f-a050-2ceb29df3e18",
+    "target_key": [
+     "glossary.opportunity_attacks",
+     "opportunity_attack",
+     "4262815dc9e75637"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ec8cbcc1-278c-5d4f-a050-2ceb29df3e18",
+    "target_key": [
+     "glossary.opportunity_attacks",
+     "opportunity_attack",
+     "9a446b7e43c85d53"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ec8cbcc1-278c-5d4f-a050-2ceb29df3e18",
+    "target_key": [
+     "glossary.opportunity_attacks",
+     "opportunity_attack",
+     "reach",
+     "srd-5.2.1/rules-glossary",
+     "glossary.reach"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ec9f2d69-e53a-5ead-a017-1252c7989d4d",
+    "target_key": [
+     "glossary.opportunity_attacks",
+     "",
+     "Combat",
+     "srd-5.2.1/playing-the-game",
+     "play.combat"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "primary",
+    "span_id": "0f6303b4-d618-57b8-a3f8-658d4f6bbf65",
+    "target_key": [
+     "glossary.unoccupied_space",
+     "definition",
+     "7f3f2973-03df-5676-9314-031a042d020b",
+     "0f6303b4-d618-57b8-a3f8-658d4f6bbf65",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "1613987c-b4b6-5707-af93-9be1a2942923",
+    "target_key": [
+     "glossary.initiative",
+     "initiative_score",
+     "e961fdad-5703-5289-ab8a-96347df43e89",
+     "1613987c-b4b6-5707-af93-9be1a2942923",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "64aafe66-f3ae-500d-b740-5e37f8b14107",
+    "target_key": [
+     "glossary.opportunity_attacks",
+     "opportunity_attack",
+     "34ae84fb-d141-5b52-96cd-2499a687637d",
+     "64aafe66-f3ae-500d-b740-5e37f8b14107",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "6dbcb0ab-51c6-5217-bc80-1a6fb6de167f",
+    "target_key": [
+     "glossary.opportunity_attacks",
+     "opportunity_attack",
+     "34ae84fb-d141-5b52-96cd-2499a687637d",
+     "6dbcb0ab-51c6-5217-bc80-1a6fb6de167f",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "759c4937-cc84-525c-b33e-4e97b5e5dc62",
+    "target_key": [
+     "glossary.initiative",
+     "initiative_score",
+     "e961fdad-5703-5289-ab8a-96347df43e89",
+     "759c4937-cc84-525c-b33e-4e97b5e5dc62",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "7e47f338-80fa-5378-aecb-59bcc48e6242",
+    "target_key": [
+     "glossary.initiative",
+     "turn_order",
+     "d0e853a7-54d2-510a-92b9-f10102900c8b",
+     "7e47f338-80fa-5378-aecb-59bcc48e6242",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "a9065511-349c-56e5-87d5-6f5201a4d412",
+    "target_key": [
+     "glossary.occupied_space",
+     "definition",
+     "7fd75632-308b-5822-a601-6a98bcf89aa7",
+     "a9065511-349c-56e5-87d5-6f5201a4d412",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "af900f7c-421c-5a19-8782-6c45ba17afd4",
+    "target_key": [
+     "glossary.surprise",
+     "surprised",
+     "c9e1f88c-83ca-599b-9cc4-70bf80813576",
+     "af900f7c-421c-5a19-8782-6c45ba17afd4",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "ba7cacfc-f832-51b9-802b-635b924ea8e0",
+    "target_key": [
+     "glossary.initiative",
+     "score_instead_of_roll",
+     "e961fdad-5703-5289-ab8a-96347df43e89",
+     "ba7cacfc-f832-51b9-802b-635b924ea8e0",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "c98c1c90-1584-5b77-804e-9989de35a683",
+    "target_key": [
+     "glossary.initiative",
+     "initiative_score",
+     "e961fdad-5703-5289-ab8a-96347df43e89",
+     "c98c1c90-1584-5b77-804e-9989de35a683",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "ec8cbcc1-278c-5d4f-a050-2ceb29df3e18",
+    "target_key": [
+     "glossary.opportunity_attacks",
+     "opportunity_attack",
+     "34ae84fb-d141-5b52-96cd-2499a687637d",
+     "ec8cbcc1-278c-5d4f-a050-2ceb29df3e18",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "ee5aa3d5-61a5-5230-b863-9b0d20b41642",
+    "target_key": [
+     "glossary.reach",
+     "default_reach",
+     "714364eb-4e66-59ac-b873-7020bf954434",
+     "ee5aa3d5-61a5-5230-b863-9b0d20b41642",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   }
+  ],
+  "records": [
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.initiative"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.occupied_space"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.opportunity_attacks"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.reach"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.surprise"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.unoccupied_space"
+   }
+  ],
+  "references": [
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.initiative",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "Combat",
+    "target_record_key": "play.combat"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.opportunity_attacks",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "Combat",
+    "target_record_key": "play.combat"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.surprise",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "Combat",
+    "target_record_key": "play.combat"
+   },
+   {
+    "from_component_key": "opportunity_attack",
+    "from_record_key": "glossary.opportunity_attacks",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Unarmed Strike",
+    "target_record_key": "glossary.unarmed_strike"
+   },
+   {
+    "from_component_key": "opportunity_attack",
+    "from_record_key": "glossary.opportunity_attacks",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "reach",
+    "target_record_key": "glossary.reach"
+   }
+  ],
+  "relationships": []
+ },
+ "proposed_review_units": [
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "bc8ecef9-5972-5500-90f2-3b27637c6097"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "initiative_score",
+     "record_key": "glossary.initiative",
+     "source_span_ids": [
+      "1613987c-b4b6-5707-af93-9be1a2942923",
+      "759c4937-cc84-525c-b33e-4e97b5e5dc62",
+      "c98c1c90-1584-5b77-804e-9989de35a683"
+     ]
+    },
+    {
+     "component_key": "score_instead_of_roll",
+     "record_key": "glossary.initiative",
+     "source_span_ids": [
+      "ba7cacfc-f832-51b9-802b-635b924ea8e0"
+     ]
+    },
+    {
+     "component_key": "turn_order",
+     "record_key": "glossary.initiative",
+     "source_span_ids": [
+      "7e47f338-80fa-5378-aecb-59bcc48e6242"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "bc8ecef9-5972-5500-90f2-3b27637c6097",
+    "d44e239f-b373-52c4-a50e-376a94fd7b07",
+    "d81c1171-24ef-5a85-a317-9e920fc64de8"
+   ],
+   "supporting_groups": [],
+   "unit_id": "combat-turn-1/initiative"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "1cd51e3b-2120-59fd-8c28-57c54139ed34"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "definition",
+     "record_key": "glossary.occupied_space",
+     "source_span_ids": [
+      "a9065511-349c-56e5-87d5-6f5201a4d412"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "1cd51e3b-2120-59fd-8c28-57c54139ed34",
+    "cc3346e6-5474-5d36-a601-b1d5343ad08d"
+   ],
+   "supporting_groups": [],
+   "unit_id": "combat-turn-1/occupied_space"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "f9d20365-1945-58c9-af50-2b14f35aa398"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "opportunity_attack",
+     "record_key": "glossary.opportunity_attacks",
+     "source_span_ids": [
+      "64aafe66-f3ae-500d-b740-5e37f8b14107",
+      "6dbcb0ab-51c6-5217-bc80-1a6fb6de167f",
+      "ec8cbcc1-278c-5d4f-a050-2ceb29df3e18"
+     ]
+    },
+    {
+     "component_key": "opportunity_attack",
+     "fact_family": "action_allowance",
+     "record_key": "glossary.opportunity_attacks",
+     "source_span_ids": [
+      "64aafe66-f3ae-500d-b740-5e37f8b14107",
+      "6dbcb0ab-51c6-5217-bc80-1a6fb6de167f",
+      "ec8cbcc1-278c-5d4f-a050-2ceb29df3e18"
+     ]
+    },
+    {
+     "component_key": "opportunity_attack",
+     "fact_family": "action_economy",
+     "record_key": "glossary.opportunity_attacks",
+     "source_span_ids": [
+      "64aafe66-f3ae-500d-b740-5e37f8b14107",
+      "6dbcb0ab-51c6-5217-bc80-1a6fb6de167f",
+      "ec8cbcc1-278c-5d4f-a050-2ceb29df3e18"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "f9d20365-1945-58c9-af50-2b14f35aa398",
+    "fac5e212-c870-50af-a316-ef119ba82e80"
+   ],
+   "supporting_groups": [],
+   "unit_id": "combat-turn-1/opportunity_attacks"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "9254be4f-9671-5cc6-bd36-2aaac152f57d"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "default_reach",
+     "record_key": "glossary.reach",
+     "source_span_ids": [
+      "ee5aa3d5-61a5-5230-b863-9b0d20b41642"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "9254be4f-9671-5cc6-bd36-2aaac152f57d",
+    "9506aed6-a38a-57d5-88c5-0e5014b47ccd"
+   ],
+   "supporting_groups": [],
+   "unit_id": "combat-turn-1/reach"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "1bac3dc4-2a2d-55b4-bfe3-da3564e5bb06"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "surprised",
+     "record_key": "glossary.surprise",
+     "source_span_ids": [
+      "af900f7c-421c-5a19-8782-6c45ba17afd4"
+     ]
+    },
+    {
+     "component_key": "surprised",
+     "fact_family": "advantage",
+     "record_key": "glossary.surprise",
+     "source_span_ids": [
+      "af900f7c-421c-5a19-8782-6c45ba17afd4"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "14b9da69-9bea-5aac-b7a2-166af375fb38",
+    "1bac3dc4-2a2d-55b4-bfe3-da3564e5bb06"
+   ],
+   "supporting_groups": [],
+   "unit_id": "combat-turn-1/surprise"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "ab55d70f-2efa-5b6f-82f9-ba6032551e7f"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "definition",
+     "record_key": "glossary.unoccupied_space",
+     "source_span_ids": [
+      "0f6303b4-d618-57b8-a3f8-658d4f6bbf65"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "0bd5baa0-7f69-53ab-bcad-20598152bb2a",
+    "ab55d70f-2efa-5b6f-82f9-ba6032551e7f"
+   ],
+   "supporting_groups": [],
+   "unit_id": "combat-turn-1/unoccupied_space"
+  }
+ ],
+ "proposed_spans": [
+  {
+   "char_end": 126,
+   "char_start": 56,
+   "disposition": "supporting_authority",
+   "leaf_id": "d81c1171-24ef-5a85-a317-9e920fc64de8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-combat-turn-1-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "ce41e3bf-d0e0-5a06-b91d-f61f5da97202"
+  },
+  {
+   "char_end": 145,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "14b9da69-9bea-5aac-b7a2-166af375fb38",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-combat-turn-1-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "af900f7c-421c-5a19-8782-6c45ba17afd4"
+  },
+  {
+   "char_end": 157,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "fac5e212-c870-50af-a316-ef119ba82e80",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-combat-turn-1-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "ec8cbcc1-278c-5d4f-a050-2ceb29df3e18"
+  },
+  {
+   "char_end": 157,
+   "char_start": 96,
+   "disposition": "substantive",
+   "leaf_id": "d44e239f-b373-52c4-a50e-376a94fd7b07",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-combat-turn-1-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "c98c1c90-1584-5b77-804e-9989de35a683"
+  },
+  {
+   "char_end": 187,
+   "char_start": 146,
+   "disposition": "supporting_authority",
+   "leaf_id": "14b9da69-9bea-5aac-b7a2-166af375fb38",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-combat-turn-1-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "df97cf77-5f6f-54ea-b57e-1844ad19a1d5"
+  },
+  {
+   "char_end": 237,
+   "char_start": 158,
+   "disposition": "substantive",
+   "leaf_id": "d44e239f-b373-52c4-a50e-376a94fd7b07",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-combat-turn-1-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "759c4937-cc84-525c-b33e-4e97b5e5dc62"
+  },
+  {
+   "char_end": 297,
+   "char_start": 158,
+   "disposition": "substantive",
+   "leaf_id": "fac5e212-c870-50af-a316-ef119ba82e80",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-combat-turn-1-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "6dbcb0ab-51c6-5217-bc80-1a6fb6de167f"
+  },
+  {
+   "char_end": 304,
+   "char_start": 238,
+   "disposition": "substantive",
+   "leaf_id": "d44e239f-b373-52c4-a50e-376a94fd7b07",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-combat-turn-1-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "1613987c-b4b6-5707-af93-9be1a2942923"
+  },
+  {
+   "char_end": 346,
+   "char_start": 305,
+   "disposition": "supporting_authority",
+   "leaf_id": "d44e239f-b373-52c4-a50e-376a94fd7b07",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-combat-turn-1-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "9be2a06f-d516-5c39-ad16-c8121dd0cb10"
+  },
+  {
+   "char_end": 360,
+   "char_start": 298,
+   "disposition": "substantive",
+   "leaf_id": "fac5e212-c870-50af-a316-ef119ba82e80",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-combat-turn-1-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "64aafe66-f3ae-500d-b740-5e37f8b14107"
+  },
+  {
+   "char_end": 402,
+   "char_start": 361,
+   "disposition": "supporting_authority",
+   "leaf_id": "fac5e212-c870-50af-a316-ef119ba82e80",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-combat-turn-1-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "ec9f2d69-e53a-5ead-a017-1252c7989d4d"
+  },
+  {
+   "char_end": 55,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "d81c1171-24ef-5a85-a317-9e920fc64de8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-combat-turn-1-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "7e47f338-80fa-5378-aecb-59bcc48e6242"
+  },
+  {
+   "char_end": 62,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "9506aed6-a38a-57d5-88c5-0e5014b47ccd",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-combat-turn-1-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "ee5aa3d5-61a5-5230-b863-9b0d20b41642"
+  },
+  {
+   "char_end": 84,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "cc3346e6-5474-5d36-a601-b1d5343ad08d",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-combat-turn-1-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "a9065511-349c-56e5-87d5-6f5201a4d412"
+  },
+  {
+   "char_end": 90,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "0bd5baa0-7f69-53ab-bcad-20598152bb2a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-combat-turn-1-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "0f6303b4-d618-57b8-a3f8-658d4f6bbf65"
+  },
+  {
+   "char_end": 95,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "d44e239f-b373-52c4-a50e-376a94fd7b07",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-combat-turn-1-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "ba7cacfc-f832-51b9-802b-635b924ea8e0"
+  }
+ ],
+ "release_binding": {
+  "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+  "bundle_root_hash": "3da7b5b30e23647c219d1630b5c5051be02b5882d17f0cd13421af8c57754689",
+  "package_uuid": "ebdd9333-eeed-5df1-b3e1-8b97c2f65f80",
+  "persisted_corpus_digest": "df64eb40029576bae61229056f07ccdf025a2a5c2d75aacfefdf88fe596acb02",
+  "release_version": "5.2.1-corpus.574662e9-0ef",
+  "transform_config_hash": "2a7feddf7910684b8427745b9f9ecd5f394382d00955ed7b98920c2e12c0e64d"
+ },
+ "representation_schema": {
+  "hash": "e87e0bacdc476b0bef092a04cbedd933e0b57b128651b08ef0ffbd0c94d186fd",
+  "version": "5d-representation-schema-15"
+ },
+ "semantic_policy_hash": "da63b8940c5b3997b44d53e02941389b68e2a2ba35250e73194d38bb1d74cde7",
+ "semantic_policy_version": "5d-semantic-policy-2"
+}

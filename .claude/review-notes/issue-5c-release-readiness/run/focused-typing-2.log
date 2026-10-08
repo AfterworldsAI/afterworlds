@@ -1,0 +1,18 @@
+start 2026-10-07T07:16:55.561200+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe scripts/run_focused_tests.py --check tests/ingestion/mechanical/conftest.py tests/ingestion/mechanical/test_schema_12_practical_reliability.py tests/ingestion/mechanical/test_review_round_3_applicability_types.py tests/ingestion/mechanical/test_publication.py tests/ingestion/mechanical/test_concurrent_publication.py tests/ingestion/mechanical/test_report.py
+input ef6969b5f09e59ebd4001aad2137ade7ca74509d4075753de73336d7595050e9  scripts/run_focused_tests.py
+input 08bd6ed090b6d6e37fa0b5ee20e46a0764414c3345c401e4f657d92dd3e6b56d  tests/ingestion/mechanical/conftest.py
+input 482abbb9f8f7f326c96ce7299b2542b04136f9ce7474184c2c2f7225695dd079  tests/ingestion/mechanical/test_schema_12_practical_reliability.py
+input 973fefd70e21e28a0adaae73b93e9c5cc41fe9e26d3f008a7fd9c55cb6e40bf9  tests/ingestion/mechanical/test_review_round_3_applicability_types.py
+input cdf3dbdd7489a0de3e4a86b994382d1d62c27eca06cfd38afa8b6804e3f21f9d  tests/ingestion/mechanical/test_publication.py
+input 7deabb8d184813e118422f57464c8d8a23fcdd2bf7f5f3aec0db0d4d21a03dcb  tests/ingestion/mechanical/test_concurrent_publication.py
+input f444373bca9ab8dad0e9a25cff2fc60ac7eda1a29ecac227cece871674419e7a  tests/ingestion/mechanical/test_report.py
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+All done! ✨ 🍰 ✨
+6 files would be left unchanged.
+........................................................................ [ 41%]
+........................................................................ [ 82%]
+..............................                                           [100%]
+174 passed in 40.06s
+Focused diagnostics PASSED (exit 0). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+end 2026-10-07T07:17:38.190260+00:00 exit 0

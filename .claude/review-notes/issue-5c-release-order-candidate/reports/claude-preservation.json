@@ -1,0 +1,23 @@
+{
+  "checks": {
+    "head_unchanged": true,
+    "branch_unchanged": true,
+    "index_unchanged": true,
+    "stashes_unchanged": true,
+    "live_oracle_unchanged": true,
+    "external_settings_guidance_launcher_unchanged": true
+  },
+  "changed_existing_files": [
+    {
+      "path": "src/afterworlds/ingestion/corpus/source_units.py",
+      "before": "279d870885259c22e6c03c9209c6fba0819db221d8835c5cb92e0bc4238dc076",
+      "after": "4240742cf5decdaa998566274855c06b55f9dd3888daa35c548d586d56df3be7"
+    },
+    {
+      "path": "tests/ingestion/corpus/test_source_units.py",
+      "before": "4d49184404f71f0e893e0327615a80db95dd9f105cb25f9baab82555c41f61a6",
+      "after": "bb404f22d1fdb256c0db3dace3d0bfd5c7cd8a67a140e7f17558e49565a72395"
+    }
+  ],
+  "external_changed": []
+}

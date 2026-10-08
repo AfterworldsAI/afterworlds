@@ -1,0 +1,12 @@
+start 2026-10-07T15:11:49.157061+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe scripts/run_focused_tests.py --check tests/ingestion/mechanical/test_equipment_spell_references_candidate.py tests/ingestion/mechanical/test_equipment_spell_references_candidate.py
+input ef6969b5f09e59ebd4001aad2137ade7ca74509d4075753de73336d7595050e9  scripts/run_focused_tests.py
+input a3b0c66dff66c52c46c0a2351f0ebd9600630e50515affed59e9cb4ab57fbe88  tests/ingestion/mechanical/test_equipment_spell_references_candidate.py
+input a3b0c66dff66c52c46c0a2351f0ebd9600630e50515affed59e9cb4ab57fbe88  tests/ingestion/mechanical/test_equipment_spell_references_candidate.py
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+All done! ✨ 🍰 ✨
+1 file would be left unchanged.
+...................................................                      [100%]
+51 passed in 1309.23s (0:21:49)
+Focused diagnostics PASSED (exit 0). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+end 2026-10-07T15:33:41.257058+00:00 exit 0

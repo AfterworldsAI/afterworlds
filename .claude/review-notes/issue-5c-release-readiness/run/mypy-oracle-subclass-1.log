@@ -1,0 +1,6 @@
+start 2026-10-07T08:31:43.493564+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe -m mypy --strict src/afterworlds/ingestion/mechanical/oracle.py tests/ingestion/mechanical/test_oracle.py
+input 68d42c9547df385d982b40d8588528318109487b33b7db030508dd65d1d4802a  src/afterworlds/ingestion/mechanical/oracle.py
+input f73be8984de733eb791cd144222806774b4543067ec01bf2935df67feabd02d4  tests/ingestion/mechanical/test_oracle.py
+Success: no issues found in 2 source files
+end 2026-10-07T08:31:46.416719+00:00 exit 0

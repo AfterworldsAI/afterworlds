@@ -1,0 +1,25 @@
+start 2026-10-07T03:42:18.225912+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/_sp/release-order-candidate/reconstruct_diag2.py .claude/_sp/release-order-candidate/candidate/srd-5-2-1-corpus-8781d4e0-a3b.json
+input 01e66f283198baa32dd79334a4159430c9a9ebaea176fde1c44654567446e4c9  .claude/_sp/release-order-candidate/reconstruct_diag2.py
+input 8a6a9a9c305f41207190c0deb55875a027019116ce3f825a6a0425a3a115b4bf  .claude/_sp/release-order-candidate/candidate/srd-5-2-1-corpus-8781d4e0-a3b.json
+old verify findings ()
+old strict == False
+old difference patterns 2
+       2  cand.representation.components[*].fact_qualifiers: order only
+          identified: (FactQualifier(fact_key='f2d8099d90016878', applies_when=Applicability(kind=<ApplicabilityKind.QUANTITY_THRESHOLD: 'quantity_threshold'>, negated=False, quantity=<TrackedQuantity.CONDITION_LEVEL: 'con
+          rebuilt:    (FactQualifier(fact_key='e5b627fb5340604f', applies_when=Applicability(kind=<ApplicabilityKind.TRIGGER: 'trigger'>, negated=False, quantity=None, comparison=None, value=None, any_of=(), trigger=<Recov
+       1  cand.classification.review_unit_acceptances: order only
+          identified: (ReviewUnitAcceptance(unit_id='actions-pilot/attack', batch_id='actions-pilot', reviewer='Ravenlok (Owner)', accepted_at='2026-09-28T09:39:56Z'), ReviewUnitAcceptance(unit_id='actions-pilot/dash', bat
+          rebuilt:    (ReviewUnitAcceptance(unit_id='actions-pilot/attack', batch_id='actions-pilot', reviewer='Ravenlok (Owner)', accepted_at='2026-09-28T09:39:56Z'), ReviewUnitAcceptance(unit_id='actions-pilot/dash', bat
+old components with reordered fact_qualifiers ['glossary.exhaustion/removing_exhaustion_levels', 'glossary.magic/long_casting']
+old unexpected difference patterns []
+new verify findings ()
+new strict == False
+new difference patterns 1
+       2  cand.representation.components[*].fact_qualifiers: order only
+          identified: (FactQualifier(fact_key='f2d8099d90016878', applies_when=Applicability(kind=<ApplicabilityKind.QUANTITY_THRESHOLD: 'quantity_threshold'>, negated=False, quantity=<TrackedQuantity.CONDITION_LEVEL: 'con
+          rebuilt:    (FactQualifier(fact_key='e5b627fb5340604f', applies_when=Applicability(kind=<ApplicabilityKind.TRIGGER: 'trigger'>, negated=False, quantity=None, comparison=None, value=None, any_of=(), trigger=<Recov
+new components with reordered fact_qualifiers ['glossary.exhaustion/removing_exhaustion_levels', 'glossary.magic/long_casting']
+new unexpected difference patterns []
+ONLY KNOWN ORDER-ONLY DIFFERENCES True
+end 2026-10-07T03:43:11.036875+00:00 exit 0

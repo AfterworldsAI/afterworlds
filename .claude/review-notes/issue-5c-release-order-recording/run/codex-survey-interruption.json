@@ -1,0 +1,13 @@
+{
+  "operation": "stop_only_inefficient_read_only_secrets_survey",
+  "survey_reference": "the first read-only per-hit survey in this run",
+  "python_process_id": 5424,
+  "python_child_process_id": 35444,
+  "verified_venv_executable": "D:/AI/Claude/afterworlds/venv/Scripts/python.exe",
+  "parent_shell_process_id": 13824,
+  "reason": "Whole 35 MB files were reread and split for every detected hash; cache file lines once per file instead.",
+  "classification": "Survey interruption; no successful secrets verdict. The pipeline tail exit must not be treated as successful survey validation.",
+  "baseline_was_unchanged_before_interruption": true,
+  "claude_session_is_not_stopped": true,
+  "required_followup": "Read codex-baseline-preservation-note.md; retain the original helper, then use a fresh additive-only corrected helper and cached per-file inspection."
+}

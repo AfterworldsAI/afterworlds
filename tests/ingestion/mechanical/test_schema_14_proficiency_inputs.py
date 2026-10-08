@@ -115,7 +115,6 @@ from afterworlds.models.enums import OverrideOperationEnum, OverrideOriginEnum
 from afterworlds.persistence.orm.mechanical import MechanicalFactORM
 from afterworlds.services.rules_authority.application import (
     OverrideApplicationError,
-    _base_records,
     apply_override_set,
 )
 from afterworlds.services.rules_authority.binding import RulesPackageBinding
@@ -131,7 +130,13 @@ from afterworlds.services.rules_authority.targets import (
     MechanicalTarget,
     MechanicalTargetKind,
 )
-from tests.ingestion.mechanical.conftest import NOW, RELEASE_BINDING, candidate_of
+from tests.ingestion.mechanical.conftest import (
+    NOW,
+    RELEASE_BINDING,
+    base_records,
+    candidate_of,
+    synthetic_leaf_order,
+)
 from tests.ingestion.mechanical.test_proficiency_1_proposal import _corpus
 
 PROPOSAL_PATH = (
@@ -1094,7 +1099,7 @@ def test_the_new_facts_reach_a_consumer_as_declared_members() -> None:
     consumer-visible effect of this mint is that these rules are now addressable
     and traceable.
     """
-    records = _base_records(_candidate())
+    records = base_records(_candidate())
     by_key = {c.semantic_key: c for c in records[RECORD].components}
     for component_key, fact in _new_facts(_draft()):
         (entry,) = [e for e in by_key[component_key].facts if e.fact == fact]
@@ -1134,7 +1139,10 @@ def test_an_override_can_address_a_new_fact_by_its_key() -> None:
         release_version=_PACKAGE_BINDING.release_version,
         entries=(entry,),
     )
-    view = apply_override_set(_candidate(), state, _PACKAGE_BINDING)
+    candidate = _candidate()
+    view = apply_override_set(
+        candidate, state, _PACKAGE_BINDING, leaf_order=synthetic_leaf_order(candidate)
+    )
 
     (applied,) = view.applied_overrides
     assert applied.applied
@@ -1169,7 +1177,10 @@ def _override_view(
         release_version=_PACKAGE_BINDING.release_version,
         entries=(entry,),
     )
-    return apply_override_set(_candidate(), state, _PACKAGE_BINDING)
+    candidate = _candidate()
+    return apply_override_set(
+        candidate, state, _PACKAGE_BINDING, leaf_order=synthetic_leaf_order(candidate)
+    )
 
 
 def test_a_limit_can_be_replaced_within_the_shape_its_family_admits() -> None:

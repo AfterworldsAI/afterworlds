@@ -1,0 +1,1280 @@
+{
+ "checks": {
+  "old: verify_reconstruction reports no findings": true,
+  "old: reconstructed binding == persisted binding == oracle binding": true,
+  "old: reconstructed candidate == identified candidate": false,
+  "old: reconstructed candidate re-identifies to the persisted projection": true,
+  "new: verify_reconstruction reports no findings": true,
+  "new: reconstructed binding == persisted binding == oracle binding": true,
+  "new: reconstructed candidate == identified candidate": false,
+  "new: reconstructed candidate re-identifies to the persisted projection": true,
+  "animals.wolf: identical apart from release-ordered governing prose": true,
+  "animals.wolf: has governing prose to compare": true,
+  "animals.giant_owl: identical apart from release-ordered governing prose": true,
+  "animals.giant_owl: has governing prose to compare": true,
+  "animals.swarm_of_insects: identical apart from release-ordered governing prose": true,
+  "animals.swarm_of_insects: has governing prose to compare": true,
+  "monsters.parts_of_a_stat_block: identical apart from release-ordered governing prose": true,
+  "monsters.parts_of_a_stat_block: has governing prose to compare": true,
+  "monsters.aboleth.aboleth: identical apart from release-ordered governing prose": true,
+  "monsters.aboleth.aboleth: has governing prose to compare": true,
+  "character_origins.acolyte: identical apart from release-ordered governing prose": true,
+  "character_origins.acolyte: has governing prose to compare": true,
+  "character_creation.level_advancement: identical apart from release-ordered governing prose": true,
+  "character_creation.level_advancement: has governing prose to compare": true,
+  "classes.barbarian.as_a_multiclass_character: identical apart from release-ordered governing prose": true,
+  "classes.barbarian.as_a_multiclass_character: has governing prose to compare": true,
+  "spells.casting_spells: identical apart from release-ordered governing prose": true,
+  "spells.casting_spells: has governing prose to compare": true,
+  "glossary.blinded: identical apart from release-ordered governing prose": true,
+  "glossary.blinded: has governing prose to compare": true,
+  "equipment.adventuring_gear.acid: identical apart from release-ordered governing prose": true,
+  "equipment.adventuring_gear.acid: has governing prose to compare": true,
+  "magic_items.activating_a_magic_item: identical apart from release-ordered governing prose": true,
+  "magic_items.activating_a_magic_item: has governing prose to compare": true,
+  "feats.boon_of_spell_recall: identical apart from release-ordered governing prose": true,
+  "feats.boon_of_spell_recall: has governing prose to compare": true,
+  "animals.wolf: at least one component reads both own Animals text and governing Monsters rules": true,
+  "animals.wolf: old release read own Animals text before the governing Monsters rules": true,
+  "animals.wolf: new release reads the governing Monsters rules before own Animals text": true,
+  "animals.giant_owl: at least one component reads both own Animals text and governing Monsters rules": true,
+  "animals.giant_owl: old release read own Animals text before the governing Monsters rules": true,
+  "animals.giant_owl: new release reads the governing Monsters rules before own Animals text": true,
+  "animals.swarm_of_insects: at least one component reads both own Animals text and governing Monsters rules": true,
+  "animals.swarm_of_insects: old release read own Animals text before the governing Monsters rules": true,
+  "animals.swarm_of_insects: new release reads the governing Monsters rules before own Animals text": true,
+  "monsters.parts_of_a_stat_block: no component reordered (single-file or unchanged relative order)": true,
+  "monsters.aboleth.aboleth: no component reordered (single-file or unchanged relative order)": true,
+  "character_origins.acolyte: no component reordered (single-file or unchanged relative order)": true,
+  "character_creation.level_advancement: no component reordered (single-file or unchanged relative order)": true,
+  "classes.barbarian.as_a_multiclass_character: no component reordered (single-file or unchanged relative order)": true,
+  "spells.casting_spells: no component reordered (single-file or unchanged relative order)": true,
+  "glossary.blinded: no component reordered (single-file or unchanged relative order)": true,
+  "equipment.adventuring_gear.acid: no component reordered (single-file or unchanged relative order)": true,
+  "magic_items.activating_a_magic_item: no component reordered (single-file or unchanged relative order)": true,
+  "feats.boon_of_spell_recall: no component reordered (single-file or unchanged relative order)": true,
+  "control: live oracle validates on old store: expected ok": true,
+  "control: candidate validates on new store: expected ok": true,
+  "candidate (new binding) on old store: expected refused": true,
+  "live oracle (old binding) on new store: expected refused": true,
+  "persist candidate into old store: expected refused": true,
+  "persist live oracle into new store: expected refused": true,
+  "mixed: new binding + old chunk ids, on new store: expected refused": true,
+  "mixed: old binding + new chunk ids, on old store: expected refused": true
+ },
+ "old_projection_uuid": "498a9a0a-c693-53e5-8bcd-32143034fbe0",
+ "new_projection_uuid": "8d8cb42c-aefe-559c-9d85-6ba975c038af",
+ "reads": {
+  "animals.wolf": {
+   "differences": [],
+   "reordered_components": [
+    {
+     "path": "$.components[0].governing_prose",
+     "old_files": [
+      "animals.md",
+      "animals.md",
+      "animals.md",
+      "animals.md",
+      "animals.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md"
+     ],
+     "new_files": [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "animals.md",
+      "animals.md",
+      "animals.md",
+      "animals.md",
+      "animals.md"
+     ]
+    },
+    {
+     "path": "$.components[1].governing_prose",
+     "old_files": [
+      "animals.md",
+      "animals.md",
+      "monsters.md"
+     ],
+     "new_files": [
+      "monsters.md",
+      "animals.md",
+      "animals.md"
+     ]
+    },
+    {
+     "path": "$.components[2].governing_prose",
+     "old_files": [
+      "animals.md",
+      "animals.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md"
+     ],
+     "new_files": [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "animals.md",
+      "animals.md"
+     ]
+    }
+   ],
+   "components": 3,
+   "passages": 21,
+   "new_component_files": [
+    [
+     "animals.wolf/wolf",
+     [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "animals.md",
+      "animals.md",
+      "animals.md",
+      "animals.md",
+      "animals.md"
+     ]
+    ],
+    [
+     "animals.wolf/traits",
+     [
+      "monsters.md",
+      "animals.md",
+      "animals.md"
+     ]
+    ],
+    [
+     "animals.wolf/actions",
+     [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "animals.md",
+      "animals.md"
+     ]
+    ]
+   ]
+  },
+  "animals.giant_owl": {
+   "differences": [],
+   "reordered_components": [
+    {
+     "path": "$.components[0].governing_prose",
+     "old_files": [
+      "animals.md",
+      "animals.md",
+      "animals.md",
+      "animals.md",
+      "animals.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md"
+     ],
+     "new_files": [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "animals.md",
+      "animals.md",
+      "animals.md",
+      "animals.md",
+      "animals.md"
+     ]
+    },
+    {
+     "path": "$.components[1].governing_prose",
+     "old_files": [
+      "animals.md",
+      "animals.md",
+      "monsters.md"
+     ],
+     "new_files": [
+      "monsters.md",
+      "animals.md",
+      "animals.md"
+     ]
+    },
+    {
+     "path": "$.components[2].governing_prose",
+     "old_files": [
+      "animals.md",
+      "animals.md",
+      "animals.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md"
+     ],
+     "new_files": [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "animals.md",
+      "animals.md",
+      "animals.md"
+     ]
+    }
+   ],
+   "components": 3,
+   "passages": 27,
+   "new_component_files": [
+    [
+     "animals.giant_owl/giant_owl",
+     [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "animals.md",
+      "animals.md",
+      "animals.md",
+      "animals.md",
+      "animals.md"
+     ]
+    ],
+    [
+     "animals.giant_owl/traits",
+     [
+      "monsters.md",
+      "animals.md",
+      "animals.md"
+     ]
+    ],
+    [
+     "animals.giant_owl/actions",
+     [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "animals.md",
+      "animals.md",
+      "animals.md"
+     ]
+    ]
+   ]
+  },
+  "animals.swarm_of_insects": {
+   "differences": [],
+   "reordered_components": [
+    {
+     "path": "$.components[0].governing_prose",
+     "old_files": [
+      "animals.md",
+      "animals.md",
+      "animals.md",
+      "animals.md",
+      "animals.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md"
+     ],
+     "new_files": [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "animals.md",
+      "animals.md",
+      "animals.md",
+      "animals.md",
+      "animals.md"
+     ]
+    },
+    {
+     "path": "$.components[1].governing_prose",
+     "old_files": [
+      "animals.md",
+      "animals.md",
+      "animals.md",
+      "monsters.md"
+     ],
+     "new_files": [
+      "monsters.md",
+      "animals.md",
+      "animals.md",
+      "animals.md"
+     ]
+    },
+    {
+     "path": "$.components[2].governing_prose",
+     "old_files": [
+      "animals.md",
+      "animals.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md"
+     ],
+     "new_files": [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "animals.md",
+      "animals.md"
+     ]
+    }
+   ],
+   "components": 3,
+   "passages": 22,
+   "new_component_files": [
+    [
+     "animals.swarm_of_insects/swarm_of_insects",
+     [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "animals.md",
+      "animals.md",
+      "animals.md",
+      "animals.md",
+      "animals.md"
+     ]
+    ],
+    [
+     "animals.swarm_of_insects/traits",
+     [
+      "monsters.md",
+      "animals.md",
+      "animals.md",
+      "animals.md"
+     ]
+    ],
+    [
+     "animals.swarm_of_insects/actions",
+     [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "animals.md",
+      "animals.md"
+     ]
+    ]
+   ]
+  },
+  "monsters.parts_of_a_stat_block": {
+   "differences": [],
+   "reordered_components": [],
+   "components": 35,
+   "passages": 105,
+   "new_component_files": [
+    [
+     "monsters.parts_of_a_stat_block/parts_of_a_stat_block",
+     [
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/size",
+     [
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/creature_type",
+     [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/descriptive_tags",
+     [
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/alignment",
+     [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/armor_class",
+     [
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/initiative",
+     [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/hit_points",
+     [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/speed",
+     [
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/ability_scores",
+     [
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/skills",
+     [
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/resistances_and_vulnerabilities",
+     [
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/running_a_monster",
+     [
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/immunities",
+     [
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/gear",
+     [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/ammunition_and_ranged_attacks",
+     [
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/equipping_a_monster_with_other_items",
+     [
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/magic_items_and_class_tags",
+     [
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/senses",
+     [
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/languages",
+     [
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/telepathy",
+     [
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block.challenge_rating/challenge_rating",
+     [
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block.challenge_rating/experience_points",
+     [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block.challenge_rating/proficiency_bonus",
+     [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/traits",
+     [
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/actions",
+     [
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/attack_notation",
+     [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/saving_throw_effect_notation",
+     [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/damage_notation",
+     [
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/multiattack",
+     [
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/spellcasting",
+     [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/bonus_action",
+     [
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/reactions",
+     [
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/legendary_actions",
+     [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md"
+     ]
+    ],
+    [
+     "monsters.parts_of_a_stat_block/limited_usage",
+     [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md"
+     ]
+    ]
+   ]
+  },
+  "monsters.aboleth.aboleth": {
+   "differences": [],
+   "reordered_components": [],
+   "components": 4,
+   "passages": 37,
+   "new_component_files": [
+    [
+     "monsters.aboleth.aboleth/aboleth",
+     [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters-A-Z.md",
+      "monsters-A-Z.md",
+      "monsters-A-Z.md",
+      "monsters-A-Z.md",
+      "monsters-A-Z.md"
+     ]
+    ],
+    [
+     "monsters.aboleth.aboleth/traits",
+     [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters-A-Z.md",
+      "monsters-A-Z.md",
+      "monsters-A-Z.md",
+      "monsters-A-Z.md",
+      "monsters-A-Z.md",
+      "monsters-A-Z.md"
+     ]
+    ],
+    [
+     "monsters.aboleth.aboleth/actions",
+     [
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters.md",
+      "monsters-A-Z.md",
+      "monsters-A-Z.md",
+      "monsters-A-Z.md",
+      "monsters-A-Z.md",
+      "monsters-A-Z.md"
+     ]
+    ],
+    [
+     "monsters.aboleth.aboleth/legendary_actions",
+     [
+      "monsters.md",
+      "monsters.md",
+      "monsters-A-Z.md",
+      "monsters-A-Z.md",
+      "monsters-A-Z.md",
+      "monsters-A-Z.md"
+     ]
+    ]
+   ]
+  },
+  "character_origins.acolyte": {
+   "differences": [],
+   "reordered_components": [],
+   "components": 5,
+   "passages": 5,
+   "new_component_files": [
+    [
+     "character_origins.acolyte/ability_scores",
+     [
+      "character-origins.md"
+     ]
+    ],
+    [
+     "character_origins.acolyte/feat",
+     [
+      "character-origins.md"
+     ]
+    ],
+    [
+     "character_origins.acolyte/skill_proficiencies",
+     [
+      "character-origins.md"
+     ]
+    ],
+    [
+     "character_origins.acolyte/tool_proficiency",
+     [
+      "character-origins.md"
+     ]
+    ],
+    [
+     "character_origins.acolyte/equipment",
+     [
+      "character-origins.md"
+     ]
+    ]
+   ]
+  },
+  "character_creation.level_advancement": {
+   "differences": [],
+   "reordered_components": [],
+   "components": 7,
+   "passages": 18,
+   "new_component_files": [
+    [
+     "character_creation.level_advancement/character_advancement",
+     [
+      "character-creation.md",
+      "character-creation.md",
+      "character-creation.md"
+     ]
+    ],
+    [
+     "character_creation.level_advancement/choose_class",
+     [
+      "character-creation.md"
+     ]
+    ],
+    [
+     "character_creation.level_advancement/hit_points_and_hit_point_dice",
+     [
+      "character-creation.md",
+      "character-creation.md"
+     ]
+    ],
+    [
+     "character_creation.level_advancement/class_features",
+     [
+      "character-creation.md"
+     ]
+    ],
+    [
+     "character_creation.level_advancement/proficiency_bonus",
+     [
+      "character-creation.md"
+     ]
+    ],
+    [
+     "character_creation.level_advancement/ability_modifiers",
+     [
+      "character-creation.md"
+     ]
+    ],
+    [
+     "character_creation.level_advancement/tiers_of_play",
+     [
+      "character-creation.md",
+      "character-creation.md",
+      "character-creation.md",
+      "character-creation.md",
+      "character-creation.md",
+      "character-creation.md",
+      "character-creation.md",
+      "character-creation.md",
+      "character-creation.md"
+     ]
+    ]
+   ]
+  },
+  "classes.barbarian.as_a_multiclass_character": {
+   "differences": [],
+   "reordered_components": [],
+   "components": 1,
+   "passages": 2,
+   "new_component_files": [
+    [
+     "classes.barbarian.as_a_multiclass_character/as_a_multiclass_character",
+     [
+      "classes.md",
+      "classes.md"
+     ]
+    ]
+   ]
+  },
+  "spells.casting_spells": {
+   "differences": [],
+   "reordered_components": [],
+   "components": 41,
+   "passages": 47,
+   "new_component_files": [
+    [
+     "spells.casting_spells/casting_in_armor",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.casting_spells/spell_level",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.casting_spells/spell_slots",
+     [
+      "spells.md",
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.casting_spells/slot_recovery",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.casting_spells/casting_without_slots",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.casting_spells/cantrips",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.casting_spells/rituals",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.casting_spells/special_abilities",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.casting_spells/magic_items",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.casting_spells/higher_level_slot",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.casting_spells/school_of_magic",
+     [
+      "spells.md",
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.casting_spells/class_spell_lists",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.casting_time/casting_time",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.casting_time/one_slot_per_turn",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.casting_time/triggers",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.casting_time/longer_casting_times",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.range/range",
+     [
+      "spells.md",
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.range/distance",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.range/touch",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.range/self",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.range/movable_effects",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.components/components",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.components/verbal",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.components/somatic",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.components/material",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.components/component_pouch_and_focus",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.duration/duration",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.duration/concentration",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.duration/instantaneous",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.duration/time_span",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.effects/effects",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.targets/targets",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.targets/clear_path",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.targets/targeting_yourself",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.targets/areas_of_effect",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.targets/awareness_of_being_targeted",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.targets/invalid_targets",
+     [
+      "spells.md",
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.saving_throws/spell_save_dc",
+     [
+      "spells.md",
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.attack_rolls/spell_attack_modifier",
+     [
+      "spells.md",
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.combining_spell_effects/combining_spell_effects",
+     [
+      "spells.md"
+     ]
+    ],
+    [
+     "spells.combining_spell_effects/identifying_an_ongoing_spell",
+     [
+      "spells.md"
+     ]
+    ]
+   ]
+  },
+  "glossary.blinded": {
+   "differences": [],
+   "reordered_components": [],
+   "components": 2,
+   "passages": 1,
+   "new_component_files": [
+    [
+     "glossary.blinded/cant_see",
+     [
+      "rules-glossary.md"
+     ]
+    ],
+    [
+     "glossary.blinded/attacks_affected",
+     []
+    ]
+   ]
+  },
+  "equipment.adventuring_gear.acid": {
+   "differences": [],
+   "reordered_components": [],
+   "components": 1,
+   "passages": 4,
+   "new_component_files": [
+    [
+     "equipment.adventuring_gear.acid/acid",
+     [
+      "equipment.md",
+      "equipment.md",
+      "equipment.md",
+      "equipment.md"
+     ]
+    ]
+   ]
+  },
+  "magic_items.activating_a_magic_item": {
+   "differences": [],
+   "reordered_components": [],
+   "components": 5,
+   "passages": 11,
+   "new_component_files": [
+    [
+     "magic_items.activating_a_magic_item/activating_a_magic_item",
+     [
+      "magic-items.md",
+      "magic-items.md"
+     ]
+    ],
+    [
+     "magic_items.activating_a_magic_item/command_word",
+     [
+      "magic-items.md",
+      "magic-items.md"
+     ]
+    ],
+    [
+     "magic_items.activating_a_magic_item/consumable_items",
+     [
+      "magic-items.md",
+      "magic-items.md"
+     ]
+    ],
+    [
+     "magic_items.activating_a_magic_item/spells_cast_from_items",
+     [
+      "magic-items.md",
+      "magic-items.md",
+      "magic-items.md"
+     ]
+    ],
+    [
+     "magic_items.activating_a_magic_item/charges",
+     [
+      "magic-items.md",
+      "magic-items.md"
+     ]
+    ]
+   ]
+  },
+  "feats.boon_of_spell_recall": {
+   "differences": [],
+   "reordered_components": [],
+   "components": 3,
+   "passages": 3,
+   "new_component_files": [
+    [
+     "feats.boon_of_spell_recall/category",
+     [
+      "feats.md"
+     ]
+    ],
+    [
+     "feats.boon_of_spell_recall/ability_score_increase",
+     [
+      "feats.md"
+     ]
+    ],
+    [
+     "feats.boon_of_spell_recall/free_casting",
+     [
+      "feats.md"
+     ]
+    ]
+   ]
+  }
+ },
+ "fail_closed": {
+  "control: live oracle validates on old store": "ok: 0 findings",
+  "control: candidate validates on new store": "ok: 0 findings",
+  "candidate (new binding) on old store": "refused ValueError: 69862 findings, e.g. leaf 00004f37-49ec-58f3-ab9b-4b4f477bb968: classified but not in the bound release",
+  "live oracle (old binding) on new store": "refused ValueError: 69862 findings, e.g. leaf 00004f37-49ec-58f3-ab9b-4b4f477bb968: classified but not in the bound release",
+  "persist candidate into old store": "refused IntegrityError: (sqlite3.IntegrityError) FOREIGN KEY constraint failed\n[SQL: INSERT INTO rp_mech_projections (projection_uuid, package_uuid, release_version, authoritative_source_hash, transform_config_hash, bundle_root_hash, persisted_corpus_digest, seman",
+  "persist live oracle into new store": "refused IntegrityError: (sqlite3.IntegrityError) FOREIGN KEY constraint failed\n[SQL: INSERT INTO rp_mech_projections (projection_uuid, package_uuid, release_version, authoritative_source_hash, transform_config_hash, bundle_root_hash, persisted_corpus_digest, seman",
+  "mixed: new binding + old chunk ids, on new store": "refused ValueError: 59398 findings, e.g. prose binding animals.swarm_of_bats/traits: chunk '00693099-14e5-5d11-a0ab-fb0e938bc96d' is not authoritative prose of release 1299484e-c72d-509b-bd8d-d0169ee1f8d2/5.2.1-corpus.8781d4e0-a3b",
+  "mixed: old binding + new chunk ids, on old store": "refused ValueError: 59398 findings, e.g. prose binding monsters.pegasus/pegasus: chunk '00186061-68bc-5b29-bc7f-c9027d214864' is not authoritative prose of release 67c81736-15fd-5e82-8523-e84922f0a7c6/5.2.1-corpus.3fe24ff6-4e3"
+ },
+ "candidate": {
+  "path": ".claude\\_sp\\release-order-candidate\\candidate\\srd-5-2-1-corpus-8781d4e0-a3b.json",
+  "sha256": "8a6a9a9c305f41207190c0deb55875a027019116ce3f825a6a0425a3a115b4bf"
+ },
+ "live": {
+  "path": "src\\afterworlds\\ingestion\\mechanical\\oracles\\srd-5-2-1-corpus-3fe24ff6-4e3.json",
+  "sha256": "e6f5f36aa3af13807bbff721797d971dcf0d8e588a97483c7d769cf88cbd1308"
+ },
+ "records": [
+  "animals.wolf",
+  "animals.giant_owl",
+  "animals.swarm_of_insects",
+  "monsters.parts_of_a_stat_block",
+  "monsters.aboleth.aboleth",
+  "character_origins.acolyte",
+  "character_creation.level_advancement",
+  "classes.barbarian.as_a_multiclass_character",
+  "spells.casting_spells",
+  "glossary.blinded",
+  "equipment.adventuring_gear.acid",
+  "magic_items.activating_a_magic_item",
+  "feats.boon_of_spell_recall"
+ ],
+ "all_ok": false
+}

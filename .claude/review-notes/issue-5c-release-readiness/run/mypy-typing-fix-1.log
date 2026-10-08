@@ -1,0 +1,64 @@
+start 2026-10-07T16:04:30.014287+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe -m mypy --strict --cache-dir .claude/_sp/release-readiness-20261007/mypy-typing-cache tests/ingestion/mechanical/_replacement_chain.py tests/ingestion/mechanical/test_actions_pilot_acceptance.py tests/ingestion/mechanical/test_actions_pilot_proposal.py tests/ingestion/mechanical/test_character_creation_foundations_acceptance.py tests/ingestion/mechanical/test_character_creation_foundations_proposal.py tests/ingestion/mechanical/test_character_origins_feats_proposal.py tests/ingestion/mechanical/test_checks_actions_rests_acceptance.py tests/ingestion/mechanical/test_combat_damage_breaking_acceptance.py tests/ingestion/mechanical/test_combat_damage_breaking_proposal.py tests/ingestion/mechanical/test_combat_turn_1_acceptance.py tests/ingestion/mechanical/test_conditions_pilot_acceptance.py tests/ingestion/mechanical/test_conditions_pilot_proposal.py tests/ingestion/mechanical/test_core_play_completion_acceptance.py tests/ingestion/mechanical/test_core_play_completion_proposal.py tests/ingestion/mechanical/test_core_play_dependencies_acceptance.py tests/ingestion/mechanical/test_core_play_dependencies_proposal.py tests/ingestion/mechanical/test_damage_and_hit_points_acceptance.py tests/ingestion/mechanical/test_declared_record_expectations.py tests/ingestion/mechanical/test_equipment_cited_targets_candidate.py tests/ingestion/mechanical/test_equipment_proposal.py tests/ingestion/mechanical/test_equipment_spell_references_candidate.py tests/ingestion/mechanical/test_movement_closure_acceptance.py tests/ingestion/mechanical/test_movement_closure_proposal.py tests/ingestion/mechanical/test_reference_closure_acceptance.py tests/ingestion/mechanical/test_reference_closure_proposal.py tests/ingestion/mechanical/test_spellcasting_proposal.py
+input 241c9add51a15c039ff1ceb357e9c07df54b1bafc92ebe7000a9a7d363093865  tests/ingestion/mechanical/_replacement_chain.py
+input 77d53c74663e62dad19c443801687ed3c617c78b4a81e75cf72c498cb003c6a5  tests/ingestion/mechanical/test_actions_pilot_acceptance.py
+input bb703138866d772f5acf6d22fcd3580379f26d3e4329ad86424bef59468da7ba  tests/ingestion/mechanical/test_actions_pilot_proposal.py
+input 885e094cfae6b05c134870fdc8a3b121142037d53e2c2391eefbfa5f58ee8d9d  tests/ingestion/mechanical/test_character_creation_foundations_acceptance.py
+input d8af602f8436f98c4ba326eef724ddf0c0cf3a241f05321b7ae9575ce38c0bf8  tests/ingestion/mechanical/test_character_creation_foundations_proposal.py
+input f90bc02bfdb8508efe1650e0fb32ab8da976a2bb61ca87bf68f058e1f8ba446a  tests/ingestion/mechanical/test_character_origins_feats_proposal.py
+input 8da00b1f0b0f0c4aa84568b55710309a54d1a8b34e1f38a55cd582dca6f97982  tests/ingestion/mechanical/test_checks_actions_rests_acceptance.py
+input ca649ec2079266d46f5cee8d62a62bd400f34a446f63a13fc3e0d32d6e636ef0  tests/ingestion/mechanical/test_combat_damage_breaking_acceptance.py
+input c58c5a7a9067e4508fd03210ee06dc20369ff53f6d4fbc2637ec01a4cf3b4e1a  tests/ingestion/mechanical/test_combat_damage_breaking_proposal.py
+input ecfcba43233051d2690b1243c5d186c9afbfa0bcfd7e1b991a850c58a2893e4c  tests/ingestion/mechanical/test_combat_turn_1_acceptance.py
+input 608cfb694b2e9b15fb45682ba28cfede77d392191e7f24409f48daabb634ba21  tests/ingestion/mechanical/test_conditions_pilot_acceptance.py
+input 3927607ff305b43714e2887822167363bbb0d05e909c2229d0d04f51e8c6eff5  tests/ingestion/mechanical/test_conditions_pilot_proposal.py
+input 1939203c07e1e621edbd838cd70780fde26a8a6f4ed3469e76bd26e09e51c654  tests/ingestion/mechanical/test_core_play_completion_acceptance.py
+input e130bfe8dd3959366a6857384a751f332aed3a937e009ffa8e07e3411b0ba7d7  tests/ingestion/mechanical/test_core_play_completion_proposal.py
+input 0ef8fdf4d4b9f42390d9c8b302d08f48e4649811514da4ef4bb9156232c0a42c  tests/ingestion/mechanical/test_core_play_dependencies_acceptance.py
+input bf9e4910d09f59d89be389f6b596844c478bfcbe631e77d0a70c9b1ad01f2c7a  tests/ingestion/mechanical/test_core_play_dependencies_proposal.py
+input 2f9c6f62863c80a2fc1fc614f89c36757c6c569a93957c8325e527cf9cfcb40d  tests/ingestion/mechanical/test_damage_and_hit_points_acceptance.py
+input 463a19a71ef082e7c19c9797c7b8197ff7243853f7588fe45041e22055a04d04  tests/ingestion/mechanical/test_declared_record_expectations.py
+input c51503a4d9254b98068b61afb1993cec81397a0c0b8719c8f947c22b4fba6281  tests/ingestion/mechanical/test_equipment_cited_targets_candidate.py
+input a930d5b12e4c94f4d90770c055662a1fd8576e85389bef1ba62da9a32a475037  tests/ingestion/mechanical/test_equipment_proposal.py
+input a3b0c66dff66c52c46c0a2351f0ebd9600630e50515affed59e9cb4ab57fbe88  tests/ingestion/mechanical/test_equipment_spell_references_candidate.py
+input b352a2a4259130bf0919633ab69129226e95298d6f5fc8fd3ea3e9184e40016b  tests/ingestion/mechanical/test_movement_closure_acceptance.py
+input 973d72ca591d40220fd5d94fd8d6135c9724f9e9c198d7b2a81573877a55a3ab  tests/ingestion/mechanical/test_movement_closure_proposal.py
+input e60f476853abe39fe82f4891e37d95c979814164741fb4746da5c8adb5887bdf  tests/ingestion/mechanical/test_reference_closure_acceptance.py
+input 11640896ef50abfa578cfa3d1317c1d4c84b87643fba8862eae4b2a0ac3ec15d  tests/ingestion/mechanical/test_reference_closure_proposal.py
+input 0075497a80e2629e4f7e4c70c776d1c37dfd7da2bfddeb7df2c3f0a1a3381b3a  tests/ingestion/mechanical/test_spellcasting_proposal.py
+tests\ingestion\mechanical\test_conditions_pilot_proposal.py:137: error: Argument 2 to "replace" of "RepresentationDraft" has incompatible type "**dict[str, object]"; expected "tuple[RecordDraft, ...]"  [arg-type]
+tests\ingestion\mechanical\test_conditions_pilot_proposal.py:137: error: Argument 2 to "replace" of "RepresentationDraft" has incompatible type "**dict[str, object]"; expected "tuple[ComponentDraft, ...]"  [arg-type]
+tests\ingestion\mechanical\test_conditions_pilot_proposal.py:137: error: Argument 2 to "replace" of "RepresentationDraft" has incompatible type "**dict[str, object]"; expected "tuple[ProseBindingDraft, ...]"  [arg-type]
+tests\ingestion\mechanical\test_conditions_pilot_proposal.py:137: error: Argument 2 to "replace" of "RepresentationDraft" has incompatible type "**dict[str, object]"; expected "tuple[RelationshipDraft, ...]"  [arg-type]
+tests\ingestion\mechanical\test_conditions_pilot_proposal.py:137: error: Argument 2 to "replace" of "RepresentationDraft" has incompatible type "**dict[str, object]"; expected "tuple[ReferenceDraft, ...]"  [arg-type]
+tests\ingestion\mechanical\test_conditions_pilot_proposal.py:137: error: Argument 2 to "replace" of "RepresentationDraft" has incompatible type "**dict[str, object]"; expected "tuple[ProvenanceClaim, ...]"  [arg-type]
+tests\ingestion\mechanical\test_combat_damage_breaking_proposal.py:248: error: Name "ComponentHandling" is not defined  [name-defined]
+tests\ingestion\mechanical\test_combat_damage_breaking_proposal.py:313: error: Name "ComponentHandling" is not defined  [name-defined]
+tests\ingestion\mechanical\test_combat_damage_breaking_proposal.py:376: error: Name "ComponentHandling" is not defined  [name-defined]
+tests\ingestion\mechanical\test_character_origins_feats_proposal.py:1797: error: Name "ReferenceDraft" is not defined  [name-defined]
+tests\ingestion\mechanical\test_character_origins_feats_proposal.py:1797: error: Name "ReferenceResolution" is not defined  [name-defined]
+tests\ingestion\mechanical\test_spellcasting_proposal.py:889: error: Name "ReferenceDraft" is not defined  [name-defined]
+tests\ingestion\mechanical\test_spellcasting_proposal.py:889: error: Name "ReferenceResolution" is not defined  [name-defined]
+tests\ingestion\mechanical\test_equipment_proposal.py:412: error: Name "Iterable" is not defined  [name-defined]
+tests\ingestion\mechanical\test_equipment_proposal.py:412: note: Did you forget to import it from "typing"? (Suggestion: "from typing import Iterable")
+tests\ingestion\mechanical\test_equipment_proposal.py:1244: error: Name "ReferenceDraft" is not defined  [name-defined]
+tests\ingestion\mechanical\test_equipment_proposal.py:1244: error: Name "ReferenceResolution" is not defined  [name-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:126: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_service"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:132: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_sliced"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:132: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_request"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:148: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_service"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:170: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_service"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:216: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_service"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:268: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_disable"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:269: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_service"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:276: error: Returning Any from function declared to return "str"  [no-any-return]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:296: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_service"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:302: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_service"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:302: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_disable"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:309: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_request"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:312: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_service"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:320: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "AuthoredProse"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:325: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "SourceProse"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:333: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_service"  [attr-defined]
+Found 33 errors in 6 files (checked 26 source files)
+end 2026-10-07T16:04:40.067965+00:00 exit 1

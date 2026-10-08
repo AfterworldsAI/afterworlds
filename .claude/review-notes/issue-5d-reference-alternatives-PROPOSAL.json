@@ -1,0 +1,1861 @@
+{
+  "accepted_sha256": "5f37fb080a8493a1acb6584ef9bd2297c388d34683200bd7f486007ade668676",
+  "lift": [
+    "5d-lift-schema-16-to-17"
+  ],
+  "reference_resolutions": [
+    {
+      "destinations": [
+        {
+          "alternative_label": "Barbarian: advancing: features table and descriptions",
+          "class_record_key": "classes.barbarian",
+          "minimum_class_level": 0,
+          "situation": "advancing_class",
+          "target_component_key": "",
+          "target_record_key": "classes.barbarian"
+        },
+        {
+          "alternative_label": "Barbarian: entering as a multiclass character",
+          "class_record_key": "classes.barbarian",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.barbarian.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Barbarian: entering as a multiclass character",
+          "class_record_key": "classes.barbarian",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "",
+          "target_record_key": "classes.barbarian"
+        },
+        {
+          "alternative_label": "Bard: advancing: features table and descriptions",
+          "class_record_key": "classes.bard",
+          "minimum_class_level": 0,
+          "situation": "advancing_class",
+          "target_component_key": "",
+          "target_record_key": "classes.bard"
+        },
+        {
+          "alternative_label": "Bard: entering as a multiclass character",
+          "class_record_key": "classes.bard",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.bard.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Bard: entering as a multiclass character",
+          "class_record_key": "classes.bard",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "",
+          "target_record_key": "classes.bard"
+        },
+        {
+          "alternative_label": "Cleric: advancing: features table and descriptions",
+          "class_record_key": "classes.cleric",
+          "minimum_class_level": 0,
+          "situation": "advancing_class",
+          "target_component_key": "",
+          "target_record_key": "classes.cleric"
+        },
+        {
+          "alternative_label": "Cleric: entering as a multiclass character",
+          "class_record_key": "classes.cleric",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.cleric.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Cleric: entering as a multiclass character",
+          "class_record_key": "classes.cleric",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "",
+          "target_record_key": "classes.cleric"
+        },
+        {
+          "alternative_label": "Druid: advancing: features table and descriptions",
+          "class_record_key": "classes.druid",
+          "minimum_class_level": 0,
+          "situation": "advancing_class",
+          "target_component_key": "",
+          "target_record_key": "classes.druid"
+        },
+        {
+          "alternative_label": "Druid: entering as a multiclass character",
+          "class_record_key": "classes.druid",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.druid.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Druid: entering as a multiclass character",
+          "class_record_key": "classes.druid",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "",
+          "target_record_key": "classes.druid"
+        },
+        {
+          "alternative_label": "Fighter: advancing: features table and descriptions",
+          "class_record_key": "classes.fighter",
+          "minimum_class_level": 0,
+          "situation": "advancing_class",
+          "target_component_key": "",
+          "target_record_key": "classes.fighter"
+        },
+        {
+          "alternative_label": "Fighter: entering as a multiclass character",
+          "class_record_key": "classes.fighter",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.fighter.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Fighter: entering as a multiclass character",
+          "class_record_key": "classes.fighter",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "",
+          "target_record_key": "classes.fighter"
+        },
+        {
+          "alternative_label": "Monk: advancing: features table and descriptions",
+          "class_record_key": "classes.monk",
+          "minimum_class_level": 0,
+          "situation": "advancing_class",
+          "target_component_key": "",
+          "target_record_key": "classes.monk"
+        },
+        {
+          "alternative_label": "Monk: entering as a multiclass character",
+          "class_record_key": "classes.monk",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.monk.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Monk: entering as a multiclass character",
+          "class_record_key": "classes.monk",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "",
+          "target_record_key": "classes.monk"
+        },
+        {
+          "alternative_label": "Paladin: advancing: features table and descriptions",
+          "class_record_key": "classes.paladin",
+          "minimum_class_level": 0,
+          "situation": "advancing_class",
+          "target_component_key": "",
+          "target_record_key": "classes.paladin"
+        },
+        {
+          "alternative_label": "Paladin: entering as a multiclass character",
+          "class_record_key": "classes.paladin",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.paladin.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Paladin: entering as a multiclass character",
+          "class_record_key": "classes.paladin",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "",
+          "target_record_key": "classes.paladin"
+        },
+        {
+          "alternative_label": "Ranger: advancing: features table and descriptions",
+          "class_record_key": "classes.ranger",
+          "minimum_class_level": 0,
+          "situation": "advancing_class",
+          "target_component_key": "",
+          "target_record_key": "classes.ranger"
+        },
+        {
+          "alternative_label": "Ranger: entering as a multiclass character",
+          "class_record_key": "classes.ranger",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.ranger.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Ranger: entering as a multiclass character",
+          "class_record_key": "classes.ranger",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "",
+          "target_record_key": "classes.ranger"
+        },
+        {
+          "alternative_label": "Rogue: advancing: features table and descriptions",
+          "class_record_key": "classes.rogue",
+          "minimum_class_level": 0,
+          "situation": "advancing_class",
+          "target_component_key": "",
+          "target_record_key": "classes.rogue"
+        },
+        {
+          "alternative_label": "Rogue: entering as a multiclass character",
+          "class_record_key": "classes.rogue",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.rogue.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Rogue: entering as a multiclass character",
+          "class_record_key": "classes.rogue",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "",
+          "target_record_key": "classes.rogue"
+        },
+        {
+          "alternative_label": "Sorcerer: advancing: features table and descriptions",
+          "class_record_key": "classes.sorcerer",
+          "minimum_class_level": 0,
+          "situation": "advancing_class",
+          "target_component_key": "",
+          "target_record_key": "classes.sorcerer"
+        },
+        {
+          "alternative_label": "Sorcerer: entering as a multiclass character",
+          "class_record_key": "classes.sorcerer",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.sorcerer.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Sorcerer: entering as a multiclass character",
+          "class_record_key": "classes.sorcerer",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "",
+          "target_record_key": "classes.sorcerer"
+        },
+        {
+          "alternative_label": "Warlock: advancing: features table and descriptions",
+          "class_record_key": "classes.warlock",
+          "minimum_class_level": 0,
+          "situation": "advancing_class",
+          "target_component_key": "",
+          "target_record_key": "classes.warlock"
+        },
+        {
+          "alternative_label": "Warlock: entering as a multiclass character",
+          "class_record_key": "classes.warlock",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.warlock.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Warlock: entering as a multiclass character",
+          "class_record_key": "classes.warlock",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "",
+          "target_record_key": "classes.warlock"
+        },
+        {
+          "alternative_label": "Wizard: advancing: features table and descriptions",
+          "class_record_key": "classes.wizard",
+          "minimum_class_level": 0,
+          "situation": "advancing_class",
+          "target_component_key": "",
+          "target_record_key": "classes.wizard"
+        },
+        {
+          "alternative_label": "Wizard: entering as a multiclass character",
+          "class_record_key": "classes.wizard",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.wizard.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Wizard: entering as a multiclass character",
+          "class_record_key": "classes.wizard",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "",
+          "target_record_key": "classes.wizard"
+        }
+      ],
+      "from_component_key": "class_features",
+      "from_record_key": "character_creation.level_advancement",
+      "provenance_span_ids": [
+        "e9f78666-2b5c-5df1-af46-3d1b24db1832"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "alternatives-10-character_creation.level_advancement-class_features",
+      "scope_key": "srd-5.2.1/classes",
+      "source_text": "Classes",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Barbarian: single class: class table",
+          "class_record_key": "classes.barbarian",
+          "minimum_class_level": 0,
+          "situation": "single_class",
+          "target_component_key": "progression",
+          "target_record_key": "classes.barbarian"
+        },
+        {
+          "alternative_label": "Bard: single class: class table",
+          "class_record_key": "classes.bard",
+          "minimum_class_level": 0,
+          "situation": "single_class",
+          "target_component_key": "progression",
+          "target_record_key": "classes.bard"
+        },
+        {
+          "alternative_label": "Cleric: single class: class table",
+          "class_record_key": "classes.cleric",
+          "minimum_class_level": 0,
+          "situation": "single_class",
+          "target_component_key": "progression",
+          "target_record_key": "classes.cleric"
+        },
+        {
+          "alternative_label": "Druid: single class: class table",
+          "class_record_key": "classes.druid",
+          "minimum_class_level": 0,
+          "situation": "single_class",
+          "target_component_key": "progression",
+          "target_record_key": "classes.druid"
+        },
+        {
+          "alternative_label": "Fighter: single class: class table",
+          "class_record_key": "classes.fighter",
+          "minimum_class_level": 0,
+          "situation": "single_class",
+          "target_component_key": "progression",
+          "target_record_key": "classes.fighter"
+        },
+        {
+          "alternative_label": "Monk: single class: class table",
+          "class_record_key": "classes.monk",
+          "minimum_class_level": 0,
+          "situation": "single_class",
+          "target_component_key": "progression",
+          "target_record_key": "classes.monk"
+        },
+        {
+          "alternative_label": "Paladin: single class: class table",
+          "class_record_key": "classes.paladin",
+          "minimum_class_level": 0,
+          "situation": "single_class",
+          "target_component_key": "progression",
+          "target_record_key": "classes.paladin"
+        },
+        {
+          "alternative_label": "Ranger: single class: class table",
+          "class_record_key": "classes.ranger",
+          "minimum_class_level": 0,
+          "situation": "single_class",
+          "target_component_key": "progression",
+          "target_record_key": "classes.ranger"
+        },
+        {
+          "alternative_label": "Rogue: single class: class table",
+          "class_record_key": "classes.rogue",
+          "minimum_class_level": 0,
+          "situation": "single_class",
+          "target_component_key": "progression",
+          "target_record_key": "classes.rogue"
+        },
+        {
+          "alternative_label": "Sorcerer: single class: class table",
+          "class_record_key": "classes.sorcerer",
+          "minimum_class_level": 0,
+          "situation": "single_class",
+          "target_component_key": "progression",
+          "target_record_key": "classes.sorcerer"
+        },
+        {
+          "alternative_label": "Warlock: single class: class table",
+          "class_record_key": "classes.warlock",
+          "minimum_class_level": 0,
+          "situation": "single_class",
+          "target_component_key": "progression",
+          "target_record_key": "classes.warlock"
+        },
+        {
+          "alternative_label": "Wizard: single class: class table",
+          "class_record_key": "classes.wizard",
+          "minimum_class_level": 0,
+          "situation": "single_class",
+          "target_component_key": "progression",
+          "target_record_key": "classes.wizard"
+        },
+        {
+          "alternative_label": "Multiclass: Character Advancement by total character level",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "multiclass",
+          "target_component_key": "character_advancement",
+          "target_record_key": "character_creation.level_advancement"
+        },
+        {
+          "alternative_label": "Multiclass: Character Advancement by total character level",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "multiclass",
+          "target_component_key": "proficiency_bonus",
+          "target_record_key": "character_creation.multiclassing"
+        }
+      ],
+      "from_component_key": "proficiency_bonus",
+      "from_record_key": "character_creation.level_advancement",
+      "provenance_span_ids": [
+        "f7c08eac-f77c-57f5-83a3-a83828b68f3d"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "alternatives-11-character_creation.level_advancement-proficiency_bonus",
+      "scope_key": "srd-5.2.1/classes",
+      "source_text": "Classes",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Barbarian: entering as a multiclass character",
+          "class_record_key": "classes.barbarian",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.barbarian.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Barbarian: entering as a multiclass character",
+          "class_record_key": "classes.barbarian",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.barbarian"
+        },
+        {
+          "alternative_label": "Bard: entering as a multiclass character",
+          "class_record_key": "classes.bard",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.bard.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Bard: entering as a multiclass character",
+          "class_record_key": "classes.bard",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.bard"
+        },
+        {
+          "alternative_label": "Cleric: entering as a multiclass character",
+          "class_record_key": "classes.cleric",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.cleric.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Cleric: entering as a multiclass character",
+          "class_record_key": "classes.cleric",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.cleric"
+        },
+        {
+          "alternative_label": "Druid: entering as a multiclass character",
+          "class_record_key": "classes.druid",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.druid.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Druid: entering as a multiclass character",
+          "class_record_key": "classes.druid",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.druid"
+        },
+        {
+          "alternative_label": "Fighter: entering as a multiclass character",
+          "class_record_key": "classes.fighter",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.fighter.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Fighter: entering as a multiclass character",
+          "class_record_key": "classes.fighter",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.fighter"
+        },
+        {
+          "alternative_label": "Monk: entering as a multiclass character",
+          "class_record_key": "classes.monk",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.monk.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Monk: entering as a multiclass character",
+          "class_record_key": "classes.monk",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.monk"
+        },
+        {
+          "alternative_label": "Paladin: entering as a multiclass character",
+          "class_record_key": "classes.paladin",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.paladin.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Paladin: entering as a multiclass character",
+          "class_record_key": "classes.paladin",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.paladin"
+        },
+        {
+          "alternative_label": "Ranger: entering as a multiclass character",
+          "class_record_key": "classes.ranger",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.ranger.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Ranger: entering as a multiclass character",
+          "class_record_key": "classes.ranger",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.ranger"
+        },
+        {
+          "alternative_label": "Rogue: entering as a multiclass character",
+          "class_record_key": "classes.rogue",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.rogue.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Rogue: entering as a multiclass character",
+          "class_record_key": "classes.rogue",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.rogue"
+        },
+        {
+          "alternative_label": "Sorcerer: entering as a multiclass character",
+          "class_record_key": "classes.sorcerer",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.sorcerer.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Sorcerer: entering as a multiclass character",
+          "class_record_key": "classes.sorcerer",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.sorcerer"
+        },
+        {
+          "alternative_label": "Warlock: entering as a multiclass character",
+          "class_record_key": "classes.warlock",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.warlock.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Warlock: entering as a multiclass character",
+          "class_record_key": "classes.warlock",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.warlock"
+        },
+        {
+          "alternative_label": "Wizard: entering as a multiclass character",
+          "class_record_key": "classes.wizard",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.wizard.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Wizard: entering as a multiclass character",
+          "class_record_key": "classes.wizard",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.wizard"
+        }
+      ],
+      "from_component_key": "proficiencies",
+      "from_record_key": "character_creation.multiclassing",
+      "provenance_span_ids": [
+        "0132b776-ad68-59c5-90b7-1368548e3717"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "alternatives-12-character_creation.multiclassing-proficiencies",
+      "scope_key": "srd-5.2.1/classes",
+      "source_text": "Classes",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Fighter level 1: Fighting Style",
+          "class_record_key": "classes.fighter",
+          "minimum_class_level": 1,
+          "situation": "",
+          "target_component_key": "fighting_style",
+          "target_record_key": "classes.fighter.fighting_style"
+        },
+        {
+          "alternative_label": "Paladin level 2: Fighting Style",
+          "class_record_key": "classes.paladin",
+          "minimum_class_level": 2,
+          "situation": "",
+          "target_component_key": "fighting_style",
+          "target_record_key": "classes.paladin.fighting_style"
+        },
+        {
+          "alternative_label": "Ranger level 2: Fighting Style",
+          "class_record_key": "classes.ranger",
+          "minimum_class_level": 2,
+          "situation": "",
+          "target_component_key": "fighting_style",
+          "target_record_key": "classes.ranger.fighting_style"
+        }
+      ],
+      "from_component_key": "category",
+      "from_record_key": "feats.archery",
+      "provenance_span_ids": [
+        "2dd167f5-41d4-5eb9-9a40-67b883f3d71b"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "alternatives-17-feats.archery-category",
+      "scope_key": "srd-5.2.1/classes",
+      "source_text": "Fighting Style Feature",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Fighter level 1: Fighting Style",
+          "class_record_key": "classes.fighter",
+          "minimum_class_level": 1,
+          "situation": "",
+          "target_component_key": "fighting_style",
+          "target_record_key": "classes.fighter.fighting_style"
+        },
+        {
+          "alternative_label": "Paladin level 2: Fighting Style",
+          "class_record_key": "classes.paladin",
+          "minimum_class_level": 2,
+          "situation": "",
+          "target_component_key": "fighting_style",
+          "target_record_key": "classes.paladin.fighting_style"
+        },
+        {
+          "alternative_label": "Ranger level 2: Fighting Style",
+          "class_record_key": "classes.ranger",
+          "minimum_class_level": 2,
+          "situation": "",
+          "target_component_key": "fighting_style",
+          "target_record_key": "classes.ranger.fighting_style"
+        }
+      ],
+      "from_component_key": "category",
+      "from_record_key": "feats.defense",
+      "provenance_span_ids": [
+        "ff022822-07a0-5713-b719-b8a44453495e"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "alternatives-18-feats.defense-category",
+      "scope_key": "srd-5.2.1/classes",
+      "source_text": "Fighting Style Feature",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Fighter level 1: Fighting Style",
+          "class_record_key": "classes.fighter",
+          "minimum_class_level": 1,
+          "situation": "",
+          "target_component_key": "fighting_style",
+          "target_record_key": "classes.fighter.fighting_style"
+        },
+        {
+          "alternative_label": "Paladin level 2: Fighting Style",
+          "class_record_key": "classes.paladin",
+          "minimum_class_level": 2,
+          "situation": "",
+          "target_component_key": "fighting_style",
+          "target_record_key": "classes.paladin.fighting_style"
+        },
+        {
+          "alternative_label": "Ranger level 2: Fighting Style",
+          "class_record_key": "classes.ranger",
+          "minimum_class_level": 2,
+          "situation": "",
+          "target_component_key": "fighting_style",
+          "target_record_key": "classes.ranger.fighting_style"
+        }
+      ],
+      "from_component_key": "category",
+      "from_record_key": "feats.great_weapon_fighting",
+      "provenance_span_ids": [
+        "78327fd7-28da-5335-abdb-d3474b853644"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "alternatives-19-feats.great_weapon_fighting-category",
+      "scope_key": "srd-5.2.1/classes",
+      "source_text": "Fighting Style Feature",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Fighter level 1: Fighting Style",
+          "class_record_key": "classes.fighter",
+          "minimum_class_level": 1,
+          "situation": "",
+          "target_component_key": "fighting_style",
+          "target_record_key": "classes.fighter.fighting_style"
+        },
+        {
+          "alternative_label": "Paladin level 2: Fighting Style",
+          "class_record_key": "classes.paladin",
+          "minimum_class_level": 2,
+          "situation": "",
+          "target_component_key": "fighting_style",
+          "target_record_key": "classes.paladin.fighting_style"
+        },
+        {
+          "alternative_label": "Ranger level 2: Fighting Style",
+          "class_record_key": "classes.ranger",
+          "minimum_class_level": 2,
+          "situation": "",
+          "target_component_key": "fighting_style",
+          "target_record_key": "classes.ranger.fighting_style"
+        }
+      ],
+      "from_component_key": "category",
+      "from_record_key": "feats.two_weapon_fighting",
+      "provenance_span_ids": [
+        "19c01b55-2645-558f-aba0-a7ac63b191b0"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "alternatives-20-feats.two_weapon_fighting-category",
+      "scope_key": "srd-5.2.1/classes",
+      "source_text": "Fighting Style Feature",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Bard level 1: Spellcasting",
+          "class_record_key": "classes.bard",
+          "minimum_class_level": 1,
+          "situation": "",
+          "target_component_key": "spellcasting",
+          "target_record_key": "classes.bard.spellcasting"
+        },
+        {
+          "alternative_label": "Cleric level 1: Spellcasting",
+          "class_record_key": "classes.cleric",
+          "minimum_class_level": 1,
+          "situation": "",
+          "target_component_key": "spellcasting",
+          "target_record_key": "classes.cleric.spellcasting"
+        },
+        {
+          "alternative_label": "Druid level 1: Spellcasting",
+          "class_record_key": "classes.druid",
+          "minimum_class_level": 1,
+          "situation": "",
+          "target_component_key": "spellcasting",
+          "target_record_key": "classes.druid.spellcasting"
+        },
+        {
+          "alternative_label": "Paladin level 1: Spellcasting",
+          "class_record_key": "classes.paladin",
+          "minimum_class_level": 1,
+          "situation": "",
+          "target_component_key": "spellcasting",
+          "target_record_key": "classes.paladin.spellcasting"
+        },
+        {
+          "alternative_label": "Ranger level 1: Spellcasting",
+          "class_record_key": "classes.ranger",
+          "minimum_class_level": 1,
+          "situation": "",
+          "target_component_key": "spellcasting",
+          "target_record_key": "classes.ranger.spellcasting"
+        },
+        {
+          "alternative_label": "Sorcerer level 1: Spellcasting",
+          "class_record_key": "classes.sorcerer",
+          "minimum_class_level": 1,
+          "situation": "",
+          "target_component_key": "spellcasting",
+          "target_record_key": "classes.sorcerer.spellcasting"
+        },
+        {
+          "alternative_label": "Wizard level 1: Spellcasting",
+          "class_record_key": "classes.wizard",
+          "minimum_class_level": 1,
+          "situation": "",
+          "target_component_key": "spellcasting",
+          "target_record_key": "classes.wizard.spellcasting"
+        }
+      ],
+      "from_component_key": "category",
+      "from_record_key": "feats.boon_of_spell_recall",
+      "provenance_span_ids": [
+        "7fd2299b-e28d-5b64-9035-c8d3d139da78"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "alternatives-22-feats.boon_of_spell_recall-category",
+      "scope_key": "srd-5.2.1/classes",
+      "source_text": "Spellcasting Feature",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Initial character (total level 1): maximum die + Constitution",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "hit_points",
+          "target_record_key": "character_creation.create_your_character"
+        },
+        {
+          "alternative_label": "Later levels, including a first level in an added class: roll or fixed value + Constitution, minimum 1",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "later_level",
+          "target_component_key": "hit_points_and_hit_point_dice",
+          "target_record_key": "character_creation.level_advancement"
+        },
+        {
+          "alternative_label": "Later levels, including a first level in an added class: roll or fixed value + Constitution, minimum 1",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "later_level",
+          "target_component_key": "hit_points",
+          "target_record_key": "character_creation.multiclassing"
+        }
+      ],
+      "from_component_key": "hit_point_dice",
+      "from_record_key": "glossary.hit_point_dice",
+      "provenance_span_ids": [
+        "8fe42b9e-8629-550a-870c-5eb90d8d12c9"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "alternatives-4-glossary.hit_point_dice-hit_point_dice",
+      "scope_key": "srd-5.2.1/character-creation",
+      "source_text": "Character Creation",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Origin Feats (examples; not every Origin feat)",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "feats.alert"
+        },
+        {
+          "alternative_label": "Origin Feats (examples; not every Origin feat)",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "feats.magic_initiate"
+        },
+        {
+          "alternative_label": "Origin Feats (examples; not every Origin feat)",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "feats.savage_attacker"
+        },
+        {
+          "alternative_label": "Origin Feats (examples; not every Origin feat)",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "feats.skilled"
+        }
+      ],
+      "from_component_key": "step_2_choose_a_feat",
+      "from_record_key": "gameplay_toolbox.creating_a_background",
+      "provenance_span_ids": [
+        "ff0357aa-f344-5e4a-8f28-b9040b9432bd"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "alternatives-40-gameplay_toolbox.creating_a_background-step_2_choose_a_feat",
+      "scope_key": "srd-5.2.1/feats",
+      "source_text": "Origin Feats",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Class Overview table (summary of every class)",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "choose_class",
+          "target_record_key": "character_creation.create_your_character"
+        },
+        {
+          "alternative_label": "Barbarian (details)",
+          "class_record_key": "classes.barbarian",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "classes.barbarian"
+        },
+        {
+          "alternative_label": "Bard (details)",
+          "class_record_key": "classes.bard",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "classes.bard"
+        },
+        {
+          "alternative_label": "Cleric (details)",
+          "class_record_key": "classes.cleric",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "classes.cleric"
+        },
+        {
+          "alternative_label": "Druid (details)",
+          "class_record_key": "classes.druid",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "classes.druid"
+        },
+        {
+          "alternative_label": "Fighter (details)",
+          "class_record_key": "classes.fighter",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "classes.fighter"
+        },
+        {
+          "alternative_label": "Monk (details)",
+          "class_record_key": "classes.monk",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "classes.monk"
+        },
+        {
+          "alternative_label": "Paladin (details)",
+          "class_record_key": "classes.paladin",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "classes.paladin"
+        },
+        {
+          "alternative_label": "Ranger (details)",
+          "class_record_key": "classes.ranger",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "classes.ranger"
+        },
+        {
+          "alternative_label": "Rogue (details)",
+          "class_record_key": "classes.rogue",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "classes.rogue"
+        },
+        {
+          "alternative_label": "Sorcerer (details)",
+          "class_record_key": "classes.sorcerer",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "classes.sorcerer"
+        },
+        {
+          "alternative_label": "Warlock (details)",
+          "class_record_key": "classes.warlock",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "classes.warlock"
+        },
+        {
+          "alternative_label": "Wizard (details)",
+          "class_record_key": "classes.wizard",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "classes.wizard"
+        }
+      ],
+      "from_component_key": "choose_class",
+      "from_record_key": "character_creation.create_your_character",
+      "provenance_span_ids": [
+        "0f0d1a1a-46c0-5fe0-b12f-7a504fcaa739"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "alternatives-7-character_creation.create_your_character-choose_class",
+      "scope_key": "srd-5.2.1/classes",
+      "source_text": "Classes",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Barbarian: level 1 character: features table and descriptions",
+          "class_record_key": "classes.barbarian",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "",
+          "target_record_key": "classes.barbarian"
+        },
+        {
+          "alternative_label": "Barbarian: entering as a multiclass character",
+          "class_record_key": "classes.barbarian",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.barbarian.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Barbarian: entering as a multiclass character",
+          "class_record_key": "classes.barbarian",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "",
+          "target_record_key": "classes.barbarian"
+        },
+        {
+          "alternative_label": "Bard: level 1 character: features table and descriptions",
+          "class_record_key": "classes.bard",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "",
+          "target_record_key": "classes.bard"
+        },
+        {
+          "alternative_label": "Bard: entering as a multiclass character",
+          "class_record_key": "classes.bard",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.bard.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Bard: entering as a multiclass character",
+          "class_record_key": "classes.bard",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "",
+          "target_record_key": "classes.bard"
+        },
+        {
+          "alternative_label": "Cleric: level 1 character: features table and descriptions",
+          "class_record_key": "classes.cleric",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "",
+          "target_record_key": "classes.cleric"
+        },
+        {
+          "alternative_label": "Cleric: entering as a multiclass character",
+          "class_record_key": "classes.cleric",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.cleric.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Cleric: entering as a multiclass character",
+          "class_record_key": "classes.cleric",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "",
+          "target_record_key": "classes.cleric"
+        },
+        {
+          "alternative_label": "Druid: level 1 character: features table and descriptions",
+          "class_record_key": "classes.druid",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "",
+          "target_record_key": "classes.druid"
+        },
+        {
+          "alternative_label": "Druid: entering as a multiclass character",
+          "class_record_key": "classes.druid",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.druid.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Druid: entering as a multiclass character",
+          "class_record_key": "classes.druid",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "",
+          "target_record_key": "classes.druid"
+        },
+        {
+          "alternative_label": "Fighter: level 1 character: features table and descriptions",
+          "class_record_key": "classes.fighter",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "",
+          "target_record_key": "classes.fighter"
+        },
+        {
+          "alternative_label": "Fighter: entering as a multiclass character",
+          "class_record_key": "classes.fighter",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.fighter.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Fighter: entering as a multiclass character",
+          "class_record_key": "classes.fighter",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "",
+          "target_record_key": "classes.fighter"
+        },
+        {
+          "alternative_label": "Monk: level 1 character: features table and descriptions",
+          "class_record_key": "classes.monk",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "",
+          "target_record_key": "classes.monk"
+        },
+        {
+          "alternative_label": "Monk: entering as a multiclass character",
+          "class_record_key": "classes.monk",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.monk.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Monk: entering as a multiclass character",
+          "class_record_key": "classes.monk",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "",
+          "target_record_key": "classes.monk"
+        },
+        {
+          "alternative_label": "Paladin: level 1 character: features table and descriptions",
+          "class_record_key": "classes.paladin",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "",
+          "target_record_key": "classes.paladin"
+        },
+        {
+          "alternative_label": "Paladin: entering as a multiclass character",
+          "class_record_key": "classes.paladin",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.paladin.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Paladin: entering as a multiclass character",
+          "class_record_key": "classes.paladin",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "",
+          "target_record_key": "classes.paladin"
+        },
+        {
+          "alternative_label": "Ranger: level 1 character: features table and descriptions",
+          "class_record_key": "classes.ranger",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "",
+          "target_record_key": "classes.ranger"
+        },
+        {
+          "alternative_label": "Ranger: entering as a multiclass character",
+          "class_record_key": "classes.ranger",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.ranger.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Ranger: entering as a multiclass character",
+          "class_record_key": "classes.ranger",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "",
+          "target_record_key": "classes.ranger"
+        },
+        {
+          "alternative_label": "Rogue: level 1 character: features table and descriptions",
+          "class_record_key": "classes.rogue",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "",
+          "target_record_key": "classes.rogue"
+        },
+        {
+          "alternative_label": "Rogue: entering as a multiclass character",
+          "class_record_key": "classes.rogue",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.rogue.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Rogue: entering as a multiclass character",
+          "class_record_key": "classes.rogue",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "",
+          "target_record_key": "classes.rogue"
+        },
+        {
+          "alternative_label": "Sorcerer: level 1 character: features table and descriptions",
+          "class_record_key": "classes.sorcerer",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "",
+          "target_record_key": "classes.sorcerer"
+        },
+        {
+          "alternative_label": "Sorcerer: entering as a multiclass character",
+          "class_record_key": "classes.sorcerer",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.sorcerer.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Sorcerer: entering as a multiclass character",
+          "class_record_key": "classes.sorcerer",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "",
+          "target_record_key": "classes.sorcerer"
+        },
+        {
+          "alternative_label": "Warlock: level 1 character: features table and descriptions",
+          "class_record_key": "classes.warlock",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "",
+          "target_record_key": "classes.warlock"
+        },
+        {
+          "alternative_label": "Warlock: entering as a multiclass character",
+          "class_record_key": "classes.warlock",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.warlock.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Warlock: entering as a multiclass character",
+          "class_record_key": "classes.warlock",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "",
+          "target_record_key": "classes.warlock"
+        },
+        {
+          "alternative_label": "Wizard: level 1 character: features table and descriptions",
+          "class_record_key": "classes.wizard",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "",
+          "target_record_key": "classes.wizard"
+        },
+        {
+          "alternative_label": "Wizard: entering as a multiclass character",
+          "class_record_key": "classes.wizard",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.wizard.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Wizard: entering as a multiclass character",
+          "class_record_key": "classes.wizard",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "",
+          "target_record_key": "classes.wizard"
+        }
+      ],
+      "from_component_key": "class_features",
+      "from_record_key": "character_creation.create_your_character",
+      "provenance_span_ids": [
+        "be088810-373c-5341-9145-b64fd5314b1e"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "alternatives-8-character_creation.create_your_character-class_features",
+      "scope_key": "srd-5.2.1/classes",
+      "source_text": "Classes",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Barbarian: level 1 character: all Core Traits",
+          "class_record_key": "classes.barbarian",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "as_a_level_1_character",
+          "target_record_key": "classes.barbarian"
+        },
+        {
+          "alternative_label": "Barbarian: level 1 character: all Core Traits",
+          "class_record_key": "classes.barbarian",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.barbarian"
+        },
+        {
+          "alternative_label": "Barbarian: entering as a multiclass character",
+          "class_record_key": "classes.barbarian",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.barbarian.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Barbarian: entering as a multiclass character",
+          "class_record_key": "classes.barbarian",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.barbarian"
+        },
+        {
+          "alternative_label": "Bard: level 1 character: all Core Traits",
+          "class_record_key": "classes.bard",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "as_a_level_1_character",
+          "target_record_key": "classes.bard"
+        },
+        {
+          "alternative_label": "Bard: level 1 character: all Core Traits",
+          "class_record_key": "classes.bard",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.bard"
+        },
+        {
+          "alternative_label": "Bard: entering as a multiclass character",
+          "class_record_key": "classes.bard",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.bard.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Bard: entering as a multiclass character",
+          "class_record_key": "classes.bard",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.bard"
+        },
+        {
+          "alternative_label": "Cleric: level 1 character: all Core Traits",
+          "class_record_key": "classes.cleric",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "as_a_level_1_character",
+          "target_record_key": "classes.cleric"
+        },
+        {
+          "alternative_label": "Cleric: level 1 character: all Core Traits",
+          "class_record_key": "classes.cleric",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.cleric"
+        },
+        {
+          "alternative_label": "Cleric: entering as a multiclass character",
+          "class_record_key": "classes.cleric",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.cleric.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Cleric: entering as a multiclass character",
+          "class_record_key": "classes.cleric",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.cleric"
+        },
+        {
+          "alternative_label": "Druid: level 1 character: all Core Traits",
+          "class_record_key": "classes.druid",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "as_a_level_1_character",
+          "target_record_key": "classes.druid"
+        },
+        {
+          "alternative_label": "Druid: level 1 character: all Core Traits",
+          "class_record_key": "classes.druid",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.druid"
+        },
+        {
+          "alternative_label": "Druid: entering as a multiclass character",
+          "class_record_key": "classes.druid",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.druid.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Druid: entering as a multiclass character",
+          "class_record_key": "classes.druid",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.druid"
+        },
+        {
+          "alternative_label": "Fighter: level 1 character: all Core Traits",
+          "class_record_key": "classes.fighter",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "as_a_level_1_character",
+          "target_record_key": "classes.fighter"
+        },
+        {
+          "alternative_label": "Fighter: level 1 character: all Core Traits",
+          "class_record_key": "classes.fighter",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.fighter"
+        },
+        {
+          "alternative_label": "Fighter: entering as a multiclass character",
+          "class_record_key": "classes.fighter",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.fighter.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Fighter: entering as a multiclass character",
+          "class_record_key": "classes.fighter",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.fighter"
+        },
+        {
+          "alternative_label": "Monk: level 1 character: all Core Traits",
+          "class_record_key": "classes.monk",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "as_a_level_1_character",
+          "target_record_key": "classes.monk"
+        },
+        {
+          "alternative_label": "Monk: level 1 character: all Core Traits",
+          "class_record_key": "classes.monk",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.monk"
+        },
+        {
+          "alternative_label": "Monk: entering as a multiclass character",
+          "class_record_key": "classes.monk",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.monk.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Monk: entering as a multiclass character",
+          "class_record_key": "classes.monk",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.monk"
+        },
+        {
+          "alternative_label": "Paladin: level 1 character: all Core Traits",
+          "class_record_key": "classes.paladin",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "as_a_level_1_character",
+          "target_record_key": "classes.paladin"
+        },
+        {
+          "alternative_label": "Paladin: level 1 character: all Core Traits",
+          "class_record_key": "classes.paladin",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.paladin"
+        },
+        {
+          "alternative_label": "Paladin: entering as a multiclass character",
+          "class_record_key": "classes.paladin",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.paladin.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Paladin: entering as a multiclass character",
+          "class_record_key": "classes.paladin",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.paladin"
+        },
+        {
+          "alternative_label": "Ranger: level 1 character: all Core Traits",
+          "class_record_key": "classes.ranger",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "as_a_level_1_character",
+          "target_record_key": "classes.ranger"
+        },
+        {
+          "alternative_label": "Ranger: level 1 character: all Core Traits",
+          "class_record_key": "classes.ranger",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.ranger"
+        },
+        {
+          "alternative_label": "Ranger: entering as a multiclass character",
+          "class_record_key": "classes.ranger",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.ranger.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Ranger: entering as a multiclass character",
+          "class_record_key": "classes.ranger",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.ranger"
+        },
+        {
+          "alternative_label": "Rogue: level 1 character: all Core Traits",
+          "class_record_key": "classes.rogue",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "as_a_level_1_character",
+          "target_record_key": "classes.rogue"
+        },
+        {
+          "alternative_label": "Rogue: level 1 character: all Core Traits",
+          "class_record_key": "classes.rogue",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.rogue"
+        },
+        {
+          "alternative_label": "Rogue: entering as a multiclass character",
+          "class_record_key": "classes.rogue",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.rogue.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Rogue: entering as a multiclass character",
+          "class_record_key": "classes.rogue",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.rogue"
+        },
+        {
+          "alternative_label": "Sorcerer: level 1 character: all Core Traits",
+          "class_record_key": "classes.sorcerer",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "as_a_level_1_character",
+          "target_record_key": "classes.sorcerer"
+        },
+        {
+          "alternative_label": "Sorcerer: level 1 character: all Core Traits",
+          "class_record_key": "classes.sorcerer",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.sorcerer"
+        },
+        {
+          "alternative_label": "Sorcerer: entering as a multiclass character",
+          "class_record_key": "classes.sorcerer",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.sorcerer.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Sorcerer: entering as a multiclass character",
+          "class_record_key": "classes.sorcerer",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.sorcerer"
+        },
+        {
+          "alternative_label": "Warlock: level 1 character: all Core Traits",
+          "class_record_key": "classes.warlock",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "as_a_level_1_character",
+          "target_record_key": "classes.warlock"
+        },
+        {
+          "alternative_label": "Warlock: level 1 character: all Core Traits",
+          "class_record_key": "classes.warlock",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.warlock"
+        },
+        {
+          "alternative_label": "Warlock: entering as a multiclass character",
+          "class_record_key": "classes.warlock",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.warlock.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Warlock: entering as a multiclass character",
+          "class_record_key": "classes.warlock",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.warlock"
+        },
+        {
+          "alternative_label": "Wizard: level 1 character: all Core Traits",
+          "class_record_key": "classes.wizard",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "as_a_level_1_character",
+          "target_record_key": "classes.wizard"
+        },
+        {
+          "alternative_label": "Wizard: level 1 character: all Core Traits",
+          "class_record_key": "classes.wizard",
+          "minimum_class_level": 0,
+          "situation": "initial_character",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.wizard"
+        },
+        {
+          "alternative_label": "Wizard: entering as a multiclass character",
+          "class_record_key": "classes.wizard",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "as_a_multiclass_character",
+          "target_record_key": "classes.wizard.as_a_multiclass_character"
+        },
+        {
+          "alternative_label": "Wizard: entering as a multiclass character",
+          "class_record_key": "classes.wizard",
+          "minimum_class_level": 0,
+          "situation": "entering_class",
+          "target_component_key": "core_traits",
+          "target_record_key": "classes.wizard"
+        }
+      ],
+      "from_component_key": "class_proficiencies",
+      "from_record_key": "character_creation.create_your_character",
+      "provenance_span_ids": [
+        "bd67dafa-c529-56f6-b298-c889a563c325"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "alternatives-9-character_creation.create_your_character-class_proficiencies",
+      "scope_key": "srd-5.2.1/classes",
+      "source_text": "Classes",
+      "target_record_key": ""
+    }
+  ],
+  "representation_schema": [
+    "5d-representation-schema-17",
+    "4881e51fb2fa73e52f7ff951ad7d00b863188c1a22133fb0e2873c7d32d10ada"
+  ]
+}

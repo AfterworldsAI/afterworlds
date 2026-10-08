@@ -26,3 +26,13 @@
 *.zip   binary
 *.tar   binary
 *.gz    binary
+
+# Pinned community source: verbatim upstream bytes, never rewritten.
+# The manifest in this directory records the sha256 of each upstream Git blob,
+# so a checkout that converts line endings would fail its own pin test. This
+# must stay after the *.md rule above -- in .gitattributes the last match wins.
+docs/sources/community/dnd-5e-srd-markdown/** -text
+
+# Review evidence: hash-pinned receipts and logs keep their recorded bytes.
+# Must stay after the text rules above -- the last match wins.
+.claude/review-notes/** -text

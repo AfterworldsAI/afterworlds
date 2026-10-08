@@ -1,0 +1,21 @@
+[
+  {
+    "resolution_id": "resolve-glossary-challenge-rating-record-combat-encounters-gameplay-toolbox-1",
+    "from_record_key": "glossary.challenge_rating",
+    "from_component_key": "",
+    "source_text": "Combat Encounters",
+    "scope_key": "srd-5.2.1/gameplay-toolbox",
+    "target_record_key": "gameplay_toolbox.combat_encounters",
+    "release_binding": {
+      "package_uuid": "ebdd9333-eeed-5df1-b3e1-8b97c2f65f80",
+      "release_version": "5.2.1-corpus.574662e9-0ef",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "2a7feddf7910684b8427745b9f9ecd5f394382d00955ed7b98920c2e12c0e64d",
+      "bundle_root_hash": "3da7b5b30e23647c219d1630b5c5051be02b5882d17f0cd13421af8c57754689",
+      "persisted_corpus_digest": "df64eb40029576bae61229056f07ccdf025a2a5c2d75aacfefdf88fe596acb02"
+    },
+    "provenance_span_ids": [
+      "7858c0d4-8220-5c5a-883c-0fdb3281a5e2"
+    ]
+  }
+]

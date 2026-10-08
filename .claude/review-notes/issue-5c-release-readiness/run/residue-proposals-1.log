@@ -1,0 +1,42 @@
+start 2026-10-07T15:27:25.750126+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe scripts/run_focused_tests.py --check tests/ingestion/mechanical/test_reference_closure_proposal.py --check tests/ingestion/mechanical/test_combat_damage_breaking_proposal.py --check tests/ingestion/mechanical/test_core_play_completion_proposal.py --check tests/ingestion/mechanical/test_core_play_dependencies_proposal.py --check tests/ingestion/mechanical/test_character_creation_foundations_proposal.py --check tests/ingestion/mechanical/test_character_origins_feats_proposal.py --check tests/ingestion/mechanical/test_equipment_proposal.py --check tests/ingestion/mechanical/test_spellcasting_proposal.py --check tests/ingestion/mechanical/test_declared_record_expectations.py --check tests/ingestion/mechanical/test_equipment_cited_targets_candidate.py tests/ingestion/mechanical/test_reference_closure_proposal.py tests/ingestion/mechanical/test_combat_damage_breaking_proposal.py tests/ingestion/mechanical/test_core_play_completion_proposal.py tests/ingestion/mechanical/test_core_play_dependencies_proposal.py tests/ingestion/mechanical/test_character_creation_foundations_proposal.py tests/ingestion/mechanical/test_character_origins_feats_proposal.py tests/ingestion/mechanical/test_equipment_proposal.py tests/ingestion/mechanical/test_spellcasting_proposal.py tests/ingestion/mechanical/test_declared_record_expectations.py tests/ingestion/mechanical/test_equipment_cited_targets_candidate.py
+input ef6969b5f09e59ebd4001aad2137ade7ca74509d4075753de73336d7595050e9  scripts/run_focused_tests.py
+input 3a43a28a4699a7d9e5d546636a8637bceb3fe6b032b431a9aa2c2e597186af55  tests/ingestion/mechanical/test_reference_closure_proposal.py
+input 24b69b8a3c6ad74dab5e42d1ede6a42d7bc9f7ff2e9e8be18f57b38e17a8c866  tests/ingestion/mechanical/test_combat_damage_breaking_proposal.py
+input e130bfe8dd3959366a6857384a751f332aed3a937e009ffa8e07e3411b0ba7d7  tests/ingestion/mechanical/test_core_play_completion_proposal.py
+input c6af6afde0afa7782f297e9836760c34c12102c5e2b7a5a2653a663f3fcbc0c7  tests/ingestion/mechanical/test_core_play_dependencies_proposal.py
+input 755dbd3f673c5bccfc1a4a6c968adb9103225287fb93474d14ea41de263f546a  tests/ingestion/mechanical/test_character_creation_foundations_proposal.py
+input 44d387f3ac9184f5c77f431905cf54e4b2be89da008b15ed12a5b587c7cc651c  tests/ingestion/mechanical/test_character_origins_feats_proposal.py
+input 09653b1d50967c9b7ff8eb38d6c4655f9cd617a121b7ff2fc2cf851f2c919af4  tests/ingestion/mechanical/test_equipment_proposal.py
+input 391e26bb95cbcd296e469dcaf851fdd7bbac66fb0fbb681eb0f883484aea872c  tests/ingestion/mechanical/test_spellcasting_proposal.py
+input 4b5f6e877b105965d314cde9766b57f5be78ef594c685205efe1eb2dee1f6e9a  tests/ingestion/mechanical/test_declared_record_expectations.py
+input c51503a4d9254b98068b61afb1993cec81397a0c0b8719c8f947c22b4fba6281  tests/ingestion/mechanical/test_equipment_cited_targets_candidate.py
+input 3a43a28a4699a7d9e5d546636a8637bceb3fe6b032b431a9aa2c2e597186af55  tests/ingestion/mechanical/test_reference_closure_proposal.py
+input 24b69b8a3c6ad74dab5e42d1ede6a42d7bc9f7ff2e9e8be18f57b38e17a8c866  tests/ingestion/mechanical/test_combat_damage_breaking_proposal.py
+input e130bfe8dd3959366a6857384a751f332aed3a937e009ffa8e07e3411b0ba7d7  tests/ingestion/mechanical/test_core_play_completion_proposal.py
+input c6af6afde0afa7782f297e9836760c34c12102c5e2b7a5a2653a663f3fcbc0c7  tests/ingestion/mechanical/test_core_play_dependencies_proposal.py
+input 755dbd3f673c5bccfc1a4a6c968adb9103225287fb93474d14ea41de263f546a  tests/ingestion/mechanical/test_character_creation_foundations_proposal.py
+input 44d387f3ac9184f5c77f431905cf54e4b2be89da008b15ed12a5b587c7cc651c  tests/ingestion/mechanical/test_character_origins_feats_proposal.py
+input 09653b1d50967c9b7ff8eb38d6c4655f9cd617a121b7ff2fc2cf851f2c919af4  tests/ingestion/mechanical/test_equipment_proposal.py
+input 391e26bb95cbcd296e469dcaf851fdd7bbac66fb0fbb681eb0f883484aea872c  tests/ingestion/mechanical/test_spellcasting_proposal.py
+input 4b5f6e877b105965d314cde9766b57f5be78ef594c685205efe1eb2dee1f6e9a  tests/ingestion/mechanical/test_declared_record_expectations.py
+input c51503a4d9254b98068b61afb1993cec81397a0c0b8719c8f947c22b4fba6281  tests/ingestion/mechanical/test_equipment_cited_targets_candidate.py
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+All done! ✨ 🍰 ✨
+10 files would be left unchanged.
+........................................................................ [ 19%]
+........................................................................ [ 38%]
+.......................................F................................ [ 57%]
+........................................................................ [ 76%]
+........................................................................ [ 95%]
+..................                                                       [100%]
+================================== FAILURES ===================================
+_______________ test_the_accepted_authority_gains_no_membership _______________
+tests\ingestion\mechanical\test_character_origins_feats_proposal.py:1445: in test_the_accepted_authority_gains_no_membership
+    assert not keys & {
+E   AssertionError: assert not ({'character_creation.character_sheet', 'character_creation.create_your_character', 'character_creation.level_advanceme...'character_creation.multiclassing', 'character_creation.starting_at_higher_levels', 'character_creation.trinkets', ...} & {'animals.allosaurus', 'animals.animals', 'animals.ankylosaurus', 'animals.ape', 'animals.archelon', 'animals.baboon', ...})
+=========================== short test summary info ===========================
+FAILED tests/ingestion/mechanical/test_character_origins_feats_proposal.py::test_the_accepted_authority_gains_no_membership
+1 failed, 377 passed in 749.89s (0:12:29)
+Focused diagnostics FAILED (exit 1). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+end 2026-10-07T15:39:59.257167+00:00 exit 1

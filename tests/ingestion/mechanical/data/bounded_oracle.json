@@ -201,6 +201,36 @@
           "references",
           "relationships"
         ]
+      },
+      {
+        "from_hash": "e87e0bacdc476b0bef092a04cbedd933e0b57b128651b08ef0ffbd0c94d186fd",
+        "from_version": "5d-representation-schema-15",
+        "lift_id": "5d-lift-schema-15-to-16",
+        "to_hash": "7fb9254b11da1d6772ea6ee72ffde9b5e9d39e8885188777874c65e86ad9a941",
+        "to_version": "5d-representation-schema-16",
+        "verified_collections": [
+          "components",
+          "prose_bindings",
+          "provenance",
+          "records",
+          "references",
+          "relationships"
+        ]
+      },
+      {
+        "from_hash": "7fb9254b11da1d6772ea6ee72ffde9b5e9d39e8885188777874c65e86ad9a941",
+        "from_version": "5d-representation-schema-16",
+        "lift_id": "5d-lift-schema-16-to-17",
+        "to_hash": "4881e51fb2fa73e52f7ff951ad7d00b863188c1a22133fb0e2873c7d32d10ada",
+        "to_version": "5d-representation-schema-17",
+        "verified_collections": [
+          "components",
+          "prose_bindings",
+          "provenance",
+          "records",
+          "references",
+          "relationships"
+        ]
       }
     ],
     "records": [
@@ -363,8 +393,8 @@
     ]
   },
   "representation_schema": {
-    "hash": "e87e0bacdc476b0bef092a04cbedd933e0b57b128651b08ef0ffbd0c94d186fd",
-    "version": "5d-representation-schema-15"
+    "hash": "4881e51fb2fa73e52f7ff951ad7d00b863188c1a22133fb0e2873c7d32d10ada",
+    "version": "5d-representation-schema-17"
   },
   "semantic_policy_hash": "da63b8940c5b3997b44d53e02941389b68e2a2ba35250e73194d38bb1d74cde7",
   "semantic_policy_version": "5d-semantic-policy-2",

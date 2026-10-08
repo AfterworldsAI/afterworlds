@@ -255,11 +255,35 @@ CRD Issue 5d (structured mechanical authority and deterministic rule binding), C
 character-state completeness for deterministic adjudication), and CRD Issue 15c (bounded d20 adapter
 production reachability).
 
+**Owner Decision 2026-09-21 — clean restart of CRD Issues 5c and 5d.** The existing 5c corpus and 5d
+authority products are **quarantined**: they are refused at every seam that could make them active
+authority (selection, direct loading, publication, activation, gating, fallback, and retrieval
+reindexing), and they are not inherited authority for the replacement. Existing acceptance, source
+identities, batch boundaries, provenance, and typed content do not carry forward — including the seven
+accepted batches described immediately below, whose preservation was superseded. A pinned community
+Markdown snapshot is being qualified against the official PDF as the machine-readable representation of
+the source; it does not thereby become an independent rules authority. Twenty corrections were applied
+across seven defect families, the last of which — stat blocks emitted at the depth of the entry that
+summons them — was found in review after the structural pass had been reported complete, because
+neither comparison pass and no heading count can see which entry a heading owns. The snapshot
+is **qualified** on that evidence: it has been compared against the PDF and corrected, and the final
+source boundary was reviewed independently at `b70d016` (`source-structure-final-review.md`).
+Qualified is not authority, it is not a semantic acceptance, and it is not a claim about a corpus:
+anything built from this source is qualified separately, on its own evidence.
+Retirement of the superseded work is a later increment, so the
+historical descriptions in this file and elsewhere still stand as records of what is being replaced.
+See `/docs/decisions/owner-decision-2026-09-21-5c-5d-clean-restart.md`,
+`/docs/architecture/issue-5c-5d-clean-restart.md`,
+`/docs/architecture/issue-5c-5d-community-source-coverage.json`, and
+`/docs/architecture/issue-5c-5d-community-source-corrections.md`.
+
 **Owner Decision 2026-09-16 — practical reliability policy adopted; implementation pending.**
 The [amended ADR-005d](../decisions/adr-005d-complete-typed-mechanical-authority.md) and amended
 #137 govern section/entry/table review, use-driven field selection, exact governing prose, shared
 batch tooling, and a regular-section pilot. Full actual-rule coverage and downstream ownership remain.
-The seven accepted batches are preserved. The landed implementation and historical schema work below
+The seven accepted batches are preserved — seven at the date of this decision, nine by the restart
+base `cf26e25`, and that preservation is superseded by the 2026-09-21 decision above. The landed
+implementation and historical schema work below
 are not evidence that the new policy is already implemented. No new corpus acceptance, publication,
 activation, or merge is implied by this decision.
 

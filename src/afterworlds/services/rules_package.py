@@ -65,6 +65,7 @@ from afterworlds.persistence.orm.rules_package import (
     RuleSourceORM,
     RulesPackageORM,
 )
+from afterworlds.quarantine import refuse_quarantined
 from afterworlds.services.rules_authority.binding import resolve_package_reference
 from afterworlds.services.rules_authority.outcomes import AuthorityOutcome
 
@@ -211,7 +212,25 @@ class RulesPackageService:
     def _package_accessible(
         self, row: RulesPackageORM, include_non_published: bool
     ) -> bool:
-        """Return True if *row* is accessible under the given query policy."""
+        """Return True if *row* is accessible under the given query policy.
+
+        Every by-id read method in this service routes through here — packages,
+        chunks, entities and both override readers — so the Recorded Owner
+        Decision 2026-09-21 quarantine is enforced once, at the point where a row
+        becomes readable content, rather than at six call sites.
+
+        It raises rather than returning False. An empty chunk list or a ``None``
+        package is what "nothing configured" looks like, so a silent exclusion
+        here would be the fail-open shape the quarantine exists to remove. The
+        refusal ignores ``include_non_published``: this service has no reference
+        or diagnostic mode, so a draft read of a quarantined package is still
+        this subsystem answering an authority question about it.
+        """
+        refuse_quarantined(
+            "rules package read",
+            package_uuid=row.rules_package_id,
+            release_version=row.version,
+        )
         if not row.is_enabled:
             return False
         if not include_non_published:
@@ -462,6 +481,9 @@ class RulesPackageService:
         different and far more dangerous claim.
         """
         if request.package_id is not None:
+            refuse_quarantined(
+                "rule-slice package resolution", package_uuid=request.package_id
+            )
             return request.package_id
         assert request.package_slug is not None
         resolution = resolve_package_reference(self._session, request.package_slug)
@@ -473,6 +495,9 @@ class RulesPackageService:
                 + (f" ({resolution.detail})" if resolution.detail else ""),
             )
         assert resolution.package_uuid is not None
+        refuse_quarantined(
+            "rule-slice package resolution", package_uuid=resolution.package_uuid
+        )
         return resolution.package_uuid
 
     def get_active_rule_slice(
@@ -495,7 +520,12 @@ class RulesPackageService:
 
         The return type ``ActiveRuleSlice`` is a stable named Pydantic model;
         the Context Builder (CRD Issue 8) may depend on its shape.
+
+        A quarantined package raises rather than returning an empty slice. An
+        empty slice reads as "no rule applies", and a retired authority must not
+        be indistinguishable from a package that genuinely carries no rules.
         """
+        refuse_quarantined("active rule slice", package_uuid=package_id)
         pkg_row = self._session.execute(
             select(RulesPackageORM).where(
                 RulesPackageORM.rules_package_id == str(package_id)

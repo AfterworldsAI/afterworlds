@@ -5,8 +5,8 @@
 source. Each proposal alone reports the other's records as unknown, which is
 what the two proposal modules pin; what neither of them can show is the thing
 the batch pair exists for: that **in the combined data the four links resolve,
-each to exactly one reviewed record, and that a missing, blanked or repointed
-destination fails.**
+each to exactly one reviewed record, and that a missing or blanked destination,
+or one citation stated with a second destination, fails.**
 
 So this module merges the three through the production acceptance service — the
 committed accepted authority, then the destinations, then the revised
@@ -185,9 +185,11 @@ def _merged():  # type: ignore[no-untyped-def]
 def _targets_by_citation(draft) -> dict[tuple[str, str], set[str]]:  # type: ignore[no-untyped-def]
     """Every destination each ``(scope, printed wording)`` resolves to.
 
-    A citation resolving to more than one record is the ambiguity the production
-    check reports; collecting it as a set is what lets "resolves uniquely" be
-    asserted rather than assumed from a passing report.
+    Deliberately coarser than the production citation key, which also names the
+    source record and owning component: every Proficiency pointer happens to
+    resolve uniquely even at this grain, so asserting it here is stronger than
+    publication requires and is what lets "resolves uniquely" be asserted rather
+    than assumed from a passing report.
     """
     targets: dict[tuple[str, str], set[str]] = {}
     for ref in draft.references:
@@ -246,13 +248,14 @@ def test_all_four_originating_links_resolve_in_the_merged_data() -> None:
 
 
 def test_every_citation_in_the_merged_data_resolves_uniquely() -> None:
-    """Not just the four: one scope and one wording mean one record, corpus-wide.
+    """Not just the four: every citation resolves uniquely, corpus-wide.
 
     The twelve Action-table links repeat printed words the accepted
     ``glossary.action`` entry already cites. Repeating a citation is legitimate —
-    several records may point at one rule — but resolving it two ways is not, so
-    the whole merged reference relation is checked rather than this task's own
-    additions.
+    several records may point at one rule — so the whole merged reference
+    relation is checked rather than this task's own additions, and at the
+    coarser ``(scope, wording)`` grain: this data resolves uniquely even there,
+    which is stronger than the per-citation rule publication applies.
     """
     accepted = load_accepted_inputs(FROZEN_PRIOR)
     merged = _merged().oracle.representation
@@ -296,26 +299,48 @@ def test_a_blanked_destination_reopens_the_link_as_unresolved() -> None:
     assert f"reference {PLAYING_SCOPE}:'Actions': unresolved reference" in findings
 
 
-def test_repointing_a_link_at_the_wrong_record_is_ambiguous() -> None:
-    """A wrong destination that happens to exist is caught by the collision.
+def test_one_link_stated_with_a_second_destination_is_ambiguous() -> None:
+    """A repoint that arrives beside the accepted edge is caught as ambiguity.
 
-    ``play.actions`` cites "Attack" at ``action.attack``, the same record the
-    accepted glossary entry cites for the same word in the same scope. Pointing
-    this build's copy at ``action.dash`` instead leaves a record that exists, so
-    "unknown target" cannot catch it — what catches it is that one printed word
-    in one scope would now resolve two ways.
+    The keyed union retains an accepted reference and appends one with a new
+    target, so a repoint of ``play.actions``' *Attack* at ``action.dash`` would
+    leave that one citation resolving two ways. Both records exist, so "unknown
+    target" cannot catch it; ambiguity does.
     """
     merged = _merged().oracle.representation
     ref = _reference(merged, "Attack", "play.actions")
     assert ref.target_record_key == "action.attack"
     findings = relationship_and_reference_violations(
-        _replace_reference(
-            merged, ref, dataclasses.replace(ref, target_record_key="action.dash")
+        dataclasses.replace(
+            merged,
+            references=merged.references
+            + (dataclasses.replace(ref, target_record_key="action.dash"),),
         )
     )
     (ambiguous,) = [f for f in findings if "ambiguous" in f]
     assert ambiguous.startswith(f"reference {GLOSSARY_SCOPE}:'Attack': ")
     assert "['action.attack', 'action.dash']" in ambiguous
+
+
+def test_another_citation_of_the_same_word_is_not_a_collision() -> None:
+    """Citation identity: where a citation occurs is part of what it is.
+
+    The accepted glossary entry and ``play.actions`` both print "Attack" in one
+    scope. Under the Owner's citation-identity decision they are two citations,
+    so one of them naming a different existing record is not ambiguity. Whether
+    that destination is *right* is what review of the batch decides; the
+    validator reports only what the citations state.
+    """
+    merged = _merged().oracle.representation
+    ref = _reference(merged, "Attack", "play.actions")
+    before = relationship_and_reference_violations(merged)
+    after = relationship_and_reference_violations(
+        _replace_reference(
+            merged, ref, dataclasses.replace(ref, target_record_key="action.dash")
+        )
+    )
+    assert not any("ambiguous" in f for f in after)
+    assert all(f in after for f in before)
 
 
 def test_the_resolution_survives_the_production_writer_and_loader(

@@ -1,0 +1,1244 @@
+[
+  {
+    "resolution_id": "resolve-classes-druid-wild-shape-known-forms-rat-animals-1",
+    "from_record_key": "classes.druid.wild_shape",
+    "from_component_key": "known_forms",
+    "source_text": "Rat",
+    "scope_key": "srd-5.2.1/animals",
+    "target_record_key": "animals.rat",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "65f14e78-0abf-5876-b7bc-cf01ebf3dc0f",
+      "a7c5ecfd-ae74-55ec-8c0d-26e2510edcdd"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-druid-wild-shape-known-forms-riding-horse-animals-1",
+    "from_record_key": "classes.druid.wild_shape",
+    "from_component_key": "known_forms",
+    "source_text": "Riding Horse",
+    "scope_key": "srd-5.2.1/animals",
+    "target_record_key": "animals.riding_horse",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "a7c5ecfd-ae74-55ec-8c0d-26e2510edcdd"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-druid-wild-shape-known-forms-spider-animals-1",
+    "from_record_key": "classes.druid.wild_shape",
+    "from_component_key": "known_forms",
+    "source_text": "Spider",
+    "scope_key": "srd-5.2.1/animals",
+    "target_record_key": "animals.spider",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "a7c5ecfd-ae74-55ec-8c0d-26e2510edcdd"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-druid-wild-shape-known-forms-wolf-animals-1",
+    "from_record_key": "classes.druid.wild_shape",
+    "from_component_key": "known_forms",
+    "source_text": "Wolf",
+    "scope_key": "srd-5.2.1/animals",
+    "target_record_key": "animals.wolf",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "a7c5ecfd-ae74-55ec-8c0d-26e2510edcdd"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-warlock-eldritch-invocation-options-pact-of-the-chain-pact-of-the-chain-venomous-snake-animals-1",
+    "from_record_key": "classes.warlock.eldritch_invocation_options.pact_of_the_chain",
+    "from_component_key": "pact_of_the_chain",
+    "source_text": "Venomous Snake",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.venomous_snake",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "1544d6d8-9161-5091-b85d-eed080d61174"
+    ]
+  },
+  {
+    "resolution_id": "resolve-gameplay-toolbox-combat-encounters-step-3-spend-your-budget-giant-rats-animals-1",
+    "from_record_key": "gameplay_toolbox.combat_encounters",
+    "from_component_key": "step_3_spend_your_budget",
+    "source_text": "Giant Rats",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.giant_rat",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "8fcfef84-4b48-5bf5-a5e1-1c1dd7fd75b8"
+    ]
+  },
+  {
+    "resolution_id": "resolve-gameplay-toolbox-combat-encounters-step-3-spend-your-budget-giant-wasps-animals-1",
+    "from_record_key": "gameplay_toolbox.combat_encounters",
+    "from_component_key": "step_3_spend_your_budget",
+    "source_text": "Giant Wasps",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.giant_wasp",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "8fcfef84-4b48-5bf5-a5e1-1c1dd7fd75b8"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-tricks-bag-of-tricks-ape-animals-1",
+    "from_record_key": "magic_items.bag_of_tricks",
+    "from_component_key": "bag_of_tricks",
+    "source_text": "Ape",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.ape",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "820a8178-aba9-5fbc-a61b-5fd00d1de5f5"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-tricks-bag-of-tricks-baboon-animals-1",
+    "from_record_key": "magic_items.bag_of_tricks",
+    "from_component_key": "bag_of_tricks",
+    "source_text": "Baboon",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.baboon",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "820a8178-aba9-5fbc-a61b-5fd00d1de5f5"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-tricks-bag-of-tricks-badger-animals-1",
+    "from_record_key": "magic_items.bag_of_tricks",
+    "from_component_key": "bag_of_tricks",
+    "source_text": "Badger",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.badger",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "887b7e0c-5d9f-591d-963b-779e4196d81f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-tricks-bag-of-tricks-black-bear-animals-1",
+    "from_record_key": "magic_items.bag_of_tricks",
+    "from_component_key": "bag_of_tricks",
+    "source_text": "Black Bear",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.black_bear",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "820a8178-aba9-5fbc-a61b-5fd00d1de5f5"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-tricks-bag-of-tricks-boar-animals-1",
+    "from_record_key": "magic_items.bag_of_tricks",
+    "from_component_key": "bag_of_tricks",
+    "source_text": "Boar",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.boar",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "887b7e0c-5d9f-591d-963b-779e4196d81f",
+      "b8686308-cc92-5085-bbab-0e4f749372ff"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-tricks-bag-of-tricks-brown-bear-animals-1",
+    "from_record_key": "magic_items.bag_of_tricks",
+    "from_component_key": "bag_of_tricks",
+    "source_text": "Brown Bear",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.brown_bear",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b8686308-cc92-5085-bbab-0e4f749372ff"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-tricks-bag-of-tricks-dire-wolf-animals-1",
+    "from_record_key": "magic_items.bag_of_tricks",
+    "from_component_key": "bag_of_tricks",
+    "source_text": "Dire Wolf",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.dire_wolf",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "887b7e0c-5d9f-591d-963b-779e4196d81f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-tricks-bag-of-tricks-giant-badger-animals-1",
+    "from_record_key": "magic_items.bag_of_tricks",
+    "from_component_key": "bag_of_tricks",
+    "source_text": "Giant Badger",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.giant_badger",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "887b7e0c-5d9f-591d-963b-779e4196d81f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-tricks-bag-of-tricks-giant-boar-animals-1",
+    "from_record_key": "magic_items.bag_of_tricks",
+    "from_component_key": "bag_of_tricks",
+    "source_text": "Giant Boar",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.giant_boar",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b8686308-cc92-5085-bbab-0e4f749372ff"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-tricks-bag-of-tricks-giant-elk-animals-1",
+    "from_record_key": "magic_items.bag_of_tricks",
+    "from_component_key": "bag_of_tricks",
+    "source_text": "Giant Elk",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.giant_elk",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "887b7e0c-5d9f-591d-963b-779e4196d81f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-tricks-bag-of-tricks-giant-goat-animals-1",
+    "from_record_key": "magic_items.bag_of_tricks",
+    "from_component_key": "bag_of_tricks",
+    "source_text": "Giant Goat",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.giant_goat",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b8686308-cc92-5085-bbab-0e4f749372ff"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-tricks-bag-of-tricks-giant-hyena-animals-1",
+    "from_record_key": "magic_items.bag_of_tricks",
+    "from_component_key": "bag_of_tricks",
+    "source_text": "Giant Hyena",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.giant_hyena",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "820a8178-aba9-5fbc-a61b-5fd00d1de5f5"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-tricks-bag-of-tricks-giant-rat-animals-1",
+    "from_record_key": "magic_items.bag_of_tricks",
+    "from_component_key": "bag_of_tricks",
+    "source_text": "Giant Rat",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.giant_rat",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "887b7e0c-5d9f-591d-963b-779e4196d81f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-tricks-bag-of-tricks-giant-weasel-animals-1",
+    "from_record_key": "magic_items.bag_of_tricks",
+    "from_component_key": "bag_of_tricks",
+    "source_text": "Giant Weasel",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.giant_weasel",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "820a8178-aba9-5fbc-a61b-5fd00d1de5f5"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-tricks-bag-of-tricks-goat-animals-1",
+    "from_record_key": "magic_items.bag_of_tricks",
+    "from_component_key": "bag_of_tricks",
+    "source_text": "Goat",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.goat",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b8686308-cc92-5085-bbab-0e4f749372ff"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-tricks-bag-of-tricks-jackal-animals-1",
+    "from_record_key": "magic_items.bag_of_tricks",
+    "from_component_key": "bag_of_tricks",
+    "source_text": "Jackal",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.jackal",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "820a8178-aba9-5fbc-a61b-5fd00d1de5f5"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-tricks-bag-of-tricks-lion-animals-1",
+    "from_record_key": "magic_items.bag_of_tricks",
+    "from_component_key": "bag_of_tricks",
+    "source_text": "Lion",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.lion",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b8686308-cc92-5085-bbab-0e4f749372ff"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-tricks-bag-of-tricks-mastiff-animals-1",
+    "from_record_key": "magic_items.bag_of_tricks",
+    "from_component_key": "bag_of_tricks",
+    "source_text": "Mastiff",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.mastiff",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b8686308-cc92-5085-bbab-0e4f749372ff"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-tricks-bag-of-tricks-owl-animals-1",
+    "from_record_key": "magic_items.bag_of_tricks",
+    "from_component_key": "bag_of_tricks",
+    "source_text": "Owl",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.owl",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b8686308-cc92-5085-bbab-0e4f749372ff"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-tricks-bag-of-tricks-panther-animals-1",
+    "from_record_key": "magic_items.bag_of_tricks",
+    "from_component_key": "bag_of_tricks",
+    "source_text": "Panther",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.panther",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "887b7e0c-5d9f-591d-963b-779e4196d81f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-tricks-bag-of-tricks-rat-animals-1",
+    "from_record_key": "magic_items.bag_of_tricks",
+    "from_component_key": "bag_of_tricks",
+    "source_text": "Rat",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.rat",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "887b7e0c-5d9f-591d-963b-779e4196d81f",
+      "b8686308-cc92-5085-bbab-0e4f749372ff"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-tricks-bag-of-tricks-tiger-animals-1",
+    "from_record_key": "magic_items.bag_of_tricks",
+    "from_component_key": "bag_of_tricks",
+    "source_text": "Tiger",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.tiger",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "820a8178-aba9-5fbc-a61b-5fd00d1de5f5"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-tricks-bag-of-tricks-weasel-animals-1",
+    "from_record_key": "magic_items.bag_of_tricks",
+    "from_component_key": "bag_of_tricks",
+    "source_text": "Weasel",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.weasel",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "820a8178-aba9-5fbc-a61b-5fd00d1de5f5",
+      "887b7e0c-5d9f-591d-963b-779e4196d81f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-cloak-of-the-bat-cloak-of-the-bat-bat-animals-1",
+    "from_record_key": "magic_items.cloak_of_the_bat",
+    "from_component_key": "cloak_of_the_bat",
+    "source_text": "Bat",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.bat",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "ab38d302-6d29-5168-bac8-cbdac2ca1cd7",
+      "b0467d25-7f14-579d-978a-eb03e111895b"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-figurine-of-wondrous-power-figurine-of-wondrous-power-elephant-animals-1",
+    "from_record_key": "magic_items.figurine_of_wondrous_power",
+    "from_component_key": "figurine_of_wondrous_power",
+    "source_text": "Elephant",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.elephant",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "ce2b0f9a-f6c0-5766-ad4c-378fb9ae359f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-figurine-of-wondrous-power-figurine-of-wondrous-power-giant-goat-animals-1",
+    "from_record_key": "magic_items.figurine_of_wondrous_power",
+    "from_component_key": "figurine_of_wondrous_power",
+    "source_text": "Giant Goat",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.giant_goat",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "4aa88505-d102-5d70-b650-c4bc3eb55721",
+      "af1b47c8-c9c0-5d5e-a068-2e053eaa9aba"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-figurine-of-wondrous-power-figurine-of-wondrous-power-giant-owl-animals-1",
+    "from_record_key": "magic_items.figurine_of_wondrous_power",
+    "from_component_key": "figurine_of_wondrous_power",
+    "source_text": "Giant Owl",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.giant_owl",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "84f9ca31-a491-5de0-a7f8-6560f42f635f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-figurine-of-wondrous-power-figurine-of-wondrous-power-lion-animals-1",
+    "from_record_key": "magic_items.figurine_of_wondrous_power",
+    "from_component_key": "figurine_of_wondrous_power",
+    "source_text": "Lion",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.lion",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "728ac97f-19a6-5581-84c3-4c47678f4c56"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-figurine-of-wondrous-power-figurine-of-wondrous-power-mastiff-animals-1",
+    "from_record_key": "magic_items.figurine_of_wondrous_power",
+    "from_component_key": "figurine_of_wondrous_power",
+    "source_text": "Mastiff",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.mastiff",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "12278738-33b4-5b93-b46c-27a4a1b11207"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-figurine-of-wondrous-power-figurine-of-wondrous-power-riding-horse-animals-1",
+    "from_record_key": "magic_items.figurine_of_wondrous_power",
+    "from_component_key": "figurine_of_wondrous_power",
+    "source_text": "Riding Horse",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.riding_horse",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "da8cc0f9-8c78-5ab0-8e10-39b399f166a6"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-figurine-of-wondrous-power-silver-raven-raven-animals-1",
+    "from_record_key": "magic_items.figurine_of_wondrous_power",
+    "from_component_key": "silver_raven",
+    "source_text": "Raven",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.raven",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "32199bc6-bf0a-5bae-a4ac-5a7d2067bd26"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-hat-of-many-spells-hat-of-many-spells-camel-animals-1",
+    "from_record_key": "magic_items.hat_of_many_spells",
+    "from_component_key": "hat_of_many_spells",
+    "source_text": "Camel",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.camel",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "3ecc65a7-33a6-5565-9abc-1c5510d76012"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-hat-of-many-spells-hat-of-many-spells-constrictor-snake-animals-1",
+    "from_record_key": "magic_items.hat_of_many_spells",
+    "from_component_key": "hat_of_many_spells",
+    "source_text": "Constrictor Snake",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.constrictor_snake",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "3ecc65a7-33a6-5565-9abc-1c5510d76012"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-hat-of-many-spells-hat-of-many-spells-elephant-animals-1",
+    "from_record_key": "magic_items.hat_of_many_spells",
+    "from_component_key": "hat_of_many_spells",
+    "source_text": "Elephant",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.elephant",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "3ecc65a7-33a6-5565-9abc-1c5510d76012"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-hat-of-many-spells-hat-of-many-spells-mule-animals-1",
+    "from_record_key": "magic_items.hat_of_many_spells",
+    "from_component_key": "hat_of_many_spells",
+    "source_text": "Mule",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.mule",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "3ecc65a7-33a6-5565-9abc-1c5510d76012"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-hat-of-many-spells-hat-of-many-spells-swarm-of-bats-animals-1",
+    "from_record_key": "magic_items.hat_of_many_spells",
+    "from_component_key": "hat_of_many_spells",
+    "source_text": "Swarm of Bats",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.swarm_of_bats",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "3ecc65a7-33a6-5565-9abc-1c5510d76012"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-pipes-of-the-sewers-pipes-of-the-sewers-swarm-of-rats-animals-1",
+    "from_record_key": "magic_items.pipes_of_the_sewers",
+    "from_component_key": "pipes_of_the_sewers",
+    "source_text": "Swarm of Rats",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.swarm_of_rats",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "0fbbc927-c5d1-5319-a042-e2c70c0a1aa3",
+      "eb83c52a-b35b-5004-86be-413eb7876755"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-robe-of-useful-items-robe-of-useful-items-mastiffs-animals-1",
+    "from_record_key": "magic_items.robe_of_useful_items",
+    "from_component_key": "robe_of_useful_items",
+    "source_text": "Mastiffs",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.mastiff",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "7a5606af-468b-54ba-93b5-012bb3e33cdd"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-robe-of-useful-items-robe-of-useful-items-riding-horse-animals-1",
+    "from_record_key": "magic_items.robe_of_useful_items",
+    "from_component_key": "robe_of_useful_items",
+    "source_text": "Riding Horse",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.riding_horse",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "7a5606af-468b-54ba-93b5-012bb3e33cdd"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-staff-of-the-python-staff-of-the-python-giant-constrictor-snake-animals-1",
+    "from_record_key": "magic_items.staff_of_the_python",
+    "from_component_key": "staff_of_the_python",
+    "source_text": "Giant Constrictor Snake",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.giant_constrictor_snake",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "878a47f3-3ee1-5eab-9f73-0a7f5e2e6761"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-wand-of-wonder-wand-of-wonder-black-bear-animals-1",
+    "from_record_key": "magic_items.wand_of_wonder",
+    "from_component_key": "wand_of_wonder",
+    "source_text": "Black Bear",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.black_bear",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "144b2da9-e4da-5d60-af8a-d439a2be77c4"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-wand-of-wonder-wand-of-wonder-elephant-animals-1",
+    "from_record_key": "magic_items.wand_of_wonder",
+    "from_component_key": "wand_of_wonder",
+    "source_text": "Elephant",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.elephant",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "bf86869f-63a6-5446-8036-528bc0fdbef6"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-wand-of-wonder-wand-of-wonder-frog-animals-1",
+    "from_record_key": "magic_items.wand_of_wonder",
+    "from_component_key": "wand_of_wonder",
+    "source_text": "Frog",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.frog",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "144b2da9-e4da-5d60-af8a-d439a2be77c4"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-wand-of-wonder-wand-of-wonder-giant-wasp-animals-1",
+    "from_record_key": "magic_items.wand_of_wonder",
+    "from_component_key": "wand_of_wonder",
+    "source_text": "Giant Wasp",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.giant_wasp",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "144b2da9-e4da-5d60-af8a-d439a2be77c4"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-wand-of-wonder-wand-of-wonder-rat-animals-1",
+    "from_record_key": "magic_items.wand_of_wonder",
+    "from_component_key": "wand_of_wonder",
+    "source_text": "Rat",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.rat",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "bf86869f-63a6-5446-8036-528bc0fdbef6"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-wand-of-wonder-wand-of-wonder-rhinoceros-animals-1",
+    "from_record_key": "magic_items.wand_of_wonder",
+    "from_component_key": "wand_of_wonder",
+    "source_text": "Rhinoceros",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.rhinoceros",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "bf86869f-63a6-5446-8036-528bc0fdbef6"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-find-familiar-effect-bat-animals-1",
+    "from_record_key": "spells.find_familiar",
+    "from_component_key": "effect",
+    "source_text": "Bat",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.bat",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e53720e9-6380-5e57-b73f-69da22c9831a"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-find-familiar-effect-cat-animals-1",
+    "from_record_key": "spells.find_familiar",
+    "from_component_key": "effect",
+    "source_text": "Cat",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.cat",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e53720e9-6380-5e57-b73f-69da22c9831a"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-find-familiar-effect-frog-animals-1",
+    "from_record_key": "spells.find_familiar",
+    "from_component_key": "effect",
+    "source_text": "Frog",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.frog",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e53720e9-6380-5e57-b73f-69da22c9831a"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-find-familiar-effect-hawk-animals-1",
+    "from_record_key": "spells.find_familiar",
+    "from_component_key": "effect",
+    "source_text": "Hawk",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.hawk",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e53720e9-6380-5e57-b73f-69da22c9831a"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-find-familiar-effect-lizard-animals-1",
+    "from_record_key": "spells.find_familiar",
+    "from_component_key": "effect",
+    "source_text": "Lizard",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.lizard",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e53720e9-6380-5e57-b73f-69da22c9831a"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-find-familiar-effect-octopus-animals-1",
+    "from_record_key": "spells.find_familiar",
+    "from_component_key": "effect",
+    "source_text": "Octopus",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.octopus",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e53720e9-6380-5e57-b73f-69da22c9831a"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-find-familiar-effect-owl-animals-1",
+    "from_record_key": "spells.find_familiar",
+    "from_component_key": "effect",
+    "source_text": "Owl",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.owl",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e53720e9-6380-5e57-b73f-69da22c9831a"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-find-familiar-effect-rat-animals-1",
+    "from_record_key": "spells.find_familiar",
+    "from_component_key": "effect",
+    "source_text": "Rat",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.rat",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e53720e9-6380-5e57-b73f-69da22c9831a"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-find-familiar-effect-raven-animals-1",
+    "from_record_key": "spells.find_familiar",
+    "from_component_key": "effect",
+    "source_text": "Raven",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.raven",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e53720e9-6380-5e57-b73f-69da22c9831a"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-find-familiar-effect-spider-animals-1",
+    "from_record_key": "spells.find_familiar",
+    "from_component_key": "effect",
+    "source_text": "Spider",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.spider",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e53720e9-6380-5e57-b73f-69da22c9831a"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-find-familiar-effect-weasel-animals-1",
+    "from_record_key": "spells.find_familiar",
+    "from_component_key": "effect",
+    "source_text": "Weasel",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.weasel",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e53720e9-6380-5e57-b73f-69da22c9831a"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-phantom-steed-effect-riding-horse-animals-1",
+    "from_record_key": "spells.phantom_steed",
+    "from_component_key": "effect",
+    "source_text": "Riding Horse",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.riding_horse",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "9798ab14-e95f-5296-9f99-d6ce214dd911"
+    ]
+  }
+]

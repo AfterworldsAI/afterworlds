@@ -1,0 +1,131 @@
+{
+  "checks": {
+    "head_exact": true,
+    "branch_exact": true,
+    "index_exact": true,
+    "stashes_exact": true,
+    "external_exact": true,
+    "accepted_candidate_exact": true,
+    "old_oracle_retained_exact": true,
+    "restart_history_exact": true,
+    "native_python_code_fingerprint_exact": true,
+    "native_python_version_exact": true,
+    "native_dependency_versions_exact": true,
+    "isolated_old_source_store_exact": true,
+    "isolated_new_source_store_exact": true,
+    "only_reviewed_existing_files_changed": true,
+    "baseline_settings_exact": true,
+    "baseline_prior_entries_exact": true,
+    "baseline_only_authorized_paths_added": true,
+    "recorded_oracle_sha_exact": true,
+    "claude_run_completed": true,
+    "new_git_visible_files_scoped": true
+  },
+  "changed_existing_files": [
+    {
+      "path": ".secrets.baseline",
+      "before": "e492abda9e8b838f14dae40ffdd5538d7da906d952c7f0cda84d02bd0d6d32d9",
+      "after_validation": "Additive inspected public-hash entries only; previous entries and settings exact. Current baseline hash omitted to avoid recursive hash coverage."
+    },
+    {
+      "path": "docs/architecture/issue-5c-5d-clean-restart.md",
+      "before": "10d29f29d91af45f5f6d4fbf5b3bc4593d4040920d326c5e1c86a237310f4dd8",
+      "after": "4ef55c7a1078f1be3a5ec2460ffefdfb16d7be0f5b77386d5d7eae709273a42f"
+    },
+    {
+      "path": "src/afterworlds/ingestion/mechanical/oracles/README.md",
+      "before": "24c4456fb25ed3b0c65362b18465ffbce3eceb2400a0c461257925e193bee5e1",
+      "after": "eb0008208f23019e8fbfca2354d70bbe0f83579cd3703488249f02ee2a84385a"
+    },
+    {
+      "path": "tests/ingestion/mechanical/test_accepted_inputs.py",
+      "before": "f7c6423c6ab255cef23e69322b4b6a53204940ee2f8a739258b91ad64051bd80",
+      "after": "616213db9dfb8dd70ddd9fda16358fbccab3879e19552100e04d97629db27a37"
+    },
+    {
+      "path": "tests/ingestion/mechanical/test_committed_accepted_authority.py",
+      "before": "d43d68f229e4b2819ff4c9fa28f0210779d34fbd5a1df0e2827db677cc77a6ac",
+      "after": "15865b0b30f43bf2dcc1c7e8b001c2152293fc300031ed4c84d25b2c90b46ae7"
+    },
+    {
+      "path": "tests/ingestion/mechanical/test_oracle.py",
+      "before": "3cb07cfbe5c849f4de0d1c617f75d5737cb1df1d6641d44794ceb3b9b3bf4123",
+      "after": "22958826c5e0c7f68b69af33d303af47cf15702885f00242fe6b25042629e823"
+    },
+    {
+      "path": "tests/ingestion/mechanical/test_packaging.py",
+      "before": "6224cc51c2da7e5e75c8fc35831826706d9eb93b6d202e7401b6574bd22fd6bd",
+      "after": "cebfc75861736ade1a37cbdd4293944a052990376726e222d295d5bed5b1de00"
+    },
+    {
+      "path": "tests/ingestion/mechanical/test_source_release_readiness.py",
+      "before": "509cb13d43846ac37d4d6b5a224914508832a8c1fadd4ae9f58eb09fa859be3e",
+      "after": "a6b9b4d8b485ec9dd7ed36d0871d7257001d8948d22cf89bc13cd9a3f63a8d91"
+    }
+  ],
+  "new_git_visible_files": [
+    ".claude/review-notes/issue-5c-release-order-recording-codex-review.md",
+    ".claude/review-notes/issue-5c-release-order-recording/RECORD.py",
+    ".claude/review-notes/issue-5c-release-order-recording/accepted-new-proposal-identities.json",
+    ".claude/review-notes/issue-5c-release-order-recording/codex-baseline-preservation-note.md",
+    ".claude/review-notes/issue-5c-release-order-recording/codex-baseline-preservation.json",
+    ".claude/review-notes/issue-5c-release-order-recording/codex-final-preservation.json",
+    ".claude/review-notes/issue-5c-release-order-recording/codex-live-pin-findings.md",
+    ".claude/review-notes/issue-5c-release-order-recording/codex-native-persistence.json",
+    ".claude/review-notes/issue-5c-release-order-recording/codex-public-fact-ids.json",
+    ".claude/review-notes/issue-5c-release-order-recording/codex-recorded-payload-review.json",
+    ".claude/review-notes/issue-5c-release-order-recording/codex-scripts/README.md",
+    ".claude/review-notes/issue-5c-release-order-recording/codex-scripts/codex_delta.py",
+    ".claude/review-notes/issue-5c-release-order-recording/codex-scripts/codex_final_guard.py",
+    ".claude/review-notes/issue-5c-release-order-recording/codex-scripts/codex_native_persistence.py",
+    ".claude/review-notes/issue-5c-release-order-recording/codex-scripts/codex_public_fact_ids.py",
+    ".claude/review-notes/issue-5c-release-order-recording/codex-scripts/codex_recorded_review.py",
+    ".claude/review-notes/issue-5c-release-order-recording/codex-scripts/codex_restore_baseline_rows.py",
+    ".claude/review-notes/issue-5c-release-order-recording/codex-scripts/codex_scoped_secrets.py",
+    ".claude/review-notes/issue-5c-release-order-recording/codex-scripts/reviewed-pin-allowlist.json",
+    ".claude/review-notes/issue-5c-release-order-recording/recorded-followup.md",
+    ".claude/review-notes/issue-5c-release-order-recording/recorded-secrets-validation.json",
+    ".claude/review-notes/issue-5c-release-order-recording/recorded_canonical_reconstruction.py",
+    ".claude/review-notes/issue-5c-release-order-recording/recorded_scoped_secrets-first-failed.py",
+    ".claude/review-notes/issue-5c-release-order-recording/recorded_scoped_secrets.py",
+    ".claude/review-notes/issue-5c-release-order-recording/reports/recorded-canonical-reconstruction.json",
+    ".claude/review-notes/issue-5c-release-order-recording/run/codex-packaging-pin-before.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/codex-secrets-private.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/codex-secrets-real.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/codex-survey-interruption.json",
+    ".claude/review-notes/issue-5c-release-order-recording/run/focused-2.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/focused.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/gates-black-pinned.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/gates-black-prerecord.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/gates-black-secrets-2.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/gates-black-secrets.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/gates-mypy-pinned.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/gates-mypy-prerecord.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/gates-mypy-tests-2.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/gates-mypy-tests-3.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/gates-mypy-tests-preedit-copies.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/gates-mypy-tests.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/gates-ruff-pinned.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/gates-ruff-prerecord.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/gates-ruff-secrets-2.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/gates-ruff-secrets.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/gates-ruff-tests-2.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/gates-ruff-tests-3.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/gates-ruff-tests.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/record-stores-before.sha256",
+    ".claude/review-notes/issue-5c-release-order-recording/run/record.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/recorded-reconstruction.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/run.py",
+    ".claude/review-notes/issue-5c-release-order-recording/run/secrets-apply-2.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/secrets-apply.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/secrets-private-copy.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/secrets-real-hook.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/secrets-recheck-private.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/simulate-2.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/simulate.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/run/verify.exit",
+    ".claude/review-notes/issue-5c-release-order-recording/secrets-validation.json",
+    "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b.json"
+  ],
+  "scope": "Native exact-candidate recording and bounded live-pin verification only; no staging, commit, push, merge, publication, activation, shared-store writes or expanded gates."
+}

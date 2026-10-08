@@ -1,0 +1,35 @@
+{
+  "old": {
+    "input_sha256": "e6f5f36aa3af13807bbff721797d971dcf0d8e588a97483c7d769cf88cbd1308",
+    "source_store_sha256": "91da4ada4c56c3ab7d38fe7bfc098b52a30e548cc4f3ac44789bbdcec74e7d32",
+    "projection_uuid": "498a9a0a-c693-53e5-8bcd-32143034fbe0",
+    "payload_hash": "f67c9507cd69cb273ac786197947e56fe2fedac330492de99b3da102f6d3b6c9",
+    "checks": {
+      "native_verification_zero_findings": true,
+      "six_field_binding_exact": true,
+      "complete_native_projection_payload_exact": true,
+      "complete_native_acceptance_evidence_exact": true,
+      "projection_uuid_exact": true,
+      "payload_hash_exact": true,
+      "source_store_bytes_unchanged": true
+    },
+    "findings": []
+  },
+  "new": {
+    "input_sha256": "8a6a9a9c305f41207190c0deb55875a027019116ce3f825a6a0425a3a115b4bf",
+    "source_store_sha256": "f2067b83d5ba9cbcd8165540517a826c08c023b9aa94a0e1d3e8cca3d2d57c4b",
+    "projection_uuid": "8d8cb42c-aefe-559c-9d85-6ba975c038af",
+    "payload_hash": "69299de5cf89bc37f78b835058320d8bbfbafcef277b734e9c45f0145238e2aa",
+    "checks": {
+      "native_verification_zero_findings": true,
+      "six_field_binding_exact": true,
+      "complete_native_projection_payload_exact": true,
+      "complete_native_acceptance_evidence_exact": true,
+      "projection_uuid_exact": true,
+      "payload_hash_exact": true,
+      "source_store_bytes_unchanged": true
+    },
+    "findings": []
+  },
+  "scope": "Draft persistence into disposable copies only; exact native canonical projection and acceptance evidence; no publication, activation or shared-store writes. Does not repeat reader tests."
+}

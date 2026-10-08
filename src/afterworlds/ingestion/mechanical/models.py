@@ -407,6 +407,30 @@ class ReleaseBinding:
 
 
 @dataclass(frozen=True)
+class ReferenceDestination:
+    """One labelled destination of a resolved citation's route.
+
+    Owner Decisions of 2026-10-01 (ADR-005d Decision 7, proposed amendment).
+    Some source pointers name a destination that differs by class, class level
+    or the reader's situation. A resolution may state several of these.
+    Destinations sharing ``alternative_label`` are one route, read together in
+    their reviewed order (landing first, then the text the route needs); routes
+    are not exclusive, and an unknown choice keeps every one. ``situation`` is
+    a ``ReferenceSituation`` value or ``""``; it is a string here because this
+    module imports nothing from the package.
+    ``minimum_class_level`` is a level *in* ``class_record_key``, never a total
+    character level; ``0`` states none.
+    """
+
+    target_record_key: str
+    target_component_key: str
+    alternative_label: str
+    situation: str
+    class_record_key: str
+    minimum_class_level: int
+
+
+@dataclass(frozen=True)
 class ReferenceResolution:
     """A reviewed destination for one accepted reference that had none.
 
@@ -467,6 +491,9 @@ class ReferenceResolution:
     target_record_key: str
     release_binding: ReleaseBinding
     provenance_span_ids: tuple[str, ...]
+    #: Two or more labelled alternatives in place of ``target_record_key``,
+    #: which is then ``""``. Empty for every single-destination resolution.
+    destinations: tuple[ReferenceDestination, ...] = ()
 
     def citation_key(self) -> tuple[str, str, str, str]:
         """The accepted citation this resolves, independently of its target.

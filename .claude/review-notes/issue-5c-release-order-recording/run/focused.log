@@ -1,0 +1,15 @@
+start 2026-10-07T05:52:45.788501+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe scripts/run_focused_tests.py --check tests/ingestion/mechanical/test_accepted_inputs.py --check tests/ingestion/mechanical/test_committed_accepted_authority.py --check tests/ingestion/mechanical/test_oracle.py --check tests/ingestion/mechanical/test_source_release_readiness.py tests/ingestion/mechanical/test_source_release_readiness.py tests/ingestion/mechanical/test_accepted_inputs.py::test_exactly_one_accepted_artifact_is_committed_for_the_release tests/ingestion/mechanical/test_committed_accepted_authority.py::test_the_release_resolves_to_this_sole_committed_artifact tests/ingestion/mechanical/test_oracle.py::test_the_committed_oracle_directory_holds_one_artifact_per_release
+input ef6969b5f09e59ebd4001aad2137ade7ca74509d4075753de73336d7595050e9  scripts/run_focused_tests.py
+input 616213db9dfb8dd70ddd9fda16358fbccab3879e19552100e04d97629db27a37  tests/ingestion/mechanical/test_accepted_inputs.py
+input 905fc3c6ca750e44010b78054d1b6400a643513d56c8ebe4e3e8d95bdac6a89c  tests/ingestion/mechanical/test_committed_accepted_authority.py
+input 22958826c5e0c7f68b69af33d303af47cf15702885f00242fe6b25042629e823  tests/ingestion/mechanical/test_oracle.py
+input a6b9b4d8b485ec9dd7ed36d0871d7257001d8948d22cf89bc13cd9a3f63a8d91  tests/ingestion/mechanical/test_source_release_readiness.py
+input a6b9b4d8b485ec9dd7ed36d0871d7257001d8948d22cf89bc13cd9a3f63a8d91  tests/ingestion/mechanical/test_source_release_readiness.py
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+All done! ✨ 🍰 ✨
+4 files would be left unchanged.
+..................                                                       [100%]
+18 passed in 163.34s (0:02:43)
+Focused diagnostics PASSED (exit 0). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+end 2026-10-07T05:55:31.182785+00:00 exit 0

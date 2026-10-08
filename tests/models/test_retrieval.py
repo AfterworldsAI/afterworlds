@@ -153,7 +153,17 @@ class TestRulesCorpusChunkMetadata:
             source_locator_type=SourceLocatorTypeEnum.PAGE,
             source_locator_value="p. 72",
             embedding_model_id="test-model",
+            source_chunk_id="3f3f3f3f-0000-4000-8000-000000000001",
+            window_index=2,
+            window_count=5,
         )
         dumped = metadata.model_dump(mode="json")
         restored = RulesCorpusChunkMetadata.model_validate(dumped)
         assert restored == metadata
+        assert dumped["schema_version"] == 2
+        # Chroma metadata values must stay scalar: the window fields are what
+        # carries a matched window back to its chunk, and a non-scalar here
+        # would be rejected at write time rather than at review time.
+        assert all(
+            isinstance(value, (str, int, float, bool)) for value in dumped.values()
+        )

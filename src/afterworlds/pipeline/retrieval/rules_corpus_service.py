@@ -24,12 +24,7 @@ from chromadb.utils.batch_utils import create_batches
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from afterworlds.models.enums import SourceLocatorTypeEnum
-from afterworlds.models.retrieval import (
-    RulesCorpusChunkMetadata,
-    build_rules_corpus_chunk_id,
-    rules_corpus_collection_name,
-)
+from afterworlds.models.retrieval import rules_corpus_collection_name
 from afterworlds.persistence.orm.corpus import CorpusReleaseORM
 from afterworlds.persistence.orm.rules_package import RuleChunkORM, RulesPackageORM
 from afterworlds.pipeline.retrieval.collections import (
@@ -38,7 +33,11 @@ from afterworlds.pipeline.retrieval.collections import (
     get_rules_corpus_collection,
 )
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
+from afterworlds.pipeline.retrieval.corpus_windows import (
+    derive_retrieval_documents,
+)
 from afterworlds.pipeline.retrieval.embedding import RetrievalEmbeddingFunction
+from afterworlds.quarantine import refuse_quarantined
 
 
 class RulesCorpusService:
@@ -58,9 +57,11 @@ class RulesCorpusService:
         """Rebuild the finalized rules_corpus collection from SQL ground truth.
 
         Wipes the collection first (surplus removal) then re-upserts every
-        enabled ``RuleChunk`` row for *rules_package_id*. This absorbs the
-        CRD Issue 5b interim collection without mutating any 5a source
-        record. Returns the number of chunks written.
+        enabled ``RuleChunk`` row for *rules_package_id*, as one or more
+        bounded embedding windows each. This absorbs the CRD Issue 5b
+        interim collection without mutating any 5a source record. Returns
+        the number of **documents** written, which is the number of chunks
+        only when no chunk needed more than one window.
 
         The rebuild is exception-safe at this public boundary. The initial wipe
         stays outside the compensation scope (an operational wipe failure
@@ -89,6 +90,7 @@ class RulesCorpusService:
                 it propagates (chained onto the originating failure), so a
                 partial rebuild is never left behind under a clean-failure claim.
         """
+        refuse_quarantined("rules-corpus reindex", package_uuid=rules_package_id)
         collection_name = rules_corpus_collection_name(rules_package_id)
         # Wipe first (surplus removal), OUTSIDE the compensation scope: an
         # operational wipe failure must propagate without any further deletion --
@@ -122,25 +124,20 @@ class RulesCorpusService:
             ids: list[str] = []
             documents: list[str] = []
             metadatas: list[Mapping[str, str | int | float | bool | None]] = []
+            # One row contributes one document per bounded window. Sending
+            # row.content whole embedded only its first 256 tokens -- the local
+            # ONNX MiniLM function truncates its own input -- so everything past
+            # the ceiling in a long chunk was unreachable while still reading
+            # back complete. derive_retrieval_documents is shared with
+            # vector_publication.expected_vector_state_from_sql so the published
+            # state and its verification cannot drift (see corpus_windows).
             for row in rows:
-                locator_type = SourceLocatorTypeEnum(row.source_locator_type)
-                metadata = RulesCorpusChunkMetadata(
-                    rules_package_id=rules_package_id,
-                    subsystem=row.subsystem,
-                    source_document=row.source_document,
-                    source_locator_type=locator_type,
-                    source_locator_value=row.source_locator_value,
-                    embedding_model_id=self._config.embedding_model_id,
-                )
-                # ID derives from RuleChunkORM.chunk_id -- the row's own durable
-                # primary key -- not a per-run occurrence index (Codex review,
-                # PR #119 round 4): stable regardless of SQL row-iteration order
-                # or how many chunks share the same source locator.
-                ids.append(
-                    build_rules_corpus_chunk_id(rules_package_id, UUID(row.chunk_id))
-                )
-                documents.append(row.content)
-                metadatas.append(metadata.model_dump(mode="json"))
+                for doc_id, document, metadata in derive_retrieval_documents(
+                    row, rules_package_id, self._config.embedding_model_id
+                ):
+                    ids.append(doc_id)
+                    documents.append(document)
+                    metadatas.append(metadata.model_dump(mode="json"))
 
             # Chroma caps a single add/upsert at the backend's ``max_batch_size``
             # (varies by Chroma/backend build); a full Rules Package corpus (CRD
@@ -172,7 +169,7 @@ class RulesCorpusService:
             # Every batch landed -- the rebuild is complete and consistent with
             # SQL ground truth; only now is it safe to disarm cleanup.
             cleanup_armed = False
-            return len(rows)
+            return len(ids)
         except Exception:
             # Create / transform / embedding / any batch failed before the
             # rebuild completed. Remove this attempt's (possibly partially
@@ -235,10 +232,20 @@ class RulesCorpusService:
         (checked BEFORE any Chroma access), so a concurrent read during a draft
         multi-batch rebuild never observes ungated draft vectors (PR #134). Uses a
         **non-creating** collection lookup — a missing collection yields no
-        results and is never created. Returns raw matched documents with no
-        threshold filtering: a discovery/diagnostic surface, not a
-        retrieval-eligibility path.
+        results and is never created. No threshold filtering: a
+        discovery/diagnostic surface, not a retrieval-eligibility path.
+
+        Matches are **hydrated**, not returned raw. What Chroma stores is a
+        bounded derived window (``corpus_windows``); what a caller needs is the
+        authoritative chunk that window came from, with its own headers, notes
+        and citation intact. Each match is therefore resolved through its
+        ``source_chunk_id`` back to ``RuleChunkORM.content`` and returned in
+        Chroma's own rank order, deduplicated so several windows of one long
+        chunk do not fill the result list with the same chunk.
         """
+        refuse_quarantined(
+            "rules-corpus diagnostic query", package_uuid=rules_package_id
+        )
         if not self._is_published_and_enabled(session, rules_package_id):
             return []
         collection_name = rules_corpus_collection_name(rules_package_id)
@@ -250,10 +257,35 @@ class RulesCorpusService:
         count = collection.count()
         if count == 0:
             return []
+        # Over-fetch before deduplication: n adjacent windows of one long chunk
+        # can occupy the whole top-n, which would return one chunk where the
+        # caller asked for n. ponytail: a fixed multiple, not a per-chunk
+        # window_count lookup -- a diagnostic surface does not need a guaranteed
+        # full page, and the collection size still caps the request.
         results = collection.query(
-            query_texts=[query_text], n_results=min(n_results, count)
+            query_texts=[query_text], n_results=min(n_results * 4, count)
         )
-        documents_lists = results.get("documents") or []
-        if not documents_lists or not documents_lists[0]:
+        metadata_lists = results.get("metadatas") or []
+        if not metadata_lists or not metadata_lists[0]:
             return []
-        return [str(d) for d in documents_lists[0]]
+        ranked: list[str] = []
+        for metadata in metadata_lists[0]:
+            chunk_id = str((metadata or {}).get("source_chunk_id") or "")
+            if chunk_id and chunk_id not in ranked:
+                ranked.append(chunk_id)
+        if not ranked:
+            return []
+        contents = {
+            row.chunk_id: row.content
+            for row in session.execute(
+                select(RuleChunkORM)
+                .where(RuleChunkORM.rules_package_id == str(rules_package_id))
+                .where(RuleChunkORM.chunk_id.in_(ranked))
+                .where(RuleChunkORM.is_enabled.is_(True))
+            )
+            .scalars()
+            .all()
+        }
+        # A window whose chunk is gone or has since been disabled is dropped
+        # rather than served from the vector copy: SQL is the ground truth.
+        return [contents[c] for c in ranked if c in contents][:n_results]

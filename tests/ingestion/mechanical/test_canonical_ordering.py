@@ -28,6 +28,7 @@ from afterworlds.ingestion.mechanical.representation import (
     AbilityScore,
     ComponentDraft,
     DcKind,
+    MechanicalFact,
     ProseBindingDraft,
     ProvenanceRole,
     ReferenceDraft,
@@ -88,7 +89,7 @@ def test_reordering_an_unordered_collection_changes_nothing(field: str) -> None:
 
 
 def test_reordering_facts_within_a_component_changes_nothing() -> None:
-    facts = (
+    facts: tuple[MechanicalFact, ...] = (
         DESCRIPTOR_FACT,
         AbilityCheckFact(
             AbilityScore.WISDOM, DcKind.FIXED, 15, context=RollContext.ABILITY_CHECK
@@ -221,12 +222,16 @@ def test_changing_an_identity_bearing_value_changes_the_identity(
 def test_canonical_order_preserves_duplicates() -> None:
     # Deduplicating here would hide a duplicate from the validator that exists
     # to reject it.
-    payloads = [{"a": 1}, {"a": 1}, {"a": 0}]
+    payloads: list[dict[str, object]] = [{"a": 1}, {"a": 1}, {"a": 0}]
     assert canonical_order(payloads) == [{"a": 0}, {"a": 1}, {"a": 1}]
 
 
 def test_canonical_order_is_independent_of_input_order() -> None:
-    payloads = [{"b": 2, "a": 1}, {"a": 1, "b": 3}, {"a": 0, "b": 9}]
+    payloads: list[dict[str, object]] = [
+        {"b": 2, "a": 1},
+        {"a": 1, "b": 3},
+        {"a": 0, "b": 9},
+    ]
     assert canonical_order(payloads) == canonical_order(list(reversed(payloads)))
 
 

@@ -1,0 +1,5 @@
+start 2026-10-07T16:14:53.308371+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe -m black --check --workers 1 src/ tests/
+All done! ✨ 🍰 ✨
+552 files would be left unchanged.
+end 2026-10-07T16:14:53.803920+00:00 exit 0

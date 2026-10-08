@@ -1,0 +1,260 @@
+start 2026-10-07T05:54:01.200603+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe -m pytest -q tests/ingestion/mechanical/test_packaging.py::test_the_production_oracle_directory_ships_only_reviewed_content
+F
+ERROR: Coverage failure: total of 26 is less than fail-under=80
+                                                                         [100%]
+================================== FAILURES ===================================
+______ test_the_production_oracle_directory_ships_only_reviewed_content _______
+tests\ingestion\mechanical\test_packaging.py:269: in test_the_production_oracle_directory_ships_only_reviewed_content
+    assert sorted(p.name for p in _PRODUCTION_ORACLES.glob("*.json")) == [
+E   AssertionError: assert ['srd-5-2-1-c...4e0-a3b.json'] == ['srd-5-2-1-c...2e9-0ef.json']
+E     
+E     Left contains one more item: 'srd-5-2-1-corpus-8781d4e0-a3b.json'
+E     Use -v to get more diff
+=============================== tests coverage ================================
+______________ coverage: platform win32, python 3.12.10-final-0 _______________
+
+Name                                                           Stmts   Miss  Cover   Missing
+--------------------------------------------------------------------------------------------
+src\afterworlds\__init__.py                                        0      0   100%
+src\afterworlds\api\__init__.py                                    0      0   100%
+src\afterworlds\api\access_path.py                                19     19     0%   20-60
+src\afterworlds\api\app.py                                        70     70     0%   8-165
+src\afterworlds\api\config.py                                     16     16     0%   6-50
+src\afterworlds\api\db_bootstrap.py                               11     11     0%   18-41
+src\afterworlds\api\deps.py                                       33     33     0%   7-85
+src\afterworlds\api\dto.py                                       194    194     0%   8-372
+src\afterworlds\api\errors.py                                     24     24     0%   8-53
+src\afterworlds\api\fake_pipeline.py                              31     31     0%   11-136
+src\afterworlds\api\pipeline_wiring.py                           116    116     0%   88-438
+src\afterworlds\api\routes\__init__.py                             0      0   100%
+src\afterworlds\api\routes\health.py                              11     11     0%   3-18
+src\afterworlds\api\routes\personas.py                            14     14     0%   3-38
+src\afterworlds\api\routes\setup.py                               73     73     0%   10-264
+src\afterworlds\api\routes\stories.py                             34     34     0%   8-90
+src\afterworlds\api\routes\turns.py                               81     81     0%   10-330
+src\afterworlds\api\routes\visible_state.py                       17     17     0%   3-29
+src\afterworlds\api\story_bootstrap.py                            65     65     0%   23-224
+src\afterworlds\api\visible_state.py                              38     38     0%   16-85
+src\afterworlds\entitlement\__init__.py                            0      0   100%
+src\afterworlds\entitlement\enums.py                              53     53     0%   3-75
+src\afterworlds\entitlement\errors.py                              9      9     0%   3-51
+src\afterworlds\entitlement\gate.py                               27     27     0%   17-82
+src\afterworlds\entitlement\models.py                             48     48     0%   10-115
+src\afterworlds\entitlement\orm.py                                34     34     0%   20-152
+src\afterworlds\entitlement\payloads.py                          115    115     0%   20-185
+src\afterworlds\entitlement\policy.py                             99     99     0%   13-423
+src\afterworlds\entitlement\replay.py                             64     64     0%   15-154
+src\afterworlds\entitlement\service.py                           215    215     0%   19-679
+src\afterworlds\entitlement\time_utils.py                          6      6     0%   3-17
+src\afterworlds\errors.py                                          2      2     0%   3-6
+src\afterworlds\ingestion\__init__.py                              0      0   100%
+src\afterworlds\ingestion\corpus\__init__.py                       0      0   100%
+src\afterworlds\ingestion\corpus\bundle.py                        36      9    75%   70, 85, 212, 233-234, 252, 274, 313, 339
+src\afterworlds\ingestion\corpus\concordance.py                  102     58    43%   74-86, 112-125, 165, 170-200, 298-313
+src\afterworlds\ingestion\corpus\gate.py                         148    126    15%   70-320, 326
+src\afterworlds\ingestion\corpus\hashing.py                       25      0   100%
+src\afterworlds\ingestion\corpus\ledger.py                       137    101    26%   89, 93, 97-101, 115-117, 122-126, 129-145, 148, 151, 159, 183-203, 217-242, 247-248, 251-311, 314, 331-339
+src\afterworlds\ingestion\corpus\models.py                       166      2    99%   182, 185
+src\afterworlds\ingestion\corpus\operational.py                  168     97    42%   43-44, 118, 184, 195-282, 301-360, 375-437
+src\afterworlds\ingestion\corpus\pdf_source.py                   117     63    46%   63, 152, 165-174, 178, 185-257, 266-296
+src\afterworlds\ingestion\corpus\persistence.py                  329    276    16%   132-159, 190-214, 229-337, 350-392, 401-443, 472-518, 524-564, 591-641, 651-666, 702-714, 726-770, 792-837, 855-863, 889-892, 903-911, 925-929, 976-1032, 1057-1079, 1120-1140, 1206-1606
+src\afterworlds\ingestion\corpus\pipeline.py                      84     32    62%   140-166, 202-240
+src\afterworlds\ingestion\corpus\policy.py                        61     32    48%   91, 205-245, 271-281
+src\afterworlds\ingestion\corpus\reconcile.py                     88     81     8%   54-71, 90-152, 167-218
+src\afterworlds\ingestion\corpus\report.py                        34      2    94%   93-94
+src\afterworlds\ingestion\corpus\source_citations.py             109     68    38%   84, 93-99, 110-145, 152-160, 164-176, 191-224, 243, 246, 272-274
+src\afterworlds\ingestion\corpus\source_completeness.py           37     28    24%   70, 114, 119, 130-170
+src\afterworlds\ingestion\corpus\source_ledger.py                108     74    31%   142-153, 162-174, 179-181, 190-203, 217, 251, 292, 315-318, 330-347, 360, 372, 401-433
+src\afterworlds\ingestion\corpus\source_units.py                 167    118    29%   124, 135, 144-148, 152, 162-187, 198-199, 219-240, 244-261, 265-269, 287-341, 352-392, 409-426, 433-438
+src\afterworlds\ingestion\corpus\table_inventory.py               48     20    58%   53, 63, 80, 93-95, 100, 112-114, 119, 135, 148-160, 174
+src\afterworlds\ingestion\corpus\tables.py                       307    223    27%   81, 135, 145-174, 179-180, 185-191, 196-202, 206, 229-306, 311, 316, 335-336, 344, 366-398, 413-488, 510-520, 537-581, 589-595, 613-626, 640-680, 692-699, 703-705, 717-724, 730-734
+src\afterworlds\ingestion\corpus\transform.py                     24     16    33%   51-57, 69-74, 105-128
+src\afterworlds\ingestion\corpus\transform_identity.py            19      6    68%   79-80, 89-90, 101-102
+src\afterworlds\ingestion\corpus\vector_publication.py           111     70    37%   81, 107-116, 143-157, 181-223, 244-268, 281, 299-322, 340-344, 356
+src\afterworlds\ingestion\ingestion_service.py                   175    175     0%   22-682
+src\afterworlds\ingestion\mechanical\__init__.py                   0      0   100%
+src\afterworlds\ingestion\mechanical\acceptance.py               165    165     0%   64-958
+src\afterworlds\ingestion\mechanical\accounting.py               165    143    13%   105-144, 149-164, 187-199, 204, 220, 257, 281-348, 361-456, 467, 497, 508, 525-575
+src\afterworlds\ingestion\mechanical\authoring.py                446    446     0%   23-1182
+src\afterworlds\ingestion\mechanical\bound_corpus.py             104     64    38%   89-95, 115, 119-124, 137-142, 166-177, 190-204, 211-212, 235-280, 295-301, 321, 362-401
+src\afterworlds\ingestion\mechanical\canonical.py                  6      1    83%   33
+src\afterworlds\ingestion\mechanical\gate.py                     196    129    34%   204, 210, 249-278, 305-336, 353-406, 425, 460, 493-814
+src\afterworlds\ingestion\mechanical\models.py                   140      1    99%   504
+src\afterworlds\ingestion\mechanical\oracle.py                   392    302    23%   345, 383-392, 405, 429-468, 478, 528-537, 542-546, 551, 566-574, 579-583, 593, 606-625, 635-750, 755-764, 779-785, 794-800, 811-819, 825-838, 855-1087, 1098-1104, 1122-1130, 1154-1159, 1174-1175, 1188-1201, 1242-1263, 1292-1299, 1334-1357, 1392-1621, 1646-1902, 1913, 1930, 1969-1972, 1983, 2001-2019, 2026-2027, 2048, 2067-2141
+src\afterworlds\ingestion\mechanical\persistence.py              195    170    13%   181-451, 465-501, 514-635, 651-668, 675, 679-686, 707-1006, 1074-1107, 1132, 1160-1272, 1290-1299, 1304-1328
+src\afterworlds\ingestion\mechanical\policy.py                   122     72    41%   236, 241, 251, 266, 285-307, 312, 324-331, 409-412, 423, 464-514, 529-532, 544-547, 587-619
+src\afterworlds\ingestion\mechanical\projection.py               338    246    27%   159, 224, 276-310, 333-367, 378-428, 445-456, 463-467, 479-555, 581-600, 605, 664-669, 930-933, 1026-1068, 1089-1133, 1165-1182, 1202-1203, 1273-1290, 1312-1330, 1340, 1345, 1352, 1363-1365, 1383-1385, 1443-1488, 1505-1513, 1536-1564, 1590-1681
+src\afterworlds\ingestion\mechanical\proposal.py                  99     99     0%   40-549
+src\afterworlds\ingestion\mechanical\publication.py              175    122    30%   198-202, 206, 216, 254-281, 299-315, 342-364, 390-419, 441-444, 463-479, 509-593, 629-639
+src\afterworlds\ingestion\mechanical\raw_state.py                151    115    24%   92-95, 142-151, 182, 193-474
+src\afterworlds\ingestion\mechanical\reference_resolution.py     187    160    14%   139-206, 211-234, 241, 278-339, 390-569, 598-616, 658-674, 685-688
+src\afterworlds\ingestion\mechanical\report.py                    15      3    80%   76-118, 123
+src\afterworlds\ingestion\mechanical\representation.py          3110   1498    52%   571, 2388-2400, 4668, 4672-4674, 4678-4680, 4684-4686, 4690-4692, 4701-4707, 4730-4734, 4743-4753, 4781-4824, 4828, 4832-4861, 4865-4881, 4885-4907, 4911-4924, 4950-5033, 5046-5056, 5060-5094, 5098-5119, 5123-5155, 5171-5186, 5194, 5198-5211, 5225-5227, 5255-5271, 5292-5299, 5325-5327, 5338-5340, 5374-5376, 5396, 5409-5421, 5425, 5429-5442, 5446, 5457-5476, 5480, 5490-5544, 5554-5573, 5577-5588, 5592-5611, 5615-5634, 5638-5651, 5655-5676, 5683-5696, 5700-5715, 5719-5746, 5750-5786, 5790-5809, 5826-5853, 5857-5899, 5903, 5910-5917, 5921-5944, 5948, 5952-5973, 5977-5988, 5992-6013, 6046-6082, 6086, 6090-6105, 6109, 6116-6126, 6130, 6137-6148, 6152-6160, 6164, 6171, 6175-6211, 6215-6244, 6248-6301, 6305-6313, 6317-6349, 6353-6371, 6375, 6382, 6386-6393, 6397, 6404-6413, 6419-6437, 6443, 6447, 6454, 6461, 6470-6484, 6488, 6492-6505, 6509-6527, 6531, 6535, 6539-6557, 6561, 6568, 6581, 6592, 6599, 6607, 6614, 6626, 6633-6654, 6658, 6662, 6671, 6679, 6686, 6774-6779, 6791-6800, 6807-6809, 6813-6814, 6820-6824, 6828-6856, 6876-7033, 7039-7046, 7054-7061, 7069-7078, 7088-7103, 7121-7130, 7158-7167, 7171-7172, 7176-7185, 7191-7199, 7210-7255, 7266-7276, 7281-7296, 7300-7308, 7312-7321, 7329-7337, 7341-7353, 7362-7372, 7381-7390, 7419-7427, 7435-7443, 7451-7461, 7471-7481, 7492-7499, 7508-7519, 7528-7539, 7548-7552, 7559-7560, 7564-7571, 7577-7578, 7582-7591, 7600-7608, 7616-7627, 7638-7648, 7658-7666, 7674-7678, 7682-7691, 7698-7705, 7711-7718, 7725-7732, 7744-7751, 7755-7759, 7766-7767, 7771-7781, 7800-7817, 7828-7838, 7853, 7864-7874, 7889-7893, 7902-7910, 7920-7924, 7930-7938, 7946-7954, 7962-7971, 7980-7991, 7998-8002, 8006-8013, 8020-8027, 8033-8041, 8051-8058, 8066-8070, 8074-8081, 8087-8094, 8101-8108, 8116-8123, 8129-8133, 8137-8147, 8159-8166, 8170-8174, 8178-8182, 8186-8195, 8201-8208, 8217-8225, 8233-8242, 8253-8260, 8267-8275, 8283-8290, 8297-8304, 8312-8319, 8326-8338, 8346-8350, 8354-8361, 8370-8378, 8386-8393, 8402-8406, 8779, 8791, 8826, 8965-8996, 9041, 9045, 9049, 9053, 9057, 9374-9376, 9422-9424, 9432-9543, 9553, 10472, 10491-10494, 10515, 10536, 10538, 10540, 10684-10690, 10786-10794, 10805, 10989, 10994, 11009-11010, 11031, 11050, 11064-11075, 11080, 11100-11109, 11121, 11221-11222, 11234-11236, 11247-11314, 11340, 11359, 11372, 11380, 11404-11431, 11459-11480, 11493, 11525-11527, 11533-11549, 11580-11608, 11646-11687, 11717-11778, 11830-11860, 11897-12031, 12042-12047, 12074-12115, 12120, 12131, 12135-12150, 12192-12194, 12215-12268, 12862-12961, 12982-13005, 13016-13054
+src\afterworlds\ingestion\mechanical\schema_lift.py              196    120    39%   171-178, 754-757, 783-802, 815, 833, 869-877, 899-921, 973-1038, 1108-1180, 1193-1197, 1227-1231, 1292-1321
+src\afterworlds\ingestion\mechanical\validation.py               394    373     5%   85-112, 121, 125-285, 303-332, 340-416, 437-507, 522-638, 657-687, 717-773, 819-911, 958-1006, 1027-1037
+src\afterworlds\ingestion\source\__init__.py                       1      0   100%
+src\afterworlds\ingestion\source\community_compare.py            120     62    48%   189-194, 204, 214, 226, 256-268, 272-273, 285-286, 306, 310, 317-321, 431-433, 461-462, 488-530, 674-677, 690-694
+src\afterworlds\ingestion\source\community_tokens.py             207    158    24%   99-100, 121-130, 135-142, 147-157, 162, 174-195, 214, 218-223, 237-261, 277-299, 309-324, 335-388, 412, 417, 439-454
+src\afterworlds\ingestion\srd_parser.py                           86     86     0%   47-265
+src\afterworlds\ingestion\vector_writer.py                        51     51     0%   25-202
+src\afterworlds\main.py                                            8      8     0%   7-21
+src\afterworlds\models\__init__.py                                11      0   100%
+src\afterworlds\models\character_sheet.py                         63     10    84%   69-75, 93-95, 174-179
+src\afterworlds\models\context.py                                131     92    30%   43-108, 112-127, 137-154, 177-180, 207, 211-213, 255-266, 294-303, 336-341
+src\afterworlds\models\enums.py                                  217      1    99%   49
+src\afterworlds\models\extractor.py                               44     44     0%   3-74
+src\afterworlds\models\identity.py                                 4      4     0%   7-15
+src\afterworlds\models\intent_classification.py                   23      7    70%   63-75
+src\afterworlds\models\node.py                                    65      3    95%   155-157
+src\afterworlds\models\retrieval.py                               55      7    87%   40, 51, 69, 88, 108, 135-136
+src\afterworlds\models\rolling_summary.py                         13     13     0%   16-44
+src\afterworlds\models\rpg.py                                    101      0   100%
+src\afterworlds\models\rules_package.py                          203     19    91%   259-266, 308-315, 476-483, 488-497
+src\afterworlds\models\session.py                                115     24    79%   110-122, 220-222, 227-230, 234-236, 255-257, 261-266
+src\afterworlds\models\state.py                                   32      0   100%
+src\afterworlds\models\story.py                                   23      0   100%
+src\afterworlds\models\story_bible.py                            111      0   100%
+src\afterworlds\models\turn.py                                    22      3    86%   54-56
+src\afterworlds\modes\__init__.py                                  0      0   100%
+src\afterworlds\modes\personas\__init__.py                         0      0   100%
+src\afterworlds\modes\personas\registry.py                        65     65     0%   11-146
+src\afterworlds\persistence\__init__.py                            0      0   100%
+src\afterworlds\persistence\crud\__init__.py                       0      0   100%
+src\afterworlds\persistence\crud\character_sheet.py               91     91     0%   3-259
+src\afterworlds\persistence\crud\identity.py                      13     13     0%   3-27
+src\afterworlds\persistence\crud\node.py                         115    115     0%   3-303
+src\afterworlds\persistence\crud\retrieval.py                     42     42     0%   8-164
+src\afterworlds\persistence\crud\session_state.py                248    248     0%   3-742
+src\afterworlds\persistence\crud\state.py                         96     96     0%   3-249
+src\afterworlds\persistence\crud\story.py                         87     87     0%   3-188
+src\afterworlds\persistence\database.py                           21     12    43%   16-19, 29-31, 36, 70-73
+src\afterworlds\persistence\orm\__init__.py                        0      0   100%
+src\afterworlds\persistence\orm\base.py                            2      0   100%
+src\afterworlds\persistence\orm\character_sheet.py                41     41     0%   3-101
+src\afterworlds\persistence\orm\corpus.py                         86      0   100%
+src\afterworlds\persistence\orm\identity.py                        8      8     0%   3-21
+src\afterworlds\persistence\orm\mechanical.py                    184      0   100%
+src\afterworlds\persistence\orm\node.py                           29     29     0%   3-65
+src\afterworlds\persistence\orm\retrieval.py                      14     14     0%   7-61
+src\afterworlds\persistence\orm\rolling_summary.py                15     15     0%   25-59
+src\afterworlds\persistence\orm\rpg.py                            48     48     0%   6-123
+src\afterworlds\persistence\orm\rules_authority.py                51      0   100%
+src\afterworlds\persistence\orm\rules_package.py                  84      0   100%
+src\afterworlds\persistence\orm\session_state.py                  67     67     0%   3-158
+src\afterworlds\persistence\orm\state.py                          30     30     0%   3-76
+src\afterworlds\persistence\orm\story.py                          29     29     0%   3-76
+src\afterworlds\persistence\orm\story_bible.py                   102    102     0%   17-259
+src\afterworlds\pipeline\__init__.py                               0      0   100%
+src\afterworlds\pipeline\_refusal.py                              29     29     0%   16-111
+src\afterworlds\pipeline\_stable_prefix_renderer.py               31     31     0%   37-161
+src\afterworlds\pipeline\_tool_use.py                             16     16     0%   7-55
+src\afterworlds\pipeline\branching\__init__.py                     0      0   100%
+src\afterworlds\pipeline\branching\caller.py                       5      5     0%   22-97
+src\afterworlds\pipeline\branching\config.py                      21     21     0%   3-67
+src\afterworlds\pipeline\branching\models.py                      97     97     0%   3-285
+src\afterworlds\pipeline\branching\ooc_config_extractor.py        34     34     0%   23-260
+src\afterworlds\pipeline\branching\selection.py                   76     76     0%   25-215
+src\afterworlds\pipeline\branching\service.py                     92     92     0%   31-438
+src\afterworlds\pipeline\branching\visible_state.py               22     22     0%   13-85
+src\afterworlds\pipeline\contradiction\__init__.py                 0      0   100%
+src\afterworlds\pipeline\contradiction\caller.py                  37     37     0%   9-180
+src\afterworlds\pipeline\contradiction\config.py                  23     23     0%   3-45
+src\afterworlds\pipeline\contradiction\models.py                  39     39     0%   3-66
+src\afterworlds\pipeline\contradiction\service.py                 68     68     0%   24-317
+src\afterworlds\pipeline\extractor\__init__.py                     0      0   100%
+src\afterworlds\pipeline\extractor\caller.py                      39     39     0%   8-315
+src\afterworlds\pipeline\extractor\config.py                      22     22     0%   7-65
+src\afterworlds\pipeline\extractor\models.py                      14     14     0%   3-35
+src\afterworlds\pipeline\extractor\service.py                     69     69     0%   23-293
+src\afterworlds\pipeline\orchestrator\__init__.py                  3      3     0%   3-12
+src\afterworlds\pipeline\orchestrator\models.py                  185    185     0%   19-532
+src\afterworlds\pipeline\orchestrator\service.py                1003   1003     0%   38-4269
+src\afterworlds\pipeline\planner\__init__.py                       4      4     0%   3-11
+src\afterworlds\pipeline\planner\caller.py                        37     37     0%   9-166
+src\afterworlds\pipeline\planner\config.py                        23     23     0%   3-41
+src\afterworlds\pipeline\planner\models.py                        39     39     0%   3-76
+src\afterworlds\pipeline\planner\service.py                       53     53     0%   29-229
+src\afterworlds\pipeline\provider\__init__.py                     11     11     0%   3-53
+src\afterworlds\pipeline\provider\_catalog.py                     52     52     0%   11-138
+src\afterworlds\pipeline\provider\_errors.py                       8      8     0%   8-46
+src\afterworlds\pipeline\provider\_models.py                      48     48     0%   8-113
+src\afterworlds\pipeline\provider\_protocol.py                     9      9     0%   3-45
+src\afterworlds\pipeline\provider\_readiness.py                   61     61     0%   20-187
+src\afterworlds\pipeline\provider\_refusal_log.py                 21     21     0%   13-62
+src\afterworlds\pipeline\provider\_registry.py                    63     63     0%   57-307
+src\afterworlds\pipeline\provider\_resolver.py                   131    131     0%   31-489
+src\afterworlds\pipeline\provider\_route_config.py                18     18     0%   9-48
+src\afterworlds\pipeline\provider\_routing.py                     63     63     0%   11-218
+src\afterworlds\pipeline\provider\adapters\__init__.py             5      5     0%   3-14
+src\afterworlds\pipeline\provider\adapters\_anthropic.py         157    157     0%   25-466
+src\afterworlds\pipeline\provider\adapters\_fallback.py           50     50     0%   22-171
+src\afterworlds\pipeline\provider\adapters\_openrouter.py        143    143     0%   23-337
+src\afterworlds\pipeline\provider\adapters\_scoped.py             16     16     0%   7-46
+src\afterworlds\pipeline\provider\credentials\__init__.py          4      4     0%   3-19
+src\afterworlds\pipeline\provider\credentials\_metadata.py        27     27     0%   7-58
+src\afterworlds\pipeline\provider\credentials\_store.py           50     50     0%   18-148
+src\afterworlds\pipeline\provider\credentials\_validator.py       75     75     0%   9-199
+src\afterworlds\pipeline\provider\normalization.py                14     14     0%   10-41
+src\afterworlds\pipeline\retrieval\__init__.py                     0      0   100%
+src\afterworlds\pipeline\retrieval\backfill.py                    46     46     0%   11-142
+src\afterworlds\pipeline\retrieval\baseline_reset.py              23     23     0%   20-76
+src\afterworlds\pipeline\retrieval\chroma_provider.py             35     35     0%   11-74
+src\afterworlds\pipeline\retrieval\chunking.py                    20     20     0%   8-37
+src\afterworlds\pipeline\retrieval\client.py                      10      3    70%   30, 44, 54
+src\afterworlds\pipeline\retrieval\collections.py                 44     28    36%   49-77, 105-115, 145-148, 163-164, 182-192, 215-224
+src\afterworlds\pipeline\retrieval\config.py                      20      1    95%   92
+src\afterworlds\pipeline\retrieval\corpus_windows.py              63     43    32%   89-92, 97-114, 132-152, 176-177
+src\afterworlds\pipeline\retrieval\eligibility.py                 60     60     0%   12-214
+src\afterworlds\pipeline\retrieval\embedding.py                   28     13    54%   55, 58-64, 67, 70, 73, 96-103, 114
+src\afterworlds\pipeline\retrieval\query_builder.py               30     30     0%   21-104
+src\afterworlds\pipeline\retrieval\rules_corpus_service.py        80     59    26%   52-54, 93-182, 207-214, 246-291
+src\afterworlds\pipeline\retrieval\scoring.py                      6      6     0%   10-28
+src\afterworlds\pipeline\retrieval\write_service.py               62     62     0%   14-181
+src\afterworlds\pipeline\rpg\__init__.py                           0      0   100%
+src\afterworlds\pipeline\rpg\adapter.py                          153    153     0%   18-516
+src\afterworlds\pipeline\rpg\caller.py                             5      5     0%   10-118
+src\afterworlds\pipeline\rpg\config.py                            24     24     0%   3-49
+src\afterworlds\pipeline\rpg\dice.py                              40     40     0%   9-124
+src\afterworlds\pipeline\rpg\models.py                            17     17     0%   3-53
+src\afterworlds\pipeline\rpg\pending.py                           33     33     0%   17-146
+src\afterworlds\pipeline\rpg\service.py                           99     99     0%   36-436
+src\afterworlds\pipeline\rpg\visible_state.py                      9      9     0%   17-54
+src\afterworlds\pipeline\safety\__init__.py                        0      0   100%
+src\afterworlds\pipeline\safety\caller.py                         37     37     0%   9-169
+src\afterworlds\pipeline\safety\config.py                         22     22     0%   3-43
+src\afterworlds\pipeline\safety\models.py                         55     55     0%   17-124
+src\afterworlds\pipeline\safety\service.py                        51     51     0%   34-252
+src\afterworlds\pipeline\writer\__init__.py                        0      0   100%
+src\afterworlds\pipeline\writer\config.py                         22     22     0%   14-79
+src\afterworlds\pipeline\writer\models.py                         15     15     0%   3-46
+src\afterworlds\pipeline\writer\service.py                        75     75     0%   26-293
+src\afterworlds\pipeline\writing\__init__.py                       0      0   100%
+src\afterworlds\pipeline\writing\context.py                      112    112     0%   13-220
+src\afterworlds\pipeline\writing\models.py                       150    150     0%   7-332
+src\afterworlds\pipeline\writing\ooc_config_extractor.py          34     34     0%   21-462
+src\afterworlds\pipeline\writing\visible_state.py                 28     28     0%   8-109
+src\afterworlds\quarantine.py                                     35     20    43%   114-116, 128-134, 151-166, 182-189
+src\afterworlds\services\__init__.py                               0      0   100%
+src\afterworlds\services\context_builder.py                       83     83     0%   28-535
+src\afterworlds\services\intent_classifier.py                     33     33     0%   20-276
+src\afterworlds\services\rolling_summary.py                       59     59     0%   32-346
+src\afterworlds\services\rules_authority\__init__.py              10      0   100%
+src\afterworlds\services\rules_authority\application.py          445    329    26%   109-111, 359-367, 380-383, 418-530, 564-602, 648-651, 664-674, 687, 710-739, 766-807, 840-897, 943-970, 975-979, 998-1006, 1061-1135, 1150-1160, 1189-1236, 1251, 1306-1327, 1375-1410, 1422-1700
+src\afterworlds\services\rules_authority\binding.py               96     62    35%   74, 126-187, 195, 232-353
+src\afterworlds\services\rules_authority\outcomes.py              13      0   100%
+src\afterworlds\services\rules_authority\override_set.py          69     32    54%   118, 146, 150, 173-204, 224-261
+src\afterworlds\services\rules_authority\patches.py              299    213    29%   372-388, 403-407, 411-425, 439-545, 550-568, 591-717, 737-754, 763-779, 785-786, 790-813, 817-818, 826-827, 831-832, 838-839, 843-846, 850-851, 855-856, 884-901, 910-966, 978-1013
+src\afterworlds\services\rules_authority\retention.py             54     38    30%   106, 134-200, 204-225, 269-319
+src\afterworlds\services\rules_authority\service.py              237    186    22%   140-144, 163-179, 191, 198-199, 215-260, 277-281, 301-304, 312-333, 344-347, 360-364, 400-531, 552-571, 601-621, 648-693, 722-793
+src\afterworlds\services\rules_authority\targets.py               54     33    39%   101-134, 140-149, 169-177
+src\afterworlds\services\rules_authority\views.py                 93     56    40%   159, 188-193, 202, 233-326
+src\afterworlds\services\rules_package.py                        149    149     0%   23-640
+src\afterworlds\services\story_bible.py                          339    339     0%   18-1413
+--------------------------------------------------------------------------------------------
+TOTAL                                                          20672  15318    26%
+FAIL Required test coverage of 80% not reached. Total coverage: 25.90%
+=========================== short test summary info ===========================
+FAILED tests/ingestion/mechanical/test_packaging.py::test_the_production_oracle_directory_ships_only_reviewed_content
+1 failed in 6.28s
+end 2026-10-07T05:54:16.397858+00:00 exit 1

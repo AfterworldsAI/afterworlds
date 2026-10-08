@@ -1,0 +1,15 @@
+start 2026-10-07T03:19:26.758595+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/_sp/release-order-candidate/reader_proof.py .claude/_sp/release-order-candidate/candidate/srd-5-2-1-corpus-8781d4e0-a3b.json .claude/_sp/release-order-candidate/candidate/reader-proof.json
+input 20b7ce5a7e2a817dea576ba05fef0e762aa60ace299bdffdec4de2e7f2533ec3  .claude/_sp/release-order-candidate/reader_proof.py
+input 8a6a9a9c305f41207190c0deb55875a027019116ce3f825a6a0425a3a115b4bf  .claude/_sp/release-order-candidate/candidate/srd-5-2-1-corpus-8781d4e0-a3b.json
+persisted old projection 498a9a0a-c693-53e5-8bcd-32143034fbe0 in 6s
+persisted new projection 8d8cb42c-aefe-559c-9d85-6ba975c038af in 6s
+same record keys in the same order True
+SEMANTIC DIFFERENCE character_origins.acolyte
+SEMANTIC DIFFERENCE character_origins.criminal
+SEMANTIC DIFFERENCE character_origins.sage
+SEMANTIC DIFFERENCE character_origins.soldier
+SEMANTIC DIFFERENCE character_creation.level_advancement
+SEMANTIC DIFFERENCE character_creation.multiclassing
+SEMANTIC DIFFERENCE classes.barbarian.as_a_multiclass_character
+end 2026-10-07T03:21:56.114858+00:00 exit 4294967295

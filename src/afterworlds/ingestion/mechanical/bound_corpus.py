@@ -31,7 +31,7 @@ containment test below meaningful rather than a coincidence of integers.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from functools import cached_property
 
@@ -40,14 +40,23 @@ from sqlalchemy.orm import Session
 
 from afterworlds.ingestion.corpus.models import Disposition
 from afterworlds.ingestion.corpus.operational import OperationalCorpusSnapshot
-from afterworlds.persistence.orm.corpus import CorpusProjectionORM, LedgerLeafORM
+from afterworlds.ingestion.mechanical.models import ReleaseBinding
+from afterworlds.persistence.orm.corpus import (
+    CorpusProjectionORM,
+    CorpusReleaseORM,
+    LedgerContainerORM,
+    LedgerLeafORM,
+)
 from afterworlds.persistence.orm.rules_package import RuleChunkORM
+from afterworlds.quarantine import refuse_quarantined
 
 __all__ = [
     "BoundCorpusSnapshot",
     "ChunkCoverage",
     "bound_corpus_from_operational",
+    "leaves_under",
     "load_bound_corpus",
+    "published_release_binding",
 ]
 
 
@@ -167,6 +176,33 @@ class BoundCorpusSnapshot:
         run_start = runs[0][0]
         return char_start - run_start, char_end - run_start
 
+    def unique_chunk_range(
+        self, leaf_id: str, char_start: int, char_end: int
+    ) -> tuple[str, int, int] | None:
+        """The one chunk a leaf subspan can be bound to, in that chunk's offsets.
+
+        The binding step every authoring batch repeats: of the chunks covering
+        *leaf_id*, exactly one may translate the span through
+        :meth:`chunk_relative_range`. ``None`` -- fail closed -- when none does,
+        or when several do, because choosing between them would be a guess
+        about which chunk governs.
+        """
+        hits = {
+            edge.chunk_id: rng
+            for edge in self.chunk_coverage
+            if edge.leaf_id == leaf_id
+            and (
+                rng := self.chunk_relative_range(
+                    edge.chunk_id, leaf_id, char_start, char_end
+                )
+            )
+            is not None
+        }
+        if len(hits) != 1:
+            return None
+        ((chunk_id, (start, end)),) = hits.items()
+        return chunk_id, start, end
+
 
 def bound_corpus_from_operational(
     snapshot: OperationalCorpusSnapshot,
@@ -196,16 +232,14 @@ def load_bound_corpus(
     session: Session, package_uuid: str, release_version: str
 ) -> BoundCorpusSnapshot:
     """Resolve the snapshot from persisted 5c state."""
+    refuse_quarantined(
+        "bound 5c corpus load",
+        package_uuid=package_uuid,
+        release_version=release_version,
+    )
     leaf_lengths = {
         row.leaf_id: len(row.content)
-        for row in session.execute(
-            select(LedgerLeafORM).where(
-                LedgerLeafORM.package_uuid == package_uuid,
-                LedgerLeafORM.disposition == Disposition.REPRESENTED.value,
-            )
-        )
-        .scalars()
-        .all()
+        for row in _represented_leaves(session, package_uuid)
     }
 
     persisted = {
@@ -248,4 +282,126 @@ def load_bound_corpus(
         release_version=release_version,
         leaf_lengths=leaf_lengths,
         chunk_coverage=coverage,
+    )
+
+
+def published_release_binding(session: Session) -> ReleaseBinding:
+    """The six coordinates of the one release *session*'s store published.
+
+    Read back from ``rp_corpus_releases`` rather than carried in from a build,
+    because what 5d binds to is what 5c persisted. Refuses a store holding no
+    release or several, and a release whose corpus digest was never recorded.
+    """
+    row = session.execute(select(CorpusReleaseORM)).scalars().one()
+    if row.persisted_corpus_digest is None:
+        raise ValueError(
+            f"release {row.package_uuid} / {row.release_version} records no "
+            "persisted corpus digest"
+        )
+    return ReleaseBinding(
+        package_uuid=row.package_uuid,
+        release_version=row.release_version,
+        authoritative_source_hash=row.authoritative_source_hash,
+        transform_config_hash=row.transform_config_hash,
+        bundle_root_hash=row.bundle_root_hash,
+        persisted_corpus_digest=row.persisted_corpus_digest,
+    )
+
+
+def _represented_leaves(
+    session: Session, package_uuid: str
+) -> tuple[LedgerLeafORM, ...]:
+    """The ``REPRESENTED`` ledger leaves of one package, in stored order.
+
+    The one read of the accounting population, so the snapshot and
+    :func:`leaves_under` cannot come to differ about what 5c represents -- a
+    second copy of this predicate is exactly how a selector starts offering a
+    leaf the binding seam does not admit.
+    """
+    return tuple(
+        session.execute(
+            select(LedgerLeafORM).where(
+                LedgerLeafORM.package_uuid == package_uuid,
+                LedgerLeafORM.disposition == Disposition.REPRESENTED.value,
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+
+def leaves_under(
+    session: Session,
+    package_uuid: str,
+    release_version: str,
+    labels: Sequence[str],
+) -> tuple[str, ...]:
+    """Represented leaf ids under every container path ending in *labels*.
+
+    Selection, not binding. A reviewer names a section the way the source
+    prints it -- ``("Blinded [Condition]",)``, or with ancestors to
+    disambiguate -- and this resolves that to the leaf ids the rest of 5d
+    speaks in. It is deliberately *not* a field of
+    :class:`BoundCorpusSnapshot`: the snapshot is a coordinate system, and
+    giving it container paths would make every validator a consumer of 5c's
+    heading structure rather than of its offsets.
+
+    *labels* matches as a **suffix** of a container's own label path, so a bare
+    leaf label works and an ambiguous one can be qualified by prepending its
+    ancestors. Matching a suffix rather than a full path is what keeps a
+    selection honest about 5c's structure instead of assuming a uniform depth:
+    the source's own heading levels are preserved faithfully, irregularities
+    included, and a caller that guesses the depth would silently select
+    nothing.
+
+    Returns sorted leaf ids, empty when nothing matches. Reading 5c structure
+    is not authoring a rule: nothing here interprets, edits, or reconstructs
+    the source, and the leaf ids it returns are only an argument to the
+    proposal a human still has to review.
+    """
+    refuse_quarantined(
+        "bound 5c section selection",
+        package_uuid=package_uuid,
+        release_version=release_version,
+    )
+    if not labels:
+        raise ValueError("a section selection needs at least one container label")
+
+    containers = (
+        session.execute(
+            select(LedgerContainerORM).where(
+                LedgerContainerORM.package_uuid == package_uuid
+            )
+        )
+        .scalars()
+        .all()
+    )
+    label_of = {c.container_id: c.label for c in containers}
+    parent_of = {c.container_id: c.parent_id for c in containers}
+
+    def label_path(container_id: str) -> tuple[str, ...]:
+        path: list[str] = []
+        seen: set[str] = set()
+        current: str | None = container_id
+        # ``seen`` guards a cycle in stored parent links rather than trusting
+        # the rows to be acyclic; a malformed ledger should select nothing, not
+        # hang the authoring path.
+        while current is not None and current in label_of and current not in seen:
+            seen.add(current)
+            path.append(label_of[current])
+            current = parent_of.get(current)
+        return tuple(reversed(path))
+
+    wanted = tuple(labels)
+    matched = frozenset(
+        cid for cid in label_of if label_path(cid)[-len(wanted) :] == wanted
+    )
+    if not matched:
+        return ()
+    return tuple(
+        sorted(
+            row.leaf_id
+            for row in _represented_leaves(session, package_uuid)
+            if matched.intersection(row.container_path)
+        )
     )

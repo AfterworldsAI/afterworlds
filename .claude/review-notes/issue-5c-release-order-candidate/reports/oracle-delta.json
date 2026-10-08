@@ -1,0 +1,476 @@
+{
+ "live": {
+  "path": "src\\afterworlds\\ingestion\\mechanical\\oracles\\srd-5-2-1-corpus-3fe24ff6-4e3.json",
+  "sha256": "e6f5f36aa3af13807bbff721797d971dcf0d8e588a97483c7d769cf88cbd1308"
+ },
+ "candidate": {
+  "path": ".claude\\_sp\\release-order-candidate\\candidate\\srd-5-2-1-corpus-8781d4e0-a3b.json",
+  "sha256": "8a6a9a9c305f41207190c0deb55875a027019116ce3f825a6a0425a3a115b4bf"
+ },
+ "normalized_identities": {
+  "binding": 7435,
+  "chunk": 32800
+ },
+ "difference_patterns": {
+  "$.acceptance.batches[*].proposal_identity": {
+   "count": 24,
+   "samples": [
+    [
+     "$.acceptance.batches[0].proposal_identity",
+     "86d51bf772cb977aded2b43beeee6c34f3bd91816b9af0d05bee8c5a904401d2",
+     "51d72a0e059958dd33b2912e14c628aad6c2a9c02f1af8f070b7d3dcd33cf014"
+    ],
+    [
+     "$.acceptance.batches[1].proposal_identity",
+     "228726d29769fcdb88e874c79b1a0685c8e1b18c59ce538011d8978d57645e38",
+     "9241c2b876b8cee294948463d6fde415b0741e32b91fbb4301dc50e8d75f8e69"
+    ],
+    [
+     "$.acceptance.batches[2].proposal_identity",
+     "cee3b640f955a34ed627fb720b8f9ec121d605dda6f792ba469ebe7ac429a5be",
+     "d4c62a9c6a84ec60f5a483080c5c984f4175a9ec3cc1a4eb920acbe138fec323"
+    ]
+   ]
+  },
+  "$.acceptance.batches[*].rule": {
+   "count": 24,
+   "samples": [
+    [
+     "$.acceptance.batches[0].rule",
+     "I accept both exact items in the corrected Monsters packet and approve their reference resolutions, retaining 317 reference findings and the partial-publication",
+     "SIMULATION ONLY: release-order replacement candidate, mechanical rebind of accepted batch actions-pilot; not an Owner acceptance"
+    ],
+    [
+     "$.acceptance.batches[1].rule",
+     "I accept the exact Animals catalogue replacement proposal and its four reference resolutions, retaining 64 reference findings, 28 uncovered leaves, and the part",
+     "SIMULATION ONLY: release-order replacement candidate, mechanical rebind of accepted batch animals; not an Owner acceptance"
+    ],
+    [
+     "$.acceptance.batches[2].rule",
+     "I accept the exact Character Creation catalogue proposal and its two reference resolutions, retaining 62 reference findings, zero uncovered leaves, and the part",
+     "SIMULATION ONLY: release-order replacement candidate, mechanical rebind of accepted batch character-creation-catalogue; not an Owner acceptance"
+    ]
+   ]
+  },
+  "$.acceptance.records[*].accepted_at": {
+   "count": 10493,
+   "samples": [
+    [
+     "$.acceptance.records[0].accepted_at",
+     "2026-09-28T09:39:56Z",
+     "2026-10-06T00:00:00Z"
+    ],
+    [
+     "$.acceptance.records[1].accepted_at",
+     "2026-09-28T09:39:56Z",
+     "2026-10-06T00:00:00Z"
+    ],
+    [
+     "$.acceptance.records[2].accepted_at",
+     "2026-09-28T09:39:56Z",
+     "2026-10-06T00:00:00Z"
+    ]
+   ]
+  },
+  "$.acceptance.records[*].batch_id": {
+   "count": 7771,
+   "samples": [
+    [
+     "$.acceptance.records[75].batch_id",
+     "class-option-catalogues",
+     "animals"
+    ],
+    [
+     "$.acceptance.records[76].batch_id",
+     "class-option-catalogues",
+     "animals"
+    ],
+    [
+     "$.acceptance.records[77].batch_id",
+     "class-option-catalogues",
+     "animals"
+    ]
+   ]
+  },
+  "$.acceptance.records[*].reviewer": {
+   "count": 10493,
+   "samples": [
+    [
+     "$.acceptance.records[0].reviewer",
+     "Ravenlok (Owner)",
+     "SIMULATION - not an Owner approval"
+    ],
+    [
+     "$.acceptance.records[1].reviewer",
+     "Ravenlok (Owner)",
+     "SIMULATION - not an Owner approval"
+    ],
+    [
+     "$.acceptance.records[2].reviewer",
+     "Ravenlok (Owner)",
+     "SIMULATION - not an Owner approval"
+    ]
+   ]
+  },
+  "$.acceptance.records[*].span_id": {
+   "count": 10418,
+   "samples": [
+    [
+     "$.acceptance.records[75].span_id",
+     "00ec801f-521d-53f0-8584-94478aade58e",
+     "0021cc9b-18c0-5691-88e1-fb5a95850a56"
+    ],
+    [
+     "$.acceptance.records[76].span_id",
+     "019a2890-4093-5c7a-8316-64ed98584042",
+     "00707dc7-7024-595d-ae98-7b111aa75c37"
+    ],
+    [
+     "$.acceptance.records[77].span_id",
+     "0593ee5a-ca45-5617-807c-1692ba6e71ea",
+     "00e51f63-b8f9-55ac-b9f9-2e9190e9a64d"
+    ]
+   ]
+  },
+  "$.acceptance.reference_resolution_records[*].authorization_reference": {
+   "count": 1486,
+   "samples": [
+    [
+     "$.acceptance.reference_resolution_records[0].authorization_reference",
+     "Owner decision on issue-5d-reference-alternatives-review.md (SHA-256 0a2ca621ec8ad36a2ca29cd7666b96caeacd8df9089d14add77d1f1ffd8b5166; manifest owner-directed-r",
+     "SIMULATION ONLY: release-order replacement candidate, mechanical rebind of resolution step 39; not an Owner authorization"
+    ],
+    [
+     "$.acceptance.reference_resolution_records[1].authorization_reference",
+     "Owner decision on issue-5d-reference-alternatives-review.md (SHA-256 0a2ca621ec8ad36a2ca29cd7666b96caeacd8df9089d14add77d1f1ffd8b5166; manifest owner-directed-r",
+     "SIMULATION ONLY: release-order replacement candidate, mechanical rebind of resolution step 39; not an Owner authorization"
+    ],
+    [
+     "$.acceptance.reference_resolution_records[2].authorization_reference",
+     "Owner decision on issue-5d-reference-alternatives-review.md (SHA-256 0a2ca621ec8ad36a2ca29cd7666b96caeacd8df9089d14add77d1f1ffd8b5166; manifest owner-directed-r",
+     "SIMULATION ONLY: release-order replacement candidate, mechanical rebind of resolution step 39; not an Owner authorization"
+    ]
+   ]
+  },
+  "$.acceptance.reference_resolution_records[*].authorized_by": {
+   "count": 1486,
+   "samples": [
+    [
+     "$.acceptance.reference_resolution_records[0].authorized_by",
+     "Ravenlok (Owner)",
+     "SIMULATION - not an Owner approval"
+    ],
+    [
+     "$.acceptance.reference_resolution_records[1].authorized_by",
+     "Ravenlok (Owner)",
+     "SIMULATION - not an Owner approval"
+    ],
+    [
+     "$.acceptance.reference_resolution_records[2].authorized_by",
+     "Ravenlok (Owner)",
+     "SIMULATION - not an Owner approval"
+    ]
+   ]
+  },
+  "$.acceptance.reference_resolution_records[*].resolved_at": {
+   "count": 1486,
+   "samples": [
+    [
+     "$.acceptance.reference_resolution_records[0].resolved_at",
+     "2026-10-01T19:01:31Z",
+     "2026-10-06T00:00:00Z"
+    ],
+    [
+     "$.acceptance.reference_resolution_records[1].resolved_at",
+     "2026-10-01T19:01:31Z",
+     "2026-10-06T00:00:00Z"
+    ],
+    [
+     "$.acceptance.reference_resolution_records[2].resolved_at",
+     "2026-10-01T19:01:31Z",
+     "2026-10-06T00:00:00Z"
+    ]
+   ]
+  },
+  "$.acceptance.reference_resolution_records[*].reviewer": {
+   "count": 1486,
+   "samples": [
+    [
+     "$.acceptance.reference_resolution_records[0].reviewer",
+     "Ravenlok (Owner)",
+     "SIMULATION - not an Owner approval"
+    ],
+    [
+     "$.acceptance.reference_resolution_records[1].reviewer",
+     "Ravenlok (Owner)",
+     "SIMULATION - not an Owner approval"
+    ],
+    [
+     "$.acceptance.reference_resolution_records[2].reviewer",
+     "Ravenlok (Owner)",
+     "SIMULATION - not an Owner approval"
+    ]
+   ]
+  },
+  "$.acceptance.review_unit_records[*].accepted_at": {
+   "count": 1476,
+   "samples": [
+    [
+     "$.acceptance.review_unit_records[0].accepted_at",
+     "2026-09-28T09:39:56Z",
+     "2026-10-06T00:00:00Z"
+    ],
+    [
+     "$.acceptance.review_unit_records[1].accepted_at",
+     "2026-09-28T09:39:56Z",
+     "2026-10-06T00:00:00Z"
+    ],
+    [
+     "$.acceptance.review_unit_records[2].accepted_at",
+     "2026-09-28T09:39:56Z",
+     "2026-10-06T00:00:00Z"
+    ]
+   ]
+  },
+  "$.acceptance.review_unit_records[*].batch_id": {
+   "count": 1260,
+   "samples": [
+    [
+     "$.acceptance.review_unit_records[13].batch_id",
+     "class-option-catalogues",
+     "animals"
+    ],
+    [
+     "$.acceptance.review_unit_records[14].batch_id",
+     "class-option-catalogues",
+     "animals"
+    ],
+    [
+     "$.acceptance.review_unit_records[15].batch_id",
+     "class-option-catalogues",
+     "animals"
+    ]
+   ]
+  },
+  "$.acceptance.review_unit_records[*].reviewer": {
+   "count": 1476,
+   "samples": [
+    [
+     "$.acceptance.review_unit_records[0].reviewer",
+     "Ravenlok (Owner)",
+     "SIMULATION - not an Owner approval"
+    ],
+    [
+     "$.acceptance.review_unit_records[1].reviewer",
+     "Ravenlok (Owner)",
+     "SIMULATION - not an Owner approval"
+    ],
+    [
+     "$.acceptance.review_unit_records[2].reviewer",
+     "Ravenlok (Owner)",
+     "SIMULATION - not an Owner approval"
+    ]
+   ]
+  },
+  "$.acceptance.review_unit_records[*].unit_id": {
+   "count": 1463,
+   "samples": [
+    [
+     "$.acceptance.review_unit_records[13].unit_id",
+     "class-option-catalogues/agonizing_blast",
+     "animals/allosaurus"
+    ],
+    [
+     "$.acceptance.review_unit_records[14].unit_id",
+     "class-option-catalogues/armor_of_shadows",
+     "animals/animals"
+    ],
+    [
+     "$.acceptance.review_unit_records[15].unit_id",
+     "class-option-catalogues/ascendant_step",
+     "animals/ankylosaurus"
+    ]
+   ]
+  },
+  "$.acceptance.schema_anchors[*].proposal_identity": {
+   "count": 24,
+   "samples": [
+    [
+     "$.acceptance.schema_anchors[0].proposal_identity",
+     "b6447a9348cd4be1f7072b80dbdbc5b9e8b876b4db4553101e095455f436e4cd",
+     "cb758b9991e8a7ad859091d8d418f2204dd3a8f0eb9bc7c15fb28cf09c2b37fb"
+    ],
+    [
+     "$.acceptance.schema_anchors[1].proposal_identity",
+     "86d51bf772cb977aded2b43beeee6c34f3bd91816b9af0d05bee8c5a904401d2",
+     "51d72a0e059958dd33b2912e14c628aad6c2a9c02f1af8f070b7d3dcd33cf014"
+    ],
+    [
+     "$.acceptance.schema_anchors[2].proposal_identity",
+     "50f1dfb23c558ee13207bd9b34b2d19ca4ee6a71641c23373a593d739cf228b1",
+     "c4a017a7909ae1198844b1117fe45c06b08b5d2ac04ee72f5f1db69be647d000"
+    ]
+   ]
+  },
+  "$.representation.prose_bindings[*].chunk_id": {
+   "count": 9667,
+   "samples": [
+    [
+     "$.representation.prose_bindings[0].chunk_id",
+     "00693099-14e5-5d11-a0ab-fb0e938bc96d",
+     "cf2ed049-3fea-50eb-8831-af822d9295fb"
+    ],
+    [
+     "$.representation.prose_bindings[1].chunk_id",
+     "038a802d-c7ae-5ee9-87c6-96df8c99f265",
+     "47b34425-b314-5589-9434-1615dc2b6c70"
+    ],
+    [
+     "$.representation.prose_bindings[2].chunk_id",
+     "05061eb9-77e1-5a4d-b444-a05d8802041f",
+     "628be512-b923-542c-9642-b13c8d2f3464"
+    ]
+   ]
+  },
+  "$.representation.prose_bindings[*].component_key": {
+   "count": 10716,
+   "samples": [
+    [
+     "$.representation.prose_bindings[0].component_key",
+     "traits",
+     "pegasus"
+    ],
+    [
+     "$.representation.prose_bindings[1].component_key",
+     "traits",
+     "descriptor"
+    ],
+    [
+     "$.representation.prose_bindings[2].component_key",
+     "treant",
+     "wererat"
+    ]
+   ]
+  },
+  "$.representation.prose_bindings[*].irreducibility_reason_code": {
+   "count": 859,
+   "samples": [
+    [
+     "$.representation.prose_bindings[161].irreducibility_reason_code",
+     "None",
+     "gamemaster_latitude"
+    ],
+    [
+     "$.representation.prose_bindings[164].irreducibility_reason_code",
+     "contextual_applicability",
+     "None"
+    ],
+    [
+     "$.representation.prose_bindings[180].irreducibility_reason_code",
+     "gamemaster_latitude",
+     "None"
+    ]
+   ]
+  },
+  "$.representation.prose_bindings[*].prose_retention_reason_code": {
+   "count": 844,
+   "samples": [
+    [
+     "$.representation.prose_bindings[161].prose_retention_reason_code",
+     "no_identified_structured_use",
+     "<absent>"
+    ],
+    [
+     "$.representation.prose_bindings[164].prose_retention_reason_code",
+     "<absent>",
+     "no_identified_structured_use"
+    ],
+    [
+     "$.representation.prose_bindings[180].prose_retention_reason_code",
+     "<absent>",
+     "no_identified_structured_use"
+    ]
+   ]
+  },
+  "$.representation.prose_bindings[*].record_key": {
+   "count": 13841,
+   "samples": [
+    [
+     "$.representation.prose_bindings[0].record_key",
+     "animals.swarm_of_bats",
+     "monsters.pegasus"
+    ],
+    [
+     "$.representation.prose_bindings[1].record_key",
+     "animals.wolf",
+     "spells.clone"
+    ],
+    [
+     "$.representation.prose_bindings[2].record_key",
+     "monsters.treant.treant",
+     "monsters.wererat"
+    ]
+   ]
+  },
+  "$.representation.prose_bindings[*].span_id": {
+   "count": 9667,
+   "samples": [
+    [
+     "$.representation.prose_bindings[0].span_id",
+     "0858b44a-19e5-56d2-ab22-990712c590f5",
+     "cf11ef6f-83ed-5f18-a38e-16cfa6990c72"
+    ],
+    [
+     "$.representation.prose_bindings[1].span_id",
+     "f9b2a12b-19e2-5b9d-889e-b951bd0bbc2e",
+     "25962b20-462f-5b83-b145-250f20eb2340"
+    ],
+    [
+     "$.representation.prose_bindings[2].span_id",
+     "4d139c51-153d-5443-be34-58f0fb9e8165",
+     "a9c24af3-391d-50d1-ba54-2a32d2f9b0cb"
+    ]
+   ]
+  },
+  "$.representation.provenance[*].target_key[*]": {
+   "count": 292,
+   "samples": [
+    [
+     "$.representation.provenance[651].target_key[2]",
+     "4e6dcd5d-4f95-50b1-9869-acc84a29c85b",
+     "Melee"
+    ],
+    [
+     "$.representation.provenance[651].target_key[3]",
+     "09832ba7-38c6-5474-be5d-7d1974f45e00",
+     "srd-5.2.1/equipment"
+    ],
+    [
+     "$.representation.provenance[651].target_key[4]",
+     "no_identified_structured_use",
+     "equipment.weapons.melee_or_ranged"
+    ]
+   ]
+  },
+  "$.representation.provenance[*].target_kind": {
+   "count": 78,
+   "samples": [
+    [
+     "$.representation.provenance[651].target_kind",
+     "prose_binding",
+     "reference"
+    ],
+    [
+     "$.representation.provenance[653].target_kind",
+     "reference",
+     "prose_binding"
+    ],
+    [
+     "$.representation.provenance[654].target_kind",
+     "prose_binding",
+     "reference"
+    ]
+   ]
+  }
+ }
+}

@@ -1,0 +1,981 @@
+{
+ "artifact_kind": "machine_proposal",
+ "proposal_origin": "issue-5d-damage-and-hit-points-generator.py (CRD Issue 5d fresh damage-and-hit-points batch; unaccepted)",
+ "proposal_schema_version": "5d-proposal-2",
+ "proposed_representation": {
+  "components": [
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.temporary_hit_points",
+    "semantic_key": "buffer"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.damage",
+    "semantic_key": "definition"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.damage_roll",
+    "semantic_key": "definition"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.hit_points",
+    "semantic_key": "definition"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.hit_points",
+    "semantic_key": "loss_restoration_and_bounds"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.immunity",
+    "semantic_key": "no_effect"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "direction": "increase",
+      "factor": {
+       "denominator": 1,
+       "numerator": 2
+      },
+      "family": "damage_modification",
+      "rounding": null
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.vulnerability",
+    "semantic_key": "doubling"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "direction": "reduce",
+      "factor": {
+       "denominator": 2,
+       "numerator": 1
+      },
+      "family": "damage_modification",
+      "rounding": "down"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.resistance",
+    "semantic_key": "halving"
+   }
+  ],
+  "prose_bindings": [
+   {
+    "chunk_char_end": 103,
+    "chunk_char_start": 0,
+    "chunk_id": "09312770-b683-5e45-9572-6eff3eaac156",
+    "component_key": "buffer",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.temporary_hit_points",
+    "span_id": "15468e81-162e-5be8-a80f-21114d93c22d"
+   },
+   {
+    "chunk_char_end": 148,
+    "chunk_char_start": 88,
+    "chunk_id": "21eb8b4e-38fd-55e6-bf83-eceefa03255e",
+    "component_key": "doubling",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.vulnerability",
+    "span_id": "033bdd0c-9b5c-58da-8174-d9be7292c19f"
+   },
+   {
+    "chunk_char_end": 150,
+    "chunk_char_start": 97,
+    "chunk_id": "675201e7-27a4-527b-8928-468d8d30431e",
+    "component_key": "loss_restoration_and_bounds",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.hit_points",
+    "span_id": "a6468918-6ebe-5529-9d87-fbb559b30258"
+   },
+   {
+    "chunk_char_end": 154,
+    "chunk_char_start": 97,
+    "chunk_id": "587a1573-0a32-550b-81f2-3d7e7ad2cfc7",
+    "component_key": "halving",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.resistance",
+    "span_id": "8fd88bec-1ca7-5d1b-a692-99ab841dd10a"
+   },
+   {
+    "chunk_char_end": 242,
+    "chunk_char_start": 151,
+    "chunk_id": "675201e7-27a4-527b-8928-468d8d30431e",
+    "component_key": "loss_restoration_and_bounds",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.hit_points",
+    "span_id": "46e84913-2850-5697-a260-8e2a58149836"
+   },
+   {
+    "chunk_char_end": 78,
+    "chunk_char_start": 0,
+    "chunk_id": "fc8a5608-e830-5b5f-94c8-6bb03544854f",
+    "component_key": "definition",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.damage",
+    "span_id": "a191b210-2d86-55fb-8f25-11e897dcc33c"
+   },
+   {
+    "chunk_char_end": 87,
+    "chunk_char_start": 0,
+    "chunk_id": "21eb8b4e-38fd-55e6-bf83-eceefa03255e",
+    "component_key": "doubling",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.vulnerability",
+    "span_id": "cb7ab5e5-f779-5d5a-ac8d-d1599f73fd11"
+   },
+   {
+    "chunk_char_end": 87,
+    "chunk_char_start": 0,
+    "chunk_id": "579cf0c8-9ee1-52b9-89b1-2f7eb3b7e51d",
+    "component_key": "no_effect",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.immunity",
+    "span_id": "3bcd0f14-d80b-5618-93b7-936c65414d77"
+   },
+   {
+    "chunk_char_end": 96,
+    "chunk_char_start": 0,
+    "chunk_id": "587a1573-0a32-550b-81f2-3d7e7ad2cfc7",
+    "component_key": "halving",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.resistance",
+    "span_id": "1ca87735-0380-5c34-9bc3-c29fdbbc2f42"
+   },
+   {
+    "chunk_char_end": 96,
+    "chunk_char_start": 0,
+    "chunk_id": "675201e7-27a4-527b-8928-468d8d30431e",
+    "component_key": "definition",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.hit_points",
+    "span_id": "2d072ec6-d118-5ce9-8288-1dd472034c6e"
+   },
+   {
+    "chunk_char_end": 97,
+    "chunk_char_start": 0,
+    "chunk_id": "ebff2d25-2d34-507a-ba9e-a9ee8b5825d3",
+    "component_key": "definition",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.damage_roll",
+    "span_id": "b4fe2834-c03a-5e91-bbc2-986880409186"
+   }
+  ],
+  "provenance": [
+   {
+    "role": "contextual",
+    "span_id": "033bdd0c-9b5c-58da-8174-d9be7292c19f",
+    "target_key": [
+     "glossary.vulnerability",
+     "doubling",
+     "188115b65b817d8d"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "15468e81-162e-5be8-a80f-21114d93c22d",
+    "target_key": [
+     "glossary.temporary_hit_points",
+     "buffer",
+     "Hit Points",
+     "srd-5.2.1/rules-glossary",
+     "glossary.hit_points"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "1ca87735-0380-5c34-9bc3-c29fdbbc2f42",
+    "target_key": [
+     "glossary.resistance",
+     "halving",
+     "37ad962d9820d322"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "46dcc3ab-890c-556f-966b-56854c140df5",
+    "target_key": [
+     "glossary.hit_points",
+     "",
+     "Breaking Objects",
+     "srd-5.2.1/rules-glossary",
+     "glossary.breaking_objects"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "46dcc3ab-890c-556f-966b-56854c140df5",
+    "target_key": [
+     "glossary.hit_points",
+     "",
+     "Damage and Healing",
+     "srd-5.2.1/playing-the-game",
+     "play.damage_and_healing"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "5cc1a59f-1bdd-5bc5-bf1a-f30a1d2fc5a2",
+    "target_key": [
+     "glossary.vulnerability",
+     "",
+     "Damage and Healing",
+     "srd-5.2.1/playing-the-game",
+     "play.damage_and_healing"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "65c61962-6926-55a6-98e5-3f93f3f9a325",
+    "target_key": [
+     "glossary.resistance",
+     "",
+     "Damage and Healing",
+     "srd-5.2.1/playing-the-game",
+     "play.damage_and_healing"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "74dd8b37-9689-547a-ba5d-d87f30416972",
+    "target_key": [
+     "glossary.temporary_hit_points",
+     "",
+     "Damage and Healing",
+     "srd-5.2.1/playing-the-game",
+     "play.damage_and_healing"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "8fd88bec-1ca7-5d1b-a692-99ab841dd10a",
+    "target_key": [
+     "glossary.resistance",
+     "halving",
+     "37ad962d9820d322"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "a191b210-2d86-55fb-8f25-11e897dcc33c",
+    "target_key": [
+     "glossary.damage",
+     "definition",
+     "Hit Points",
+     "srd-5.2.1/rules-glossary",
+     "glossary.hit_points"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "cb7ab5e5-f779-5d5a-ac8d-d1599f73fd11",
+    "target_key": [
+     "glossary.vulnerability",
+     "doubling",
+     "188115b65b817d8d"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "e7bf7b4e-72b8-5cbf-ac73-3359b3cd99ed",
+    "target_key": [
+     "glossary.damage_roll",
+     "",
+     "Damage and Healing",
+     "srd-5.2.1/playing-the-game",
+     "play.damage_and_healing"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "primary",
+    "span_id": "033bdd0c-9b5c-58da-8174-d9be7292c19f",
+    "target_key": [
+     "glossary.vulnerability",
+     "doubling",
+     "21eb8b4e-38fd-55e6-bf83-eceefa03255e",
+     "033bdd0c-9b5c-58da-8174-d9be7292c19f",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "15468e81-162e-5be8-a80f-21114d93c22d",
+    "target_key": [
+     "glossary.temporary_hit_points",
+     "buffer",
+     "09312770-b683-5e45-9572-6eff3eaac156",
+     "15468e81-162e-5be8-a80f-21114d93c22d",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "1ca87735-0380-5c34-9bc3-c29fdbbc2f42",
+    "target_key": [
+     "glossary.resistance",
+     "halving",
+     "587a1573-0a32-550b-81f2-3d7e7ad2cfc7",
+     "1ca87735-0380-5c34-9bc3-c29fdbbc2f42",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "2d072ec6-d118-5ce9-8288-1dd472034c6e",
+    "target_key": [
+     "glossary.hit_points",
+     "definition",
+     "675201e7-27a4-527b-8928-468d8d30431e",
+     "2d072ec6-d118-5ce9-8288-1dd472034c6e",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "3bcd0f14-d80b-5618-93b7-936c65414d77",
+    "target_key": [
+     "glossary.immunity",
+     "no_effect",
+     "579cf0c8-9ee1-52b9-89b1-2f7eb3b7e51d",
+     "3bcd0f14-d80b-5618-93b7-936c65414d77",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "46e84913-2850-5697-a260-8e2a58149836",
+    "target_key": [
+     "glossary.hit_points",
+     "loss_restoration_and_bounds",
+     "675201e7-27a4-527b-8928-468d8d30431e",
+     "46e84913-2850-5697-a260-8e2a58149836",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "8fd88bec-1ca7-5d1b-a692-99ab841dd10a",
+    "target_key": [
+     "glossary.resistance",
+     "halving",
+     "587a1573-0a32-550b-81f2-3d7e7ad2cfc7",
+     "8fd88bec-1ca7-5d1b-a692-99ab841dd10a",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "a191b210-2d86-55fb-8f25-11e897dcc33c",
+    "target_key": [
+     "glossary.damage",
+     "definition",
+     "fc8a5608-e830-5b5f-94c8-6bb03544854f",
+     "a191b210-2d86-55fb-8f25-11e897dcc33c",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "a6468918-6ebe-5529-9d87-fbb559b30258",
+    "target_key": [
+     "glossary.hit_points",
+     "loss_restoration_and_bounds",
+     "675201e7-27a4-527b-8928-468d8d30431e",
+     "a6468918-6ebe-5529-9d87-fbb559b30258",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "b4fe2834-c03a-5e91-bbc2-986880409186",
+    "target_key": [
+     "glossary.damage_roll",
+     "definition",
+     "ebff2d25-2d34-507a-ba9e-a9ee8b5825d3",
+     "b4fe2834-c03a-5e91-bbc2-986880409186",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "cb7ab5e5-f779-5d5a-ac8d-d1599f73fd11",
+    "target_key": [
+     "glossary.vulnerability",
+     "doubling",
+     "21eb8b4e-38fd-55e6-bf83-eceefa03255e",
+     "cb7ab5e5-f779-5d5a-ac8d-d1599f73fd11",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   }
+  ],
+  "records": [
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.damage"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.damage_roll"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.hit_points"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.immunity"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.resistance"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.temporary_hit_points"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.vulnerability"
+   }
+  ],
+  "references": [
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.damage_roll",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "Damage and Healing",
+    "target_record_key": "play.damage_and_healing"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.hit_points",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "Damage and Healing",
+    "target_record_key": "play.damage_and_healing"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.hit_points",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Breaking Objects",
+    "target_record_key": "glossary.breaking_objects"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.resistance",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "Damage and Healing",
+    "target_record_key": "play.damage_and_healing"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.temporary_hit_points",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "Damage and Healing",
+    "target_record_key": "play.damage_and_healing"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.vulnerability",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "Damage and Healing",
+    "target_record_key": "play.damage_and_healing"
+   },
+   {
+    "from_component_key": "buffer",
+    "from_record_key": "glossary.temporary_hit_points",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Hit Points",
+    "target_record_key": "glossary.hit_points"
+   },
+   {
+    "from_component_key": "definition",
+    "from_record_key": "glossary.damage",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Hit Points",
+    "target_record_key": "glossary.hit_points"
+   }
+  ],
+  "relationships": []
+ },
+ "proposed_review_units": [
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "2d6415a2-4189-5987-adf6-5c4bf42b5a45"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "definition",
+     "record_key": "glossary.damage",
+     "source_span_ids": [
+      "a191b210-2d86-55fb-8f25-11e897dcc33c"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "1c90455c-36f3-5ac5-8423-18cb96f7cfe8",
+    "2d6415a2-4189-5987-adf6-5c4bf42b5a45"
+   ],
+   "supporting_groups": [],
+   "unit_id": "damage-and-hit-points/damage"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "81a37c85-57c7-53ab-9b48-99c29f057335"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "definition",
+     "record_key": "glossary.damage_roll",
+     "source_span_ids": [
+      "b4fe2834-c03a-5e91-bbc2-986880409186"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "688e87e9-3805-5e0c-9199-d6c65a57c8ae",
+    "81a37c85-57c7-53ab-9b48-99c29f057335"
+   ],
+   "supporting_groups": [],
+   "unit_id": "damage-and-hit-points/damage_roll"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "5eee03d5-aa71-5712-a382-8890752b4619"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "definition",
+     "record_key": "glossary.hit_points",
+     "source_span_ids": [
+      "2d072ec6-d118-5ce9-8288-1dd472034c6e"
+     ]
+    },
+    {
+     "component_key": "loss_restoration_and_bounds",
+     "record_key": "glossary.hit_points",
+     "source_span_ids": [
+      "46e84913-2850-5697-a260-8e2a58149836",
+      "a6468918-6ebe-5529-9d87-fbb559b30258"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "16eb369e-1f81-5758-a209-3dc563b7109f",
+    "5eee03d5-aa71-5712-a382-8890752b4619"
+   ],
+   "supporting_groups": [],
+   "unit_id": "damage-and-hit-points/hit_points"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "60a4148d-b68a-52e1-9aeb-697ae23dea05"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "no_effect",
+     "record_key": "glossary.immunity",
+     "source_span_ids": [
+      "3bcd0f14-d80b-5618-93b7-936c65414d77"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "60a4148d-b68a-52e1-9aeb-697ae23dea05",
+    "fd9e1cbc-6e4b-5532-b3a9-6daa41acfe83"
+   ],
+   "supporting_groups": [],
+   "unit_id": "damage-and-hit-points/immunity"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "681dfca7-7817-503b-8621-9baa76027bad"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "halving",
+     "record_key": "glossary.resistance",
+     "source_span_ids": [
+      "1ca87735-0380-5c34-9bc3-c29fdbbc2f42",
+      "8fd88bec-1ca7-5d1b-a692-99ab841dd10a"
+     ]
+    },
+    {
+     "component_key": "halving",
+     "fact_family": "damage_modification",
+     "record_key": "glossary.resistance",
+     "source_span_ids": [
+      "1ca87735-0380-5c34-9bc3-c29fdbbc2f42",
+      "8fd88bec-1ca7-5d1b-a692-99ab841dd10a"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "681dfca7-7817-503b-8621-9baa76027bad",
+    "bfc58ea5-df37-55fb-83e5-12ccc7a3636e"
+   ],
+   "supporting_groups": [],
+   "unit_id": "damage-and-hit-points/resistance"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "1db04afe-8899-5400-abd2-3ab74fc3d2b3"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "buffer",
+     "record_key": "glossary.temporary_hit_points",
+     "source_span_ids": [
+      "15468e81-162e-5be8-a80f-21114d93c22d"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "1db04afe-8899-5400-abd2-3ab74fc3d2b3",
+    "7abc4adc-8474-55ea-b637-ae040ad03cd3"
+   ],
+   "supporting_groups": [],
+   "unit_id": "damage-and-hit-points/temporary_hit_points"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "4f89020d-ab8e-53e3-a069-ddf094e39992"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "doubling",
+     "record_key": "glossary.vulnerability",
+     "source_span_ids": [
+      "033bdd0c-9b5c-58da-8174-d9be7292c19f",
+      "cb7ab5e5-f779-5d5a-ac8d-d1599f73fd11"
+     ]
+    },
+    {
+     "component_key": "doubling",
+     "fact_family": "damage_modification",
+     "record_key": "glossary.vulnerability",
+     "source_span_ids": [
+      "033bdd0c-9b5c-58da-8174-d9be7292c19f",
+      "cb7ab5e5-f779-5d5a-ac8d-d1599f73fd11"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "4f89020d-ab8e-53e3-a069-ddf094e39992",
+    "a1fef95b-925e-5d3c-8537-c78e75b4033a"
+   ],
+   "supporting_groups": [],
+   "unit_id": "damage-and-hit-points/vulnerability"
+  }
+ ],
+ "proposed_spans": [
+  {
+   "char_end": 103,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "7abc4adc-8474-55ea-b637-ae040ad03cd3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-damage-and-hit-points-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "15468e81-162e-5be8-a80f-21114d93c22d"
+  },
+  {
+   "char_end": 148,
+   "char_start": 88,
+   "disposition": "substantive",
+   "leaf_id": "a1fef95b-925e-5d3c-8537-c78e75b4033a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-damage-and-hit-points-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "033bdd0c-9b5c-58da-8174-d9be7292c19f"
+  },
+  {
+   "char_end": 150,
+   "char_start": 97,
+   "disposition": "substantive",
+   "leaf_id": "16eb369e-1f81-5758-a209-3dc563b7109f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-damage-and-hit-points-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "a6468918-6ebe-5529-9d87-fbb559b30258"
+  },
+  {
+   "char_end": 151,
+   "char_start": 98,
+   "disposition": "supporting_authority",
+   "leaf_id": "688e87e9-3805-5e0c-9199-d6c65a57c8ae",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-damage-and-hit-points-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "e7bf7b4e-72b8-5cbf-ac73-3359b3cd99ed"
+  },
+  {
+   "char_end": 154,
+   "char_start": 97,
+   "disposition": "substantive",
+   "leaf_id": "bfc58ea5-df37-55fb-83e5-12ccc7a3636e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-damage-and-hit-points-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "8fd88bec-1ca7-5d1b-a692-99ab841dd10a"
+  },
+  {
+   "char_end": 157,
+   "char_start": 104,
+   "disposition": "supporting_authority",
+   "leaf_id": "7abc4adc-8474-55ea-b637-ae040ad03cd3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-damage-and-hit-points-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "74dd8b37-9689-547a-ba5d-d87f30416972"
+  },
+  {
+   "char_end": 202,
+   "char_start": 149,
+   "disposition": "supporting_authority",
+   "leaf_id": "a1fef95b-925e-5d3c-8537-c78e75b4033a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-damage-and-hit-points-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "5cc1a59f-1bdd-5bc5-bf1a-f30a1d2fc5a2"
+  },
+  {
+   "char_end": 208,
+   "char_start": 155,
+   "disposition": "supporting_authority",
+   "leaf_id": "bfc58ea5-df37-55fb-83e5-12ccc7a3636e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-damage-and-hit-points-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "65c61962-6926-55a6-98e5-3f93f3f9a325"
+  },
+  {
+   "char_end": 242,
+   "char_start": 151,
+   "disposition": "substantive",
+   "leaf_id": "16eb369e-1f81-5758-a209-3dc563b7109f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-damage-and-hit-points-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "46e84913-2850-5697-a260-8e2a58149836"
+  },
+  {
+   "char_end": 319,
+   "char_start": 243,
+   "disposition": "supporting_authority",
+   "leaf_id": "16eb369e-1f81-5758-a209-3dc563b7109f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-damage-and-hit-points-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "46dcc3ab-890c-556f-966b-56854c140df5"
+  },
+  {
+   "char_end": 78,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "1c90455c-36f3-5ac5-8423-18cb96f7cfe8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-damage-and-hit-points-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "a191b210-2d86-55fb-8f25-11e897dcc33c"
+  },
+  {
+   "char_end": 87,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "a1fef95b-925e-5d3c-8537-c78e75b4033a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-damage-and-hit-points-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "cb7ab5e5-f779-5d5a-ac8d-d1599f73fd11"
+  },
+  {
+   "char_end": 87,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "fd9e1cbc-6e4b-5532-b3a9-6daa41acfe83",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-damage-and-hit-points-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "3bcd0f14-d80b-5618-93b7-936c65414d77"
+  },
+  {
+   "char_end": 96,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "16eb369e-1f81-5758-a209-3dc563b7109f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-damage-and-hit-points-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "2d072ec6-d118-5ce9-8288-1dd472034c6e"
+  },
+  {
+   "char_end": 96,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "bfc58ea5-df37-55fb-83e5-12ccc7a3636e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-damage-and-hit-points-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "1ca87735-0380-5c34-9bc3-c29fdbbc2f42"
+  },
+  {
+   "char_end": 97,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "688e87e9-3805-5e0c-9199-d6c65a57c8ae",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-damage-and-hit-points-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "b4fe2834-c03a-5e91-bbc2-986880409186"
+  }
+ ],
+ "release_binding": {
+  "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+  "bundle_root_hash": "3da7b5b30e23647c219d1630b5c5051be02b5882d17f0cd13421af8c57754689",
+  "package_uuid": "ebdd9333-eeed-5df1-b3e1-8b97c2f65f80",
+  "persisted_corpus_digest": "df64eb40029576bae61229056f07ccdf025a2a5c2d75aacfefdf88fe596acb02",
+  "release_version": "5.2.1-corpus.574662e9-0ef",
+  "transform_config_hash": "2a7feddf7910684b8427745b9f9ecd5f394382d00955ed7b98920c2e12c0e64d"
+ },
+ "representation_schema": {
+  "hash": "e87e0bacdc476b0bef092a04cbedd933e0b57b128651b08ef0ffbd0c94d186fd",
+  "version": "5d-representation-schema-15"
+ },
+ "semantic_policy_hash": "da63b8940c5b3997b44d53e02941389b68e2a2ba35250e73194d38bb1d74cde7",
+ "semantic_policy_version": "5d-semantic-policy-2"
+}

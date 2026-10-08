@@ -1,0 +1,2256 @@
+{
+ "instrument": {
+  "module": "afterworlds.ingestion.source.community_compare",
+  "extractor": "pdfplumber 0.11.10",
+  "reading_order": "pdf_source.extract_pages (use_text_flow=True)",
+  "normalization": "policy.compact (nfkc-ws-1): NFKC + ligature and minus-sign folding, whitespace and hyphen removal, case fold. Not lossless: folding the minus sign and then removing hyphens makes 'modifier -2' and 'modifier 2' compare equal, so signs, footnote markers and adjacent qualifiers are not checked here",
+  "comparison": "character-window containment, both directions",
+  "window_chars": 48,
+  "noise_floor_chars": 96,
+  "noise_floor_derivation": "2 * window_chars, derived from one isolated same-text/different-order junction: it can only leave the windows straddling the joint unmatched. Not a universal bound -- two junctions closer together than 2 * window_chars merge their unmatched windows, and an omission beside a junction is absorbed -- so the floor is the reporting threshold, not a clearance. Runs under it are counted in discrepancies.runs_below_floor and remain unresolved. The Owner-supplied positive controls bound the single-junction artefact empirically; see positive_control_longest_run.",
+  "running_header_footer_lines_stripped": 364,
+  "table_association_checked": false
+ },
+ "official_source": {
+  "path": "docs/sources/DnD5_5e_SRD_CC_v5_2_1.pdf",
+  "sha256": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+  "pages_compared": 364
+ },
+ "community_source": {
+  "directory": "docs/sources/community/dnd-5e-srd-markdown",
+  "content_files": [
+   "animals.md",
+   "character-creation.md",
+   "character-origins.md",
+   "classes.md",
+   "equipment.md",
+   "feats.md",
+   "gameplay-toolbox.md",
+   "magic-items.md",
+   "monsters-A-Z.md",
+   "monsters.md",
+   "playing-the-game.md",
+   "rules-glossary.md",
+   "spells.md"
+  ],
+  "pinned_commit": "1b4b99dcb786cdd1a2fb26f8acec1551191f1ca4",
+  "status": "qualified",
+  "qualification_review": {
+   "artifact": "source-structure-final-review.md",
+   "reviewed_head": "b70d016",
+   "reviewer": "Codex (independent)",
+   "scope": "the corrected bytes against the official PDF",
+   "not_established": "rules authority, semantic acceptance, or any claim about a corpus built from these bytes"
+  }
+ },
+ "coverage": {
+  "windows": 1107973,
+  "matched": 1068429,
+  "fraction": 0.9643095996021563,
+  "front_matter_pages": [
+   1,
+   2,
+   3,
+   4
+  ],
+  "windows_excluding_front_matter": 1077833,
+  "matched_excluding_front_matter": 1068429,
+  "fraction_excluding_front_matter": 0.9912750862146548,
+  "pages_fully_covered": 270,
+  "lowest_pages": [
+   {
+    "printed_page": 3,
+    "coverage": 0.0,
+    "windows": 12516,
+    "longest_run": 12563,
+    "first_line": "Ankheg ...........................................................259",
+    "worst_excerpt": "ankheg...........................................................259ankylosaurus.............................................344ape...................................................................344archelon..............................."
+   },
+   {
+    "printed_page": 2,
+    "coverage": 0.0,
+    "windows": 9996,
+    "longest_run": 10043,
+    "first_line": "Contents",
+    "worst_excerpt": "contentslegalinformation...................................1playingthegame....................................5rhythmofplay................................................5thesixabilities...............................................5d20te"
+   },
+   {
+    "printed_page": 4,
+    "coverage": 0.0,
+    "windows": 6755,
+    "longest_run": 6802,
+    "first_line": "Piranha ..........................................................358",
+    "worst_excerpt": "piranha..........................................................358pirate...............................................................314piratecaptain.............................................314pitfiend..............................."
+   },
+   {
+    "printed_page": 1,
+    "coverage": 0.0,
+    "windows": 873,
+    "longest_run": 920,
+    "first_line": "Legal Information",
+    "worst_excerpt": "legalinformationthesystemreferencedocument5.2.1(\"srd5.2.1\")isprovidedtoyoufreeofchargebywizardsofthecoastllc(\"wizards\")underthetermsofthecreativecommonsattribution4.0internationallicense(\"ccby4.0\").youarefreetousethecontentinthisdocumentina"
+   },
+   {
+    "printed_page": 90,
+    "coverage": 0.7652,
+    "windows": 2858,
+    "longest_run": 101,
+    "first_line": "i MprovisEd w Eapons",
+    "worst_excerpt": "way,suchasusingarangedweapontomakeameleeattack.loadingyoucanfireonlyonepieceofammunitionfromaloadingweaponwhenyouuseanaction,abonusaction,orareactiontofireit,regardlessofthenumberofattacksyoucannormallymake.rangearangeweaponhasarangeinparen"
+   },
+   {
+    "printed_page": 176,
+    "coverage": 0.7884,
+    "windows": 2897,
+    "longest_run": 560,
+    "first_line": "Rules Glossary",
+    "worst_excerpt": "thisglossaryandelsewhereintherules.acarmorclasscconcentrationcechaoticevilcgchaoticgoodcha.charismacnchaoticneutralcon.constitutioncpcopperpiece(s)crchallengeratingdcdifficultyclassdex.dexterityepelectrumpiece(s)gmgamemastergpgoldpiece(s)hp"
+   },
+   {
+    "printed_page": 31,
+    "coverage": 0.8353,
+    "windows": 1912,
+    "longest_run": 194,
+    "first_line": "Bard",
+    "worst_excerpt": "tofyourselfwhocanseeorhearyou.thatcreaturegainsbardfeaturesproficiencybonusbardicdiepreparedspellsspellslotsperspelllevellevelclassfeaturescantrips1234567891+2bardicinspiration,spellcastingd62422+2expertise,jackofalltradesd62533+2bardsubcla"
+   },
+   {
+    "printed_page": 68,
+    "coverage": 0.8858,
+    "windows": 1523,
+    "longest_run": 142,
+    "first_line": "Level 1 Sorcerer Spells",
+    "worst_excerpt": "transmutationcflamebladeevocationcflamingsphereevocationcgustofwindevocationcspellschoolspecialholdpersonenchantmentcinvisibilityillusioncknocktransmutationlevitatetransmutationcmagicweapontransmutationmirrorimageillusionmistystepconjuratio"
+   },
+   {
+    "printed_page": 41,
+    "coverage": 0.8886,
+    "windows": 1733,
+    "longest_run": 195,
+    "first_line": "Druid",
+    "worst_excerpt": "erulesonspellcasting.theinformationbelowdetailsdruidfeaturesproficiencybonuswildshapepreparedspellsspellslotsperspelllevellevelclassfeaturescantrips1234567891+2spellcasting,druidic,primalorder2422+2wildshape,wildcompanion22533+2druidsubclas"
+   },
+   {
+    "printed_page": 53,
+    "coverage": 0.8952,
+    "windows": 1804,
+    "longest_run": 124,
+    "first_line": "Paladin",
+    "worst_excerpt": "berofhitpointsequaltofivetimesyourpaladinlevel.paladinfeaturesproficiencybonuschanneldivinitypreparedspellsspellslotsperspelllevellevelclassfeatures123451+2layonhands,spellcasting,weaponmastery222+2fightingstyle,paladin'ssmite323+2channeldi"
+   },
+   {
+    "printed_page": 19,
+    "coverage": 0.8953,
+    "windows": 3095,
+    "longest_run": 131,
+    "first_line": "Character",
+    "worst_excerpt": "aaveragerangersurvivaldexterityandwisdomaverageclasslikes...primaryabilitycomplexityroguestealthdexteritylowsorcererpowercharismahighwarlockoccultlorecharismahighwizardspellbooksintelligenceaveragewriteyourlevelwriteyourcharacter'slevelonyo"
+   },
+   {
+    "printed_page": 77,
+    "coverage": 0.8991,
+    "windows": 1843,
+    "longest_run": 186,
+    "first_line": "Wizard",
+    "worst_excerpt": "isfeaturewithanotherwizardcantripofyourchoice.wizardfeaturesproficiencybonuspreparedspellsspellslotsperspelllevellevelclassfeaturescantrips1234567891+2spellcasting,ritualadept,arcanerecovery3422+2scholar3533+2wizardsubclass36424+2abilitysco"
+   },
+   {
+    "printed_page": 36,
+    "coverage": 0.9017,
+    "windows": 1973,
+    "longest_run": 123,
+    "first_line": "Cleric",
+    "worst_excerpt": "othercantripofyourchoicefromtheclericspelllist.clericfeaturesproficiencybonuschanneldivinitypreparedspellsspellslotsperspelllevellevelclassfeaturescantrips1234567891+2spellcasting,divineorder3422+2channeldivinity23533+2clericsubclass236424+"
+   },
+   {
+    "printed_page": 89,
+    "coverage": 0.9031,
+    "windows": 2900,
+    "longest_run": 94,
+    "first_line": "s EllinG E quipMEnt",
+    "worst_excerpt": "marketplace.\"magicitems\"haspricesformagicitems.equipmentcoinscharactersoftenfindcoinsontheiradventuresandcanspendthosecoinsinshops,inns,andotherbusinesses.coinscomeindifferentdenominationsbasedontherelativeworthoftheirmaterial.thecoinvalues"
+   },
+   {
+    "printed_page": 92,
+    "coverage": 0.906,
+    "windows": 1937,
+    "longest_run": 94,
+    "first_line": "Armor",
+    "worst_excerpt": "nyarmorinitsstatblock.light,medium,orheavyarmorifyouwearlight,medium,orheavyarmorandlacktrainingwithit,youhavedisadvantageonanyd20testthatinvolvesstrengthordexterity,andyoucan'tcastspells.shieldyougainthearmorclassbenefitofashieldonlyifyouh"
+   },
+   {
+    "printed_page": 65,
+    "coverage": 0.9197,
+    "windows": 1930,
+    "longest_run": 202,
+    "first_line": "spells. You regain all expended slots when you fin-",
+    "worst_excerpt": "1minute,duringwhichyougainthefollowingbenefits:sorcererfeaturesproficiencybonussorcerypointspreparedspellsspellslotsperspelllevellevelclassfeaturescantrips1234567891+2spellcasting,innatesorcery4222+2fontofmagic,metamagic24433+2sorcerersubcl"
+   },
+   {
+    "printed_page": 179,
+    "coverage": 0.9198,
+    "windows": 3604,
+    "longest_run": 205,
+    "first_line": "At the GM’s option, climbing a slippery surface or",
+    "worst_excerpt": "tion.thisglossarydefinestheseconditions:blindedcharmeddeafenedexhaustionfrightenedgrappledincapacitatedinvisibleparalyzedpetrifiedpoisonedpronerestrainedstunnedunconsciousaconditiondoesn'tstackwithitself;arecipienteitherhasaconditionordoesn"
+   },
+   {
+    "printed_page": 80,
+    "coverage": 0.9289,
+    "windows": 1898,
+    "longest_run": 112,
+    "first_line": "Level 2 Wizard Spells",
+    "worst_excerpt": "nc,mcounterspellabjurationdispelmagicabjurationspellschoolspecialfearillusioncfireballevocationflytransmutationcgaseousformtransmutationcglyphofwardingabjurationmhastetransmutationchypnoticpatternillusionclightningboltevocationmagiccircleab"
+   },
+   {
+    "printed_page": 58,
+    "coverage": 0.9305,
+    "windows": 2029,
+    "longest_run": 123,
+    "first_line": "Prepared Spells of Level 1+",
+    "worst_excerpt": "sethemasterypropertiesoftwokindsofweaponsofyourrangerfeaturesproficiencybonusfavoredenemypreparedspellsspellslotsperspelllevellevelclassfeatures123451+2spellcasting,favoredenemy,weaponmastery2222+2deftexplorer,fightingstyle2323+2rangersubcl"
+   },
+   {
+    "printed_page": 6,
+    "coverage": 0.9382,
+    "windows": 3059,
+    "longest_run": 163,
+    "first_line": "Ability Modifiers",
+    "worst_excerpt": "abilitymodifiersscoremodifier152344536728911011+01213+11415+2scoremodifier1617+31819+42021+52223+62425+72627+82829+930+10d20testswhentheoutcomeofanactionisuncertain,thegameusesad20rolltodeterminesuccessorfailure.theserollsarecalledd20tests,"
+   },
+   {
+    "printed_page": 24,
+    "coverage": 0.9427,
+    "windows": 3247,
+    "longest_run": 94,
+    "first_line": "B onus F Eats at l EvEl 20",
+    "worst_excerpt": "eanyfeatforwhichtheirlevel20characterqualifies.describingthejourneyfromalevel1characterjustbeginninganadventuringcareertotheepicheightsoflevel20.thesetiersdon'thaveanyrulesassociatedwiththem;theypointtothefactthattheplayexperienceevolvesasc"
+   },
+   {
+    "printed_page": 192,
+    "coverage": 0.9441,
+    "windows": 2504,
+    "longest_run": 94,
+    "first_line": "Gameplay Toolbox",
+    "worst_excerpt": "heirrateoftravel,andtheydon'tchooseatravelpace.creatingabackgroundacharacter'sbackgroundrepresentswhatthecharacterdidpriortobecominganadventurer.creatingauniquebackgroundorcustomizinganexistingonecanreflecttheparticularthemeofyourcampaignor"
+   },
+   {
+    "printed_page": 21,
+    "coverage": 0.9442,
+    "windows": 3154,
+    "longest_run": 148,
+    "first_line": "Generate Your Scores",
+    "worst_excerpt": "urscores.abilityscoresandmodifiersscoremodifier344536728911011+0scoremodifier1213+11415+21617+31819+420+5step4:alignmentchooseyourcharacter'salignmentfromtheoptionsbelow,andnoteitonyourcharactersheet.thegameassumesthatplayercharactersaren't"
+   },
+   {
+    "printed_page": 8,
+    "coverage": 0.9473,
+    "windows": 3683,
+    "longest_run": 148,
+    "first_line": "H Eroic i nspiration",
+    "worst_excerpt": "gthrowsforspells.proficiencybonuslevelorcrbonusupto4+258+3912+41316+5levelorcrbonus1720+62124+72528+82930+9thebonusdoesn'tstackyourproficiencybonuscan'tbeaddedtoadierolloranothernumbermorethanonce.forexample,ifaruleallowsyoutomakeacharisma("
+   },
+   {
+    "printed_page": 28,
+    "coverage": 0.9505,
+    "windows": 1879,
+    "longest_run": 94,
+    "first_line": "Classes",
+    "worst_excerpt": "sefeaturesarelistedinthebarbarianfeaturestable.level1:rageyoucanimbueyourselfwithaprimalpowercalledrage,aforcethatgrantsyouextraordinarymightandresilience.youcanenteritasabonusactionifyouaren'twearingheavyarmor.youcanenteryourragethenumbero"
+   }
+  ]
+ },
+ "community_additions": {
+  "files_with_runs_over_floor": {
+   "character-creation.md": [
+    {
+     "offset": 6573,
+     "length": 122,
+     "excerpt": "7ofyour27points.abilityscorepointcostsscorecostscorecost8012491135102147113159assignabilityscoresonceyou'vegeneratedsixscores,assignthemtostrength,dexterity,constitution,intelligence,wisdom,andcharisma,keepinginmindyourclass'sprimaryability"
+    },
+    {
+     "offset": 7850,
+     "length": 148,
+     "excerpt": "urscores.abilityscoresandmodifiersscoremodifierscoremodifier341213+14531415+26721617+38911819+41011+020+5step4:alignmentchooseyourcharacter'salignmentfromtheoptionsbelow,andnoteitonyourcharactersheet.thegameassumesthatplayercharactersaren't"
+    }
+   ],
+   "classes.md": [
+    {
+     "offset": 8938,
+     "length": 108,
+     "excerpt": "dcharismaskillproficiencieschooseany3skills(seeplayingthegame)weaponproficienciessimpleweaponstoolproficiencieschoose3musicalinstruments(seeequipment)armortraininglightarmorstartingequipmentchooseaorb:(a)leatherarmor,2daggers,musicalinstrum"
+    },
+    {
+     "offset": 9031,
+     "length": 103,
+     "excerpt": "stoolproficiencieschoose3musicalinstruments(seeequipment)armortraininglightarmorstartingequipmentchooseaorb:(a)leatherarmor,2daggers,musicalinstrumentofyourchoice,entertainer'spack,and19gp;or(b)90gpbecomingabard...asalevel1charactergainallt"
+    },
+    {
+     "offset": 9795,
+     "length": 194,
+     "excerpt": "s.thesefeaturesarelistedinthebardfeaturestable.bardfeatureslevelproficiencybonusclassfeaturesbardicdiecantripspreparedspellsspellslotsperspelllevel1234567891+2bardicinspiration,spellcastingd62422+2expertise,jackofalltradesd62533+2bardsubcla"
+    },
+    {
+     "offset": 17006,
+     "length": 118,
+     "excerpt": "nationcmagicmouthillusionr,mmirrorimageillusionphantasmalforceillusioncseeinvisibilitydivinationshatterevocationsilenceillusionc,rsuggestionenchantmentczoneoftruthenchantmentlevel3bardspellsspellschoolspecialbestowcursenecromancycclairvoyan"
+    },
+    {
+     "offset": 21490,
+     "length": 202,
+     "excerpt": "thesefeaturesarelistedintheclericfeaturestable.clericfeatureslevelproficiencybonusclassfeatureschanneldivinitycantripspreparedspellsspellslotsperspelllevel1234567891+2spellcasting,divineorder3422+2channeldivinity23533+2clericsubclass236424+"
+    },
+    {
+     "offset": 33969,
+     "length": 195,
+     "excerpt": ".thesefeaturesarelistedinthedruidfeaturestable.druidfeatureslevelproficiencybonusclassfeatureswildshapecantripspreparedspellsspellslotsperspelllevel1234567891+2spellcasting,druidic,primalorder2422+2wildshape,wildcompanion22533+2druidsubclas"
+    },
+    {
+     "offset": 43532,
+     "length": 100,
+     "excerpt": "rapsdivinationflamebladeevocationcflamingsphereconjurationcgustofwindevocationcheatmetaltransmutationcholdpersonenchantmentclesserrestorationabjurationlocateanimalsorplantsdivinationrlocateobjectdivinationcmoonbeamevocationcpasswithouttrace"
+    },
+    {
+     "offset": 47951,
+     "length": 147,
+     "excerpt": "ature'swardtable.nature'swardlandtyperesistancelandtyperesistancearidfiretemperatelightningpolarcoldtropicalpoisonlevel14:nature'ssanctuaryasamagicaction,youcanexpendauseofyourwildshapeandcausespectraltreesandvinestoappearina15footcubeonthe"
+    },
+    {
+     "offset": 54963,
+     "length": 103,
+     "excerpt": "eonetypeofartisan'stoolsormusicalinstrument(seeequipment)armortrainingnonestartingequipmentchooseaorb:(a)spear,5daggers,artisan'stoolsormusicalinstrumentchosenforthetoolproficiencyabove,explorer'spack,and11gp;or(b)50gpbecomingamonk...asalev"
+    },
+    {
+     "offset": 65359,
+     "length": 142,
+     "excerpt": "hesefeaturesarelistedinthepaladinfeaturestable.paladinfeatureslevelproficiencybonusclassfeatureschanneldivinitypreparedspellsspellslotsperspelllevel123451+2layonhands,spellcasting,weaponmastery222+2fightingstyle,paladin'ssmite323+2channeldi"
+    },
+    {
+     "offset": 77547,
+     "length": 141,
+     "excerpt": "thesefeaturesarelistedintherangerfeaturestable.rangerfeatureslevelproficiencybonusclassfeaturesfavoredenemypreparedspellsspellslotsperspelllevel123451+2spellcasting,favoredenemy,weaponmastery2222+2deftexplorer,fightingstyle2323+2rangersubcl"
+    },
+    {
+     "offset": 95310,
+     "length": 202,
+     "excerpt": "esefeaturesarelistedinthesorcererfeaturestable.sorcererfeatureslevelproficiencybonusclassfeaturessorcerypointscantripspreparedspellsspellslotsperspelllevel1234567891+2spellcasting,innatesorcery4222+2fontofmagic,metamagic24433+2sorcerersubcl"
+    },
+    {
+     "offset": 104855,
+     "length": 106,
+     "excerpt": "transmutationcflamebladeevocationcflamingsphereconjurationcgustofwindevocationcholdpersonenchantmentcinvisibilityillusioncknocktransmutationlevitatetransmutationcmagicweapontransmutationmindspikedivinationcmirrorimageillusionmistystepconjur"
+    },
+    {
+     "offset": 105053,
+     "length": 118,
+     "excerpt": "inationcmirrorimageillusionmistystepconjurationphantasmalforceillusioncscorchingrayevocationseeinvisibilitydivinationshatterevocationspiderclimbtransmutationcsuggestionenchantmentcwebconjurationclevel3sorcererspellsspellschoolspecialblinktr"
+    },
+    {
+     "offset": 127791,
+     "length": 187,
+     "excerpt": "thesefeaturesarelistedinthewizardfeaturestable.wizardfeatureslevelproficiencybonusclassfeaturescantripspreparedspellsspellslotsperspelllevel1234567891+2spellcasting,ritualadept,arcanerecovery3422+2scholar3533+2wizardsubclass36424+2abilitysc"
+    },
+    {
+     "offset": 135848,
+     "length": 100,
+     "excerpt": "ationcenlarge/reducetransmutationcflamingsphereconjurationcgentlereposenecromancyr,mgustofwindevocationcholdpersonenchantmentcinvisibilityillusioncknocktransmutationlevitatetransmutationclocateobjectdivinationcmagicmouthillusionr,mmagicweap"
+    },
+    {
+     "offset": 136115,
+     "length": 118,
+     "excerpt": "inationcmirrorimageillusionmistystepconjurationphantasmalforceillusioncrayofenfeeblementnecromancycropetricktransmutationscorchingrayevocationseeinvisibilitydivinationshatterevocationspiderclimbtransmutationcsuggestionenchantmentcwebconjura"
+    }
+   ],
+   "equipment.md": [
+    {
+     "offset": 2904,
+     "length": 102,
+     "excerpt": "llofthebonusactionunlessthatmodifierisnegative.loading.youcanfireonlyonepieceofammunitionfromaloadingweaponwhenyouuseanaction,abonusaction,orareactiontofireit,regardlessofthenumberofattacksyoucannormallymake.range.arangeweaponhasarangeinpar"
+    },
+    {
+     "offset": 4326,
+     "length": 101,
+     "excerpt": "way,suchasusingarangedweapontomakeameleeattack.cleave.ifyouhitacreaturewithameleeattackrollusingthisweapon,youcanmakeameleeattackrollwiththeweaponagainstasecondcreaturewithin5feetofthefirstthatisalsowithinyourreach.onahit,thesecondcreaturet"
+    },
+    {
+     "offset": 35415,
+     "length": 133,
+     "excerpt": "gparistocratic4gpmealsqualid1cppoor2cpmodest1spcomfortable2spwealthy3sparistocratic6spwine(bottle)common2spfine10gphirelingsskilledhirelingsincludeanyonehiredtoperformaservicethatinvolvesaproficiency(includingweapon,tool,orskill):amercenary"
+    }
+   ],
+   "gameplay-toolbox.md": [
+    {
+     "offset": 33708,
+     "length": 140,
+     "excerpt": "tpercharacterparty'slevelencounterdifficultylowencounterdifficultymoderateencounterdifficultyhigh1507510021001502003150225400425037550055007501,10066001,0001,40077501,3001,70081,0001,7002,10091,3002,0002,600101,6002,3003,100111,9002,9004,10"
+    }
+   ],
+   "magic-items.md": [
+    {
+     "offset": 1923,
+     "length": 117,
+     "excerpt": "emixturebecomesaningestedpoisonofyourchoice(seepoisoningameplaytoolbox).0915bothpotionslosetheireffects.1625onepotionlosesitseffect.2635bothpotionswork,butwiththeirnumericaleffectsanddurationshalved.ifapotionhasnonumericaleffectandnoduratio"
+    },
+    {
+     "offset": 72747,
+     "length": 107,
+     "excerpt": "a3,acrowbar;ona4,alittorch.6670yousufferaboutofmagicsicknessandhavethepoisonedconditionfor1hour.7175youhavethepetrifiedconditionuntiltheendofyournextturn.7680youpullanonmagicalobjectoutofthehat.roll1d4todeterminetheobject:ona1,adagger;ona2,"
+    },
+    {
+     "offset": 163358,
+     "length": 106,
+     "excerpt": "ustexpendtocastthespell.spellchargecostcommand(fleeorgrovelonly)1fear(60footcone)3regainingcharges.thewandregains1d6+1expendedchargesdailyatdawn.ifyouexpendthewand'slastcharge,roll1d20.ona1,thewandcrumblesintoashesandisdestroyed.wandoffireb"
+    }
+   ],
+   "monsters-A-Z.md": [
+    {
+     "offset": 224176,
+     "length": 108,
+     "excerpt": "h5ft.orrange20/60ft.hit:4(1d6+1)piercingdamage.veteranwarriormediumorsmallhumanoid,neutralac17initiative+3(13)hp65(10d8+20)speed30ft.modsavemodsavemodsavestr16+3+3dex13+1+1con14+2+2int10+0+0wis11+0+0cha10+0+0skillsathletics+5,perception+2ge"
+    }
+   ],
+   "playing-the-game.md": [
+    {
+     "offset": 3222,
+     "length": 210,
+     "excerpt": "er.somerulesmakeanexceptionandtellyoutoroundup.abilitymodifiersscoremodifierscoremodifier151617+32341819+44532021+56722223+68912425+71011+02627+81213+12829+91415+230+10d20testswhentheoutcomeofanactionisuncertain,thegameusesad20rolltodetermi"
+    },
+    {
+     "offset": 6255,
+     "length": 167,
+     "excerpt": "checks.typicaldifficultyclassestaskdifficultydctaskdifficultydcveryeasy5veryhard25easy10nearlyimpossible30medium15hard20savingthrowsasavingthrowalsocalledasaverepresentsanattempttoevadeorresistathreat,suchasafieryexplosion,ablastofpoisonous"
+    },
+    {
+     "offset": 7990,
+     "length": 107,
+     "excerpt": "ngthmeleeattackwithaweaponoranunarmedstrike(seerulesglossary)dexterityrangedattackwithaweaponvariesspellattack(theabilityusedisdeterminedbythespellcaster'sspellcastingfeature,asexplainedinspells)somefeaturesletyouusedifferentabilitymodifier"
+    },
+    {
+     "offset": 8131,
+     "length": 100,
+     "excerpt": "espellcaster'sspellcastingfeature,asexplainedinspells)somefeaturesletyouusedifferentabilitymodifiersfromthoselisted.forexample,thefinesseproperty(see\"equipment\")letsyouusestrengthordexteritywithaweaponthathasthatproperty.proficiencybonusyou"
+    },
+    {
+     "offset": 12270,
+     "length": 148,
+     "excerpt": "gthrowsforspells.proficiencybonuslevelorcrbonuslevelorcrbonusupto4+21720+658+32124+7912+42528+81316+52930+9thebonusdoesn'tstackyourproficiencybonuscan'tbeaddedtoadierolloranothernumbermorethanonce.forexample,ifaruleallowsyoutomakeacharisma("
+    },
+    {
+     "offset": 26550,
+     "length": 120,
+     "excerpt": "eyoucanchooseincertaintypesofterrain.travelpacedistancetraveledper...paceminutehourdayfast400feet4miles30milesnormal300feet3miles24milesslow200feet2miles18mileseachtravelpacehasagameeffect,asdefinedbelow.fast.travelingatafastpaceimposesdisa"
+    }
+   ],
+   "rules-glossary.md": [
+    {
+     "offset": 862,
+     "length": 560,
+     "excerpt": "thisglossaryandelsewhereintherules.acarmorclassmmaterialcconcentrationcomponentcechaoticevilnneutralcgchaoticgoodneneutralevilcha.charismangneutralgoodcnchaoticneutralnpcnonplayercon.constitutioncharactercpcopperpiece(s)pbproficiencybonuscr"
+    },
+    {
+     "offset": 2051,
+     "length": 147,
+     "excerpt": "ctionsaredefinedelsewhereinthisglossary:attackdodgeinfluencesearchdashhelpmagicstudydisengagehidereadyutilizeadvantageifyouhaveadvantageonad20test,rolltwod20s,andusethehigherroll.arollcan'tbeaffectedbymorethanoneadvantage,andadvantageanddis"
+    },
+    {
+     "offset": 3068,
+     "length": 118,
+     "excerpt": "seshapesaredefinedelsewhereinthisglossary:conecylinderlinecubeemanationsphereanareaofeffecthasapointoforigin,alocationfromwhichtheeffect'senergyerupts.therulesforeachshapespecifyhowtopositionitspointoforigin.ifallstraightlinesextendingfromt"
+    },
+    {
+     "offset": 10865,
+     "length": 205,
+     "excerpt": "tion.thisglossarydefinestheseconditions:blindedgrappledpoisonedcharmedincapacitatedpronedeafenedinvisiblerestrainedexhaustionparalyzedstunnedfrightenedpetrifiedunconsciousaconditiondoesn'tstackwithitself;arecipienteitherhasaconditionordoesn"
+    },
+    {
+     "offset": 12293,
+     "length": 178,
+     "excerpt": "dtype.thesearethegame'screaturetypes:aberrationelementalmonstrositybeastfeyoozecelestialfiendplantconstructgiantundeaddragonhumanoidthetypesdon'thaverulesthemselves,butsomerulesinthegameaffectcreaturesofcertaintypesindifferentways.criticalh"
+    },
+    {
+     "offset": 17193,
+     "length": 167,
+     "excerpt": "y.seealso\"exhaustion.\"waterneedsperdaysizewatersizewatertiny1/4gallonlarge4gallonssmall1gallonhuge16gallonsmedium1gallongargantuan64gallonsdifficultterrainifaspaceisdifficultterrain,everyfootofmovementinthatspacecosts1extrafoot.forexample,m"
+    }
+   ]
+  },
+  "note": "Text present in the snapshot and absent from the document. Some is the snapshot's own navigation and heading scaffolding; each run still needs reading before the source can be qualified."
+ },
+ "discrepancies": {
+  "runs_over_floor": 58,
+  "chars_over_floor": 37560,
+  "runs_below_floor": 111,
+  "chars_below_floor": 9927,
+  "below_floor_note": "Unresolved, not cleared. The 2 * window bound holds for one separated junction; adjacent junctions merge runs and can absorb a genuine omission, so these need reading at qualification.",
+  "runs": [
+   {
+    "printed_page": 3,
+    "length": 12563,
+    "front_matter": true,
+    "excerpt": "ankheg...........................................................259ankylosaurus.............................................344ape...................................................................344archelon..............................."
+   },
+   {
+    "printed_page": 2,
+    "length": 10043,
+    "front_matter": true,
+    "excerpt": "contentslegalinformation...................................1playingthegame....................................5rhythmofplay................................................5thesixabilities...............................................5d20te"
+   },
+   {
+    "printed_page": 4,
+    "length": 6802,
+    "front_matter": true,
+    "excerpt": "piranha..........................................................358pirate...............................................................314piratecaptain.............................................314pitfiend..............................."
+   },
+   {
+    "printed_page": 1,
+    "length": 920,
+    "front_matter": true,
+    "excerpt": "legalinformationthesystemreferencedocument5.2.1(\"srd5.2.1\")isprovidedtoyoufreeofchargebywizardsofthecoastllc(\"wizards\")underthetermsofthecreativecommonsattribution4.0internationallicense(\"ccby4.0\").youarefreetousethecontentinthisdocumentina"
+   },
+   {
+    "printed_page": 176,
+    "length": 560,
+    "front_matter": false,
+    "excerpt": "thisglossaryandelsewhereintherules.acarmorclasscconcentrationcechaoticevilcgchaoticgoodcha.charismacnchaoticneutralcon.constitutioncpcopperpiece(s)crchallengeratingdcdifficultyclassdex.dexterityepelectrumpiece(s)gmgamemastergpgoldpiece(s)hp"
+   },
+   {
+    "printed_page": 179,
+    "length": 205,
+    "front_matter": false,
+    "excerpt": "tion.thisglossarydefinestheseconditions:blindedcharmeddeafenedexhaustionfrightenedgrappledincapacitatedinvisibleparalyzedpetrifiedpoisonedpronerestrainedstunnedunconsciousaconditiondoesn'tstackwithitself;arecipienteitherhasaconditionordoesn"
+   },
+   {
+    "printed_page": 65,
+    "length": 202,
+    "front_matter": false,
+    "excerpt": "1minute,duringwhichyougainthefollowingbenefits:sorcererfeaturesproficiencybonussorcerypointspreparedspellsspellslotsperspelllevellevelclassfeaturescantrips1234567891+2spellcasting,innatesorcery4222+2fontofmagic,metamagic24433+2sorcerersubcl"
+   },
+   {
+    "printed_page": 41,
+    "length": 195,
+    "front_matter": false,
+    "excerpt": "erulesonspellcasting.theinformationbelowdetailsdruidfeaturesproficiencybonuswildshapepreparedspellsspellslotsperspelllevellevelclassfeaturescantrips1234567891+2spellcasting,druidic,primalorder2422+2wildshape,wildcompanion22533+2druidsubclas"
+   },
+   {
+    "printed_page": 31,
+    "length": 194,
+    "front_matter": false,
+    "excerpt": "tofyourselfwhocanseeorhearyou.thatcreaturegainsbardfeaturesproficiencybonusbardicdiepreparedspellsspellslotsperspelllevellevelclassfeaturescantrips1234567891+2bardicinspiration,spellcastingd62422+2expertise,jackofalltradesd62533+2bardsubcla"
+   },
+   {
+    "printed_page": 77,
+    "length": 186,
+    "front_matter": false,
+    "excerpt": "isfeaturewithanotherwizardcantripofyourchoice.wizardfeaturesproficiencybonuspreparedspellsspellslotsperspelllevellevelclassfeaturescantrips1234567891+2spellcasting,ritualadept,arcanerecovery3422+2scholar3533+2wizardsubclass36424+2abilitysco"
+   },
+   {
+    "printed_page": 179,
+    "length": 178,
+    "front_matter": false,
+    "excerpt": "dtype.thesearethegame'screaturetypes:aberrationbeastcelestialconstructdragonelementalfeyfiendgianthumanoidmonstrosityoozeplantundeadthetypesdon'thaverulesthemselves,butsomerulesinthegameaffectcreaturesofcertaintypesindifferentways.criticalh"
+   },
+   {
+    "printed_page": 181,
+    "length": 167,
+    "front_matter": false,
+    "excerpt": "y.seealso\"exhaustion.\"waterneedsperdaysizewatertiny1/4gallonsmall1gallonmedium1gallonsizewaterlarge4gallonshuge16gallonsgargantuan64gallonsdifficultterrainifaspaceisdifficultterrain,everyfootofmovementinthatspacecosts1extrafoot.forexample,m"
+   },
+   {
+    "printed_page": 6,
+    "length": 163,
+    "front_matter": false,
+    "excerpt": "abilitymodifiersscoremodifier152344536728911011+01213+11415+2scoremodifier1617+31819+42021+52223+62425+72627+82829+930+10d20testswhentheoutcomeofanactionisuncertain,thegameusesad20rolltodeterminesuccessorfailure.theserollsarecalledd20tests,"
+   },
+   {
+    "printed_page": 8,
+    "length": 148,
+    "front_matter": false,
+    "excerpt": "gthrowsforspells.proficiencybonuslevelorcrbonusupto4+258+3912+41316+5levelorcrbonus1720+62124+72528+82930+9thebonusdoesn'tstackyourproficiencybonuscan'tbeaddedtoadierolloranothernumbermorethanonce.forexample,ifaruleallowsyoutomakeacharisma("
+   },
+   {
+    "printed_page": 21,
+    "length": 148,
+    "front_matter": false,
+    "excerpt": "urscores.abilityscoresandmodifiersscoremodifier344536728911011+0scoremodifier1213+11415+21617+31819+420+5step4:alignmentchooseyourcharacter'salignmentfromtheoptionsbelow,andnoteitonyourcharactersheet.thegameassumesthatplayercharactersaren't"
+   },
+   {
+    "printed_page": 46,
+    "length": 147,
+    "front_matter": false,
+    "excerpt": "ature'swardtable.nature'swardlandtyperesistancearidfirepolarcoldlandtyperesistancetemperatelightningtropicalpoisonlevel14:nature'ssanctuaryasamagicaction,youcanexpendauseofyourwildshapeandcausespectraltreesandvinestoappearina15footcubeonthe"
+   },
+   {
+    "printed_page": 176,
+    "length": 147,
+    "front_matter": false,
+    "excerpt": "ctionsaredefinedelsewhereinthisglossary:attackdashdisengagedodgehelphideinfluencemagicreadysearchstudyutilizeadvantageifyouhaveadvantageonad20test,rolltwod20s,andusethehigherroll.arollcan'tbeaffectedbymorethanoneadvantage,andadvantageanddis"
+   },
+   {
+    "printed_page": 68,
+    "length": 142,
+    "front_matter": false,
+    "excerpt": "transmutationcflamebladeevocationcflamingsphereevocationcgustofwindevocationcspellschoolspecialholdpersonenchantmentcinvisibilityillusioncknocktransmutationlevitatetransmutationcmagicweapontransmutationmirrorimageillusionmistystepconjuratio"
+   },
+   {
+    "printed_page": 19,
+    "length": 131,
+    "front_matter": false,
+    "excerpt": "aaveragerangersurvivaldexterityandwisdomaverageclasslikes...primaryabilitycomplexityroguestealthdexteritylowsorcererpowercharismahighwarlockoccultlorecharismahighwizardspellbooksintelligenceaveragewriteyourlevelwriteyourcharacter'slevelonyo"
+   },
+   {
+    "printed_page": 244,
+    "length": 127,
+    "front_matter": false,
+    "excerpt": "common13+51common13+52uncommon13+53uncommon15+7spelllevelraritysavedcattackbonus4rare15+75rare17+96veryrare17+97veryrare18+108veryrare18+109legendary19+11copyingascrollintoaspellbook.awizardspellonaspellscrollcanbecopiedintoaspellbook.whena"
+   },
+   {
+    "printed_page": 68,
+    "length": 126,
+    "front_matter": false,
+    "excerpt": "evitatetransmutationcmagicweapontransmutationmirrorimageillusionmistystepconjurationscorchingrayevocationseeinvisibilitydivinationshatterevocationspiderclimbtransmutationcsuggestionenchantmentcwebconjurationclevel3sorcererspellsspellschools"
+   },
+   {
+    "printed_page": 53,
+    "length": 124,
+    "front_matter": false,
+    "excerpt": "berofhitpointsequaltofivetimesyourpaladinlevel.paladinfeaturesproficiencybonuschanneldivinitypreparedspellsspellslotsperspelllevellevelclassfeatures123451+2layonhands,spellcasting,weaponmastery222+2fightingstyle,paladin'ssmite323+2channeldi"
+   },
+   {
+    "printed_page": 36,
+    "length": 123,
+    "front_matter": false,
+    "excerpt": "othercantripofyourchoicefromtheclericspelllist.clericfeaturesproficiencybonuschanneldivinitypreparedspellsspellslotsperspelllevellevelclassfeaturescantrips1234567891+2spellcasting,divineorder3422+2channeldivinity23533+2clericsubclass236424+"
+   },
+   {
+    "printed_page": 58,
+    "length": 123,
+    "front_matter": false,
+    "excerpt": "sethemasterypropertiesoftwokindsofweaponsofyourrangerfeaturesproficiencybonusfavoredenemypreparedspellsspellslotsperspelllevellevelclassfeatures123451+2spellcasting,favoredenemy,weaponmastery2222+2deftexplorer,fightingstyle2323+2rangersubcl"
+   },
+   {
+    "printed_page": 21,
+    "length": 122,
+    "front_matter": false,
+    "excerpt": "7ofyour27points.abilityscorepointcostsscorecost8091102113scorecost124135147159assignabilityscoresonceyou'vegeneratedsixscores,assignthemtostrength,dexterity,constitution,intelligence,wisdom,andcharisma,keepinginmindyourclass'sprimaryability"
+   },
+   {
+    "printed_page": 204,
+    "length": 121,
+    "front_matter": false,
+    "excerpt": "emixturebecomesaningestedpoisonofyourchoice(see\"poison\"in\"gameplaytoolbox\").0915bothpotionslosetheireffects.1625onepotionlosesitseffect.2635bothpotionswork,butwiththeirnumericaleffectsanddurationshalved.ifapotionhasnonumericaleffectandnodur"
+   },
+   {
+    "printed_page": 6,
+    "length": 120,
+    "front_matter": false,
+    "excerpt": "checks.typicaldifficultyclassestaskdifficultydcveryeasy5easy10medium15hard20taskdifficultydcveryhard25nearlyimpossible30"
+   },
+   {
+    "printed_page": 12,
+    "length": 120,
+    "front_matter": false,
+    "excerpt": "eyoucanchooseincertaintypesofterrain.travelpacepacedistancetraveledper...minutehourdayfast400feet4miles30milesnormal300feet3miles24milesslow200feet2miles18mileseachtravelpacehasagameeffect,asdefinedbelow.fast.travelingatafastpaceimposesdisa"
+   },
+   {
+    "printed_page": 36,
+    "length": 120,
+    "front_matter": false,
+    "excerpt": "eldivinitypreparedspellsspellslotsperspelllevellevelclassfeaturescantrips1234567891+2spellcasting,divineorder3422+2channeldivinity23533+2clericsubclass236424+2abilityscoreimprovement247435+3searundead2494326+3subclassfeature34104337+3blesse"
+   },
+   {
+    "printed_page": 177,
+    "length": 118,
+    "front_matter": false,
+    "excerpt": "seshapesaredefinedelsewhereinthisglossary:conecubecylinderemanationlinesphereanareaofeffecthasapointoforigin,alocationfromwhichtheeffect'senergyerupts.therulesforeachshapespecifyhowtopositionitspointoforigin.ifallstraightlinesextendingfromt"
+   },
+   {
+    "printed_page": 33,
+    "length": 112,
+    "front_matter": false,
+    "excerpt": "tationmessagetransmutationminorillusionillusionspellschoolspecialprestidigitationtransmutationstarrywispevocationtruestrikedivinationviciousmockeryenchantmentlevel1bardspellsspellschoolspecialanimalfriendshipenchantmentbaneenchantmentccharm"
+   },
+   {
+    "printed_page": 53,
+    "length": 112,
+    "front_matter": false,
+    "excerpt": "eldivinitypreparedspellsspellslotsperspelllevellevelclassfeatures123451+2layonhands,spellcasting,weaponmastery222+2fightingstyle,paladin'ssmite323+2channeldivinity,paladinsubclass2434+2abilityscoreimprovement2535+3extraattack,faithfulsteed2"
+   },
+   {
+    "printed_page": 58,
+    "length": 112,
+    "front_matter": false,
+    "excerpt": "voredenemypreparedspellsspellslotsperspelllevellevelclassfeatures123451+2spellcasting,favoredenemy,weaponmastery2222+2deftexplorer,fightingstyle2323+2rangersubclass2434+2abilityscoreimprovement2535+3extraattack36426+3roving36427+3subclassfe"
+   },
+   {
+    "printed_page": 75,
+    "length": 112,
+    "front_matter": false,
+    "excerpt": "elmagicabjurationfearillusioncflytransmutationcspellschoolspecialgaseousformtransmutationchypnoticpatternillusioncmagiccircleabjurationmmajorimageillusioncremovecurseabjurationtonguesdivinationvampirictouchnecromancyclevel4warlockspellsspel"
+   },
+   {
+    "printed_page": 79,
+    "length": 112,
+    "front_matter": false,
+    "excerpt": "ismtransmutationfireboltevocationlightevocationspellschoolspecialmagehandconjurationmendingtransmutationmessagetransmutationminorillusionillusionpoisonspraynecromancyprestidigitationtransmutationrayoffrostevocationshockinggraspevocationtrue"
+   },
+   {
+    "printed_page": 80,
+    "length": 112,
+    "front_matter": false,
+    "excerpt": "nc,mcounterspellabjurationdispelmagicabjurationspellschoolspecialfearillusioncfireballevocationflytransmutationcgaseousformtransmutationcglyphofwardingabjurationmhastetransmutationchypnoticpatternillusionclightningboltevocationmagiccircleab"
+   },
+   {
+    "printed_page": 208,
+    "length": 112,
+    "front_matter": false,
+    "excerpt": "itanditsbearerhavekeyrolestoplayinfutureevents.1d10specialpurpose5destroyer.theitemcravesdestructionandgoadsitsusertofightarbitrarily.6gloryseeker.theitemseeksrenownasthegreatestmagicitemintheworldbywinningfameornotorietyforitsuser.7loresee"
+   },
+   {
+    "printed_page": 31,
+    "length": 110,
+    "front_matter": false,
+    "excerpt": "dcharismaskillproficiencieschooseany3skills(see\"playingthegame\")weaponproficienciessimpleweaponstoolproficiencieschoose3musicalinstruments(see\"equipment\")armortraininglightarmorstartingequipmentchooseaorb:(a)leatherarmor,2daggers,musicalins"
+   },
+   {
+    "printed_page": 250,
+    "length": 110,
+    "front_matter": false,
+    "excerpt": "ustexpendtocastthespell.spellchargecostcommand(\"flee\"or\"grovel\"only)1fear(60footcone)3regainingcharges.thewandregains1d6+1expendedchargesdailyatdawn.ifyouexpendthewand'slastcharge,roll1d20.ona1,thewandcrumblesintoashesandisdestroyed.wandoff"
+   },
+   {
+    "printed_page": 7,
+    "length": 109,
+    "front_matter": false,
+    "excerpt": "ngthmeleeattackwithaweaponoranunarmedstrike(see\"rulesglossary\")dexterityrangedattackwithaweaponvariesspellattack(theabilityusedisdeterminedbythespellcaster'sspellcastingfeature,asexplainedin\"spells\")somefeaturesletyouusedifferentabilitymodi"
+   },
+   {
+    "printed_page": 225,
+    "length": 109,
+    "front_matter": false,
+    "excerpt": "a3,acrowbar;ona4,alittorch.6670yousufferaboutof\"magicsickness\"andhavethepoisonedconditionfor1hour.7175youhavethepetrifiedconditionuntiltheendofyournextturn.7680youpullanonmagicalobjectoutofthehat.roll1d4todeterminetheobject:ona1,adagger;ona"
+   },
+   {
+    "printed_page": 337,
+    "length": 108,
+    "front_matter": false,
+    "excerpt": "h5ft.orrange20/60ft.hit:4(1d6+1)piercingdamage.warriorveteranmediumorsmallhumanoid,neutralac17initiative+3(13)hp65(10d8+20)speed30ft.modsavemodsavemodsavestr16+3+3dex13+1+1con14+2+2int10+0+0wis11+0+0cha10+0+0skillsathletics+5,perception+2ge"
+   },
+   {
+    "printed_page": 95,
+    "length": 107,
+    "front_matter": false,
+    "excerpt": "iesholywater1lb.25gphuntingtrap25lb.5gpink10gpitemweightcostinkpen2cpjug4lb.2cpladder25lb.1splamp1lb.5splantern,bullseye2lb.10gplantern,hooded2lb.5gplock1lb.10gpmagnifyingglass100gpmanacles6lb.2gpmap1gpmirror1/2lb.5gpnet3lb.1gpoil1lb.1sppap"
+   },
+   {
+    "printed_page": 27,
+    "length": 106,
+    "front_matter": false,
+    "excerpt": "72asilverteardropearringcontainingarealteardrop1d100trinket73aneggshellpaintedwithscenesofmiseryindisturbingdetail74afanthat,whenunfolded,showsasleepycat75asetofbonepipes76afourleafcloverpressedinsideabookdiscussingmannersandetiquette77ashe"
+   },
+   {
+    "printed_page": 180,
+    "length": 106,
+    "front_matter": false,
+    "excerpt": "eheatforcepuremagicalenergylightningelectricitytypeexamplesnecroticlifedrainingenergypiercingfangs,puncturingobjectspoisontoxicgas,venompsychicmindrendingenergyradiantholyenergy,searingradiationslashingclaws,cuttingobjectsthunderconcussives"
+   },
+   {
+    "printed_page": 31,
+    "length": 105,
+    "front_matter": false,
+    "excerpt": "stoolproficiencieschoose3musicalinstruments(see\"equipment\")armortraininglightarmorstartingequipmentchooseaorb:(a)leatherarmor,2daggers,musicalinstrumentofyourchoice,entertainer'spack,and19gp;or(b)90gpbecomingabard...asalevel1charactergainal"
+   },
+   {
+    "printed_page": 49,
+    "length": 105,
+    "front_matter": false,
+    "excerpt": "eonetypeofartisan'stoolsormusicalinstrument(see\"equipment\")armortrainingnonestartingequipmentchooseaorb:(a)spear,5daggers,artisan'stoolsormusicalinstrumentchosenforthetoolproficiencyabove,explorer'spack,and11gp;or(b)50gpbecomingamonk...asal"
+   },
+   {
+    "printed_page": 225,
+    "length": 105,
+    "front_matter": false,
+    "excerpt": "2,aconstrictorsnake;ona3,anelephant;ona4,amule.1d100effect8690ahostileswarmofbatsfliesoutofthehat,occupiesyourspace,andattacksyou.9195avertical,10footdiameter,twowayportaltoanotherplaneofexistenceopensinanunoccupiedspacewithin30feetofyouand"
+   },
+   {
+    "printed_page": 211,
+    "length": 104,
+    "front_matter": false,
+    "excerpt": "roil(gm'schoice)30feetintotheairfor1d4minutes.1d100effect1120atreantsprouts.rollanydie.onanoddroll,thetreantischaoticevil.onanevenroll,thetreantischaoticgood.2130ananimatebutimmobilestonestatueinyourlikenessrisesandmakesverbalthreatsagainst"
+   },
+   {
+    "printed_page": 7,
+    "length": 102,
+    "front_matter": false,
+    "excerpt": "espellcaster'sspellcastingfeature,asexplainedin\"spells\")somefeaturesletyouusedifferentabilitymodifiersfromthoselisted.forexample,thefinesseproperty(see\"equipment\")letsyouusestrengthordexteritywithaweaponthathasthatproperty.proficiencybonusy"
+   },
+   {
+    "printed_page": 101,
+    "length": 102,
+    "front_matter": false,
+    "excerpt": "edge)1spinnstayperdaysqualid7cppoor1spmodest5spitemcostcomfortable8spwealthy2gparistocratic4gpmealsqualid1cppoor2cpmodest1spairborneandwaterbornevehiclesshipspeedcrewpassengerscargo(tons)achpdamagethresholdcostairship8mph102011330040,000gpg"
+   },
+   {
+    "printed_page": 102,
+    "length": 102,
+    "front_matter": false,
+    "excerpt": "itemcostcomfortable2spwealthy3sparistocratic6spitemcostwine(bottle)common2spfine10gphirelingsskilledhirelingsincludeanyonehiredtoperformaservicethatinvolvesaproficiency(includingweapon,tool,orskill):amercenary,anartisan,ascribe,orthelike.th"
+   },
+   {
+    "printed_page": 202,
+    "length": 102,
+    "front_matter": false,
+    "excerpt": "tpercharacterparty'slevelencounterdifficultylowmoderatehigh1507510021001502003150225400425037550055007501,10066001,0001,40077501,3001,70081,0001,7002,10091,3002,0002,600101,6002,3003,100111,9002,9004,100122,2003,7004,700132,6004,2005,400142"
+   },
+   {
+    "printed_page": 256,
+    "length": 102,
+    "front_matter": false,
+    "excerpt": "00083,9002575,00095,0002690,000105,90027105,000crxpcrxp117,20028120,000128,40029135,0001310,00030155,000proficiencybonusamonster'sproficiencybonus(pb)isdeterminedbyitscr,asshownintheproficiencybonusbychallengeratingtable,andisreflectedinsav"
+   },
+   {
+    "printed_page": 90,
+    "length": 101,
+    "front_matter": false,
+    "excerpt": "way,suchasusingarangedweapontomakeameleeattack.loadingyoucanfireonlyonepieceofammunitionfromaloadingweaponwhenyouuseanaction,abonusaction,orareactiontofireit,regardlessofthenumberofattacksyoucannormallymake.rangearangeweaponhasarangeinparen"
+   },
+   {
+    "printed_page": 90,
+    "length": 100,
+    "front_matter": false,
+    "excerpt": "tyforthecharacter.thepropertiesaredefinedbelow.cleaveifyouhitacreaturewithameleeattackrollusingthisweapon,youcanmakeameleeattackrollwiththeweaponagainstasecondcreaturewithin5feetofthefirstthatisalsowithinyourreach.onahit,thesecondcreatureta"
+   },
+   {
+    "printed_page": 44,
+    "length": 98,
+    "front_matter": false,
+    "excerpt": "rapsdivinationflamebladeevocationcflamingsphereevocationcgustofwindevocationcheatmetaltransmutationcholdpersonenchantmentclesserrestorationabjurationlocateanimalsorplantsdivinationrlocateobjectdivinationcmoonbeamevocationcpasswithouttraceab"
+   },
+   {
+    "printed_page": 80,
+    "length": 98,
+    "front_matter": false,
+    "excerpt": "ationcenlarge/reducetransmutationcflamingsphereevocationcgentlereposenecromancyr,mgustofwindevocationcholdpersonenchantmentcinvisibilityillusioncknocktransmutationlevitatetransmutationclocateobjectdivinationcmagicmouthillusionr,mmagicweapon"
+   }
+  ]
+ },
+ "named_checks": [
+  {
+   "name": "skills-and-perception",
+   "printed_pages": [
+    9
+   ],
+   "concern": "Skill rows and the Perception entry; row/ability association is table structure this instrument does not check.",
+   "positive_control": false,
+   "verdict": "below_floor_unresolved",
+   "table_association_checked": false,
+   "coverage": [
+    {
+     "printed_page": 9,
+     "windows": 3172,
+     "matched": 3086,
+     "longest_run": 93
+    }
+   ],
+   "runs_over_floor": []
+  },
+  {
+   "name": "armor-and-chain-shirt",
+   "printed_pages": [
+    92
+   ],
+   "concern": "Armor table values; whether 13 is Chain Shirt's AC rather than another column is table structure, not text presence.",
+   "positive_control": false,
+   "verdict": "below_floor_unresolved",
+   "table_association_checked": false,
+   "coverage": [
+    {
+     "printed_page": 92,
+     "windows": 1937,
+     "matched": 1755,
+     "longest_run": 94
+    }
+   ],
+   "runs_over_floor": []
+  },
+  {
+   "name": "always-prepared-spells",
+   "printed_pages": [
+    104
+   ],
+   "concern": "Always-prepared spell listing and the prose governing it.",
+   "positive_control": false,
+   "verdict": "below_floor_unresolved",
+   "table_association_checked": false,
+   "coverage": [
+    {
+     "printed_page": 104,
+     "windows": 3298,
+     "matched": 3210,
+     "longest_run": 93
+    }
+   ],
+   "runs_over_floor": []
+  },
+  {
+   "name": "carpet-of-flying",
+   "printed_pages": [
+    215
+   ],
+   "concern": "Carpet of Flying sizes, capacity and speed.",
+   "positive_control": false,
+   "verdict": "below_floor_unresolved",
+   "table_association_checked": false,
+   "coverage": [
+    {
+     "printed_page": 215,
+     "windows": 3222,
+     "matched": 3222,
+     "longest_run": 0
+    }
+   ],
+   "runs_over_floor": []
+  },
+  {
+   "name": "vulture-pack-tactics",
+   "printed_pages": [
+    364
+   ],
+   "concern": "Vulture stat block and its Pack Tactics trait.",
+   "positive_control": false,
+   "verdict": "below_floor_unresolved",
+   "table_association_checked": false,
+   "coverage": [
+    {
+     "printed_page": 364,
+     "windows": 1598,
+     "matched": 1598,
+     "longest_run": 0
+    }
+   ],
+   "runs_over_floor": []
+  },
+  {
+   "name": "archelon-and-baboon",
+   "printed_pages": [
+    344,
+    345
+   ],
+   "concern": "Adjacent stat blocks; ability-grid row association is table structure this instrument does not check.",
+   "positive_control": false,
+   "verdict": "below_floor_unresolved",
+   "table_association_checked": false,
+   "coverage": [
+    {
+     "printed_page": 344,
+     "windows": 2009,
+     "matched": 1962,
+     "longest_run": 94
+    },
+    {
+     "printed_page": 345,
+     "windows": 1823,
+     "matched": 1823,
+     "longest_run": 0
+    }
+   ],
+   "runs_over_floor": []
+  },
+  {
+   "name": "barbarian-progression",
+   "printed_pages": [
+    28
+   ],
+   "concern": "Barbarian level progression; per-level association is table structure, not text presence.",
+   "positive_control": false,
+   "verdict": "below_floor_unresolved",
+   "table_association_checked": false,
+   "coverage": [
+    {
+     "printed_page": 28,
+     "windows": 1879,
+     "matched": 1786,
+     "longest_run": 94
+    }
+   ],
+   "runs_over_floor": []
+  },
+  {
+   "name": "sorcerer-lists",
+   "printed_pages": [
+    67,
+    68
+   ],
+   "concern": "Sorcerer spell and feature lists across a page break.",
+   "positive_control": false,
+   "verdict": "discrepancy",
+   "table_association_checked": false,
+   "coverage": [
+    {
+     "printed_page": 67,
+     "windows": 2722,
+     "matched": 2722,
+     "longest_run": 0
+    },
+    {
+     "printed_page": 68,
+     "windows": 1523,
+     "matched": 1349,
+     "longest_run": 142
+    }
+   ],
+   "runs_over_floor": [
+    {
+     "length": 142,
+     "excerpt": "transmutationcflamebladeevocationcflamingsphereevocationcgustofwindevocationcspellschoolspecialholdpersonenchantmentcinvisibilityillusioncknocktransmutationlevitatetransmutationcmagicweapontransmutationmirrorimageillusionmistystepconjuratio"
+    },
+    {
+     "length": 126,
+     "excerpt": "evitatetransmutationcmagicweapontransmutationmirrorimageillusionmistystepconjurationscorchingrayevocationseeinvisibilitydivinationshatterevocationspiderclimbtransmutationcsuggestionenchantmentcwebconjurationclevel3sorcererspellsspellschools"
+    }
+   ]
+  },
+  {
+   "name": "rarity-value-and-command-word",
+   "printed_pages": [
+    206
+   ],
+   "concern": "Rarity/value table and the Command Word text; rarity-to-value association is table structure, not text presence.",
+   "positive_control": false,
+   "verdict": "below_floor_unresolved",
+   "table_association_checked": false,
+   "coverage": [
+    {
+     "printed_page": 206,
+     "windows": 3311,
+     "matched": 3264,
+     "longest_run": 94
+    }
+   ],
+   "runs_over_floor": []
+  },
+  {
+   "name": "actions",
+   "printed_pages": [
+    9,
+    10
+   ],
+   "concern": "Owner-supplied positive control: this region is known good, so any run it produces measures the instrument, not the snapshot.",
+   "positive_control": true,
+   "verdict": "below_floor_unresolved",
+   "table_association_checked": false,
+   "coverage": [
+    {
+     "printed_page": 9,
+     "windows": 3172,
+     "matched": 3086,
+     "longest_run": 93
+    },
+    {
+     "printed_page": 10,
+     "windows": 3675,
+     "matched": 3662,
+     "longest_run": 60
+    }
+   ],
+   "runs_over_floor": []
+  },
+  {
+   "name": "multiclass-spellcaster",
+   "printed_pages": [
+    26
+   ],
+   "concern": "Owner-supplied positive control: this region is known good, so any run it produces measures the instrument, not the snapshot.",
+   "positive_control": true,
+   "verdict": "below_floor_unresolved",
+   "table_association_checked": false,
+   "coverage": [
+    {
+     "printed_page": 26,
+     "windows": 2269,
+     "matched": 2269,
+     "longest_run": 0
+    }
+   ],
+   "runs_over_floor": []
+  }
+ ],
+ "positive_control_longest_run": 93,
+ "pending": [
+  "Table row and column association, including colspan cells, empty cells and repeated ability-grid headers, is not checked here. It is checked by tests/ingestion/source/test_community_source_structure.py, which reads the cells; see docs/architecture/issue-5c-5d-community-source-corrections.md.",
+  "Sign, number and qualifier differences are invisible to this normalization: compact() folds the minus sign to a hyphen and then removes hyphens, so 'modifier -2' and 'modifier 2' compare equal, and a footnote marker or qualifier beside a value can be absorbed. community_tokens keeps the sign and compares per-page token multisets, which is where that difference is read.",
+  "Record ownership -- which stat block, spell or table entry a passage belongs to -- is invisible to a character-window comparison; adjacent entries read as one continuous stream. Heading ownership is checked against the official table of contents instead; see the qualification section of the evidence record.",
+  "Runs below the noise floor are unresolved, not cleared: the bound covers a single isolated reordering junction, and merged junctions or an omission beside one can hide under it. Counted in discrepancies.runs_below_floor for qualification to read. Every run, over or under the floor, is dispositioned against the token pass in the qualification section of the evidence record.",
+  "Community additions are reported, not adjudicated: each run still needs reading to say whether it is snapshot scaffolding, an editorial addition, or imported non-SRD text.",
+  "Official page 1 attribution and licence text is excluded as front matter alongside the table of contents, but it is a distinct completeness item: the snapshot must carry the attribution the licence requires, which a page-number index is not. Carried as the controlled addition legal-information.md, which compacts identically to official page 1.",
+  "A region reported as below the floor is not qualified; full-source qualification requires the structural pass."
+ ],
+ "qualification": {
+  "generated_by": "venv/Scripts/python.exe scripts/regen_community_source_coverage.py",
+  "what_this_adds": "The window pass above compares characters after compaction and says so: signs, cell association and record ownership are outside it. Each has its own pass here, so that no figure rests on a coverage percentage alone. Signs and cell association are read by the token pass and the structure scan; record ownership is read by the ownership pass, which is the one thing a comparison of text cannot see at all, because a heading mark is not text the official page prints.",
+  "scope": {
+   "full_mechanical_scans": {
+    "token_pass": "all 364 official pages against the whole snapshot",
+    "number_order_pass": "all 360 body pages",
+    "structure": "every table, ability grid and arithmetic triple",
+    "record_ownership": "every heading in the thirteen content files",
+    "snapshot_is_partitioned_without_gaps": "every snapshot character"
+   },
+   "representative_reads": {
+    "official_table_of_contents": "481 contents entries, checked for title presence only",
+    "pages_rendered_and_read_directly": "the residue and correction pages named in the corrections notes, not all 364",
+    "why_separated": "A scan's count is a count of everything there is. A read's count is a count of what was looked at. Reported together, the first would stand in for the second."
+   }
+  },
+  "token_pass": {
+   "module": "afterworlds.ingestion.source.community_tokens",
+   "comparison": "per-official-page token multisets, minus sign preserved, order-immune",
+   "body_pages": 360,
+   "quiet_body_pages": 288,
+   "pdf_only_tokens_outside_front_matter": 199,
+   "snapshot_only_tokens_outside_front_matter": 86,
+   "pages_with_residue": [
+    {
+     "printed_page": 7,
+     "files": [
+      "playing-the-game.md"
+     ],
+     "pdf_only": {
+      "\"": 4
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 10,
+     "files": [
+      "playing-the-game.md"
+     ],
+     "pdf_only": {
+      "action": 1,
+      "summary": 1
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 14,
+     "files": [
+      "playing-the-game.md"
+     ],
+     "pdf_only": {
+      "are": 1
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 15,
+     "files": [
+      "playing-the-game.md"
+     ],
+     "pdf_only": {
+      "action": 1
+     },
+     "snapshot_only": {
+      "a": 1,
+      "reaction": 1
+     }
+    },
+    {
+     "printed_page": 19,
+     "files": [
+      "character-creation.md"
+     ],
+     "pdf_only": {
+      ":": 5,
+      "class": 1,
+      "ability": 1,
+      "likes": 1,
+      "primary": 1,
+      "complexity": 1
+     },
+     "snapshot_only": {
+      ".": 2
+     }
+    },
+    {
+     "printed_page": 20,
+     "files": [
+      "character-creation.md"
+     ],
+     "pdf_only": {
+      "ability": 1,
+      "background": 1
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 24,
+     "files": [
+      "character-creation.md"
+     ],
+     "pdf_only": {
+      "spell": 1,
+      "casters": 1
+     },
+     "snapshot_only": {
+      "spellcasters": 1
+     }
+    },
+    {
+     "printed_page": 27,
+     "files": [
+      "character-creation.md"
+     ],
+     "pdf_only": {
+      "1": 2,
+      "d": 2,
+      "100": 2,
+      "trinket": 2
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 31,
+     "files": [
+      "classes.md"
+     ],
+     "pdf_only": {
+      "\"": 4
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 33,
+     "files": [
+      "classes.md"
+     ],
+     "pdf_only": {
+      "spell": 1,
+      "school": 1,
+      "spe": 1,
+      "cial": 1
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 34,
+     "files": [
+      "classes.md"
+     ],
+     "pdf_only": {
+      "spell": 1,
+      "school": 1,
+      "special": 1,
+      "—": 1
+     },
+     "snapshot_only": {
+      "illusion": 1,
+      "c": 1,
+      "phantasmal": 1,
+      "force": 1
+     }
+    },
+    {
+     "printed_page": 39,
+     "files": [
+      "classes.md"
+     ],
+     "pdf_only": {
+      "spell": 1,
+      "school": 1,
+      "special": 1
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 44,
+     "files": [
+      "classes.md"
+     ],
+     "pdf_only": {
+      "evocation": 1
+     },
+     "snapshot_only": {
+      "conjuration": 1
+     }
+    },
+    {
+     "printed_page": 47,
+     "files": [
+      "classes.md"
+     ],
+     "pdf_only": {
+      "short": 1,
+      "sword": 1
+     },
+     "snapshot_only": {
+      "shortsword": 1
+     }
+    },
+    {
+     "printed_page": 49,
+     "files": [
+      "classes.md"
+     ],
+     "pdf_only": {
+      "\"": 2
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 53,
+     "files": [
+      "classes.md"
+     ],
+     "pdf_only": {},
+     "snapshot_only": {
+      "—": 2
+     }
+    },
+    {
+     "printed_page": 55,
+     "files": [
+      "classes.md"
+     ],
+     "pdf_only": {
+      "ex": 1,
+      "pend": 1
+     },
+     "snapshot_only": {
+      "expend": 1
+     }
+    },
+    {
+     "printed_page": 56,
+     "files": [
+      "classes.md"
+     ],
+     "pdf_only": {
+      "spell": 1,
+      "school": 1,
+      "special": 1
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 58,
+     "files": [
+      "classes.md"
+     ],
+     "pdf_only": {},
+     "snapshot_only": {
+      "—": 2
+     }
+    },
+    {
+     "printed_page": 61,
+     "files": [
+      "classes.md"
+     ],
+     "pdf_only": {
+      "short": 1,
+      "sword": 1
+     },
+     "snapshot_only": {
+      "shortsword": 1
+     }
+    },
+    {
+     "printed_page": 66,
+     "files": [
+      "classes.md"
+     ],
+     "pdf_only": {
+      "magic": 1,
+      "meta": 1
+     },
+     "snapshot_only": {
+      "metamagic": 1
+     }
+    },
+    {
+     "printed_page": 67,
+     "files": [
+      "classes.md"
+     ],
+     "pdf_only": {
+      "—": 1
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 68,
+     "files": [
+      "classes.md"
+     ],
+     "pdf_only": {
+      "spell": 1,
+      "school": 1,
+      "special": 1,
+      "evocation": 1
+     },
+     "snapshot_only": {
+      "illusion": 1,
+      "divination": 1,
+      "c": 2,
+      "conjuration": 1,
+      "mind": 1,
+      "spike": 1,
+      "phantasmal": 1,
+      "force": 1
+     }
+    },
+    {
+     "printed_page": 75,
+     "files": [
+      "classes.md"
+     ],
+     "pdf_only": {
+      "spell": 1,
+      "school": 1,
+      "special": 1
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 79,
+     "files": [
+      "classes.md"
+     ],
+     "pdf_only": {
+      "spell": 1,
+      "school": 1,
+      "special": 1
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 80,
+     "files": [
+      "classes.md"
+     ],
+     "pdf_only": {
+      "spell": 1,
+      "school": 1,
+      "special": 1,
+      "evocation": 1
+     },
+     "snapshot_only": {
+      "c": 1,
+      "illusion": 1,
+      "conjuration": 1,
+      "phantasmal": 1,
+      "force": 1
+     }
+    },
+    {
+     "printed_page": 81,
+     "files": [
+      "classes.md"
+     ],
+     "pdf_only": {
+      "spell": 1,
+      "school": 1,
+      "special": 1,
+      "—": 1
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 89,
+     "files": [
+      "equipment.md"
+     ],
+     "pdf_only": {},
+     "snapshot_only": {
+      ".": 5
+     }
+    },
+    {
+     "printed_page": 90,
+     "files": [
+      "equipment.md"
+     ],
+     "pdf_only": {},
+     "snapshot_only": {
+      ".": 13
+     }
+    },
+    {
+     "printed_page": 92,
+     "files": [
+      "equipment.md"
+     ],
+     "pdf_only": {},
+     "snapshot_only": {
+      ".": 2
+     }
+    },
+    {
+     "printed_page": 95,
+     "files": [
+      "equipment.md"
+     ],
+     "pdf_only": {
+      "item": 1,
+      "weight": 1,
+      "cost": 1
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 96,
+     "files": [
+      "equipment.md"
+     ],
+     "pdf_only": {
+      "/": 1
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 101,
+     "files": [
+      "equipment.md"
+     ],
+     "pdf_only": {
+      "cost": 1,
+      "item": 1
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 102,
+     "files": [
+      "equipment.md"
+     ],
+     "pdf_only": {
+      "item": 2,
+      "cost": 2
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 155,
+     "files": [
+      "spells.md"
+     ],
+     "pdf_only": {
+      "1": 1,
+      "d": 1,
+      "8": 1,
+      "ray": 1
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 156,
+     "files": [
+      "spells.md"
+     ],
+     "pdf_only": {},
+     "snapshot_only": {
+      ",": 1
+     }
+    },
+    {
+     "printed_page": 173,
+     "files": [
+      "spells.md"
+     ],
+     "pdf_only": {
+      "10": 1
+     },
+     "snapshot_only": {
+      "-10": 1
+     }
+    },
+    {
+     "printed_page": 180,
+     "files": [
+      "rules-glossary.md"
+     ],
+     "pdf_only": {
+      "exam": 1,
+      "ples": 1,
+      "type": 1
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 183,
+     "files": [
+      "rules-glossary.md"
+     ],
+     "pdf_only": {
+      "/": 1
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 184,
+     "files": [
+      "rules-glossary.md"
+     ],
+     "pdf_only": {
+      "advan": 1,
+      "tage": 1
+     },
+     "snapshot_only": {
+      "advantage": 1
+     }
+    },
+    {
+     "printed_page": 202,
+     "files": [
+      "gameplay-toolbox.md"
+     ],
+     "pdf_only": {
+      "—": 6
+     },
+     "snapshot_only": {
+      "encounter": 2,
+      "difficulty": 2
+     }
+    },
+    {
+     "printed_page": 204,
+     "files": [
+      "magic-items.md"
+     ],
+     "pdf_only": {
+      "\"": 4
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 208,
+     "files": [
+      "magic-items.md"
+     ],
+     "pdf_only": {
+      "special": 1,
+      "purpose": 1,
+      "1": 1,
+      "d": 1,
+      "10": 1
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 211,
+     "files": [
+      "magic-items.md"
+     ],
+     "pdf_only": {
+      "d": 1,
+      "effect": 1,
+      "1": 1,
+      "100": 1
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 218,
+     "files": [
+      "magic-items.md"
+     ],
+     "pdf_only": {
+      "1": 1,
+      "d": 1,
+      "100": 1,
+      "illusion": 1
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 225,
+     "files": [
+      "magic-items.md"
+     ],
+     "pdf_only": {
+      "1": 1,
+      "effect": 1,
+      "d": 1,
+      "100": 1,
+      "\"": 2
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 241,
+     "files": [
+      "magic-items.md"
+     ],
+     "pdf_only": {
+      "1": 1,
+      "d": 1,
+      "100": 1,
+      "patch": 1
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 244,
+     "files": [
+      "magic-items.md"
+     ],
+     "pdf_only": {
+      "spell": 1,
+      "attack": 1,
+      "rarity": 1,
+      "level": 1,
+      "dc": 1,
+      "bonus": 1,
+      "save": 1
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 247,
+     "files": [
+      "magic-items.md"
+     ],
+     "pdf_only": {
+      "spell": 1,
+      "charge": 1,
+      "cost": 1
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 250,
+     "files": [
+      "magic-items.md"
+     ],
+     "pdf_only": {
+      "\"": 4
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 256,
+     "files": [
+      "monsters.md"
+     ],
+     "pdf_only": {
+      "cr": 2,
+      "xp": 2
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 257,
+     "files": [
+      "monsters.md"
+     ],
+     "pdf_only": {
+      "cast": 1,
+      "ing": 1
+     },
+     "snapshot_only": {
+      "casting": 1
+     }
+    },
+    {
+     "printed_page": 259,
+     "files": [
+      "monsters-A-Z.md"
+     ],
+     "pdf_only": {
+      "c": 2,
+      "on": 2
+     },
+     "snapshot_only": {
+      "con": 2
+     }
+    },
+    {
+     "printed_page": 261,
+     "files": [
+      "monsters-A-Z.md"
+     ],
+     "pdf_only": {
+      "d": 1,
+      "ex": 1
+     },
+     "snapshot_only": {
+      "dex": 1
+     }
+    },
+    {
+     "printed_page": 271,
+     "files": [
+      "monsters-A-Z.md"
+     ],
+     "pdf_only": {
+      "c": 2,
+      "on": 2
+     },
+     "snapshot_only": {
+      "con": 2
+     }
+    },
+    {
+     "printed_page": 273,
+     "files": [
+      "monsters-A-Z.md"
+     ],
+     "pdf_only": {
+      "on": 1,
+      "c": 1
+     },
+     "snapshot_only": {
+      "con": 1
+     }
+    },
+    {
+     "printed_page": 275,
+     "files": [
+      "monsters-A-Z.md"
+     ],
+     "pdf_only": {},
+     "snapshot_only": {
+      ".": 1
+     }
+    },
+    {
+     "printed_page": 277,
+     "files": [
+      "monsters-A-Z.md"
+     ],
+     "pdf_only": {
+      ".": 1,
+      "is": 1,
+      "w": 1
+     },
+     "snapshot_only": {
+      "wis": 1
+     }
+    },
+    {
+     "printed_page": 293,
+     "files": [
+      "monsters-A-Z.md"
+     ],
+     "pdf_only": {},
+     "snapshot_only": {
+      "actions": 1,
+      ".": 3,
+      "the": 1,
+      "dragon": 1
+     }
+    },
+    {
+     "printed_page": 295,
+     "files": [
+      "monsters-A-Z.md"
+     ],
+     "pdf_only": {
+      "actions": 1,
+      ".": 3,
+      "the": 1,
+      "dragon": 1
+     },
+     "snapshot_only": {}
+    },
+    {
+     "printed_page": 305,
+     "files": [
+      "monsters-A-Z.md"
+     ],
+     "pdf_only": {
+      "d": 1,
+      "ex": 1
+     },
+     "snapshot_only": {
+      "dex": 1
+     }
+    },
+    {
+     "printed_page": 307,
+     "files": [
+      "monsters-A-Z.md"
+     ],
+     "pdf_only": {
+      "bonus": 1,
+      "actions": 1,
+      "d": 1,
+      "ex": 1
+     },
+     "snapshot_only": {
+      "dex": 1
+     }
+    },
+    {
+     "printed_page": 308,
+     "files": [
+      "monsters-A-Z.md"
+     ],
+     "pdf_only": {
+      "c": 1,
+      "on": 1
+     },
+     "snapshot_only": {
+      "con": 1
+     }
+    },
+    {
+     "printed_page": 313,
+     "files": [
+      "monsters-A-Z.md"
+     ],
+     "pdf_only": {
+      "on": 1,
+      "c": 1
+     },
+     "snapshot_only": {
+      "con": 1
+     }
+    },
+    {
+     "printed_page": 317,
+     "files": [
+      "monsters-A-Z.md"
+     ],
+     "pdf_only": {
+      "on": 2,
+      "c": 2
+     },
+     "snapshot_only": {
+      "con": 2
+     }
+    },
+    {
+     "printed_page": 323,
+     "files": [
+      "monsters-A-Z.md"
+     ],
+     "pdf_only": {
+      "c": 1,
+      "on": 1
+     },
+     "snapshot_only": {
+      "con": 1
+     }
+    },
+    {
+     "printed_page": 331,
+     "files": [
+      "monsters-A-Z.md"
+     ],
+     "pdf_only": {
+      "c": 1,
+      "ha": 1
+     },
+     "snapshot_only": {
+      "cha": 1
+     }
+    },
+    {
+     "printed_page": 332,
+     "files": [
+      "monsters-A-Z.md"
+     ],
+     "pdf_only": {
+      "on": 1,
+      "c": 1
+     },
+     "snapshot_only": {
+      "con": 1
+     }
+    },
+    {
+     "printed_page": 334,
+     "files": [
+      "monsters-A-Z.md"
+     ],
+     "pdf_only": {
+      "c": 1,
+      "ha": 1
+     },
+     "snapshot_only": {
+      "cha": 1
+     }
+    },
+    {
+     "printed_page": 340,
+     "files": [
+      "monsters-A-Z.md"
+     ],
+     "pdf_only": {
+      "2": 1
+     },
+     "snapshot_only": {
+      "-2": 1
+     }
+    },
+    {
+     "printed_page": 350,
+     "files": [
+      "animals.md"
+     ],
+     "pdf_only": {
+      "c": 1,
+      "on": 1
+     },
+     "snapshot_only": {
+      "con": 1
+     }
+    },
+    {
+     "printed_page": 356,
+     "files": [
+      "animals.md"
+     ],
+     "pdf_only": {
+      "—": 1
+     },
+     "snapshot_only": {}
+    }
+   ]
+  },
+  "snapshot_is_partitioned_without_gaps": {
+   "why": "Every character of the snapshot is assigned to exactly one official page, so a window-pass run that could not be anchored is an alignment limit of that pass, not unexamined content.",
+   "compact_chars": 1094456,
+   "chars_assigned_to_a_page": 1094456
+  },
+  "number_order_pass": {
+   "why": "A multiset cancels a difference that stays on one page. Read in order, a dropped table row and a swapped pair of cells do not cancel. Pages whose sequences differ were read; a page printed in two columns legitimately differs.",
+   "body_pages": 360,
+   "pages_with_the_same_number_order": 296,
+   "each_differing_page_was_read": "The families are recorded in the corrections notes. Four are not page-column reading order. Official pp.101-102 set the Food, Drink, and Lodging list in paired sub-columns that the extraction reads across, while the corrected file carries the list in the order the pages print it (correction family I). The Staff of the Magi table on official pages 246-247 had lost a row under the header the document reprints at the page break. Official p.222 differs because the Giant Fly stat block was moved to the end of the Figurine of Wondrous Power entry, so its numbers now follow the figurine variants the official page prints past it rather than preceding them. Official p.340 prints the Young White Dragon's INT save as '2'; the snapshot carries the official-source-backed '-2' (correction family N).",
+   "pages_read_because_their_number_order_differs": [
+    5,
+    6,
+    8,
+    13,
+    16,
+    17,
+    21,
+    24,
+    27,
+    28,
+    31,
+    36,
+    41,
+    47,
+    50,
+    53,
+    57,
+    58,
+    61,
+    62,
+    63,
+    64,
+    65,
+    70,
+    71,
+    77,
+    78,
+    79,
+    85,
+    92,
+    101,
+    102,
+    106,
+    109,
+    114,
+    115,
+    131,
+    155,
+    173,
+    181,
+    192,
+    199,
+    200,
+    208,
+    210,
+    211,
+    218,
+    222,
+    225,
+    241,
+    249,
+    250,
+    251,
+    268,
+    269,
+    291,
+    292,
+    294,
+    295,
+    318,
+    319,
+    340,
+    343,
+    344
+   ]
+  },
+  "official_table_of_contents": {
+   "establishes": "every contents entry is the title of some heading in the snapshot",
+   "does_not_establish": "the depth of that heading, what it owns, or the placement of the headings the contents does not list",
+   "entries": 481,
+   "entries_whose_title_matches_a_heading": 476,
+   "entries_without_a_heading": [
+    {
+     "title": "Legal Information",
+     "official_page": 1,
+     "disposition": "Owned by the controlled addition legal-information.md, which is not one of the thirteen upstream content files. Official page 1."
+    },
+    {
+     "title": "Dropping to",
+     "official_page": 0,
+     "disposition": "An artifact of reading the contents: the entry is 'Dropping to 0 Hit Points 17' and the split above takes its inner number as the page. The heading is playing-the-game.md 'Dropping to 0 Hit Points'."
+    },
+    {
+     "title": "Running a Monster",
+     "official_page": 255,
+     "disposition": "Present in monsters.md as the sidebar '> **Running a Monster**' rather than a Markdown heading. Official page 255 is quiet in the token pass."
+    },
+    {
+     "title": "Index of Stat Blocks Aboleth",
+     "official_page": 258,
+     "disposition": "Two contents entries the split above merged, because the section label carries no dot leader. 'Index of Stat Blocks' is navigation; the index itself begins at the Aboleth heading monsters-A-Z.md owns. Official page 258 is quiet in the token pass."
+    },
+    {
+     "title": "Warrior Veteran",
+     "official_page": 337,
+     "disposition": "OWNER CORRECTION, not publisher text: the stat block the contents and official page 337 name 'Warrior Veteran' is headed 'Veteran Warrior' in monsters-A-Z.md, the name Deck of Illusions prints for it. Same stat block; recorded in source_pin.json under Monsters A-Z > Warriors > Warrior Veteran."
+    }
+   ]
+  },
+  "headings": {
+   "per_file": {
+    "animals.md": 254,
+    "character-creation.md": 43,
+    "character-origins.md": 29,
+    "classes.md": 423,
+    "equipment.md": 134,
+    "feats.md": 24,
+    "gameplay-toolbox.md": 81,
+    "magic-items.md": 298,
+    "monsters-A-Z.md": 913,
+    "monsters.md": 35,
+    "playing-the-game.md": 105,
+    "rules-glossary.md": 158,
+    "spells.md": 379
+   },
+   "total": 2876
+  },
+  "record_ownership": {
+   "why": "A heading closes every open section at its own depth or above, so depth is the whole of what Markdown says about which entry a record belongs to. Neither comparison pass reads a heading mark.",
+   "does_not_establish": "that a block's owner is the right one. This reports the depths each block and its resolved owner carry; which entry the official document places a block under is read from the page, and the six corrected blocks are named in the corrections notes.",
+   "stat_blocks": 336,
+   "stat_block_depths_per_file": {
+    "animals.md": [
+     2
+    ],
+    "magic-items.md": [
+     5
+    ],
+    "monsters-A-Z.md": [
+     3
+    ],
+    "spells.md": [
+     5
+    ]
+   },
+   "embedded_in_a_non_creature_entry": [
+    {
+     "file": "magic-items.md",
+     "line": 2124,
+     "depth": 5,
+     "title": "Giant Fly",
+     "owner": "Figurine of Wondrous Power",
+     "owner_depth": 4
+    },
+    {
+     "file": "magic-items.md",
+     "line": 2949,
+     "depth": 5,
+     "title": "Avatar of Death",
+     "owner": "Mysterious Deck",
+     "owner_depth": 4
+    },
+    {
+     "file": "spells.md",
+     "line": 412,
+     "depth": 5,
+     "title": "Animated Object",
+     "owner": "Animate Objects",
+     "owner_depth": 4
+    },
+    {
+     "file": "spells.md",
+     "line": 2321,
+     "depth": 5,
+     "title": "Otherworldly Steed",
+     "owner": "Find Steed",
+     "owner_depth": 4
+    },
+    {
+     "file": "spells.md",
+     "line": 2753,
+     "depth": 5,
+     "title": "Giant Insect",
+     "owner": "Giant Insect",
+     "owner_depth": 4
+    },
+    {
+     "file": "spells.md",
+     "line": 5279,
+     "depth": 5,
+     "title": "Draconic Spirit",
+     "owner": "Summon Dragon",
+     "owner_depth": 4
+    }
+   ],
+   "blocks_without_an_owning_entry": [],
+   "asserted_by": "tests.ingestion.source.test_community_source_structure"
+  },
+  "structure": {
+   "tables": 579,
+   "ragged_tables": 0,
+   "ability_grids": 333,
+   "ability_rows": 672,
+   "ability_rows_not_in_label_score_mod_save_shape": [],
+   "score_to_modifier_triples": 2016,
+   "score_to_modifier_mismatches": []
+  },
+  "window_pass_runs_over_floor": {
+   "total": 58,
+   "on_a_page_the_token_pass_also_reports": 39,
+   "front_matter": 4,
+   "note": "A run on a page the token pass reports quiet holds the same tokens with the same multiplicities in the same page, so it is a reading-order difference, not missing or altered content."
+  },
+  "corrections": {
+   "applied": 35,
+   "files": {
+    "classes.md": 9,
+    "equipment.md": 3,
+    "magic-items.md": 6,
+    "monsters-A-Z.md": 6,
+    "playing-the-game.md": 1,
+    "rules-glossary.md": 1,
+    "spells.md": 9
+   },
+   "preserved_official_defects": [],
+   "controlled_additions": [
+    {
+     "path": "legal-information.md",
+     "official_pages": [
+      1
+     ],
+     "why": "CC-BY-4.0 requires the attribution statement to travel with any derived work. Official p.1 carries it and the upstream snapshot does not: upstream's own README and LICENSE are repository process and licence text, not the SRD's Legal Information page, and official p.1 is not the navigation-only table of contents on pp.2-4. Built from the text layer of p.1; it compacts identically to that page under policy.compact.",
+     "bytes": 1115
+    }
+   ],
+   "notes": "docs/architecture/issue-5c-5d-community-source-corrections.md"
+  },
+  "remaining": [
+   "Qualification is of the source and is complete when the source's own defects are resolved and the evidence has been reviewed independently. A later consumer reading these bytes is a different question and cannot be what qualifies them; a corpus built from this source is qualified separately, on its own evidence.",
+   "legal-information.md is a controlled addition and is not one of the thirteen content files the comparison covers, because it has no upstream counterpart. Ingestion must pick it up separately so the attribution travels with the corpus.",
+   "No difference is preserved as an official defect. The official page prints the Young White Dragon's INT save on p.340 unsigned, as does the Basic Rules rendering; the current official individual stat block prints it -2. The snapshot follows the individual stat block (correction family N, an official-source disagreement recorded as a correction, not an Owner decision and not a formal erratum), so preserved_official_defects is empty.",
+   "Two places where the official document itself reads oddly were rendered from the PDF and read directly, by this work and again independently: the Telekinesis sentence truncated mid-clause at the foot of p.168, and the unsigned INT save on p.340. The PDF prints the first as the snapshot now holds it; the second is now corrected on official-source evidence (see above), and the PDF page stays the evidence of what it prints. Both stand here as anomaly notes about the official text. Neither says anything about how a later runtime should read them, and neither is a judgement that the content is correct. The Telekinesis wording removed is quoted verbatim in the manifest and reverses in one step."
+  ]
+ }
+}

@@ -30,6 +30,7 @@ from typing import Any
 import pytest
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import set_attribute
 
 from afterworlds.ingestion.mechanical.oracle import OracleLoadError, _applicability
 from afterworlds.ingestion.mechanical.persistence import (
@@ -56,6 +57,7 @@ from afterworlds.ingestion.mechanical.representation import (
     applicability_violations,
     size_comparison_violations,
 )
+from afterworlds.persistence.orm.mechanical import MechanicalComponentORM
 from tests.ingestion.mechanical.conftest import (
     NOW,
     build_candidate,
@@ -193,8 +195,12 @@ def test_persisted_reconstruction_refuses_the_same_corruption(
     table covers both scopes.
     """
     payload = [] if mutate is None else _mutated(base, mutate)
+    # Stored through the column production reads, beneath its declared type,
+    # as a corrupted row would hold it.
+    row = MechanicalComponentORM()
+    set_attribute(row, "applies_when", payload)
     with pytest.raises(PersistedStateReconstructionError, match=expected):
-        _applicability_from_row(payload, "rp_mech_components", "where")
+        _applicability_from_row(row.applies_when, "rp_mech_components", "where")
 
 
 def test_a_string_false_never_reconstructs_as_its_own_negation() -> None:
@@ -228,7 +234,7 @@ def test_a_boolean_threshold_value_is_a_stated_finding_not_a_silent_pass() -> No
             kind=ApplicabilityKind.QUANTITY_THRESHOLD,
             quantity=TrackedQuantity.SPEED,
             comparison=Comparison.EQUALS,
-            value=True,  # type: ignore[arg-type]
+            value=True,
         )
     )
     assert any("not an integer" in f for f in findings)
@@ -278,7 +284,7 @@ def test_the_type_domain_reports_before_the_range_domain() -> None:
     findings = size_comparison_violations(
         SizeComparison(
             relation=SizeRelation.SMALLER,
-            at_least=True,  # type: ignore[arg-type]
+            at_least=True,
             measured=ParticipantRole.SUBJECT,
             reference=ParticipantRole.COUNTERPART,
         )

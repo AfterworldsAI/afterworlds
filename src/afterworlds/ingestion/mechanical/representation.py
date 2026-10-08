@@ -310,6 +310,7 @@ __all__ = [
     "RECORD_OWNED_REFERENCE",
     "RecordDraft",
     "ReferenceDraft",
+    "ReferenceSituation",
     "RelationshipDraft",
     "RepresentationDraft",
     # Errors and helpers
@@ -370,6 +371,39 @@ class RelationshipKind(StrEnum):
     #: carries 73 ``Spell | School | Special`` tables, all inside Classes, and
     #: neither of the other kinds says what they say.
     SPELL_LIST_MEMBER = "spell_list_member"
+    #: A record is one of the entries a catalogue section prints, e.g. the
+    #: Acolyte under *Backgrounds*. Distinct from ``SCOPED_WITHIN``, which
+    #: says only where a record is contained and is read by no consumer: this
+    #: says that naming the section names this entry, so a consumer selecting
+    #: the section reaches it. It grants nothing, and the entry's own
+    #: eligibility and prerequisites still govern. Schema 16, Owner Decision
+    #: 2026-09-23.
+    CATALOGUE_MEMBER = "catalogue_member"
+
+
+class ReferenceSituation(StrEnum):
+    """The character state one alternative destination of a citation is for.
+
+    Schema 17, Owner Decisions 2026-10-01. A citation such as *"Check your
+    class description in 'Classes'"* names one destination per class, and some
+    name different destinations for different points in a character's life. Each
+    member is a fact about the character the reader may or may not know; none is
+    derived from another, so a reader that knows only some of them still gets
+    every destination the rest leave open.
+    """
+
+    #: Total character level 1: the first class, at creation.
+    INITIAL_CHARACTER = "initial_character"
+    #: Any level gained after total character level 1, in any class.
+    LATER_LEVEL = "later_level"
+    #: Gaining the first level in a class other than the initial class.
+    ENTERING_CLASS = "entering_class"
+    #: Gaining a level in a class the character already has.
+    ADVANCING_CLASS = "advancing_class"
+    #: The character has levels in one class only.
+    SINGLE_CLASS = "single_class"
+    #: The character has levels in more than one class.
+    MULTICLASS = "multiclass"
 
 
 class ProvenanceTargetKind(StrEnum):
@@ -8641,7 +8675,27 @@ assert (
 #: is added to — this sentence names no kind, and a spell save DC is not a
 #: roll. Widening :class:`ProficiencyKind` to carry them would author a
 #: spellcasting proficiency the section never prints.
-REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-15"
+#:
+#: Version ``16`` admits one vocabulary member,
+#: :attr:`RelationshipKind.CATALOGUE_MEMBER`, on a field every schema has had.
+#: No family, no field, no ownership form and no component key, so every
+#: accepted fact key and provenance coordinate has the same canonical form
+#: under 15 and 16.
+#:
+#: The member exists because a catalogue section's record holds only its
+#: introduction, and the source's pointers to the section mean its entries
+#: (Owner Decision 2026-09-23). ``SCOPED_WITHIN`` already states containment
+#: and no consumer expands it; giving it that meaning would change what every
+#: existing containment edge says.
+#:
+#: Version ``17`` admits five omit-when-empty reference fields and one closed
+#: vocabulary, :class:`ReferenceSituation`: a destination component, and the
+#: label and conditions of one reviewed alternative destination of a citation
+#: (Owner Decisions 2026-10-01). Every accepted reference states none of them,
+#: so every accepted reference payload and provenance coordinate has the same
+#: canonical form under 16 and 17. The reference's own wire fields join this
+#: payload from 17 on; until then nothing in it described them.
+REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-17"
 
 
 class UnsupportedRepresentationShapeError(TypeError):
@@ -8677,6 +8731,7 @@ _DRAFT_VOCABULARIES: Mapping[str, type[StrEnum]] = {
     "provenance[].role": ProvenanceRole,
     "provenance[].target_kind": ProvenanceTargetKind,
     "records[].kind": RecordKind,
+    "references[].situation": ReferenceSituation,
     "relationships[].kind": RelationshipKind,
 }
 
@@ -8861,6 +8916,7 @@ def representation_schema_payload() -> dict[str, object]:
             for family in sorted(FactFamily, key=lambda f: f.value)
         ],
         "components": _wire_fields(ComponentDraft),
+        "references": _wire_fields(ReferenceDraft),
         "draft_vocabularies": [
             {"path": path, "shape": _shape(_DRAFT_VOCABULARIES[path])}
             for path in sorted(_DRAFT_VOCABULARIES)
@@ -8991,6 +9047,14 @@ def _empty_false(value: object) -> bool:
 
 def _empty_seq(value: object) -> bool:
     return not value
+
+
+def _empty_str(value: object) -> bool:
+    return value == ""
+
+
+def _empty_zero(value: object) -> bool:
+    return type(value) is int and value == 0
 
 
 #: Post-schema-3 fields, by owning dataclass name then field name. Keyed by
@@ -9205,6 +9269,20 @@ def _introductions() -> tuple[_Introduction, ...]:
             _Introduction("vocabulary_member", vocabulary, member, SCHEMA_15)
             for member in members
         )
+    # Schema 16 adds one relationship kind and nothing else.
+    for vocabulary, members in _SCHEMA_16_VOCABULARY_MEMBERS.items():
+        rows.extend(
+            _Introduction("vocabulary_member", vocabulary, member, SCHEMA_16)
+            for member in members
+        )
+    # Schema 17 adds one vocabulary, reachable only through a reference field
+    # the field registry already gates; its rows are redundant on purpose, as
+    # schema 4's rows for wholly new vocabularies are.
+    for vocabulary, members in _SCHEMA_17_VOCABULARY_MEMBERS.items():
+        rows.extend(
+            _Introduction("vocabulary_member", vocabulary, member, SCHEMA_17)
+            for member in members
+        )
     rows.extend(
         _Introduction("nullable_field", _OPTIONAL_SINCE_WIRE_NAMES[owner], key, arrived)
         for owner, keys in _OPTIONAL_SINCE.items()
@@ -9267,6 +9345,8 @@ def _vocabulary_shape(owner: str) -> list[str] | None:
         or _SCHEMA_11_VOCABULARY_ALL.get(owner)
         or _SCHEMA_14_VOCABULARY_ALL.get(owner)
         or _SCHEMA_15_VOCABULARY_ALL.get(owner)
+        or _SCHEMA_16_VOCABULARY_ALL.get(owner)
+        or _SCHEMA_17_VOCABULARY_MEMBERS.get(owner)
     )
     return None if members is None else sorted(members)
 
@@ -9364,6 +9444,8 @@ def _collect_post_schema_3(
             (_SCHEMA_11_MEMBER_INDEX, SCHEMA_11),
             (_SCHEMA_14_MEMBER_INDEX, SCHEMA_14),
             (_SCHEMA_15_MEMBER_INDEX, SCHEMA_15),
+            (_SCHEMA_16_MEMBER_INDEX, SCHEMA_16),
+            (_SCHEMA_17_MEMBER_INDEX, SCHEMA_17),
         ):
             if (
                 type(value).__name__,
@@ -9869,6 +9951,41 @@ _SCHEMA_15_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
     for member in members
 )
 
+SCHEMA_16 = "5d-representation-schema-16"
+
+#: The one value schema 16 admitted, added to a vocabulary schema 3 already
+#: had. Its earlier members get no row, for the reason ``MovementMode``'s do
+#: not under schema 11.
+_SCHEMA_16_VOCABULARY_MEMBERS: dict[str, tuple[str, ...]] = {
+    "RelationshipKind": (RelationshipKind.CATALOGUE_MEMBER.value,),
+}
+
+#: Written out because the ``_MEMBERS`` row names one member and the rendering
+#: must name all of them, as schema 11's mixed table does.
+_SCHEMA_16_VOCABULARY_ALL: dict[str, tuple[str, ...]] = {
+    "RelationshipKind": tuple(k.value for k in RelationshipKind),
+}
+
+_SCHEMA_16_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
+    (vocabulary, member)
+    for vocabulary, members in _SCHEMA_16_VOCABULARY_MEMBERS.items()
+    for member in members
+)
+
+SCHEMA_17 = "5d-representation-schema-17"
+
+#: The one vocabulary schema 17 admitted, wholly new, so its ``_MEMBERS`` row
+#: already names all of it.
+_SCHEMA_17_VOCABULARY_MEMBERS: dict[str, tuple[str, ...]] = {
+    "ReferenceSituation": tuple(s.value for s in ReferenceSituation),
+}
+
+_SCHEMA_17_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
+    (vocabulary, member)
+    for vocabulary, members in _SCHEMA_17_VOCABULARY_MEMBERS.items()
+    for member in members
+)
+
 #: The seven families schema 11 admitted, for batch ``speed-1``. One per
 #: distinct rule the Rules Glossary Speed entry and Playing the Game > Combat >
 #: Movement and Position print between them, named by member for the same
@@ -10123,9 +10240,63 @@ _VERSION_STATES: dict[str, frozenset[str]] = {
             SCHEMA_15,
         }
     ),
+    SCHEMA_16: frozenset(
+        {
+            "5d-representation-schema-4",
+            SCHEMA_5,
+            SCHEMA_6,
+            SCHEMA_7,
+            SCHEMA_8,
+            SCHEMA_9,
+            SCHEMA_10,
+            SCHEMA_11,
+            SCHEMA_12,
+            SCHEMA_13,
+            SCHEMA_14,
+            SCHEMA_15,
+            SCHEMA_16,
+        }
+    ),
+    SCHEMA_17: frozenset(
+        {
+            "5d-representation-schema-4",
+            SCHEMA_5,
+            SCHEMA_6,
+            SCHEMA_7,
+            SCHEMA_8,
+            SCHEMA_9,
+            SCHEMA_10,
+            SCHEMA_11,
+            SCHEMA_12,
+            SCHEMA_13,
+            SCHEMA_14,
+            SCHEMA_15,
+            SCHEMA_16,
+            SCHEMA_17,
+        }
+    ),
 }
 
 _register_post_schema_3(
+    # Schema 17. A destination component and one reviewed alternative's label
+    # and conditions, each omitted when unset, so every reference accepted
+    # under schemas 1-16 keeps the exact canonical payload -- and therefore the
+    # exact provenance coordinate -- it was accepted with.
+    *(
+        _PostSchema3Field(
+            owner="ReferenceDraft",
+            key=key,
+            introduced_in=SCHEMA_17,
+            is_empty=is_empty,
+        )
+        for key, is_empty in (
+            ("target_component_key", _empty_str),
+            ("alternative_label", _empty_str),
+            ("situation", _empty_none),
+            ("class_record_key", _empty_str),
+            ("minimum_class_level", _empty_zero),
+        )
+    ),
     # Schema 14. Omitted when empty, so every advantage accepted under schemas
     # 3-13 keeps the exact canonical payload -- and therefore the exact fact
     # key and provenance coordinate -- it was accepted with. Only the tool
@@ -10755,6 +10926,23 @@ class ReferenceDraft:
     source_text: str
     scope_key: str
     target_record_key: str
+    #: Schema 17. The component of ``target_record_key`` the citation lands on,
+    #: where the destination is narrower than the record; empty for the record.
+    target_component_key: str = ""
+    #: Schema 17. The reviewed route this destination belongs to, for a
+    #: citation that names several (Owner Decisions 2026-10-01), in words.
+    #: Destinations sharing a label are one route, read together in order: the
+    #: first is where the reader lands, the rest is the text that route needs.
+    #: Routes are not exclusive — several may apply to one character — and a
+    #: route is never ambiguity.
+    alternative_label: str = ""
+    #: Schema 17. The character state this route is for; ``None`` for any.
+    situation: ReferenceSituation | None = None
+    #: Schema 17. The class this route is for, where it is for one.
+    class_record_key: str = ""
+    #: Schema 17. The level *in* ``class_record_key`` — never total character
+    #: level — at which the destination applies; 0 where no level is stated.
+    minimum_class_level: int = 0
 
 
 @dataclass(frozen=True)
@@ -10904,14 +11092,21 @@ def reference_target_key(reference: ReferenceDraft) -> tuple[str, ...]:
     stored coordinates, claim matching, and the accepted conditions-1 keys are
     all unchanged, and so nothing downstream has to read a key's *length* to
     learn what it addresses.
+
+    Schema 17 appends the destination component and the alternative's label,
+    and only where either is stated, so every accepted coordinate keeps its five
+    elements. Two alternatives of one citation differ in one of the last three.
     """
-    return (
+    key = (
         reference.from_record_key,
         reference.from_component_key,
         reference.source_text,
         reference.scope_key,
         reference.target_record_key,
     )
+    if reference.target_component_key or reference.alternative_label:
+        return (*key, reference.target_component_key, reference.alternative_label)
+    return key
 
 
 def prose_bindings_by_target_key(

@@ -1,0 +1,11 @@
+start 2026-10-07T07:27:49.200901+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe -m ruff check tests/ingestion/mechanical/test_persistence.py tests/ingestion/mechanical/test_schema_12_practical_reliability.py tests/ingestion/mechanical/test_gate.py tests/ingestion/mechanical/test_review_units.py tests/ingestion/mechanical/test_raw_state_closure.py tests/ingestion/mechanical/test_canonical_ordering.py tests/ingestion/mechanical/test_review_round_3_applicability_types.py
+input 8b58b4d82888ad036b9077cbe451794e14fb690a32c4eab40d0b84aa7c7aa8a8  tests/ingestion/mechanical/test_persistence.py
+input c08221ef9e058e555556b94525c179dc0c03cd287fa6502466b9c65fbc7bbe90  tests/ingestion/mechanical/test_schema_12_practical_reliability.py
+input bc1290c016817074e5c273e916f9f4cb5ff759dae489cb672b7526c1a39e6d7d  tests/ingestion/mechanical/test_gate.py
+input efcf701d037ab2af298cc827a92672e251f5a6214bbf53f36bf58698bfec04c5  tests/ingestion/mechanical/test_review_units.py
+input 4d2faa500532f611d59712b1cebbc78b4ad16ad7dddf9a182321296f80b7eb45  tests/ingestion/mechanical/test_raw_state_closure.py
+input 41b1cd935e6cdcecb3910eca600ae1f8c93cd6e7b330caf1622103f6c6bc4aa1  tests/ingestion/mechanical/test_canonical_ordering.py
+input 4bd93c3f74c81162985a5f56d8580ebb7989aa4758d877f14fbaf9277b1e2d26  tests/ingestion/mechanical/test_review_round_3_applicability_types.py
+All checks passed!
+end 2026-10-07T07:27:49.280553+00:00 exit 0

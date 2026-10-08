@@ -18,6 +18,11 @@ from pathlib import Path
 import pytest
 
 from afterworlds.ingestion.mechanical.acceptance import accept_proposal
+from afterworlds.ingestion.mechanical.bound_corpus import BoundCorpusSnapshot
+from afterworlds.ingestion.mechanical.models import (
+    ReviewState,
+    SemanticDisposition,
+)
 from afterworlds.ingestion.mechanical.oracle import (
     ACCEPTED_ARTIFACT_KIND,
     OracleLoadError,
@@ -36,8 +41,10 @@ from afterworlds.ingestion.mechanical.proposal import (
     ProposalLoadError,
     ProposedSpan,
     load_proposal,
+    locate_span,
     proposal_identity,
     proposal_payload,
+    seed_proposal,
 )
 from tests.ingestion.mechanical.conftest import (
     PACKAGE_UUID,
@@ -254,3 +261,106 @@ def test_proposal_identity_is_content_derived_and_not_a_projection_identity() ->
     # The rationale is part of what a reviewer reads, so it identifies the
     # proposal — and none of it reaches any accepted artifact.
     assert proposal_identity(noisier) != first
+
+
+# ---------------------------------------------------------------------------
+# Seeding a proposal from bound source
+# ---------------------------------------------------------------------------
+
+
+def _snapshot(**leaf_lengths: int) -> BoundCorpusSnapshot:
+    return BoundCorpusSnapshot(
+        package_uuid=RELEASE_BINDING.package_uuid,
+        release_version=RELEASE_BINDING.release_version,
+        leaf_lengths=dict(leaf_lengths),
+        chunk_coverage=(),
+    )
+
+
+def test_a_seed_is_inventory_not_interpretation() -> None:
+    """Whole-leaf spans, UNRESOLVED, no representation and no review units.
+
+    A seed states which source a proposal is about. Every judgement it could
+    make instead -- a disposition, a structured record, a coherent unit and what
+    it must contain -- is a human's reading, and code guessing one would put
+    unauthored content inside the identity an acceptance records.
+    """
+    proposal = seed_proposal(
+        _snapshot(alpha=10, beta=4),
+        ("beta", "alpha"),
+        binding=RELEASE_BINDING,
+        origin="test-seed",
+        rationale="seeded by a test",
+    )
+    assert [p.span.leaf_id for p in proposal.proposed_spans] == ["alpha", "beta"]
+    assert [(p.span.char_start, p.span.char_end) for p in proposal.proposed_spans] == [
+        (0, 10),
+        (0, 4),
+    ]
+    assert {p.span.disposition for p in proposal.proposed_spans} == {
+        SemanticDisposition.UNRESOLVED
+    }
+    assert {p.span.review_state for p in proposal.proposed_spans} == {
+        ReviewState.PROPOSED
+    }
+    assert proposal.proposed_review_units == ()
+    assert proposal.proposed_representation.records == ()
+
+
+def test_a_repeated_leaf_seeds_one_span() -> None:
+    """Two spans over one leaf would be an overlapping partition.
+
+    Deduplicated at the seed, where the message can say so, rather than at
+    acceptance, where it would surface as a repeated span id.
+    """
+    proposal = seed_proposal(
+        _snapshot(alpha=10),
+        ("alpha", "alpha"),
+        binding=RELEASE_BINDING,
+        origin="test-seed",
+        rationale="seeded by a test",
+    )
+    assert len(proposal.proposed_spans) == 1
+
+
+def test_a_seed_needs_source_to_be_about() -> None:
+    """An empty seed is a caller mistake, not an empty proposal."""
+    with pytest.raises(ValueError, match="at least one leaf"):
+        seed_proposal(
+            _snapshot(alpha=10),
+            (),
+            binding=RELEASE_BINDING,
+            origin="test-seed",
+            rationale="seeded by a test",
+        )
+
+
+def test_a_clause_is_located_by_its_unique_printed_text() -> None:
+    leaves = {"leaf-a": "You can't see. You fall.", "leaf-b": "<td>Prone</td> Prone"}
+    span = locate_span(leaves, "You fall.", SemanticDisposition.SUBSTANTIVE)
+    assert (span.leaf_id, span.char_start, span.char_end) == ("leaf-a", 15, 24)
+    assert span.review_state is ReviewState.PROPOSED
+    # An anchored cell name is located inside its anchor, not in running prose.
+    cell = locate_span(
+        leaves,
+        "Prone",
+        SemanticDisposition.SUPPORTING_AUTHORITY,
+        anchor="<td>Prone</td>",
+    )
+    assert (cell.leaf_id, cell.char_start, cell.char_end) == ("leaf-b", 4, 9)
+
+
+@pytest.mark.parametrize(
+    ("text", "anchor", "message"),
+    [
+        ("You fly.", None, "occurs 0 times"),
+        ("Prone", None, "occurs 2 times"),
+        ("Prone", "<td>Grappled</td>", "does not contain"),
+    ],
+)
+def test_a_clause_that_is_absent_or_ambiguous_is_refused(
+    text: str, anchor: str | None, message: str
+) -> None:
+    leaves = {"leaf-a": "You can't see. You fall.", "leaf-b": "<td>Prone</td> Prone"}
+    with pytest.raises(ValueError, match=message):
+        locate_span(leaves, text, SemanticDisposition.SUBSTANTIVE, anchor=anchor)

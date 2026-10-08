@@ -40,15 +40,18 @@ payload; a reviewer decides what happens next.
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path
 
 from afterworlds.ingestion.corpus.hashing import hash_obj
-from afterworlds.ingestion.mechanical.accounting import span_payload
+from afterworlds.ingestion.mechanical.accounting import derive_span_id, span_payload
+from afterworlds.ingestion.mechanical.bound_corpus import BoundCorpusSnapshot
 from afterworlds.ingestion.mechanical.canonical import canonical_order
 from afterworlds.ingestion.mechanical.models import (
     ReviewState,
     ReviewUnit,
+    SemanticDisposition,
     SemanticSpan,
 )
 
@@ -65,12 +68,20 @@ from afterworlds.ingestion.mechanical.oracle import (
     _review_unit,
     _span,
 )
+from afterworlds.ingestion.mechanical.policy import (
+    SEMANTIC_POLICY_VERSION,
+    semantic_policy_hash,
+)
 from afterworlds.ingestion.mechanical.projection import (
     ReleaseBinding,
     representation_payload,
     review_unit_payload,
 )
-from afterworlds.ingestion.mechanical.representation import RepresentationDraft
+from afterworlds.ingestion.mechanical.representation import (
+    REPRESENTATION_SCHEMA_VERSION,
+    RepresentationDraft,
+    representation_schema_hash,
+)
 
 __all__ = [
     "PROPOSAL_ARTIFACT_KIND",
@@ -80,8 +91,10 @@ __all__ = [
     "ProposalLoadError",
     "ProposedSpan",
     "load_proposal",
+    "locate_span",
     "proposal_identity",
     "proposal_payload",
+    "seed_proposal",
 ]
 
 #: The discriminator every proposal declares. Deliberately not the accepted
@@ -397,3 +410,147 @@ def load_proposal(
                 f"{expected_identity} this caller named"
             )
     return proposal
+
+
+#: What a seeded proposal states about its own representation: nothing. A seed
+#: has read no rule, so an empty draft is the only truthful thing it can carry
+#: -- and it is a *stated* emptiness, inside the identity an acceptance would
+#: record, not an absent key.
+_EMPTY_REPRESENTATION = RepresentationDraft(
+    records=(),
+    components=(),
+    prose_bindings=(),
+    relationships=(),
+    references=(),
+    provenance=(),
+)
+
+
+def seed_proposal(
+    snapshot: BoundCorpusSnapshot,
+    leaf_ids: Sequence[str],
+    *,
+    binding: ReleaseBinding,
+    origin: str,
+    rationale: str,
+) -> MechanicalProposal:
+    """Derive an unreviewed proposal covering *leaf_ids* of the bound release.
+
+    The repository-native start of the authoring path. Before this, a proposal
+    over real source could only come from a throwaway generator script, and a
+    throwaway script is the one input to acceptance that nobody reviews: the
+    reviewer sees the artifact, not the code that emitted it, so the step that
+    turns 5c leaves into proposed spans belongs in committed source where its
+    behaviour is a contract.
+
+    What it produces is deliberately the *weakest* honest proposal:
+
+    * one whole-leaf span per requested leaf, at
+      :attr:`SemanticDisposition.UNRESOLVED` -- the disposition that means "a
+      human has not decided", not a guess dressed as one;
+    * span ids from :func:`~.accounting.derive_span_id`, so the same leaves
+      seed the same ids on any machine and a changed range is a changed span;
+    * an empty representation; and
+    * no review units. Naming a coherent unit and saying what it must contain
+      is the reviewer's reading of the source, not a shape code can derive
+      from offsets. Seeding placeholder units would put unauthored inventory
+      inside the identity an acceptance records, which is exactly the
+      fabricated-coverage failure ``5d-proposal-2`` exists to prevent.
+
+    The result is therefore *inventory*, not interpretation: it says which
+    source this proposal is about and nothing about what the source means. An
+    author adds dispositions, representation and units; a reviewer accepts. It
+    seeds under the current policy and representation contracts only: a
+    historical hash belongs to the artifact that was reviewed under it, and new
+    authoring has no reason to claim a superseded shape.
+    Nothing here writes a file, reads ``oracles/``, or produces an accepted
+    type -- this module still emits only proposals.
+
+    Raises ``ValueError`` when a requested leaf is not in the snapshot's
+    represented population: a span over a leaf 5c did not represent is a claim
+    about text that has no authoritative length, and failing at the seed is
+    where it is cheapest to see.
+    """
+    if binding.package_uuid != snapshot.package_uuid or (
+        binding.release_version != snapshot.release_version
+    ):
+        raise ValueError(
+            f"binding names {binding.package_uuid}/{binding.release_version} but the "
+            f"snapshot is {snapshot.package_uuid}/{snapshot.release_version}; a "
+            "proposal must be bound to the release it was seeded from"
+        )
+    if not leaf_ids:
+        raise ValueError("a seeded proposal needs at least one leaf to be about")
+
+    # Deduplicated and ordered here rather than trusting the caller: two spans
+    # over one leaf would be an overlapping partition, and a repeated id would
+    # be refused at acceptance with a much less obvious message.
+    wanted = sorted(set(leaf_ids))
+    if missing := [leaf for leaf in wanted if leaf not in snapshot.leaf_lengths]:
+        raise ValueError(
+            f"{len(missing)} requested leaf id(s) are not represented in "
+            f"{snapshot.package_uuid}/{snapshot.release_version}: {missing[:5]}"
+        )
+
+    spans = tuple(
+        ProposedSpan(
+            span=SemanticSpan(
+                span_id=derive_span_id(leaf_id, 0, snapshot.leaf_lengths[leaf_id]),
+                leaf_id=leaf_id,
+                char_start=0,
+                char_end=snapshot.leaf_lengths[leaf_id],
+                disposition=SemanticDisposition.UNRESOLVED,
+                review_state=ReviewState.PROPOSED,
+            ),
+            origin=origin,
+            rationale=rationale,
+        )
+        for leaf_id in wanted
+    )
+    return MechanicalProposal(
+        binding=binding,
+        policy_version=SEMANTIC_POLICY_VERSION,
+        policy_hash=semantic_policy_hash(),
+        schema_version=REPRESENTATION_SCHEMA_VERSION,
+        schema_hash=representation_schema_hash(),
+        proposed_spans=spans,
+        proposed_representation=_EMPTY_REPRESENTATION,
+        proposal_origin=origin,
+        proposal_schema_version=PROPOSAL_SCHEMA_VERSION_2,
+    )
+
+
+def locate_span(
+    leaf_contents: Mapping[str, str],
+    text: str,
+    disposition: SemanticDisposition,
+    *,
+    anchor: str | None = None,
+) -> SemanticSpan:
+    """The one PROPOSED span whose source text is *text*, among *leaf_contents*.
+
+    An author names a clause by its exact printed text, never by offsets, and
+    the text must occur exactly once across the leaves searched (normally one
+    entry's). Where the bare text also occurs elsewhere -- a table cell's name
+    in running prose -- *anchor* is a longer unique string containing it, and
+    the span is *text*'s position inside that anchor.
+    """
+    needle = text if anchor is None else anchor
+    if text not in needle:
+        raise ValueError(f"anchor {anchor!r} does not contain {text!r}")
+    found = sum(content.count(needle) for content in leaf_contents.values())
+    if found != 1:
+        raise ValueError(f"{needle!r} occurs {found} times; exactly one is required")
+    leaf_id, content = next(
+        (leaf, content) for leaf, content in leaf_contents.items() if needle in content
+    )
+    start = content.index(needle) + needle.index(text)
+    end = start + len(text)
+    return SemanticSpan(
+        span_id=derive_span_id(leaf_id, start, end),
+        leaf_id=leaf_id,
+        char_start=start,
+        char_end=end,
+        disposition=disposition,
+        review_state=ReviewState.PROPOSED,
+    )

@@ -1,0 +1,46 @@
+start 2026-10-07T14:58:46.186351+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe scripts/run_focused_tests.py --check tests/ingestion/mechanical/test_actions_pilot_acceptance.py --check tests/ingestion/mechanical/test_checks_actions_rests_acceptance.py --check tests/ingestion/mechanical/test_combat_damage_breaking_acceptance.py --check tests/ingestion/mechanical/test_combat_turn_1_acceptance.py --check tests/ingestion/mechanical/test_core_play_completion_acceptance.py --check tests/ingestion/mechanical/test_core_play_dependencies_acceptance.py --check tests/ingestion/mechanical/test_damage_and_hit_points_acceptance.py --check tests/ingestion/mechanical/test_character_creation_foundations_acceptance.py --check tests/ingestion/mechanical/test_conditions_pilot_acceptance.py --check tests/ingestion/mechanical/test_movement_closure_acceptance.py --check tests/ingestion/mechanical/test_reference_closure_acceptance.py tests/ingestion/mechanical/test_actions_pilot_acceptance.py tests/ingestion/mechanical/test_checks_actions_rests_acceptance.py tests/ingestion/mechanical/test_combat_damage_breaking_acceptance.py tests/ingestion/mechanical/test_combat_turn_1_acceptance.py tests/ingestion/mechanical/test_core_play_completion_acceptance.py tests/ingestion/mechanical/test_core_play_dependencies_acceptance.py tests/ingestion/mechanical/test_damage_and_hit_points_acceptance.py tests/ingestion/mechanical/test_character_creation_foundations_acceptance.py tests/ingestion/mechanical/test_conditions_pilot_acceptance.py tests/ingestion/mechanical/test_movement_closure_acceptance.py tests/ingestion/mechanical/test_reference_closure_acceptance.py
+input ef6969b5f09e59ebd4001aad2137ade7ca74509d4075753de73336d7595050e9  scripts/run_focused_tests.py
+input 77d53c74663e62dad19c443801687ed3c617c78b4a81e75cf72c498cb003c6a5  tests/ingestion/mechanical/test_actions_pilot_acceptance.py
+input 8da00b1f0b0f0c4aa84568b55710309a54d1a8b34e1f38a55cd582dca6f97982  tests/ingestion/mechanical/test_checks_actions_rests_acceptance.py
+input ca649ec2079266d46f5cee8d62a62bd400f34a446f63a13fc3e0d32d6e636ef0  tests/ingestion/mechanical/test_combat_damage_breaking_acceptance.py
+input 0a1f2a5de22fa0116cdba0ac5cc92b32f5633362f6dd127154d44a1a7c155308  tests/ingestion/mechanical/test_combat_turn_1_acceptance.py
+input 319e7afaec76470ac51595fcfed9fd3bb0c686991950b9ddefa03740737af7b0  tests/ingestion/mechanical/test_core_play_completion_acceptance.py
+input 0ef8fdf4d4b9f42390d9c8b302d08f48e4649811514da4ef4bb9156232c0a42c  tests/ingestion/mechanical/test_core_play_dependencies_acceptance.py
+input 9cfecc06675868956c6d40809f54770d53e832c207ea7b01c1a26de52fbaa609  tests/ingestion/mechanical/test_damage_and_hit_points_acceptance.py
+input 29509aed9c6f3d1e24e7ed5ce045c4abd0072684e38f100c80701e118f004202  tests/ingestion/mechanical/test_character_creation_foundations_acceptance.py
+input 608cfb694b2e9b15fb45682ba28cfede77d392191e7f24409f48daabb634ba21  tests/ingestion/mechanical/test_conditions_pilot_acceptance.py
+input 1f203c1a1583fc13c9cb18ae8f8943e6ca0aa71776d0ec1e697fed555ed3a508  tests/ingestion/mechanical/test_movement_closure_acceptance.py
+input e60f476853abe39fe82f4891e37d95c979814164741fb4746da5c8adb5887bdf  tests/ingestion/mechanical/test_reference_closure_acceptance.py
+input 77d53c74663e62dad19c443801687ed3c617c78b4a81e75cf72c498cb003c6a5  tests/ingestion/mechanical/test_actions_pilot_acceptance.py
+input 8da00b1f0b0f0c4aa84568b55710309a54d1a8b34e1f38a55cd582dca6f97982  tests/ingestion/mechanical/test_checks_actions_rests_acceptance.py
+input ca649ec2079266d46f5cee8d62a62bd400f34a446f63a13fc3e0d32d6e636ef0  tests/ingestion/mechanical/test_combat_damage_breaking_acceptance.py
+input 0a1f2a5de22fa0116cdba0ac5cc92b32f5633362f6dd127154d44a1a7c155308  tests/ingestion/mechanical/test_combat_turn_1_acceptance.py
+input 319e7afaec76470ac51595fcfed9fd3bb0c686991950b9ddefa03740737af7b0  tests/ingestion/mechanical/test_core_play_completion_acceptance.py
+input 0ef8fdf4d4b9f42390d9c8b302d08f48e4649811514da4ef4bb9156232c0a42c  tests/ingestion/mechanical/test_core_play_dependencies_acceptance.py
+input 9cfecc06675868956c6d40809f54770d53e832c207ea7b01c1a26de52fbaa609  tests/ingestion/mechanical/test_damage_and_hit_points_acceptance.py
+input 29509aed9c6f3d1e24e7ed5ce045c4abd0072684e38f100c80701e118f004202  tests/ingestion/mechanical/test_character_creation_foundations_acceptance.py
+input 608cfb694b2e9b15fb45682ba28cfede77d392191e7f24409f48daabb634ba21  tests/ingestion/mechanical/test_conditions_pilot_acceptance.py
+input 1f203c1a1583fc13c9cb18ae8f8943e6ca0aa71776d0ec1e697fed555ed3a508  tests/ingestion/mechanical/test_movement_closure_acceptance.py
+input e60f476853abe39fe82f4891e37d95c979814164741fb4746da5c8adb5887bdf  tests/ingestion/mechanical/test_reference_closure_acceptance.py
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+All done! ✨ 🍰 ✨
+11 files would be left unchanged.
+....................................F........................F.......... [ 90%]
+........                                                                 [100%]
+================================== FAILURES ===================================
+_____ test_breaking_objects_stays_separately_owned_and_the_title_unowned ______
+tests\ingestion\mechanical\test_core_play_completion_acceptance.py:297: in test_breaking_objects_stays_separately_owned_and_the_title_unowned
+    assert all(len(units) == 1 for units in owners.values())
+E   assert False
+E    +  where False = all(<generator object test_breaking_objects_stays_separately_owned_and_the_title_unowned.<locals>.<genexpr> at 0x00000203E7C17E00>)
+_____________ test_the_committed_authority_reads_in_printed_order _____________
+tests\ingestion\mechanical\test_character_creation_foundations_acceptance.py:397: in test_the_committed_authority_reads_in_printed_order
+    assert multi == 129
+E   assert 126 == 129
+=========================== short test summary info ===========================
+FAILED tests/ingestion/mechanical/test_core_play_completion_acceptance.py::test_breaking_objects_stays_separately_owned_and_the_title_unowned
+FAILED tests/ingestion/mechanical/test_character_creation_foundations_acceptance.py::test_the_committed_authority_reads_in_printed_order
+2 failed, 78 passed in 132.39s (0:02:12)
+Focused diagnostics FAILED (exit 1). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+end 2026-10-07T15:01:02.223583+00:00 exit 1

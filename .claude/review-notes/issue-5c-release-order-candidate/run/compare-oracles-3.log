@@ -1,0 +1,27 @@
+start 2026-10-07T03:18:31.849165+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/_sp/release-order-candidate/compare_oracles.py .claude/_sp/release-order-candidate/candidate/srd-5-2-1-corpus-8781d4e0-a3b.json .claude/_sp/release-order-candidate/candidate/oracle-delta-final.json
+input 14c279dbe6544c3502075973fc9ffadb937fdcb09b562d122aa45973714ca67b  .claude/_sp/release-order-candidate/compare_oracles.py
+input 8a6a9a9c305f41207190c0deb55875a027019116ce3f825a6a0425a3a115b4bf  .claude/_sp/release-order-candidate/candidate/srd-5-2-1-corpus-8781d4e0-a3b.json
+  canonical-payload order in both artifacts True  $.acceptance.records
+  canonical-payload order in both artifacts True  $.acceptance.review_unit_records
+  canonical-payload order in both artifacts True  $.representation.prose_bindings
+  canonical-payload order in both artifacts True  $.representation.provenance
+normalized {'binding': 7435, 'chunk': 32800}
+  accounted     24  $.acceptance.batches[*].proposal_identity  old distinct 24 -> new distinct 24
+  accounted     24  $.acceptance.batches[*].rule  old distinct 9 -> new distinct 24
+  accounted  10493  $.acceptance.records[*].accepted_at  old distinct 9 -> new distinct 1
+  accounted  10493  $.acceptance.records[*].reviewer  old distinct 1 -> new distinct 1
+  accounted   1486  $.acceptance.reference_resolution_records[*].authorization_reference  old distinct 10 -> new distinct 19
+  accounted   1486  $.acceptance.reference_resolution_records[*].authorized_by  old distinct 1 -> new distinct 1
+  accounted   1486  $.acceptance.reference_resolution_records[*].resolved_at  old distinct 11 -> new distinct 1
+  accounted   1486  $.acceptance.reference_resolution_records[*].reviewer  old distinct 1 -> new distinct 1
+  accounted   1476  $.acceptance.review_unit_records[*].accepted_at  old distinct 9 -> new distinct 1
+  accounted   1476  $.acceptance.review_unit_records[*].reviewer  old distinct 1 -> new distinct 1
+  accounted     24  $.acceptance.schema_anchors[*].proposal_identity  old distinct 24 -> new distinct 24
+  order-only  10493  $.acceptance.records
+  order-only   1476  $.acceptance.review_unit_records
+  order-only  16400  $.representation.prose_bindings
+  order-only  30236  $.representation.provenance
+unaccounted difference patterns 0
+report .claude\_sp\release-order-candidate\candidate\oracle-delta-final.json 20ec193738d6520a46743af46474feb0e514b38ae59558cfcb09f7345620af1c
+end 2026-10-07T03:18:36.168459+00:00 exit 0

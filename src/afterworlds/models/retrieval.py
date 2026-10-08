@@ -69,6 +69,25 @@ def build_rules_corpus_chunk_id(rules_package_id: UUID, chunk_id: UUID) -> str:
     return f"rules:{rules_package_id}:chunk:{chunk_id}"
 
 
+def build_rules_corpus_window_id(
+    rules_package_id: UUID, chunk_id: UUID, window_index: int
+) -> str:
+    """Deterministic ID for one bounded embedding window of a chunk.
+
+    The stem is ADR-018 D11's chunk ID unchanged; the suffix names which
+    window of that chunk this document is. ``window_index`` is a deterministic
+    function of the chunk's own (content, section label, budget) -- see
+    ``pipeline/retrieval/corpus_windows.derive_windows`` -- and not a per-run
+    ordinal of the kind PR #119 round 4 rejected: the same row rebuilds to the
+    same window IDs regardless of SQL row-iteration order.
+
+    Every chunk carries the suffix, including the ~95% that produce a single
+    window. A conditional ID would save nothing and would make the formula
+    depend on content length.
+    """
+    return f"{build_rules_corpus_chunk_id(rules_package_id, chunk_id)}:w{window_index}"
+
+
 # ---------------------------------------------------------------------------
 # Collection naming (ADR-018 D1)
 # ---------------------------------------------------------------------------
@@ -160,17 +179,30 @@ class RulesCorpusChunkMetadata(BaseModel):
     Carries the CRD Issue 5a provenance fields plus the Issue 18 additions
     (``rules_package_id``, ``subsystem``, ``embedding_model_id``,
     ``schema_version``) per ADR-018 D2.
+
+    Schema version 2 adds the window fields. One document is no longer one
+    chunk: a chunk too long for the embedding function's 256-token ceiling is
+    embedded as several bounded windows (``pipeline/retrieval/corpus_windows``),
+    and these three fields are what carries a matched window back to the chunk
+    it came from -- ``source_chunk_id`` is the durable ``RuleChunkORM`` primary
+    key, so hydration is a keyed SQL read rather than an ID parse. This is an
+    additive extension of ADR-018 D2, recorded as a stated deviation in the
+    increment's Architecture Notes rather than a silent schema change.
     """
 
     model_config = ConfigDict(frozen=True)
 
-    schema_version: int = 1
+    schema_version: int = 2
     rules_package_id: UUID
     subsystem: str
     source_document: str
     source_locator_type: SourceLocatorTypeEnum
     source_locator_value: str
     embedding_model_id: str
+    #: Durable ``RuleChunkORM.chunk_id`` this window was derived from.
+    source_chunk_id: str
+    window_index: int = 0
+    window_count: int = 1
 
 
 # ---------------------------------------------------------------------------

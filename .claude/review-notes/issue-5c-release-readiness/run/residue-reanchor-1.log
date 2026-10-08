@@ -1,0 +1,35 @@
+start 2026-10-07T15:11:49.236040+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe scripts/run_focused_tests.py --check tests/ingestion/mechanical/test_reference_closure_proposal.py --check tests/ingestion/mechanical/test_core_play_completion_acceptance.py --check tests/ingestion/mechanical/test_character_creation_foundations_acceptance.py tests/ingestion/mechanical/test_reference_closure_proposal.py tests/ingestion/mechanical/test_core_play_completion_acceptance.py tests/ingestion/mechanical/test_character_creation_foundations_acceptance.py
+input ef6969b5f09e59ebd4001aad2137ade7ca74509d4075753de73336d7595050e9  scripts/run_focused_tests.py
+input 3a43a28a4699a7d9e5d546636a8637bceb3fe6b032b431a9aa2c2e597186af55  tests/ingestion/mechanical/test_reference_closure_proposal.py
+input 05fa902ad45e2fda5afee515a9efb141def25062c02fdfdf32123336958bafba  tests/ingestion/mechanical/test_core_play_completion_acceptance.py
+input 6927bf05cdac2d1e80f58145acc77f52b54d06afc90ef7b66c8d8a850509ee2d  tests/ingestion/mechanical/test_character_creation_foundations_acceptance.py
+input 3a43a28a4699a7d9e5d546636a8637bceb3fe6b032b431a9aa2c2e597186af55  tests/ingestion/mechanical/test_reference_closure_proposal.py
+input 05fa902ad45e2fda5afee515a9efb141def25062c02fdfdf32123336958bafba  tests/ingestion/mechanical/test_core_play_completion_acceptance.py
+input 6927bf05cdac2d1e80f58145acc77f52b54d06afc90ef7b66c8d8a850509ee2d  tests/ingestion/mechanical/test_character_creation_foundations_acceptance.py
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+All done! ✨ 🍰 ✨
+3 files would be left unchanged.
+.......................................F........F..                      [100%]
+================================== FAILURES ===================================
+_____ test_breaking_objects_stays_separately_owned_and_the_title_unowned ______
+tests\ingestion\mechanical\test_core_play_completion_acceptance.py:339: in test_breaking_objects_stays_separately_owned_and_the_title_unowned
+    (title,) = under("Playing the Game") - owners.keys()
+    ^^^^^^^^
+E   ValueError: not enough values to unpack (expected 1, got 0)
+_____________ test_the_committed_authority_reads_in_printed_order _____________
+tests\ingestion\mechanical\test_character_creation_foundations_acceptance.py:412: in test_the_committed_authority_reads_in_printed_order
+    assert {k for k, n in recorded.items() if n > 1} & unbound == {
+E   AssertionError: assert set() == {('play.explo...'skill_list')}
+E     
+E     Extra items in the right set:
+E     ('play.exploration', 'travel_pace')
+E     ('play.exploration', 'pace_effects')
+E     ('play.proficiency', 'skill_list')
+E     Use -v to get more diff
+=========================== short test summary info ===========================
+FAILED tests/ingestion/mechanical/test_core_play_completion_acceptance.py::test_breaking_objects_stays_separately_owned_and_the_title_unowned
+FAILED tests/ingestion/mechanical/test_character_creation_foundations_acceptance.py::test_the_committed_authority_reads_in_printed_order
+2 failed, 49 passed in 123.77s (0:02:03)
+Focused diagnostics FAILED (exit 1). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+end 2026-10-07T15:13:55.627959+00:00 exit 1

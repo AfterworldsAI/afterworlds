@@ -1,0 +1,172 @@
+--- a/docs/sources/community/dnd-5e-srd-markdown/classes.md
++++ b/docs/sources/community/dnd-5e-srd-markdown/classes.md
+@@ -1185,6 +1185,11 @@
+       <td>—</td>
+     </tr>
+     <tr>
++      <td>Phantasmal Force</td>
++      <td>Illusion</td>
++      <td>C</td>
++    </tr>
++    <tr>
+       <td>See Invisibility</td>
+       <td>Divination</td>
+       <td>—</td>
+@@ -3797,7 +3802,7 @@
+     </tr>
+     <tr>
+       <td>Flaming Sphere</td>
+-      <td>Evocation</td>
++      <td>Conjuration</td>
+       <td>C</td>
+     </tr>
+     <tr>
+@@ -7990,7 +7995,7 @@
+     </tr>
+     <tr>
+       <td>Flaming Sphere</td>
+-      <td>Evocation</td>
++      <td>Conjuration</td>
+       <td>C</td>
+     </tr>
+     <tr>
+@@ -8024,6 +8029,11 @@
+       <td>—</td>
+     </tr>
+     <tr>
++      <td>Mind Spike</td>
++      <td>Divination</td>
++      <td>C</td>
++    </tr>
++    <tr>
+       <td>Mirror Image</td>
+       <td>Illusion</td>
+       <td>—</td>
+@@ -8032,6 +8042,11 @@
+       <td>Misty Step</td>
+       <td>Conjuration</td>
+       <td>—</td>
++    </tr>
++    <tr>
++      <td>Phantasmal Force</td>
++      <td>Illusion</td>
++      <td>C</td>
+     </tr>
+     <tr>
+       <td>Scorching Ray</td>
+@@ -10544,7 +10559,7 @@
+     </tr>
+     <tr>
+       <td>Flaming Sphere</td>
+-      <td>Evocation</td>
++      <td>Conjuration</td>
+       <td>C</td>
+     </tr>
+     <tr>
+@@ -10608,6 +10623,11 @@
+       <td>—</td>
+     </tr>
+     <tr>
++      <td>Phantasmal Force</td>
++      <td>Illusion</td>
++      <td>C</td>
++    </tr>
++    <tr>
+       <td>Ray of Enfeeblement</td>
+       <td>Necromancy</td>
+       <td>C</td>
+--- a/docs/sources/community/dnd-5e-srd-markdown/source_pin.json
++++ b/docs/sources/community/dnd-5e-srd-markdown/source_pin.json
+@@ -21,7 +21,7 @@
+   "upstream_tracked_files": 21,
+   "vendored_files": 16,
+   "vendored_bytes": 1893352,
+-  "controlled_vendored_bytes": 1892657,
++  "controlled_vendored_bytes": 1893027,
+   "files": [
+     {
+       "path": ".github/ISSUE_TEMPLATE/bug_report.md",
+@@ -144,8 +144,8 @@
+       "vendored": true,
+       "upstream_sha256": "faed31b122429262362f97cec71c0ada54786dc7d8c26ebfaa104d4e26325327",
+       "upstream_bytes": 298277,
+-      "sha256": "a702bd4ae891865d71e82af96f7c1841cbe83adb581a4d3316227ed00e1a68c5",
+-      "bytes": 297357,
++      "sha256": "2012dfa34600116f1e0d8383012e8cc597404bfad4d2e985145746bc4980e5bb",
++      "bytes": 297727,
+       "corrections": [
+         {
+           "official_pages": [
+@@ -162,6 +162,63 @@
+           "section": "Druid > Druid Features table",
+           "change": "Dropped a sixteenth, empty cell from each of the twenty level rows.",
+           "why": "The same ragged body rows as the Bard Features table."
++        },
++        {
++          "official_pages": [
++            33,
++            34
++          ],
++          "section": "Bard > Bard Spell List > Level 2 Bard Spells table",
++          "change": "Inserted the row 'Phantasmal Force | Illusion | C' after 'Mirror Image', in the table's alphabetical order.",
++          "why": "OWNER CORRECTION, not publisher text: the official PDF's table omits the spell, while its description (p.151) prints 'Level 2 Illusion (Bard, Sorcerer, Wizard)'. Owner decision (spell-descriptions-source-conflict-owner-decision.md): the individual spell descriptions are correct and the class tables are wrong in these cases. The School cell is p.151's school; Special is 'C' because p.151 prints 'Concentration, up to 1 minute' and its material (a bit of fleece) is neither priced nor consumed, which the tables' legend reserves M for."
++        },
++        {
++          "official_pages": [
++            44
++          ],
++          "section": "Druid > Druid Spell List > Level 2 Druid Spells table",
++          "change": "Changed the School cell of 'Flaming Sphere' from 'Evocation' to 'Conjuration'.",
++          "why": "OWNER CORRECTION, not publisher text: the official PDF's table prints 'Evocation', while the spell's description (p.132) prints 'Level 2 Conjuration (Druid, Sorcerer, Wizard)'. Owner decision (spell-descriptions-source-conflict-owner-decision.md): the individual spell descriptions are correct and the class tables are wrong in these cases."
++        },
++        {
++          "official_pages": [
++            68
++          ],
++          "section": "Sorcerer > Sorcerer Spell List > Level 2 Sorcerer Spells table",
++          "change": "Changed the School cell of 'Flaming Sphere' from 'Evocation' to 'Conjuration'.",
++          "why": "OWNER CORRECTION, not publisher text: as for the Druid table; description p.132."
++        },
++        {
++          "official_pages": [
++            68
++          ],
++          "section": "Sorcerer > Sorcerer Spell List > Level 2 Sorcerer Spells table",
++          "change": "Inserted the row 'Mind Spike | Divination | C' after 'Magic Weapon', in the table's alphabetical order.",
++          "why": "OWNER CORRECTION, not publisher text: the official PDF's table omits the spell, while its description (p.149) prints 'Level 2 Divination (Sorcerer, Warlock, Wizard)'. Owner decision (spell-descriptions-source-conflict-owner-decision.md): the individual spell descriptions are correct and the class tables are wrong in these cases. The row is the one the Warlock (p.75) and Wizard (p.80) tables print for it."
++        },
++        {
++          "official_pages": [
++            68
++          ],
++          "section": "Sorcerer > Sorcerer Spell List > Level 2 Sorcerer Spells table",
++          "change": "Inserted the row 'Phantasmal Force | Illusion | C' after 'Misty Step', in the table's alphabetical order.",
++          "why": "OWNER CORRECTION, not publisher text: as for the Bard table; description p.151."
++        },
++        {
++          "official_pages": [
++            80
++          ],
++          "section": "Wizard > Wizard Spell List > Level 2 Wizard Spells table",
++          "change": "Changed the School cell of 'Flaming Sphere' from 'Evocation' to 'Conjuration'.",
++          "why": "OWNER CORRECTION, not publisher text: as for the Druid table; description p.132."
++        },
++        {
++          "official_pages": [
++            80
++          ],
++          "section": "Wizard > Wizard Spell List > Level 2 Wizard Spells table",
++          "change": "Inserted the row 'Phantasmal Force | Illusion | C' after 'Misty Step', in the table's alphabetical order.",
++          "why": "OWNER CORRECTION, not publisher text: as for the Bard table; description p.151."
+         }
+       ]
+     },
+@@ -452,7 +509,7 @@
+       ]
+     }
+   ],
+-  "corrections_applied": 25,
++  "corrections_applied": 32,
+   "preserved_official_defects": [
+     {
+       "path": "monsters-A-Z.md",

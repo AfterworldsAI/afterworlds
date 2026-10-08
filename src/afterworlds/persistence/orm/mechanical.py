@@ -408,6 +408,20 @@ class MechanicalReferenceORM(_ProjectionScoped):
     source_text: Mapped[str] = mapped_column(sa.Text, nullable=False)
     scope_key: Mapped[str] = mapped_column(sa.String(255), nullable=False, index=True)
     target_record_key: Mapped[str] = mapped_column(sa.String(255), nullable=False)
+    # Schema 17 (migration 0036): one labelled alternative destination.
+    target_component_key: Mapped[str] = mapped_column(
+        sa.String(255), nullable=False, server_default=""
+    )
+    alternative_label: Mapped[str] = mapped_column(
+        sa.Text, nullable=False, server_default=""
+    )
+    situation: Mapped[str | None] = mapped_column(sa.String(32), nullable=True)
+    class_record_key: Mapped[str] = mapped_column(
+        sa.String(255), nullable=False, server_default=""
+    )
+    minimum_class_level: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False, server_default="0"
+    )
 
 
 class MechanicalProvenanceORM(_ProjectionScoped):

@@ -1,0 +1,14 @@
+start 2026-10-07T15:28:09.802933+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe scripts/run_focused_tests.py --check tests/ingestion/mechanical/test_movement_closure_proposal.py --check tests/ingestion/mechanical/test_conditions_pilot_proposal.py tests/ingestion/mechanical/test_movement_closure_proposal.py tests/ingestion/mechanical/test_conditions_pilot_proposal.py
+input ef6969b5f09e59ebd4001aad2137ade7ca74509d4075753de73336d7595050e9  scripts/run_focused_tests.py
+input ffa14d4bc0826306f29079a772a5bdb213afbf2289ca27a06f7339b70b221223  tests/ingestion/mechanical/test_movement_closure_proposal.py
+input 4edcba98a2161a3d62074220cabc9985f50b745b2e01baccaadc51426cfd1f30  tests/ingestion/mechanical/test_conditions_pilot_proposal.py
+input ffa14d4bc0826306f29079a772a5bdb213afbf2289ca27a06f7339b70b221223  tests/ingestion/mechanical/test_movement_closure_proposal.py
+input 4edcba98a2161a3d62074220cabc9985f50b745b2e01baccaadc51426cfd1f30  tests/ingestion/mechanical/test_conditions_pilot_proposal.py
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+All done! ✨ 🍰 ✨
+2 files would be left unchanged.
+....................................................                     [100%]
+52 passed in 145.48s (0:02:25)
+Focused diagnostics PASSED (exit 0). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+end 2026-10-07T15:30:38.519598+00:00 exit 0

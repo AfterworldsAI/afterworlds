@@ -61,12 +61,15 @@ from afterworlds.ingestion.mechanical.representation import (
     ProvenanceTargetKind,
     Recurrence,
     ReferenceDraft,
+    RelationshipDraft,
+    RelationshipKind,
     RepresentationDraft,
     _dataclass_payload,
     declared_meaning_violations,
     fact_key,
     fact_payload,
     fact_target_key,
+    relationship_target_key,
     representation_schema_hash,
 )
 from afterworlds.ingestion.mechanical.validation import validate_representation
@@ -102,6 +105,8 @@ __all__ = [
     "SCHEMA_13_VERSION",
     "SCHEMA_14_VERSION",
     "SCHEMA_15_VERSION",
+    "SCHEMA_16_VERSION",
+    "SCHEMA_17_VERSION",
     "UnsupportedSchemaVersionError",
     "validate_schema_binding",
 ]
@@ -301,6 +306,64 @@ def review_unit_violations(
 
         findings.extend(_unit_decision_violations(unit, draft, span_leaves))
 
+    findings.extend(_catalogue_placement_violations(units, draft, span_leaves))
+    return findings
+
+
+def _catalogue_placement_violations(
+    units: tuple[ReviewUnit, ...],
+    draft: RepresentationDraft,
+    span_leaves: dict[str, str],
+) -> list[str]:
+    """Return each catalogue a shared member is placed in that review did not
+    find printing it.
+
+    A member of more than one catalogue (Owner Decision 2026-09-27) is read in
+    each for the components the span its edge cites belongs to
+    (:func:`~afterworlds.ingestion.mechanical.validation.catalogue_parts`).
+    That check is internal to the member; it cannot say the cited text is
+    printed where the edge claims. The review inventory can: an edge is placed
+    only where every span it cites lies in a leaf a review unit reviews while
+    expecting a rule of the edge's catalogue -- the reviewer found that
+    catalogue printing that text. An edge moved to an unrelated section or a
+    class feature, keeping its cited span, is refused. A member of one
+    catalogue is placed by that catalogue's own review and is not re-checked
+    here; an edge citing nothing is ``catalogue_parts``' finding.
+    """
+    parents: dict[str, set[str]] = {}
+    for rel in draft.relationships:
+        if (
+            rel.kind is RelationshipKind.CATALOGUE_MEMBER
+            and rel.source_record_key != rel.target_record_key
+        ):
+            parents.setdefault(rel.source_record_key, set()).add(rel.target_record_key)
+    shared = {m: s for m, s in parents.items() if len(s) > 1}
+    if not shared:
+        return []
+    expecting: dict[str, set[str]] = {}
+    for unit in units:
+        for leaf_id in unit.leaf_ids:
+            expecting.setdefault(leaf_id, set()).update(
+                rule.record_key for rule in unit.expected_rules
+            )
+    cited: dict[tuple[str, ...], list[str]] = {}
+    for claim in draft.provenance:
+        if claim.target_kind is ProvenanceTargetKind.RELATIONSHIP:
+            cited.setdefault(claim.target_key, []).append(claim.span_id)
+    findings: list[str] = []
+    for member, sections in sorted(shared.items()):
+        for section in sorted(sections):
+            edge = relationship_target_key(
+                RelationshipDraft(member, section, RelationshipKind.CATALOGUE_MEMBER)
+            )
+            spans = cited.get(edge, [])
+            if any(
+                section not in expecting.get(span_leaves.get(s, ""), ()) for s in spans
+            ):
+                findings.append(
+                    f"record {member}: its catalogue edge to {section} cites a "
+                    f"span no review unit found {section} printing"
+                )
     return findings
 
 
@@ -571,6 +634,8 @@ SCHEMA_12_VERSION = "5d-representation-schema-12"
 SCHEMA_13_VERSION = "5d-representation-schema-13"
 SCHEMA_14_VERSION = "5d-representation-schema-14"
 SCHEMA_15_VERSION = "5d-representation-schema-15"
+SCHEMA_16_VERSION = "5d-representation-schema-16"
+SCHEMA_17_VERSION = "5d-representation-schema-17"
 
 
 class LegacySchemaPayloadError(ValueError):
@@ -820,6 +885,30 @@ _MERGED_COMPONENT_FIELDS: dict[str, frozenset[str]] = {
             "prose_retention_reason_code",
         }
     ),
+    # Schema 16 adds one relationship kind and no component key, so its row
+    # repeats schema 15's -- written out rather than aliased for the reason
+    # every row above is.
+    SCHEMA_16_VERSION: frozenset(
+        {
+            "applies_when",
+            "options",
+            "fact_qualifiers",
+            "recurs",
+            "prose_retention_reason_code",
+        }
+    ),
+    # Schema 17 adds reference fields and no component key, so its row
+    # repeats schema 16's -- written out rather than aliased for the reason
+    # every row above is.
+    SCHEMA_17_VERSION: frozenset(
+        {
+            "applies_when",
+            "options",
+            "fact_qualifiers",
+            "recurs",
+            "prose_retention_reason_code",
+        }
+    ),
 }
 
 # Minting a new schema without giving it a row here would leave the current
@@ -867,6 +956,8 @@ _RECORD_OWNED_REFERENCE_VERSIONS: frozenset[str] = frozenset(
         SCHEMA_13_VERSION,
         SCHEMA_14_VERSION,
         SCHEMA_15_VERSION,
+        SCHEMA_16_VERSION,
+        SCHEMA_17_VERSION,
     }
 )
 
@@ -885,6 +976,8 @@ _OPTION_SCOPED_PROSE_VERSIONS: frozenset[str] = frozenset(
         SCHEMA_13_VERSION,
         SCHEMA_14_VERSION,
         SCHEMA_15_VERSION,
+        SCHEMA_16_VERSION,
+        SCHEMA_17_VERSION,
     }
 )
 
@@ -894,8 +987,20 @@ _OPTION_SCOPED_PROSE_VERSIONS: frozenset[str] = frozenset(
 #: are their own — that table answers which *component* keys a version emits,
 #: and this is a prose-binding key.
 _RETENTION_REASON_PROSE_VERSIONS: frozenset[str] = frozenset(
-    {SCHEMA_12_VERSION, SCHEMA_13_VERSION, SCHEMA_14_VERSION, SCHEMA_15_VERSION}
+    {
+        SCHEMA_12_VERSION,
+        SCHEMA_13_VERSION,
+        SCHEMA_14_VERSION,
+        SCHEMA_15_VERSION,
+        SCHEMA_16_VERSION,
+        SCHEMA_17_VERSION,
+    }
 )
+
+
+#: The versions whose references may name alternative destinations: a
+#: component grain, a label, a situation and a class route. Schema 17 only.
+_REFERENCE_ALTERNATIVE_VERSIONS: frozenset[str] = frozenset({SCHEMA_17_VERSION})
 
 
 def _prose_binding_payload(
@@ -992,13 +1097,40 @@ def _reference_payload(
             f"arrived with {SCHEMA_4_VERSION}; refusing to omit meaning-bearing "
             "data to reproduce a legacy identity"
         )
-    return {
+    payload: dict[str, object] = {
         "from_record_key": reference.from_record_key,
         "from_component_key": reference.from_component_key,
         "source_text": reference.source_text,
         "scope_key": reference.scope_key,
         "target_record_key": reference.target_record_key,
     }
+    # Schema 17's alternative-destination keys follow the omit-when-empty rule,
+    # so every reference accepted before it keeps its exact payload, and one
+    # that states any of them under an earlier contract is refused, not dropped.
+    alternative: dict[str, object] = {
+        key: value
+        for key, value in (
+            ("target_component_key", reference.target_component_key),
+            ("alternative_label", reference.alternative_label),
+            (
+                "situation",
+                None if reference.situation is None else reference.situation.value,
+            ),
+            ("class_record_key", reference.class_record_key),
+            ("minimum_class_level", reference.minimum_class_level),
+        )
+        if value not in ("", None, 0)
+    }
+    if alternative and schema_version not in _REFERENCE_ALTERNATIVE_VERSIONS:
+        raise LegacySchemaPayloadError(
+            f"reference {reference.scope_key}:{reference.source_text!r} states "
+            f"{sorted(alternative)}, but declares schema {schema_version!r}, which "
+            f"has no alternative-destination keys — those arrived with "
+            f"{SCHEMA_17_VERSION}; refusing to omit meaning-bearing data to "
+            "reproduce a legacy identity"
+        )
+    payload.update(alternative)
+    return payload
 
 
 def _component_versioned_payload(

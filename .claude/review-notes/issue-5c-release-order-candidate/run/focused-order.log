@@ -1,0 +1,13 @@
+start 2026-10-07T03:13:03.129779+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe scripts/run_focused_tests.py --check src/afterworlds/ingestion/corpus/source_units.py tests/ingestion/corpus/test_source_units.py tests/ingestion/corpus/test_source_units.py
+input ef6969b5f09e59ebd4001aad2137ade7ca74509d4075753de73336d7595050e9  scripts/run_focused_tests.py
+input 4240742cf5decdaa998566274855c06b55f9dd3888daa35c548d586d56df3be7  src/afterworlds/ingestion/corpus/source_units.py
+input bb404f22d1fdb256c0db3dace3d0bfd5c7cd8a67a140e7f17558e49565a72395  tests/ingestion/corpus/test_source_units.py
+input bb404f22d1fdb256c0db3dace3d0bfd5c7cd8a67a140e7f17558e49565a72395  tests/ingestion/corpus/test_source_units.py
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+All done! ✨ 🍰 ✨
+2 files would be left unchanged.
+..................................                                       [100%]
+34 passed in 74.05s (0:01:14)
+Focused diagnostics PASSED (exit 0). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+end 2026-10-07T03:14:19.401925+00:00 exit 0

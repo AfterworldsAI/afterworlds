@@ -40,14 +40,22 @@ silently closed.
 from __future__ import annotations
 
 from collections import Counter
-from dataclasses import fields, replace
+from collections.abc import Iterable, Mapping
+from dataclasses import dataclass, field, fields, replace
 from typing import cast
 
-from afterworlds.ingestion.mechanical.models import ReferenceResolution, ReleaseBinding
+from afterworlds.ingestion.mechanical.models import (
+    ReferenceDestination,
+    ReferenceResolution,
+    ReleaseBinding,
+)
 from afterworlds.ingestion.mechanical.projection import release_binding_payload
 from afterworlds.ingestion.mechanical.representation import (
     ProvenanceTargetKind,
+    ReferenceDraft,
+    ReferenceSituation,
     RepresentationDraft,
+    declared_meaning_violations,
     exact_tuple_violations,
     exact_type_violations,
     reference_target_key,
@@ -57,10 +65,13 @@ from afterworlds.ingestion.mechanical.validation import (
 )
 
 __all__ = [
+    "AlternativeSelection",
     "effective_representation",
+    "routes",
     "reference_resolution_payload",
     "reference_resolution_shape_violations",
     "reference_resolution_violations",
+    "select_alternatives",
 ]
 
 #: The six coordinates :class:`ReleaseBinding` declares, derived from the
@@ -70,13 +81,21 @@ __all__ = [
 #: exactly a hand-written list of *two* (#137 round 13).
 _BINDING_FIELDS: tuple[str, ...] = tuple(f.name for f in fields(ReleaseBinding))
 
-#: Every ``str``-declared field of :class:`ReferenceResolution`. The two fields
-#: this does not name — ``release_binding`` and ``provenance_span_ids`` — are
-#: checked explicitly below, and ``test_reference_resolution`` asserts the three
-#: groups exhaust the declaration, so a field added later cannot be admitted
-#: unchecked.
+_SITUATIONS: frozenset[str] = frozenset(s.value for s in ReferenceSituation)
+
+#: Every ``str``-declared field of :class:`ReferenceResolution`. The three
+#: fields this does not name — ``release_binding``, ``provenance_span_ids`` and
+#: ``destinations`` — are checked explicitly below, and
+#: ``test_reference_resolution`` asserts the three groups exhaust the
+#: declaration, so a field added later cannot be admitted unchecked.
 _RESOLUTION_STRING_FIELDS: tuple[str, ...] = tuple(
     f.name for f in fields(ReferenceResolution) if str(f.type) == "str"
+)
+
+#: The ``str``-declared fields of :class:`ReferenceDestination`; its one other
+#: field, ``minimum_class_level``, is checked as an exact ``int``.
+_DESTINATION_STRING_FIELDS: tuple[str, ...] = tuple(
+    f.name for f in fields(ReferenceDestination) if str(f.type) == "str"
 )
 
 
@@ -165,6 +184,7 @@ def reference_resolution_shape_violations(resolutions: object) -> list[str]:
                         span_id, str, f"{tag}.provenance_span_ids[{position}]"
                     )
                 )
+        findings.extend(_destination_shape_violations(resolution.destinations, tag))
     if findings:
         return findings
 
@@ -184,6 +204,51 @@ def reference_resolution_shape_violations(resolutions: object) -> list[str]:
                 f"accepted identity, so state them as {sorted(span_ids)}"
             )
     return findings
+
+
+def _destination_shape_violations(destinations: object, tag: str) -> list[str]:
+    """Exact runtime types of one resolution's alternatives, in the same order."""
+    if container := exact_tuple_violations(destinations, f"{tag}.destinations"):
+        return container
+    admitted = cast("tuple[object, ...]", destinations)
+    findings = [
+        v
+        for i, d in enumerate(admitted)
+        for v in exact_type_violations(
+            d, ReferenceDestination, f"{tag}.destinations[{i}]"
+        )
+    ]
+    if findings:
+        return findings
+    for i, d in enumerate(cast("tuple[ReferenceDestination, ...]", destinations)):
+        where = f"{tag}.destinations[{i}]"
+        for name in _DESTINATION_STRING_FIELDS:
+            findings.extend(
+                exact_type_violations(getattr(d, name), str, f"{where}.{name}")
+            )
+        findings.extend(
+            exact_type_violations(
+                d.minimum_class_level, int, f"{where}.minimum_class_level"
+            )
+        )
+    return findings
+
+
+def _destination_reference(
+    ref: ReferenceDraft, destination: ReferenceDestination
+) -> ReferenceDraft:
+    """The accepted empty-target *ref* carrying one reviewed alternative."""
+    return replace(
+        ref,
+        target_record_key=destination.target_record_key,
+        target_component_key=destination.target_component_key,
+        alternative_label=destination.alternative_label,
+        situation=(
+            ReferenceSituation(destination.situation) if destination.situation else None
+        ),
+        class_record_key=destination.class_record_key,
+        minimum_class_level=destination.minimum_class_level,
+    )
 
 
 def effective_representation(
@@ -226,8 +291,8 @@ def effective_representation(
         ): r
         for r in resolutions
     }
-    remapped: dict[tuple[str, ...], tuple[str, ...]] = {}
-    references = []
+    remapped: dict[tuple[str, ...], tuple[tuple[str, ...], ...]] = {}
+    references: list[ReferenceDraft] = []
     for ref in representation.references:
         resolution = by_citation.get(
             (
@@ -245,21 +310,31 @@ def effective_representation(
         if resolution is None or ref.target_record_key:
             references.append(ref)
             continue
-        resolved = replace(ref, target_record_key=resolution.target_record_key)
-        remapped[reference_target_key(ref)] = reference_target_key(resolved)
-        references.append(resolved)
+        # Alternatives fan the one accepted citation out into one reference
+        # per reviewed destination, in the reviewed order, each carrying the
+        # same provenance: every alternative is read out of the same spans.
+        resolved = (
+            [_destination_reference(ref, d) for d in resolution.destinations]
+            if resolution.destinations
+            else [replace(ref, target_record_key=resolution.target_record_key)]
+        )
+        remapped[reference_target_key(ref)] = tuple(
+            reference_target_key(r) for r in resolved
+        )
+        references.extend(resolved)
 
     if not remapped:
         return representation
 
     provenance = tuple(
-        (
-            replace(claim, target_key=remapped[claim.target_key])
+        moved
+        for claim in representation.provenance
+        for moved in (
+            [replace(claim, target_key=key) for key in remapped[claim.target_key]]
             if claim.target_kind is ProvenanceTargetKind.REFERENCE
             and claim.target_key in remapped
-            else claim
+            else [claim]
         )
-        for claim in representation.provenance
     )
     return replace(representation, references=tuple(references), provenance=provenance)
 
@@ -268,6 +343,8 @@ def reference_resolution_violations(
     representation: RepresentationDraft,
     resolutions: tuple[ReferenceResolution, ...],
     binding: ReleaseBinding,
+    *,
+    schema_version: str | None = None,
 ) -> list[str]:
     """Every reason these resolutions do not apply to this accepted authority.
 
@@ -299,6 +376,16 @@ def reference_resolution_violations(
     :func:`reference_resolution_shape_violations` has admitted every one of
     them, and a shape finding returns immediately: an observation about a value
     that may not be read at all is an observation already made.
+
+    **The effective view is judged under the declared schema.** A resolution
+    adds schema-17 meaning — a component, a route label, its conditions — to
+    the effective references, which the accepted representation's own schema
+    check never sees. Every production seam (``accept_proposal``,
+    ``resolve_references`` and the loader) passes the authority's declared
+    *schema_version*, so a schema-16 artifact carrying routes is refused rather
+    than published, in :func:`~.representation.declared_meaning_violations`'
+    words. ``None`` is only for a caller that declares no schema — the
+    version-pinned historical verifiers, whose resolutions are all single.
     """
     if shape := reference_resolution_shape_violations(resolutions):
         return shape
@@ -323,21 +410,46 @@ def reference_resolution_violations(
             continue
         seen_ids.add(resolution.resolution_id)
 
-        if not resolution.target_record_key.strip():
+        if resolution.destinations:
+            # Alternatives replace the single destination; stating both would
+            # leave a reader to pick which one the decision meant.
+            if resolution.target_record_key:
+                findings.append(
+                    f"{tag}: states both a destination and alternatives; an "
+                    "alternative set replaces the single destination"
+                )
+                continue
+            if len(resolution.destinations) < 2:
+                findings.append(
+                    f"{tag}: states one alternative; a single destination is "
+                    "target_record_key"
+                )
+                continue
+            if bad := [
+                d.situation
+                for d in resolution.destinations
+                if d.situation and d.situation not in _SITUATIONS
+            ]:
+                findings.append(f"{tag}: unknown situation {bad}")
+                continue
+            destinations = [d.target_record_key for d in resolution.destinations]
+        elif not resolution.target_record_key.strip():
             # An empty destination resolves nothing: it is the state being
             # resolved, recorded as though it were the decision.
             findings.append(f"{tag}: names no destination record")
             continue
+        else:
+            destinations = [resolution.target_record_key]
 
-        # The destination must be a record this accepted authority actually
+        # Every destination must be a record this accepted authority actually
         # states. Bound here rather than read off the resolved view: a decision
         # pointing at nothing is invalid on its own terms, and the resolved
         # view's wording for it is shared with every sibling citation of the
         # same phrase, which is how a missing destination used to hide.
-        if resolution.target_record_key not in record_keys:
+        if missing := [key for key in destinations if key not in record_keys]:
             findings.append(
                 f"{tag}: names the destination "
-                f"{resolution.target_record_key!r}, which this accepted "
+                f"{', '.join(repr(key) for key in missing)}, which this accepted "
                 "authority states no record for; a resolution binds a "
                 "destination review read here, and cannot mint one"
             )
@@ -401,8 +513,15 @@ def reference_resolution_violations(
                 )
             continue
 
-        resolved_key = (*citation, resolution.target_record_key)
-        if resolved_key in by_key:
+        resolved_keys = (
+            [
+                reference_target_key(_destination_reference(accepted, d))
+                for d in resolution.destinations
+            ]
+            if resolution.destinations
+            else [(*citation, resolution.target_record_key)]
+        )
+        if any(key in by_key for key in resolved_keys):
             findings.append(
                 f"{tag}: the accepted representation already states this exact "
                 "reference beside the unresolved one, so applying the "
@@ -430,8 +549,17 @@ def reference_resolution_violations(
         # consequences of the refusals above as if they were separate defects.
         return findings
 
+    # Grain, labels, class routes and ambiguity among alternatives are the
+    # validator's, judged on the resolved view like every other reference rule.
     accepted_findings = Counter(relationship_and_reference_violations(representation))
     effective = effective_representation(representation, resolutions)
+    if schema_version is not None and (
+        illegal := declared_meaning_violations(effective, schema_version)
+    ):
+        return [
+            f"the effective references state meaning schema {schema_version!r} "
+            "cannot: " + "; ".join(illegal)
+        ]
     effective_findings = Counter(relationship_and_reference_violations(effective))
     if introduced := sorted((effective_findings - accepted_findings).elements()):
         findings.append(
@@ -462,9 +590,14 @@ def reference_resolution_payload(
     ``provenance_span_ids`` is emitted exactly as recorded, because the shape
     pass admits exactly one order — sorting here instead would give a
     non-canonical accepted object and its own serialized bytes two identities.
+
+    ``destinations`` is emitted only when the resolution states alternatives,
+    so every single-destination resolution keeps its exact payload. The
+    alternatives keep their reviewed order: it is the order a reader is shown.
     """
-    return [
-        {
+    payload: list[dict[str, object]] = []
+    for r in sorted(resolutions, key=lambda r: r.resolution_id):
+        item: dict[str, object] = {
             "resolution_id": r.resolution_id,
             "from_record_key": r.from_record_key,
             "from_component_key": r.from_component_key,
@@ -474,5 +607,82 @@ def reference_resolution_payload(
             "release_binding": release_binding_payload(r.release_binding),
             "provenance_span_ids": list(r.provenance_span_ids),
         }
-        for r in sorted(resolutions, key=lambda r: r.resolution_id)
-    ]
+        if r.destinations:
+            item["destinations"] = [
+                {f.name: getattr(d, f.name) for f in fields(ReferenceDestination)}
+                for d in r.destinations
+            ]
+        payload.append(item)
+    return payload
+
+
+@dataclass(frozen=True)
+class AlternativeSelection:
+    """What a reader knows about the character a citation is read for.
+
+    Everything is optional, and anything absent is *unknown* rather than false
+    (Owner Decisions 2026-10-01): an unknown choice keeps every alternative it
+    could select, so nothing is guessed. ``situations`` maps a situation to
+    whether it holds; ``class_record_keys`` are the classes the citation is read
+    for — empty when unknown, and several when a multiclass character qualifies
+    through more than one, which is not a contradiction. It is *not* the
+    character's current classes: a citation read for entering a new class is
+    read for that class. ``class_levels`` maps a class record to the
+    character's level *in that class*, and may be partial. There is no total
+    level here, on purpose: no route is gated by one.
+    """
+
+    situations: Mapping[ReferenceSituation, bool] = field(default_factory=dict)
+    class_record_keys: frozenset[str] = frozenset()
+    class_levels: Mapping[str, int] = field(default_factory=dict)
+
+
+def select_alternatives(
+    references: Iterable[ReferenceDraft], selection: AlternativeSelection
+) -> tuple[ReferenceDraft, ...]:
+    """The alternatives of one citation that *selection* does not rule out.
+
+    A filter, not a builder: it only drops an alternative that a known fact
+    contradicts, in the given order, and never adds, ranks or picks one.
+
+    * a situation known not to hold drops the alternatives stating it;
+    * a class route drops when the classes the citation is read for are known
+      and do not include its class;
+    * independently, a class route with a minimum level drops when the
+      character's level in that class is known and below it, and is kept when
+      unknown.
+
+    Several survivors are routes that all apply; none is a known mismatch,
+    which a caller reports rather than resolves.
+    """
+    kept: list[ReferenceDraft] = []
+    for ref in references:
+        known = selection.situations.get(ref.situation) if ref.situation else None
+        if known is False:
+            continue
+        if (
+            ref.class_record_key
+            and selection.class_record_keys
+            and ref.class_record_key not in selection.class_record_keys
+        ):
+            continue
+        if ref.class_record_key and ref.minimum_class_level:
+            level = selection.class_levels.get(ref.class_record_key)
+            if level is not None and level < ref.minimum_class_level:
+                continue
+        kept.append(ref)
+    return tuple(kept)
+
+
+def routes(
+    references: Iterable[ReferenceDraft],
+) -> tuple[tuple[str, tuple[ReferenceDraft, ...]], ...]:
+    """*references* grouped into labelled routes, in first-seen order.
+
+    Members keep their order inside a route: the first is where the reader
+    lands, the rest is the text that route needs read with it.
+    """
+    grouped: dict[str, list[ReferenceDraft]] = {}
+    for ref in references:
+        grouped.setdefault(ref.alternative_label, []).append(ref)
+    return tuple((label, tuple(members)) for label, members in grouped.items())

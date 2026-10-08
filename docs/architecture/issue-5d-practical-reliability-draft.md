@@ -1,5 +1,23 @@
 # CRD Issue 5d — Complete Typed Mechanical Authority and Deterministic Rules-Package Binding
 
+> **Amended in part by the [2026-09-21 Owner Decision: clean source and fresh 5c/5d
+> construction](../decisions/owner-decision-2026-09-21-5c-5d-clean-restart.md).** The
+> existing 5c corpus release and 5d accepted authority products are quarantined and are
+> no longer available as active authority. The 2026-09-16 practical-reliability policy
+> adopted here applies to the fresh 5d construction and, per the Owner Decision, to 5c
+> as well. The typed content, batches and acceptance records this issue text describes
+> as delivered belong to the quarantined products and are not inherited authority. No
+> fresh semantic content is accepted by the Owner Decision or by this banner.
+>
+> What remains binding: exact source identification, complete and faithful
+> representation, source/interpretation separation, stable immutable releases,
+> meaningful-change versioning, accidental-corruption and stale-reuse detection,
+> fail-closed publication, rebuildability and diagnosability, campaign version
+> stability, deliberate house-rule precedence, and the code-owned
+> deterministic/trust-relevant responsibilities of `CLAUDE.md` invariants 8 and 10. The
+> Owner Decision changes *which products* hold authority and *which machine-readable
+> representation* is canonical; it does not relax any operational outcome.
+
 > **Status:** Accepted — practical reliability amendment adopted by Owner 2026-09-16.
 > Owner decision: “I approve adopting this policy in CRD Issue 5d and ADR-005d.”
 > This complete issue text is coordinated with the amended [ADR-005d](../decisions/adr-005d-complete-typed-mechanical-authority.md).

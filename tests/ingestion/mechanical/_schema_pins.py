@@ -35,6 +35,7 @@ What deliberately stays outside this module, and why:
 
 from __future__ import annotations
 
+from afterworlds.ingestion.mechanical.oracle import AcceptedInputs
 from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_3_VERSION,
     SCHEMA_4_VERSION,
@@ -48,22 +49,38 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_12_VERSION,
     SCHEMA_13_VERSION,
     SCHEMA_14_VERSION,
-    SCHEMA_15_HASH,
     SCHEMA_15_VERSION,
+    SCHEMA_16_VERSION,
+    SCHEMA_17_HASH,
+    SCHEMA_17_VERSION,
+    lift_accepted_inputs,
 )
 
 #: The contract this build declares. Two lines a mint edits, in place of the
 #: same pair restamped across four modules. Still a pin, not a lookup: it names
-#: schema 15 explicitly, so a build that changes ``REPRESENTATION_SCHEMA_VERSION``
+#: schema 17 explicitly, so a build that changes ``REPRESENTATION_SCHEMA_VERSION``
 #: without touching this line is caught by the canary in
 #: ``test_schema_6_succession``.
-CURRENT_SCHEMA_VERSION = SCHEMA_15_VERSION
-CURRENT_SCHEMA_HASH = SCHEMA_15_HASH
+CURRENT_SCHEMA_VERSION = SCHEMA_17_VERSION
+CURRENT_SCHEMA_HASH = SCHEMA_17_HASH
+
+
+def lifted(inputs: AcceptedInputs) -> AcceptedInputs:
+    """*inputs* carried to the current schema, as publication must read them.
+
+    Accepted authority keeps the schema it was accepted under; the publication
+    gate admits only the live contract, so an earlier-schema artifact is
+    validated as a candidate only after crossing its registered lifts.
+    """
+    return lift_accepted_inputs(inputs, (CURRENT_SCHEMA_VERSION, CURRENT_SCHEMA_HASH))[
+        0
+    ]
+
 
 #: The next version string no succession has minted. The payload-refusal probes
 #: move here when a mint makes the previous probe real, rather than being
 #: retired — which is the point of those tests.
-UNMINTED_SCHEMA_VERSION = "5d-representation-schema-16"
+UNMINTED_SCHEMA_VERSION = "5d-representation-schema-18"
 
 #: Every registered crossing, oldest first, as ``(from_version, lift_id)``.
 #: Written out rather than derived from version order: deriving
@@ -86,6 +103,8 @@ REGISTERED_CROSSINGS: tuple[tuple[str, str], ...] = (
     (SCHEMA_12_VERSION, "5d-lift-schema-12-to-13"),
     (SCHEMA_13_VERSION, "5d-lift-schema-13-to-14"),
     (SCHEMA_14_VERSION, "5d-lift-schema-14-to-15"),
+    (SCHEMA_15_VERSION, "5d-lift-schema-15-to-16"),
+    (SCHEMA_16_VERSION, "5d-lift-schema-16-to-17"),
 )
 
 

@@ -1,0 +1,108 @@
+{
+ "live": {
+  "path": "src\\afterworlds\\ingestion\\mechanical\\oracles\\srd-5-2-1-corpus-3fe24ff6-4e3.json",
+  "sha256": "e6f5f36aa3af13807bbff721797d971dcf0d8e588a97483c7d769cf88cbd1308"
+ },
+ "candidate": {
+  "path": ".claude\\_sp\\release-order-candidate\\candidate\\srd-5-2-1-corpus-8781d4e0-a3b.json",
+  "sha256": "8a6a9a9c305f41207190c0deb55875a027019116ce3f825a6a0425a3a115b4bf"
+ },
+ "normalized_identities": {
+  "binding": 7435,
+  "chunk": 32800
+ },
+ "accounted_evidence": {
+  "$.acceptance.batches[*].proposal_identity": {
+   "count": 24,
+   "old_distinct": 24,
+   "new_values": [
+    "0d7648019d7d51d72fc50ea7a98709bd81561e8d68a4297dfeadf44358e5c2c9",
+    "252dd80fe05787a50381f8c0740e0bfbadcbf8e3799acffc722b1200190336c8",
+    "38dc2df713e64a8da6a7713f19b4ecb4ce58fbd47303de2c68d2b9195b2db34f"
+   ]
+  },
+  "$.acceptance.batches[*].rule": {
+   "count": 24,
+   "old_distinct": 9,
+   "new_values": [
+    "SIMULATION ONLY: release-order replacement candidate, mechanical rebind of accepted batch actions-pilot; not an Owner acceptance",
+    "SIMULATION ONLY: release-order replacement candidate, mechanical rebind of accepted batch animals; not an Owner acceptance",
+    "SIMULATION ONLY: release-order replacement candidate, mechanical rebind of accepted batch character-creation-catalogue; not an Owner acceptance"
+   ]
+  },
+  "$.acceptance.records[*].accepted_at": {
+   "count": 10493,
+   "old_distinct": 9,
+   "new_values": [
+    "2026-10-06T00:00:00Z"
+   ]
+  },
+  "$.acceptance.records[*].reviewer": {
+   "count": 10493,
+   "old_distinct": 1,
+   "new_values": [
+    "SIMULATION - not an Owner approval"
+   ]
+  },
+  "$.acceptance.reference_resolution_records[*].authorization_reference": {
+   "count": 1486,
+   "old_distinct": 10,
+   "new_values": [
+    "SIMULATION ONLY: release-order replacement candidate, mechanical rebind of resolution step 12; not an Owner authorization",
+    "SIMULATION ONLY: release-order replacement candidate, mechanical rebind of resolution step 14; not an Owner authorization",
+    "SIMULATION ONLY: release-order replacement candidate, mechanical rebind of resolution step 16; not an Owner authorization"
+   ]
+  },
+  "$.acceptance.reference_resolution_records[*].authorized_by": {
+   "count": 1486,
+   "old_distinct": 1,
+   "new_values": [
+    "SIMULATION - not an Owner approval"
+   ]
+  },
+  "$.acceptance.reference_resolution_records[*].resolved_at": {
+   "count": 1486,
+   "old_distinct": 11,
+   "new_values": [
+    "2026-10-06T00:00:00Z"
+   ]
+  },
+  "$.acceptance.reference_resolution_records[*].reviewer": {
+   "count": 1486,
+   "old_distinct": 1,
+   "new_values": [
+    "SIMULATION - not an Owner approval"
+   ]
+  },
+  "$.acceptance.review_unit_records[*].accepted_at": {
+   "count": 1476,
+   "old_distinct": 9,
+   "new_values": [
+    "2026-10-06T00:00:00Z"
+   ]
+  },
+  "$.acceptance.review_unit_records[*].reviewer": {
+   "count": 1476,
+   "old_distinct": 1,
+   "new_values": [
+    "SIMULATION - not an Owner approval"
+   ]
+  },
+  "$.acceptance.schema_anchors[*].proposal_identity": {
+   "count": 24,
+   "old_distinct": 24,
+   "new_values": [
+    "0d7648019d7d51d72fc50ea7a98709bd81561e8d68a4297dfeadf44358e5c2c9",
+    "252dd80fe05787a50381f8c0740e0bfbadcbf8e3799acffc722b1200190336c8",
+    "38dc2df713e64a8da6a7713f19b4ecb4ce58fbd47303de2c68d2b9195b2db34f"
+   ]
+  }
+ },
+ "order_only_collections": {
+  "$.acceptance.records": 10493,
+  "$.acceptance.review_unit_records": 1476,
+  "$.representation.prose_bindings": 16400,
+  "$.representation.provenance": 30236
+ },
+ "unaccounted_difference_patterns": {}
+}

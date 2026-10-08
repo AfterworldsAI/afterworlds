@@ -1,0 +1,38 @@
+start 2026-10-07T03:28:18.205512+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe -m mypy --strict src/afterworlds/ingestion/corpus/source_units.py tests/ingestion/corpus/test_source_units.py
+input 4240742cf5decdaa998566274855c06b55f9dd3888daa35c548d586d56df3be7  src/afterworlds/ingestion/corpus/source_units.py
+input bb404f22d1fdb256c0db3dace3d0bfd5c7cd8a67a140e7f17558e49565a72395  tests/ingestion/corpus/test_source_units.py
+tests\ingestion\corpus\test_source_units.py:57: error: Function is missing a return type annotation  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:62: error: Function is missing a return type annotation  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:67: error: Function is missing a return type annotation  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:67: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:178: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:197: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:212: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:220: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:260: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:274: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:303: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:311: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:336: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:352: error: Call to untyped function (unknown) in typed context  [no-untyped-call]
+tests\ingestion\corpus\test_source_units.py:358: error: Generator has incompatible item type "int"; expected "bool"  [misc]
+tests\ingestion\corpus\test_source_units.py:358: error: Call to untyped function (unknown) in typed context  [no-untyped-call]
+tests\ingestion\corpus\test_source_units.py:363: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:389: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:409: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:425: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:447: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:453: error: Call to untyped function (unknown) in typed context  [no-untyped-call]
+tests\ingestion\corpus\test_source_units.py:457: error: Function is missing a return type annotation  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:457: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:473: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:489: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:498: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:502: error: Call to untyped function (unknown) in typed context  [no-untyped-call]
+tests\ingestion\corpus\test_source_units.py:518: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:540: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:548: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\corpus\test_source_units.py:571: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+Found 32 errors in 1 file (checked 2 source files)
+end 2026-10-07T03:28:19.514910+00:00 exit 1

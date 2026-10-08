@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import dataclasses
 
-from sqlalchemy import select
+from sqlalchemy import Table, select
 from sqlalchemy.orm import Session
 
 from afterworlds.ingestion.mechanical.accounting import derive_span_id
@@ -162,11 +162,9 @@ def test_omitted_represented_text_fails(
     is structural: the projection simply is not over that release's population.
     """
     uuid = persist(session)
-    session.execute(
-        MechanicalSpanORM.__table__.delete().where(
-            MechanicalSpanORM.span_id == SUPPORT_SPAN
-        )
-    )
+    spans = MechanicalSpanORM.__table__
+    assert isinstance(spans, Table)
+    session.execute(spans.delete().where(MechanicalSpanORM.span_id == SUPPORT_SPAN))
     session.flush()
     found = categories(session, uuid, committed_oracle)
     assert GateFailureCategory.POPULATION_MISMATCH.value in found
