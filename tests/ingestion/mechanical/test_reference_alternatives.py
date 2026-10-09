@@ -23,12 +23,16 @@ import pytest
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
+from afterworlds.ingestion.corpus.hashing import canonical_bytes
+from afterworlds.ingestion.mechanical import projection
 from afterworlds.ingestion.mechanical.acceptance import (
     AcceptanceError,
     accept_proposal,
     resolve_references,
 )
+from afterworlds.ingestion.mechanical.canonical import canonical_order
 from afterworlds.ingestion.mechanical.gate import (
+    GateFailureCategory,
     _accepted_identity,
     run_publication_gate,
 )
@@ -46,6 +50,7 @@ from afterworlds.ingestion.mechanical.oracle import (
     serialize_accepted_inputs,
 )
 from afterworlds.ingestion.mechanical.persistence import (
+    compute_persisted_state_digest,
     persist_draft,
     reconstruct_candidate,
     record_persisted_state_digest,
@@ -56,11 +61,16 @@ from afterworlds.ingestion.mechanical.policy import (
 )
 from afterworlds.ingestion.mechanical.projection import (
     SCHEMA_16_VERSION,
+    IdentifiedProjection,
     LegacySchemaPayloadError,
     identify_projection,
     representation_payload,
 )
 from afterworlds.ingestion.mechanical.proposal import MechanicalProposal, ProposedSpan
+from afterworlds.ingestion.mechanical.publication import (
+    PublicationOutcome,
+    _publish_projection,
+)
 from afterworlds.ingestion.mechanical.reference_resolution import (
     AlternativeSelection,
     effective_representation,
@@ -80,6 +90,7 @@ from afterworlds.ingestion.mechanical.schema_lift import SCHEMA_16_HASH
 from afterworlds.ingestion.mechanical.validation import (
     relationship_and_reference_violations,
 )
+from afterworlds.persistence.orm.mechanical import MechanicalReferenceORM
 from tests.ingestion.mechanical.conftest import (
     CREATURE_KEY,
     DESCRIPTOR_KEY,
@@ -122,6 +133,13 @@ def _representation(*references: ReferenceDraft):  # type: ignore[no-untyped-def
         references=references,
         provenance=base.provenance + tuple(reference_claim(r) for r in references),
     )
+
+
+def _entries(value: object) -> list[dict[str, object]]:
+    """A payload collection, checked to be the list of objects it serializes as."""
+    assert isinstance(value, list)
+    assert all(isinstance(entry, dict) for entry in value)
+    return value
 
 
 def _alt(
@@ -218,9 +236,9 @@ def _resolve(
 
 def test_an_alternative_serializes_only_the_keys_it_states() -> None:
     ref = _alt(situation=ReferenceSituation.INITIAL_CHARACTER)
-    (payload,) = representation_payload(_representation(ref, _alt(PALADIN, "P")))[
-        "references"
-    ][:1]
+    (payload,) = _entries(
+        representation_payload(_representation(ref, _alt(PALADIN, "P")))["references"]
+    )[:1]
     assert payload["alternative_label"] == "Fighter"
     assert payload["situation"] == "initial_character"
     assert "target_component_key" not in payload
@@ -231,7 +249,7 @@ def test_an_alternative_serializes_only_the_keys_it_states() -> None:
 def test_a_singleton_reference_keeps_its_accepted_payload_and_coordinate() -> None:
     """Omit-when-empty: nothing accepted under schema 16 moves."""
     single = replace(UNRESOLVED, target_record_key=FIGHTER)
-    (payload,) = representation_payload(_representation(single))["references"]
+    (payload,) = _entries(representation_payload(_representation(single))["references"])
     assert set(payload) == {
         "from_record_key",
         "from_component_key",
@@ -404,7 +422,7 @@ def test_a_single_destination_resolution_writes_no_destinations_key() -> None:
     resolved = _resolve(
         _accepted(), _resolution(destinations=(), target_record_key=FIGHTER)
     )
-    (stated,) = accepted_inputs_payload(resolved)["reference_resolutions"]
+    (stated,) = _entries(accepted_inputs_payload(resolved)["reference_resolutions"])
     assert "destinations" not in stated
 
 
@@ -434,6 +452,141 @@ def test_the_publication_gate_judges_the_alternatives(session: Session) -> None:
             session, identified.projection_uuid, resolved.oracle
         )
         assert result.passed is expected, result.failures
+
+
+# -- route order is meaning (ADR-005d Decision 7, 2026-10-01) -----------------
+
+#: One route, Fighter landing and Paladin support: the stated order a reader is
+#: shown, which is also the order a plain canonical sort happens to produce.
+ONE_ROUTE = tuple(
+    replace(
+        d, alternative_label="one route", class_record_key="", minimum_class_level=0
+    )
+    for d in (FIGHTER_ROUTE, PALADIN_ROUTE)
+)
+#: The identity the reversed route persisted under before route order was
+#: identity-bearing — the same as the stated order's, which is the defect.
+#: Captured from the unfixed build (parent ``5795e93``).
+PRE_FIX_UUID = "29b1d00f-737f-5605-90ea-0d7a1a984822"
+
+
+def _route_identified(
+    destinations: tuple[ReferenceDestination, ...],
+) -> IdentifiedProjection:
+    return identify_projection(
+        candidate_from_accepted_inputs(
+            _resolve(_accepted(), _resolution(destinations=destinations))
+        )
+    )
+
+
+def _stated(session: Session, projection_uuid: str) -> list[tuple[str, list[str]]]:
+    references = reconstruct_candidate(session, projection_uuid).representation
+    return [
+        (label, [r.target_record_key for r in members])
+        for label, members in routes(references.references)
+    ]
+
+
+def test_route_and_member_order_are_identity_bearing() -> None:
+    stated = _route_identified(ONE_ROUTE)
+    assert _route_identified(ONE_ROUTE[::-1]).projection_uuid != stated.projection_uuid
+    two = (FIGHTER_ROUTE, PALADIN_ROUTE)
+    assert (
+        _route_identified(two[::-1]).projection_uuid
+        != _route_identified(two).projection_uuid
+    )
+
+
+def test_independent_citations_stay_canonically_unordered() -> None:
+    first = (_alt(FIGHTER, "one route"), _alt(PALADIN, "one route"))
+    second = tuple(replace(r, source_text="Other feature") for r in first)
+    single = replace(UNRESOLVED, source_text="Third", target_record_key=FIGHTER)
+
+    def payload(*refs: ReferenceDraft) -> list[dict[str, object]]:
+        return _entries(representation_payload(_representation(*refs))["references"])
+
+    stated = payload(*first, *second, single)
+    assert payload(single, *second, *first) == stated
+    assert payload(first[0], second[0], single, first[1], second[1]) == stated
+    assert payload(first[1], first[0], *second, single) != stated
+    # With no route, references are a set in exactly the plain canonical order.
+    unrouted = payload(single, replace(single, source_text="Fourth"))
+    assert unrouted == sorted(unrouted, key=canonical_bytes)
+
+
+def test_the_stated_route_order_round_trips_through_sql(session: Session) -> None:
+    for destinations, expected in (
+        (ONE_ROUTE, [FIGHTER, PALADIN]),
+        (ONE_ROUTE[::-1], [PALADIN, FIGHTER]),
+    ):
+        identified = _route_identified(destinations)
+        persist_draft(session, identified, now=NOW)
+        session.flush()
+        assert _stated(session, identified.projection_uuid) == [("one route", expected)]
+        rebuilt = reconstruct_candidate(session, identified.projection_uuid)
+        assert (
+            identify_projection(rebuilt).projection_uuid == identified.projection_uuid
+        )
+
+
+def test_a_swapped_destination_changes_the_digest_and_fails_the_gate(
+    session: Session,
+) -> None:
+    resolved = _resolve(_accepted(), _resolution(destinations=ONE_ROUTE))
+    identified = identify_projection(candidate_from_accepted_inputs(resolved))
+    uuid_ = identified.projection_uuid
+    mark_release_published(session)
+    persist_draft(session, identified, now=NOW)
+    recorded = record_persisted_state_digest(session, uuid_)
+    assert run_publication_gate(session, uuid_, resolved.oracle).passed
+
+    first, second = session.scalars(
+        sa.select(MechanicalReferenceORM)
+        .where(MechanicalReferenceORM.projection_uuid == uuid_)
+        .order_by(MechanicalReferenceORM.row_id)
+    )
+    for column in ("target_record_key", "target_component_key", "situation"):
+        a, b = getattr(first, column), getattr(second, column)
+        setattr(first, column, b)
+        setattr(second, column, a)
+    session.flush()
+
+    assert _stated(session, uuid_) == [("one route", [PALADIN, FIGHTER])]
+    assert compute_persisted_state_digest(session, uuid_) != recorded
+    result = run_publication_gate(session, uuid_, resolved.oracle)
+    assert not result.passed
+    assert GateFailureCategory.PERSISTED_STATE in result.categories()
+    assert any(
+        "reconstructed state derives" in f.detail for f in result.failures
+    ), result.failures
+
+
+def test_a_projection_persisted_before_route_order_counted_is_stale(
+    session: Session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Pre-fix state is refused as stale; nothing re-blesses its digest."""
+    resolved = _resolve(_accepted(), _resolution(destinations=ONE_ROUTE[::-1]))
+    mark_release_published(session)
+    with monkeypatch.context() as pre_fix:
+        # The unfixed rule: every reference sorted as one set.
+        pre_fix.setattr(
+            projection,
+            "_references_payload",
+            lambda refs, version: canonical_order(
+                projection._reference_payload(r, version) for r in refs
+            ),
+        )
+        identified = identify_projection(candidate_from_accepted_inputs(resolved))
+        persist_draft(session, identified, now=NOW)
+        record_persisted_state_digest(session, identified.projection_uuid)
+    assert identified.projection_uuid == PRE_FIX_UUID
+
+    gate = run_publication_gate(session, PRE_FIX_UUID, resolved.oracle)
+    assert GateFailureCategory.PERSISTED_STATE in gate.categories(), gate.failures
+    assert GateFailureCategory.IDENTITY_MISMATCH in gate.categories(), gate.failures
+    published = _publish_projection(session, PRE_FIX_UUID, resolved.oracle, now=NOW)
+    assert published.outcome is PublicationOutcome.STALE
 
 
 @pytest.mark.parametrize(
@@ -658,7 +811,7 @@ def test_a_singleton_resolution_needs_no_lift() -> None:
     single = _resolve(prior, _resolution(destinations=(), target_record_key=FIGHTER))
     assert single.oracle.schema_version == SCHEMA_16_VERSION
     assert single.lifts == prior.lifts
-    (stated,) = accepted_inputs_payload(single)["reference_resolutions"]
+    (stated,) = _entries(accepted_inputs_payload(single)["reference_resolutions"])
     assert "destinations" not in stated
 
 

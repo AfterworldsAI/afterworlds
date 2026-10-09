@@ -28,7 +28,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from afterworlds.ingestion.corpus.hashing import content_id, hash_obj
+from afterworlds.ingestion.corpus.hashing import canonical_bytes, content_id, hash_obj
 from afterworlds.ingestion.mechanical.accounting import (
     classification_payload,
     validate_acceptance,
@@ -1133,6 +1133,42 @@ def _reference_payload(
     return payload
 
 
+def _references_payload(
+    references: tuple[ReferenceDraft, ...], schema_version: str
+) -> list[dict[str, object]]:
+    """The references' canonical payload, keeping the order routes carry.
+
+    Independent references are a set and stay canonically ordered. A labelled
+    citation is not (ADR-005d Decision 7, 2026-10-01): its routes are read in
+    stated order, each route's landing before its support, so its members are
+    emitted as one run in stated order and only the runs are sorted, by
+    citation. With no labelled reference this is exactly the plain canonical
+    order, so every unrouted payload keeps its bytes.
+    """
+    unrouted: list[dict[str, object]] = []
+    routed: dict[tuple[str, str, str, str], list[dict[str, object]]] = {}
+    for ref in references:
+        payload = _reference_payload(ref, schema_version)
+        if not ref.alternative_label:
+            unrouted.append(payload)
+            continue
+        citation = (
+            ref.from_record_key,
+            ref.from_component_key,
+            ref.source_text,
+            ref.scope_key,
+        )
+        routed.setdefault(citation, []).append(payload)
+    return [
+        *canonical_order(unrouted),
+        *(
+            payload
+            for citation in sorted(routed, key=canonical_bytes)
+            for payload in routed[citation]
+        ),
+    ]
+
+
 def _component_versioned_payload(
     component: ComponentDraft, schema_version: str, emitted: frozenset[str]
 ) -> dict[str, object]:
@@ -1189,8 +1225,9 @@ def representation_payload(
 ) -> dict[str, object]:
     """Canonical, identity-bearing payload of the keyed representation.
 
-    Every collection here is unordered by meaning, so each is ordered by its
-    elements' complete canonical payload rather than by a chosen subset of
+    Every collection here is unordered by meaning except a labelled
+    citation's routes (see :func:`_references_payload`), so each is ordered by
+    its elements' complete canonical payload rather than by a chosen subset of
     fields — see :mod:`canonical` for why a partial sort key is a defect
     waiting for the next field. Keyed throughout, so nothing derived from the
     identity is inside the thing the identity is computed from.
@@ -1231,9 +1268,7 @@ def representation_payload(
             }
             for r in draft.relationships
         ),
-        "references": canonical_order(
-            _reference_payload(r, schema_version) for r in draft.references
-        ),
+        "references": _references_payload(draft.references, schema_version),
         "provenance": canonical_order(
             {
                 "target_kind": p.target_kind.value,

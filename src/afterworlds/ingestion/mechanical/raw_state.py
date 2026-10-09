@@ -137,12 +137,19 @@ class RawProjectionState:
 def load_raw_state(
     session: Session, projection_uuid: str, header: MechanicalProjectionORM
 ) -> RawProjectionState:
-    """Load every row scoped to *projection_uuid* in one pass."""
+    """Load every row scoped to *projection_uuid* in one pass.
+
+    Rows come back in insertion order (``row_id``), stated rather than left to
+    the engine, because a labelled citation's references are persisted in the
+    order their routes are read and reconstruct only from that order.
+    """
 
     def rows(model: Any) -> list[Any]:
         return list(
             session.execute(
-                select(model).where(model.projection_uuid == projection_uuid)
+                select(model)
+                .where(model.projection_uuid == projection_uuid)
+                .order_by(model.row_id)
             )
             .scalars()
             .all()
