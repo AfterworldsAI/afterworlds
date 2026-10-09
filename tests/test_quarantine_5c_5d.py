@@ -33,11 +33,9 @@ from afterworlds.ingestion.corpus import (
 from afterworlds.ingestion.corpus.bundle import (
     derive_package_uuid,
     derive_release_version,
-    transform_config_hash,
-    transform_config_payload,
 )
-from afterworlds.ingestion.corpus.pdf_source import PDF_SHA256, extraction_config
-from afterworlds.ingestion.corpus.policy import FROZEN_POLICY
+from afterworlds.ingestion.corpus.hashing import hash_obj
+from afterworlds.ingestion.corpus.pdf_source import PDF_SHA256
 from afterworlds.ingestion.ingestion_service import IngestionService
 from afterworlds.ingestion.mechanical import bound_corpus, oracle, publication
 from afterworlds.models.enums import MechanicalEntityTypeEnum, RuleSubsystemEnum
@@ -142,13 +140,17 @@ def test_the_error_names_the_seam_and_the_decision() -> None:
     assert "owner-decision-2026-09-21-5c-5d-clean-restart.md" in str(excinfo.value)
 
 
-def test_quarantined_artifacts_are_retained_as_reference_material() -> None:
-    """Quarantine closes the seams; it does not delete the evidence."""
-    from pathlib import Path
+def test_the_retired_artifacts_are_removed_and_still_refused() -> None:
+    """Step 5 removed the files; the identities they stated stay refused.
 
-    root = Path(__file__).resolve().parents[1]
+    Git history retains the bytes. What must not follow the files out of the tree
+    is the refusal: a copied file, stored row or operator command naming the
+    retired release still meets ``QuarantinedAuthorityError``, not ``None``.
+    """
     for relative in QUARANTINED_ARTIFACT_FILENAMES:
-        assert (root / relative).is_file(), relative
+        assert not (REPO_ROOT / relative).exists(), relative
+    with pytest.raises(QuarantinedAuthorityError):
+        oracle.committed_inputs_for(PKG, REL)
 
 
 # ---------------------------------------------------------------------------
@@ -172,20 +174,6 @@ def test_the_directory_parameterized_test_seam_refuses_too(tmp_path: Any) -> Non
         oracle._resolve_committed_inputs(PKG, REL, tmp_path)
     with pytest.raises(QuarantinedAuthorityError):
         oracle._resolve_committed_oracle(PKG, REL, tmp_path)
-
-
-def test_the_committed_artifact_still_parses_for_reference() -> None:
-    """Reading bytes is not authority; making them authority is what is closed."""
-    inputs = oracle.load_accepted_inputs(
-        oracle.COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
-    )
-    assert inputs.oracle.binding.package_uuid == PKG
-    assert inputs.oracle.binding.release_version == REL
-    # ...and the resolution seam that would hand it to publication refuses it.
-    with pytest.raises(QuarantinedAuthorityError):
-        oracle.committed_inputs_for(
-            inputs.oracle.binding.package_uuid, inputs.oracle.binding.release_version
-        )
 
 
 # ---------------------------------------------------------------------------
@@ -371,18 +359,19 @@ def _now() -> str:
 
 
 def _alternate_identity_candidate(embedding_label: str) -> Any:
-    """A candidate carrying the identity the given embedding label mints.
+    """A candidate recording the retired recipe under a freshly minted identity.
 
-    Only the three fields the finalization refusal reads are populated. Nothing
-    is extracted or persisted: these are the production identity functions run
-    over the committed PDF hash, which is how an operator would obtain a new
-    package UUID for the same obsolete extraction.
+    Only the three fields the finalization refusal reads are populated. The
+    retired transform's code is gone, so the transform config is synthetic: it
+    records the retired recipe hash beside the given embedding label, and the
+    production identity functions mint a package UUID and release version from
+    it, as a stored or copied release could carry.
     """
-    vector_identity = rules_corpus_vector_identity(embedding_label)
-    payload = transform_config_payload(
-        extraction_config(), FROZEN_POLICY, vector_identity
-    )
-    digest = transform_config_hash(extraction_config(), FROZEN_POLICY, vector_identity)
+    payload = {
+        "transform_identity": {"transform_source_hash": RECIPE},
+        "rules_corpus_vector_identity": rules_corpus_vector_identity(embedding_label),
+    }
+    digest = hash_obj(payload)
     return SimpleNamespace(
         package_uuid=derive_package_uuid(PDF_SHA256, digest),
         release_version=derive_release_version(PDF_SHA256, digest),
@@ -395,7 +384,7 @@ def test_an_alternate_embedding_label_mints_an_unquarantined_identity() -> None:
 
     Changing the configurable embedding model label produces a package UUID and
     release version no frozen identity set contains -- with the same retired
-    extraction. Identity alone therefore cannot close this path.
+    recipe. Identity alone therefore cannot close this path.
     """
     alternate = _alternate_identity_candidate("independent-review-alternate-embedding")
     assert alternate.package_uuid != PKG
@@ -416,7 +405,7 @@ def test_an_alternate_embedding_label_mints_an_unquarantined_identity() -> None:
 def test_finalization_refuses_the_retired_transform_whatever_its_identity(
     embedding_label: str,
 ) -> None:
-    """Both labels are refused, the alternate one by its transform recipe.
+    """Both labels are refused by the transform recipe alone.
 
     ``session``, ``chroma_client`` and ``retrieval_config`` are ``None``: step 0
     sits above the idempotency select, so a refusal that reaches no store handle

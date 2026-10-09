@@ -1,14 +1,12 @@
 recursive-include src/afterworlds/modes/personas/profiles *.json
-# CRD Issue 5c committed expected-table oracle, read at runtime by
-# table_inventory.py (candidate construction/finalization fail without it).
-include src/afterworlds/ingestion/corpus/srd_table_inventory.json
-# CRD Issue 5d committed accepted oracles. The one artifact here is
-# quarantined by the Recorded Owner Decision of 21 September 2026 and can no
-# longer resolve as active authority; it still ships because the packaged
-# tree must match the repository tree, and because a missing file would be an
-# ABSENT install error rather than the quarantine refusal that is intended.
-# Historical description of the artifact: the SRD 5.2.1
-# release carrying accepted batches conditions-1, hazards-1, actions-1,
-# attitudes-1, areas-of-effect-1, cover-1, speed-1,
-# proficiency-destinations-1 and proficiency-1.
+# CRD Issue 5d committed accepted oracles, resolved at runtime from the packaged
+# directory. The current accepted authority is the SRD 5.2.1 release
+# 5.2.1-corpus.8781d4e0-a3b. The original release 5.2.1-corpus.36b786d8-fa2 and
+# the corpus table inventory were removed under Step 5 of the Recorded Owner
+# Decision of 21 September 2026.
 recursive-include src/afterworlds/ingestion/mechanical/oracles *.json
+# Superseded intermediate releases: refused by release version before the
+# directory is read, so they are kept in the source tree for test and replay
+# evidence only and are not shipped.
+exclude src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-3fe24ff6-4e3.json
+exclude src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-574662e9-0ef.json

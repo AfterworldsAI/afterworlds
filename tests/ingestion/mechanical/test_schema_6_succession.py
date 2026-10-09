@@ -17,10 +17,10 @@ returns. That is a stronger guarantee than a transforming lift could give: a
 transforming lift argues its mapping preserved meaning, this one demonstrates
 nothing moved.
 
-**And the file itself never changes.** The last test re-reads both the frozen
-prior and the committed artifact after every lift in this module has run, and
-asserts their bytes. A succession that quietly rewrote accepted authority to
-make itself work would pass every other assertion here.
+**And the file itself never changes.** The sentinel re-reads the frozen prior
+after every lift in this module has run, and asserts its bytes. A succession
+that quietly rewrote accepted authority to make itself work would pass every
+other assertion here.
 """
 
 from __future__ import annotations
@@ -29,10 +29,7 @@ import hashlib
 import json
 import pathlib
 
-import pytest
-
 from afterworlds.ingestion.mechanical.oracle import (
-    COMMITTED_ORACLE_DIR,
     accepted_inputs_payload,
     candidate_from_accepted_inputs,
     load_accepted_inputs,
@@ -82,20 +79,11 @@ from tests.ingestion.mechanical._schema_pins import (
 
 DATA = pathlib.Path(__file__).resolve().parent / "data"
 FROZEN_PRIOR = DATA / "accepted_prior_conditions_1_hazards_1.json"
-COMMITTED = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
 
 #: The frozen copy's identity, taken when it was frozen. LF-normalized, which is
 #: what ``.gitattributes`` declares this file is stored as.
 FROZEN_CONTENT_SHA256 = "0925d796a058ff4e64f9a429c9ad73d3c39f1e74dff7e394bc2957c1587e73f7"  # noqa: E501  # pragma: allowlist secret
 FROZEN_BLOB = "6e65533f4a3523aba3d60cfc3c274ab22e66b59a"  # pragma: allowlist secret
-
-#: The committed artifact's own digest. It was the same file as the frozen copy
-#: until the Owner accepted ``actions-1`` into it, and has moved again for every
-#: batch accepted since; reusing one constant for both only
-#: ever worked because of the original coincidence. Two constants, because they
-#: are two files: the sentinel below has to be able to fail for one and pass for
-#: the other.
-COMMITTED_CONTENT_SHA256 = "995976ac1c2b0227d419fc4a7b65a966358e311c7806a1a8f0457a535b4300d7"  # noqa: E501  # pragma: allowlist secret
 
 #: The accepted oracle's own identity. Derived from the semantic content the
 #: Owner accepted, and the one figure a succession may not move at all.
@@ -348,30 +336,16 @@ def test_the_prior_round_trips_strictly_through_its_own_payload() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("path", [FROZEN_PRIOR, COMMITTED])
-def test_no_accepted_file_was_rewritten_by_this_schema_step(
-    path: pathlib.Path,
-) -> None:
+def test_the_frozen_prior_was_not_rewritten_by_this_schema_step() -> None:
     """Read after every lift above has run, which is the point.
 
     A succession that quietly edited accepted authority to make itself work
-    would satisfy every other assertion in this module. Both files are pinned
-    by content digest — each by its own, since ``actions-1`` was accepted into
-    the committed artifact and not into the frozen copy — and the committed
-    artifact's full set of pins lives beside it in
-    ``test_committed_accepted_authority``.
-
-    What this asserts is unchanged by that acceptance: a *lift* may not rewrite
-    either file. An Owner acceptance may extend the committed one, which is why
-    its digest is a separate constant rather than a claim that the two files are
-    the same bytes.
+    would satisfy every other assertion in this module, so the frozen copy is
+    pinned by content digest. The original committed artifact this sentinel
+    also pinned was removed under Step 5 of the Recorded Owner Decision of
+    21 September 2026.
     """
-    digests = {
-        FROZEN_PRIOR: FROZEN_CONTENT_SHA256,
-        COMMITTED: COMMITTED_CONTENT_SHA256,
-    }
-    assert _lf_digest(path) == digests[path]
-    assert FROZEN_CONTENT_SHA256 != COMMITTED_CONTENT_SHA256
+    assert _lf_digest(FROZEN_PRIOR) == FROZEN_CONTENT_SHA256
 
 
 def test_the_shared_schema_pins_are_the_registry_and_the_live_contract() -> None:

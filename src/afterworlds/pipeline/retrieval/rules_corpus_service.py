@@ -75,7 +75,7 @@ class RulesCorpusService:
         diagnostic surface (PR #134 P2, sibling of the finalize cross-store
         cleanup). Cleanup is disarmed only after every batch succeeds, or after a
         legitimate zero-row rebuild completes with an empty collection. This does
-        not weaken ``finalize_release``'s outer boundary -- that redundant,
+        not weaken ``_finalize_core``'s outer boundary -- that redundant,
         absence-tolerant cleanup remains.
 
         Raises:
@@ -201,8 +201,8 @@ class RulesCorpusService:
           written in-place during a rebuild (ADR-018 D11, no staging) stay hidden
           until the release itself publishes.
 
-        Completeness/table-fidelity checks are Issue-5c publication concerns and
-        deliberately live in ``finalize_release``, never in this generic surface.
+        Completeness checks are Issue-5c publication concerns and deliberately
+        live in ``finalize_source_release``, never in this generic surface.
         """
         pkg = str(rules_package_id)
         package = session.execute(

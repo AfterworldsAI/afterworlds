@@ -1045,8 +1045,7 @@ def test_schema_8_cannot_state_any_of_it() -> None:
 #: batch, so the citation has no target here and the validator says so. This is
 #: the batch's honest residue, not a defect to be tuned away: the accepted
 #: artifact carries two dangling citations of exactly this kind — ``Speed`` and
-#: ``Concentration``, whose targets ``test_areas_of_effect_1_frozen_prior`` pins
-#: as the recorded residue — and each clears when the cited entry is ingested,
+#: ``Concentration`` — and each clears when the cited entry is ingested,
 #: never by editing the record that cites it.
 COVER_FINDING = (
     "reference srd-5.2.1/rules-glossary:'Cover': "

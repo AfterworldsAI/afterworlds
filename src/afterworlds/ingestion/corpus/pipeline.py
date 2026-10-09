@@ -8,23 +8,24 @@ generated before the (actual, persisted) state it reports on exists:
     a1  derive and hash the frozen source ledger
     a2  generate the canonical corpus members from the frozen ledger
     a3  apply only the frozen policy → reconciliation member
-    b   compute the bundle-root hash                                  } build_candidate
+    b   compute the bundle-root hash                         } build_source_candidate
     ------------------------------------------------------------------
-    c   persist — see persistence.finalize_release
+    c   persist — see persistence.finalize_source_release
     d   compute the persisted-corpus digest from the actual persisted
         (and reconstructed) state
     e   generate the evidence report (post-persistence)
     f   hash the completed evidence report
-    g   record the five top-level hashes in the release record and    } finalize_release
+    g   record the five top-level hashes in the release record and    } _finalize_core
         run the final publication gate                                (persistence.py)
 
-``build_candidate`` performs only steps a0–b: everything that is a pure,
-deterministic function of the committed PDF and frozen policy, and nothing
-else. Its result, :class:`CandidateRelease`, structurally cannot claim that
-persistence occurred — it has no evidence report, no persisted-corpus digest,
-and no external release/publication record, because steps c–g require an
+``build_source_candidate`` performs only steps a0–b: everything that is a pure,
+deterministic function of the pinned source, the official PDF it cites and the
+frozen policy, and nothing else. Its result, :class:`CandidateRelease`,
+structurally cannot claim that persistence occurred — it has no evidence
+report, no persisted-corpus digest, and no external release/publication
+record, because steps c–g require an
 actual database and cannot be produced, or faked via a boolean flag, in
-memory. :func:`afterworlds.ingestion.corpus.persistence.finalize_release`
+memory. :func:`afterworlds.ingestion.corpus.persistence.finalize_source_release`
 performs steps c–g against a live session and returns the completed
 :class:`ReleaseArtifacts`.
 
@@ -41,12 +42,10 @@ from afterworlds.ingestion.corpus.bundle import (
     derive_package_uuid,
     derive_release_version,
     reconciliation_hash,
-    transform_config_hash,
-    transform_config_payload,
 )
 from afterworlds.ingestion.corpus.concordance import CanaryResult, ConcordanceResult
 from afterworlds.ingestion.corpus.hashing import hash_obj
-from afterworlds.ingestion.corpus.ledger import build_ledger, ledger_hash
+from afterworlds.ingestion.corpus.ledger import ledger_hash
 from afterworlds.ingestion.corpus.models import (
     CanonicalBundle,
     CorpusBundleMembers,
@@ -61,7 +60,6 @@ from afterworlds.ingestion.corpus.pdf_source import (
     PDF_SHA256,
     ExtractedPage,
     extract_pages,
-    extraction_config,
 )
 from afterworlds.ingestion.corpus.policy import FROZEN_POLICY, policy_hash
 from afterworlds.ingestion.corpus.reconcile import reconcile
@@ -86,7 +84,7 @@ class CandidateRelease:
     This type cannot claim persistence occurred: it carries no evidence report,
     no persisted-corpus digest, and no external release/publication record. Those
     require an actual persisted (and reconstructed) database state and are the
-    sole responsibility of :func:`persistence.finalize_release` (steps c–g).
+    sole responsibility of :func:`persistence.finalize_source_release` (steps c–g).
     """
 
     pages: list[ExtractedPage]
@@ -116,71 +114,6 @@ class CandidateRelease:
     citation_report: CitationReport | None = None
 
 
-def build_candidate(
-    pdf_path: Path,
-    *,
-    policy: ReconciliationPolicy = FROZEN_POLICY,
-    retrieval_config: RetrievalMemoryConfig,
-) -> CandidateRelease:
-    """Execute steps a0–b: the pre-persistence candidate build.
-
-    Deterministic and side-effect-free; touches no database. The returned
-    ``package_uuid``/``release_version`` are content-derived from the committed
-    PDF and frozen transform/policy inputs (Owner Decision 1) and are therefore
-    already stable at this stage — but nothing about the state described here is
-    yet proven persisted or runtime-visible.
-
-    ``retrieval_config`` is resolved by the caller *before* this build so its
-    identity-bearing rules-corpus vector configuration (the embedding model +
-    logical schema/ID/metadata contract) is bound into the transform config,
-    hence the package UUID and release version (PR #134 P1). A model change
-    therefore mints a new immutable release rather than colliding on reuse.
-    """
-    # a0 — freeze policy + resolve the vector identity (both committed inputs).
-    p_hash = policy_hash(policy)
-    ex_cfg = extraction_config()
-    vector_identity = rules_corpus_vector_identity(retrieval_config.embedding_model_id)
-    tconfig = transform_config_payload(ex_cfg, policy, vector_identity)
-    thash = transform_config_hash(ex_cfg, policy, vector_identity)
-
-    # a1 — derive + hash the frozen source ledger.
-    pages = extract_pages(pdf_path)
-    ledger = build_ledger(pages)
-    l_hash = ledger_hash(ledger)
-
-    package_uuid = derive_package_uuid(PDF_SHA256, thash)
-    release_version = derive_release_version(PDF_SHA256, thash)
-
-    # a2 — generate canonical corpus members from the frozen ledger. Output chunk
-    # IDs are scoped to this release's package_uuid so a new immutable release
-    # never collides with the predecessor on the global rp_chunks PK (PR #134 P1).
-    members = build_corpus(ledger, package_uuid)
-
-    # a3 — reconciliation by applying only the frozen policy.
-    recon = reconcile(ledger, members, policy)
-    r_hash = reconciliation_hash(recon)
-
-    # b — bundle-root hash.
-    bundle = build_bundle(ledger, members, recon)
-
-    return CandidateRelease(
-        pages=pages,
-        ledger=ledger,
-        members=members,
-        reconciliation=recon,
-        policy=policy,
-        bundle=bundle,
-        package_uuid=package_uuid,
-        release_version=release_version,
-        authoritative_source_hash=PDF_SHA256,
-        transform_config_hash=thash,
-        transform_config=tconfig,
-        ledger_hash=l_hash,
-        policy_hash=p_hash,
-        reconciliation_hash=r_hash,
-    )
-
-
 def build_source_candidate(
     root: Path,
     *,
@@ -189,9 +122,9 @@ def build_source_candidate(
 ) -> CandidateRelease:
     """Build a candidate from the qualified snapshot, citing the official PDF.
 
-    The Markdown-native sibling of :func:`build_candidate`, and the only entry
-    that produces a ``source_partition`` release. Same acyclic a0–b order, same
-    refusal to claim persistence; what differs is where structure comes from.
+    The only candidate build: it produces a ``source_partition`` release in the
+    acyclic a0–b order and claims nothing about persistence. The retired
+    PDF-geometric ``build_candidate`` was removed with its corpus.
 
     Both wrong-source refusals run before any parsing: the PDF must hash to the
     official constant, and every pinned file must hash to the digest the pin
@@ -261,7 +194,7 @@ def build_source_candidate(
 class ReleaseArtifacts:
     """The completed, post-persistence release (Component K steps a0–g).
 
-    Produced only by :func:`persistence.finalize_release` from a candidate plus
+    Produced only by :func:`persistence.finalize_source_release` from a candidate plus
     the actual reconstructed persisted state — never assembled directly from a
     :class:`CandidateRelease` alone.
     """

@@ -31,11 +31,7 @@ from afterworlds.ingestion.mechanical.models import (
     SemanticDisposition,
     SemanticSpan,
 )
-from afterworlds.ingestion.mechanical.oracle import (
-    COMMITTED_ORACLE_DIR,
-    OracleLoadError,
-    load_accepted_inputs,
-)
+from afterworlds.ingestion.mechanical.oracle import OracleLoadError
 from afterworlds.ingestion.mechanical.oracle import _applicability as load_accepted
 from afterworlds.ingestion.mechanical.persistence import (
     PersistedStateReconstructionError,
@@ -44,6 +40,10 @@ from afterworlds.ingestion.mechanical.persistence import (
 )
 from afterworlds.ingestion.mechanical.persistence import (
     _applicability_from_row as load_persisted,
+)
+from afterworlds.ingestion.mechanical.policy import (
+    SEMANTIC_POLICY_VERSION,
+    semantic_policy_hash,
 )
 from afterworlds.ingestion.mechanical.projection import (
     applicability_payload,
@@ -329,7 +329,6 @@ def test_a_schema_3_payload_needs_none_of_the_new_keys() -> None:
 # The acceptance probe: a directly constructed proposal carrying one threshold
 # ---------------------------------------------------------------------------
 
-_ARTIFACT_PATH = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
 _PROBE_LEAF = "leaf-fraction-probe"
 _PROBE_SPAN = derive_span_id(_PROBE_LEAF, 0, 28)
 _PROBE_RECORD = "hazard.fraction-probe"
@@ -350,11 +349,10 @@ def _accept_with_applicability(applicability: Applicability):  # type: ignore[no
         disposition=SemanticDisposition.SUBSTANTIVE,
         review_state=ReviewState.PROPOSED,
     )
-    prior = load_accepted_inputs(_ARTIFACT_PATH)
     proposal = MechanicalProposal(
-        binding=prior.oracle.binding,
-        policy_version=prior.oracle.policy_version,
-        policy_hash=prior.oracle.policy_hash,
+        binding=RELEASE_BINDING,
+        policy_version=SEMANTIC_POLICY_VERSION,
+        policy_hash=semantic_policy_hash(),
         schema_version=REPRESENTATION_SCHEMA_VERSION,
         schema_hash=representation_schema_hash(),
         proposed_spans=(

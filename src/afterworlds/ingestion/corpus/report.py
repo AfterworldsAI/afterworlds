@@ -44,8 +44,8 @@ PYTHON_TARGET = "3.12"
 # "2" for the R16 host-independent ``reproduction_target`` change; "3" for the R18
 # pre-release clean-baseline change that removed the legacy-reachability status
 # (Issue 5c Rev7 / Issue 18 Rev6 supersede the strict cross-store quarantine
-# contract). This version is bound into ``transform_config_payload`` (hence the
-# transform hash / package UUID / release version), so an evidence-report *schema*
+# contract). This version was bound into the retired ``transform_config_payload``
+# (hence the transform hash / package UUID / release version), so a report *schema*
 # change mints a NEW immutable release instead of being reused under a
 # predecessor's identity (R17 mechanism). It is deliberately an *explicit* schema
 # identity rather than a byte-level hash of report.py: only an intentional

@@ -10,8 +10,9 @@ This module answers the different question: **what does the real source
 actually support?** Every leaf id, leaf length, character extent and printed
 string below is transcribed from the committed evidence artifact
 ``.claude/review-notes/issue-5d-actions-1-obligation-coordinates.json``, which
-``issue-5d-actions-1-OBLIGATION-COORDINATES.py`` derives from the pinned SRD
-5.2.1 PDF. Nothing here is sized to make a count come out.
+was derived from the pinned SRD 5.2.1 PDF by a one-time tool retired with the
+original PDF-geometric corpus (Git history retains it). Nothing here is sized to
+make a count come out.
 
 ``test_the_transcription_equals_the_pinned_source_evidence`` reads that artifact
 back and compares every literal to it — leaf ids, leaf lengths, extents and
@@ -148,11 +149,12 @@ from tests.ingestion.mechanical.test_schema_6_actions_1_source_cases import CASE
 # The accepted source coordinates, and the pinned evidence they are checked at
 # ---------------------------------------------------------------------------
 
-#: The committed discovery evidence.
-#: ``issue-5d-actions-1-OBLIGATION-COORDINATES.py`` derives it from the pinned
-#: SRD PDF through the real 5c pipeline, and fails loudly if a quoted phrase is
-#: not present verbatim in the leaf it claims — so it is independent of the
-#: literals transcribed below.
+#: The committed discovery evidence, derived once from the pinned SRD PDF by a
+#: tool that failed loudly if a quoted phrase was not present verbatim in the
+#: leaf it claimed — so it is independent of the literals transcribed below.
+#: That tool drove the original PDF-geometric pipeline and was retired with it
+#: under Step 5 of the Recorded Owner Decision of 21 September 2026; the JSON is
+#: the retained regression input.
 EVIDENCE_PATH = (
     Path(__file__).resolve().parents[3]
     / ".claude"
@@ -162,8 +164,7 @@ EVIDENCE_PATH = (
 
 #: The pinned source the artifact must have been derived from. Without this the
 #: comparison would only prove the transcription matches *some* regeneration.
-#: Not a credential: it is the published SRD 5.2.1 PDF's content digest, the
-#: same literal `issue-5d-actions-1-OBLIGATION-COORDINATES.py` pins.
+#: Not a credential: it is the published SRD 5.2.1 PDF's content digest.
 PINNED_SOURCE_SHA256 = "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87"  # noqa: E501  # pragma: allowlist secret
 
 
@@ -174,9 +175,9 @@ def pinned_evidence() -> dict[str, object]:
     running is the exact defect family this module exists to close.
     """
     assert EVIDENCE_PATH.exists(), (
-        f"pinned source evidence is missing: {EVIDENCE_PATH}. Re-derive it with "
-        "`venv/Scripts/python .claude/review-notes/"
-        "issue-5d-actions-1-OBLIGATION-COORDINATES.py`."
+        f"pinned source evidence is missing: {EVIDENCE_PATH}. Restore the "
+        "committed file from Git; its generating tool was retired with the "
+        "original PDF-geometric corpus."
     )
     with open(EVIDENCE_PATH, encoding="utf-8") as handle:
         payload: dict[str, object] = json.load(handle)

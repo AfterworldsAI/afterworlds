@@ -47,7 +47,7 @@ class CorpusReleaseORM(Base):
     # d/e/f): they cannot be known when the draft row is first inserted, before
     # the leaf/chunk/projection rows exist to reconstruct and digest. They stay
     # NULL from insertion through the draft phase and are set exactly once, by
-    # ``persistence.finalize_release``, from the actual persisted/reconstructed
+    # ``persistence._finalize_core``, from the actual persisted/reconstructed
     # state — never defaulted, never caller-supplied as evidence of persistence.
     evidence_report_hash: Mapped[str | None] = mapped_column(
         sa.String(64), nullable=True

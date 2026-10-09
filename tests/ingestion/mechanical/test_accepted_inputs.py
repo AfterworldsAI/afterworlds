@@ -99,9 +99,7 @@ from tests.ingestion.mechanical.conftest import (
     mark_release_published,
 )
 
-#: The exact production binding, from the merged CRD Issue 5c release. Stated
-#: here so the "nothing is accepted yet" guard names the real release rather
-#: than trusting that no file happens to exist.
+#: The retired original release binding, refused rather than resolved.
 PRODUCTION_PACKAGE = "4458fa10-4a66-5e0e-9ecc-ea37530ad2b4"
 PRODUCTION_RELEASE = "5.2.1-corpus.36b786d8-fa2"
 
@@ -285,35 +283,17 @@ def test_an_accepted_artifact_round_trips_through_its_committed_form(
 # -- production authority is accepted, and still unpublished ------------------
 
 
-def test_exactly_one_accepted_artifact_is_committed_for_the_release() -> None:
-    """The CRD Issue 5d batches the Owner accepted, and nothing else.
+def test_the_retired_release_has_no_artifact_and_is_refused() -> None:
+    """The original release is refused at resolution, with no artifact left.
 
-    Stated as a test rather than a claim in a PR description, so the day
-    somebody commits production authority without review, this fails. It used
-    to assert the directory was empty; that claim expired when the Owner
-    accepted ``conditions-1``, and again with each batch that extended the same
-    file. The property worth keeping survives all six extensions: **one**
-    artifact, for **this** release, holding exactly the batches the Owner
-    accepted.
-
-    ``batches`` is keyed, not ordered: ``load_accepted_inputs`` returns it in
-    canonical id order, so acceptance order is asserted where it is actually
-    recorded — ``schema_anchors``, which pins each batch to the schema it was
-    reviewed under.
-
-    Recorded Owner Decision 2026-09-21 quarantines this release, so what the
-    artifact records and what the *resolver* will hand a caller are now two
-    different questions. Both are asserted: the file is still on disk, still
-    exactly one, still holding exactly the accepted batches — read through the
-    path loader, which loads a file and claims nothing about authority — while
-    ``committed_inputs_for`` and ``committed_oracle_for``, which do resolve
-    authority, refuse. Nothing is deleted here: the Owner Decision retires the
-    superseded work in a later increment (its Step 5).
+    The original 5d artifact for this release (nine batches) was removed under
+    Step 5 of the Recorded Owner Decision of 21 September 2026; Git history
+    retains it. Resolution must still refuse the release as quarantined rather
+    than report it absent, because ``None`` is a releasable answer. Beside the
+    current accepted authority, the directory holds only the two superseded
+    intermediates kept for test and replay evidence.
     """
-    # Beside it, the clean restart's approved replacement chains for different
-    # releases (``test_character_origins_feats_acceptance``).
     assert sorted(p.name for p in COMMITTED_ORACLE_DIR.glob("*.json")) == [
-        "srd-5-2-1-corpus-36b786d8-fa2.json",
         "srd-5-2-1-corpus-3fe24ff6-4e3.json",
         "srd-5-2-1-corpus-574662e9-0ef.json",
         "srd-5-2-1-corpus-8781d4e0-a3b.json",
@@ -323,31 +303,6 @@ def test_exactly_one_accepted_artifact_is_committed_for_the_release() -> None:
             resolve(PRODUCTION_PACKAGE, PRODUCTION_RELEASE)
         assert PRODUCTION_PACKAGE in str(refused.value)
         assert PRODUCTION_RELEASE in str(refused.value)
-    inputs = load_accepted_inputs(
-        COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
-    )
-    assert sorted(b.batch_id for b in inputs.batches) == [
-        "actions-1",
-        "areas-of-effect-1",
-        "attitudes-1",
-        "conditions-1",
-        "cover-1",
-        "hazards-1",
-        "proficiency-1",
-        "proficiency-destinations-1",
-        "speed-1",
-    ]
-    assert [a.batch_id for a in inputs.schema_anchors] == [
-        "conditions-1",
-        "hazards-1",
-        "actions-1",
-        "attitudes-1",
-        "areas-of-effect-1",
-        "cover-1",
-        "speed-1",
-        "proficiency-destinations-1",
-        "proficiency-1",
-    ]
 
 
 def test_the_production_release_cannot_publish_or_activate(session: Session) -> None:

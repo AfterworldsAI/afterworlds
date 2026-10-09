@@ -35,8 +35,9 @@ dev = [
     "pip-audit>=2.7",
     "detect-secrets>=1.5",
     "httpx>=0.27",
-    # Packaging smoke test (CRD Issue 5c): builds wheel+sdist to verify the
-    # committed table inventory ships and loads from an installed distribution.
+    # Packaging smoke tests (CRD Issues 5c/5d): build wheel+sdist to verify the
+    # current accepted authority ships and resolves from an installed
+    # distribution, while retired products and superseded intermediates do not.
     # `build --no-isolation` uses the current env's build backend, so the declared
     # `[build-system].requires` (setuptools>=83.0.0, wheel) must be present here too
     # (R17: a clean CI runner lacked `wheel`, so the build exited 1).
@@ -52,19 +53,21 @@ where = ["src"]
 [tool.setuptools.package-data]
 afterworlds = [
     "modes/personas/profiles/*.json",
-    # CRD Issue 5c committed expected-table oracle, read at runtime via
-    # importlib.resources (table_inventory.py); required by candidate
-    # construction/finalization, so it must ship in the wheel.
-    "ingestion/corpus/srd_table_inventory.json",
     # CRD Issue 5d committed accepted oracles, resolved at runtime by
-    # oracle.committed_oracle_for from the fixed packaged directory. The
-    # directory holds one production artifact today — the SRD 5.2.1 release,
-    # carrying accepted batches conditions-1, hazards-1, actions-1, attitudes-1,
-    # areas-of-effect-1, cover-1, speed-1, proficiency-destinations-1 and
-    # proficiency-1 — so the glob must ship it, or an
-    # installed distribution would resolve no accepted authority and publication
-    # would return ABSENT rather than the honest INCOMPLETE.
+    # oracle.committed_oracle_for from the fixed packaged directory. The current
+    # accepted authority is the SRD 5.2.1 release 5.2.1-corpus.8781d4e0-a3b, so
+    # the glob must ship it, or an installed distribution would resolve no
+    # accepted authority and publication would return ABSENT.
     "ingestion/mechanical/oracles/*.json",
+]
+
+[tool.setuptools.exclude-package-data]
+afterworlds = [
+    # Superseded intermediate releases. Resolution refuses them by release
+    # version before reading the directory, so an installed application never
+    # needs them; they stay in the source tree only for test and replay evidence.
+    "ingestion/mechanical/oracles/srd-5-2-1-corpus-3fe24ff6-4e3.json",
+    "ingestion/mechanical/oracles/srd-5-2-1-corpus-574662e9-0ef.json",
 ]
 
 # ---------------------------------------------------------------------------
