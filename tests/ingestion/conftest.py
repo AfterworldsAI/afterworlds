@@ -22,6 +22,9 @@ one subdirectory needs.
 
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -29,6 +32,7 @@ import pytest
 from sqlalchemy import event
 
 from afterworlds.ingestion.corpus.persistence import (
+    FinalizeResult,
     _finalize_core,
     finalize_release,
     finalize_source_release,
@@ -77,9 +81,9 @@ QUARANTINED_RECONSTRUCTION = (
 )
 
 
-def finalize_in_fresh_db(  # type: ignore[no-untyped-def]
+def finalize_in_fresh_db(
     candidate: CandidateRelease, *, core: bool = False, source: bool = False
-):
+) -> FinalizeResult:
     """Finalize *candidate* against a brand-new, already-committed in-memory DB
     plus a private, isolated on-disk Chroma store and the deterministic offline
     embedding function.
@@ -174,7 +178,9 @@ def source_candidate() -> CandidateRelease:
 
 
 @pytest.fixture(scope="session")
-def source_release_db(tmp_path_factory, source_candidate: CandidateRelease) -> Path:  # type: ignore[no-untyped-def]
+def source_release_db(
+    tmp_path_factory: pytest.TempPathFactory, source_candidate: CandidateRelease
+) -> Path:
     """The replacement corpus published through the real lifecycle into a file.
 
     A *file* rather than ``sqlite://`` so the persisted state outlives the
@@ -212,3 +218,74 @@ def source_release_db(tmp_path_factory, source_candidate: CandidateRelease) -> P
         engine.dispose()
     assert result.published and result.artifacts is not None, result.gate
     return db_path
+
+
+#: Where the pinned replay scripts under ``.claude/review-notes/`` read the
+#: superseded release ``5.2.1-corpus.3fe24ff6-4e3`` (their ``SCRATCH_DB``). It is
+#: a private ``.claude/_*`` scratch store that is never delivered, so a clean
+#: checkout has no file there; the tests read a rebuilt copy instead.
+SUPERSEDED_STORE = REPO_ROOT / ".claude" / "_rc" / "msc" / "rel" / "afterworlds.db"
+_PRIVATE = (REPO_ROOT / ".claude").as_posix() + "/_"
+
+
+def _refuse_private_stores(event: str, args: tuple[object, ...]) -> None:
+    """Fail any test-time open of a private ``.claude/_*`` path, loudly.
+
+    A present private store would otherwise mask a missing rebinding: the suite
+    would pass where the store happens to exist and fail on a clean checkout.
+    """
+    if (
+        event in ("open", "sqlite3.connect")
+        and isinstance(args[0], (str, bytes, os.PathLike))
+        and _PRIVATE in os.fsdecode(args[0]).replace("\\", "/")
+    ):
+        raise PermissionError(f"test read a private store: {args[0]!r}")
+
+
+sys.addaudithook(_refuse_private_stores)
+
+
+@pytest.fixture(scope="session")
+def superseded_release_db(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """The superseded release, rebuilt once from delivered inputs.
+
+    Built in a child process by ``superseded_release.py``, which refuses any
+    identity other than the delivered recorded one, so the replay scripts read
+    the release they were recorded against. Isolated like ``source_release_db``.
+    """
+    db_path = tmp_path_factory.mktemp("superseded-release") / "afterworlds.db"
+    subprocess.run(
+        [sys.executable, str(Path(__file__).with_name("superseded_release.py"))]
+        + [str(db_path), NOW],
+        cwd=REPO_ROOT,
+        check=True,
+    )
+    return db_path
+
+
+def _rebind_superseded_store(request: pytest.FixtureRequest) -> None:
+    stale = [
+        module
+        for module in list(sys.modules.values())
+        if getattr(module, "__dict__", {}).get("SCRATCH_DB") == SUPERSEDED_STORE
+    ]
+    if stale:
+        store = request.getfixturevalue("superseded_release_db")
+        for module in stale:
+            vars(module)["SCRATCH_DB"] = store
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _superseded_store_for_session(request: pytest.FixtureRequest) -> None:
+    """Point every loaded replay script at the rebuilt release.
+
+    Session scope runs before any module-scoped fixture, after collection has
+    loaded the scripts the test modules name at import.
+    """
+    _rebind_superseded_store(request)
+
+
+@pytest.fixture(autouse=True)
+def _superseded_store_for_test(request: pytest.FixtureRequest) -> None:
+    """Rebind scripts first loaded since, through a fixture or an earlier test."""
+    _rebind_superseded_store(request)

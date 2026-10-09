@@ -226,6 +226,27 @@ for unchanged inputs. Neither was rerun, and no broad suite ran.
 pickle inputs that are not delivered. No production code or test invokes it.
 Private stores are not shipped, and no replay was attempted.
 
+**Correction (8 October, PR #178 CI).** The claim that no test invokes private
+inputs was wrong. Pinned replay scripts loaded by tests read the superseded
+release `5.2.1-corpus.3fe24ff6-4e3` from the private
+`.claude/_rc/msc/rel/afterworlds.db` (their `SCRATCH_DB`). That file existed in
+the source checkout, so the reused Windows full gate passed. It is absent from a
+clean checkout, so 11 *Animals* tests failed on CI. The path audit above
+resolved string literals only and missed this computed path. The test-side
+correction rebuilds that release from delivered inputs and refuses any other
+identity (`tests/ingestion/superseded_release.py`, rebound in
+`tests/ingestion/conftest.py`, which also fails any test-time open of a private
+`.claude/_*` path). The *Equipment/spell references* tests load scripts with
+the same `SCRATCH_DB`, so they depended on the store as well. The historical
+text above is kept unchanged.
+
+The same CI run also showed that the backend suite exceeds one hosted job's
+six-hour limit. The prepared correction therefore runs it as 8 shards of the
+files pytest collects, requires the shards' tests to equal a full collection
+exactly once, and enforces the unchanged 80% threshold on combined coverage.
+Local Linux results are diagnostic only. The complete aggregate gate has not
+passed.
+
 ## Remaining boundaries
 
 - Exact committed-head CI, including frontend and E2E.

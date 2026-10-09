@@ -8,8 +8,66 @@ on:
       - ".github/workflows/graphify-code-graph.yml"
 
 jobs:
+  tests:
+    # The backend suite outgrew one hosted job's six-hour limit, so it runs as
+    # shards of the files pytest collects (scripts/ci_test_shards.py). Each
+    # shard records the tests it collects and its coverage without a threshold;
+    # the gate job below requires the shards' tests to be exactly the full
+    # collection, then combines their coverage and enforces the threshold once.
+    name: Tests — pytest shard ${{ matrix.shard }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7]
+    env:
+      # Same line coverage as the default tracer at a fraction of its overhead
+      # on Python 3.12.
+      COVERAGE_CORE: sysmon
+      COVERAGE_FILE: coverage-shard-${{ matrix.shard }}.data
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Tests — pytest
+        # The selection is a checked assignment: a failing or empty selection
+        # stops here instead of letting pytest run with no paths.
+        # --durations=25 surfaces the slowest tests each run (visibility only; no
+        # wall-clock failure threshold). addopts (pyproject) has no --durations.
+        shell: bash
+        run: |
+          files=$(python scripts/ci_test_shards.py 8 ${{ matrix.shard }})
+          test -n "$files"
+          pytest --collect-only -q --no-cov -p no:cacheprovider $files \
+            | grep '::' > nodes-shard-${{ matrix.shard }}.txt
+          pytest --cov=src --cov-fail-under=0 --cov-report= --durations=25 $files
+
+      - name: Require this shard's coverage data
+        run: test -s "$COVERAGE_FILE"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-shard-${{ matrix.shard }}
+          path: |
+            ${{ env.COVERAGE_FILE }}
+            nodes-shard-${{ matrix.shard }}.txt
+          if-no-files-found: error
+
   ci:
     name: Lint, Type-check, Test, Audit
+    needs: tests
+    # Run even when a shard fails, so this check fails rather than being skipped.
+    if: always()
     runs-on: ubuntu-latest
 
     steps:
@@ -34,10 +92,29 @@ jobs:
       - name: Type checking — mypy (strict)
         run: mypy src/
 
-      - name: Tests — pytest
-        # --durations=25 surfaces the slowest tests each run (visibility only; no
-        # wall-clock failure threshold). addopts (pyproject) has no --durations.
-        run: pytest --cov=src --durations=25
+      - name: Tests — every shard passed
+        run: test "${{ needs.tests.result }}" = success
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-shard-*
+          merge-multiple: true
+
+      - name: Collection — the shards ran every collected test exactly once
+        shell: bash
+        run: |
+          test "$(ls nodes-shard-*.txt | wc -l)" -eq 8
+          pytest --collect-only -q --no-cov -p no:cacheprovider \
+            | grep '::' | sort > nodes-all.txt
+          sort nodes-shard-*.txt > nodes-shards.txt
+          test -z "$(uniq -d nodes-shards.txt)"
+          diff nodes-all.txt nodes-shards.txt
+
+      - name: Coverage — all shards combined, configured threshold
+        run: |
+          test "$(ls coverage-shard-*.data | wc -l)" -eq 8
+          coverage combine coverage-shard-*.data
+          coverage report -m --fail-under=80
 
       - name: Dependency audit — pip-audit
         # CVE-2026-4539: ReDoS in pygments AdlLexer (pygments/lexers/archetype.py).
