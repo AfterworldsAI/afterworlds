@@ -19,9 +19,11 @@ from __future__ import annotations
 
 import dataclasses
 import tempfile
+from collections.abc import Iterator
 from contextlib import contextmanager
 
 import pytest
+from chromadb.api import ClientAPI
 from sqlalchemy import event, select
 from sqlalchemy.orm import Session
 
@@ -32,11 +34,13 @@ from afterworlds.ingestion.corpus.bundle import (
 )
 from afterworlds.ingestion.corpus.concordance import verify_citations
 from afterworlds.ingestion.corpus.hashing import hash_obj
+from afterworlds.ingestion.corpus.models import CorpusChunk
 from afterworlds.ingestion.corpus.operational import (
     CORPUS_CONTRACT_VERSION,
     load_verified_operational_corpus,
 )
 from afterworlds.ingestion.corpus.persistence import (
+    FinalizeResult,
     finalize_source_release,
     verify_persisted_digest,
 )
@@ -72,14 +76,14 @@ class _Boom(RuntimeError):
 class _Stores:
     """A live, isolated SQL session and Chroma client, plus what published there."""
 
-    session: object
-    chroma_client: object
+    session: Session
+    chroma_client: ClientAPI
     candidate: CandidateRelease
-    result: object = None
+    result: FinalizeResult | None = None
 
 
 @contextmanager
-def _isolated_stores(candidate: CandidateRelease):  # type: ignore[no-untyped-def]
+def _isolated_stores(candidate: CandidateRelease) -> Iterator[_Stores]:
     """A brand-new SQLite database and private on-disk Chroma store.
 
     ``finalize_in_fresh_db`` closes its stores on the way out, which is right for
@@ -102,7 +106,7 @@ def _isolated_stores(candidate: CandidateRelease):  # type: ignore[no-untyped-de
         engine.dispose()
 
 
-def _publish(stores):  # type: ignore[no-untyped-def]
+def _publish(stores: _Stores) -> FinalizeResult:
     return finalize_source_release(
         stores.session,
         stores.candidate,
@@ -113,7 +117,7 @@ def _publish(stores):  # type: ignore[no-untyped-def]
     )
 
 
-def _vector_count(stores) -> int:  # type: ignore[no-untyped-def]
+def _vector_count(stores: _Stores) -> int:
     return read_actual_vector_state(
         stores.chroma_client,
         stores.candidate.package_uuid,
@@ -123,7 +127,7 @@ def _vector_count(stores) -> int:  # type: ignore[no-untyped-def]
 
 
 @pytest.fixture(scope="session")
-def published(source_candidate: CandidateRelease):  # type: ignore[no-untyped-def]
+def published(source_candidate: CandidateRelease) -> Iterator[_Stores]:
     """The source candidate published once, with both stores left open."""
     with _isolated_stores(source_candidate) as stores:
         stores.result = _publish(stores)
@@ -132,7 +136,7 @@ def published(source_candidate: CandidateRelease):  # type: ignore[no-untyped-de
 
 
 @pytest.fixture()
-def damaged(published):  # type: ignore[no-untyped-def]
+def damaged(published: _Stores) -> Iterator[Session]:
     """A savepoint around one case's damage, so the published state survives it.
 
     Each of these needs the *published* rows to break, and republishing per case
@@ -148,7 +152,7 @@ def damaged(published):  # type: ignore[no-untyped-def]
         session.rollback()
 
 
-def _reconstructed_chunks(session, pkg):  # type: ignore[no-untyped-def]
+def _reconstructed_chunks(session: Session, pkg: str) -> tuple[CorpusChunk, ...]:
     """The members as the reconstruction reads them back out of the rows."""
     ledger = persistence_mod._load_ledger(session, pkg)
     return persistence_mod._load_members(session, pkg, ledger).chunks
@@ -159,15 +163,17 @@ def _reconstructed_chunks(session, pkg):  # type: ignore[no-untyped-def]
 # ---------------------------------------------------------------------------
 
 
-def test_the_source_corpus_publishes_through_the_real_gate(published) -> None:  # type: ignore[no-untyped-def]
+def test_the_source_corpus_publishes_through_the_real_gate(published: _Stores) -> None:
     """The whole point: persist → reconstruct → digest → gate → publish.
 
     Not an in-memory approximation — every fact below is read back out of the
     two stores the release was actually written into.
     """
+    assert published.result is not None
     assert published.result.published and not published.result.reused
     gate = published.result.gate
-    assert gate is not None and gate.passed, gate.failures
+    assert gate is not None
+    assert gate.passed, gate.failures
     pkg = published.candidate.package_uuid
     rows = (
         published.session.execute(
@@ -193,21 +199,25 @@ def test_the_source_corpus_publishes_through_the_real_gate(published) -> None:  
 
 
 def test_the_evidence_report_names_the_verification_that_actually_ran(
-    published,  # type: ignore[no-untyped-def]
+    published: _Stores,
 ) -> None:
     """A report naming neither mode would read as if the retired check had run."""
+    assert published.result is not None and published.result.artifacts is not None
     payload = published.result.artifacts.report.payload
     assert payload["citation_verification"] == SOURCE_PARTITION
     assert payload["uncarried_source_units"] == 0
     assert payload["concordance_failures"] == 0
     assert payload["invalid_locators"] == 0
     assert payload["prepublication_validation_status"] == "pass"
-    assert all(payload["version_canaries"].values())
+    canaries = payload["version_canaries"]
+    assert isinstance(canaries, dict)
+    assert all(canaries.values())
     # The mapping the citation pass computed, carried rather than discarded.
     # Each mechanism is counted apart on purpose, and together they account for
     # every unit, so a consumer can weigh a text match against an inference.
     mapping = payload["source_citation_mapping"]
     assert mapping is not None
+    assert isinstance(mapping, dict)
     assert mapping["units"] == sum(
         mapping[k] for k in ("located", "placed", "anchored", "inherited")
     )
@@ -216,7 +226,9 @@ def test_the_evidence_report_names_the_verification_that_actually_ran(
     assert mapping["multi_page_units"] > 0
 
 
-def test_publishing_the_same_inputs_again_is_a_verified_no_op(published) -> None:  # type: ignore[no-untyped-def]
+def test_publishing_the_same_inputs_again_is_a_verified_no_op(
+    published: _Stores,
+) -> None:
     """Reuse re-proves the cross-store state; it does not re-persist or rewrite."""
     before = _vector_count(published)
     again = _publish(published)
@@ -224,6 +236,8 @@ def test_publishing_the_same_inputs_again_is_a_verified_no_op(published) -> None
     # Reuse re-runs the *full* gate against the reconstructed state rather than
     # trusting the idempotency select, so a passing gate here is a re-proof.
     assert again.gate is not None and again.gate.passed
+    assert again.artifacts is not None
+    assert published.result is not None and published.result.artifacts is not None
     # The report the reuse path serves is loaded from the persisted row, not
     # rebuilt, so this is the mapping surviving a round trip through the DB.
     assert (
@@ -266,8 +280,8 @@ def test_reuse_refuses_a_release_whose_persisted_chunk_was_tampered_with(
 
 
 def test_a_tampered_persisted_chunk_fails_the_citation_re_derivation(
-    published,  # type: ignore[no-untyped-def]
-    damaged,  # type: ignore[no-untyped-def]
+    published: _Stores,
+    damaged: Session,
 ) -> None:
     """The source verification reads the persisted rows, not the built candidate.
 
@@ -293,8 +307,8 @@ def test_a_tampered_persisted_chunk_fails_the_citation_re_derivation(
 
 
 def test_a_reassigned_persisted_locator_breaks_the_release_digest(
-    published,  # type: ignore[no-untyped-def]
-    damaged,  # type: ignore[no-untyped-def]
+    published: _Stores,
+    damaged: Session,
 ) -> None:
     """Citation verification is not the only instrument: the digest moves too."""
     pkg = published.candidate.package_uuid
@@ -313,8 +327,8 @@ def test_a_reassigned_persisted_locator_breaks_the_release_digest(
 
 
 def test_an_omitted_persisted_chunk_is_detected_as_an_uncarried_source_unit(
-    published,  # type: ignore[no-untyped-def]
-    damaged,  # type: ignore[no-untyped-def]
+    published: _Stores,
+    damaged: Session,
 ) -> None:
     """A chunk-by-chunk check cannot see this at all: the chunk is simply gone."""
     pkg = published.candidate.package_uuid
@@ -349,6 +363,7 @@ def test_a_release_that_declares_the_wrong_verification_never_reaches_a_store(
     result = finalize_in_fresh_db(wrong, source=True)
     assert not result.published and not result.reused
     assert result.artifacts is None
+    assert result.gate is not None
     assert any("source_partition" in f for f in result.gate.failures)
 
 
@@ -362,11 +377,12 @@ def test_a_release_carrying_stale_source_bytes_is_refused(
     stale = dataclasses.replace(source_candidate, source_texts=sources)
     result = finalize_in_fresh_db(stale, source=True)
     assert not result.published
+    assert result.gate is not None
     assert any("digest" in f for f in result.gate.failures)
 
 
 def test_a_failure_inside_the_publication_window_leaves_neither_store_written(
-    source_candidate: CandidateRelease, monkeypatch
+    source_candidate: CandidateRelease, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Compensation, proven where it actually matters.
 
@@ -424,10 +440,11 @@ def test_a_changed_recipe_mints_a_new_release_rather_than_colliding(
 
 
 def test_the_operational_read_path_identifies_this_release_and_no_other(
-    published,  # type: ignore[no-untyped-def]
+    published: _Stores,
 ) -> None:
     """Derived retrieval must name the new release, not fall back to old authority."""
     candidate = published.candidate
+    assert published.result is not None and published.result.artifacts is not None
     release = published.result.artifacts.release
     snapshot = load_verified_operational_corpus(
         published.session,

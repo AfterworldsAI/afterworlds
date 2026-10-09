@@ -59,12 +59,15 @@ from afterworlds.persistence.orm.base import Base
 from afterworlds.pipeline.retrieval.client import build_isolated_test_chroma_client
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
 from afterworlds.pipeline.retrieval.embedding import DeterministicFakeEmbeddingFunction
-from tests.ingestion.conftest import (  # noqa: F401  (re-exported for this suite)
+from tests.ingestion.conftest import (
     NOW,
     PDF_PATH,
     finalize_in_fresh_db,
     source_candidate,
 )
+
+# Re-exported for this suite's modules (see the module docstring).
+__all__ = ["NOW", "PDF_PATH", "finalize_in_fresh_db", "source_candidate"]
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
