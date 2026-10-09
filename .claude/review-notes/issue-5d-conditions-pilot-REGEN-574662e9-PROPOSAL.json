@@ -1,0 +1,5456 @@
+{
+ "artifact_kind": "machine_proposal",
+ "proposal_origin": "issue-5d-conditions-pilot-generator.py (CRD Issue 5d fresh conditions pilot; unaccepted)",
+ "proposal_schema_version": "5d-proposal-2",
+ "proposed_representation": {
+  "components": [
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.charmed",
+    "semantic_key": "cant_harm_the_charmer"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.charmed",
+    "semantic_key": "social_advantage"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.frightened",
+    "semantic_key": "cant_approach"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.grappling",
+    "semantic_key": "ending_a_grapple"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.grappling",
+    "semantic_key": "one_grapple_per_hand"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.invisible",
+    "semantic_key": "concealed"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.prone",
+    "semantic_key": "attacks_against_affected"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.condition",
+    "semantic_key": "definition"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.condition",
+    "semantic_key": "non_stacking"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.grappling",
+    "semantic_key": "grapple_basis"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [
+     {
+      "applies_when": null,
+      "facts": [
+       {
+        "family": "movement_permission",
+        "mode": "crawl"
+       }
+      ],
+      "semantic_key": "crawl"
+     },
+     {
+      "applies_when": {
+       "any_of": [],
+       "comparison": "equals",
+       "kind": "quantity_threshold",
+       "negated": true,
+       "phase": null,
+       "quantity": "speed",
+       "trigger": null,
+       "value": 0
+      },
+      "facts": [
+       {
+        "amount": "half_speed",
+        "family": "movement_cost",
+        "feet": null,
+        "kind": "expenditure",
+        "payer": "subject",
+        "rounding": "down"
+       },
+       {
+        "condition": "prone",
+        "effect": "removes",
+        "family": "condition_effect"
+       }
+      ],
+      "semantic_key": "right_yourself"
+     }
+    ],
+    "record_key": "glossary.prone",
+    "semantic_key": "restricted_movement"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "amount": 2,
+      "basis": "condition_level",
+      "dice_amount": null,
+      "direction": "decrease",
+      "effect": "d20_test",
+      "family": "scaling",
+      "threshold": 0
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.exhaustion",
+    "semantic_key": "d20_tests_affected"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "amount": 5,
+      "basis": "condition_level",
+      "dice_amount": null,
+      "direction": "decrease",
+      "effect": "speed",
+      "family": "scaling",
+      "threshold": 0
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.exhaustion",
+    "semantic_key": "speed_reduced"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "becomes": "object",
+      "carried_nonmagical_included": true,
+      "family": "transformation"
+     },
+     {
+      "effect": "aging_suspended",
+      "family": "state_effect"
+     },
+     {
+      "factor": 10,
+      "family": "quantity_multiplier",
+      "quantity": "weight"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "fiction_dependent_consequence",
+    "options": [],
+    "record_key": "glossary.petrified",
+    "semantic_key": "turned_to_inanimate_substance"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "can_increase": false,
+      "change": "set_to",
+      "family": "speed_modification",
+      "feet": 0,
+      "mode": null
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.grappled",
+    "semantic_key": "speed_0"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "can_increase": false,
+      "change": "set_to",
+      "family": "speed_modification",
+      "feet": 0,
+      "mode": null
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.paralyzed",
+    "semantic_key": "speed_0"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "can_increase": false,
+      "change": "set_to",
+      "family": "speed_modification",
+      "feet": 0,
+      "mode": null
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.petrified",
+    "semantic_key": "speed_0"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "can_increase": false,
+      "change": "set_to",
+      "family": "speed_modification",
+      "feet": 0,
+      "mode": null
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.restrained",
+    "semantic_key": "speed_0"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "can_increase": false,
+      "change": "set_to",
+      "family": "speed_modification",
+      "feet": 0,
+      "mode": null
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.unconscious",
+    "semantic_key": "speed_0"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "can_perceive": false,
+      "family": "sensory_capability",
+      "range_feet": null,
+      "sense": "hearing"
+     },
+     {
+      "family": "automatic_outcome",
+      "outcome": "failure",
+      "roll": {
+       "ability": null,
+       "actor": "subject",
+       "context": "ability_check"
+      }
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.deafened",
+    "semantic_key": "cant_hear"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "can_perceive": false,
+      "family": "sensory_capability",
+      "range_feet": null,
+      "sense": "sight"
+     },
+     {
+      "family": "automatic_outcome",
+      "outcome": "failure",
+      "roll": {
+       "ability": null,
+       "actor": "subject",
+       "context": "ability_check"
+      }
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.blinded",
+    "semantic_key": "cant_see"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "change": "automatic_on_hit",
+      "family": "critical_hit_rule",
+      "threshold": null
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.paralyzed",
+    "semantic_key": "automatic_critical_hits"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "change": "automatic_on_hit",
+      "family": "critical_hit_rule",
+      "threshold": null
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.unconscious",
+    "semantic_key": "automatic_critical_hits"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "condition": "grappled",
+      "effect": "applies",
+      "family": "condition_effect"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.grappling",
+    "semantic_key": "grappled_condition"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "condition": "incapacitated",
+      "effect": "applies",
+      "family": "condition_effect"
+     },
+     {
+      "condition": "prone",
+      "effect": "applies",
+      "family": "condition_effect"
+     },
+     {
+      "effect": "drops_held_objects",
+      "family": "state_effect"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.unconscious",
+    "semantic_key": "inert"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "condition": "incapacitated",
+      "effect": "applies",
+      "family": "condition_effect"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.paralyzed",
+    "semantic_key": "incapacitated"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "condition": "incapacitated",
+      "effect": "applies",
+      "family": "condition_effect"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.petrified",
+    "semantic_key": "incapacitated"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "condition": "incapacitated",
+      "effect": "applies",
+      "family": "condition_effect"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.stunned",
+    "semantic_key": "incapacitated"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "condition": "poisoned",
+      "effect": "immunity",
+      "family": "condition_effect"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.petrified",
+    "semantic_key": "poison_immunity"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "cost": "action",
+      "family": "action_restriction"
+     },
+     {
+      "cost": "bonus_action",
+      "family": "action_restriction"
+     },
+     {
+      "cost": "reaction",
+      "family": "action_restriction"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.incapacitated",
+    "semantic_key": "inactive"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "damage_type": null,
+      "except_types": [],
+      "family": "damage_response",
+      "response": "resistance",
+      "scope": "all"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.petrified",
+    "semantic_key": "resist_damage"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "effect": "cannot_speak",
+      "family": "state_effect"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.incapacitated",
+    "semantic_key": "speechless"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "effect": "concentration_broken",
+      "family": "state_effect"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.incapacitated",
+    "semantic_key": "no_concentration"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "effect": "unaware_of_surroundings",
+      "family": "state_effect"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.unconscious",
+    "semantic_key": "unaware"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": "dexterity",
+       "actor": "subject",
+       "context": "saving_throw"
+      },
+      "state": "disadvantage"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.restrained",
+    "semantic_key": "saving_throws_affected"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": null,
+       "actor": "against_subject",
+       "context": "attack_roll"
+      },
+      "state": "advantage"
+     },
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": null,
+       "actor": "subject",
+       "context": "attack_roll"
+      },
+      "state": "disadvantage"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.blinded",
+    "semantic_key": "attacks_affected"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": null,
+       "actor": "against_subject",
+       "context": "attack_roll"
+      },
+      "state": "advantage"
+     },
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": null,
+       "actor": "subject",
+       "context": "attack_roll"
+      },
+      "state": "disadvantage"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.restrained",
+    "semantic_key": "attacks_affected"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": null,
+       "actor": "against_subject",
+       "context": "attack_roll"
+      },
+      "state": "advantage"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.paralyzed",
+    "semantic_key": "attacks_affected"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": null,
+       "actor": "against_subject",
+       "context": "attack_roll"
+      },
+      "state": "advantage"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.petrified",
+    "semantic_key": "attacks_affected"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": null,
+       "actor": "against_subject",
+       "context": "attack_roll"
+      },
+      "state": "advantage"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.stunned",
+    "semantic_key": "attacks_affected"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": null,
+       "actor": "against_subject",
+       "context": "attack_roll"
+      },
+      "state": "advantage"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.unconscious",
+    "semantic_key": "attacks_affected"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": null,
+       "actor": "against_subject",
+       "context": "attack_roll"
+      },
+      "state": "disadvantage"
+     },
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": null,
+       "actor": "subject",
+       "context": "attack_roll"
+      },
+      "state": "advantage"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.invisible",
+    "semantic_key": "attacks_affected"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": null,
+       "actor": "subject",
+       "context": "ability_check"
+      },
+      "state": "disadvantage"
+     },
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": null,
+       "actor": "subject",
+       "context": "attack_roll"
+      },
+      "state": "disadvantage"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.frightened",
+    "semantic_key": "ability_checks_and_attacks_affected"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": null,
+       "actor": "subject",
+       "context": "ability_check"
+      },
+      "state": "disadvantage"
+     },
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": null,
+       "actor": "subject",
+       "context": "attack_roll"
+      },
+      "state": "disadvantage"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.poisoned",
+    "semantic_key": "ability_checks_and_attacks_affected"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": null,
+       "actor": "subject",
+       "context": "attack_roll"
+      },
+      "state": "disadvantage"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.grappled",
+    "semantic_key": "attacks_affected"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": null,
+       "actor": "subject",
+       "context": "attack_roll"
+      },
+      "state": "disadvantage"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.prone",
+    "semantic_key": "own_attacks_affected"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": null,
+       "actor": "subject",
+       "context": "initiative"
+      },
+      "state": "advantage"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.invisible",
+    "semantic_key": "surprise"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": null,
+       "actor": "subject",
+       "context": "initiative"
+      },
+      "state": "disadvantage"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.incapacitated",
+    "semantic_key": "surprised"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "automatic_outcome",
+      "outcome": "failure",
+      "roll": {
+       "ability": "dexterity",
+       "actor": "subject",
+       "context": "saving_throw"
+      }
+     },
+     {
+      "family": "automatic_outcome",
+      "outcome": "failure",
+      "roll": {
+       "ability": "strength",
+       "actor": "subject",
+       "context": "saving_throw"
+      }
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.paralyzed",
+    "semantic_key": "saving_throws_affected"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "automatic_outcome",
+      "outcome": "failure",
+      "roll": {
+       "ability": "dexterity",
+       "actor": "subject",
+       "context": "saving_throw"
+      }
+     },
+     {
+      "family": "automatic_outcome",
+      "outcome": "failure",
+      "roll": {
+       "ability": "strength",
+       "actor": "subject",
+       "context": "saving_throw"
+      }
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.petrified",
+    "semantic_key": "saving_throws_affected"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "automatic_outcome",
+      "outcome": "failure",
+      "roll": {
+       "ability": "dexterity",
+       "actor": "subject",
+       "context": "saving_throw"
+      }
+     },
+     {
+      "family": "automatic_outcome",
+      "outcome": "failure",
+      "roll": {
+       "ability": "strength",
+       "actor": "subject",
+       "context": "saving_throw"
+      }
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.stunned",
+    "semantic_key": "saving_throws_affected"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "automatic_outcome",
+      "outcome": "failure",
+      "roll": {
+       "ability": "dexterity",
+       "actor": "subject",
+       "context": "saving_throw"
+      }
+     },
+     {
+      "family": "automatic_outcome",
+      "outcome": "failure",
+      "roll": {
+       "ability": "strength",
+       "actor": "subject",
+       "context": "saving_throw"
+      }
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.unconscious",
+    "semantic_key": "saving_throws_affected"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [
+     {
+      "applies_when": {
+       "any_of": [],
+       "comparison": "equals",
+       "kind": "quantity_threshold",
+       "negated": false,
+       "phase": null,
+       "quantity": "condition_level",
+       "trigger": null,
+       "value": 6
+      },
+      "fact_key": "68a72ddbcab08b83",
+      "option_key": ""
+     }
+    ],
+    "facts": [
+     {
+      "all_levels": false,
+      "amount": 1,
+      "condition": "exhaustion",
+      "cumulative": true,
+      "direction": "gain",
+      "family": "condition_level"
+     },
+     {
+      "effect": "dies",
+      "family": "state_effect"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.exhaustion",
+    "semantic_key": "exhaustion_levels"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [
+     {
+      "applies_when": {
+       "any_of": [],
+       "comparison": "reaches",
+       "kind": "quantity_threshold",
+       "negated": false,
+       "phase": null,
+       "quantity": "condition_level",
+       "trigger": null,
+       "value": 0
+      },
+      "fact_key": "f2d8099d90016878",
+      "option_key": ""
+     },
+     {
+      "applies_when": {
+       "any_of": [],
+       "comparison": null,
+       "kind": "trigger",
+       "negated": false,
+       "phase": null,
+       "quantity": null,
+       "trigger": "long_rest",
+       "value": null
+      },
+      "fact_key": "e5b627fb5340604f",
+      "option_key": ""
+     }
+    ],
+    "facts": [
+     {
+      "all_levels": false,
+      "amount": 1,
+      "condition": "exhaustion",
+      "cumulative": false,
+      "direction": "remove",
+      "family": "condition_level"
+     },
+     {
+      "condition": "exhaustion",
+      "effect": "removes",
+      "family": "condition_effect"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.exhaustion",
+    "semantic_key": "removing_exhaustion_levels"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [
+     {
+      "applies_when": {
+       "any_of": [
+        {
+         "at_least": null,
+         "at_most": null,
+         "category": "tiny",
+         "measured": "subject",
+         "reference": null,
+         "relation": null
+        },
+        {
+         "at_least": 2,
+         "at_most": null,
+         "category": null,
+         "measured": "subject",
+         "reference": "counterpart",
+         "relation": "smaller"
+        }
+       ],
+       "comparison": null,
+       "kind": "size_comparison",
+       "negated": true,
+       "phase": null,
+       "quantity": null,
+       "trigger": null,
+       "value": null
+      },
+      "fact_key": "6e4c12d0fc868578",
+      "option_key": ""
+     }
+    ],
+    "facts": [
+     {
+      "amount": "feet",
+      "family": "movement_cost",
+      "feet": 1,
+      "kind": "per_foot_surcharge",
+      "payer": "counterpart",
+      "rounding": null
+     },
+     {
+      "carried": "subject",
+      "carrier": "counterpart",
+      "family": "movement_transport",
+      "kind": "permitted"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.grappled",
+    "semantic_key": "movable"
+   },
+   {
+    "applies_when": {
+     "any_of": [],
+     "comparison": null,
+     "kind": "phase",
+     "negated": false,
+     "phase": "on_end",
+     "quantity": null,
+     "trigger": null,
+     "value": null
+    },
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "condition": "prone",
+      "effect": "applies",
+      "family": "condition_effect"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.unconscious",
+    "semantic_key": "remains_prone"
+   }
+  ],
+  "prose_bindings": [
+   {
+    "chunk_char_end": 101,
+    "chunk_char_start": 0,
+    "chunk_id": "078ad0fb-538c-52ea-84a6-cce2922e1a8e",
+    "component_key": "attacks_affected",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.invisible",
+    "span_id": "95bb51cc-e4dc-5c56-8146-c79039cce3e8"
+   },
+   {
+    "chunk_char_end": 101,
+    "chunk_char_start": 0,
+    "chunk_id": "cf8d1bd2-6339-5d76-843f-3e3d36cf6b63",
+    "component_key": "attacks_affected",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.grappled",
+    "span_id": "61dd2b71-d8e2-5b73-aa9f-f6e1336cd0cc"
+   },
+   {
+    "chunk_char_end": 115,
+    "chunk_char_start": 0,
+    "chunk_id": "218dc5d6-905b-5afb-b093-0b5a6d57437e",
+    "component_key": "automatic_critical_hits",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.paralyzed",
+    "span_id": "065a36a5-2d74-5239-af34-d2393f42c7cb"
+   },
+   {
+    "chunk_char_end": 115,
+    "chunk_char_start": 0,
+    "chunk_id": "37a555e4-6543-54b3-b8b0-6f08d79e5504",
+    "component_key": "automatic_critical_hits",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.unconscious",
+    "span_id": "0351da04-e4de-53cc-b3d2-d442bb6a16f9"
+   },
+   {
+    "chunk_char_end": 120,
+    "chunk_char_start": 0,
+    "chunk_id": "2ad24027-a2c9-5cdf-841d-1eabe244c018",
+    "component_key": "cant_harm_the_charmer",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.charmed",
+    "span_id": "1b447643-c0df-5660-a478-a3bff60f7d07"
+   },
+   {
+    "chunk_char_end": 140,
+    "chunk_char_start": 86,
+    "chunk_id": "0d5c6ac3-4e8d-5c58-bfc4-33225e13353c",
+    "component_key": "non_stacking",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.condition",
+    "span_id": "ce195243-d87f-547e-8314-3fcca0a269d0"
+   },
+   {
+    "chunk_char_end": 145,
+    "chunk_char_start": 0,
+    "chunk_id": "3aec6f61-437d-509c-85b4-1dc564dcd937",
+    "component_key": "ability_checks_and_attacks_affected",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.frightened",
+    "span_id": "555bfe2b-a699-506c-9f64-097325d3aabd"
+   },
+   {
+    "chunk_char_end": 152,
+    "chunk_char_start": 39,
+    "chunk_id": "a03b47de-51e9-56c4-8b23-f7e3b130375a",
+    "component_key": "definition",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.condition",
+    "span_id": "0de71f42-8a7a-5b54-a585-65094cbf86e5"
+   },
+   {
+    "chunk_char_end": 186,
+    "chunk_char_start": 59,
+    "chunk_id": "36d47780-4e7f-5b15-850a-38d64d7c87df",
+    "component_key": "attacks_against_affected",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.prone",
+    "span_id": "c0e35c01-9e11-5c1e-bf0c-2b15f520ad58"
+   },
+   {
+    "chunk_char_end": 187,
+    "chunk_char_start": 102,
+    "chunk_id": "078ad0fb-538c-52ea-84a6-cce2922e1a8e",
+    "component_key": "attacks_affected",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.invisible",
+    "span_id": "d032d8f8-061d-5c54-bb32-6d59735a7569"
+   },
+   {
+    "chunk_char_end": 192,
+    "chunk_char_start": 0,
+    "chunk_id": "07c6d200-8cb3-5aab-8e6b-c85ec2a8f203",
+    "component_key": "concealed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.invisible",
+    "span_id": "5db4fd98-2bc0-5f63-8969-50ad86b06fa2"
+   },
+   {
+    "chunk_char_end": 230,
+    "chunk_char_start": 0,
+    "chunk_id": "a32d214a-f9ca-5e4d-b127-63e7bf98a4f2",
+    "component_key": "turned_to_inanimate_substance",
+    "irreducibility_reason_code": "fiction_dependent_consequence",
+    "record_key": "glossary.petrified",
+    "span_id": "09dc52c4-22f9-5ec1-ba31-52c065a1536d"
+   },
+   {
+    "chunk_char_end": 376,
+    "chunk_char_start": 0,
+    "chunk_id": "610fea10-0f2f-57f1-9bc1-946501ced1d4",
+    "component_key": "one_grapple_per_hand",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.grappling",
+    "span_id": "2f075756-3b09-5ab8-b83a-898b17ec9a73"
+   },
+   {
+    "chunk_char_end": 38,
+    "chunk_char_start": 0,
+    "chunk_id": "a03b47de-51e9-56c4-8b23-f7e3b130375a",
+    "component_key": "definition",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.condition",
+    "span_id": "3452c3d4-0f00-53ab-8f29-0593d4046434"
+   },
+   {
+    "chunk_char_end": 40,
+    "chunk_char_start": 0,
+    "chunk_id": "24ec65a2-893e-5e8d-a438-a29272bfa67b",
+    "component_key": "grapple_basis",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.grappling",
+    "span_id": "67712cfd-86eb-5d83-88c9-5ee58a700f6a"
+   },
+   {
+    "chunk_char_end": 447,
+    "chunk_char_start": 0,
+    "chunk_id": "75301465-0050-5dba-9cdd-dda6275f7930",
+    "component_key": "ending_a_grapple",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.grappling",
+    "span_id": "ca11a329-aaaa-5818-b375-8fc7e78fc278"
+   },
+   {
+    "chunk_char_end": 72,
+    "chunk_char_start": 0,
+    "chunk_id": "840d6bdc-e947-5dc5-88b8-7ca4e6219870",
+    "component_key": "cant_approach",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.frightened",
+    "span_id": "fb708823-e3a8-50cb-a98c-bfcbbfd1bf5a"
+   },
+   {
+    "chunk_char_end": 85,
+    "chunk_char_start": 0,
+    "chunk_id": "0d5c6ac3-4e8d-5c58-bfc4-33225e13353c",
+    "component_key": "non_stacking",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.condition",
+    "span_id": "00a6764c-08b2-5e22-a9b8-6d1b153334d4"
+   },
+   {
+    "chunk_char_end": 88,
+    "chunk_char_start": 0,
+    "chunk_id": "eb342163-686f-546c-a59d-c4fe3351b963",
+    "component_key": "cant_see",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.blinded",
+    "span_id": "27aa5bef-2c63-5ef4-a2de-2b801fe803ca"
+   },
+   {
+    "chunk_char_end": 92,
+    "chunk_char_start": 0,
+    "chunk_id": "703b74c1-196a-59ec-b4d0-637d05eb8bb4",
+    "component_key": "cant_hear",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.deafened",
+    "span_id": "d82b42e6-676e-5166-b3f9-79ab049d673a"
+   },
+   {
+    "chunk_char_end": 97,
+    "chunk_char_start": 0,
+    "chunk_id": "44c9ba47-09c9-5d06-aecc-9de2a42bdabf",
+    "component_key": "social_advantage",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.charmed",
+    "span_id": "2a3d1a35-0fb7-56e8-b0fb-47b56ab3e466"
+   },
+   {
+    "chunk_char_end": 97,
+    "chunk_char_start": 41,
+    "chunk_id": "24ec65a2-893e-5e8d-a438-a29272bfa67b",
+    "component_key": "grapple_basis",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.grappling",
+    "span_id": "769fe99c-cf14-5d62-982a-9d6b367f23e0"
+   }
+  ],
+  "provenance": [
+   {
+    "role": "contextual",
+    "span_id": "0231dde1-9dd8-5684-a797-701adda9ee16",
+    "target_key": [
+     "glossary.unconscious",
+     "inert",
+     "69a499115a62fa55"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0231dde1-9dd8-5684-a797-701adda9ee16",
+    "target_key": [
+     "glossary.unconscious",
+     "inert",
+     "Incapacitated",
+     "srd-5.2.1/rules-glossary",
+     "glossary.incapacitated"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0231dde1-9dd8-5684-a797-701adda9ee16",
+    "target_key": [
+     "glossary.unconscious",
+     "inert",
+     "Prone",
+     "srd-5.2.1/rules-glossary",
+     "glossary.prone"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0231dde1-9dd8-5684-a797-701adda9ee16",
+    "target_key": [
+     "glossary.unconscious",
+     "inert",
+     "aa070903811bd1f6"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0231dde1-9dd8-5684-a797-701adda9ee16",
+    "target_key": [
+     "glossary.unconscious",
+     "inert",
+     "e756f5850569798d"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0351da04-e4de-53cc-b3d2-d442bb6a16f9",
+    "target_key": [
+     "glossary.unconscious",
+     "automatic_critical_hits",
+     "45b38710f2aa2b0f"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "065a36a5-2d74-5239-af34-d2393f42c7cb",
+    "target_key": [
+     "glossary.paralyzed",
+     "automatic_critical_hits",
+     "45b38710f2aa2b0f"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "09dc52c4-22f9-5ec1-ba31-52c065a1536d",
+    "target_key": [
+     "glossary.petrified",
+     "turned_to_inanimate_substance",
+     "26480fc2a65fe39e"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "09dc52c4-22f9-5ec1-ba31-52c065a1536d",
+    "target_key": [
+     "glossary.petrified",
+     "turned_to_inanimate_substance",
+     "ecc53b40a56b4b59"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "09dc52c4-22f9-5ec1-ba31-52c065a1536d",
+    "target_key": [
+     "glossary.petrified",
+     "turned_to_inanimate_substance",
+     "ed4cb740b296bc9f"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0bd42e66-2265-57da-911b-f54fa9a2ed1c",
+    "target_key": [
+     "glossary.exhaustion",
+     "d20_tests_affected",
+     "07ff83258e980286"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0c886768-ff78-5154-be9e-8ce059743e30",
+    "target_key": [
+     "glossary.prone",
+     "restricted_movement",
+     "c27aeb895bc35859",
+     "right_yourself"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0c886768-ff78-5154-be9e-8ce059743e30",
+    "target_key": [
+     "glossary.prone",
+     "restricted_movement",
+     "c845468cf1bb2070",
+     "crawl"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0c886768-ff78-5154-be9e-8ce059743e30",
+    "target_key": [
+     "glossary.prone",
+     "restricted_movement",
+     "f546931b6b569cb6",
+     "right_yourself"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0fdc3443-f639-553e-9bed-a99919f087cd",
+    "target_key": [
+     "glossary.paralyzed",
+     "attacks_affected",
+     "2ead3a2fb0a4b73b"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "121d5e8d-2f31-5ac9-97ff-4aa42ea39d11",
+    "target_key": [
+     "glossary.restrained",
+     "saving_throws_affected",
+     "dd79ad07e7c0b0c6"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "149dbcae-6ca3-5a98-bd4b-162a4cca1a2e",
+    "target_key": [
+     "glossary.unconscious",
+     "attacks_affected",
+     "2ead3a2fb0a4b73b"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "15cd819d-c7f6-5901-a100-7b6ad4a56ccf",
+    "target_key": [
+     "glossary.grappling",
+     "grapple_basis"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "16fd9990-44d8-50da-b666-e09a3b26caa0",
+    "target_key": [
+     "glossary.exhaustion",
+     "speed_reduced",
+     "1f9bf1569309e6c3"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "1b758e11-b006-5f69-aa6d-77ca6ce52bf4",
+    "target_key": [
+     "glossary.petrified",
+     "attacks_affected",
+     "2ead3a2fb0a4b73b"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "1bac734f-2cf0-583b-90f5-b148153c17f8",
+    "target_key": [
+     "glossary.incapacitated",
+     "speechless",
+     "a78430dfd5027e65"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "1e7fae6c-7d5c-5ded-986e-9eb7ef535049",
+    "target_key": [
+     "glossary.restrained",
+     "speed_0",
+     "711af407b397d79b"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "20052ce7-524d-5b1a-bec7-6c5f0f7684ce",
+    "target_key": [
+     "glossary.exhaustion",
+     "removing_exhaustion_levels",
+     "e5b627fb5340604f",
+     ""
+    ],
+    "target_kind": "fact_qualifier"
+   },
+   {
+    "role": "contextual",
+    "span_id": "20052ce7-524d-5b1a-bec7-6c5f0f7684ce",
+    "target_key": [
+     "glossary.exhaustion",
+     "removing_exhaustion_levels",
+     "e5b627fb5340604f"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "20052ce7-524d-5b1a-bec7-6c5f0f7684ce",
+    "target_key": [
+     "glossary.exhaustion",
+     "removing_exhaustion_levels",
+     "f2d8099d90016878",
+     ""
+    ],
+    "target_kind": "fact_qualifier"
+   },
+   {
+    "role": "contextual",
+    "span_id": "20052ce7-524d-5b1a-bec7-6c5f0f7684ce",
+    "target_key": [
+     "glossary.exhaustion",
+     "removing_exhaustion_levels",
+     "f2d8099d90016878"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "2341ed67-607f-537b-bb0b-dd3893a48e14",
+    "target_key": [
+     "glossary.grappling",
+     "grapple_basis"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "2505f070-5eab-53fa-a337-8a31474a7764",
+    "target_key": [
+     "glossary.petrified",
+     "speed_0",
+     "711af407b397d79b"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "27aa5bef-2c63-5ef4-a2de-2b801fe803ca",
+    "target_key": [
+     "glossary.blinded",
+     "cant_see",
+     "093c90fa264191a6"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "27aa5bef-2c63-5ef4-a2de-2b801fe803ca",
+    "target_key": [
+     "glossary.blinded",
+     "cant_see",
+     "1210e47de966488a"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "286a9ef0-2f2c-55c3-924c-41bdced702bc",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Unconscious",
+     "srd-5.2.1/rules-glossary",
+     "glossary.unconscious"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "2ed57a01-031e-5529-af35-a85862dac3f9",
+    "target_key": [
+     "glossary.petrified",
+     "incapacitated",
+     "Incapacitated",
+     "srd-5.2.1/rules-glossary",
+     "glossary.incapacitated"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "2ed57a01-031e-5529-af35-a85862dac3f9",
+    "target_key": [
+     "glossary.petrified",
+     "incapacitated",
+     "aa070903811bd1f6"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "37756b98-31c8-5b8b-8a8e-d1a3a44bdd4a",
+    "target_key": [
+     "glossary.stunned",
+     "incapacitated",
+     "Incapacitated",
+     "srd-5.2.1/rules-glossary",
+     "glossary.incapacitated"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "37756b98-31c8-5b8b-8a8e-d1a3a44bdd4a",
+    "target_key": [
+     "glossary.stunned",
+     "incapacitated",
+     "aa070903811bd1f6"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "39db1c55-e6ff-5e2c-a742-975fd2eef4f2",
+    "target_key": [
+     "glossary.stunned",
+     "saving_throws_affected",
+     "16a1dea9ade2ca55"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "39db1c55-e6ff-5e2c-a742-975fd2eef4f2",
+    "target_key": [
+     "glossary.stunned",
+     "saving_throws_affected",
+     "9ab037007e9ceaf2"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "433e5a09-e32c-5c8b-9b4e-80764ca68cd2",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Charmed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.charmed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "45376be8-d486-5475-a5a4-f0baa1f1dcd1",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Frightened",
+     "srd-5.2.1/rules-glossary",
+     "glossary.frightened"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "54f9c267-2ada-53c7-a97d-6a60fa411d4d",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Deafened",
+     "srd-5.2.1/rules-glossary",
+     "glossary.deafened"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "555bfe2b-a699-506c-9f64-097325d3aabd",
+    "target_key": [
+     "glossary.frightened",
+     "ability_checks_and_attacks_affected",
+     "185a8c61e2aa0730"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "555bfe2b-a699-506c-9f64-097325d3aabd",
+    "target_key": [
+     "glossary.frightened",
+     "ability_checks_and_attacks_affected",
+     "fbaaa92520bd7011"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "55d71865-36e2-5f7a-a382-1b23eff92cc3",
+    "target_key": [
+     "glossary.condition",
+     "non_stacking",
+     "Exhaustion",
+     "srd-5.2.1/rules-glossary",
+     "glossary.exhaustion"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "56f8bdd5-a874-5a7b-b538-d0470301bd0f",
+    "target_key": [
+     "glossary.prone",
+     "own_attacks_affected",
+     "fbaaa92520bd7011"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "5deb1c01-02d4-5784-ac86-9b9e04d3985b",
+    "target_key": [
+     "glossary.grappling",
+     "",
+     "Grappled",
+     "srd-5.2.1/rules-glossary",
+     "glossary.grappled"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "5deb1c01-02d4-5784-ac86-9b9e04d3985b",
+    "target_key": [
+     "glossary.grappling",
+     "grappled_condition",
+     "e744b13d18f81754"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "5df4ff40-bb32-5ce9-96f5-64a22f83df51",
+    "target_key": [
+     "glossary.invisible",
+     "surprise",
+     "fd348bc2c4437ff2"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "5eb8be0f-f612-5f51-91a9-6a752c2b5582",
+    "target_key": [
+     "glossary.petrified",
+     "poison_immunity",
+     "Poisoned",
+     "srd-5.2.1/rules-glossary",
+     "glossary.poisoned"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "5eb8be0f-f612-5f51-91a9-6a752c2b5582",
+    "target_key": [
+     "glossary.petrified",
+     "poison_immunity",
+     "e9e8c08467e0e41a"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "6098ea34-7c0d-5931-ab89-18124efa9137",
+    "target_key": [
+     "glossary.unconscious",
+     "speed_0",
+     "711af407b397d79b"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "61dd2b71-d8e2-5b73-aa9f-f6e1336cd0cc",
+    "target_key": [
+     "glossary.grappled",
+     "attacks_affected",
+     "fbaaa92520bd7011"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "6cffa5d6-2745-5967-9dff-16757d581a48",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Invisible",
+     "srd-5.2.1/rules-glossary",
+     "glossary.invisible"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "75b4d659-e337-5029-989d-b5aad8cebb46",
+    "target_key": [
+     "glossary.incapacitated",
+     "no_concentration",
+     "291608048c4d913a"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "769fe99c-cf14-5d62-982a-9d6b367f23e0",
+    "target_key": [
+     "glossary.grappling",
+     "",
+     "Unarmed Strike",
+     "srd-5.2.1/rules-glossary",
+     "glossary.unarmed_strike"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "7a09a424-b104-5f74-a034-e22c628a3fd2",
+    "target_key": [
+     "glossary.exhaustion",
+     "exhaustion_levels",
+     "68a72ddbcab08b83",
+     ""
+    ],
+    "target_kind": "fact_qualifier"
+   },
+   {
+    "role": "contextual",
+    "span_id": "7a09a424-b104-5f74-a034-e22c628a3fd2",
+    "target_key": [
+     "glossary.exhaustion",
+     "exhaustion_levels",
+     "68a72ddbcab08b83"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "7a09a424-b104-5f74-a034-e22c628a3fd2",
+    "target_key": [
+     "glossary.exhaustion",
+     "exhaustion_levels",
+     "deaecb3448ec4319"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "7d91c6ab-3555-58a7-a555-7c847067a96d",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Poisoned",
+     "srd-5.2.1/rules-glossary",
+     "glossary.poisoned"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "8112cd1c-b23a-5482-b7d2-681da6f55e79",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Petrified",
+     "srd-5.2.1/rules-glossary",
+     "glossary.petrified"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "821bc147-cbc7-56c8-98a8-7ca490f94b32",
+    "target_key": [
+     "glossary.grappled",
+     "movable",
+     "6accb34ada7b34c1"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "821bc147-cbc7-56c8-98a8-7ca490f94b32",
+    "target_key": [
+     "glossary.grappled",
+     "movable",
+     "6e4c12d0fc868578",
+     ""
+    ],
+    "target_kind": "fact_qualifier"
+   },
+   {
+    "role": "contextual",
+    "span_id": "821bc147-cbc7-56c8-98a8-7ca490f94b32",
+    "target_key": [
+     "glossary.grappled",
+     "movable",
+     "6e4c12d0fc868578"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "928838a6-dc18-5b47-ae78-422e2a3e1ecd",
+    "target_key": [
+     "glossary.paralyzed",
+     "speed_0",
+     "711af407b397d79b"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "959123da-38a2-5126-871e-9abaedcd2ac0",
+    "target_key": [
+     "glossary.grappled",
+     "speed_0",
+     "711af407b397d79b"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "95bb51cc-e4dc-5c56-8146-c79039cce3e8",
+    "target_key": [
+     "glossary.invisible",
+     "attacks_affected",
+     "23d02aa73c175fe9"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "95bb51cc-e4dc-5c56-8146-c79039cce3e8",
+    "target_key": [
+     "glossary.invisible",
+     "attacks_affected",
+     "dd70d9ceb5cc3837"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "9ed4f8e3-be87-551d-b45e-e8ac3d297ef3",
+    "target_key": [
+     "glossary.unconscious",
+     "saving_throws_affected",
+     "16a1dea9ade2ca55"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "9ed4f8e3-be87-551d-b45e-e8ac3d297ef3",
+    "target_key": [
+     "glossary.unconscious",
+     "saving_throws_affected",
+     "9ab037007e9ceaf2"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "a60107de-c56d-5005-96fd-19282f4622c4",
+    "target_key": [
+     "glossary.paralyzed",
+     "saving_throws_affected",
+     "16a1dea9ade2ca55"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "a60107de-c56d-5005-96fd-19282f4622c4",
+    "target_key": [
+     "glossary.paralyzed",
+     "saving_throws_affected",
+     "9ab037007e9ceaf2"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "a686a7e5-8057-5a89-a8ab-370632f177c1",
+    "target_key": [
+     "glossary.incapacitated",
+     "inactive",
+     "0cfcdf8b61719ad0"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "a686a7e5-8057-5a89-a8ab-370632f177c1",
+    "target_key": [
+     "glossary.incapacitated",
+     "inactive",
+     "9f787985fb1ccac3"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "a686a7e5-8057-5a89-a8ab-370632f177c1",
+    "target_key": [
+     "glossary.incapacitated",
+     "inactive",
+     "cdfd51ab0adf6a8e"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "a8be26b3-701e-558f-bc99-e689ee756032",
+    "target_key": [
+     "glossary.stunned",
+     "attacks_affected",
+     "2ead3a2fb0a4b73b"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "a979b82f-7b90-583c-a787-81830f4e3e6f",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Prone",
+     "srd-5.2.1/rules-glossary",
+     "glossary.prone"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "aa83baf7-7062-5a4f-8592-d71d0dd4a71a",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Incapacitated",
+     "srd-5.2.1/rules-glossary",
+     "glossary.incapacitated"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "aed37571-ae82-5473-90e0-7494745fef64",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Blinded",
+     "srd-5.2.1/rules-glossary",
+     "glossary.blinded"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "b3f778cf-15bf-5cc8-b1b3-9493dde58ba0",
+    "target_key": [
+     "glossary.unconscious",
+     "remains_prone",
+     "Prone",
+     "srd-5.2.1/rules-glossary",
+     "glossary.prone"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "b3f778cf-15bf-5cc8-b1b3-9493dde58ba0",
+    "target_key": [
+     "glossary.unconscious",
+     "remains_prone",
+     "e756f5850569798d"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "b5832b75-3ccc-51c9-872b-64efd37f3d14",
+    "target_key": [
+     "glossary.petrified",
+     "resist_damage",
+     "12b50e08005705c1"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "b99f45a6-75b0-56ec-a9a7-cdaa769306f6",
+    "target_key": [
+     "glossary.grappling",
+     "",
+     "Grappled",
+     "srd-5.2.1/rules-glossary",
+     "glossary.grappled"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "b99f45a6-75b0-56ec-a9a7-cdaa769306f6",
+    "target_key": [
+     "glossary.grappling",
+     "",
+     "Unarmed Strike",
+     "srd-5.2.1/rules-glossary",
+     "glossary.unarmed_strike"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "bc8f178a-7239-5d3c-a54c-fa203b7efb1b",
+    "target_key": [
+     "glossary.blinded",
+     "attacks_affected",
+     "2ead3a2fb0a4b73b"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "bc8f178a-7239-5d3c-a54c-fa203b7efb1b",
+    "target_key": [
+     "glossary.blinded",
+     "attacks_affected",
+     "fbaaa92520bd7011"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "c25346b4-dc5e-514a-adf4-ac528b1a5eef",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Restrained",
+     "srd-5.2.1/rules-glossary",
+     "glossary.restrained"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "c3dcb4a9-cf33-5065-9918-671a2b96038c",
+    "target_key": [
+     "glossary.unconscious",
+     "unaware",
+     "316129195307ce0e"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "c5cc0bce-28a9-5e5a-9b42-7a2e7dc60bc1",
+    "target_key": [
+     "glossary.petrified",
+     "saving_throws_affected",
+     "16a1dea9ade2ca55"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "c5cc0bce-28a9-5e5a-9b42-7a2e7dc60bc1",
+    "target_key": [
+     "glossary.petrified",
+     "saving_throws_affected",
+     "9ab037007e9ceaf2"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ca11a329-aaaa-5818-b375-8fc7e78fc278",
+    "target_key": [
+     "glossary.grappling",
+     "ending_a_grapple",
+     "Incapacitated",
+     "srd-5.2.1/rules-glossary",
+     "glossary.incapacitated"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "cb2c6928-751d-5ab3-969f-516d7035e6d9",
+    "target_key": [
+     "glossary.paralyzed",
+     "incapacitated",
+     "Incapacitated",
+     "srd-5.2.1/rules-glossary",
+     "glossary.incapacitated"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "cb2c6928-751d-5ab3-969f-516d7035e6d9",
+    "target_key": [
+     "glossary.paralyzed",
+     "incapacitated",
+     "aa070903811bd1f6"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ce195243-d87f-547e-8314-3fcca0a269d0",
+    "target_key": [
+     "glossary.condition",
+     "non_stacking",
+     "Exhaustion",
+     "srd-5.2.1/rules-glossary",
+     "glossary.exhaustion"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d032d8f8-061d-5c54-bb32-6d59735a7569",
+    "target_key": [
+     "glossary.invisible",
+     "attacks_affected",
+     "23d02aa73c175fe9"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d032d8f8-061d-5c54-bb32-6d59735a7569",
+    "target_key": [
+     "glossary.invisible",
+     "attacks_affected",
+     "dd70d9ceb5cc3837"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d44ff726-3ab7-528e-8888-b148ef422718",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Blinded",
+     "srd-5.2.1/rules-glossary",
+     "glossary.blinded"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d44ff726-3ab7-528e-8888-b148ef422718",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Charmed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.charmed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d44ff726-3ab7-528e-8888-b148ef422718",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Deafened",
+     "srd-5.2.1/rules-glossary",
+     "glossary.deafened"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d44ff726-3ab7-528e-8888-b148ef422718",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Frightened",
+     "srd-5.2.1/rules-glossary",
+     "glossary.frightened"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d44ff726-3ab7-528e-8888-b148ef422718",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Grappled",
+     "srd-5.2.1/rules-glossary",
+     "glossary.grappled"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d44ff726-3ab7-528e-8888-b148ef422718",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Incapacitated",
+     "srd-5.2.1/rules-glossary",
+     "glossary.incapacitated"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d44ff726-3ab7-528e-8888-b148ef422718",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Invisible",
+     "srd-5.2.1/rules-glossary",
+     "glossary.invisible"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d44ff726-3ab7-528e-8888-b148ef422718",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Paralyzed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.paralyzed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d44ff726-3ab7-528e-8888-b148ef422718",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Petrified",
+     "srd-5.2.1/rules-glossary",
+     "glossary.petrified"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d44ff726-3ab7-528e-8888-b148ef422718",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Poisoned",
+     "srd-5.2.1/rules-glossary",
+     "glossary.poisoned"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d44ff726-3ab7-528e-8888-b148ef422718",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Prone",
+     "srd-5.2.1/rules-glossary",
+     "glossary.prone"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d44ff726-3ab7-528e-8888-b148ef422718",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Restrained",
+     "srd-5.2.1/rules-glossary",
+     "glossary.restrained"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d44ff726-3ab7-528e-8888-b148ef422718",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Stunned",
+     "srd-5.2.1/rules-glossary",
+     "glossary.stunned"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d44ff726-3ab7-528e-8888-b148ef422718",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Unconscious",
+     "srd-5.2.1/rules-glossary",
+     "glossary.unconscious"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d44ff726-3ab7-528e-8888-b148ef422718",
+    "target_key": [
+     "glossary.condition",
+     "non_stacking",
+     "Exhaustion",
+     "srd-5.2.1/rules-glossary",
+     "glossary.exhaustion"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d795510c-cd9f-5bba-8522-180fe679fe4c",
+    "target_key": [
+     "glossary.incapacitated",
+     "surprised",
+     "234e134cb8d3dd85"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d82b42e6-676e-5166-b3f9-79ab049d673a",
+    "target_key": [
+     "glossary.deafened",
+     "cant_hear",
+     "1210e47de966488a"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d82b42e6-676e-5166-b3f9-79ab049d673a",
+    "target_key": [
+     "glossary.deafened",
+     "cant_hear",
+     "b885aa3239eefb20"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d882a66d-bc63-56f4-a366-f5fc98e58341",
+    "target_key": [
+     "glossary.poisoned",
+     "ability_checks_and_attacks_affected",
+     "185a8c61e2aa0730"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d882a66d-bc63-56f4-a366-f5fc98e58341",
+    "target_key": [
+     "glossary.poisoned",
+     "ability_checks_and_attacks_affected",
+     "fbaaa92520bd7011"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "de072c9e-1efd-5526-b47b-e234ece7d385",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Paralyzed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.paralyzed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "eb88eac4-e8ad-5e3d-82da-e9a9d5e926dc",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Stunned",
+     "srd-5.2.1/rules-glossary",
+     "glossary.stunned"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "fd7fca58-824d-5d51-868b-b4c4b1601698",
+    "target_key": [
+     "glossary.restrained",
+     "attacks_affected",
+     "2ead3a2fb0a4b73b"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "fd7fca58-824d-5d51-868b-b4c4b1601698",
+    "target_key": [
+     "glossary.restrained",
+     "attacks_affected",
+     "fbaaa92520bd7011"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "fddcad1e-3fac-5957-b276-d55426a8773c",
+    "target_key": [
+     "glossary.condition",
+     "",
+     "Grappled",
+     "srd-5.2.1/rules-glossary",
+     "glossary.grappled"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "primary",
+    "span_id": "00a6764c-08b2-5e22-a9b8-6d1b153334d4",
+    "target_key": [
+     "glossary.condition",
+     "non_stacking",
+     "0d5c6ac3-4e8d-5c58-bfc4-33225e13353c",
+     "00a6764c-08b2-5e22-a9b8-6d1b153334d4",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "0231dde1-9dd8-5684-a797-701adda9ee16",
+    "target_key": [
+     "glossary.unconscious",
+     "inert"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "0351da04-e4de-53cc-b3d2-d442bb6a16f9",
+    "target_key": [
+     "glossary.unconscious",
+     "automatic_critical_hits",
+     "37a555e4-6543-54b3-b8b0-6f08d79e5504",
+     "0351da04-e4de-53cc-b3d2-d442bb6a16f9",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "065a36a5-2d74-5239-af34-d2393f42c7cb",
+    "target_key": [
+     "glossary.paralyzed",
+     "automatic_critical_hits",
+     "218dc5d6-905b-5afb-b093-0b5a6d57437e",
+     "065a36a5-2d74-5239-af34-d2393f42c7cb",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "09dc52c4-22f9-5ec1-ba31-52c065a1536d",
+    "target_key": [
+     "glossary.petrified",
+     "turned_to_inanimate_substance",
+     "a32d214a-f9ca-5e4d-b127-63e7bf98a4f2",
+     "09dc52c4-22f9-5ec1-ba31-52c065a1536d",
+     "fiction_dependent_consequence"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "0bd42e66-2265-57da-911b-f54fa9a2ed1c",
+    "target_key": [
+     "glossary.exhaustion",
+     "d20_tests_affected"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "0c886768-ff78-5154-be9e-8ce059743e30",
+    "target_key": [
+     "glossary.prone",
+     "restricted_movement"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "0de71f42-8a7a-5b54-a585-65094cbf86e5",
+    "target_key": [
+     "glossary.condition",
+     "definition",
+     "a03b47de-51e9-56c4-8b23-f7e3b130375a",
+     "0de71f42-8a7a-5b54-a585-65094cbf86e5",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "0fdc3443-f639-553e-9bed-a99919f087cd",
+    "target_key": [
+     "glossary.paralyzed",
+     "attacks_affected"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "121d5e8d-2f31-5ac9-97ff-4aa42ea39d11",
+    "target_key": [
+     "glossary.restrained",
+     "saving_throws_affected"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "149dbcae-6ca3-5a98-bd4b-162a4cca1a2e",
+    "target_key": [
+     "glossary.unconscious",
+     "attacks_affected"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "16fd9990-44d8-50da-b666-e09a3b26caa0",
+    "target_key": [
+     "glossary.exhaustion",
+     "speed_reduced"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "1b447643-c0df-5660-a478-a3bff60f7d07",
+    "target_key": [
+     "glossary.charmed",
+     "cant_harm_the_charmer",
+     "2ad24027-a2c9-5cdf-841d-1eabe244c018",
+     "1b447643-c0df-5660-a478-a3bff60f7d07",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "1b758e11-b006-5f69-aa6d-77ca6ce52bf4",
+    "target_key": [
+     "glossary.petrified",
+     "attacks_affected"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "1bac734f-2cf0-583b-90f5-b148153c17f8",
+    "target_key": [
+     "glossary.incapacitated",
+     "speechless"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "1e7fae6c-7d5c-5ded-986e-9eb7ef535049",
+    "target_key": [
+     "glossary.restrained",
+     "speed_0"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "20052ce7-524d-5b1a-bec7-6c5f0f7684ce",
+    "target_key": [
+     "glossary.exhaustion",
+     "removing_exhaustion_levels"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "2505f070-5eab-53fa-a337-8a31474a7764",
+    "target_key": [
+     "glossary.petrified",
+     "speed_0"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "27aa5bef-2c63-5ef4-a2de-2b801fe803ca",
+    "target_key": [
+     "glossary.blinded",
+     "cant_see",
+     "eb342163-686f-546c-a59d-c4fe3351b963",
+     "27aa5bef-2c63-5ef4-a2de-2b801fe803ca",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "2a3d1a35-0fb7-56e8-b0fb-47b56ab3e466",
+    "target_key": [
+     "glossary.charmed",
+     "social_advantage",
+     "44c9ba47-09c9-5d06-aecc-9de2a42bdabf",
+     "2a3d1a35-0fb7-56e8-b0fb-47b56ab3e466",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "2ed57a01-031e-5529-af35-a85862dac3f9",
+    "target_key": [
+     "glossary.petrified",
+     "incapacitated"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "2f075756-3b09-5ab8-b83a-898b17ec9a73",
+    "target_key": [
+     "glossary.grappling",
+     "one_grapple_per_hand",
+     "610fea10-0f2f-57f1-9bc1-946501ced1d4",
+     "2f075756-3b09-5ab8-b83a-898b17ec9a73",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "3452c3d4-0f00-53ab-8f29-0593d4046434",
+    "target_key": [
+     "glossary.condition",
+     "definition",
+     "a03b47de-51e9-56c4-8b23-f7e3b130375a",
+     "3452c3d4-0f00-53ab-8f29-0593d4046434",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "37756b98-31c8-5b8b-8a8e-d1a3a44bdd4a",
+    "target_key": [
+     "glossary.stunned",
+     "incapacitated"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "39db1c55-e6ff-5e2c-a742-975fd2eef4f2",
+    "target_key": [
+     "glossary.stunned",
+     "saving_throws_affected"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "555bfe2b-a699-506c-9f64-097325d3aabd",
+    "target_key": [
+     "glossary.frightened",
+     "ability_checks_and_attacks_affected",
+     "3aec6f61-437d-509c-85b4-1dc564dcd937",
+     "555bfe2b-a699-506c-9f64-097325d3aabd",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "56f8bdd5-a874-5a7b-b538-d0470301bd0f",
+    "target_key": [
+     "glossary.prone",
+     "own_attacks_affected"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "5db4fd98-2bc0-5f63-8969-50ad86b06fa2",
+    "target_key": [
+     "glossary.invisible",
+     "concealed",
+     "07c6d200-8cb3-5aab-8e6b-c85ec2a8f203",
+     "5db4fd98-2bc0-5f63-8969-50ad86b06fa2",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "5deb1c01-02d4-5784-ac86-9b9e04d3985b",
+    "target_key": [
+     "glossary.grappling",
+     "grappled_condition"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "5df4ff40-bb32-5ce9-96f5-64a22f83df51",
+    "target_key": [
+     "glossary.invisible",
+     "surprise"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "5eb8be0f-f612-5f51-91a9-6a752c2b5582",
+    "target_key": [
+     "glossary.petrified",
+     "poison_immunity"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "6098ea34-7c0d-5931-ab89-18124efa9137",
+    "target_key": [
+     "glossary.unconscious",
+     "speed_0"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "61dd2b71-d8e2-5b73-aa9f-f6e1336cd0cc",
+    "target_key": [
+     "glossary.grappled",
+     "attacks_affected",
+     "cf8d1bd2-6339-5d76-843f-3e3d36cf6b63",
+     "61dd2b71-d8e2-5b73-aa9f-f6e1336cd0cc",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "67712cfd-86eb-5d83-88c9-5ee58a700f6a",
+    "target_key": [
+     "glossary.grappling",
+     "grapple_basis",
+     "24ec65a2-893e-5e8d-a438-a29272bfa67b",
+     "67712cfd-86eb-5d83-88c9-5ee58a700f6a",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "75b4d659-e337-5029-989d-b5aad8cebb46",
+    "target_key": [
+     "glossary.incapacitated",
+     "no_concentration"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "769fe99c-cf14-5d62-982a-9d6b367f23e0",
+    "target_key": [
+     "glossary.grappling",
+     "grapple_basis",
+     "24ec65a2-893e-5e8d-a438-a29272bfa67b",
+     "769fe99c-cf14-5d62-982a-9d6b367f23e0",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "7a09a424-b104-5f74-a034-e22c628a3fd2",
+    "target_key": [
+     "glossary.exhaustion",
+     "exhaustion_levels"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "821bc147-cbc7-56c8-98a8-7ca490f94b32",
+    "target_key": [
+     "glossary.grappled",
+     "movable"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "928838a6-dc18-5b47-ae78-422e2a3e1ecd",
+    "target_key": [
+     "glossary.paralyzed",
+     "speed_0"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "959123da-38a2-5126-871e-9abaedcd2ac0",
+    "target_key": [
+     "glossary.grappled",
+     "speed_0"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "95bb51cc-e4dc-5c56-8146-c79039cce3e8",
+    "target_key": [
+     "glossary.invisible",
+     "attacks_affected",
+     "078ad0fb-538c-52ea-84a6-cce2922e1a8e",
+     "95bb51cc-e4dc-5c56-8146-c79039cce3e8",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "9ed4f8e3-be87-551d-b45e-e8ac3d297ef3",
+    "target_key": [
+     "glossary.unconscious",
+     "saving_throws_affected"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "a60107de-c56d-5005-96fd-19282f4622c4",
+    "target_key": [
+     "glossary.paralyzed",
+     "saving_throws_affected"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "a686a7e5-8057-5a89-a8ab-370632f177c1",
+    "target_key": [
+     "glossary.incapacitated",
+     "inactive"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "a8be26b3-701e-558f-bc99-e689ee756032",
+    "target_key": [
+     "glossary.stunned",
+     "attacks_affected"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "b3f778cf-15bf-5cc8-b1b3-9493dde58ba0",
+    "target_key": [
+     "glossary.unconscious",
+     "remains_prone"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "b5832b75-3ccc-51c9-872b-64efd37f3d14",
+    "target_key": [
+     "glossary.petrified",
+     "resist_damage"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "bc8f178a-7239-5d3c-a54c-fa203b7efb1b",
+    "target_key": [
+     "glossary.blinded",
+     "attacks_affected"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "c0e35c01-9e11-5c1e-bf0c-2b15f520ad58",
+    "target_key": [
+     "glossary.prone",
+     "attacks_against_affected",
+     "36d47780-4e7f-5b15-850a-38d64d7c87df",
+     "c0e35c01-9e11-5c1e-bf0c-2b15f520ad58",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "c3dcb4a9-cf33-5065-9918-671a2b96038c",
+    "target_key": [
+     "glossary.unconscious",
+     "unaware"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "c5cc0bce-28a9-5e5a-9b42-7a2e7dc60bc1",
+    "target_key": [
+     "glossary.petrified",
+     "saving_throws_affected"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "ca11a329-aaaa-5818-b375-8fc7e78fc278",
+    "target_key": [
+     "glossary.grappling",
+     "ending_a_grapple",
+     "75301465-0050-5dba-9cdd-dda6275f7930",
+     "ca11a329-aaaa-5818-b375-8fc7e78fc278",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "cb2c6928-751d-5ab3-969f-516d7035e6d9",
+    "target_key": [
+     "glossary.paralyzed",
+     "incapacitated"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "ce195243-d87f-547e-8314-3fcca0a269d0",
+    "target_key": [
+     "glossary.condition",
+     "non_stacking",
+     "0d5c6ac3-4e8d-5c58-bfc4-33225e13353c",
+     "ce195243-d87f-547e-8314-3fcca0a269d0",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "d032d8f8-061d-5c54-bb32-6d59735a7569",
+    "target_key": [
+     "glossary.invisible",
+     "attacks_affected",
+     "078ad0fb-538c-52ea-84a6-cce2922e1a8e",
+     "d032d8f8-061d-5c54-bb32-6d59735a7569",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "d795510c-cd9f-5bba-8522-180fe679fe4c",
+    "target_key": [
+     "glossary.incapacitated",
+     "surprised"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "d82b42e6-676e-5166-b3f9-79ab049d673a",
+    "target_key": [
+     "glossary.deafened",
+     "cant_hear",
+     "703b74c1-196a-59ec-b4d0-637d05eb8bb4",
+     "d82b42e6-676e-5166-b3f9-79ab049d673a",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "d882a66d-bc63-56f4-a366-f5fc98e58341",
+    "target_key": [
+     "glossary.poisoned",
+     "ability_checks_and_attacks_affected"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "fb708823-e3a8-50cb-a98c-bfcbbfd1bf5a",
+    "target_key": [
+     "glossary.frightened",
+     "cant_approach",
+     "840d6bdc-e947-5dc5-88b8-7ca4e6219870",
+     "fb708823-e3a8-50cb-a98c-bfcbbfd1bf5a",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "fd7fca58-824d-5d51-868b-b4c4b1601698",
+    "target_key": [
+     "glossary.restrained",
+     "attacks_affected"
+    ],
+    "target_kind": "component"
+   }
+  ],
+  "records": [
+   {
+    "kind": "condition",
+    "parent_key": null,
+    "semantic_key": "glossary.blinded"
+   },
+   {
+    "kind": "condition",
+    "parent_key": null,
+    "semantic_key": "glossary.charmed"
+   },
+   {
+    "kind": "condition",
+    "parent_key": null,
+    "semantic_key": "glossary.deafened"
+   },
+   {
+    "kind": "condition",
+    "parent_key": null,
+    "semantic_key": "glossary.exhaustion"
+   },
+   {
+    "kind": "condition",
+    "parent_key": null,
+    "semantic_key": "glossary.frightened"
+   },
+   {
+    "kind": "condition",
+    "parent_key": null,
+    "semantic_key": "glossary.grappled"
+   },
+   {
+    "kind": "condition",
+    "parent_key": null,
+    "semantic_key": "glossary.incapacitated"
+   },
+   {
+    "kind": "condition",
+    "parent_key": null,
+    "semantic_key": "glossary.invisible"
+   },
+   {
+    "kind": "condition",
+    "parent_key": null,
+    "semantic_key": "glossary.paralyzed"
+   },
+   {
+    "kind": "condition",
+    "parent_key": null,
+    "semantic_key": "glossary.petrified"
+   },
+   {
+    "kind": "condition",
+    "parent_key": null,
+    "semantic_key": "glossary.poisoned"
+   },
+   {
+    "kind": "condition",
+    "parent_key": null,
+    "semantic_key": "glossary.prone"
+   },
+   {
+    "kind": "condition",
+    "parent_key": null,
+    "semantic_key": "glossary.restrained"
+   },
+   {
+    "kind": "condition",
+    "parent_key": null,
+    "semantic_key": "glossary.stunned"
+   },
+   {
+    "kind": "condition",
+    "parent_key": null,
+    "semantic_key": "glossary.unconscious"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.condition"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.grappling"
+   }
+  ],
+  "references": [
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.condition",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Blinded",
+    "target_record_key": "glossary.blinded"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.condition",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Charmed",
+    "target_record_key": "glossary.charmed"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.condition",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Deafened",
+    "target_record_key": "glossary.deafened"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.condition",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Frightened",
+    "target_record_key": "glossary.frightened"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.condition",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Grappled",
+    "target_record_key": "glossary.grappled"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.condition",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Incapacitated",
+    "target_record_key": "glossary.incapacitated"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.condition",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Invisible",
+    "target_record_key": "glossary.invisible"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.condition",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Paralyzed",
+    "target_record_key": "glossary.paralyzed"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.condition",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Petrified",
+    "target_record_key": "glossary.petrified"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.condition",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Poisoned",
+    "target_record_key": "glossary.poisoned"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.condition",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Prone",
+    "target_record_key": "glossary.prone"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.condition",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Restrained",
+    "target_record_key": "glossary.restrained"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.condition",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Stunned",
+    "target_record_key": "glossary.stunned"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.condition",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Unconscious",
+    "target_record_key": "glossary.unconscious"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.grappling",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Grappled",
+    "target_record_key": "glossary.grappled"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.grappling",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Unarmed Strike",
+    "target_record_key": "glossary.unarmed_strike"
+   },
+   {
+    "from_component_key": "ending_a_grapple",
+    "from_record_key": "glossary.grappling",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Incapacitated",
+    "target_record_key": "glossary.incapacitated"
+   },
+   {
+    "from_component_key": "incapacitated",
+    "from_record_key": "glossary.paralyzed",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Incapacitated",
+    "target_record_key": "glossary.incapacitated"
+   },
+   {
+    "from_component_key": "incapacitated",
+    "from_record_key": "glossary.petrified",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Incapacitated",
+    "target_record_key": "glossary.incapacitated"
+   },
+   {
+    "from_component_key": "incapacitated",
+    "from_record_key": "glossary.stunned",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Incapacitated",
+    "target_record_key": "glossary.incapacitated"
+   },
+   {
+    "from_component_key": "inert",
+    "from_record_key": "glossary.unconscious",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Incapacitated",
+    "target_record_key": "glossary.incapacitated"
+   },
+   {
+    "from_component_key": "inert",
+    "from_record_key": "glossary.unconscious",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Prone",
+    "target_record_key": "glossary.prone"
+   },
+   {
+    "from_component_key": "non_stacking",
+    "from_record_key": "glossary.condition",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Exhaustion",
+    "target_record_key": "glossary.exhaustion"
+   },
+   {
+    "from_component_key": "poison_immunity",
+    "from_record_key": "glossary.petrified",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Poisoned",
+    "target_record_key": "glossary.poisoned"
+   },
+   {
+    "from_component_key": "remains_prone",
+    "from_record_key": "glossary.unconscious",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Prone",
+    "target_record_key": "glossary.prone"
+   }
+  ],
+  "relationships": []
+ },
+ "proposed_review_units": [
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "6e45a48b-609b-58d3-8ca8-393c2e154abc"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "attacks_affected",
+     "fact_family": "advantage",
+     "record_key": "glossary.blinded",
+     "source_span_ids": [
+      "bc8f178a-7239-5d3c-a54c-fa203b7efb1b"
+     ]
+    },
+    {
+     "component_key": "cant_see",
+     "record_key": "glossary.blinded",
+     "source_span_ids": [
+      "27aa5bef-2c63-5ef4-a2de-2b801fe803ca"
+     ]
+    },
+    {
+     "component_key": "cant_see",
+     "fact_family": "automatic_outcome",
+     "record_key": "glossary.blinded",
+     "source_span_ids": [
+      "27aa5bef-2c63-5ef4-a2de-2b801fe803ca"
+     ]
+    },
+    {
+     "component_key": "cant_see",
+     "fact_family": "sensory_capability",
+     "record_key": "glossary.blinded",
+     "source_span_ids": [
+      "27aa5bef-2c63-5ef4-a2de-2b801fe803ca"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "6e45a48b-609b-58d3-8ca8-393c2e154abc",
+    "7aa2f954-daa8-5158-8588-e67fd1c5e0a8",
+    "cc2f5ff1-68d5-5d7b-94af-d61ca4dca918",
+    "d2496ad5-2fd9-561d-a892-cedf8a25d0f5"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "7aa2f954-daa8-5158-8588-e67fd1c5e0a8"
+     ],
+     "supports_component_key": "",
+     "supports_record_key": "glossary.blinded"
+    }
+   ],
+   "unit_id": "conditions-pilot/blinded"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "996f98c5-0ef1-5d3b-b507-f1b6b96b83f6"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "cant_harm_the_charmer",
+     "record_key": "glossary.charmed",
+     "source_span_ids": [
+      "1b447643-c0df-5660-a478-a3bff60f7d07"
+     ]
+    },
+    {
+     "component_key": "social_advantage",
+     "record_key": "glossary.charmed",
+     "source_span_ids": [
+      "2a3d1a35-0fb7-56e8-b0fb-47b56ab3e466"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "60e16f2f-b608-54c3-94fe-7c91b5e6c548",
+    "996f98c5-0ef1-5d3b-b507-f1b6b96b83f6",
+    "bfe03423-5a45-5651-9105-d637dd2d91bd",
+    "e16e6316-82fc-56da-b862-eb17faccacf0"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "60e16f2f-b608-54c3-94fe-7c91b5e6c548"
+     ],
+     "supports_component_key": "",
+     "supports_record_key": "glossary.charmed"
+    }
+   ],
+   "unit_id": "conditions-pilot/charmed"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "8fd7e39a-8f6e-55d0-b1e9-dc1b644e1504"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "definition",
+     "record_key": "glossary.condition",
+     "source_span_ids": [
+      "0de71f42-8a7a-5b54-a585-65094cbf86e5",
+      "3452c3d4-0f00-53ab-8f29-0593d4046434"
+     ]
+    },
+    {
+     "component_key": "non_stacking",
+     "record_key": "glossary.condition",
+     "source_span_ids": [
+      "00a6764c-08b2-5e22-a9b8-6d1b153334d4",
+      "ce195243-d87f-547e-8314-3fcca0a269d0"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "1a1c8834-e6c5-5f17-9842-f24108095a1f",
+    "8fd7e39a-8f6e-55d0-b1e9-dc1b644e1504",
+    "b115a9fa-7a22-5dc5-8241-4e1697fb9205",
+    "f62189f3-4756-5b0f-9e7c-e348b37699e0"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "1a1c8834-e6c5-5f17-9842-f24108095a1f"
+     ],
+     "supports_component_key": "",
+     "supports_record_key": "glossary.condition"
+    }
+   ],
+   "unit_id": "conditions-pilot/condition"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "30a18dfe-d2d1-51f1-906f-53c9c2ae44a6"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "cant_hear",
+     "record_key": "glossary.deafened",
+     "source_span_ids": [
+      "d82b42e6-676e-5166-b3f9-79ab049d673a"
+     ]
+    },
+    {
+     "component_key": "cant_hear",
+     "fact_family": "automatic_outcome",
+     "record_key": "glossary.deafened",
+     "source_span_ids": [
+      "d82b42e6-676e-5166-b3f9-79ab049d673a"
+     ]
+    },
+    {
+     "component_key": "cant_hear",
+     "fact_family": "sensory_capability",
+     "record_key": "glossary.deafened",
+     "source_span_ids": [
+      "d82b42e6-676e-5166-b3f9-79ab049d673a"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "30a18dfe-d2d1-51f1-906f-53c9c2ae44a6",
+    "4010dc29-126e-5aa0-812d-49e340011197",
+    "f85ab963-8eb4-5d50-a479-f20ac0d2be19"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "4010dc29-126e-5aa0-812d-49e340011197"
+     ],
+     "supports_component_key": "",
+     "supports_record_key": "glossary.deafened"
+    }
+   ],
+   "unit_id": "conditions-pilot/deafened"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "f187aeb4-5ece-58ae-9dce-673c7d0abff6"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "d20_tests_affected",
+     "fact_family": "scaling",
+     "record_key": "glossary.exhaustion",
+     "source_span_ids": [
+      "0bd42e66-2265-57da-911b-f54fa9a2ed1c"
+     ]
+    },
+    {
+     "component_key": "exhaustion_levels",
+     "fact_family": "condition_level",
+     "record_key": "glossary.exhaustion",
+     "source_span_ids": [
+      "7a09a424-b104-5f74-a034-e22c628a3fd2"
+     ]
+    },
+    {
+     "component_key": "exhaustion_levels",
+     "fact_family": "state_effect",
+     "record_key": "glossary.exhaustion",
+     "source_span_ids": [
+      "7a09a424-b104-5f74-a034-e22c628a3fd2"
+     ]
+    },
+    {
+     "component_key": "removing_exhaustion_levels",
+     "fact_family": "condition_effect",
+     "record_key": "glossary.exhaustion",
+     "source_span_ids": [
+      "20052ce7-524d-5b1a-bec7-6c5f0f7684ce"
+     ]
+    },
+    {
+     "component_key": "removing_exhaustion_levels",
+     "fact_family": "condition_level",
+     "record_key": "glossary.exhaustion",
+     "source_span_ids": [
+      "20052ce7-524d-5b1a-bec7-6c5f0f7684ce"
+     ]
+    },
+    {
+     "component_key": "speed_reduced",
+     "fact_family": "scaling",
+     "record_key": "glossary.exhaustion",
+     "source_span_ids": [
+      "16fd9990-44d8-50da-b666-e09a3b26caa0"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "17bae07f-66a9-5d30-ac91-7319bf7ed4c1",
+    "29a20e19-1e87-5f38-a44f-c621ea636194",
+    "7dbfffd1-71e6-5d82-ac13-64fd4e0090e9",
+    "95cc182b-924a-5782-9234-03a73ed355a5",
+    "b3d9a855-ffab-5903-bb0f-69b27e785d2e",
+    "f187aeb4-5ece-58ae-9dce-673c7d0abff6"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "b3d9a855-ffab-5903-bb0f-69b27e785d2e"
+     ],
+     "supports_component_key": "",
+     "supports_record_key": "glossary.exhaustion"
+    }
+   ],
+   "unit_id": "conditions-pilot/exhaustion"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "7a5237a1-811e-59e6-94d0-7ee6ec7ff326"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "ability_checks_and_attacks_affected",
+     "record_key": "glossary.frightened",
+     "source_span_ids": [
+      "555bfe2b-a699-506c-9f64-097325d3aabd"
+     ]
+    },
+    {
+     "component_key": "ability_checks_and_attacks_affected",
+     "fact_family": "advantage",
+     "record_key": "glossary.frightened",
+     "source_span_ids": [
+      "555bfe2b-a699-506c-9f64-097325d3aabd"
+     ]
+    },
+    {
+     "component_key": "cant_approach",
+     "record_key": "glossary.frightened",
+     "source_span_ids": [
+      "fb708823-e3a8-50cb-a98c-bfcbbfd1bf5a"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "33c0b89e-ef51-5c11-b6a0-639e93945f8e",
+    "652d6892-2bfc-577e-b413-b256e7863416",
+    "7a5237a1-811e-59e6-94d0-7ee6ec7ff326",
+    "d7b8dfd1-3a0b-5cfb-9fce-405eb0d4b406"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "33c0b89e-ef51-5c11-b6a0-639e93945f8e"
+     ],
+     "supports_component_key": "",
+     "supports_record_key": "glossary.frightened"
+    }
+   ],
+   "unit_id": "conditions-pilot/frightened"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "1e29e1e1-4e0c-5f6d-98a9-944f8c619456"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "attacks_affected",
+     "record_key": "glossary.grappled",
+     "source_span_ids": [
+      "61dd2b71-d8e2-5b73-aa9f-f6e1336cd0cc"
+     ]
+    },
+    {
+     "component_key": "attacks_affected",
+     "fact_family": "advantage",
+     "record_key": "glossary.grappled",
+     "source_span_ids": [
+      "61dd2b71-d8e2-5b73-aa9f-f6e1336cd0cc"
+     ]
+    },
+    {
+     "component_key": "movable",
+     "fact_family": "movement_cost",
+     "record_key": "glossary.grappled",
+     "source_span_ids": [
+      "821bc147-cbc7-56c8-98a8-7ca490f94b32"
+     ]
+    },
+    {
+     "component_key": "movable",
+     "fact_family": "movement_transport",
+     "record_key": "glossary.grappled",
+     "source_span_ids": [
+      "821bc147-cbc7-56c8-98a8-7ca490f94b32"
+     ]
+    },
+    {
+     "component_key": "speed_0",
+     "fact_family": "speed_modification",
+     "record_key": "glossary.grappled",
+     "source_span_ids": [
+      "959123da-38a2-5126-871e-9abaedcd2ac0"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "1e29e1e1-4e0c-5f6d-98a9-944f8c619456",
+    "264c1486-5696-53e3-b996-3cb22dab111f",
+    "5942e56d-8df0-54cc-a232-04c49fe4b1bc",
+    "bc922d85-b775-52f5-8f5d-943ce8b43f54",
+    "c14faee5-890b-5b27-b126-f6c51aee4e24"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "bc922d85-b775-52f5-8f5d-943ce8b43f54"
+     ],
+     "supports_component_key": "",
+     "supports_record_key": "glossary.grappled"
+    }
+   ],
+   "unit_id": "conditions-pilot/grappled"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "21a6f8c5-367a-58f4-89a2-4afbf505c29e"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "ending_a_grapple",
+     "record_key": "glossary.grappling",
+     "source_span_ids": [
+      "ca11a329-aaaa-5818-b375-8fc7e78fc278"
+     ]
+    },
+    {
+     "component_key": "grapple_basis",
+     "record_key": "glossary.grappling",
+     "source_span_ids": [
+      "67712cfd-86eb-5d83-88c9-5ee58a700f6a",
+      "769fe99c-cf14-5d62-982a-9d6b367f23e0"
+     ]
+    },
+    {
+     "component_key": "grappled_condition",
+     "fact_family": "condition_effect",
+     "record_key": "glossary.grappling",
+     "source_span_ids": [
+      "5deb1c01-02d4-5784-ac86-9b9e04d3985b"
+     ]
+    },
+    {
+     "component_key": "one_grapple_per_hand",
+     "record_key": "glossary.grappling",
+     "source_span_ids": [
+      "2f075756-3b09-5ab8-b83a-898b17ec9a73"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "1ff068da-3187-5e7f-87b5-be7d42a9af28",
+    "21a6f8c5-367a-58f4-89a2-4afbf505c29e",
+    "41cd299e-0c10-5c04-b743-c4088b4d6537",
+    "7c29f427-5371-5e2a-8a43-302f5e916fb8",
+    "80e12262-f99f-59fc-abde-3030f53af863"
+   ],
+   "supporting_groups": [],
+   "unit_id": "conditions-pilot/grappling"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "900039be-032d-5db4-bffc-2dea74201f4f"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "inactive",
+     "fact_family": "action_restriction",
+     "record_key": "glossary.incapacitated",
+     "source_span_ids": [
+      "a686a7e5-8057-5a89-a8ab-370632f177c1"
+     ]
+    },
+    {
+     "component_key": "no_concentration",
+     "fact_family": "state_effect",
+     "record_key": "glossary.incapacitated",
+     "source_span_ids": [
+      "75b4d659-e337-5029-989d-b5aad8cebb46"
+     ]
+    },
+    {
+     "component_key": "speechless",
+     "fact_family": "state_effect",
+     "record_key": "glossary.incapacitated",
+     "source_span_ids": [
+      "1bac734f-2cf0-583b-90f5-b148153c17f8"
+     ]
+    },
+    {
+     "component_key": "surprised",
+     "fact_family": "advantage",
+     "record_key": "glossary.incapacitated",
+     "source_span_ids": [
+      "d795510c-cd9f-5bba-8522-180fe679fe4c"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "24bbfa0e-cda3-511e-ac8b-a4138e1c0f4a",
+    "5b33b737-4668-538a-8f98-d7228c3388b8",
+    "900039be-032d-5db4-bffc-2dea74201f4f",
+    "94a56648-960b-5ae8-aca6-d5f6ca1d8063",
+    "ac7b0325-5160-5a54-8c51-c96e4e0b1bf6",
+    "f428345a-502a-5a9b-8ef9-10ac2c9d99c5"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "94a56648-960b-5ae8-aca6-d5f6ca1d8063"
+     ],
+     "supports_component_key": "",
+     "supports_record_key": "glossary.incapacitated"
+    }
+   ],
+   "unit_id": "conditions-pilot/incapacitated"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "5defd657-6ade-5527-9f3f-8fe61667ee46"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "attacks_affected",
+     "record_key": "glossary.invisible",
+     "source_span_ids": [
+      "95bb51cc-e4dc-5c56-8146-c79039cce3e8",
+      "d032d8f8-061d-5c54-bb32-6d59735a7569"
+     ]
+    },
+    {
+     "component_key": "attacks_affected",
+     "fact_family": "advantage",
+     "record_key": "glossary.invisible",
+     "source_span_ids": [
+      "95bb51cc-e4dc-5c56-8146-c79039cce3e8",
+      "d032d8f8-061d-5c54-bb32-6d59735a7569"
+     ]
+    },
+    {
+     "component_key": "concealed",
+     "record_key": "glossary.invisible",
+     "source_span_ids": [
+      "5db4fd98-2bc0-5f63-8969-50ad86b06fa2"
+     ]
+    },
+    {
+     "component_key": "surprise",
+     "fact_family": "advantage",
+     "record_key": "glossary.invisible",
+     "source_span_ids": [
+      "5df4ff40-bb32-5ce9-96f5-64a22f83df51"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "27e7135d-66d9-526a-b23f-67b4cb86f1e6",
+    "5ad25518-2192-5954-be0a-8b987faf07ce",
+    "5defd657-6ade-5527-9f3f-8fe61667ee46",
+    "b885af46-630a-575c-8594-37f640937412",
+    "d4d322d5-4a5d-5a79-99d1-e5a333115216"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "d4d322d5-4a5d-5a79-99d1-e5a333115216"
+     ],
+     "supports_component_key": "",
+     "supports_record_key": "glossary.invisible"
+    }
+   ],
+   "unit_id": "conditions-pilot/invisible"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "a8975c12-0746-544f-a96c-ef63aa04b306"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "attacks_affected",
+     "fact_family": "advantage",
+     "record_key": "glossary.paralyzed",
+     "source_span_ids": [
+      "0fdc3443-f639-553e-9bed-a99919f087cd"
+     ]
+    },
+    {
+     "component_key": "automatic_critical_hits",
+     "record_key": "glossary.paralyzed",
+     "source_span_ids": [
+      "065a36a5-2d74-5239-af34-d2393f42c7cb"
+     ]
+    },
+    {
+     "component_key": "automatic_critical_hits",
+     "fact_family": "critical_hit_rule",
+     "record_key": "glossary.paralyzed",
+     "source_span_ids": [
+      "065a36a5-2d74-5239-af34-d2393f42c7cb"
+     ]
+    },
+    {
+     "component_key": "incapacitated",
+     "fact_family": "condition_effect",
+     "record_key": "glossary.paralyzed",
+     "source_span_ids": [
+      "cb2c6928-751d-5ab3-969f-516d7035e6d9"
+     ]
+    },
+    {
+     "component_key": "saving_throws_affected",
+     "fact_family": "automatic_outcome",
+     "record_key": "glossary.paralyzed",
+     "source_span_ids": [
+      "a60107de-c56d-5005-96fd-19282f4622c4"
+     ]
+    },
+    {
+     "component_key": "speed_0",
+     "fact_family": "speed_modification",
+     "record_key": "glossary.paralyzed",
+     "source_span_ids": [
+      "928838a6-dc18-5b47-ae78-422e2a3e1ecd"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "27352d7d-5382-5eca-9ac8-3a64e458d7da",
+    "27675ecd-f17f-5fed-b7b1-ad12b9069b28",
+    "42fc70fe-3a16-5aaa-a616-45734290a7e2",
+    "585f8f11-d835-53f0-aa01-6f56746ad0e2",
+    "73881c62-20d2-5076-bcf6-3e8b0c933293",
+    "a8975c12-0746-544f-a96c-ef63aa04b306",
+    "dc059d73-fa92-56d0-941d-517203f038e0"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "27675ecd-f17f-5fed-b7b1-ad12b9069b28"
+     ],
+     "supports_component_key": "",
+     "supports_record_key": "glossary.paralyzed"
+    }
+   ],
+   "unit_id": "conditions-pilot/paralyzed"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "f9e59efb-6912-5b34-9dce-a7d80157b3f6"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "attacks_affected",
+     "fact_family": "advantage",
+     "record_key": "glossary.petrified",
+     "source_span_ids": [
+      "1b758e11-b006-5f69-aa6d-77ca6ce52bf4"
+     ]
+    },
+    {
+     "component_key": "incapacitated",
+     "fact_family": "condition_effect",
+     "record_key": "glossary.petrified",
+     "source_span_ids": [
+      "2ed57a01-031e-5529-af35-a85862dac3f9"
+     ]
+    },
+    {
+     "component_key": "poison_immunity",
+     "fact_family": "condition_effect",
+     "record_key": "glossary.petrified",
+     "source_span_ids": [
+      "5eb8be0f-f612-5f51-91a9-6a752c2b5582"
+     ]
+    },
+    {
+     "component_key": "resist_damage",
+     "fact_family": "damage_response",
+     "record_key": "glossary.petrified",
+     "source_span_ids": [
+      "b5832b75-3ccc-51c9-872b-64efd37f3d14"
+     ]
+    },
+    {
+     "component_key": "saving_throws_affected",
+     "fact_family": "automatic_outcome",
+     "record_key": "glossary.petrified",
+     "source_span_ids": [
+      "c5cc0bce-28a9-5e5a-9b42-7a2e7dc60bc1"
+     ]
+    },
+    {
+     "component_key": "speed_0",
+     "fact_family": "speed_modification",
+     "record_key": "glossary.petrified",
+     "source_span_ids": [
+      "2505f070-5eab-53fa-a337-8a31474a7764"
+     ]
+    },
+    {
+     "component_key": "turned_to_inanimate_substance",
+     "record_key": "glossary.petrified",
+     "source_span_ids": [
+      "09dc52c4-22f9-5ec1-ba31-52c065a1536d"
+     ]
+    },
+    {
+     "component_key": "turned_to_inanimate_substance",
+     "fact_family": "quantity_multiplier",
+     "record_key": "glossary.petrified",
+     "source_span_ids": [
+      "09dc52c4-22f9-5ec1-ba31-52c065a1536d"
+     ]
+    },
+    {
+     "component_key": "turned_to_inanimate_substance",
+     "fact_family": "state_effect",
+     "record_key": "glossary.petrified",
+     "source_span_ids": [
+      "09dc52c4-22f9-5ec1-ba31-52c065a1536d"
+     ]
+    },
+    {
+     "component_key": "turned_to_inanimate_substance",
+     "fact_family": "transformation",
+     "record_key": "glossary.petrified",
+     "source_span_ids": [
+      "09dc52c4-22f9-5ec1-ba31-52c065a1536d"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "1500d9ba-9052-510b-b30a-20097f3363ac",
+    "15d08150-7fb1-5572-bfa7-9871ec2567d5",
+    "33ea6cd1-01a2-5c6b-aabe-f5f00375b16c",
+    "405c7efd-60dc-5a3e-990a-2bcc34ad1e17",
+    "55fb27a6-e5a1-5c02-9124-4ee031e2161d",
+    "8921f5e3-220b-5087-aefc-a795aeece8b2",
+    "ce07fd5d-e89e-50f6-8204-5557d570cad2",
+    "e712abf0-c3c1-5b01-9ccc-63bdc77127bf",
+    "f9e59efb-6912-5b34-9dce-a7d80157b3f6"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "33ea6cd1-01a2-5c6b-aabe-f5f00375b16c"
+     ],
+     "supports_component_key": "",
+     "supports_record_key": "glossary.petrified"
+    }
+   ],
+   "unit_id": "conditions-pilot/petrified"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "9264904e-c0e0-55f8-b838-f5766c45b9c4"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "ability_checks_and_attacks_affected",
+     "fact_family": "advantage",
+     "record_key": "glossary.poisoned",
+     "source_span_ids": [
+      "d882a66d-bc63-56f4-a366-f5fc98e58341"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "9264904e-c0e0-55f8-b838-f5766c45b9c4",
+    "a9bcec34-9a99-5d49-bcc6-a29eb792048a",
+    "c0892d01-aa3b-5503-a689-a002abea34cb"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "c0892d01-aa3b-5503-a689-a002abea34cb"
+     ],
+     "supports_component_key": "",
+     "supports_record_key": "glossary.poisoned"
+    }
+   ],
+   "unit_id": "conditions-pilot/poisoned"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "2f41ef3c-9897-5e2a-8b20-e2741a8e9c3f"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "attacks_against_affected",
+     "record_key": "glossary.prone",
+     "source_span_ids": [
+      "c0e35c01-9e11-5c1e-bf0c-2b15f520ad58"
+     ]
+    },
+    {
+     "component_key": "own_attacks_affected",
+     "fact_family": "advantage",
+     "record_key": "glossary.prone",
+     "source_span_ids": [
+      "56f8bdd5-a874-5a7b-b538-d0470301bd0f"
+     ]
+    },
+    {
+     "component_key": "restricted_movement",
+     "fact_family": "condition_effect",
+     "record_key": "glossary.prone",
+     "source_span_ids": [
+      "0c886768-ff78-5154-be9e-8ce059743e30"
+     ]
+    },
+    {
+     "component_key": "restricted_movement",
+     "fact_family": "movement_cost",
+     "record_key": "glossary.prone",
+     "source_span_ids": [
+      "0c886768-ff78-5154-be9e-8ce059743e30"
+     ]
+    },
+    {
+     "component_key": "restricted_movement",
+     "fact_family": "movement_permission",
+     "record_key": "glossary.prone",
+     "source_span_ids": [
+      "0c886768-ff78-5154-be9e-8ce059743e30"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "0b5d2f78-b24a-54fa-97f8-1d02a2e32f9f",
+    "2f41ef3c-9897-5e2a-8b20-e2741a8e9c3f",
+    "d45682ee-0db2-56b0-81bf-c8309c0afad3",
+    "f2796fc3-22ea-54f5-8d17-cd62825a2d59"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "0b5d2f78-b24a-54fa-97f8-1d02a2e32f9f"
+     ],
+     "supports_component_key": "",
+     "supports_record_key": "glossary.prone"
+    }
+   ],
+   "unit_id": "conditions-pilot/prone"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "1a9d1db3-e4cb-5234-853a-3e4cd81ab555"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "attacks_affected",
+     "fact_family": "advantage",
+     "record_key": "glossary.restrained",
+     "source_span_ids": [
+      "fd7fca58-824d-5d51-868b-b4c4b1601698"
+     ]
+    },
+    {
+     "component_key": "saving_throws_affected",
+     "fact_family": "advantage",
+     "record_key": "glossary.restrained",
+     "source_span_ids": [
+      "121d5e8d-2f31-5ac9-97ff-4aa42ea39d11"
+     ]
+    },
+    {
+     "component_key": "speed_0",
+     "fact_family": "speed_modification",
+     "record_key": "glossary.restrained",
+     "source_span_ids": [
+      "1e7fae6c-7d5c-5ded-986e-9eb7ef535049"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "03b95115-7ffd-54ef-bdfe-f5c7ba076e66",
+    "04c4a8d2-7b4d-522d-8469-8f7dc2d96150",
+    "1a9d1db3-e4cb-5234-853a-3e4cd81ab555",
+    "2c7c89e9-9742-5208-9a99-1722213c90d9",
+    "5eb00e13-0c20-5273-889d-3a32f9edeffc"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "5eb00e13-0c20-5273-889d-3a32f9edeffc"
+     ],
+     "supports_component_key": "",
+     "supports_record_key": "glossary.restrained"
+    }
+   ],
+   "unit_id": "conditions-pilot/restrained"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "a60a0dfa-c8f2-5ae4-b882-426b33f17050"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "attacks_affected",
+     "fact_family": "advantage",
+     "record_key": "glossary.stunned",
+     "source_span_ids": [
+      "a8be26b3-701e-558f-bc99-e689ee756032"
+     ]
+    },
+    {
+     "component_key": "incapacitated",
+     "fact_family": "condition_effect",
+     "record_key": "glossary.stunned",
+     "source_span_ids": [
+      "37756b98-31c8-5b8b-8a8e-d1a3a44bdd4a"
+     ]
+    },
+    {
+     "component_key": "saving_throws_affected",
+     "fact_family": "automatic_outcome",
+     "record_key": "glossary.stunned",
+     "source_span_ids": [
+      "39db1c55-e6ff-5e2c-a742-975fd2eef4f2"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "0296a917-ac22-5ab6-805e-23340e45f74c",
+    "9377ac47-8585-5014-a08d-f99497523076",
+    "a60a0dfa-c8f2-5ae4-b882-426b33f17050",
+    "a6bc8cff-db78-519f-896a-3600ef40a421",
+    "d984fd99-6e6e-599e-812c-0c4f285d516b"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "0296a917-ac22-5ab6-805e-23340e45f74c"
+     ],
+     "supports_component_key": "",
+     "supports_record_key": "glossary.stunned"
+    }
+   ],
+   "unit_id": "conditions-pilot/stunned"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "0c699a4b-e458-564f-98e1-1f7ba30b6978"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "attacks_affected",
+     "fact_family": "advantage",
+     "record_key": "glossary.unconscious",
+     "source_span_ids": [
+      "149dbcae-6ca3-5a98-bd4b-162a4cca1a2e"
+     ]
+    },
+    {
+     "component_key": "automatic_critical_hits",
+     "record_key": "glossary.unconscious",
+     "source_span_ids": [
+      "0351da04-e4de-53cc-b3d2-d442bb6a16f9"
+     ]
+    },
+    {
+     "component_key": "automatic_critical_hits",
+     "fact_family": "critical_hit_rule",
+     "record_key": "glossary.unconscious",
+     "source_span_ids": [
+      "0351da04-e4de-53cc-b3d2-d442bb6a16f9"
+     ]
+    },
+    {
+     "component_key": "inert",
+     "fact_family": "condition_effect",
+     "record_key": "glossary.unconscious",
+     "source_span_ids": [
+      "0231dde1-9dd8-5684-a797-701adda9ee16"
+     ]
+    },
+    {
+     "component_key": "inert",
+     "fact_family": "state_effect",
+     "record_key": "glossary.unconscious",
+     "source_span_ids": [
+      "0231dde1-9dd8-5684-a797-701adda9ee16"
+     ]
+    },
+    {
+     "component_key": "remains_prone",
+     "fact_family": "condition_effect",
+     "record_key": "glossary.unconscious",
+     "source_span_ids": [
+      "b3f778cf-15bf-5cc8-b1b3-9493dde58ba0"
+     ]
+    },
+    {
+     "component_key": "saving_throws_affected",
+     "fact_family": "automatic_outcome",
+     "record_key": "glossary.unconscious",
+     "source_span_ids": [
+      "9ed4f8e3-be87-551d-b45e-e8ac3d297ef3"
+     ]
+    },
+    {
+     "component_key": "speed_0",
+     "fact_family": "speed_modification",
+     "record_key": "glossary.unconscious",
+     "source_span_ids": [
+      "6098ea34-7c0d-5931-ab89-18124efa9137"
+     ]
+    },
+    {
+     "component_key": "unaware",
+     "fact_family": "state_effect",
+     "record_key": "glossary.unconscious",
+     "source_span_ids": [
+      "c3dcb4a9-cf33-5065-9918-671a2b96038c"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "0c699a4b-e458-564f-98e1-1f7ba30b6978",
+    "25151809-c803-502c-a399-a794fb509df4",
+    "44854d9b-ec16-5874-91f2-68554288006f",
+    "506a5167-b938-5668-bad5-8eb1b8d4b668",
+    "7e5f4ca7-166d-5e9d-8496-d915e7f1d949",
+    "9552784c-08a5-581d-96f0-c24247745840",
+    "d4862dbb-18fd-5eef-be50-cd73f577b7cf",
+    "ea396caf-33ab-5686-8096-175a60a9b53a"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "506a5167-b938-5668-bad5-8eb1b8d4b668"
+     ],
+     "supports_component_key": "",
+     "supports_record_key": "glossary.unconscious"
+    }
+   ],
+   "unit_id": "conditions-pilot/unconscious"
+  }
+ ],
+ "proposed_spans": [
+  {
+   "char_end": 101,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "2c7c89e9-9742-5208-9a99-1722213c90d9",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "fd7fca58-824d-5d51-868b-b4c4b1601698"
+  },
+  {
+   "char_end": 101,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "95cc182b-924a-5782-9234-03a73ed355a5",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "0bd42e66-2265-57da-911b-f54fa9a2ed1c"
+  },
+  {
+   "char_end": 101,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "b885af46-630a-575c-8594-37f640937412",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "95bb51cc-e4dc-5c56-8146-c79039cce3e8"
+  },
+  {
+   "char_end": 101,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "c14faee5-890b-5b27-b126-f6c51aee4e24",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "61dd2b71-d8e2-5b73-aa9f-f6e1336cd0cc"
+  },
+  {
+   "char_end": 101,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "d2496ad5-2fd9-561d-a892-cedf8a25d0f5",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "bc8f178a-7239-5d3c-a54c-fa203b7efb1b"
+  },
+  {
+   "char_end": 115,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "d4862dbb-18fd-5eef-be50-cd73f577b7cf",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "0351da04-e4de-53cc-b3d2-d442bb6a16f9"
+  },
+  {
+   "char_end": 115,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "dc059d73-fa92-56d0-941d-517203f038e0",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "065a36a5-2d74-5239-af34-d2393f42c7cb"
+  },
+  {
+   "char_end": 120,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "e16e6316-82fc-56da-b862-eb17faccacf0",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "1b447643-c0df-5660-a478-a3bff60f7d07"
+  },
+  {
+   "char_end": 134,
+   "char_start": 127,
+   "disposition": "supporting_authority",
+   "leaf_id": "1a1c8834-e6c5-5f17-9842-f24108095a1f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "433e5a09-e32c-5c8b-9b4e-80764ca68cd2"
+  },
+  {
+   "char_end": 139,
+   "char_start": 96,
+   "disposition": "substantive",
+   "leaf_id": "7e5f4ca7-166d-5e9d-8496-d915e7f1d949",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "b3f778cf-15bf-5cc8-b1b3-9493dde58ba0"
+  },
+  {
+   "char_end": 140,
+   "char_start": 86,
+   "disposition": "substantive",
+   "leaf_id": "b115a9fa-7a22-5dc5-8241-4e1697fb9205",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "ce195243-d87f-547e-8314-3fcca0a269d0"
+  },
+  {
+   "char_end": 144,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "17bae07f-66a9-5d30-ac91-7319bf7ed4c1",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "7a09a424-b104-5f74-a034-e22c628a3fd2"
+  },
+  {
+   "char_end": 145,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "652d6892-2bfc-577e-b413-b256e7863416",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "555bfe2b-a699-506c-9f64-097325d3aabd"
+  },
+  {
+   "char_end": 146,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "29a20e19-1e87-5f38-a44f-c621ea636194",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "20052ce7-524d-5b1a-bec7-6c5f0f7684ce"
+  },
+  {
+   "char_end": 152,
+   "char_start": 39,
+   "disposition": "substantive",
+   "leaf_id": "f62189f3-4756-5b0f-9e7c-e348b37699e0",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "0de71f42-8a7a-5b54-a585-65094cbf86e5"
+  },
+  {
+   "char_end": 163,
+   "char_start": 150,
+   "disposition": "supporting_authority",
+   "leaf_id": "1a1c8834-e6c5-5f17-9842-f24108095a1f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "aa83baf7-7062-5a4f-8592-d71d0dd4a71a"
+  },
+  {
+   "char_end": 167,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "5942e56d-8df0-54cc-a232-04c49fe4b1bc",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "821bc147-cbc7-56c8-98a8-7ca490f94b32"
+  },
+  {
+   "char_end": 173,
+   "char_start": 98,
+   "disposition": "supporting_authority",
+   "leaf_id": "41cd299e-0c10-5c04-b743-c4088b4d6537",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "2341ed67-607f-537b-bb0b-dd3893a48e14"
+  },
+  {
+   "char_end": 184,
+   "char_start": 179,
+   "disposition": "supporting_authority",
+   "leaf_id": "1a1c8834-e6c5-5f17-9842-f24108095a1f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "a979b82f-7b90-583c-a787-81830f4e3e6f"
+  },
+  {
+   "char_end": 186,
+   "char_start": 59,
+   "disposition": "substantive",
+   "leaf_id": "f2796fc3-22ea-54f5-8d17-cd62825a2d59",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "c0e35c01-9e11-5c1e-bf0c-2b15f520ad58"
+  },
+  {
+   "char_end": 187,
+   "char_start": 102,
+   "disposition": "substantive",
+   "leaf_id": "b885af46-630a-575c-8594-37f640937412",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "d032d8f8-061d-5c54-bb32-6d59735a7569"
+  },
+  {
+   "char_end": 192,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "27e7135d-66d9-526a-b23f-67b4cb86f1e6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "5db4fd98-2bc0-5f63-8969-50ad86b06fa2"
+  },
+  {
+   "char_end": 192,
+   "char_start": 153,
+   "disposition": "supporting_authority",
+   "leaf_id": "f62189f3-4756-5b0f-9e7c-e348b37699e0",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "d44ff726-3ab7-528e-8888-b148ef422718"
+  },
+  {
+   "char_end": 227,
+   "char_start": 219,
+   "disposition": "supporting_authority",
+   "leaf_id": "1a1c8834-e6c5-5f17-9842-f24108095a1f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "54f9c267-2ada-53c7-a97d-6a60fa411d4d"
+  },
+  {
+   "char_end": 229,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "d45682ee-0db2-56b0-81bf-c8309c0afad3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "0c886768-ff78-5154-be9e-8ce059743e30"
+  },
+  {
+   "char_end": 229,
+   "char_start": 174,
+   "disposition": "supporting_authority",
+   "leaf_id": "41cd299e-0c10-5c04-b743-c4088b4d6537",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "15cd819d-c7f6-5901-a100-7b6ad4a56ccf"
+  },
+  {
+   "char_end": 230,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "15d08150-7fb1-5572-bfa7-9871ec2567d5",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "09dc52c4-22f9-5ec1-ba31-52c065a1536d"
+  },
+  {
+   "char_end": 252,
+   "char_start": 243,
+   "disposition": "supporting_authority",
+   "leaf_id": "1a1c8834-e6c5-5f17-9842-f24108095a1f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "6cffa5d6-2745-5967-9dff-16757d581a48"
+  },
+  {
+   "char_end": 273,
+   "char_start": 230,
+   "disposition": "supporting_authority",
+   "leaf_id": "41cd299e-0c10-5c04-b743-c4088b4d6537",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "b99f45a6-75b0-56ec-a9a7-cdaa769306f6"
+  },
+  {
+   "char_end": 278,
+   "char_start": 268,
+   "disposition": "supporting_authority",
+   "leaf_id": "1a1c8834-e6c5-5f17-9842-f24108095a1f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "c25346b4-dc5e-514a-adf4-ac528b1a5eef"
+  },
+  {
+   "char_end": 30,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "24bbfa0e-cda3-511e-ac8b-a4138e1c0f4a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "1bac734f-2cf0-583b-90f5-b148153c17f8"
+  },
+  {
+   "char_end": 323,
+   "char_start": 313,
+   "disposition": "supporting_authority",
+   "leaf_id": "1a1c8834-e6c5-5f17-9842-f24108095a1f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "55d71865-36e2-5f7a-a382-1b23eff92cc3"
+  },
+  {
+   "char_end": 348,
+   "char_start": 339,
+   "disposition": "supporting_authority",
+   "leaf_id": "1a1c8834-e6c5-5f17-9842-f24108095a1f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "de072c9e-1efd-5526-b47b-e234ece7d385"
+  },
+  {
+   "char_end": 371,
+   "char_start": 364,
+   "disposition": "supporting_authority",
+   "leaf_id": "1a1c8834-e6c5-5f17-9842-f24108095a1f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "eb88eac4-e8ad-5e3d-82da-e9a9d5e926dc"
+  },
+  {
+   "char_end": 376,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "7c29f427-5371-5e2a-8a43-302f5e916fb8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "2f075756-3b09-5ab8-b83a-898b17ec9a73"
+  },
+  {
+   "char_end": 38,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f62189f3-4756-5b0f-9e7c-e348b37699e0",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "3452c3d4-0f00-53ab-8f29-0593d4046434"
+  },
+  {
+   "char_end": 40,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "41cd299e-0c10-5c04-b743-c4088b4d6537",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "67712cfd-86eb-5d83-88c9-5ee58a700f6a"
+  },
+  {
+   "char_end": 416,
+   "char_start": 406,
+   "disposition": "supporting_authority",
+   "leaf_id": "1a1c8834-e6c5-5f17-9842-f24108095a1f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "45376be8-d486-5475-a5a4-f0baa1f1dcd1"
+  },
+  {
+   "char_end": 44,
+   "char_start": 37,
+   "disposition": "supporting_authority",
+   "leaf_id": "1a1c8834-e6c5-5f17-9842-f24108095a1f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "aed37571-ae82-5473-90e0-7494745fef64"
+  },
+  {
+   "char_end": 441,
+   "char_start": 432,
+   "disposition": "supporting_authority",
+   "leaf_id": "1a1c8834-e6c5-5f17-9842-f24108095a1f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "8112cd1c-b23a-5482-b7d2-681da6f55e79"
+  },
+  {
+   "char_end": 447,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "1ff068da-3187-5e7f-87b5-be7d42a9af28",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "ca11a329-aaaa-5818-b375-8fc7e78fc278"
+  },
+  {
+   "char_end": 46,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "04c4a8d2-7b4d-522d-8469-8f7dc2d96150",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "1e7fae6c-7d5c-5ded-986e-9eb7ef535049"
+  },
+  {
+   "char_end": 46,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "25151809-c803-502c-a399-a794fb509df4",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "6098ea34-7c0d-5931-ab89-18124efa9137"
+  },
+  {
+   "char_end": 46,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "264c1486-5696-53e3-b996-3cb22dab111f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "959123da-38a2-5126-871e-9abaedcd2ac0"
+  },
+  {
+   "char_end": 46,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "405c7efd-60dc-5a3e-990a-2bcc34ad1e17",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "2505f070-5eab-53fa-a337-8a31474a7764"
+  },
+  {
+   "char_end": 46,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "73881c62-20d2-5076-bcf6-3e8b0c933293",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "928838a6-dc18-5b47-ae78-422e2a3e1ecd"
+  },
+  {
+   "char_end": 468,
+   "char_start": 457,
+   "disposition": "supporting_authority",
+   "leaf_id": "1a1c8834-e6c5-5f17-9842-f24108095a1f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "286a9ef0-2f2c-55c3-924c-41bdced702bc"
+  },
+  {
+   "char_end": 47,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "ea396caf-33ab-5686-8096-175a60a9b53a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "c3dcb4a9-cf33-5065-9918-671a2b96038c"
+  },
+  {
+   "char_end": 49,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "5b33b737-4668-538a-8f98-d7228c3388b8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "75b4d659-e337-5029-989d-b5aad8cebb46"
+  },
+  {
+   "char_end": 51,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "e712abf0-c3c1-5b01-9ccc-63bdc77127bf",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "b5832b75-3ccc-51c9-872b-64efd37f3d14"
+  },
+  {
+   "char_end": 54,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "55fb27a6-e5a1-5c02-9124-4ee031e2161d",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "2ed57a01-031e-5529-af35-a85862dac3f9"
+  },
+  {
+   "char_end": 54,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "585f8f11-d835-53f0-aa01-6f56746ad0e2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "cb2c6928-751d-5ab3-969f-516d7035e6d9"
+  },
+  {
+   "char_end": 54,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "a6bc8cff-db78-519f-896a-3600ef40a421",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "37756b98-31c8-5b8b-8a8e-d1a3a44bdd4a"
+  },
+  {
+   "char_end": 58,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f2796fc3-22ea-54f5-8d17-cd62825a2d59",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "56f8bdd5-a874-5a7b-b538-d0470301bd0f"
+  },
+  {
+   "char_end": 60,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "27352d7d-5382-5eca-9ac8-3a64e458d7da",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "0fdc3443-f639-553e-9bed-a99919f087cd"
+  },
+  {
+   "char_end": 60,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "44854d9b-ec16-5874-91f2-68554288006f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "149dbcae-6ca3-5a98-bd4b-162a4cca1a2e"
+  },
+  {
+   "char_end": 60,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "8921f5e3-220b-5087-aefc-a795aeece8b2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "1b758e11-b006-5f69-aa6d-77ca6ce52bf4"
+  },
+  {
+   "char_end": 60,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "9377ac47-8585-5014-a08d-f99497523076",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "a8be26b3-701e-558f-bc99-e689ee756032"
+  },
+  {
+   "char_end": 63,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "ce07fd5d-e89e-50f6-8204-5557d570cad2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "5eb8be0f-f612-5f51-91a9-6a752c2b5582"
+  },
+  {
+   "char_end": 65,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f428345a-502a-5a9b-8ef9-10ac2c9d99c5",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "a686a7e5-8057-5a89-a8ab-370632f177c1"
+  },
+  {
+   "char_end": 68,
+   "char_start": 60,
+   "disposition": "supporting_authority",
+   "leaf_id": "1a1c8834-e6c5-5f17-9842-f24108095a1f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "fddcad1e-3fac-5957-b276-d55426a8773c"
+  },
+  {
+   "char_end": 72,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "d7b8dfd1-3a0b-5cfb-9fce-405eb0d4b406",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "fb708823-e3a8-50cb-a98c-bfcbbfd1bf5a"
+  },
+  {
+   "char_end": 75,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "03b95115-7ffd-54ef-bdfe-f5c7ba076e66",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "121d5e8d-2f31-5ac9-97ff-4aa42ea39d11"
+  },
+  {
+   "char_end": 85,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "b115a9fa-7a22-5dc5-8241-4e1697fb9205",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "00a6764c-08b2-5e22-a9b8-6d1b153334d4"
+  },
+  {
+   "char_end": 86,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "1500d9ba-9052-510b-b30a-20097f3363ac",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "c5cc0bce-28a9-5e5a-9b42-7a2e7dc60bc1"
+  },
+  {
+   "char_end": 86,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "42fc70fe-3a16-5aaa-a616-45734290a7e2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "a60107de-c56d-5005-96fd-19282f4622c4"
+  },
+  {
+   "char_end": 86,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "9552784c-08a5-581d-96f0-c24247745840",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "9ed4f8e3-be87-551d-b45e-e8ac3d297ef3"
+  },
+  {
+   "char_end": 86,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "d984fd99-6e6e-599e-812c-0c4f285d516b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "39db1c55-e6ff-5e2c-a742-975fd2eef4f2"
+  },
+  {
+   "char_end": 88,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "80e12262-f99f-59fc-abde-3030f53af863",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "5deb1c01-02d4-5784-ac86-9b9e04d3985b"
+  },
+  {
+   "char_end": 88,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "cc2f5ff1-68d5-5d7b-94af-d61ca4dca918",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "27aa5bef-2c63-5ef4-a2de-2b801fe803ca"
+  },
+  {
+   "char_end": 89,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "5ad25518-2192-5954-be0a-8b987faf07ce",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "5df4ff40-bb32-5ce9-96f5-64a22f83df51"
+  },
+  {
+   "char_end": 92,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f85ab963-8eb4-5d50-a479-f20ac0d2be19",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "d82b42e6-676e-5166-b3f9-79ab049d673a"
+  },
+  {
+   "char_end": 92,
+   "char_start": 84,
+   "disposition": "supporting_authority",
+   "leaf_id": "1a1c8834-e6c5-5f17-9842-f24108095a1f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "7d91c6ab-3555-58a7-a555-7c847067a96d"
+  },
+  {
+   "char_end": 95,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "7e5f4ca7-166d-5e9d-8496-d915e7f1d949",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "0231dde1-9dd8-5684-a797-701adda9ee16"
+  },
+  {
+   "char_end": 96,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "a9bcec34-9a99-5d49-bcc6-a29eb792048a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "d882a66d-bc63-56f4-a366-f5fc98e58341"
+  },
+  {
+   "char_end": 97,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "ac7b0325-5160-5a54-8c51-c96e4e0b1bf6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "d795510c-cd9f-5bba-8522-180fe679fe4c"
+  },
+  {
+   "char_end": 97,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "bfe03423-5a45-5651-9105-d637dd2d91bd",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "2a3d1a35-0fb7-56e8-b0fb-47b56ab3e466"
+  },
+  {
+   "char_end": 97,
+   "char_start": 41,
+   "disposition": "substantive",
+   "leaf_id": "41cd299e-0c10-5c04-b743-c4088b4d6537",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "769fe99c-cf14-5d62-982a-9d6b367f23e0"
+  },
+  {
+   "char_end": 98,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "7dbfffd1-71e6-5d82-ac13-64fd4e0090e9",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-conditions-pilot-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "16fd9990-44d8-50da-b666-e09a3b26caa0"
+  }
+ ],
+ "release_binding": {
+  "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+  "bundle_root_hash": "3da7b5b30e23647c219d1630b5c5051be02b5882d17f0cd13421af8c57754689",
+  "package_uuid": "ebdd9333-eeed-5df1-b3e1-8b97c2f65f80",
+  "persisted_corpus_digest": "df64eb40029576bae61229056f07ccdf025a2a5c2d75aacfefdf88fe596acb02",
+  "release_version": "5.2.1-corpus.574662e9-0ef",
+  "transform_config_hash": "2a7feddf7910684b8427745b9f9ecd5f394382d00955ed7b98920c2e12c0e64d"
+ },
+ "representation_schema": {
+  "hash": "e87e0bacdc476b0bef092a04cbedd933e0b57b128651b08ef0ffbd0c94d186fd",
+  "version": "5d-representation-schema-15"
+ },
+ "semantic_policy_hash": "da63b8940c5b3997b44d53e02941389b68e2a2ba35250e73194d38bb1d74cde7",
+ "semantic_policy_version": "5d-semantic-policy-2"
+}

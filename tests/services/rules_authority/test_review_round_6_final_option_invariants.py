@@ -196,7 +196,7 @@ def resolve(cand: ProjectionCandidate, *entries: EffectiveOverrideEntry):  # typ
         release_version=_BINDING.release_version,
         entries=ordered,
     )
-    return apply_override_set(cand, state, _PACKAGE_BINDING)
+    return apply_override_set(cand, state, _PACKAGE_BINDING, leaf_order={})
 
 
 # ---------------------------------------------------------------------------

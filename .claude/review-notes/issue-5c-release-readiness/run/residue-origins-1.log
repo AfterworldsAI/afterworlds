@@ -1,0 +1,12 @@
+start 2026-10-07T15:40:56.821768+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe scripts/run_focused_tests.py --check tests/ingestion/mechanical/test_character_origins_feats_proposal.py tests/ingestion/mechanical/test_character_origins_feats_proposal.py
+input ef6969b5f09e59ebd4001aad2137ade7ca74509d4075753de73336d7595050e9  scripts/run_focused_tests.py
+input 91777db05d01ae1a03b14f503ac29a692e536a6e148df407cc345dd2e2f5b75e  tests/ingestion/mechanical/test_character_origins_feats_proposal.py
+input 91777db05d01ae1a03b14f503ac29a692e536a6e148df407cc345dd2e2f5b75e  tests/ingestion/mechanical/test_character_origins_feats_proposal.py
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+All done! ✨ 🍰 ✨
+1 file would be left unchanged.
+.......................................................................  [100%]
+71 passed in 388.76s (0:06:28)
+Focused diagnostics PASSED (exit 0). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+end 2026-10-07T15:47:27.965962+00:00 exit 0

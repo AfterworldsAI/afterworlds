@@ -39,7 +39,7 @@ from afterworlds.ingestion.corpus.bundle import (
     persisted_corpus_digest,
     persisted_corpus_payload,
 )
-from afterworlds.ingestion.corpus.concordance import check_canaries, check_concordance
+from afterworlds.ingestion.corpus.concordance import check_canaries, verify_citations
 from afterworlds.ingestion.corpus.gate import PublicationEvidence, run_gate
 from afterworlds.ingestion.corpus.ledger import ledger_hash
 from afterworlds.ingestion.corpus.models import (
@@ -85,6 +85,12 @@ from afterworlds.ingestion.corpus.source_completeness import (
     EXPECTED_PAGE_COUNT,
     verify_source_completeness,
 )
+from afterworlds.ingestion.corpus.source_ledger import (
+    CITATION_VERIFICATION,
+    SOURCE_PARTITION,
+    expected_leaf_pages,
+    source_digest_failures,
+)
 from afterworlds.ingestion.corpus.table_inventory import (
     check_against_committed_inventory,
 )
@@ -109,6 +115,7 @@ from afterworlds.persistence.orm.rules_package import (
 )
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
 from afterworlds.pipeline.retrieval.embedding import RetrievalEmbeddingFunction
+from afterworlds.quarantine import refuse_quarantined
 
 if TYPE_CHECKING:
     from chromadb.api import ClientAPI
@@ -300,9 +307,13 @@ def _persist_bundle_rows(
             source_id=source_id,
             subsystem=chunk.subsystem,
             content=chunk.content,
-            source_document=ledger.source_document,
-            source_locator_type="page",
-            source_locator_value=f"p. {chunk.printed_page}",
+            source_document=chunk.source_document or ledger.source_document,
+            source_locator_type=chunk.source_locator_type or "page",
+            # A source-built chunk already knows its whole citation, including
+            # the multi-page form; the PDF-geometric path has only the page.
+            source_locator_value=(
+                chunk.source_locator_value or f"p. {chunk.printed_page}"
+            ),
             source_section_label=chunk.section_label,
             is_enabled=True,
             created_at=now,
@@ -663,7 +674,9 @@ _SOURCE_CATEGORY = "core_rulebook"
 _SOURCE_PRECEDENCE = 1
 
 
-def verify_persisted_page_coverage(session: Session, pkg: str) -> tuple[str, ...]:
+def verify_persisted_page_coverage(
+    session: Session, pkg: str, *, expected_pages: frozenset[int] | None = None
+) -> tuple[str, ...]:
     """Cheap DB-grounded completeness check on the reuse path.
 
     ``finalize_release`` guards fresh publication on ``candidate.pages``, but the
@@ -672,13 +685,27 @@ def verify_persisted_page_coverage(session: Session, pkg: str) -> tuple[str, ...
     full candidate. This asserts the persisted ledger leaves cover every printed
     page ``1..EXPECTED_PAGE_COUNT`` — an omitted authoritative page fails reuse
     closed. Returns the list of violations (empty iff fully covered).
+
+    ``expected_pages`` overrides that range for a release whose transform_config
+    records the official pages its leaves are filed under: the source-built
+    corpus deliberately files no leaf on a page that carries only the table of
+    contents, and demanding 1..364 of it would be demanding coverage of pages it
+    never claimed. The override is read from the tamper-checked transform_config,
+    not from a caller opinion.
+
+    What this can check is bounded by the column it reads: ``printed_page`` holds
+    one page per leaf, so a unit printed across a break is visible here only
+    under its first page. That is why the recorded claim is the primary-page set
+    and not every cited page -- the wider claim would be unfalsifiable here and
+    is instead proven by re-deriving the whole corpus from the pinned bytes.
     """
     persisted_pages = set(
         session.execute(
             select(LedgerLeafORM.printed_page).where(LedgerLeafORM.package_uuid == pkg)
         ).scalars()
     )
-    missing = sorted(set(range(1, EXPECTED_PAGE_COUNT + 1)) - persisted_pages)
+    expected = expected_pages or frozenset(range(1, EXPECTED_PAGE_COUNT + 1))
+    missing = sorted(expected - persisted_pages)
     if missing:
         return (
             f"persisted ledger omits authoritative printed pages {missing[:8]}"
@@ -933,6 +960,7 @@ def _reconstruct_artifacts(
     pages: list[ExtractedPage],
     bundle: CanonicalBundle,
     vector_state: dict[str, object],
+    source_texts: dict[str, str] | None = None,
 ) -> tuple[ReleaseArtifacts, tuple[str, ...], tuple[str, ...]]:
     """Load a fully-persisted release's DB-grounded artifacts + its chunk-runtime
     membership and single-source violations (used by both the fresh-publish and
@@ -955,7 +983,12 @@ def _reconstruct_artifacts(
     sources = _load_sources(session, pkg)
     membership_violations = verify_chunk_runtime_membership(session, pkg)
     source_violations = verify_single_source(session, pkg)
-    concordance = check_concordance(members.chunks, pages)
+    concordance = verify_citations(
+        members.chunks,
+        pages,
+        release_row.transform_config,
+        source_texts=source_texts,
+    )
     canaries = check_canaries(pages)
 
     assert release_row.evidence_report_hash is not None
@@ -994,6 +1027,7 @@ def _reconstruct_artifacts(
         canaries=canaries,
         sources=sources,
         vector_state=vector_state,
+        source_texts=source_texts,
     )
     return artifacts, membership_violations, source_violations
 
@@ -1052,6 +1086,67 @@ def finalize_release(
     )
 
 
+def finalize_source_release(
+    session: Session,
+    candidate: CandidateRelease,
+    *,
+    now: str,
+    chroma_client: ClientAPI,
+    retrieval_config: RetrievalMemoryConfig,
+    embedding_function: RetrievalEmbeddingFunction | None = None,
+) -> FinalizeResult:
+    """Production publication entry for a source-built candidate.
+
+    The Markdown-native sibling of :func:`finalize_release`. Its guards are the
+    ones that mean something for this path, and it deliberately does not run the
+    retired path's expected-table oracle: that oracle grades a reconstruction of
+    PDF table geometry, which this corpus does not perform at all, so running it
+    would be grading an unrelated artifact.
+
+    What it does prove before any store is touched:
+
+    * the official PDF the citations point at is extracted exhaustively and is
+      the document it claims to be (``verify_source_completeness``);
+    * the candidate carries the pinned source it was built from, and those bytes
+      still hash to the digests its own transform_config records -- a stale or
+      swapped snapshot is refused rather than republished;
+    * the release declares ``source_partition`` verification, so the gate will
+      actually re-derive the corpus rather than fall through to a substring
+      check that Markdown can never satisfy.
+
+    A rejected candidate leaves no package, release or vector state behind,
+    because every guard runs before :func:`_finalize_core` opens a transaction.
+    """
+    failures = list(verify_source_completeness(candidate.pages))
+    if candidate.transform_config.get(CITATION_VERIFICATION) != SOURCE_PARTITION:
+        failures.append(
+            "a source-built release must declare source_partition citation "
+            "verification; this one declares "
+            f"{candidate.transform_config.get(CITATION_VERIFICATION)!r}"
+        )
+    elif candidate.source_texts is None:
+        failures.append("source-built candidate carries no pinned source texts")
+    else:
+        failures.extend(
+            source_digest_failures(candidate.source_texts, candidate.transform_config)
+        )
+    if failures:
+        return FinalizeResult(
+            published=False,
+            reused=False,
+            artifacts=None,
+            gate=GateResult(passed=False, failures=tuple(failures)),
+        )
+    return _finalize_core(
+        session,
+        candidate,
+        now=now,
+        chroma_client=chroma_client,
+        retrieval_config=retrieval_config,
+        embedding_function=embedding_function,
+    )
+
+
 def _finalize_core(
     session: Session,
     candidate: CandidateRelease,
@@ -1071,6 +1166,13 @@ def _finalize_core(
 
     Executes Component K steps c–g in the mandated order, across **both** stores:
 
+    0. Quarantine refusal: a package, release version, or *transform recipe*
+       quarantined by the Recorded Owner Decision of 21 September 2026 is refused
+       here, above the idempotency select, so no store is read or written on
+       either the fresh or the reuse path rather than relying on the compensation
+       boundary below. Checking the recorded transform closes the retired
+       PDF-geometric path whatever output identity an incidental reconfiguration
+       gives it.
     1. Idempotency check: an already-*published* release for this content
        -derived ``package_uuid`` is a safe no-op — but only after re-proving the
        existing cross-store state (full gate + package-row state + actual vector
@@ -1102,6 +1204,30 @@ def _finalize_core(
     without creating, inspecting, or deleting anything in Chroma.
     """
     pkg = candidate.package_uuid
+    # Recorded Owner Decision 2026-09-21 clean restart: a quarantined 5c product
+    # must not be able to reenter through publication. This sits above the
+    # read-only idempotency select, so the refusal precedes every store read and
+    # every store write on both the fresh and the reuse path -- there is nothing
+    # persisted to roll back and no Chroma collection to drop. Guarding only the
+    # downstream reindex would refuse after draft rows had already been flushed,
+    # leaving the claim dependent on compensation rather than on never writing.
+    # The recorded transform recipe is checked alongside the published identities:
+    # package_uuid and release_version are content-derived, so reconfiguring an
+    # incidental input (the embedding model label) mints new ones for the same
+    # obsolete extraction. transform_source_hash does not move with that
+    # reconfiguration, so this closes the retired path rather than one of its
+    # outputs, and it needs no list of alternate hashes.
+    recorded_identity = candidate.transform_config.get("transform_identity")
+    refuse_quarantined(
+        "corpus release finalization",
+        package_uuid=pkg,
+        release_version=candidate.release_version,
+        transform_source_hash=(
+            recorded_identity.get("transform_source_hash")
+            if isinstance(recorded_identity, dict)
+            else None
+        ),
+    )
 
     existing = session.execute(
         select(CorpusReleaseORM).where(CorpusReleaseORM.package_uuid == pkg)
@@ -1140,6 +1266,7 @@ def _finalize_core(
                     pages=candidate.pages,
                     bundle=candidate.bundle,
                     vector_state=vector_result.state.to_payload(),
+                    source_texts=candidate.source_texts,
                 )
             )
         except PolicyReconstructionError as exc:
@@ -1222,7 +1349,11 @@ def _finalize_core(
             and package_row.is_enabled
             and package_row.publication_status == "published"
         )
-        page_coverage_violations = verify_persisted_page_coverage(session, pkg)
+        page_coverage_violations = verify_persisted_page_coverage(
+            session,
+            pkg,
+            expected_pages=expected_leaf_pages(artifacts.release.transform_config),
+        )
         if not gate.passed or not package_state_ok or page_coverage_violations:
             failures = list(gate.failures)
             if not package_state_ok:
@@ -1351,7 +1482,12 @@ def _finalize_core(
         operational_digest = operational_corpus_digest(operational_snapshot)
 
         # --- e: post-persistence evidence report; f: hash it ------------------
-        concordance = check_concordance(members.chunks, candidate.pages)
+        concordance = verify_citations(
+            members.chunks,
+            candidate.pages,
+            candidate.transform_config,
+            source_texts=candidate.source_texts,
+        )
         canaries = check_canaries(candidate.pages)
         report = build_report(
             ledger=ledger,
@@ -1367,6 +1503,11 @@ def _finalize_core(
             concordance=concordance,
             canaries=canaries,
             persisted=True,  # legitimate: computed from the reconstruction above
+            citation_mapping=(
+                candidate.citation_report.payload()
+                if candidate.citation_report is not None
+                else None
+            ),
         )
         report_h = report_hash(report)
 
@@ -1400,6 +1541,7 @@ def _finalize_core(
             canaries=canaries,
             sources=sources,
             vector_state=vector_state,
+            source_texts=candidate.source_texts,
         )
 
         # Real evidence, not a rubber-stamped default: persistence is judged "ok"

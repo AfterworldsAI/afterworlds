@@ -1,0 +1,34 @@
+{
+  "selected_count": 930,
+  "bytes": 313792266,
+  "actions": {
+    "add": 843,
+    "replace": 86,
+    "replace-with-preview": 1
+  },
+  "groups": {
+    ".claude/review-notes": 746,
+    ".gitattributes": 1,
+    ".secrets.baseline": 1,
+    "AGENTS.md": 1,
+    "MANIFEST.in": 1,
+    "alembic/versions": 1,
+    "docs/architecture": 6,
+    "docs/decisions": 8,
+    "docs/sources": 19,
+    "scripts/ingest_srd.py": 1,
+    "scripts/regen_community_source_coverage.py": 1,
+    "scripts/reset_corpus_baseline.py": 1,
+    "src/afterworlds": 43,
+    "tests/ingestion": 87,
+    "tests/models": 1,
+    "tests/pipeline": 2,
+    "tests/services": 7,
+    "tests/test_pinned_community_source.py": 1,
+    "tests/test_quarantine_5c_5d.py": 1,
+    "CLAUDE.md": 1
+  },
+  "held_count": 3533,
+  "omitted_literal_dependencies": [],
+  "packet_exports": 17
+}

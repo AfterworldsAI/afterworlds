@@ -1,0 +1,23 @@
+start 2026-10-07T03:17:47.384551+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/_sp/release-order-candidate/compare_oracles.py .claude/_sp/release-order-candidate/candidate/srd-5-2-1-corpus-8781d4e0-a3b.json .claude/_sp/release-order-candidate/candidate/oracle-delta-2.json
+input edf8af1053bbc74d4debb6122185b2436051e2446b3cd4b524017f0f9803cafe  .claude/_sp/release-order-candidate/compare_oracles.py
+input 8a6a9a9c305f41207190c0deb55875a027019116ce3f825a6a0425a3a115b4bf  .claude/_sp/release-order-candidate/candidate/srd-5-2-1-corpus-8781d4e0-a3b.json
+normalized {'binding': 7435, 'chunk': 32800}
+  accounted     24  $.acceptance.batches[*].proposal_identity  old distinct 24 -> new distinct 24
+  accounted     24  $.acceptance.batches[*].rule  old distinct 9 -> new distinct 24
+  accounted  10493  $.acceptance.records[*].accepted_at  old distinct 9 -> new distinct 1
+  accounted  10493  $.acceptance.records[*].reviewer  old distinct 1 -> new distinct 1
+  accounted   1486  $.acceptance.reference_resolution_records[*].authorization_reference  old distinct 10 -> new distinct 19
+  accounted   1486  $.acceptance.reference_resolution_records[*].authorized_by  old distinct 1 -> new distinct 1
+  accounted   1486  $.acceptance.reference_resolution_records[*].resolved_at  old distinct 11 -> new distinct 1
+  accounted   1486  $.acceptance.reference_resolution_records[*].reviewer  old distinct 1 -> new distinct 1
+  accounted   1476  $.acceptance.review_unit_records[*].accepted_at  old distinct 9 -> new distinct 1
+  accounted   1476  $.acceptance.review_unit_records[*].reviewer  old distinct 1 -> new distinct 1
+  accounted     24  $.acceptance.schema_anchors[*].proposal_identity  old distinct 24 -> new distinct 24
+  order-only  10493  $.acceptance.records
+  order-only   1476  $.acceptance.review_unit_records
+  order-only  16400  $.representation.prose_bindings
+  order-only  30236  $.representation.provenance
+unaccounted difference patterns 0
+report .claude\_sp\release-order-candidate\candidate\oracle-delta-2.json 2e09c0c66caee6b69b0dab6dc614bf28dcb2f96cd7ee182539ff096c26f884b8
+end 2026-10-07T03:17:51.218913+00:00 exit 0

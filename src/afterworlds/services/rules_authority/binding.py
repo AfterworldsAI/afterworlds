@@ -44,6 +44,7 @@ from afterworlds.models.enums import PublicationStatusEnum
 from afterworlds.models.rules_package import RulesPackageBinding
 from afterworlds.persistence.orm.mechanical import MechanicalProjectionORM
 from afterworlds.persistence.orm.rules_package import RulesPackageORM
+from afterworlds.quarantine import refuse_quarantined
 from afterworlds.services.rules_authority.outcomes import AuthorityOutcome
 from afterworlds.services.rules_authority.override_set import (
     EffectiveOverrideSet,
@@ -146,6 +147,7 @@ def resolve_package_reference(session: Session, reference: str) -> PackageResolu
             return PackageResolution(
                 AuthorityOutcome.ABSENT, detail=f"package {package_uuid} is disabled"
             )
+        refuse_quarantined("package reference resolution", package_uuid=package_uuid)
         return PackageResolution(AuthorityOutcome.RESOLVED, package_uuid=package_uuid)
 
     slug = package_slug(raw)
@@ -179,6 +181,9 @@ def resolve_package_reference(session: Session, reference: str) -> PackageResolu
             ),
             candidates=tuple(UUID(row.rules_package_id) for row in matches),
         )
+    refuse_quarantined(
+        "package reference resolution", package_uuid=matches[0].rules_package_id
+    )
     return PackageResolution(
         AuthorityOutcome.RESOLVED, package_uuid=UUID(matches[0].rules_package_id)
     )

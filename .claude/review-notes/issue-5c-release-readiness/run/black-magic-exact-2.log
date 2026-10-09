@@ -1,0 +1,6 @@
+start 2026-10-07T09:36:38.545108+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe -m black --check tests/ingestion/mechanical/test_magic_items_proposal.py
+input e53508e3d9b0fe72fe65ba0c76dcbbab168461bb1f38038e78100642cdd6f828  tests/ingestion/mechanical/test_magic_items_proposal.py
+All done! ✨ 🍰 ✨
+1 file would be left unchanged.
+end 2026-10-07T09:36:38.801569+00:00 exit 0

@@ -1,0 +1,21 @@
+[
+  {
+    "resolution_id": "resolve-character-origins-elf-elven-lineage-wizard-spell-list-classes-1",
+    "from_record_key": "character_origins.elf",
+    "from_component_key": "elven_lineage",
+    "source_text": "Wizard spell list",
+    "scope_key": "srd-5.2.1/classes",
+    "target_record_key": "classes.wizard",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b1be94cc-654b-5a8a-916b-b4140e35bbd6"
+    ]
+  }
+]

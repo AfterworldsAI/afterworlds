@@ -1,0 +1,12 @@
+start 2026-10-07T09:43:23.940839+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/_sp/release-readiness-20261007/magic_shared_probe.py
+input 454963f8072e3198b65d6115c0990ee7a32a63fa80f2d68e4092551ff5cc3d72  .claude/_sp/release-readiness-20261007/magic_shared_probe.py
+Potions of Healing equipment.adventuring_gear.potion_of_healing record equal True
+ current edges [('CATALOGUE_MEMBER', 'equipment.adventuring_gear'), ('CATALOGUE_MEMBER', 'magic_items.potions_of_healing')]
+ prior edges [('CATALOGUE_MEMBER', 'equipment.adventuring_gear')]
+ current components ['magic_items_table', 'potion_of_healing']
+Spell Scroll equipment.adventuring_gear.spell_scroll record equal True
+ current edges [('CATALOGUE_MEMBER', 'equipment.adventuring_gear'), ('CATALOGUE_MEMBER', 'magic_items.spell_scroll')]
+ prior edges [('CATALOGUE_MEMBER', 'equipment.adventuring_gear')]
+ current components ['magic_items_table', 'spell_scroll']
+end 2026-10-07T09:43:50.958837+00:00 exit 0

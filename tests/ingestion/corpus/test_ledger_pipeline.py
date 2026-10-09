@@ -8,11 +8,16 @@ containers, heading coverage, and multi-unit segmentation.
 
 from __future__ import annotations
 
+import platform
+
+import pytest
+
 from afterworlds.ingestion.corpus.bundle import reconciliation_hash
 from afterworlds.ingestion.corpus.concordance import check_canaries, check_concordance
 from afterworlds.ingestion.corpus.ledger import build_ledger, ledger_hash
-from afterworlds.ingestion.corpus.models import Disposition, LeafType
-from afterworlds.ingestion.corpus.pipeline import build_candidate
+from afterworlds.ingestion.corpus.models import Disposition, Leaf, LeafType
+from afterworlds.ingestion.corpus.pipeline import ReleaseArtifacts, build_candidate
+from afterworlds.ingestion.corpus.report import EvidenceReport
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
 
 from .conftest import PDF_PATH, finalize_in_fresh_db
@@ -20,9 +25,11 @@ from .conftest import PDF_PATH, finalize_in_fresh_db
 # --- Component C: frozen ledger, occurrence partition, disjointness -----------
 
 
-def test_ledger_partitions_every_page_disjointly_and_exhaustively(release):
+def test_ledger_partitions_every_page_disjointly_and_exhaustively(
+    release: ReleaseArtifacts,
+) -> None:
     pages = {pg.page_index: pg.canonical_text() for pg in release.pages}
-    by_page: dict[int, list] = {}
+    by_page: dict[int, list[Leaf]] = {}
     for leaf in release.ledger.leaves:
         by_page.setdefault(leaf.page_index, []).append(leaf)
     assert by_page, "expected leaves"
@@ -43,12 +50,14 @@ def test_ledger_partitions_every_page_disjointly_and_exhaustively(release):
         assert cursor == len(text)
 
 
-def test_ledger_leaf_ids_are_unique_and_content_derived(release):
+def test_ledger_leaf_ids_are_unique_and_content_derived(
+    release: ReleaseArtifacts,
+) -> None:
     ids = [leaf.leaf_id for leaf in release.ledger.leaves]
     assert len(ids) == len(set(ids))
 
 
-def test_every_header_footer_is_its_own_leaf(release):
+def test_every_header_footer_is_its_own_leaf(release: ReleaseArtifacts) -> None:
     hf = [
         leaf
         for leaf in release.ledger.leaves
@@ -58,14 +67,14 @@ def test_every_header_footer_is_its_own_leaf(release):
     assert len(hf) >= 364
 
 
-def test_headings_titles_are_inventoried_as_leaves(release):
+def test_headings_titles_are_inventoried_as_leaves(release: ReleaseArtifacts) -> None:
     headings = [
         leaf for leaf in release.ledger.leaves if leaf.leaf_type is LeafType.HEADING
     ]
     assert headings, "expected heading leaves"
 
 
-def test_nested_container_path_entry_within_section(release):
+def test_nested_container_path_entry_within_section(release: ReleaseArtifacts) -> None:
     # Cure Wounds is an entry nested under its section/subsection.
     cure = [
         leaf
@@ -79,7 +88,7 @@ def test_nested_container_path_entry_within_section(release):
     assert any("Cure Wounds" in label for label in path)
 
 
-def test_stat_block_fields_are_discrete_leaves(release):
+def test_stat_block_fields_are_discrete_leaves(release: ReleaseArtifacts) -> None:
     fields = [
         leaf.content
         for leaf in release.ledger.leaves
@@ -92,7 +101,7 @@ def test_stat_block_fields_are_discrete_leaves(release):
     assert "CR 1/8" in joined
 
 
-def test_ledger_is_deterministic(release):
+def test_ledger_is_deterministic(release: ReleaseArtifacts) -> None:
     # Reuse the already-extracted pages; two ledger builds must hash identically.
     pages = release.pages
     assert ledger_hash(build_ledger(pages)) == ledger_hash(build_ledger(pages))
@@ -102,14 +111,14 @@ def test_ledger_is_deterministic(release):
 # --- Component E/J: concordance and canaries ----------------------------------
 
 
-def test_concordance_passes_for_every_chunk(release):
+def test_concordance_passes_for_every_chunk(release: ReleaseArtifacts) -> None:
     result = check_concordance(release.members.chunks, release.pages)
     assert result.passed
     assert result.locator_failures == ()
     assert result.content_failures == ()
 
 
-def test_all_six_version_canaries_pass(release):
+def test_all_six_version_canaries_pass(release: ReleaseArtifacts) -> None:
     results = check_canaries(release.pages)
     assert len(results) == 6
     for canary in results:
@@ -119,7 +128,7 @@ def test_all_six_version_canaries_pass(release):
 # --- Component D: accounting equation, zero unresolved ------------------------
 
 
-def test_accounting_equation_and_zero_unresolved(release):
+def test_accounting_equation_and_zero_unresolved(release: ReleaseArtifacts) -> None:
     recon = release.reconciliation
     assert recon.inventoried_leaves == (
         recon.represented_leaves + recon.excluded_leaves + recon.unresolved_leaves
@@ -128,7 +137,7 @@ def test_accounting_equation_and_zero_unresolved(release):
     assert not any(d.disposition is Disposition.UNRESOLVED for d in recon.dispositions)
 
 
-def test_every_leaf_has_exactly_one_disposition(release):
+def test_every_leaf_has_exactly_one_disposition(release: ReleaseArtifacts) -> None:
     disp_ids = [d.leaf_id for d in release.reconciliation.dispositions]
     ledger_ids = [leaf.leaf_id for leaf in release.ledger.leaves]
     assert sorted(disp_ids) == sorted(ledger_ids)
@@ -138,7 +147,7 @@ def test_every_leaf_has_exactly_one_disposition(release):
 # --- Component K: acyclic lifecycle, byte-for-byte regeneration ---------------
 
 
-def test_release_binds_five_top_level_hashes(release):
+def test_release_binds_five_top_level_hashes(release: ReleaseArtifacts) -> None:
     ident = release.release.identity
     for value in (
         ident.authoritative_source_hash,
@@ -150,7 +159,9 @@ def test_release_binds_five_top_level_hashes(release):
         assert value and len(value) == 64
 
 
-def test_clean_regeneration_is_byte_for_byte_deterministic(release):
+def test_clean_regeneration_is_byte_for_byte_deterministic(
+    release: ReleaseArtifacts,
+) -> None:
     # One fresh regeneration — full candidate build + finalize into a brand-new
     # DB — must reproduce the session build byte-for-byte, including the
     # post-persistence proof hashes (Component K's full acyclic c-g order).
@@ -168,7 +179,9 @@ def test_clean_regeneration_is_byte_for_byte_deterministic(release):
     )
 
 
-def test_evidence_report_carries_proof_hashes_but_not_its_own(release):
+def test_evidence_report_carries_proof_hashes_but_not_its_own(
+    release: ReleaseArtifacts,
+) -> None:
     payload = release.report.payload
     assert "persisted_corpus_digest" in payload
     assert payload["bundle_root_hash"] == release.release.identity.bundle_root_hash
@@ -176,7 +189,9 @@ def test_evidence_report_carries_proof_hashes_but_not_its_own(release):
     assert release.release.identity.evidence_report_hash not in payload.values()
 
 
-def test_evidence_report_records_complete_transform_identity(release):
+def test_evidence_report_records_complete_transform_identity(
+    release: ReleaseArtifacts,
+) -> None:
     """PR #134 P1: the report records the full Component B identity — extractor
     config + first-party source manifest/hash + deterministic invocation + IR
     flag — not just ledger.extraction_config."""
@@ -189,7 +204,7 @@ def test_evidence_report_records_complete_transform_identity(release):
     assert ti["intermediate_representation_committed"] is False
 
 
-def _rebuild_report(a, persisted=True):
+def _rebuild_report(a: ReleaseArtifacts, persisted: bool = True) -> EvidenceReport:
     """Rebuild the evidence report from a release's inputs (R16 F2 host test)."""
     from afterworlds.ingestion.corpus.report import build_report
 
@@ -210,19 +225,22 @@ def _rebuild_report(a, persisted=True):
     )
 
 
-def test_evidence_report_identity_is_host_independent(release, monkeypatch):
+def test_evidence_report_identity_is_host_independent(
+    release: ReleaseArtifacts, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """R16 F2: the identity-bearing evidence report is byte-identical for identical
     committed inputs across supported hosts — no runtime host OS/arch/python enters
     the hashed payload (they were operational diagnostics, now logged only). So the
     evidence-report hash (one of the five release identities) does not drift by
     host, and a reuse — which reconstructs from the stored payload — is unaffected."""
-    import afterworlds.ingestion.corpus.report as report_mod
     from afterworlds.ingestion.corpus.report import report_hash
 
-    def build_under(system, machine, pyver):
-        monkeypatch.setattr(report_mod.platform, "system", lambda: system)
-        monkeypatch.setattr(report_mod.platform, "machine", lambda: machine)
-        monkeypatch.setattr(report_mod.platform, "python_version", lambda: pyver)
+    def build_under(
+        system: str, machine: str, pyver: str
+    ) -> tuple[dict[str, object], str]:
+        monkeypatch.setattr(platform, "system", lambda: system)
+        monkeypatch.setattr(platform, "machine", lambda: machine)
+        monkeypatch.setattr(platform, "python_version", lambda: pyver)
         r = _rebuild_report(release)
         return r.payload, report_hash(r)
 
@@ -249,11 +267,13 @@ def test_evidence_report_identity_is_host_independent(release, monkeypatch):
     assert release.release.identity.evidence_report_hash == report_hash(release.report)
 
 
-def test_authoritative_pdf_path_is_the_canonical_spelling():
+def test_authoritative_pdf_path_is_the_canonical_spelling() -> None:
     assert PDF_PATH.name == "DnD5_5e_SRD_CC_v5_2_1.pdf"
     assert PDF_PATH.exists()
 
 
-def test_no_derivative_content_counts_as_authoritative(release):
+def test_no_derivative_content_counts_as_authoritative(
+    release: ReleaseArtifacts,
+) -> None:
     # Component F: derivative layer is empty; nothing paraphrased is persisted.
     assert release.members.derivative_notes == ()

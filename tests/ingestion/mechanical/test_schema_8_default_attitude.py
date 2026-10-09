@@ -92,7 +92,6 @@ from afterworlds.ingestion.mechanical.validation import validate_representation
 from afterworlds.services.rules_authority.application import (
     EffectiveAuthority,
     SourceProse,
-    _base_records,
 )
 from afterworlds.services.rules_authority.binding import RulesPackageBinding
 from afterworlds.services.rules_authority.views import (
@@ -101,6 +100,7 @@ from afterworlds.services.rules_authority.views import (
 )
 from tests.ingestion.mechanical.conftest import (
     RELEASE_BINDING,
+    base_records,
     bound_corpus,
     build_ledger,
     candidate_of,
@@ -342,7 +342,7 @@ def _corpus() -> BoundCorpusSnapshot:
 
 def _authority() -> EffectiveAuthority:
     """The composed batch as the authority a consumer is handed."""
-    records = _base_records(candidate_of(RELEASE_BINDING, _ledger(), _draft()))
+    records = base_records(candidate_of(RELEASE_BINDING, _ledger(), _draft()))
     return EffectiveAuthority(
         binding=RulesPackageBinding(
             package_uuid=uuid5(NAMESPACE_URL, "pkg-5d"),
@@ -465,7 +465,7 @@ def test_the_default_reaches_a_consumer_as_a_vocabulary_member() -> None:
     component, one fact, no governing prose, and the printed clause named as the
     fact's own provenance rather than delivered as text.
     """
-    records = _base_records(candidate_of(RELEASE_BINDING, _ledger(), _draft()))
+    records = base_records(candidate_of(RELEASE_BINDING, _ledger(), _draft()))
     component = next(
         c
         for c in records[INDIFFERENT_KEY].components

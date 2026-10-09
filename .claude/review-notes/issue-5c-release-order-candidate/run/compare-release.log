@@ -1,0 +1,34 @@
+start 2026-10-07T03:07:21.424329+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/_sp/release-order-candidate/compare_release.py
+input 25e33ab8e762d871f3eb4988d6e0c2c13558882995f4ae1bbcde139a5682cc25  .claude/_sp/release-order-candidate/compare_release.py
+OK   leaf id sets equal (10464)
+OK   container id sets/records identical (2877)
+OK   only occurrence_index, page_index and chunk_id differ
+changed field counts: {'chunk.chunk_id': 10464, 'occurrence_index': 10459, 'page_index': 10292}
+OK   page_index == file position in each order
+OK   old occurrence is 0..n-1
+OK   new occurrence is 0..n-1
+OK   within-file order preserved legal-information.md (5)
+OK   within-file order preserved playing-the-game.md (326)
+OK   within-file order preserved character-creation.md (167)
+OK   within-file order preserved classes.md (1175)
+OK   within-file order preserved character-origins.md (118)
+OK   within-file order preserved feats.md (92)
+OK   within-file order preserved equipment.md (376)
+OK   within-file order preserved spells.md (2115)
+OK   within-file order preserved rules-glossary.md (493)
+OK   within-file order preserved gameplay-toolbox.md (286)
+OK   within-file order preserved magic-items.md (1334)
+OK   within-file order preserved monsters.md (116)
+OK   within-file order preserved monsters-A-Z.md (3025)
+OK   within-file order preserved animals.md (836)
+OK   new global order runs == official sequence
+units moving globally 10459 file_index changed 10292
+chunks 10464 all chunk_ids changed True
+locators compared per leaf: identical for 10464
+identity old {'package_uuid': '67c81736-15fd-5e82-8523-e84922f0a7c6', 'release_version': '5.2.1-corpus.3fe24ff6-4e3', 'transform_config_hash': '648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947', 'ledger_hash': '67bd4a59f3012718903671ebb824551cea63ef3134a4e850d4115366edc77932', 'bundle_root_hash': '87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760', 'authoritative_source_hash': '8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87', 'persisted_corpus_digest': '8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42', 'units': 10464, 'containers': 2877, 'chunks': 10464}
+identity new {'package_uuid': '1299484e-c72d-509b-bd8d-d0169ee1f8d2', 'release_version': '5.2.1-corpus.8781d4e0-a3b', 'transform_config_hash': '753e76087885ee99fb3fa97932c6a0e5b5075bbed1b0acd466d90a029ff0bc01', 'ledger_hash': '8e29a85dd10682e5a42b5a66a432d182c61a5de63c2803d901bfa02d8f0650b2', 'bundle_root_hash': '0941dc966337f190f5a6ed3b5dfc0370dc29efd15483889bf2a0d9fb7c564787', 'authoritative_source_hash': '8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87', 'persisted_corpus_digest': '3717fa115a5abb68c4be179d0d643992ab7392a0f9cd5ca5dc4a73da9258e3c3', 'units': 10464, 'containers': 2877, 'chunks': 10464}
+OK   citation report identical
+OK   authoritative_source_hash unchanged
+ALL OK True
+end 2026-10-07T03:07:21.978455+00:00 exit 0

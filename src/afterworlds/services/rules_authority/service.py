@@ -35,13 +35,26 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from afterworlds.ingestion.mechanical.models import SemanticDisposition
 from afterworlds.ingestion.mechanical.persistence import (
     PersistedStateReconstructionError,
     ProjectionNotPersistedError,
     reconstruct_candidate,
 )
 from afterworlds.ingestion.mechanical.projection import ProjectionCandidate
+from afterworlds.ingestion.mechanical.reference_resolution import (
+    AlternativeSelection,
+    routes,
+    select_alternatives,
+)
+from afterworlds.ingestion.mechanical.representation import (
+    ProvenanceTargetKind,
+    RelationshipKind,
+    reference_target_key,
+    relationship_target_key,
+)
 from afterworlds.models.rules_package import RuleSliceRequest, RulesPackageBinding
+from afterworlds.persistence.orm.corpus import LedgerLeafORM
 from afterworlds.persistence.orm.rules_package import RuleChunkORM
 from afterworlds.services.rules_authority.application import (
     EffectiveAuthority,
@@ -113,6 +126,11 @@ class AuthorityResult:
     typed_view: TypedAuthorityView | None = None
     gamemaster_view: GameMasterAuthorityView | None = None
     detail: str = ""
+    #: :meth:`RulesAuthorityService.citation_view` only: each surviving route's
+    #: label and its ``(record, component)`` destinations in reading order --
+    #: landing first -- with ``""`` for a whole record. The view carries their
+    #: effective text.
+    routes: tuple[tuple[str, tuple[tuple[str, str], ...]], ...] = ()
 
 
 class RulesAuthorityService:
@@ -177,7 +195,13 @@ class RulesAuthorityService:
     def _effective(
         self, binding: RulesPackageBinding, state: EffectiveOverrideSet
     ) -> EffectiveAuthority:
-        return apply_override_set(self._reconstruct(binding), state, binding)
+        candidate = self._reconstruct(binding)
+        return apply_override_set(
+            candidate,
+            state,
+            binding,
+            leaf_order=source_leaf_order(self._session, candidate),
+        )
 
     def _resolve_authority(
         self, request: RuleSliceRequest
@@ -277,6 +301,14 @@ class RulesAuthorityService:
         result, authority = self._resolve_authority(request)
         if authority is None:
             return result, None
+        return self._narrow(result, authority, request)
+
+    def _narrow(
+        self,
+        result: AuthorityResult,
+        authority: EffectiveAuthority,
+        request: RuleSliceRequest,
+    ) -> tuple[AuthorityResult, EffectiveAuthority | None]:
         assert result.binding is not None
         if request.whole_package:
             return result, authority
@@ -291,7 +323,19 @@ class RulesAuthorityService:
                 ),
                 None,
             )
-        return result, replace(authority, records=selected)
+        keys = {record.semantic_key for record in selected}
+        # A section narrowed to one component was not read as a catalogue.
+        read = {
+            container
+            for container, found in authority.members
+            if container in keys and keys.issuperset(found)
+        }
+        return result, replace(
+            authority,
+            records=selected,
+            members=tuple(m for m in authority.members if m[0] in read),
+            readings=tuple(r for r in authority.readings if r[0] in read),
+        )
 
     # -- Views --------------------------------------------------------------
 
@@ -322,6 +366,181 @@ class RulesAuthorityService:
             binding=result.binding,
             gamemaster_view=build_gamemaster_view(
                 scoped, self._prose_for(result.binding, scoped)
+            ),
+        )
+
+    def citation_view(
+        self,
+        request: RuleSliceRequest,
+        *,
+        citation: tuple[str, str, str, str],
+        selection: AlternativeSelection,
+    ) -> AuthorityResult:
+        """The GameMaster view of where one resolved citation sends a reader.
+
+        A reader, not a builder: *citation* is ``(from_record_key,
+        from_component_key, source_text, scope_key)``, and the routes it states
+        in the bound projection are filtered by
+        :func:`~afterworlds.ingestion.mechanical.reference_resolution.select_alternatives`
+        — every route *selection* does not rule out survives, since routes are
+        not exclusive. Their destinations are then read through the ordinary
+        selectors, so overrides apply and a disabled or missing destination is
+        ``INVALID_REFERENCE``, exactly as for any other read. *request* supplies
+        the package and any recorded binding; its own selectors are replaced.
+        The view lists the surviving routes in their stated order, each route's
+        landing before its supporting text, and each destination in its own
+        source order.
+
+        Refused: a citation the projection does not state, or states unresolved,
+        or whose citing passage the effective source no longer reads (its
+        record, component or prose disabled or replaced), is
+        ``INVALID_REFERENCE``; one whose every route *selection* rules out is
+        ``INVALID_SELECTOR``.
+        """
+        whole = request.model_copy(
+            update={
+                "whole_package": True,
+                "record_selectors": (),
+                "component_selectors": (),
+            }
+        )
+        result, authority = self._resolve_authority(whole)
+        if authority is None:
+            return result
+        assert result.binding is not None
+        # ponytail: a second reconstruct for the references the effective
+        # authority does not carry; thread the candidate out if reads get hot.
+        candidate = self._reconstruct(result.binding)
+        representation = candidate.representation
+        stated = [
+            ref
+            for ref in representation.references
+            if (
+                ref.from_record_key,
+                ref.from_component_key,
+                ref.source_text,
+                ref.scope_key,
+            )
+            == citation
+        ]
+        if not stated or not all(ref.target_record_key for ref in stated):
+            return AuthorityResult(
+                AuthorityOutcome.INVALID_REFERENCE,
+                binding=result.binding,
+                detail=f"the bound projection states no resolved citation {citation!r}",
+            )
+        # The citation is the source's, so it is in effect only while the
+        # effective source still reads the passage that states it. Disabling or
+        # replacing the citing record, component or prose drops that passage;
+        # appending prose or editing a fact leaves it, and the citation with it.
+        #
+        # A record-owned citation may instead be read from supporting text of
+        # the record itself (ADR-005d Decision 7): a pointer that explains the
+        # record and is bound as no component's prose. It is the record's, so
+        # it is in effect while the source record is — present, and not
+        # supplied by a REPLACE, which keeps the old span_ids but not the text.
+        keys = {reference_target_key(ref) for ref in stated}
+        cited = {
+            claim.span_id
+            for claim in representation.provenance
+            if claim.target_kind is ProvenanceTargetKind.REFERENCE
+            and claim.target_key in keys
+        }
+        source = [r for r in authority.records if r.semantic_key == citation[0]]
+        carried = {
+            entry.span_id
+            for record in source
+            for component in record.components
+            if not citation[1] or component.semantic_key == citation[1]
+            for entry in component.governing_prose
+            if isinstance(entry, SourceProse)
+        }
+        bound = {binding.span_id for binding in representation.prose_bindings}
+        supporting = {
+            span.span_id
+            for span in candidate.classification.spans
+            if span.disposition is SemanticDisposition.SUPPORTING_AUTHORITY
+        }
+        unbound = cited - bound
+        record_text = (
+            not citation[1]
+            and bool(source)
+            and all(r.supplied_by_override_id is None for r in source)
+            and unbound <= supporting
+        )
+        if not cited or not cited & bound <= carried or (unbound and not record_text):
+            return AuthorityResult(
+                AuthorityOutcome.INVALID_REFERENCE,
+                binding=result.binding,
+                detail=f"the effective source no longer states citation {citation!r}",
+            )
+        kept = routes(select_alternatives(stated, selection))
+        if not kept:
+            return AuthorityResult(
+                AuthorityOutcome.INVALID_SELECTOR,
+                binding=result.binding,
+                detail=f"the selection rules out every route of {citation!r}",
+            )
+        destinations = [
+            (ref.target_record_key, ref.target_component_key)
+            for _, members in kept
+            for ref in members
+        ]
+        narrowed = request.model_copy(
+            update={
+                "whole_package": False,
+                "record_selectors": tuple(
+                    dict.fromkeys(r for r, c in destinations if not c)
+                ),
+                "component_selectors": tuple(
+                    dict.fromkeys((r, c) for r, c in destinations if c)
+                ),
+            }
+        )
+        narrowed_result, scoped = self._narrow(result, authority, narrowed)
+        if scoped is None:
+            return narrowed_result
+        view = build_gamemaster_view(scoped, self._prose_for(result.binding, scoped))
+        # Routes read in their stated order, landing first: each component is
+        # placed at the first destination that reads it. The sort is stable,
+        # so within a destination the view keeps its own source order.
+        rank: dict[tuple[str, str], int] = {}
+        for index, (record_key, component_key) in enumerate(destinations):
+            if component_key:
+                rank.setdefault((record_key, component_key), index)
+                continue
+            one = narrowed.model_copy(
+                update={"record_selectors": (record_key,), "component_selectors": ()}
+            )
+            for record in _select(authority, one)[0]:
+                for component in record.components:
+                    rank.setdefault(
+                        (record.semantic_key, component.semantic_key), index
+                    )
+        view = replace(
+            view,
+            components=tuple(
+                sorted(
+                    view.components,
+                    key=lambda c: rank.get(
+                        (c.record_key, c.component_key), len(destinations)
+                    ),
+                )
+            ),
+        )
+        return AuthorityResult(
+            AuthorityOutcome.RESOLVED,
+            binding=result.binding,
+            gamemaster_view=view,
+            routes=tuple(
+                (
+                    label,
+                    tuple(
+                        (ref.target_record_key, ref.target_component_key)
+                        for ref in members
+                    ),
+                )
+                for label, members in kept
             ),
         )
 
@@ -399,7 +618,79 @@ class RulesAuthorityService:
             package_uuid=str(recorded.package_uuid),
             release_version=recorded.release_version,
         )
-        return apply_override_set(candidate, state, recorded)
+        return apply_override_set(
+            candidate,
+            state,
+            recorded,
+            leaf_order=source_leaf_order(self._session, candidate),
+        )
+
+
+def source_leaf_order(
+    session: Session, candidate: ProjectionCandidate
+) -> dict[str, int]:
+    """The bound release's reading order for every leaf a prose binding cites.
+
+    Also every leaf a ``CATALOGUE_MEMBER`` edge's provenance cites, because
+    that span is where the member is printed and is what members are ordered
+    by. No other relationship kind is read.
+
+    Read from the release's own persisted ledger: ``occurrence_index`` is the
+    leaf's global emission order, the coordinate 5c reconstruction restores
+    chunk order by and the one its digests bind. Scoped to the projection's own
+    package, because leaf identities are content-derived and another release
+    may hold the same leaf at a different position.
+
+    A cited leaf with no ledger row means the persisted state no longer
+    describes the projection, so it fails as reconstruction rather than
+    presenting passages in some other order.
+    """
+    located = {span.span_id: span.leaf_id for span in candidate.classification.spans}
+    cited: set[str] = set()
+    for binding in candidate.representation.prose_bindings:
+        leaf_id = located.get(binding.span_id)
+        if leaf_id is None:
+            raise PersistedStateReconstructionError(
+                f"prose binding {binding.record_key}/{binding.component_key} cites "
+                f"span {binding.span_id}, which the projection does not classify"
+            )
+        cited.add(leaf_id)
+    catalogue = {
+        relationship_target_key(rel)
+        for rel in candidate.representation.relationships
+        if rel.kind is RelationshipKind.CATALOGUE_MEMBER
+    }
+    for claim in candidate.representation.provenance:
+        if (
+            claim.target_kind is ProvenanceTargetKind.RELATIONSHIP
+            and claim.target_key in catalogue
+        ):
+            leaf_id = located.get(claim.span_id)
+            if leaf_id is None:
+                raise PersistedStateReconstructionError(
+                    f"catalogue membership {list(claim.target_key)} cites span "
+                    f"{claim.span_id}, which the projection does not classify"
+                )
+            cited.add(leaf_id)
+    if not cited:
+        return {}
+    rows = session.execute(
+        select(LedgerLeafORM.leaf_id, LedgerLeafORM.occurrence_index).where(
+            LedgerLeafORM.package_uuid == candidate.binding.package_uuid,
+            LedgerLeafORM.leaf_id.in_(sorted(cited)),
+        )
+    ).all()
+    order = {leaf_id: index for leaf_id, index in rows}
+    if len(order) != len(rows):
+        raise PersistedStateReconstructionError(
+            f"release {candidate.binding.package_uuid} holds a cited leaf twice"
+        )
+    if missing := sorted(cited - order.keys()):
+        raise PersistedStateReconstructionError(
+            f"release {candidate.binding.package_uuid} has no ledger leaf for "
+            f"cited leaves {missing}"
+        )
+    return order
 
 
 def _select(
@@ -411,10 +702,29 @@ def _select(
     the named components. Selecting a record and one of its components yields
     the whole record — the broader selector wins rather than the last one
     written, so selector order cannot change what a slice contains.
+
+    A record selector also takes the records the effective authority lists as
+    that record's members, one hop and whole: naming a catalogue section names
+    the entries it prints, each read as its own effective record -- replaced as
+    replaced, and absent when disabled -- and never again by the section; and
+    of a member's member, only the parts it prints through that member
+    (Owner Decision 2026-09-27), so the item's own authority reads there. A
+    component selector narrows and so never expands. Membership decides only
+    what is read; each member keeps its own eligibility and prerequisites.
+
+    Selected records list in key order, and a section's reached members follow
+    it in printed order; a member selected with its section is listed once.
+    The GameMaster view reads the section's own passages and its members
+    interleaved as the source prints them (Owner Decision 2026-09-24). A
+    record's components keep the order the effective authority reads them in,
+    narrowed or not. Neither depends on selector order.
     """
     by_key = {record.semantic_key: record for record in authority.records}
+    members = dict(authority.members)
+    readings = dict(authority.readings)
     missing: set[str] = set()
     whole: set[str] = set()
+    reached: dict[str, tuple[str, ...]] = {}
     partial: dict[str, dict[str, EffectiveComponent]] = {}
 
     for record_key in request.record_selectors:
@@ -422,6 +732,23 @@ def _select(
             missing.add(f"record {record_key!r}")
             continue
         whole.add(record_key)
+        found: list[str] = []
+        for member in members.get(record_key, ()):
+            if member not in by_key:
+                missing.add(f"member {member!r} of record {record_key!r}")
+                continue
+            whole.add(member)
+            found.append(member)
+        # What the section reads of a member's member -- the parts it prints
+        # through that member -- narrowed to those parts.
+        for run_key, key, _ in readings.get(record_key, ()):
+            if run_key == record_key or run_key in members.get(record_key, ()):
+                continue
+            (part,) = [c for c in by_key[run_key].components if c.semantic_key == key]
+            partial.setdefault(run_key, {})[key] = part
+            if run_key not in found:
+                found.append(run_key)
+        reached[record_key] = tuple(found)
 
     for record_key, component_key in request.component_selectors:
         record = by_key.get(record_key)
@@ -434,6 +761,22 @@ def _select(
             continue
         partial.setdefault(record_key, {})[component_key] = chosen[0]
 
+    order: dict[str, None] = {}
+
+    def place(key: str) -> None:
+        if key not in order:
+            order[key] = None
+            for member in reached.get(key, ()):
+                place(member)
+
+    keys = sorted(whole | set(partial))
+    follows = {member for found in reached.values() for member in found}
+    for key in keys:
+        if key not in follows:
+            place(key)
+    for key in keys:  # anything reachable only through a membership cycle
+        place(key)
+
     selected = tuple(
         (
             by_key[key]
@@ -441,10 +784,10 @@ def _select(
             else replace(
                 by_key[key],
                 components=tuple(
-                    sorted(partial[key].values(), key=lambda c: c.semantic_key)
+                    c for c in by_key[key].components if c.semantic_key in partial[key]
                 ),
             )
         )
-        for key in sorted(whole | set(partial))
+        for key in order
     )
     return selected, missing

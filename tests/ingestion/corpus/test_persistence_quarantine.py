@@ -65,8 +65,10 @@ from afterworlds.persistence.orm.rules_package import (
 )
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
 from afterworlds.pipeline.retrieval.rules_corpus_service import RulesCorpusService
+from afterworlds.quarantine import QuarantinedAuthorityError
 from afterworlds.services.rules_package import RulesPackageService
 
+from ..conftest import QUARANTINED_RECONSTRUCTION
 from .conftest import REPO_ROOT
 
 _NOW = "2026-07-23T00:00:00Z"
@@ -105,7 +107,19 @@ def _finalize(session, candidate, chroma_client, retrieval_config, fake_embeddin
     without the public completeness guard — so these lifecycle/rollback/reuse
     tests can exercise it on the COMPACT (six-page) corpus. The public
     ``finalize_release`` completeness guard is proven separately by the negative
-    control and the completeness regressions below (PR #134)."""
+    control and the completeness regressions below (PR #134).
+
+    Skipped under the Recorded Owner Decision 2026-09-21 clean restart. The
+    compact six-page corpus is not itself the quarantined product, but it is built
+    by the retired *transform*, and that is what the quarantine keys on: the
+    transform recipe hash recorded in every candidate's ``transform_config``.
+    Under the default configuration this corpus also carries the quarantined
+    package identity ``4458fa10-4a66-5e0e-9ecc-ea37530ad2b4``, because
+    ``derive_package_uuid`` is a function of the PDF hash and the transform
+    configuration rather than of the pages extracted -- but that identity is not
+    what earns the refusal, since reconfiguring an incidental input such as the
+    embedding model label would change it."""
+    pytest.skip(QUARANTINED_RECONSTRUCTION)
     return _finalize_core(
         session,
         candidate,
@@ -807,6 +821,46 @@ def test_six_canary_page_candidate_is_rejected_by_production_finalize(
         "extraction hash" in f or "page sequence" in f or "extracted pages" in f
         for f in result.gate.failures
     )
+    _assert_left_no_state(
+        session,
+        chroma_client,
+        compact_candidate.package_uuid,
+        retrieval_config,
+        fake_embedding,
+    )
+
+
+def test_publication_of_a_quarantined_release_writes_nothing_to_either_store(
+    session, compact_candidate, chroma_client, retrieval_config, fake_embedding
+):
+    """A quarantined package is refused before publication touches a store.
+
+    Recorded Owner Decision 2026-09-21 requires that the superseded 5c products
+    cannot reenter through publication. Refusal downstream of draft persistence
+    would satisfy that only by relying on the compensation boundary to undo rows
+    it should never have written, so the guard sits above the idempotency select
+    at the top of the private core and this asserts the observable consequence:
+    the call raises and neither store holds anything afterwards.
+
+    The compact six-page candidate is the available probe precisely because
+    package identity is derived from the PDF hash and the transform
+    configuration rather than from the pages extracted, so it carries the
+    quarantined ``package_uuid``. It exercises the private core seam directly;
+    the public :func:`finalize_release` reaches persistence only through this
+    core, and its own completeness guard rejects a compact candidate earlier
+    still (the negative control above).
+    """
+    with pytest.raises(QuarantinedAuthorityError) as refused:
+        _finalize_core(
+            session,
+            compact_candidate,
+            now=_NOW,
+            chroma_client=chroma_client,
+            retrieval_config=retrieval_config,
+            embedding_function=fake_embedding,
+        )
+    assert refused.value.seam == "corpus release finalization"
+    assert compact_candidate.package_uuid in str(refused.value)
     _assert_left_no_state(
         session,
         chroma_client,

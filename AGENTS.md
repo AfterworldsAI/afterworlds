@@ -2,6 +2,16 @@
 
 Read this file fully before reviewing an Afterworlds PR.
 
+## CRD Issue 5c Restart Session Continuation
+
+Before continuing 5c Restart work in a new session:
+
+1. Read the opening summary in `docs/architecture/issue-5c-5d-clean-restart.md` first. Use its evidence links and consult the historical sections only as needed. Verify the summary against current artifacts before relying on it; it grants no new acceptance or publication authority.
+2. Keep that opening current when authoritative inputs, acceptance identity/status, blockers, or the immediate next step change. Preserve the historical body and other in-progress edits.
+3. Include this local document edit in the normal restart commit/publication workflow alongside its supporting evidence. Do not extract it into a standalone PR against `main`, which lacked the document and evidence at the last check.
+
+Continue the existing restart scope and gates. On 9 October 2026, the Owner withdrew the dependency-vulnerability deferral and authorized bounded remediation before merging PR #178. Merge and runtime publication/activation remain subject to Owner authorization.
+
 ## Role and Authority
 
 Review as Codex/review agent, not as primary implementer. Find correctness, security, maintainability, test, scope, and architecture problems before merge. Prefer high-signal findings over nitpicks.

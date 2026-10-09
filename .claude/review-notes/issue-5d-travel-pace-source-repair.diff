@@ -1,0 +1,29 @@
+--- a/docs/sources/community/dnd-5e-srd-markdown/playing-the-game.md
++++ b/docs/sources/community/dnd-5e-srd-markdown/playing-the-game.md
+@@ -822,19 +822,17 @@
+ <table>
+   <thead>
+     <tr>
+-      <th>Pace</th>
+-      <th>Distance Traveled Per …</th>
+-      <th></th>
+       <th></th>
++      <th colspan="3">Distance Traveled Per …</th>
+     </tr>
+-  </thead>
+-  <tbody>
+     <tr>
+-      <td></td>
+-      <td>Minute</td>
+-      <td>Hour</td>
+-      <td>Day</td>
++      <th>Pace</th>
++      <th>Minute</th>
++      <th>Hour</th>
++      <th>Day</th>
+     </tr>
++  </thead>
++  <tbody>
+     <tr>
+       <td>Fast</td>
+       <td>400 feet</td>

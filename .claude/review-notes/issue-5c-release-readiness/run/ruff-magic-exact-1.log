@@ -1,0 +1,5 @@
+start 2026-10-07T09:36:32.279155+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe -m ruff check tests/ingestion/mechanical/test_magic_items_proposal.py
+input 009c74c350f336996c43613ef9438fe65e4736bed6ec43bd10898bc715b7543b  tests/ingestion/mechanical/test_magic_items_proposal.py
+All checks passed!
+end 2026-10-07T09:36:32.387121+00:00 exit 0

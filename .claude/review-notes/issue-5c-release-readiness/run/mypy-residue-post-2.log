@@ -1,0 +1,106 @@
+start 2026-10-07T15:47:38.545122+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe -m mypy --strict --cache-dir .claude/_sp/release-readiness-20261007/mypy-residue-post2-cache tests/ingestion/mechanical/_replacement_chain.py tests/ingestion/mechanical/test_actions_pilot_acceptance.py tests/ingestion/mechanical/test_actions_pilot_proposal.py tests/ingestion/mechanical/test_character_creation_foundations_acceptance.py tests/ingestion/mechanical/test_character_creation_foundations_proposal.py tests/ingestion/mechanical/test_character_origins_feats_proposal.py tests/ingestion/mechanical/test_checks_actions_rests_acceptance.py tests/ingestion/mechanical/test_combat_damage_breaking_acceptance.py tests/ingestion/mechanical/test_combat_damage_breaking_proposal.py tests/ingestion/mechanical/test_combat_turn_1_acceptance.py tests/ingestion/mechanical/test_conditions_pilot_acceptance.py tests/ingestion/mechanical/test_conditions_pilot_proposal.py tests/ingestion/mechanical/test_core_play_completion_acceptance.py tests/ingestion/mechanical/test_core_play_completion_proposal.py tests/ingestion/mechanical/test_core_play_dependencies_acceptance.py tests/ingestion/mechanical/test_core_play_dependencies_proposal.py tests/ingestion/mechanical/test_damage_and_hit_points_acceptance.py tests/ingestion/mechanical/test_declared_record_expectations.py tests/ingestion/mechanical/test_equipment_cited_targets_candidate.py tests/ingestion/mechanical/test_equipment_proposal.py tests/ingestion/mechanical/test_equipment_spell_references_candidate.py tests/ingestion/mechanical/test_movement_closure_acceptance.py tests/ingestion/mechanical/test_movement_closure_proposal.py tests/ingestion/mechanical/test_reference_closure_acceptance.py tests/ingestion/mechanical/test_reference_closure_proposal.py tests/ingestion/mechanical/test_spellcasting_proposal.py
+input 241c9add51a15c039ff1ceb357e9c07df54b1bafc92ebe7000a9a7d363093865  tests/ingestion/mechanical/_replacement_chain.py
+input 77d53c74663e62dad19c443801687ed3c617c78b4a81e75cf72c498cb003c6a5  tests/ingestion/mechanical/test_actions_pilot_acceptance.py
+input 4b00acd89efee9893674093baa834e89ab2ff0ddd1c83697c7d555e7a43f6a46  tests/ingestion/mechanical/test_actions_pilot_proposal.py
+input 70c31fc48203c322a26b11f2c174eab3d9c160e5fad018958a9d534213be313b  tests/ingestion/mechanical/test_character_creation_foundations_acceptance.py
+input 755dbd3f673c5bccfc1a4a6c968adb9103225287fb93474d14ea41de263f546a  tests/ingestion/mechanical/test_character_creation_foundations_proposal.py
+input 91777db05d01ae1a03b14f503ac29a692e536a6e148df407cc345dd2e2f5b75e  tests/ingestion/mechanical/test_character_origins_feats_proposal.py
+input 8da00b1f0b0f0c4aa84568b55710309a54d1a8b34e1f38a55cd582dca6f97982  tests/ingestion/mechanical/test_checks_actions_rests_acceptance.py
+input ca649ec2079266d46f5cee8d62a62bd400f34a446f63a13fc3e0d32d6e636ef0  tests/ingestion/mechanical/test_combat_damage_breaking_acceptance.py
+input 24b69b8a3c6ad74dab5e42d1ede6a42d7bc9f7ff2e9e8be18f57b38e17a8c866  tests/ingestion/mechanical/test_combat_damage_breaking_proposal.py
+input 0a1f2a5de22fa0116cdba0ac5cc92b32f5633362f6dd127154d44a1a7c155308  tests/ingestion/mechanical/test_combat_turn_1_acceptance.py
+input 608cfb694b2e9b15fb45682ba28cfede77d392191e7f24409f48daabb634ba21  tests/ingestion/mechanical/test_conditions_pilot_acceptance.py
+input 4edcba98a2161a3d62074220cabc9985f50b745b2e01baccaadc51426cfd1f30  tests/ingestion/mechanical/test_conditions_pilot_proposal.py
+input 685e4e9adbf1a98556f80fdf5cb5e90e0b826720bb51c1cf0d158f117054edfc  tests/ingestion/mechanical/test_core_play_completion_acceptance.py
+input e130bfe8dd3959366a6857384a751f332aed3a937e009ffa8e07e3411b0ba7d7  tests/ingestion/mechanical/test_core_play_completion_proposal.py
+input 0ef8fdf4d4b9f42390d9c8b302d08f48e4649811514da4ef4bb9156232c0a42c  tests/ingestion/mechanical/test_core_play_dependencies_acceptance.py
+input c6af6afde0afa7782f297e9836760c34c12102c5e2b7a5a2653a663f3fcbc0c7  tests/ingestion/mechanical/test_core_play_dependencies_proposal.py
+input 9cfecc06675868956c6d40809f54770d53e832c207ea7b01c1a26de52fbaa609  tests/ingestion/mechanical/test_damage_and_hit_points_acceptance.py
+input 4b5f6e877b105965d314cde9766b57f5be78ef594c685205efe1eb2dee1f6e9a  tests/ingestion/mechanical/test_declared_record_expectations.py
+input c51503a4d9254b98068b61afb1993cec81397a0c0b8719c8f947c22b4fba6281  tests/ingestion/mechanical/test_equipment_cited_targets_candidate.py
+input 09653b1d50967c9b7ff8eb38d6c4655f9cd617a121b7ff2fc2cf851f2c919af4  tests/ingestion/mechanical/test_equipment_proposal.py
+input a3b0c66dff66c52c46c0a2351f0ebd9600630e50515affed59e9cb4ab57fbe88  tests/ingestion/mechanical/test_equipment_spell_references_candidate.py
+input 1f203c1a1583fc13c9cb18ae8f8943e6ca0aa71776d0ec1e697fed555ed3a508  tests/ingestion/mechanical/test_movement_closure_acceptance.py
+input ffa14d4bc0826306f29079a772a5bdb213afbf2289ca27a06f7339b70b221223  tests/ingestion/mechanical/test_movement_closure_proposal.py
+input e60f476853abe39fe82f4891e37d95c979814164741fb4746da5c8adb5887bdf  tests/ingestion/mechanical/test_reference_closure_acceptance.py
+input 3a43a28a4699a7d9e5d546636a8637bceb3fe6b032b431a9aa2c2e597186af55  tests/ingestion/mechanical/test_reference_closure_proposal.py
+input 391e26bb95cbcd296e469dcaf851fdd7bbac66fb0fbb681eb0f883484aea872c  tests/ingestion/mechanical/test_spellcasting_proposal.py
+tests\ingestion\mechanical\test_movement_closure_acceptance.py:153: error: Call to untyped function "references" in typed context  [no-untyped-call]
+tests\ingestion\mechanical\test_movement_closure_acceptance.py:154: error: Call to untyped function "references" in typed context  [no-untyped-call]
+tests\ingestion\mechanical\test_reference_closure_proposal.py:55: error: Module "afterworlds.ingestion.mechanical.representation" does not explicitly export attribute "ComponentHandling"  [attr-defined]
+tests\ingestion\mechanical\test_reference_closure_proposal.py:371: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\mechanical\test_reference_closure_proposal.py:373: error: Unused "type: ignore" comment  [unused-ignore]
+tests\ingestion\mechanical\test_reference_closure_proposal.py:679: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\mechanical\test_reference_closure_proposal.py:681: error: Unused "type: ignore" comment  [unused-ignore]
+tests\ingestion\mechanical\test_movement_closure_proposal.py:51: error: Module "afterworlds.ingestion.mechanical.representation" does not explicitly export attribute "ComponentHandling"  [attr-defined]
+tests\ingestion\mechanical\test_movement_closure_proposal.py:368: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\mechanical\test_movement_closure_proposal.py:370: error: Unused "type: ignore" comment  [unused-ignore]
+tests\ingestion\mechanical\test_movement_closure_proposal.py:649: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\mechanical\test_movement_closure_proposal.py:651: error: Unused "type: ignore" comment  [unused-ignore]
+tests\ingestion\mechanical\test_declared_record_expectations.py:180: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\mechanical\test_declared_record_expectations.py:182: error: Unused "type: ignore" comment  [unused-ignore]
+tests\ingestion\mechanical\test_declared_record_expectations.py:239: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\mechanical\test_declared_record_expectations.py:241: error: Unused "type: ignore" comment  [unused-ignore]
+tests\ingestion\mechanical\test_declared_record_expectations.py:289: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\mechanical\test_declared_record_expectations.py:291: error: Unused "type: ignore" comment  [unused-ignore]
+tests\ingestion\mechanical\test_damage_and_hit_points_acceptance.py:221: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\mechanical\test_damage_and_hit_points_acceptance.py:223: error: Unused "type: ignore" comment  [unused-ignore]
+tests\ingestion\mechanical\test_damage_and_hit_points_acceptance.py:246: error: Call to untyped function "references" in typed context  [no-untyped-call]
+tests\ingestion\mechanical\test_damage_and_hit_points_acceptance.py:247: error: Call to untyped function "references" in typed context  [no-untyped-call]
+tests\ingestion\mechanical\test_conditions_pilot_proposal.py:51: error: Module "afterworlds.ingestion.mechanical.representation" does not explicitly export attribute "ComponentHandling"  [attr-defined]
+tests\ingestion\mechanical\test_conditions_pilot_proposal.py:322: error: Call to untyped function "_with" in typed context  [no-untyped-call]
+tests\ingestion\mechanical\test_conditions_pilot_proposal.py:337: error: Call to untyped function "_with" in typed context  [no-untyped-call]
+tests\ingestion\mechanical\test_conditions_pilot_proposal.py:373: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\mechanical\test_conditions_pilot_proposal.py:375: error: Unused "type: ignore" comment  [unused-ignore]
+tests\ingestion\mechanical\test_conditions_pilot_proposal.py:402: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\mechanical\test_conditions_pilot_proposal.py:404: error: Unused "type: ignore" comment  [unused-ignore]
+tests\ingestion\mechanical\test_combat_turn_1_acceptance.py:201: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\mechanical\test_combat_turn_1_acceptance.py:203: error: Unused "type: ignore" comment  [unused-ignore]
+tests\ingestion\mechanical\test_combat_turn_1_acceptance.py:226: error: Call to untyped function "references" in typed context  [no-untyped-call]
+tests\ingestion\mechanical\test_combat_turn_1_acceptance.py:227: error: Call to untyped function "references" in typed context  [no-untyped-call]
+tests\ingestion\mechanical\test_combat_damage_breaking_proposal.py:57: error: Module "afterworlds.ingestion.mechanical.representation" does not explicitly export attribute "ComponentHandling"  [attr-defined]
+tests\ingestion\mechanical\test_actions_pilot_proposal.py:55: error: Module "afterworlds.ingestion.mechanical.representation" does not explicitly export attribute "ComponentHandling"  [attr-defined]
+tests\ingestion\mechanical\test_actions_pilot_proposal.py:210: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\mechanical\test_actions_pilot_proposal.py:212: error: Unused "type: ignore" comment  [unused-ignore]
+tests\ingestion\mechanical\test_actions_pilot_proposal.py:378: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\mechanical\test_actions_pilot_proposal.py:380: error: Unused "type: ignore" comment  [unused-ignore]
+tests\ingestion\mechanical\test_actions_pilot_proposal.py:469: error: Call to untyped function "_accepted_inputs" in typed context  [no-untyped-call]
+tests\ingestion\mechanical\test_actions_pilot_proposal.py:498: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\mechanical\test_actions_pilot_proposal.py:500: error: Unused "type: ignore" comment  [unused-ignore]
+tests\ingestion\mechanical\test_core_play_dependencies_proposal.py:476: error: Item "None" of "EffectiveFactQualifier | None" has no attribute "applies_when"  [union-attr]
+tests\ingestion\mechanical\test_character_origins_feats_proposal.py:932: error: Need type annotation for "out" (hint: "out: dict[<type>, <type>] = ...")  [var-annotated]
+tests\ingestion\mechanical\test_character_origins_feats_proposal.py:1798: error: Call to untyped function "key" in typed context  [no-untyped-call]
+tests\ingestion\mechanical\test_character_origins_feats_proposal.py:1802: error: Call to untyped function "key" in typed context  [no-untyped-call]
+tests\ingestion\mechanical\test_character_creation_foundations_proposal.py:555: error: List comprehension has incompatible type List[str | None]; expected List[str]  [misc]
+tests\ingestion\mechanical\test_spellcasting_proposal.py:224: error: Returning Any from function declared to return "str"  [no-any-return]
+tests\ingestion\mechanical\test_spellcasting_proposal.py:912: error: Call to untyped function "_key" in typed context  [no-untyped-call]
+tests\ingestion\mechanical\test_spellcasting_proposal.py:927: error: Call to untyped function "_key" in typed context  [no-untyped-call]
+tests\ingestion\mechanical\test_spellcasting_proposal.py:930: error: Call to untyped function "_key" in typed context  [no-untyped-call]
+tests\ingestion\mechanical\test_equipment_proposal.py:415: error: Call to untyped function "where" in typed context  [no-untyped-call]
+tests\ingestion\mechanical\test_equipment_proposal.py:416: error: Call to untyped function "where" in typed context  [no-untyped-call]
+tests\ingestion\mechanical\test_equipment_proposal.py:1255: error: Call to untyped function "_key" in typed context  [no-untyped-call]
+tests\ingestion\mechanical\test_equipment_proposal.py:1270: error: Call to untyped function "_key" in typed context  [no-untyped-call]
+tests\ingestion\mechanical\test_equipment_proposal.py:1274: error: Call to untyped function "_key" in typed context  [no-untyped-call]
+tests\ingestion\mechanical\test_equipment_proposal.py:1988: error: Item "AuthoredProse" of "SourceProse | AuthoredProse" has no attribute "span_id"  [union-attr]
+tests\ingestion\mechanical\test_equipment_proposal.py:1993: error: Incompatible types in assignment (expression has type "tuple[GameMasterComponent, ...]", variable has type "list[GameMasterComponent]")  [assignment]
+tests\ingestion\mechanical\test_equipment_proposal.py:2091: error: Returning Any from function declared to return "str"  [no-any-return]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:126: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_service"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:132: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_sliced"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:132: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_request"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:148: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_service"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:170: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_service"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:216: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_service"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:268: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_disable"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:269: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_service"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:276: error: Returning Any from function declared to return "str"  [no-any-return]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:296: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_service"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:302: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_service"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:302: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_disable"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:309: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_request"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:312: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_service"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:320: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "AuthoredProse"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:325: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "SourceProse"  [attr-defined]
+tests\ingestion\mechanical\test_equipment_cited_targets_candidate.py:333: error: Module "tests.ingestion.mechanical.test_equipment_proposal" does not explicitly export attribute "_service"  [attr-defined]
+Found 76 errors in 15 files (checked 26 source files)
+end 2026-10-07T15:47:46.802178+00:00 exit 1

@@ -1,0 +1,19 @@
+tests\ingestion\mechanical\conftest.py:764: error: Argument "representation" to "ProjectionCandidate" has incompatible type "object"; expected "RepresentationDraft"  [arg-type]
+tests\ingestion\mechanical\conftest.py:1010: error: The return type of a generator function should be "Generator" or one of its supertypes  [misc]
+tests\ingestion\mechanical\conftest.py:1010: note: Error code "misc" not covered by "type: ignore" comment
+tests\ingestion\mechanical\conftest.py:763: error: Unused "type: ignore" comment  [unused-ignore]
+tests\ingestion\mechanical\test_oracle.py:38: error: Returning Any from function declared to return "dict[str, object]"  [no-any-return]
+tests\ingestion\mechanical\test_oracle.py:183: error: Function is missing a type annotation for one or more arguments  [no-untyped-def]
+tests\ingestion\mechanical\test_oracle.py:184: error: Unused "type: ignore" comment  [unused-ignore]
+tests\ingestion\mechanical\test_oracle.py:209: error: Value of type "object" is not indexable  [index]
+tests\ingestion\mechanical\test_oracle.py:396: error: Unused "type: ignore" comment  [unused-ignore]
+tests\ingestion\mechanical\test_oracle.py:506: error: Value of type "object" is not indexable  [index]
+tests\ingestion\mechanical\test_oracle.py:515: error: "object" has no attribute "reverse"  [attr-defined]
+tests\ingestion\mechanical\test_oracle.py:516: error: Value of type "object" is not indexable  [index]
+tests\ingestion\mechanical\test_oracle.py:517: error: "object" has no attribute "reverse"  [attr-defined]
+tests\ingestion\mechanical\test_accepted_inputs.py:908: error: Unsupported right operand type for in ("object")  [operator]
+tests\ingestion\mechanical\test_accepted_inputs.py:1228: error: Unused "type: ignore" comment  [unused-ignore]
+tests\ingestion\mechanical\test_accepted_inputs.py:1229: error: Unused "type: ignore[index, union-attr]" comment  [unused-ignore]
+tests\ingestion\mechanical\test_accepted_inputs.py:1229: error: "object" has no attribute "__iter__"; maybe "__dir__" or "__str__"? (not iterable)  [attr-defined]
+tests\ingestion\mechanical\test_accepted_inputs.py:1229: note: Error code "attr-defined" not covered by "type: ignore" comment
+Found 16 errors in 3 files (checked 4 source files)

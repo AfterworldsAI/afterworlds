@@ -1,0 +1,1587 @@
+[
+  {
+    "resolution_id": "resolve-classes-warlock-eldritch-invocation-options-pact-of-the-chain-pact-of-the-chain-imp-monsters-1",
+    "from_record_key": "classes.warlock.eldritch_invocation_options.pact_of_the_chain",
+    "from_component_key": "pact_of_the_chain",
+    "source_text": "Imp",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.imp.imp",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "1544d6d8-9161-5091-b85d-eed080d61174"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-warlock-eldritch-invocation-options-pact-of-the-chain-pact-of-the-chain-pseudodragon-monsters-1",
+    "from_record_key": "classes.warlock.eldritch_invocation_options.pact_of_the_chain",
+    "from_component_key": "pact_of_the_chain",
+    "source_text": "Pseudodragon",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.pseudodragon.pseudodragon",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "1544d6d8-9161-5091-b85d-eed080d61174"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-warlock-eldritch-invocation-options-pact-of-the-chain-pact-of-the-chain-quasit-monsters-1",
+    "from_record_key": "classes.warlock.eldritch_invocation_options.pact_of_the_chain",
+    "from_component_key": "pact_of_the_chain",
+    "source_text": "Quasit",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.quasit.quasit",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "1544d6d8-9161-5091-b85d-eed080d61174"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-warlock-eldritch-invocation-options-pact-of-the-chain-pact-of-the-chain-skeleton-monsters-1",
+    "from_record_key": "classes.warlock.eldritch_invocation_options.pact_of_the_chain",
+    "from_component_key": "pact_of_the_chain",
+    "source_text": "Skeleton",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.skeletons.skeleton",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "1544d6d8-9161-5091-b85d-eed080d61174"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-warlock-eldritch-invocation-options-pact-of-the-chain-pact-of-the-chain-sphinx-of-wonder-monsters-1",
+    "from_record_key": "classes.warlock.eldritch_invocation_options.pact_of_the_chain",
+    "from_component_key": "pact_of_the_chain",
+    "source_text": "Sphinx of Wonder",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.sphinxes.sphinx_of_wonder",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "1544d6d8-9161-5091-b85d-eed080d61174"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-warlock-eldritch-invocation-options-pact-of-the-chain-pact-of-the-chain-sprite-monsters-1",
+    "from_record_key": "classes.warlock.eldritch_invocation_options.pact_of_the_chain",
+    "from_component_key": "pact_of_the_chain",
+    "source_text": "Sprite",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.sprite.sprite",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "1544d6d8-9161-5091-b85d-eed080d61174"
+    ]
+  },
+  {
+    "resolution_id": "resolve-gameplay-toolbox-combat-encounters-powerful-creatures-ogre-monsters-1",
+    "from_record_key": "gameplay_toolbox.combat_encounters",
+    "from_component_key": "powerful_creatures",
+    "source_text": "Ogre",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.ogre.ogre",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "de1764c8-ec4c-5111-a6df-d9322cee0ad2"
+    ]
+  },
+  {
+    "resolution_id": "resolve-gameplay-toolbox-combat-encounters-step-3-spend-your-budget-adult-red-dragons-monsters-1",
+    "from_record_key": "gameplay_toolbox.combat_encounters",
+    "from_component_key": "step_3_spend_your_budget",
+    "source_text": "Adult Red Dragons",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.red_dragons.adult_red_dragon",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "bac48c3c-e2ab-5b38-9ada-4e9c66e2c614"
+    ]
+  },
+  {
+    "resolution_id": "resolve-gameplay-toolbox-combat-encounters-step-3-spend-your-budget-bugbear-warrior-monsters-1",
+    "from_record_key": "gameplay_toolbox.combat_encounters",
+    "from_component_key": "step_3_spend_your_budget",
+    "source_text": "Bugbear Warrior",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.bugbears.bugbear_warrior",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "8fcfef84-4b48-5bf5-a5e1-1c1dd7fd75b8"
+    ]
+  },
+  {
+    "resolution_id": "resolve-gameplay-toolbox-combat-encounters-step-3-spend-your-budget-druids-monsters-1",
+    "from_record_key": "gameplay_toolbox.combat_encounters",
+    "from_component_key": "step_3_spend_your_budget",
+    "source_text": "Druids",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.druid.druid",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "15c1eb46-c465-55e2-8855-18862a288737"
+    ]
+  },
+  {
+    "resolution_id": "resolve-gameplay-toolbox-combat-encounters-step-3-spend-your-budget-fire-giants-monsters-1",
+    "from_record_key": "gameplay_toolbox.combat_encounters",
+    "from_component_key": "step_3_spend_your_budget",
+    "source_text": "Fire Giants",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.fire_giant.fire_giant",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "bac48c3c-e2ab-5b38-9ada-4e9c66e2c614"
+    ]
+  },
+  {
+    "resolution_id": "resolve-gameplay-toolbox-combat-encounters-step-3-spend-your-budget-skeletons-monsters-1",
+    "from_record_key": "gameplay_toolbox.combat_encounters",
+    "from_component_key": "step_3_spend_your_budget",
+    "source_text": "Skeletons",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.skeletons.skeleton",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "15c1eb46-c465-55e2-8855-18862a288737"
+    ]
+  },
+  {
+    "resolution_id": "resolve-gameplay-toolbox-combat-encounters-step-3-spend-your-budget-stirges-monsters-1",
+    "from_record_key": "gameplay_toolbox.combat_encounters",
+    "from_component_key": "step_3_spend_your_budget",
+    "source_text": "Stirges",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.stirge.stirge",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "15c1eb46-c465-55e2-8855-18862a288737"
+    ]
+  },
+  {
+    "resolution_id": "resolve-gameplay-toolbox-combat-encounters-step-3-spend-your-budget-warhorse-skeleton-monsters-1",
+    "from_record_key": "gameplay_toolbox.combat_encounters",
+    "from_component_key": "step_3_spend_your_budget",
+    "source_text": "Warhorse Skeleton",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.skeletons.warhorse_skeleton",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "15c1eb46-c465-55e2-8855-18862a288737"
+    ]
+  },
+  {
+    "resolution_id": "resolve-gameplay-toolbox-combat-encounters-step-3-spend-your-budget-wight-monsters-1",
+    "from_record_key": "gameplay_toolbox.combat_encounters",
+    "from_component_key": "step_3_spend_your_budget",
+    "source_text": "Wight",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.wight.wight",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "15c1eb46-c465-55e2-8855-18862a288737"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-beans-bag-of-beans-bulette-monsters-1",
+    "from_record_key": "magic_items.bag_of_beans",
+    "from_component_key": "bag_of_beans",
+    "source_text": "Bulette",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.bulette.bulette",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "07c49f75-8f03-5c9c-8d40-404028b52daa"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-beans-bag-of-beans-mummy-lord-monsters-1",
+    "from_record_key": "magic_items.bag_of_beans",
+    "from_component_key": "bag_of_beans",
+    "source_text": "Mummy Lord",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.mummies.mummy_lord",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "07c49f75-8f03-5c9c-8d40-404028b52daa"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-beans-bag-of-beans-mummy-monsters-1",
+    "from_record_key": "magic_items.bag_of_beans",
+    "from_component_key": "bag_of_beans",
+    "source_text": "Mummy",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.mummies.mummy",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "07c49f75-8f03-5c9c-8d40-404028b52daa"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-beans-bag-of-beans-shrieker-fungi-monsters-1",
+    "from_record_key": "magic_items.bag_of_beans",
+    "from_component_key": "bag_of_beans",
+    "source_text": "Shrieker Fungi",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.fungi.shrieker_fungus",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "07c49f75-8f03-5c9c-8d40-404028b52daa"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-beans-bag-of-beans-treant-monsters-1",
+    "from_record_key": "magic_items.bag_of_beans",
+    "from_component_key": "bag_of_beans",
+    "source_text": "Treant",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.treant.treant",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "07c49f75-8f03-5c9c-8d40-404028b52daa"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bag-of-tricks-bag-of-tricks-axe-beak-monsters-1",
+    "from_record_key": "magic_items.bag_of_tricks",
+    "from_component_key": "bag_of_tricks",
+    "source_text": "Axe Beak",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.axe_beak.axe_beak",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "820a8178-aba9-5fbc-a61b-5fd00d1de5f5"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-bowl-of-commanding-water-elementals-bowl-of-commanding-water-elementals-water-elemental-monsters-1",
+    "from_record_key": "magic_items.bowl_of_commanding_water_elementals",
+    "from_component_key": "bowl_of_commanding_water_elementals",
+    "source_text": "Water Elemental",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.water_elemental.water_elemental",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "06b8ebb7-942e-5316-838c-225508c2b9f9",
+      "5d955345-52a5-59df-b738-83231b42c276"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-brazier-of-commanding-fire-elementals-brazier-of-commanding-fire-elementals-fire-elemental-monsters-1",
+    "from_record_key": "magic_items.brazier_of_commanding_fire_elementals",
+    "from_component_key": "brazier_of_commanding_fire_elementals",
+    "source_text": "Fire Elemental",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.fire_elemental.fire_elemental",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "00ff6c38-2234-50ae-96e1-28c745844781",
+      "94cb5bc2-c407-574e-9b1e-183a873deaa1"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-censer-of-controlling-air-elementals-censer-of-controlling-air-elementals-air-elemental-monsters-1",
+    "from_record_key": "magic_items.censer_of_controlling_air_elementals",
+    "from_component_key": "censer_of_controlling_air_elementals",
+    "source_text": "Air Elemental",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.air_elemental.air_elemental",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "4e0e5116-11dd-57f0-a797-47839c463966",
+      "c64a96e4-0bc6-566b-99af-0ab151e48fa5"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-adult-red-dragon-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Adult Red Dragon",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.red_dragons.adult_red_dragon",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-archmage-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Archmage",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.mages.archmage",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-assassin-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Assassin",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.assassin.assassin",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-bandit-captain-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Bandit Captain",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.bandits.bandit_captain",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-basilisk-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Basilisk",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.basilisk.basilisk",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-berserker-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Berserker",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.berserker.berserker",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-bugbear-warrior-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Bugbear Warrior",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.bugbears.bugbear_warrior",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-cloud-giant-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Cloud Giant",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.cloud_giant.cloud_giant",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-druid-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Druid",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.druid.druid",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-erinyes-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Erinyes",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.erinyes.erinyes",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-ettin-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Ettin",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.ettin.ettin",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-fire-giant-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Fire Giant",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.fire_giant.fire_giant",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-frost-giant-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Frost Giant",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.frost_giant.frost_giant",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-gnoll-warrior-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Gnoll Warrior",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.gnoll.gnoll_warrior",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-goblin-warrior-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Goblin Warrior",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.goblins.goblin_warrior",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-guardian-naga-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Guardian Naga",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.guardian_naga.guardian_naga",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-hill-giant-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Hill Giant",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.hill_giant.hill_giant",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-hobgoblin-warrior-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Hobgoblin Warrior",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.hobgoblins.hobgoblin_warrior",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-incubus-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Incubus",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.incubus.incubus",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-iron-golem-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Iron Golem",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.iron_golem.iron_golem",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-knight-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Knight",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.knight.knight",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-kobold-warrior-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Kobold Warrior",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.kobold.kobold_warrior",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-lich-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Lich",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.lich.lich",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-medusa-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Medusa",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.medusa.medusa",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-night-hag-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Night Hag",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.night_hag.night_hag",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-ogre-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Ogre",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.ogre.ogre",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-oni-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Oni",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.oni.oni",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-priest-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Priest",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.priests.priest",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-succubus-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Succubus",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.succubus.succubus",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-troll-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Troll",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.troll.troll",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-veteran-warrior-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Veteran Warrior",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.warriors.veteran_warrior",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-deck-of-illusions-deck-of-illusions-wyvern-monsters-1",
+    "from_record_key": "magic_items.deck_of_illusions",
+    "from_component_key": "deck_of_illusions",
+    "source_text": "Wyvern",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.wyvern.wyvern",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-dust-of-dryness-dust-of-dryness-water-elemental-monsters-1",
+    "from_record_key": "magic_items.dust_of_dryness",
+    "from_component_key": "dust_of_dryness",
+    "source_text": "Water Elemental",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.water_elemental.water_elemental",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "8157ce2e-6420-589b-993b-45140562b85b"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-efreeti-bottle-efreeti-bottle-efreeti-monsters-1",
+    "from_record_key": "magic_items.efreeti_bottle",
+    "from_component_key": "efreeti_bottle",
+    "source_text": "Efreeti",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.efreeti.efreeti",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "5599575e-5b07-5f42-8414-c817fa8a9ba7",
+      "a48510f9-ace8-5655-a273-9e24280ec212"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-elemental-gem-elemental-gem-air-elemental-monsters-1",
+    "from_record_key": "magic_items.elemental_gem",
+    "from_component_key": "elemental_gem",
+    "source_text": "Air Elemental",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.air_elemental.air_elemental",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "956e1a14-de11-5c67-aa80-0ec6f5d7bb76"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-elemental-gem-elemental-gem-earth-elemental-monsters-1",
+    "from_record_key": "magic_items.elemental_gem",
+    "from_component_key": "elemental_gem",
+    "source_text": "Earth Elemental",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.earth_elemental.earth_elemental",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "956e1a14-de11-5c67-aa80-0ec6f5d7bb76"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-elemental-gem-elemental-gem-fire-elemental-monsters-1",
+    "from_record_key": "magic_items.elemental_gem",
+    "from_component_key": "elemental_gem",
+    "source_text": "Fire Elemental",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.fire_elemental.fire_elemental",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "956e1a14-de11-5c67-aa80-0ec6f5d7bb76"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-elemental-gem-elemental-gem-water-elemental-monsters-1",
+    "from_record_key": "magic_items.elemental_gem",
+    "from_component_key": "elemental_gem",
+    "source_text": "Water Elemental",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.water_elemental.water_elemental",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "956e1a14-de11-5c67-aa80-0ec6f5d7bb76"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-feather-token-feather-token-roc-monsters-1",
+    "from_record_key": "magic_items.feather_token",
+    "from_component_key": "feather_token",
+    "source_text": "Roc",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.roc.roc",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "dabd997d-d627-53be-a278-87a5e4600f0f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-figurine-of-wondrous-power-figurine-of-wondrous-power-griffon-monsters-1",
+    "from_record_key": "magic_items.figurine_of_wondrous_power",
+    "from_component_key": "figurine_of_wondrous_power",
+    "source_text": "Griffon",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.griffon.griffon",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "c807e278-f38b-5105-a440-e4d353a131a4"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-figurine-of-wondrous-power-figurine-of-wondrous-power-nightmare-monsters-1",
+    "from_record_key": "magic_items.figurine_of_wondrous_power",
+    "from_component_key": "figurine_of_wondrous_power",
+    "source_text": "Nightmare",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.nightmare.nightmare",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "555d9797-30d3-5ea3-a234-f9cacd4989f3"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-horn-of-valhalla-horn-of-valhalla-berserker-monsters-1",
+    "from_record_key": "magic_items.horn_of_valhalla",
+    "from_component_key": "horn_of_valhalla",
+    "source_text": "Berserker",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.berserker.berserker",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "a9542976-809c-5302-bea9-1d9ab92e6d1d"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-manual-of-golems-manual-of-golems-clay-golem-monsters-1",
+    "from_record_key": "magic_items.manual_of_golems",
+    "from_component_key": "manual_of_golems",
+    "source_text": "Clay Golem",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.clay_golem.clay_golem",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "d05d2bb7-8c60-5705-98ab-d4590737068b"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-manual-of-golems-manual-of-golems-flesh-golem-monsters-1",
+    "from_record_key": "magic_items.manual_of_golems",
+    "from_component_key": "manual_of_golems",
+    "source_text": "Flesh Golem",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.flesh_golem.flesh_golem",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "d05d2bb7-8c60-5705-98ab-d4590737068b"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-manual-of-golems-manual-of-golems-iron-golem-monsters-1",
+    "from_record_key": "magic_items.manual_of_golems",
+    "from_component_key": "manual_of_golems",
+    "source_text": "Iron Golem",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.iron_golem.iron_golem",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "d05d2bb7-8c60-5705-98ab-d4590737068b"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-manual-of-golems-manual-of-golems-stone-golem-monsters-1",
+    "from_record_key": "magic_items.manual_of_golems",
+    "from_component_key": "manual_of_golems",
+    "source_text": "Stone Golem",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.stone_golem.stone_golem",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "d05d2bb7-8c60-5705-98ab-d4590737068b"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-mysterious-deck-mysterious-deck-knight-monsters-1",
+    "from_record_key": "magic_items.mysterious_deck",
+    "from_component_key": "mysterious_deck",
+    "source_text": "Knight",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.knight.knight",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "9b628820-307e-556a-87f0-f732349accc0",
+      "bf762c37-9671-5e52-bcc3-e10047538d9a"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-ring-of-djinni-summoning-ring-of-djinni-summoning-djinni-monsters-1",
+    "from_record_key": "magic_items.ring_of_djinni_summoning",
+    "from_component_key": "ring_of_djinni_summoning",
+    "source_text": "Djinni",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.djinni.djinni",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "74af231f-c624-5a76-a46f-3590239d5eeb",
+      "956fef9d-dc6c-595f-836e-6f0c82fc7304",
+      "bb45b5be-3078-5d7e-90b4-f654425ba452"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-stone-of-controlling-earth-elementals-stone-of-controlling-earth-elementals-earth-elemental-monsters-1",
+    "from_record_key": "magic_items.stone_of_controlling_earth_elementals",
+    "from_component_key": "stone_of_controlling_earth_elementals",
+    "source_text": "Earth Elemental",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.earth_elemental.earth_elemental",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "5b87f363-227a-51a4-85e0-4d41f783e5e7",
+      "dca65bc6-a439-5727-bc74-2b46c83d51dd"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-animate-dead-effect-skeleton-monsters-1",
+    "from_record_key": "spells.animate_dead",
+    "from_component_key": "effect",
+    "source_text": "Skeleton",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.skeletons.skeleton",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "07dc161d-16b4-5b44-9609-aa50e443daf0"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-animate-dead-effect-zombie-monsters-1",
+    "from_record_key": "spells.animate_dead",
+    "from_component_key": "effect",
+    "source_text": "Zombie",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.zombies.zombie",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "07dc161d-16b4-5b44-9609-aa50e443daf0"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-awaken-effect-awakened-shrub-monsters-1",
+    "from_record_key": "spells.awaken",
+    "from_component_key": "effect",
+    "source_text": "Awakened Shrub",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.awakened_plants.awakened_shrub",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "ee29eee6-c193-5a0a-a8af-4497298a0571"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-awaken-effect-awakened-tree-monsters-1",
+    "from_record_key": "spells.awaken",
+    "from_component_key": "effect",
+    "source_text": "Awakened Tree",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.awakened_plants.awakened_tree",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "ee29eee6-c193-5a0a-a8af-4497298a0571"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-create-undead-effect-ghoul-monsters-1",
+    "from_record_key": "spells.create_undead",
+    "from_component_key": "effect",
+    "source_text": "Ghoul",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.ghoul.ghoul",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "d0e14d3c-924e-5470-8a25-fd39bba1e725"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-create-undead-using-a-higher-level-spell-slot-ghasts-monsters-1",
+    "from_record_key": "spells.create_undead",
+    "from_component_key": "using_a_higher_level_spell_slot",
+    "source_text": "Ghasts",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.ghast.ghast",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "44b9874b-8c3e-5c37-b4fd-22e4e676cc65"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-create-undead-using-a-higher-level-spell-slot-ghouls-monsters-1",
+    "from_record_key": "spells.create_undead",
+    "from_component_key": "using_a_higher_level_spell_slot",
+    "source_text": "Ghouls",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.ghoul.ghoul",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "44b9874b-8c3e-5c37-b4fd-22e4e676cc65"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-create-undead-using-a-higher-level-spell-slot-mummies-monsters-1",
+    "from_record_key": "spells.create_undead",
+    "from_component_key": "using_a_higher_level_spell_slot",
+    "source_text": "Mummies",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.mummies.mummy",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "44b9874b-8c3e-5c37-b4fd-22e4e676cc65"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-create-undead-using-a-higher-level-spell-slot-wights-monsters-1",
+    "from_record_key": "spells.create_undead",
+    "from_component_key": "using_a_higher_level_spell_slot",
+    "source_text": "Wights",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.wight.wight",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "44b9874b-8c3e-5c37-b4fd-22e4e676cc65"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-finger-of-death-effect-zombie-monsters-1",
+    "from_record_key": "spells.finger_of_death",
+    "from_component_key": "effect",
+    "source_text": "Zombie",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.zombies.zombie",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "2ebf46ad-c392-56c9-aba1-e65eb8c02a35"
+    ]
+  }
+]

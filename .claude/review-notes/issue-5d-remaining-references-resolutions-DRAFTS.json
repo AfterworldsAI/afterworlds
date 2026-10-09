@@ -1,0 +1,553 @@
+[
+  {
+    "resolution_id": "resolve-character-creation-create-your-character-determine-ability-scores-playing-the-game-remaining-1",
+    "from_record_key": "character_creation.create_your_character",
+    "from_component_key": "determine_ability_scores",
+    "source_text": "Playing the Game",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "target_record_key": "play.six_abilities",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "0674013e-2e20-524d-a8f6-50dbe21b38f3"
+    ]
+  },
+  {
+    "resolution_id": "resolve-character-creation-create-your-character-starting-proficiency-bonus-playing-the-game-remaining-1",
+    "from_record_key": "character_creation.create_your_character",
+    "from_component_key": "starting_proficiency_bonus",
+    "source_text": "Playing the Game",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "target_record_key": "play.proficiency.proficiency_bonus",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "6ef106c3-e1ee-5f9a-9b26-69c82fad3317"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-bard-core-traits-equipment-remaining-1",
+    "from_record_key": "classes.bard",
+    "from_component_key": "core_traits",
+    "source_text": "Equipment",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.tools.musical_instrument",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "73a15de1-87fe-504d-9fc1-8253175bfad7"
+    ]
+  },
+  {
+    "resolution_id": "resolve-classes-bard-core-traits-playing-the-game-remaining-1",
+    "from_record_key": "classes.bard",
+    "from_component_key": "core_traits",
+    "source_text": "Playing the Game",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "target_record_key": "play.proficiency.skill_proficiencies",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "73a15de1-87fe-504d-9fc1-8253175bfad7"
+    ]
+  },
+  {
+    "resolution_id": "resolve-equipment-adventuring-gear-bedroll-gameplay-toolbox-remaining-1",
+    "from_record_key": "equipment.adventuring_gear",
+    "from_component_key": "bedroll",
+    "source_text": "Gameplay Toolbox",
+    "scope_key": "srd-5.2.1/gameplay-toolbox",
+    "target_record_key": "gameplay_toolbox.environmental_effects.extreme_cold",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e7e5ef2f-444a-50ca-bf16-fbe5a9a4030d"
+    ]
+  },
+  {
+    "resolution_id": "resolve-equipment-adventuring-gear-blanket-gameplay-toolbox-remaining-1",
+    "from_record_key": "equipment.adventuring_gear",
+    "from_component_key": "blanket",
+    "source_text": "Gameplay Toolbox",
+    "scope_key": "srd-5.2.1/gameplay-toolbox",
+    "target_record_key": "gameplay_toolbox.environmental_effects.extreme_cold",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e3f84ec5-f098-5df2-949f-3249669bc1bd"
+    ]
+  },
+  {
+    "resolution_id": "resolve-equipment-magic-items-magic-items-magic-items-remaining-1",
+    "from_record_key": "equipment.magic_items",
+    "from_component_key": "magic_items",
+    "source_text": "Magic Items",
+    "scope_key": "srd-5.2.1/magic-items",
+    "target_record_key": "magic_items.magic_items_a_z",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "d3b9efb8-76af-5188-87b7-fd2d4a1bcae0"
+    ]
+  },
+  {
+    "resolution_id": "resolve-equipment-weapons-selling-equipment-magic-items-remaining-1",
+    "from_record_key": "equipment.weapons",
+    "from_component_key": "selling_equipment",
+    "source_text": "Magic Items",
+    "scope_key": "srd-5.2.1/magic-items",
+    "target_record_key": "magic_items.magic_item_rarity.magic_item_values_by_rarity",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "f218b436-c2c0-5212-a09c-b43472fa241d"
+    ]
+  },
+  {
+    "resolution_id": "resolve-gameplay-toolbox-travel-pace-travel-pace-playing-the-game-remaining-1",
+    "from_record_key": "gameplay_toolbox.travel_pace",
+    "from_component_key": "travel_pace",
+    "source_text": "Playing the Game",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "target_record_key": "play.exploration.travel_pace",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "a50a4e43-d720-52b0-a544-5172550c8976"
+    ]
+  },
+  {
+    "resolution_id": "resolve-gameplay-toolbox-travel-pace-vehicles-equipment-remaining-1",
+    "from_record_key": "gameplay_toolbox.travel_pace",
+    "from_component_key": "vehicles",
+    "source_text": "Equipment",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.mounts_and_vehicles",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "344794da-539d-566c-a95c-2c347fa61700"
+    ]
+  },
+  {
+    "resolution_id": "resolve-glossary-spell-attack-record-casting-spells-remaining-1",
+    "from_record_key": "glossary.spell_attack",
+    "from_component_key": "",
+    "source_text": "Casting Spells",
+    "scope_key": "srd-5.2.1/spells",
+    "target_record_key": "spells.casting_spells",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e2286836-d9b2-5701-a73d-ded4e6909505"
+    ]
+  },
+  {
+    "resolution_id": "resolve-glossary-spellcasting-focus-record-casting-spells-remaining-1",
+    "from_record_key": "glossary.spellcasting_focus",
+    "from_component_key": "",
+    "source_text": "Casting Spells",
+    "scope_key": "srd-5.2.1/spells",
+    "target_record_key": "spells.casting_spells",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "b6549567-304a-5fad-9fc6-07f366374950"
+    ]
+  },
+  {
+    "resolution_id": "resolve-glossary-stat-block-challenge-rating-monsters-remaining-1",
+    "from_record_key": "glossary.stat_block",
+    "from_component_key": "challenge_rating",
+    "source_text": "Monsters",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.parts_of_a_stat_block.challenge_rating",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "24ec15c9-dfef-59e6-8935-03404f0fc93e"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-crafting-magic-items-time-and-cost-craft-that-item-using-the-rules-in-equipment-remaining-1",
+    "from_record_key": "magic_items.crafting_magic_items",
+    "from_component_key": "time_and_cost",
+    "source_text": "craft that item using the rules in \"Equipment.\"",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.crafting_nonmagical_items",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "d5d97869-3ec0-5091-b447-22d91d2d78b5"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-crafting-magic-items-time-and-cost-whose-crafting-time-and-cost-are-given-in-equipment-remaining-1",
+    "from_record_key": "magic_items.crafting_magic_items",
+    "from_component_key": "time_and_cost",
+    "source_text": "whose crafting time and cost are given in \"Equipment.\"",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.scribing_spell_scrolls",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "3a0a6678-2637-5f0e-a8db-5628f3f87b22"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-crafting-magic-items-tools-equipment-remaining-1",
+    "from_record_key": "magic_items.crafting_magic_items",
+    "from_component_key": "tools",
+    "source_text": "Equipment",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.tools",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "abb1dd4e-f4ee-57b6-b444-e5f4e6e6cb40"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-magic-item-categories-armor-equipment-remaining-1",
+    "from_record_key": "magic_items.magic_item_categories",
+    "from_component_key": "armor",
+    "source_text": "Equipment",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "d134d508-c19b-530b-9770-df1df84a844f"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-magic-item-categories-weapons-equipment-remaining-1",
+    "from_record_key": "magic_items.magic_item_categories",
+    "from_component_key": "weapons",
+    "source_text": "Equipment",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "e43f5e79-08f4-52f1-bcb4-54de7dc4c2d7"
+    ]
+  },
+  {
+    "resolution_id": "resolve-magic-items-magic-item-rarity-magic-item-values-by-rarity-magic-item-values-by-rarity-plate-armor-remaining-1",
+    "from_record_key": "magic_items.magic_item_rarity.magic_item_values_by_rarity",
+    "from_component_key": "magic_item_values_by_rarity",
+    "source_text": "Plate Armor",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.armor.plate_armor",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "2909e2fc-8085-5114-810c-8eb656af6b29"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-parts-of-a-stat-block-attack-notation-spells-remaining-1",
+    "from_record_key": "monsters.parts_of_a_stat_block",
+    "from_component_key": "attack_notation",
+    "source_text": "Spells",
+    "scope_key": "srd-5.2.1/spells",
+    "target_record_key": "spells.attack_rolls",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "ddfea8c5-df9c-5fd5-8c90-fc6d30bb5dd4"
+    ]
+  },
+  {
+    "resolution_id": "resolve-monsters-parts-of-a-stat-block-parts-of-a-stat-block-rules-glossary-remaining-1",
+    "from_record_key": "monsters.parts_of_a_stat_block",
+    "from_component_key": "parts_of_a_stat_block",
+    "source_text": "Rules Glossary",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "target_record_key": "glossary.stat_block",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "dac4347e-db25-5481-9d21-ab67a467f1c4"
+    ]
+  },
+  {
+    "resolution_id": "resolve-play-damage-and-healing-record-spells-remaining-1",
+    "from_record_key": "play.damage_and_healing",
+    "from_component_key": "",
+    "source_text": "Spells",
+    "scope_key": "srd-5.2.1/spells",
+    "target_record_key": "spells.spell_descriptions",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "518926b1-25c2-5b9f-8b6a-14238f59ea96"
+    ]
+  },
+  {
+    "resolution_id": "resolve-play-exploration-travel-pace-travel-pace-equipment-remaining-1",
+    "from_record_key": "play.exploration.travel_pace",
+    "from_component_key": "travel_pace",
+    "source_text": "Equipment",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.mounts_and_vehicles",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "41f2ce66-b485-5e4c-a428-5443942d831e"
+    ]
+  },
+  {
+    "resolution_id": "resolve-play-exploration-travel-pace-travel-pace-gameplay-toolbox-remaining-1",
+    "from_record_key": "play.exploration.travel_pace",
+    "from_component_key": "travel_pace",
+    "source_text": "Gameplay Toolbox",
+    "scope_key": "srd-5.2.1/gameplay-toolbox",
+    "target_record_key": "gameplay_toolbox.travel_pace",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "41f2ce66-b485-5e4c-a428-5443942d831e"
+    ]
+  },
+  {
+    "resolution_id": "resolve-play-exploration-weapons-beyond-battle-the-weapons-in-equipment-remaining-1",
+    "from_record_key": "play.exploration",
+    "from_component_key": "weapons_beyond_battle",
+    "source_text": "The weapons in \"Equipment\"",
+    "scope_key": "srd-5.2.1/equipment",
+    "target_record_key": "equipment.weapons",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "1b03e279-aa57-532e-a009-7fd7b35f0a5a"
+    ]
+  },
+  {
+    "resolution_id": "resolve-play-proficiency-proficiency-bonus-proficiency-bonus-character-creation-remaining-1",
+    "from_record_key": "play.proficiency.proficiency_bonus",
+    "from_component_key": "proficiency_bonus",
+    "source_text": "Character Creation",
+    "scope_key": "srd-5.2.1/character-creation",
+    "target_record_key": "character_creation.level_advancement",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "6b8bbca6-0f41-549a-8b8e-bc750f6e3bf6"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-create-undead-effect-monsters-remaining-1",
+    "from_record_key": "spells.create_undead",
+    "from_component_key": "effect",
+    "source_text": "Monsters",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.ghoul.ghoul",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "d0e14d3c-924e-5470-8a25-fd39bba1e725"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-finger-of-death-effect-monsters-remaining-1",
+    "from_record_key": "spells.finger_of_death",
+    "from_component_key": "effect",
+    "source_text": "Monsters",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "monsters.zombies.zombie",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "2ebf46ad-c392-56c9-aba1-e65eb8c02a35"
+    ]
+  },
+  {
+    "resolution_id": "resolve-spells-phantom-steed-effect-monsters-remaining-1",
+    "from_record_key": "spells.phantom_steed",
+    "from_component_key": "effect",
+    "source_text": "Monsters",
+    "scope_key": "srd-5.2.1/monsters",
+    "target_record_key": "animals.riding_horse",
+    "release_binding": {
+      "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+      "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+      "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+      "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+    },
+    "provenance_span_ids": [
+      "9798ab14-e95f-5296-9f99-d6ce214dd911"
+    ]
+  }
+]

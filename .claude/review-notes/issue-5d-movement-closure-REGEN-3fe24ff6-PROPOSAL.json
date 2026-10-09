@@ -1,0 +1,1720 @@
+{
+ "artifact_kind": "machine_proposal",
+ "proposal_origin": "issue-5d-movement-closure-generator.py (CRD Issue 5d fresh movement-closure batch; unaccepted)",
+ "proposal_schema_version": "5d-proposal-2",
+ "proposed_representation": {
+  "components": [
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.difficult_terrain",
+    "semantic_key": "difficult_spaces"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.hover",
+    "semantic_key": "hovering"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.high_jump",
+    "semantic_key": "jump_height"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.high_jump",
+    "semantic_key": "reach"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.long_jump",
+    "semantic_key": "jump_distance"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "ability": "strength",
+      "context": "ability_check",
+      "dc_kind": "fixed",
+      "dc_value": 10,
+      "family": "ability_check",
+      "skill": "athletics"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "options": [],
+    "record_key": "glossary.long_jump",
+    "semantic_key": "low_obstacle"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "amount": "feet",
+      "family": "movement_cost",
+      "feet": 1,
+      "kind": "per_foot_surcharge",
+      "payer": "subject",
+      "rounding": null
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.difficult_terrain",
+    "semantic_key": "extra_cost"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "damage_type": "bludgeoning",
+      "dice": {
+       "count": 1,
+       "die": "d6",
+       "modifier": 0
+      },
+      "family": "damage",
+      "flat_amount": null,
+      "maximum_dice": 20,
+      "per": {
+       "amount": 10,
+       "basis": "distance_fallen",
+       "unit": "foot"
+      },
+      "stated_average": null
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.falling",
+    "semantic_key": "fall_damage"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [
+     {
+      "applies_when": {
+       "any_of": [],
+       "comparison": null,
+       "kind": "roll_outcome",
+       "negated": false,
+       "outcome": "failure",
+       "phase": null,
+       "quantity": null,
+       "trigger": null,
+       "value": null
+      },
+      "fact_key": "e756f5850569798d",
+      "option_key": ""
+     }
+    ],
+    "facts": [
+     {
+      "ability": "dexterity",
+      "context": "ability_check",
+      "dc_kind": "fixed",
+      "dc_value": 10,
+      "family": "ability_check",
+      "skill": "acrobatics"
+     },
+     {
+      "condition": "prone",
+      "effect": "applies",
+      "family": "condition_effect"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.long_jump",
+    "semantic_key": "difficult_landing"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [
+     {
+      "applies_when": {
+       "any_of": [],
+       "comparison": null,
+       "kind": "roll_outcome",
+       "negated": false,
+       "outcome": "success",
+       "phase": null,
+       "quantity": null,
+       "trigger": null,
+       "value": null
+      },
+      "fact_key": "645b0fdb277b2150",
+      "option_key": ""
+     }
+    ],
+    "facts": [
+     {
+      "ability": "strength",
+      "alternatives": [
+       {
+        "ability": "dexterity",
+        "actor": "subject",
+        "context": "ability_check",
+        "skill": "acrobatics"
+       },
+       {
+        "ability": "strength",
+        "actor": "subject",
+        "context": "ability_check",
+        "skill": "athletics"
+       }
+      ],
+      "context": "ability_check",
+      "dc_kind": "fixed",
+      "dc_value": 15,
+      "family": "ability_check",
+      "skill": "athletics"
+     },
+     {
+      "cost": "reaction",
+      "family": "action_economy"
+     },
+     {
+      "direction": "reduce",
+      "factor": {
+       "denominator": 2,
+       "numerator": 1
+      },
+      "family": "damage_modification",
+      "rounding": null
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.falling",
+    "semantic_key": "falling_into_liquid"
+   },
+   {
+    "applies_when": {
+     "any_of": [],
+     "comparison": null,
+     "damage_outcome": "any_damage",
+     "kind": "damage_outcome",
+     "negated": false,
+     "phase": null,
+     "quantity": null,
+     "trigger": null,
+     "value": null
+    },
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "condition": "prone",
+      "effect": "applies",
+      "family": "condition_effect"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.falling",
+    "semantic_key": "prone_on_landing"
+   }
+  ],
+  "prose_bindings": [
+   {
+    "chunk_char_end": 104,
+    "chunk_char_start": 42,
+    "chunk_id": "80b6567e-f6ca-56a6-a5a8-d505f8956a93",
+    "component_key": "difficult_spaces",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.difficult_terrain",
+    "span_id": "f72d5fec-8081-5752-853c-cf7b92ab5374"
+   },
+   {
+    "chunk_char_end": 112,
+    "chunk_char_start": 0,
+    "chunk_id": "1070f59c-86f6-532a-872f-b9e247ebd4cc",
+    "component_key": "low_obstacle",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "glossary.long_jump",
+    "span_id": "48ffe728-8594-5fdd-b422-b1f1dd665823"
+   },
+   {
+    "chunk_char_end": 118,
+    "chunk_char_start": 0,
+    "chunk_id": "2627d6e4-027a-56a3-b06d-7ba52457f215",
+    "component_key": "hovering",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.hover",
+    "span_id": "94379950-4994-5e98-881f-4dba1b6de6f7"
+   },
+   {
+    "chunk_char_end": 119,
+    "chunk_char_start": 0,
+    "chunk_id": "e2ee563c-4c8c-5a95-968b-7b02d810734b",
+    "component_key": "difficult_landing",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.long_jump",
+    "span_id": "0373b58e-2fb7-5eee-88f8-ec39c5cee3ef"
+   },
+   {
+    "chunk_char_end": 122,
+    "chunk_char_start": 0,
+    "chunk_id": "de9e7ed1-acef-5ab9-8be1-2145941fe6c3",
+    "component_key": "fall_damage",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.falling",
+    "span_id": "97d536e1-e913-57d1-8840-2473ef74ace2"
+   },
+   {
+    "chunk_char_end": 146,
+    "chunk_char_start": 105,
+    "chunk_id": "80b6567e-f6ca-56a6-a5a8-d505f8956a93",
+    "component_key": "difficult_spaces",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.difficult_terrain",
+    "span_id": "fd9aae99-413b-5d0f-a4a3-0170edee6f2f"
+   },
+   {
+    "chunk_char_end": 149,
+    "chunk_char_start": 0,
+    "chunk_id": "1bb9970b-10df-587e-982a-424115a0988f",
+    "component_key": "jump_distance",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.long_jump",
+    "span_id": "024802f5-ac75-5abe-95ad-aa5b31057b2f"
+   },
+   {
+    "chunk_char_end": 163,
+    "chunk_char_start": 74,
+    "chunk_id": "0953adb3-ddc9-5f93-a24c-67cc47beb711",
+    "component_key": "reach",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.high_jump",
+    "span_id": "dfeff43b-e87f-5129-8e2e-855ad37b3e1a"
+   },
+   {
+    "chunk_char_end": 179,
+    "chunk_char_start": 0,
+    "chunk_id": "a16330c7-898f-51c8-bba7-b2d5c4c11559",
+    "component_key": "falling_into_liquid",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.falling",
+    "span_id": "d3a74b71-03bc-5f33-9bc0-2a8678079e22"
+   },
+   {
+    "chunk_char_end": 190,
+    "chunk_char_start": 0,
+    "chunk_id": "d2d33182-d74c-5cde-a830-82c9d8a4e809",
+    "component_key": "jump_height",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.high_jump",
+    "span_id": "6d8cc704-73b0-5fb3-9f34-9a00320ac3fe"
+   },
+   {
+    "chunk_char_end": 191,
+    "chunk_char_start": 147,
+    "chunk_id": "80b6567e-f6ca-56a6-a5a8-d505f8956a93",
+    "component_key": "difficult_spaces",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.difficult_terrain",
+    "span_id": "38f66d3e-c243-5dbd-bdde-c3d9ada9c470"
+   },
+   {
+    "chunk_char_end": 192,
+    "chunk_char_start": 119,
+    "chunk_id": "2627d6e4-027a-56a3-b06d-7ba52457f215",
+    "component_key": "hovering",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.hover",
+    "span_id": "dd66fe0a-f149-5dbb-bdc8-393ff6bfee0d"
+   },
+   {
+    "chunk_char_end": 223,
+    "chunk_char_start": 150,
+    "chunk_id": "1bb9970b-10df-587e-982a-424115a0988f",
+    "component_key": "jump_distance",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.long_jump",
+    "span_id": "92f768e8-80ce-5044-ad0d-d798369539ac"
+   },
+   {
+    "chunk_char_end": 224,
+    "chunk_char_start": 123,
+    "chunk_id": "de9e7ed1-acef-5ab9-8be1-2145941fe6c3",
+    "component_key": "prone_on_landing",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.falling",
+    "span_id": "5d52eb4d-f3ea-5be4-9e5e-80c42bcac146"
+   },
+   {
+    "chunk_char_end": 248,
+    "chunk_char_start": 180,
+    "chunk_id": "a16330c7-898f-51c8-bba7-b2d5c4c11559",
+    "component_key": "falling_into_liquid",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.falling",
+    "span_id": "3c51de59-ae3d-547f-9acf-ceca636b3ba6"
+   },
+   {
+    "chunk_char_end": 254,
+    "chunk_char_start": 170,
+    "chunk_id": "0fc5d273-bae2-5443-af5c-800cf5078367",
+    "component_key": "extra_cost",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.difficult_terrain",
+    "span_id": "35f498c8-8428-541e-ae5d-e4f71433f28d"
+   },
+   {
+    "chunk_char_end": 257,
+    "chunk_char_start": 192,
+    "chunk_id": "80b6567e-f6ca-56a6-a5a8-d505f8956a93",
+    "component_key": "difficult_spaces",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.difficult_terrain",
+    "span_id": "43e95113-34c8-58af-b968-668638f9433a"
+   },
+   {
+    "chunk_char_end": 264,
+    "chunk_char_start": 191,
+    "chunk_id": "d2d33182-d74c-5cde-a830-82c9d8a4e809",
+    "component_key": "jump_height",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.high_jump",
+    "span_id": "b2762a55-4379-5f19-ad5f-4bddfbe22f45"
+   },
+   {
+    "chunk_char_end": 280,
+    "chunk_char_start": 224,
+    "chunk_id": "1bb9970b-10df-587e-982a-424115a0988f",
+    "component_key": "jump_distance",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.long_jump",
+    "span_id": "c543e48e-0a5e-576c-a4c0-30a6b63c233f"
+   },
+   {
+    "chunk_char_end": 289,
+    "chunk_char_start": 258,
+    "chunk_id": "80b6567e-f6ca-56a6-a5a8-d505f8956a93",
+    "component_key": "difficult_spaces",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.difficult_terrain",
+    "span_id": "2420266d-b547-5027-8670-5c834a406b4d"
+   },
+   {
+    "chunk_char_end": 292,
+    "chunk_char_start": 113,
+    "chunk_id": "1070f59c-86f6-532a-872f-b9e247ebd4cc",
+    "component_key": "low_obstacle",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "glossary.long_jump",
+    "span_id": "65df1c19-7616-5043-833a-5d0d6abea05b"
+   },
+   {
+    "chunk_char_end": 324,
+    "chunk_char_start": 265,
+    "chunk_id": "d2d33182-d74c-5cde-a830-82c9d8a4e809",
+    "component_key": "jump_height",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.high_jump",
+    "span_id": "2a6e519b-c798-5c7c-89c2-41700051d280"
+   },
+   {
+    "chunk_char_end": 325,
+    "chunk_char_start": 293,
+    "chunk_id": "1070f59c-86f6-532a-872f-b9e247ebd4cc",
+    "component_key": "low_obstacle",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "glossary.long_jump",
+    "span_id": "ef75729d-046a-5d16-b454-7ea5b81da02e"
+   },
+   {
+    "chunk_char_end": 41,
+    "chunk_char_start": 0,
+    "chunk_id": "80b6567e-f6ca-56a6-a5a8-d505f8956a93",
+    "component_key": "difficult_spaces",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.difficult_terrain",
+    "span_id": "47f8449c-3f78-5444-b6bb-c98211f80811"
+   },
+   {
+    "chunk_char_end": 73,
+    "chunk_char_start": 0,
+    "chunk_id": "0953adb3-ddc9-5f93-a24c-67cc47beb711",
+    "component_key": "reach",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.high_jump",
+    "span_id": "267b8848-3505-5759-847c-5e771f384e4e"
+   },
+   {
+    "chunk_char_end": 89,
+    "chunk_char_start": 0,
+    "chunk_id": "0fc5d273-bae2-5443-af5c-800cf5078367",
+    "component_key": "extra_cost",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.difficult_terrain",
+    "span_id": "f988e9bf-12cb-59f6-b0d9-596004f45e51"
+   },
+   {
+    "chunk_char_end": 93,
+    "chunk_char_start": 0,
+    "chunk_id": "6b24f4a3-f08c-5315-bc82-0ad0ee98f505",
+    "component_key": "difficult_spaces",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.difficult_terrain",
+    "span_id": "3bfe1ca2-8721-58ec-9522-075a5aae449f"
+   }
+  ],
+  "provenance": [
+   {
+    "role": "contextual",
+    "span_id": "02ba8751-bbbb-5b69-9473-fbbc2b487572",
+    "target_key": [
+     "glossary.hover",
+     "",
+     "Flying",
+     "srd-5.2.1/rules-glossary",
+     "glossary.flying"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0373b58e-2fb7-5eee-88f8-ec39c5cee3ef",
+    "target_key": [
+     "glossary.long_jump",
+     "difficult_landing",
+     "Difficult Terrain",
+     "srd-5.2.1/rules-glossary",
+     "glossary.difficult_terrain"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0373b58e-2fb7-5eee-88f8-ec39c5cee3ef",
+    "target_key": [
+     "glossary.long_jump",
+     "difficult_landing",
+     "Prone",
+     "srd-5.2.1/rules-glossary",
+     "glossary.prone"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0373b58e-2fb7-5eee-88f8-ec39c5cee3ef",
+    "target_key": [
+     "glossary.long_jump",
+     "difficult_landing",
+     "ac6af5c19ee4c5d6"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0373b58e-2fb7-5eee-88f8-ec39c5cee3ef",
+    "target_key": [
+     "glossary.long_jump",
+     "difficult_landing",
+     "e756f5850569798d",
+     ""
+    ],
+    "target_kind": "fact_qualifier"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0373b58e-2fb7-5eee-88f8-ec39c5cee3ef",
+    "target_key": [
+     "glossary.long_jump",
+     "difficult_landing",
+     "e756f5850569798d"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "1b3674fc-7261-57f5-8545-15f377752927",
+    "target_key": [
+     "glossary.difficult_terrain",
+     "extra_cost"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "35f498c8-8428-541e-ae5d-e4f71433f28d",
+    "target_key": [
+     "glossary.difficult_terrain",
+     "extra_cost",
+     "a3e057ea5d438d09"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3c51de59-ae3d-547f-9acf-ceca636b3ba6",
+    "target_key": [
+     "glossary.falling",
+     "falling_into_liquid",
+     "645b0fdb277b2150",
+     ""
+    ],
+    "target_kind": "fact_qualifier"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3c51de59-ae3d-547f-9acf-ceca636b3ba6",
+    "target_key": [
+     "glossary.falling",
+     "falling_into_liquid",
+     "645b0fdb277b2150"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3c51de59-ae3d-547f-9acf-ceca636b3ba6",
+    "target_key": [
+     "glossary.falling",
+     "falling_into_liquid",
+     "6c214c6946704c3f"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3c51de59-ae3d-547f-9acf-ceca636b3ba6",
+    "target_key": [
+     "glossary.falling",
+     "falling_into_liquid",
+     "9a446b7e43c85d53"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "48ffe728-8594-5fdd-b422-b1f1dd665823",
+    "target_key": [
+     "glossary.long_jump",
+     "low_obstacle",
+     "77f664e7887fe3dd"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "5d52eb4d-f3ea-5be4-9e5e-80c42bcac146",
+    "target_key": [
+     "glossary.falling",
+     "prone_on_landing",
+     "Prone",
+     "srd-5.2.1/rules-glossary",
+     "glossary.prone"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "5d52eb4d-f3ea-5be4-9e5e-80c42bcac146",
+    "target_key": [
+     "glossary.falling",
+     "prone_on_landing",
+     "e756f5850569798d"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "65df1c19-7616-5043-833a-5d0d6abea05b",
+    "target_key": [
+     "glossary.long_jump",
+     "low_obstacle",
+     "77f664e7887fe3dd"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "97d536e1-e913-57d1-8840-2473ef74ace2",
+    "target_key": [
+     "glossary.falling",
+     "fall_damage",
+     "0617d42b33c8b298"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d3a74b71-03bc-5f33-9bc0-2a8678079e22",
+    "target_key": [
+     "glossary.falling",
+     "falling_into_liquid",
+     "645b0fdb277b2150",
+     ""
+    ],
+    "target_kind": "fact_qualifier"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d3a74b71-03bc-5f33-9bc0-2a8678079e22",
+    "target_key": [
+     "glossary.falling",
+     "falling_into_liquid",
+     "645b0fdb277b2150"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d3a74b71-03bc-5f33-9bc0-2a8678079e22",
+    "target_key": [
+     "glossary.falling",
+     "falling_into_liquid",
+     "6c214c6946704c3f"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d3a74b71-03bc-5f33-9bc0-2a8678079e22",
+    "target_key": [
+     "glossary.falling",
+     "falling_into_liquid",
+     "9a446b7e43c85d53"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ef75729d-046a-5d16-b454-7ea5b81da02e",
+    "target_key": [
+     "glossary.long_jump",
+     "low_obstacle",
+     "77f664e7887fe3dd"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "f988e9bf-12cb-59f6-b0d9-596004f45e51",
+    "target_key": [
+     "glossary.difficult_terrain",
+     "extra_cost",
+     "a3e057ea5d438d09"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "primary",
+    "span_id": "024802f5-ac75-5abe-95ad-aa5b31057b2f",
+    "target_key": [
+     "glossary.long_jump",
+     "jump_distance",
+     "1bb9970b-10df-587e-982a-424115a0988f",
+     "024802f5-ac75-5abe-95ad-aa5b31057b2f",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "0373b58e-2fb7-5eee-88f8-ec39c5cee3ef",
+    "target_key": [
+     "glossary.long_jump",
+     "difficult_landing",
+     "e2ee563c-4c8c-5a95-968b-7b02d810734b",
+     "0373b58e-2fb7-5eee-88f8-ec39c5cee3ef",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "2420266d-b547-5027-8670-5c834a406b4d",
+    "target_key": [
+     "glossary.difficult_terrain",
+     "difficult_spaces",
+     "80b6567e-f6ca-56a6-a5a8-d505f8956a93",
+     "2420266d-b547-5027-8670-5c834a406b4d",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "267b8848-3505-5759-847c-5e771f384e4e",
+    "target_key": [
+     "glossary.high_jump",
+     "reach",
+     "0953adb3-ddc9-5f93-a24c-67cc47beb711",
+     "267b8848-3505-5759-847c-5e771f384e4e",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "2a6e519b-c798-5c7c-89c2-41700051d280",
+    "target_key": [
+     "glossary.high_jump",
+     "jump_height",
+     "d2d33182-d74c-5cde-a830-82c9d8a4e809",
+     "2a6e519b-c798-5c7c-89c2-41700051d280",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "35f498c8-8428-541e-ae5d-e4f71433f28d",
+    "target_key": [
+     "glossary.difficult_terrain",
+     "extra_cost",
+     "0fc5d273-bae2-5443-af5c-800cf5078367",
+     "35f498c8-8428-541e-ae5d-e4f71433f28d",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "38f66d3e-c243-5dbd-bdde-c3d9ada9c470",
+    "target_key": [
+     "glossary.difficult_terrain",
+     "difficult_spaces",
+     "80b6567e-f6ca-56a6-a5a8-d505f8956a93",
+     "38f66d3e-c243-5dbd-bdde-c3d9ada9c470",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "3bfe1ca2-8721-58ec-9522-075a5aae449f",
+    "target_key": [
+     "glossary.difficult_terrain",
+     "difficult_spaces",
+     "6b24f4a3-f08c-5315-bc82-0ad0ee98f505",
+     "3bfe1ca2-8721-58ec-9522-075a5aae449f",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "3c51de59-ae3d-547f-9acf-ceca636b3ba6",
+    "target_key": [
+     "glossary.falling",
+     "falling_into_liquid",
+     "a16330c7-898f-51c8-bba7-b2d5c4c11559",
+     "3c51de59-ae3d-547f-9acf-ceca636b3ba6",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "43e95113-34c8-58af-b968-668638f9433a",
+    "target_key": [
+     "glossary.difficult_terrain",
+     "difficult_spaces",
+     "80b6567e-f6ca-56a6-a5a8-d505f8956a93",
+     "43e95113-34c8-58af-b968-668638f9433a",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "47f8449c-3f78-5444-b6bb-c98211f80811",
+    "target_key": [
+     "glossary.difficult_terrain",
+     "difficult_spaces",
+     "80b6567e-f6ca-56a6-a5a8-d505f8956a93",
+     "47f8449c-3f78-5444-b6bb-c98211f80811",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "48ffe728-8594-5fdd-b422-b1f1dd665823",
+    "target_key": [
+     "glossary.long_jump",
+     "low_obstacle",
+     "1070f59c-86f6-532a-872f-b9e247ebd4cc",
+     "48ffe728-8594-5fdd-b422-b1f1dd665823",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "5d52eb4d-f3ea-5be4-9e5e-80c42bcac146",
+    "target_key": [
+     "glossary.falling",
+     "prone_on_landing",
+     "de9e7ed1-acef-5ab9-8be1-2145941fe6c3",
+     "5d52eb4d-f3ea-5be4-9e5e-80c42bcac146",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "65df1c19-7616-5043-833a-5d0d6abea05b",
+    "target_key": [
+     "glossary.long_jump",
+     "low_obstacle",
+     "1070f59c-86f6-532a-872f-b9e247ebd4cc",
+     "65df1c19-7616-5043-833a-5d0d6abea05b",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "6d8cc704-73b0-5fb3-9f34-9a00320ac3fe",
+    "target_key": [
+     "glossary.high_jump",
+     "jump_height",
+     "d2d33182-d74c-5cde-a830-82c9d8a4e809",
+     "6d8cc704-73b0-5fb3-9f34-9a00320ac3fe",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "92f768e8-80ce-5044-ad0d-d798369539ac",
+    "target_key": [
+     "glossary.long_jump",
+     "jump_distance",
+     "1bb9970b-10df-587e-982a-424115a0988f",
+     "92f768e8-80ce-5044-ad0d-d798369539ac",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "94379950-4994-5e98-881f-4dba1b6de6f7",
+    "target_key": [
+     "glossary.hover",
+     "hovering",
+     "2627d6e4-027a-56a3-b06d-7ba52457f215",
+     "94379950-4994-5e98-881f-4dba1b6de6f7",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "97d536e1-e913-57d1-8840-2473ef74ace2",
+    "target_key": [
+     "glossary.falling",
+     "fall_damage",
+     "de9e7ed1-acef-5ab9-8be1-2145941fe6c3",
+     "97d536e1-e913-57d1-8840-2473ef74ace2",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "b2762a55-4379-5f19-ad5f-4bddfbe22f45",
+    "target_key": [
+     "glossary.high_jump",
+     "jump_height",
+     "d2d33182-d74c-5cde-a830-82c9d8a4e809",
+     "b2762a55-4379-5f19-ad5f-4bddfbe22f45",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "c543e48e-0a5e-576c-a4c0-30a6b63c233f",
+    "target_key": [
+     "glossary.long_jump",
+     "jump_distance",
+     "1bb9970b-10df-587e-982a-424115a0988f",
+     "c543e48e-0a5e-576c-a4c0-30a6b63c233f",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "d3a74b71-03bc-5f33-9bc0-2a8678079e22",
+    "target_key": [
+     "glossary.falling",
+     "falling_into_liquid",
+     "a16330c7-898f-51c8-bba7-b2d5c4c11559",
+     "d3a74b71-03bc-5f33-9bc0-2a8678079e22",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "dd66fe0a-f149-5dbb-bdc8-393ff6bfee0d",
+    "target_key": [
+     "glossary.hover",
+     "hovering",
+     "2627d6e4-027a-56a3-b06d-7ba52457f215",
+     "dd66fe0a-f149-5dbb-bdc8-393ff6bfee0d",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "dfeff43b-e87f-5129-8e2e-855ad37b3e1a",
+    "target_key": [
+     "glossary.high_jump",
+     "reach",
+     "0953adb3-ddc9-5f93-a24c-67cc47beb711",
+     "dfeff43b-e87f-5129-8e2e-855ad37b3e1a",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "ef75729d-046a-5d16-b454-7ea5b81da02e",
+    "target_key": [
+     "glossary.long_jump",
+     "low_obstacle",
+     "1070f59c-86f6-532a-872f-b9e247ebd4cc",
+     "ef75729d-046a-5d16-b454-7ea5b81da02e",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "f72d5fec-8081-5752-853c-cf7b92ab5374",
+    "target_key": [
+     "glossary.difficult_terrain",
+     "difficult_spaces",
+     "80b6567e-f6ca-56a6-a5a8-d505f8956a93",
+     "f72d5fec-8081-5752-853c-cf7b92ab5374",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "f988e9bf-12cb-59f6-b0d9-596004f45e51",
+    "target_key": [
+     "glossary.difficult_terrain",
+     "extra_cost",
+     "0fc5d273-bae2-5443-af5c-800cf5078367",
+     "f988e9bf-12cb-59f6-b0d9-596004f45e51",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "fd9aae99-413b-5d0f-a4a3-0170edee6f2f",
+    "target_key": [
+     "glossary.difficult_terrain",
+     "difficult_spaces",
+     "80b6567e-f6ca-56a6-a5a8-d505f8956a93",
+     "fd9aae99-413b-5d0f-a4a3-0170edee6f2f",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   }
+  ],
+  "records": [
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.difficult_terrain"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.falling"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.high_jump"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.hover"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.long_jump"
+   }
+  ],
+  "references": [
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.hover",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Flying",
+    "target_record_key": "glossary.flying"
+   },
+   {
+    "from_component_key": "difficult_landing",
+    "from_record_key": "glossary.long_jump",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Difficult Terrain",
+    "target_record_key": "glossary.difficult_terrain"
+   },
+   {
+    "from_component_key": "difficult_landing",
+    "from_record_key": "glossary.long_jump",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Prone",
+    "target_record_key": "glossary.prone"
+   },
+   {
+    "from_component_key": "prone_on_landing",
+    "from_record_key": "glossary.falling",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Prone",
+    "target_record_key": "glossary.prone"
+   }
+  ],
+  "relationships": []
+ },
+ "proposed_review_units": [
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "b7deea7f-5aa2-5b71-93ed-d6d7702b8a3d"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "difficult_spaces",
+     "record_key": "glossary.difficult_terrain",
+     "source_span_ids": [
+      "2420266d-b547-5027-8670-5c834a406b4d",
+      "38f66d3e-c243-5dbd-bdde-c3d9ada9c470",
+      "3bfe1ca2-8721-58ec-9522-075a5aae449f",
+      "43e95113-34c8-58af-b968-668638f9433a",
+      "47f8449c-3f78-5444-b6bb-c98211f80811",
+      "f72d5fec-8081-5752-853c-cf7b92ab5374",
+      "fd9aae99-413b-5d0f-a4a3-0170edee6f2f"
+     ]
+    },
+    {
+     "component_key": "extra_cost",
+     "record_key": "glossary.difficult_terrain",
+     "source_span_ids": [
+      "35f498c8-8428-541e-ae5d-e4f71433f28d",
+      "f988e9bf-12cb-59f6-b0d9-596004f45e51"
+     ]
+    },
+    {
+     "component_key": "extra_cost",
+     "fact_family": "movement_cost",
+     "record_key": "glossary.difficult_terrain",
+     "source_span_ids": [
+      "35f498c8-8428-541e-ae5d-e4f71433f28d",
+      "f988e9bf-12cb-59f6-b0d9-596004f45e51"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "17b71abf-4dae-56ab-bd20-be0d17cdd77b",
+    "60459a60-58c1-5ff3-a1f5-e83505324981",
+    "b7deea7f-5aa2-5b71-93ed-d6d7702b8a3d",
+    "ceba889a-770a-5e6d-8a1d-cbb6111fa7f7"
+   ],
+   "supporting_groups": [],
+   "unit_id": "movement-closure/difficult_terrain"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "fd2b3aef-5486-5af2-955a-d18d37aa4c83"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "fall_damage",
+     "record_key": "glossary.falling",
+     "source_span_ids": [
+      "97d536e1-e913-57d1-8840-2473ef74ace2"
+     ]
+    },
+    {
+     "component_key": "fall_damage",
+     "fact_family": "damage",
+     "record_key": "glossary.falling",
+     "source_span_ids": [
+      "97d536e1-e913-57d1-8840-2473ef74ace2"
+     ]
+    },
+    {
+     "component_key": "falling_into_liquid",
+     "record_key": "glossary.falling",
+     "source_span_ids": [
+      "3c51de59-ae3d-547f-9acf-ceca636b3ba6",
+      "d3a74b71-03bc-5f33-9bc0-2a8678079e22"
+     ]
+    },
+    {
+     "component_key": "falling_into_liquid",
+     "fact_family": "ability_check",
+     "record_key": "glossary.falling",
+     "source_span_ids": [
+      "3c51de59-ae3d-547f-9acf-ceca636b3ba6",
+      "d3a74b71-03bc-5f33-9bc0-2a8678079e22"
+     ]
+    },
+    {
+     "component_key": "falling_into_liquid",
+     "fact_family": "action_economy",
+     "record_key": "glossary.falling",
+     "source_span_ids": [
+      "3c51de59-ae3d-547f-9acf-ceca636b3ba6",
+      "d3a74b71-03bc-5f33-9bc0-2a8678079e22"
+     ]
+    },
+    {
+     "component_key": "falling_into_liquid",
+     "fact_family": "damage_modification",
+     "record_key": "glossary.falling",
+     "source_span_ids": [
+      "3c51de59-ae3d-547f-9acf-ceca636b3ba6",
+      "d3a74b71-03bc-5f33-9bc0-2a8678079e22"
+     ]
+    },
+    {
+     "component_key": "prone_on_landing",
+     "record_key": "glossary.falling",
+     "source_span_ids": [
+      "5d52eb4d-f3ea-5be4-9e5e-80c42bcac146"
+     ]
+    },
+    {
+     "component_key": "prone_on_landing",
+     "fact_family": "condition_effect",
+     "record_key": "glossary.falling",
+     "source_span_ids": [
+      "5d52eb4d-f3ea-5be4-9e5e-80c42bcac146"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "4b39ac64-5af2-56b0-b004-a492df17fab5",
+    "df715310-c31d-5462-9a93-da6474461fc7",
+    "fd2b3aef-5486-5af2-955a-d18d37aa4c83"
+   ],
+   "supporting_groups": [],
+   "unit_id": "movement-closure/falling"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "208c1f06-8ba8-5ee1-9ff1-c938cb387859"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "jump_height",
+     "record_key": "glossary.high_jump",
+     "source_span_ids": [
+      "2a6e519b-c798-5c7c-89c2-41700051d280",
+      "6d8cc704-73b0-5fb3-9f34-9a00320ac3fe",
+      "b2762a55-4379-5f19-ad5f-4bddfbe22f45"
+     ]
+    },
+    {
+     "component_key": "reach",
+     "record_key": "glossary.high_jump",
+     "source_span_ids": [
+      "267b8848-3505-5759-847c-5e771f384e4e",
+      "dfeff43b-e87f-5129-8e2e-855ad37b3e1a"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "208c1f06-8ba8-5ee1-9ff1-c938cb387859",
+    "65c6cbdf-7dfe-5c89-86cf-48fd70f6b63a",
+    "9fc19ae1-002b-5c3e-a1a2-b234d50e4596"
+   ],
+   "supporting_groups": [],
+   "unit_id": "movement-closure/high_jump"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "9a02c720-e54a-57fb-a44a-0ab6d580b77c"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "hovering",
+     "record_key": "glossary.hover",
+     "source_span_ids": [
+      "94379950-4994-5e98-881f-4dba1b6de6f7",
+      "dd66fe0a-f149-5dbb-bdc8-393ff6bfee0d"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "9a02c720-e54a-57fb-a44a-0ab6d580b77c",
+    "e17f69c2-5029-5804-b415-a68a34d78537"
+   ],
+   "supporting_groups": [],
+   "unit_id": "movement-closure/hover"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "2e9ff520-8514-54e4-9139-fd7e1a65bae7"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "difficult_landing",
+     "record_key": "glossary.long_jump",
+     "source_span_ids": [
+      "0373b58e-2fb7-5eee-88f8-ec39c5cee3ef"
+     ]
+    },
+    {
+     "component_key": "difficult_landing",
+     "fact_family": "ability_check",
+     "record_key": "glossary.long_jump",
+     "source_span_ids": [
+      "0373b58e-2fb7-5eee-88f8-ec39c5cee3ef"
+     ]
+    },
+    {
+     "component_key": "difficult_landing",
+     "fact_family": "condition_effect",
+     "record_key": "glossary.long_jump",
+     "source_span_ids": [
+      "0373b58e-2fb7-5eee-88f8-ec39c5cee3ef"
+     ]
+    },
+    {
+     "component_key": "jump_distance",
+     "record_key": "glossary.long_jump",
+     "source_span_ids": [
+      "024802f5-ac75-5abe-95ad-aa5b31057b2f",
+      "92f768e8-80ce-5044-ad0d-d798369539ac",
+      "c543e48e-0a5e-576c-a4c0-30a6b63c233f"
+     ]
+    },
+    {
+     "component_key": "low_obstacle",
+     "record_key": "glossary.long_jump",
+     "source_span_ids": [
+      "48ffe728-8594-5fdd-b422-b1f1dd665823",
+      "65df1c19-7616-5043-833a-5d0d6abea05b",
+      "ef75729d-046a-5d16-b454-7ea5b81da02e"
+     ]
+    },
+    {
+     "component_key": "low_obstacle",
+     "fact_family": "ability_check",
+     "record_key": "glossary.long_jump",
+     "source_span_ids": [
+      "48ffe728-8594-5fdd-b422-b1f1dd665823",
+      "65df1c19-7616-5043-833a-5d0d6abea05b",
+      "ef75729d-046a-5d16-b454-7ea5b81da02e"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "2e9ff520-8514-54e4-9139-fd7e1a65bae7",
+    "40cafaaf-ddc3-5cd1-97ea-abff4d8b5407",
+    "6d2629d4-89f6-566c-bc08-ce630521ff8c",
+    "8cadf358-3b89-5248-bad1-56d491ac8be4"
+   ],
+   "supporting_groups": [],
+   "unit_id": "movement-closure/long_jump"
+  }
+ ],
+ "proposed_spans": [
+  {
+   "char_end": 104,
+   "char_start": 42,
+   "disposition": "substantive",
+   "leaf_id": "60459a60-58c1-5ff3-a1f5-e83505324981",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "f72d5fec-8081-5752-853c-cf7b92ab5374"
+  },
+  {
+   "char_end": 112,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "40cafaaf-ddc3-5cd1-97ea-abff4d8b5407",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "48ffe728-8594-5fdd-b422-b1f1dd665823"
+  },
+  {
+   "char_end": 118,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "e17f69c2-5029-5804-b415-a68a34d78537",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "94379950-4994-5e98-881f-4dba1b6de6f7"
+  },
+  {
+   "char_end": 119,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "8cadf358-3b89-5248-bad1-56d491ac8be4",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "0373b58e-2fb7-5eee-88f8-ec39c5cee3ef"
+  },
+  {
+   "char_end": 122,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "df715310-c31d-5462-9a93-da6474461fc7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "97d536e1-e913-57d1-8840-2473ef74ace2"
+  },
+  {
+   "char_end": 146,
+   "char_start": 105,
+   "disposition": "substantive",
+   "leaf_id": "60459a60-58c1-5ff3-a1f5-e83505324981",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "fd9aae99-413b-5d0f-a4a3-0170edee6f2f"
+  },
+  {
+   "char_end": 149,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "6d2629d4-89f6-566c-bc08-ce630521ff8c",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "024802f5-ac75-5abe-95ad-aa5b31057b2f"
+  },
+  {
+   "char_end": 163,
+   "char_start": 74,
+   "disposition": "substantive",
+   "leaf_id": "9fc19ae1-002b-5c3e-a1a2-b234d50e4596",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "dfeff43b-e87f-5129-8e2e-855ad37b3e1a"
+  },
+  {
+   "char_end": 169,
+   "char_start": 90,
+   "disposition": "supporting_authority",
+   "leaf_id": "ceba889a-770a-5e6d-8a1d-cbb6111fa7f7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "1b3674fc-7261-57f5-8545-15f377752927"
+  },
+  {
+   "char_end": 179,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "4b39ac64-5af2-56b0-b004-a492df17fab5",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "d3a74b71-03bc-5f33-9bc0-2a8678079e22"
+  },
+  {
+   "char_end": 190,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "65c6cbdf-7dfe-5c89-86cf-48fd70f6b63a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "6d8cc704-73b0-5fb3-9f34-9a00320ac3fe"
+  },
+  {
+   "char_end": 191,
+   "char_start": 147,
+   "disposition": "substantive",
+   "leaf_id": "60459a60-58c1-5ff3-a1f5-e83505324981",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "38f66d3e-c243-5dbd-bdde-c3d9ada9c470"
+  },
+  {
+   "char_end": 192,
+   "char_start": 119,
+   "disposition": "substantive",
+   "leaf_id": "e17f69c2-5029-5804-b415-a68a34d78537",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "dd66fe0a-f149-5dbb-bdc8-393ff6bfee0d"
+  },
+  {
+   "char_end": 213,
+   "char_start": 193,
+   "disposition": "supporting_authority",
+   "leaf_id": "e17f69c2-5029-5804-b415-a68a34d78537",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "02ba8751-bbbb-5b69-9473-fbbc2b487572"
+  },
+  {
+   "char_end": 223,
+   "char_start": 150,
+   "disposition": "substantive",
+   "leaf_id": "6d2629d4-89f6-566c-bc08-ce630521ff8c",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "92f768e8-80ce-5044-ad0d-d798369539ac"
+  },
+  {
+   "char_end": 224,
+   "char_start": 123,
+   "disposition": "substantive",
+   "leaf_id": "df715310-c31d-5462-9a93-da6474461fc7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "5d52eb4d-f3ea-5be4-9e5e-80c42bcac146"
+  },
+  {
+   "char_end": 248,
+   "char_start": 180,
+   "disposition": "substantive",
+   "leaf_id": "4b39ac64-5af2-56b0-b004-a492df17fab5",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "3c51de59-ae3d-547f-9acf-ceca636b3ba6"
+  },
+  {
+   "char_end": 254,
+   "char_start": 170,
+   "disposition": "substantive",
+   "leaf_id": "ceba889a-770a-5e6d-8a1d-cbb6111fa7f7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "35f498c8-8428-541e-ae5d-e4f71433f28d"
+  },
+  {
+   "char_end": 257,
+   "char_start": 192,
+   "disposition": "substantive",
+   "leaf_id": "60459a60-58c1-5ff3-a1f5-e83505324981",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "43e95113-34c8-58af-b968-668638f9433a"
+  },
+  {
+   "char_end": 264,
+   "char_start": 191,
+   "disposition": "substantive",
+   "leaf_id": "65c6cbdf-7dfe-5c89-86cf-48fd70f6b63a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "b2762a55-4379-5f19-ad5f-4bddfbe22f45"
+  },
+  {
+   "char_end": 280,
+   "char_start": 224,
+   "disposition": "substantive",
+   "leaf_id": "6d2629d4-89f6-566c-bc08-ce630521ff8c",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "c543e48e-0a5e-576c-a4c0-30a6b63c233f"
+  },
+  {
+   "char_end": 289,
+   "char_start": 258,
+   "disposition": "substantive",
+   "leaf_id": "60459a60-58c1-5ff3-a1f5-e83505324981",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "2420266d-b547-5027-8670-5c834a406b4d"
+  },
+  {
+   "char_end": 292,
+   "char_start": 113,
+   "disposition": "substantive",
+   "leaf_id": "40cafaaf-ddc3-5cd1-97ea-abff4d8b5407",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "65df1c19-7616-5043-833a-5d0d6abea05b"
+  },
+  {
+   "char_end": 324,
+   "char_start": 265,
+   "disposition": "substantive",
+   "leaf_id": "65c6cbdf-7dfe-5c89-86cf-48fd70f6b63a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "2a6e519b-c798-5c7c-89c2-41700051d280"
+  },
+  {
+   "char_end": 325,
+   "char_start": 293,
+   "disposition": "substantive",
+   "leaf_id": "40cafaaf-ddc3-5cd1-97ea-abff4d8b5407",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "ef75729d-046a-5d16-b454-7ea5b81da02e"
+  },
+  {
+   "char_end": 41,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "60459a60-58c1-5ff3-a1f5-e83505324981",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "47f8449c-3f78-5444-b6bb-c98211f80811"
+  },
+  {
+   "char_end": 73,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "9fc19ae1-002b-5c3e-a1a2-b234d50e4596",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "267b8848-3505-5759-847c-5e771f384e4e"
+  },
+  {
+   "char_end": 89,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "ceba889a-770a-5e6d-8a1d-cbb6111fa7f7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "f988e9bf-12cb-59f6-b0d9-596004f45e51"
+  },
+  {
+   "char_end": 93,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "17b71abf-4dae-56ab-bd20-be0d17cdd77b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-movement-closure-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "3bfe1ca2-8721-58ec-9522-075a5aae449f"
+  }
+ ],
+ "release_binding": {
+  "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+  "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+  "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+  "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+  "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+  "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+ },
+ "representation_schema": {
+  "hash": "e87e0bacdc476b0bef092a04cbedd933e0b57b128651b08ef0ffbd0c94d186fd",
+  "version": "5d-representation-schema-15"
+ },
+ "semantic_policy_hash": "da63b8940c5b3997b44d53e02941389b68e2a2ba35250e73194d38bb1d74cde7",
+ "semantic_policy_version": "5d-semantic-policy-2"
+}

@@ -542,8 +542,11 @@ class TestRulesCorpusIdStability:
         assert written == 2
         ids = self._stored_ids(client, package_id, config, ef)
         assert len(ids) == 2
-        assert f"rules:{package_id}:chunk:{chunk_id_a}" in ids
-        assert f"rules:{package_id}:chunk:{chunk_id_b}" in ids
+        # ":w0" is the bounded-window suffix: these chunks are one sentence
+        # each, so each is a single window, and the stem is still the
+        # durable chunk_id rather than any per-run ordinal.
+        assert f"rules:{package_id}:chunk:{chunk_id_a}:w0" in ids
+        assert f"rules:{package_id}:chunk:{chunk_id_b}:w0" in ids
 
     def test_reindex_in_reversed_insertion_order_produces_same_id_set(
         self, session_factory, tmp_path: Path
@@ -632,7 +635,7 @@ class TestRulesCorpusIdStability:
         ef = DeterministicFakeEmbeddingFunction()
         service = RulesCorpusService(client, config, ef)
         service.reindex_from_sql(session, package_id)
-        id_a_before = f"rules:{package_id}:chunk:{chunk_id_a}"
+        id_a_before = f"rules:{package_id}:chunk:{chunk_id_a}:w0"
         ids_before = self._stored_ids(client, package_id, config, ef)
         assert id_a_before in ids_before
 
@@ -679,15 +682,17 @@ class TestRulesCorpusIdStability:
         _seed_package_with_chunks(session, package_id, ["Some content."])
 
         calls: list[tuple[object, object]] = []
-        import afterworlds.pipeline.retrieval.rules_corpus_service as rcs_module
+        import afterworlds.pipeline.retrieval.corpus_windows as windows_module
 
-        original = rcs_module.build_rules_corpus_chunk_id
+        original = windows_module.build_rules_corpus_window_id
 
-        def _spy(pkg_id, chunk_id):  # type: ignore[no-untyped-def]
+        def _spy(pkg_id, chunk_id, window_index):  # type: ignore[no-untyped-def]
             calls.append((pkg_id, chunk_id))
-            return original(pkg_id, chunk_id)
+            return original(pkg_id, chunk_id, window_index)
 
-        monkeypatch.setattr(rcs_module, "build_rules_corpus_chunk_id", _spy)
+        # The reindex reaches the ID builder through derive_retrieval_documents
+        # now; spying there is what proves it is not rebuilding the formula.
+        monkeypatch.setattr(windows_module, "build_rules_corpus_window_id", _spy)
 
         client = build_isolated_test_chroma_client(str(tmp_path))
         config = RetrievalMemoryConfig()

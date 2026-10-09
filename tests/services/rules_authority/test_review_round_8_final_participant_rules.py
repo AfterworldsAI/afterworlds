@@ -217,7 +217,7 @@ def _apply(candidate: ProjectionCandidate, *entries: EffectiveOverrideEntry):  #
         release_version=_BINDING.release_version,
         entries=ordered,
     )
-    return apply_override_set(candidate, state, _PACKAGE_BINDING)
+    return apply_override_set(candidate, state, _PACKAGE_BINDING, leaf_order={})
 
 
 COMPONENT_TARGET = MechanicalTarget(

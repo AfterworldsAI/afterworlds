@@ -1,5 +1,30 @@
 # SRD Corpus Reproducibility — CRD Issue 5c (#132), ADR-005c Completion Contract A
 
+> **Amended in part by the [2026-09-21 Owner Decision: clean source and fresh 5c/5d
+> construction](../decisions/owner-decision-2026-09-21-5c-5d-clean-restart.md).** The
+> existing 5c corpus release and 5d accepted authority products are quarantined and are
+> no longer available as active authority. Two further framing claims are no longer
+> governing requirements: **PDF page geometry as the canonical machine-readable
+> interface** (the per-line, per-word and per-rect extraction manifest of Component A,
+> and `AUTHORITATIVE_SOURCE_EXTRACTION_HASH` as the completeness proof) and **downstream
+> reconstruction of page layout** (rect-derived column boundaries, geometric cross-page
+> table continuation, and per-page leaf tiling as the required faithful-table mechanism
+> in Component F). A corrected, pinned Markdown source becomes the canonical
+> machine-readable representation of the official PDF without becoming an independent
+> rules authority; the PDF remains the ultimate source authority. Nothing here requires
+> preserving the quarantined products or their formats for historical compatibility --
+> normal Git history is sufficient retention. This document still accurately describes
+> the quarantined implementation.
+>
+> What remains binding: exact source identification, complete and faithful
+> representation, source/interpretation separation, stable immutable releases,
+> meaningful-change versioning, accidental-corruption and stale-reuse detection,
+> fail-closed publication, rebuildability and diagnosability, campaign version
+> stability, deliberate house-rule precedence, and the code-owned
+> deterministic/trust-relevant responsibilities of `CLAUDE.md` invariants 8 and 10. The
+> Owner Decision changes *which products* hold authority and *which machine-readable
+> representation* is canonical; it does not relax any operational outcome.
+
 > **Prospectively superseded in part (2026-08-03) — CRD Issue 5c Operational Reliability Amendment.**
 > This document describes the proof architecture Completion Contract A originally required, and
 > remains an accurate description of what the current implementation does. Three of its framing

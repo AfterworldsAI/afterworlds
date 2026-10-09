@@ -1,0 +1,9 @@
+# Remaining validation scope — 7 October 2026
+
+The Owner expressly requests reuse of unaffected evidence and the simplest sufficient verification. Existing whole-file pilots already cover candidate harnesses, Classes/Glossary, Origins, Gameplay and Oracle; the required upcoming default full suite will cover every settled file with coverage. Spell Descriptions and Magic pilots are already active: finish them, preserve actual outputs and keep their files frozen.
+
+For the remaining Monsters/Animals/Checks corrections, do not automatically launch another complete module or whole historical family replay. Select small representative nodes for the changed source/current-reader fixture and the historical replay/disjointness seam if immediate diagnosis is necessary. The final full default gate covers the complete family. Reuse unchanged accepted native persistence/readers and earlier successful diagnostics where no participating code/data changed; classify later file drift precisely. No additional generator-identity probe is required for already established mismatches. Complete the reviewable increment and final notes once the meaningful narrow checks finish.
+
+This limits redundant diagnostics, not the required final suite, configured coverage threshold, strict typing, lint, audit, secrets checks or later exact-committed-head CI. Do not skip tests or weaken their assertions to reduce runtime.
+
+Keep the restart opening's completion claims provisional until all active diagnostics actually exit and concrete failures are corrected. Name the final mypy scope precisely: production `mypy src/` plus strict selected affected tests, rather than suggesting a new requirement to strict-check every repository test. Describe retirement accurately as obsolete cross-release byte/count expectations, while retaining useful source, semantic, replay and failure coverage on coherent bindings.

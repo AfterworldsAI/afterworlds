@@ -1,0 +1,778 @@
+{
+  "accepted_sha256": "e9678ab30c27ba92deda5757de4be082aba8bfc44690b6bf94f7bc1f747a45ca",
+  "reference_resolutions": [
+    {
+      "destinations": [
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.coins"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.armor"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.tools"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.adventuring_gear"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.mounts_and_vehicles"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.lifestyle_expenses"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.food_drink_and_lodging"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.hirelings"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.spellcasting"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.magic_items"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.crafting_nonmagical_items"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.brewing_potions_of_healing"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.scribing_spell_scrolls"
+        }
+      ],
+      "from_component_key": "starting_equipment",
+      "from_record_key": "character_creation.create_your_character",
+      "provenance_span_ids": [
+        "c4da3a1b-3e6f-5432-ad5a-1081bef204a6",
+        "e484fa50-630f-560a-af60-6f3601887e2c"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "cited-24-character_creation.create_your_character-starting_equipment",
+      "scope_key": "srd-5.2.1/equipment",
+      "source_text": "Equipment",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.coins"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.armor"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.tools"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.adventuring_gear"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.mounts_and_vehicles"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.lifestyle_expenses"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.food_drink_and_lodging"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.hirelings"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.spellcasting"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.magic_items"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.crafting_nonmagical_items"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.brewing_potions_of_healing"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.scribing_spell_scrolls"
+        }
+      ],
+      "from_component_key": "equipping_a_monster_with_other_items",
+      "from_record_key": "monsters.parts_of_a_stat_block",
+      "provenance_span_ids": [
+        "971d8802-32bb-5407-890a-9d675a682f43"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "cited-35-monsters.parts_of_a_stat_block-equipping_a_monster_with_other_items",
+      "scope_key": "srd-5.2.1/equipment",
+      "source_text": "Equipment",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.coins"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.armor"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.tools"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.adventuring_gear"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.mounts_and_vehicles"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.lifestyle_expenses"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.food_drink_and_lodging"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.hirelings"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.spellcasting"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.magic_items"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.crafting_nonmagical_items"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.brewing_potions_of_healing"
+        },
+        {
+          "alternative_label": "Equipment: the whole chapter, in printed order",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.scribing_spell_scrolls"
+        }
+      ],
+      "from_component_key": "",
+      "from_record_key": "play.exploration",
+      "provenance_span_ids": [
+        "2e7f7342-7ba4-5fb6-9b24-1debb8ccfad9"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "cited-37-play.exploration-",
+      "scope_key": "srd-5.2.1/equipment",
+      "source_text": "See \"Equipment\" for rules on many items",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Cursed item: Armor of Vulnerability",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.armor_of_vulnerability"
+        },
+        {
+          "alternative_label": "Cursed item: Berserker Axe",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.berserker_axe"
+        },
+        {
+          "alternative_label": "Cursed item: Demon Armor",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.demon_armor"
+        },
+        {
+          "alternative_label": "Cursed item: Shield of Missile Attraction",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.shield_of_missile_attraction"
+        }
+      ],
+      "from_component_key": "cursed_magic_items",
+      "from_record_key": "gameplay_toolbox.curses_and_magical_contagions",
+      "provenance_span_ids": [
+        "5d00d2b4-b84c-5bc6-83d0-1a4a923c4e0d",
+        "b04cc237-0667-58d5-93b1-22b0aa2d2c1f"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "cited-46-gameplay_toolbox.curses_and_magical_contagions-cursed_magic_items",
+      "scope_key": "srd-5.2.1/magic-items",
+      "source_text": "Magic Items",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Spellcasting rules: Gaining Spells, then Casting Spells",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "spells.gaining_spells"
+        },
+        {
+          "alternative_label": "Spellcasting rules: Gaining Spells, then Casting Spells",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "spells.casting_spells"
+        }
+      ],
+      "from_component_key": "spellcasting",
+      "from_record_key": "classes.bard.spellcasting",
+      "provenance_span_ids": [
+        "3f60982e-c384-59f0-9b08-d3cca324b4f2"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "cited-79-classes.bard.spellcasting-spellcasting",
+      "scope_key": "srd-5.2.1/spells",
+      "source_text": "Spells",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Spellcasting rules: Gaining Spells, then Casting Spells",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "spells.gaining_spells"
+        },
+        {
+          "alternative_label": "Spellcasting rules: Gaining Spells, then Casting Spells",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "spells.casting_spells"
+        }
+      ],
+      "from_component_key": "spellcasting",
+      "from_record_key": "classes.cleric.spellcasting",
+      "provenance_span_ids": [
+        "8c0245e5-75ac-5326-94d6-9987f830eaec"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "cited-80-classes.cleric.spellcasting-spellcasting",
+      "scope_key": "srd-5.2.1/spells",
+      "source_text": "Spells",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Spellcasting rules: Gaining Spells, then Casting Spells",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "spells.gaining_spells"
+        },
+        {
+          "alternative_label": "Spellcasting rules: Gaining Spells, then Casting Spells",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "spells.casting_spells"
+        }
+      ],
+      "from_component_key": "spellcasting",
+      "from_record_key": "classes.druid.spellcasting",
+      "provenance_span_ids": [
+        "a11ce84e-32b9-5ee8-a3f2-a9b1a4d40f60"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "cited-81-classes.druid.spellcasting-spellcasting",
+      "scope_key": "srd-5.2.1/spells",
+      "source_text": "Spells",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Spellcasting rules: Gaining Spells, then Casting Spells",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "spells.gaining_spells"
+        },
+        {
+          "alternative_label": "Spellcasting rules: Gaining Spells, then Casting Spells",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "spells.casting_spells"
+        }
+      ],
+      "from_component_key": "spellcasting",
+      "from_record_key": "classes.paladin.spellcasting",
+      "provenance_span_ids": [
+        "d61d3f39-d1ae-54da-a818-c9b64c31faa6"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "cited-82-classes.paladin.spellcasting-spellcasting",
+      "scope_key": "srd-5.2.1/spells",
+      "source_text": "Spells",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Spellcasting rules: Gaining Spells, then Casting Spells",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "spells.gaining_spells"
+        },
+        {
+          "alternative_label": "Spellcasting rules: Gaining Spells, then Casting Spells",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "spells.casting_spells"
+        }
+      ],
+      "from_component_key": "spellcasting",
+      "from_record_key": "classes.ranger.spellcasting",
+      "provenance_span_ids": [
+        "ce2ac502-43b1-5ad0-a86d-8bed78f56140"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "cited-83-classes.ranger.spellcasting-spellcasting",
+      "scope_key": "srd-5.2.1/spells",
+      "source_text": "Spells",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Spellcasting rules: Gaining Spells, then Casting Spells",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "spells.gaining_spells"
+        },
+        {
+          "alternative_label": "Spellcasting rules: Gaining Spells, then Casting Spells",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "spells.casting_spells"
+        }
+      ],
+      "from_component_key": "spellcasting",
+      "from_record_key": "classes.sorcerer.spellcasting",
+      "provenance_span_ids": [
+        "3e48a31b-de98-59b4-9f56-97491aff6c3f"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "cited-84-classes.sorcerer.spellcasting-spellcasting",
+      "scope_key": "srd-5.2.1/spells",
+      "source_text": "Spells",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Spellcasting rules: Gaining Spells, then Casting Spells",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "spells.gaining_spells"
+        },
+        {
+          "alternative_label": "Spellcasting rules: Gaining Spells, then Casting Spells",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "spells.casting_spells"
+        }
+      ],
+      "from_component_key": "pact_magic",
+      "from_record_key": "classes.warlock.pact_magic",
+      "provenance_span_ids": [
+        "836e3cd0-924e-5fd6-8c44-139fab07ace4"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "cited-85-classes.warlock.pact_magic-pact_magic",
+      "scope_key": "srd-5.2.1/spells",
+      "source_text": "Spells",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Spellcasting rules: Gaining Spells, then Casting Spells",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "spells.gaining_spells"
+        },
+        {
+          "alternative_label": "Spellcasting rules: Gaining Spells, then Casting Spells",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "spells.casting_spells"
+        }
+      ],
+      "from_component_key": "spellcasting",
+      "from_record_key": "classes.wizard.spellcasting",
+      "provenance_span_ids": [
+        "bb9d6e37-e60d-536e-8de8-e9f7082f26f3"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "cited-86-classes.wizard.spellcasting-spellcasting",
+      "scope_key": "srd-5.2.1/spells",
+      "source_text": "Spells",
+      "target_record_key": ""
+    },
+    {
+      "from_component_key": "spell",
+      "from_record_key": "glossary.spell",
+      "provenance_span_ids": [
+        "b9b21b30-413c-5eae-b3d5-a8aaa2fe0e5c"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "cited-89-glossary.spell-spell",
+      "scope_key": "srd-5.2.1/spells",
+      "source_text": "Spells",
+      "target_record_key": "spells.casting_spells"
+    }
+  ],
+  "representation_schema": [
+    "5d-representation-schema-17",
+    "4881e51fb2fa73e52f7ff951ad7d00b863188c1a22133fb0e2873c7d32d10ada"
+  ]
+}

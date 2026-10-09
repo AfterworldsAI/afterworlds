@@ -1,0 +1,23 @@
+{
+  "owner": "Ravenlok (Owner)",
+  "exact_user_message": "I accept this exact release-order candidate.",
+  "receipt_created_at_utc": "2026-10-07T05:28:37Z",
+  "candidate_sha256": "8a6a9a9c305f41207190c0deb55875a027019116ce3f825a6a0425a3a115b4bf",
+  "candidate_bytes": 35061929,
+  "binding": {
+    "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+    "bundle_root_hash": "0941dc966337f190f5a6ed3b5dfc0370dc29efd15483889bf2a0d9fb7c564787",
+    "package_uuid": "1299484e-c72d-509b-bd8d-d0169ee1f8d2",
+    "persisted_corpus_digest": "3717fa115a5abb68c4be179d0d643992ab7392a0f9cd5ca5dc4a73da9258e3c3",
+    "release_version": "5.2.1-corpus.8781d4e0-a3b",
+    "transform_config_hash": "753e76087885ee99fb3fa97932c6a0e5b5075bbed1b0acd466d90a029ff0bc01"
+  },
+  "scope": {
+    "accepted_batches": 24,
+    "reference_resolutions": 1486,
+    "records": 1835,
+    "representation_schema": 17
+  },
+  "authorization": "Fresh Owner acceptance of the whole pinned release-order replacement candidate; native recording and bounded affected live-pin verification authorized.",
+  "boundary": "No staging, commit, push, merge, publication, activation, shared-store writes, broad-suite reruns, dependency repair, or semantic expansion."
+}

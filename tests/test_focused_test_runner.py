@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import os
 import subprocess
 import sys
@@ -103,6 +104,14 @@ def test_focused_selection_does_not_remove_default_coverage_gate(
     )
     monkeypatch.delenv("PYTEST_ADDOPTS", raising=False)
     monkeypatch.setattr(runner, "ROOT", tmp_path)
+    # The children run a private project, so its coverage data file is named
+    # here: inherited, a CI shard's COVERAGE_FILE would redirect it away from
+    # the asserted path or, if absolute, onto the parent's own data file.
+    child_env = os.environ.copy()
+    child_env["COVERAGE_FILE"] = str(tmp_path / ".coverage")
+    monkeypatch.setattr(
+        subprocess, "run", functools.partial(subprocess.run, env=child_env)
+    )
     assert (
         runner.main(["--check", "src/afterworlds/sample.py", "tests/test_sample.py"])
         == 0
@@ -115,7 +124,7 @@ def test_focused_selection_does_not_remove_default_coverage_gate(
         cwd=tmp_path,
         capture_output=True,
         text=True,
-        env=os.environ.copy(),
+        env=child_env,
         check=False,
     )
     assert full.returncode == 1, full.stdout + full.stderr

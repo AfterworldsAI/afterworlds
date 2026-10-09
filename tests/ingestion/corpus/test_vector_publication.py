@@ -26,7 +26,7 @@ from afterworlds.ingestion.corpus.vector_publication import (
 )
 from afterworlds.models.enums import SourceLocatorTypeEnum
 from afterworlds.models.retrieval import (
-    build_rules_corpus_chunk_id,
+    build_rules_corpus_window_id,
     rules_corpus_collection_name,
 )
 from afterworlds.persistence.database import create_engine, create_session_factory
@@ -133,8 +133,9 @@ def test_reindex_writes_exactly_the_expected_documents(seeded, tmp_path):
 
     assert result.ok, result.failures
     assert result.written == len(specs)
+    # One window each: these fixtures are one short sentence per chunk.
     expected_ids = {
-        build_rules_corpus_chunk_id(UUID(pkg), UUID(cid)) for cid, _, _ in specs
+        build_rules_corpus_window_id(UUID(pkg), UUID(cid), 0) for cid, _, _ in specs
     }
     assert {d.doc_id for d in result.state.documents} == expected_ids
     assert result.state.count == len(specs)
@@ -271,7 +272,7 @@ def test_verify_only_detects_deleted_document(seeded, tmp_path):
     collection = get_rules_corpus_collection(
         client, rules_corpus_collection_name(UUID(pkg)), config, ef
     )
-    victim = build_rules_corpus_chunk_id(UUID(pkg), UUID(specs[0][0]))
+    victim = build_rules_corpus_window_id(UUID(pkg), UUID(specs[0][0]), 0)
     collection.delete(ids=[victim])
 
     result = verify_only(session, pkg, client, config, ef)
@@ -290,7 +291,7 @@ def test_verify_only_detects_altered_content(seeded, tmp_path):
     collection = get_rules_corpus_collection(
         client, rules_corpus_collection_name(UUID(pkg)), config, ef
     )
-    victim = build_rules_corpus_chunk_id(UUID(pkg), UUID(specs[0][0]))
+    victim = build_rules_corpus_window_id(UUID(pkg), UUID(specs[0][0]), 0)
     collection.update(ids=[victim], documents=["TAMPERED CONTENT"])
 
     result = verify_only(session, pkg, client, config, ef)

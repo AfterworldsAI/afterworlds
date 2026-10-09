@@ -1,0 +1,5 @@
+start 2026-10-07T08:30:28.281375+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/_sp/release-readiness-20261007/codex_selector_probe.py
+input 21113783b1a26add28b2b5767d32cab10cd220c634d7d50c3438c7500b3bcc4d  .claude/_sp/release-readiness-20261007/codex_selector_probe.py
+{"retired_binding_refused": true, "error_type": "OracleLoadError"}
+end 2026-10-07T08:30:28.812370+00:00 exit 0

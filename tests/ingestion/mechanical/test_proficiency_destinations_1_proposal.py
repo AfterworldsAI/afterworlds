@@ -80,13 +80,15 @@ from afterworlds.ingestion.mechanical.proposal import (
     proposal_identity,
 )
 from afterworlds.ingestion.mechanical.representation import (
-    REPRESENTATION_SCHEMA_VERSION,
     ActionAllowanceFact,
     ActionCost,
     AllowanceScope,
     ComponentHandling,
     RecordKind,
-    representation_schema_hash,
+)
+from afterworlds.ingestion.mechanical.schema_lift import (
+    SCHEMA_15_HASH,
+    SCHEMA_15_VERSION,
 )
 from afterworlds.ingestion.mechanical.validation import validate_representation
 
@@ -302,8 +304,8 @@ def test_the_proposal_derives_its_reviewed_identity_under_schema_fifteen() -> No
     proposal = _proposal()
     assert proposal_identity(proposal) == PROPOSAL_IDENTITY
     assert proposal.proposal_schema_version == PROPOSAL_SCHEMA_VERSION_2
-    assert proposal.schema_version == REPRESENTATION_SCHEMA_VERSION
-    assert proposal.schema_hash == representation_schema_hash()
+    assert proposal.schema_version == SCHEMA_15_VERSION
+    assert proposal.schema_hash == SCHEMA_15_HASH
     assert proposal.policy_version == SEMANTIC_POLICY_VERSION
     # No schema change was needed for these four destinations: this batch
     # declares the current schema as-is, and reads the same bound release the
@@ -631,8 +633,8 @@ def test_in_memory_acceptance_is_evidence_and_writes_nothing() -> None:
         resolved_review_units=tuple(sorted(EXPECTED_UNITS)),
     )
 
-    assert accepted.oracle.schema_version == REPRESENTATION_SCHEMA_VERSION
-    assert accepted.oracle.schema_hash == representation_schema_hash()
+    assert accepted.oracle.schema_version == SCHEMA_15_VERSION
+    assert accepted.oracle.schema_hash == SCHEMA_15_HASH
     assert len(accepted.batches) == len(prior.batches) + 1
     assert {u.unit_id for u in accepted.oracle.review_units} == set(EXPECTED_UNITS)
 

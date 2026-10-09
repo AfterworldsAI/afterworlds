@@ -407,7 +407,9 @@ def _resolved(target: MechanicalTarget):  # type: ignore[no-untyped-def]
         release_version=_BINDING.release_version,
         entries=(_entry(target),),
     )
-    return apply_override_set(_choice_candidate(), state, _PACKAGE_BINDING)
+    return apply_override_set(
+        _choice_candidate(), state, _PACKAGE_BINDING, leaf_order={}
+    )
 
 
 def _choice(view):  # type: ignore[no-untyped-def]

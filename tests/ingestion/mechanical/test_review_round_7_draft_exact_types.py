@@ -49,6 +49,7 @@ from afterworlds.ingestion.mechanical.representation import (
     representation_schema_hash,
 )
 from afterworlds.ingestion.mechanical.validation import validate_representation
+from tests.ingestion.mechanical._schema_pins import CURRENT_SCHEMA_HASH
 from tests.ingestion.mechanical.conftest import bound_corpus, build_ledger
 
 # ---------------------------------------------------------------------------
@@ -460,10 +461,8 @@ def test_the_schema_version_and_hash_are_unchanged() -> None:
     the pair is the contract, and asserting one against the live value would
     make this test agree with whatever the build currently is.
     """
-    assert REPRESENTATION_SCHEMA_VERSION == "5d-representation-schema-15"
-    assert representation_schema_hash() == (
-        "e87e0bacdc476b0bef092a04cbedd933e0b57b128651b08ef0ffbd0c94d186fd"  # noqa: E501  # pragma: allowlist secret
-    )
+    assert REPRESENTATION_SCHEMA_VERSION == "5d-representation-schema-17"
+    assert representation_schema_hash() == CURRENT_SCHEMA_HASH
 
 
 # ---------------------------------------------------------------------------

@@ -163,6 +163,9 @@ from afterworlds.ingestion.mechanical.representation import (
     Recurrence,
     RecurrenceBoundary,
     ReferenceDraft,
+    ReferenceSituation,
+    RelationshipDraft,
+    RelationshipKind,
     RelocatedOrigin,
     RepresentationDraft,
     RequiredQuantity,
@@ -229,7 +232,11 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_13_VERSION,
     SCHEMA_14_HASH,
     SCHEMA_14_VERSION,
+    SCHEMA_15_HASH,
     SCHEMA_15_VERSION,
+    SCHEMA_16_HASH,
+    SCHEMA_16_VERSION,
+    SCHEMA_17_VERSION,
     SchemaLiftError,
     accepted_schema_contracts,
     lift_accepted_inputs,
@@ -790,6 +797,49 @@ SCHEMA_15_ONLY = [
 ]
 
 
+#: One live object for the one member schema 16 added. The relationship is the
+#: only carrier the kind has, so it is the exemplar: a catalogue member edge an
+#: earlier reader could otherwise mistake for containment it never stated.
+SCHEMA_16_ONLY = [
+    pytest.param(
+        RelationshipDraft(
+            source_record_key="feat:alert",
+            target_record_key="section:feats",
+            kind=RelationshipKind.CATALOGUE_MEMBER,
+        ),
+        id="vocabulary-relationship_kind-catalogue_member",
+    )
+]
+
+SCHEMA_17_ONLY = [
+    pytest.param(
+        ReferenceDraft(
+            "feat:archery",
+            RECORD_OWNED_REFERENCE,
+            "Fighting Style feature",
+            "scope",
+            "class:fighter",
+            alternative_label="Fighter",
+            situation=ReferenceSituation.ENTERING_CLASS,
+            class_record_key="class:fighter",
+            minimum_class_level=1,
+        ),
+        id="vocabulary-reference_situation-entering_class",
+    ),
+    pytest.param(
+        ReferenceDraft(
+            "feat:archery",
+            RECORD_OWNED_REFERENCE,
+            "Fighting Style feature",
+            "scope",
+            "class:fighter",
+            target_component_key="fighting_style",
+        ),
+        id="field-reference-target_component_key",
+    ),
+]
+
+
 # ---------------------------------------------------------------------------
 # The contract, driven from the manifest rather than from a hand-written list
 # ---------------------------------------------------------------------------
@@ -814,6 +864,8 @@ def test_every_manifest_row_has_an_exemplar_here() -> None:
         *SCHEMA_11_ONLY,
         *SCHEMA_14_ONLY,
         *SCHEMA_15_ONLY,
+        *SCHEMA_16_ONLY,
+        *SCHEMA_17_ONLY,
     ):
         (obj,) = param.values
         exercised |= _groups_exercised_by(obj)
@@ -1021,6 +1073,55 @@ def test_schema_15_still_admits_every_schema_14_introduction(
 ) -> None:
     """A mint admits its predecessor's introductions; it does not replace them."""
     assert post_schema_3_violations(obj, SCHEMA_15_VERSION) == []
+
+
+@pytest.mark.parametrize("obj", SCHEMA_16_ONLY)
+def test_schema_15_refuses_every_schema_16_only_type_or_value(
+    obj: object,
+) -> None:
+    """Schema 15 cannot state catalogue membership, so it may not carry it."""
+    assert post_schema_3_violations(obj, SCHEMA_15_VERSION), obj
+
+
+@pytest.mark.parametrize("obj", SCHEMA_16_ONLY)
+def test_schema_16_admits_what_it_introduced(obj: object) -> None:
+    """And the other direction, so the rule is not "refuse everything newer"."""
+    assert post_schema_3_violations(obj, SCHEMA_16_VERSION) == []
+
+
+@pytest.mark.parametrize("obj", [*SCHEMA_15_ONLY, *SCHEMA_14_ONLY])
+def test_schema_16_still_admits_every_earlier_introduction(obj: object) -> None:
+    """A mint admits its predecessors' introductions; it does not replace them."""
+    assert post_schema_3_violations(obj, SCHEMA_16_VERSION) == []
+
+
+@pytest.mark.parametrize("obj", SCHEMA_17_ONLY)
+def test_schema_16_refuses_every_schema_17_only_type_or_value(
+    obj: object,
+) -> None:
+    """Schema 16 cannot state a labelled alternative, so it may not carry one."""
+    assert post_schema_3_violations(obj, SCHEMA_16_VERSION), obj
+
+
+@pytest.mark.parametrize("obj", SCHEMA_17_ONLY)
+def test_schema_17_admits_what_it_introduced(obj: object) -> None:
+    """And the other direction, so the rule is not "refuse everything newer"."""
+    assert post_schema_3_violations(obj, SCHEMA_17_VERSION) == []
+
+
+@pytest.mark.parametrize("obj", [*SCHEMA_16_ONLY, *SCHEMA_15_ONLY])
+def test_schema_17_still_admits_every_earlier_introduction(obj: object) -> None:
+    """A mint admits its predecessors' introductions; it does not replace them."""
+    assert post_schema_3_violations(obj, SCHEMA_17_VERSION) == []
+
+
+def test_schema_16_leaves_every_pre_existing_relationship_kind_readable() -> None:
+    """The mint adds one kind; ``scoped_within`` and the rest keep their contract."""
+    for kind in RelationshipKind:
+        if kind is RelationshipKind.CATALOGUE_MEMBER:
+            continue
+        edge = RelationshipDraft("a", "b", kind)
+        assert post_schema_3_violations(edge, SCHEMA_15_VERSION) == [], kind
 
 
 @pytest.mark.parametrize("obj", SCHEMA_8_ONLY)
@@ -1499,9 +1600,9 @@ def test_the_recognized_contracts_are_exactly_the_live_pair_and_the_registry() -
         # which is exactly how schema 3 and schema 4 are here. Schema 6 joins it
         # the same way at schema 7, schema 7 at schema 8, schema 8 at schema 9,
         # schema 9 at schema 10, schema 10 at schema 11 and schema 11 at schema
-        # 12, schema 12 at schema 13, schema 13 at schema 14 and schema 14 at
-        # schema 15. The rule is the registry, not a list of versions somebody
-        # kept up to date.
+        # 12, schema 12 at schema 13, schema 13 at schema 14, schema 14 at
+        # schema 15, schema 15 at schema 16 and schema 16 at schema 17. The
+        # rule is the registry, not a list of versions somebody kept up to date.
         (SCHEMA_5_VERSION, SCHEMA_5_HASH),
         (SCHEMA_6_VERSION, SCHEMA_6_HASH),
         (SCHEMA_7_VERSION, SCHEMA_7_HASH),
@@ -1512,6 +1613,8 @@ def test_the_recognized_contracts_are_exactly_the_live_pair_and_the_registry() -
         (SCHEMA_12_VERSION, SCHEMA_12_HASH),
         (SCHEMA_13_VERSION, SCHEMA_13_HASH),
         (SCHEMA_14_VERSION, SCHEMA_14_HASH),
+        (SCHEMA_15_VERSION, SCHEMA_15_HASH),
+        (SCHEMA_16_VERSION, SCHEMA_16_HASH),
     }
 
 

@@ -1,0 +1,96 @@
+start 2026-10-07T03:28:11.366912+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/_sp/release-order-candidate/reader_proof2.py .claude/_sp/release-order-candidate/candidate/srd-5-2-1-corpus-8781d4e0-a3b.json .claude/_sp/release-order-candidate/candidate/reader-proof2.json
+input ee45247e52932eaee42a09da466b5c3d6afcbfec4f53825c57631519635a9442  .claude/_sp/release-order-candidate/reader_proof2.py
+input 8a6a9a9c305f41207190c0deb55875a027019116ce3f825a6a0425a3a115b4bf  .claude/_sp/release-order-candidate/candidate/srd-5-2-1-corpus-8781d4e0-a3b.json
+old files ['legal-information.md', 'animals.md', 'character-creation.md', 'character-origins.md', 'classes.md', 'equipment.md', 'feats.md', 'gameplay-toolbox.md', 'magic-items.md', 'monsters.md', 'monsters-A-Z.md', 'playing-the-game.md', 'rules-glossary.md', 'spells.md']
+new files ['legal-information.md', 'playing-the-game.md', 'character-creation.md', 'classes.md', 'character-origins.md', 'feats.md', 'equipment.md', 'spells.md', 'rules-glossary.md', 'gameplay-toolbox.md', 'magic-items.md', 'monsters.md', 'monsters-A-Z.md', 'animals.md']
+old: verify_reconstruction reports no findings True
+old: reconstructed binding == persisted binding == oracle binding True
+old: reconstructed candidate == identified candidate False
+old: reconstructed candidate re-identifies to the persisted projection True
+old: persisted/verified 498a9a0a-c693-53e5-8bcd-32143034fbe0 in 24s
+new: verify_reconstruction reports no findings True
+new: reconstructed binding == persisted binding == oracle binding True
+new: reconstructed candidate == identified candidate False
+new: reconstructed candidate re-identifies to the persisted projection True
+new: persisted/verified 8d8cb42c-aefe-559c-9d85-6ba975c038af in 24s
+animals.wolf: components 3 passages 21 reordered 3 differences 0
+animals.wolf: identical apart from release-ordered governing prose True
+animals.wolf: has governing prose to compare True
+animals.giant_owl: components 3 passages 27 reordered 3 differences 0
+animals.giant_owl: identical apart from release-ordered governing prose True
+animals.giant_owl: has governing prose to compare True
+animals.swarm_of_insects: components 3 passages 22 reordered 3 differences 0
+animals.swarm_of_insects: identical apart from release-ordered governing prose True
+animals.swarm_of_insects: has governing prose to compare True
+monsters.parts_of_a_stat_block: components 35 passages 105 reordered 0 differences 0
+monsters.parts_of_a_stat_block: identical apart from release-ordered governing prose True
+monsters.parts_of_a_stat_block: has governing prose to compare True
+monsters.aboleth.aboleth: components 4 passages 37 reordered 0 differences 0
+monsters.aboleth.aboleth: identical apart from release-ordered governing prose True
+monsters.aboleth.aboleth: has governing prose to compare True
+character_origins.acolyte: components 5 passages 5 reordered 0 differences 0
+character_origins.acolyte: identical apart from release-ordered governing prose True
+character_origins.acolyte: has governing prose to compare True
+character_creation.level_advancement: components 7 passages 18 reordered 0 differences 0
+character_creation.level_advancement: identical apart from release-ordered governing prose True
+character_creation.level_advancement: has governing prose to compare True
+classes.barbarian.as_a_multiclass_character: components 1 passages 2 reordered 0 differences 0
+classes.barbarian.as_a_multiclass_character: identical apart from release-ordered governing prose True
+classes.barbarian.as_a_multiclass_character: has governing prose to compare True
+spells.casting_spells: components 41 passages 47 reordered 0 differences 0
+spells.casting_spells: identical apart from release-ordered governing prose True
+spells.casting_spells: has governing prose to compare True
+glossary.blinded: components 2 passages 1 reordered 0 differences 0
+glossary.blinded: identical apart from release-ordered governing prose True
+glossary.blinded: has governing prose to compare True
+equipment.adventuring_gear.acid: components 1 passages 4 reordered 0 differences 0
+equipment.adventuring_gear.acid: identical apart from release-ordered governing prose True
+equipment.adventuring_gear.acid: has governing prose to compare True
+magic_items.activating_a_magic_item: components 5 passages 11 reordered 0 differences 0
+magic_items.activating_a_magic_item: identical apart from release-ordered governing prose True
+magic_items.activating_a_magic_item: has governing prose to compare True
+feats.boon_of_spell_recall: components 3 passages 3 reordered 0 differences 0
+feats.boon_of_spell_recall: identical apart from release-ordered governing prose True
+feats.boon_of_spell_recall: has governing prose to compare True
+read 13 records x2 in 211s
+animals.wolf: at least one component reads both own Animals text and governing Monsters rules True
+animals.wolf: old release read own Animals text before the governing Monsters rules True
+animals.wolf: new release reads the governing Monsters rules before own Animals text True
+animals.giant_owl: at least one component reads both own Animals text and governing Monsters rules True
+animals.giant_owl: old release read own Animals text before the governing Monsters rules True
+animals.giant_owl: new release reads the governing Monsters rules before own Animals text True
+animals.swarm_of_insects: at least one component reads both own Animals text and governing Monsters rules True
+animals.swarm_of_insects: old release read own Animals text before the governing Monsters rules True
+animals.swarm_of_insects: new release reads the governing Monsters rules before own Animals text True
+monsters.parts_of_a_stat_block: no component reordered (single-file or unchanged relative order) True
+monsters.aboleth.aboleth: no component reordered (single-file or unchanged relative order) True
+character_origins.acolyte: no component reordered (single-file or unchanged relative order) True
+character_creation.level_advancement: no component reordered (single-file or unchanged relative order) True
+classes.barbarian.as_a_multiclass_character: no component reordered (single-file or unchanged relative order) True
+spells.casting_spells: no component reordered (single-file or unchanged relative order) True
+glossary.blinded: no component reordered (single-file or unchanged relative order) True
+equipment.adventuring_gear.acid: no component reordered (single-file or unchanged relative order) True
+magic_items.activating_a_magic_item: no component reordered (single-file or unchanged relative order) True
+feats.boon_of_spell_recall: no component reordered (single-file or unchanged relative order) True
+control: live oracle validates on old store: ok: 0 findings
+control: live oracle validates on old store: expected ok True
+control: candidate validates on new store: ok: 0 findings
+control: candidate validates on new store: expected ok True
+candidate (new binding) on old store: refused ValueError: 69862 findings, e.g. leaf 00004f37-49ec-58f3-ab9b-4b4f477bb968: classified but not in the bound release
+candidate (new binding) on old store: expected refused True
+live oracle (old binding) on new store: refused ValueError: 69862 findings, e.g. leaf 00004f37-49ec-58f3-ab9b-4b4f477bb968: classified but not in the bound release
+live oracle (old binding) on new store: expected refused True
+persist candidate into old store: refused IntegrityError: (sqlite3.IntegrityError) FOREIGN KEY constraint failed
+[SQL: INSERT INTO rp_mech_projections (projection_uuid, package_uuid, release_version, authoritative_source_hash, transform_config_hash, bundle_root_hash, persisted_corpus_digest, seman
+persist candidate into old store: expected refused True
+persist live oracle into new store: refused IntegrityError: (sqlite3.IntegrityError) FOREIGN KEY constraint failed
+[SQL: INSERT INTO rp_mech_projections (projection_uuid, package_uuid, release_version, authoritative_source_hash, transform_config_hash, bundle_root_hash, persisted_corpus_digest, seman
+persist live oracle into new store: expected refused True
+mixed: new binding + old chunk ids, on new store: refused ValueError: 59398 findings, e.g. prose binding animals.swarm_of_bats/traits: chunk '00693099-14e5-5d11-a0ab-fb0e938bc96d' is not authoritative prose of release 1299484e-c72d-509b-bd8d-d0169ee1f8d2/5.2.1-corpus.8781d4e0-a3b
+mixed: new binding + old chunk ids, on new store: expected refused True
+mixed: old binding + new chunk ids, on old store: refused ValueError: 59398 findings, e.g. prose binding monsters.pegasus/pegasus: chunk '00186061-68bc-5b29-bc7f-c9027d214864' is not authoritative prose of release 67c81736-15fd-5e82-8523-e84922f0a7c6/5.2.1-corpus.3fe24ff6-4e3
+mixed: old binding + new chunk ids, on old store: expected refused True
+report .claude\_sp\release-order-candidate\candidate\reader-proof2.json bed0d98b5243f6f6822fb01e186a86bd7ebc9c06ec5cd8d4a533e8feee398ef4
+ALL OK False
+end 2026-10-07T03:33:37.026718+00:00 exit 1

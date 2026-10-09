@@ -1,0 +1,47 @@
+{
+  "old_build": "D:\\AI\\Claude\\afterworlds\\.claude\\_sp\\release-order-candidate\\rel-old",
+  "new_build": ".claude\\_sp\\release-order-candidate\\rel-new",
+  "checks": {
+    "official_fourteen_file_order": true,
+    "same_file_membership": true,
+    "exact_authoritative_source_hash": true,
+    "exact_units": true,
+    "exact_containers": true,
+    "exact_chunks": true,
+    "exact_citation_report": true,
+    "changed_package_uuid": true,
+    "changed_release_version": true,
+    "changed_transform_config_hash": true,
+    "changed_ledger_hash": true,
+    "changed_bundle_root_hash": true,
+    "changed_persisted_corpus_digest": true,
+    "leaf_ids_unique_and_exact": true,
+    "only_reading_coordinates_and_chunk_id_change": true,
+    "new_global_order_consecutive": true,
+    "within_file_leaf_order_preserved": true,
+    "container_ids_and_every_field_exact": true
+  },
+  "actual_changed_fields": {
+    "page_index": 10292,
+    "occurrence_index": 10459,
+    "chunk.chunk_id": 10464
+  },
+  "unexpected_differences": [],
+  "old_binding": {
+    "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+    "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+    "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+    "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947",
+    "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+    "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42"
+  },
+  "new_binding": {
+    "package_uuid": "1299484e-c72d-509b-bd8d-d0169ee1f8d2",
+    "release_version": "5.2.1-corpus.8781d4e0-a3b",
+    "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+    "transform_config_hash": "753e76087885ee99fb3fa97932c6a0e5b5075bbed1b0acd466d90a029ff0bc01",
+    "bundle_root_hash": "0941dc966337f190f5a6ed3b5dfc0370dc29efd15483889bf2a0d9fb7c564787",
+    "persisted_corpus_digest": "3717fa115a5abb68c4be179d0d643992ab7392a0f9cd5ca5dc4a73da9258e3c3"
+  },
+  "limits": "Compares exported native-build evidence; raw build/persistence exits and SQLite reconstruction/reader checks must also be reviewed."
+}

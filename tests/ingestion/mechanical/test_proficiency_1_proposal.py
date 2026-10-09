@@ -25,8 +25,8 @@ What is pinned, and why each pin is the one that would catch a real regression:
   ``unknown target record`` findings and the publication gate stays fail-closed
   until that batch is accepted. The mutations below prove the properties that
   make each one a checked link rather than a comment: it survives serialization
-  and reconstruction, deleting either half of it is reported, a sibling citing
-  the same words with a different destination is *ambiguous* rather than
+  and reconstruction, deleting either half of it is reported, the same
+  citation restated with a different destination is *ambiguous* rather than
   silently preferred, and blanking a destination reopens it as ``unresolved
   reference``; and
 * exactly two target strings separate these bytes from the identity reviewed
@@ -69,7 +69,6 @@ from afterworlds.ingestion.mechanical.proposal import (
     proposal_identity,
 )
 from afterworlds.ingestion.mechanical.representation import (
-    REPRESENTATION_SCHEMA_VERSION,
     ComponentHandling,
     FactFamily,
     ProficiencyBonusBandFact,
@@ -77,7 +76,10 @@ from afterworlds.ingestion.mechanical.representation import (
     ProvenanceRole,
     ProvenanceTargetKind,
     reference_target_key,
-    representation_schema_hash,
+)
+from afterworlds.ingestion.mechanical.schema_lift import (
+    SCHEMA_15_HASH,
+    SCHEMA_15_VERSION,
 )
 from afterworlds.ingestion.mechanical.validation import validate_representation
 
@@ -255,8 +257,8 @@ def test_the_retained_bytes_still_derive_the_reviewed_identity() -> None:
     proposal = _proposal()
     assert proposal_identity(proposal) == PROPOSAL_IDENTITY
     assert proposal.proposal_schema_version == PROPOSAL_SCHEMA_VERSION_2
-    assert proposal.schema_version == REPRESENTATION_SCHEMA_VERSION
-    assert proposal.schema_hash == representation_schema_hash()
+    assert proposal.schema_version == SCHEMA_15_VERSION
+    assert proposal.schema_hash == SCHEMA_15_HASH
     assert proposal.policy_version == SEMANTIC_POLICY_VERSION
 
 
@@ -399,8 +401,8 @@ def test_in_memory_acceptance_is_evidence_and_writes_nothing() -> None:
 
     # The prior was accepted under an earlier schema, so reaching schema 13 is a
     # verified lift path rather than a re-declaration.
-    assert accepted.oracle.schema_version == REPRESENTATION_SCHEMA_VERSION
-    assert accepted.oracle.schema_hash == representation_schema_hash()
+    assert accepted.oracle.schema_version == SCHEMA_15_VERSION
+    assert accepted.oracle.schema_hash == SCHEMA_15_HASH
     assert len(accepted.batches) == len(prior.batches) + 1
     assert {u.unit_id for u in accepted.oracle.review_units} == {UNIT_ID}
 
@@ -584,12 +586,13 @@ def test_deleting_either_half_of_a_named_link_is_reported() -> None:
 
 
 def test_a_sibling_citing_the_same_words_elsewhere_is_ambiguous() -> None:
-    """One scope and one wording may not resolve two ways.
+    """One citation may not resolve two ways.
 
-    The realistic error once destinations exist is a second batch citing the
-    same printed words at a different record, which would make "what does
-    *Skills table* mean here" depend on which reference a reader happened to
-    read. The report refuses it rather than preferring one.
+    The realistic error once destinations exist is a second batch restating this
+    citation — same record, component, words and scope — at a different record,
+    which would make "what does *Skills table* mean here" depend on which
+    reference a reader happened to read. The report refuses it rather than
+    preferring one.
     """
     proposal = _proposal()
     draft = proposal.proposed_representation

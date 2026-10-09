@@ -22,6 +22,12 @@ from dataclasses import dataclass
 from afterworlds.ingestion.corpus.models import CorpusChunk
 from afterworlds.ingestion.corpus.pdf_source import ExtractedPage
 from afterworlds.ingestion.corpus.policy import compact, normalize
+from afterworlds.ingestion.corpus.source_ledger import (
+    CITATION_VERIFICATION,
+    PAGE_SUBSTRING,
+    SOURCE_PARTITION,
+    verify_source_partition,
+)
 from afterworlds.ingestion.corpus.tables import _detect
 
 # ``compact`` is re-exported from policy (shared with tables without an import
@@ -31,6 +37,7 @@ __all__ = [
     "normalize",
     "ConcordanceResult",
     "check_concordance",
+    "verify_citations",
     "TableConcordanceResult",
     "check_table_concordance",
     "Canary",
@@ -41,15 +48,23 @@ __all__ = [
 
 @dataclass(frozen=True)
 class ConcordanceResult:
-    """Outcome of the whole-corpus concordance check (Component E)."""
+    """Outcome of the whole-corpus concordance check (Component E).
+
+    ``omissions`` names source material the corpus does **not** carry. A
+    chunk-by-chunk check can only ever fault the chunks that exist, so without
+    it a corpus missing half its units passes; it is a separate field rather
+    than more ``content_failures`` because a dropped unit and a corrupted one
+    are different defects and the report should say which happened.
+    """
 
     chunks_checked: int
     locator_failures: tuple[str, ...]  # chunk ids whose page is out of range
     content_failures: tuple[str, ...]  # chunk ids not found at their page
+    omissions: tuple[str, ...] = ()  # source units no chunk accounts for
 
     @property
     def passed(self) -> bool:
-        return not self.locator_failures and not self.content_failures
+        return not (self.locator_failures or self.content_failures or self.omissions)
 
 
 def check_concordance(
@@ -72,6 +87,46 @@ def check_concordance(
         chunks_checked=len(chunks),
         locator_failures=tuple(locator_failures),
         content_failures=tuple(content_failures),
+    )
+
+
+def verify_citations(
+    chunks: tuple[CorpusChunk, ...],
+    pages: list[ExtractedPage],
+    transform_config: dict[str, object],
+    *,
+    source_texts: dict[str, str] | None = None,
+) -> ConcordanceResult:
+    """Run the citation verification the release is qualified under.
+
+    The single dispatcher every call site routes through — the build report, the
+    reconstruct path and the publication gate — so the gate cannot be checking a
+    different proposition from the one the report prints.
+
+    The mode is read from the release's ``transform_config``, which
+    ``transform_config_hash`` already binds and gate condition 2 already
+    tamper-checks, so a release cannot quietly move itself to a weaker check. A
+    release that declares nothing gets :data:`PAGE_SUBSTRING`, the historical
+    behaviour; an unrecognised mode fails rather than falling back to one.
+    """
+    mode = transform_config.get(CITATION_VERIFICATION, PAGE_SUBSTRING)
+    if mode == PAGE_SUBSTRING:
+        return check_concordance(chunks, pages)
+    if mode == SOURCE_PARTITION:
+        content_failures, omissions = verify_source_partition(
+            chunks, pages, transform_config, source_texts
+        )
+        return ConcordanceResult(
+            chunks_checked=len(chunks),
+            locator_failures=(),
+            content_failures=content_failures,
+            omissions=omissions,
+        )
+    return ConcordanceResult(
+        chunks_checked=len(chunks),
+        locator_failures=(),
+        content_failures=(),
+        omissions=(f"unknown citation verification mode {mode!r}",),
     )
 
 

@@ -57,13 +57,29 @@ def _subsystem_for(leaf: Leaf, container_labels: dict[str, str]) -> str:
     return "general"
 
 
-def _section_label(leaf: Leaf, container_labels: dict[str, str]) -> str | None:
-    if not leaf.container_path:
-        return None
-    return container_labels.get(leaf.container_path[-1])
+def section_label_for(leaf: Leaf, container_labels: dict[str, str]) -> str | None:
+    """The whole heading stack that owns a leaf, not just its nearest heading.
+
+    Hundreds of records repeat the same innermost heading (every creature has
+    an ``Actions``), so the nearest label alone does not tell a consumer which
+    record a chunk came from. The verification that re-derives the corpus calls
+    this same function, so the persisted label and the expected one cannot
+    drift apart.
+    """
+    labels = [
+        label
+        for cid in leaf.container_path
+        if (label := container_labels.get(cid, "").strip())
+    ]
+    return " > ".join(labels) if labels else None
 
 
-def build_corpus(ledger: SourceLedger, package_uuid: str) -> CorpusBundleMembers:
+def build_corpus(
+    ledger: SourceLedger,
+    package_uuid: str,
+    *,
+    locators: dict[str, tuple[str, str, str]] | None = None,
+) -> CorpusBundleMembers:
     """Generate canonical corpus members from the frozen ledger (K a2).
 
     One authoritative chunk per represented leaf, covering the leaf's full span.
@@ -79,21 +95,34 @@ def build_corpus(ledger: SourceLedger, package_uuid: str) -> CorpusBundleMembers
     release-scoped. ``package_uuid`` is computed before a2 and passed in
     explicitly — there is no package-less default.
     """
+    # ``locators`` maps a leaf id to the (document, locator_type, locator_value)
+    # the chunk should carry. The PDF-geometric path passes none and persistence
+    # derives ``p. N`` from the leaf's page; the source path knows the whole
+    # citation at build time -- including the multi-page ``pp. N-M`` form a
+    # single page number cannot express -- and supplies it here. Either way the
+    # locator stays out of ``corpus_members_payload``, so the bundle root hash is
+    # unchanged and the locator is bound by the persisted-corpus digest alone.
     container_labels = {c.container_id: c.label for c in ledger.containers}
     chunks: list[CorpusChunk] = []
     for leaf in ledger.leaves:
         if exclusion_reason_for(leaf, container_labels) is not None:
             continue
         chunk_id = content_id("chunk", package_uuid, leaf.leaf_id)
+        document, locator_type, locator_value = (locators or {}).get(
+            leaf.leaf_id, ("", "", "")
+        )
         chunks.append(
             CorpusChunk(
                 chunk_id=chunk_id,
                 subsystem=_subsystem_for(leaf, container_labels),
                 content=leaf.content,
                 printed_page=leaf.printed_page,
-                section_label=_section_label(leaf, container_labels),
+                section_label=section_label_for(leaf, container_labels),
                 container_path=leaf.container_path,
                 source_leaf_ids=(leaf.leaf_id,),
+                source_document=document,
+                source_locator_type=locator_type,
+                source_locator_value=locator_value,
             )
         )
     return CorpusBundleMembers(chunks=tuple(chunks), derivative_notes=())

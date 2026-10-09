@@ -90,6 +90,7 @@ from afterworlds.services.rules_authority.views import (
     build_gamemaster_view,
     build_typed_view,
 )
+from tests.ingestion.mechanical._schema_pins import CURRENT_SCHEMA_HASH
 from tests.services.rules_authority.conftest import (
     DESCRIPTOR_COMPONENT_TARGET,
     DESCRIPTOR_KEY,
@@ -614,7 +615,7 @@ def _resolve(raw: dict[str, object]):  # type: ignore[no-untyped-def]
         release_version=_BINDING.release_version,
         entries=(entry,),
     )
-    return apply_override_set(_candidate(), state, _PACKAGE_BINDING)
+    return apply_override_set(_candidate(), state, _PACKAGE_BINDING, leaf_order={})
 
 
 def _component(view):  # type: ignore[no-untyped-def]
@@ -763,10 +764,9 @@ def test_the_representation_schema_hash_is_untouched() -> None:
     schema 7, schema 8, schema 9, schema 10, schema 11's seven added families,
     schema 12's retained-prose distinction, schema 13's
     ``ProficiencyBonusBandFact``, schema 14's typed proficiency rule inputs,
-    and now schema 15's ``ProficiencyBonusUseFact``. What this test asserts is
+    schema 15's ``ProficiencyBonusUseFact``, and now schema 16's
+    ``catalogue_member`` relationship kind. What this test asserts is
     unchanged: the *patch layer* does not participate in representation
     identity, so this canary may only move when the representation itself does.
     """
-    assert representation_schema_hash() == (
-        "e87e0bacdc476b0bef092a04cbedd933e0b57b128651b08ef0ffbd0c94d186fd"  # noqa: E501  # pragma: allowlist secret
-    )
+    assert representation_schema_hash() == CURRENT_SCHEMA_HASH

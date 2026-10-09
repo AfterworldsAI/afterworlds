@@ -1,0 +1,19 @@
+start 2026-10-07T07:59:09.439722+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/review-notes/issue-5c-release-readiness/probes/generator_identity_probe.py
+input 880f3319b582e5883b4ca3f8a9b53f1bbc7db8f41522859ffeca9a716aac73e2  .claude/review-notes/issue-5c-release-readiness/probes/generator_identity_probe.py
+classes binding 5.2.1-corpus.8781d4e0-a3b
+  built       562edb08b93098fcc48ba1a31ab81e2326785e5ead8e7694cb93a85c8e495c23
+  current     ab357393ce9c3d3bcbc06e7f18ff9c6cadb13c852fdb8dce09fb0ec43737df54 False
+  rebound     ab357393ce9c3d3bcbc06e7f18ff9c6cadb13c852fdb8dce09fb0ec43737df54 False
+  historical  c98ed194f954eeec7c9005788192edba893512b1064ff6b38a4280812b9a2b03 False
+class-option-catalogues binding 5.2.1-corpus.8781d4e0-a3b
+  built       6d11f46a95c5a03d519be29ccaea43895ede4930d678116c7b0615e9a24236c2
+  current     6d11f46a95c5a03d519be29ccaea43895ede4930d678116c7b0615e9a24236c2 True
+  rebound     6d11f46a95c5a03d519be29ccaea43895ede4930d678116c7b0615e9a24236c2 True
+  historical  ba5e78d5fe9e6c7fd69247fdefb734158d635e707d3898f31ee4147cc06e5d4f False
+rules-glossary-completion binding 5.2.1-corpus.8781d4e0-a3b
+  built       38dc2df713e64a8da6a7713f19b4ecb4ce58fbd47303de2c68d2b9195b2db34f
+  current     38dc2df713e64a8da6a7713f19b4ecb4ce58fbd47303de2c68d2b9195b2db34f True
+  rebound     38dc2df713e64a8da6a7713f19b4ecb4ce58fbd47303de2c68d2b9195b2db34f True
+  historical  e777201803ce1dbadc753ec0da38f385edf23628ba1a45a3bac20c5999cca367 False
+end 2026-10-07T08:03:33.348083+00:00 exit 0

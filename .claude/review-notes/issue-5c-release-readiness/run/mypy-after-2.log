@@ -1,0 +1,7 @@
+start 2026-10-07T07:10:20.310540+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe -m mypy --strict tests/ingestion/mechanical/conftest.py tests/ingestion/mechanical/test_oracle.py tests/ingestion/mechanical/test_accepted_inputs.py
+input 08bd6ed090b6d6e37fa0b5ee20e46a0764414c3345c401e4f657d92dd3e6b56d  tests/ingestion/mechanical/conftest.py
+input c776c6484ae99b111e4022eb9e1b83caa144462ec87af7c6247efe5c7649ea50  tests/ingestion/mechanical/test_oracle.py
+input 61f059b66116017f4db91c82eec78120d14d8306f1c95d7bf1a0dd656edcdae3  tests/ingestion/mechanical/test_accepted_inputs.py
+Success: no issues found in 3 source files
+end 2026-10-07T07:10:22.619111+00:00 exit 0

@@ -1,0 +1,29 @@
+{
+  "checks": {
+    "head_unchanged": true,
+    "branch_unchanged": true,
+    "index_unchanged": true,
+    "staged_patch_unchanged": true,
+    "stashes_unchanged": true,
+    "historical_restart_body_unchanged": true,
+    "only_expected_existing_edit": true,
+    "packet_links_resolve": true,
+    "literal_fixture_targets_selected": true,
+    "main_configuration_typing_passes": true
+  },
+  "all_pass": true,
+  "existing_files_checked": 4182,
+  "changed_existing_files": [
+    "docs/architecture/issue-5c-5d-clean-restart.md"
+  ],
+  "missing_packet_links": [],
+  "proposed_source_files": 930,
+  "proposed_source_bytes": 313792266,
+  "packet_export_count": 17,
+  "full_backend_rerun": false,
+  "whole_delivery_secrets_gate_pending": true,
+  "staged": false,
+  "committed": false,
+  "pushed": false,
+  "published": false
+}

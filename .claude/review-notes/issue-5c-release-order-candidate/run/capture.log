@@ -1,0 +1,8 @@
+start 2026-10-07T03:08:03.367562+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/_sp/release-order-candidate/capture.py .claude/_sp/release-order-candidate/chain/live-chain.pkl
+input d73f4f61d17ff756a54aea3c9be721b0535139532c121826dd639df9f2567749  .claude/_sp/release-order-candidate/capture.py
+re-keyed recorded resolutions dropped from steps ['character-creation-foundations', 'equipment', 'equipment-cited']
+replay == live oracle bytes; wrapped calls 110
+chain steps 43 accept 24 resolve 19
+pickle sha256 b5d82c71c6b42d3eb4d7b114f7f2c98dcbcaa986db65168925af0315efa72a0e
+end 2026-10-07T03:10:32.170547+00:00 exit 0

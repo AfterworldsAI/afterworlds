@@ -1,0 +1,17 @@
+start 2026-10-07T07:12:00.619561+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/review-notes/issue-5c-release-readiness/run/compare_mypy.py
+input fc0a67e993ff846abd83842453adf87f7b3c65121b6b5b2bab9e4be82f051d10  .claude/review-notes/issue-5c-release-readiness/run/compare_mypy.py
+before 121 after 105
+1 -> 0 ('conftest.py', 'Argument "representation" to "ProjectionCandidate" has incompatible type "object"; expected "RepresentationDraft"  [arg-type]')
+1 -> 0 ('conftest.py', 'The return type of a generator function should be "Generator" or one of its supertypes  [misc]')
+1 -> 0 ('conftest.py', 'Unused "type: ignore" comment  [unused-ignore]')
+1 -> 0 ('test_accepted_inputs.py', '"object" has no attribute "__iter__"; maybe "__dir__" or "__str__"? (not iterable)  [attr-defined]')
+1 -> 0 ('test_accepted_inputs.py', 'Unsupported right operand type for in ("object")  [operator]')
+1 -> 0 ('test_accepted_inputs.py', 'Unused "type: ignore" comment  [unused-ignore]')
+1 -> 0 ('test_accepted_inputs.py', 'Unused "type: ignore[index, union-attr]" comment  [unused-ignore]')
+2 -> 0 ('test_oracle.py', '"object" has no attribute "reverse"  [attr-defined]')
+1 -> 0 ('test_oracle.py', 'Function is missing a type annotation for one or more arguments  [no-untyped-def]')
+1 -> 0 ('test_oracle.py', 'Returning Any from function declared to return "dict[str, object]"  [no-any-return]')
+2 -> 0 ('test_oracle.py', 'Unused "type: ignore" comment  [unused-ignore]')
+3 -> 0 ('test_oracle.py', 'Value of type "object" is not indexable  [index]')
+end 2026-10-07T07:12:00.667965+00:00 exit 0

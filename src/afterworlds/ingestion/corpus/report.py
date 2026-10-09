@@ -27,6 +27,10 @@ from afterworlds.ingestion.corpus.models import (
     SourceLedger,
 )
 from afterworlds.ingestion.corpus.policy import policy_hash
+from afterworlds.ingestion.corpus.source_ledger import (
+    CITATION_VERIFICATION,
+    PAGE_SUBSTRING,
+)
 
 _log = logging.getLogger(__name__)
 
@@ -47,8 +51,9 @@ PYTHON_TARGET = "3.12"
 # identity rather than a byte-level hash of report.py: only an intentional
 # canonical-shape change should be explicit.  Since the 2026-08-03 operational-
 # reliability amendment, this diagnostic version no longer participates in the
-# package UUID or release version.
-EVIDENCE_REPORT_SCHEMA_VERSION = "5c-evidence-3"
+# package UUID or release version. "5" added the located/placed citation counts
+# to ``source_citation_mapping``.
+EVIDENCE_REPORT_SCHEMA_VERSION = "5c-evidence-5"
 
 
 @dataclass(frozen=True)
@@ -74,6 +79,7 @@ def build_report(
     concordance: ConcordanceResult,
     canaries: tuple[CanaryResult, ...],
     persisted: bool,
+    citation_mapping: dict[str, object] | None = None,
 ) -> EvidenceReport:
     """Build the evidence report after persistence (K step e)."""
     leaf_totals = Counter(leaf.leaf_type.value for leaf in ledger.leaves)
@@ -157,8 +163,24 @@ def build_report(
             "orphans": len(recon.findings.orphans),
             "duplications": len(recon.findings.duplications),
         },
+        # Which citation verification actually ran. A source-built release is
+        # checked by re-deriving the corpus from the pinned bytes, not by the
+        # per-page substring predicate, and a report that named neither would
+        # read as if the substring check had run.
+        "citation_verification": transform_config.get(
+            CITATION_VERIFICATION, PAGE_SUBSTRING
+        ),
         "invalid_locators": len(concordance.locator_failures),
         "concordance_failures": len(concordance.content_failures),
+        # Source units that no chunk carries: only a re-derivation can see an
+        # omission, so this is zero-by-construction under the substring mode.
+        "uncarried_source_units": len(concordance.omissions),
+        # How the citations were arrived at, for a release that maps units onto
+        # official pages. Anchored units are placed by wording unique to one
+        # page; inherited units are placed by their file's document order --
+        # correct, but weaker evidence, and a consumer deserves to be able to
+        # tell the two apart rather than read one undifferentiated pass.
+        "source_citation_mapping": citation_mapping,
         "version_canaries": {c.name: c.passed for c in canaries},
         "prepublication_validation_status": "pass" if prepublication_ok else "fail",
     }

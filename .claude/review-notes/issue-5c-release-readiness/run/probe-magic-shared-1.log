@@ -1,0 +1,8 @@
+start 2026-10-07T09:43:18.294837+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/_sp/release-readiness-20261007/magic_shared_probe.py
+input 3e8b83a306900da12c058e05d2159aaa3f270f1ba3261131c082c3cea0d3f14f  .claude/_sp/release-readiness-20261007/magic_shared_probe.py
+Traceback (most recent call last):
+  File "D:\AI\Claude\afterworlds\.claude\_sp\release-readiness-20261007\magic_shared_probe.py", line 3, in <module>
+    from tests.ingestion.mechanical import test_magic_items_proposal as M
+ModuleNotFoundError: No module named 'tests'
+end 2026-10-07T09:43:18.328524+00:00 exit 1

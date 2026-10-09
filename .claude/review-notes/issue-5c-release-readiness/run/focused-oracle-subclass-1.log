@@ -1,0 +1,14 @@
+start 2026-10-07T08:30:35.248263+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe scripts/run_focused_tests.py --check src/afterworlds/ingestion/mechanical/oracle.py --check tests/ingestion/mechanical/test_oracle.py tests/ingestion/mechanical/test_oracle.py
+input ef6969b5f09e59ebd4001aad2137ade7ca74509d4075753de73336d7595050e9  scripts/run_focused_tests.py
+input 68d42c9547df385d982b40d8588528318109487b33b7db030508dd65d1d4802a  src/afterworlds/ingestion/mechanical/oracle.py
+input f73be8984de733eb791cd144222806774b4543067ec01bf2935df67feabd02d4  tests/ingestion/mechanical/test_oracle.py
+input f73be8984de733eb791cd144222806774b4543067ec01bf2935df67feabd02d4  tests/ingestion/mechanical/test_oracle.py
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+All done! ✨ 🍰 ✨
+2 files would be left unchanged.
+........................................................................ [ 93%]
+.....                                                                    [100%]
+77 passed in 58.88s
+Focused diagnostics PASSED (exit 0). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+end 2026-10-07T08:31:36.419147+00:00 exit 0

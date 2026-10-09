@@ -1,0 +1,22 @@
+start 2026-10-07T03:12:56.149463+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/_sp/release-order-candidate/recompose.py .claude/_sp/release-order-candidate/chain/live-chain.pkl .claude/_sp/release-order-candidate/candidate
+input 76e5b79899e6c751f9a04de1e52936097bea07d07dada0fc090cdc0ce9f739f4  .claude/_sp/release-order-candidate/recompose.py
+input b5d82c71c6b42d3eb4d7b114f7f2c98dcbcaa986db65168925af0315efa72a0e  .claude/_sp/release-order-candidate/chain/live-chain.pkl
+old binding {'package_uuid': '67c81736-15fd-5e82-8523-e84922f0a7c6', 'release_version': '5.2.1-corpus.3fe24ff6-4e3', 'authoritative_source_hash': '8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87', 'transform_config_hash': '648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947', 'bundle_root_hash': '87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760', 'persisted_corpus_digest': '8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42'}
+new binding {'package_uuid': '1299484e-c72d-509b-bd8d-d0169ee1f8d2', 'release_version': '5.2.1-corpus.8781d4e0-a3b', 'authoritative_source_hash': '8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87', 'transform_config_hash': '753e76087885ee99fb3fa97932c6a0e5b5075bbed1b0acd466d90a029ff0bc01', 'bundle_root_hash': '0941dc966337f190f5a6ed3b5dfc0370dc29efd15483889bf2a0d9fb7c564787', 'persisted_corpus_digest': '3717fa115a5abb68c4be179d0d643992ab7392a0f9cd5ca5dc4a73da9258e3c3'}
+chain .claude\_sp\release-order-candidate\chain\live-chain.pkl b5d82c71c6b42d3eb4d7b114f7f2c98dcbcaa986db65168925af0315efa72a0e steps 43
+control verbatim re-execution == live oracle True
+rebound {'release_binding': 1510, 'chunk_id': 32800}
+candidate .claude\_sp\release-order-candidate\candidate\srd-5-2-1-corpus-8781d4e0-a3b.json 35061929 bytes sha256 8a6a9a9c305f41207190c0deb55875a027019116ce3f825a6a0425a3a115b4bf
+load_accepted_inputs round trip bytes equal True
+oracle binding == new True
+residual old uuid: 0
+residual old version: 0
+residual old transform: 0
+residual old bundle: 0
+residual old digest: 0
+residual Owner name: 0
+residual old chunk ids: 0
+new chunk ids present: 9890
+native findings: reference 0 uncovered-leaf 0 other 0
+end 2026-10-07T03:17:10.090893+00:00 exit 0

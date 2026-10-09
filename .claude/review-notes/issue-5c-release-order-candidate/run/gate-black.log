@@ -1,0 +1,7 @@
+start 2026-10-07T03:28:17.755079+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe -m black --check src/afterworlds/ingestion/corpus/source_units.py tests/ingestion/corpus/test_source_units.py
+input 4240742cf5decdaa998566274855c06b55f9dd3888daa35c548d586d56df3be7  src/afterworlds/ingestion/corpus/source_units.py
+input bb404f22d1fdb256c0db3dace3d0bfd5c7cd8a67a140e7f17558e49565a72395  tests/ingestion/corpus/test_source_units.py
+All done! ✨ 🍰 ✨
+2 files would be left unchanged.
+end 2026-10-07T03:28:17.996514+00:00 exit 0

@@ -33,10 +33,14 @@ than blurring them into one "source" string.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, replace
 
 from afterworlds.ingestion.mechanical.models import ComponentHandling
 from afterworlds.ingestion.mechanical.projection import ProjectionCandidate
+from afterworlds.ingestion.mechanical.raw_state import (
+    PersistedStateReconstructionError,
+)
 from afterworlds.ingestion.mechanical.representation import (
     Applicability,
     ComponentDraft,
@@ -47,6 +51,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ProvenanceTargetKind,
     RecordKind,
     Recurrence,
+    RelationshipKind,
     component_damage_composition_violations,
     component_participant_violations,
     component_roll_outcome_violations,
@@ -54,7 +59,10 @@ from afterworlds.ingestion.mechanical.representation import (
     fact_qualifier_target_key,
     fact_target_key,
     option_set_violations,
+    prose_binding_target_key,
+    relationship_target_key,
 )
+from afterworlds.ingestion.mechanical.validation import catalogue_parts
 from afterworlds.models.enums import OverrideOperationEnum, OverrideOriginEnum
 from afterworlds.models.rules_package import RulesPackageBinding
 from afterworlds.services.rules_authority.override_set import (
@@ -249,8 +257,9 @@ class EffectiveComponent:
     facts: tuple[EffectiveFact, ...]
     options: tuple[EffectiveOption, ...] = ()
     applies_when: Applicability | None = None
-    #: Exact ordered governing prose: 5c-bound, authored, or both, in the
-    #: order overrides resolve in. Empty for a purely structured component
+    #: Exact ordered governing prose: 5c-bound passages in source reading
+    #: order, then authored passages in the order overrides resolve in.
+    #: Empty for a purely structured component
     #: that has never had authored prose attached to it.
     governing_prose: tuple[GoverningProseEntry, ...] = ()
     #: How often the component's stated effect repeats, when the source states
@@ -300,6 +309,11 @@ class AppliedOverride:
     note: str = ""
 
 
+#: A catalogue section's reading: runs of (record key, component key, indices
+#: into that component's governing prose), in source order.
+Reading = tuple[tuple[str, str, tuple[int, ...]], ...]
+
+
 @dataclass(frozen=True)
 class EffectiveAuthority:
     """The complete effective mechanical authority of one binding."""
@@ -307,6 +321,24 @@ class EffectiveAuthority:
     binding: RulesPackageBinding
     records: tuple[EffectiveRecord, ...]
     applied_overrides: tuple[AppliedOverride, ...]
+    #: (section key, member keys in printed order) for every surviving section
+    #: with surviving ``CATALOGUE_MEMBER`` entries. A catalogue section's own
+    #: record holds only its introduction; this is how a consumer that names the
+    #: section still reaches the entries it prints.
+    members: tuple[tuple[str, tuple[str, ...]], ...] = ()
+    #: (section key, reading) for each section in :attr:`members`: the
+    #: section's and its members' passages in source order (Owner Decision
+    #: 2026-09-24). Each run is ``(record key, component key, indices)`` into
+    #: that component's governing prose; a member printed in two places -- a
+    #: table row and a later description -- reads in two runs, and context a
+    #: member reads (its table head) is read once, where its owner prints it.
+    #: Context whose owner is outside the catalogue (a category rule, another
+    #: part's rule) is read once, at the first member reading it.
+    readings: tuple[tuple[str, Reading], ...] = ()
+    #: (span id, owner record key, owner component key) of every passage a
+    #: surviving component reads as context. A view that reads the owner reads
+    #: the passage there; one that does not reads it once, at its first reader.
+    context_owners: tuple[tuple[str, str, str], ...] = ()
 
 
 # ---------------------------------------------------------------------------
@@ -365,24 +397,36 @@ def _base_qualifier(
     )
 
 
-def _base_records(candidate: ProjectionCandidate) -> dict[str, EffectiveRecord]:
-    """Assemble the immutable base projection as an effective view."""
+def _base_records(
+    candidate: ProjectionCandidate, leaf_order: Mapping[str, int]
+) -> dict[str, EffectiveRecord]:
+    """Assemble the immutable base projection as an effective view.
+
+    *leaf_order* maps each bound span's 5c leaf to its persisted
+    ``occurrence_index`` — the release's global reading order, bound by its
+    digests. A component's source passages are read in that order and then by
+    offset within the leaf, so a heading stays beside the body it labels. A
+    ``chunk_id`` is an opaque identity and says nothing about where a passage
+    is printed.
+
+    A record's components are read the same way: each at the printed position
+    of the first passage it owns (its ``PRIMARY`` prose binding), so a section
+    reads its rules as the source prints them. Context a component also reads
+    does not place it -- that passage is its owner's. A component owning no
+    passage has no printed position and reads after the placed ones, by key.
+    """
     draft = candidate.representation
     spans = _provenance_index(candidate)
-    # Ordered by the binding's own content rather than by row order, so two
-    # reconstructions of the same projection present a component's governing
-    # passages in the same order.
+    located = {span.span_id: span for span in candidate.classification.spans}
     prose: dict[tuple[str, str], list[SourceProse]] = {}
     for binding in sorted(
         draft.prose_bindings,
         key=lambda b: (
-            b.chunk_id,
-            b.chunk_char_start,
-            b.chunk_char_end,
-            b.span_id,
-            # Two arms of one choice may bind the same extent of the same
-            # chunk, so the scope is part of the order or the two entries have
-            # no deterministic one.
+            leaf_order[located[b.span_id].leaf_id],
+            located[b.span_id].char_start,
+            located[b.span_id].char_end,
+            # Two arms of one choice may bind the same extent, which has one
+            # printed position; the scope only makes their order deterministic.
             b.option_key,
         ),
     ):
@@ -395,6 +439,24 @@ def _base_records(candidate: ProjectionCandidate) -> dict[str, EffectiveRecord]:
                 option_key=binding.option_key,
             )
         )
+
+    bound = {prose_binding_target_key(b): b for b in draft.prose_bindings}
+    printed: dict[tuple[str, str], tuple[int, int]] = {}
+    for claim in draft.provenance:
+        if (
+            claim.target_kind is ProvenanceTargetKind.PROSE_BINDING
+            and claim.role is ProvenanceRole.PRIMARY
+            and claim.target_key in bound
+        ):
+            owner = bound[claim.target_key]
+            span = located[claim.span_id]
+            at = (leaf_order[span.leaf_id], span.char_start)
+            key = (owner.record_key, owner.component_key)
+            printed[key] = min(printed.get(key, at), at)
+
+    def _reading_order(c: EffectiveComponent) -> tuple[int, int, int, str]:
+        at = printed.get((c.record_key, c.semantic_key))
+        return (0, *at, c.semantic_key) if at else (1, 0, 0, c.semantic_key)
 
     components: dict[str, list[EffectiveComponent]] = {}
     for component in draft.components:
@@ -471,10 +533,7 @@ def _base_records(candidate: ProjectionCandidate) -> dict[str, EffectiveRecord]:
             kind=record.kind,
             parent_key=record.parent_key,
             components=tuple(
-                sorted(
-                    components.get(record.semantic_key, []),
-                    key=lambda c: c.semantic_key,
-                )
+                sorted(components.get(record.semantic_key, []), key=_reading_order)
             ),
             span_ids=spans.get(
                 (ProvenanceTargetKind.RECORD, (record.semantic_key,)), ()
@@ -763,8 +822,14 @@ def apply_override_set(
     candidate: ProjectionCandidate,
     override_set: EffectiveOverrideSet,
     binding: RulesPackageBinding,
+    *,
+    leaf_order: Mapping[str, int],
 ) -> EffectiveAuthority:
     """Layer *override_set* over the reconstructed base projection.
+
+    *leaf_order* is the bound release's reading order for the leaves the
+    projection's prose bindings cite (see :func:`_base_records`). Required, so
+    no caller can fall back to presenting source passages in identity order.
 
     Raises :class:`OverrideApplicationError` for any override that cannot be
     applied. The caller turns that into ``INVALID_OVERRIDE``; nothing here
@@ -772,7 +837,7 @@ def apply_override_set(
     authored change is indistinguishable from one where that change was never
     authored.
     """
-    records = _base_records(candidate)
+    records = _base_records(candidate, leaf_order)
     disabled_records: set[str] = set()
     disabled_components: set[tuple[str, str]] = set()
     disabled_facts: set[tuple[str, str, str, str]] = set()
@@ -821,13 +886,253 @@ def apply_override_set(
         for key, record in sorted(records.items())
         if key not in disabled_records
     )
+    owners = _owners(candidate)
+    surviving = _without_suppressed_context(surviving, owners)
     _verify_final_option_sets(surviving, provenance)
     _verify_final_participant_rules(surviving, provenance)
+    grouped = _members(candidate, records, disabled_records, leaf_order)
+    parts, stale = catalogue_parts(candidate.representation)
+    if stale:
+        raise PersistedStateReconstructionError("; ".join(stale))
     return EffectiveAuthority(
         binding=binding,
         records=surviving,
         applied_overrides=tuple(provenance),
+        members=tuple(
+            (section, tuple(member for _, member in found))
+            for section, found in grouped.items()
+        ),
+        readings=_readings(candidate, surviving, grouped, owners, leaf_order, parts),
+        context_owners=tuple(
+            sorted(
+                {
+                    (entry.span_id, *owners[entry.span_id])
+                    for record in surviving
+                    for component in record.components
+                    for entry in component.governing_prose
+                    if isinstance(entry, SourceProse)
+                    and entry.span_id in owners
+                    and owners[entry.span_id]
+                    != (record.semantic_key, component.semantic_key)
+                }
+            )
+        ),
     )
+
+
+def _members(
+    candidate: ProjectionCandidate,
+    records: Mapping[str, EffectiveRecord],
+    disabled_records: set[str],
+    leaf_order: Mapping[str, int],
+) -> dict[str, list[tuple[tuple[int, int], str]]]:
+    """Each catalogue section's surviving members, placed and in printed order.
+
+    Read only from the projection's explicit ``CATALOGUE_MEMBER`` edges, never
+    from key prefixes and never from another relationship kind: a
+    ``SCOPED_WITHIN`` edge states containment and is not a catalogue. A member
+    or section an override disabled is left out, so membership cannot
+    resurrect suppressed authority.
+
+    Each member is placed by its own edge's provenance -- the member's first
+    reviewed clause -- so a member needs no prose binding to be ordered. An
+    edge naming a record the projection does not hold, or with no classified
+    span to place it by, is persisted state that no longer describes one
+    authority, and fails as reconstruction.
+    """
+    located = {span.span_id: span for span in candidate.classification.spans}
+    cited: dict[tuple[str, ...], list[str]] = {}
+    for claim in candidate.representation.provenance:
+        if claim.target_kind is ProvenanceTargetKind.RELATIONSHIP:
+            cited.setdefault(claim.target_key, []).append(claim.span_id)
+
+    grouped: dict[str, list[tuple[tuple[int, int], str]]] = {}
+    for rel in candidate.representation.relationships:
+        if rel.kind is not RelationshipKind.CATALOGUE_MEMBER:
+            continue
+        member, section = rel.source_record_key, rel.target_record_key
+        for key in (member, section):
+            if key not in records:
+                raise PersistedStateReconstructionError(
+                    f"{member} is a catalogue member of {section}, but the "
+                    f"projection holds no record {key}"
+                )
+        spans = [located.get(s) for s in cited.get(relationship_target_key(rel), ())]
+        if not spans or None in spans:
+            raise PersistedStateReconstructionError(
+                f"catalogue member {member} of {section} has no classified "
+                "provenance span to place it by"
+            )
+        if member in disabled_records or section in disabled_records:
+            continue
+        at = min((leaf_order[s.leaf_id], s.char_start) for s in spans if s)
+        grouped.setdefault(section, []).append((at, member))
+    return {section: sorted(found) for section, found in sorted(grouped.items())}
+
+
+def _owners(candidate: ProjectionCandidate) -> dict[str, tuple[str, str]]:
+    """The (record, component) whose prose binding claims each span as primary."""
+    bound = {
+        prose_binding_target_key(b): (b.record_key, b.component_key)
+        for b in candidate.representation.prose_bindings
+    }
+    return {
+        claim.span_id: bound[claim.target_key]
+        for claim in candidate.representation.provenance
+        if claim.target_kind is ProvenanceTargetKind.PROSE_BINDING
+        and claim.role is ProvenanceRole.PRIMARY
+        and claim.target_key in bound
+    }
+
+
+def _without_suppressed_context(
+    surviving: tuple[EffectiveRecord, ...], owners: Mapping[str, tuple[str, str]]
+) -> tuple[EffectiveRecord, ...]:
+    """Drop context whose owner no longer reads it.
+
+    A passage another component reads as context -- a row's table head -- is
+    its owner's authority. Once an override disables or replaces the owner's
+    reading of it, no other component brings it back: suppression is of the
+    passage, however it is reached.
+    """
+    kept = {
+        (record.semantic_key, component.semantic_key, entry.span_id)
+        for record in surviving
+        for component in record.components
+        for entry in component.governing_prose
+        if isinstance(entry, SourceProse)
+    }
+    suppressed = {span for span, (r, c) in owners.items() if (r, c, span) not in kept}
+    return tuple(
+        replace(
+            record,
+            components=tuple(
+                replace(
+                    component,
+                    governing_prose=tuple(
+                        entry
+                        for entry in component.governing_prose
+                        if not (
+                            isinstance(entry, SourceProse)
+                            and entry.span_id in suppressed
+                        )
+                    ),
+                )
+                for component in record.components
+            ),
+        )
+        for record in surviving
+    )
+
+
+#: Sort order of a placed passage: (unplaced tier, leaf, offset, record,
+#: component, index into the component's governing prose).
+_Order = tuple[int, int, int, str, str, int]
+
+
+def _readings(
+    candidate: ProjectionCandidate,
+    surviving: tuple[EffectiveRecord, ...],
+    grouped: Mapping[str, list[tuple[tuple[int, int], str]]],
+    owners: Mapping[str, tuple[str, str]],
+    leaf_order: Mapping[str, int],
+    parts: Mapping[tuple[str, str], frozenset[str]],
+) -> tuple[tuple[str, Reading], ...]:
+    """Each catalogue section read in source order, its members interleaved.
+
+    Every passage the section or a surviving member owns is placed at its own
+    printed position, and consecutive passages of one component form a run. So
+    a member row reads between the rows around it, and an item printed twice --
+    its table row and its later description -- reads in two runs, each where it
+    is printed. Context a member reads (its table head and group row) is not
+    placed when its owner is the section or a member: that owner reads it once,
+    where it is printed, and a direct read of the member still carries it.
+    Context owned outside the catalogue has no place in it, so it is read once,
+    at the first component reading it, immediately ahead of the passage it
+    precedes there -- the section's own included, since Owner Decision
+    2026-09-27 makes an item's family table a catalogue; a view also reading
+    the owner reads it there instead (see
+    :attr:`EffectiveAuthority.context_owners`). An authored passage has no
+    printed position: it reads after the passage it follows in its component
+    or, with none, at the member's own position (its ``CATALOGUE_MEMBER``
+    edge); a section's
+    component with no placed passage reads after the placed ones, by key.
+    """
+    located = {span.span_id: span for span in candidate.classification.spans}
+    by_key = {record.semantic_key: record for record in surviving}
+    printed = {(m, k) for (m, _), keys in parts.items() for k in keys}
+    out: list[tuple[str, Reading]] = []
+    for section, found in grouped.items():
+        anchors = {section: (1, 0, 0), **{m: (0, *at) for at, m in found}}
+        # A member's parts printed by another member of this catalogue -- an
+        # Equipment item's rows in an item family's table -- are read where
+        # that member prints them, as the family reads them: its authority,
+        # replaced as replaced. One hop, and only the parts declared.
+        via: dict[str, str] = {}
+        for _, member in found:
+            for where, inner in grouped.get(member, ()):
+                if (inner, member) in parts and inner not in anchors:
+                    anchors[inner], via[inner] = (0, *where), member
+
+        def here(
+            record_key: str,
+            key: str,
+            section: str = section,
+            via: Mapping[str, str] = via,
+        ) -> bool:
+            """Whether this catalogue prints the component (Owner Decision
+            2026-09-27): a member of more than one catalogue is read in each
+            only through the components *parts* declares that catalogue
+            prints (:func:`~afterworlds.ingestion.mechanical.validation.
+            catalogue_parts`) and any owning no source span, so its
+            appearance in another is not pulled into this one. Read through
+            a member, it is read only through the parts that member prints."""
+            if record_key in via:
+                return key in parts[(record_key, via[record_key])]
+            return (record_key, key) not in printed or key in parts.get(
+                (record_key, section), ()
+            )
+
+        placed: list[_Order] = []
+        outside: set[str] = set()  # context owned elsewhere, placed once
+        for record_key, anchor in anchors.items():
+            for component in by_key[record_key].components:
+                key = component.semantic_key
+                if not here(record_key, key):
+                    continue
+                at, first = anchor, len(placed)
+                ahead: list[int] = []  # outside context, read before what follows
+                for i, entry in enumerate(component.governing_prose):
+                    if isinstance(entry, SourceProse):
+                        owner = owners.get(entry.span_id)
+                        if owner != (record_key, key):
+                            # Context: an owner the catalogue reads reads it in
+                            # place; any other's is read here, once.
+                            if (
+                                owner is None
+                                or (owner[0] in anchors and here(*owner))
+                                or entry.span_id in outside
+                            ):
+                                continue
+                            outside.add(entry.span_id)
+                            ahead.append(i)
+                            continue
+                        span = located[entry.span_id]
+                        at = (0, leaf_order[span.leaf_id], span.char_start)
+                    placed.extend((*at, record_key, key, j) for j in ahead)
+                    ahead.clear()
+                    placed.append((*at, record_key, key, i))
+                placed.extend((*at, record_key, key, j) for j in ahead)
+                if len(placed) == first:  # nothing to read, still its facts
+                    placed.append((*anchor, record_key, key, -1))
+        runs: list[tuple[str, str, list[int]]] = []
+        for *_, record_key, key, i in sorted(placed):
+            if not runs or runs[-1][:2] != (record_key, key):
+                runs.append((record_key, key, []))
+            if i >= 0:
+                runs[-1][2].append(i)
+        out.append((section, tuple((r, c, tuple(ix)) for r, c, ix in runs)))
+    return tuple(out)
 
 
 def _blame_for(
@@ -1232,16 +1537,13 @@ def _apply_entry(
                 f"appending component {key!r} to record {target.record_key!r} "
                 "would duplicate an existing component",
             )
+        # Authored text has no printed position, so it is not sorted in among
+        # the source's components as if it had one: it reads after them.
         records[target.record_key] = replace(
             record,
-            components=tuple(
-                sorted(
-                    [
-                        *record.components,
-                        _component_from_body(patch.body, target.record_key, key, entry),
-                    ],
-                    key=lambda c: c.semantic_key,
-                )
+            components=(
+                *record.components,
+                _component_from_body(patch.body, target.record_key, key, entry),
             ),
         )
         return True, "component appended"

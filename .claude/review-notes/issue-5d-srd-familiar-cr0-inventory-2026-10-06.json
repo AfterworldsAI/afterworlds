@@ -1,0 +1,152 @@
+[
+  {
+    "name": "Baboon",
+    "source": "animals.md",
+    "line": 290,
+    "record_key": "animals.baboon"
+  },
+  {
+    "name": "Badger",
+    "source": "animals.md",
+    "line": 363,
+    "record_key": "animals.badger"
+  },
+  {
+    "name": "Bat",
+    "source": "animals.md",
+    "line": 432,
+    "record_key": "animals.bat"
+  },
+  {
+    "name": "Cat",
+    "source": "animals.md",
+    "line": 855,
+    "record_key": "animals.cat"
+  },
+  {
+    "name": "Crab",
+    "source": "animals.md",
+    "line": 999,
+    "record_key": "animals.crab"
+  },
+  {
+    "name": "Deer",
+    "source": "animals.md",
+    "line": 1147,
+    "record_key": "animals.deer"
+  },
+  {
+    "name": "Eagle",
+    "source": "animals.md",
+    "line": 1362,
+    "record_key": "animals.eagle"
+  },
+  {
+    "name": "Frog",
+    "source": "animals.md",
+    "line": 1646,
+    "record_key": "animals.frog"
+  },
+  {
+    "name": "Giant Fire Beetle",
+    "source": "animals.md",
+    "line": 2440,
+    "record_key": "animals.giant_fire_beetle"
+  },
+  {
+    "name": "Goat",
+    "source": "animals.md",
+    "line": 3781,
+    "record_key": "animals.goat"
+  },
+  {
+    "name": "Hawk",
+    "source": "animals.md",
+    "line": 3849,
+    "record_key": "animals.hawk"
+  },
+  {
+    "name": "Hyena",
+    "source": "animals.md",
+    "line": 4067,
+    "record_key": "animals.hyena"
+  },
+  {
+    "name": "Jackal",
+    "source": "animals.md",
+    "line": 4141,
+    "record_key": "animals.jackal"
+  },
+  {
+    "name": "Lizard",
+    "source": "animals.md",
+    "line": 4363,
+    "record_key": "animals.lizard"
+  },
+  {
+    "name": "Octopus",
+    "source": "animals.md",
+    "line": 4652,
+    "record_key": "animals.octopus"
+  },
+  {
+    "name": "Owl",
+    "source": "animals.md",
+    "line": 4734,
+    "record_key": "animals.owl"
+  },
+  {
+    "name": "Piranha",
+    "source": "animals.md",
+    "line": 4882,
+    "record_key": "animals.piranha"
+  },
+  {
+    "name": "Rat",
+    "source": "animals.md",
+    "line": 5241,
+    "record_key": "animals.rat"
+  },
+  {
+    "name": "Raven",
+    "source": "animals.md",
+    "line": 5315,
+    "record_key": "animals.raven"
+  },
+  {
+    "name": "Scorpion",
+    "source": "animals.md",
+    "line": 5681,
+    "record_key": "animals.scorpion"
+  },
+  {
+    "name": "Seahorse",
+    "source": "animals.md",
+    "line": 5748,
+    "record_key": "animals.seahorse"
+  },
+  {
+    "name": "Spider",
+    "source": "animals.md",
+    "line": 5822,
+    "record_key": "animals.spider"
+  },
+  {
+    "name": "Vulture",
+    "source": "animals.md",
+    "line": 6637,
+    "record_key": "animals.vulture"
+  },
+  {
+    "name": "Weasel",
+    "source": "animals.md",
+    "line": 6778,
+    "record_key": "animals.weasel"
+  },
+  {
+    "name": "Giant Fly",
+    "source": "magic-items.md",
+    "line": 2124,
+    "record_key": "magic_items.figurine_of_wondrous_power.giant_fly"
+  }
+]

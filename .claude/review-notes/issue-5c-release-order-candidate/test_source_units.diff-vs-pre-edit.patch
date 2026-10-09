@@ -1,0 +1,65 @@
+--- pre-edit/tests/ingestion/corpus/test_source_units.py
++++ current/tests/ingestion/corpus/test_source_units.py
+@@ -25,6 +25,7 @@
+     cite_units,
+     page_locator,
+ )
++from afterworlds.ingestion.corpus.source_ledger import load_pinned_sources
+ from afterworlds.ingestion.corpus.source_units import (
+     CORPUS_FILES,
+     SourceTilingError,
+@@ -33,6 +34,7 @@
+     resolve_container_pages,
+ )
+ from afterworlds.ingestion.source.community_compare import (
++    CONTENT_FILES,
+     PIN_DIR,
+     WINDOW,
+     markdown_text,
+@@ -362,6 +364,46 @@
+     first = cite_units(structure, sources, pages)
+     second = cite_units(structure, sources, pages)
+     assert first == second
++
++
++#: The official document's chapter order (Owner decision on the release-order
++#: review): the attribution page, then the thirteen chapters as printed.
++OFFICIAL_CHAPTER_ORDER = (
++    "legal-information.md",
++    "playing-the-game.md",
++    "character-creation.md",
++    "classes.md",
++    "character-origins.md",
++    "feats.md",
++    "equipment.md",
++    "spells.md",
++    "rules-glossary.md",
++    "gameplay-toolbox.md",
++    "magic-items.md",
++    "monsters.md",
++    "monsters-A-Z.md",
++    "animals.md",
++)
++
++
++def test_the_release_reads_the_files_in_the_official_chapter_order(
++    structure,
++) -> None:
++    """The reading order is the official chapter order, every file once.
++
++    The pinned loader hands the files to the parser in this order, and each
++    file's units form one contiguous run at its position, so the global
++    ``occurrence_index`` the readers sort on follows the printed document:
++    Monsters' governing rules before Monsters A-Z, both before Animals.
++    """
++    assert CORPUS_FILES == OFFICIAL_CHAPTER_ORDER
++    assert len(set(CORPUS_FILES)) == len(CORPUS_FILES)
++    assert set(CORPUS_FILES) == {"legal-information.md", *CONTENT_FILES}
++    assert tuple(load_pinned_sources(ROOT)) == CORPUS_FILES
++    files = [u.file for u in structure.units]
++    runs = [f for i, f in enumerate(files) if i == 0 or files[i - 1] != f]
++    assert runs == list(CORPUS_FILES)
++    assert all(u.file_index == CORPUS_FILES.index(u.file) for u in structure.units)
+ 
+ 
+ def test_leaf_occurrence_index_is_the_global_emission_order(

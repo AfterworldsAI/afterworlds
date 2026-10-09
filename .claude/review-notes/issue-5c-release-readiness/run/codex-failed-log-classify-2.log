@@ -1,0 +1,9 @@
+start 2026-10-07T15:15:51.720753+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/_sp/release-readiness-20261007/codex_classify_failed_gate_secrets.py
+input 6a07690342c32c283925e399fc91e94b70631270ea782b1de21b1d998aa4c67f  .claude/_sp/release-readiness-20261007/codex_classify_failed_gate_secrets.py
+{
+  "hits": 8,
+  "all_eight_public_digests_verified": true,
+  "evidence": "failed-root-secret-classification.json"
+}
+end 2026-10-07T15:15:59.068781+00:00 exit 0

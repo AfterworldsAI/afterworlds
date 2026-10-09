@@ -1,0 +1,4023 @@
+{
+ "artifact_kind": "machine_proposal",
+ "proposal_origin": "issue-5d-core-play-dependencies-generator.py (CRD Issue 5d core-play dependencies batch; unaccepted)",
+ "proposal_schema_version": "5d-proposal-2",
+ "proposed_representation": {
+  "components": [
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.blindsight",
+    "semantic_key": "blindsight"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.darkvision",
+    "semantic_key": "darkvision"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.stat_block",
+    "semantic_key": "attack_notation"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.tremorsense",
+    "semantic_key": "tremorsense"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.truesight",
+    "semantic_key": "truesight"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "options": [],
+    "record_key": "glossary.stat_block",
+    "semantic_key": "alignment"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "options": [],
+    "record_key": "glossary.stat_block",
+    "semantic_key": "damage_notation"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.attack_roll",
+    "semantic_key": "attack_roll"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.carrying_capacity",
+    "semantic_key": "carrying_capacity"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.carrying_capacity",
+    "semantic_key": "dragging_lifting_pushing"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "semantic_key": "ability_scores"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "semantic_key": "ac_initiative_hp"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "semantic_key": "actions"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "semantic_key": "bonus_actions"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "semantic_key": "challenge_rating"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "semantic_key": "creature_type"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "semantic_key": "gear"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "semantic_key": "immunities"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "semantic_key": "languages"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "semantic_key": "reactions"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "semantic_key": "resistances_and_vulnerabilities"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "semantic_key": "saving_throw_effect_notation"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "semantic_key": "senses"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "semantic_key": "size"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "semantic_key": "skills"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "semantic_key": "speed"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "semantic_key": "stat_block"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "semantic_key": "traits"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "all_levels": false,
+      "amount": 1,
+      "condition": "exhaustion",
+      "cumulative": false,
+      "direction": "gain",
+      "family": "condition_level"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.suffocation",
+    "recurs": {
+     "boundary": "end_of_turn",
+     "whose": "subject"
+    },
+    "semantic_key": "suffocation_accrual"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "all_levels": true,
+      "amount": null,
+      "cause_scoped": true,
+      "condition": "exhaustion",
+      "cumulative": false,
+      "direction": "remove",
+      "family": "condition_level"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.suffocation",
+    "semantic_key": "suffocation_recovery"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "base": 1,
+      "family": "derived_quantity",
+      "floor_amount": 30,
+      "floor_unit": "second",
+      "modifier": "constitution",
+      "unit": "minute"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.suffocation",
+    "semantic_key": "breath_duration"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "cause_scoped": true,
+      "condition": "exhaustion",
+      "family": "condition_removal_restriction",
+      "until": {
+       "any_of": [],
+       "band": {
+        "lower": {
+         "denominator": 1,
+         "numerator": 1
+        },
+        "lower_inclusive": true,
+        "period": "day",
+        "quantity": "food",
+        "sustained_at_least": null,
+        "sustained_unit": null,
+        "upper": null,
+        "upper_inclusive": false
+       },
+       "comparison": null,
+       "kind": "consumption_threshold",
+       "negated": false,
+       "phase": null,
+       "quantity": null,
+       "trigger": null,
+       "value": null
+      }
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.malnutrition",
+    "semantic_key": "malnutrition_recovery"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "cause_scoped": true,
+      "condition": "exhaustion",
+      "family": "condition_removal_restriction",
+      "until": {
+       "any_of": [],
+       "band": {
+        "lower": {
+         "denominator": 1,
+         "numerator": 1
+        },
+        "lower_inclusive": true,
+        "period": "day",
+        "quantity": "water",
+        "sustained_at_least": null,
+        "sustained_unit": null,
+        "upper": null,
+        "upper_inclusive": false
+       },
+       "comparison": null,
+       "kind": "consumption_threshold",
+       "negated": false,
+       "phase": null,
+       "quantity": null,
+       "trigger": null,
+       "value": null
+      }
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.dehydration",
+    "semantic_key": "dehydration_recovery"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "condition": "prone",
+      "effect": "applies",
+      "family": "condition_effect"
+     },
+     {
+      "cost": "action",
+      "family": "action_economy"
+     },
+     {
+      "family": "effect_termination",
+      "scope": "owning_effect"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.burning",
+    "semantic_key": "self_extinguish"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "damage_type": "fire",
+      "dice": {
+       "count": 1,
+       "die": "d4",
+       "modifier": 0
+      },
+      "family": "damage",
+      "flat_amount": null,
+      "stated_average": null
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.burning",
+    "recurs": {
+     "boundary": "start_of_turn",
+     "whose": "subject"
+    },
+    "semantic_key": "burning_damage"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "effect_termination",
+      "scope": "owning_effect"
+     }
+    ],
+    "handling": "mixed",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "glossary.burning",
+    "semantic_key": "ambient_extinguish"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "size_keyed_quantity",
+      "period": "day",
+      "quantity": "food",
+      "values": [
+       {
+        "amount": {
+         "denominator": 4,
+         "numerator": 1
+        },
+        "size": "tiny",
+        "unit": "pound"
+       },
+       {
+        "amount": {
+         "denominator": 1,
+         "numerator": 1
+        },
+        "size": "small",
+        "unit": "pound"
+       },
+       {
+        "amount": {
+         "denominator": 1,
+         "numerator": 1
+        },
+        "size": "medium",
+        "unit": "pound"
+       },
+       {
+        "amount": {
+         "denominator": 1,
+         "numerator": 4
+        },
+        "size": "large",
+        "unit": "pound"
+       },
+       {
+        "amount": {
+         "denominator": 1,
+         "numerator": 16
+        },
+        "size": "huge",
+        "unit": "pound"
+       },
+       {
+        "amount": {
+         "denominator": 1,
+         "numerator": 64
+        },
+        "size": "gargantuan",
+        "unit": "pound"
+       }
+      ]
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.malnutrition",
+    "semantic_key": "food_requirement"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "family": "size_keyed_quantity",
+      "period": "day",
+      "quantity": "water",
+      "values": [
+       {
+        "amount": {
+         "denominator": 4,
+         "numerator": 1
+        },
+        "size": "tiny",
+        "unit": "gallon"
+       },
+       {
+        "amount": {
+         "denominator": 1,
+         "numerator": 1
+        },
+        "size": "small",
+        "unit": "gallon"
+       },
+       {
+        "amount": {
+         "denominator": 1,
+         "numerator": 1
+        },
+        "size": "medium",
+        "unit": "gallon"
+       },
+       {
+        "amount": {
+         "denominator": 1,
+         "numerator": 4
+        },
+        "size": "large",
+        "unit": "gallon"
+       },
+       {
+        "amount": {
+         "denominator": 1,
+         "numerator": 16
+        },
+        "size": "huge",
+        "unit": "gallon"
+       },
+       {
+        "amount": {
+         "denominator": 1,
+         "numerator": 64
+        },
+        "size": "gargantuan",
+        "unit": "gallon"
+       }
+      ]
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.dehydration",
+    "semantic_key": "water_requirement"
+   },
+   {
+    "applies_when": {
+     "any_of": [],
+     "band": {
+      "lower": null,
+      "lower_inclusive": false,
+      "period": "day",
+      "quantity": "water",
+      "sustained_at_least": null,
+      "sustained_unit": null,
+      "upper": {
+       "denominator": 2,
+       "numerator": 1
+      },
+      "upper_inclusive": false
+     },
+     "comparison": null,
+     "kind": "consumption_threshold",
+     "negated": false,
+     "phase": null,
+     "quantity": null,
+     "trigger": null,
+     "value": null
+    },
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "all_levels": false,
+      "amount": 1,
+      "condition": "exhaustion",
+      "cumulative": false,
+      "direction": "gain",
+      "family": "condition_level"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.dehydration",
+    "recurs": {
+     "boundary": "end_of_day",
+     "whose": null
+    },
+    "semantic_key": "dehydration_exhaustion"
+   },
+   {
+    "applies_when": {
+     "any_of": [],
+     "band": {
+      "lower": {
+       "denominator": 1,
+       "numerator": 0
+      },
+      "lower_inclusive": false,
+      "period": "day",
+      "quantity": "food",
+      "sustained_at_least": null,
+      "sustained_unit": null,
+      "upper": {
+       "denominator": 2,
+       "numerator": 1
+      },
+      "upper_inclusive": false
+     },
+     "comparison": null,
+     "kind": "consumption_threshold",
+     "negated": false,
+     "phase": null,
+     "quantity": null,
+     "trigger": null,
+     "value": null
+    },
+    "fact_qualifiers": [
+     {
+      "applies_when": {
+       "any_of": [],
+       "comparison": null,
+       "kind": "roll_outcome",
+       "negated": false,
+       "outcome": "failure",
+       "phase": null,
+       "quantity": null,
+       "trigger": null,
+       "value": null
+      },
+      "fact_key": "a2dfac8bea01c536",
+      "option_key": ""
+     }
+    ],
+    "facts": [
+     {
+      "ability": "constitution",
+      "context": "saving_throw",
+      "dc_kind": "fixed",
+      "dc_value": 10,
+      "family": "ability_check"
+     },
+     {
+      "all_levels": false,
+      "amount": 1,
+      "condition": "exhaustion",
+      "cumulative": false,
+      "direction": "gain",
+      "family": "condition_level"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.malnutrition",
+    "recurs": {
+     "boundary": "end_of_day",
+     "whose": null
+    },
+    "semantic_key": "starvation_save"
+   },
+   {
+    "applies_when": {
+     "any_of": [],
+     "band": {
+      "lower": {
+       "denominator": 1,
+       "numerator": 0
+      },
+      "lower_inclusive": true,
+      "period": "day",
+      "quantity": "food",
+      "sustained_at_least": 5,
+      "sustained_unit": "day",
+      "upper": {
+       "denominator": 1,
+       "numerator": 0
+      },
+      "upper_inclusive": true
+     },
+     "comparison": null,
+     "kind": "consumption_threshold",
+     "negated": false,
+     "phase": null,
+     "quantity": null,
+     "trigger": null,
+     "value": null
+    },
+    "fact_qualifiers": [],
+    "facts": [
+     {
+      "all_levels": false,
+      "amount": 1,
+      "condition": "exhaustion",
+      "cumulative": false,
+      "direction": "gain",
+      "family": "condition_level"
+     }
+    ],
+    "handling": "structured",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "record_key": "glossary.malnutrition",
+    "recurs": {
+     "boundary": "end_of_day",
+     "whose": null
+    },
+    "semantic_key": "starvation_automatic"
+   }
+  ],
+  "prose_bindings": [
+   {
+    "chunk_char_end": 101,
+    "chunk_char_start": 0,
+    "chunk_id": "707c258b-e963-5e60-aebb-f312c1709d89",
+    "component_key": "alignment",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "glossary.stat_block",
+    "span_id": "384e7b02-cbe0-578f-9097-a3f007b7958f"
+   },
+   {
+    "chunk_char_end": 104,
+    "chunk_char_start": 0,
+    "chunk_id": "94819bfd-4c90-58ae-b124-b7c1bab48f9d",
+    "component_key": "gear",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "span_id": "d86b5e39-4cd8-543f-9183-5b392e578847"
+   },
+   {
+    "chunk_char_end": 104,
+    "chunk_char_start": 0,
+    "chunk_id": "94899d00-c7bd-56d7-8ce7-c96f0bf1d4ad",
+    "component_key": "senses",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "span_id": "224d71c1-b4a1-5f77-a1eb-f65696b9dae2"
+   },
+   {
+    "chunk_char_end": 107,
+    "chunk_char_start": 0,
+    "chunk_id": "95bd6782-1bfc-59b0-b8e9-e81811c2ac10",
+    "component_key": "traits",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "span_id": "2e9ae110-795a-540e-a424-e208c8ab8fc1"
+   },
+   {
+    "chunk_char_end": 107,
+    "chunk_char_start": 0,
+    "chunk_id": "c9cdb72b-c5e9-5e8d-bc0e-f4de7e9023a0",
+    "component_key": "attack_roll",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.attack_roll",
+    "span_id": "fd1937ba-84dd-5867-a4eb-5019a0591072"
+   },
+   {
+    "chunk_char_end": 108,
+    "chunk_char_start": 0,
+    "chunk_id": "6c97393d-6a45-578b-a900-278a5742b5b3",
+    "component_key": "resistances_and_vulnerabilities",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "span_id": "60a24e52-070a-5f2c-bdc7-1cd6d1bf2750"
+   },
+   {
+    "chunk_char_end": 109,
+    "chunk_char_start": 0,
+    "chunk_id": "47979df1-4e3d-58d1-8fcd-d503f6c4262f",
+    "component_key": "creature_type",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "span_id": "e6192d7f-cb4b-5983-8350-86a37caec466"
+   },
+   {
+    "chunk_char_end": 116,
+    "chunk_char_start": 0,
+    "chunk_id": "a092c6c1-329f-58e3-8668-8bab24390e56",
+    "component_key": "truesight",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.truesight",
+    "span_id": "bb124ad8-06f8-5ac5-859e-5e2555d00ac3"
+   },
+   {
+    "chunk_char_end": 119,
+    "chunk_char_start": 0,
+    "chunk_id": "c20fc384-b362-50f5-9c42-8318d892970d",
+    "component_key": "damage_notation",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "glossary.stat_block",
+    "span_id": "001856ed-75d5-5fab-bd41-c57e6aa3d5e3"
+   },
+   {
+    "chunk_char_end": 126,
+    "chunk_char_start": 0,
+    "chunk_id": "e7e1694f-515e-59c1-b4b6-f3d4f9d5c1ed",
+    "component_key": "truesight",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.truesight",
+    "span_id": "0ea3a70a-1e3c-5129-a6a4-2ff911055cbe"
+   },
+   {
+    "chunk_char_end": 128,
+    "chunk_char_start": 0,
+    "chunk_id": "3eb01899-fce7-5aa5-be39-e74d3417a3d3",
+    "component_key": "dragging_lifting_pushing",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.carrying_capacity",
+    "span_id": "90dec451-3389-531c-84ed-50e6068ad7f7"
+   },
+   {
+    "chunk_char_end": 134,
+    "chunk_char_start": 0,
+    "chunk_id": "1462013e-a3e2-5e31-93e7-93884995bb4e",
+    "component_key": "truesight",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.truesight",
+    "span_id": "f351deb6-1126-5c97-b980-63330b8984bd"
+   },
+   {
+    "chunk_char_end": 142,
+    "chunk_char_start": 0,
+    "chunk_id": "0afae9a6-100e-537d-be88-aeb241dcf69b",
+    "component_key": "stat_block",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "span_id": "625b5e59-f84c-5072-96c6-c6ac6211b2a4"
+   },
+   {
+    "chunk_char_end": 152,
+    "chunk_char_start": 0,
+    "chunk_id": "51301619-be95-5b4c-8cdf-2e689889bfb9",
+    "component_key": "ability_scores",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "span_id": "295ea07b-3afa-52e5-bf19-aeeb20aa32ef"
+   },
+   {
+    "chunk_char_end": 197,
+    "chunk_char_start": 0,
+    "chunk_id": "78af77c0-9cb5-588c-8bf9-09ebd594cf89",
+    "component_key": "carrying_capacity",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.carrying_capacity",
+    "span_id": "ab3d0167-a5a4-571f-a397-2cf81b6ecce2"
+   },
+   {
+    "chunk_char_end": 201,
+    "chunk_char_start": 86,
+    "chunk_id": "5d43b758-6079-5978-bc5e-dbcb81aef13f",
+    "component_key": "self_extinguish",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.burning",
+    "span_id": "bdd5156b-1fb1-5fb0-b30e-af31fcbad051"
+   },
+   {
+    "chunk_char_end": 219,
+    "chunk_char_start": 0,
+    "chunk_id": "87d435d9-158d-588b-8a97-42a1986a1641",
+    "component_key": "darkvision",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.darkvision",
+    "span_id": "ea35052b-e443-504d-9fd6-0aa82709d4ec"
+   },
+   {
+    "chunk_char_end": 258,
+    "chunk_char_start": 148,
+    "chunk_id": "2a06c08e-6447-5cee-8b1c-fdf7a290c6b4",
+    "component_key": "suffocation_accrual",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.suffocation",
+    "span_id": "ca70932d-d121-58b0-9b77-105e40b3bd12"
+   },
+   {
+    "chunk_char_end": 267,
+    "chunk_char_start": 202,
+    "chunk_id": "5d43b758-6079-5978-bc5e-dbcb81aef13f",
+    "component_key": "ambient_extinguish",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.burning",
+    "span_id": "50f4c411-3546-5360-afc1-39ce8553f921"
+   },
+   {
+    "chunk_char_end": 277,
+    "chunk_char_start": 0,
+    "chunk_id": "acdd7bbb-3d33-59e6-9684-20b6052ed4f9",
+    "component_key": "attack_notation",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.stat_block",
+    "span_id": "e71bd702-085c-592b-9b0d-aeff0d43f86d"
+   },
+   {
+    "chunk_char_end": 279,
+    "chunk_char_start": 0,
+    "chunk_id": "c8b3a0d4-0dc5-5948-901d-f45fd5bfaad4",
+    "component_key": "saving_throw_effect_notation",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "span_id": "e33a142a-e37d-57ae-b686-cc1701fc9de3"
+   },
+   {
+    "chunk_char_end": 288,
+    "chunk_char_start": 0,
+    "chunk_id": "7906dbfd-5998-5e33-82ae-4db14c86c0e5",
+    "component_key": "tremorsense",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.tremorsense",
+    "span_id": "9cf6237a-f35c-51be-b70b-15a51fa7f452"
+   },
+   {
+    "chunk_char_end": 292,
+    "chunk_char_start": 183,
+    "chunk_id": "c20fc384-b362-50f5-9c42-8318d892970d",
+    "component_key": "damage_notation",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "glossary.stat_block",
+    "span_id": "07c37e74-9690-5df6-8b52-9b977faed1f3"
+   },
+   {
+    "chunk_char_end": 304,
+    "chunk_char_start": 0,
+    "chunk_id": "7409a5ba-f009-5370-a0fd-2dd064d321c3",
+    "component_key": "blindsight",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.blindsight",
+    "span_id": "c7584254-d612-5a56-866b-453983f4561f"
+   },
+   {
+    "chunk_char_end": 306,
+    "chunk_char_start": 63,
+    "chunk_id": "01f0fed4-5bd0-51f1-a1de-6ed85143e34f",
+    "component_key": "challenge_rating",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "span_id": "24ec15c9-dfef-59e6-8935-03404f0fc93e"
+   },
+   {
+    "chunk_char_end": 357,
+    "chunk_char_start": 259,
+    "chunk_id": "2a06c08e-6447-5cee-8b1c-fdf7a290c6b4",
+    "component_key": "suffocation_recovery",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.suffocation",
+    "span_id": "c00832c7-204b-5e98-95ab-b6a41a196be5"
+   },
+   {
+    "chunk_char_end": 438,
+    "chunk_char_start": 0,
+    "chunk_id": "cc3d1015-08fc-5e83-ae78-3e840fac8ba0",
+    "component_key": "ac_initiative_hp",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "span_id": "92a3a2c3-6024-5e62-bb61-0ba0a62612c3"
+   },
+   {
+    "chunk_char_end": 52,
+    "chunk_char_start": 0,
+    "chunk_id": "ac6b7696-5661-5144-b161-054b3da67ebd",
+    "component_key": "truesight",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.truesight",
+    "span_id": "4716fb87-5bd4-5841-b335-7e2d5c7d0069"
+   },
+   {
+    "chunk_char_end": 57,
+    "chunk_char_start": 0,
+    "chunk_id": "b82a3c44-e746-5bad-9ba3-f4df242fb962",
+    "component_key": "truesight",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.truesight",
+    "span_id": "0a382d5f-fc5f-57e6-b10c-e6a46d880967"
+   },
+   {
+    "chunk_char_end": 62,
+    "chunk_char_start": 0,
+    "chunk_id": "01f0fed4-5bd0-51f1-a1de-6ed85143e34f",
+    "component_key": "languages",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "span_id": "be51f08c-f413-585d-8b59-9ce2c46798ec"
+   },
+   {
+    "chunk_char_end": 684,
+    "chunk_char_start": 0,
+    "chunk_id": "55b3fe60-8718-5be0-94c6-fa8cae2f40ab",
+    "component_key": "carrying_capacity",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.carrying_capacity",
+    "span_id": "cedd1488-74c8-5f4a-b302-9e334c9144ea"
+   },
+   {
+    "chunk_char_end": 69,
+    "chunk_char_start": 0,
+    "chunk_id": "175ce343-e30d-5dac-a6c0-b74aaa026b03",
+    "component_key": "skills",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "span_id": "84f0cd3a-ad59-5a15-85da-bd8fda780605"
+   },
+   {
+    "chunk_char_end": 69,
+    "chunk_char_start": 0,
+    "chunk_id": "838ffa05-753a-5268-8727-938deea8e8f6",
+    "component_key": "size",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "span_id": "1b88dcf6-43d6-5a27-9428-28ca0d2db9ac"
+   },
+   {
+    "chunk_char_end": 77,
+    "chunk_char_start": 0,
+    "chunk_id": "58c693b8-1c1a-5cd6-b5e4-098c8ed2c307",
+    "component_key": "speed",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "span_id": "09be5d95-4010-5bc8-b32a-2158993a375b"
+   },
+   {
+    "chunk_char_end": 82,
+    "chunk_char_start": 0,
+    "chunk_id": "340f66c4-fc1d-58dd-bb06-e4d3de2fca1a",
+    "component_key": "truesight",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.truesight",
+    "span_id": "885afc10-3e25-545a-adf5-14ff23afbd2b"
+   },
+   {
+    "chunk_char_end": 87,
+    "chunk_char_start": 0,
+    "chunk_id": "37782ca8-78a6-5ee8-a818-6155adb190a6",
+    "component_key": "immunities",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "span_id": "051819df-0dbe-52e8-8d93-482a9da5fec4"
+   },
+   {
+    "chunk_char_end": 89,
+    "chunk_char_start": 0,
+    "chunk_id": "7b612f4c-3db2-5b10-a738-ebe724799ccf",
+    "component_key": "reactions",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "span_id": "c8ef1210-f299-5606-b2e6-04fcea9d1654"
+   },
+   {
+    "chunk_char_end": 90,
+    "chunk_char_start": 0,
+    "chunk_id": "d62360f9-ee98-5c75-a403-7a0ca87ee50a",
+    "component_key": "bonus_actions",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "span_id": "88250461-9013-5e39-b522-7c1935c5bf4e"
+   },
+   {
+    "chunk_char_end": 93,
+    "chunk_char_start": 0,
+    "chunk_id": "ffb954d2-29d6-5c56-a74b-ad1a7748531e",
+    "component_key": "actions",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.stat_block",
+    "span_id": "d0245e7a-97dc-543f-b127-074ccacb00d9"
+   },
+   {
+    "chunk_char_end": 98,
+    "chunk_char_start": 0,
+    "chunk_id": "7c790ea2-0601-52bb-a3e3-c13cc3cb9aa9",
+    "component_key": "tremorsense",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "glossary.tremorsense",
+    "span_id": "246f9421-a892-5fa8-89bd-dcccec9a951d"
+   }
+  ],
+  "provenance": [
+   {
+    "role": "contextual",
+    "span_id": "0a10add6-e022-5a5e-82a5-76c5d68bdc30",
+    "target_key": [
+     "glossary.stat_block",
+     "",
+     "Resistance",
+     "srd-5.2.1/rules-glossary",
+     "glossary.resistance"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0a10add6-e022-5a5e-82a5-76c5d68bdc30",
+    "target_key": [
+     "glossary.stat_block",
+     "",
+     "Vulnerability",
+     "srd-5.2.1/rules-glossary",
+     "glossary.vulnerability"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "12017d02-bd80-5d8c-b6ef-bbb5ee9ed65b",
+    "target_key": [
+     "glossary.dehydration",
+     "water_requirement",
+     "6bd1bf8c972fb4d7"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "16f0df94-94d5-5e7c-bf86-417760beec39",
+    "target_key": [
+     "glossary.dehydration",
+     "dehydration_recovery",
+     "5cb21f934acea548"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "16f0df94-94d5-5e7c-bf86-417760beec39",
+    "target_key": [
+     "glossary.dehydration",
+     "dehydration_recovery",
+     "Exhaustion",
+     "srd-5.2.1/rules-glossary",
+     "glossary.exhaustion"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "24ec15c9-dfef-59e6-8935-03404f0fc93e",
+    "target_key": [
+     "glossary.stat_block",
+     "challenge_rating",
+     "Monsters",
+     "srd-5.2.1/monsters",
+     ""
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "2584b6a0-e9d2-59f7-9265-884d1df9ea42",
+    "target_key": [
+     "glossary.dehydration",
+     "dehydration_exhaustion",
+     "Exhaustion",
+     "srd-5.2.1/rules-glossary",
+     "glossary.exhaustion"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "295ea07b-3afa-52e5-bf19-aeeb20aa32ef",
+    "target_key": [
+     "glossary.stat_block",
+     "ability_scores",
+     "ability scores, modifiers",
+     "srd-5.2.1/playing-the-game",
+     "play.six_abilities"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "295ea07b-3afa-52e5-bf19-aeeb20aa32ef",
+    "target_key": [
+     "glossary.stat_block",
+     "ability_scores",
+     "saving throw modifiers",
+     "srd-5.2.1/playing-the-game",
+     "play.d20_tests"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3d0630f9-5bb4-5b9b-98ed-b7352f621df2",
+    "target_key": [
+     "glossary.suffocation",
+     "breath_duration",
+     "08d554c9bd5778df"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "417af7ff-6cee-5709-a872-588473caa49a",
+    "target_key": [
+     "glossary.stat_block",
+     "",
+     "Challenge Rating",
+     "srd-5.2.1/rules-glossary",
+     "glossary.challenge_rating"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "417af7ff-6cee-5709-a872-588473caa49a",
+    "target_key": [
+     "glossary.stat_block",
+     "",
+     "Experience Points",
+     "srd-5.2.1/rules-glossary",
+     "glossary.experience_points"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "4ec850f8-e34e-5f07-b55d-2a4ec25d3355",
+    "target_key": [
+     "glossary.malnutrition",
+     "starvation_save",
+     "Exhaustion",
+     "srd-5.2.1/rules-glossary",
+     "glossary.exhaustion"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "50f4c411-3546-5360-afc1-39ce8553f921",
+    "target_key": [
+     "glossary.burning",
+     "ambient_extinguish",
+     "08d4572fe00ecf1e"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "59bd657a-45af-5418-96aa-272a744e3733",
+    "target_key": [
+     "glossary.stat_block",
+     "damage_notation"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "contextual",
+    "span_id": "6368e802-318f-5dde-842b-1559218c3298",
+    "target_key": [
+     "glossary.stat_block",
+     "",
+     "Proficiency",
+     "srd-5.2.1/playing-the-game",
+     "play.proficiency"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "72be1e2b-eb52-54e9-966b-ebc059eb41bc",
+    "target_key": [
+     "glossary.stat_block",
+     "",
+     "Actions",
+     "srd-5.2.1/playing-the-game",
+     "play.actions"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "7e2babba-4d0f-5af3-8a93-06b5a428a4da",
+    "target_key": [
+     "glossary.dehydration",
+     "dehydration_exhaustion",
+     "Exhaustion",
+     "srd-5.2.1/rules-glossary",
+     "glossary.exhaustion"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "7e2babba-4d0f-5af3-8a93-06b5a428a4da",
+    "target_key": [
+     "glossary.dehydration",
+     "dehydration_exhaustion",
+     "a2dfac8bea01c536"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "87b88fc1-1fce-50c3-9cee-499894131b63",
+    "target_key": [
+     "glossary.malnutrition",
+     "starvation_save",
+     "Exhaustion",
+     "srd-5.2.1/rules-glossary",
+     "glossary.exhaustion"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "87b88fc1-1fce-50c3-9cee-499894131b63",
+    "target_key": [
+     "glossary.malnutrition",
+     "starvation_save",
+     "a2dfac8bea01c536",
+     ""
+    ],
+    "target_kind": "fact_qualifier"
+   },
+   {
+    "role": "contextual",
+    "span_id": "87b88fc1-1fce-50c3-9cee-499894131b63",
+    "target_key": [
+     "glossary.malnutrition",
+     "starvation_save",
+     "a2dfac8bea01c536"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "87b88fc1-1fce-50c3-9cee-499894131b63",
+    "target_key": [
+     "glossary.malnutrition",
+     "starvation_save",
+     "ce8834862b4aa506"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "885afc10-3e25-545a-adf5-14ff23afbd2b",
+    "target_key": [
+     "glossary.truesight",
+     "truesight",
+     "Invisible",
+     "srd-5.2.1/rules-glossary",
+     "glossary.invisible"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "8fe27f55-98ca-53b0-ae54-7fd11f18e4e1",
+    "target_key": [
+     "glossary.malnutrition",
+     "food_requirement",
+     "d83b6961472de9c3"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "90dec451-3389-531c-84ed-50e6068ad7f7",
+    "target_key": [
+     "glossary.carrying_capacity",
+     "dragging_lifting_pushing",
+     "Speed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.speed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "92a3a2c3-6024-5e62-bb61-0ba0a62612c3",
+    "target_key": [
+     "glossary.stat_block",
+     "ac_initiative_hp",
+     "Armor Class",
+     "srd-5.2.1/playing-the-game",
+     "play.d20_tests"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "92a3a2c3-6024-5e62-bb61-0ba0a62612c3",
+    "target_key": [
+     "glossary.stat_block",
+     "ac_initiative_hp",
+     "Hit Points",
+     "srd-5.2.1/playing-the-game",
+     "play.damage_and_healing"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "92a3a2c3-6024-5e62-bb61-0ba0a62612c3",
+    "target_key": [
+     "glossary.stat_block",
+     "ac_initiative_hp",
+     "Initiative",
+     "srd-5.2.1/playing-the-game",
+     "play.combat"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "95674e81-030a-5c9c-8dfa-37001303eaf8",
+    "target_key": [
+     "glossary.dehydration",
+     "water_requirement",
+     "6bd1bf8c972fb4d7"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "95bbaadc-11c5-5a47-9869-f10454811530",
+    "target_key": [
+     "glossary.stat_block",
+     "",
+     "Passive Perception",
+     "srd-5.2.1/rules-glossary",
+     "glossary.passive_perception"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "9f1efcf9-75fc-59f3-b6b2-7ce2074a2923",
+    "target_key": [
+     "glossary.darkvision",
+     "",
+     "Exploration",
+     "srd-5.2.1/playing-the-game",
+     "play.exploration"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "a4fb0b24-94ed-56cd-8bfb-bd18de74a90b",
+    "target_key": [
+     "glossary.stat_block",
+     "",
+     "Burrow Speed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.burrow_speed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "a4fb0b24-94ed-56cd-8bfb-bd18de74a90b",
+    "target_key": [
+     "glossary.stat_block",
+     "",
+     "Climb Speed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.climb_speed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "a4fb0b24-94ed-56cd-8bfb-bd18de74a90b",
+    "target_key": [
+     "glossary.stat_block",
+     "",
+     "Fly Speed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.fly_speed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "a4fb0b24-94ed-56cd-8bfb-bd18de74a90b",
+    "target_key": [
+     "glossary.stat_block",
+     "",
+     "Swim Speed",
+     "srd-5.2.1/rules-glossary",
+     "glossary.swim_speed"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "a82bf1e4-3eab-5882-9192-54d513d2d717",
+    "target_key": [
+     "glossary.malnutrition",
+     "food_requirement",
+     "d83b6961472de9c3"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "acef91ca-e986-5192-8d77-e9402b30a17e",
+    "target_key": [
+     "glossary.malnutrition",
+     "starvation_automatic",
+     "Exhaustion",
+     "srd-5.2.1/rules-glossary",
+     "glossary.exhaustion"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "acef91ca-e986-5192-8d77-e9402b30a17e",
+    "target_key": [
+     "glossary.malnutrition",
+     "starvation_automatic",
+     "a2dfac8bea01c536"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "adb385fa-298a-59f7-9929-c69555401a3b",
+    "target_key": [
+     "glossary.burning",
+     "burning_damage",
+     "27183b13d6f8797b"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "bdd213d5-cc6b-580c-915b-7c93f6998417",
+    "target_key": [
+     "glossary.stat_block",
+     "",
+     "Creature Type",
+     "srd-5.2.1/rules-glossary",
+     "glossary.creature_type"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "bdd5156b-1fb1-5fb0-b30e-af31fcbad051",
+    "target_key": [
+     "glossary.burning",
+     "self_extinguish",
+     "08d4572fe00ecf1e"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "bdd5156b-1fb1-5fb0-b30e-af31fcbad051",
+    "target_key": [
+     "glossary.burning",
+     "self_extinguish",
+     "Prone",
+     "srd-5.2.1/rules-glossary",
+     "glossary.prone"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "bdd5156b-1fb1-5fb0-b30e-af31fcbad051",
+    "target_key": [
+     "glossary.burning",
+     "self_extinguish",
+     "e756f5850569798d"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "bdd5156b-1fb1-5fb0-b30e-af31fcbad051",
+    "target_key": [
+     "glossary.burning",
+     "self_extinguish",
+     "fe97b30136297ea9"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "c00832c7-204b-5e98-95ab-b6a41a196be5",
+    "target_key": [
+     "glossary.suffocation",
+     "suffocation_recovery",
+     "Exhaustion",
+     "srd-5.2.1/rules-glossary",
+     "glossary.exhaustion"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "c00832c7-204b-5e98-95ab-b6a41a196be5",
+    "target_key": [
+     "glossary.suffocation",
+     "suffocation_recovery",
+     "ba0486823e87e9ee"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "c7584254-d612-5a56-866b-453983f4561f",
+    "target_key": [
+     "glossary.blindsight",
+     "blindsight",
+     "Blinded",
+     "srd-5.2.1/rules-glossary",
+     "glossary.blinded"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "c7584254-d612-5a56-866b-453983f4561f",
+    "target_key": [
+     "glossary.blindsight",
+     "blindsight",
+     "Invisible",
+     "srd-5.2.1/rules-glossary",
+     "glossary.invisible"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ca70932d-d121-58b0-9b77-105e40b3bd12",
+    "target_key": [
+     "glossary.suffocation",
+     "suffocation_accrual",
+     "Exhaustion",
+     "srd-5.2.1/rules-glossary",
+     "glossary.exhaustion"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ca70932d-d121-58b0-9b77-105e40b3bd12",
+    "target_key": [
+     "glossary.suffocation",
+     "suffocation_accrual",
+     "a2dfac8bea01c536"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d5e20672-8177-505a-b97b-9e50e4a0558d",
+    "target_key": [
+     "glossary.attack_roll",
+     "",
+     "D20 Tests",
+     "srd-5.2.1/playing-the-game",
+     "play.d20_tests"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "f1b295e1-0993-5836-977c-727ba23708f2",
+    "target_key": [
+     "glossary.malnutrition",
+     "malnutrition_recovery",
+     "7e3b50690faf404f"
+    ],
+    "target_kind": "fact"
+   },
+   {
+    "role": "contextual",
+    "span_id": "f1b295e1-0993-5836-977c-727ba23708f2",
+    "target_key": [
+     "glossary.malnutrition",
+     "malnutrition_recovery",
+     "Exhaustion",
+     "srd-5.2.1/rules-glossary",
+     "glossary.exhaustion"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "f7d20b12-0fd0-55cc-8c39-834e6da735ca",
+    "target_key": [
+     "glossary.stat_block",
+     "",
+     "Size",
+     "srd-5.2.1/rules-glossary",
+     "glossary.size"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "fae3f210-6bd4-5226-b87c-8bd1d2cb27ea",
+    "target_key": [
+     "glossary.stat_block",
+     "",
+     "Alignment",
+     "srd-5.2.1/rules-glossary",
+     "glossary.alignment"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "fc750666-3a12-523e-8642-cbf70901a9a8",
+    "target_key": [
+     "glossary.stat_block",
+     "",
+     "Immunity",
+     "srd-5.2.1/rules-glossary",
+     "glossary.immunity"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "fd1937ba-84dd-5867-a4eb-5019a0591072",
+    "target_key": [
+     "glossary.attack_roll",
+     "attack_roll",
+     "Unarmed Strike",
+     "srd-5.2.1/rules-glossary",
+     "glossary.unarmed_strike"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "primary",
+    "span_id": "001856ed-75d5-5fab-bd41-c57e6aa3d5e3",
+    "target_key": [
+     "glossary.stat_block",
+     "damage_notation",
+     "c20fc384-b362-50f5-9c42-8318d892970d",
+     "001856ed-75d5-5fab-bd41-c57e6aa3d5e3",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "051819df-0dbe-52e8-8d93-482a9da5fec4",
+    "target_key": [
+     "glossary.stat_block",
+     "immunities",
+     "37782ca8-78a6-5ee8-a818-6155adb190a6",
+     "051819df-0dbe-52e8-8d93-482a9da5fec4",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "07c37e74-9690-5df6-8b52-9b977faed1f3",
+    "target_key": [
+     "glossary.stat_block",
+     "damage_notation",
+     "c20fc384-b362-50f5-9c42-8318d892970d",
+     "07c37e74-9690-5df6-8b52-9b977faed1f3",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "09be5d95-4010-5bc8-b32a-2158993a375b",
+    "target_key": [
+     "glossary.stat_block",
+     "speed",
+     "58c693b8-1c1a-5cd6-b5e4-098c8ed2c307",
+     "09be5d95-4010-5bc8-b32a-2158993a375b",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "0a382d5f-fc5f-57e6-b10c-e6a46d880967",
+    "target_key": [
+     "glossary.truesight",
+     "truesight",
+     "b82a3c44-e746-5bad-9ba3-f4df242fb962",
+     "0a382d5f-fc5f-57e6-b10c-e6a46d880967",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "0ea3a70a-1e3c-5129-a6a4-2ff911055cbe",
+    "target_key": [
+     "glossary.truesight",
+     "truesight",
+     "e7e1694f-515e-59c1-b4b6-f3d4f9d5c1ed",
+     "0ea3a70a-1e3c-5129-a6a4-2ff911055cbe",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "12017d02-bd80-5d8c-b6ef-bbb5ee9ed65b",
+    "target_key": [
+     "glossary.dehydration",
+     "water_requirement"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "16f0df94-94d5-5e7c-bf86-417760beec39",
+    "target_key": [
+     "glossary.dehydration",
+     "dehydration_recovery"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "1b88dcf6-43d6-5a27-9428-28ca0d2db9ac",
+    "target_key": [
+     "glossary.stat_block",
+     "size",
+     "838ffa05-753a-5268-8727-938deea8e8f6",
+     "1b88dcf6-43d6-5a27-9428-28ca0d2db9ac",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "224d71c1-b4a1-5f77-a1eb-f65696b9dae2",
+    "target_key": [
+     "glossary.stat_block",
+     "senses",
+     "94899d00-c7bd-56d7-8ce7-c96f0bf1d4ad",
+     "224d71c1-b4a1-5f77-a1eb-f65696b9dae2",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "246f9421-a892-5fa8-89bd-dcccec9a951d",
+    "target_key": [
+     "glossary.tremorsense",
+     "tremorsense",
+     "7c790ea2-0601-52bb-a3e3-c13cc3cb9aa9",
+     "246f9421-a892-5fa8-89bd-dcccec9a951d",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "24ec15c9-dfef-59e6-8935-03404f0fc93e",
+    "target_key": [
+     "glossary.stat_block",
+     "challenge_rating",
+     "01f0fed4-5bd0-51f1-a1de-6ed85143e34f",
+     "24ec15c9-dfef-59e6-8935-03404f0fc93e",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "295ea07b-3afa-52e5-bf19-aeeb20aa32ef",
+    "target_key": [
+     "glossary.stat_block",
+     "ability_scores",
+     "51301619-be95-5b4c-8cdf-2e689889bfb9",
+     "295ea07b-3afa-52e5-bf19-aeeb20aa32ef",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "2e9ae110-795a-540e-a424-e208c8ab8fc1",
+    "target_key": [
+     "glossary.stat_block",
+     "traits",
+     "95bd6782-1bfc-59b0-b8e9-e81811c2ac10",
+     "2e9ae110-795a-540e-a424-e208c8ab8fc1",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "384e7b02-cbe0-578f-9097-a3f007b7958f",
+    "target_key": [
+     "glossary.stat_block",
+     "alignment",
+     "707c258b-e963-5e60-aebb-f312c1709d89",
+     "384e7b02-cbe0-578f-9097-a3f007b7958f",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "3d0630f9-5bb4-5b9b-98ed-b7352f621df2",
+    "target_key": [
+     "glossary.suffocation",
+     "breath_duration"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "4716fb87-5bd4-5841-b335-7e2d5c7d0069",
+    "target_key": [
+     "glossary.truesight",
+     "truesight",
+     "ac6b7696-5661-5144-b161-054b3da67ebd",
+     "4716fb87-5bd4-5841-b335-7e2d5c7d0069",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "50f4c411-3546-5360-afc1-39ce8553f921",
+    "target_key": [
+     "glossary.burning",
+     "ambient_extinguish",
+     "5d43b758-6079-5978-bc5e-dbcb81aef13f",
+     "50f4c411-3546-5360-afc1-39ce8553f921",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "60a24e52-070a-5f2c-bdc7-1cd6d1bf2750",
+    "target_key": [
+     "glossary.stat_block",
+     "resistances_and_vulnerabilities",
+     "6c97393d-6a45-578b-a900-278a5742b5b3",
+     "60a24e52-070a-5f2c-bdc7-1cd6d1bf2750",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "625b5e59-f84c-5072-96c6-c6ac6211b2a4",
+    "target_key": [
+     "glossary.stat_block",
+     "stat_block",
+     "0afae9a6-100e-537d-be88-aeb241dcf69b",
+     "625b5e59-f84c-5072-96c6-c6ac6211b2a4",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "7e2babba-4d0f-5af3-8a93-06b5a428a4da",
+    "target_key": [
+     "glossary.dehydration",
+     "dehydration_exhaustion"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "84f0cd3a-ad59-5a15-85da-bd8fda780605",
+    "target_key": [
+     "glossary.stat_block",
+     "skills",
+     "175ce343-e30d-5dac-a6c0-b74aaa026b03",
+     "84f0cd3a-ad59-5a15-85da-bd8fda780605",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "87b88fc1-1fce-50c3-9cee-499894131b63",
+    "target_key": [
+     "glossary.malnutrition",
+     "starvation_save"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "88250461-9013-5e39-b522-7c1935c5bf4e",
+    "target_key": [
+     "glossary.stat_block",
+     "bonus_actions",
+     "d62360f9-ee98-5c75-a403-7a0ca87ee50a",
+     "88250461-9013-5e39-b522-7c1935c5bf4e",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "885afc10-3e25-545a-adf5-14ff23afbd2b",
+    "target_key": [
+     "glossary.truesight",
+     "truesight",
+     "340f66c4-fc1d-58dd-bb06-e4d3de2fca1a",
+     "885afc10-3e25-545a-adf5-14ff23afbd2b",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "8fe27f55-98ca-53b0-ae54-7fd11f18e4e1",
+    "target_key": [
+     "glossary.malnutrition",
+     "food_requirement"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "90dec451-3389-531c-84ed-50e6068ad7f7",
+    "target_key": [
+     "glossary.carrying_capacity",
+     "dragging_lifting_pushing",
+     "3eb01899-fce7-5aa5-be39-e74d3417a3d3",
+     "90dec451-3389-531c-84ed-50e6068ad7f7",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "92a3a2c3-6024-5e62-bb61-0ba0a62612c3",
+    "target_key": [
+     "glossary.stat_block",
+     "ac_initiative_hp",
+     "cc3d1015-08fc-5e83-ae78-3e840fac8ba0",
+     "92a3a2c3-6024-5e62-bb61-0ba0a62612c3",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "95674e81-030a-5c9c-8dfa-37001303eaf8",
+    "target_key": [
+     "glossary.dehydration",
+     "water_requirement"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "9cf6237a-f35c-51be-b70b-15a51fa7f452",
+    "target_key": [
+     "glossary.tremorsense",
+     "tremorsense",
+     "7906dbfd-5998-5e33-82ae-4db14c86c0e5",
+     "9cf6237a-f35c-51be-b70b-15a51fa7f452",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "a82bf1e4-3eab-5882-9192-54d513d2d717",
+    "target_key": [
+     "glossary.malnutrition",
+     "food_requirement"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "ab3d0167-a5a4-571f-a397-2cf81b6ecce2",
+    "target_key": [
+     "glossary.carrying_capacity",
+     "carrying_capacity",
+     "78af77c0-9cb5-588c-8bf9-09ebd594cf89",
+     "ab3d0167-a5a4-571f-a397-2cf81b6ecce2",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "acef91ca-e986-5192-8d77-e9402b30a17e",
+    "target_key": [
+     "glossary.malnutrition",
+     "starvation_automatic"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "adb385fa-298a-59f7-9929-c69555401a3b",
+    "target_key": [
+     "glossary.burning",
+     "burning_damage"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "bb124ad8-06f8-5ac5-859e-5e2555d00ac3",
+    "target_key": [
+     "glossary.truesight",
+     "truesight",
+     "a092c6c1-329f-58e3-8668-8bab24390e56",
+     "bb124ad8-06f8-5ac5-859e-5e2555d00ac3",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "bdd5156b-1fb1-5fb0-b30e-af31fcbad051",
+    "target_key": [
+     "glossary.burning",
+     "self_extinguish",
+     "5d43b758-6079-5978-bc5e-dbcb81aef13f",
+     "bdd5156b-1fb1-5fb0-b30e-af31fcbad051",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "be51f08c-f413-585d-8b59-9ce2c46798ec",
+    "target_key": [
+     "glossary.stat_block",
+     "languages",
+     "01f0fed4-5bd0-51f1-a1de-6ed85143e34f",
+     "be51f08c-f413-585d-8b59-9ce2c46798ec",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "c00832c7-204b-5e98-95ab-b6a41a196be5",
+    "target_key": [
+     "glossary.suffocation",
+     "suffocation_recovery",
+     "2a06c08e-6447-5cee-8b1c-fdf7a290c6b4",
+     "c00832c7-204b-5e98-95ab-b6a41a196be5",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "c7584254-d612-5a56-866b-453983f4561f",
+    "target_key": [
+     "glossary.blindsight",
+     "blindsight",
+     "7409a5ba-f009-5370-a0fd-2dd064d321c3",
+     "c7584254-d612-5a56-866b-453983f4561f",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "c8ef1210-f299-5606-b2e6-04fcea9d1654",
+    "target_key": [
+     "glossary.stat_block",
+     "reactions",
+     "7b612f4c-3db2-5b10-a738-ebe724799ccf",
+     "c8ef1210-f299-5606-b2e6-04fcea9d1654",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "ca70932d-d121-58b0-9b77-105e40b3bd12",
+    "target_key": [
+     "glossary.suffocation",
+     "suffocation_accrual",
+     "2a06c08e-6447-5cee-8b1c-fdf7a290c6b4",
+     "ca70932d-d121-58b0-9b77-105e40b3bd12",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "cedd1488-74c8-5f4a-b302-9e334c9144ea",
+    "target_key": [
+     "glossary.carrying_capacity",
+     "carrying_capacity",
+     "55b3fe60-8718-5be0-94c6-fa8cae2f40ab",
+     "cedd1488-74c8-5f4a-b302-9e334c9144ea",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "d0245e7a-97dc-543f-b127-074ccacb00d9",
+    "target_key": [
+     "glossary.stat_block",
+     "actions",
+     "ffb954d2-29d6-5c56-a74b-ad1a7748531e",
+     "d0245e7a-97dc-543f-b127-074ccacb00d9",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "d86b5e39-4cd8-543f-9183-5b392e578847",
+    "target_key": [
+     "glossary.stat_block",
+     "gear",
+     "94819bfd-4c90-58ae-b124-b7c1bab48f9d",
+     "d86b5e39-4cd8-543f-9183-5b392e578847",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "e33a142a-e37d-57ae-b686-cc1701fc9de3",
+    "target_key": [
+     "glossary.stat_block",
+     "saving_throw_effect_notation",
+     "c8b3a0d4-0dc5-5948-901d-f45fd5bfaad4",
+     "e33a142a-e37d-57ae-b686-cc1701fc9de3",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "e6192d7f-cb4b-5983-8350-86a37caec466",
+    "target_key": [
+     "glossary.stat_block",
+     "creature_type",
+     "47979df1-4e3d-58d1-8fcd-d503f6c4262f",
+     "e6192d7f-cb4b-5983-8350-86a37caec466",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "e71bd702-085c-592b-9b0d-aeff0d43f86d",
+    "target_key": [
+     "glossary.stat_block",
+     "attack_notation",
+     "acdd7bbb-3d33-59e6-9684-20b6052ed4f9",
+     "e71bd702-085c-592b-9b0d-aeff0d43f86d",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "ea35052b-e443-504d-9fd6-0aa82709d4ec",
+    "target_key": [
+     "glossary.darkvision",
+     "darkvision",
+     "87d435d9-158d-588b-8a97-42a1986a1641",
+     "ea35052b-e443-504d-9fd6-0aa82709d4ec",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "f1b295e1-0993-5836-977c-727ba23708f2",
+    "target_key": [
+     "glossary.malnutrition",
+     "malnutrition_recovery"
+    ],
+    "target_kind": "component"
+   },
+   {
+    "role": "primary",
+    "span_id": "f351deb6-1126-5c97-b980-63330b8984bd",
+    "target_key": [
+     "glossary.truesight",
+     "truesight",
+     "1462013e-a3e2-5e31-93e7-93884995bb4e",
+     "f351deb6-1126-5c97-b980-63330b8984bd",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "fd1937ba-84dd-5867-a4eb-5019a0591072",
+    "target_key": [
+     "glossary.attack_roll",
+     "attack_roll",
+     "c9cdb72b-c5e9-5e8d-bc0e-f4de7e9023a0",
+     "fd1937ba-84dd-5867-a4eb-5019a0591072",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   }
+  ],
+  "records": [
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.attack_roll"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.blindsight"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.burning"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.carrying_capacity"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.darkvision"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.dehydration"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.malnutrition"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.stat_block"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.suffocation"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.tremorsense"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.truesight"
+   }
+  ],
+  "references": [
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.attack_roll",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "D20 Tests",
+    "target_record_key": "play.d20_tests"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.darkvision",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "Exploration",
+    "target_record_key": "play.exploration"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.stat_block",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "Actions",
+    "target_record_key": "play.actions"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.stat_block",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "Proficiency",
+    "target_record_key": "play.proficiency"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.stat_block",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Alignment",
+    "target_record_key": "glossary.alignment"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.stat_block",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Burrow Speed",
+    "target_record_key": "glossary.burrow_speed"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.stat_block",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Challenge Rating",
+    "target_record_key": "glossary.challenge_rating"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.stat_block",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Climb Speed",
+    "target_record_key": "glossary.climb_speed"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.stat_block",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Creature Type",
+    "target_record_key": "glossary.creature_type"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.stat_block",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Experience Points",
+    "target_record_key": "glossary.experience_points"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.stat_block",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Fly Speed",
+    "target_record_key": "glossary.fly_speed"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.stat_block",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Immunity",
+    "target_record_key": "glossary.immunity"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.stat_block",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Passive Perception",
+    "target_record_key": "glossary.passive_perception"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.stat_block",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Resistance",
+    "target_record_key": "glossary.resistance"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.stat_block",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Size",
+    "target_record_key": "glossary.size"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.stat_block",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Swim Speed",
+    "target_record_key": "glossary.swim_speed"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.stat_block",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Vulnerability",
+    "target_record_key": "glossary.vulnerability"
+   },
+   {
+    "from_component_key": "ability_scores",
+    "from_record_key": "glossary.stat_block",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "ability scores, modifiers",
+    "target_record_key": "play.six_abilities"
+   },
+   {
+    "from_component_key": "ability_scores",
+    "from_record_key": "glossary.stat_block",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "saving throw modifiers",
+    "target_record_key": "play.d20_tests"
+   },
+   {
+    "from_component_key": "ac_initiative_hp",
+    "from_record_key": "glossary.stat_block",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "Armor Class",
+    "target_record_key": "play.d20_tests"
+   },
+   {
+    "from_component_key": "ac_initiative_hp",
+    "from_record_key": "glossary.stat_block",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "Hit Points",
+    "target_record_key": "play.damage_and_healing"
+   },
+   {
+    "from_component_key": "ac_initiative_hp",
+    "from_record_key": "glossary.stat_block",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "Initiative",
+    "target_record_key": "play.combat"
+   },
+   {
+    "from_component_key": "attack_roll",
+    "from_record_key": "glossary.attack_roll",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Unarmed Strike",
+    "target_record_key": "glossary.unarmed_strike"
+   },
+   {
+    "from_component_key": "blindsight",
+    "from_record_key": "glossary.blindsight",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Blinded",
+    "target_record_key": "glossary.blinded"
+   },
+   {
+    "from_component_key": "blindsight",
+    "from_record_key": "glossary.blindsight",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Invisible",
+    "target_record_key": "glossary.invisible"
+   },
+   {
+    "from_component_key": "challenge_rating",
+    "from_record_key": "glossary.stat_block",
+    "scope_key": "srd-5.2.1/monsters",
+    "source_text": "Monsters",
+    "target_record_key": ""
+   },
+   {
+    "from_component_key": "dehydration_exhaustion",
+    "from_record_key": "glossary.dehydration",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Exhaustion",
+    "target_record_key": "glossary.exhaustion"
+   },
+   {
+    "from_component_key": "dehydration_recovery",
+    "from_record_key": "glossary.dehydration",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Exhaustion",
+    "target_record_key": "glossary.exhaustion"
+   },
+   {
+    "from_component_key": "dragging_lifting_pushing",
+    "from_record_key": "glossary.carrying_capacity",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Speed",
+    "target_record_key": "glossary.speed"
+   },
+   {
+    "from_component_key": "malnutrition_recovery",
+    "from_record_key": "glossary.malnutrition",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Exhaustion",
+    "target_record_key": "glossary.exhaustion"
+   },
+   {
+    "from_component_key": "self_extinguish",
+    "from_record_key": "glossary.burning",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Prone",
+    "target_record_key": "glossary.prone"
+   },
+   {
+    "from_component_key": "starvation_automatic",
+    "from_record_key": "glossary.malnutrition",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Exhaustion",
+    "target_record_key": "glossary.exhaustion"
+   },
+   {
+    "from_component_key": "starvation_save",
+    "from_record_key": "glossary.malnutrition",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Exhaustion",
+    "target_record_key": "glossary.exhaustion"
+   },
+   {
+    "from_component_key": "suffocation_accrual",
+    "from_record_key": "glossary.suffocation",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Exhaustion",
+    "target_record_key": "glossary.exhaustion"
+   },
+   {
+    "from_component_key": "suffocation_recovery",
+    "from_record_key": "glossary.suffocation",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Exhaustion",
+    "target_record_key": "glossary.exhaustion"
+   },
+   {
+    "from_component_key": "truesight",
+    "from_record_key": "glossary.truesight",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Invisible",
+    "target_record_key": "glossary.invisible"
+   }
+  ],
+  "relationships": []
+ },
+ "proposed_review_units": [
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "7af5fdb6-cf33-592a-af69-012044551e93"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "attack_roll",
+     "record_key": "glossary.attack_roll",
+     "source_span_ids": [
+      "fd1937ba-84dd-5867-a4eb-5019a0591072"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "7af5fdb6-cf33-592a-af69-012044551e93",
+    "dbc53600-5b1d-5e91-95c7-dea45e7b331a"
+   ],
+   "supporting_groups": [],
+   "unit_id": "core-play-dependencies/attack_roll"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "6218b272-14bb-5b0b-8245-3e7822657986"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "blindsight",
+     "record_key": "glossary.blindsight",
+     "source_span_ids": [
+      "c7584254-d612-5a56-866b-453983f4561f"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "6218b272-14bb-5b0b-8245-3e7822657986",
+    "eb8d6d51-2ae6-5024-81af-dce002622996"
+   ],
+   "supporting_groups": [],
+   "unit_id": "core-play-dependencies/blindsight"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "c623aeed-a938-58be-abea-950f4e982fb2"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "ambient_extinguish",
+     "record_key": "glossary.burning",
+     "source_span_ids": [
+      "50f4c411-3546-5360-afc1-39ce8553f921"
+     ]
+    },
+    {
+     "component_key": "ambient_extinguish",
+     "fact_family": "effect_termination",
+     "record_key": "glossary.burning",
+     "source_span_ids": [
+      "50f4c411-3546-5360-afc1-39ce8553f921"
+     ]
+    },
+    {
+     "component_key": "burning_damage",
+     "fact_family": "damage",
+     "record_key": "glossary.burning",
+     "source_span_ids": [
+      "adb385fa-298a-59f7-9929-c69555401a3b"
+     ]
+    },
+    {
+     "component_key": "self_extinguish",
+     "record_key": "glossary.burning",
+     "source_span_ids": [
+      "bdd5156b-1fb1-5fb0-b30e-af31fcbad051"
+     ]
+    },
+    {
+     "component_key": "self_extinguish",
+     "fact_family": "action_economy",
+     "record_key": "glossary.burning",
+     "source_span_ids": [
+      "bdd5156b-1fb1-5fb0-b30e-af31fcbad051"
+     ]
+    },
+    {
+     "component_key": "self_extinguish",
+     "fact_family": "condition_effect",
+     "record_key": "glossary.burning",
+     "source_span_ids": [
+      "bdd5156b-1fb1-5fb0-b30e-af31fcbad051"
+     ]
+    },
+    {
+     "component_key": "self_extinguish",
+     "fact_family": "effect_termination",
+     "record_key": "glossary.burning",
+     "source_span_ids": [
+      "bdd5156b-1fb1-5fb0-b30e-af31fcbad051"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "c623aeed-a938-58be-abea-950f4e982fb2",
+    "cfca3638-b789-5365-bfa9-6002ef68d126"
+   ],
+   "supporting_groups": [],
+   "unit_id": "core-play-dependencies/burning"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "c391ef8f-a40b-5296-a6a8-6ff88cc9e3b3"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "carrying_capacity",
+     "record_key": "glossary.carrying_capacity",
+     "source_span_ids": [
+      "ab3d0167-a5a4-571f-a397-2cf81b6ecce2",
+      "cedd1488-74c8-5f4a-b302-9e334c9144ea"
+     ]
+    },
+    {
+     "component_key": "dragging_lifting_pushing",
+     "record_key": "glossary.carrying_capacity",
+     "source_span_ids": [
+      "90dec451-3389-531c-84ed-50e6068ad7f7"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "608828c4-03f9-51a1-a8e0-786aeb87e69f",
+    "7a085d0d-a517-56b7-ab9d-dfb4581f1061",
+    "87d15d36-b8d5-53c3-a59a-f084ca75ee97",
+    "c391ef8f-a40b-5296-a6a8-6ff88cc9e3b3"
+   ],
+   "supporting_groups": [],
+   "unit_id": "core-play-dependencies/carrying_capacity"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "888c9681-4445-527b-8892-c67e4dc3ccdf"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "darkvision",
+     "record_key": "glossary.darkvision",
+     "source_span_ids": [
+      "ea35052b-e443-504d-9fd6-0aa82709d4ec"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "07cf328a-0a02-5020-89fb-5b9b0c97e1eb",
+    "888c9681-4445-527b-8892-c67e4dc3ccdf"
+   ],
+   "supporting_groups": [],
+   "unit_id": "core-play-dependencies/darkvision"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "03521f6e-ffa1-5c63-8f8e-702943ce55ae"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "dehydration_exhaustion",
+     "fact_family": "condition_level",
+     "record_key": "glossary.dehydration",
+     "source_span_ids": [
+      "7e2babba-4d0f-5af3-8a93-06b5a428a4da"
+     ]
+    },
+    {
+     "component_key": "dehydration_recovery",
+     "fact_family": "condition_removal_restriction",
+     "record_key": "glossary.dehydration",
+     "source_span_ids": [
+      "16f0df94-94d5-5e7c-bf86-417760beec39"
+     ]
+    },
+    {
+     "component_key": "water_requirement",
+     "fact_family": "size_keyed_quantity",
+     "record_key": "glossary.dehydration",
+     "source_span_ids": [
+      "12017d02-bd80-5d8c-b6ef-bbb5ee9ed65b",
+      "95674e81-030a-5c9c-8dfa-37001303eaf8"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "03521f6e-ffa1-5c63-8f8e-702943ce55ae",
+    "ebfbbad0-c820-50a8-84fb-9b862509e00e",
+    "f45cf187-b186-5cfe-9405-0f754e3376a2"
+   ],
+   "supporting_groups": [],
+   "unit_id": "core-play-dependencies/dehydration"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "bd34f886-13ea-53d1-9fbf-39969224ccd5"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "food_requirement",
+     "fact_family": "size_keyed_quantity",
+     "record_key": "glossary.malnutrition",
+     "source_span_ids": [
+      "8fe27f55-98ca-53b0-ae54-7fd11f18e4e1",
+      "a82bf1e4-3eab-5882-9192-54d513d2d717"
+     ]
+    },
+    {
+     "component_key": "malnutrition_recovery",
+     "fact_family": "condition_removal_restriction",
+     "record_key": "glossary.malnutrition",
+     "source_span_ids": [
+      "f1b295e1-0993-5836-977c-727ba23708f2"
+     ]
+    },
+    {
+     "component_key": "starvation_automatic",
+     "fact_family": "condition_level",
+     "record_key": "glossary.malnutrition",
+     "source_span_ids": [
+      "acef91ca-e986-5192-8d77-e9402b30a17e"
+     ]
+    },
+    {
+     "component_key": "starvation_save",
+     "fact_family": "ability_check",
+     "record_key": "glossary.malnutrition",
+     "source_span_ids": [
+      "87b88fc1-1fce-50c3-9cee-499894131b63"
+     ]
+    },
+    {
+     "component_key": "starvation_save",
+     "fact_family": "condition_level",
+     "record_key": "glossary.malnutrition",
+     "source_span_ids": [
+      "87b88fc1-1fce-50c3-9cee-499894131b63"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "03972f31-a515-5d4e-a616-c005475f81ec",
+    "06056173-2079-5750-b08a-667f440784d7",
+    "bd34f886-13ea-53d1-9fbf-39969224ccd5",
+    "f42b5b51-72ba-5229-aac3-23825c803f03"
+   ],
+   "supporting_groups": [],
+   "unit_id": "core-play-dependencies/malnutrition"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "7fdd02df-4c4c-5ed7-b131-b420b10ec9b3"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "ability_scores",
+     "record_key": "glossary.stat_block",
+     "source_span_ids": [
+      "295ea07b-3afa-52e5-bf19-aeeb20aa32ef"
+     ]
+    },
+    {
+     "component_key": "ac_initiative_hp",
+     "record_key": "glossary.stat_block",
+     "source_span_ids": [
+      "92a3a2c3-6024-5e62-bb61-0ba0a62612c3"
+     ]
+    },
+    {
+     "component_key": "actions",
+     "record_key": "glossary.stat_block",
+     "source_span_ids": [
+      "d0245e7a-97dc-543f-b127-074ccacb00d9"
+     ]
+    },
+    {
+     "component_key": "alignment",
+     "record_key": "glossary.stat_block",
+     "source_span_ids": [
+      "384e7b02-cbe0-578f-9097-a3f007b7958f"
+     ]
+    },
+    {
+     "component_key": "attack_notation",
+     "record_key": "glossary.stat_block",
+     "source_span_ids": [
+      "e71bd702-085c-592b-9b0d-aeff0d43f86d"
+     ]
+    },
+    {
+     "component_key": "bonus_actions",
+     "record_key": "glossary.stat_block",
+     "source_span_ids": [
+      "88250461-9013-5e39-b522-7c1935c5bf4e"
+     ]
+    },
+    {
+     "component_key": "challenge_rating",
+     "record_key": "glossary.stat_block",
+     "source_span_ids": [
+      "24ec15c9-dfef-59e6-8935-03404f0fc93e"
+     ]
+    },
+    {
+     "component_key": "creature_type",
+     "record_key": "glossary.stat_block",
+     "source_span_ids": [
+      "e6192d7f-cb4b-5983-8350-86a37caec466"
+     ]
+    },
+    {
+     "component_key": "damage_notation",
+     "record_key": "glossary.stat_block",
+     "source_span_ids": [
+      "001856ed-75d5-5fab-bd41-c57e6aa3d5e3",
+      "07c37e74-9690-5df6-8b52-9b977faed1f3"
+     ]
+    },
+    {
+     "component_key": "gear",
+     "record_key": "glossary.stat_block",
+     "source_span_ids": [
+      "d86b5e39-4cd8-543f-9183-5b392e578847"
+     ]
+    },
+    {
+     "component_key": "immunities",
+     "record_key": "glossary.stat_block",
+     "source_span_ids": [
+      "051819df-0dbe-52e8-8d93-482a9da5fec4"
+     ]
+    },
+    {
+     "component_key": "languages",
+     "record_key": "glossary.stat_block",
+     "source_span_ids": [
+      "be51f08c-f413-585d-8b59-9ce2c46798ec"
+     ]
+    },
+    {
+     "component_key": "reactions",
+     "record_key": "glossary.stat_block",
+     "source_span_ids": [
+      "c8ef1210-f299-5606-b2e6-04fcea9d1654"
+     ]
+    },
+    {
+     "component_key": "resistances_and_vulnerabilities",
+     "record_key": "glossary.stat_block",
+     "source_span_ids": [
+      "60a24e52-070a-5f2c-bdc7-1cd6d1bf2750"
+     ]
+    },
+    {
+     "component_key": "saving_throw_effect_notation",
+     "record_key": "glossary.stat_block",
+     "source_span_ids": [
+      "e33a142a-e37d-57ae-b686-cc1701fc9de3"
+     ]
+    },
+    {
+     "component_key": "senses",
+     "record_key": "glossary.stat_block",
+     "source_span_ids": [
+      "224d71c1-b4a1-5f77-a1eb-f65696b9dae2"
+     ]
+    },
+    {
+     "component_key": "size",
+     "record_key": "glossary.stat_block",
+     "source_span_ids": [
+      "1b88dcf6-43d6-5a27-9428-28ca0d2db9ac"
+     ]
+    },
+    {
+     "component_key": "skills",
+     "record_key": "glossary.stat_block",
+     "source_span_ids": [
+      "84f0cd3a-ad59-5a15-85da-bd8fda780605"
+     ]
+    },
+    {
+     "component_key": "speed",
+     "record_key": "glossary.stat_block",
+     "source_span_ids": [
+      "09be5d95-4010-5bc8-b32a-2158993a375b"
+     ]
+    },
+    {
+     "component_key": "stat_block",
+     "record_key": "glossary.stat_block",
+     "source_span_ids": [
+      "625b5e59-f84c-5072-96c6-c6ac6211b2a4"
+     ]
+    },
+    {
+     "component_key": "traits",
+     "record_key": "glossary.stat_block",
+     "source_span_ids": [
+      "2e9ae110-795a-540e-a424-e208c8ab8fc1"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "02033600-e8b9-5e9a-b8c4-fc3273207579",
+    "0813c7ee-9676-5265-98c5-947e94bf6033",
+    "26234583-a585-5397-8e78-a639a2fc85ee",
+    "3bab975c-42ee-52ec-a898-69d46f69090f",
+    "48b8bb7c-9924-5490-b1f6-50a030c2fde6",
+    "4e20e9a1-706a-5cfb-a881-727b6a4d1fb3",
+    "53699d7a-846d-54e1-89d4-2dd0be4b8fbe",
+    "551d9924-39c5-581f-9332-b6a9257a9800",
+    "631eda09-d2b9-5544-aa4a-2a6db70ce6c7",
+    "635e2514-8028-53e1-bc05-7c794a3406c9",
+    "73ae2da8-9c64-5441-8aed-eab5122a31e6",
+    "75e14826-b2d1-5940-bd7c-f5ba580eb77e",
+    "7fdd02df-4c4c-5ed7-b131-b420b10ec9b3",
+    "8a360b72-a713-5bdf-8ecb-6c0f72624584",
+    "a7345ab0-484f-508e-ac8f-f6abf50ffd4b",
+    "a9c832dd-80cf-5460-a593-0cfd4441623b",
+    "b0e458fd-d078-5d37-b3e3-92e14fb366c7",
+    "bd3d21ea-3f5d-5278-ae9a-e55861100b7d",
+    "bd4bbacd-5b19-51a7-baac-f3726fb56e51",
+    "be9bc9ef-72b3-5df3-9d53-0381c389d608",
+    "d4f6609d-736f-58d8-bf62-0a78779b22cf"
+   ],
+   "supporting_groups": [],
+   "unit_id": "core-play-dependencies/stat_block"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "a40f63d0-4c5c-5dfd-8d44-febb13f06020"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "breath_duration",
+     "fact_family": "derived_quantity",
+     "record_key": "glossary.suffocation",
+     "source_span_ids": [
+      "3d0630f9-5bb4-5b9b-98ed-b7352f621df2"
+     ]
+    },
+    {
+     "component_key": "suffocation_accrual",
+     "record_key": "glossary.suffocation",
+     "source_span_ids": [
+      "ca70932d-d121-58b0-9b77-105e40b3bd12"
+     ]
+    },
+    {
+     "component_key": "suffocation_accrual",
+     "fact_family": "condition_level",
+     "record_key": "glossary.suffocation",
+     "source_span_ids": [
+      "ca70932d-d121-58b0-9b77-105e40b3bd12"
+     ]
+    },
+    {
+     "component_key": "suffocation_recovery",
+     "record_key": "glossary.suffocation",
+     "source_span_ids": [
+      "c00832c7-204b-5e98-95ab-b6a41a196be5"
+     ]
+    },
+    {
+     "component_key": "suffocation_recovery",
+     "fact_family": "condition_level",
+     "record_key": "glossary.suffocation",
+     "source_span_ids": [
+      "c00832c7-204b-5e98-95ab-b6a41a196be5"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "68076ab2-7f5d-5ba4-8ff7-77b8dd108a01",
+    "a40f63d0-4c5c-5dfd-8d44-febb13f06020"
+   ],
+   "supporting_groups": [],
+   "unit_id": "core-play-dependencies/suffocation"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "31a92c15-1162-5f42-ac29-0c75f4e112f3"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "tremorsense",
+     "record_key": "glossary.tremorsense",
+     "source_span_ids": [
+      "246f9421-a892-5fa8-89bd-dcccec9a951d",
+      "9cf6237a-f35c-51be-b70b-15a51fa7f452"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "31a92c15-1162-5f42-ac29-0c75f4e112f3",
+    "b3a764be-f87e-5a54-8556-aacc492948ee",
+    "f8e4d75b-1365-5966-840d-ae7be2d467d2"
+   ],
+   "supporting_groups": [],
+   "unit_id": "core-play-dependencies/tremorsense"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "36e20717-a27c-5184-9efb-dfaeb9cd94c0"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "truesight",
+     "record_key": "glossary.truesight",
+     "source_span_ids": [
+      "0a382d5f-fc5f-57e6-b10c-e6a46d880967",
+      "0ea3a70a-1e3c-5129-a6a4-2ff911055cbe",
+      "4716fb87-5bd4-5841-b335-7e2d5c7d0069",
+      "885afc10-3e25-545a-adf5-14ff23afbd2b",
+      "bb124ad8-06f8-5ac5-859e-5e2555d00ac3",
+      "f351deb6-1126-5c97-b980-63330b8984bd"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "1c48751e-fc78-5e2d-ba8e-ed6f3025cf54",
+    "36e20717-a27c-5184-9efb-dfaeb9cd94c0",
+    "6610c15e-7deb-5cdd-8d55-daa9a4f6c41e",
+    "8fa9f6c9-1357-5561-9992-36cfa3f5b300",
+    "af13c967-9d51-5967-8060-e45db583a9b2",
+    "c550b9a5-3c1a-5186-bb7c-72070c99684a",
+    "c672e5ad-4b71-5b63-b004-80efb21e4b91"
+   ],
+   "supporting_groups": [],
+   "unit_id": "core-play-dependencies/truesight"
+  }
+ ],
+ "proposed_spans": [
+  {
+   "char_end": 101,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "75e14826-b2d1-5940-bd7c-f5ba580eb77e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "384e7b02-cbe0-578f-9097-a3f007b7958f"
+  },
+  {
+   "char_end": 103,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "03972f31-a515-5d4e-a616-c005475f81ec",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "8fe27f55-98ca-53b0-ae54-7fd11f18e4e1"
+  },
+  {
+   "char_end": 104,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "3bab975c-42ee-52ec-a898-69d46f69090f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "d86b5e39-4cd8-543f-9183-5b392e578847"
+  },
+  {
+   "char_end": 104,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "53699d7a-846d-54e1-89d4-2dd0be4b8fbe",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "224d71c1-b4a1-5f77-a1eb-f65696b9dae2"
+  },
+  {
+   "char_end": 107,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "631eda09-d2b9-5544-aa4a-2a6db70ce6c7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "2e9ae110-795a-540e-a424-e208c8ab8fc1"
+  },
+  {
+   "char_end": 107,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "dbc53600-5b1d-5e91-95c7-dea45e7b331a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "fd1937ba-84dd-5867-a4eb-5019a0591072"
+  },
+  {
+   "char_end": 108,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "be9bc9ef-72b3-5df3-9d53-0381c389d608",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "60a24e52-070a-5f2c-bdc7-1cd6d1bf2750"
+  },
+  {
+   "char_end": 108,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "ebfbbad0-c820-50a8-84fb-9b862509e00e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "95674e81-030a-5c9c-8dfa-37001303eaf8"
+  },
+  {
+   "char_end": 109,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "551d9924-39c5-581f-9332-b6a9257a9800",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "e6192d7f-cb4b-5983-8350-86a37caec466"
+  },
+  {
+   "char_end": 110,
+   "char_start": 88,
+   "disposition": "supporting_authority",
+   "leaf_id": "02033600-e8b9-5e9a-b8c4-fc3273207579",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "fc750666-3a12-523e-8642-cbf70901a9a8"
+  },
+  {
+   "char_end": 116,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "c672e5ad-4b71-5b63-b004-80efb21e4b91",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "bb124ad8-06f8-5ac5-859e-5e2555d00ac3"
+  },
+  {
+   "char_end": 116,
+   "char_start": 70,
+   "disposition": "supporting_authority",
+   "leaf_id": "4e20e9a1-706a-5cfb-a881-727b6a4d1fb3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "6368e802-318f-5dde-842b-1559218c3298"
+  },
+  {
+   "char_end": 118,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "06056173-2079-5750-b08a-667f440784d7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "f1b295e1-0993-5836-977c-727ba23708f2"
+  },
+  {
+   "char_end": 119,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "73ae2da8-9c64-5441-8aed-eab5122a31e6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "001856ed-75d5-5fab-bd41-c57e6aa3d5e3"
+  },
+  {
+   "char_end": 125,
+   "char_start": 102,
+   "disposition": "supporting_authority",
+   "leaf_id": "75e14826-b2d1-5940-bd7c-f5ba580eb77e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "fae3f210-6bd4-5226-b87c-8bd1d2cb27ea"
+  },
+  {
+   "char_end": 126,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "6610c15e-7deb-5cdd-8d55-daa9a4f6c41e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "0ea3a70a-1e3c-5129-a6a4-2ff911055cbe"
+  },
+  {
+   "char_end": 128,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "608828c4-03f9-51a1-a8e0-786aeb87e69f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "90dec451-3389-531c-84ed-50e6068ad7f7"
+  },
+  {
+   "char_end": 134,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "8fa9f6c9-1357-5561-9992-36cfa3f5b300",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "f351deb6-1126-5c97-b980-63330b8984bd"
+  },
+  {
+   "char_end": 136,
+   "char_start": 94,
+   "disposition": "supporting_authority",
+   "leaf_id": "635e2514-8028-53e1-bc05-7c794a3406c9",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "72be1e2b-eb52-54e9-966b-ebc059eb41bc"
+  },
+  {
+   "char_end": 137,
+   "char_start": 105,
+   "disposition": "supporting_authority",
+   "leaf_id": "53699d7a-846d-54e1-89d4-2dd0be4b8fbe",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "95bbaadc-11c5-5a47-9869-f10454811530"
+  },
+  {
+   "char_end": 137,
+   "char_start": 110,
+   "disposition": "supporting_authority",
+   "leaf_id": "551d9924-39c5-581f-9332-b6a9257a9800",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "bdd213d5-cc6b-580c-915b-7c93f6998417"
+  },
+  {
+   "char_end": 142,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "a9c832dd-80cf-5460-a593-0cfd4441623b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "625b5e59-f84c-5072-96c6-c6ac6211b2a4"
+  },
+  {
+   "char_end": 143,
+   "char_start": 119,
+   "disposition": "supporting_authority",
+   "leaf_id": "06056173-2079-5750-b08a-667f440784d7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "4ec850f8-e34e-5f07-b55d-2a4ec25d3355"
+  },
+  {
+   "char_end": 147,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "68076ab2-7f5d-5ba4-8ff7-77b8dd108a01",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "3d0630f9-5bb4-5b9b-98ed-b7352f621df2"
+  },
+  {
+   "char_end": 150,
+   "char_start": 78,
+   "disposition": "supporting_authority",
+   "leaf_id": "b0e458fd-d078-5d37-b3e3-92e14fb366c7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "a4fb0b24-94ed-56cd-8bfb-bd18de74a90b"
+  },
+  {
+   "char_end": 152,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "8a360b72-a713-5bdf-8ecb-6c0f72624584",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "295ea07b-3afa-52e5-bf19-aeeb20aa32ef"
+  },
+  {
+   "char_end": 152,
+   "char_start": 108,
+   "disposition": "supporting_authority",
+   "leaf_id": "dbc53600-5b1d-5e91-95c7-dea45e7b331a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "d5e20672-8177-505a-b97b-9e50e4a0558d"
+  },
+  {
+   "char_end": 153,
+   "char_start": 109,
+   "disposition": "supporting_authority",
+   "leaf_id": "be9bc9ef-72b3-5df3-9d53-0381c389d608",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "0a10add6-e022-5a5e-82a5-76c5d68bdc30"
+  },
+  {
+   "char_end": 182,
+   "char_start": 120,
+   "disposition": "supporting_authority",
+   "leaf_id": "73ae2da8-9c64-5441-8aed-eab5122a31e6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "59bd657a-45af-5418-96aa-272a744e3733"
+  },
+  {
+   "char_end": 197,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "7a085d0d-a517-56b7-ab9d-dfb4581f1061",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "ab3d0167-a5a4-571f-a397-2cf81b6ecce2"
+  },
+  {
+   "char_end": 201,
+   "char_start": 86,
+   "disposition": "substantive",
+   "leaf_id": "cfca3638-b789-5365-bfa9-6002ef68d126",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "bdd5156b-1fb1-5fb0-b30e-af31fcbad051"
+  },
+  {
+   "char_end": 218,
+   "char_start": 109,
+   "disposition": "substantive",
+   "leaf_id": "ebfbbad0-c820-50a8-84fb-9b862509e00e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "7e2babba-4d0f-5af3-8a93-06b5a428a4da"
+  },
+  {
+   "char_end": 219,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "07cf328a-0a02-5020-89fb-5b9b0c97e1eb",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "ea35052b-e443-504d-9fd6-0aa82709d4ec"
+  },
+  {
+   "char_end": 258,
+   "char_start": 148,
+   "disposition": "substantive",
+   "leaf_id": "68076ab2-7f5d-5ba4-8ff7-77b8dd108a01",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "ca70932d-d121-58b0-9b77-105e40b3bd12"
+  },
+  {
+   "char_end": 266,
+   "char_start": 220,
+   "disposition": "supporting_authority",
+   "leaf_id": "07cf328a-0a02-5020-89fb-5b9b0c97e1eb",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "9f1efcf9-75fc-59f3-b6b2-7ce2074a2923"
+  },
+  {
+   "char_end": 267,
+   "char_start": 202,
+   "disposition": "substantive",
+   "leaf_id": "cfca3638-b789-5365-bfa9-6002ef68d126",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "50f4c411-3546-5360-afc1-39ce8553f921"
+  },
+  {
+   "char_end": 275,
+   "char_start": 104,
+   "disposition": "substantive",
+   "leaf_id": "03972f31-a515-5d4e-a616-c005475f81ec",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "87b88fc1-1fce-50c3-9cee-499894131b63"
+  },
+  {
+   "char_end": 277,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "0813c7ee-9676-5265-98c5-947e94bf6033",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "e71bd702-085c-592b-9b0d-aeff0d43f86d"
+  },
+  {
+   "char_end": 279,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "26234583-a585-5397-8e78-a639a2fc85ee",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "e33a142a-e37d-57ae-b686-cc1701fc9de3"
+  },
+  {
+   "char_end": 288,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "b3a764be-f87e-5a54-8556-aacc492948ee",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "9cf6237a-f35c-51be-b70b-15a51fa7f452"
+  },
+  {
+   "char_end": 292,
+   "char_start": 183,
+   "disposition": "substantive",
+   "leaf_id": "73ae2da8-9c64-5441-8aed-eab5122a31e6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "07c37e74-9690-5df6-8b52-9b977faed1f3"
+  },
+  {
+   "char_end": 304,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "eb8d6d51-2ae6-5024-81af-dce002622996",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "c7584254-d612-5a56-866b-453983f4561f"
+  },
+  {
+   "char_end": 306,
+   "char_start": 63,
+   "disposition": "substantive",
+   "leaf_id": "d4f6609d-736f-58d8-bf62-0a78779b22cf",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "24ec15c9-dfef-59e6-8935-03404f0fc93e"
+  },
+  {
+   "char_end": 339,
+   "char_start": 219,
+   "disposition": "substantive",
+   "leaf_id": "ebfbbad0-c820-50a8-84fb-9b862509e00e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "16f0df94-94d5-5e7c-bf86-417760beec39"
+  },
+  {
+   "char_end": 357,
+   "char_start": 259,
+   "disposition": "substantive",
+   "leaf_id": "68076ab2-7f5d-5ba4-8ff7-77b8dd108a01",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "c00832c7-204b-5e98-95ab-b6a41a196be5"
+  },
+  {
+   "char_end": 361,
+   "char_start": 307,
+   "disposition": "supporting_authority",
+   "leaf_id": "d4f6609d-736f-58d8-bf62-0a78779b22cf",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "417af7ff-6cee-5709-a872-588473caa49a"
+  },
+  {
+   "char_end": 364,
+   "char_start": 340,
+   "disposition": "supporting_authority",
+   "leaf_id": "ebfbbad0-c820-50a8-84fb-9b862509e00e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "2584b6a0-e9d2-59f7-9265-884d1df9ea42"
+  },
+  {
+   "char_end": 438,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "bd3d21ea-3f5d-5278-ae9a-e55861100b7d",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "92a3a2c3-6024-5e62-bb61-0ba0a62612c3"
+  },
+  {
+   "char_end": 461,
+   "char_start": 276,
+   "disposition": "substantive",
+   "leaf_id": "03972f31-a515-5d4e-a616-c005475f81ec",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "acef91ca-e986-5192-8d77-e9402b30a17e"
+  },
+  {
+   "char_end": 513,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f42b5b51-72ba-5229-aac3-23825c803f03",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "a82bf1e4-3eab-5882-9192-54d513d2d717"
+  },
+  {
+   "char_end": 52,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "1c48751e-fc78-5e2d-ba8e-ed6f3025cf54",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "4716fb87-5bd4-5841-b335-7e2d5c7d0069"
+  },
+  {
+   "char_end": 522,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f45cf187-b186-5cfe-9405-0f754e3376a2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "12017d02-bd80-5d8c-b6ef-bbb5ee9ed65b"
+  },
+  {
+   "char_end": 57,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "c550b9a5-3c1a-5186-bb7c-72070c99684a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "0a382d5f-fc5f-57e6-b10c-e6a46d880967"
+  },
+  {
+   "char_end": 62,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "d4f6609d-736f-58d8-bf62-0a78779b22cf",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "be51f08c-f413-585d-8b59-9ce2c46798ec"
+  },
+  {
+   "char_end": 684,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "87d15d36-b8d5-53c3-a59a-f084ca75ee97",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "cedd1488-74c8-5f4a-b302-9e334c9144ea"
+  },
+  {
+   "char_end": 69,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "48b8bb7c-9924-5490-b1f6-50a030c2fde6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "1b88dcf6-43d6-5a27-9428-28ca0d2db9ac"
+  },
+  {
+   "char_end": 69,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "4e20e9a1-706a-5cfb-a881-727b6a4d1fb3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "84f0cd3a-ad59-5a15-85da-bd8fda780605"
+  },
+  {
+   "char_end": 77,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "b0e458fd-d078-5d37-b3e3-92e14fb366c7",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "09be5d95-4010-5bc8-b32a-2158993a375b"
+  },
+  {
+   "char_end": 82,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "af13c967-9d51-5967-8060-e45db583a9b2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "885afc10-3e25-545a-adf5-14ff23afbd2b"
+  },
+  {
+   "char_end": 85,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "cfca3638-b789-5365-bfa9-6002ef68d126",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "adb385fa-298a-59f7-9929-c69555401a3b"
+  },
+  {
+   "char_end": 87,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "02033600-e8b9-5e9a-b8c4-fc3273207579",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "051819df-0dbe-52e8-8d93-482a9da5fec4"
+  },
+  {
+   "char_end": 88,
+   "char_start": 70,
+   "disposition": "supporting_authority",
+   "leaf_id": "48b8bb7c-9924-5490-b1f6-50a030c2fde6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "f7d20b12-0fd0-55cc-8c39-834e6da735ca"
+  },
+  {
+   "char_end": 89,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "a7345ab0-484f-508e-ac8f-f6abf50ffd4b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "c8ef1210-f299-5606-b2e6-04fcea9d1654"
+  },
+  {
+   "char_end": 90,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "bd4bbacd-5b19-51a7-baac-f3726fb56e51",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "88250461-9013-5e39-b522-7c1935c5bf4e"
+  },
+  {
+   "char_end": 93,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "635e2514-8028-53e1-bc05-7c794a3406c9",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "d0245e7a-97dc-543f-b127-074ccacb00d9"
+  },
+  {
+   "char_end": 98,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f8e4d75b-1365-5966-840d-ae7be2d467d2",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-core-play-dependencies-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "246f9421-a892-5fa8-89bd-dcccec9a951d"
+  }
+ ],
+ "release_binding": {
+  "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+  "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+  "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+  "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+  "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+  "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+ },
+ "representation_schema": {
+  "hash": "7fb9254b11da1d6772ea6ee72ffde9b5e9d39e8885188777874c65e86ad9a941",
+  "version": "5d-representation-schema-16"
+ },
+ "semantic_policy_hash": "da63b8940c5b3997b44d53e02941389b68e2a2ba35250e73194d38bb1d74cde7",
+ "semantic_policy_version": "5d-semantic-policy-2"
+}

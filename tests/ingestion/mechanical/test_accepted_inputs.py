@@ -79,6 +79,7 @@ from afterworlds.ingestion.mechanical.representation import (
 )
 from afterworlds.ingestion.mechanical.validation import validate_representation
 from afterworlds.persistence.orm.mechanical import MechanicalAcceptanceBatchORM
+from afterworlds.quarantine import QuarantinedAuthorityError
 from tests.ingestion.mechanical.conftest import (
     BOUNDED_ORACLE_PATH,
     DESCRIPTOR_KEY,
@@ -93,6 +94,8 @@ from tests.ingestion.mechanical.conftest import (
     bound_corpus,
     build_ledger,
     build_representation,
+    json_array,
+    json_object,
     mark_release_published,
 )
 
@@ -297,13 +300,32 @@ def test_exactly_one_accepted_artifact_is_committed_for_the_release() -> None:
     canonical id order, so acceptance order is asserted where it is actually
     recorded — ``schema_anchors``, which pins each batch to the schema it was
     reviewed under.
+
+    Recorded Owner Decision 2026-09-21 quarantines this release, so what the
+    artifact records and what the *resolver* will hand a caller are now two
+    different questions. Both are asserted: the file is still on disk, still
+    exactly one, still holding exactly the accepted batches — read through the
+    path loader, which loads a file and claims nothing about authority — while
+    ``committed_inputs_for`` and ``committed_oracle_for``, which do resolve
+    authority, refuse. Nothing is deleted here: the Owner Decision retires the
+    superseded work in a later increment (its Step 5).
     """
+    # Beside it, the clean restart's approved replacement chains for different
+    # releases (``test_character_origins_feats_acceptance``).
     assert sorted(p.name for p in COMMITTED_ORACLE_DIR.glob("*.json")) == [
-        "srd-5-2-1-corpus-36b786d8-fa2.json"
+        "srd-5-2-1-corpus-36b786d8-fa2.json",
+        "srd-5-2-1-corpus-3fe24ff6-4e3.json",
+        "srd-5-2-1-corpus-574662e9-0ef.json",
+        "srd-5-2-1-corpus-8781d4e0-a3b.json",
     ]
-    inputs = committed_inputs_for(PRODUCTION_PACKAGE, PRODUCTION_RELEASE)
-    assert inputs is not None
-    assert committed_oracle_for(PRODUCTION_PACKAGE, PRODUCTION_RELEASE) is not None
+    for resolve in (committed_inputs_for, committed_oracle_for):
+        with pytest.raises(QuarantinedAuthorityError) as refused:
+            resolve(PRODUCTION_PACKAGE, PRODUCTION_RELEASE)
+        assert PRODUCTION_PACKAGE in str(refused.value)
+        assert PRODUCTION_RELEASE in str(refused.value)
+    inputs = load_accepted_inputs(
+        COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
+    )
     assert sorted(b.batch_id for b in inputs.batches) == [
         "actions-1",
         "areas-of-effect-1",
@@ -334,18 +356,25 @@ def test_the_production_release_cannot_publish_or_activate(session: Session) -> 
     ``publish_from_committed_oracle`` is the production entry point; there is no
     parameter that would let a caller supply authority of its own. The uuid here
     names no persisted header, so this is the "nothing to publish" refusal —
-    distinct from the real release's, which now refuses as ``INCOMPLETE``
-    because ``conditions-1``, ``hazards-1``, ``actions-1``, ``attitudes-1``,
-    ``areas-of-effect-1``, ``cover-1`` and ``speed-1`` are accepted — 48 records
-    over 594 spans — but the corpus is not finished.
+    distinct from the real release's, which under the Recorded Owner Decision of
+    21 September 2026 no longer reaches any publication outcome at all: it is
+    refused as quarantined before the outcome is computed. It previously refused
+    as ``INCOMPLETE`` on an unfinished corpus; that distinction is now moot for
+    this package, and the assertions below check the refusal instead.
     """
     result = publish_from_committed_oracle(session, "any-projection-uuid", now=NOW)
     assert result.outcome is PublicationOutcome.ABSENT
-    # Typed absence, never a null that a caller could read as "fine".
-    for package in (PRODUCTION_PACKAGE, PACKAGE_UUID):
-        active = resolve_active_projection(session, package)
-        assert active.outcome is PublicationOutcome.UNPUBLISHED
-        assert active.projection_uuid is None
+    # Under the 2026-09-21 quarantine the production package no longer reaches
+    # the "nothing is active" answer: active-projection resolution refuses it
+    # outright. UNPUBLISHED is a releasable state — a caller may publish into
+    # it — so a retired authority must not be able to report it.
+    with pytest.raises(QuarantinedAuthorityError):
+        resolve_active_projection(session, PRODUCTION_PACKAGE)
+    # Typed absence, never a null that a caller could read as "fine" — still
+    # the answer for ``pkg-5c``, a package the quarantine says nothing about.
+    active = resolve_active_projection(session, PACKAGE_UUID)
+    assert active.outcome is PublicationOutcome.UNPUBLISHED
+    assert active.projection_uuid is None
 
 
 # ---------------------------------------------------------------------------
@@ -879,7 +908,8 @@ def test_an_acceptance_recording_nothing_read_is_the_existing_shape() -> None:
     inputs = _accept()
     assert inputs.oracle.review_units == ()
     assert inputs.review_unit_acceptances == ()
-    assert "review_unit_records" not in accepted_inputs_payload(inputs)["acceptance"]
+    acceptance = json_object(accepted_inputs_payload(inputs)["acceptance"])
+    assert "review_unit_records" not in acceptance
 
 
 def test_a_proposed_unit_the_acceptance_did_not_name_is_not_accepted() -> None:
@@ -1199,8 +1229,10 @@ def test_an_acceptance_record_naming_a_unit_the_artifact_lacks_is_refused(
 ) -> None:
     inputs = _accept(_proposal(REVIEW_UNITS), resolved_review_units=UNIT_IDS)
     payload = accepted_inputs_payload(inputs)
-    payload["review_units"] = [  # type: ignore[index]
-        u for u in payload["review_units"] if u["unit_id"] != UNIT_IDS[1]  # type: ignore[index,union-attr]
+    payload["review_units"] = [
+        u
+        for u in json_array(payload["review_units"])
+        if json_object(u)["unit_id"] != UNIT_IDS[1]
     ]
 
     path = tmp_path / "accepted.json"

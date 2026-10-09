@@ -1,0 +1,4672 @@
+{
+ "artifact_kind": "machine_proposal",
+ "proposal_origin": "issue-5d-spellcasting-generator.py (CRD Issue 5d spellcasting batch; unaccepted)",
+ "proposal_schema_version": "5d-proposal-2",
+ "proposed_representation": {
+  "components": [
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "contextual_applicability",
+    "options": [],
+    "record_key": "spells.targets",
+    "semantic_key": "awareness_of_being_targeted"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "options": [],
+    "record_key": "spells.effects",
+    "semantic_key": "effects"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "options": [],
+    "record_key": "spells.gaining_spells",
+    "semantic_key": "monster_prepared_spells"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.area_of_effect",
+    "semantic_key": "area_of_effect"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.area_of_effect",
+    "semantic_key": "point_of_origin"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.area_of_effect",
+    "semantic_key": "unseen_point"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.cone",
+    "semantic_key": "cone"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.cover",
+    "semantic_key": "cover"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.cube",
+    "semantic_key": "cube"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.cylinder",
+    "semantic_key": "cylinder"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.emanation",
+    "semantic_key": "emanation"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.line",
+    "semantic_key": "line"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.sphere",
+    "semantic_key": "sphere"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.attack_rolls",
+    "semantic_key": "spell_attack_modifier"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "semantic_key": "cantrips"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "semantic_key": "casting_in_armor"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "semantic_key": "casting_without_slots"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "semantic_key": "class_spell_lists"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "semantic_key": "higher_level_slot"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "semantic_key": "magic_items"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "semantic_key": "rituals"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "semantic_key": "school_of_magic"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "semantic_key": "slot_recovery"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "semantic_key": "special_abilities"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "semantic_key": "spell_level"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "semantic_key": "spell_slots"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_time",
+    "semantic_key": "casting_time"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_time",
+    "semantic_key": "longer_casting_times"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_time",
+    "semantic_key": "one_slot_per_turn"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_time",
+    "semantic_key": "triggers"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.combining_spell_effects",
+    "semantic_key": "combining_spell_effects"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.combining_spell_effects",
+    "semantic_key": "identifying_an_ongoing_spell"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.components",
+    "semantic_key": "component_pouch_and_focus"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.components",
+    "semantic_key": "components"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.components",
+    "semantic_key": "material"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.components",
+    "semantic_key": "somatic"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.components",
+    "semantic_key": "verbal"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.duration",
+    "semantic_key": "concentration"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.duration",
+    "semantic_key": "duration"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.duration",
+    "semantic_key": "instantaneous"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.duration",
+    "semantic_key": "time_span"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.gaining_spells",
+    "semantic_key": "always_prepared_spells"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.gaining_spells",
+    "semantic_key": "gaining_spells"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.gaining_spells",
+    "semantic_key": "preparing_spells"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.range",
+    "semantic_key": "distance"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.range",
+    "semantic_key": "movable_effects"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.range",
+    "semantic_key": "range"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.range",
+    "semantic_key": "self"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.range",
+    "semantic_key": "touch"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.saving_throws",
+    "semantic_key": "spell_save_dc"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.targets",
+    "semantic_key": "areas_of_effect"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.targets",
+    "semantic_key": "clear_path"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.targets",
+    "semantic_key": "invalid_targets"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.targets",
+    "semantic_key": "targeting_yourself"
+   },
+   {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.targets",
+    "semantic_key": "targets"
+   }
+  ],
+  "prose_bindings": [
+   {
+    "chunk_char_end": 105,
+    "chunk_char_start": 0,
+    "chunk_id": "ce782982-fd43-5502-a72d-b8993f17967a",
+    "component_key": "monster_prepared_spells",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "spells.gaining_spells",
+    "span_id": "651ca6eb-9629-5158-a506-391a5f1db302"
+   },
+   {
+    "chunk_char_end": 113,
+    "chunk_char_start": 0,
+    "chunk_id": "e98287bd-f539-58b9-adc4-568629ebd0e5",
+    "component_key": "concentration",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.duration",
+    "span_id": "d9988fc2-6528-5c2a-a6df-8c29c12270ee"
+   },
+   {
+    "chunk_char_end": 114,
+    "chunk_char_start": 0,
+    "chunk_id": "0c92ffcc-6a51-56aa-bc6b-6b59dca347b0",
+    "component_key": "movable_effects",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.range",
+    "span_id": "162a9780-2c73-5c10-be7b-659d9ed56655"
+   },
+   {
+    "chunk_char_end": 115,
+    "chunk_char_start": 0,
+    "chunk_id": "428ec061-f587-501d-a974-2305b2f4d112",
+    "component_key": "instantaneous",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.duration",
+    "span_id": "1c8d9145-9968-5885-806a-0c068c60277a"
+   },
+   {
+    "chunk_char_end": 117,
+    "chunk_char_start": 0,
+    "chunk_id": "0d25bb76-934d-57df-aafd-3c0c05ac679f",
+    "component_key": "emanation",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.emanation",
+    "span_id": "70a78df3-345e-5fd0-89d7-4cc1b8be7cad"
+   },
+   {
+    "chunk_char_end": 119,
+    "chunk_char_start": 0,
+    "chunk_id": "65977f15-32cc-56fe-8fe5-c22d9a6a2d8b",
+    "component_key": "emanation",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.emanation",
+    "span_id": "cb16d147-ac9e-5498-aa02-10dcfb85e776"
+   },
+   {
+    "chunk_char_end": 131,
+    "chunk_char_start": 0,
+    "chunk_id": "098efe03-7c2c-5cb2-b203-94e816d102cf",
+    "component_key": "touch",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.range",
+    "span_id": "acd7c0ce-29e1-55d5-8c19-262ce29108c0"
+   },
+   {
+    "chunk_char_end": 132,
+    "chunk_char_start": 0,
+    "chunk_id": "08be458d-909a-540c-8168-8a252cfa28ca",
+    "component_key": "duration",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.duration",
+    "span_id": "f8c4e609-c7f7-5e17-9932-1aa1ec10d3b7"
+   },
+   {
+    "chunk_char_end": 137,
+    "chunk_char_start": 0,
+    "chunk_id": "b74ef195-c778-58ad-bd2f-6b36967c4764",
+    "component_key": "clear_path",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.targets",
+    "span_id": "acf70cf2-2e47-5c9f-81b2-e4efc07631e7"
+   },
+   {
+    "chunk_char_end": 159,
+    "chunk_char_start": 0,
+    "chunk_id": "789a5a7a-36f2-5965-8fda-a4d7117ad90b",
+    "component_key": "somatic",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.components",
+    "span_id": "dfa69ced-6013-5cab-b741-0ec516c13f98"
+   },
+   {
+    "chunk_char_end": 160,
+    "chunk_char_start": 0,
+    "chunk_id": "6551ba8e-5528-524e-9747-99198a1b44ae",
+    "component_key": "spell_attack_modifier",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.attack_rolls",
+    "span_id": "9faf15a7-61db-55d5-8bb4-c6594c33529c"
+   },
+   {
+    "chunk_char_end": 170,
+    "chunk_char_start": 0,
+    "chunk_id": "4dba7705-93fb-59d4-ba7d-57e92478cc32",
+    "component_key": "targeting_yourself",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.targets",
+    "span_id": "3154acb9-2ff2-5971-841f-8239a0b64567"
+   },
+   {
+    "chunk_char_end": 175,
+    "chunk_char_start": 0,
+    "chunk_id": "155dd008-f346-5c3f-80ed-5fe9c32ab247",
+    "component_key": "casting_in_armor",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "span_id": "3adb7ff5-c5b6-57cd-a370-b0c6ffcf7f1a"
+   },
+   {
+    "chunk_char_end": 176,
+    "chunk_char_start": 0,
+    "chunk_id": "7b4cfe33-53fc-5f24-8746-b5b9e7dc578e",
+    "component_key": "range",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.range",
+    "span_id": "5c1fdf6d-05de-5a77-9669-41c68d0400cf"
+   },
+   {
+    "chunk_char_end": 184,
+    "chunk_char_start": 0,
+    "chunk_id": "47ca6584-7b82-5bf8-a2a7-682996960aad",
+    "component_key": "emanation",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.emanation",
+    "span_id": "5ccd8140-fdf9-53a4-83a0-06122ab8b3f9"
+   },
+   {
+    "chunk_char_end": 184,
+    "chunk_char_start": 0,
+    "chunk_id": "54665e6d-8f9b-547f-b118-76d06b3707f7",
+    "component_key": "area_of_effect",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.area_of_effect",
+    "span_id": "a7491809-dc19-5056-a4f3-cd1fca4e0190"
+   },
+   {
+    "chunk_char_end": 185,
+    "chunk_char_start": 0,
+    "chunk_id": "f35fa4d7-40ac-5080-8bf1-7196d9b4fd6e",
+    "component_key": "casting_time",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_time",
+    "span_id": "e8767730-be97-5c57-8aed-f5a1446018cb"
+   },
+   {
+    "chunk_char_end": 192,
+    "chunk_char_start": 0,
+    "chunk_id": "5bb322cc-5b7f-5be9-a190-ddf962b3289d",
+    "component_key": "targets",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.targets",
+    "span_id": "45edfbcd-e6e1-5f44-8c43-08568329e326"
+   },
+   {
+    "chunk_char_end": 199,
+    "chunk_char_start": 0,
+    "chunk_id": "39c09a31-e475-5dd1-a7b9-685cc44d5db3",
+    "component_key": "magic_items",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "span_id": "1b275047-f243-578e-9c8f-26f8694fd5cf"
+   },
+   {
+    "chunk_char_end": 200,
+    "chunk_char_start": 0,
+    "chunk_id": "88b4d226-5af2-5298-bf2f-6f4cdfb5300d",
+    "component_key": "invalid_targets",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.targets",
+    "span_id": "5e3a87b0-aa0c-5ca2-8784-3e1d43790fc6"
+   },
+   {
+    "chunk_char_end": 203,
+    "chunk_char_start": 0,
+    "chunk_id": "b23e6205-43ff-5e74-a669-51c10ec409fe",
+    "component_key": "line",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.line",
+    "span_id": "d2dd290e-07d1-5f16-a0a4-1748af84f08b"
+   },
+   {
+    "chunk_char_end": 205,
+    "chunk_char_start": 0,
+    "chunk_id": "690605ef-5d8f-57c8-ae54-d9e97c8b400b",
+    "component_key": "school_of_magic",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "span_id": "74c1cd04-3ea9-5241-bfeb-462fbd167c98"
+   },
+   {
+    "chunk_char_end": 206,
+    "chunk_char_start": 0,
+    "chunk_id": "2885f088-a6bb-57b7-92de-783cb8459264",
+    "component_key": "area_of_effect",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.area_of_effect",
+    "span_id": "0b7c7b66-82f2-52a2-a2a3-a93aab04de0a"
+   },
+   {
+    "chunk_char_end": 206,
+    "chunk_char_start": 0,
+    "chunk_id": "33c512bb-f044-5aa5-96e9-0331d753ea68",
+    "component_key": "cube",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.cube",
+    "span_id": "ed086b15-4e8e-590a-81bd-12ffae9047da"
+   },
+   {
+    "chunk_char_end": 206,
+    "chunk_char_start": 0,
+    "chunk_id": "cce538dd-34ca-584c-8f82-761ca1b24d12",
+    "component_key": "sphere",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.sphere",
+    "span_id": "7468c4fa-652c-59de-85a9-d93d8d6db900"
+   },
+   {
+    "chunk_char_end": 211,
+    "chunk_char_start": 0,
+    "chunk_id": "0153b0b8-9046-5d8a-ab31-a53554d83001",
+    "component_key": "unseen_point",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.area_of_effect",
+    "span_id": "3b3f0af5-0228-54f8-ae04-c897fc8e355a"
+   },
+   {
+    "chunk_char_end": 211,
+    "chunk_char_start": 0,
+    "chunk_id": "1e148568-2151-597c-9445-aa0b8f4c2a0a",
+    "component_key": "preparing_spells",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.gaining_spells",
+    "span_id": "7058aebc-f4b1-53d5-9cd0-6d6dd4465414"
+   },
+   {
+    "chunk_char_end": 211,
+    "chunk_char_start": 0,
+    "chunk_id": "3d60ddf8-8e0b-558f-a072-b683fd99673b",
+    "component_key": "one_slot_per_turn",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_time",
+    "span_id": "4a04bab5-0fe4-5df9-976e-9f69b0ae6fae"
+   },
+   {
+    "chunk_char_end": 229,
+    "chunk_char_start": 0,
+    "chunk_id": "6c67f4c2-f987-5719-90b2-1663732bc6e2",
+    "component_key": "always_prepared_spells",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.gaining_spells",
+    "span_id": "6ee9e7e4-4129-58ac-acb9-f80e99b0dc8b"
+   },
+   {
+    "chunk_char_end": 235,
+    "chunk_char_start": 0,
+    "chunk_id": "1f99a0c8-62b6-52a7-bc3b-2f78aaead024",
+    "component_key": "class_spell_lists",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "span_id": "b2d49097-8c8a-50d5-b09a-021e06aaede8"
+   },
+   {
+    "chunk_char_end": 241,
+    "chunk_char_start": 0,
+    "chunk_id": "4cf48127-db5c-5db3-8788-29d42e202ae4",
+    "component_key": "identifying_an_ongoing_spell",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.combining_spell_effects",
+    "span_id": "15f1c5c1-4c89-5cf4-8362-e8821b93372a"
+   },
+   {
+    "chunk_char_end": 245,
+    "chunk_char_start": 0,
+    "chunk_id": "f226bcc5-c482-529b-898b-4ef4c9ae48b2",
+    "component_key": "triggers",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_time",
+    "span_id": "40686c3a-fc78-5c32-9428-594ea7b67f82"
+   },
+   {
+    "chunk_char_end": 253,
+    "chunk_char_start": 0,
+    "chunk_id": "752a1fdf-56a2-515d-bfa2-54e3d633db0d",
+    "component_key": "spell_save_dc",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.saving_throws",
+    "span_id": "3f1993c8-df10-5e86-b85f-f361ac6fafac"
+   },
+   {
+    "chunk_char_end": 256,
+    "chunk_char_start": 0,
+    "chunk_id": "b9d1cf8c-ecf3-56e6-b95d-565a306a9022",
+    "component_key": "special_abilities",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "span_id": "86486ffa-a01d-5420-afcb-9cf070f31918"
+   },
+   {
+    "chunk_char_end": 260,
+    "chunk_char_start": 0,
+    "chunk_id": "5e2e2c99-b8f3-50b2-a8e8-e7efc7848512",
+    "component_key": "cylinder",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.cylinder",
+    "span_id": "b607b479-ad31-5afc-8c83-358a2807db6b"
+   },
+   {
+    "chunk_char_end": 285,
+    "chunk_char_start": 0,
+    "chunk_id": "c3d546e5-6105-5a3d-86bc-14743846ee2b",
+    "component_key": "awareness_of_being_targeted",
+    "irreducibility_reason_code": "contextual_applicability",
+    "record_key": "spells.targets",
+    "span_id": "202451cb-bd61-5c7f-b086-e4ef577f7c69"
+   },
+   {
+    "chunk_char_end": 303,
+    "chunk_char_start": 0,
+    "chunk_id": "839c59b7-72ab-56a6-9f3c-b28d7166dea0",
+    "component_key": "invalid_targets",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.targets",
+    "span_id": "72f39972-01a3-5d97-90b1-77a5fa3535a6"
+   },
+   {
+    "chunk_char_end": 304,
+    "chunk_char_start": 0,
+    "chunk_id": "ef328091-eb85-58d2-8d05-ff9098c950cd",
+    "component_key": "spell_level",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "span_id": "a89a78cc-e620-5bcc-ba94-19a8c3d4a21e"
+   },
+   {
+    "chunk_char_end": 307,
+    "chunk_char_start": 0,
+    "chunk_id": "e48beef0-6c5a-56f4-86ff-f13b129aef59",
+    "component_key": "components",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.components",
+    "span_id": "6cdb03f5-fda3-5bf1-890c-8411d8f01b00"
+   },
+   {
+    "chunk_char_end": 324,
+    "chunk_char_start": 0,
+    "chunk_id": "d42bf622-2292-5992-b6b9-52b3b08a69a3",
+    "component_key": "gaining_spells",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.gaining_spells",
+    "span_id": "8b8f3fa9-ff35-58e7-98a3-1ee6c3ca7339"
+   },
+   {
+    "chunk_char_end": 337,
+    "chunk_char_start": 0,
+    "chunk_id": "fde5ffb5-d6e4-5879-b7e7-7e2c596c7549",
+    "component_key": "areas_of_effect",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.targets",
+    "span_id": "99ed8ee9-fb5c-59f3-aee4-6ed38c0daaab"
+   },
+   {
+    "chunk_char_end": 343,
+    "chunk_char_start": 0,
+    "chunk_id": "e7c3d555-95e0-5384-be56-90e3617f3d41",
+    "component_key": "effects",
+    "irreducibility_reason_code": "gamemaster_latitude",
+    "record_key": "spells.effects",
+    "span_id": "029e130d-1afb-5db4-b3b1-e06e4537b5db"
+   },
+   {
+    "chunk_char_end": 345,
+    "chunk_char_start": 0,
+    "chunk_id": "1351d4e3-9493-594b-8652-77f4f49942ed",
+    "component_key": "material",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.components",
+    "span_id": "c135e485-f0a2-5a3a-8e9d-7e54aa305625"
+   },
+   {
+    "chunk_char_end": 352,
+    "chunk_char_start": 0,
+    "chunk_id": "3f40688b-6fb2-5db5-8652-e97dea9bd414",
+    "component_key": "rituals",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "span_id": "9d74735f-33fd-5e18-b6c6-c316c22777a1"
+   },
+   {
+    "chunk_char_end": 365,
+    "chunk_char_start": 0,
+    "chunk_id": "2eaba028-bbf8-512f-b953-755c9660d480",
+    "component_key": "time_span",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.duration",
+    "span_id": "c501481f-aba6-5288-a72c-70f215598909"
+   },
+   {
+    "chunk_char_end": 366,
+    "chunk_char_start": 0,
+    "chunk_id": "ad90429b-56a0-5173-b57f-e621c7d3a734",
+    "component_key": "spell_slots",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "span_id": "716233f1-b3df-5243-a3ef-491936b69a24"
+   },
+   {
+    "chunk_char_end": 376,
+    "chunk_char_start": 0,
+    "chunk_id": "3ba0ad11-22ea-5502-bb01-6aba560dd0d6",
+    "component_key": "point_of_origin",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.area_of_effect",
+    "span_id": "aa6ac5b6-4e33-58dd-98bb-c84d97654dec"
+   },
+   {
+    "chunk_char_end": 389,
+    "chunk_char_start": 0,
+    "chunk_id": "d53b05a8-8f67-55b4-8823-2f9a04615813",
+    "component_key": "cone",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.cone",
+    "span_id": "03034186-1d94-52db-bb24-eac7a86316bb"
+   },
+   {
+    "chunk_char_end": 417,
+    "chunk_char_start": 0,
+    "chunk_id": "b03fb02d-0d0d-5b99-bcfb-ca5ab9c41f87",
+    "component_key": "cover",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.cover",
+    "span_id": "496d70b3-9469-5cec-acef-861e446f2d8f"
+   },
+   {
+    "chunk_char_end": 424,
+    "chunk_char_start": 0,
+    "chunk_id": "0d8d1f21-5764-544d-a5d9-3a3ec0d01b40",
+    "component_key": "longer_casting_times",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_time",
+    "span_id": "fa56165a-9499-54a5-a2be-791a907501b7"
+   },
+   {
+    "chunk_char_end": 438,
+    "chunk_char_start": 0,
+    "chunk_id": "28a3c039-cc2f-53f8-a149-108064b88ca2",
+    "component_key": "verbal",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.components",
+    "span_id": "efe64743-e3a0-56f7-973e-acf21962234d"
+   },
+   {
+    "chunk_char_end": 45,
+    "chunk_char_start": 0,
+    "chunk_id": "9c8965e1-82c8-597d-b6e4-7bffde803164",
+    "component_key": "distance",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.range",
+    "span_id": "4bbfce43-60cd-52be-aa83-2ffa1db22e19"
+   },
+   {
+    "chunk_char_end": 458,
+    "chunk_char_start": 0,
+    "chunk_id": "2dee3378-5c82-5568-90dc-2b40dba59732",
+    "component_key": "higher_level_slot",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "span_id": "d2d4bcfe-0ae9-5e33-812e-19e48a5cd3f8"
+   },
+   {
+    "chunk_char_end": 479,
+    "chunk_char_start": 0,
+    "chunk_id": "e0f0e519-d0f1-560a-ac28-f6c8c339ab01",
+    "component_key": "spell_slots",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "span_id": "dfb51af4-110d-5ce9-811c-01042f440a96"
+   },
+   {
+    "chunk_char_end": 49,
+    "chunk_char_start": 0,
+    "chunk_id": "5760e87b-2207-5cdf-abb5-e3ea7f1529e2",
+    "component_key": "range",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.range",
+    "span_id": "f5d72425-84b2-5610-adc0-6373829bee68"
+   },
+   {
+    "chunk_char_end": 502,
+    "chunk_char_start": 0,
+    "chunk_id": "fdcc5f53-6e52-52ec-8e02-596ba0eaa7dd",
+    "component_key": "component_pouch_and_focus",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.components",
+    "span_id": "32591758-96b7-53a5-8ef7-db655b3c2372"
+   },
+   {
+    "chunk_char_end": 53,
+    "chunk_char_start": 0,
+    "chunk_id": "548ca792-1b69-5c5c-a136-d612b7e7b05b",
+    "component_key": "cantrips",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "span_id": "ed82372f-9256-5fce-9f13-48215eb32f7a"
+   },
+   {
+    "chunk_char_end": 56,
+    "chunk_char_start": 0,
+    "chunk_id": "c7cc11cd-de10-5b7e-9f23-d25a31832845",
+    "component_key": "slot_recovery",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "span_id": "550ee4eb-12be-5f7b-821c-7cc2131997f5"
+   },
+   {
+    "chunk_char_end": 63,
+    "chunk_char_start": 0,
+    "chunk_id": "c0f06148-4bca-57ee-bf85-49c7c6a14d33",
+    "component_key": "cylinder",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.cylinder",
+    "span_id": "bf12d8e3-ff8b-5f53-99f3-c3c9e3e516c9"
+   },
+   {
+    "chunk_char_end": 630,
+    "chunk_char_start": 0,
+    "chunk_id": "3cb39e7d-6e8f-55e9-97e5-7fb035d46707",
+    "component_key": "combining_spell_effects",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.combining_spell_effects",
+    "span_id": "1f2778fb-55c5-560d-b42d-e79fff7ef04f"
+   },
+   {
+    "chunk_char_end": 70,
+    "chunk_char_start": 0,
+    "chunk_id": "38477c5d-f8d9-51e2-ae9d-c8b37247bf49",
+    "component_key": "sphere",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.sphere",
+    "span_id": "4c8e77d2-d5f0-5512-9131-395f4b0e2c2b"
+   },
+   {
+    "chunk_char_end": 70,
+    "chunk_char_start": 0,
+    "chunk_id": "89d948a3-a715-5432-8e00-56e216cc3621",
+    "component_key": "casting_without_slots",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "span_id": "5541a141-9947-54a8-9b9f-929c8ac87f8d"
+   },
+   {
+    "chunk_char_end": 83,
+    "chunk_char_start": 0,
+    "chunk_id": "a00f4439-8f0c-56e3-8207-061034adfc95",
+    "component_key": "spell_save_dc",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.saving_throws",
+    "span_id": "84592ffd-b551-596d-9dad-9b373fec1751"
+   },
+   {
+    "chunk_char_end": 87,
+    "chunk_char_start": 0,
+    "chunk_id": "34fe7dd0-14c9-5486-83e5-f2d602758a17",
+    "component_key": "spell_attack_modifier",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.attack_rolls",
+    "span_id": "f9d28290-3f4b-50d4-a508-f33b3c0c9e1e"
+   },
+   {
+    "chunk_char_end": 888,
+    "chunk_char_start": 0,
+    "chunk_id": "b3a4cf24-b933-5546-b9d2-a8eea69f1e7a",
+    "component_key": "school_of_magic",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.casting_spells",
+    "span_id": "a5641299-19dd-5d15-9b5f-6a9c8033ce37"
+   },
+   {
+    "chunk_char_end": 929,
+    "chunk_char_start": 0,
+    "chunk_id": "e5f44d5f-3dbb-577e-8188-5522bf8b6734",
+    "component_key": "preparing_spells",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.gaining_spells",
+    "span_id": "ed12e086-eae6-5b2f-8daf-eeeed64b9cb2"
+   },
+   {
+    "chunk_char_end": 96,
+    "chunk_char_start": 0,
+    "chunk_id": "e0fc56a5-4b9c-58a1-ad7b-90f2c2ab4475",
+    "component_key": "self",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.range",
+    "span_id": "03c1220f-78fa-5068-b589-a79406a2d026"
+   },
+   {
+    "chunk_char_end": 99,
+    "chunk_char_start": 0,
+    "chunk_id": "00a295c4-dbfb-5ea0-8d7f-5b35725024a4",
+    "component_key": "cone",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.cone",
+    "span_id": "23d01f6b-5db0-556e-94d0-2368c78432cb"
+   },
+   {
+    "chunk_char_end": 99,
+    "chunk_char_start": 0,
+    "chunk_id": "2d930d64-ab4c-592c-af59-2718341168ef",
+    "component_key": "cube",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.cube",
+    "span_id": "36303b7f-241d-58ab-8e69-4445638cf660"
+   },
+   {
+    "chunk_char_end": 99,
+    "chunk_char_start": 0,
+    "chunk_id": "7bfd1f0f-e99f-57b4-99ef-1182dbd2285d",
+    "component_key": "line",
+    "irreducibility_reason_code": null,
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "glossary.line",
+    "span_id": "1f8bb4a4-9403-50c0-bcdb-7328eaea67cc"
+   }
+  ],
+  "provenance": [
+   {
+    "role": "contextual",
+    "span_id": "029e130d-1afb-5db4-b3b1-e06e4537b5db",
+    "target_key": [
+     "spells.effects",
+     "effects",
+     "attack rolls",
+     "srd-5.2.1/spells",
+     "spells.attack_rolls"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "029e130d-1afb-5db4-b3b1-e06e4537b5db",
+    "target_key": [
+     "spells.effects",
+     "effects",
+     "saving throws",
+     "srd-5.2.1/spells",
+     "spells.saving_throws"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "029e130d-1afb-5db4-b3b1-e06e4537b5db",
+    "target_key": [
+     "spells.effects",
+     "effects",
+     "targets",
+     "srd-5.2.1/spells",
+     "spells.targets"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "03034186-1d94-52db-bb24-eac7a86316bb",
+    "target_key": [
+     "glossary.cone",
+     "cone",
+     "area of effect",
+     "srd-5.2.1/rules-glossary",
+     "glossary.area_of_effect"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0b7c7b66-82f2-52a2-a2a3-a93aab04de0a",
+    "target_key": [
+     "glossary.area_of_effect",
+     "area_of_effect",
+     "Cone",
+     "srd-5.2.1/rules-glossary",
+     "glossary.cone"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0b7c7b66-82f2-52a2-a2a3-a93aab04de0a",
+    "target_key": [
+     "glossary.area_of_effect",
+     "area_of_effect",
+     "Cube",
+     "srd-5.2.1/rules-glossary",
+     "glossary.cube"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0b7c7b66-82f2-52a2-a2a3-a93aab04de0a",
+    "target_key": [
+     "glossary.area_of_effect",
+     "area_of_effect",
+     "Cylinder",
+     "srd-5.2.1/rules-glossary",
+     "glossary.cylinder"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0b7c7b66-82f2-52a2-a2a3-a93aab04de0a",
+    "target_key": [
+     "glossary.area_of_effect",
+     "area_of_effect",
+     "Emanation",
+     "srd-5.2.1/rules-glossary",
+     "glossary.emanation"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0b7c7b66-82f2-52a2-a2a3-a93aab04de0a",
+    "target_key": [
+     "glossary.area_of_effect",
+     "area_of_effect",
+     "Line",
+     "srd-5.2.1/rules-glossary",
+     "glossary.line"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "0b7c7b66-82f2-52a2-a2a3-a93aab04de0a",
+    "target_key": [
+     "glossary.area_of_effect",
+     "area_of_effect",
+     "Sphere",
+     "srd-5.2.1/rules-glossary",
+     "glossary.sphere"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "15f1c5c1-4c89-5cf4-8362-e8821b93372a",
+    "target_key": [
+     "spells.combining_spell_effects",
+     "identifying_an_ongoing_spell",
+     "Study action",
+     "srd-5.2.1/rules-glossary",
+     "glossary.study"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "19177736-52a1-5624-a48e-2c722f3e0260",
+    "target_key": [
+     "glossary.area_of_effect",
+     "",
+     "Cover",
+     "srd-5.2.1/rules-glossary",
+     "glossary.cover"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "1f8bb4a4-9403-50c0-bcdb-7328eaea67cc",
+    "target_key": [
+     "glossary.line",
+     "line",
+     "area of effect",
+     "srd-5.2.1/rules-glossary",
+     "glossary.area_of_effect"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "23d01f6b-5db0-556e-94d0-2368c78432cb",
+    "target_key": [
+     "glossary.cone",
+     "cone",
+     "area of effect",
+     "srd-5.2.1/rules-glossary",
+     "glossary.area_of_effect"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "3154acb9-2ff2-5971-841f-8239a0b64567",
+    "target_key": [
+     "spells.targets",
+     "targeting_yourself",
+     "Hostile",
+     "srd-5.2.1/rules-glossary",
+     "glossary.hostile"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "32591758-96b7-53a5-8ef7-db655b3c2372",
+    "target_key": [
+     "spells.components",
+     "component_pouch_and_focus",
+     "Component Pouch",
+     "srd-5.2.1/equipment",
+     ""
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "32591758-96b7-53a5-8ef7-db655b3c2372",
+    "target_key": [
+     "spells.components",
+     "component_pouch_and_focus",
+     "Equipment",
+     "srd-5.2.1/equipment",
+     ""
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "36303b7f-241d-58ab-8e69-4445638cf660",
+    "target_key": [
+     "glossary.cube",
+     "cube",
+     "area of effect",
+     "srd-5.2.1/rules-glossary",
+     "glossary.area_of_effect"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "4a04bab5-0fe4-5df9-976e-9f69b0ae6fae",
+    "target_key": [
+     "spells.casting_time",
+     "one_slot_per_turn",
+     "Magic action",
+     "srd-5.2.1/rules-glossary",
+     "glossary.magic"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "4c8e77d2-d5f0-5512-9131-395f4b0e2c2b",
+    "target_key": [
+     "glossary.sphere",
+     "sphere",
+     "area of effect",
+     "srd-5.2.1/rules-glossary",
+     "glossary.area_of_effect"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "550ee4eb-12be-5f7b-821c-7cc2131997f5",
+    "target_key": [
+     "spells.casting_spells",
+     "slot_recovery",
+     "Long Rest",
+     "srd-5.2.1/rules-glossary",
+     "glossary.long_rest"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "5ccd8140-fdf9-53a4-83a0-06122ab8b3f9",
+    "target_key": [
+     "glossary.emanation",
+     "emanation",
+     "area of effect",
+     "srd-5.2.1/rules-glossary",
+     "glossary.area_of_effect"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "61f067d9-5219-54da-a89e-961d153c5e01",
+    "target_key": [
+     "glossary.cover",
+     "",
+     "Combat",
+     "srd-5.2.1/playing-the-game",
+     "play.combat"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "70a78df3-345e-5fd0-89d7-4cc1b8be7cad",
+    "target_key": [
+     "glossary.emanation",
+     "emanation",
+     "area of effect",
+     "srd-5.2.1/rules-glossary",
+     "glossary.area_of_effect"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "7468c4fa-652c-59de-85a9-d93d8d6db900",
+    "target_key": [
+     "glossary.sphere",
+     "sphere",
+     "area of effect",
+     "srd-5.2.1/rules-glossary",
+     "glossary.area_of_effect"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "99ed8ee9-fb5c-59f3-aee4-6ed38c0daaab",
+    "target_key": [
+     "spells.targets",
+     "areas_of_effect",
+     "Cone",
+     "srd-5.2.1/rules-glossary",
+     "glossary.cone"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "99ed8ee9-fb5c-59f3-aee4-6ed38c0daaab",
+    "target_key": [
+     "spells.targets",
+     "areas_of_effect",
+     "Cube",
+     "srd-5.2.1/rules-glossary",
+     "glossary.cube"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "99ed8ee9-fb5c-59f3-aee4-6ed38c0daaab",
+    "target_key": [
+     "spells.targets",
+     "areas_of_effect",
+     "Cylinder",
+     "srd-5.2.1/rules-glossary",
+     "glossary.cylinder"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "99ed8ee9-fb5c-59f3-aee4-6ed38c0daaab",
+    "target_key": [
+     "spells.targets",
+     "areas_of_effect",
+     "Emanation",
+     "srd-5.2.1/rules-glossary",
+     "glossary.emanation"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "99ed8ee9-fb5c-59f3-aee4-6ed38c0daaab",
+    "target_key": [
+     "spells.targets",
+     "areas_of_effect",
+     "Line",
+     "srd-5.2.1/rules-glossary",
+     "glossary.line"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "99ed8ee9-fb5c-59f3-aee4-6ed38c0daaab",
+    "target_key": [
+     "spells.targets",
+     "areas_of_effect",
+     "Sphere",
+     "srd-5.2.1/rules-glossary",
+     "glossary.sphere"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "99ed8ee9-fb5c-59f3-aee4-6ed38c0daaab",
+    "target_key": [
+     "spells.targets",
+     "areas_of_effect",
+     "area of effect",
+     "srd-5.2.1/rules-glossary",
+     "glossary.area_of_effect"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "9faf15a7-61db-55d5-8bb4-c6594c33529c",
+    "target_key": [
+     "spells.attack_rolls",
+     "spell_attack_modifier",
+     "attack roll",
+     "srd-5.2.1/rules-glossary",
+     "glossary.attack_roll"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "aa6ac5b6-4e33-58dd-98bb-c84d97654dec",
+    "target_key": [
+     "glossary.area_of_effect",
+     "point_of_origin",
+     "Total Cover",
+     "srd-5.2.1/rules-glossary",
+     "glossary.cover"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "acd7c0ce-29e1-55d5-8c19-262ce29108c0",
+    "target_key": [
+     "spells.range",
+     "touch",
+     "reach",
+     "srd-5.2.1/rules-glossary",
+     "glossary.reach"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "acf70cf2-2e47-5c9f-81b2-e4efc07631e7",
+    "target_key": [
+     "spells.targets",
+     "clear_path",
+     "Total Cover",
+     "srd-5.2.1/rules-glossary",
+     "glossary.cover"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "b607b479-ad31-5afc-8c83-358a2807db6b",
+    "target_key": [
+     "glossary.cylinder",
+     "cylinder",
+     "area of effect",
+     "srd-5.2.1/rules-glossary",
+     "glossary.area_of_effect"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "bf12d8e3-ff8b-5f53-99f3-c3c9e3e516c9",
+    "target_key": [
+     "glossary.cylinder",
+     "cylinder",
+     "area of effect",
+     "srd-5.2.1/rules-glossary",
+     "glossary.area_of_effect"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "c501481f-aba6-5288-a72c-70f215598909",
+    "target_key": [
+     "spells.duration",
+     "time_span",
+     "Incapacitated",
+     "srd-5.2.1/rules-glossary",
+     "glossary.incapacitated"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d2dd290e-07d1-5f16-a0a4-1748af84f08b",
+    "target_key": [
+     "glossary.line",
+     "line",
+     "area of effect",
+     "srd-5.2.1/rules-glossary",
+     "glossary.area_of_effect"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "d9988fc2-6528-5c2a-a6df-8c29c12270ee",
+    "target_key": [
+     "spells.duration",
+     "concentration",
+     "Concentration",
+     "srd-5.2.1/rules-glossary",
+     "glossary.concentration"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "e8767730-be97-5c57-8aed-f5a1446018cb",
+    "target_key": [
+     "spells.casting_time",
+     "casting_time",
+     "Magic action",
+     "srd-5.2.1/rules-glossary",
+     "glossary.magic"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "ed086b15-4e8e-590a-81bd-12ffae9047da",
+    "target_key": [
+     "glossary.cube",
+     "cube",
+     "area of effect",
+     "srd-5.2.1/rules-glossary",
+     "glossary.area_of_effect"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "fa56165a-9499-54a5-a2be-791a907501b7",
+    "target_key": [
+     "spells.casting_time",
+     "longer_casting_times",
+     "Concentration",
+     "srd-5.2.1/rules-glossary",
+     "glossary.concentration"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "contextual",
+    "span_id": "fa56165a-9499-54a5-a2be-791a907501b7",
+    "target_key": [
+     "spells.casting_time",
+     "longer_casting_times",
+     "Magic action",
+     "srd-5.2.1/rules-glossary",
+     "glossary.magic"
+    ],
+    "target_kind": "reference"
+   },
+   {
+    "role": "primary",
+    "span_id": "029e130d-1afb-5db4-b3b1-e06e4537b5db",
+    "target_key": [
+     "spells.effects",
+     "effects",
+     "e7c3d555-95e0-5384-be56-90e3617f3d41",
+     "029e130d-1afb-5db4-b3b1-e06e4537b5db",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "03034186-1d94-52db-bb24-eac7a86316bb",
+    "target_key": [
+     "glossary.cone",
+     "cone",
+     "d53b05a8-8f67-55b4-8823-2f9a04615813",
+     "03034186-1d94-52db-bb24-eac7a86316bb",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "03c1220f-78fa-5068-b589-a79406a2d026",
+    "target_key": [
+     "spells.range",
+     "self",
+     "e0fc56a5-4b9c-58a1-ad7b-90f2c2ab4475",
+     "03c1220f-78fa-5068-b589-a79406a2d026",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "0b7c7b66-82f2-52a2-a2a3-a93aab04de0a",
+    "target_key": [
+     "glossary.area_of_effect",
+     "area_of_effect",
+     "2885f088-a6bb-57b7-92de-783cb8459264",
+     "0b7c7b66-82f2-52a2-a2a3-a93aab04de0a",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "15f1c5c1-4c89-5cf4-8362-e8821b93372a",
+    "target_key": [
+     "spells.combining_spell_effects",
+     "identifying_an_ongoing_spell",
+     "4cf48127-db5c-5db3-8788-29d42e202ae4",
+     "15f1c5c1-4c89-5cf4-8362-e8821b93372a",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "162a9780-2c73-5c10-be7b-659d9ed56655",
+    "target_key": [
+     "spells.range",
+     "movable_effects",
+     "0c92ffcc-6a51-56aa-bc6b-6b59dca347b0",
+     "162a9780-2c73-5c10-be7b-659d9ed56655",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "1b275047-f243-578e-9c8f-26f8694fd5cf",
+    "target_key": [
+     "spells.casting_spells",
+     "magic_items",
+     "39c09a31-e475-5dd1-a7b9-685cc44d5db3",
+     "1b275047-f243-578e-9c8f-26f8694fd5cf",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "1c8d9145-9968-5885-806a-0c068c60277a",
+    "target_key": [
+     "spells.duration",
+     "instantaneous",
+     "428ec061-f587-501d-a974-2305b2f4d112",
+     "1c8d9145-9968-5885-806a-0c068c60277a",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "1f2778fb-55c5-560d-b42d-e79fff7ef04f",
+    "target_key": [
+     "spells.combining_spell_effects",
+     "combining_spell_effects",
+     "3cb39e7d-6e8f-55e9-97e5-7fb035d46707",
+     "1f2778fb-55c5-560d-b42d-e79fff7ef04f",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "1f8bb4a4-9403-50c0-bcdb-7328eaea67cc",
+    "target_key": [
+     "glossary.line",
+     "line",
+     "7bfd1f0f-e99f-57b4-99ef-1182dbd2285d",
+     "1f8bb4a4-9403-50c0-bcdb-7328eaea67cc",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "202451cb-bd61-5c7f-b086-e4ef577f7c69",
+    "target_key": [
+     "spells.targets",
+     "awareness_of_being_targeted",
+     "c3d546e5-6105-5a3d-86bc-14743846ee2b",
+     "202451cb-bd61-5c7f-b086-e4ef577f7c69",
+     "contextual_applicability"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "23d01f6b-5db0-556e-94d0-2368c78432cb",
+    "target_key": [
+     "glossary.cone",
+     "cone",
+     "00a295c4-dbfb-5ea0-8d7f-5b35725024a4",
+     "23d01f6b-5db0-556e-94d0-2368c78432cb",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "3154acb9-2ff2-5971-841f-8239a0b64567",
+    "target_key": [
+     "spells.targets",
+     "targeting_yourself",
+     "4dba7705-93fb-59d4-ba7d-57e92478cc32",
+     "3154acb9-2ff2-5971-841f-8239a0b64567",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "32591758-96b7-53a5-8ef7-db655b3c2372",
+    "target_key": [
+     "spells.components",
+     "component_pouch_and_focus",
+     "fdcc5f53-6e52-52ec-8e02-596ba0eaa7dd",
+     "32591758-96b7-53a5-8ef7-db655b3c2372",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "36303b7f-241d-58ab-8e69-4445638cf660",
+    "target_key": [
+     "glossary.cube",
+     "cube",
+     "2d930d64-ab4c-592c-af59-2718341168ef",
+     "36303b7f-241d-58ab-8e69-4445638cf660",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "3adb7ff5-c5b6-57cd-a370-b0c6ffcf7f1a",
+    "target_key": [
+     "spells.casting_spells",
+     "casting_in_armor",
+     "155dd008-f346-5c3f-80ed-5fe9c32ab247",
+     "3adb7ff5-c5b6-57cd-a370-b0c6ffcf7f1a",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "3b3f0af5-0228-54f8-ae04-c897fc8e355a",
+    "target_key": [
+     "glossary.area_of_effect",
+     "unseen_point",
+     "0153b0b8-9046-5d8a-ab31-a53554d83001",
+     "3b3f0af5-0228-54f8-ae04-c897fc8e355a",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "3f1993c8-df10-5e86-b85f-f361ac6fafac",
+    "target_key": [
+     "spells.saving_throws",
+     "spell_save_dc",
+     "752a1fdf-56a2-515d-bfa2-54e3d633db0d",
+     "3f1993c8-df10-5e86-b85f-f361ac6fafac",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "40686c3a-fc78-5c32-9428-594ea7b67f82",
+    "target_key": [
+     "spells.casting_time",
+     "triggers",
+     "f226bcc5-c482-529b-898b-4ef4c9ae48b2",
+     "40686c3a-fc78-5c32-9428-594ea7b67f82",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "45edfbcd-e6e1-5f44-8c43-08568329e326",
+    "target_key": [
+     "spells.targets",
+     "targets",
+     "5bb322cc-5b7f-5be9-a190-ddf962b3289d",
+     "45edfbcd-e6e1-5f44-8c43-08568329e326",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "496d70b3-9469-5cec-acef-861e446f2d8f",
+    "target_key": [
+     "glossary.cover",
+     "cover",
+     "b03fb02d-0d0d-5b99-bcfb-ca5ab9c41f87",
+     "496d70b3-9469-5cec-acef-861e446f2d8f",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "4a04bab5-0fe4-5df9-976e-9f69b0ae6fae",
+    "target_key": [
+     "spells.casting_time",
+     "one_slot_per_turn",
+     "3d60ddf8-8e0b-558f-a072-b683fd99673b",
+     "4a04bab5-0fe4-5df9-976e-9f69b0ae6fae",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "4bbfce43-60cd-52be-aa83-2ffa1db22e19",
+    "target_key": [
+     "spells.range",
+     "distance",
+     "9c8965e1-82c8-597d-b6e4-7bffde803164",
+     "4bbfce43-60cd-52be-aa83-2ffa1db22e19",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "4c8e77d2-d5f0-5512-9131-395f4b0e2c2b",
+    "target_key": [
+     "glossary.sphere",
+     "sphere",
+     "38477c5d-f8d9-51e2-ae9d-c8b37247bf49",
+     "4c8e77d2-d5f0-5512-9131-395f4b0e2c2b",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "550ee4eb-12be-5f7b-821c-7cc2131997f5",
+    "target_key": [
+     "spells.casting_spells",
+     "slot_recovery",
+     "c7cc11cd-de10-5b7e-9f23-d25a31832845",
+     "550ee4eb-12be-5f7b-821c-7cc2131997f5",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "5541a141-9947-54a8-9b9f-929c8ac87f8d",
+    "target_key": [
+     "spells.casting_spells",
+     "casting_without_slots",
+     "89d948a3-a715-5432-8e00-56e216cc3621",
+     "5541a141-9947-54a8-9b9f-929c8ac87f8d",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "5c1fdf6d-05de-5a77-9669-41c68d0400cf",
+    "target_key": [
+     "spells.range",
+     "range",
+     "7b4cfe33-53fc-5f24-8746-b5b9e7dc578e",
+     "5c1fdf6d-05de-5a77-9669-41c68d0400cf",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "5ccd8140-fdf9-53a4-83a0-06122ab8b3f9",
+    "target_key": [
+     "glossary.emanation",
+     "emanation",
+     "47ca6584-7b82-5bf8-a2a7-682996960aad",
+     "5ccd8140-fdf9-53a4-83a0-06122ab8b3f9",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "5e3a87b0-aa0c-5ca2-8784-3e1d43790fc6",
+    "target_key": [
+     "spells.targets",
+     "invalid_targets",
+     "88b4d226-5af2-5298-bf2f-6f4cdfb5300d",
+     "5e3a87b0-aa0c-5ca2-8784-3e1d43790fc6",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "651ca6eb-9629-5158-a506-391a5f1db302",
+    "target_key": [
+     "spells.gaining_spells",
+     "monster_prepared_spells",
+     "ce782982-fd43-5502-a72d-b8993f17967a",
+     "651ca6eb-9629-5158-a506-391a5f1db302",
+     "gamemaster_latitude"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "6cdb03f5-fda3-5bf1-890c-8411d8f01b00",
+    "target_key": [
+     "spells.components",
+     "components",
+     "e48beef0-6c5a-56f4-86ff-f13b129aef59",
+     "6cdb03f5-fda3-5bf1-890c-8411d8f01b00",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "6ee9e7e4-4129-58ac-acb9-f80e99b0dc8b",
+    "target_key": [
+     "spells.gaining_spells",
+     "always_prepared_spells",
+     "6c67f4c2-f987-5719-90b2-1663732bc6e2",
+     "6ee9e7e4-4129-58ac-acb9-f80e99b0dc8b",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "7058aebc-f4b1-53d5-9cd0-6d6dd4465414",
+    "target_key": [
+     "spells.gaining_spells",
+     "preparing_spells",
+     "1e148568-2151-597c-9445-aa0b8f4c2a0a",
+     "7058aebc-f4b1-53d5-9cd0-6d6dd4465414",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "70a78df3-345e-5fd0-89d7-4cc1b8be7cad",
+    "target_key": [
+     "glossary.emanation",
+     "emanation",
+     "0d25bb76-934d-57df-aafd-3c0c05ac679f",
+     "70a78df3-345e-5fd0-89d7-4cc1b8be7cad",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "716233f1-b3df-5243-a3ef-491936b69a24",
+    "target_key": [
+     "spells.casting_spells",
+     "spell_slots",
+     "ad90429b-56a0-5173-b57f-e621c7d3a734",
+     "716233f1-b3df-5243-a3ef-491936b69a24",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "72f39972-01a3-5d97-90b1-77a5fa3535a6",
+    "target_key": [
+     "spells.targets",
+     "invalid_targets",
+     "839c59b7-72ab-56a6-9f3c-b28d7166dea0",
+     "72f39972-01a3-5d97-90b1-77a5fa3535a6",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "7468c4fa-652c-59de-85a9-d93d8d6db900",
+    "target_key": [
+     "glossary.sphere",
+     "sphere",
+     "cce538dd-34ca-584c-8f82-761ca1b24d12",
+     "7468c4fa-652c-59de-85a9-d93d8d6db900",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "74c1cd04-3ea9-5241-bfeb-462fbd167c98",
+    "target_key": [
+     "spells.casting_spells",
+     "school_of_magic",
+     "690605ef-5d8f-57c8-ae54-d9e97c8b400b",
+     "74c1cd04-3ea9-5241-bfeb-462fbd167c98",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "84592ffd-b551-596d-9dad-9b373fec1751",
+    "target_key": [
+     "spells.saving_throws",
+     "spell_save_dc",
+     "a00f4439-8f0c-56e3-8207-061034adfc95",
+     "84592ffd-b551-596d-9dad-9b373fec1751",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "86486ffa-a01d-5420-afcb-9cf070f31918",
+    "target_key": [
+     "spells.casting_spells",
+     "special_abilities",
+     "b9d1cf8c-ecf3-56e6-b95d-565a306a9022",
+     "86486ffa-a01d-5420-afcb-9cf070f31918",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "8b8f3fa9-ff35-58e7-98a3-1ee6c3ca7339",
+    "target_key": [
+     "spells.gaining_spells",
+     "gaining_spells",
+     "d42bf622-2292-5992-b6b9-52b3b08a69a3",
+     "8b8f3fa9-ff35-58e7-98a3-1ee6c3ca7339",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "99ed8ee9-fb5c-59f3-aee4-6ed38c0daaab",
+    "target_key": [
+     "spells.targets",
+     "areas_of_effect",
+     "fde5ffb5-d6e4-5879-b7e7-7e2c596c7549",
+     "99ed8ee9-fb5c-59f3-aee4-6ed38c0daaab",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "9d74735f-33fd-5e18-b6c6-c316c22777a1",
+    "target_key": [
+     "spells.casting_spells",
+     "rituals",
+     "3f40688b-6fb2-5db5-8652-e97dea9bd414",
+     "9d74735f-33fd-5e18-b6c6-c316c22777a1",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "9faf15a7-61db-55d5-8bb4-c6594c33529c",
+    "target_key": [
+     "spells.attack_rolls",
+     "spell_attack_modifier",
+     "6551ba8e-5528-524e-9747-99198a1b44ae",
+     "9faf15a7-61db-55d5-8bb4-c6594c33529c",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "a5641299-19dd-5d15-9b5f-6a9c8033ce37",
+    "target_key": [
+     "spells.casting_spells",
+     "school_of_magic",
+     "b3a4cf24-b933-5546-b9d2-a8eea69f1e7a",
+     "a5641299-19dd-5d15-9b5f-6a9c8033ce37",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "a7491809-dc19-5056-a4f3-cd1fca4e0190",
+    "target_key": [
+     "glossary.area_of_effect",
+     "area_of_effect",
+     "54665e6d-8f9b-547f-b118-76d06b3707f7",
+     "a7491809-dc19-5056-a4f3-cd1fca4e0190",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "a89a78cc-e620-5bcc-ba94-19a8c3d4a21e",
+    "target_key": [
+     "spells.casting_spells",
+     "spell_level",
+     "ef328091-eb85-58d2-8d05-ff9098c950cd",
+     "a89a78cc-e620-5bcc-ba94-19a8c3d4a21e",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "aa6ac5b6-4e33-58dd-98bb-c84d97654dec",
+    "target_key": [
+     "glossary.area_of_effect",
+     "point_of_origin",
+     "3ba0ad11-22ea-5502-bb01-6aba560dd0d6",
+     "aa6ac5b6-4e33-58dd-98bb-c84d97654dec",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "acd7c0ce-29e1-55d5-8c19-262ce29108c0",
+    "target_key": [
+     "spells.range",
+     "touch",
+     "098efe03-7c2c-5cb2-b203-94e816d102cf",
+     "acd7c0ce-29e1-55d5-8c19-262ce29108c0",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "acf70cf2-2e47-5c9f-81b2-e4efc07631e7",
+    "target_key": [
+     "spells.targets",
+     "clear_path",
+     "b74ef195-c778-58ad-bd2f-6b36967c4764",
+     "acf70cf2-2e47-5c9f-81b2-e4efc07631e7",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "b2d49097-8c8a-50d5-b09a-021e06aaede8",
+    "target_key": [
+     "spells.casting_spells",
+     "class_spell_lists",
+     "1f99a0c8-62b6-52a7-bc3b-2f78aaead024",
+     "b2d49097-8c8a-50d5-b09a-021e06aaede8",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "b607b479-ad31-5afc-8c83-358a2807db6b",
+    "target_key": [
+     "glossary.cylinder",
+     "cylinder",
+     "5e2e2c99-b8f3-50b2-a8e8-e7efc7848512",
+     "b607b479-ad31-5afc-8c83-358a2807db6b",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "bf12d8e3-ff8b-5f53-99f3-c3c9e3e516c9",
+    "target_key": [
+     "glossary.cylinder",
+     "cylinder",
+     "c0f06148-4bca-57ee-bf85-49c7c6a14d33",
+     "bf12d8e3-ff8b-5f53-99f3-c3c9e3e516c9",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "c135e485-f0a2-5a3a-8e9d-7e54aa305625",
+    "target_key": [
+     "spells.components",
+     "material",
+     "1351d4e3-9493-594b-8652-77f4f49942ed",
+     "c135e485-f0a2-5a3a-8e9d-7e54aa305625",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "c501481f-aba6-5288-a72c-70f215598909",
+    "target_key": [
+     "spells.duration",
+     "time_span",
+     "2eaba028-bbf8-512f-b953-755c9660d480",
+     "c501481f-aba6-5288-a72c-70f215598909",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "cb16d147-ac9e-5498-aa02-10dcfb85e776",
+    "target_key": [
+     "glossary.emanation",
+     "emanation",
+     "65977f15-32cc-56fe-8fe5-c22d9a6a2d8b",
+     "cb16d147-ac9e-5498-aa02-10dcfb85e776",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "d2d4bcfe-0ae9-5e33-812e-19e48a5cd3f8",
+    "target_key": [
+     "spells.casting_spells",
+     "higher_level_slot",
+     "2dee3378-5c82-5568-90dc-2b40dba59732",
+     "d2d4bcfe-0ae9-5e33-812e-19e48a5cd3f8",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "d2dd290e-07d1-5f16-a0a4-1748af84f08b",
+    "target_key": [
+     "glossary.line",
+     "line",
+     "b23e6205-43ff-5e74-a669-51c10ec409fe",
+     "d2dd290e-07d1-5f16-a0a4-1748af84f08b",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "d9988fc2-6528-5c2a-a6df-8c29c12270ee",
+    "target_key": [
+     "spells.duration",
+     "concentration",
+     "e98287bd-f539-58b9-adc4-568629ebd0e5",
+     "d9988fc2-6528-5c2a-a6df-8c29c12270ee",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "dfa69ced-6013-5cab-b741-0ec516c13f98",
+    "target_key": [
+     "spells.components",
+     "somatic",
+     "789a5a7a-36f2-5965-8fda-a4d7117ad90b",
+     "dfa69ced-6013-5cab-b741-0ec516c13f98",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "dfb51af4-110d-5ce9-811c-01042f440a96",
+    "target_key": [
+     "spells.casting_spells",
+     "spell_slots",
+     "e0f0e519-d0f1-560a-ac28-f6c8c339ab01",
+     "dfb51af4-110d-5ce9-811c-01042f440a96",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "e8767730-be97-5c57-8aed-f5a1446018cb",
+    "target_key": [
+     "spells.casting_time",
+     "casting_time",
+     "f35fa4d7-40ac-5080-8bf1-7196d9b4fd6e",
+     "e8767730-be97-5c57-8aed-f5a1446018cb",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "ed086b15-4e8e-590a-81bd-12ffae9047da",
+    "target_key": [
+     "glossary.cube",
+     "cube",
+     "33c512bb-f044-5aa5-96e9-0331d753ea68",
+     "ed086b15-4e8e-590a-81bd-12ffae9047da",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "ed12e086-eae6-5b2f-8daf-eeeed64b9cb2",
+    "target_key": [
+     "spells.gaining_spells",
+     "preparing_spells",
+     "e5f44d5f-3dbb-577e-8188-5522bf8b6734",
+     "ed12e086-eae6-5b2f-8daf-eeeed64b9cb2",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "ed82372f-9256-5fce-9f13-48215eb32f7a",
+    "target_key": [
+     "spells.casting_spells",
+     "cantrips",
+     "548ca792-1b69-5c5c-a136-d612b7e7b05b",
+     "ed82372f-9256-5fce-9f13-48215eb32f7a",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "efe64743-e3a0-56f7-973e-acf21962234d",
+    "target_key": [
+     "spells.components",
+     "verbal",
+     "28a3c039-cc2f-53f8-a149-108064b88ca2",
+     "efe64743-e3a0-56f7-973e-acf21962234d",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "f5d72425-84b2-5610-adc0-6373829bee68",
+    "target_key": [
+     "spells.range",
+     "range",
+     "5760e87b-2207-5cdf-abb5-e3ea7f1529e2",
+     "f5d72425-84b2-5610-adc0-6373829bee68",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "f8c4e609-c7f7-5e17-9932-1aa1ec10d3b7",
+    "target_key": [
+     "spells.duration",
+     "duration",
+     "08be458d-909a-540c-8168-8a252cfa28ca",
+     "f8c4e609-c7f7-5e17-9932-1aa1ec10d3b7",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "f9d28290-3f4b-50d4-a508-f33b3c0c9e1e",
+    "target_key": [
+     "spells.attack_rolls",
+     "spell_attack_modifier",
+     "34fe7dd0-14c9-5486-83e5-f2d602758a17",
+     "f9d28290-3f4b-50d4-a508-f33b3c0c9e1e",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   },
+   {
+    "role": "primary",
+    "span_id": "fa56165a-9499-54a5-a2be-791a907501b7",
+    "target_key": [
+     "spells.casting_time",
+     "longer_casting_times",
+     "0d8d1f21-5764-544d-a5d9-3a3ec0d01b40",
+     "fa56165a-9499-54a5-a2be-791a907501b7",
+     "no_identified_structured_use"
+    ],
+    "target_kind": "prose_binding"
+   }
+  ],
+  "records": [
+   {
+    "kind": "general_rule",
+    "parent_key": null,
+    "semantic_key": "spells.attack_rolls"
+   },
+   {
+    "kind": "general_rule",
+    "parent_key": null,
+    "semantic_key": "spells.casting_spells"
+   },
+   {
+    "kind": "general_rule",
+    "parent_key": null,
+    "semantic_key": "spells.casting_time"
+   },
+   {
+    "kind": "general_rule",
+    "parent_key": null,
+    "semantic_key": "spells.combining_spell_effects"
+   },
+   {
+    "kind": "general_rule",
+    "parent_key": null,
+    "semantic_key": "spells.components"
+   },
+   {
+    "kind": "general_rule",
+    "parent_key": null,
+    "semantic_key": "spells.duration"
+   },
+   {
+    "kind": "general_rule",
+    "parent_key": null,
+    "semantic_key": "spells.effects"
+   },
+   {
+    "kind": "general_rule",
+    "parent_key": null,
+    "semantic_key": "spells.gaining_spells"
+   },
+   {
+    "kind": "general_rule",
+    "parent_key": null,
+    "semantic_key": "spells.range"
+   },
+   {
+    "kind": "general_rule",
+    "parent_key": null,
+    "semantic_key": "spells.saving_throws"
+   },
+   {
+    "kind": "general_rule",
+    "parent_key": null,
+    "semantic_key": "spells.targets"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.area_of_effect"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.cone"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.cover"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.cube"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.cylinder"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.emanation"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.line"
+   },
+   {
+    "kind": "glossary_rule",
+    "parent_key": null,
+    "semantic_key": "glossary.sphere"
+   }
+  ],
+  "references": [
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.area_of_effect",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Cover",
+    "target_record_key": "glossary.cover"
+   },
+   {
+    "from_component_key": "",
+    "from_record_key": "glossary.cover",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "source_text": "Combat",
+    "target_record_key": "play.combat"
+   },
+   {
+    "from_component_key": "area_of_effect",
+    "from_record_key": "glossary.area_of_effect",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Cone",
+    "target_record_key": "glossary.cone"
+   },
+   {
+    "from_component_key": "area_of_effect",
+    "from_record_key": "glossary.area_of_effect",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Cube",
+    "target_record_key": "glossary.cube"
+   },
+   {
+    "from_component_key": "area_of_effect",
+    "from_record_key": "glossary.area_of_effect",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Cylinder",
+    "target_record_key": "glossary.cylinder"
+   },
+   {
+    "from_component_key": "area_of_effect",
+    "from_record_key": "glossary.area_of_effect",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Emanation",
+    "target_record_key": "glossary.emanation"
+   },
+   {
+    "from_component_key": "area_of_effect",
+    "from_record_key": "glossary.area_of_effect",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Line",
+    "target_record_key": "glossary.line"
+   },
+   {
+    "from_component_key": "area_of_effect",
+    "from_record_key": "glossary.area_of_effect",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Sphere",
+    "target_record_key": "glossary.sphere"
+   },
+   {
+    "from_component_key": "areas_of_effect",
+    "from_record_key": "spells.targets",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Cone",
+    "target_record_key": "glossary.cone"
+   },
+   {
+    "from_component_key": "areas_of_effect",
+    "from_record_key": "spells.targets",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Cube",
+    "target_record_key": "glossary.cube"
+   },
+   {
+    "from_component_key": "areas_of_effect",
+    "from_record_key": "spells.targets",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Cylinder",
+    "target_record_key": "glossary.cylinder"
+   },
+   {
+    "from_component_key": "areas_of_effect",
+    "from_record_key": "spells.targets",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Emanation",
+    "target_record_key": "glossary.emanation"
+   },
+   {
+    "from_component_key": "areas_of_effect",
+    "from_record_key": "spells.targets",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Line",
+    "target_record_key": "glossary.line"
+   },
+   {
+    "from_component_key": "areas_of_effect",
+    "from_record_key": "spells.targets",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Sphere",
+    "target_record_key": "glossary.sphere"
+   },
+   {
+    "from_component_key": "areas_of_effect",
+    "from_record_key": "spells.targets",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "area of effect",
+    "target_record_key": "glossary.area_of_effect"
+   },
+   {
+    "from_component_key": "casting_time",
+    "from_record_key": "spells.casting_time",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Magic action",
+    "target_record_key": "glossary.magic"
+   },
+   {
+    "from_component_key": "clear_path",
+    "from_record_key": "spells.targets",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Total Cover",
+    "target_record_key": "glossary.cover"
+   },
+   {
+    "from_component_key": "component_pouch_and_focus",
+    "from_record_key": "spells.components",
+    "scope_key": "srd-5.2.1/equipment",
+    "source_text": "Component Pouch",
+    "target_record_key": ""
+   },
+   {
+    "from_component_key": "component_pouch_and_focus",
+    "from_record_key": "spells.components",
+    "scope_key": "srd-5.2.1/equipment",
+    "source_text": "Equipment",
+    "target_record_key": ""
+   },
+   {
+    "from_component_key": "concentration",
+    "from_record_key": "spells.duration",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Concentration",
+    "target_record_key": "glossary.concentration"
+   },
+   {
+    "from_component_key": "cone",
+    "from_record_key": "glossary.cone",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "area of effect",
+    "target_record_key": "glossary.area_of_effect"
+   },
+   {
+    "from_component_key": "cube",
+    "from_record_key": "glossary.cube",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "area of effect",
+    "target_record_key": "glossary.area_of_effect"
+   },
+   {
+    "from_component_key": "cylinder",
+    "from_record_key": "glossary.cylinder",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "area of effect",
+    "target_record_key": "glossary.area_of_effect"
+   },
+   {
+    "from_component_key": "effects",
+    "from_record_key": "spells.effects",
+    "scope_key": "srd-5.2.1/spells",
+    "source_text": "attack rolls",
+    "target_record_key": "spells.attack_rolls"
+   },
+   {
+    "from_component_key": "effects",
+    "from_record_key": "spells.effects",
+    "scope_key": "srd-5.2.1/spells",
+    "source_text": "saving throws",
+    "target_record_key": "spells.saving_throws"
+   },
+   {
+    "from_component_key": "effects",
+    "from_record_key": "spells.effects",
+    "scope_key": "srd-5.2.1/spells",
+    "source_text": "targets",
+    "target_record_key": "spells.targets"
+   },
+   {
+    "from_component_key": "emanation",
+    "from_record_key": "glossary.emanation",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "area of effect",
+    "target_record_key": "glossary.area_of_effect"
+   },
+   {
+    "from_component_key": "identifying_an_ongoing_spell",
+    "from_record_key": "spells.combining_spell_effects",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Study action",
+    "target_record_key": "glossary.study"
+   },
+   {
+    "from_component_key": "line",
+    "from_record_key": "glossary.line",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "area of effect",
+    "target_record_key": "glossary.area_of_effect"
+   },
+   {
+    "from_component_key": "longer_casting_times",
+    "from_record_key": "spells.casting_time",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Concentration",
+    "target_record_key": "glossary.concentration"
+   },
+   {
+    "from_component_key": "longer_casting_times",
+    "from_record_key": "spells.casting_time",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Magic action",
+    "target_record_key": "glossary.magic"
+   },
+   {
+    "from_component_key": "one_slot_per_turn",
+    "from_record_key": "spells.casting_time",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Magic action",
+    "target_record_key": "glossary.magic"
+   },
+   {
+    "from_component_key": "point_of_origin",
+    "from_record_key": "glossary.area_of_effect",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Total Cover",
+    "target_record_key": "glossary.cover"
+   },
+   {
+    "from_component_key": "slot_recovery",
+    "from_record_key": "spells.casting_spells",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Long Rest",
+    "target_record_key": "glossary.long_rest"
+   },
+   {
+    "from_component_key": "spell_attack_modifier",
+    "from_record_key": "spells.attack_rolls",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "attack roll",
+    "target_record_key": "glossary.attack_roll"
+   },
+   {
+    "from_component_key": "sphere",
+    "from_record_key": "glossary.sphere",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "area of effect",
+    "target_record_key": "glossary.area_of_effect"
+   },
+   {
+    "from_component_key": "targeting_yourself",
+    "from_record_key": "spells.targets",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Hostile",
+    "target_record_key": "glossary.hostile"
+   },
+   {
+    "from_component_key": "time_span",
+    "from_record_key": "spells.duration",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "Incapacitated",
+    "target_record_key": "glossary.incapacitated"
+   },
+   {
+    "from_component_key": "touch",
+    "from_record_key": "spells.range",
+    "scope_key": "srd-5.2.1/rules-glossary",
+    "source_text": "reach",
+    "target_record_key": "glossary.reach"
+   }
+  ],
+  "relationships": []
+ },
+ "proposed_review_units": [
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "d8e2289d-0b58-52e0-9f79-0103c0d9e3a5"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "area_of_effect",
+     "record_key": "glossary.area_of_effect",
+     "source_span_ids": [
+      "0b7c7b66-82f2-52a2-a2a3-a93aab04de0a",
+      "a7491809-dc19-5056-a4f3-cd1fca4e0190"
+     ]
+    },
+    {
+     "component_key": "point_of_origin",
+     "record_key": "glossary.area_of_effect",
+     "source_span_ids": [
+      "aa6ac5b6-4e33-58dd-98bb-c84d97654dec"
+     ]
+    },
+    {
+     "component_key": "unseen_point",
+     "record_key": "glossary.area_of_effect",
+     "source_span_ids": [
+      "3b3f0af5-0228-54f8-ae04-c897fc8e355a"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "87771fad-784a-574d-bc8e-86d5b41c80ab",
+    "b806e7df-85ae-555d-9591-abce3af0c16a",
+    "cbff3f8c-d56b-5bc4-bd49-24c88179a971",
+    "d8e2289d-0b58-52e0-9f79-0103c0d9e3a5",
+    "ff5a1b3c-9bf5-5154-ad96-afc715d3cf28"
+   ],
+   "supporting_groups": [],
+   "unit_id": "spellcasting/area_of_effect"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "a93cde50-eae9-5d1c-8fb3-671c6653379b"
+     ],
+     "reason": "section heading: names the section and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "spell_attack_modifier",
+     "record_key": "spells.attack_rolls",
+     "source_span_ids": [
+      "9faf15a7-61db-55d5-8bb4-c6594c33529c",
+      "f9d28290-3f4b-50d4-a508-f33b3c0c9e1e"
+     ]
+    }
+   ],
+   "kind": "section",
+   "leaf_ids": [
+    "67991af8-4baf-508a-95f3-f87d841be866",
+    "a93cde50-eae9-5d1c-8fb3-671c6653379b",
+    "ed2f35b1-5dd8-5b89-bd1b-ba3b776be534"
+   ],
+   "supporting_groups": [],
+   "unit_id": "spellcasting/attack_rolls"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "2c916055-6e41-5ab0-ab4e-58718b0602e8"
+     ],
+     "reason": "section heading: names the section and states no rule"
+    },
+    {
+     "leaf_ids": [
+      "00883a68-df38-548c-ac5e-da769ef8195e",
+      "0a18ba71-7b12-5434-ab9a-46562043e8ed",
+      "d4c1c671-2adb-58a2-a0f7-146e0bcf4346",
+      "dec0f7f7-da35-5c40-8f94-e3b594da325f",
+      "e182b3d2-79e2-5a80-a798-8e001d7d622d",
+      "ef5f484b-51e4-57a6-abdd-e58a655975dd"
+     ],
+     "reason": "subsection heading: names a subsection and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "cantrips",
+     "record_key": "spells.casting_spells",
+     "source_span_ids": [
+      "ed82372f-9256-5fce-9f13-48215eb32f7a"
+     ]
+    },
+    {
+     "component_key": "casting_in_armor",
+     "record_key": "spells.casting_spells",
+     "source_span_ids": [
+      "3adb7ff5-c5b6-57cd-a370-b0c6ffcf7f1a"
+     ]
+    },
+    {
+     "component_key": "casting_without_slots",
+     "record_key": "spells.casting_spells",
+     "source_span_ids": [
+      "5541a141-9947-54a8-9b9f-929c8ac87f8d"
+     ]
+    },
+    {
+     "component_key": "class_spell_lists",
+     "record_key": "spells.casting_spells",
+     "source_span_ids": [
+      "b2d49097-8c8a-50d5-b09a-021e06aaede8"
+     ]
+    },
+    {
+     "component_key": "higher_level_slot",
+     "record_key": "spells.casting_spells",
+     "source_span_ids": [
+      "d2d4bcfe-0ae9-5e33-812e-19e48a5cd3f8"
+     ]
+    },
+    {
+     "component_key": "magic_items",
+     "record_key": "spells.casting_spells",
+     "source_span_ids": [
+      "1b275047-f243-578e-9c8f-26f8694fd5cf"
+     ]
+    },
+    {
+     "component_key": "rituals",
+     "record_key": "spells.casting_spells",
+     "source_span_ids": [
+      "9d74735f-33fd-5e18-b6c6-c316c22777a1"
+     ]
+    },
+    {
+     "component_key": "school_of_magic",
+     "record_key": "spells.casting_spells",
+     "source_span_ids": [
+      "74c1cd04-3ea9-5241-bfeb-462fbd167c98",
+      "a5641299-19dd-5d15-9b5f-6a9c8033ce37"
+     ]
+    },
+    {
+     "component_key": "slot_recovery",
+     "record_key": "spells.casting_spells",
+     "source_span_ids": [
+      "550ee4eb-12be-5f7b-821c-7cc2131997f5"
+     ]
+    },
+    {
+     "component_key": "special_abilities",
+     "record_key": "spells.casting_spells",
+     "source_span_ids": [
+      "86486ffa-a01d-5420-afcb-9cf070f31918"
+     ]
+    },
+    {
+     "component_key": "spell_level",
+     "record_key": "spells.casting_spells",
+     "source_span_ids": [
+      "a89a78cc-e620-5bcc-ba94-19a8c3d4a21e"
+     ]
+    },
+    {
+     "component_key": "spell_slots",
+     "record_key": "spells.casting_spells",
+     "source_span_ids": [
+      "716233f1-b3df-5243-a3ef-491936b69a24",
+      "dfb51af4-110d-5ce9-811c-01042f440a96"
+     ]
+    }
+   ],
+   "kind": "section",
+   "leaf_ids": [
+    "00883a68-df38-548c-ac5e-da769ef8195e",
+    "0469c5e3-f77c-57ac-a834-8c7d15cd3bb0",
+    "071d6918-836d-55a0-905c-250985dd6019",
+    "0a18ba71-7b12-5434-ab9a-46562043e8ed",
+    "1348997c-5cac-57fd-9ac9-103d5b30b1ac",
+    "2c916055-6e41-5ab0-ab4e-58718b0602e8",
+    "40bc6181-de91-53e7-b4a4-b722ab311c45",
+    "513b45e5-1bbe-5b45-b4ba-dd08e4672595",
+    "5ecc8ac0-32f5-5e9c-8772-e9b047aa83c6",
+    "6e946662-90f6-5e84-9474-2266b5d39972",
+    "8a656b62-6e4f-5a32-a45f-539f25d75710",
+    "8acbf9ac-43e2-5c47-a9ac-6ba7ec9f3de5",
+    "90f8ea37-d2db-5d37-843c-2c605468a055",
+    "9a28525b-b0b0-5dc3-8bfe-10e960317155",
+    "d4c1c671-2adb-58a2-a0f7-146e0bcf4346",
+    "dec0f7f7-da35-5c40-8f94-e3b594da325f",
+    "e182b3d2-79e2-5a80-a798-8e001d7d622d",
+    "e5a30df0-2608-549b-b490-967d0bfeb198",
+    "ef5f484b-51e4-57a6-abdd-e58a655975dd",
+    "f2e8e65b-093d-5571-b405-7d43d83117a5",
+    "f3afae93-ed9d-5e4f-ba46-bfb4d6e92564",
+    "f5ca46b9-8835-540f-a90f-0bb2dadb707a"
+   ],
+   "supporting_groups": [
+    {
+     "leaf_ids": [
+      "40bc6181-de91-53e7-b4a4-b722ab311c45"
+     ],
+     "supports_component_key": "",
+     "supports_record_key": "spells.casting_spells"
+    }
+   ],
+   "unit_id": "spellcasting/casting_spells"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "10579df7-9a9d-52c0-a02a-2475cae560c0"
+     ],
+     "reason": "section heading: names the section and states no rule"
+    },
+    {
+     "leaf_ids": [
+      "224959d4-a9bc-5186-a22e-b6769f40130a",
+      "b56ac3c8-a592-508b-8637-03b15afe4591",
+      "d71f2790-088c-56cd-a2f8-6bbb0cdae438"
+     ],
+     "reason": "subsection heading: names a subsection and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "casting_time",
+     "record_key": "spells.casting_time",
+     "source_span_ids": [
+      "e8767730-be97-5c57-8aed-f5a1446018cb"
+     ]
+    },
+    {
+     "component_key": "longer_casting_times",
+     "record_key": "spells.casting_time",
+     "source_span_ids": [
+      "fa56165a-9499-54a5-a2be-791a907501b7"
+     ]
+    },
+    {
+     "component_key": "one_slot_per_turn",
+     "record_key": "spells.casting_time",
+     "source_span_ids": [
+      "4a04bab5-0fe4-5df9-976e-9f69b0ae6fae"
+     ]
+    },
+    {
+     "component_key": "triggers",
+     "record_key": "spells.casting_time",
+     "source_span_ids": [
+      "40686c3a-fc78-5c32-9428-594ea7b67f82"
+     ]
+    }
+   ],
+   "kind": "section",
+   "leaf_ids": [
+    "084cd171-58ed-565d-82cf-826cb2830697",
+    "10579df7-9a9d-52c0-a02a-2475cae560c0",
+    "224959d4-a9bc-5186-a22e-b6769f40130a",
+    "64be4a47-11b1-57d9-9c47-d6a79b45f54e",
+    "67b26541-fb5d-5eac-bc1e-9c45b71e660f",
+    "b56ac3c8-a592-508b-8637-03b15afe4591",
+    "ca3694b5-6d65-5f86-add1-3f9e0fc3db95",
+    "d71f2790-088c-56cd-a2f8-6bbb0cdae438"
+   ],
+   "supporting_groups": [],
+   "unit_id": "spellcasting/casting_time"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "0dd1ff15-c35c-53af-bd5c-8cd3a5913945"
+     ],
+     "reason": "section heading: names the section and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "combining_spell_effects",
+     "record_key": "spells.combining_spell_effects",
+     "source_span_ids": [
+      "1f2778fb-55c5-560d-b42d-e79fff7ef04f"
+     ]
+    },
+    {
+     "component_key": "identifying_an_ongoing_spell",
+     "record_key": "spells.combining_spell_effects",
+     "source_span_ids": [
+      "15f1c5c1-4c89-5cf4-8362-e8821b93372a"
+     ]
+    }
+   ],
+   "kind": "section",
+   "leaf_ids": [
+    "0dd1ff15-c35c-53af-bd5c-8cd3a5913945",
+    "a7b789f8-779d-56c9-aae1-6bd1006b646e",
+    "fe14677b-6e05-5216-b28d-0ca81d9002a5"
+   ],
+   "supporting_groups": [],
+   "unit_id": "spellcasting/combining_spell_effects"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "bdb7a762-814a-52c9-b7de-e94195131bc0"
+     ],
+     "reason": "section heading: names the section and states no rule"
+    },
+    {
+     "leaf_ids": [
+      "18348fa0-af91-5b9a-975a-95c77b7ae29c",
+      "257b4c85-6a31-587a-90ac-8e22513605ea",
+      "d757e542-244e-591c-bd2b-4b65264421fb"
+     ],
+     "reason": "subsection heading: names a subsection and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "component_pouch_and_focus",
+     "record_key": "spells.components",
+     "source_span_ids": [
+      "32591758-96b7-53a5-8ef7-db655b3c2372"
+     ]
+    },
+    {
+     "component_key": "components",
+     "record_key": "spells.components",
+     "source_span_ids": [
+      "6cdb03f5-fda3-5bf1-890c-8411d8f01b00"
+     ]
+    },
+    {
+     "component_key": "material",
+     "record_key": "spells.components",
+     "source_span_ids": [
+      "c135e485-f0a2-5a3a-8e9d-7e54aa305625"
+     ]
+    },
+    {
+     "component_key": "somatic",
+     "record_key": "spells.components",
+     "source_span_ids": [
+      "dfa69ced-6013-5cab-b741-0ec516c13f98"
+     ]
+    },
+    {
+     "component_key": "verbal",
+     "record_key": "spells.components",
+     "source_span_ids": [
+      "efe64743-e3a0-56f7-973e-acf21962234d"
+     ]
+    }
+   ],
+   "kind": "section",
+   "leaf_ids": [
+    "18348fa0-af91-5b9a-975a-95c77b7ae29c",
+    "257b4c85-6a31-587a-90ac-8e22513605ea",
+    "323c2d87-685f-5a6d-9bb3-a87f04241283",
+    "3ad9bd14-6535-5154-a219-9116054007eb",
+    "41700583-e194-5ef2-8d84-4006e1bb18e8",
+    "a6613eea-80dd-55a2-8559-369f98b489fb",
+    "bdb7a762-814a-52c9-b7de-e94195131bc0",
+    "d757e542-244e-591c-bd2b-4b65264421fb",
+    "e2774293-8d5d-5207-ac1e-121c449c5838"
+   ],
+   "supporting_groups": [],
+   "unit_id": "spellcasting/components"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "cc49a2a9-1cc1-5f4b-8414-10c84cdf316b"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "cone",
+     "record_key": "glossary.cone",
+     "source_span_ids": [
+      "03034186-1d94-52db-bb24-eac7a86316bb",
+      "23d01f6b-5db0-556e-94d0-2368c78432cb"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "b853af68-5900-5d26-9156-3989fa5e87e3",
+    "cc49a2a9-1cc1-5f4b-8414-10c84cdf316b",
+    "e74877b4-1b4f-5521-b5cf-5c48fec844fe"
+   ],
+   "supporting_groups": [],
+   "unit_id": "spellcasting/cone"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "9fc86d87-c73f-5cc9-9625-56b08991cd7f"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "cover",
+     "record_key": "glossary.cover",
+     "source_span_ids": [
+      "496d70b3-9469-5cec-acef-861e446f2d8f"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "86d8dd78-4dbc-5d21-a71e-37a8d9e2f03e",
+    "9fc86d87-c73f-5cc9-9625-56b08991cd7f"
+   ],
+   "supporting_groups": [],
+   "unit_id": "spellcasting/cover"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "2733e973-45f3-5abd-8293-e3775703e5b0"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "cube",
+     "record_key": "glossary.cube",
+     "source_span_ids": [
+      "36303b7f-241d-58ab-8e69-4445638cf660",
+      "ed086b15-4e8e-590a-81bd-12ffae9047da"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "2733e973-45f3-5abd-8293-e3775703e5b0",
+    "58f2e439-79c7-5522-9c89-77ede6d26af1",
+    "c9a6ab25-8aad-5eb7-90a7-5edcd61bb83a"
+   ],
+   "supporting_groups": [],
+   "unit_id": "spellcasting/cube"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "9b634071-45fe-5142-9da5-301a5d1138ca"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "cylinder",
+     "record_key": "glossary.cylinder",
+     "source_span_ids": [
+      "b607b479-ad31-5afc-8c83-358a2807db6b",
+      "bf12d8e3-ff8b-5f53-99f3-c3c9e3e516c9"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "7a3bcef5-8940-59a2-b5b5-8ff38a83f476",
+    "9b634071-45fe-5142-9da5-301a5d1138ca",
+    "fdaaa532-34fb-5326-b8c9-0010297c65f1"
+   ],
+   "supporting_groups": [],
+   "unit_id": "spellcasting/cylinder"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "1d06eeb2-6700-58dd-88e2-7ea71cf75d9c"
+     ],
+     "reason": "section heading: names the section and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "concentration",
+     "record_key": "spells.duration",
+     "source_span_ids": [
+      "d9988fc2-6528-5c2a-a6df-8c29c12270ee"
+     ]
+    },
+    {
+     "component_key": "duration",
+     "record_key": "spells.duration",
+     "source_span_ids": [
+      "f8c4e609-c7f7-5e17-9932-1aa1ec10d3b7"
+     ]
+    },
+    {
+     "component_key": "instantaneous",
+     "record_key": "spells.duration",
+     "source_span_ids": [
+      "1c8d9145-9968-5885-806a-0c068c60277a"
+     ]
+    },
+    {
+     "component_key": "time_span",
+     "record_key": "spells.duration",
+     "source_span_ids": [
+      "c501481f-aba6-5288-a72c-70f215598909"
+     ]
+    }
+   ],
+   "kind": "section",
+   "leaf_ids": [
+    "1d06eeb2-6700-58dd-88e2-7ea71cf75d9c",
+    "2a9f8249-e343-5ae9-9c2c-a76e3b55cef8",
+    "3c1bb905-293d-51a5-9ee5-dcb8167d6696",
+    "e686842b-5121-5928-9202-f4991f23146e",
+    "f83c21b8-3355-5204-9aff-5084f2b5044d"
+   ],
+   "supporting_groups": [],
+   "unit_id": "spellcasting/duration"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "434b8880-5c12-53d0-a888-07929de6af44"
+     ],
+     "reason": "section heading: names the section and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "effects",
+     "record_key": "spells.effects",
+     "source_span_ids": [
+      "029e130d-1afb-5db4-b3b1-e06e4537b5db"
+     ]
+    }
+   ],
+   "kind": "section",
+   "leaf_ids": [
+    "0abf7b44-01a0-562c-bc34-71f1eea6c102",
+    "434b8880-5c12-53d0-a888-07929de6af44"
+   ],
+   "supporting_groups": [],
+   "unit_id": "spellcasting/effects"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "ba1c875e-27e7-58e7-9f73-570554da3c54"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "emanation",
+     "record_key": "glossary.emanation",
+     "source_span_ids": [
+      "5ccd8140-fdf9-53a4-83a0-06122ab8b3f9",
+      "70a78df3-345e-5fd0-89d7-4cc1b8be7cad",
+      "cb16d147-ac9e-5498-aa02-10dcfb85e776"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "5ce11859-8152-5404-80aa-6a45815888f0",
+    "ba1c875e-27e7-58e7-9f73-570554da3c54",
+    "d1cc8e1c-bd44-5cb8-bc93-d4b66ed25381",
+    "d524847e-c340-5884-98da-955045c33443"
+   ],
+   "supporting_groups": [],
+   "unit_id": "spellcasting/emanation"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "495df5d7-eb1f-5168-8119-b578bc1336cd"
+     ],
+     "reason": "section heading: names the section and states no rule"
+    },
+    {
+     "leaf_ids": [
+      "162b324d-8368-5b64-978c-b44ee6b9a5ca",
+      "8c03a7d1-1ea0-5a57-9a05-e1033955f9a1"
+     ],
+     "reason": "subsection heading: names a subsection and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "always_prepared_spells",
+     "record_key": "spells.gaining_spells",
+     "source_span_ids": [
+      "6ee9e7e4-4129-58ac-acb9-f80e99b0dc8b"
+     ]
+    },
+    {
+     "component_key": "gaining_spells",
+     "record_key": "spells.gaining_spells",
+     "source_span_ids": [
+      "8b8f3fa9-ff35-58e7-98a3-1ee6c3ca7339"
+     ]
+    },
+    {
+     "component_key": "monster_prepared_spells",
+     "record_key": "spells.gaining_spells",
+     "source_span_ids": [
+      "651ca6eb-9629-5158-a506-391a5f1db302"
+     ]
+    },
+    {
+     "component_key": "preparing_spells",
+     "record_key": "spells.gaining_spells",
+     "source_span_ids": [
+      "7058aebc-f4b1-53d5-9cd0-6d6dd4465414",
+      "ed12e086-eae6-5b2f-8daf-eeeed64b9cb2"
+     ]
+    }
+   ],
+   "kind": "section",
+   "leaf_ids": [
+    "07a82b5b-ed5b-5982-a628-39e95d9e4142",
+    "162b324d-8368-5b64-978c-b44ee6b9a5ca",
+    "495df5d7-eb1f-5168-8119-b578bc1336cd",
+    "833e956b-a3d5-50e3-ab58-e9ebbde5acfc",
+    "8c03a7d1-1ea0-5a57-9a05-e1033955f9a1",
+    "949cafc5-9894-5d00-a9c2-daa187da6cf1",
+    "e894c083-a222-5c7b-96ac-51cbc376bdb4",
+    "f4d20dbf-2618-530d-a905-14675d84873b"
+   ],
+   "supporting_groups": [],
+   "unit_id": "spellcasting/gaining_spells"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "c7b99789-f1f1-5f7a-8098-2cc34bb19a38"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "line",
+     "record_key": "glossary.line",
+     "source_span_ids": [
+      "1f8bb4a4-9403-50c0-bcdb-7328eaea67cc",
+      "d2dd290e-07d1-5f16-a0a4-1748af84f08b"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "3270532a-e5e8-5324-baf7-5268d076a619",
+    "87014e21-9f39-52e3-9005-af0afc37e867",
+    "c7b99789-f1f1-5f7a-8098-2cc34bb19a38"
+   ],
+   "supporting_groups": [],
+   "unit_id": "spellcasting/line"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "346868d8-107c-58c1-a15c-7be8d4c6fe17"
+     ],
+     "reason": "section heading: names the section and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "distance",
+     "record_key": "spells.range",
+     "source_span_ids": [
+      "4bbfce43-60cd-52be-aa83-2ffa1db22e19"
+     ]
+    },
+    {
+     "component_key": "movable_effects",
+     "record_key": "spells.range",
+     "source_span_ids": [
+      "162a9780-2c73-5c10-be7b-659d9ed56655"
+     ]
+    },
+    {
+     "component_key": "range",
+     "record_key": "spells.range",
+     "source_span_ids": [
+      "5c1fdf6d-05de-5a77-9669-41c68d0400cf",
+      "f5d72425-84b2-5610-adc0-6373829bee68"
+     ]
+    },
+    {
+     "component_key": "self",
+     "record_key": "spells.range",
+     "source_span_ids": [
+      "03c1220f-78fa-5068-b589-a79406a2d026"
+     ]
+    },
+    {
+     "component_key": "touch",
+     "record_key": "spells.range",
+     "source_span_ids": [
+      "acd7c0ce-29e1-55d5-8c19-262ce29108c0"
+     ]
+    }
+   ],
+   "kind": "section",
+   "leaf_ids": [
+    "12554d4a-1fc7-5db0-8806-d44046437aca",
+    "18ac9e46-e68b-59fa-8f28-e172e74ba872",
+    "346868d8-107c-58c1-a15c-7be8d4c6fe17",
+    "8d9ca01f-c0e2-5240-b2df-fd3d878a3af3",
+    "a80e62cc-8797-5a1a-86ed-aba227a0cc97",
+    "d5903b9e-72c3-5fb2-a75e-37270e4df35b",
+    "fae9461a-7ca5-58f9-a4a8-2486e815d8b4"
+   ],
+   "supporting_groups": [],
+   "unit_id": "spellcasting/range"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "5ce9870d-ef1b-5e13-8ac3-bca1a434e221"
+     ],
+     "reason": "section heading: names the section and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "spell_save_dc",
+     "record_key": "spells.saving_throws",
+     "source_span_ids": [
+      "3f1993c8-df10-5e86-b85f-f361ac6fafac",
+      "84592ffd-b551-596d-9dad-9b373fec1751"
+     ]
+    }
+   ],
+   "kind": "section",
+   "leaf_ids": [
+    "037c7832-49ed-5609-8562-fe780542e057",
+    "5ce9870d-ef1b-5e13-8ac3-bca1a434e221",
+    "ab365cd8-9731-5893-9b53-751b1567ee7d"
+   ],
+   "supporting_groups": [],
+   "unit_id": "spellcasting/saving_throws"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "b4ef4a81-0836-5759-84ac-ccd6cc3bb4af"
+     ],
+     "reason": "entry heading: names the entry and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "sphere",
+     "record_key": "glossary.sphere",
+     "source_span_ids": [
+      "4c8e77d2-d5f0-5512-9131-395f4b0e2c2b",
+      "7468c4fa-652c-59de-85a9-d93d8d6db900"
+     ]
+    }
+   ],
+   "kind": "entry",
+   "leaf_ids": [
+    "75d47082-2eea-51b1-a099-04a66e16ac9e",
+    "b4ef4a81-0836-5759-84ac-ccd6cc3bb4af",
+    "f0511b97-caf3-58df-8ccf-79129941e99a"
+   ],
+   "supporting_groups": [],
+   "unit_id": "spellcasting/sphere"
+  },
+  {
+   "excluded_groups": [
+    {
+     "leaf_ids": [
+      "10bdd3bb-c9f0-569d-b01f-533625b8df96"
+     ],
+     "reason": "section heading: names the section and states no rule"
+    }
+   ],
+   "expected_rules": [
+    {
+     "component_key": "areas_of_effect",
+     "record_key": "spells.targets",
+     "source_span_ids": [
+      "99ed8ee9-fb5c-59f3-aee4-6ed38c0daaab"
+     ]
+    },
+    {
+     "component_key": "awareness_of_being_targeted",
+     "record_key": "spells.targets",
+     "source_span_ids": [
+      "202451cb-bd61-5c7f-b086-e4ef577f7c69"
+     ]
+    },
+    {
+     "component_key": "clear_path",
+     "record_key": "spells.targets",
+     "source_span_ids": [
+      "acf70cf2-2e47-5c9f-81b2-e4efc07631e7"
+     ]
+    },
+    {
+     "component_key": "invalid_targets",
+     "record_key": "spells.targets",
+     "source_span_ids": [
+      "5e3a87b0-aa0c-5ca2-8784-3e1d43790fc6",
+      "72f39972-01a3-5d97-90b1-77a5fa3535a6"
+     ]
+    },
+    {
+     "component_key": "targeting_yourself",
+     "record_key": "spells.targets",
+     "source_span_ids": [
+      "3154acb9-2ff2-5971-841f-8239a0b64567"
+     ]
+    },
+    {
+     "component_key": "targets",
+     "record_key": "spells.targets",
+     "source_span_ids": [
+      "45edfbcd-e6e1-5f44-8c43-08568329e326"
+     ]
+    }
+   ],
+   "kind": "section",
+   "leaf_ids": [
+    "10bdd3bb-c9f0-569d-b01f-533625b8df96",
+    "37771a77-f464-5941-9180-3cc53d5c146e",
+    "48b0a8aa-e3b5-57e3-9699-9744b18bdb92",
+    "6647a69c-d832-5de0-9999-5fdc7bfe4057",
+    "94efe2a8-377f-57cc-a647-5cf1c0b8a89c",
+    "bd938ae6-57aa-5da8-bd9b-adb8bf7f47fa",
+    "df51e88d-158e-52b8-97f0-342e0c6804d3",
+    "f82ecc84-3e19-56f9-807a-0e905dab9337"
+   ],
+   "supporting_groups": [],
+   "unit_id": "spellcasting/targets"
+  }
+ ],
+ "proposed_spans": [
+  {
+   "char_end": 105,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "e894c083-a222-5c7b-96ac-51cbc376bdb4",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "651ca6eb-9629-5158-a506-391a5f1db302"
+  },
+  {
+   "char_end": 113,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "3c1bb905-293d-51a5-9ee5-dcb8167d6696",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "d9988fc2-6528-5c2a-a6df-8c29c12270ee"
+  },
+  {
+   "char_end": 114,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "12554d4a-1fc7-5db0-8806-d44046437aca",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "162a9780-2c73-5c10-be7b-659d9ed56655"
+  },
+  {
+   "char_end": 115,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "e686842b-5121-5928-9202-f4991f23146e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "1c8d9145-9968-5885-806a-0c068c60277a"
+  },
+  {
+   "char_end": 117,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "d524847e-c340-5884-98da-955045c33443",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "70a78df3-345e-5fd0-89d7-4cc1b8be7cad"
+  },
+  {
+   "char_end": 119,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "5ce11859-8152-5404-80aa-6a45815888f0",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "cb16d147-ac9e-5498-aa02-10dcfb85e776"
+  },
+  {
+   "char_end": 131,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "fae9461a-7ca5-58f9-a4a8-2486e815d8b4",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "acd7c0ce-29e1-55d5-8c19-262ce29108c0"
+  },
+  {
+   "char_end": 132,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "2a9f8249-e343-5ae9-9c2c-a76e3b55cef8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "f8c4e609-c7f7-5e17-9932-1aa1ec10d3b7"
+  },
+  {
+   "char_end": 137,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "48b0a8aa-e3b5-57e3-9699-9744b18bdb92",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "acf70cf2-2e47-5c9f-81b2-e4efc07631e7"
+  },
+  {
+   "char_end": 159,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "3ad9bd14-6535-5154-a219-9116054007eb",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "dfa69ced-6013-5cab-b741-0ec516c13f98"
+  },
+  {
+   "char_end": 160,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "67991af8-4baf-508a-95f3-f87d841be866",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "9faf15a7-61db-55d5-8bb4-c6594c33529c"
+  },
+  {
+   "char_end": 170,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "6647a69c-d832-5de0-9999-5fdc7bfe4057",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "3154acb9-2ff2-5971-841f-8239a0b64567"
+  },
+  {
+   "char_end": 175,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "e5a30df0-2608-549b-b490-967d0bfeb198",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "3adb7ff5-c5b6-57cd-a370-b0c6ffcf7f1a"
+  },
+  {
+   "char_end": 176,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "d5903b9e-72c3-5fb2-a75e-37270e4df35b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "5c1fdf6d-05de-5a77-9669-41c68d0400cf"
+  },
+  {
+   "char_end": 184,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "d1cc8e1c-bd44-5cb8-bc93-d4b66ed25381",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "5ccd8140-fdf9-53a4-83a0-06122ab8b3f9"
+  },
+  {
+   "char_end": 184,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "ff5a1b3c-9bf5-5154-ad96-afc715d3cf28",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "a7491809-dc19-5056-a4f3-cd1fca4e0190"
+  },
+  {
+   "char_end": 185,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "084cd171-58ed-565d-82cf-826cb2830697",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "e8767730-be97-5c57-8aed-f5a1446018cb"
+  },
+  {
+   "char_end": 192,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f82ecc84-3e19-56f9-807a-0e905dab9337",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "45edfbcd-e6e1-5f44-8c43-08568329e326"
+  },
+  {
+   "char_end": 199,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "5ecc8ac0-32f5-5e9c-8772-e9b047aa83c6",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "1b275047-f243-578e-9c8f-26f8694fd5cf"
+  },
+  {
+   "char_end": 200,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "bd938ae6-57aa-5da8-bd9b-adb8bf7f47fa",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "5e3a87b0-aa0c-5ca2-8784-3e1d43790fc6"
+  },
+  {
+   "char_end": 203,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "3270532a-e5e8-5324-baf7-5268d076a619",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "d2dd290e-07d1-5f16-a0a4-1748af84f08b"
+  },
+  {
+   "char_end": 205,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "1348997c-5cac-57fd-9ac9-103d5b30b1ac",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "74c1cd04-3ea9-5241-bfeb-462fbd167c98"
+  },
+  {
+   "char_end": 206,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "75d47082-2eea-51b1-a099-04a66e16ac9e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "7468c4fa-652c-59de-85a9-d93d8d6db900"
+  },
+  {
+   "char_end": 206,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "b806e7df-85ae-555d-9591-abce3af0c16a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "0b7c7b66-82f2-52a2-a2a3-a93aab04de0a"
+  },
+  {
+   "char_end": 206,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "c9a6ab25-8aad-5eb7-90a7-5edcd61bb83a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "ed086b15-4e8e-590a-81bd-12ffae9047da"
+  },
+  {
+   "char_end": 211,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "87771fad-784a-574d-bc8e-86d5b41c80ab",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "3b3f0af5-0228-54f8-ae04-c897fc8e355a"
+  },
+  {
+   "char_end": 211,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "949cafc5-9894-5d00-a9c2-daa187da6cf1",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "7058aebc-f4b1-53d5-9cd0-6d6dd4465414"
+  },
+  {
+   "char_end": 211,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "ca3694b5-6d65-5f86-add1-3f9e0fc3db95",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "4a04bab5-0fe4-5df9-976e-9f69b0ae6fae"
+  },
+  {
+   "char_end": 229,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "833e956b-a3d5-50e3-ab58-e9ebbde5acfc",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "6ee9e7e4-4129-58ac-acb9-f80e99b0dc8b"
+  },
+  {
+   "char_end": 235,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "90f8ea37-d2db-5d37-843c-2c605468a055",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "b2d49097-8c8a-50d5-b09a-021e06aaede8"
+  },
+  {
+   "char_end": 241,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "fe14677b-6e05-5216-b28d-0ca81d9002a5",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "15f1c5c1-4c89-5cf4-8362-e8821b93372a"
+  },
+  {
+   "char_end": 245,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "64be4a47-11b1-57d9-9c47-d6a79b45f54e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "40686c3a-fc78-5c32-9428-594ea7b67f82"
+  },
+  {
+   "char_end": 253,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "037c7832-49ed-5609-8562-fe780542e057",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "3f1993c8-df10-5e86-b85f-f361ac6fafac"
+  },
+  {
+   "char_end": 256,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "8a656b62-6e4f-5a32-a45f-539f25d75710",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "86486ffa-a01d-5420-afcb-9cf070f31918"
+  },
+  {
+   "char_end": 260,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "fdaaa532-34fb-5326-b8c9-0010297c65f1",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "b607b479-ad31-5afc-8c83-358a2807db6b"
+  },
+  {
+   "char_end": 285,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "37771a77-f464-5941-9180-3cc53d5c146e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "202451cb-bd61-5c7f-b086-e4ef577f7c69"
+  },
+  {
+   "char_end": 303,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "94efe2a8-377f-57cc-a647-5cf1c0b8a89c",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "72f39972-01a3-5d97-90b1-77a5fa3535a6"
+  },
+  {
+   "char_end": 304,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "6e946662-90f6-5e84-9474-2266b5d39972",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "a89a78cc-e620-5bcc-ba94-19a8c3d4a21e"
+  },
+  {
+   "char_end": 307,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "323c2d87-685f-5a6d-9bb3-a87f04241283",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "6cdb03f5-fda3-5bf1-890c-8411d8f01b00"
+  },
+  {
+   "char_end": 324,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f4d20dbf-2618-530d-a905-14675d84873b",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "8b8f3fa9-ff35-58e7-98a3-1ee6c3ca7339"
+  },
+  {
+   "char_end": 337,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "df51e88d-158e-52b8-97f0-342e0c6804d3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "99ed8ee9-fb5c-59f3-aee4-6ed38c0daaab"
+  },
+  {
+   "char_end": 343,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "0abf7b44-01a0-562c-bc34-71f1eea6c102",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "029e130d-1afb-5db4-b3b1-e06e4537b5db"
+  },
+  {
+   "char_end": 345,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "a6613eea-80dd-55a2-8559-369f98b489fb",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "c135e485-f0a2-5a3a-8e9d-7e54aa305625"
+  },
+  {
+   "char_end": 352,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "0469c5e3-f77c-57ac-a834-8c7d15cd3bb0",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "9d74735f-33fd-5e18-b6c6-c316c22777a1"
+  },
+  {
+   "char_end": 365,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f83c21b8-3355-5204-9aff-5084f2b5044d",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "c501481f-aba6-5288-a72c-70f215598909"
+  },
+  {
+   "char_end": 366,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "513b45e5-1bbe-5b45-b4ba-dd08e4672595",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "716233f1-b3df-5243-a3ef-491936b69a24"
+  },
+  {
+   "char_end": 376,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "cbff3f8c-d56b-5bc4-bd49-24c88179a971",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "aa6ac5b6-4e33-58dd-98bb-c84d97654dec"
+  },
+  {
+   "char_end": 389,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "e74877b4-1b4f-5521-b5cf-5c48fec844fe",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "03034186-1d94-52db-bb24-eac7a86316bb"
+  },
+  {
+   "char_end": 396,
+   "char_start": 377,
+   "disposition": "supporting_authority",
+   "leaf_id": "cbff3f8c-d56b-5bc4-bd49-24c88179a971",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "19177736-52a1-5624-a48e-2c722f3e0260"
+  },
+  {
+   "char_end": 417,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "86d8dd78-4dbc-5d21-a71e-37a8d9e2f03e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "496d70b3-9469-5cec-acef-861e446f2d8f"
+  },
+  {
+   "char_end": 424,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "67b26541-fb5d-5eac-bc1e-9c45b71e660f",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "fa56165a-9499-54a5-a2be-791a907501b7"
+  },
+  {
+   "char_end": 438,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "e2774293-8d5d-5207-ac1e-121c449c5838",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "efe64743-e3a0-56f7-973e-acf21962234d"
+  },
+  {
+   "char_end": 45,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "18ac9e46-e68b-59fa-8f28-e172e74ba872",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "4bbfce43-60cd-52be-aa83-2ffa1db22e19"
+  },
+  {
+   "char_end": 458,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f3afae93-ed9d-5e4f-ba46-bfb4d6e92564",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "d2d4bcfe-0ae9-5e33-812e-19e48a5cd3f8"
+  },
+  {
+   "char_end": 459,
+   "char_start": 418,
+   "disposition": "supporting_authority",
+   "leaf_id": "86d8dd78-4dbc-5d21-a71e-37a8d9e2f03e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "identifies, enumerates or scopes rules stated in this or another entry",
+   "span_id": "61f067d9-5219-54da-a89e-961d153c5e01"
+  },
+  {
+   "char_end": 479,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "8acbf9ac-43e2-5c47-a9ac-6ba7ec9f3de5",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "dfb51af4-110d-5ce9-811c-01042f440a96"
+  },
+  {
+   "char_end": 49,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "a80e62cc-8797-5a1a-86ed-aba227a0cc97",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "f5d72425-84b2-5610-adc0-6373829bee68"
+  },
+  {
+   "char_end": 502,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "41700583-e194-5ef2-8d84-4006e1bb18e8",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "32591758-96b7-53a5-8ef7-db655b3c2372"
+  },
+  {
+   "char_end": 53,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "071d6918-836d-55a0-905c-250985dd6019",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "ed82372f-9256-5fce-9f13-48215eb32f7a"
+  },
+  {
+   "char_end": 56,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "9a28525b-b0b0-5dc3-8bfe-10e960317155",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "550ee4eb-12be-5f7b-821c-7cc2131997f5"
+  },
+  {
+   "char_end": 63,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "7a3bcef5-8940-59a2-b5b5-8ff38a83f476",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "bf12d8e3-ff8b-5f53-99f3-c3c9e3e516c9"
+  },
+  {
+   "char_end": 630,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "a7b789f8-779d-56c9-aae1-6bd1006b646e",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "1f2778fb-55c5-560d-b42d-e79fff7ef04f"
+  },
+  {
+   "char_end": 70,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f0511b97-caf3-58df-8ccf-79129941e99a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "4c8e77d2-d5f0-5512-9131-395f4b0e2c2b"
+  },
+  {
+   "char_end": 70,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f5ca46b9-8835-540f-a90f-0bb2dadb707a",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "5541a141-9947-54a8-9b9f-929c8ac87f8d"
+  },
+  {
+   "char_end": 83,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "ab365cd8-9731-5893-9b53-751b1567ee7d",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "84592ffd-b551-596d-9dad-9b373fec1751"
+  },
+  {
+   "char_end": 87,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "ed2f35b1-5dd8-5b89-bd1b-ba3b776be534",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "f9d28290-3f4b-50d4-a508-f33b3c0c9e1e"
+  },
+  {
+   "char_end": 888,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "f2e8e65b-093d-5571-b405-7d43d83117a5",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "a5641299-19dd-5d15-9b5f-6a9c8033ce37"
+  },
+  {
+   "char_end": 929,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "07a82b5b-ed5b-5982-a628-39e95d9e4142",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "ed12e086-eae6-5b2f-8daf-eeeed64b9cb2"
+  },
+  {
+   "char_end": 96,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "8d9ca01f-c0e2-5240-b2df-fd3d878a3af3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "03c1220f-78fa-5068-b589-a79406a2d026"
+  },
+  {
+   "char_end": 99,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "58f2e439-79c7-5522-9c89-77ede6d26af1",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "36303b7f-241d-58ab-8e69-4445638cf660"
+  },
+  {
+   "char_end": 99,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "87014e21-9f39-52e3-9005-af0afc37e867",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "1f8bb4a4-9403-50c0-bcdb-7328eaea67cc"
+  },
+  {
+   "char_end": 99,
+   "char_start": 0,
+   "disposition": "substantive",
+   "leaf_id": "b853af68-5900-5d26-9156-3989fa5e87e3",
+   "non_mechanical_reason_code": null,
+   "proposal_origin": "issue-5d-spellcasting-generator.py",
+   "rationale": "states a rule of this entry that the representation carries",
+   "span_id": "23d01f6b-5db0-556e-94d0-2368c78432cb"
+  }
+ ],
+ "release_binding": {
+  "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+  "bundle_root_hash": "3da7b5b30e23647c219d1630b5c5051be02b5882d17f0cd13421af8c57754689",
+  "package_uuid": "ebdd9333-eeed-5df1-b3e1-8b97c2f65f80",
+  "persisted_corpus_digest": "df64eb40029576bae61229056f07ccdf025a2a5c2d75aacfefdf88fe596acb02",
+  "release_version": "5.2.1-corpus.574662e9-0ef",
+  "transform_config_hash": "2a7feddf7910684b8427745b9f9ecd5f394382d00955ed7b98920c2e12c0e64d"
+ },
+ "representation_schema": {
+  "hash": "7fb9254b11da1d6772ea6ee72ffde9b5e9d39e8885188777874c65e86ad9a941",
+  "version": "5d-representation-schema-16"
+ },
+ "semantic_policy_hash": "da63b8940c5b3997b44d53e02941389b68e2a2ba35250e73194d38bb1d74cde7",
+ "semantic_policy_version": "5d-semantic-policy-2"
+}

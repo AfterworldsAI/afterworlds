@@ -31,6 +31,7 @@ from afterworlds.persistence.orm.rules_package import (
     RuleSourceORM,
     RulesPackageORM,
 )
+from afterworlds.quarantine import refuse_quarantined
 
 CORPUS_CONTRACT_VERSION = "5c-operational-1"
 
@@ -371,6 +372,11 @@ def load_verified_operational_corpus(
     supported_contract_versions: frozenset[str],
 ) -> OperationalCorpusSnapshot:
     """Verify and return one approved release without historical re-proof."""
+    refuse_quarantined(
+        "operational corpus load",
+        package_uuid=package_uuid,
+        release_version=release_version,
+    )
     violations: list[str] = []
     release = session.get(CorpusReleaseORM, package_uuid)
     package = session.get(RulesPackageORM, package_uuid)

@@ -1,0 +1,7 @@
+# Codex generator probe interpretation — 7 October 2026
+
+`run/probe-generator-identity-2.log` ended with process exit 0, but its script deliberately catches individual generator exceptions and continues. The output reports `animals BUILD FAILED KeyError` and several generated identities differ from the final accepted identities. Exit 0 here proves the reporting probe completed, not that every legacy generator rebuilds current accepted authority.
+
+Classes main already differs in the first probe; class-option-catalogues and Glossary match current accepted identities. Preserve the distinction between historical proposals and later finite-reference acceptance. Do not label every generator/current oracle identity as equal or claim the probe is a complete acceptance gate.
+
+Disposition must follow actual scope: retain useful native source, semantic and failure checks; retire obsolete current-corpus expectations or historical tooling where authorized by the September 21 Owner Decision. Do not silently turn a historical approval into a current one, replace failed source-generation checks with a tautology, or redesign accepted semantics to make obsolete generators reproduce the current oracle. The accepted candidate/oracle and unaffected native evidence remain pinned. Surface a concrete required current-path failure if one exists, rather than broadening into repair of every historical generator.

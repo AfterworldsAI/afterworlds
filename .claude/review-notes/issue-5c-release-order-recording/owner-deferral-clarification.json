@@ -1,0 +1,25 @@
+{
+  "recorded_at": "2026-10-07T06:58:17.522362+00:00",
+  "owner_statement": "I recall deferring vulnerability/dependency errors until after 5c Restart is complete. I do not recall deferring any other error correction.",
+  "correction": "Holding broad verification runs did not authorize deferring discovered non-dependency error correction. The 16 test typing errors remain open restart work to close before completion.",
+  "documents": {
+    "docs/architecture/issue-5c-5d-clean-restart.md": {
+      "before_sha256": "4ef55c7a1078f1be3a5ec2460ffefdfb16d7be0f5b77386d5d7eae709273a42f",
+      "after_sha256": "795e2090b094bc4ebf6d59ba510cc80f8d6caea693abed7ec8a32bb2b2d9563d"
+    },
+    ".claude/review-notes/issue-5c-release-order-recording-codex-review.md": {
+      "before_sha256": "6f41718f36785625c00eb5043728ae8125c32482c596a5dfac8acbcf1b70ea0b",
+      "after_sha256": "092c767292a3010086ebd58c648c0df6ac994738c628db8b038adb16ca0a51b2"
+    },
+    ".claude/review-notes/issue-5c-release-order-recording/recorded-followup.md": {
+      "before_sha256": "63cc50d3de9841b1e6c5402fe662b1ca50e94fa839b74c2806f674d686b3e7c6",
+      "after_sha256": "8fad6b7c0722f550492926e4e1369f07caea9c087b06b8299a5486aaeec4aa4b"
+    }
+  },
+  "accepted_payloads_exact": true,
+  "head_index_stashes_exact": true,
+  "historical_restart_body_exact": true,
+  "prior_gate_receipts_preserved": true,
+  "typing_errors_fixed": false,
+  "new_broad_gate_runs": false
+}

@@ -1,0 +1,378 @@
+[
+ {
+  "fn": "accept_proposal",
+  "batch_id": "conditions-pilot",
+  "proposal_identity": "b6447a9348cd4be1f7072b80dbdbc5b9e8b876b4db4553101e095455f436e4cd",
+  "schema_version": "5d-representation-schema-15",
+  "scope": 79,
+  "review_units": 17,
+  "reviewer": "Ravenlok (Owner)",
+  "accepted_at": "2026-09-28T09:39:56Z"
+ },
+ {
+  "fn": "accept_proposal",
+  "batch_id": "actions-pilot",
+  "proposal_identity": "86d51bf772cb977aded2b43beeee6c34f3bd91816b9af0d05bee8c5a904401d2",
+  "schema_version": "5d-representation-schema-15",
+  "scope": 75,
+  "review_units": 13,
+  "reviewer": "Ravenlok (Owner)",
+  "accepted_at": "2026-09-28T09:39:56Z"
+ },
+ {
+  "fn": "accept_proposal",
+  "batch_id": "reference-closure",
+  "proposal_identity": "50f1dfb23c558ee13207bd9b34b2d19ca4ee6a71641c23373a593d739cf228b1",
+  "schema_version": "5d-representation-schema-15",
+  "scope": 53,
+  "review_units": 14,
+  "reviewer": "Ravenlok (Owner)",
+  "accepted_at": "2026-09-28T09:39:56Z"
+ },
+ {
+  "fn": "accept_proposal",
+  "batch_id": "movement-closure",
+  "proposal_identity": "5af32afc358558eae7e420b44eb72fac4ccfd8fea52b02cdd0dfe1b1d9352c6c",
+  "schema_version": "5d-representation-schema-15",
+  "scope": 29,
+  "review_units": 5,
+  "reviewer": "Ravenlok (Owner)",
+  "accepted_at": "2026-09-28T09:39:56Z"
+ },
+ {
+  "fn": "accept_proposal",
+  "batch_id": "combat-turn-1",
+  "proposal_identity": "07368f439df7b33910d8311b3074dd05dbe0afacf673318830fc3f9e8fa1f5ed",
+  "schema_version": "5d-representation-schema-15",
+  "scope": 16,
+  "review_units": 6,
+  "reviewer": "Ravenlok (Owner)",
+  "accepted_at": "2026-09-28T09:39:56Z"
+ },
+ {
+  "fn": "accept_proposal",
+  "batch_id": "damage-and-hit-points",
+  "proposal_identity": "c2303ddca53dd01a37bc989bc3aaf140b9fa9a519fbb145cb0ea0bbab1261473",
+  "schema_version": "5d-representation-schema-15",
+  "scope": 16,
+  "review_units": 7,
+  "reviewer": "Ravenlok (Owner)",
+  "accepted_at": "2026-09-28T09:39:56Z"
+ },
+ {
+  "fn": "accept_proposal",
+  "batch_id": "combat-damage-breaking",
+  "proposal_identity": "cfd193513e8c769d45b42f4a6dfa420481b43f064b45fef564f1e5c5eaac8c23",
+  "schema_version": "5d-representation-schema-15",
+  "scope": 163,
+  "review_units": 5,
+  "reviewer": "Ravenlok (Owner)",
+  "accepted_at": "2026-10-02T10:00:20Z"
+ },
+ {
+  "fn": "accept_proposal",
+  "batch_id": "checks-actions-rests",
+  "proposal_identity": "fa6469518d225826ea5aeb16f491226fecbbcf3ec506b8950f1f482d50c62076",
+  "schema_version": "5d-representation-schema-16",
+  "scope": 125,
+  "review_units": 7,
+  "reviewer": "Ravenlok (Owner)",
+  "accepted_at": "2026-09-29T07:34:50Z"
+ },
+ {
+  "fn": "resolve_references",
+  "resolutions": 1,
+  "lift_to": null,
+  "reviewer": "Ravenlok (Owner)",
+  "resolved_at": "2026-09-28T09:39:56Z"
+ },
+ {
+  "fn": "accept_proposal",
+  "batch_id": "core-play-completion",
+  "proposal_identity": "cc0e3dd1efa51aa423eb6957a4d29c104226326e685d06ef275adf4ba239868e",
+  "schema_version": "5d-representation-schema-16",
+  "scope": 71,
+  "review_units": 7,
+  "reviewer": "Ravenlok (Owner)",
+  "accepted_at": "2026-09-29T07:34:50Z"
+ },
+ {
+  "fn": "accept_proposal",
+  "batch_id": "core-play-dependencies",
+  "proposal_identity": "9aa7d0097fcf4cd64cbed630828eeca72606fc9c1818cde42a44f106accf6eac",
+  "schema_version": "5d-representation-schema-16",
+  "scope": 66,
+  "review_units": 11,
+  "reviewer": "Ravenlok (Owner)",
+  "accepted_at": "2026-09-30T05:09:01Z"
+ },
+ {
+  "fn": "accept_proposal",
+  "batch_id": "character-creation-foundations",
+  "proposal_identity": "fcee4afb8ef79e11a76da0f12cd0a9f3a21a0508cbe3634dde9afa8ac919950e",
+  "schema_version": "5d-representation-schema-16",
+  "scope": 152,
+  "review_units": 11,
+  "reviewer": "Ravenlok (Owner)",
+  "accepted_at": "2026-09-29T07:34:50Z"
+ },
+ {
+  "fn": "resolve_references",
+  "resolutions": 1,
+  "lift_to": null,
+  "reviewer": "Ravenlok (Owner)",
+  "resolved_at": "2026-09-28T09:39:56Z"
+ },
+ {
+  "fn": "accept_proposal",
+  "batch_id": "character-origins-feats",
+  "proposal_identity": "17ed7fd338d2d52e77c227215e5f095aadfa0c50e918edd26d7b25277c87c813",
+  "schema_version": "5d-representation-schema-16",
+  "scope": 172,
+  "review_units": 33,
+  "reviewer": "Ravenlok (Owner)",
+  "accepted_at": "2026-09-30T00:18:19Z"
+ },
+ {
+  "fn": "resolve_references",
+  "resolutions": 3,
+  "lift_to": null,
+  "reviewer": "Ravenlok (Owner)",
+  "resolved_at": "2026-09-28T09:39:56Z"
+ },
+ {
+  "fn": "accept_proposal",
+  "batch_id": "equipment",
+  "proposal_identity": "d7c012dfc96aad5c34e1630a8acedee83b6626311167f5ed256e3126d74456f3",
+  "schema_version": "5d-representation-schema-16",
+  "scope": 469,
+  "review_units": 14,
+  "reviewer": "Ravenlok (Owner)",
+  "accepted_at": "2026-09-30T07:55:56Z"
+ },
+ {
+  "fn": "resolve_references",
+  "resolutions": 42,
+  "lift_to": null,
+  "reviewer": "Ravenlok (Owner)",
+  "resolved_at": "2026-09-28T09:39:56Z"
+ },
+ {
+  "fn": "accept_proposal",
+  "batch_id": "spellcasting",
+  "proposal_identity": "5cc2bd875f7ed798342c9fffd16160dc4bb2ef68bbbf81e622297056723cfadd",
+  "schema_version": "5d-representation-schema-16",
+  "scope": 72,
+  "review_units": 19,
+  "reviewer": "Ravenlok (Owner)",
+  "accepted_at": "2026-09-29T07:34:50Z"
+ },
+ {
+  "fn": "resolve_references",
+  "resolutions": 1,
+  "lift_to": null,
+  "reviewer": "Ravenlok (Owner)",
+  "resolved_at": "2026-09-28T09:39:56Z"
+ },
+ {
+  "fn": "accept_proposal",
+  "batch_id": "rules-glossary-completion",
+  "proposal_identity": "e777201803ce1dbadc753ec0da38f385edf23628ba1a45a3bac20c5999cca367",
+  "schema_version": "5d-representation-schema-16",
+  "scope": 116,
+  "review_units": 60,
+  "reviewer": "Ravenlok (Owner)",
+  "accepted_at": "2026-09-28T09:39:56Z"
+ },
+ {
+  "fn": "accept_proposal",
+  "batch_id": "classes",
+  "proposal_identity": "45c355850a7e74283f4556b0ab980244935c7a2e3d313a5fbb9cc7dc0a6a8b60",
+  "schema_version": "5d-representation-schema-16",
+  "scope": 1028,
+  "review_units": 36,
+  "reviewer": "Ravenlok (Owner)",
+  "accepted_at": "2026-09-30T00:18:19Z"
+ },
+ {
+  "fn": "accept_proposal",
+  "batch_id": "class-option-catalogues",
+  "proposal_identity": "ba5e78d5fe9e6c7fd69247fdefb734158d635e707d3898f31ee4147cc06e5d4f",
+  "schema_version": "5d-representation-schema-16",
+  "scope": 135,
+  "review_units": 40,
+  "reviewer": "Ravenlok (Owner)",
+  "accepted_at": "2026-09-28T09:39:56Z"
+ },
+ {
+  "fn": "resolve_references",
+  "resolutions": 1,
+  "lift_to": null,
+  "reviewer": "Ravenlok (Owner)",
+  "resolved_at": "2026-09-28T09:39:56Z"
+ },
+ {
+  "fn": "accept_proposal",
+  "batch_id": "spell-descriptions",
+  "proposal_identity": "20ee428e126b8b33b1399ebddc21f27212609658672a0fdb4b5a6b6dabc955ca",
+  "schema_version": "5d-representation-schema-16",
+  "scope": 2050,
+  "review_units": 340,
+  "reviewer": "Ravenlok (Owner)",
+  "accepted_at": "2026-09-30T00:18:19Z"
+ },
+ {
+  "fn": "resolve_references",
+  "resolutions": 1046,
+  "lift_to": null,
+  "reviewer": "Ravenlok (Owner)",
+  "resolved_at": "2026-09-28T09:39:56Z"
+ },
+ {
+  "fn": "accept_proposal",
+  "batch_id": "gameplay-toolbox",
+  "proposal_identity": "fc81400f73c2d1dbdcc17d578c09ede0fe3946ef7061be19d514d37940418bd0",
+  "schema_version": "5d-representation-schema-16",
+  "scope": 285,
+  "review_units": 34,
+  "reviewer": "Ravenlok (Owner)",
+  "accepted_at": "2026-09-29T07:34:50Z"
+ },
+ {
+  "fn": "resolve_references",
+  "resolutions": 1,
+  "lift_to": null,
+  "reviewer": "Ravenlok (Owner)",
+  "resolved_at": "2026-09-28T09:39:56Z"
+ },
+ {
+  "fn": "accept_proposal",
+  "batch_id": "magic-items",
+  "proposal_identity": "48cb3c4726d395f06dd2ca639a50d001e5491b307fa3176618850d04ce04ca71",
+  "schema_version": "5d-representation-schema-16",
+  "scope": 1339,
+  "review_units": 271,
+  "reviewer": "Ravenlok (Owner)",
+  "accepted_at": "2026-09-30T00:18:19Z"
+ },
+ {
+  "fn": "resolve_references",
+  "resolutions": 1,
+  "lift_to": null,
+  "reviewer": "Ravenlok (Owner)",
+  "resolved_at": "2026-09-28T09:39:56Z"
+ },
+ {
+  "fn": "accept_proposal",
+  "batch_id": "monsters",
+  "proposal_identity": "d6eff4f4858efd5da983dbdbbce85c2b9ddd6d20ed810c10d044087b3b66f91d",
+  "schema_version": "5d-representation-schema-16",
+  "scope": 3139,
+  "review_units": 414,
+  "reviewer": "Ravenlok (Owner)",
+  "accepted_at": "2026-09-30T05:09:01Z"
+ },
+ {
+  "fn": "resolve_references",
+  "resolutions": 83,
+  "lift_to": null,
+  "reviewer": "Ravenlok (Owner)",
+  "resolved_at": "2026-09-28T09:42:23Z"
+ },
+ {
+  "fn": "accept_proposal",
+  "batch_id": "animals",
+  "proposal_identity": "228726d29769fcdb88e874c79b1a0685c8e1b18c59ce538011d8978d57645e38",
+  "schema_version": "5d-representation-schema-16",
+  "scope": 836,
+  "review_units": 96,
+  "reviewer": "Ravenlok (Owner)",
+  "accepted_at": "2026-09-29T10:41:28Z"
+ },
+ {
+  "fn": "resolve_references",
+  "resolutions": 65,
+  "lift_to": null,
+  "reviewer": "Ravenlok (Owner)",
+  "resolved_at": "2026-09-28T17:28:58Z"
+ },
+ {
+  "fn": "resolve_references",
+  "resolutions": 160,
+  "lift_to": null,
+  "reviewer": "Ravenlok (Owner)",
+  "resolved_at": "2026-09-28T21:52:52Z"
+ },
+ {
+  "fn": "resolve_references",
+  "resolutions": 29,
+  "lift_to": null,
+  "reviewer": "Ravenlok (Owner)",
+  "resolved_at": "2026-09-29T07:37:07Z"
+ },
+ {
+  "fn": "resolve_references",
+  "resolutions": 4,
+  "lift_to": null,
+  "reviewer": "Ravenlok (Owner)",
+  "resolved_at": "2026-09-29T10:44:29Z"
+ },
+ {
+  "fn": "accept_proposal",
+  "batch_id": "framing-coverage",
+  "proposal_identity": "a7a98598b751dd495b28312b854cf16c4bd7db06739c56bee662c84bd6107a70",
+  "schema_version": "5d-representation-schema-16",
+  "scope": 6,
+  "review_units": 15,
+  "reviewer": "Ravenlok (Owner)",
+  "accepted_at": "2026-09-29T12:47:38Z"
+ },
+ {
+  "fn": "accept_proposal",
+  "batch_id": "character-creation-catalogue",
+  "proposal_identity": "cee3b640f955a34ed627fb720b8f9ec121d605dda6f792ba469ebe7ac429a5be",
+  "schema_version": "5d-representation-schema-16",
+  "scope": 1,
+  "review_units": 1,
+  "reviewer": "Ravenlok (Owner)",
+  "accepted_at": "2026-09-29T18:51:30Z"
+ },
+ {
+  "fn": "resolve_references",
+  "resolutions": 2,
+  "lift_to": null,
+  "reviewer": "Ravenlok (Owner)",
+  "resolved_at": "2026-09-29T18:51:34Z"
+ },
+ {
+  "fn": "resolve_references",
+  "resolutions": 13,
+  "lift_to": [
+   "5d-representation-schema-17",
+   "4881e51fb2fa73e52f7ff951ad7d00b863188c1a22133fb0e2873c7d32d10ada"
+  ],
+  "reviewer": "Ravenlok (Owner)",
+  "resolved_at": "2026-10-01T19:01:31Z"
+ },
+ {
+  "fn": "resolve_references",
+  "resolutions": 10,
+  "lift_to": null,
+  "reviewer": "Ravenlok (Owner)",
+  "resolved_at": "2026-10-02T10:00:20Z"
+ },
+ {
+  "fn": "resolve_references",
+  "resolutions": 13,
+  "lift_to": null,
+  "reviewer": "Ravenlok (Owner)",
+  "resolved_at": "2026-10-03T09:30:23Z"
+ },
+ {
+  "fn": "resolve_references",
+  "resolutions": 10,
+  "lift_to": null,
+  "reviewer": "Ravenlok (Owner)",
+  "resolved_at": "2026-10-07T01:30:07Z"
+ }
+]

@@ -1,0 +1,14 @@
+start 2026-10-07T08:33:01.486457+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe scripts/run_focused_tests.py --check tests/ingestion/mechanical/test_equipment_acceptance.py --check tests/ingestion/mechanical/test_spellcasting_acceptance.py tests/ingestion/mechanical/test_equipment_acceptance.py tests/ingestion/mechanical/test_spellcasting_acceptance.py
+input ef6969b5f09e59ebd4001aad2137ade7ca74509d4075753de73336d7595050e9  scripts/run_focused_tests.py
+input ac2bbc100f591b553b57e9976c561121d0c1d8db14147071e44d1e6cdbc5b947  tests/ingestion/mechanical/test_equipment_acceptance.py
+input f7d79739236839cc34473afb69691cd1503be947e9fd227202f3cec38558c803  tests/ingestion/mechanical/test_spellcasting_acceptance.py
+input ac2bbc100f591b553b57e9976c561121d0c1d8db14147071e44d1e6cdbc5b947  tests/ingestion/mechanical/test_equipment_acceptance.py
+input f7d79739236839cc34473afb69691cd1503be947e9fd227202f3cec38558c803  tests/ingestion/mechanical/test_spellcasting_acceptance.py
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+All done! ✨ 🍰 ✨
+2 files would be left unchanged.
+........                                                                 [100%]
+8 passed in 77.90s (0:01:17)
+Focused diagnostics PASSED (exit 0). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+end 2026-10-07T08:34:22.407279+00:00 exit 0

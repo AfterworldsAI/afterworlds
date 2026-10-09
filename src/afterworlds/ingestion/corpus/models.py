@@ -47,6 +47,14 @@ class LeafType(StrEnum):
     CAPTION = "caption"
     ATTRIBUTION = "attribution"
     HEADER_FOOTER = "header_footer"
+    # Whole-block kinds, emitted by the Markdown source front end (Issue 5c/5d
+    # clean restart, step 3). A list and a table are each one leaf there because
+    # a row without its header, or an item without the item above it, is not
+    # something a consumer can read: unit size is chosen for consumption and
+    # citation rather than for geometry. ``LIST_ITEM``/``TABLE_CELL`` keep their
+    # meaning as the per-cell, per-item kinds and are not reused for blocks.
+    LIST = "list"
+    TABLE = "table"
 
 
 class Disposition(StrEnum):

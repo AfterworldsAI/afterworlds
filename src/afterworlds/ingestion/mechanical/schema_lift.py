@@ -107,6 +107,10 @@ __all__ = [
     "SCHEMA_14_VERSION",
     "SCHEMA_15_HASH",
     "SCHEMA_15_VERSION",
+    "SCHEMA_16_HASH",
+    "SCHEMA_16_VERSION",
+    "SCHEMA_17_HASH",
+    "SCHEMA_17_VERSION",
     "SchemaLiftRecord",
     "UnknownSchemaLiftError",
     "lift_for",
@@ -150,6 +154,10 @@ SCHEMA_14_VERSION = "5d-representation-schema-14"
 SCHEMA_14_HASH = "14284d53773df10d8672cfea34b2b47771539a3e43d936577259817011b9498e"  # noqa: E501  # pragma: allowlist secret
 SCHEMA_15_VERSION = "5d-representation-schema-15"
 SCHEMA_15_HASH = "e87e0bacdc476b0bef092a04cbedd933e0b57b128651b08ef0ffbd0c94d186fd"  # noqa: E501  # pragma: allowlist secret
+SCHEMA_16_VERSION = "5d-representation-schema-16"
+SCHEMA_16_HASH = "7fb9254b11da1d6772ea6ee72ffde9b5e9d39e8885188777874c65e86ad9a941"
+SCHEMA_17_VERSION = "5d-representation-schema-17"
+SCHEMA_17_HASH = "4881e51fb2fa73e52f7ff951ad7d00b863188c1a22133fb0e2873c7d32d10ada"
 
 
 class SchemaLiftError(ValueError):
@@ -658,6 +666,69 @@ SCHEMA_LIFTS: dict[tuple[str, str], SchemaLift] = {
             "The policy contract does not move with it: 5d-semantic-policy-2 "
             "is what proficiency-1 declares, and it is the same policy "
             "schema 12 arrived with."
+        ),
+    ),
+    (SCHEMA_15_VERSION, SCHEMA_15_HASH): SchemaLift(
+        lift_id="5d-lift-schema-15-to-16",
+        from_version=SCHEMA_15_VERSION,
+        from_hash=SCHEMA_15_HASH,
+        to_version=SCHEMA_16_VERSION,
+        to_hash=SCHEMA_16_HASH,
+        rationale=(
+            "Schema 16 admits one relationship kind, catalogue_member, and "
+            "nothing else: no fact family, no field on any family, no "
+            "ownership form, no component key, no required field and no "
+            "newly nullable field. "
+            "The kind exists because three source pointers -- to the "
+            "backgrounds and species detailed in Character Origins, and to "
+            "the feats detailed in Feats -- name a section whose own record "
+            "holds only its introduction, while the source means the entries "
+            "the section prints (Owner Decision 2026-09-23). An edge of this "
+            "kind states that naming the section names that entry, so a "
+            "consumer selecting the section reaches it; it grants nothing, "
+            "and each entry's own eligibility and prerequisites still govern. "
+            "scoped_within was not given this meaning: it already states "
+            "containment, no consumer expands it, and reinterpreting it would "
+            "change what every existing containment edge says. "
+            "Nothing accepted moves. No accepted batch states a relationship "
+            "of any kind, so every accepted payload -- and its fact key and "
+            "provenance coordinate -- is byte-identical under both "
+            "contracts, which verify_lift proves element by element rather "
+            "than asserting. A schema-15 declaration carrying the new kind "
+            "is refused by the introduction manifest, never flattened. "
+            "The policy contract does not move with it."
+        ),
+    ),
+    (SCHEMA_16_VERSION, SCHEMA_16_HASH): SchemaLift(
+        lift_id="5d-lift-schema-16-to-17",
+        from_version=SCHEMA_16_VERSION,
+        from_hash=SCHEMA_16_HASH,
+        to_version=SCHEMA_17_VERSION,
+        to_hash=SCHEMA_17_HASH,
+        rationale=(
+            "Schema 17 admits five optional reference keys and one "
+            "vocabulary, ReferenceSituation, and nothing else: no fact "
+            "family, no field on any family, no relationship kind, no "
+            "ownership form, no component key and no required field. "
+            "The keys exist because some source pointers name a destination "
+            "that differs by class, class level or the reader's situation -- "
+            "a Fighting Style Feature granted by three classes, Spellcasting "
+            "by seven, hit points at first level versus later levels (Owner "
+            "Decisions 2026-10-01). One citation may now carry several "
+            "labelled alternatives, each naming a record and optionally one "
+            "of its components, a situation, a class and a minimum class "
+            "level. Alternatives are a choice, never a conjunction, and an "
+            "unknown choice keeps every alternative rather than guessing. "
+            "The contract's schema payload also names the reference fields "
+            "from this version on; earlier hashes did not, and are not "
+            "re-derived. "
+            "Nothing accepted moves. Every new key is omitted when empty and "
+            "no accepted reference states one, so every accepted payload -- "
+            "and its provenance coordinate -- is byte-identical under both "
+            "contracts, which verify_lift proves element by element rather "
+            "than asserting. A schema-16 declaration carrying any new key or "
+            "vocabulary member is refused, never flattened. "
+            "The policy contract does not move with it."
         ),
     ),
 }

@@ -1,0 +1,326 @@
+## spans: -0 +6
++ {"char_end": 256, "char_start": 0, "disposition": "substantive", "leaf_id": "5d8e3e9c-f44e-5541-88e5-96f3dc80f91e", "non_mechanical_reason_code": null, "span_id": "92cf3dde-8b39-586b-84e6-a8f8a893cc54"}
+    92cf3dde '**Tags in Brackets.** Some entries have a tag in brackets after the entry\'s name, as in "Attack [Action]." A tag—Action, Area of Effect, Attitude, Condition, or Hazard—indicates that a rule is part of a family of rules. The tags also have glossary entries.'
++ {"char_end": 317, "char_start": 0, "disposition": "substantive", "leaf_id": "6b8dc958-95e7-5e27-9120-9b0a56fb6da0", "non_mechanical_reason_code": null, "span_id": "514d49df-a341-5066-abab-58e9523d059a"}
+    514d49df '**"You."** The game\'s rules—in this glossary and elsewhere—often talk about something happening to you in the game world. That "you" refers to the creature or object that the rule applies to in a particular moment of play. For example, the "you" in the Prone condition is a creature that currently has that condition.'
++ {"char_end": 154, "char_start": 0, "disposition": "substantive", "leaf_id": "c48715d7-c6e7-55b1-bb25-69d4b079bda5", "non_mechanical_reason_code": null, "span_id": "2ed9ecb1-395e-5dee-bf81-40af1b6e7247"}
+    2ed9ecb1 '**"See Also."** Some glossary entries include a _See also_ section that points to other entries in the glossary, to other parts of this document, or both.'
++ {"char_end": 185, "char_start": 0, "disposition": "substantive", "leaf_id": "0b8d0b3f-b3e0-5698-a4da-2496b02ac386", "non_mechanical_reason_code": null, "span_id": "c32e4a92-dd11-52e5-95b2-b80172e3b1f7"}
+    c32e4a92 "**No Obsolete Terms.** The glossary contains definitions of current rules terms only. If you're looking for a term from an earlier version of the fifth edition rules, consult the index."
++ {"char_end": 101, "char_start": 0, "disposition": "substantive", "leaf_id": "37509aef-9353-5bd7-9b0e-933b9242b1df", "non_mechanical_reason_code": null, "span_id": "a0103739-593e-547c-80da-ce61ccb702c5"}
+    a0103739 '**Abbreviations.** The abbreviations listed below appear in this glossary and elsewhere in the rules.'
++ {"char_end": 2273, "char_start": 0, "disposition": "substantive", "leaf_id": "7f4799fe-d987-5499-9192-9f1a12e34e71", "non_mechanical_reason_code": null, "span_id": "4d536c41-ac95-51b3-adb4-0ec73d8aa299"}
+    4d536c41 '<table>\n  <tbody>\n    <tr>\n      <td>AC</td>\n      <td>Armor Class</td>\n      <td>M</td>\n      <td>Material</td>\n    </tr>\n    <tr>\n      <td>C</td>\n      <td>Concentration</td>\n      <td></td>\n      <td>component</td>\n    </tr>\n    <tr>\n      <td>CE</td>\n      <td>Chaotic Evil</td>\n      <td>N</td>\n      <td>Neutral</td>\n    </tr>\n    <tr>\n      <td>CG</td>\n      <td>Chaotic Good</td>\n      <td>NE</td>\n      <td>Neutral Evil</td>\n    </tr>\n    <tr>\n      <td>Cha.</td>\n      <td>Charisma</td>\n      <td>NG</td>\n      <td>Neutral Good</td>\n    </tr>\n    <tr>\n      <td>CN</td>\n      <td>Chaotic Neutral</td>\n      <td>NPC</td>\n      <td>Nonplayer</td>\n    </tr>\n    <tr>\n      <td>Con.</td>\n      <td>Constitution</td>\n      <td></td>\n      <td>character</td>\n    </tr>\n    <tr>\n      <td>CP</td>\n      <td>Copper Piece(s)</td>\n      <td>PB</td>\n      <td>Proficiency Bonus</td>\n    </tr>\n    <tr>\n      <td>CR</td>\n      <td>Challenge Rating</td>\n      <td>PP</td>\n      <td>Platinum Piece(s)</td>\n    </tr>\n    <tr>\n      <td>DC</td>\n      <td>Difficulty Class</td>\n      <td>R</td>\n      <td>Ritual</td>\n    </tr>\n    <tr>\n      <td>Dex.</td>\n      <td>Dexterity</td>\n      <td>S</td>\n      <td>Somatic</td>\n    </tr>\n    <tr>\n      <td></td>\n      <td></td>\n      <td></td>\n      <td>component</td>\n    </tr>\n    <tr>\n      <td>EP</td>\n      <td>Electrum Piece(s)</td>\n      <td>SP</td>\n      <td>Silver Piece(s)</td>\n    </tr>\n    <tr>\n      <td>GM</td>\n      <td>Game Master</td>\n      <td></td>\n      <td></td>\n    </tr>\n    <tr>\n      <td>GP</td>\n      <td>Gold Piece(s)</td>\n      <td>Str.</td>\n      <td>Strength</td>\n    </tr>\n    <tr>\n      <td>HP</td>\n      <td>Hit Point(s)</td>\n      <td>V</td>\n      <td>Verbal</td>\n    </tr>\n    <tr>\n      <td></td>\n      <td></td>\n      <td></td>\n      <td>component</td>\n    </tr>\n    <tr>\n      <td>Int.</td>\n      <td>Intelligence</td>\n      <td>Wis.</td>\n      <td>Wisdom</td>\n    </tr>\n    <tr>\n      <td>LE</td>\n      <td>Lawful Evil</td>\n      <td>XP</td>\n      <td>Experience</td>\n    </tr>\n    <tr>\n      <td>LG</td>\n      <td>Lawful Good</td>\n      <td></td>\n      <td>Point(s)</td>\n    </tr>\n    <tr>\n      <td>LN</td>\n      <td>Lawful Neutral</td>\n      <td colspan="2"></td>\n    </tr>\n  </tbody>\n</table>'
+## review_units: -0 +15
++ {"excluded_groups": [{"leaf_ids": ["1394b233-4862-500c-85dd-e1b511566a48"], "reason": "Part heading: names the Equipment part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed. The whole-part citations that name this part stay unresolved."}], "expected_rules": [], "kind": "section", "leaf_ids": ["1394b233-4862-500c-85dd-e1b511566a48"], "supporting_groups": [], "unit_id": "framing-coverage/equipment"}
++ {"excluded_groups": [{"leaf_ids": ["27b720ba-f917-5a11-9369-3bd6154786ad"], "reason": "Part heading: names the Spells part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed. The whole-part citations that name this part stay unresolved."}], "expected_rules": [], "kind": "section", "leaf_ids": ["27b720ba-f917-5a11-9369-3bd6154786ad"], "supporting_groups": [], "unit_id": "framing-coverage/spells"}
++ {"excluded_groups": [{"leaf_ids": ["3f00f8d2-f6d0-5b04-8c49-2bd5364d104f"], "reason": "One-line introduction: announces the definitions that follow and states, qualifies or contextualizes no rule of any of them."}, {"leaf_ids": ["a8b868f8-a207-5189-837e-ad8f52230944"], "reason": "Section heading: names the Rules Definitions section, whose entries the accepted glossary batches author, and states no rule. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed."}], "expected_rules": [], "kind": "section", "leaf_ids": ["3f00f8d2-f6d0-5b04-8c49-2bd5364d104f", "a8b868f8-a207-5189-837e-ad8f52230944"], "supporting_groups": [], "unit_id": "framing-coverage/rules_definitions"}
++ {"excluded_groups": [{"leaf_ids": ["431c6ac5-ebab-5fde-9ca0-fc0dd326d651"], "reason": "Part heading: names the Character Origins part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed."}], "expected_rules": [], "kind": "section", "leaf_ids": ["431c6ac5-ebab-5fde-9ca0-fc0dd326d651"], "supporting_groups": [], "unit_id": "framing-coverage/character_origins"}
++ {"excluded_groups": [{"leaf_ids": ["6514f550-e588-5c1f-bfe2-ef452259a5b5"], "reason": "section heading: names the section and states no rule"}], "expected_rules": [{"component_key": "abbreviations", "record_key": "glossary.glossary_conventions", "source_span_ids": ["4d536c41-ac95-51b3-adb4-0ec73d8aa299", "a0103739-593e-547c-80da-ce61ccb702c5"]}, {"component_key": "no_obsolete_terms", "record_key": "glossary.glossary_conventions", "source_span_ids": ["c32e4a92-dd11-52e5-95b2-b80172e3b1f7"]}, {"component_key": "see_also", "record_key": "glossary.glossary_conventions", "source_span_ids": ["2ed9ecb1-395e-5dee-bf81-40af1b6e7247"]}, {"component_key": "tags_in_brackets", "record_key": "glossary.glossary_conventions", "source_span_ids": ["92cf3dde-8b39-586b-84e6-a8f8a893cc54"]}, {"component_key": "you", "record_key": "glossary.glossary_conventions", "source_span_ids": ["514d49df-a341-5066-abab-58e9523d059a"]}], "kind": "section", "leaf_ids": ["0b8d0b3f-b3e0-5698-a4da-2496b02ac386", "37509aef-9353-5bd7-9b0e-933b9242b1df", "5d8e3e9c-f44e-5541-88e5-96f3dc80f91e", "6514f550-e588-5c1f-bfe2-ef452259a5b5", "69f82978-fdc9-56fa-a976-0b143e13f883", "6b8dc958-95e7-5e27-9120-9b0a56fb6da0", "7f4799fe-d987-5499-9192-9f1a12e34e71", "c48715d7-c6e7-55b1-bb25-69d4b079bda5"], "supporting_groups": [{"leaf_ids": ["69f82978-fdc9-56fa-a976-0b143e13f883"], "supports_component_key": "", "supports_record_key": "glossary.glossary_conventions"}], "unit_id": "framing-coverage/glossary_conventions"}
++ {"excluded_groups": [{"leaf_ids": ["776fa4e0-31ff-5dcf-952b-0e6533725527"], "reason": "Part heading: names the Monsters A\u2013Z part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed."}], "expected_rules": [], "kind": "section", "leaf_ids": ["776fa4e0-31ff-5dcf-952b-0e6533725527"], "supporting_groups": [], "unit_id": "framing-coverage/monsters_a_z"}
++ {"excluded_groups": [{"leaf_ids": ["7eaded98-5e17-59bb-ae18-bc9e040b99bd"], "reason": "Part heading: names the Character Creation part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed. The whole-part citations that name this part stay unresolved."}], "expected_rules": [], "kind": "section", "leaf_ids": ["7eaded98-5e17-59bb-ae18-bc9e040b99bd"], "supporting_groups": [], "unit_id": "framing-coverage/character_creation"}
++ {"excluded_groups": [{"leaf_ids": ["90b2e8ed-8404-57e3-a5a7-0a3cb00c49ce"], "reason": "Part heading: names the Gameplay Toolbox part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed."}], "expected_rules": [], "kind": "section", "leaf_ids": ["90b2e8ed-8404-57e3-a5a7-0a3cb00c49ce"], "supporting_groups": [], "unit_id": "framing-coverage/gameplay_toolbox"}
++ {"excluded_groups": [{"leaf_ids": ["9aaa218e-1298-5364-9752-518b3850a742"], "reason": "Introductory flavour: where magic items are found and that they grant uncommon capabilities; it neither states nor contextualizes the rule of any item."}, {"leaf_ids": ["9eaf34f5-e493-5c64-9439-dc5dc231fa1b"], "reason": "Part heading: names the Magic Items part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed."}], "expected_rules": [], "kind": "section", "leaf_ids": ["9aaa218e-1298-5364-9752-518b3850a742", "9eaf34f5-e493-5c64-9439-dc5dc231fa1b"], "supporting_groups": [], "unit_id": "framing-coverage/magic_items"}
++ {"excluded_groups": [{"leaf_ids": ["a5d1c9cf-7afa-5434-82b2-0e83bae80858"], "reason": "Part heading: names the Monsters part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed."}], "expected_rules": [], "kind": "section", "leaf_ids": ["a5d1c9cf-7afa-5434-82b2-0e83bae80858"], "supporting_groups": [], "unit_id": "framing-coverage/monsters"}
++ {"excluded_groups": [{"leaf_ids": ["a91f2607-17d8-5247-83e6-f5e178df3338"], "reason": "Part heading: names the Rules Glossary part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed."}], "expected_rules": [], "kind": "section", "leaf_ids": ["a91f2607-17d8-5247-83e6-f5e178df3338"], "supporting_groups": [], "unit_id": "framing-coverage/rules_glossary"}
++ {"excluded_groups": [{"leaf_ids": ["cd2c6c97-273f-565a-b9a4-fdedf0b9d94b"], "reason": "Part heading: names the Classes part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed. The whole-part citations that name this part stay unresolved."}], "expected_rules": [], "kind": "section", "leaf_ids": ["cd2c6c97-273f-565a-b9a4-fdedf0b9d94b"], "supporting_groups": [], "unit_id": "framing-coverage/classes"}
++ {"excluded_groups": [{"leaf_ids": ["d328aecf-0e56-5c02-8d0b-df8e6f9adb70"], "reason": "Part heading: names the Playing the Game part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed."}], "expected_rules": [], "kind": "section", "leaf_ids": ["d328aecf-0e56-5c02-8d0b-df8e6f9adb70"], "supporting_groups": [], "unit_id": "framing-coverage/playing_the_game"}
++ {"excluded_groups": [{"leaf_ids": ["ed74ff28-7680-5548-acdc-aa80f5df935b"], "reason": "Attribution limits: no other attribution to Wizards or its parent or affiliates, and the permitted \u201ccompatible with fifth edition\u201d or \u201c5E compatible\u201d statement; a publication obligation, not a game mechanic, which exclusion from mechanical canon does not waive."}, {"leaf_ids": ["9cbfa5a4-d400-5f62-9d74-790fa07a6d69"], "reason": "Heading of the SRD 5.2.1 legal notice: names the notice and states no game rule."}, {"leaf_ids": ["3efc8e2d-816c-55ae-a884-62bd16dbc920"], "reason": "Liability notice: CC-BY-4.0 Section 5's disclaimer of warranties and limitation of liability; legal text that states no game rule."}, {"leaf_ids": ["a269f6e1-2e6f-5e43-83e0-c67d8a0f1d80"], "reason": "Licence terms: the SRD 5.2.1 is offered under CC-BY-4.0 on condition that any work using it includes the attribution statement that follows; a licensing obligation, not a game mechanic, excluded from mechanical canon only and never from publication, which must honour it."}, {"leaf_ids": ["9630b55e-12e5-5928-b243-4d5c2818642b"], "reason": "The attribution statement CC-BY-4.0 requires any work using this material to include: legal text, not a game mechanic; excluded from mechanical canon only, and still required, verbatim, wherever this material is published."}], "expected_rules": [], "kind": "section", "leaf_ids": ["3efc8e2d-816c-55ae-a884-62bd16dbc920", "9630b55e-12e5-5928-b243-4d5c2818642b", "9cbfa5a4-d400-5f62-9d74-790fa07a6d69", "a269f6e1-2e6f-5e43-83e0-c67d8a0f1d80", "ed74ff28-7680-5548-acdc-aa80f5df935b"], "supporting_groups": [], "unit_id": "framing-coverage/legal_information"}
++ {"excluded_groups": [{"leaf_ids": ["f15a6fc7-9f9f-509e-84f2-09cb279bffd9"], "reason": "Part heading: names the Feats part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed."}], "expected_rules": [], "kind": "section", "leaf_ids": ["f15a6fc7-9f9f-509e-84f2-09cb279bffd9"], "supporting_groups": [], "unit_id": "framing-coverage/feats"}
+## obligations: -0 +1
++ {"kind": "general_rule", "prose_bound_components": ["abbreviations", "no_obsolete_terms", "see_also", "tags_in_brackets", "you"], "record_key": "glossary.glossary_conventions", "structured_fact_families": []}
+## representation.records: -0 +1
++ {"kind": "general_rule", "parent_key": null, "semantic_key": "glossary.glossary_conventions"}
+## representation.components: -0 +5
++ {"applies_when": null, "fact_qualifiers": [], "facts": [], "handling": "prose_bound", "irreducibility_reason_code": null, "options": [], "prose_retention_reason_code": "no_identified_structured_use", "record_key": "glossary.glossary_conventions", "semantic_key": "abbreviations"}
++ {"applies_when": null, "fact_qualifiers": [], "facts": [], "handling": "prose_bound", "irreducibility_reason_code": null, "options": [], "prose_retention_reason_code": "no_identified_structured_use", "record_key": "glossary.glossary_conventions", "semantic_key": "no_obsolete_terms"}
++ {"applies_when": null, "fact_qualifiers": [], "facts": [], "handling": "prose_bound", "irreducibility_reason_code": null, "options": [], "prose_retention_reason_code": "no_identified_structured_use", "record_key": "glossary.glossary_conventions", "semantic_key": "see_also"}
++ {"applies_when": null, "fact_qualifiers": [], "facts": [], "handling": "prose_bound", "irreducibility_reason_code": null, "options": [], "prose_retention_reason_code": "no_identified_structured_use", "record_key": "glossary.glossary_conventions", "semantic_key": "tags_in_brackets"}
++ {"applies_when": null, "fact_qualifiers": [], "facts": [], "handling": "prose_bound", "irreducibility_reason_code": null, "options": [], "prose_retention_reason_code": "no_identified_structured_use", "record_key": "glossary.glossary_conventions", "semantic_key": "you"}
+## representation.prose_bindings: -0 +6
++ {"chunk_char_end": 256, "chunk_char_start": 0, "chunk_id": "c1b6aed3-f553-5c6b-9ac5-30beff06fece", "component_key": "tags_in_brackets", "irreducibility_reason_code": null, "prose_retention_reason_code": "no_identified_structured_use", "record_key": "glossary.glossary_conventions", "span_id": "92cf3dde-8b39-586b-84e6-a8f8a893cc54"}
+    92cf3dde '**Tags in Brackets.** Some entries have a tag in brackets after the entry\'s name, as in "Attack [Action]." A tag—Action, Area of Effect, Attitude, Condition, or Hazard—indicates that a rule is part of a family of rules. The tags also have glossary entries.'
++ {"chunk_char_end": 317, "chunk_char_start": 0, "chunk_id": "f51f18d4-4302-5d0a-b16b-0f825a62e21d", "component_key": "you", "irreducibility_reason_code": null, "prose_retention_reason_code": "no_identified_structured_use", "record_key": "glossary.glossary_conventions", "span_id": "514d49df-a341-5066-abab-58e9523d059a"}
+    514d49df '**"You."** The game\'s rules—in this glossary and elsewhere—often talk about something happening to you in the game world. That "you" refers to the creature or object that the rule applies to in a particular moment of play. For example, the "you" in the Prone condition is a creature that currently has that condition.'
++ {"chunk_char_end": 154, "chunk_char_start": 0, "chunk_id": "1e19be51-9296-5ba2-9b11-3bfc7cfeb9fe", "component_key": "see_also", "irreducibility_reason_code": null, "prose_retention_reason_code": "no_identified_structured_use", "record_key": "glossary.glossary_conventions", "span_id": "2ed9ecb1-395e-5dee-bf81-40af1b6e7247"}
+    2ed9ecb1 '**"See Also."** Some glossary entries include a _See also_ section that points to other entries in the glossary, to other parts of this document, or both.'
++ {"chunk_char_end": 185, "chunk_char_start": 0, "chunk_id": "1f15b963-4d4e-5f2a-a0a7-ddeed76bbb60", "component_key": "no_obsolete_terms", "irreducibility_reason_code": null, "prose_retention_reason_code": "no_identified_structured_use", "record_key": "glossary.glossary_conventions", "span_id": "c32e4a92-dd11-52e5-95b2-b80172e3b1f7"}
+    c32e4a92 "**No Obsolete Terms.** The glossary contains definitions of current rules terms only. If you're looking for a term from an earlier version of the fifth edition rules, consult the index."
++ {"chunk_char_end": 101, "chunk_char_start": 0, "chunk_id": "de868bb4-e5a4-58e1-9c4f-8dc87d3ece07", "component_key": "abbreviations", "irreducibility_reason_code": null, "prose_retention_reason_code": "no_identified_structured_use", "record_key": "glossary.glossary_conventions", "span_id": "a0103739-593e-547c-80da-ce61ccb702c5"}
+    a0103739 '**Abbreviations.** The abbreviations listed below appear in this glossary and elsewhere in the rules.'
++ {"chunk_char_end": 2273, "chunk_char_start": 0, "chunk_id": "42fb7d08-eba1-560d-99a0-83af5e1de1dd", "component_key": "abbreviations", "irreducibility_reason_code": null, "prose_retention_reason_code": "no_identified_structured_use", "record_key": "glossary.glossary_conventions", "span_id": "4d536c41-ac95-51b3-adb4-0ec73d8aa299"}
+    4d536c41 '<table>\n  <tbody>\n    <tr>\n      <td>AC</td>\n      <td>Armor Class</td>\n      <td>M</td>\n      <td>Material</td>\n    </tr>\n    <tr>\n      <td>C</td>\n      <td>Concentration</td>\n      <td></td>\n      <td>component</td>\n    </tr>\n    <tr>\n      <td>CE</td>\n      <td>Chaotic Evil</td>\n      <td>N</td>\n      <td>Neutral</td>\n    </tr>\n    <tr>\n      <td>CG</td>\n      <td>Chaotic Good</td>\n      <td>NE</td>\n      <td>Neutral Evil</td>\n    </tr>\n    <tr>\n      <td>Cha.</td>\n      <td>Charisma</td>\n      <td>NG</td>\n      <td>Neutral Good</td>\n    </tr>\n    <tr>\n      <td>CN</td>\n      <td>Chaotic Neutral</td>\n      <td>NPC</td>\n      <td>Nonplayer</td>\n    </tr>\n    <tr>\n      <td>Con.</td>\n      <td>Constitution</td>\n      <td></td>\n      <td>character</td>\n    </tr>\n    <tr>\n      <td>CP</td>\n      <td>Copper Piece(s)</td>\n      <td>PB</td>\n      <td>Proficiency Bonus</td>\n    </tr>\n    <tr>\n      <td>CR</td>\n      <td>Challenge Rating</td>\n      <td>PP</td>\n      <td>Platinum Piece(s)</td>\n    </tr>\n    <tr>\n      <td>DC</td>\n      <td>Difficulty Class</td>\n      <td>R</td>\n      <td>Ritual</td>\n    </tr>\n    <tr>\n      <td>Dex.</td>\n      <td>Dexterity</td>\n      <td>S</td>\n      <td>Somatic</td>\n    </tr>\n    <tr>\n      <td></td>\n      <td></td>\n      <td></td>\n      <td>component</td>\n    </tr>\n    <tr>\n      <td>EP</td>\n      <td>Electrum Piece(s)</td>\n      <td>SP</td>\n      <td>Silver Piece(s)</td>\n    </tr>\n    <tr>\n      <td>GM</td>\n      <td>Game Master</td>\n      <td></td>\n      <td></td>\n    </tr>\n    <tr>\n      <td>GP</td>\n      <td>Gold Piece(s)</td>\n      <td>Str.</td>\n      <td>Strength</td>\n    </tr>\n    <tr>\n      <td>HP</td>\n      <td>Hit Point(s)</td>\n      <td>V</td>\n      <td>Verbal</td>\n    </tr>\n    <tr>\n      <td></td>\n      <td></td>\n      <td></td>\n      <td>component</td>\n    </tr>\n    <tr>\n      <td>Int.</td>\n      <td>Intelligence</td>\n      <td>Wis.</td>\n      <td>Wisdom</td>\n    </tr>\n    <tr>\n      <td>LE</td>\n      <td>Lawful Evil</td>\n      <td>XP</td>\n      <td>Experience</td>\n    </tr>\n    <tr>\n      <td>LG</td>\n      <td>Lawful Good</td>\n      <td></td>\n      <td>Point(s)</td>\n    </tr>\n    <tr>\n      <td>LN</td>\n      <td>Lawful Neutral</td>\n      <td colspan="2"></td>\n    </tr>\n  </tbody>\n</table>'
+## representation.provenance: -0 +6
++ {"role": "primary", "span_id": "92cf3dde-8b39-586b-84e6-a8f8a893cc54", "target_key": ["glossary.glossary_conventions", "tags_in_brackets", "c1b6aed3-f553-5c6b-9ac5-30beff06fece", "92cf3dde-8b39-586b-84e6-a8f8a893cc54", "no_identified_structured_use"], "target_kind": "prose_binding"}
+    92cf3dde '**Tags in Brackets.** Some entries have a tag in brackets after the entry\'s name, as in "Attack [Action]." A tag—Action, Area of Effect, Attitude, Condition, or Hazard—indicates that a rule is part of a family of rules. The tags also have glossary entries.'
++ {"role": "primary", "span_id": "514d49df-a341-5066-abab-58e9523d059a", "target_key": ["glossary.glossary_conventions", "you", "f51f18d4-4302-5d0a-b16b-0f825a62e21d", "514d49df-a341-5066-abab-58e9523d059a", "no_identified_structured_use"], "target_kind": "prose_binding"}
+    514d49df '**"You."** The game\'s rules—in this glossary and elsewhere—often talk about something happening to you in the game world. That "you" refers to the creature or object that the rule applies to in a particular moment of play. For example, the "you" in the Prone condition is a creature that currently has that condition.'
++ {"role": "primary", "span_id": "2ed9ecb1-395e-5dee-bf81-40af1b6e7247", "target_key": ["glossary.glossary_conventions", "see_also", "1e19be51-9296-5ba2-9b11-3bfc7cfeb9fe", "2ed9ecb1-395e-5dee-bf81-40af1b6e7247", "no_identified_structured_use"], "target_kind": "prose_binding"}
+    2ed9ecb1 '**"See Also."** Some glossary entries include a _See also_ section that points to other entries in the glossary, to other parts of this document, or both.'
++ {"role": "primary", "span_id": "c32e4a92-dd11-52e5-95b2-b80172e3b1f7", "target_key": ["glossary.glossary_conventions", "no_obsolete_terms", "1f15b963-4d4e-5f2a-a0a7-ddeed76bbb60", "c32e4a92-dd11-52e5-95b2-b80172e3b1f7", "no_identified_structured_use"], "target_kind": "prose_binding"}
+    c32e4a92 "**No Obsolete Terms.** The glossary contains definitions of current rules terms only. If you're looking for a term from an earlier version of the fifth edition rules, consult the index."
++ {"role": "primary", "span_id": "a0103739-593e-547c-80da-ce61ccb702c5", "target_key": ["glossary.glossary_conventions", "abbreviations", "de868bb4-e5a4-58e1-9c4f-8dc87d3ece07", "a0103739-593e-547c-80da-ce61ccb702c5", "no_identified_structured_use"], "target_kind": "prose_binding"}
+    a0103739 '**Abbreviations.** The abbreviations listed below appear in this glossary and elsewhere in the rules.'
++ {"role": "primary", "span_id": "4d536c41-ac95-51b3-adb4-0ec73d8aa299", "target_key": ["glossary.glossary_conventions", "abbreviations", "42fb7d08-eba1-560d-99a0-83af5e1de1dd", "4d536c41-ac95-51b3-adb4-0ec73d8aa299", "no_identified_structured_use"], "target_kind": "prose_binding"}
+    4d536c41 '<table>\n  <tbody>\n    <tr>\n      <td>AC</td>\n      <td>Armor Class</td>\n      <td>M</td>\n      <td>Material</td>\n    </tr>\n    <tr>\n      <td>C</td>\n      <td>Concentration</td>\n      <td></td>\n      <td>component</td>\n    </tr>\n    <tr>\n      <td>CE</td>\n      <td>Chaotic Evil</td>\n      <td>N</td>\n      <td>Neutral</td>\n    </tr>\n    <tr>\n      <td>CG</td>\n      <td>Chaotic Good</td>\n      <td>NE</td>\n      <td>Neutral Evil</td>\n    </tr>\n    <tr>\n      <td>Cha.</td>\n      <td>Charisma</td>\n      <td>NG</td>\n      <td>Neutral Good</td>\n    </tr>\n    <tr>\n      <td>CN</td>\n      <td>Chaotic Neutral</td>\n      <td>NPC</td>\n      <td>Nonplayer</td>\n    </tr>\n    <tr>\n      <td>Con.</td>\n      <td>Constitution</td>\n      <td></td>\n      <td>character</td>\n    </tr>\n    <tr>\n      <td>CP</td>\n      <td>Copper Piece(s)</td>\n      <td>PB</td>\n      <td>Proficiency Bonus</td>\n    </tr>\n    <tr>\n      <td>CR</td>\n      <td>Challenge Rating</td>\n      <td>PP</td>\n      <td>Platinum Piece(s)</td>\n    </tr>\n    <tr>\n      <td>DC</td>\n      <td>Difficulty Class</td>\n      <td>R</td>\n      <td>Ritual</td>\n    </tr>\n    <tr>\n      <td>Dex.</td>\n      <td>Dexterity</td>\n      <td>S</td>\n      <td>Somatic</td>\n    </tr>\n    <tr>\n      <td></td>\n      <td></td>\n      <td></td>\n      <td>component</td>\n    </tr>\n    <tr>\n      <td>EP</td>\n      <td>Electrum Piece(s)</td>\n      <td>SP</td>\n      <td>Silver Piece(s)</td>\n    </tr>\n    <tr>\n      <td>GM</td>\n      <td>Game Master</td>\n      <td></td>\n      <td></td>\n    </tr>\n    <tr>\n      <td>GP</td>\n      <td>Gold Piece(s)</td>\n      <td>Str.</td>\n      <td>Strength</td>\n    </tr>\n    <tr>\n      <td>HP</td>\n      <td>Hit Point(s)</td>\n      <td>V</td>\n      <td>Verbal</td>\n    </tr>\n    <tr>\n      <td></td>\n      <td></td>\n      <td></td>\n      <td>component</td>\n    </tr>\n    <tr>\n      <td>Int.</td>\n      <td>Intelligence</td>\n      <td>Wis.</td>\n      <td>Wisdom</td>\n    </tr>\n    <tr>\n      <td>LE</td>\n      <td>Lawful Evil</td>\n      <td>XP</td>\n      <td>Experience</td>\n    </tr>\n    <tr>\n      <td>LG</td>\n      <td>Lawful Good</td>\n      <td></td>\n      <td>Point(s)</td>\n    </tr>\n    <tr>\n      <td>LN</td>\n      <td>Lawful Neutral</td>\n      <td colspan="2"></td>\n    </tr>\n  </tbody>\n</table>'
+## acceptance.batches: -0 +1
++ {"batch_id": "framing-coverage", "diff": [{"accepted_disposition": "substantive", "accepted_reason_code": null, "prior_disposition": null, "prior_reason_code": null, "span_id": "2ed9ecb1-395e-5dee-bf81-40af1b6e7247"}, {"accepted_disposition": "substantive", "accepted_reason_code": null, "prior_disposition": null, "prior_reason_code": null, "span_id": "4d536c41-ac95-51b3-adb4-0ec73d8aa299"}, {"accepted_disposition": "substantive", "accepted_reason_code": null, "prior_disposition": null, "prior_reason_code": null, "span_id": "514d49df-a341-5066-abab-58e9523d059a"}, {"accepted_disposition": "substantive", "accepted_reason_code": null, "prior_disposition": null, "prior_reason_code": null, "span_id": "92cf3dde-8b39-586b-84e6-a8f8a893cc54"}, {"accepted_disposition": "substantive", "accepted_reason_code": null, "prior_disposition": null, "prior_reason_code": null, "span_id": "a0103739-593e-547c-80da-ce61ccb702c5"}, {"accepted_disposition": "substantive", "accepted_reason_code": null, "prior_disposition": null, "prior_reason_code": null, "span_id": "c32e4a92-dd11-52e5-95b2-b80172e3b1f7"}], "proposal_identity": "a7a98598b751dd495b28312b854cf16c4bd7db06739c56bee662c84bd6107a70", "resolved_scope": ["a0103739-593e-547c-80da-ce61ccb702c5", "2ed9ecb1-395e-5dee-bf81-40af1b6e7247", "c32e4a92-dd11-52e5-95b2-b80172e3b1f7", "4d536c41-ac95-51b3-adb4-0ec73d8aa299", "92cf3dde-8b39-586b-84e6-a8f8a893cc54", "514d49df-a341-5066-abab-58e9523d059a"], "rule": "<evidence>", "semantic_diff_hash": "5d2c02bcacc801e8de2a316f77537fc1e89b50645cc65095717aae120a757e97"}
+## acceptance.records: -0 +6
++ {"accepted_at": "<evidence>", "batch_id": "framing-coverage", "reviewer": "<evidence>", "span_id": "92cf3dde-8b39-586b-84e6-a8f8a893cc54"}
+    92cf3dde '**Tags in Brackets.** Some entries have a tag in brackets after the entry\'s name, as in "Attack [Action]." A tag—Action, Area of Effect, Attitude, Condition, or Hazard—indicates that a rule is part of a family of rules. The tags also have glossary entries.'
++ {"accepted_at": "<evidence>", "batch_id": "framing-coverage", "reviewer": "<evidence>", "span_id": "514d49df-a341-5066-abab-58e9523d059a"}
+    514d49df '**"You."** The game\'s rules—in this glossary and elsewhere—often talk about something happening to you in the game world. That "you" refers to the creature or object that the rule applies to in a particular moment of play. For example, the "you" in the Prone condition is a creature that currently has that condition.'
++ {"accepted_at": "<evidence>", "batch_id": "framing-coverage", "reviewer": "<evidence>", "span_id": "2ed9ecb1-395e-5dee-bf81-40af1b6e7247"}
+    2ed9ecb1 '**"See Also."** Some glossary entries include a _See also_ section that points to other entries in the glossary, to other parts of this document, or both.'
++ {"accepted_at": "<evidence>", "batch_id": "framing-coverage", "reviewer": "<evidence>", "span_id": "c32e4a92-dd11-52e5-95b2-b80172e3b1f7"}
+    c32e4a92 "**No Obsolete Terms.** The glossary contains definitions of current rules terms only. If you're looking for a term from an earlier version of the fifth edition rules, consult the index."
++ {"accepted_at": "<evidence>", "batch_id": "framing-coverage", "reviewer": "<evidence>", "span_id": "a0103739-593e-547c-80da-ce61ccb702c5"}
+    a0103739 '**Abbreviations.** The abbreviations listed below appear in this glossary and elsewhere in the rules.'
++ {"accepted_at": "<evidence>", "batch_id": "framing-coverage", "reviewer": "<evidence>", "span_id": "4d536c41-ac95-51b3-adb4-0ec73d8aa299"}
+    4d536c41 '<table>\n  <tbody>\n    <tr>\n      <td>AC</td>\n      <td>Armor Class</td>\n      <td>M</td>\n      <td>Material</td>\n    </tr>\n    <tr>\n      <td>C</td>\n      <td>Concentration</td>\n      <td></td>\n      <td>component</td>\n    </tr>\n    <tr>\n      <td>CE</td>\n      <td>Chaotic Evil</td>\n      <td>N</td>\n      <td>Neutral</td>\n    </tr>\n    <tr>\n      <td>CG</td>\n      <td>Chaotic Good</td>\n      <td>NE</td>\n      <td>Neutral Evil</td>\n    </tr>\n    <tr>\n      <td>Cha.</td>\n      <td>Charisma</td>\n      <td>NG</td>\n      <td>Neutral Good</td>\n    </tr>\n    <tr>\n      <td>CN</td>\n      <td>Chaotic Neutral</td>\n      <td>NPC</td>\n      <td>Nonplayer</td>\n    </tr>\n    <tr>\n      <td>Con.</td>\n      <td>Constitution</td>\n      <td></td>\n      <td>character</td>\n    </tr>\n    <tr>\n      <td>CP</td>\n      <td>Copper Piece(s)</td>\n      <td>PB</td>\n      <td>Proficiency Bonus</td>\n    </tr>\n    <tr>\n      <td>CR</td>\n      <td>Challenge Rating</td>\n      <td>PP</td>\n      <td>Platinum Piece(s)</td>\n    </tr>\n    <tr>\n      <td>DC</td>\n      <td>Difficulty Class</td>\n      <td>R</td>\n      <td>Ritual</td>\n    </tr>\n    <tr>\n      <td>Dex.</td>\n      <td>Dexterity</td>\n      <td>S</td>\n      <td>Somatic</td>\n    </tr>\n    <tr>\n      <td></td>\n      <td></td>\n      <td></td>\n      <td>component</td>\n    </tr>\n    <tr>\n      <td>EP</td>\n      <td>Electrum Piece(s)</td>\n      <td>SP</td>\n      <td>Silver Piece(s)</td>\n    </tr>\n    <tr>\n      <td>GM</td>\n      <td>Game Master</td>\n      <td></td>\n      <td></td>\n    </tr>\n    <tr>\n      <td>GP</td>\n      <td>Gold Piece(s)</td>\n      <td>Str.</td>\n      <td>Strength</td>\n    </tr>\n    <tr>\n      <td>HP</td>\n      <td>Hit Point(s)</td>\n      <td>V</td>\n      <td>Verbal</td>\n    </tr>\n    <tr>\n      <td></td>\n      <td></td>\n      <td></td>\n      <td>component</td>\n    </tr>\n    <tr>\n      <td>Int.</td>\n      <td>Intelligence</td>\n      <td>Wis.</td>\n      <td>Wisdom</td>\n    </tr>\n    <tr>\n      <td>LE</td>\n      <td>Lawful Evil</td>\n      <td>XP</td>\n      <td>Experience</td>\n    </tr>\n    <tr>\n      <td>LG</td>\n      <td>Lawful Good</td>\n      <td></td>\n      <td>Point(s)</td>\n    </tr>\n    <tr>\n      <td>LN</td>\n      <td>Lawful Neutral</td>\n      <td colspan="2"></td>\n    </tr>\n  </tbody>\n</table>'
+## acceptance.review_unit_records: -0 +15
++ {"accepted_at": "<evidence>", "batch_id": "framing-coverage", "reviewer": "<evidence>", "unit_id": "framing-coverage/character_creation"}
++ {"accepted_at": "<evidence>", "batch_id": "framing-coverage", "reviewer": "<evidence>", "unit_id": "framing-coverage/character_origins"}
++ {"accepted_at": "<evidence>", "batch_id": "framing-coverage", "reviewer": "<evidence>", "unit_id": "framing-coverage/classes"}
++ {"accepted_at": "<evidence>", "batch_id": "framing-coverage", "reviewer": "<evidence>", "unit_id": "framing-coverage/equipment"}
++ {"accepted_at": "<evidence>", "batch_id": "framing-coverage", "reviewer": "<evidence>", "unit_id": "framing-coverage/feats"}
++ {"accepted_at": "<evidence>", "batch_id": "framing-coverage", "reviewer": "<evidence>", "unit_id": "framing-coverage/gameplay_toolbox"}
++ {"accepted_at": "<evidence>", "batch_id": "framing-coverage", "reviewer": "<evidence>", "unit_id": "framing-coverage/glossary_conventions"}
++ {"accepted_at": "<evidence>", "batch_id": "framing-coverage", "reviewer": "<evidence>", "unit_id": "framing-coverage/legal_information"}
++ {"accepted_at": "<evidence>", "batch_id": "framing-coverage", "reviewer": "<evidence>", "unit_id": "framing-coverage/magic_items"}
++ {"accepted_at": "<evidence>", "batch_id": "framing-coverage", "reviewer": "<evidence>", "unit_id": "framing-coverage/monsters"}
++ {"accepted_at": "<evidence>", "batch_id": "framing-coverage", "reviewer": "<evidence>", "unit_id": "framing-coverage/monsters_a_z"}
++ {"accepted_at": "<evidence>", "batch_id": "framing-coverage", "reviewer": "<evidence>", "unit_id": "framing-coverage/playing_the_game"}
++ {"accepted_at": "<evidence>", "batch_id": "framing-coverage", "reviewer": "<evidence>", "unit_id": "framing-coverage/rules_definitions"}
++ {"accepted_at": "<evidence>", "batch_id": "framing-coverage", "reviewer": "<evidence>", "unit_id": "framing-coverage/rules_glossary"}
++ {"accepted_at": "<evidence>", "batch_id": "framing-coverage", "reviewer": "<evidence>", "unit_id": "framing-coverage/spells"}
+## acceptance.schema_anchors: -0 +1
++ {"batch_id": "framing-coverage", "proposal_identity": "a7a98598b751dd495b28312b854cf16c4bd7db06739c56bee662c84bd6107a70", "schema_hash": "7fb9254b11da1d6772ea6ee72ffde9b5e9d39e8885188777874c65e86ad9a941", "schema_version": "5d-representation-schema-16"}
+## framing-coverage units, printed order, full leaf text
++ unit framing-coverage/legal_information (section), 5 leaves
+    leaf 9cbfa5a4-d400-5f62-9d74-790fa07a6d69 @0
+      excluded: Heading of the SRD 5.2.1 legal notice: names the notice and states no game rule.
+      | # Legal Information
+    leaf a269f6e1-2e6f-5e43-83e0-c67d8a0f1d80 @1
+      excluded: Licence terms: the SRD 5.2.1 is offered under CC-BY-4.0 on condition that any work using it includes the attribution statement that follows; a licensing obligation, not a game mechanic, excluded from mechanical canon only and never from publication, which must honour it.
+      | The System Reference Document 5.2.1 (“SRD 5.2.1”) is provided to you free of charge by Wizards of the Coast LLC (“Wizards”) under the terms of the Creative Commons Attribution 4.0 International License (“CC-BY-4.0”). You are free to use the content in this document in any manner permitted under CC-BY-4.0, provided that you include the following attribution statement in any of your work:
+    leaf 9630b55e-12e5-5928-b243-4d5c2818642b @2
+      excluded: The attribution statement CC-BY-4.0 requires any work using this material to include: legal text, not a game mechanic; excluded from mechanical canon only, and still required, verbatim, wherever this material is published.
+      | This work includes material from the System Reference Document 5.2.1 (“SRD 5.2.1”) by Wizards of the Coast LLC, available at https://www.dndbeyond.com/srd. The SRD 5.2.1 is licensed under the Creative Commons Attribution 4.0 International License, available at https://creativecommons.org/licenses/by/4.0/legalcode.
+    leaf ed74ff28-7680-5548-acdc-aa80f5df935b @3
+      excluded: Attribution limits: no other attribution to Wizards or its parent or affiliates, and the permitted “compatible with fifth edition” or “5E compatible” statement; a publication obligation, not a game mechanic, which exclusion from mechanical canon does not waive.
+      | Please do not include any other attribution to Wizards or its parent or affiliates other than that provided above. You may, however, include a statement on your work indicating that it is “compatible with fifth edition” or “5E compatible.”
+    leaf 3efc8e2d-816c-55ae-a884-62bd16dbc920 @4
+      excluded: Liability notice: CC-BY-4.0 Section 5's disclaimer of warranties and limitation of liability; legal text that states no game rule.
+      | Section 5 of CC-BY-4.0 includes a Disclaimer of Warranties and Limitation of Liability that limits our liability to you.
++ unit framing-coverage/character_creation (section), 1 leaves
+    leaf 7eaded98-5e17-59bb-ae18-bc9e040b99bd @841
+      excluded: Part heading: names the Character Creation part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed. The whole-part citations that name this part stay unresolved.
+      | # Character Creation
++ unit framing-coverage/character_origins (section), 1 leaves
+    leaf 431c6ac5-ebab-5fde-9ca0-fc0dd326d651 @1008
+      excluded: Part heading: names the Character Origins part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed.
+      | # Character Origins
++ unit framing-coverage/classes (section), 1 leaves
+    leaf cd2c6c97-273f-565a-b9a4-fdedf0b9d94b @1126
+      excluded: Part heading: names the Classes part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed. The whole-part citations that name this part stay unresolved.
+      | # Classes
++ unit framing-coverage/equipment (section), 1 leaves
+    leaf 1394b233-4862-500c-85dd-e1b511566a48 @2301
+      excluded: Part heading: names the Equipment part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed. The whole-part citations that name this part stay unresolved.
+      | # Equipment
++ unit framing-coverage/feats (section), 1 leaves
+    leaf f15a6fc7-9f9f-509e-84f2-09cb279bffd9 @2677
+      excluded: Part heading: names the Feats part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed.
+      | # Feats
++ unit framing-coverage/gameplay_toolbox (section), 1 leaves
+    leaf 90b2e8ed-8404-57e3-a5a7-0a3cb00c49ce @2769
+      excluded: Part heading: names the Gameplay Toolbox part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed.
+      | # Gameplay Toolbox
++ unit framing-coverage/magic_items (section), 2 leaves
+    leaf 9eaf34f5-e493-5c64-9439-dc5dc231fa1b @3055
+      excluded: Part heading: names the Magic Items part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed.
+      | # Magic Items
+    leaf 9aaa218e-1298-5364-9752-518b3850a742 @3056
+      excluded: Introductory flavour: where magic items are found and that they grant uncommon capabilities; it neither states nor contextualizes the rule of any item.
+      | Magic items are gleaned from the hoards of felled monsters or discovered in long-lost vaults. Such items grant capabilities a character could rarely have otherwise, or they complement their owner's capabilities in wondrous ways.
++ unit framing-coverage/monsters (section), 1 leaves
+    leaf a5d1c9cf-7afa-5434-82b2-0e83bae80858 @4389
+      excluded: Part heading: names the Monsters part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed.
+      | # Monsters
++ unit framing-coverage/monsters_a_z (section), 1 leaves
+    leaf 776fa4e0-31ff-5dcf-952b-0e6533725527 @4505
+      excluded: Part heading: names the Monsters A–Z part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed.
+      | # Monsters A–Z
++ unit framing-coverage/playing_the_game (section), 1 leaves
+    leaf d328aecf-0e56-5c02-8d0b-df8e6f9adb70 @7530
+      excluded: Part heading: names the Playing the Game part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed.
+      | # Playing the Game
++ unit framing-coverage/rules_glossary (section), 1 leaves
+    leaf a91f2607-17d8-5247-83e6-f5e178df3338 @7856
+      excluded: Part heading: names the Rules Glossary part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed.
+      | # Rules Glossary
++ unit framing-coverage/glossary_conventions (section), 8 leaves
+    leaf 6514f550-e588-5c1f-bfe2-ef452259a5b5 @7857
+      excluded: section heading: names the section and states no rule
+      | ## Glossary Conventions
+    leaf 69f82978-fdc9-56fa-a976-0b143e13f883 @7858
+      supporting: glossary.glossary_conventions
+      | The glossary uses the following conventions:
+    leaf 5d8e3e9c-f44e-5541-88e5-96f3dc80f91e @7859
+      expected rule: glossary.glossary_conventions/tags_in_brackets (span 92cf3dde)
+      | **Tags in Brackets.** Some entries have a tag in brackets after the entry's name, as in "Attack [Action]." A tag—Action, Area of Effect, Attitude, Condition, or Hazard—indicates that a rule is part of a family of rules. The tags also have glossary entries.
+    leaf 6b8dc958-95e7-5e27-9120-9b0a56fb6da0 @7860
+      expected rule: glossary.glossary_conventions/you (span 514d49df)
+      | **"You."** The game's rules—in this glossary and elsewhere—often talk about something happening to you in the game world. That "you" refers to the creature or object that the rule applies to in a particular moment of play. For example, the "you" in the Prone condition is a creature that currently has that condition.
+    leaf c48715d7-c6e7-55b1-bb25-69d4b079bda5 @7861
+      expected rule: glossary.glossary_conventions/see_also (span 2ed9ecb1)
+      | **"See Also."** Some glossary entries include a _See also_ section that points to other entries in the glossary, to other parts of this document, or both.
+    leaf 0b8d0b3f-b3e0-5698-a4da-2496b02ac386 @7862
+      expected rule: glossary.glossary_conventions/no_obsolete_terms (span c32e4a92)
+      | **No Obsolete Terms.** The glossary contains definitions of current rules terms only. If you're looking for a term from an earlier version of the fifth edition rules, consult the index.
+    leaf 37509aef-9353-5bd7-9b0e-933b9242b1df @7863
+      expected rule: glossary.glossary_conventions/abbreviations (span a0103739)
+      | **Abbreviations.** The abbreviations listed below appear in this glossary and elsewhere in the rules.
+    leaf 7f4799fe-d987-5499-9192-9f1a12e34e71 @7864
+      expected rule: glossary.glossary_conventions/abbreviations (span 4d536c41)
+      | <table>
+      |   <tbody>
+      |     <tr>
+      |       <td>AC</td>
+      |       <td>Armor Class</td>
+      |       <td>M</td>
+      |       <td>Material</td>
+      |     </tr>
+      |     <tr>
+      |       <td>C</td>
+      |       <td>Concentration</td>
+      |       <td></td>
+      |       <td>component</td>
+      |     </tr>
+      |     <tr>
+      |       <td>CE</td>
+      |       <td>Chaotic Evil</td>
+      |       <td>N</td>
+      |       <td>Neutral</td>
+      |     </tr>
+      |     <tr>
+      |       <td>CG</td>
+      |       <td>Chaotic Good</td>
+      |       <td>NE</td>
+      |       <td>Neutral Evil</td>
+      |     </tr>
+      |     <tr>
+      |       <td>Cha.</td>
+      |       <td>Charisma</td>
+      |       <td>NG</td>
+      |       <td>Neutral Good</td>
+      |     </tr>
+      |     <tr>
+      |       <td>CN</td>
+      |       <td>Chaotic Neutral</td>
+      |       <td>NPC</td>
+      |       <td>Nonplayer</td>
+      |     </tr>
+      |     <tr>
+      |       <td>Con.</td>
+      |       <td>Constitution</td>
+      |       <td></td>
+      |       <td>character</td>
+      |     </tr>
+      |     <tr>
+      |       <td>CP</td>
+      |       <td>Copper Piece(s)</td>
+      |       <td>PB</td>
+      |       <td>Proficiency Bonus</td>
+      |     </tr>
+      |     <tr>
+      |       <td>CR</td>
+      |       <td>Challenge Rating</td>
+      |       <td>PP</td>
+      |       <td>Platinum Piece(s)</td>
+      |     </tr>
+      |     <tr>
+      |       <td>DC</td>
+      |       <td>Difficulty Class</td>
+      |       <td>R</td>
+      |       <td>Ritual</td>
+      |     </tr>
+      |     <tr>
+      |       <td>Dex.</td>
+      |       <td>Dexterity</td>
+      |       <td>S</td>
+      |       <td>Somatic</td>
+      |     </tr>
+      |     <tr>
+      |       <td></td>
+      |       <td></td>
+      |       <td></td>
+      |       <td>component</td>
+      |     </tr>
+      |     <tr>
+      |       <td>EP</td>
+      |       <td>Electrum Piece(s)</td>
+      |       <td>SP</td>
+      |       <td>Silver Piece(s)</td>
+      |     </tr>
+      |     <tr>
+      |       <td>GM</td>
+      |       <td>Game Master</td>
+      |       <td></td>
+      |       <td></td>
+      |     </tr>
+      |     <tr>
+      |       <td>GP</td>
+      |       <td>Gold Piece(s)</td>
+      |       <td>Str.</td>
+      |       <td>Strength</td>
+      |     </tr>
+      |     <tr>
+      |       <td>HP</td>
+      |       <td>Hit Point(s)</td>
+      |       <td>V</td>
+      |       <td>Verbal</td>
+      |     </tr>
+      |     <tr>
+      |       <td></td>
+      |       <td></td>
+      |       <td></td>
+      |       <td>component</td>
+      |     </tr>
+      |     <tr>
+      |       <td>Int.</td>
+      |       <td>Intelligence</td>
+      |       <td>Wis.</td>
+      |       <td>Wisdom</td>
+      |     </tr>
+      |     <tr>
+      |       <td>LE</td>
+      |       <td>Lawful Evil</td>
+      |       <td>XP</td>
+      |       <td>Experience</td>
+      |     </tr>
+      |     <tr>
+      |       <td>LG</td>
+      |       <td>Lawful Good</td>
+      |       <td></td>
+      |       <td>Point(s)</td>
+      |     </tr>
+      |     <tr>
+      |       <td>LN</td>
+      |       <td>Lawful Neutral</td>
+      |       <td colspan="2"></td>
+      |     </tr>
+      |   </tbody>
+      | </table>
++ unit framing-coverage/rules_definitions (section), 2 leaves
+    leaf a8b868f8-a207-5189-837e-ad8f52230944 @7865
+      excluded: Section heading: names the Rules Definitions section, whose entries the accepted glossary batches author, and states no rule. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed.
+      | ## Rules Definitions
+    leaf 3f00f8d2-f6d0-5b04-8c49-2bd5364d104f @7866
+      excluded: One-line introduction: announces the definitions that follow and states, qualifies or contextualizes no rule of any of them.
+      | Here are definitions of various rules.
++ unit framing-coverage/spells (section), 1 leaves
+    leaf 27b720ba-f917-5a11-9369-3bd6154786ad @8349
+      excluded: Part heading: names the Spells part and states no rule; the accepted batches below it review its content. Coverage only: this is not a verdict that the heading cannot name a catalogue or section record, and no membership or reference resolution is claimed. The whole-part citations that name this part stay unresolved.
+      | # Spells

@@ -29,6 +29,7 @@ from afterworlds.ingestion.mechanical.projection import (
 )
 from afterworlds.ingestion.mechanical.representation import (
     RelationshipKind,
+    SpellDescriptorFact,
     fact_from_payload,
 )
 from afterworlds.persistence.orm.mechanical import (
@@ -88,6 +89,7 @@ def test_facts_rebuild_into_their_declared_dataclass(session: Session) -> None:
     ).scalar_one()
     rebuilt = fact_from_payload(row.payload)
     assert type(rebuilt).__name__ == "SpellDescriptorFact"
+    assert isinstance(rebuilt, SpellDescriptorFact)
     assert rebuilt.level == 9
 
 
@@ -177,9 +179,7 @@ def test_delete_removes_every_scoped_row(session: Session) -> None:
     for model in (MechanicalSpanORM, MechanicalRecordORM, MechanicalFactORM):
         remaining = (
             session.execute(
-                select(model).where(
-                    model.projection_uuid == identified.projection_uuid  # type: ignore[attr-defined]
-                )
+                select(model).where(model.projection_uuid == identified.projection_uuid)
             )
             .scalars()
             .all()

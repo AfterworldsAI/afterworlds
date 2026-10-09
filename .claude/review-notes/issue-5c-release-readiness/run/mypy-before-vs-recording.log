@@ -1,0 +1,7 @@
+start 2026-10-07T07:17:49.087124+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/review-notes/issue-5c-release-readiness/run/compare_mypy_logs.py .claude/review-notes/issue-5c-release-order-recording/run/gates-mypy-tests-2.log .claude/review-notes/issue-5c-release-readiness/run/mypy-before.log
+input 0a932b221d8339ca1fcec8e8ee4d98f2a4d100afc9be1a4291c25c8a680f3b96  .claude/review-notes/issue-5c-release-readiness/run/compare_mypy_logs.py
+input 8a30441563b3804f132459a71ac68a51bafc32c3e2a09109127d56ddb4ac1991  .claude/review-notes/issue-5c-release-order-recording/run/gates-mypy-tests-2.log
+input 6f98187c79ef22f243627a7efcad12b2757d296327642ba533a91e8e70e48c04  .claude/review-notes/issue-5c-release-readiness/run/mypy-before.log
+first 16 second 16 identical True
+end 2026-10-07T07:17:49.131272+00:00 exit 0

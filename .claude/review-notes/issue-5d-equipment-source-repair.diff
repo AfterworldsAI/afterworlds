@@ -1,0 +1,128 @@
+--- a/docs/sources/community/dnd-5e-srd-markdown/equipment.md
++++ b/docs/sources/community/dnd-5e-srd-markdown/equipment.md
+@@ -1781,9 +1781,7 @@
+       <td>5 CP</td>
+     </tr>
+     <tr>
+-      <td>Saddle</td>
+-      <td></td>
+-      <td></td>
++      <th colspan="3"><em>Saddle</em></th>
+     </tr>
+     <tr>
+       <td>Exotic</td>
+@@ -1825,6 +1823,8 @@
+ #### Speed
+ 
+ A ship sailing against a strong wind moves at half speed. In a dead calm (no wind), waterborne ships can't move under sail and must be rowed. Keelboats and Rowboats are used on lakes and rivers. If going downstream, add the speed of the current (typically 3 miles per hour) to the speed of the vehicle. These vehicles can't be rowed against any significant current, but they can be pulled upstream by draft animals on the shores. A Rowboat can be carried and weighs 100 pounds.
++
++**Airborne and Waterborne Vehicles**
+ 
+ <table>
+   <thead>
+@@ -1984,68 +1984,83 @@
+     <tr>
+       <th>Item</th>
+       <th>Cost</th>
+-      <th>Item</th>
+-      <th>Cost</th>
+-    </tr>
+-    <tr>
+-      <th>Inn Stay per Day</th>
+-      <th></th>
+-      <th>Meal</th>
+-      <th></th>
+     </tr>
+   </thead>
+   <tbody>
+     <tr>
+       <td>Ale (mug)</td>
+       <td>4 CP</td>
++    </tr>
++    <tr>
++      <td>Bread (loaf)</td>
++      <td>2 CP</td>
++    </tr>
++    <tr>
++      <td>Cheese (wedge)</td>
++      <td>1 SP</td>
++    </tr>
++    <tr>
++      <th colspan="2"><em>Inn Stay per Day</em></th>
++    </tr>
++    <tr>
++      <td>Squalid</td>
++      <td>7 CP</td>
++    </tr>
++    <tr>
++      <td>Poor</td>
++      <td>1 SP</td>
++    </tr>
++    <tr>
++      <td>Modest</td>
++      <td>5 SP</td>
++    </tr>
++    <tr>
+       <td>Comfortable</td>
+       <td>8 SP</td>
+     </tr>
+     <tr>
+-      <td>Bread (loaf)</td>
+-      <td>2 CP</td>
+       <td>Wealthy</td>
+       <td>2 GP</td>
+     </tr>
+     <tr>
+-      <td>Cheese (wedge)</td>
+-      <td>1 SP</td>
+       <td>Aristocratic</td>
+       <td>4 GP</td>
+     </tr>
+     <tr>
+-      <td>Squalid</td>
+-      <td>7 CP</td>
++      <th colspan="2"><em>Meal</em></th>
++    </tr>
++    <tr>
+       <td>Squalid</td>
+       <td>1 CP</td>
+     </tr>
+     <tr>
+       <td>Poor</td>
+-      <td>1 SP</td>
+-      <td>Poor</td>
+       <td>2 CP</td>
+     </tr>
+     <tr>
+-      <td>Modest</td>
+-      <td>5 SP</td>
+       <td>Modest</td>
+       <td>1 SP</td>
+     </tr>
+     <tr>
+       <td>Comfortable</td>
+       <td>2 SP</td>
+-      <td>Wine (bottle)</td>
+-      <td></td>
+     </tr>
+     <tr>
+       <td>Wealthy</td>
+       <td>3 SP</td>
++    </tr>
++    <tr>
++      <td>Aristocratic</td>
++      <td>6 SP</td>
++    </tr>
++    <tr>
++      <th colspan="2"><em>Wine (bottle)</em></th>
++    </tr>
++    <tr>
+       <td>Common</td>
+       <td>2 SP</td>
+     </tr>
+     <tr>
+-      <td>Aristocratic</td>
+-      <td>6 SP</td>
+       <td>Fine</td>
+       <td>10 GP</td>
+     </tr>

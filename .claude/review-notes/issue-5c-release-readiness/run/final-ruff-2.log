@@ -1,0 +1,4 @@
+start 2026-10-07T16:14:48.957629+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe -m ruff check src/ tests/
+All checks passed!
+end 2026-10-07T16:14:49.070248+00:00 exit 0

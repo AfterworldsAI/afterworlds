@@ -109,6 +109,7 @@ from afterworlds.ingestion.mechanical.representation import (
     Recurrence,
     RecurrenceBoundary,
     ReferenceDraft,
+    ReferenceSituation,
     RelationshipDraft,
     RelationshipKind,
     RepresentationDraft,
@@ -426,6 +427,13 @@ def persist_draft(
                 source_text=reference.source_text,
                 scope_key=reference.scope_key,
                 target_record_key=reference.target_record_key,
+                target_component_key=reference.target_component_key,
+                alternative_label=reference.alternative_label,
+                situation=(
+                    None if reference.situation is None else reference.situation.value
+                ),
+                class_record_key=reference.class_record_key,
+                minimum_class_level=reference.minimum_class_level,
             )
         )
 
@@ -908,6 +916,21 @@ def reconstruct_candidate(
                 source_text=r.source_text,
                 scope_key=r.scope_key,
                 target_record_key=r.target_record_key,
+                target_component_key=r.target_component_key,
+                alternative_label=r.alternative_label,
+                situation=(
+                    None
+                    if r.situation is None
+                    else parse_enum(
+                        ReferenceSituation,
+                        r.situation,
+                        "rp_mech_references",
+                        str(r.row_id),
+                        "situation",
+                    )
+                ),
+                class_record_key=r.class_record_key,
+                minimum_class_level=r.minimum_class_level,
             )
             for r in raw.references
         ),

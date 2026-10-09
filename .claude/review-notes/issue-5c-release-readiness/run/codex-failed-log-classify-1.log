@@ -1,0 +1,9 @@
+start 2026-10-07T15:14:24.288801+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/_sp/release-readiness-20261007/codex_classify_failed_gate_secrets.py
+input 12419b1d0fcba867d5664668b5e4d79693422966c4850de86b5451808f4c98bc  .claude/_sp/release-readiness-20261007/codex_classify_failed_gate_secrets.py
+Traceback (most recent call last):
+  File "D:\AI\Claude\afterworlds\.claude\_sp\release-readiness-20261007\codex_classify_failed_gate_secrets.py", line 31, in <module>
+    assert len(matches) == len(values), {"unmatched_fingerprints": sorted(set(values) - set(matches))}
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: {'unmatched_fingerprints': ['f6c06a223200bb7edc0cee94f7c9877ee2a00a0b', 'f7dbadc25d7a26646cf33ebffc886ab4d8ce41d8']}
+end 2026-10-07T15:14:31.252523+00:00 exit 1

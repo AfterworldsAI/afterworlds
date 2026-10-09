@@ -1,0 +1,11 @@
+start 2026-10-07T09:36:45.038178+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe scripts/run_focused_tests.py --check tests/ingestion/mechanical/test_magic_items_proposal.py tests/ingestion/mechanical/test_magic_items_proposal.py::test_accepted_then_resolved_in_memory_preserves_everything
+input ef6969b5f09e59ebd4001aad2137ade7ca74509d4075753de73336d7595050e9  scripts/run_focused_tests.py
+input e53508e3d9b0fe72fe65ba0c76dcbbab168461bb1f38038e78100642cdd6f828  tests/ingestion/mechanical/test_magic_items_proposal.py
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+All done! ✨ 🍰 ✨
+1 file would be left unchanged.
+.                                                                        [100%]
+1 passed in 47.62s
+Focused diagnostics PASSED (exit 0). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+end 2026-10-07T09:37:35.245048+00:00 exit 0

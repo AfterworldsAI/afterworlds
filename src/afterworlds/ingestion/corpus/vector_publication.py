@@ -32,10 +32,7 @@ from chromadb.api import ClientAPI
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from afterworlds.models.enums import SourceLocatorTypeEnum
 from afterworlds.models.retrieval import (
-    RulesCorpusChunkMetadata,
-    build_rules_corpus_chunk_id,
     rules_corpus_collection_name,
 )
 from afterworlds.persistence.orm.rules_package import RuleChunkORM, RuleSourceORM
@@ -45,8 +42,12 @@ from afterworlds.pipeline.retrieval.collections import (
     get_existing_rules_corpus_collection,
 )
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
+from afterworlds.pipeline.retrieval.corpus_windows import (
+    derive_retrieval_documents,
+)
 from afterworlds.pipeline.retrieval.embedding import RetrievalEmbeddingFunction
 from afterworlds.pipeline.retrieval.rules_corpus_service import RulesCorpusService
+from afterworlds.quarantine import refuse_quarantined
 
 # Metadata key Chroma stores the collection's embedding-model identity under
 # (mirrors the private constant in ``collections.py``; read-only use here).
@@ -131,29 +132,27 @@ def expected_vector_state_from_sql(
 ) -> VectorLogicalState:
     """Build the vector logical state that *should* exist, from SQL ground truth.
 
-    Uses the Issue 18 canonical ID/metadata builders so the expected state is
-    computed the exact same way the reindex writes it — the comparison in
-    :func:`verify_vector_state` is then a true SQL-vs-actual-Chroma check, not a
-    tautology against a locally reinvented shape.
+    Calls ``derive_retrieval_documents`` — the same function the reindex writer
+    calls — so the expected state is computed the exact same way the reindex
+    writes it, including the bounded windowing a long chunk goes through. The
+    comparison in :func:`verify_vector_state` is then a true
+    SQL-vs-actual-Chroma check, not a tautology against a locally reinvented
+    shape. One enabled chunk contributes one document per window, so ``count``
+    is a document count and not a chunk count.
     """
     package_uuid = UUID(pkg)
     docs: list[VectorDocumentState] = []
     for row in _enabled_chunk_rows(session, pkg):
-        metadata = RulesCorpusChunkMetadata(
-            rules_package_id=package_uuid,
-            subsystem=row.subsystem,
-            source_document=row.source_document,
-            source_locator_type=SourceLocatorTypeEnum(row.source_locator_type),
-            source_locator_value=row.source_locator_value,
-            embedding_model_id=config.embedding_model_id,
-        )
-        docs.append(
-            VectorDocumentState(
-                doc_id=build_rules_corpus_chunk_id(package_uuid, UUID(row.chunk_id)),
-                content=row.content,
-                metadata=metadata.model_dump(mode="json"),
+        for doc_id, document, metadata in derive_retrieval_documents(
+            row, package_uuid, config.embedding_model_id
+        ):
+            docs.append(
+                VectorDocumentState(
+                    doc_id=doc_id,
+                    content=document,
+                    metadata=metadata.model_dump(mode="json"),
+                )
             )
-        )
     docs.sort(key=lambda d: d.doc_id)
     return VectorLogicalState(
         collection_name=rules_corpus_collection_name(package_uuid),
@@ -297,6 +296,7 @@ def reindex_and_verify(
     yields a non-empty ``failures`` (publication-blocking). ``written`` is the
     count ``reindex_from_sql`` reported.
     """
+    refuse_quarantined("vector reindex and verify", package_uuid=pkg)
     service = RulesCorpusService(client, config, embedding_function)
     try:
         written = service.reindex_from_sql(session, UUID(pkg))
@@ -337,6 +337,7 @@ def verify_only(
     collection; it must confirm the existing vectors still match SQL ground
     truth and fail closed against a missing/stale/tampered collection.
     """
+    refuse_quarantined("vector verify-only", package_uuid=pkg)
     expected = expected_vector_state_from_sql(session, pkg, config)
     actual = read_actual_vector_state(client, pkg, config, embedding_function)
     failures = verify_vector_state(expected, actual, config)

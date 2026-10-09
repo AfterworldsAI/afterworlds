@@ -1,0 +1,2210 @@
+[
+  {
+    "record": "glossary.condition",
+    "leaf": "96474ead-bc40-5b8e-bfc3-a8e6ba8f8b40",
+    "span_id": "d5f89564-473d-5d04-9ef7-12609f5a4656",
+    "range": [
+      0,
+      9
+    ],
+    "text": "Condition",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "glossary.condition",
+    "leaf": "1f25508c-0b60-5e6b-8dd3-fa64dff28ecf",
+    "span_id": "2938fa3a-15ae-591a-ac13-c02d37b3da85",
+    "range": [
+      0,
+      192
+    ],
+    "text": "A condition is a temporary game state. The definition of a condition says how it affects its recipient, and various rules define how to end a condition. This glossary defines these conditions:",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "glossary.condition",
+    "leaf": "a26f1108-8cbd-5716-977d-76297759aef4",
+    "span_id": "462cc6c9-3423-591c-a82c-c8fac530e916",
+    "range": [
+      0,
+      7
+    ],
+    "text": "Blinded",
+    "disposition": "supporting_authority",
+    "kind": "REF"
+  },
+  {
+    "record": "glossary.condition",
+    "leaf": "a26f1108-8cbd-5716-977d-76297759aef4",
+    "span_id": "89e3eb41-3476-5b2b-b822-993907c060a4",
+    "range": [
+      7,
+      15
+    ],
+    "text": " Charmed",
+    "disposition": "supporting_authority",
+    "kind": "REF"
+  },
+  {
+    "record": "glossary.condition",
+    "leaf": "a26f1108-8cbd-5716-977d-76297759aef4",
+    "span_id": "5da5dd78-47b3-5240-b501-cfa0c16a354d",
+    "range": [
+      15,
+      24
+    ],
+    "text": " Deafened",
+    "disposition": "supporting_authority",
+    "kind": "REF"
+  },
+  {
+    "record": "glossary.condition",
+    "leaf": "a26f1108-8cbd-5716-977d-76297759aef4",
+    "span_id": "39baeecc-b36b-5650-9b50-07436109a035",
+    "range": [
+      24,
+      35
+    ],
+    "text": " Exhaustion",
+    "disposition": "supporting_authority",
+    "kind": "REF"
+  },
+  {
+    "record": "glossary.condition",
+    "leaf": "a26f1108-8cbd-5716-977d-76297759aef4",
+    "span_id": "4d122181-9145-53c4-901f-b23f553eb4fc",
+    "range": [
+      35,
+      46
+    ],
+    "text": " Frightened",
+    "disposition": "supporting_authority",
+    "kind": "REF"
+  },
+  {
+    "record": "glossary.condition",
+    "leaf": "3555667c-5d26-54f8-83e3-4cf6158f4486",
+    "span_id": "2606e80f-5ee8-5131-8828-4507744164d0",
+    "range": [
+      0,
+      8
+    ],
+    "text": "Grappled",
+    "disposition": "supporting_authority",
+    "kind": "REF"
+  },
+  {
+    "record": "glossary.condition",
+    "leaf": "3555667c-5d26-54f8-83e3-4cf6158f4486",
+    "span_id": "4f9c4f02-1b33-563a-aade-1b01261940b4",
+    "range": [
+      8,
+      22
+    ],
+    "text": " Incapacitated",
+    "disposition": "supporting_authority",
+    "kind": "REF"
+  },
+  {
+    "record": "glossary.condition",
+    "leaf": "3555667c-5d26-54f8-83e3-4cf6158f4486",
+    "span_id": "b6053e4d-ed1f-5b28-8070-f8791a936347",
+    "range": [
+      22,
+      32
+    ],
+    "text": " Invisible",
+    "disposition": "supporting_authority",
+    "kind": "REF"
+  },
+  {
+    "record": "glossary.condition",
+    "leaf": "3555667c-5d26-54f8-83e3-4cf6158f4486",
+    "span_id": "2bc271aa-83f5-59da-bd78-54eb3159f287",
+    "range": [
+      32,
+      42
+    ],
+    "text": " Paralyzed",
+    "disposition": "supporting_authority",
+    "kind": "REF"
+  },
+  {
+    "record": "glossary.condition",
+    "leaf": "3555667c-5d26-54f8-83e3-4cf6158f4486",
+    "span_id": "05a97958-c18f-5080-a293-0f56babbd1dc",
+    "range": [
+      42,
+      52
+    ],
+    "text": " Petrified",
+    "disposition": "supporting_authority",
+    "kind": "REF"
+  },
+  {
+    "record": "glossary.condition",
+    "leaf": "baf75f87-c941-56ed-9c9a-16326a717a60",
+    "span_id": "f38ece19-5b03-5148-a87f-53b71afe8784",
+    "range": [
+      0,
+      8
+    ],
+    "text": "Poisoned",
+    "disposition": "supporting_authority",
+    "kind": "REF"
+  },
+  {
+    "record": "glossary.condition",
+    "leaf": "baf75f87-c941-56ed-9c9a-16326a717a60",
+    "span_id": "19b9738e-54d2-523b-af3d-5933417190bd",
+    "range": [
+      8,
+      14
+    ],
+    "text": " Prone",
+    "disposition": "supporting_authority",
+    "kind": "REF"
+  },
+  {
+    "record": "glossary.condition",
+    "leaf": "baf75f87-c941-56ed-9c9a-16326a717a60",
+    "span_id": "7551e84e-7e86-553e-9e0d-86cda9acf311",
+    "range": [
+      14,
+      25
+    ],
+    "text": " Restrained",
+    "disposition": "supporting_authority",
+    "kind": "REF"
+  },
+  {
+    "record": "glossary.condition",
+    "leaf": "baf75f87-c941-56ed-9c9a-16326a717a60",
+    "span_id": "1c3959f3-5044-57cd-8187-c77015c6bc3d",
+    "range": [
+      25,
+      33
+    ],
+    "text": " Stunned",
+    "disposition": "supporting_authority",
+    "kind": "REF"
+  },
+  {
+    "record": "glossary.condition",
+    "leaf": "baf75f87-c941-56ed-9c9a-16326a717a60",
+    "span_id": "b5585a99-8cb1-5620-849c-a501919a7e90",
+    "range": [
+      33,
+      45
+    ],
+    "text": " Unconscious",
+    "disposition": "supporting_authority",
+    "kind": "REF"
+  },
+  {
+    "record": "glossary.condition",
+    "leaf": "c96a6483-f93d-52e9-892d-520001c067a7",
+    "span_id": "87130d30-f34c-5a7f-9261-6b6794f053aa",
+    "range": [
+      0,
+      140
+    ],
+    "text": "A condition doesn’t stack with itself; a recipient either has a condition or doesn’t. The Exhaustion condition is an exception to that rule.",
+    "disposition": "substantive",
+    "kind": "P"
+  },
+  {
+    "record": "condition.blinded",
+    "leaf": "2191f89e-18a3-5fba-85c4-d201f0aa5c6f",
+    "span_id": "ba364b0d-ed9c-5ebd-ac5f-61fd9f493a13",
+    "range": [
+      0,
+      19
+    ],
+    "text": "Blinded [Condition]",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.blinded",
+    "leaf": "e40afd37-7671-5473-8d9a-d1e02b3f3f0d",
+    "span_id": "f4a6b1e2-9c20-50cf-8dc7-cafca85984f2",
+    "range": [
+      0,
+      75
+    ],
+    "text": "While you have the Blinded condition, you experience the following effects.",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.blinded",
+    "leaf": "a0cb5352-1066-5cfe-a494-bf6b8f4512a6",
+    "span_id": "24af2b28-65e7-5660-bc45-76c5d4e21eaa",
+    "range": [
+      0,
+      10
+    ],
+    "text": "Can’t See.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.blinded",
+    "leaf": "9c3d1070-7108-5ce8-98b5-2b3154a02017",
+    "span_id": "7821d7ec-e3b8-592a-a426-c81b1efca843",
+    "range": [
+      0,
+      13
+    ],
+    "text": "You can’t see",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.blinded",
+    "leaf": "9c3d1070-7108-5ce8-98b5-2b3154a02017",
+    "span_id": "0b50cafc-478f-5ba9-95df-27b4f065d7d7",
+    "range": [
+      13,
+      54
+    ],
+    "text": " and automatically fail any ability check",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.blinded",
+    "leaf": "9c3d1070-7108-5ce8-98b5-2b3154a02017",
+    "span_id": "324317f4-30d6-5d6e-83e0-ee6e0b00eec1",
+    "range": [
+      54,
+      75
+    ],
+    "text": " that requires sight.",
+    "disposition": "substantive",
+    "kind": "P"
+  },
+  {
+    "record": "condition.blinded",
+    "leaf": "c870b270-4f08-5bf7-9596-9433aee843e9",
+    "span_id": "24a8131a-fc80-507f-89f1-4fb803744920",
+    "range": [
+      0,
+      17
+    ],
+    "text": "Attacks Affected.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.blinded",
+    "leaf": "ab8fdb76-e259-5113-b7ba-3cf19fe98905",
+    "span_id": "b1ac0ec5-e886-5c07-a827-a0703747eb45",
+    "range": [
+      0,
+      40
+    ],
+    "text": "Attack rolls against you have Advantage,",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.blinded",
+    "leaf": "ab8fdb76-e259-5113-b7ba-3cf19fe98905",
+    "span_id": "37a55b60-7960-596c-9a38-fcf18b17d528",
+    "range": [
+      40,
+      81
+    ],
+    "text": " and your attack rolls have Disadvantage.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.charmed",
+    "leaf": "e50131c5-b97b-53d6-865e-ae6a95d16705",
+    "span_id": "d025d170-fad3-5eee-98de-9b032328bfaf",
+    "range": [
+      0,
+      19
+    ],
+    "text": "Charmed [Condition]",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.charmed",
+    "leaf": "46526f36-9f9d-5f4d-93a9-b3268fbbc905",
+    "span_id": "d918f80a-58ed-5d6f-9a2a-ce5d9f7a6528",
+    "range": [
+      0,
+      75
+    ],
+    "text": "While you have the Charmed condition, you experience the following effects.",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.charmed",
+    "leaf": "1b5faca3-b609-534b-9230-7d3797b1b83f",
+    "span_id": "de62b9d6-6b96-5111-8b7e-4e00b326c189",
+    "range": [
+      0,
+      23
+    ],
+    "text": "Can’t Harm the Charmer.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.charmed",
+    "leaf": "905a9e2f-487d-5153-877d-5c4cf5b976d2",
+    "span_id": "399df6ca-aab6-5922-8fb2-3ec6140bdb01",
+    "range": [
+      0,
+      94
+    ],
+    "text": "You can’t attack the charmer or target the charmer with damaging abilities or magical effects.",
+    "disposition": "substantive",
+    "kind": "P"
+  },
+  {
+    "record": "condition.charmed",
+    "leaf": "f89d3ef7-a60a-588d-9aa9-7592da4bdfe4",
+    "span_id": "61c2f8a9-22a7-50f5-b735-ff7696682838",
+    "range": [
+      0,
+      17
+    ],
+    "text": "Social Advantage.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.charmed",
+    "leaf": "14980987-1469-58a7-9c38-ffdbe6ae5657",
+    "span_id": "f9f48d47-3cb5-5bbc-b155-b005dd158d14",
+    "range": [
+      0,
+      46
+    ],
+    "text": "The charmer has Advantage on any ability check",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.charmed",
+    "leaf": "14980987-1469-58a7-9c38-ffdbe6ae5657",
+    "span_id": "3cd2bd51-3cb2-53e6-97a3-785ed0ad99b5",
+    "range": [
+      46,
+      77
+    ],
+    "text": " to interact with you socially.",
+    "disposition": "substantive",
+    "kind": "P"
+  },
+  {
+    "record": "condition.deafened",
+    "leaf": "3160abbf-1dd2-53ea-8c20-02f685caf0a1",
+    "span_id": "b370218f-165b-50a9-80b7-8f60c1c616ff",
+    "range": [
+      0,
+      20
+    ],
+    "text": "Deafened [Condition]",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.deafened",
+    "leaf": "7901cedf-a93c-5766-975f-ef2e3b7f37d4",
+    "span_id": "9ac36f5d-a2f3-5cd0-b46d-d59442d6a24b",
+    "range": [
+      0,
+      75
+    ],
+    "text": "While you have the Deafened condition, you experience the following effect.",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.deafened",
+    "leaf": "a3e7d5f7-f4c8-58c6-a867-ed2fd2c17771",
+    "span_id": "f8ad43a0-3dac-588f-975b-4d2b0780f6a1",
+    "range": [
+      0,
+      11
+    ],
+    "text": "Can’t Hear.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.deafened",
+    "leaf": "86a8ee81-77e1-5bf6-b2de-847226b31f10",
+    "span_id": "cc76bd04-e176-568f-9b50-0a8d0ce1a511",
+    "range": [
+      0,
+      14
+    ],
+    "text": "You can’t hear",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.deafened",
+    "leaf": "86a8ee81-77e1-5bf6-b2de-847226b31f10",
+    "span_id": "27a5041a-244a-5cac-a350-45cc81551db5",
+    "range": [
+      14,
+      55
+    ],
+    "text": " and automatically fail any ability check",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.deafened",
+    "leaf": "86a8ee81-77e1-5bf6-b2de-847226b31f10",
+    "span_id": "847b5dfd-0315-5e61-a4de-ebf544767efe",
+    "range": [
+      55,
+      78
+    ],
+    "text": " that requires hearing.",
+    "disposition": "substantive",
+    "kind": "P"
+  },
+  {
+    "record": "condition.exhaustion",
+    "leaf": "65286449-027c-52f3-bac8-03c0ff5c1fa1",
+    "span_id": "a70d611a-1000-55df-ab9a-204c39f5cd7e",
+    "range": [
+      0,
+      22
+    ],
+    "text": "Exhaustion [Condition]",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.exhaustion",
+    "leaf": "f2248cfe-2bec-5443-8e71-017af4d37753",
+    "span_id": "1ce5b6cd-412c-5bfb-98f4-81d7b265870d",
+    "range": [
+      0,
+      78
+    ],
+    "text": "While you have the Exhaustion condition, you experience the following effects.",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.exhaustion",
+    "leaf": "90acc47f-1c8b-5a06-8ab2-56679e168818",
+    "span_id": "021b5bf2-b120-5721-996c-09cdf991810b",
+    "range": [
+      0,
+      18
+    ],
+    "text": "Exhaustion Levels.",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.exhaustion",
+    "leaf": "cb6e908c-7e16-5bb0-b8f6-989358fb4df1",
+    "span_id": "8f91b9a8-5755-50b5-bfcf-90cc54b21ee7",
+    "range": [
+      0,
+      84
+    ],
+    "text": "This condition is cumulative. Each time you receive it, you gain 1 Exhaustion level.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.exhaustion",
+    "leaf": "cb6e908c-7e16-5bb0-b8f6-989358fb4df1",
+    "span_id": "a375d2e2-dd30-56c5-81db-487b98ccf52b",
+    "range": [
+      84,
+      123
+    ],
+    "text": " You die if your Exhaustion level is 6.",
+    "disposition": "substantive",
+    "kind": "FA"
+  },
+  {
+    "record": "condition.exhaustion",
+    "leaf": "41606630-eb72-5c7d-98f6-6c5470b6440f",
+    "span_id": "c4d296b6-fb34-5b39-afbb-297abc8e9b36",
+    "range": [
+      0,
+      19
+    ],
+    "text": "D20 Tests Affected.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.exhaustion",
+    "leaf": "a543dc3b-4b86-525c-b79b-5b8ad22b63af",
+    "span_id": "6a9d5a7e-df87-545b-aefa-391977adb69c",
+    "range": [
+      0,
+      79
+    ],
+    "text": "When you make a D20 Test, the roll is reduced by 2 times your Exhaustion level.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.exhaustion",
+    "leaf": "918255ef-74ce-5337-be1b-89653902fca6",
+    "span_id": "0e035f87-d2c8-548d-b3a2-d55dcdcb4198",
+    "range": [
+      0,
+      14
+    ],
+    "text": "Speed Reduced.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.exhaustion",
+    "leaf": "55d9e564-804d-5ee2-bcab-c516bcb47436",
+    "span_id": "1b6cc1b8-37fa-58c4-963e-f3ec3269e3f5",
+    "range": [
+      0,
+      81
+    ],
+    "text": "Your Speed is reduced by a number of feet equal to 5 times your Exhaustion level.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.exhaustion",
+    "leaf": "b81d3f34-02d0-5a42-8861-3d0e9e523b8d",
+    "span_id": "b4458fad-c04a-546d-b5bd-c50e61739604",
+    "range": [
+      0,
+      27
+    ],
+    "text": "Removing Exhaustion Levels.",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.exhaustion",
+    "leaf": "adde6748-bf5f-5486-96ec-95b5c6aceb42",
+    "span_id": "33c39361-6fd8-57bb-86ee-27598e25f0d1",
+    "range": [
+      0,
+      58
+    ],
+    "text": "Finishing a Long Rest removes 1 of your Exhaustion levels.",
+    "disposition": "substantive",
+    "kind": "FA"
+  },
+  {
+    "record": "condition.exhaustion",
+    "leaf": "adde6748-bf5f-5486-96ec-95b5c6aceb42",
+    "span_id": "25109f67-83b0-53f3-9995-901dbd343e04",
+    "range": [
+      58,
+      116
+    ],
+    "text": " When your Exhaustion level reaches 0, the condition ends.",
+    "disposition": "substantive",
+    "kind": "FA"
+  },
+  {
+    "record": "condition.frightened",
+    "leaf": "e40daac6-6bc4-5252-bad5-3d6ed9ef5e19",
+    "span_id": "ef5563f9-b314-5f7f-9216-444e894a81c0",
+    "range": [
+      0,
+      22
+    ],
+    "text": "Frightened [Condition]",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.frightened",
+    "leaf": "50c8c5d3-44b4-50ab-b7a0-59057b45d81f",
+    "span_id": "a191659f-d0b1-5304-996a-2b4433182c88",
+    "range": [
+      0,
+      78
+    ],
+    "text": "While you have the Frightened condition, you experience the following effects.",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.frightened",
+    "leaf": "e87b47e7-ed6d-5fa1-b5c6-ab9d5cc4ac5a",
+    "span_id": "68e758f0-2f94-5fd3-b5c3-3d3b37a4c78b",
+    "range": [
+      0,
+      36
+    ],
+    "text": "Ability Checks and Attacks Affected.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.frightened",
+    "leaf": "2b0eeb61-6964-5213-9fe4-e75e0f3df28c",
+    "span_id": "bae6df1b-ad18-5030-8b36-a2c203a8944c",
+    "range": [
+      0,
+      39
+    ],
+    "text": "You have Disadvantage on ability checks",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.frightened",
+    "leaf": "2b0eeb61-6964-5213-9fe4-e75e0f3df28c",
+    "span_id": "3aaa3c62-7602-5775-9d55-68ab78163543",
+    "range": [
+      39,
+      56
+    ],
+    "text": " and attack rolls",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.frightened",
+    "leaf": "2b0eeb61-6964-5213-9fe4-e75e0f3df28c",
+    "span_id": "49f5b0e6-7c6a-5f23-9416-cc36a4032a8c",
+    "range": [
+      56,
+      106
+    ],
+    "text": " while the source of fear is within line of sight.",
+    "disposition": "substantive",
+    "kind": "P"
+  },
+  {
+    "record": "condition.frightened",
+    "leaf": "2bf61c01-bc3d-53e5-bbe4-377cf57f83cc",
+    "span_id": "edcc3605-4141-55c0-b7fe-25b16046e871",
+    "range": [
+      0,
+      15
+    ],
+    "text": "Can’t Approach.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.frightened",
+    "leaf": "11c596b8-55b2-5803-9a73-590522a3f9d3",
+    "span_id": "06768480-8e26-5095-8d64-8400a6ac3c2c",
+    "range": [
+      0,
+      54
+    ],
+    "text": "You can’t willingly move closer to the source of fear.",
+    "disposition": "substantive",
+    "kind": "P"
+  },
+  {
+    "record": "condition.grappled",
+    "leaf": "49ec4ac5-a988-5106-b308-8c244dd8f63b",
+    "span_id": "13a35350-9048-5098-a2a7-9fc99e771a93",
+    "range": [
+      0,
+      20
+    ],
+    "text": "Grappled [Condition]",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.grappled",
+    "leaf": "a9c1ed24-a8f6-5c1f-beeb-2e8da8cae5b4",
+    "span_id": "bce532e6-2197-5424-b782-c1b932b22bcc",
+    "range": [
+      0,
+      76
+    ],
+    "text": "While you have the Grappled condition, you experience the following effects.",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.grappled",
+    "leaf": "5a407d19-ef7a-56b1-b6e5-65635e9151a0",
+    "span_id": "7a5a7913-a0a0-5ad5-bffd-c1cd9d36546d",
+    "range": [
+      0,
+      8
+    ],
+    "text": "Speed 0.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.grappled",
+    "leaf": "479ed895-33d3-5c9f-9807-0f0e1e35c03c",
+    "span_id": "b0f907ad-6d38-52bd-9b13-25240e712f81",
+    "range": [
+      0,
+      35
+    ],
+    "text": "Your Speed is 0 and can’t increase.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.grappled",
+    "leaf": "905a92b7-09c1-5dce-962c-689958bdeac2",
+    "span_id": "8526b39c-e417-5038-ad3c-e6d5f0c41819",
+    "range": [
+      0,
+      17
+    ],
+    "text": "Attacks Affected.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.grappled",
+    "leaf": "ebc17e40-eb35-54ca-847b-22dc5e5b441f",
+    "span_id": "a2078a16-0871-5888-b8c0-543b067eba5e",
+    "range": [
+      0,
+      37
+    ],
+    "text": "You have Disadvantage on attack rolls",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.grappled",
+    "leaf": "ebc17e40-eb35-54ca-847b-22dc5e5b441f",
+    "span_id": "672760bf-ef6a-5352-9f72-1a06d2326dc2",
+    "range": [
+      37,
+      81
+    ],
+    "text": " against any target other than the grappler.",
+    "disposition": "substantive",
+    "kind": "P"
+  },
+  {
+    "record": "condition.grappled",
+    "leaf": "f355ce23-d019-5a87-b072-c0bce0c8d6c6",
+    "span_id": "72f600dc-9581-5867-9545-608a75636f5c",
+    "range": [
+      0,
+      8
+    ],
+    "text": "Movable.",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.grappled",
+    "leaf": "fd656531-8908-51db-b220-72c4ceabda53",
+    "span_id": "363d808d-455c-5818-8434-ccba7f994199",
+    "range": [
+      0,
+      49
+    ],
+    "text": "The grappler can drag or carry you when it moves,",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.grappled",
+    "leaf": "fd656531-8908-51db-b220-72c4ceabda53",
+    "span_id": "d7c59170-5688-5815-a1ab-a1567ec3d59c",
+    "range": [
+      49,
+      98
+    ],
+    "text": " but every foot of movement costs it 1 extra foot",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.grappled",
+    "leaf": "fd656531-8908-51db-b220-72c4ceabda53",
+    "span_id": "5fcc3c20-f1fd-5192-9c86-3fa17404cb8b",
+    "range": [
+      98,
+      156
+    ],
+    "text": " unless you are Tiny or two or more sizes smaller than it.",
+    "disposition": "substantive",
+    "kind": "AC"
+  },
+  {
+    "record": "condition.incapacitated",
+    "leaf": "138a12a6-ad42-59d2-867e-4df23cea21ae",
+    "span_id": "7ee081d4-d8da-5ae9-8ed2-21d6acfb656e",
+    "range": [
+      0,
+      25
+    ],
+    "text": "Incapacitated [Condition]",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.incapacitated",
+    "leaf": "c0f1d7cf-8098-59fd-82ab-554d49e4617d",
+    "span_id": "bbcafb5d-1671-5284-9873-c7796b493f5f",
+    "range": [
+      0,
+      81
+    ],
+    "text": "While you have the Incapacitated condition, you experience the following effects.",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.incapacitated",
+    "leaf": "96a1db05-1679-57ed-a8f9-48d2e2522e13",
+    "span_id": "ea71d60f-7350-5855-b4fc-980a6480e7df",
+    "range": [
+      0,
+      9
+    ],
+    "text": "Inactive.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.incapacitated",
+    "leaf": "9156e86b-15be-5a81-b513-e1ea44d3bf14",
+    "span_id": "7874fee0-5da4-5d02-a0ed-526d920eac2b",
+    "range": [
+      0,
+      26
+    ],
+    "text": "You can’t take any action,",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.incapacitated",
+    "leaf": "9156e86b-15be-5a81-b513-e1ea44d3bf14",
+    "span_id": "f812cc97-192f-58e5-9d13-029ecac2df89",
+    "range": [
+      26,
+      40
+    ],
+    "text": " Bonus Action,",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.incapacitated",
+    "leaf": "9156e86b-15be-5a81-b513-e1ea44d3bf14",
+    "span_id": "834d636d-9cfd-565f-ad5b-b891bb5ab93f",
+    "range": [
+      40,
+      53
+    ],
+    "text": " or Reaction.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.incapacitated",
+    "leaf": "00f5954f-4f08-5a71-9bad-7ebd266af1eb",
+    "span_id": "36c5e06d-1cd7-546f-aced-9b3fdbd4526a",
+    "range": [
+      0,
+      17
+    ],
+    "text": "No Concentration.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.incapacitated",
+    "leaf": "fc268ab6-56d6-5bde-ba05-12968d6b3f1a",
+    "span_id": "dd19abc0-e82f-5576-81a9-c74dff37d0f9",
+    "range": [
+      0,
+      29
+    ],
+    "text": "Your Concentration is broken.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.incapacitated",
+    "leaf": "90a3c652-cebf-538b-9e2d-733caa78d129",
+    "span_id": "1baeefe9-f578-5668-a5f1-a75ff0a0963a",
+    "range": [
+      0,
+      11
+    ],
+    "text": "Speechless.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.incapacitated",
+    "leaf": "2070d849-e8e7-5a04-b8ab-43de0ee5d5a4",
+    "span_id": "9cb507eb-6ff5-5f56-9e2a-4284b9291ea3",
+    "range": [
+      0,
+      16
+    ],
+    "text": "You can’t speak.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.incapacitated",
+    "leaf": "01c94c29-4220-5ecb-bbb2-102066bc8a4c",
+    "span_id": "91246de2-62db-51a9-8b4a-275ecddedd8a",
+    "range": [
+      0,
+      10
+    ],
+    "text": "Surprised.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.incapacitated",
+    "leaf": "4d7cf5ab-448c-5336-855d-b3c6aecf51d0",
+    "span_id": "b49a1a72-e95b-5677-b342-d625aca82975",
+    "range": [
+      0,
+      37
+    ],
+    "text": "If you’re Incapacitated when you roll",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.incapacitated",
+    "leaf": "745d1f61-8c22-582e-b622-6f49df2d366f",
+    "span_id": "b3d7ee5c-647a-5462-97b6-6a6ca28babd6",
+    "range": [
+      0,
+      46
+    ],
+    "text": "Initiative, you have Disadvantage on the roll.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.invisible",
+    "leaf": "fbdf1bf4-3bff-5e3e-9437-2b89b74151f7",
+    "span_id": "2d1d1793-11e7-5134-8759-2b9270473cac",
+    "range": [
+      0,
+      21
+    ],
+    "text": "Invisible [Condition]",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.invisible",
+    "leaf": "b71fd9f5-347c-54b2-8cd8-b0599d5cb18d",
+    "span_id": "2f08b51f-dfa9-5e7b-980f-38463556b0dc",
+    "range": [
+      0,
+      77
+    ],
+    "text": "While you have the Invisible condition, you experience the following effects.",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.invisible",
+    "leaf": "b0d5c3ad-9a38-5860-9e81-6d6176b91b12",
+    "span_id": "3e5ce409-1172-5d1f-ab63-45bb09909fa5",
+    "range": [
+      0,
+      9
+    ],
+    "text": "Surprise.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.invisible",
+    "leaf": "f9290614-f239-5dc7-909f-9a4f81a320e9",
+    "span_id": "26b2515e-9444-530b-9883-ceca94e9af6a",
+    "range": [
+      0,
+      77
+    ],
+    "text": "If you’re Invisible when you roll Initiative, you have Advantage on the roll.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.invisible",
+    "leaf": "36407fad-dc3a-5bbe-af73-2d695a6d2a25",
+    "span_id": "f86e54c0-7eff-51df-b055-35066d94a8ac",
+    "range": [
+      0,
+      10
+    ],
+    "text": "Concealed.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.invisible",
+    "leaf": "7f657166-0756-529f-b801-575e88c5a7ae",
+    "span_id": "4af2cf70-5cbb-53ac-a79e-44855f14824d",
+    "range": [
+      0,
+      179
+    ],
+    "text": "You aren’t affected by any effect that requires its target to be seen unless the effect’s creator can somehow see you. Any equipment you are wearing or carrying is also concealed.",
+    "disposition": "substantive",
+    "kind": "P"
+  },
+  {
+    "record": "condition.invisible",
+    "leaf": "8d6f79b0-ee79-5029-a792-033eaac4862c",
+    "span_id": "333fb2e6-48b8-52c5-a0f4-5438449653e5",
+    "range": [
+      0,
+      17
+    ],
+    "text": "Attacks Affected.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.invisible",
+    "leaf": "847ab127-062a-55df-981c-fdc4c9ec0b64",
+    "span_id": "f8250d8b-519a-56c9-a1fb-c4bed0e66027",
+    "range": [
+      0,
+      43
+    ],
+    "text": "Attack rolls against you have Disadvantage,",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.invisible",
+    "leaf": "847ab127-062a-55df-981c-fdc4c9ec0b64",
+    "span_id": "d4febdc0-d558-58cb-b299-585bb6b6e28b",
+    "range": [
+      43,
+      81
+    ],
+    "text": " and your attack rolls have Advantage.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.invisible",
+    "leaf": "847ab127-062a-55df-981c-fdc4c9ec0b64",
+    "span_id": "908698bb-4a20-53f7-8d27-b9e00616d6da",
+    "range": [
+      81,
+      167
+    ],
+    "text": " If a creature can somehow see you, you don’t gain this benefit against that creature.",
+    "disposition": "substantive",
+    "kind": "P"
+  },
+  {
+    "record": "condition.paralyzed",
+    "leaf": "3860b735-fc9f-5d00-8fd3-f515b8bfbf38",
+    "span_id": "ce5d759c-b388-509c-9a49-05b3c53e4f57",
+    "range": [
+      0,
+      21
+    ],
+    "text": "Paralyzed [Condition]",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.paralyzed",
+    "leaf": "5293b83c-c556-5569-ba88-dd47539bd493",
+    "span_id": "5ef3eeb0-3085-5690-b712-ac38179942bb",
+    "range": [
+      0,
+      77
+    ],
+    "text": "While you have the Paralyzed condition, you experience the following effects.",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.paralyzed",
+    "leaf": "c7f9cd8b-6e81-5c97-9144-a9dbee1d5785",
+    "span_id": "b3e2be34-d5e8-5a73-aa05-fefab05526a2",
+    "range": [
+      0,
+      14
+    ],
+    "text": "Incapacitated.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.paralyzed",
+    "leaf": "9694602d-36ef-5de9-af3d-c48af417f68c",
+    "span_id": "d5ce2358-2182-5813-a1e5-094e55de2118",
+    "range": [
+      0,
+      37
+    ],
+    "text": "You have the Incapacitated condition.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.paralyzed",
+    "leaf": "2162d4ba-b2be-550c-b031-4680bf4cd8b2",
+    "span_id": "7788cd91-cbfe-5c4c-b2c1-e7310a2e04c4",
+    "range": [
+      0,
+      8
+    ],
+    "text": "Speed 0.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.paralyzed",
+    "leaf": "61421fb6-f2ce-5eb9-a5fa-113099889458",
+    "span_id": "85a2a04a-0458-5918-95da-4cde5a743bb1",
+    "range": [
+      0,
+      35
+    ],
+    "text": "Your Speed is 0 and can’t increase.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.paralyzed",
+    "leaf": "3991aa73-7244-5474-b54c-9484ca16d234",
+    "span_id": "29575aa1-b3f1-5ca3-99ac-57dd7ff51eb4",
+    "range": [
+      0,
+      23
+    ],
+    "text": "Saving Throws Affected.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.paralyzed",
+    "leaf": "0ed2fb90-eeed-5aca-8338-0db9e8a59fb2",
+    "span_id": "87f97779-8d78-5ecd-bc3c-2cf5f3a53335",
+    "range": [
+      0,
+      31
+    ],
+    "text": "You automatically fail Strength",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.paralyzed",
+    "leaf": "0ed2fb90-eeed-5aca-8338-0db9e8a59fb2",
+    "span_id": "fd3328ab-9afa-58dc-84e6-750ee8c687d1",
+    "range": [
+      31,
+      60
+    ],
+    "text": " and Dexterity saving throws.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.paralyzed",
+    "leaf": "25de2f34-d8cd-5edc-b218-1b387eb30b30",
+    "span_id": "f678b80f-2e1d-5945-abfd-d4c6626f3428",
+    "range": [
+      0,
+      17
+    ],
+    "text": "Attacks Affected.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.paralyzed",
+    "leaf": "71180c15-3d26-581f-8518-dbd1f5d3b9d5",
+    "span_id": "d0fddebe-5451-54e8-bbfc-a03ab3725356",
+    "range": [
+      0,
+      40
+    ],
+    "text": "Attack rolls against you have Advantage.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.paralyzed",
+    "leaf": "c9809877-94ee-52a4-ab61-c82b3b7e5230",
+    "span_id": "205734bf-d3a6-5676-a92a-d533aafa2061",
+    "range": [
+      0,
+      24
+    ],
+    "text": "Automatic Critical Hits.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.paralyzed",
+    "leaf": "1c561ee2-bb63-55b1-af23-660358c58592",
+    "span_id": "d7b5d46d-ae63-501c-93e8-348ff53de210",
+    "range": [
+      0,
+      47
+    ],
+    "text": "Any attack roll that hits you is a Critical Hit",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.paralyzed",
+    "leaf": "1c561ee2-bb63-55b1-af23-660358c58592",
+    "span_id": "4df5e1e0-9093-5339-adbc-318ac0ea9fd4",
+    "range": [
+      47,
+      88
+    ],
+    "text": " if the attacker is within 5 feet of you.",
+    "disposition": "substantive",
+    "kind": "P"
+  },
+  {
+    "record": "condition.petrified",
+    "leaf": "bfd982ae-435a-5c60-a261-79b47614c1b7",
+    "span_id": "1949f509-d559-5c6d-b2bc-13027d290806",
+    "range": [
+      0,
+      21
+    ],
+    "text": "Petrified [Condition]",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.petrified",
+    "leaf": "1c59520d-f578-5e7f-8dfb-1ee65f325bab",
+    "span_id": "bf384407-5c1b-5ccf-a19a-2c10dbaf451e",
+    "range": [
+      0,
+      77
+    ],
+    "text": "While you have the Petrified condition, you experience the following effects.",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.petrified",
+    "leaf": "b96e951c-8a9f-5bc7-9742-f1ceaa81e472",
+    "span_id": "df21e9e7-affd-5f73-8fed-c309a2552a91",
+    "range": [
+      0,
+      30
+    ],
+    "text": "Turned to Inanimate Substance.",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.petrified",
+    "leaf": "765f49cc-67f3-518f-a630-1fe46eb5a8cb",
+    "span_id": "5553e751-80fd-5dea-a4ff-b04a14228015",
+    "range": [
+      0,
+      117
+    ],
+    "text": "You are transformed, along with any nonmagical objects you are wearing and carrying, into a solid inanimate substance",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.petrified",
+    "leaf": "765f49cc-67f3-518f-a630-1fe46eb5a8cb",
+    "span_id": "678fe08e-e327-5162-9315-7014c6ebd500",
+    "range": [
+      117,
+      134
+    ],
+    "text": " (usually stone).",
+    "disposition": "substantive",
+    "kind": "P"
+  },
+  {
+    "record": "condition.petrified",
+    "leaf": "765f49cc-67f3-518f-a630-1fe46eb5a8cb",
+    "span_id": "274fb387-027d-5f33-96fd-fde3d60a42a2",
+    "range": [
+      134,
+      176
+    ],
+    "text": " Your weight increases by a factor of ten,",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.petrified",
+    "leaf": "765f49cc-67f3-518f-a630-1fe46eb5a8cb",
+    "span_id": "447f124e-ab1a-543e-b0e9-13a3e0e709a1",
+    "range": [
+      176,
+      197
+    ],
+    "text": " and you cease aging.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.petrified",
+    "leaf": "d55a308f-425d-5cd1-8124-b56a0596bc19",
+    "span_id": "ae8f0f36-0330-5b49-9eeb-7fb4fa0ab50b",
+    "range": [
+      0,
+      14
+    ],
+    "text": "Incapacitated.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.petrified",
+    "leaf": "48ef3871-c7de-5f95-889d-2e4e34eb318f",
+    "span_id": "4557ea52-b52f-5590-9a43-70287bc40ece",
+    "range": [
+      0,
+      37
+    ],
+    "text": "You have the Incapacitated condition.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.petrified",
+    "leaf": "10eb706b-1f15-5329-8be7-ce40f7d6a40d",
+    "span_id": "7efba2f8-e77c-560f-9502-db0d2bd49920",
+    "range": [
+      0,
+      8
+    ],
+    "text": "Speed 0.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.petrified",
+    "leaf": "dbcfdb9a-2de5-5d6b-9a9d-2c289c9f37ca",
+    "span_id": "1a2ca90e-6513-5043-8aa9-0c75322a46d8",
+    "range": [
+      0,
+      35
+    ],
+    "text": "Your Speed is 0 and can’t increase.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.petrified",
+    "leaf": "fcde4041-7fe2-5320-a7dc-3496fd5c52f5",
+    "span_id": "22c1a2cc-0a5c-5cf7-9c78-239079b75a87",
+    "range": [
+      0,
+      17
+    ],
+    "text": "Attacks Affected.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.petrified",
+    "leaf": "26a5ff4d-aad5-5128-bd16-6f8a94e48a50",
+    "span_id": "b1db4bbd-5a79-5f7d-b2b1-96e468a4cf50",
+    "range": [
+      0,
+      40
+    ],
+    "text": "Attack rolls against you have Advantage.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.petrified",
+    "leaf": "fb578d57-08df-5782-89e1-6d1d5e5cfa14",
+    "span_id": "7099c5ce-f51d-5a00-a74d-45551843975a",
+    "range": [
+      0,
+      23
+    ],
+    "text": "Saving Throws Affected.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.petrified",
+    "leaf": "03303fda-2c82-5060-8ec1-8d7351349040",
+    "span_id": "db5bf5b9-a7ec-5c0d-a051-f9efd1a9297b",
+    "range": [
+      0,
+      31
+    ],
+    "text": "You automatically fail Strength",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.petrified",
+    "leaf": "03303fda-2c82-5060-8ec1-8d7351349040",
+    "span_id": "621f183b-0256-54ee-9f4c-51cea84350f2",
+    "range": [
+      31,
+      60
+    ],
+    "text": " and Dexterity saving throws.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.petrified",
+    "leaf": "90966333-58e6-5391-8984-3622b1376c05",
+    "span_id": "a385f90a-697a-5439-8dd3-119392d0350f",
+    "range": [
+      0,
+      14
+    ],
+    "text": "Resist Damage.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.petrified",
+    "leaf": "9f7e0000-1818-5326-8e86-b3d6581fa409",
+    "span_id": "f2eb6858-8ea8-59c1-9fe5-57c0f08b86ff",
+    "range": [
+      0,
+      34
+    ],
+    "text": "You have Resistance to all damage.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.petrified",
+    "leaf": "44eda386-b9e8-541c-97c1-aaeaa0692985",
+    "span_id": "ebad7a13-359d-5a90-82ac-f8c545839ade",
+    "range": [
+      0,
+      16
+    ],
+    "text": "Poison Immunity.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.petrified",
+    "leaf": "be22a64b-8e37-58c5-8211-a365decf5af9",
+    "span_id": "4c105f23-e3d0-5c69-9d45-b5a69cce86a5",
+    "range": [
+      0,
+      44
+    ],
+    "text": "You have Immunity to the Poisoned condition.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.poisoned",
+    "leaf": "61bd5b05-ff39-51d2-a23e-f6c880e85a9d",
+    "span_id": "cf3edc8b-eb02-561b-9a13-ca368fe752f2",
+    "range": [
+      0,
+      20
+    ],
+    "text": "Poisoned [Condition]",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.poisoned",
+    "leaf": "b85402e6-ccf5-541c-8e21-0c6bb3466ef0",
+    "span_id": "f0f34221-f99d-5728-9fc8-3a3cbe518bd5",
+    "range": [
+      0,
+      75
+    ],
+    "text": "While you have the Poisoned condition, you experience the following effect.",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.poisoned",
+    "leaf": "c1b139fd-d2f2-55ce-99a3-711a7b33803b",
+    "span_id": "def4bbe7-a84f-5aea-8dcc-7f3eb872aa05",
+    "range": [
+      0,
+      36
+    ],
+    "text": "Ability Checks and Attacks Affected.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.poisoned",
+    "leaf": "bff559bb-86b5-5aee-8c01-eb097eaa3862",
+    "span_id": "566cc254-23e9-5505-9d48-d9ab25233b83",
+    "range": [
+      0,
+      37
+    ],
+    "text": "You have Disadvantage on attack rolls",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.poisoned",
+    "leaf": "bff559bb-86b5-5aee-8c01-eb097eaa3862",
+    "span_id": "b0697373-557f-5ace-8606-c53dcf3a27b0",
+    "range": [
+      37,
+      57
+    ],
+    "text": " and ability checks.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.prone",
+    "leaf": "1d156c1f-b60c-54e8-89dd-3dca1bafa6df",
+    "span_id": "157fb8bb-86bf-5cc8-923a-e738ca5ed006",
+    "range": [
+      0,
+      17
+    ],
+    "text": "Prone [Condition]",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.prone",
+    "leaf": "4431f872-04a8-5024-b675-30e9a6aadcce",
+    "span_id": "cb2e18d4-bf67-5b5d-9b13-fd87d9f2df42",
+    "range": [
+      0,
+      73
+    ],
+    "text": "While you have the Prone condition, you experience the following effects.",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.prone",
+    "leaf": "9182fe0d-e8a7-588e-8443-79122eaf87b4",
+    "span_id": "b24c6562-d8f8-5fcc-a736-0e4f5962d389",
+    "range": [
+      0,
+      20
+    ],
+    "text": "Restricted Movement.",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.prone",
+    "leaf": "bbb7961f-13da-583d-a4ec-393545f088a7",
+    "span_id": "43dbd2af-15a2-51d7-a42c-febada49aa8c",
+    "range": [
+      0,
+      30
+    ],
+    "text": "Your only movement options are",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.prone",
+    "leaf": "bbb7961f-13da-583d-a4ec-393545f088a7",
+    "span_id": "49563f1c-2798-5c83-8342-848f4a58125c",
+    "range": [
+      30,
+      39
+    ],
+    "text": " to crawl",
+    "disposition": "substantive",
+    "kind": "O"
+  },
+  {
+    "record": "condition.prone",
+    "leaf": "bbb7961f-13da-583d-a4ec-393545f088a7",
+    "span_id": "6b849c8a-3f44-561b-8b57-214eb8a8cdc2",
+    "range": [
+      39,
+      111
+    ],
+    "text": " or to spend an amount of movement equal to half your Speed (round down)",
+    "disposition": "substantive",
+    "kind": "O"
+  },
+  {
+    "record": "condition.prone",
+    "leaf": "bbb7961f-13da-583d-a4ec-393545f088a7",
+    "span_id": "82b7577e-5c4d-595c-a85c-d228c85a3ac1",
+    "range": [
+      111,
+      160
+    ],
+    "text": " to right yourself and thereby end the condition.",
+    "disposition": "substantive",
+    "kind": "O"
+  },
+  {
+    "record": "condition.prone",
+    "leaf": "bbb7961f-13da-583d-a4ec-393545f088a7",
+    "span_id": "83f0a084-d545-5f29-8640-2c5f6ed92436",
+    "range": [
+      160,
+      168
+    ],
+    "text": " If your",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.prone",
+    "leaf": "504c499b-76c8-5215-b132-5205e2d810c3",
+    "span_id": "051ef415-b9c3-5ba1-a530-183a044f62dc",
+    "range": [
+      0,
+      37
+    ],
+    "text": "Speed is 0, you can’t right yourself.",
+    "disposition": "substantive",
+    "kind": "AC"
+  },
+  {
+    "record": "condition.prone",
+    "leaf": "67ff380d-9f86-5930-b59a-99e465e47d81",
+    "span_id": "c14b1abb-d39c-54ad-a0a4-200155d50572",
+    "range": [
+      0,
+      17
+    ],
+    "text": "Attacks Affected.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.prone",
+    "leaf": "83d172e9-9468-5a3c-ae2b-96089f60deb9",
+    "span_id": "9744c19f-5121-5e16-a99d-8607ee60a7f3",
+    "range": [
+      0,
+      38
+    ],
+    "text": "You have Disadvantage on attack rolls.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.prone",
+    "leaf": "83d172e9-9468-5a3c-ae2b-96089f60deb9",
+    "span_id": "eb7113af-0206-5c11-9989-7d23b8045667",
+    "range": [
+      38,
+      79
+    ],
+    "text": " An attack roll against you has Advantage",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.prone",
+    "leaf": "83d172e9-9468-5a3c-ae2b-96089f60deb9",
+    "span_id": "0c319dd8-251c-5d99-873b-f37f7f10f4b3",
+    "range": [
+      79,
+      131
+    ],
+    "text": " if the attacker is within 5 feet of you. Otherwise,",
+    "disposition": "substantive",
+    "kind": "P"
+  },
+  {
+    "record": "condition.prone",
+    "leaf": "83d172e9-9468-5a3c-ae2b-96089f60deb9",
+    "span_id": "85f3c4a7-3149-5eda-9ab3-5d4b56eb691f",
+    "range": [
+      131,
+      166
+    ],
+    "text": " that attack roll has Disadvantage.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.restrained",
+    "leaf": "9c96dc1c-dd08-57f4-8b6e-f06114bedf5b",
+    "span_id": "33ed01b6-1834-547d-9afa-14ef2c36bbfa",
+    "range": [
+      0,
+      22
+    ],
+    "text": "Restrained [Condition]",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.restrained",
+    "leaf": "cb0e15de-ab65-5a68-83f1-c06440468227",
+    "span_id": "84df1664-a64d-5444-8734-42909e70abdf",
+    "range": [
+      0,
+      78
+    ],
+    "text": "While you have the Restrained condition, you experience the following effects.",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.restrained",
+    "leaf": "752c95c2-1ad3-5365-a39d-74a01bb23089",
+    "span_id": "22b87581-7849-53b1-9726-7249fc99bde5",
+    "range": [
+      0,
+      8
+    ],
+    "text": "Speed 0.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.restrained",
+    "leaf": "7edbdbc3-956e-551e-ac38-aedd242b658d",
+    "span_id": "dd9cd87e-3449-5f9e-bca9-c26c204ec842",
+    "range": [
+      0,
+      35
+    ],
+    "text": "Your Speed is 0 and can’t increase.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.restrained",
+    "leaf": "bac54256-e110-5567-a8eb-7285bcf0d968",
+    "span_id": "f00a7a6e-e662-5f44-b578-863b2e95931c",
+    "range": [
+      0,
+      17
+    ],
+    "text": "Attacks Affected.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.restrained",
+    "leaf": "4327fcd1-7f11-5934-ad01-f81e2cede8ed",
+    "span_id": "4ed4a46d-b09e-5912-9b86-14294cc08920",
+    "range": [
+      0,
+      40
+    ],
+    "text": "Attack rolls against you have Advantage,",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.restrained",
+    "leaf": "4327fcd1-7f11-5934-ad01-f81e2cede8ed",
+    "span_id": "da56f380-7e66-5fe1-b6f7-f630726af62e",
+    "range": [
+      40,
+      81
+    ],
+    "text": " and your attack rolls have Disadvantage.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.restrained",
+    "leaf": "2fa425f6-a2af-5e6f-9163-385d9aa1bfea",
+    "span_id": "3c6f0044-3392-51c3-b039-ed5cdbe1b62e",
+    "range": [
+      0,
+      23
+    ],
+    "text": "Saving Throws Affected.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.restrained",
+    "leaf": "3e83f871-5b9c-5ec4-a139-40a12c371a8e",
+    "span_id": "a0e3f316-af90-5d43-853f-369941d161f7",
+    "range": [
+      0,
+      49
+    ],
+    "text": "You have Disadvantage on Dexterity saving throws.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.stunned",
+    "leaf": "2c67169a-47ee-567c-95d4-9d578f028e9a",
+    "span_id": "b597c14a-2039-5ea4-907e-c3384a091149",
+    "range": [
+      0,
+      19
+    ],
+    "text": "Stunned [Condition]",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.stunned",
+    "leaf": "32727441-704f-548a-ad11-cb5fc14e2a7c",
+    "span_id": "8884b888-8c33-5f94-9f52-ffd66b263cf1",
+    "range": [
+      0,
+      75
+    ],
+    "text": "While you have the Stunned condition, you experience the following effects.",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.stunned",
+    "leaf": "a02446a8-57b4-5a43-aff0-7f000def4beb",
+    "span_id": "be13e29f-674f-5c98-bf3b-b297e47c797d",
+    "range": [
+      0,
+      14
+    ],
+    "text": "Incapacitated.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.stunned",
+    "leaf": "5f657107-c436-54e3-8bc4-6136507e15bd",
+    "span_id": "707a9c05-5722-5eae-b552-0d7bd82ed1c9",
+    "range": [
+      0,
+      37
+    ],
+    "text": "You have the Incapacitated condition.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.stunned",
+    "leaf": "9ebc5873-f7b7-5a7e-9b6f-d7f5a7d246d1",
+    "span_id": "64f75f01-3d1d-5baf-80af-86936e4c0d43",
+    "range": [
+      0,
+      23
+    ],
+    "text": "Saving Throws Affected.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.stunned",
+    "leaf": "3d5cffb6-3f1b-50ac-a71f-fb6b285e5260",
+    "span_id": "d35bad7e-3742-53f4-bb01-8696326eef31",
+    "range": [
+      0,
+      31
+    ],
+    "text": "You automatically fail Strength",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.stunned",
+    "leaf": "3d5cffb6-3f1b-50ac-a71f-fb6b285e5260",
+    "span_id": "54fe8f88-f8a3-577a-bc23-de4ab273c48f",
+    "range": [
+      31,
+      60
+    ],
+    "text": " and Dexterity saving throws.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.stunned",
+    "leaf": "2fca7aec-b68a-57b5-8c8e-cc72ddee5efa",
+    "span_id": "5a15e804-9208-5ba3-9a04-185446f28653",
+    "range": [
+      0,
+      17
+    ],
+    "text": "Attacks Affected.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.stunned",
+    "leaf": "25fd0ae7-d9e9-5216-b368-a9c232f4d929",
+    "span_id": "42429314-9c8b-5ae4-b8a8-25cfd8a08c6a",
+    "range": [
+      0,
+      40
+    ],
+    "text": "Attack rolls against you have Advantage.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.unconscious",
+    "leaf": "ee9bc1a2-683c-5682-87b7-423c4fbc2436",
+    "span_id": "e1e6cd23-15ee-5a95-a215-7ffb306ed384",
+    "range": [
+      0,
+      23
+    ],
+    "text": "Unconscious [Condition]",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.unconscious",
+    "leaf": "3bcc84f7-8743-5c22-8cf3-d7859b20a3a7",
+    "span_id": "7904c444-1965-532b-853e-d145653bcd7e",
+    "range": [
+      0,
+      79
+    ],
+    "text": "While you have the Unconscious condition, you experience the following effects.",
+    "disposition": "supporting_authority",
+    "kind": "R"
+  },
+  {
+    "record": "condition.unconscious",
+    "leaf": "28646a1a-8c99-5001-b71d-eaa2773492fe",
+    "span_id": "ec912687-df2a-5fcf-acbc-02471aa64c47",
+    "range": [
+      0,
+      6
+    ],
+    "text": "Inert.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.unconscious",
+    "leaf": "a66f64fc-b706-5a56-9469-0b335e654019",
+    "span_id": "a13c481f-b25e-5143-a6a7-c0df3d3f4d84",
+    "range": [
+      0,
+      26
+    ],
+    "text": "You have the Incapacitated",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.unconscious",
+    "leaf": "a66f64fc-b706-5a56-9469-0b335e654019",
+    "span_id": "d097595e-6214-559b-a842-2e9bff798728",
+    "range": [
+      26,
+      48
+    ],
+    "text": " and Prone conditions,",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.unconscious",
+    "leaf": "a66f64fc-b706-5a56-9469-0b335e654019",
+    "span_id": "ed9ee768-8e2e-57c5-a48e-941b8efbf215",
+    "range": [
+      48,
+      86
+    ],
+    "text": " and you drop whatever you’re holding.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.unconscious",
+    "leaf": "a66f64fc-b706-5a56-9469-0b335e654019",
+    "span_id": "b99c0d79-e2f6-50ec-bd20-a64a4543988c",
+    "range": [
+      86,
+      130
+    ],
+    "text": " When this condition ends, you remain Prone.",
+    "disposition": "substantive",
+    "kind": "FA"
+  },
+  {
+    "record": "condition.unconscious",
+    "leaf": "f09a1e04-311c-53f4-934d-863f31bc1601",
+    "span_id": "c2d5d2e4-f0cc-5925-ab17-518245a76e1b",
+    "range": [
+      0,
+      8
+    ],
+    "text": "Speed 0.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.unconscious",
+    "leaf": "435489aa-378b-5a30-a6e3-6a21d68dd2eb",
+    "span_id": "1e87a1f9-0652-5077-a394-c6d53d43e9ae",
+    "range": [
+      0,
+      35
+    ],
+    "text": "Your Speed is 0 and can’t increase.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.unconscious",
+    "leaf": "51f900dd-4a63-5b6b-bfbf-bf173378f791",
+    "span_id": "44d0875e-8c8e-58d0-9294-fa50181c7f74",
+    "range": [
+      0,
+      17
+    ],
+    "text": "Attacks Affected.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.unconscious",
+    "leaf": "6c085dfc-9d14-5ce0-acdc-1b7632bd646a",
+    "span_id": "3548626e-20f0-5132-89fe-360469b79715",
+    "range": [
+      0,
+      40
+    ],
+    "text": "Attack rolls against you have Advantage.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.unconscious",
+    "leaf": "970648b6-2fb9-51fd-bb64-405017235565",
+    "span_id": "1119b6f6-2e8d-5567-88f9-e33d420b6f27",
+    "range": [
+      0,
+      23
+    ],
+    "text": "Saving Throws Affected.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.unconscious",
+    "leaf": "cb2868d6-ee55-5ebc-a7d0-bba38f3d0195",
+    "span_id": "8e24370a-6293-5fb1-84ce-bb2e31a678a9",
+    "range": [
+      0,
+      31
+    ],
+    "text": "You automatically fail Strength",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.unconscious",
+    "leaf": "cb2868d6-ee55-5ebc-a7d0-bba38f3d0195",
+    "span_id": "bc20dc08-97c5-5133-81ec-1bdb043e60de",
+    "range": [
+      31,
+      60
+    ],
+    "text": " and Dexterity saving throws.",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.unconscious",
+    "leaf": "d6eceabe-91d5-5a94-be8c-2d3db3b586bf",
+    "span_id": "4e9adb4f-144c-5bdc-9986-5db656289dfa",
+    "range": [
+      0,
+      24
+    ],
+    "text": "Automatic Critical Hits.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.unconscious",
+    "leaf": "62129bef-af92-5c70-86ed-6c17cd092d93",
+    "span_id": "a170f23d-9ec5-500a-9ea7-f963d8a20888",
+    "range": [
+      0,
+      47
+    ],
+    "text": "Any attack roll that hits you is a Critical Hit",
+    "disposition": "substantive",
+    "kind": "F"
+  },
+  {
+    "record": "condition.unconscious",
+    "leaf": "62129bef-af92-5c70-86ed-6c17cd092d93",
+    "span_id": "c7ea6654-d896-5074-afd6-b0afd726e7bf",
+    "range": [
+      47,
+      88
+    ],
+    "text": " if the attacker is within 5 feet of you.",
+    "disposition": "substantive",
+    "kind": "P"
+  },
+  {
+    "record": "condition.unconscious",
+    "leaf": "dc7f36e7-1451-5b2e-a4f0-4e24769816a5",
+    "span_id": "81f716b7-938a-510a-a8a4-0a8548848aaf",
+    "range": [
+      0,
+      8
+    ],
+    "text": "Unaware.",
+    "disposition": "supporting_authority",
+    "kind": "C"
+  },
+  {
+    "record": "condition.unconscious",
+    "leaf": "e10d4c32-4a39-52e0-911b-221818ba2e15",
+    "span_id": "733333db-a3a5-5330-a38a-dd603dccced7",
+    "range": [
+      0,
+      36
+    ],
+    "text": "You’re unaware of your surroundings.",
+    "disposition": "substantive",
+    "kind": "F"
+  }
+]

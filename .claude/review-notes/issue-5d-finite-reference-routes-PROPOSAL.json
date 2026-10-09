@@ -1,0 +1,1194 @@
+{
+  "accepted_sha256": "cc994e1badee3baf733d2df5d5c88903ad96b4ddd0172f52111ecdf0b4c1f190",
+  "combat_replacement": {
+    "batch_id": "combat-damage-breaking",
+    "file": "issue-5d-combat-damage-breaking-finite-reference-routes-PROPOSAL.json",
+    "proposal_identity": "cfd193513e8c769d45b42f4a6dfa420481b43f064b45fef564f1e5c5eaac8c23",
+    "replaces": "ce7a80ff95d8ae361d2a76612b85d7f5d546c57755588d3084a6a41a4f8a7de2",
+    "sha256": "1cc561616526b271728f0d8b0b5f2c7490b76ee76cf684e33903512daecf48f5"
+  },
+  "reference_resolutions": [
+    {
+      "destinations": [
+        {
+          "alternative_label": "Bard spell list: cantrips; level 1 spells with the Ritual tag",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "spell_list",
+          "target_record_key": "classes.bard"
+        },
+        {
+          "alternative_label": "Bard spell list: cantrips; level 1 spells with the Ritual tag",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "cantrips",
+          "target_record_key": "classes.bard"
+        },
+        {
+          "alternative_label": "Bard spell list: cantrips; level 1 spells with the Ritual tag",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "level_1_spells",
+          "target_record_key": "classes.bard"
+        },
+        {
+          "alternative_label": "Cleric spell list: cantrips; level 1 spells with the Ritual tag",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "spell_list",
+          "target_record_key": "classes.cleric"
+        },
+        {
+          "alternative_label": "Cleric spell list: cantrips; level 1 spells with the Ritual tag",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "cantrips",
+          "target_record_key": "classes.cleric"
+        },
+        {
+          "alternative_label": "Cleric spell list: cantrips; level 1 spells with the Ritual tag",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "level_1_spells",
+          "target_record_key": "classes.cleric"
+        },
+        {
+          "alternative_label": "Druid spell list: cantrips; level 1 spells with the Ritual tag",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "spell_list",
+          "target_record_key": "classes.druid"
+        },
+        {
+          "alternative_label": "Druid spell list: cantrips; level 1 spells with the Ritual tag",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "cantrips",
+          "target_record_key": "classes.druid"
+        },
+        {
+          "alternative_label": "Druid spell list: cantrips; level 1 spells with the Ritual tag",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "level_1_spells",
+          "target_record_key": "classes.druid"
+        },
+        {
+          "alternative_label": "Paladin spell list: no cantrips; level 1 spells with the Ritual tag",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "spell_list",
+          "target_record_key": "classes.paladin"
+        },
+        {
+          "alternative_label": "Paladin spell list: no cantrips; level 1 spells with the Ritual tag",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "level_1_spells",
+          "target_record_key": "classes.paladin"
+        },
+        {
+          "alternative_label": "Ranger spell list: no cantrips; level 1 spells with the Ritual tag",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "spell_list",
+          "target_record_key": "classes.ranger"
+        },
+        {
+          "alternative_label": "Ranger spell list: no cantrips; level 1 spells with the Ritual tag",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "level_1_spells",
+          "target_record_key": "classes.ranger"
+        },
+        {
+          "alternative_label": "Sorcerer spell list: cantrips; level 1 spells with the Ritual tag",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "spell_list",
+          "target_record_key": "classes.sorcerer"
+        },
+        {
+          "alternative_label": "Sorcerer spell list: cantrips; level 1 spells with the Ritual tag",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "cantrips",
+          "target_record_key": "classes.sorcerer"
+        },
+        {
+          "alternative_label": "Sorcerer spell list: cantrips; level 1 spells with the Ritual tag",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "level_1_spells",
+          "target_record_key": "classes.sorcerer"
+        },
+        {
+          "alternative_label": "Warlock spell list: cantrips; level 1 spells with the Ritual tag",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "spell_list",
+          "target_record_key": "classes.warlock"
+        },
+        {
+          "alternative_label": "Warlock spell list: cantrips; level 1 spells with the Ritual tag",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "cantrips",
+          "target_record_key": "classes.warlock"
+        },
+        {
+          "alternative_label": "Warlock spell list: cantrips; level 1 spells with the Ritual tag",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "level_1_spells",
+          "target_record_key": "classes.warlock"
+        },
+        {
+          "alternative_label": "Wizard spell list: cantrips; level 1 spells with the Ritual tag",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "spell_list",
+          "target_record_key": "classes.wizard"
+        },
+        {
+          "alternative_label": "Wizard spell list: cantrips; level 1 spells with the Ritual tag",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "cantrips",
+          "target_record_key": "classes.wizard"
+        },
+        {
+          "alternative_label": "Wizard spell list: cantrips; level 1 spells with the Ritual tag",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "level_1_spells",
+          "target_record_key": "classes.wizard"
+        }
+      ],
+      "from_component_key": "cantrips_and_rituals",
+      "from_record_key": "classes.warlock.eldritch_invocation_options.pact_of_the_tome",
+      "provenance_span_ids": [
+        "a5086e11-25c8-5f04-b887-d625584ae373"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "routes-23-classes.warlock.eldritch_invocation_options.pact_of_the_tome-cantrips_and_rituals",
+      "scope_key": "srd-5.2.1/classes",
+      "source_text": "any class's spell list",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Musical Instrument: a Bard can use it as a Spellcasting Focus for Bard spells",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.tools.musical_instrument"
+        },
+        {
+          "alternative_label": "Musical Instrument: a Bard can use it as a Spellcasting Focus for Bard spells",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "spellcasting_focus",
+          "target_record_key": "classes.bard.spellcasting"
+        },
+        {
+          "alternative_label": "Arcane Focus: a Sorcerer, Warlock, or Wizard can use it as a Spellcasting Focus",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.adventuring_gear.arcane_focus"
+        },
+        {
+          "alternative_label": "Component Pouch",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.adventuring_gear.component_pouch"
+        },
+        {
+          "alternative_label": "Druidic Focus: a Druid or Ranger can use it as a Spellcasting Focus",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.adventuring_gear.druidic_focus"
+        },
+        {
+          "alternative_label": "Holy Symbol: a Cleric or Paladin can use it as a Spellcasting Focus",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.adventuring_gear.holy_symbol"
+        }
+      ],
+      "from_component_key": "component_pouch_and_focus",
+      "from_record_key": "spells.components",
+      "provenance_span_ids": [
+        "32591758-96b7-53a5-8ef7-db655b3c2372"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "routes-38-spells.components-component_pouch_and_focus",
+      "scope_key": "srd-5.2.1/equipment",
+      "source_text": "see \"Equipment\" for descriptions",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Camel",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.camel"
+        },
+        {
+          "alternative_label": "Elephant",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.elephant"
+        },
+        {
+          "alternative_label": "Horse, Draft",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.draft_horse"
+        },
+        {
+          "alternative_label": "Horse, Riding",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.riding_horse"
+        },
+        {
+          "alternative_label": "Mastiff",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.mastiff"
+        },
+        {
+          "alternative_label": "Mule",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.mule"
+        },
+        {
+          "alternative_label": "Pony",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.pony"
+        },
+        {
+          "alternative_label": "Warhorse",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.warhorse"
+        }
+      ],
+      "from_component_key": "mounts",
+      "from_record_key": "equipment.mounts_and_vehicles",
+      "provenance_span_ids": [
+        "1e115a61-deea-5c58-b260-ad66af4bb8c4"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "routes-49-equipment.mounts_and_vehicles-mounts",
+      "scope_key": "srd-5.2.1/monsters",
+      "source_text": "Monsters",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Gray Bag of Tricks, 1d8 roll 1: Weasel",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.weasel"
+        },
+        {
+          "alternative_label": "Gray Bag of Tricks, 1d8 roll 2: Giant Rat",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.giant_rat"
+        },
+        {
+          "alternative_label": "Gray Bag of Tricks, 1d8 roll 3: Badger",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.badger"
+        },
+        {
+          "alternative_label": "Gray Bag of Tricks, 1d8 roll 4: Boar",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.boar"
+        },
+        {
+          "alternative_label": "Gray Bag of Tricks, 1d8 roll 5: Panther",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.panther"
+        },
+        {
+          "alternative_label": "Gray Bag of Tricks, 1d8 roll 6: Giant Badger",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.giant_badger"
+        },
+        {
+          "alternative_label": "Gray Bag of Tricks, 1d8 roll 7: Dire Wolf",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.dire_wolf"
+        },
+        {
+          "alternative_label": "Gray Bag of Tricks, 1d8 roll 8: Giant Elk",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.giant_elk"
+        },
+        {
+          "alternative_label": "Rust Bag of Tricks, 1d8 roll 1: Rat",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.rat"
+        },
+        {
+          "alternative_label": "Rust Bag of Tricks, 1d8 roll 2: Owl",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.owl"
+        },
+        {
+          "alternative_label": "Rust Bag of Tricks, 1d8 roll 3: Mastiff",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.mastiff"
+        },
+        {
+          "alternative_label": "Rust Bag of Tricks, 1d8 roll 4: Goat",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.goat"
+        },
+        {
+          "alternative_label": "Rust Bag of Tricks, 1d8 roll 5: Giant Goat",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.giant_goat"
+        },
+        {
+          "alternative_label": "Rust Bag of Tricks, 1d8 roll 6: Giant Boar",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.giant_boar"
+        },
+        {
+          "alternative_label": "Rust Bag of Tricks, 1d8 roll 7: Lion",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.lion"
+        },
+        {
+          "alternative_label": "Rust Bag of Tricks, 1d8 roll 8: Brown Bear",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.brown_bear"
+        },
+        {
+          "alternative_label": "Tan Bag of Tricks, 1d8 roll 1: Jackal",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.jackal"
+        },
+        {
+          "alternative_label": "Tan Bag of Tricks, 1d8 roll 2: Ape",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.ape"
+        },
+        {
+          "alternative_label": "Tan Bag of Tricks, 1d8 roll 3: Baboon",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.baboon"
+        },
+        {
+          "alternative_label": "Tan Bag of Tricks, 1d8 roll 4: Axe Beak",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.axe_beak.axe_beak"
+        },
+        {
+          "alternative_label": "Tan Bag of Tricks, 1d8 roll 5: Black Bear",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.black_bear"
+        },
+        {
+          "alternative_label": "Tan Bag of Tricks, 1d8 roll 6: Giant Weasel",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.giant_weasel"
+        },
+        {
+          "alternative_label": "Tan Bag of Tricks, 1d8 roll 7: Giant Hyena",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.giant_hyena"
+        },
+        {
+          "alternative_label": "Tan Bag of Tricks, 1d8 roll 8: Tiger",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.tiger"
+        }
+      ],
+      "from_component_key": "bag_of_tricks",
+      "from_record_key": "magic_items.bag_of_tricks",
+      "provenance_span_ids": [
+        "e597f0a3-be14-5c82-9b53-1b603db579af"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "routes-51-magic_items.bag_of_tricks-bag_of_tricks",
+      "scope_key": "srd-5.2.1/monsters",
+      "source_text": "Monsters",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Deck of Illusions, 1d100 01–03: Adult Red Dragon",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.red_dragons.adult_red_dragon"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 04–06: Archmage",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.mages.archmage"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 07–09: Assassin",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.assassin.assassin"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 10–12: Bandit Captain",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.bandits.bandit_captain"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 13–15: Basilisk",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.basilisk.basilisk"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 16–18: Berserker",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.berserker.berserker"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 19–21: Bugbear Warrior",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.bugbears.bugbear_warrior"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 22–24: Cloud Giant",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.cloud_giant.cloud_giant"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 25–27: Druid",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.druid.druid"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 28–30: Erinyes",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.erinyes.erinyes"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 31–33: Ettin",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.ettin.ettin"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 34–36: Fire Giant",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.fire_giant.fire_giant"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 37–39: Frost Giant",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.frost_giant.frost_giant"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 40–42: Gnoll Warrior",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.gnoll.gnoll_warrior"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 43–45: Goblin Warrior",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.goblins.goblin_warrior"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 46–48: Guardian Naga",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.guardian_naga.guardian_naga"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 49–51: Hill Giant",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.hill_giant.hill_giant"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 52–54: Hobgoblin Warrior",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.hobgoblins.hobgoblin_warrior"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 55–57: Incubus",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.incubus.incubus"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 58–60: Iron Golem",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.iron_golem.iron_golem"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 61–63: Knight",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.knight.knight"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 64–66: Kobold Warrior",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.kobold.kobold_warrior"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 67–69: Lich",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.lich.lich"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 70–72: Medusa",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.medusa.medusa"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 73–75: Night Hag",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.night_hag.night_hag"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 76–78: Ogre",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.ogre.ogre"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 79–81: Oni",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.oni.oni"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 82–84: Priest",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.priests.priest"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 85–87: Succubus",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.succubus.succubus"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 88–90: Troll",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.troll.troll"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 91–93: Veteran Warrior",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.warriors.veteran_warrior"
+        },
+        {
+          "alternative_label": "Deck of Illusions, 1d100 94–96: Wyvern",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.wyvern.wyvern"
+        }
+      ],
+      "from_component_key": "deck_of_illusions",
+      "from_record_key": "magic_items.deck_of_illusions",
+      "provenance_span_ids": [
+        "b7732ec0-937a-53a4-a6c0-faeb668e42e9"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "routes-52-magic_items.deck_of_illusions-deck_of_illusions",
+      "scope_key": "srd-5.2.1/monsters",
+      "source_text": "Monsters",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Blue sapphire: Air Elemental",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.air_elemental.air_elemental"
+        },
+        {
+          "alternative_label": "Emerald: Water Elemental",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.water_elemental.water_elemental"
+        },
+        {
+          "alternative_label": "Red corundum: Fire Elemental",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.fire_elemental.fire_elemental"
+        },
+        {
+          "alternative_label": "Yellow diamond: Earth Elemental",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.earth_elemental.earth_elemental"
+        }
+      ],
+      "from_component_key": "elemental_gem",
+      "from_record_key": "magic_items.elemental_gem",
+      "provenance_span_ids": [
+        "53a98c51-1cba-55fd-b55d-90ae6ee41485"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "routes-53-magic_items.elemental_gem-elemental_gem",
+      "scope_key": "srd-5.2.1/monsters",
+      "source_text": "Monsters",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "How to read and use a stat block",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.stat_block_overview"
+        },
+        {
+          "alternative_label": "How to read and use a stat block",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.parts_of_a_stat_block"
+        }
+      ],
+      "from_component_key": "magic_items_a_z",
+      "from_record_key": "magic_items.magic_items_a_z",
+      "provenance_span_ids": [
+        "bc81e09e-f1df-5fe6-ae17-5be7437560d3"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "routes-54-magic_items.magic_items_a_z-magic_items_a_z",
+      "scope_key": "srd-5.2.1/monsters",
+      "source_text": "How to read and use a stat block is explained in \"Monsters.\"",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Clay Golem manual (1d20 1–5, or the GM's choice)",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.clay_golem.clay_golem"
+        },
+        {
+          "alternative_label": "Flesh Golem manual (1d20 6–17, or the GM's choice)",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.flesh_golem.flesh_golem"
+        },
+        {
+          "alternative_label": "Iron Golem manual (1d20 18, or the GM's choice)",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.iron_golem.iron_golem"
+        },
+        {
+          "alternative_label": "Stone Golem manual (1d20 19–20, or the GM's choice)",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.stone_golem.stone_golem"
+        }
+      ],
+      "from_component_key": "manual_of_golems",
+      "from_record_key": "magic_items.manual_of_golems",
+      "provenance_span_ids": [
+        "cda63fbc-ddc8-5283-a7c7-82d8d33dcab0"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "routes-55-magic_items.manual_of_golems-manual_of_golems",
+      "scope_key": "srd-5.2.1/monsters",
+      "source_text": "Monsters",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Melee attack: Melee Attacks",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "melee",
+          "target_record_key": "play.combat"
+        },
+        {
+          "alternative_label": "Melee attack: Melee Attacks",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "reach",
+          "target_record_key": "play.combat"
+        },
+        {
+          "alternative_label": "Melee attack: Melee Attacks",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "opportunity_attacks",
+          "target_record_key": "play.combat"
+        },
+        {
+          "alternative_label": "Ranged attack: Ranged Attacks",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "ranged",
+          "target_record_key": "play.combat"
+        },
+        {
+          "alternative_label": "Ranged attack: Ranged Attacks",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "range",
+          "target_record_key": "play.combat"
+        },
+        {
+          "alternative_label": "Ranged attack: Ranged Attacks",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "long_range",
+          "target_record_key": "play.combat"
+        },
+        {
+          "alternative_label": "Ranged attack: Ranged Attacks",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "close_combat",
+          "target_record_key": "play.combat"
+        },
+        {
+          "alternative_label": "Melee or Ranged attack: Ranged Attacks and Melee Attacks",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "ranged",
+          "target_record_key": "play.combat"
+        },
+        {
+          "alternative_label": "Melee or Ranged attack: Ranged Attacks and Melee Attacks",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "range",
+          "target_record_key": "play.combat"
+        },
+        {
+          "alternative_label": "Melee or Ranged attack: Ranged Attacks and Melee Attacks",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "long_range",
+          "target_record_key": "play.combat"
+        },
+        {
+          "alternative_label": "Melee or Ranged attack: Ranged Attacks and Melee Attacks",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "close_combat",
+          "target_record_key": "play.combat"
+        },
+        {
+          "alternative_label": "Melee or Ranged attack: Ranged Attacks and Melee Attacks",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "melee",
+          "target_record_key": "play.combat"
+        },
+        {
+          "alternative_label": "Melee or Ranged attack: Ranged Attacks and Melee Attacks",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "reach",
+          "target_record_key": "play.combat"
+        },
+        {
+          "alternative_label": "Melee or Ranged attack: Ranged Attacks and Melee Attacks",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "opportunity_attacks",
+          "target_record_key": "play.combat"
+        }
+      ],
+      "from_component_key": "attack_notation",
+      "from_record_key": "monsters.parts_of_a_stat_block",
+      "provenance_span_ids": [
+        "ddfea8c5-df9c-5fd5-8c90-fc6d30bb5dd4"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "routes-71-monsters.parts_of_a_stat_block-attack_notation",
+      "scope_key": "srd-5.2.1/playing-the-game",
+      "source_text": "Playing the Game",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Passive Perception: every Senses entry",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "passive_perception",
+          "target_record_key": "glossary.passive_perception"
+        },
+        {
+          "alternative_label": "Special sense, when listed: Blindsight",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "blindsight",
+          "target_record_key": "glossary.blindsight"
+        },
+        {
+          "alternative_label": "Special sense, when listed: Darkvision",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "darkvision",
+          "target_record_key": "glossary.darkvision"
+        },
+        {
+          "alternative_label": "Special sense, when listed: Tremorsense",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "tremorsense",
+          "target_record_key": "glossary.tremorsense"
+        },
+        {
+          "alternative_label": "Special sense, when listed: Truesight",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "truesight",
+          "target_record_key": "glossary.truesight"
+        }
+      ],
+      "from_component_key": "senses",
+      "from_record_key": "monsters.parts_of_a_stat_block",
+      "provenance_span_ids": [
+        "8d7bf63d-b56c-53ab-a05e-18a7b941f7f0"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "routes-73-monsters.parts_of_a_stat_block-senses",
+      "scope_key": "srd-5.2.1/rules-glossary",
+      "source_text": "Rules Glossary",
+      "target_record_key": ""
+    }
+  ],
+  "representation_schema": [
+    "5d-representation-schema-17",
+    "4881e51fb2fa73e52f7ff951ad7d00b863188c1a22133fb0e2873c7d32d10ada"
+  ]
+}

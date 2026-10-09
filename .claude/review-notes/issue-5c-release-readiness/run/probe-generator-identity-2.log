@@ -1,0 +1,40 @@
+start 2026-10-07T08:27:30.692811+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/review-notes/issue-5c-release-readiness/probes/generator_identity_probe_2.py
+input 9fc737da367bb028d9c2d7302438e6d83c4705cae5eb964689886b996da8480d  .claude/review-notes/issue-5c-release-readiness/probes/generator_identity_probe_2.py
+classes binding 5.2.1-corpus.8781d4e0-a3b
+  built       562edb08b93098fcc48ba1a31ab81e2326785e5ead8e7694cb93a85c8e495c23
+  current     ab357393ce9c3d3bcbc06e7f18ff9c6cadb13c852fdb8dce09fb0ec43737df54 False
+  rebound     ab357393ce9c3d3bcbc06e7f18ff9c6cadb13c852fdb8dce09fb0ec43737df54 False
+  historical  c98ed194f954eeec7c9005788192edba893512b1064ff6b38a4280812b9a2b03 False
+class-option-catalogues binding 5.2.1-corpus.8781d4e0-a3b
+  built       6d11f46a95c5a03d519be29ccaea43895ede4930d678116c7b0615e9a24236c2
+  current     6d11f46a95c5a03d519be29ccaea43895ede4930d678116c7b0615e9a24236c2 True
+  rebound     6d11f46a95c5a03d519be29ccaea43895ede4930d678116c7b0615e9a24236c2 True
+  historical  ba5e78d5fe9e6c7fd69247fdefb734158d635e707d3898f31ee4147cc06e5d4f False
+checks-actions-rests binding 5.2.1-corpus.8781d4e0-a3b
+  built       14bd27e06bd91100c0ada0f46ff3816b62feb7cd75a11734d254b1fc9194e9a1
+  current     d96c50a32e269ae17bac1b312b643ba468ed2065e89fcfef7030ce59a55a113a False
+  rebound     d96c50a32e269ae17bac1b312b643ba468ed2065e89fcfef7030ce59a55a113a False
+  historical  bc984667ac0d7a0b3eadf0ce53d16f5be94a1fcf005abc03ca1325f58c3d6be0 False
+spell-descriptions binding 5.2.1-corpus.8781d4e0-a3b
+  built       89a252da565844751ea2486e2ec2f65df6dd6738ef605af7b4fe120a51f6fd4a
+  current     93c816fba0698f551123cac5124f161e7b1ef2c7780b8d5bd35ab42dd4205d83 False
+  rebound     93c816fba0698f551123cac5124f161e7b1ef2c7780b8d5bd35ab42dd4205d83 False
+  historical  737040bbd065f97f37f2438f23fe8827ebc31b2fa446a545f99be96ce9e6fafc False
+gameplay-toolbox binding 5.2.1-corpus.8781d4e0-a3b
+  built       62946f2ad9e79c59c168d1b8b45d6b1a374b8da51566ca86205605816253bc34
+  current     8a5add7321cd98d1d83f1761aaa91acc6504a7a2e7f1a9bbd0022f10bf81e49a False
+  rebound     8a5add7321cd98d1d83f1761aaa91acc6504a7a2e7f1a9bbd0022f10bf81e49a False
+  historical  22c3c6f80155d7e804fdae5edac9b9962363d85553ca737d5e402ff1d33fad8f False
+magic-items binding 5.2.1-corpus.8781d4e0-a3b
+  built       40663ab1b69c68ddbdea647c7accd63de3df1ea7489cd448b220888cc60e08cd
+  current     54a402acd35a15887b94f286a30804a87dd32e92e91d2b075bbb2367324eed5a False
+  rebound     54a402acd35a15887b94f286a30804a87dd32e92e91d2b075bbb2367324eed5a False
+  historical  dd6d191b5b3fe7d2705f71ba8ccf7b24c430c04a2a28dbe22cb6c9ac6003901b False
+monsters binding 5.2.1-corpus.8781d4e0-a3b
+  built       788366b23f5e64cfea011d290e866eeb2f9a3a349fd0abd5c1b7007084295099
+  current     bc559c6ec6bd1e84a000c5656682067b24a9cd868d98440ac19ec1e61ed2c48a False
+  rebound     bc559c6ec6bd1e84a000c5656682067b24a9cd868d98440ac19ec1e61ed2c48a False
+  historical  None False
+animals BUILD FAILED KeyError '1fe13113-da71-5d54-ab70-0956e452efde'
+end 2026-10-07T08:40:44.048870+00:00 exit 0

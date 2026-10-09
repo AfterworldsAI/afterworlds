@@ -1,0 +1,83 @@
+{
+  "old_sha256": "e6f5f36aa3af13807bbff721797d971dcf0d8e588a97483c7d769cf88cbd1308",
+  "candidate_path": ".claude\\_sp\\release-order-candidate\\candidate\\srd-5-2-1-corpus-8781d4e0-a3b.json",
+  "candidate_sha256": "8a6a9a9c305f41207190c0deb55875a027019116ce3f825a6a0425a3a115b4bf",
+  "old_binding": {
+    "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+    "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+    "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+    "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+    "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+    "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+  },
+  "new_binding": {
+    "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+    "bundle_root_hash": "0941dc966337f190f5a6ed3b5dfc0370dc29efd15483889bf2a0d9fb7c564787",
+    "package_uuid": "1299484e-c72d-509b-bd8d-d0169ee1f8d2",
+    "persisted_corpus_digest": "3717fa115a5abb68c4be179d0d643992ab7392a0f9cd5ca5dc4a73da9258e3c3",
+    "release_version": "5.2.1-corpus.8781d4e0-a3b",
+    "transform_config_hash": "753e76087885ee99fb3fa97932c6a0e5b5075bbed1b0acd466d90a029ff0bc01"
+  },
+  "checks": {
+    "root_keys_equal": true,
+    "exact_root_representation_schema": true,
+    "exact_root_spans": true,
+    "exact_root_artifact_kind": true,
+    "exact_root_obligations": true,
+    "exact_root_semantic_policy_version": true,
+    "exact_root_review_units": true,
+    "exact_root_semantic_policy_hash": true,
+    "binding_keys_equal": true,
+    "official_source_hash_preserved": true,
+    "new_package_and_version": true,
+    "representation_keys_equal": true,
+    "exact_representation_provenance": true,
+    "exact_representation_records": true,
+    "exact_representation_components": true,
+    "exact_representation_relationships": true,
+    "exact_representation_references": true,
+    "prose_binding_content_and_extents_exact": true,
+    "all_chunk_ids_native_release_scoped": true,
+    "six_field_binding_equals_actual_release": true,
+    "native_canonical_representation_prose_bindings": true,
+    "native_canonical_representation_provenance": true,
+    "no_old_chunk_residue": true,
+    "no_old_binding_residue": true,
+    "reference_resolutions_exact_except_binding_in_order": true,
+    "every_reference_uses_new_full_binding": true,
+    "batch_ids_in_original_order": true,
+    "batch_scope_and_diff_exact": true,
+    "acceptance_records_batch_scope_exact": true,
+    "native_canonical_acceptance_records": true,
+    "acceptance_review_unit_records_batch_scope_exact": true,
+    "native_canonical_acceptance_review_unit_records": true,
+    "acceptance_reference_resolution_records_identity_order_exact": true,
+    "no_new_approval_attributed_to_owner": true,
+    "acceptance_keys_exact": true,
+    "schema_lifts_exact": true,
+    "schema_anchor_history_exact_except_proposal_identity": true,
+    "every_batch_and_anchor_has_new_proposal_identity": true,
+    "batch_rule_simulated": true,
+    "authorization_reference_simulated": true,
+    "simulated_dates_exact": true
+  },
+  "approval_attribution_counts": [
+    {
+      "field": "reviewer",
+      "value": "SIMULATION - not an Owner approval",
+      "count": 13455
+    },
+    {
+      "field": "authorized_by",
+      "value": "SIMULATION - not an Owner approval",
+      "count": 1486
+    }
+  ],
+  "chunk_errors": [],
+  "acceptance_fields_requiring_independent_review": [
+    "batch proposal identities and rule",
+    "schema anchors and lifts",
+    "simulated approval timestamps and authorization references"
+  ],
+  "limits": "This compares payloads and native chunk ID derivation only; release construction/locators/validation/persistence/readers and schema-anchor histories require separate evidence."
+}

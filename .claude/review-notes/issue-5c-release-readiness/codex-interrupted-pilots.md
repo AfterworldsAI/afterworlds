@@ -1,0 +1,7 @@
+# Codex interrupted pilot audit — 7 October 2026
+
+The corrective Claude CLI run ended at 09:02:05Z with actual process exit 0, result subtype `success`, and no CLI error. Its final result was a background-status message, not a completed readiness increment. At 09:09Z Codex's scoped read-only process inspection found no Python test processes, and no Python processes were present in the follow-up health read.
+
+Four retained runs lack native completion markers: `focused-magic-1`, `focused-monsters-1`, `focused-animals-1`, `focused-selector-proofs-1`. Their logs are incomplete. Animals visibly reports a failure dot. None is passing evidence; no actual pytest exit is available, and Codex has not fabricated `.exit` files or overwritten their output. These runs were interrupted when the owning CLI ended. No process was stopped by Codex.
+
+Preserve the completed diagnostics and their actual exits. Resume the same authorized engineer session to complete the concrete remaining correction and write-up, using small representative checks rather than replaying these whole modules before the mandatory default full suite. Keep the engineer turn alive until its owned diagnostics have actual native outputs/exits; a background announcement or launcher success is insufficient. The restart opening's anticipatory completed-increment claim must remain provisional until the correction is actually finished and reviewed. Publication and all preservation boundaries remain held.

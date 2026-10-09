@@ -1,0 +1,116 @@
+[
+  {
+    "resolution_id": "resolve-armor-class-character-creation-1",
+    "from_record_key": "play.d20_tests",
+    "from_component_key": "armor_class",
+    "source_text": "Character Creation",
+    "scope_key": "srd-5.2.1/character-creation",
+    "target_record_key": "character_creation.create_your_character",
+    "release_binding": {
+      "package_uuid": "ebdd9333-eeed-5df1-b3e1-8b97c2f65f80",
+      "release_version": "5.2.1-corpus.574662e9-0ef",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "2a7feddf7910684b8427745b9f9ecd5f394382d00955ed7b98920c2e12c0e64d",
+      "bundle_root_hash": "3da7b5b30e23647c219d1630b5c5051be02b5882d17f0cd13421af8c57754689",
+      "persisted_corpus_digest": "df64eb40029576bae61229056f07ccdf025a2a5c2d75aacfefdf88fe596acb02"
+    },
+    "provenance_span_ids": [
+      "4e1f6ecf-d4c1-5b6d-a24c-c8676b1b7506"
+    ]
+  },
+  {
+    "resolution_id": "resolve-attack-roll-playing-the-game-1",
+    "from_record_key": "play.combat",
+    "from_component_key": "attack_structure",
+    "source_text": "Playing the Game",
+    "scope_key": "srd-5.2.1/playing-the-game",
+    "target_record_key": "play.d20_tests",
+    "release_binding": {
+      "package_uuid": "ebdd9333-eeed-5df1-b3e1-8b97c2f65f80",
+      "release_version": "5.2.1-corpus.574662e9-0ef",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "2a7feddf7910684b8427745b9f9ecd5f394382d00955ed7b98920c2e12c0e64d",
+      "bundle_root_hash": "3da7b5b30e23647c219d1630b5c5051be02b5882d17f0cd13421af8c57754689",
+      "persisted_corpus_digest": "df64eb40029576bae61229056f07ccdf025a2a5c2d75aacfefdf88fe596acb02"
+    },
+    "provenance_span_ids": [
+      "aeefa376-825e-5b97-a815-7409beee2672"
+    ]
+  },
+  {
+    "resolution_id": "resolve-background-feat-feats-1",
+    "from_record_key": "character_creation.create_your_character",
+    "from_component_key": "background_feat",
+    "source_text": "Feats",
+    "scope_key": "srd-5.2.1/feats",
+    "target_record_key": "feats.feat_descriptions",
+    "release_binding": {
+      "package_uuid": "ebdd9333-eeed-5df1-b3e1-8b97c2f65f80",
+      "release_version": "5.2.1-corpus.574662e9-0ef",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "2a7feddf7910684b8427745b9f9ecd5f394382d00955ed7b98920c2e12c0e64d",
+      "bundle_root_hash": "3da7b5b30e23647c219d1630b5c5051be02b5882d17f0cd13421af8c57754689",
+      "persisted_corpus_digest": "df64eb40029576bae61229056f07ccdf025a2a5c2d75aacfefdf88fe596acb02"
+    },
+    "provenance_span_ids": [
+      "d131ec53-eaef-593a-9bdf-47800204accd"
+    ]
+  },
+  {
+    "resolution_id": "resolve-choose-background-character-origins-1",
+    "from_record_key": "character_creation.create_your_character",
+    "from_component_key": "choose_background",
+    "source_text": "Character Origins",
+    "scope_key": "srd-5.2.1/character-origins",
+    "target_record_key": "character_origins.backgrounds",
+    "release_binding": {
+      "package_uuid": "ebdd9333-eeed-5df1-b3e1-8b97c2f65f80",
+      "release_version": "5.2.1-corpus.574662e9-0ef",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "2a7feddf7910684b8427745b9f9ecd5f394382d00955ed7b98920c2e12c0e64d",
+      "bundle_root_hash": "3da7b5b30e23647c219d1630b5c5051be02b5882d17f0cd13421af8c57754689",
+      "persisted_corpus_digest": "df64eb40029576bae61229056f07ccdf025a2a5c2d75aacfefdf88fe596acb02"
+    },
+    "provenance_span_ids": [
+      "9051aa97-c4d4-5640-9d82-6f011e776a15"
+    ]
+  },
+  {
+    "resolution_id": "resolve-choose-species-character-origins-1",
+    "from_record_key": "character_creation.create_your_character",
+    "from_component_key": "choose_species",
+    "source_text": "Character Origins",
+    "scope_key": "srd-5.2.1/character-origins",
+    "target_record_key": "character_origins.species",
+    "release_binding": {
+      "package_uuid": "ebdd9333-eeed-5df1-b3e1-8b97c2f65f80",
+      "release_version": "5.2.1-corpus.574662e9-0ef",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "2a7feddf7910684b8427745b9f9ecd5f394382d00955ed7b98920c2e12c0e64d",
+      "bundle_root_hash": "3da7b5b30e23647c219d1630b5c5051be02b5882d17f0cd13421af8c57754689",
+      "persisted_corpus_digest": "df64eb40029576bae61229056f07ccdf025a2a5c2d75aacfefdf88fe596acb02"
+    },
+    "provenance_span_ids": [
+      "e0bfa3fa-8494-5b9e-a8da-a742ea5b6923"
+    ]
+  },
+  {
+    "resolution_id": "resolve-proficiency-bonus-character-creation-1",
+    "from_record_key": "play.proficiency",
+    "from_component_key": "proficiency_bonus",
+    "source_text": "Character Creation",
+    "scope_key": "srd-5.2.1/character-creation",
+    "target_record_key": "character_creation.level_advancement",
+    "release_binding": {
+      "package_uuid": "ebdd9333-eeed-5df1-b3e1-8b97c2f65f80",
+      "release_version": "5.2.1-corpus.574662e9-0ef",
+      "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+      "transform_config_hash": "2a7feddf7910684b8427745b9f9ecd5f394382d00955ed7b98920c2e12c0e64d",
+      "bundle_root_hash": "3da7b5b30e23647c219d1630b5c5051be02b5882d17f0cd13421af8c57754689",
+      "persisted_corpus_digest": "df64eb40029576bae61229056f07ccdf025a2a5c2d75aacfefdf88fe596acb02"
+    },
+    "provenance_span_ids": [
+      "6b8bbca6-0f41-549a-8b8e-bc750f6e3bf6"
+    ]
+  }
+]

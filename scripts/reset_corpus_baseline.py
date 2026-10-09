@@ -88,6 +88,9 @@ from afterworlds.ingestion.corpus.persistence import (  # noqa: E402
     verify_persisted_page_coverage,
     verify_single_source,
 )
+from afterworlds.ingestion.corpus.source_ledger import (  # noqa: E402
+    expected_leaf_pages,
+)
 from afterworlds.ingestion.corpus.vector_publication import (  # noqa: E402
     expected_vector_state_from_sql,
 )
@@ -105,6 +108,10 @@ from afterworlds.pipeline.retrieval.client import build_chroma_client  # noqa: E
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig  # noqa: E402
 from afterworlds.pipeline.retrieval.rules_corpus_service import (  # noqa: E402
     RulesCorpusService,
+)
+from afterworlds.quarantine import (  # noqa: E402
+    QuarantinedAuthorityError,
+    refuse_quarantined,
 )
 
 PRECONDITION = """\
@@ -188,7 +195,22 @@ def validate_corpus_payload(
         )
     violations.extend(verify_chunk_runtime_membership(session, pkg))
     violations.extend(verify_single_source(session, pkg))
-    violations.extend(verify_persisted_page_coverage(session, pkg))
+    # The declared leaf pages, read from the release's own transform_config --
+    # the same override finalize_source_release applies. Without it this check
+    # demands every printed page of the book, and refuses a source-built corpus
+    # that legitimately files no leaf on a TOC-only page.
+    release_config = session.execute(
+        select(CorpusReleaseORM.transform_config).where(
+            CorpusReleaseORM.package_uuid == pkg
+        )
+    ).scalar_one_or_none()
+    violations.extend(
+        verify_persisted_page_coverage(
+            session,
+            pkg,
+            expected_pages=expected_leaf_pages(release_config or {}),
+        )
+    )
 
     # The canonical proof. Any reconstruction failure is a violation in itself —
     # an unprovable corpus must not be rebuilt over a store we are about to wipe.
@@ -227,7 +249,10 @@ def preflight(
     Raises :class:`PreflightError` if the database is unavailable, incompatible
     (e.g. unmigrated — no ``rp_corpus_releases``), holds no published corpus
     release, or holds one whose payload is missing/unreadable/malformed/orphaned
-    or fails Issue 5c's completeness and integrity requirements. On failure the
+    or fails Issue 5c's completeness and integrity requirements. Raises
+    :class:`QuarantinedAuthorityError` if a published release is a quarantined
+    5c product (by package, release version or retired transform recipe) — a
+    store this command may not rebuild, refused before it deletes one. On failure the
     engine is disposed here; on success the caller owns it (returned alongside
     the factory) and disposes it when done.
     """
@@ -236,14 +261,30 @@ def preflight(
         engine = create_engine(db_url)
         factory = create_session_factory(engine)
         with factory() as session:
-            packages = [
-                UUID(pkg)
-                for pkg in session.execute(
-                    select(CorpusReleaseORM.package_uuid).where(
-                        CorpusReleaseORM.publication_status == "published"
-                    )
-                ).scalars()
-            ]
+            released = session.execute(
+                select(
+                    CorpusReleaseORM.package_uuid,
+                    CorpusReleaseORM.release_version,
+                    CorpusReleaseORM.transform_config,
+                ).where(CorpusReleaseORM.publication_status == "published")
+            ).all()
+            # Refuse a quarantined release HERE, while the store is still intact.
+            # The rebuild seam (RulesCorpusService.reindex_from_sql) refuses too,
+            # but step 3 has deleted every collection by then — including
+            # story_memory — and this command cannot restore what it erased.
+            for pkg_id, version, transform_config in released:
+                identity = transform_config.get("transform_identity")
+                refuse_quarantined(
+                    "corpus baseline reset (scripts/reset_corpus_baseline.py)",
+                    package_uuid=pkg_id,
+                    release_version=version,
+                    transform_source_hash=(
+                        identity.get("transform_source_hash")
+                        if isinstance(identity, dict)
+                        else None
+                    ),
+                )
+            packages = [UUID(pkg) for pkg, _, _ in released]
             if not packages:
                 raise PreflightError(
                     f"{db_url!r} holds no published corpus release — there would "
@@ -254,7 +295,7 @@ def preflight(
                 violations.extend(
                     validate_corpus_payload(session, str(pkg_uuid), config)
                 )
-    except PreflightError:
+    except (PreflightError, QuarantinedAuthorityError):
         engine.dispose()  # type: ignore[union-attr]
         raise
     except (SQLAlchemyError, ValueError) as exc:
@@ -321,7 +362,7 @@ def main() -> int:
         with factory() as session:
             for pkg in packages:
                 written = service.reindex_from_sql(session, pkg)
-                print(f"Rebuilt rules corpus for {pkg}: {written} chunks.")
+                print(f"Rebuilt rules corpus for {pkg}: {written} embedding documents.")
     finally:
         # The preflight engine is owned here; release it (it holds a SQLite/WAL
         # connection) rather than relying on process exit.

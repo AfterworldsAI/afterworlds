@@ -358,7 +358,7 @@ def _resolved(*entries: EffectiveOverrideEntry):  # type: ignore[no-untyped-def]
         release_version=_BINDING.release_version,
         entries=ordered,
     )
-    return apply_override_set(_candidate(), state, _PACKAGE_BINDING)
+    return apply_override_set(_candidate(), state, _PACKAGE_BINDING, leaf_order={})
 
 
 def _options(view):  # type: ignore[no-untyped-def]
@@ -506,7 +506,7 @@ def test_a_prose_bound_component_still_refuses_an_option_append() -> None:
         entries=(_entry(CRAWL_TARGET),),
     )
     with pytest.raises(OverrideApplicationError, match="prose-bound"):
-        apply_override_set(candidate, state, _PACKAGE_BINDING)
+        apply_override_set(candidate, state, _PACKAGE_BINDING, leaf_order={})
 
 
 # ---------------------------------------------------------------------------

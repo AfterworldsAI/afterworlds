@@ -1,0 +1,1799 @@
+{
+  "accepted_sha256": "5909e5bdd8c73bf32525b17942924364871146d648b83681518561361a434c0d",
+  "reference_resolutions": [
+    {
+      "destinations": [
+        {
+          "alternative_label": "Equipment with a purchase cost: Weapons, Armor, Tools, Adventuring Gear, Mounts and Vehicles, and the priced goods of Food, Drink, and Lodging",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons"
+        },
+        {
+          "alternative_label": "Equipment with a purchase cost: Weapons, Armor, Tools, Adventuring Gear, Mounts and Vehicles, and the priced goods of Food, Drink, and Lodging",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.armor"
+        },
+        {
+          "alternative_label": "Equipment with a purchase cost: Weapons, Armor, Tools, Adventuring Gear, Mounts and Vehicles, and the priced goods of Food, Drink, and Lodging",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.tools"
+        },
+        {
+          "alternative_label": "Equipment with a purchase cost: Weapons, Armor, Tools, Adventuring Gear, Mounts and Vehicles, and the priced goods of Food, Drink, and Lodging",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.adventuring_gear"
+        },
+        {
+          "alternative_label": "Equipment with a purchase cost: Weapons, Armor, Tools, Adventuring Gear, Mounts and Vehicles, and the priced goods of Food, Drink, and Lodging",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.mounts_and_vehicles"
+        },
+        {
+          "alternative_label": "Equipment with a purchase cost: Weapons, Armor, Tools, Adventuring Gear, Mounts and Vehicles, and the priced goods of Food, Drink, and Lodging",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.food_drink_and_lodging"
+        }
+      ],
+      "from_component_key": "magic_item_values_by_rarity",
+      "from_record_key": "magic_items.magic_item_rarity.magic_item_values_by_rarity",
+      "provenance_span_ids": [
+        "2909e2fc-8085-5114-810c-8eb656af6b29"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "cited-34-magic_items.magic_item_rarity.magic_item_values_by_rarity-magic_item_values_by_rarity",
+      "scope_key": "srd-5.2.1/equipment",
+      "source_text": "a purchase cost in \"Equipment\"",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Gear: Battleaxe",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.battleaxe"
+        },
+        {
+          "alternative_label": "Gear: Breastplate",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.armor.breastplate"
+        },
+        {
+          "alternative_label": "Gear: Chain Mail",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.armor.chain_mail"
+        },
+        {
+          "alternative_label": "Gear: Chain Shirt",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.armor.chain_shirt"
+        },
+        {
+          "alternative_label": "Gear: Club",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.club"
+        },
+        {
+          "alternative_label": "Gear: Component Pouch",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.adventuring_gear.component_pouch"
+        },
+        {
+          "alternative_label": "Gear: Dagger",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.dagger"
+        },
+        {
+          "alternative_label": "Gear: Greataxe",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.greataxe"
+        },
+        {
+          "alternative_label": "Gear: Greatclub",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.greatclub"
+        },
+        {
+          "alternative_label": "Gear: Greatsword",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.greatsword"
+        },
+        {
+          "alternative_label": "Gear: Half Plate Armor",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.armor.half_plate_armor"
+        },
+        {
+          "alternative_label": "Gear: Hand Crossbow",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.hand_crossbow"
+        },
+        {
+          "alternative_label": "Gear: Handaxe",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.handaxe"
+        },
+        {
+          "alternative_label": "Gear: Heavy Crossbow",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.heavy_crossbow"
+        },
+        {
+          "alternative_label": "Gear: Hide Armor",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.armor.hide_armor"
+        },
+        {
+          "alternative_label": "Gear: Holy Symbol",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.adventuring_gear.holy_symbol"
+        },
+        {
+          "alternative_label": "Gear: Javelin",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.javelin"
+        },
+        {
+          "alternative_label": "Gear: Leather Armor",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.armor.leather_armor"
+        },
+        {
+          "alternative_label": "Gear: Light Crossbow",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.light_crossbow"
+        },
+        {
+          "alternative_label": "Gear: Light Hammer",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.light_hammer"
+        },
+        {
+          "alternative_label": "Gear: Longbow",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.longbow"
+        },
+        {
+          "alternative_label": "Gear: Longsword",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.longsword"
+        },
+        {
+          "alternative_label": "Gear: Mace",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.mace"
+        },
+        {
+          "alternative_label": "Gear: Morningstar",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.morningstar"
+        },
+        {
+          "alternative_label": "Gear: Pike",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.pike"
+        },
+        {
+          "alternative_label": "Gear: Pistol",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.pistol"
+        },
+        {
+          "alternative_label": "Gear: Plate Armor",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.armor.plate_armor"
+        },
+        {
+          "alternative_label": "Gear: Rapier",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.rapier"
+        },
+        {
+          "alternative_label": "Gear: Scimitar",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.scimitar"
+        },
+        {
+          "alternative_label": "Gear: Shield",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.armor.shield"
+        },
+        {
+          "alternative_label": "Gear: Shortbow",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.shortbow"
+        },
+        {
+          "alternative_label": "Gear: Shortsword",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.shortsword"
+        },
+        {
+          "alternative_label": "Gear: Sickle",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.sickle"
+        },
+        {
+          "alternative_label": "Gear: Spear",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.spear"
+        },
+        {
+          "alternative_label": "Gear: Splint Armor",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.armor.splint_armor"
+        },
+        {
+          "alternative_label": "Gear: Studded Leather Armor",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.armor.studded_leather_armor"
+        },
+        {
+          "alternative_label": "Gear: Thieves' Tools",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.tools.thieves_tools"
+        },
+        {
+          "alternative_label": "Gear: Wand",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.adventuring_gear.wand"
+        },
+        {
+          "alternative_label": "Gear: Wand",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.adventuring_gear.arcane_focus"
+        },
+        {
+          "alternative_label": "Gear: Warhammer",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "equipment.weapons.warhammer"
+        }
+      ],
+      "from_component_key": "gear",
+      "from_record_key": "monsters.parts_of_a_stat_block",
+      "provenance_span_ids": [
+        "9f35a733-d706-5220-afe7-4e78a08de39d",
+        "cd83f230-5415-54ae-8d62-9d453e3490c4"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "cited-36-monsters.parts_of_a_stat_block-gear",
+      "scope_key": "srd-5.2.1/equipment",
+      "source_text": "Equipment",
+      "target_record_key": ""
+    },
+    {
+      "from_component_key": "core_traits",
+      "from_record_key": "classes.wizard",
+      "provenance_span_ids": [
+        "6b37ee42-7341-50da-ba0c-cf9778c8edf0"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "cited-39-classes.wizard-core_traits",
+      "scope_key": "srd-5.2.1/equipment",
+      "source_text": "Spellbook",
+      "target_record_key": "classes.wizard.spellcasting"
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Normal form: Baboon",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.baboon"
+        },
+        {
+          "alternative_label": "Normal form: Badger",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.badger"
+        },
+        {
+          "alternative_label": "Normal form: Bat",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.bat"
+        },
+        {
+          "alternative_label": "Normal form: Cat",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.cat"
+        },
+        {
+          "alternative_label": "Normal form: Crab",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.crab"
+        },
+        {
+          "alternative_label": "Normal form: Deer",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.deer"
+        },
+        {
+          "alternative_label": "Normal form: Eagle",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.eagle"
+        },
+        {
+          "alternative_label": "Normal form: Frog",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.frog"
+        },
+        {
+          "alternative_label": "Normal form: Giant Fire Beetle",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.giant_fire_beetle"
+        },
+        {
+          "alternative_label": "Normal form: Goat",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.goat"
+        },
+        {
+          "alternative_label": "Normal form: Hawk",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.hawk"
+        },
+        {
+          "alternative_label": "Normal form: Hyena",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.hyena"
+        },
+        {
+          "alternative_label": "Normal form: Jackal",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.jackal"
+        },
+        {
+          "alternative_label": "Normal form: Lizard",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.lizard"
+        },
+        {
+          "alternative_label": "Normal form: Octopus",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.octopus"
+        },
+        {
+          "alternative_label": "Normal form: Owl",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.owl"
+        },
+        {
+          "alternative_label": "Normal form: Piranha",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.piranha"
+        },
+        {
+          "alternative_label": "Normal form: Rat",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.rat"
+        },
+        {
+          "alternative_label": "Normal form: Raven",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.raven"
+        },
+        {
+          "alternative_label": "Normal form: Scorpion",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.scorpion"
+        },
+        {
+          "alternative_label": "Normal form: Seahorse",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.seahorse"
+        },
+        {
+          "alternative_label": "Normal form: Spider",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.spider"
+        },
+        {
+          "alternative_label": "Normal form: Vulture",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.vulture"
+        },
+        {
+          "alternative_label": "Normal form: Weasel",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.weasel"
+        },
+        {
+          "alternative_label": "Normal form: Giant Fly (Magic Items stat block)",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.figurine_of_wondrous_power.giant_fly"
+        },
+        {
+          "alternative_label": "Special form: Imp",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.imp.imp"
+        },
+        {
+          "alternative_label": "Special form: Pseudodragon",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.pseudodragon.pseudodragon"
+        },
+        {
+          "alternative_label": "Special form: Quasit",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.quasit.quasit"
+        },
+        {
+          "alternative_label": "Special form: Skeleton",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.skeletons.skeleton"
+        },
+        {
+          "alternative_label": "Special form: Sphinx of Wonder",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.sphinxes.sphinx_of_wonder"
+        },
+        {
+          "alternative_label": "Special form: Sprite",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.sprite.sprite"
+        },
+        {
+          "alternative_label": "Special form: Venomous Snake",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.venomous_snake"
+        }
+      ],
+      "from_component_key": "pact_of_the_chain",
+      "from_record_key": "classes.warlock.eldritch_invocation_options.pact_of_the_chain",
+      "provenance_span_ids": [
+        "1544d6d8-9161-5091-b85d-eed080d61174"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "cited-48-classes.warlock.eldritch_invocation_options.pact_of_the_chain-pact_of_the_chain",
+      "scope_key": "srd-5.2.1/monsters",
+      "source_text": "Monsters",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Bag of Beans: Treant",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.treant.treant"
+        },
+        {
+          "alternative_label": "Bag of Beans: Treant",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.bag_of_beans"
+        },
+        {
+          "alternative_label": "Bag of Beans: Shrieker Fungi",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.fungi.shrieker_fungus"
+        },
+        {
+          "alternative_label": "Bag of Beans: Shrieker Fungi",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.bag_of_beans"
+        },
+        {
+          "alternative_label": "Bag of Beans: Bulette",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.bulette.bulette"
+        },
+        {
+          "alternative_label": "Bag of Beans: Bulette",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.bag_of_beans"
+        },
+        {
+          "alternative_label": "Bag of Beans: Mummy (example of the GM's Undead choice)",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.mummies.mummy"
+        },
+        {
+          "alternative_label": "Bag of Beans: Mummy (example of the GM's Undead choice)",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.bag_of_beans"
+        },
+        {
+          "alternative_label": "Bag of Beans: Mummy Lord (example of the GM's Undead choice)",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.mummies.mummy_lord"
+        },
+        {
+          "alternative_label": "Bag of Beans: Mummy Lord (example of the GM's Undead choice)",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.bag_of_beans"
+        },
+        {
+          "alternative_label": "Bowl of Commanding Water Elementals: Water Elemental",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.water_elemental.water_elemental"
+        },
+        {
+          "alternative_label": "Bowl of Commanding Water Elementals: Water Elemental",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.bowl_of_commanding_water_elementals"
+        },
+        {
+          "alternative_label": "Brazier of Commanding Fire Elementals: Fire Elemental",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.fire_elemental.fire_elemental"
+        },
+        {
+          "alternative_label": "Brazier of Commanding Fire Elementals: Fire Elemental",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.brazier_of_commanding_fire_elementals"
+        },
+        {
+          "alternative_label": "Censer of Controlling Air Elementals: Air Elemental",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.air_elemental.air_elemental"
+        },
+        {
+          "alternative_label": "Censer of Controlling Air Elementals: Air Elemental",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.censer_of_controlling_air_elementals"
+        },
+        {
+          "alternative_label": "Cloak of the Bat: Bat",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.bat"
+        },
+        {
+          "alternative_label": "Cloak of the Bat: Bat",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.cloak_of_the_bat"
+        },
+        {
+          "alternative_label": "Dust of Dryness: Water Elemental (example)",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.water_elemental.water_elemental"
+        },
+        {
+          "alternative_label": "Dust of Dryness: Water Elemental (example)",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.dust_of_dryness"
+        },
+        {
+          "alternative_label": "Efreeti Bottle: Efreeti",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.efreeti.efreeti"
+        },
+        {
+          "alternative_label": "Efreeti Bottle: Efreeti",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.efreeti_bottle"
+        },
+        {
+          "alternative_label": "Feather Token: Roc",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.roc.roc"
+        },
+        {
+          "alternative_label": "Feather Token: Roc",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.feather_token"
+        },
+        {
+          "alternative_label": "Figurine of Wondrous Power: Bronze Griffon: Griffon",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.griffon.griffon"
+        },
+        {
+          "alternative_label": "Figurine of Wondrous Power: Bronze Griffon: Griffon",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.figurine_of_wondrous_power"
+        },
+        {
+          "alternative_label": "Figurine of Wondrous Power: Ebony Fly: Giant Fly (local stat block)",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.figurine_of_wondrous_power.giant_fly"
+        },
+        {
+          "alternative_label": "Figurine of Wondrous Power: Ebony Fly: Giant Fly (local stat block)",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.figurine_of_wondrous_power"
+        },
+        {
+          "alternative_label": "Figurine of Wondrous Power: Golden Lions: Lion",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.lion"
+        },
+        {
+          "alternative_label": "Figurine of Wondrous Power: Golden Lions: Lion",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.figurine_of_wondrous_power"
+        },
+        {
+          "alternative_label": "Figurine of Wondrous Power: Goat of Terror and Goat of Travail: Giant Goat",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.giant_goat"
+        },
+        {
+          "alternative_label": "Figurine of Wondrous Power: Goat of Terror and Goat of Travail: Giant Goat",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.figurine_of_wondrous_power"
+        },
+        {
+          "alternative_label": "Figurine of Wondrous Power: Goat of Traveling: Riding Horse statistics",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.riding_horse"
+        },
+        {
+          "alternative_label": "Figurine of Wondrous Power: Goat of Traveling: Riding Horse statistics",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.figurine_of_wondrous_power"
+        },
+        {
+          "alternative_label": "Figurine of Wondrous Power: Marble Elephant: Elephant",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.elephant"
+        },
+        {
+          "alternative_label": "Figurine of Wondrous Power: Marble Elephant: Elephant",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.figurine_of_wondrous_power"
+        },
+        {
+          "alternative_label": "Figurine of Wondrous Power: Obsidian Steed: Nightmare",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.nightmare.nightmare"
+        },
+        {
+          "alternative_label": "Figurine of Wondrous Power: Obsidian Steed: Nightmare",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.figurine_of_wondrous_power"
+        },
+        {
+          "alternative_label": "Figurine of Wondrous Power: Onyx Dog: Mastiff",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.mastiff"
+        },
+        {
+          "alternative_label": "Figurine of Wondrous Power: Onyx Dog: Mastiff",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.figurine_of_wondrous_power"
+        },
+        {
+          "alternative_label": "Figurine of Wondrous Power: Serpentine Owl: Giant Owl",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.giant_owl"
+        },
+        {
+          "alternative_label": "Figurine of Wondrous Power: Serpentine Owl: Giant Owl",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.figurine_of_wondrous_power"
+        },
+        {
+          "alternative_label": "Figurine of Wondrous Power: Silver Raven: Raven",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.raven"
+        },
+        {
+          "alternative_label": "Figurine of Wondrous Power: Silver Raven: Raven",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.figurine_of_wondrous_power"
+        },
+        {
+          "alternative_label": "Hat of Many Spells: Camel",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.camel"
+        },
+        {
+          "alternative_label": "Hat of Many Spells: Camel",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.hat_of_many_spells"
+        },
+        {
+          "alternative_label": "Hat of Many Spells: Constrictor Snake",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.constrictor_snake"
+        },
+        {
+          "alternative_label": "Hat of Many Spells: Constrictor Snake",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.hat_of_many_spells"
+        },
+        {
+          "alternative_label": "Hat of Many Spells: Elephant",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.elephant"
+        },
+        {
+          "alternative_label": "Hat of Many Spells: Elephant",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.hat_of_many_spells"
+        },
+        {
+          "alternative_label": "Hat of Many Spells: Mule",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.mule"
+        },
+        {
+          "alternative_label": "Hat of Many Spells: Mule",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.hat_of_many_spells"
+        },
+        {
+          "alternative_label": "Hat of Many Spells: Swarm of Bats",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.swarm_of_bats"
+        },
+        {
+          "alternative_label": "Hat of Many Spells: Swarm of Bats",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.hat_of_many_spells"
+        },
+        {
+          "alternative_label": "Horn of Valhalla: Berserker",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.berserker.berserker"
+        },
+        {
+          "alternative_label": "Horn of Valhalla: Berserker",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.horn_of_valhalla"
+        },
+        {
+          "alternative_label": "Mysterious Deck: Knight",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.knight.knight"
+        },
+        {
+          "alternative_label": "Mysterious Deck: Knight",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.mysterious_deck"
+        },
+        {
+          "alternative_label": "Mysterious Deck: Skull: Avatar of Death (local stat block)",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.mysterious_deck.avatar_of_death"
+        },
+        {
+          "alternative_label": "Mysterious Deck: Skull: Avatar of Death (local stat block)",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.mysterious_deck"
+        },
+        {
+          "alternative_label": "Pipes of the Sewers: Swarm of Rats",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.swarm_of_rats"
+        },
+        {
+          "alternative_label": "Pipes of the Sewers: Swarm of Rats",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.pipes_of_the_sewers"
+        },
+        {
+          "alternative_label": "Ring of Djinni Summoning: Djinni",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.djinni.djinni"
+        },
+        {
+          "alternative_label": "Ring of Djinni Summoning: Djinni",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.ring_of_djinni_summoning"
+        },
+        {
+          "alternative_label": "Robe of Useful Items: Riding Horse",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.riding_horse"
+        },
+        {
+          "alternative_label": "Robe of Useful Items: Riding Horse",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.robe_of_useful_items"
+        },
+        {
+          "alternative_label": "Robe of Useful Items: Mastiffs",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.mastiff"
+        },
+        {
+          "alternative_label": "Robe of Useful Items: Mastiffs",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.robe_of_useful_items"
+        },
+        {
+          "alternative_label": "Staff of the Python: Giant Constrictor Snake",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.giant_constrictor_snake"
+        },
+        {
+          "alternative_label": "Staff of the Python: Giant Constrictor Snake",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.staff_of_the_python"
+        },
+        {
+          "alternative_label": "Stone of Controlling Earth Elementals: Earth Elemental",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.earth_elemental.earth_elemental"
+        },
+        {
+          "alternative_label": "Stone of Controlling Earth Elementals: Earth Elemental",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.stone_of_controlling_earth_elementals"
+        },
+        {
+          "alternative_label": "Wand of Wonder: Rhinoceros",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.rhinoceros"
+        },
+        {
+          "alternative_label": "Wand of Wonder: Rhinoceros",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.wand_of_wonder"
+        },
+        {
+          "alternative_label": "Wand of Wonder: Elephant",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.elephant"
+        },
+        {
+          "alternative_label": "Wand of Wonder: Elephant",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.wand_of_wonder"
+        },
+        {
+          "alternative_label": "Wand of Wonder: Rat",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.rat"
+        },
+        {
+          "alternative_label": "Wand of Wonder: Rat",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.wand_of_wonder"
+        },
+        {
+          "alternative_label": "Wand of Wonder: Black Bear",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.black_bear"
+        },
+        {
+          "alternative_label": "Wand of Wonder: Black Bear",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.wand_of_wonder"
+        },
+        {
+          "alternative_label": "Wand of Wonder: Giant Wasp",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.giant_wasp"
+        },
+        {
+          "alternative_label": "Wand of Wonder: Giant Wasp",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.wand_of_wonder"
+        },
+        {
+          "alternative_label": "Wand of Wonder: Frog",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.frog"
+        },
+        {
+          "alternative_label": "Wand of Wonder: Frog",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.wand_of_wonder"
+        }
+      ],
+      "from_component_key": "magic_items_a_z",
+      "from_record_key": "magic_items.magic_items_a_z",
+      "provenance_span_ids": [
+        "bc81e09e-f1df-5fe6-ae17-5be7437560d3"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "cited-54-magic_items.magic_items_a_z-magic_items_a_z",
+      "scope_key": "srd-5.2.1/monsters",
+      "source_text": "the stat block is in \"Monsters.\"",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "GM's choice, SRD example: Awakened Shrub",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.awakened_plants.awakened_shrub"
+        },
+        {
+          "alternative_label": "GM's choice, SRD example: Awakened Tree",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "monsters.awakened_plants.awakened_tree"
+        }
+      ],
+      "from_component_key": "effect",
+      "from_record_key": "spells.awaken",
+      "provenance_span_ids": [
+        "ee29eee6-c193-5a0a-a8af-4497298a0571"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "cited-57-spells.awaken-effect",
+      "scope_key": "srd-5.2.1/monsters",
+      "source_text": "Monsters",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Normal form: Baboon",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.baboon"
+        },
+        {
+          "alternative_label": "Normal form: Badger",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.badger"
+        },
+        {
+          "alternative_label": "Normal form: Bat",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.bat"
+        },
+        {
+          "alternative_label": "Normal form: Cat",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.cat"
+        },
+        {
+          "alternative_label": "Normal form: Crab",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.crab"
+        },
+        {
+          "alternative_label": "Normal form: Deer",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.deer"
+        },
+        {
+          "alternative_label": "Normal form: Eagle",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.eagle"
+        },
+        {
+          "alternative_label": "Normal form: Frog",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.frog"
+        },
+        {
+          "alternative_label": "Normal form: Giant Fire Beetle",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.giant_fire_beetle"
+        },
+        {
+          "alternative_label": "Normal form: Goat",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.goat"
+        },
+        {
+          "alternative_label": "Normal form: Hawk",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.hawk"
+        },
+        {
+          "alternative_label": "Normal form: Hyena",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.hyena"
+        },
+        {
+          "alternative_label": "Normal form: Jackal",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.jackal"
+        },
+        {
+          "alternative_label": "Normal form: Lizard",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.lizard"
+        },
+        {
+          "alternative_label": "Normal form: Octopus",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.octopus"
+        },
+        {
+          "alternative_label": "Normal form: Owl",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.owl"
+        },
+        {
+          "alternative_label": "Normal form: Piranha",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.piranha"
+        },
+        {
+          "alternative_label": "Normal form: Rat",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.rat"
+        },
+        {
+          "alternative_label": "Normal form: Raven",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.raven"
+        },
+        {
+          "alternative_label": "Normal form: Scorpion",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.scorpion"
+        },
+        {
+          "alternative_label": "Normal form: Seahorse",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.seahorse"
+        },
+        {
+          "alternative_label": "Normal form: Spider",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.spider"
+        },
+        {
+          "alternative_label": "Normal form: Vulture",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.vulture"
+        },
+        {
+          "alternative_label": "Normal form: Weasel",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "animals.weasel"
+        },
+        {
+          "alternative_label": "Normal form: Giant Fly (Magic Items stat block)",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "magic_items.figurine_of_wondrous_power.giant_fly"
+        }
+      ],
+      "from_component_key": "effect",
+      "from_record_key": "spells.find_familiar",
+      "provenance_span_ids": [
+        "e53720e9-6380-5e57-b73f-69da22c9831a"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "cited-60-spells.find_familiar-effect",
+      "scope_key": "srd-5.2.1/monsters",
+      "source_text": "Monsters",
+      "target_record_key": ""
+    },
+    {
+      "destinations": [
+        {
+          "alternative_label": "Which ability: D20 Test, Ability Check, Saving Throw and Attack Roll",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "glossary.d20_test"
+        },
+        {
+          "alternative_label": "Which ability: D20 Test, Ability Check, Saving Throw and Attack Roll",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "glossary.ability_check"
+        },
+        {
+          "alternative_label": "Which ability: D20 Test, Ability Check, Saving Throw and Attack Roll",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "glossary.saving_throw"
+        },
+        {
+          "alternative_label": "Which ability: D20 Test, Ability Check, Saving Throw and Attack Roll",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "glossary.attack_roll"
+        },
+        {
+          "alternative_label": "Applying the modifier: Ability Score and Modifier",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "glossary.ability_score_and_modifier"
+        },
+        {
+          "alternative_label": "Specific rules naming their ability (examples): Hide, Search, Study, Unarmed Strike",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "glossary.hide"
+        },
+        {
+          "alternative_label": "Specific rules naming their ability (examples): Hide, Search, Study, Unarmed Strike",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "glossary.search"
+        },
+        {
+          "alternative_label": "Specific rules naming their ability (examples): Hide, Search, Study, Unarmed Strike",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "glossary.study"
+        },
+        {
+          "alternative_label": "Specific rules naming their ability (examples): Hide, Search, Study, Unarmed Strike",
+          "class_record_key": "",
+          "minimum_class_level": 0,
+          "situation": "",
+          "target_component_key": "",
+          "target_record_key": "glossary.unarmed_strike"
+        }
+      ],
+      "from_component_key": "add_modifiers",
+      "from_record_key": "play.d20_tests",
+      "provenance_span_ids": [
+        "4e71f4a2-d07c-50f5-9bab-77c11213741a"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "cited-76-play.d20_tests-add_modifiers",
+      "scope_key": "srd-5.2.1/rules-glossary",
+      "source_text": "Rules Glossary",
+      "target_record_key": ""
+    },
+    {
+      "from_component_key": "",
+      "from_record_key": "glossary.cantrip",
+      "provenance_span_ids": [
+        "def26264-b569-5a74-8de2-264f1147a2e8"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "cited-87-glossary.cantrip-",
+      "scope_key": "srd-5.2.1/spells",
+      "source_text": "Spells",
+      "target_record_key": "spells.casting_spells"
+    },
+    {
+      "from_component_key": "",
+      "from_record_key": "glossary.ritual",
+      "provenance_span_ids": [
+        "c22d5752-4aee-5f1b-9ccf-deaf7e935063"
+      ],
+      "release_binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "resolution_id": "cited-88-glossary.ritual-",
+      "scope_key": "srd-5.2.1/spells",
+      "source_text": "Spells",
+      "target_record_key": "spells.casting_spells"
+    }
+  ],
+  "representation_schema": [
+    "5d-representation-schema-17",
+    "4881e51fb2fa73e52f7ff951ad7d00b863188c1a22133fb0e2873c7d32d10ada"
+  ],
+  "simulated_only": true
+}

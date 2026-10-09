@@ -21,6 +21,7 @@ committed file can be checked for drift in one place with a clear message.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import replace
 from pathlib import Path
 
@@ -141,6 +142,10 @@ from afterworlds.persistence.database import create_engine, create_session_facto
 from afterworlds.persistence.orm.base import Base
 from afterworlds.persistence.orm.corpus import CorpusReleaseORM
 from afterworlds.persistence.orm.rules_package import RulesPackageORM
+from afterworlds.services.rules_authority.application import (
+    EffectiveRecord,
+    _base_records,
+)
 
 NOW = "2026-07-31T00:00:00Z"
 DATA_DIR = Path(__file__).resolve().parent / "data"
@@ -733,13 +738,44 @@ def candidate_of(
     )
 
 
+def synthetic_leaf_order(candidate: ProjectionCandidate) -> dict[str, int]:
+    """A reading order for a synthetic candidate with no persisted ledger.
+
+    A synthetic classification has no release reading order, so its leaves are
+    read in leaf-id order. No test using this asserts an order across leaves;
+    reading order is proven against a persisted release's own
+    ``occurrence_index`` in ``tests/services/rules_authority``.
+    """
+    leaves = sorted({span.leaf_id for span in candidate.classification.spans})
+    return {leaf: index for index, leaf in enumerate(leaves)}
+
+
+def base_records(candidate: ProjectionCandidate) -> dict[str, EffectiveRecord]:
+    """The base effective view of a synthetic candidate."""
+    return _base_records(candidate, synthetic_leaf_order(candidate))
+
+
+def json_object(value: object) -> dict[str, object]:
+    """Narrow one level of a decoded JSON payload to an object, or fail."""
+    assert isinstance(value, dict)
+    return value
+
+
+def json_array(value: object) -> list[object]:
+    """Narrow one level of a decoded JSON payload to an array, or fail."""
+    assert isinstance(value, list)
+    return value
+
+
 def build_candidate(**overrides: object) -> ProjectionCandidate:
     ledger = overrides.pop("ledger", None)
     representation = overrides.pop("representation", None)
+    assert ledger is None or isinstance(ledger, ClassificationLedger)
+    assert representation is None or isinstance(representation, RepresentationDraft)
     return ProjectionCandidate(
         binding=RELEASE_BINDING,
-        classification=ledger if ledger is not None else build_ledger(),  # type: ignore[arg-type]
-        representation=(  # type: ignore[arg-type]
+        classification=ledger if ledger is not None else build_ledger(),
+        representation=(
             representation
             if representation is not None
             else build_representation(**overrides)
@@ -986,7 +1022,7 @@ def _seed_bound_release(session: Session) -> None:
 
 
 @pytest.fixture()
-def session(tmp_path) -> Session:  # type: ignore[no-untyped-def]
+def session(tmp_path: Path) -> Iterator[Session]:
     """A fresh database holding the published 5c release, and nothing else.
 
     Per-test rather than session-scoped: publication commits, so a shared

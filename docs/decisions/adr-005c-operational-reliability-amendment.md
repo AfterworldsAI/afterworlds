@@ -1,5 +1,24 @@
 # CRD Issue 5c Operational Reliability Amendment
 
+> **Amended in part by the [2026-09-21 Owner Decision: clean source and fresh 5c/5d
+> construction](owner-decision-2026-09-21-5c-5d-clean-restart.md).** The existing 5c
+> corpus release and 5d accepted authority products are quarantined and are no longer
+> available as active authority. This amendment's operational-reliability standard
+> continues to govern CRD Issue 5c and now also governs the fresh source corpus built
+> from the pinned Markdown source. Its 5c-to-5d boundary is retained as an *outcome* --
+> 5d consumes an approved, identified, immutable 5c release -- and not as a requirement
+> to consume the quarantined release, its geometric leaf and table representation, or
+> its identities.
+>
+> What remains binding: exact source identification, complete and faithful
+> representation, source/interpretation separation, stable immutable releases,
+> meaningful-change versioning, accidental-corruption and stale-reuse detection,
+> fail-closed publication, rebuildability and diagnosability, campaign version
+> stability, deliberate house-rule precedence, and the code-owned
+> deterministic/trust-relevant responsibilities of `CLAUDE.md` invariants 8 and 10. The
+> Owner Decision changes *which products* hold authority and *which machine-readable
+> representation* is canonical; it does not relax any operational outcome.
+
 **Date:** 2026-08-03
 **Status:** Accepted — owner approval dated 2026-08-03. This document is the governing amendment; it
 supersedes the earlier assistant-authored draft, which was rejected and is not part of the record.

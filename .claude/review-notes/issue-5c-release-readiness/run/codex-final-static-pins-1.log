@@ -1,0 +1,26 @@
+start 2026-10-07T16:14:25.911850+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe .claude/_sp/release-readiness-20261007/codex_verify_final_static.py
+input b0fe4cf64b2233747569acdce3bd79e8eedf4f977e383ef25960523a687f8d69  .claude/_sp/release-readiness-20261007/codex_verify_final_static.py
+{
+  "mypy-typing-final-1": {
+    "native_exit": 0,
+    "pinned_file_count": 42,
+    "changed_inputs": []
+  },
+  "black-typing-final-1": {
+    "native_exit": 0,
+    "pinned_file_count": 42,
+    "changed_inputs": []
+  },
+  "ruff-typing-final-1": {
+    "native_exit": 0,
+    "pinned_file_count": 42,
+    "changed_inputs": []
+  },
+  "reused_production_mypy": {
+    "native_exit": 0,
+    "pinned_source_count": 287,
+    "changed_inputs": []
+  }
+}
+end 2026-10-07T16:14:26.093074+00:00 exit 0

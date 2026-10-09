@@ -1,0 +1,20 @@
+{
+  "checks": {
+    "head_unchanged": true,
+    "branch_unchanged": true,
+    "stashes_unchanged": true,
+    "staged_patch_unchanged": true,
+    "index_bytes_unchanged": true,
+    "accepted_oracle_unchanged": true,
+    "baseline_rows_preserved": true,
+    "baseline_settings_preserved": true,
+    "historical_restart_body_preserved": true,
+    "external_files_preserved": true,
+    "accepted_isolated_source_dbs_preserved": true
+  },
+  "all_guards_pass": true,
+  "changed_preexisting_paths": 57,
+  "baseline_additions": 20,
+  "scope": "Bounded increment only; original index/staged patch and accepted proof remain preserved.",
+  "publication": "Held; no staging, commit, push, merge or activation."
+}

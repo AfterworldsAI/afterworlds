@@ -1,0 +1,39 @@
+{
+  "constructor": "fact_key: SHA-256(canonical fact_payload)[:16]",
+  "scope": "Read-only identifier classification; no detector settings changed",
+  "artifacts": [
+    {
+      "path": ".claude/review-notes/issue-5c-release-order-recording/accepted-candidate.json",
+      "sha256": "8a6a9a9c305f41207190c0deb55875a027019116ce3f825a6a0425a3a115b4bf",
+      "native_fact_keys": 1161,
+      "short_identifiers": 1161,
+      "fields": {
+        "fact_key": 12,
+        "target_key": 2778
+      },
+      "every_short_value_matches_native_fact_key": true
+    },
+    {
+      "path": ".claude/review-notes/issue-5c-release-order-recording/prior-live-oracle.json",
+      "sha256": "e6f5f36aa3af13807bbff721797d971dcf0d8e588a97483c7d769cf88cbd1308",
+      "native_fact_keys": 1161,
+      "short_identifiers": 1161,
+      "fields": {
+        "fact_key": 12,
+        "target_key": 2778
+      },
+      "every_short_value_matches_native_fact_key": true
+    },
+    {
+      "path": "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b.json",
+      "sha256": "def7caa1625458a40c1f635db153268082cf52d5e25c28f57fd29518e44de58c",
+      "native_fact_keys": 1161,
+      "short_identifiers": 1161,
+      "fields": {
+        "fact_key": 12,
+        "target_key": 2778
+      },
+      "every_short_value_matches_native_fact_key": true
+    }
+  ]
+}

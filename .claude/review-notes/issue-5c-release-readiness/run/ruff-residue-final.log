@@ -1,0 +1,97 @@
+start 2026-10-07T15:51:33.466850+00:00
+$ RTK_DISABLED=1 PYTHONUTF8=1 MYPYPATH=src venv/Scripts/python.exe -m ruff check tests/ingestion/mechanical/_replacement_chain.py tests/ingestion/mechanical/test_actions_pilot_acceptance.py tests/ingestion/mechanical/test_actions_pilot_proposal.py tests/ingestion/mechanical/test_character_creation_foundations_acceptance.py tests/ingestion/mechanical/test_character_creation_foundations_proposal.py tests/ingestion/mechanical/test_character_origins_feats_proposal.py tests/ingestion/mechanical/test_checks_actions_rests_acceptance.py tests/ingestion/mechanical/test_combat_damage_breaking_acceptance.py tests/ingestion/mechanical/test_combat_damage_breaking_proposal.py tests/ingestion/mechanical/test_combat_turn_1_acceptance.py tests/ingestion/mechanical/test_conditions_pilot_acceptance.py tests/ingestion/mechanical/test_conditions_pilot_proposal.py tests/ingestion/mechanical/test_core_play_completion_acceptance.py tests/ingestion/mechanical/test_core_play_completion_proposal.py tests/ingestion/mechanical/test_core_play_dependencies_acceptance.py tests/ingestion/mechanical/test_core_play_dependencies_proposal.py tests/ingestion/mechanical/test_damage_and_hit_points_acceptance.py tests/ingestion/mechanical/test_declared_record_expectations.py tests/ingestion/mechanical/test_equipment_cited_targets_candidate.py tests/ingestion/mechanical/test_equipment_proposal.py tests/ingestion/mechanical/test_equipment_spell_references_candidate.py tests/ingestion/mechanical/test_movement_closure_acceptance.py tests/ingestion/mechanical/test_movement_closure_proposal.py tests/ingestion/mechanical/test_reference_closure_acceptance.py tests/ingestion/mechanical/test_reference_closure_proposal.py tests/ingestion/mechanical/test_spellcasting_proposal.py
+input 241c9add51a15c039ff1ceb357e9c07df54b1bafc92ebe7000a9a7d363093865  tests/ingestion/mechanical/_replacement_chain.py
+input 77d53c74663e62dad19c443801687ed3c617c78b4a81e75cf72c498cb003c6a5  tests/ingestion/mechanical/test_actions_pilot_acceptance.py
+input 4b00acd89efee9893674093baa834e89ab2ff0ddd1c83697c7d555e7a43f6a46  tests/ingestion/mechanical/test_actions_pilot_proposal.py
+input 885e094cfae6b05c134870fdc8a3b121142037d53e2c2391eefbfa5f58ee8d9d  tests/ingestion/mechanical/test_character_creation_foundations_acceptance.py
+input a2244135405285057278dbc7eb4ad521a676c254b3dc232dfafba96949b7e4dc  tests/ingestion/mechanical/test_character_creation_foundations_proposal.py
+input 7161d6c7db427313b25233484e271fd440f60b6d5d5f4058c43c91b9a20fe345  tests/ingestion/mechanical/test_character_origins_feats_proposal.py
+input 8da00b1f0b0f0c4aa84568b55710309a54d1a8b34e1f38a55cd582dca6f97982  tests/ingestion/mechanical/test_checks_actions_rests_acceptance.py
+input ca649ec2079266d46f5cee8d62a62bd400f34a446f63a13fc3e0d32d6e636ef0  tests/ingestion/mechanical/test_combat_damage_breaking_acceptance.py
+input 24b69b8a3c6ad74dab5e42d1ede6a42d7bc9f7ff2e9e8be18f57b38e17a8c866  tests/ingestion/mechanical/test_combat_damage_breaking_proposal.py
+input 0a1f2a5de22fa0116cdba0ac5cc92b32f5633362f6dd127154d44a1a7c155308  tests/ingestion/mechanical/test_combat_turn_1_acceptance.py
+input 608cfb694b2e9b15fb45682ba28cfede77d392191e7f24409f48daabb634ba21  tests/ingestion/mechanical/test_conditions_pilot_acceptance.py
+input 4edcba98a2161a3d62074220cabc9985f50b745b2e01baccaadc51426cfd1f30  tests/ingestion/mechanical/test_conditions_pilot_proposal.py
+input 1939203c07e1e621edbd838cd70780fde26a8a6f4ed3469e76bd26e09e51c654  tests/ingestion/mechanical/test_core_play_completion_acceptance.py
+input e130bfe8dd3959366a6857384a751f332aed3a937e009ffa8e07e3411b0ba7d7  tests/ingestion/mechanical/test_core_play_completion_proposal.py
+input 0ef8fdf4d4b9f42390d9c8b302d08f48e4649811514da4ef4bb9156232c0a42c  tests/ingestion/mechanical/test_core_play_dependencies_acceptance.py
+input c6af6afde0afa7782f297e9836760c34c12102c5e2b7a5a2653a663f3fcbc0c7  tests/ingestion/mechanical/test_core_play_dependencies_proposal.py
+input 9cfecc06675868956c6d40809f54770d53e832c207ea7b01c1a26de52fbaa609  tests/ingestion/mechanical/test_damage_and_hit_points_acceptance.py
+input 4b5f6e877b105965d314cde9766b57f5be78ef594c685205efe1eb2dee1f6e9a  tests/ingestion/mechanical/test_declared_record_expectations.py
+input c51503a4d9254b98068b61afb1993cec81397a0c0b8719c8f947c22b4fba6281  tests/ingestion/mechanical/test_equipment_cited_targets_candidate.py
+input 626185c684fbd47983a8ef54a4cfa8b754a526445cace5f1a0335d681e9b7d5e  tests/ingestion/mechanical/test_equipment_proposal.py
+input a3b0c66dff66c52c46c0a2351f0ebd9600630e50515affed59e9cb4ab57fbe88  tests/ingestion/mechanical/test_equipment_spell_references_candidate.py
+input 1f203c1a1583fc13c9cb18ae8f8943e6ca0aa71776d0ec1e697fed555ed3a508  tests/ingestion/mechanical/test_movement_closure_acceptance.py
+input ffa14d4bc0826306f29079a772a5bdb213afbf2289ca27a06f7339b70b221223  tests/ingestion/mechanical/test_movement_closure_proposal.py
+input e60f476853abe39fe82f4891e37d95c979814164741fb4746da5c8adb5887bdf  tests/ingestion/mechanical/test_reference_closure_acceptance.py
+input 3a43a28a4699a7d9e5d546636a8637bceb3fe6b032b431a9aa2c2e597186af55  tests/ingestion/mechanical/test_reference_closure_proposal.py
+input d8fd5cfb951a3a549be2183f6a42f049a894b98647f259bde59443b9ecb7a1e8  tests/ingestion/mechanical/test_spellcasting_proposal.py
+I001 [*] Import block is un-sorted or un-formatted
+  --> tests\ingestion\mechanical\test_conditions_pilot_proposal.py:28:1
+   |
+26 |   """
+27 |
+28 | / from __future__ import annotations
+29 | |
+30 | | import dataclasses
+31 | | import hashlib
+32 | | import importlib.util
+33 | | import json
+34 | | import sys
+35 | | from pathlib import Path
+36 | | from types import ModuleType
+37 | |
+38 | | import pytest
+39 | |
+40 | | from afterworlds.ingestion.mechanical.models import ReviewState
+41 | | from afterworlds.ingestion.mechanical.oracle import (
+42 | |     OracleLoadError,
+43 | |     load_accepted_inputs,
+44 | | )
+45 | | from afterworlds.ingestion.mechanical.projection import review_unit_violations
+46 | | from afterworlds.ingestion.mechanical.proposal import (
+47 | |     ProposalLoadError,
+48 | |     load_proposal,
+49 | |     proposal_identity,
+50 | | )
+51 | | from afterworlds.ingestion.mechanical.representation import (
+52 | |     ApplicabilityKind,
+53 | |     Comparison,
+54 | |     ComponentHandling,
+55 | |     ConditionEffectFact,
+56 | |     ConditionEffectKind,
+57 | |     ConditionKind,
+58 | |     ConditionLevelFact,
+59 | |     MovementCostFact,
+60 | |     MovementTransportFact,
+61 | |     Phase,
+62 | |     QuantityMultiplierFact,
+63 | |     ScalingEffect,
+64 | |     ScalingFact,
+65 | |     StateEffectFact,
+66 | |     StateEffectKind,
+67 | |     TransformationFact,
+68 | |     fact_key,
+69 | | )
+70 | | from afterworlds.ingestion.mechanical.validation import validate_representation
+71 | | from afterworlds.persistence.database import create_engine, create_session_factory
+72 | | from afterworlds.quarantine import (
+73 | |     QUARANTINED_PACKAGE_UUIDS,
+74 | |     QUARANTINED_RELEASE_VERSIONS,
+75 | |     QuarantinedAuthorityError,
+76 | | )
+77 | | from tests.ingestion.mechanical._replacement_chain import (
+78 | |     current,
+79 | |     BATCHES,
+80 | |     identity,
+81 | |     proposal_path,
+82 | | )
+   | |_^
+83 |
+84 |   NOTES = Path(__file__).resolve().parents[3] / ".claude" / "review-notes"
+   |
+help: Organize imports
+
+Found 1 error.
+[*] 1 fixable with the `--fix` option.
+end 2026-10-07T15:51:33.553447+00:00 exit 1

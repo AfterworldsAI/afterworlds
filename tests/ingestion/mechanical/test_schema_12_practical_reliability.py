@@ -58,14 +58,16 @@ from afterworlds.ingestion.mechanical.gate import (
     GateFailureCategory,
     run_publication_gate,
 )
-from afterworlds.ingestion.mechanical.models import ClassificationLedger
+from afterworlds.ingestion.mechanical.models import (
+    ClassificationLedger,
+    ComponentHandling,
+)
 from afterworlds.ingestion.mechanical.oracle import (
     AcceptedOracle,
     OracleLoadError,
     load_oracle,
 )
 from afterworlds.ingestion.mechanical.persistence import (
-    identify_projection,
     persist_draft,
     reconstruct_candidate,
     record_persisted_state_digest,
@@ -80,13 +82,13 @@ from afterworlds.ingestion.mechanical.policy import (
 )
 from afterworlds.ingestion.mechanical.projection import (
     LegacySchemaPayloadError,
+    identify_projection,
     representation_payload,
     validate_candidate,
 )
 from afterworlds.ingestion.mechanical.proposal import MechanicalProposal, ProposedSpan
 from afterworlds.ingestion.mechanical.representation import (
     REPRESENTATION_SCHEMA_VERSION,
-    ComponentHandling,
     RepresentationDraft,
     declared_meaning_violations,
     introduction_manifest,
@@ -101,6 +103,8 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_13_VERSION,
     SCHEMA_14_VERSION,
     SCHEMA_15_VERSION,
+    SCHEMA_16_VERSION,
+    SCHEMA_17_VERSION,
     accepted_schema_contracts,
     lift_path,
 )
@@ -120,6 +124,8 @@ from tests.ingestion.mechanical.conftest import (
     build_candidate,
     build_ledger,
     build_representation,
+    json_array,
+    json_object,
 )
 
 #: The one code ``5d-semantic-policy-2`` admits, and the irreducibility code the
@@ -132,8 +138,8 @@ IRREDUCIBLE = "open_ended_effect"
 #: introduced. Derived from the succession registry rather than transcribed:
 #: registering a lift is what admits a contract, so a version list kept by hand
 #: here would be a second statement of the same fact, free to drift.
-#: Every recognised contract that predates schema 12. Schemas 13, 14 and 15
-#: are subtracted beside 12 itself rather than left in: a later succession
+#: Every recognised contract that predates schema 12. Schemas 13, 14, 15, 16
+#: and 17 are subtracted beside 12 itself rather than left in: a later succession
 #: states every earlier one's meaning, so each admits the shapes this module is
 #: about and would fail the refusal parametrization for the right reason. Written
 #: out rather than derived from version order, for the reason every registry
@@ -145,6 +151,8 @@ EARLIER_CONTRACTS = sorted(
         SCHEMA_13_VERSION,
         SCHEMA_14_VERSION,
         SCHEMA_15_VERSION,
+        SCHEMA_16_VERSION,
+        SCHEMA_17_VERSION,
     }
 )
 
@@ -326,7 +334,7 @@ def test_schema_12_emits_the_null_and_the_retention_key_together() -> None:
     "written before this distinction existed" must never share a payload shape.
     """
     payload = representation_payload(_retained(), schema_version=SCHEMA_12_VERSION)
-    binding = payload["prose_bindings"][0]
+    binding = json_object(json_array(payload["prose_bindings"])[0])
     assert binding["irreducibility_reason_code"] is None
     assert binding["prose_retention_reason_code"] == RETENTION
 
@@ -463,15 +471,17 @@ def _write(tmp_path: Path, payload: object) -> Path:
 
 def _artifact(*, policy_version: str, retention: bool) -> dict[str, object]:
     """The committed bounded artifact, optionally restated as retained prose."""
-    payload = json.loads(BOUNDED_ORACLE_PATH.read_text(encoding="utf-8"))
+    payload = json_object(json.loads(BOUNDED_ORACLE_PATH.read_text(encoding="utf-8")))
     payload["semantic_policy_version"] = policy_version
     if retention:
-        representation = payload["representation"]
-        for component in representation["components"]:
+        representation = json_object(payload["representation"])
+        for item in json_array(representation["components"]):
+            component = json_object(item)
             if component["semantic_key"] == OPEN_ENDED_KEY:
                 component["irreducibility_reason_code"] = None
                 component["prose_retention_reason_code"] = RETENTION
-        for binding in representation["prose_bindings"]:
+        for item in json_array(representation["prose_bindings"]):
+            binding = json_object(item)
             binding["irreducibility_reason_code"] = None
             binding["prose_retention_reason_code"] = RETENTION
     return payload
