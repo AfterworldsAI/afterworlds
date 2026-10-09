@@ -28,7 +28,7 @@ _COMMITTED = _REPO_ROOT / "src" / _INVENTORY_REL
 def _build_dists(out_dir: Path) -> tuple[Path, Path]:
     """Build wheel + sdist into *out_dir* (no build isolation → uses the dev env).
 
-    ``--no-isolation`` requires the declared build backend (``setuptools>=68``,
+    ``--no-isolation`` requires the declared build backend (``setuptools>=83.0.0``,
     ``wheel`` — see ``[build-system].requires``) to be importable in the current
     environment; the dev extra installs them explicitly. On any build failure the
     captured stdout+stderr are surfaced (they were swallowed before, hiding the CI

@@ -117,19 +117,11 @@ jobs:
           coverage report -m --fail-under=80
 
       - name: Dependency audit — pip-audit
-        # CVE-2026-4539: ReDoS in pygments AdlLexer (pygments/lexers/archetype.py).
-        # Affects pygments <=2.19.2. No patched release exists upstream as of 2026-03-27.
-        # Remove --ignore-vuln once pygments ships a fix and the dep is updated.
-        # CVE-2026-3219: vulnerability in pip affecting versions through 26.0.1.
-        # No patched pip release exists upstream yet. This CI job upgrades pip before
-        # auditing, so we are temporarily ignoring this CVE to keep the audit gate
-        # usable. Remove this ignore once pip ships a fixed release and CI is pinned
-        # or upgraded to that version.
         # CVE-2026-45829 / PYSEC-2026-311 / GHSA-f4j7-r4q5-qw2c: pre-auth code-injection
         # in chromadb's HTTP server component — an unauthenticated attacker can run
         # arbitrary code via a malicious model repository with trust_remote_code=True
         # on the `/api/v2/tenants/{tenant}/databases/{db}/collections` endpoint. No
-        # patched release exists upstream as of 2026-07-05 (affects every chromadb
+        # patched release exists upstream as of 2026-10-09 (affects every chromadb
         # release 1.0.0-1.5.9 inclusive).
         #
         # CRD Issue 18 / ADR-018 resolution (safe-deployment-path, dependency kept —
@@ -151,7 +143,8 @@ jobs:
         # advisories, all against the same HTTP-server component CVE-2026-45829
         # is. Each is verified individually against the enforced embedded-only
         # client boundary rather than suppressed as a family; no patched release
-        # exists for any of them (OSV lists no fix version, last_affected 1.5.9).
+        # exists for any of them as of 2026-10-09 (OSV lists no fix version,
+        # last_affected 1.5.9; PyPI's latest release is 1.5.9).
         #
         #   CVE-2026-45830 — missing authorization validation lets an
         #     *authenticated* user reach any tenant's collection. Requires the
@@ -159,26 +152,26 @@ jobs:
         #     constructs only PersistentClient/EphemeralClient at one choke point
         #     (pipeline/retrieval/client.py) and runs no server, so there is no
         #     authenticated user and no tenant boundary to cross.
-        #     Remove when chromadb ships a fix and the pin is raised.
+        #     Remove when chromadb ships a fix and the chromadb>=0.5 floor is raised to it.
         #
         #   CVE-2026-45831 — SimpleRBACAuthorizationProvider ignores which
         #     tenant/database/collection a permission applies to. That provider is
         #     instantiated only by the server's auth stack, which this repo never
         #     configures: there is no CHROMA_SERVER_* setting, no auth provider,
         #     and RetrievalMemoryConfig deliberately exposes no server-mode knob.
-        #     Remove when chromadb ships a fix and the pin is raised.
+        #     Remove when chromadb ships a fix and the chromadb>=0.5 floor is raised to it.
         #
         #   CVE-2026-45833 — code injection via a malicious model repository with
         #     trust_remote_code=true on POST .../collections/{id}. Same shape as
         #     CVE-2026-45829 and unreachable for the same two reasons: the
         #     endpoint requires the server, and trust_remote_code is never set
         #     anywhere in this repository (it appears only in prose saying so).
-        #     Remove when chromadb ships a fix and the pin is raised.
+        #     Remove when chromadb ships a fix and the chromadb>=0.5 floor is raised to it.
         #
         # Sibling audited in the same pass, deliberately NOT ignored:
         #   CVE-2026-45832 — V1 collection-level endpoints pass None for tenant
         #     and database to the authorization layer. OSV records it against
-        #     chromadb 0.5.0–1.5.9, so it *does* cover the pinned version, and it
+        #     chromadb 0.5.0–1.5.9, so it *does* cover the resolved version, and it
         #     is unreachable for the same boundary reason as the three above. No
         #     --ignore-vuln is added because pip-audit does not report it: the OSV
         #     record carries only a GIT/CPE range and no PyPI package entry, so a
@@ -187,8 +180,6 @@ jobs:
         #     here with this same rationale — not to widen any flag above.
         run: >-
           pip-audit
-          --ignore-vuln CVE-2026-4539
-          --ignore-vuln CVE-2026-3219
           --ignore-vuln CVE-2026-45829
           --ignore-vuln CVE-2026-45830
           --ignore-vuln CVE-2026-45831

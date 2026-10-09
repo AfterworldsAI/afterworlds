@@ -10,7 +10,7 @@ Before continuing 5c Restart work in a new session:
 2. Keep that opening current when authoritative inputs, acceptance identity/status, blockers, or the immediate next step change. Preserve the historical body and other in-progress edits.
 3. Include this local document edit in the normal restart commit/publication workflow alongside its supporting evidence. Do not extract it into a standalone PR against `main`, which lacked the document and evidence at the last check.
 
-Continue the existing restart scope and gates. Dependency-vulnerability repairs remain deferred until the 5c Restart is complete.
+Continue the existing restart scope and gates. On 9 October 2026, the Owner withdrew the dependency-vulnerability deferral and authorized bounded remediation before merging PR #178. Merge and runtime publication/activation remain subject to Owner authorization.
 
 ## Project and Authority
 
