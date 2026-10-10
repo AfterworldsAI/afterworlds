@@ -10,9 +10,18 @@ main `d3e803455013b97b4d1ac1dc1453ad82b5d45a0c`. PR #179 merged at
 defect as settled-contract implementation work; it granted no authority.
 
 **States, kept separate:**
-- Bounded implementation and local verification: complete on this branch.
-- Codex review and exact-head CI: pending.
-- Reviewed and merged delivery: pending. Merge is an Owner boundary.
+- Bounded implementation and isolated verification: complete.
+- Codex code review: passed on `a6dec94`, with no remaining blocking findings.
+- Final-head checks and review disposition: authoritative on [PR #180](https://github.com/AfterworldsAI/afterworlds/pull/180); use its live
+  checks for the final delivery state.
+- Merged delivery: held. Merge is an Owner boundary.
+
+**Code-head CI.** Code-head CI [run 38025588959](https://github.com/AfterworldsAI/afterworlds/actions/runs/38025588959) on `a6dec946cbf87fd18766746ddafc99f446a3b451` passed all 11 jobs: backend 7,332 passed and 17 skipped, every collected node exactly once, combined coverage 94.1979% (20,148 statements, 1,169 missed) against 80%; strict production mypy (232 files), Black and Ruff; configured pip-audit with no unignored finding (five ignored under the four existing ChromaDB exceptions); frontend 45 tests, `npm audit` 0, OpenAPI drift and build; E2E 7. Documentation-only follow-up commits reuse that
+code-head evidence; required final-head CI is tracked on the PR. No source
+qualification, semantic acceptance or broad local suite is repeated.
+
+**Next step.** Owner review and merge of PR #180 after its required final-head
+checks.
 - Held, and not implied by merge: shared runtime publication and activation, and
   shared-database writes. The partial-publication block stands.
 
@@ -21,10 +30,11 @@ the restart operationally complete.
 
 ## §2.5 isolated operational obligations: all six discharged
 
-Obligations (1)–(4) and (6) rest on the reused §8.5 evidence and their existing
-tests, which were not rerun on this branch; its exact-head CI re-verifies them,
-with the baseline-reset, vector-publication and readiness suites. Obligation (5)
-is new on this branch.
+Obligations (1)–(4) and (6) rest on the §8.5 evidence and their existing tests,
+which were not rerun locally on this branch. They ran in code-head CI run
+38025588959, within the full backend aggregate, together with the baseline-reset,
+vector-publication and readiness suites. Obligation (5) is new on this branch.
+The historical §4.6 questions are answered by §7.
 
 | Obligation | Discharged by |
 |---|---|
@@ -173,11 +183,12 @@ the runner's label: coverage off, diagnostics only, not gate evidence.
 | Malformed-owner public reader probe (`owner-shape-probe.log`) | Codex's reproduction was `UNHANDLED ValueError` before the guard. After it: valid `RESOLVED`, malformed `INVALID_REFERENCE`, in a rolled-back transaction on the private probe store (store sha256 unchanged, `1de389c5…`) |
 | Owner-shape regression (`focused-owner-shape.log`) | Exit 0, 4 passed |
 | Count checks (`citation-count*.log`) | Stored 8,047 rows / 6,561 targeted / 1,486 resolutions; effective 8,583 rows / 8,047 keys; persisted 8,583 / 8,047 |
-| `mypy src/` (strict), strict mypy on the changed test modules, Black, Ruff | Final native exits are in the final gate receipt |
+| `mypy src/` (strict), strict mypy on the changed test modules, Black, Ruff | Exit 0 each (`final-gates-v3.log`) |
+| Native `detect-secrets-hook` on the staged files, unchanged baseline | Exit 0 |
+| Code-head CI run 38025588959 on `a6dec94` | All 11 jobs passed (numbers above); native logs saved privately as `ci38025588959-*.log` |
 
-The whole module was not rerun after this pass's arity guard and count pins, by
-instruction. The guard affects only malformed owners, and the pins were checked
-against the same persisted data. Required exact-head CI runs the complete suite.
+The whole module was not rerun locally after the arity guard and count pins, by
+instruction. It ran in full in code-head CI run 38025588959.
 
 Not run locally, by instruction: the full backend suite with coverage, audit,
-frontend and E2E. These run once in the reviewed PR's exact-head CI.
+frontend and E2E. They ran in code-head CI run 38025588959.
