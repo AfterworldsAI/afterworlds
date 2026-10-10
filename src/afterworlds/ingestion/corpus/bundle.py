@@ -1,7 +1,9 @@
-"""Canonical bundle, persisted-corpus digest, transform identity — Issue 5c.
+"""Canonical bundle, persisted-corpus digest and release identity — Issue 5c.
 
-The module retains the historical v1 bundle and identity shape while applying
-the operational-reliability amendment's semantic compatibility boundary.
+The source-built release's transform configuration is assembled by
+:func:`afterworlds.ingestion.corpus.source_ledger.source_transform_config_payload`.
+The retired PDF-geometric transform configuration (with its table-inventory and
+v1 transform-manifest bindings) was removed with that corpus.
 
 The bundle-root hash covers the frozen ledger, the canonical corpus members, the
 reconciliation member, and the ordered bundle-member manifest — and excludes
@@ -22,69 +24,9 @@ from afterworlds.ingestion.corpus.models import (
     ReconciliationPolicy,
     SourceLedger,
 )
-from afterworlds.ingestion.corpus.policy import policy_hash, policy_payload
-from afterworlds.ingestion.corpus.table_inventory import committed_inventory_hash
-from afterworlds.ingestion.corpus.transform_identity import transform_identity
+from afterworlds.ingestion.corpus.policy import policy_hash
 
 RELEASE_VERSION_PREFIX = "5.2.1-corpus"
-# Historical v1 key/value retained so the approved logical corpus keeps its
-# existing package identity.  It is no longer coupled to the current diagnostic
-# evidence-report schema; report evolution is not a corpus compatibility change.
-_V1_REPORT_IDENTITY_COMPATIBILITY = "5c-evidence-3"
-
-
-# ---------------------------------------------------------------------------
-# Transform source/configuration hash (Component B) — covers the frozen policy.
-# ---------------------------------------------------------------------------
-
-
-def transform_config_payload(
-    extraction_config: dict[str, object],
-    policy: ReconciliationPolicy,
-    vector_identity: dict[str, object],
-) -> dict[str, object]:
-    """The committed transform inputs (Component B).
-
-    ``transform_identity`` records the explicit semantic transform version.
-    Incidental source edits do not move this payload; a reviewed change to
-    extraction, segmentation, canonical corpus content, provenance, or consumer
-    compatibility must deliberately bump that version.
-
-    ``vector_identity`` binds the identity-bearing rules-corpus vector
-    configuration (embedding model + logical schema/ID/metadata contract, see
-    :func:`afterworlds.models.retrieval.rules_corpus_vector_identity`) so a change
-    to the embedding model or the vector logical schema likewise mints a new
-    immutable release instead of colliding with the predecessor on the reuse
-    path (PR #134 P1). It carries no operational retrieval settings.
-
-    ``expected_table_inventory_hash`` binds the committed independent expected-
-    table oracle (``table_inventory.srd_table_inventory.json``): the expected set
-    of logical tables is a candidate-affecting configuration, so changing it
-    (regenerating the inventory after a reviewed table-reconstruction change)
-    mints a new immutable release (PR #134 R15 F4).
-
-    ``evidence_report_schema_version`` is retained at its v1 value for identity
-    compatibility with the already approved logical corpus.  The key is legacy
-    identity metadata, not the version of the current diagnostic report.
-    """
-    return {
-        "extraction_config": extraction_config,
-        "reconciliation_policy": policy_payload(policy),
-        "transform_identity": transform_identity(),
-        "rules_corpus_vector_identity": vector_identity,
-        "expected_table_inventory_hash": committed_inventory_hash(),
-        "evidence_report_schema_version": _V1_REPORT_IDENTITY_COMPATIBILITY,
-    }
-
-
-def transform_config_hash(
-    extraction_config: dict[str, object],
-    policy: ReconciliationPolicy,
-    vector_identity: dict[str, object],
-) -> str:
-    return hash_obj(
-        transform_config_payload(extraction_config, policy, vector_identity)
-    )
 
 
 # ---------------------------------------------------------------------------

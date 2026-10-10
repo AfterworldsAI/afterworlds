@@ -1,8 +1,9 @@
 """Publication-gate tests — Issue 5c, Component I / Acceptance #9.
 
 The gate passes only when every condition holds, and fails on each listed
-condition individually. Each failing case starts from the real passing release
-and breaks exactly one thing via ``dataclasses.replace``.
+condition individually. Each failing case starts from the real passing source
+release (the session-scoped publication) and breaks exactly one thing via
+``dataclasses.replace``.
 """
 
 from __future__ import annotations

@@ -81,7 +81,6 @@ from afterworlds.ingestion.mechanical.representation import (
     fact_target_key,
     representation_schema_hash,
 )
-from tests.ingestion.mechanical.test_committed_accepted_authority import ARTIFACT_PATH
 
 #: The seven-batch accepted state, accepted under policy 1. The specimen for
 #: every claim in this module about what policy-1 authority looks like and what a
@@ -388,31 +387,3 @@ def test_a_recognized_version_with_the_wrong_hash_is_refused() -> None:
             prior,
             _proposal(prior, version=POLICY_2_VERSION, policy_hash=POLICY_1_HASH),
         )
-
-
-def test_the_committed_artifact_crossed_once_and_records_it() -> None:
-    """The live file's side of the seam, after a real Owner acceptance used it.
-
-    Everything above builds the crossing in memory from the policy-1 artifact.
-    This reads the artifact the Owner's acceptance of the two Proficiency batches
-    actually wrote: it declares policy 2, it records ``5d-policy-1-to-2`` exactly
-    once, and the two batches accepted across it are the only ones that could
-    have carried it. A second transition record, or a policy-2 declaration with
-    no transition behind it, is what this refuses.
-    """
-    committed = load_accepted_inputs(ARTIFACT_PATH)
-    assert committed.oracle.policy_version == POLICY_2_VERSION
-    assert committed.oracle.policy_hash == POLICY_2_HASH
-    assert [s.transition_id for s in committed.policy_transitions] == [
-        "5d-policy-1-to-2"
-    ]
-    step = committed.policy_transitions[0]
-    assert (step.from_version, step.from_hash) == (POLICY_1_VERSION, POLICY_1_HASH)
-    assert (step.to_version, step.to_hash) == (POLICY_2_VERSION, POLICY_2_HASH)
-
-    prior = _prior()
-    assert prior.oracle.policy_version == POLICY_1_VERSION
-    assert prior.policy_transitions == ()
-    assert {b.batch_id for b in committed.batches} - {
-        b.batch_id for b in prior.batches
-    } == {"proficiency-destinations-1", "proficiency-1"}

@@ -187,9 +187,10 @@ __all__ = [
 COMMITTED_ORACLE_DIR = Path(__file__).resolve().parent / "oracles"
 
 #: Releases whose committed artifact the clean restart has superseded. Their
-#: files stay in :data:`COMMITTED_ORACLE_DIR` as historical evidence only;
-#: resolution refuses them so they cannot become active authority again (Owner
-#: Decision 2026-09-21, "Retire superseded work").
+#: files stay in the source tree's :data:`COMMITTED_ORACLE_DIR` as test and
+#: replay evidence only and are not shipped in distributions; resolution refuses
+#: them by version before reading the directory, so they cannot become active
+#: authority again (Owner Decision 2026-09-21, "Retire superseded work").
 SUPERSEDED_RELEASE_VERSIONS = frozenset(
     {"5.2.1-corpus.3fe24ff6-4e3", "5.2.1-corpus.574662e9-0ef"}
 )
@@ -2002,10 +2003,9 @@ def _resolve_committed_inputs(
     Two committed artifacts for one release is a rejection, not a choice.
     Picking one would make publication depend on filesystem ordering.
 
-    A quarantined release is refused here rather than returning ``None``: the
-    committed artifact is still on disk and still matches, so "absent" would be
-    a false statement about the tree, and every caller treats ``None`` as a
-    releasable state.
+    A quarantined release is refused here rather than returning ``None``: its
+    artifact has been removed, but a copy or stored row can still name it, and
+    every caller treats ``None`` as a releasable state.
 
     Both identities are admitted as exact ``str`` first, through the unbound
     ``str.__str__``, so a ``str`` subclass cannot supply its own hash or equality
@@ -2020,7 +2020,7 @@ def _resolve_committed_inputs(
         package_uuid=package_uuid,
         release_version=release_version,
     )
-    # Refused, not ``None``, for the reason quarantine is: the file still matches.
+    # Refused, not ``None``: a superseded file may be present in a source tree.
     if release_version in SUPERSEDED_RELEASE_VERSIONS:
         raise OracleLoadError(
             f"release {package_uuid}/{release_version} is superseded; its "

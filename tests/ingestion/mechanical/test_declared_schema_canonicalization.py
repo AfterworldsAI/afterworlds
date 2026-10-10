@@ -64,7 +64,7 @@ from afterworlds.ingestion.mechanical.schema_lift import SCHEMA_3_HASH
 #:
 #: Deliberately **not** in :data:`COMMITTED_ORACLE_DIR`: a second file there
 #: claiming one release is exactly what the resolver refuses, and
-#: ``test_exactly_one_accepted_artifact_is_committed_for_the_release`` asserts
+#: ``test_the_committed_oracle_directory_holds_one_artifact_per_release`` asserts
 #: it stays the only one.
 LEGACY_PATH = (
     pathlib.Path(__file__).resolve().parent

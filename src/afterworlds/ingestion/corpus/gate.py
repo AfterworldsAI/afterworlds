@@ -49,7 +49,7 @@ class PublicationEvidence:
     Every field must be supplied explicitly by the caller from an actual
     operation — there are **no defaults**, so no production caller can obtain a
     successful SQL/vector/membership verdict by omitting an argument or
-    hard-coding ``True`` (PR #134 remediation, defect family 1). ``finalize_release``
+    hard-coding ``True`` (PR #134 remediation, defect family 1). Finalization
     builds this from the real reindex/read-back/reconstruction results; gate
     unit tests construct it explicitly per scenario.
     """
@@ -96,10 +96,11 @@ def run_gate(
     #    reconstructing the old partial identity from ledger.extraction_config +
     #    policy alone — an omitted source manifest (the pre-fix payload) or a
     #    recorded config whose stored hash no longer matches it is rejected here
-    #    (PR #134 P1). The "code change → new identity" protection itself lives at
-    #    build_candidate (manifest → transform hash → package_uuid → reuse miss);
-    #    the gate proves the recorded hash was honestly derived from a complete
-    #    recorded config and that config matches the reconstructed artifacts.
+    #    (PR #134 P1). The "changed recipe → new identity" protection itself lives
+    #    in the candidate build (transform config → transform hash → package_uuid
+    #    → reuse miss); the gate proves the recorded hash was honestly derived
+    #    from a complete recorded config and that config matches the
+    #    reconstructed artifacts.
     tconfig = rel.transform_config
     ti = tconfig.get("transform_identity") if isinstance(tconfig, dict) else None
     if not tconfig or not isinstance(ti, dict) or not ti.get("transform_source_hash"):

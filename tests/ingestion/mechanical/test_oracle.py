@@ -92,7 +92,6 @@ def test_the_committed_oracle_directory_holds_one_artifact_per_release() -> None
     """
     committed = sorted(p.name for p in COMMITTED_ORACLE_DIR.glob("*.json"))
     assert committed == [
-        "srd-5-2-1-corpus-36b786d8-fa2.json",
         "srd-5-2-1-corpus-3fe24ff6-4e3.json",
         "srd-5-2-1-corpus-574662e9-0ef.json",
         "srd-5-2-1-corpus-8781d4e0-a3b.json",

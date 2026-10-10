@@ -24,7 +24,7 @@ from contextlib import contextmanager
 
 import pytest
 from chromadb.api import ClientAPI
-from sqlalchemy import event, select
+from sqlalchemy import delete, event, select
 from sqlalchemy.orm import Session
 
 import afterworlds.ingestion.corpus.persistence as persistence_mod
@@ -42,9 +42,12 @@ from afterworlds.ingestion.corpus.operational import (
 from afterworlds.ingestion.corpus.persistence import (
     FinalizeResult,
     finalize_source_release,
+    verify_chunk_runtime_membership,
     verify_persisted_digest,
+    verify_single_source,
 )
 from afterworlds.ingestion.corpus.pipeline import CandidateRelease
+from afterworlds.ingestion.corpus.policy import PolicyReconstructionError
 from afterworlds.ingestion.corpus.source_ledger import (
     CITATION_VERIFICATION,
     PAGE_SUBSTRING,
@@ -53,8 +56,15 @@ from afterworlds.ingestion.corpus.source_ledger import (
 from afterworlds.ingestion.corpus.vector_publication import read_actual_vector_state
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.persistence.orm.base import Base
-from afterworlds.persistence.orm.corpus import CorpusReleaseORM
-from afterworlds.persistence.orm.rules_package import RuleChunkORM, RulesPackageORM
+from afterworlds.persistence.orm.corpus import (
+    CorpusReleaseORM,
+    ReconciliationPolicyORM,
+)
+from afterworlds.persistence.orm.rules_package import (
+    RuleChunkORM,
+    RuleSourceORM,
+    RulesPackageORM,
+)
 from afterworlds.pipeline.retrieval.client import build_isolated_test_chroma_client
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
 from afterworlds.pipeline.retrieval.corpus_windows import derive_windows
@@ -326,6 +336,92 @@ def test_a_reassigned_persisted_locator_breaks_the_release_digest(
     assert not verify_persisted_digest(damaged, pkg, state)
 
 
+def test_a_second_persisted_source_fails_the_single_source_invariant(
+    published: _Stores,
+    damaged: Session,
+) -> None:
+    """The release has exactly one authoritative source; an interloper is caught.
+
+    Carried over from the retired compact-fixture suite, where the source
+    membership checks last ran: the published state is clean, and one extra,
+    otherwise-valid ``RuleSource`` row both violates the invariant and moves the
+    digest.
+    """
+    pkg = published.candidate.package_uuid
+    assert verify_single_source(damaged, pkg) == ()
+    damaged.add(
+        RuleSourceORM(
+            source_id="1" * 36,
+            rules_package_id=pkg,
+            name="Interloper Source",
+            category="supplement",
+            precedence_rank=2,
+            is_enabled=True,
+            created_at=NOW,
+        )
+    )
+    damaged.flush()
+    state = read_actual_vector_state(
+        published.chroma_client,
+        pkg,
+        RetrievalMemoryConfig(),
+        DeterministicFakeEmbeddingFunction(),
+    ).to_payload()
+    assert verify_single_source(damaged, pkg)
+    assert not verify_persisted_digest(damaged, pkg, state)
+
+
+def test_a_deleted_persisted_policy_row_fails_closed(
+    published: _Stores,
+    damaged: Session,
+) -> None:
+    """Reconstruction reads the persisted policy, never ``FROZEN_POLICY``.
+
+    Carried over from the retired compact-fixture suite: with the policy row
+    gone, the digest check refuses before it reads any vector state.
+    """
+    pkg = published.candidate.package_uuid
+    damaged.execute(
+        delete(ReconciliationPolicyORM).where(
+            ReconciliationPolicyORM.package_uuid == pkg
+        )
+    )
+    damaged.flush()
+    with pytest.raises(PolicyReconstructionError):
+        verify_persisted_digest(damaged, pkg, {})
+
+
+def test_an_orphan_enabled_chunk_breaks_runtime_membership(
+    published: _Stores,
+    damaged: Session,
+) -> None:
+    """An enabled chunk with no declared projection would be served at runtime.
+
+    Carried over from the retired compact-fixture suite. The digest is scoped to
+    the declared projection set, so only the separate membership verification
+    sees the stray row.
+    """
+    pkg = published.candidate.package_uuid
+    assert verify_chunk_runtime_membership(damaged, pkg) == ()
+    damaged.add(
+        RuleChunkORM(
+            chunk_id="orphan-chunk-1",
+            rules_package_id=pkg,
+            source_id=pkg,
+            subsystem="general",
+            content="stray content with no declared projection",
+            source_document="D&D SRD 5.2.1",
+            source_locator_type="page",
+            source_locator_value="p. 1",
+            is_enabled=True,
+            created_at=NOW,
+        )
+    )
+    damaged.flush()
+    violations = verify_chunk_runtime_membership(damaged, pkg)
+    assert any("orphan-chunk-1" in v for v in violations)
+
+
 def test_an_omitted_persisted_chunk_is_detected_as_an_uncarried_source_unit(
     published: _Stores,
     damaged: Session,
@@ -360,7 +456,7 @@ def test_a_release_that_declares_the_wrong_verification_never_reaches_a_store(
     config = dict(source_candidate.transform_config)
     config[CITATION_VERIFICATION] = PAGE_SUBSTRING
     wrong = dataclasses.replace(source_candidate, transform_config=config)
-    result = finalize_in_fresh_db(wrong, source=True)
+    result = finalize_in_fresh_db(wrong)
     assert not result.published and not result.reused
     assert result.artifacts is None
     assert result.gate is not None
@@ -375,7 +471,7 @@ def test_a_release_carrying_stale_source_bytes_is_refused(
     sources = dict(source_candidate.source_texts or {})
     sources["legal-information.md"] += "\nlocally edited\n"
     stale = dataclasses.replace(source_candidate, source_texts=sources)
-    result = finalize_in_fresh_db(stale, source=True)
+    result = finalize_in_fresh_db(stale)
     assert not result.published
     assert result.gate is not None
     assert any("digest" in f for f in result.gate.failures)

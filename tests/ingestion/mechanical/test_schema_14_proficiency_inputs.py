@@ -63,9 +63,12 @@ import pytest
 from sqlalchemy import update
 from sqlalchemy.orm import Session
 
+from afterworlds.ingestion.mechanical.bound_corpus import (
+    BoundCorpusSnapshot,
+    ChunkCoverage,
+)
 from afterworlds.ingestion.mechanical.models import ClassificationLedger
 from afterworlds.ingestion.mechanical.oracle import (
-    COMMITTED_ORACLE_DIR,
     load_accepted_inputs,
 )
 from afterworlds.ingestion.mechanical.persistence import (
@@ -137,7 +140,6 @@ from tests.ingestion.mechanical.conftest import (
     candidate_of,
     synthetic_leaf_order,
 )
-from tests.ingestion.mechanical.test_proficiency_1_proposal import _corpus
 
 PROPOSAL_PATH = (
     pathlib.Path(__file__).resolve().parents[3]
@@ -146,14 +148,9 @@ PROPOSAL_PATH = (
     / "issue-5d-batch-proficiency-1-PROPOSAL.json"
 )
 
-#: The committed accepted authority — the seven accepted batches — read here
-#: only to prove the widened ``AdvantageFact`` left every one of them alone.
-ACCEPTED_AUTHORITY_PATH = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-36b786d8-fa2.json"
-
-#: The seven-batch accepted state, every one of its facts reviewed *before* this
+#: A seven-batch accepted state, every one of its facts reviewed *before* this
 #: widening existed. The specimen for "a widened family did not move anything
-#: already accepted", which the live artifact can no longer be: it now also holds
-#: the one reviewed fact that uses the new field.
+#: already accepted".
 PRE_WIDENING_AUTHORITY_PATH = (
     pathlib.Path(__file__).resolve().parent
     / "data"
@@ -162,6 +159,42 @@ PRE_WIDENING_AUTHORITY_PATH = (
 )
 
 RECORD = "play.proficiency"
+
+
+def _corpus(proposal) -> BoundCorpusSnapshot:  # type: ignore[no-untyped-def]
+    """A snapshot of the bound release over exactly the leaves this batch reads.
+
+    Derived from the proposal rather than re-parsed from the source, because the
+    reference checks under test read no release state at all. Each chunk is given
+    the whole of the leaf it binds, so every prose binding is covered. (Formerly
+    imported from ``test_proficiency_1_proposal``, retired with the original 5d
+    artifact under Step 5 of the Recorded Owner Decision of 21 September 2026.)
+    """
+    spans = [p.span for p in proposal.proposed_spans]
+    leaf_lengths: dict[str, int] = {}
+    for span in spans:
+        leaf_lengths[span.leaf_id] = max(
+            leaf_lengths.get(span.leaf_id, 0), span.char_end
+        )
+    leaf_of = {span.span_id: span.leaf_id for span in spans}
+    edges = {
+        (binding.chunk_id, leaf_of[binding.span_id]): ChunkCoverage(
+            chunk_id=binding.chunk_id,
+            leaf_id=leaf_of[binding.span_id],
+            cover_start=0,
+            cover_end=leaf_lengths[leaf_of[binding.span_id]],
+            role="authoritative",
+            projection_id="proficiency-1-proposal-test",
+        )
+        for binding in proposal.proposed_representation.prose_bindings
+    }
+    return BoundCorpusSnapshot(
+        package_uuid=proposal.binding.package_uuid,
+        release_version=proposal.binding.release_version,
+        leaf_lengths=leaf_lengths,
+        chunk_coverage=tuple(edges.values()),
+    )
+
 
 #: ``component key -> (kind, the roll the section says it applies to)``, written
 #: out from the four printed sentences rather than read back off the draft. A
@@ -825,12 +858,9 @@ def test_no_accepted_advantage_fact_gained_a_key_from_this_widening() -> None:
     family whose new field were written unconditionally would move all of them,
     and with them the oracle identity those seven batches were accepted against.
 
-    The live artifact is asserted the same way and then one step further: the
-    Owner has since accepted ``proficiency-1``, whose Expertise clause is the
-    reason this field exists, so exactly one of its twenty-seven facts carries
-    the key and the other twenty-six are byte-for-byte the pre-widening set. That
-    is the widening working as specified rather than a restamp — had it been a
-    restamp, all twenty-seven would carry it.
+    The comparison against the original nine-batch artifact, which also held the
+    one widened fact, was removed with that artifact under Step 5 of the Recorded
+    Owner Decision of 21 September 2026.
     """
     pre = load_accepted_inputs(PRE_WIDENING_AUTHORITY_PATH)
     payloads = [
@@ -842,21 +872,6 @@ def test_no_accepted_advantage_fact_gained_a_key_from_this_widening() -> None:
     assert payloads, "the accepted corpus should hold advantage facts"
     assert all(set(p) == {"family", "roll", "state"} for p in payloads)
     assert all(fact_from_payload(p).requires_proficiencies == () for p in payloads)
-
-    live = [
-        fact_payload(fact)
-        for component in load_accepted_inputs(
-            ACCEPTED_AUTHORITY_PATH
-        ).oracle.representation.components
-        for fact in component.facts
-        if isinstance(fact, AdvantageFact)
-    ]
-    narrow = [p for p in live if set(p) == {"family", "roll", "state"}]
-    widened = [p for p in live if set(p) != {"family", "roll", "state"}]
-    assert sorted(map(repr, narrow)) == sorted(map(repr, payloads))
-    assert len(widened) == 1
-    assert set(widened[0]) == {"family", "roll", "state", "requires_proficiencies"}
-    assert fact_from_payload(widened[0]).requires_proficiencies == ("skill", "tool")
 
 
 # ---------------------------------------------------------------------------

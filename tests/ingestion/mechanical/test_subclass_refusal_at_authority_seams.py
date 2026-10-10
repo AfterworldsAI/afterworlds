@@ -39,6 +39,7 @@ from afterworlds.ingestion.mechanical.models import (
     SemanticSpan,
 )
 from afterworlds.ingestion.mechanical.oracle import (
+    COMMITTED_ORACLE_DIR,
     accepted_inputs_payload,
     load_accepted_inputs,
     load_oracle,
@@ -149,9 +150,8 @@ from tests.ingestion.mechanical.conftest import (
     candidate_of,
 )
 
-COMMITTED_ORACLE = pathlib.Path(
-    "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-36b786d8-fa2.json"
-)
+#: The current committed accepted authority (release 5.2.1-corpus.8781d4e0-a3b).
+COMMITTED_ORACLE = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-8781d4e0-a3b.json"
 #: The **legacy specimen**: the committed accepted artifact exactly as it stood
 #: before hazards-1 was accepted into it — one batch, reviewed under schema 3,
 #: with no schema anchors and no lift evidence. That is the shape this module's
@@ -163,7 +163,7 @@ COMMITTED_ORACLE = pathlib.Path(
 #:
 #: Deliberately **not** in :data:`COMMITTED_ORACLE_DIR`: a second file there
 #: claiming one release is exactly what the resolver refuses, and
-#: ``test_exactly_one_accepted_artifact_is_committed_for_the_release`` asserts
+#: ``test_the_committed_oracle_directory_holds_one_artifact_per_release`` asserts
 #: it stays the only one.
 LEGACY_PATH = (
     pathlib.Path(__file__).resolve().parent

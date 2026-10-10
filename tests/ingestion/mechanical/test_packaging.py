@@ -16,7 +16,8 @@ too, but they are not the proof: the defect is runtime resource resolution, so
 the assertion that matters is that ``publish_from_committed_oracle`` reaches the
 packaged oracle instead of reporting ``ABSENT``.
 
-Follows the CRD Issue 5c pattern in ``tests/ingestion/corpus/test_packaging.py``.
+Follows the pattern in ``tests/ingestion/corpus/test_packaging.py``, which
+proves the real archives ship the current authority and omit retired products.
 """
 
 from __future__ import annotations
@@ -263,11 +264,12 @@ def test_the_production_oracle_directory_ships_only_reviewed_content() -> None:
 
     Guards the sentinel from leaking into the checkout — its release is chosen
     to collide with nothing, so its presence here would mean a test wrote into
-    the source tree.
+    the source tree. The two superseded intermediates stay in the source tree
+    for test and replay evidence and are excluded from distribution metadata;
+    ``tests/ingestion/corpus/test_packaging.py`` proves what actually ships.
     """
     assert _PRODUCTION_ORACLES.is_dir()
     assert sorted(p.name for p in _PRODUCTION_ORACLES.glob("*.json")) == [
-        "srd-5-2-1-corpus-36b786d8-fa2.json",
         "srd-5-2-1-corpus-3fe24ff6-4e3.json",
         "srd-5-2-1-corpus-574662e9-0ef.json",
         "srd-5-2-1-corpus-8781d4e0-a3b.json",

@@ -32,7 +32,7 @@ in one write on 2026-10-07 UTC (05:39:49Z) and replays the whole file with
 The partial-publication block is retained.
 
 **Superseded: `srd-5-2-1-corpus-3fe24ff6-4e3.json`** (unchanged, kept in this
-directory as historical evidence only; the committed-authority selector refuses
+directory as test and replay evidence only and excluded from the wheel and sdist; the committed-authority selector refuses
 its release through `oracle.SUPERSEDED_RELEASE_VERSIONS`. Correction,
 2026-10-07: the earlier statement that its retirement needs its own Owner
 authorization was wrong. The 21 September 2026 Owner Decision already
@@ -202,7 +202,8 @@ evidence only; the committed-authority selector refuses its release through
 no further Owner authorization; the 21 September 2026 Owner Decision already
 authorizes it (see the correction note above).
 
-**Superseded: `srd-5-2-1-corpus-574662e9-0ef.json`** — accepted authority for the
+**Superseded: `srd-5-2-1-corpus-574662e9-0ef.json`** (kept in this directory as
+test and replay evidence only and excluded from the wheel and sdist) — accepted authority for the
 spell-table-corrected release (`ebdd9333-eeed-5df1-b3e1-8b97c2f65f80` /
 `5.2.1-corpus.574662e9-0ef`), holding twenty batches, 1250 records and 1099
 reference resolutions (SHA-256 `fc62c47c…`). The Owner accepted the
@@ -526,7 +527,7 @@ not corpus completion: 7 657 of the release's 10 465 leaves carry no accepte
 authority at all, one finding each. Nothing is merged, published or activated,
 partially or otherwise.
 
-**Quarantined by the Recorded Owner Decision of 21 September 2026.** The artifact described below is no longer selectable, loadable, or publishable as active authority: every seam refuses it. What follows records what it was, because the clean restart replaces it rather than migrating it, and a reader needs to know which artifact is being retired. See `docs/decisions/owner-decision-2026-09-21-5c-5d-clean-restart.md`.
+**Removed under Step 5 of the Recorded Owner Decision of 21 September 2026.** The artifact described below was quarantined on 21 September and deleted from this directory once the replacement authority above existed; Git history retains it. Its release identity is still refused at every authority seam by `afterworlds.quarantine`, so a copy or stored row naming it meets a typed refusal rather than an absence. What follows records what it was. See `docs/decisions/owner-decision-2026-09-21-5c-5d-clean-restart.md` and `.claude/review-notes/issue-5c-quarantine-retirement.md`.
 
 `srd-5-2-1-corpus-36b786d8-fa2.json` — accepted authority for the SRD 5.2.1
 release (`4458fa10-4a66-5e0e-9ecc-ea37530ad2b4` /

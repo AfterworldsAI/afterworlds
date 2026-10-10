@@ -14,9 +14,9 @@ occurs:
     g  record the five top-level hashes and run the final publication gate
        against the DB-grounded artifacts; publish only if it passes
 
-:func:`finalize_release` is the sole entry point that performs c–g and
+:func:`finalize_source_release` is the sole entry point that performs c–g and
 transitions a release to ``published``. :func:`persist_release` is the lower
--level step-c-only primitive (used by ``finalize_release`` internally, and
+-level step-c-only primitive (used by the finalization core internally, and
 directly by tests that already hold a fully-identified ``ReleaseArtifacts`` and
 want to exercise persistence/reconstruction/tamper-detection in isolation).
 
@@ -90,9 +90,6 @@ from afterworlds.ingestion.corpus.source_ledger import (
     SOURCE_PARTITION,
     expected_leaf_pages,
     source_digest_failures,
-)
-from afterworlds.ingestion.corpus.table_inventory import (
-    check_against_committed_inventory,
 )
 from afterworlds.ingestion.corpus.vector_publication import (
     cleanup_vector_collection,
@@ -184,7 +181,7 @@ def _persist_release_record(
     ``evidence_report_hash``/``persisted_corpus_digest``/``corpus_report_reference``/
     ``report_payload`` are ``None`` when this is the pre-finalize draft insert
     (Component K step c) — those are post-persistence proof identities (steps
-    d/e/f) that ``finalize_release`` fills in afterward via
+    d/e/f) that the finalization core fills in afterward via
     :func:`_set_post_persistence_identity`, once they exist to compute.
     """
     session.add(
@@ -344,7 +341,7 @@ def persist_release(session: Session, artifacts: ReleaseArtifacts, *, now: str) 
     hashes — is already known, e.g. re-persisting a previously finalized
     ``ReleaseArtifacts`` into a different store to exercise persistence,
     reconstruction, and tamper detection in isolation. Production publication
-    goes through :func:`finalize_release` instead, which computes those hashes
+    goes through :func:`finalize_source_release` instead, which computes those hashes
     from the actual persisted state rather than trusting them from the caller.
     """
     rel = artifacts.release
@@ -679,7 +676,7 @@ def verify_persisted_page_coverage(
 ) -> tuple[str, ...]:
     """Cheap DB-grounded completeness check on the reuse path.
 
-    ``finalize_release`` guards fresh publication on ``candidate.pages``, but the
+    ``finalize_source_release`` guards fresh publication on ``candidate.pages``, but the
     reuse path reconstructs an *already-persisted* release; a release persisted
     incompletely (not through a full candidate) would otherwise pass reuse on a
     full candidate. This asserts the persisted ledger leaves cover every printed
@@ -930,13 +927,13 @@ def delete_release(session: Session, pkg: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# finalize_release — Component K steps c–g, the corrected publication lifecycle
+# finalize_source_release — Component K steps c–g, the publication lifecycle
 # ---------------------------------------------------------------------------
 
 
 @dataclass(frozen=True)
 class FinalizeResult:
-    """Outcome of :func:`finalize_release`.
+    """Outcome of :func:`finalize_source_release`.
 
     ``reused`` is True only for the idempotent no-op path: an identical release
     (same content-derived ``package_uuid``) was already published in this
@@ -1032,60 +1029,6 @@ def _reconstruct_artifacts(
     return artifacts, membership_violations, source_violations
 
 
-def finalize_release(
-    session: Session,
-    candidate: CandidateRelease,
-    *,
-    now: str,
-    chroma_client: ClientAPI,
-    retrieval_config: RetrievalMemoryConfig,
-    embedding_function: RetrievalEmbeddingFunction | None = None,
-) -> FinalizeResult:
-    """Production publication entry: prove authoritative-source completeness,
-    then finalize.
-
-    The sole production path. Before any SQL flush or Chroma write, it rejects a
-    candidate that does not exhaustively match the authoritative 364-page PDF —
-    an omitted, duplicated, reordered, or substituted page (PR #134 completeness
-    defect). Because the guard runs before persistence, a rejected candidate
-    leaves no package, release, or vector state (nothing to roll back). The
-    persist→reconstruct→digest→report→gate→publish machinery lives in the private
-    :func:`_finalize_core`; only that already-validated core is reachable to
-    lower-layer tests, and it is never a production validation bypass (no test
-    flag, caller boolean, or public shortcut).
-    """
-    completeness_failures = verify_source_completeness(candidate.pages)
-    # Independent table oracle: the live reconstruction must match the committed
-    # expected-table inventory (R15 F4) — a suppressed, flattened, fragmented,
-    # merged, or invented logical table blocks publication before any store
-    # mutation. Full-corpus only; the private core seam (compact lower-layer
-    # tests) legitimately bypasses this partial-corpus-invalid check.
-    inventory = check_against_committed_inventory(candidate.pages)
-    guard_failures = list(completeness_failures)
-    if not inventory.passed:
-        guard_failures.append(
-            "table reconstruction diverges from the committed expected-table "
-            f"inventory (suppressed={len(inventory.suppressed)}, "
-            f"invented={len(inventory.invented)}, "
-            f"mismatched={len(inventory.mismatched)})"
-        )
-    if guard_failures:
-        return FinalizeResult(
-            published=False,
-            reused=False,
-            artifacts=None,
-            gate=GateResult(passed=False, failures=tuple(guard_failures)),
-        )
-    return _finalize_core(
-        session,
-        candidate,
-        now=now,
-        chroma_client=chroma_client,
-        retrieval_config=retrieval_config,
-        embedding_function=embedding_function,
-    )
-
-
 def finalize_source_release(
     session: Session,
     candidate: CandidateRelease,
@@ -1097,11 +1040,9 @@ def finalize_source_release(
 ) -> FinalizeResult:
     """Production publication entry for a source-built candidate.
 
-    The Markdown-native sibling of :func:`finalize_release`. Its guards are the
-    ones that mean something for this path, and it deliberately does not run the
-    retired path's expected-table oracle: that oracle grades a reconstruction of
-    PDF table geometry, which this corpus does not perform at all, so running it
-    would be grading an unrelated artifact.
+    The sole production finalization entry. The retired PDF-geometric
+    ``finalize_release`` and its expected-table oracle were removed with that
+    corpus.
 
     What it does prove before any store is touched:
 
@@ -1159,9 +1100,9 @@ def _finalize_core(
     """Persist, reconstruct, prove, gate, and (only if the gate passes) publish.
 
     Private core assuming the candidate's authoritative-source completeness has
-    already been proven by :func:`finalize_release` (production) — or that the
-    caller is a lower-layer test deliberately exercising the persist/reconstruct/
-    digest/gate lifecycle on a compact, partial corpus through this internal seam.
+    already been proven by :func:`finalize_source_release` (production) — or
+    that the caller is a lower-layer test deliberately exercising the
+    persist/reconstruct/digest/gate lifecycle through this internal seam.
     It is NOT a production entry point and performs no completeness check itself.
 
     Executes Component K steps c–g in the mandated order, across **both** stores:
@@ -1234,7 +1175,7 @@ def _finalize_core(
     ).scalar_one_or_none()
     if existing is not None:
         if existing.publication_status != "published":
-            # persist_release/finalize_release only ever commit a row whose
+            # persist_release/_finalize_core only ever commit a row whose
             # publication_status is "published" (success) or roll back entirely
             # (failure) — a non-published row surviving to a new attempt means
             # an earlier run committed partway through, outside this contract.

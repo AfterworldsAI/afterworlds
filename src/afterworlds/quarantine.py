@@ -1,17 +1,17 @@
-"""Quarantine of the superseded CRD Issue 5c/5d products.
+"""Tombstone for the retired original CRD Issue 5c/5d products.
 
 Recorded Owner Decision 2026-09-21 (``docs/decisions/``
-``owner-decision-2026-09-21-5c-5d-clean-restart.md``) quarantines the existing 5c
-corpus release and the 5d accepted authority built over it, pending a fresh source
-corpus built from a corrected, pinned Markdown source and a fresh 5d construction.
+``owner-decision-2026-09-21-5c-5d-clean-restart.md``) quarantined the original 5c
+corpus release and the 5d accepted authority built over it, and its Step 5
+retires them once the replacement exists. The replacement source corpus and the
+fresh 5d authority now exist, so the original artifacts and the PDF-geometric
+transform code have been removed from the tree; Git history retains them.
 
-Quarantine is **temporary reference material, not a second supported authority
-system**. The committed artifacts stay in the tree and in Git history so the
-comparison work can cite them; what this module removes is their ability to be
-*selected, loaded, published, activated, projected, or retrieved as active
-authority*. The Owner Decision is explicit that moving files is not enough if a
-selector or fallback still loads them, so the refusal lives at the seams that
-confer authority rather than at the bytes.
+What remains is this refusal. A database, vector store, operator command or copied
+file can still name a retired identity after the code is gone, so the seams that
+confer authority keep refusing it rather than treating it as merely absent. The
+Owner Decision is explicit that removing files is not enough if a selector or
+fallback could still load what they described.
 
 Two deliberate boundaries:
 
@@ -72,16 +72,18 @@ QUARANTINED_PROJECTION_UUIDS = frozenset({"82c75aad-b294-5b2e-a188-128cdcbada09"
 #: whatever embedding model, page subset or output identity it ends up with, so
 #: this is the identity of the *obsolete production path* rather than of one of
 #: its outputs. The replacement corpus reads a pinned Markdown source through a
-#: different transform and therefore records a different hash; if a replacement
-#: were ever assembled from these same modules it would be the quarantined
-#: transform and is meant to be refused here.
+#: different transform and therefore records a different hash. The recipe's code
+#: has been removed, but stored releases and copies can still carry the hash, so
+#: it stays refused here.
 QUARANTINED_TRANSFORM_SOURCE_HASHES = frozenset(
     {"6332f201eba9cba19d699a06c6c12580de5ef1c7f349fadacd2045c0e5312cc0"}
 )
 
-#: Committed artifacts that state the quarantined products, by repository-relative
-#: path and content SHA-256. Recorded so a reviewer can identify the quarantined
-#: bytes exactly; the refusal itself is keyed on identity, not on these digests.
+#: The removed artifacts that stated the retired products, by former
+#: repository-relative path and content SHA-256 (both files were deleted under
+#: the Owner Decision's Step 5; Git history retains them). Recorded so a reviewer
+#: can identify a stray copy exactly; the refusal itself is keyed on identity, not
+#: on these digests.
 QUARANTINED_ARTIFACT_FILENAMES = (
     "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-36b786d8-fa2.json",
     "src/afterworlds/ingestion/corpus/srd_table_inventory.json",

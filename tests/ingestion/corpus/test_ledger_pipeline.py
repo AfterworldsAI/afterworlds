@@ -1,9 +1,11 @@
-"""Ledger, concordance, canary, and acyclic-lifecycle tests — Issue 5c.
+"""Release-level invariants on the published source corpus — Issue 5c.
 
-These exercise the real corpus build (session-scoped ``release`` fixture) and map
-to Acceptance #3 (ledger), #5 (concordance), #10 (canaries), #11 (byte-for-byte
-regeneration), and the Test Requirements on partition/disjointness, nested
-containers, heading coverage, and multi-unit segmentation.
+Acceptance #10 (version canaries), the reconciliation accounting equation, the
+five top-level release hashes and the evidence report's proof hashes, asserted on
+the session-scoped source release. The PDF-geometric ledger assertions this
+module used to carry (page partition, header/footer and stat-field leaves,
+substring concordance, byte-for-byte rebuild through ``build_candidate``) graded
+the retired corpus and were removed with it.
 """
 
 from __future__ import annotations
@@ -12,110 +14,17 @@ import platform
 
 import pytest
 
-from afterworlds.ingestion.corpus.bundle import reconciliation_hash
-from afterworlds.ingestion.corpus.concordance import check_canaries, check_concordance
-from afterworlds.ingestion.corpus.ledger import build_ledger, ledger_hash
-from afterworlds.ingestion.corpus.models import Disposition, Leaf, LeafType
-from afterworlds.ingestion.corpus.pipeline import ReleaseArtifacts, build_candidate
-from afterworlds.ingestion.corpus.report import EvidenceReport
-from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
+from afterworlds.ingestion.corpus.concordance import check_canaries
+from afterworlds.ingestion.corpus.ledger import ledger_hash
+from afterworlds.ingestion.corpus.models import Disposition
+from afterworlds.ingestion.corpus.pipeline import ReleaseArtifacts
+from afterworlds.ingestion.corpus.report import (
+    EvidenceReport,
+    build_report,
+    report_hash,
+)
 
-from .conftest import PDF_PATH, finalize_in_fresh_db
-
-# --- Component C: frozen ledger, occurrence partition, disjointness -----------
-
-
-def test_ledger_partitions_every_page_disjointly_and_exhaustively(
-    release: ReleaseArtifacts,
-) -> None:
-    pages = {pg.page_index: pg.canonical_text() for pg in release.pages}
-    by_page: dict[int, list[Leaf]] = {}
-    for leaf in release.ledger.leaves:
-        by_page.setdefault(leaf.page_index, []).append(leaf)
-    assert by_page, "expected leaves"
-    for pidx, leaves in by_page.items():
-        text = pages[pidx]
-        leaves.sort(key=lambda leaf: leaf.char_start)
-        cursor = 0
-        for leaf in leaves:
-            # Disjoint + exhaustive: each leaf begins either exactly where the
-            # previous one ended (adjacent — sibling TABLE_CELL leaves splitting a
-            # single line at column boundaries) or one char later (the "\n" that
-            # joins two lines). A skipped char is always that line-boundary "\n".
-            assert leaf.char_start in (cursor, cursor + 1)
-            if leaf.char_start == cursor + 1:
-                assert text[cursor] == "\n"
-            assert 0 <= leaf.char_start <= leaf.char_end <= len(text)
-            cursor = leaf.char_end
-        assert cursor == len(text)
-
-
-def test_ledger_leaf_ids_are_unique_and_content_derived(
-    release: ReleaseArtifacts,
-) -> None:
-    ids = [leaf.leaf_id for leaf in release.ledger.leaves]
-    assert len(ids) == len(set(ids))
-
-
-def test_every_header_footer_is_its_own_leaf(release: ReleaseArtifacts) -> None:
-    hf = [
-        leaf
-        for leaf in release.ledger.leaves
-        if leaf.leaf_type is LeafType.HEADER_FOOTER
-    ]
-    # One running footer per physical page (364 pages).
-    assert len(hf) >= 364
-
-
-def test_headings_titles_are_inventoried_as_leaves(release: ReleaseArtifacts) -> None:
-    headings = [
-        leaf for leaf in release.ledger.leaves if leaf.leaf_type is LeafType.HEADING
-    ]
-    assert headings, "expected heading leaves"
-
-
-def test_nested_container_path_entry_within_section(release: ReleaseArtifacts) -> None:
-    # Cure Wounds is an entry nested under its section/subsection.
-    cure = [
-        leaf
-        for leaf in release.ledger.leaves
-        if leaf.printed_page == 121 and "regains a number of Hit Points" in leaf.content
-    ]
-    assert cure
-    labels = {c.container_id: c.label for c in release.ledger.containers}
-    path = [labels[cid] for cid in cure[0].container_path]
-    assert len(path) >= 2  # nested: entry within a section
-    assert any("Cure Wounds" in label for label in path)
-
-
-def test_stat_block_fields_are_discrete_leaves(release: ReleaseArtifacts) -> None:
-    fields = [
-        leaf.content
-        for leaf in release.ledger.leaves
-        if leaf.printed_page == 290 and leaf.leaf_type is LeafType.STAT_FIELD
-    ]
-    joined = " ".join(fields)
-    # Goblin Minion stat fields segmented as separate leaves.
-    assert any(f.startswith("AC ") for f in fields)
-    assert any(f.startswith("HP ") for f in fields)
-    assert "CR 1/8" in joined
-
-
-def test_ledger_is_deterministic(release: ReleaseArtifacts) -> None:
-    # Reuse the already-extracted pages; two ledger builds must hash identically.
-    pages = release.pages
-    assert ledger_hash(build_ledger(pages)) == ledger_hash(build_ledger(pages))
-    assert ledger_hash(build_ledger(pages)) == ledger_hash(release.ledger)
-
-
-# --- Component E/J: concordance and canaries ----------------------------------
-
-
-def test_concordance_passes_for_every_chunk(release: ReleaseArtifacts) -> None:
-    result = check_concordance(release.members.chunks, release.pages)
-    assert result.passed
-    assert result.locator_failures == ()
-    assert result.content_failures == ()
+from .conftest import PDF_PATH
 
 
 def test_all_six_version_canaries_pass(release: ReleaseArtifacts) -> None:
@@ -123,9 +32,6 @@ def test_all_six_version_canaries_pass(release: ReleaseArtifacts) -> None:
     assert len(results) == 6
     for canary in results:
         assert canary.passed, f"{canary.name}: {canary.missing} / {canary.unexpected}"
-
-
-# --- Component D: accounting equation, zero unresolved ------------------------
 
 
 def test_accounting_equation_and_zero_unresolved(release: ReleaseArtifacts) -> None:
@@ -144,9 +50,6 @@ def test_every_leaf_has_exactly_one_disposition(release: ReleaseArtifacts) -> No
     assert len(disp_ids) == len(set(disp_ids))
 
 
-# --- Component K: acyclic lifecycle, byte-for-byte regeneration ---------------
-
-
 def test_release_binds_five_top_level_hashes(release: ReleaseArtifacts) -> None:
     ident = release.release.identity
     for value in (
@@ -159,26 +62,6 @@ def test_release_binds_five_top_level_hashes(release: ReleaseArtifacts) -> None:
         assert value and len(value) == 64
 
 
-def test_clean_regeneration_is_byte_for_byte_deterministic(
-    release: ReleaseArtifacts,
-) -> None:
-    # One fresh regeneration — full candidate build + finalize into a brand-new
-    # DB — must reproduce the session build byte-for-byte, including the
-    # post-persistence proof hashes (Component K's full acyclic c-g order).
-    fresh_candidate = build_candidate(
-        PDF_PATH, retrieval_config=RetrievalMemoryConfig()
-    )
-    result = finalize_in_fresh_db(fresh_candidate)
-    assert result.published and result.artifacts is not None, result.gate
-    b = result.artifacts
-    assert release.release.package_uuid == b.release.package_uuid
-    assert release.release.release_version == b.release.release_version
-    assert release.release.identity == b.release.identity
-    assert reconciliation_hash(release.reconciliation) == reconciliation_hash(
-        b.reconciliation
-    )
-
-
 def test_evidence_report_carries_proof_hashes_but_not_its_own(
     release: ReleaseArtifacts,
 ) -> None:
@@ -189,25 +72,10 @@ def test_evidence_report_carries_proof_hashes_but_not_its_own(
     assert release.release.identity.evidence_report_hash not in payload.values()
 
 
-def test_evidence_report_records_complete_transform_identity(
-    release: ReleaseArtifacts,
-) -> None:
-    """PR #134 P1: the report records the full Component B identity — extractor
-    config + first-party source manifest/hash + deterministic invocation + IR
-    flag — not just ledger.extraction_config."""
-    ti = release.report.payload["transform_identity"]
-    assert isinstance(ti, dict)
-    assert ti["extractor"]  # extractor config present
-    assert ti["source_manifest"]  # first-party source manifest present
-    assert len(ti["transform_source_hash"]) == 64
-    assert ti["component_b_invocation"]["deterministic"] is True
-    assert ti["intermediate_representation_committed"] is False
-
-
-def _rebuild_report(a: ReleaseArtifacts, persisted: bool = True) -> EvidenceReport:
-    """Rebuild the evidence report from a release's inputs (R16 F2 host test)."""
-    from afterworlds.ingestion.corpus.report import build_report
-
+def _rebuild_report(a: ReleaseArtifacts) -> EvidenceReport:
+    """Rebuild the evidence report from a published release's own inputs."""
+    citation_mapping = a.report.payload["source_citation_mapping"]
+    assert isinstance(citation_mapping, dict)
     return build_report(
         ledger=a.ledger,
         members=a.members,
@@ -221,7 +89,8 @@ def _rebuild_report(a: ReleaseArtifacts, persisted: bool = True) -> EvidenceRepo
         persisted_corpus_digest=a.release.identity.persisted_corpus_digest,
         concordance=a.concordance,
         canaries=a.canaries,
-        persisted=persisted,
+        persisted=True,
+        citation_mapping=citation_mapping,
     )
 
 
@@ -230,10 +99,11 @@ def test_evidence_report_identity_is_host_independent(
 ) -> None:
     """R16 F2: the identity-bearing evidence report is byte-identical for identical
     committed inputs across supported hosts — no runtime host OS/arch/python enters
-    the hashed payload (they were operational diagnostics, now logged only). So the
+    the hashed payload (they are operational diagnostics, logged only). So the
     evidence-report hash (one of the five release identities) does not drift by
-    host, and a reuse — which reconstructs from the stored payload — is unaffected."""
-    from afterworlds.ingestion.corpus.report import report_hash
+    host, and a reuse — which reconstructs from the stored payload — is unaffected.
+    Rebound from the retired PDF-geometric release to the published source release.
+    """
 
     def build_under(
         system: str, machine: str, pyver: str
@@ -248,7 +118,7 @@ def test_evidence_report_identity_is_host_independent(
     p2, h2 = build_under("Windows", "AMD64", "3.12.9")
     assert p1 == p2  # byte-identical payload across hosts
     assert h1 == h2  # identical report hash (release identity component)
-    # No host/OS/arch/path/time field leaked into the identity-bearing payload.
+    # No host/OS/arch field leaked into the identity-bearing payload.
     blob = repr(p1).lower()
     for banned in (
         "linux",
@@ -261,9 +131,8 @@ def test_evidence_report_identity_is_host_independent(
         assert banned not in blob
     # Only the declared, host-independent reproduction target remains.
     assert p1["reproduction_target"] == {"python_target": "3.12"}
-    # The report the release actually published carries this same host-independent
-    # hash as its identity component (so reuse, which reads the stored payload, is
-    # host-independent too).
+    # The rebuild reproduces the hash the release actually published.
+    assert h1 == release.release.identity.evidence_report_hash
     assert release.release.identity.evidence_report_hash == report_hash(release.report)
 
 

@@ -34,11 +34,10 @@ authoring over it:
 5. **Review and acceptance stay separate.** A proposal artifact cannot be loaded
    as accepted authority — not by a flag, by shape.
 
-The companion control for the superseded release,
-``test_production_release.py``, is still in the tree. The 21 September Owner
-Decision authorizes retiring it; this module does not, and is its successor over
-the qualified source (see
-``.claude/review-notes/issue-5c-release-readiness/correction-followup.md``).
+This module is the successor, over the qualified source, of the retired
+release's ``test_production_release.py``, which was removed under Step 5 of the
+21 September Owner Decision (see
+``.claude/review-notes/issue-5c-quarantine-retirement.md``).
 """
 
 from __future__ import annotations

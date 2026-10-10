@@ -154,9 +154,18 @@ from tests.ingestion.mechanical.conftest import (
     candidate_of,
     coverage,
 )
-from tests.ingestion.mechanical.test_speed_1_frozen_prior import (
-    UNRESOLVED_TARGETS,
-)
+
+#: Reference targets the frozen six-batch prior cites and does not define, as of
+#: its freeze. Pinned as a set, not a count: ``glossary.speed`` is the one
+#: ``speed-1`` exists to consider; ``glossary.concentration`` remains outside its
+#: cut. (Formerly imported from ``test_speed_1_frozen_prior``, retired with the
+#: original 5d artifact under Step 5 of the Recorded Owner Decision of
+#: 21 September 2026.)
+UNRESOLVED_TARGETS = {
+    "glossary.concentration",
+    "glossary.speed",
+}
+
 
 # ---------------------------------------------------------------------------
 # The reviewed inventory, read rather than retyped

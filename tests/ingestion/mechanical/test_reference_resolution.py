@@ -10,9 +10,7 @@ synthetic fixture in ``conftest`` — two records, one of which is a legitimate
 destination. The four real unresolved citations on this branch (*Stat Block*,
 *Combat Encounters*, *Combat*, *Opportunity Attack*) name records no accepted
 batch has minted and no reviewer has keyed, so resolving one of them here would
-be inventing exactly the destination review refused to guess. The real
-proposals' four obligations stay open, and
-``test_proficiency_references_resolve`` still pins them as unresolved.
+be inventing exactly the destination review refused to guess.
 
 What each group proves:
 
@@ -1440,39 +1438,6 @@ def test_a_batch_accepted_over_an_unresolved_citation_keeps_it_open() -> None:
     assert UNRESOLVED_FINDING in relationship_and_reference_violations(
         extended.oracle.representation
     )
-
-
-# -- the seven accepted batches ----------------------------------------------
-
-
-PRODUCTION_ORACLE = (
-    Path(__file__).resolve().parents[3]
-    / "src"
-    / "afterworlds"
-    / "ingestion"
-    / "mechanical"
-    / "oracles"
-    / "srd-5-2-1-corpus-36b786d8-fa2.json"
-)
-
-#: The accepted oracle identity of the nine accepted batches, unchanged by this
-#: capability. Pinned here because "the artifact still round-trips" and "the
-#: artifact still *identifies* the same" are two claims.
-ACCEPTED_ORACLE_IDENTITY = "3b8941ce9039a78e72fd3ddf05952d0da4bed18dc4d38fb99b8b80db137fb407"  # noqa: E501  # pragma: allowlist secret
-
-
-def test_the_accepted_corpus_is_untouched_by_this_capability() -> None:
-    """No schema succession, no new keys, no moved identity, no changed bytes.
-
-    ``reference_resolutions`` lives on the oracle rather than inside
-    ``RepresentationDraft``, so ``schema_binding_violations`` never sees it and
-    schema 15 stands; omit-when-empty does the rest.
-    """
-    inputs = load_accepted_inputs(PRODUCTION_ORACLE)
-    assert inputs.oracle.reference_resolutions == ()
-    assert inputs.reference_resolution_acceptances == ()
-    assert oracle_identity(inputs.oracle) == ACCEPTED_ORACLE_IDENTITY
-    assert serialize_accepted_inputs(inputs) == PRODUCTION_ORACLE.read_bytes()
 
 
 # -- one decision, several citations of one wording ---------------------------
