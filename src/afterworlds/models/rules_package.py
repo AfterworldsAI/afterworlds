@@ -7,6 +7,16 @@ narrative canon.
 Architecture invariant: no field in these models carries a reference to
 Story, Arc, Chapter, Node, Turn, or any Story Bible entity.  The Rules
 Package is a standalone corpus with no cross-dependency on narrative state.
+
+Final CRD Issue 5d cutover (#137 contract 6, AC22): the obsolete prose-only
+``MechanicalEntity`` family (``SpellEntity``, ``ConditionEntity``,
+``StatBlockEntity``, ``ActionEntity``, ``ItemEntity``, ``EntityData``) and the
+legacy chunk/entity ``RuleOverride`` with its ``ChunkOverridePayload``,
+``AppliedChunk`` and ``AppliedEntity`` are retired. Mechanical authority is the
+accepted typed projection read through
+:mod:`afterworlds.services.rules_authority`, and typed overrides live there.
+``RuleSource``, ``RuleChunk``, ``RulesPackage`` and the manifest remain the
+authoritative 5c source-corpus surfaces.
 """
 
 from __future__ import annotations
@@ -19,107 +29,12 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from afterworlds.models.enums import (
-    MechanicalEntityTypeEnum,
-    OverrideOperationEnum,
-    OverrideOriginEnum,
     PublicationStatusEnum,
     RuleSourceCategoryEnum,
     RulesSystemEnum,
     RuleSubsystemEnum,
     SourceLocatorTypeEnum,
 )
-
-# ---------------------------------------------------------------------------
-# Mechanical entity data models — one distinct typed model per entity_type
-# ---------------------------------------------------------------------------
-
-
-class SpellEntity(BaseModel):
-    """Typed data for a spell mechanical entity (d20 v1 shape).
-
-    Fields reflect what Issue 15 adjudication will need.
-    """
-
-    model_config = ConfigDict(frozen=True)
-
-    casting_time: str
-    range: str
-    duration: str
-    components: tuple[str, ...] = ()
-    effect_description: str
-
-
-class ConditionEntity(BaseModel):
-    """Typed data for a condition mechanical entity."""
-
-    model_config = ConfigDict(frozen=True)
-
-    effects: tuple[str, ...] = ()
-
-
-class StatBlockEntity(BaseModel):
-    """Typed data for a stat block mechanical entity (d20 v1 shape)."""
-
-    model_config = ConfigDict(frozen=True)
-
-    armor_class: int
-    hit_points: int
-    speed: str
-    strength: int
-    dexterity: int
-    constitution: int
-    intelligence: int
-    wisdom: int
-    charisma: int
-    actions: tuple[str, ...] = ()
-
-
-class ActionEntity(BaseModel):
-    """Typed data for an action mechanical entity."""
-
-    model_config = ConfigDict(frozen=True)
-
-    action_type: str
-    description: str
-    attack_bonus: int | None = None
-    effect: str | None = None
-
-
-class ItemEntity(BaseModel):
-    """Typed data for an item mechanical entity (d20 v1 shape)."""
-
-    model_config = ConfigDict(frozen=True)
-
-    item_type: str
-    properties: tuple[str, ...] = ()
-    weight: float | None = None
-    value: str | None = None
-
-
-# Union of all entity data types.  The sole source of truth for which
-# concrete models are valid for ``MechanicalEntity.structured_data``.
-EntityData = SpellEntity | ConditionEntity | StatBlockEntity | ActionEntity | ItemEntity
-
-
-# ---------------------------------------------------------------------------
-# Override payload model
-# ---------------------------------------------------------------------------
-
-
-class ChunkOverridePayload(BaseModel):
-    """Fully typed payload for chunk-targeting RuleOverride records.
-
-    For replace/append operations, ``content`` carries the replacement or
-    appended text.  For disable operations, ``content`` is None.
-
-    Entity-targeting override patch semantics (structured patch shapes for
-    StatBlockEntity, SpellEntity, etc.) are deferred.  In this issue,
-    entity-targeting overrides carry a plain ``{"content": ...}`` payload
-    only.  See ADR-0007.
-    """
-
-    content: str | None = None
-
 
 # ---------------------------------------------------------------------------
 # Source-document model — defined before RulesPackageDetail which references it
@@ -130,8 +45,7 @@ class RuleSource(BaseModel):
     """Source-document metadata within a RulesPackage.
 
     Records where rules came from to support traceability and explicit
-    authority ordering.  Source records are immutable after creation; all
-    layered changes go through ``RuleOverride``.
+    authority ordering.  Source records are immutable after creation.
 
     ``category`` classifies the source type.  ``precedence_rank`` determines
     authority ordering within the package.  These are separate concerns —
@@ -194,7 +108,9 @@ class RuleChunk(BaseModel):
 
     Source provenance is required and non-nullable.  There are no orphaned
     chunks — every chunk belongs to a named RuleSource.  Source records are
-    immutable after creation; layered changes go through RuleOverride.
+    immutable after creation.  A chunk is source text, not mechanical
+    authority: governing prose reaches a consumer only through the typed
+    projection's exact prose binding (#137 contract 6).
     """
 
     model_config = ConfigDict(frozen=True)
@@ -212,146 +128,20 @@ class RuleChunk(BaseModel):
     created_at: datetime
 
 
-# Mapping from entity_type discriminator to the expected structured_data type.
-_ENTITY_TYPE_TO_DATA_CLASS: dict[MechanicalEntityTypeEnum, type] = {
-    MechanicalEntityTypeEnum.SPELL: SpellEntity,
-    MechanicalEntityTypeEnum.CONDITION: ConditionEntity,
-    MechanicalEntityTypeEnum.STAT_BLOCK: StatBlockEntity,
-    MechanicalEntityTypeEnum.ACTION: ActionEntity,
-    MechanicalEntityTypeEnum.ITEM: ItemEntity,
-}
-
-
-# ---------------------------------------------------------------------------
-# Structured mechanical entity
-# ---------------------------------------------------------------------------
-
-
-class MechanicalEntity(BaseModel):
-    """Structured mechanical entity — typed, not a freeform blob.
-
-    ``structured_data`` holds a fully typed model for the given
-    ``entity_type``.  The service layer validates and deserialises to the
-    correct concrete type using ``entity_type`` as the discriminator.
-
-    Source records are immutable after creation; layered changes go through
-    RuleOverride.
-    """
-
-    model_config = ConfigDict(frozen=True)
-
-    entity_id: UUID = Field(default_factory=uuid4)
-    rules_package_id: UUID
-    source_id: UUID  # Required; no orphaned entities
-    entity_type: MechanicalEntityTypeEnum
-    name: str
-    structured_data: EntityData
-    source_document: str  # Non-nullable provenance
-    source_locator_type: SourceLocatorTypeEnum
-    source_locator_value: str  # Non-nullable
-    source_section_label: str | None = None
-    is_enabled: bool = True
-    created_at: datetime
-
-    @model_validator(mode="after")
-    def structured_data_matches_entity_type(self) -> Self:
-        """Ensure structured_data is the concrete type for entity_type."""
-        expected = _ENTITY_TYPE_TO_DATA_CLASS[self.entity_type]
-        if not isinstance(self.structured_data, expected):
-            raise ValueError(
-                f"structured_data type {type(self.structured_data).__name__!r} "
-                f"does not match entity_type {self.entity_type!r} "
-                f"(expected {expected.__name__!r})"
-            )
-        return self
-
-
-# ---------------------------------------------------------------------------
-# Non-mutating layered override
-# ---------------------------------------------------------------------------
-
-
-class RuleOverride(BaseModel):
-    """Non-mutating layered override record.
-
-    Source records (RuleChunk, MechanicalEntity) are never modified after
-    creation.  All layered changes are expressed as RuleOverride rows.
-
-    Exactly one of ``target_chunk_id`` or ``target_entity_id`` must be set.
-    This invariant is enforced at the model layer and in the database via a
-    check constraint.
-
-    Override precedence resolution lives in the service layer; callers do
-    not reimplement it.
-
-    Entity-targeting override patch semantics (structured patch shapes) are
-    deferred.  Entity-targeting overrides in this issue carry a plain content
-    payload only.  See ADR-0007.
-    """
-
-    override_id: UUID = Field(default_factory=uuid4)
-    rules_package_id: UUID
-    target_chunk_id: UUID | None = None
-    target_entity_id: UUID | None = None
-    override_origin: OverrideOriginEnum
-    override_operation: OverrideOperationEnum
-    # JSON-serialised payload.  For chunk targets: ChunkOverridePayload.
-    # For entity targets: {"content": "<text>"} (deferred typed patch shape).
-    override_payload: str
-    precedence: int
-    is_enabled: bool = True
-    created_at: datetime
-
-    @model_validator(mode="after")
-    def exactly_one_target(self) -> Self:
-        """Exactly one of target_chunk_id or target_entity_id must be set."""
-        chunk_set = self.target_chunk_id is not None
-        entity_set = self.target_entity_id is not None
-        if chunk_set == entity_set:
-            raise ValueError(
-                "Exactly one of target_chunk_id or target_entity_id must be set; "
-                f"got chunk={self.target_chunk_id!r}, entity={self.target_entity_id!r}"
-            )
-        return self
-
-
 # ---------------------------------------------------------------------------
 # Service return types — stable named Pydantic models
 # ---------------------------------------------------------------------------
 
 
 class ChunksResult(BaseModel):
-    """Return type for RulesPackageService.get_chunks_by_subsystem."""
+    """Return type for RulesPackageService.get_chunks_by_subsystem.
+
+    Informational source-corpus read only; never mechanical authority.
+    """
 
     package_id: UUID
     subsystem: RuleSubsystemEnum
     chunks: list[RuleChunk]
-
-
-class AppliedChunk(BaseModel):
-    """A rule chunk with active overrides applied in precedence order."""
-
-    model_config = ConfigDict(frozen=True)
-
-    chunk: RuleChunk
-    applied_content: str  # Content after override layering; empty if disabled
-    is_disabled: bool  # True when a disable override is active
-    override_ids_applied: tuple[UUID, ...]
-
-
-class AppliedEntity(BaseModel):
-    """A mechanical entity with active overrides recorded.
-
-    Entity override patch semantics are deferred (see ADR-0007).  This
-    records which overrides are active; the Context Builder applies them
-    when structured patch shapes are defined in the issue that first
-    requires them.
-    """
-
-    model_config = ConfigDict(frozen=True)
-
-    entity: MechanicalEntity
-    override_ids_applied: tuple[UUID, ...]
 
 
 class RulesPackageManifest(BaseModel):
@@ -436,7 +226,7 @@ class RuleSliceRequest(BaseModel):
     added here now.  See PR Architecture Notes for scope rationale.
 
     CRD Issue 5d extends this same model rather than introducing a parallel
-    request type (#137 contract 6).  Three things changed:
+    request type (#137 contract 6).  These things changed:
 
     * **The package reference may be a UUID or a human-facing slug, and exactly
       one of them must be supplied.**  ``package_slug`` resolves through the one
@@ -450,17 +240,21 @@ class RuleSliceRequest(BaseModel):
       does not set it is ``INVALID_SELECTOR`` — refused at construction, so the
       accidentally-empty selector cannot reach a service and come back as an
       empty result that reads like "no rules apply".
+    * **The legacy selectors are gone** (final cutover).  ``subsystem_tags``,
+      ``entity_refs`` and ``include_non_published`` selected obsolete chunk and
+      ``MechanicalEntity`` content and had no meaning on the typed path;
+      accepting and then ignoring them would let a request read as selecting
+      something it does not.  A request built from them alone now fails as an
+      empty selector set.
     """
 
-    model_config = ConfigDict(frozen=True)
+    #: ``extra="forbid"``: a retired selector (``subsystem_tags``,
+    #: ``entity_refs``, ``include_non_published``) or any other unknown field is
+    #: refused rather than silently dropped.
+    model_config = ConfigDict(frozen=True, extra="forbid")
 
     package_id: UUID | None = None
     package_slug: str | None = None
-    subsystem_tags: list[RuleSubsystemEnum] = Field(default_factory=list)
-    entity_refs: list[tuple[MechanicalEntityTypeEnum, str]] = Field(
-        default_factory=list
-    )
-    include_non_published: bool = False
 
     #: A previously recorded binding to revalidate.  Supplied by a consumer that
     #: stored one; runtime resolution reports ``STALE`` when it no longer
@@ -487,36 +281,46 @@ class RuleSliceRequest(BaseModel):
         """Refuse the accidentally empty selector set (#137 contract 6)."""
         if self.whole_package:
             return self
-        if (
-            self.subsystem_tags
-            or self.entity_refs
-            or self.record_selectors
-            or self.component_selectors
-        ):
+        if self.record_selectors or self.component_selectors:
             return self
         raise ValueError(
-            "rule slice request selects nothing: supply subsystem tags, entity "
-            "refs, record/component selectors, or set whole_package=True"
+            "rule slice request selects nothing: supply record/component "
+            "selectors or set whole_package=True"
         )
 
 
 class ActiveRuleSlice(BaseModel):
-    """Stable named typed payload returned by get_active_rule_slice.
+    """The binding-bearing rule slice the Context Builder consumes.
 
-    This is the return type the Context Builder (Issue 8) will consume.
-    It contains rule chunks filtered by subsystem and specific mechanical
-    entities, with chunk override layering applied in precedence order.
+    Returned by ``RulesPackageService.get_active_rule_slice`` — the existing
+    production path, extended at the final CRD Issue 5d cutover (#137 contract
+    6) to read the accepted typed mechanical authority instead of legacy chunks
+    and ``MechanicalEntity`` rows.
 
-    Deterministic lookup against provided subsystem/entity references only.
-    Not a semantic search result — semantic retrieval belongs to Issue 18.
+    * ``binding`` is the exact four-component effective binding that produced
+      this slice.
+    * ``request`` is the supplying request, unchanged: its package reference,
+      selectors, ``whole_package`` flag and any recorded binding keep their
+      identity and meaning, so a consumer can see exactly what was asked.
+    * ``components`` lists the ``(record_key, component_key)`` pairs read, in
+      the GameMaster view's source reading order.
+    * ``authority_text`` is the deterministic rendering of the GameMaster
+      authority view for prompt inclusion: exact governing prose (source or
+      authored, with provenance) and structured context.
 
-    Frozen with tuple collections so that ``StablePrefix.rules_package_slice``
-    is effectively deeply immutable: pipeline passes cannot append/remove
-    chunks or entities, nor reassign fields on ``AppliedChunk``/``AppliedEntity``.
+    A consumer that needs typed facts re-reads them through
+    ``RulesAuthorityService`` with ``binding`` as the request's
+    ``recorded_binding``; that read is also its stale check. The typed views
+    themselves are not held here because the model layer cannot import the
+    service layer.
+
+    Frozen so that ``StablePrefix.rules_package_slice`` stays immutable across
+    pipeline passes.
     """
 
     model_config = ConfigDict(frozen=True)
 
-    package_id: UUID
-    chunks: tuple[AppliedChunk, ...]
-    entities: tuple[AppliedEntity, ...]
+    binding: RulesPackageBinding
+    request: RuleSliceRequest
+    components: tuple[tuple[str, str], ...]
+    authority_text: str

@@ -311,7 +311,7 @@ class _PerTurnContextBuilder:
                 retrieval_memory=self._retrieval_memory,
                 rules_package_service=RulesPackageService(session),
             )
-            return per_turn_builder.assemble(
+            assembled = per_turn_builder.assemble(
                 story_id,
                 mode,
                 current_input,
@@ -319,6 +319,14 @@ class _PerTurnContextBuilder:
                 rule_slice_request,
                 retrieval_query_request,
             )
+            # Context assembly reads only, except that resolving a rule slice's
+            # binding retains its override-set version in this session
+            # (ADR-005d Decision 9: the caller owns that commit). Committing it
+            # keeps the binding the stable prefix names replayable. This runs
+            # before the orchestrator opens the turn's outer transaction.
+            if assembled.stable_prefix.rules_package_slice is not None:
+                session.commit()
+            return assembled
         finally:
             session.close()
 

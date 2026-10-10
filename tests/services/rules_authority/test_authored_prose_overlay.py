@@ -41,7 +41,6 @@ from afterworlds.ingestion.mechanical.representation import (
 from afterworlds.models.enums import OverrideOperationEnum, OverrideOriginEnum
 from afterworlds.models.rules_package import RuleSliceRequest
 from afterworlds.persistence.orm.rules_authority import MechanicalOverrideORM
-from afterworlds.persistence.orm.rules_package import RuleOverrideORM
 from afterworlds.services.rules_authority import (
     AuthorityOutcome,
     MechanicalTarget,
@@ -1833,34 +1832,28 @@ def test_append_component_may_declare_mixed_with_facts_and_authored_prose(
 # ---------------------------------------------------------------------------
 
 
-def test_a_legacy_chunk_override_does_not_alter_the_new_authority_views(
+def test_no_legacy_chunk_override_surface_remains_to_alter_the_views(
     runtime: RuntimeFixture,
 ) -> None:
-    """The service never reads ``rp_overrides`` (docstring guarantee, pinned)."""
-    typed_before = typed_component(runtime, SPELL_KEY, OPEN_ENDED_KEY)
-    gm_before = gm_component(runtime, OPEN_ENDED_KEY)
+    """AC25's legacy clause, after the final cutover retired the legacy path.
 
-    runtime.session.add(
-        RuleOverrideORM(
-            override_id="legacy-chunk-override",
-            rules_package_id=str(runtime.package_uuid),
-            target_chunk_id=WISH_CHUNK,
-            target_entity_id=None,
-            override_origin="house_rule",
-            override_operation="replace",
-            override_payload='{"content": "a legacy chunk edit"}',
-            precedence=1,
-            is_enabled=True,
-            created_at=NOW,
-        )
-    )
-    runtime.session.flush()
+    This used to write an ``rp_overrides`` row and prove the views ignored it.
+    The final CRD Issue 5d cutover (#137 contract 6, AC22) removed that table,
+    its ORM and its model, so there is no legacy chunk-targeting override left
+    that could alter the effective authority: the store has no such table, the
+    ORM registers none, and the views read exact source prose unaltered.
+    """
+    import sqlalchemy as sa
 
-    typed_after = typed_component(runtime, SPELL_KEY, OPEN_ENDED_KEY)
-    gm_after = gm_component(runtime, OPEN_ENDED_KEY)
-    assert typed_after == typed_before
-    assert gm_after == gm_before
-    (source,) = gm_after.governing_prose
+    import afterworlds.persistence.orm.rules_package as legacy_orm
+    from afterworlds.persistence.orm.base import Base
+
+    assert "rp_overrides" not in sa.inspect(runtime.engine).get_table_names()
+    assert "rp_overrides" not in Base.metadata.tables
+    assert not hasattr(legacy_orm, "RuleOverrideORM")
+
+    gm = gm_component(runtime, OPEN_ENDED_KEY)
+    (source,) = gm.governing_prose
     assert isinstance(source, SourceProse)
     assert source.text == PROSE_TEXT
 

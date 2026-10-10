@@ -78,7 +78,7 @@ from afterworlds.pipeline.rpg.models import (
 
 if TYPE_CHECKING:
     from afterworlds.models.character_sheet import Dnd5eCharacterSheet
-    from afterworlds.models.rules_package import ActiveRuleSlice, RuleOverride
+    from afterworlds.models.rules_package import ActiveRuleSlice
     from afterworlds.models.session import RpgSessionState
     from afterworlds.pipeline.provider._protocol import ProviderAdapter
     from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
@@ -186,7 +186,6 @@ class RpgAdjudicationPassService:
         dice_service: DiceService,
         *,
         provider: ProviderAdapter,
-        overrides: list[RuleOverride] | None = None,
         story_id: UUID,
         originating_turn_id: UUID,
         pending_roll: PendingRollRequest | None = None,
@@ -201,7 +200,6 @@ class RpgAdjudicationPassService:
             sheet: Active Dnd5eCharacterSheet for modifier assembly.
             dice_service: Injected DiceService for roll randomness.
             provider: ProviderAdapter for the LLM call (normal path only).
-            overrides: Active RuleOverrides for the session.  Defaults to [].
             story_id: Story UUID, forwarded to PendingRollRequest.
             originating_turn_id: Turn UUID for audit and PendingRollRequest.
             pending_roll: Non-None on the consume path — the PendingRollRequest
@@ -218,7 +216,6 @@ class RpgAdjudicationPassService:
             AdjudicationPassError: LLM call failure, missing tool block, schema
                 validation failure, or adapter error on normal path.
         """
-        _overrides: list[RuleOverride] = overrides or []
         rule_slice: ActiveRuleSlice | None = (
             built_context.stable_prefix.rules_package_slice
         )
@@ -229,7 +226,6 @@ class RpgAdjudicationPassService:
                 pending_roll,
                 player_reported_total,
                 rule_slice,
-                _overrides,
                 session_state,
             )
 
@@ -240,7 +236,6 @@ class RpgAdjudicationPassService:
             sheet,
             dice_service,
             provider=provider,
-            overrides=_overrides,
             rule_slice=rule_slice,
             story_id=story_id,
             originating_turn_id=originating_turn_id,
@@ -255,7 +250,6 @@ class RpgAdjudicationPassService:
         pending: PendingRollRequest,
         reported_total: int,
         rule_slice: ActiveRuleSlice | None,
-        overrides: list[RuleOverride],
         session_state: RpgSessionState,
     ) -> AdjudicationPassResult:
         """Resolve a player-reported roll against the stored PendingRollRequest.
@@ -267,7 +261,6 @@ class RpgAdjudicationPassService:
                 pending,
                 reported_total,
                 rule_slice,
-                overrides,
                 session_state.gm_cheating,
             )
         except PlayerRollValueError as exc:
@@ -293,7 +286,6 @@ class RpgAdjudicationPassService:
         dice_service: DiceService,
         *,
         provider: ProviderAdapter,
-        overrides: list[RuleOverride],
         rule_slice: ActiveRuleSlice | None,
         story_id: UUID,
         originating_turn_id: UUID,
@@ -355,7 +347,6 @@ class RpgAdjudicationPassService:
                     coerced,
                     sheet,
                     rule_slice,
-                    overrides,
                     story_id=story_id,
                     session_id=session_state.session_id,
                     originating_turn_id=originating_turn_id,
@@ -368,7 +359,6 @@ class RpgAdjudicationPassService:
                         coerced,
                         sheet,
                         rule_slice,
-                        overrides,
                         dice_service,
                         session_state.gm_cheating,
                     )

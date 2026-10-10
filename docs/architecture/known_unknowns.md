@@ -287,6 +287,27 @@ implementation and historical schema work below
 are not evidence that the new policy is already implemented. No new corpus acceptance, publication,
 activation, or merge is implied by this decision.
 
+**Current state, 10 October 2026: supersedes the status statements below; the history below is kept.**
+- **Accepted.** The restart's complete replacement corpus is accepted: the 8781 release-order recording,
+  with 24 batches, 1,835 records and 1,486 reference resolutions.
+- **Published and active locally.** Projection `1f0db408-ee07-5e8d-897d-29838d614c53` is published and
+  active in the local runtime stores.
+- **Smoke.** A bounded app smoke passed its boot and native-read checks.
+- **Discharged.** CRD Issue 5c's (#132) source and release outcomes.
+- **Not complete.** CRD Issue 5d is not complete. The smoke found two settled, issue-scoped
+  obligations on merged main `71c77b2`; neither is a Known Unknown or needs a new Owner Decision:
+  1. the existing `RuleSliceRequest` / `get_active_rule_slice` consumer cutover under contract 6;
+  2. the final `MechanicalEntity` and legacy chunk/entity override retirement under AC22.
+
+  Both are implemented in this bounded PR (branch `codex/5d-final-cutover`; migration `0037` drops
+  `rp_overrides` and `rp_mechanical_entities`); Codex implementation review completed; required
+  exact-head CI and Owner merge pending. Separately authorized runtime migration/verification and
+  the Owner's restart-completion assessment follow the merge.
+- The downstream boundaries in this entry (2b, 15c) are unchanged.
+- See `/docs/architecture/issue-5c-5d-clean-restart.md`,
+  `.claude/review-notes/issue-5c-5d-runtime-smoke.md` and
+  `.claude/review-notes/issue-5d-final-cutover.md`.
+
 **In progress — typed Rules Package authority (CRD Issue 5d, #137).** CRD Issue 5d is under
 construction and is **not complete**. Landed so far: span-exact semantic accounting, the closed typed
 representation, the persistence → reconstruction → digest → gate → publication lifecycle and its exact

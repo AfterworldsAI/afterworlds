@@ -13,11 +13,15 @@ ARCHITECTURE INVARIANT:
 
   ``rp_*`` tables may carry FKs to other ``rp_*`` tables — this is
   intra-subsystem cohesion, not cross-subsystem coupling.
+
+Final CRD Issue 5d cutover (#137 contract 6, AC22): ``rp_mechanical_entities``
+(the obsolete prose-only ``MechanicalEntity`` family) and ``rp_overrides`` (the
+legacy chunk/entity override authority) are dropped by migration 0037. Typed
+mechanical overrides live in ``rp_mech_overrides``; see
+:mod:`afterworlds.persistence.orm.rules_authority`.
 """
 
 from __future__ import annotations
-
-from typing import Any
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column
@@ -69,9 +73,10 @@ class RuleSourceORM(Base):
             "name",
             name="uq_rp_sources_name",
         ),
-        # Required for composite FK targets from rp_chunks and
-        # rp_mechanical_entities.  SQLAlchemy / SQLite require the referenced
-        # column set to be covered by a UNIQUE constraint.  Since source_id is
+        # Required for the composite FK target from rp_chunks (formerly also
+        # rp_mechanical_entities, dropped in 0037).  SQLAlchemy / SQLite
+        # require the referenced column set to be covered by a UNIQUE
+        # constraint.  Since source_id is
         # already a UUID PK (globally unique), this constraint is redundant as a
         # uniqueness guard but cannot be dropped without breaking the composite
         # FK references above.
@@ -134,50 +139,6 @@ class RuleChunkORM(Base):
     created_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
 
 
-class MechanicalEntityORM(Base):
-    """Persisted MechanicalEntity row — immutable after creation.
-
-    ``structured_data`` is a JSON column holding the typed entity data dict.
-    The service layer deserialises it to the correct typed Pydantic model
-    using ``entity_type`` as the discriminator.
-
-    ``source_id`` is non-nullable by design.  See ADR-0008.
-    Source provenance fields are non-nullable.
-    """
-
-    __tablename__ = "rp_mechanical_entities"
-    __table_args__ = (
-        sa.UniqueConstraint(
-            "rules_package_id",
-            "entity_id",
-            name="uq_rp_entities_package_entity",
-        ),
-        sa.ForeignKeyConstraint(
-            ["rules_package_id", "source_id"],
-            ["rp_sources.rules_package_id", "rp_sources.source_id"],
-            ondelete="CASCADE",
-            name="fk_rp_mechanical_entities_package_source",
-        ),
-    )
-
-    entity_id: Mapped[str] = mapped_column(sa.String(36), primary_key=True)
-    rules_package_id: Mapped[str] = mapped_column(
-        sa.String(36),
-        sa.ForeignKey("rp_packages.rules_package_id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    source_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
-    entity_type: Mapped[str] = mapped_column(sa.String(32), nullable=False)
-    name: Mapped[str] = mapped_column(sa.Text, nullable=False)
-    structured_data: Mapped[dict[str, Any]] = mapped_column(sa.JSON, nullable=False)
-    source_document: Mapped[str] = mapped_column(sa.Text, nullable=False)
-    source_locator_type: Mapped[str] = mapped_column(sa.String(32), nullable=False)
-    source_locator_value: Mapped[str] = mapped_column(sa.Text, nullable=False)
-    source_section_label: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
-    is_enabled: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
-    created_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
-
-
 class RulesPackageManifestORM(Base):
     """Persisted RulesPackageManifest row — one per package, publication gate.
 
@@ -219,58 +180,3 @@ class RulesPackageManifestORM(Base):
     )
     created_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     updated_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
-
-
-class RuleOverrideORM(Base):
-    """Persisted RuleOverride row — non-mutating layered override record.
-
-    Exactly one of ``target_chunk_id`` or ``target_entity_id`` must be set.
-    Enforced by a DB-level check constraint and the Pydantic model validator.
-
-    Override precedence resolution lives in the service layer.
-    """
-
-    __tablename__ = "rp_overrides"
-    __table_args__ = (
-        sa.CheckConstraint(
-            "(target_chunk_id IS NULL AND target_entity_id IS NOT NULL)"
-            " OR (target_chunk_id IS NOT NULL AND target_entity_id IS NULL)",
-            name="ck_rp_overrides_exactly_one_target",
-        ),
-        # Composite FKs enforce that target belongs to the same package as
-        # the override.  NULL target_chunk_id / target_entity_id is exempt
-        # from FK checking per SQL standard (the other column is set instead).
-        sa.ForeignKeyConstraint(
-            ["rules_package_id", "target_chunk_id"],
-            ["rp_chunks.rules_package_id", "rp_chunks.chunk_id"],
-            ondelete="CASCADE",
-            name="fk_rp_overrides_package_chunk",
-        ),
-        sa.ForeignKeyConstraint(
-            ["rules_package_id", "target_entity_id"],
-            [
-                "rp_mechanical_entities.rules_package_id",
-                "rp_mechanical_entities.entity_id",
-            ],
-            ondelete="CASCADE",
-            name="fk_rp_overrides_package_entity",
-        ),
-    )
-
-    override_id: Mapped[str] = mapped_column(sa.String(36), primary_key=True)
-    rules_package_id: Mapped[str] = mapped_column(
-        sa.String(36),
-        sa.ForeignKey("rp_packages.rules_package_id", ondelete="CASCADE"),
-        nullable=False,
-    )
-    target_chunk_id: Mapped[str | None] = mapped_column(sa.String(36), nullable=True)
-    target_entity_id: Mapped[str | None] = mapped_column(sa.String(36), nullable=True)
-    override_origin: Mapped[str] = mapped_column(sa.String(32), nullable=False)
-    override_operation: Mapped[str] = mapped_column(sa.String(32), nullable=False)
-    # JSON-serialised payload string.
-    # Chunk targets: serialised ChunkOverridePayload.
-    # Entity targets: {"content": "<text>"} — deferred structured patch shape.
-    override_payload: Mapped[str] = mapped_column(sa.Text, nullable=False)
-    precedence: Mapped[int] = mapped_column(sa.Integer, nullable=False)
-    is_enabled: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=True)
-    created_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)

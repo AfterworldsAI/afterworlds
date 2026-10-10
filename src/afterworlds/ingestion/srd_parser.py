@@ -1,7 +1,13 @@
 """SRD structured JSON parser — ingestion pipeline component.
 
 Parses a structured SRD data dict (loaded from JSON) into ``ParsedChunk``
-and ``ParsedEntity`` dataclasses for the ingestion service to persist.
+dataclasses for the ingestion service to persist.
+
+The ``entities`` array of the obsolete prose-only ``MechanicalEntity`` family is
+no longer accepted: that authority path was retired at the final CRD Issue 5d
+cutover (#137 contract 6, AC22). An input that still carries the key — even an
+empty array — is refused rather than silently ignored, so pre-cutover data
+cannot appear to ingest.
 
 Input format
 ------------
@@ -15,33 +21,14 @@ Input format
       "page_ref": "str"
     },
     ...
-  ],
-  "entities": [
-    {
-      "entity_type": "<MechanicalEntityTypeEnum value>",
-      "name": "str",
-      "subsystem": "<RuleSubsystemEnum value>",
-      "section_path": "str",
-      "page_ref": "str",
-      "data": { ... }
-    },
-    ...
   ]
 }
-
-Entity data shapes
-------------------
-- spell      → SpellEntity fields
-- condition  → ConditionEntity fields
-- stat_block → StatBlockEntity fields
-- action     → ActionEntity fields
-- item       → ItemEntity fields
 
 Raises
 ------
 ParseError
-    Raised for unrecognised subsystem or entity_type values, and for entity
-    data that fails validation against the expected typed model.
+    Raised for unrecognised subsystem values, a missing section path, or a
+    retired ``entities`` array.
 """
 
 from __future__ import annotations
@@ -49,17 +36,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from pydantic import ValidationError
-
-from afterworlds.models.enums import MechanicalEntityTypeEnum, RuleSubsystemEnum
-from afterworlds.models.rules_package import (
-    ActionEntity,
-    ConditionEntity,
-    EntityData,
-    ItemEntity,
-    SpellEntity,
-    StatBlockEntity,
-)
+from afterworlds.models.enums import RuleSubsystemEnum
 
 # ---------------------------------------------------------------------------
 # Parsed output dataclasses
@@ -77,18 +54,6 @@ class ParsedChunk:
     page_ref: str
 
 
-@dataclass
-class ParsedEntity:
-    """Parsed mechanical entity ready for persistence."""
-
-    entity_type: MechanicalEntityTypeEnum
-    name: str
-    subsystem: RuleSubsystemEnum
-    section_path: str
-    page_ref: str
-    data: EntityData
-
-
 # ---------------------------------------------------------------------------
 # Error type
 # ---------------------------------------------------------------------------
@@ -102,19 +67,7 @@ class ParseError(Exception):
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-_ENTITY_TYPE_MAP: dict[str, MechanicalEntityTypeEnum] = {
-    e.value: e for e in MechanicalEntityTypeEnum
-}
-
 _SUBSYSTEM_MAP: dict[str, RuleSubsystemEnum] = {s.value: s for s in RuleSubsystemEnum}
-
-_ENTITY_DATA_MODELS: dict[MechanicalEntityTypeEnum, type[EntityData]] = {
-    MechanicalEntityTypeEnum.SPELL: SpellEntity,
-    MechanicalEntityTypeEnum.CONDITION: ConditionEntity,
-    MechanicalEntityTypeEnum.STAT_BLOCK: StatBlockEntity,
-    MechanicalEntityTypeEnum.ACTION: ActionEntity,
-    MechanicalEntityTypeEnum.ITEM: ItemEntity,
-}
 
 
 def _parse_subsystem(raw: str) -> RuleSubsystemEnum:
@@ -127,41 +80,18 @@ def _parse_subsystem(raw: str) -> RuleSubsystemEnum:
         ) from None
 
 
-def _parse_entity_type(raw: str) -> MechanicalEntityTypeEnum:
-    try:
-        return _ENTITY_TYPE_MAP[raw]
-    except KeyError:
-        valid = sorted(_ENTITY_TYPE_MAP.keys())
-        raise ParseError(
-            f"Unrecognised entity_type {raw!r}. Valid values: {valid}"
-        ) from None
-
-
-def _validate_entity_data(
-    entity_type: MechanicalEntityTypeEnum, raw_data: dict[str, Any]
-) -> EntityData:
-    model_cls = _ENTITY_DATA_MODELS[entity_type]
-    try:
-        return model_cls.model_validate(raw_data)
-    except ValidationError as exc:
-        raise ParseError(
-            f"Entity data validation failed for entity_type={entity_type!r}: {exc}"
-        ) from exc
-
-
 # ---------------------------------------------------------------------------
 # Public parser
 # ---------------------------------------------------------------------------
 
 
 class SRDParser:
-    """Parses structured SRD JSON into ParsedChunk and ParsedEntity records.
+    """Parses structured SRD JSON into ParsedChunk records.
 
     Usage::
 
         parser = SRDParser()
         chunks = list(parser.parse_chunks(srd_data))
-        entities = list(parser.parse_entities(srd_data))
     """
 
     def parse_chunks(self, srd_data: dict[str, Any]) -> list[ParsedChunk]:
@@ -180,8 +110,15 @@ class SRDParser:
         Raises
         ------
         ParseError
-            For unrecognised subsystem values or missing/blank section_path.
+            For unrecognised subsystem values, missing/blank section_path, or
+            a retired ``entities`` array.
         """
+        if "entities" in srd_data:
+            raise ParseError(
+                "the 'entities' array is the retired MechanicalEntity authority "
+                "path (CRD Issue 5d final cutover); typed mechanical authority "
+                "comes only from the accepted 5d projection"
+            )
         sections = srd_data.get("sections", [])
         chunks: list[ParsedChunk] = []
         for i, section in enumerate(sections):
@@ -209,57 +146,3 @@ class SRDParser:
                 )
             )
         return chunks
-
-    def parse_entities(self, srd_data: dict[str, Any]) -> list[ParsedEntity]:
-        """Parse the ``entities`` array into ParsedEntity records.
-
-        Parameters
-        ----------
-        srd_data:
-            The top-level SRD data dict loaded from JSON.
-
-        Returns
-        -------
-        list[ParsedEntity]
-            One ParsedEntity per valid entity entry.
-
-        Raises
-        ------
-        ParseError
-            For unrecognised entity_type/subsystem, data validation failure,
-            or missing/blank section_path.
-        """
-        entities_raw = srd_data.get("entities", [])
-        entities: list[ParsedEntity] = []
-        for i, ent in enumerate(entities_raw):
-            name = str(ent.get("name", ""))
-            raw_entity_type = str(ent.get("entity_type", ""))
-            raw_subsystem = str(ent.get("subsystem", ""))
-            raw_section_path = ent.get("section_path", "")
-            page_ref = str(ent.get("page_ref", ""))
-            section_path = str(raw_section_path).strip() if raw_section_path else ""
-            if not section_path:
-                raise ParseError(
-                    f"Entity[{i}] ({name!r}): section_path is missing or blank"
-                )
-            raw_data: dict[str, Any] = ent.get("data", {})
-            try:
-                entity_type = _parse_entity_type(raw_entity_type)
-            except ParseError as exc:
-                raise ParseError(f"Entity[{i}] ({name!r}): {exc}") from exc
-            try:
-                subsystem = _parse_subsystem(raw_subsystem)
-            except ParseError as exc:
-                raise ParseError(f"Entity[{i}] ({name!r}): {exc}") from exc
-            data = _validate_entity_data(entity_type, raw_data)
-            entities.append(
-                ParsedEntity(
-                    entity_type=entity_type,
-                    name=name,
-                    subsystem=subsystem,
-                    section_path=section_path,
-                    page_ref=page_ref,
-                    data=data,
-                )
-            )
-        return entities

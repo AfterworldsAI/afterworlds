@@ -1,17 +1,24 @@
 """Comprehensive tests for CRD Issue 5b — Rules Package Ingestion Pipeline.
 
 Tests cover:
-- Ingestion correctness: RuleSource, RuleChunk, MechanicalEntity records
+- Ingestion correctness: RuleSource and RuleChunk records
 - Per-record provenance (source_document, source_locator_type, source_locator_value)
 - Manifest persistence, uniqueness, and field population
 - Re-run idempotency (no duplicate records)
 - Publication gate (fail on incomplete ingest/vector/missing manifest)
 - Package transition to published on publish()
 - Play-time query exclusion of draft packages
-- Override immutability (source chunks unchanged after override)
-- Read surface: get_chunks_by_subsystem, get_entity_by_type_and_name,
-  get_active_rule_slice
+- Re-ingestion immutability (existing source chunks never rewritten)
+- Read surface: get_chunks_by_subsystem (informational source reads)
 - Vector index: ChromaDB collection populated; basic query returns results
+
+The final CRD Issue 5d cutover (#137 contract 6, AC22) retired the obsolete
+``MechanicalEntity`` family and the legacy chunk/entity ``RuleOverride``
+authority. Tests that graded entity ingestion, entity provenance and dedup,
+entity parsing, entity lookup, legacy override non-mutation and the legacy
+``get_active_rule_slice`` were deleted with that output. The parser now refuses
+an ``entities`` array (see the atomicity test), and the typed rule-slice path is
+covered by ``tests/services/rules_authority/test_rule_slice_consumer_cutover.py``.
 """
 
 from __future__ import annotations
@@ -36,7 +43,6 @@ from afterworlds.ingestion.ingestion_service import (
 from afterworlds.ingestion.srd_parser import ParseError, SRDParser
 from afterworlds.ingestion.vector_writer import VectorWriter
 from afterworlds.models.enums import (
-    MechanicalEntityTypeEnum,
     PublicationStatusEnum,
     RuleSubsystemEnum,
 )
@@ -44,7 +50,6 @@ from afterworlds.models.rules_package import IngestionConfig
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.persistence.orm.base import Base
 from afterworlds.persistence.orm.rules_package import (
-    MechanicalEntityORM,
     RuleChunkORM,
     RuleSourceORM,
     RulesPackageManifestORM,
@@ -105,11 +110,10 @@ def ingestion_config() -> IngestionConfig:
 
 @pytest.fixture()
 def srd_data_fixture() -> dict[str, Any]:
-    """Minimal SRD data fixture with all 8 subsystems and required entity counts.
+    """Minimal SRD data fixture with all 8 subsystems.
 
     Contains:
     - 3+ sections per subsystem (24+ total sections)
-    - 3 spells, 3 conditions, 2 items, 1 stat_block, 1 action
     - All 8 subsystems represented
     """
     sections = [
@@ -291,155 +295,7 @@ def srd_data_fixture() -> dict[str, Any]:
         },
     ]
 
-    entities = [
-        # 3 spells
-        {
-            "entity_type": "spell",
-            "name": "Fireball",
-            "subsystem": "spells",
-            "section_path": "spells/fireball",
-            "page_ref": "p. 241",
-            "data": {
-                "casting_time": "1 action",
-                "range": "150 feet",
-                "duration": "Instantaneous",
-                "components": ["V", "S", "M"],
-                "effect_description": "8d6 fire damage in 20-foot sphere.",
-            },
-        },
-        {
-            "entity_type": "spell",
-            "name": "Magic Missile",
-            "subsystem": "spells",
-            "section_path": "spells/magic-missile",
-            "page_ref": "p. 257",
-            "data": {
-                "casting_time": "1 action",
-                "range": "120 feet",
-                "duration": "Instantaneous",
-                "components": ["V", "S"],
-                "effect_description": "Three darts, 1d4+1 force damage each.",
-            },
-        },
-        {
-            "entity_type": "spell",
-            "name": "Cure Wounds",
-            "subsystem": "spells",
-            "section_path": "spells/cure-wounds",
-            "page_ref": "p. 230",
-            "data": {
-                "casting_time": "1 action",
-                "range": "Touch",
-                "duration": "Instantaneous",
-                "components": ["V", "S"],
-                "effect_description": "Restore 1d8 + modifier hit points.",
-            },
-        },
-        # 3 conditions
-        {
-            "entity_type": "condition",
-            "name": "Blinded",
-            "subsystem": "conditions",
-            "section_path": "conditions/blinded",
-            "page_ref": "p. 290",
-            "data": {
-                "effects": [
-                    "Cannot see; auto-fail sight-based checks.",
-                    "Attacks against have advantage.",
-                    "Own attacks have disadvantage.",
-                ]
-            },
-        },
-        {
-            "entity_type": "condition",
-            "name": "Charmed",
-            "subsystem": "conditions",
-            "section_path": "conditions/charmed",
-            "page_ref": "p. 290",
-            "data": {
-                "effects": [
-                    "Cannot attack charmer.",
-                    "Charmer has social advantage.",
-                ]
-            },
-        },
-        {
-            "entity_type": "condition",
-            "name": "Frightened",
-            "subsystem": "conditions",
-            "section_path": "conditions/frightened",
-            "page_ref": "p. 290",
-            "data": {
-                "effects": [
-                    "Disadvantage on attack rolls and ability checks near fear source.",
-                    "Cannot willingly move closer to fear source.",
-                ]
-            },
-        },
-        # 2 items
-        {
-            "entity_type": "item",
-            "name": "Longsword",
-            "subsystem": "items",
-            "section_path": "items/longsword",
-            "page_ref": "p. 149",
-            "data": {
-                "item_type": "martial melee weapon",
-                "properties": ["versatile (1d10)"],
-                "weight": 3.0,
-                "value": "15 gp",
-            },
-        },
-        {
-            "entity_type": "item",
-            "name": "Chain Mail",
-            "subsystem": "items",
-            "section_path": "items/chain-mail",
-            "page_ref": "p. 145",
-            "data": {
-                "item_type": "heavy armor",
-                "properties": ["AC 16", "Str 13 required"],
-                "weight": 55.0,
-                "value": "75 gp",
-            },
-        },
-        # 1 stat_block
-        {
-            "entity_type": "stat_block",
-            "name": "Goblin",
-            "subsystem": "general",
-            "section_path": "monsters/goblin",
-            "page_ref": "p. 315",
-            "data": {
-                "armor_class": 15,
-                "hit_points": 7,
-                "speed": "30 ft.",
-                "strength": 8,
-                "dexterity": 14,
-                "constitution": 10,
-                "intelligence": 10,
-                "wisdom": 8,
-                "charisma": 8,
-                "actions": ["Scimitar: +4 to hit, 1d6+2 slashing."],
-            },
-        },
-        # 1 action
-        {
-            "entity_type": "action",
-            "name": "Attack",
-            "subsystem": "combat",
-            "section_path": "combat/actions/attack",
-            "page_ref": "p. 192",
-            "data": {
-                "action_type": "action",
-                "description": "Make one melee or ranged attack.",
-                "attack_bonus": None,
-                "effect": "Make one melee or ranged attack.",
-            },
-        },
-    ]
-
-    return {"sections": sections, "entities": entities}
+    return {"sections": sections}
 
 
 @pytest.fixture()
@@ -486,27 +342,12 @@ class TestIngestionCorrectness:
         assert len(chunks) == ingestion_result.chunks_written
         assert ingestion_result.chunks_written == 24  # 3 per subsystem × 8
 
-    def test_mechanical_entities_created(
-        self, session: Any, ingestion_result: Any
-    ) -> None:
-        """MechanicalEntity records created."""
-        entities = session.execute(select(MechanicalEntityORM)).scalars().all()
-        assert len(entities) == ingestion_result.entities_written
-        assert ingestion_result.entities_written == 10  # 3+3+2+1+1
-
     def test_no_orphaned_chunks(self, session: Any, ingestion_result: Any) -> None:
         """No chunks have null source_id."""
         chunks = session.execute(select(RuleChunkORM)).scalars().all()
         for chunk in chunks:
             assert chunk.source_id is not None
             assert chunk.source_id == ingestion_result.source_id
-
-    def test_no_orphaned_entities(self, session: Any, ingestion_result: Any) -> None:
-        """No entities have null source_id."""
-        entities = session.execute(select(MechanicalEntityORM)).scalars().all()
-        for ent in entities:
-            assert ent.source_id is not None
-            assert ent.source_id == ingestion_result.source_id
 
     def test_all_8_subsystems_have_chunks(
         self, session: Any, ingestion_result: Any
@@ -533,24 +374,21 @@ class TestIngestionCorrectness:
 
 
 class TestIngestionAtomicity:
-    def test_parse_error_in_entities_leaves_no_partial_state(
+    def test_retired_entities_array_is_refused_with_no_partial_state(
         self,
         session: Any,
         chroma_client: chromadb.ClientAPI,
         ingestion_service: IngestionService,
     ) -> None:
-        """ParseError during entity parsing leaves zero rows in the session.
+        """An input still carrying the retired ``entities`` array writes nothing.
 
-        Regression test for P1: previously parse_chunks() was called and its
-        results flushed to the DB before parse_entities() ran.  A ParseError
-        from bad entity data would then leave partial package/source/chunk rows
-        committed to the transaction, violating the all-or-nothing ingest
-        contract.
-
-        Fix: both parse steps now run before any DB work, so a ParseError
-        aborts with no partial state written.
+        Final CRD Issue 5d cutover (AC22): the ``MechanicalEntity`` path is
+        gone, and its array is refused rather than ignored, so pre-cutover data
+        cannot appear to ingest. Parsing still runs before any DB work, so the
+        refusal leaves no partial package/source/chunk state — the
+        all-or-nothing contract the former entity-parse regression pinned.
         """
-        bad_srd: dict[str, Any] = {
+        retired_srd: dict[str, Any] = {
             "sections": [
                 {
                     "heading": "Attack Rolls",
@@ -567,32 +405,29 @@ class TestIngestionAtomicity:
                     "subsystem": "spells",
                     "section_path": "spells/fireball",
                     "page_ref": "p. 1",
-                    "data": {},  # Missing required fields — triggers ParseError
+                    "data": {},
                 }
             ],
         }
         from afterworlds.ingestion.srd_parser import ParseError
         from afterworlds.persistence.orm.rules_package import (
-            MechanicalEntityORM,
             RuleChunkORM,
             RuleSourceORM,
             RulesPackageManifestORM,
             RulesPackageORM,
         )
 
-        with pytest.raises(ParseError):
+        with pytest.raises(ParseError, match="retired MechanicalEntity"):
             ingestion_service.ingest(
                 session=session,
-                srd_data=bad_srd,
-                source_file_name="bad.json",
+                srd_data=retired_srd,
+                source_file_name="retired.json",
                 chroma_client=chroma_client,
             )
 
-        # No rows should have been written
         assert session.execute(select(RulesPackageORM)).scalars().all() == []
         assert session.execute(select(RuleSourceORM)).scalars().all() == []
         assert session.execute(select(RuleChunkORM)).scalars().all() == []
-        assert session.execute(select(MechanicalEntityORM)).scalars().all() == []
         assert session.execute(select(RulesPackageManifestORM)).scalars().all() == []
 
 
@@ -618,22 +453,6 @@ class TestProvenance:
                 chunk.source_locator_value
             ), f"chunk {chunk.chunk_id} missing source_locator_value"
 
-    def test_entity_provenance_fields_non_null(
-        self, session: Any, ingestion_result: Any
-    ) -> None:
-        """Every entity has non-null source_document, locator_type, locator_value."""
-        entities = session.execute(select(MechanicalEntityORM)).scalars().all()
-        for ent in entities:
-            assert (
-                ent.source_document
-            ), f"entity {ent.entity_id} missing source_document"
-            assert (
-                ent.source_locator_type
-            ), f"entity {ent.entity_id} missing source_locator_type"
-            assert (
-                ent.source_locator_value
-            ), f"entity {ent.entity_id} missing source_locator_value"
-
     def test_chunk_source_document_is_file_name(
         self, session: Any, ingestion_result: Any
     ) -> None:
@@ -641,14 +460,6 @@ class TestProvenance:
         chunks = session.execute(select(RuleChunkORM)).scalars().all()
         for chunk in chunks:
             assert chunk.source_document == "test_srd.json"
-
-    def test_entity_source_document_is_file_name(
-        self, session: Any, ingestion_result: Any
-    ) -> None:
-        """source_document on entities equals the source_file_name passed to ingest."""
-        entities = session.execute(select(MechanicalEntityORM)).scalars().all()
-        for ent in entities:
-            assert ent.source_document == "test_srd.json"
 
 
 # ---------------------------------------------------------------------------
@@ -968,7 +779,7 @@ class TestManifest:
         produce a manifest with both gate flags true and allow publish() to succeed
         on a package containing no usable rules content.
         """
-        empty_data: dict[str, Any] = {"sections": [], "entities": []}
+        empty_data: dict[str, Any] = {"sections": []}
         result = ingestion_service.ingest(
             session=session,
             srd_data=empty_data,
@@ -976,7 +787,6 @@ class TestManifest:
             chroma_client=chroma_client,
         )
         assert result.chunks_written == 0
-        assert result.entities_written == 0
 
         # Manifest must record sql_ingest_complete=False
         m = session.execute(
@@ -1117,29 +927,6 @@ class TestIdempotency:
         chunks = session.execute(select(RuleChunkORM)).scalars().all()
         assert len(chunks) == 24  # same as first run
 
-    def test_rerun_no_duplicate_entities(
-        self,
-        session: Any,
-        srd_data_fixture: dict[str, Any],
-        chroma_client: chromadb.ClientAPI,
-        ingestion_service: IngestionService,
-    ) -> None:
-        """Re-running ingestion does not create duplicate MechanicalEntity records."""
-        ingestion_service.ingest(
-            session=session,
-            srd_data=srd_data_fixture,
-            source_file_name="test_srd.json",
-            chroma_client=chroma_client,
-        )
-        ingestion_service.ingest(
-            session=session,
-            srd_data=srd_data_fixture,
-            source_file_name="test_srd.json",
-            chroma_client=chroma_client,
-        )
-        entities = session.execute(select(MechanicalEntityORM)).scalars().all()
-        assert len(entities) == 10  # same as first run
-
     def test_rerun_no_duplicate_sources(
         self,
         session: Any,
@@ -1185,8 +972,6 @@ class TestIdempotency:
         )
         assert result2.chunks_written == 0
         assert result2.chunks_skipped == 24
-        assert result2.entities_written == 0
-        assert result2.entities_skipped == 10
 
     def test_second_source_with_overlapping_section_paths_creates_new_chunks(
         self,
@@ -1232,48 +1017,6 @@ class TestIdempotency:
         # Total in DB: 2 sources × 24 chunks each
         total = session.execute(select(RuleChunkORM)).scalars().all()
         assert len(total) == 48
-
-    def test_second_source_with_overlapping_entity_names_creates_new_entities(
-        self,
-        session: Any,
-        srd_data_fixture: dict[str, Any],
-        chroma_client: chromadb.ClientAPI,
-        ingestion_service: IngestionService,
-    ) -> None:
-        """Two sources with the same entity names each persist their own rows.
-
-        Regression test for P1 (line 440): before the fix, entity deduplication
-        was keyed only on (entity_type, name) at package scope, so a second
-        source with the same entity names would silently drop all its entities.
-        """
-        result1 = ingestion_service.ingest(
-            session=session,
-            srd_data=srd_data_fixture,
-            source_file_name="test_srd.json",
-            chroma_client=chroma_client,
-        )
-        assert result1.entities_written == 10
-
-        second_config = IngestionConfig(
-            package_name="Test SRD",
-            package_version="5.2.1",
-            system="d20",
-            source_name="Supplement Source",
-            source_category="supplement",
-            source_precedence_rank=2,
-        )
-        second_service = IngestionService(second_config)
-        result2 = second_service.ingest(
-            session=session,
-            srd_data=srd_data_fixture,
-            source_file_name="supplement.json",
-            chroma_client=chroma_client,
-        )
-        # Second source must write its own entity rows
-        assert result2.entities_written == 10
-        assert result2.entities_skipped == 0
-        total = session.execute(select(MechanicalEntityORM)).scalars().all()
-        assert len(total) == 20
 
     def test_same_name_version_different_system_creates_separate_packages(
         self,
@@ -1334,52 +1077,6 @@ class TestIdempotency:
 
 
 class TestOverrideImmutability:
-    def test_source_chunks_unchanged_after_override(
-        self,
-        session: Any,
-        ingestion_result: Any,
-    ) -> None:
-        """Source RuleChunk content is unchanged by RuleOverride application."""
-        from datetime import UTC, datetime
-        from uuid import uuid4
-
-        from afterworlds.persistence.orm.rules_package import RuleOverrideORM
-
-        chunk = (
-            session.execute(
-                select(RuleChunkORM).where(
-                    RuleChunkORM.rules_package_id == ingestion_result.package_id
-                )
-            )
-            .scalars()
-            .first()
-        )
-        assert chunk is not None
-        original_content = chunk.content
-
-        # Add a replace override
-        now = datetime.now(UTC).isoformat()
-        override = RuleOverrideORM(
-            override_id=str(uuid4()),
-            rules_package_id=ingestion_result.package_id,
-            target_chunk_id=chunk.chunk_id,
-            target_entity_id=None,
-            override_origin="house_rule",
-            override_operation="replace",
-            override_payload='{"content": "Modified content"}',
-            precedence=1,
-            is_enabled=True,
-            created_at=now,
-        )
-        session.add(override)
-        session.commit()
-
-        # Source chunk must be unchanged
-        session.expire_all()
-        refreshed_chunk = session.execute(
-            select(RuleChunkORM).where(RuleChunkORM.chunk_id == chunk.chunk_id)
-        ).scalar_one()
-        assert refreshed_chunk.content == original_content
 
     def test_reingestion_does_not_mutate_existing_chunks(
         self,
@@ -1495,76 +1192,6 @@ class TestReadSurface:
         )
         assert result.subsystem == RuleSubsystemEnum.SPELLS
         assert len(result.chunks) == 3
-
-    def test_get_entity_by_type_and_name_spell(
-        self,
-        session: Any,
-        ingestion_result: Any,
-        chroma_client: chromadb.ClientAPI,
-        ingestion_service: IngestionService,
-    ) -> None:
-        """get_entity_by_type_and_name returns valid entity for a spell."""
-        from uuid import UUID
-
-        self._publish(session, ingestion_result, chroma_client, ingestion_service)
-        rps = RulesPackageService(session)
-        entity = rps.get_entity_by_type_and_name(
-            package_id=UUID(ingestion_result.package_id),
-            entity_type=MechanicalEntityTypeEnum.SPELL,
-            name="Fireball",
-        )
-        assert entity is not None
-        assert entity.name == "Fireball"
-        assert entity.entity_type == MechanicalEntityTypeEnum.SPELL
-
-    def test_get_entity_by_type_and_name_condition(
-        self,
-        session: Any,
-        ingestion_result: Any,
-        chroma_client: chromadb.ClientAPI,
-        ingestion_service: IngestionService,
-    ) -> None:
-        """get_entity_by_type_and_name returns valid entity for a condition."""
-        from uuid import UUID
-
-        self._publish(session, ingestion_result, chroma_client, ingestion_service)
-        rps = RulesPackageService(session)
-        entity = rps.get_entity_by_type_and_name(
-            package_id=UUID(ingestion_result.package_id),
-            entity_type=MechanicalEntityTypeEnum.CONDITION,
-            name="Blinded",
-        )
-        assert entity is not None
-        assert entity.name == "Blinded"
-        assert entity.entity_type == MechanicalEntityTypeEnum.CONDITION
-
-    def test_get_active_rule_slice(
-        self,
-        session: Any,
-        ingestion_result: Any,
-        chroma_client: chromadb.ClientAPI,
-        ingestion_service: IngestionService,
-    ) -> None:
-        """get_active_rule_slice returns valid typed payload for multiple subsystems."""
-        from uuid import UUID
-
-        self._publish(session, ingestion_result, chroma_client, ingestion_service)
-        rps = RulesPackageService(session)
-        result = rps.get_active_rule_slice(
-            package_id=UUID(ingestion_result.package_id),
-            subsystem_tags=[
-                RuleSubsystemEnum.COMBAT,
-                RuleSubsystemEnum.CONDITIONS,
-                RuleSubsystemEnum.SPELLS,
-            ],
-            entity_refs=[
-                (MechanicalEntityTypeEnum.SPELL, "Fireball"),
-                (MechanicalEntityTypeEnum.CONDITION, "Blinded"),
-            ],
-        )
-        assert result.package_id == UUID(ingestion_result.package_id)
-        assert len(result.chunks) == 9  # 3 per subsystem × 3 subsystems
-        assert len(result.entities) == 2
 
 
 # ---------------------------------------------------------------------------
@@ -1923,11 +1550,6 @@ class TestSRDParser:
         chunks = parser.parse_chunks(srd_data_fixture)
         assert len(chunks) == 24
 
-    def test_parse_entities_valid(self, srd_data_fixture: dict[str, Any]) -> None:
-        parser = SRDParser()
-        entities = parser.parse_entities(srd_data_fixture)
-        assert len(entities) == 10
-
     def test_parse_chunks_blank_section_path_raises(self) -> None:
         """parse_chunks raises ParseError for missing/blank/whitespace section_path.
 
@@ -1947,43 +1569,9 @@ class TestSRDParser:
                         "page_ref": "p. 1",
                     }
                 ],
-                "entities": [],
             }
             with pytest.raises(ParseError, match="section_path is missing or blank"):
                 parser.parse_chunks(bad_data)
-
-    def test_parse_entities_blank_section_path_raises(self) -> None:
-        """parse_entities raises ParseError for missing/blank/whitespace section_path.
-
-        Mirrors the same validation as parse_chunks: blank and whitespace-only
-        section_path values collapse multiple entities onto the same dedup key
-        in _persist_entities, causing silent data loss.
-        """
-        parser = SRDParser()
-        for bad_path in ("", None, "   "):
-            bad_data: dict[str, Any] = {
-                "sections": [],
-                "entities": [
-                    {
-                        "entity_type": "spell",
-                        "name": "Fireball",
-                        "subsystem": "spells",
-                        "section_path": bad_path,
-                        "page_ref": "p. 1",
-                        "data": {
-                            "casting_time": "1 action",
-                            "range": "150 feet",
-                            "components": "V, S, M",
-                            "duration": "Instantaneous",
-                            "description": "A bright streak flashes.",
-                            "level": 3,
-                            "school": "Evocation",
-                        },
-                    }
-                ],
-            }
-            with pytest.raises(ParseError, match="section_path is missing or blank"):
-                parser.parse_entities(bad_data)
 
     def test_parse_chunks_bad_subsystem_raises(self) -> None:
         parser = SRDParser()
@@ -1997,48 +1585,14 @@ class TestSRDParser:
                     "page_ref": "p. 1",
                 }
             ],
-            "entities": [],
         }
         with pytest.raises(ParseError, match="Unrecognised subsystem"):
             parser.parse_chunks(bad_data)
 
-    def test_parse_entities_bad_entity_type_raises(self) -> None:
-        parser = SRDParser()
-        bad_data: dict[str, Any] = {
-            "sections": [],
-            "entities": [
-                {
-                    "entity_type": "dragon",
-                    "name": "Test",
-                    "subsystem": "combat",
-                    "section_path": "x/y",
-                    "page_ref": "p. 1",
-                    "data": {},
-                }
-            ],
-        }
-        with pytest.raises(ParseError, match="Unrecognised entity_type"):
-            parser.parse_entities(bad_data)
-
-    def test_parse_entities_bad_data_raises(self) -> None:
-        parser = SRDParser()
-        bad_data: dict[str, Any] = {
-            "sections": [],
-            "entities": [
-                {
-                    "entity_type": "spell",
-                    "name": "BadSpell",
-                    "subsystem": "spells",
-                    "section_path": "spells/bad",
-                    "page_ref": "p. 1",
-                    "data": {
-                        # Missing required fields for SpellEntity
-                    },
-                }
-            ],
-        }
-        with pytest.raises(ParseError, match="Entity data validation failed"):
-            parser.parse_entities(bad_data)
+    def test_an_empty_retired_entities_key_is_still_refused(self) -> None:
+        """Final 5d cutover: the retired shape is refused even when empty."""
+        with pytest.raises(ParseError, match="retired MechanicalEntity"):
+            SRDParser().parse_chunks({"sections": [], "entities": []})
 
     def test_subsystem_enum_values_match(
         self, srd_data_fixture: dict[str, Any]
@@ -2048,15 +1602,6 @@ class TestSRDParser:
         chunks = parser.parse_chunks(srd_data_fixture)
         for chunk in chunks:
             assert chunk.subsystem in RuleSubsystemEnum
-
-    def test_entity_type_enum_values_match(
-        self, srd_data_fixture: dict[str, Any]
-    ) -> None:
-        """All parsed entity types are valid MechanicalEntityTypeEnum values."""
-        parser = SRDParser()
-        entities = parser.parse_entities(srd_data_fixture)
-        for ent in entities:
-            assert ent.entity_type in MechanicalEntityTypeEnum
 
 
 # ---------------------------------------------------------------------------

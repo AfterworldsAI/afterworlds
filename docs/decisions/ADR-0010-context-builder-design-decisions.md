@@ -5,6 +5,16 @@
 **Issue:** CRD Issue 8 — Context Builder (GitHub #68)
 **Scope:** Rule slice placement; ROLLING_SUMMARY_N status; RuleSliceRequest scope
 
+> **Amended by the final CRD Issue 5d cutover (#137 contract 6).** Decisions 1 and 3 stand: the rule slice
+> stays inside `StablePrefix`, and `RuleSliceRequest` / `ActiveRuleSlice` stay co-located in the Rules
+> Package domain. Their *content* changed. `RuleSliceRequest` now carries a package UUID or slug,
+> record/component selectors or an explicit `whole_package`, and an optional recorded binding; the
+> `subsystem_tags` and `entity_refs` selectors named in Decision 3 are removed. The Context Builder passes
+> the request whole to `RulesPackageService.get_active_rule_slice`, which reads the accepted typed authority
+> and returns an `ActiveRuleSlice` carrying the exact four-part binding, the supplying request, the
+> components read and a deterministic rendering of the GameMaster authority view. See
+> [`.claude/review-notes/issue-5d-final-cutover.md`](../../.claude/review-notes/issue-5d-final-cutover.md).
+
 ---
 
 ## Decision 1 — Rule Slice is Inside StablePrefix (Revised)

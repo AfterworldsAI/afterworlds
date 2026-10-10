@@ -61,7 +61,7 @@ class PlayerRollValueError(ValueError):
 
 if TYPE_CHECKING:
     from afterworlds.models.character_sheet import Dnd5eCharacterSheet
-    from afterworlds.models.rules_package import ActiveRuleSlice, RuleOverride
+    from afterworlds.models.rules_package import ActiveRuleSlice
     from afterworlds.pipeline.rpg.dice import DiceService
 
 
@@ -162,7 +162,7 @@ class D20RulesSystemAdapter:
     """Hand-authored bounded d20 Rules System Adapter.
 
     Constructs deterministic modifier breakdowns, verifies DCs from rule
-    slices and house-rule overrides, computes outcomes, and builds
+    slices, computes outcomes, and builds
     ``ResolvedAdjudicationRecord`` instances.
 
     Returns ``outcome="undetermined"`` when mechanics are outside the
@@ -190,7 +190,6 @@ class D20RulesSystemAdapter:
         proposal: RollProposal,
         sheet: Dnd5eCharacterSheet,
         _rule_slice: ActiveRuleSlice | None,
-        _overrides: list[RuleOverride],
     ) -> _ModifierBreakdown:
         """Assemble the modifier breakdown for a roll proposal.
 
@@ -262,7 +261,6 @@ class D20RulesSystemAdapter:
     def _verify_dc(
         self,
         _rule_slice: ActiveRuleSlice | None,
-        _overrides: list[RuleOverride],
     ) -> int | None:
         """DC verification is deferred to Issue 18.
 
@@ -304,7 +302,6 @@ class D20RulesSystemAdapter:
         proposal: RollProposal,
         sheet: Dnd5eCharacterSheet,
         rule_slice: ActiveRuleSlice | None,
-        overrides: list[RuleOverride],
         dice_service: DiceService,
         gm_cheating: bool,
     ) -> ResolvedAdjudicationRecord:
@@ -319,10 +316,10 @@ class D20RulesSystemAdapter:
                 "use prepare_player_roll_announce instead"
             )
 
-        mods = self._assemble_modifiers(proposal, sheet, rule_slice, overrides)
+        mods = self._assemble_modifiers(proposal, sheet, rule_slice)
         dice_result: DiceResult = dice_service.roll(mods.expression)
         total = dice_result.chosen + mods.full_total
-        dc = self._verify_dc(rule_slice, overrides)
+        dc = self._verify_dc(rule_slice)
         outcome = self._compute_outcome(total, dc, dice_result.chosen)
 
         return ResolvedAdjudicationRecord(
@@ -350,7 +347,6 @@ class D20RulesSystemAdapter:
         proposal: RollProposal,
         sheet: Dnd5eCharacterSheet,
         rule_slice: ActiveRuleSlice | None,
-        overrides: list[RuleOverride],
         story_id: UUID,
         session_id: UUID,
         originating_turn_id: UUID,
@@ -365,7 +361,7 @@ class D20RulesSystemAdapter:
                 "prepare_player_roll_announce called on non-PLAYER proposal"
             )
 
-        mods = self._assemble_modifiers(proposal, sheet, rule_slice, overrides)
+        mods = self._assemble_modifiers(proposal, sheet, rule_slice)
 
         modifier_note: str | None = None
         if mods.visible_total != 0:
@@ -415,7 +411,6 @@ class D20RulesSystemAdapter:
         pending: PendingRollRequest,
         reported_total: int,
         rule_slice: ActiveRuleSlice | None,
-        overrides: list[RuleOverride],
         gm_cheating: bool,
     ) -> ResolvedAdjudicationRecord:
         """Resolve a player-reported roll against the stored PendingRollRequest.
@@ -424,7 +419,7 @@ class D20RulesSystemAdapter:
         freshly recomputed sheet state.  ``adapter_context_hash`` drift is
         logged but does NOT trigger recomputation in v1.
         """
-        dc = self._verify_dc(rule_slice, overrides)
+        dc = self._verify_dc(rule_slice)
         visible_mod = pending.visible_modifier_total or 0
         hidden_mod = 0
         raw_die = reported_total - visible_mod - hidden_mod

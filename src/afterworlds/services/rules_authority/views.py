@@ -39,14 +39,20 @@ authored text is already exact.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
 
 from afterworlds.ingestion.mechanical.models import ComponentHandling
+from afterworlds.ingestion.mechanical.projection import (
+    applicability_payload,
+    recurrence_payload,
+)
 from afterworlds.ingestion.mechanical.representation import (
     Applicability,
     RecordKind,
     Recurrence,
+    fact_payload,
 )
 from afterworlds.models.rules_package import RulesPackageBinding
 from afterworlds.services.rules_authority.application import (
@@ -66,6 +72,7 @@ __all__ = [
     "TypedAuthorityView",
     "build_gamemaster_view",
     "build_typed_view",
+    "render_gamemaster_view",
 ]
 
 
@@ -328,3 +335,93 @@ def build_gamemaster_view(
         components=tuple(components),
         applied_overrides=authority.applied_overrides,
     )
+
+
+def _canonical(payload: object) -> str:
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"))
+
+
+def _fact_line(fact: EffectiveFact) -> str:
+    line = f"{fact.fact_key}: {_canonical(fact_payload(fact.fact))}"
+    if fact.qualifier is not None:
+        line += (
+            f" when {_canonical(applicability_payload(fact.qualifier.applies_when))}"
+        )
+    if fact.supplied_by_override_id is not None:
+        assert fact.supplied_by_origin is not None
+        line += (
+            f" [override {fact.supplied_by_override_id}"
+            f" ({fact.supplied_by_origin.value})]"
+        )
+    return line
+
+
+def render_gamemaster_view(view: GameMasterAuthorityView) -> str:
+    """Deterministic plain-text rendering of one GameMaster authority view.
+
+    The rules-package section of the stable prompt prefix (CRD Issue 5d final
+    cutover). It states the exact four-part binding, then each component in the
+    view's own reading order: exact governing prose — source text, or authored
+    text with its supplying override, or an explicit absent-passage marker,
+    never a substitute — followed by the component's typed facts and options as
+    canonical payloads. Nothing is sorted, sampled or summarised, and the same
+    view always renders the same text, which the cached stable prefix needs.
+
+    It is a reading of authority for adjudication, not an execution claim: no
+    line here says a mechanic is supported by an adapter.
+    """
+    b = view.binding
+    lines = [
+        "## Rules authority",
+        f"Binding: package {b.package_uuid}; release {b.release_version}; "
+        f"projection {b.mechanical_projection_uuid}; "
+        f"override set {b.override_set_uuid}",
+    ]
+    for c in view.components:
+        lines += ["", f"### {c.record_key} / {c.component_key}"]
+        lines.append(f"Kind: {c.record_kind.value}; handling: {c.handling.value}")
+        if c.irreducibility_reason_code is not None:
+            lines.append(f"Judgement reason: {c.irreducibility_reason_code}")
+        if c.prose_retention_reason_code is not None:
+            lines.append(f"Prose retained: {c.prose_retention_reason_code}")
+        if c.supplied_by_override_id is not None:
+            lines.append(f"Supplied by override {c.supplied_by_override_id}")
+        if c.applies_when is not None:
+            lines.append(
+                f"Applies when: {_canonical(applicability_payload(c.applies_when))}"
+            )
+        if c.recurs is not None:
+            lines.append(f"Recurs: {_canonical(recurrence_payload(c.recurs))}")
+        for entry in c.governing_prose:
+            if isinstance(entry, SourceProse):
+                option = f" [option {entry.option_key}]" if entry.option_key else ""
+                if entry.text is None:
+                    lines.append(
+                        f"[governing passage absent: chunk {entry.chunk_id}, "
+                        f"span {entry.span_id}]{option}"
+                    )
+                else:
+                    lines.append(f"{entry.text}{option}")
+            else:
+                lines.append(
+                    f"{entry.text} [authored: override "
+                    f"{entry.supplied_by_override_id} "
+                    f"({entry.supplied_by_origin.value})]"
+                )
+        lines += [f"Fact {_fact_line(f)}" for f in c.structured_context]
+        for option_entry in c.options:
+            when = (
+                f" when {_canonical(applicability_payload(option_entry.applies_when))}"
+                if option_entry.applies_when is not None
+                else ""
+            )
+            lines.append(f"Option {option_entry.semantic_key}{when}")
+            lines += [f"  Fact {_fact_line(f)}" for f in option_entry.facts]
+    if view.applied_overrides:
+        lines += ["", "Applied overrides, in order:"]
+        lines += [
+            f"- {o.override_id} ({o.origin.value}; {o.operation.value}; "
+            f"{'applied' if o.applied else 'not applied'})"
+            for o in view.applied_overrides
+        ]
+    return "\n".join(lines)

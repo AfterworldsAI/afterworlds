@@ -4,6 +4,10 @@
 **Date:** 2026-04-09  
 **Issue:** CRD Issue 5a (Rules Package Schema and Data Model)
 
+> **Partly superseded by the final CRD Issue 5d cutover (#137 contract 6, AC22).** `MechanicalEntity` and
+> its `rp_mechanical_entities` table are removed (migration 0037). The decision still governs
+> `RuleChunk.source_id`; the `MechanicalEntity` text below is history.
+
 ## Context
 
 `RuleChunk` and `MechanicalEntity` both carry a `source_id` field that
