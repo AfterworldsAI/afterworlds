@@ -22,12 +22,12 @@ what makes the binding *provenance-exact* — they carry the stable override
 identity and origin as well as the mechanical change, so an audit can name which
 authoritative record supplied each change.
 
-Typed mechanical overrides live in their own table rather than extending
-``rp_overrides``. The existing chunk-targeting prose override is a different
-family with a different payload contract (#137 contract 6 keeps them distinct),
-and ``rp_overrides`` still carries the ``target_entity_id`` column of the
-obsolete ``MechanicalEntity`` family, which the final activation/legacy PR
-removes. Sharing one table would couple this schema to that removal.
+Typed mechanical overrides live in their own table rather than extending the
+legacy ``rp_overrides``, a different family with a different payload contract
+(#137 contract 6 kept them distinct). The final CRD Issue 5d cutover dropped
+``rp_overrides`` and the obsolete ``rp_mechanical_entities`` it referenced
+(migration 0037); keeping the tables separate is what let that removal leave
+this schema untouched.
 
 ``payload`` is the one JSON column, and it is not a generic escape hatch: it
 holds the validated field set of one closed typed patch family, rebuilt through

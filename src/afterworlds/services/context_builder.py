@@ -44,8 +44,6 @@ from afterworlds.models.context import (
 )
 from afterworlds.models.enums import (
     IntentType,
-    MechanicalEntityTypeEnum,
-    RuleSubsystemEnum,
     StoryMode,
     normalize_legacy_intent_type,
 )
@@ -179,15 +177,7 @@ class _RollingSummaryServiceLike(Protocol):
 
 
 class _RulesPackageServiceLike(Protocol):
-    def resolve_slice_package(self, request: RuleSliceRequest) -> UUID: ...
-
-    def get_active_rule_slice(
-        self,
-        package_id: UUID,
-        subsystem_tags: list[RuleSubsystemEnum],
-        entity_refs: list[tuple[MechanicalEntityTypeEnum, str]],
-        include_non_published: bool = ...,
-    ) -> ActiveRuleSlice: ...
+    def get_active_rule_slice(self, request: RuleSliceRequest) -> ActiveRuleSlice: ...
 
 
 # ---------------------------------------------------------------------------
@@ -402,19 +392,16 @@ class ContextBuilderService:
                     "rule_slice_request provided but rules_package_service was not "
                     "injected into ContextBuilderService"
                 )
-            # The package reference resolves through the service's one
-            # code-owned path (CRD Issue 5d, ADR-005d Decision 9): a UUID passes
-            # through, a human-facing slug resolves, and a reference that does
-            # not resolve raises rather than yielding an empty slice that would
-            # read as "no rule applies".
-            package_id = self._rules_package_service.resolve_slice_package(
-                rule_slice_request
-            )
+            # The supplying request goes through whole (CRD Issue 5d final
+            # cutover, #137 contract 6): its package reference, record/component
+            # selectors, ``whole_package`` flag and recorded binding keep their
+            # meaning. The service reads the accepted typed authority and returns
+            # a slice naming the exact four-part binding; any refusal — stale
+            # binding, unknown selector, unresolvable reference, retired
+            # identity — raises a typed error rather than yielding an empty
+            # slice that would read as "no rule applies".
             rules_package_slice = self._rules_package_service.get_active_rule_slice(
-                package_id=package_id,
-                subsystem_tags=rule_slice_request.subsystem_tags,
-                entity_refs=rule_slice_request.entity_refs,
-                include_non_published=rule_slice_request.include_non_published,
+                rule_slice_request
             )
 
         # 5. Retrieval memory (CRD Issue 18 / ADR-018 D8). Empty when no

@@ -139,8 +139,8 @@ def test_rules_package_tables_exist_with_rp_prefix() -> None:
         "rp_packages",
         "rp_sources",
         "rp_chunks",
-        "rp_mechanical_entities",
-        "rp_overrides",
+        # rp_mechanical_entities and rp_overrides were dropped at the final CRD
+        # Issue 5d cutover (migration 0037).
         "rp_manifests",
         # CRD Issue 5c (#132) corpus-integrity release tables.
         "rp_corpus_releases",

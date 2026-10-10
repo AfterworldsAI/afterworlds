@@ -10,6 +10,11 @@
 > effective runtime binding identifies the applied override set by its own immutable override-set UUID.
 > The historical Context, Decision, and Consequences below record the CRD Issue 5a deferral as made and
 > are unchanged.
+>
+> **Final CRD Issue 5d cutover (#137 contract 6, AC22).** The `MechanicalEntity` family and the legacy
+> chunk/entity `RuleOverride` path this ADR deferred patch shapes for are now removed, with their tables
+> (`rp_mechanical_entities`, `rp_overrides`; migration 0037). Typed overrides are the only override
+> authority. See [`.claude/review-notes/issue-5d-final-cutover.md`](../../.claude/review-notes/issue-5d-final-cutover.md).
 
 ## Context
 

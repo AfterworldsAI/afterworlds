@@ -21,10 +21,11 @@ Nothing returns ``None``, an empty collection, or a bare exception to mean
   raises rather than returning an outcome an auditor could read as ordinary
   divergence.
 
-The obsolete ``MechanicalEntity`` authority path is untouched by this module.
-Nothing here reads it, falls back to it, or combines with it: a caller resolves
-either the typed mechanical authority below or the legacy slice, never a mixture
-of the two.
+The obsolete ``MechanicalEntity`` authority path and the legacy chunk/entity
+overrides were retired at the final CRD Issue 5d cutover (#137 contract 6,
+AC22). The production rule-slice path
+(``RulesPackageService.get_active_rule_slice``) reads through this service, so
+there is one runtime mechanical authority and no legacy fallback.
 """
 
 from __future__ import annotations

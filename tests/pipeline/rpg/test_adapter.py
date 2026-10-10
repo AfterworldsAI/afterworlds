@@ -181,13 +181,13 @@ def test_player_roll_preserves_all_fields() -> None:
 def test_verify_dc_returns_none_regardless_of_subsystem_tag() -> None:
     """_verify_dc must never parse a DC from model-authored subsystem_tag."""
     adapter = D20RulesSystemAdapter()
-    assert adapter._verify_dc(None, []) is None  # noqa: SLF001
+    assert adapter._verify_dc(None) is None  # noqa: SLF001
 
 
 def test_verify_dc_returns_none_for_dc_tag() -> None:
     """Even a subsystem_tag like 'skill_check dc 15' must return None."""
     adapter = D20RulesSystemAdapter()
-    assert adapter._verify_dc(None, []) is None  # noqa: SLF001
+    assert adapter._verify_dc(None) is None  # noqa: SLF001
 
 
 def test_verify_dc_outcome_is_undetermined_when_dc_absent() -> None:
@@ -199,7 +199,7 @@ def test_verify_dc_outcome_is_undetermined_when_dc_absent() -> None:
     )
     dice_svc = MagicMock()
     dice_svc.roll.return_value = MagicMock(chosen=12, raw_rolls=(12,))
-    record = adapter.resolve_roll(proposal, sheet, None, [], dice_svc, False)
+    record = adapter.resolve_roll(proposal, sheet, None, dice_svc, False)
     assert record.dc is None
     assert record.outcome == "undetermined"
 
@@ -218,7 +218,7 @@ def test_skill_in_sheet_uses_stored_modifier() -> None:
     proposal = _make_proposal("stealth", RollVisibility.SHOWN)
     dice_svc = MagicMock()
     dice_svc.roll.return_value = MagicMock(chosen=10, raw_rolls=(10,))
-    record = adapter.resolve_roll(proposal, sheet, None, [], dice_svc, False)
+    record = adapter.resolve_roll(proposal, sheet, None, dice_svc, False)
     # total = 10 (die) + 7 (stored modifier) = 17
     assert record.total == 17
     breakdown = json.loads(record.modifiers_json)
@@ -233,7 +233,7 @@ def test_skill_not_in_sheet_falls_back_to_ability_mod() -> None:
     proposal = _make_proposal("stealth", RollVisibility.SHOWN)
     dice_svc = MagicMock()
     dice_svc.roll.return_value = MagicMock(chosen=10, raw_rolls=(10,))
-    record = adapter.resolve_roll(proposal, sheet, None, [], dice_svc, False)
+    record = adapter.resolve_roll(proposal, sheet, None, dice_svc, False)
     # total = 10 + 3 (Dex mod) = 13
     assert record.total == 13
     breakdown = json.loads(record.modifiers_json)
@@ -247,7 +247,7 @@ def test_skill_modifier_differs_from_recomputed_value() -> None:
     proposal = _make_proposal("stealth", RollVisibility.SHOWN)
     dice_svc = MagicMock()
     dice_svc.roll.return_value = MagicMock(chosen=5, raw_rolls=(5,))
-    record = adapter.resolve_roll(proposal, sheet, None, [], dice_svc, False)
+    record = adapter.resolve_roll(proposal, sheet, None, dice_svc, False)
     assert record.total == 14  # 5 + 9
 
 
@@ -271,7 +271,7 @@ def test_advantage_tag_selects_2d20kh1() -> None:
     dice_svc = MagicMock()
     dice_svc.roll.return_value = MagicMock(chosen=15, raw_rolls=(15, 10))
     adapter.resolve_roll(
-        _make_adv_proposal("skill_check advantage"), sheet, None, [], dice_svc, False
+        _make_adv_proposal("skill_check advantage"), sheet, None, dice_svc, False
     )
     dice_svc.roll.assert_called_once_with("2d20kh1")
 
@@ -282,7 +282,7 @@ def test_disadvantage_tag_selects_2d20kl1() -> None:
     dice_svc = MagicMock()
     dice_svc.roll.return_value = MagicMock(chosen=8, raw_rolls=(8, 15))
     adapter.resolve_roll(
-        _make_adv_proposal("skill_check disadvantage"), sheet, None, [], dice_svc, False
+        _make_adv_proposal("skill_check disadvantage"), sheet, None, dice_svc, False
     )
     dice_svc.roll.assert_called_once_with("2d20kl1")
 
@@ -297,7 +297,6 @@ def test_disadvantage_containing_advantage_substring_selects_2d20kl1() -> None:
         _make_adv_proposal("saving_throw disadvantage"),
         sheet,
         None,
-        [],
         dice_svc,
         False,
     )
@@ -310,7 +309,7 @@ def test_plain_tag_selects_1d20() -> None:
     dice_svc = MagicMock()
     dice_svc.roll.return_value = MagicMock(chosen=12, raw_rolls=(12,))
     adapter.resolve_roll(
-        _make_adv_proposal("skill_check"), sheet, None, [], dice_svc, False
+        _make_adv_proposal("skill_check"), sheet, None, dice_svc, False
     )
     dice_svc.roll.assert_called_once_with("1d20")
 
@@ -324,7 +323,6 @@ def test_both_advantage_and_disadvantage_cancel_to_1d20() -> None:
         _make_adv_proposal("skill_check advantage disadvantage"),
         sheet,
         None,
-        [],
         dice_svc,
         False,
     )
@@ -364,7 +362,7 @@ def test_consume_valid_total_accepted() -> None:
     """reported_total=15 with no modifier → raw_die=15 which is in [1,20]."""
     adapter = D20RulesSystemAdapter()
     pending = _make_pending()
-    record = adapter.consume_player_roll(pending, 15, None, [], False)
+    record = adapter.consume_player_roll(pending, 15, None, False)
     assert record.total == 15
     assert record.raw_rolls == (15,)
 
@@ -372,14 +370,14 @@ def test_consume_valid_total_accepted() -> None:
 def test_consume_min_die_accepted() -> None:
     adapter = D20RulesSystemAdapter()
     pending = _make_pending()
-    record = adapter.consume_player_roll(pending, 1, None, [], False)
+    record = adapter.consume_player_roll(pending, 1, None, False)
     assert record.raw_rolls == (1,)
 
 
 def test_consume_max_die_accepted() -> None:
     adapter = D20RulesSystemAdapter()
     pending = _make_pending()
-    record = adapter.consume_player_roll(pending, 20, None, [], False)
+    record = adapter.consume_player_roll(pending, 20, None, False)
     assert record.raw_rolls == (20,)
 
 
@@ -388,7 +386,7 @@ def test_consume_total_zero_raw_die_rejected() -> None:
     adapter = D20RulesSystemAdapter()
     pending = _make_pending()
     with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 0, None, [], False)
+        adapter.consume_player_roll(pending, 0, None, False)
 
 
 def test_consume_total_implies_raw_die_above_max_rejected() -> None:
@@ -396,14 +394,14 @@ def test_consume_total_implies_raw_die_above_max_rejected() -> None:
     adapter = D20RulesSystemAdapter()
     pending = _make_pending()
     with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 21, None, [], False)
+        adapter.consume_player_roll(pending, 21, None, False)
 
 
 def test_consume_with_modifier_valid() -> None:
     """reported_total=18, visible_mod=5 → raw_die=13, in [1,20]."""
     adapter = D20RulesSystemAdapter()
     pending = _make_pending(visible_mod=5)
-    record = adapter.consume_player_roll(pending, 18, None, [], False)
+    record = adapter.consume_player_roll(pending, 18, None, False)
     assert record.raw_rolls == (13,)
 
 
@@ -412,14 +410,14 @@ def test_consume_with_modifier_raw_die_too_low_rejected() -> None:
     adapter = D20RulesSystemAdapter()
     pending = _make_pending(visible_mod=7)
     with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 5, None, [], False)
+        adapter.consume_player_roll(pending, 5, None, False)
 
 
 def test_consume_advantage_expression_accepted() -> None:
     """2d20kh1 total=17, mod=0 → raw_die=17, in [1,20]."""
     adapter = D20RulesSystemAdapter()
     pending = _make_pending(expression="2d20kh1")
-    record = adapter.consume_player_roll(pending, 17, None, [], False)
+    record = adapter.consume_player_roll(pending, 17, None, False)
     assert record.raw_rolls == (17,)
 
 
@@ -427,7 +425,7 @@ def test_consume_disadvantage_expression_accepted() -> None:
     """2d20kl1 total=4, mod=0 → raw_die=4, in [1,20]."""
     adapter = D20RulesSystemAdapter()
     pending = _make_pending(expression="2d20kl1")
-    record = adapter.consume_player_roll(pending, 4, None, [], False)
+    record = adapter.consume_player_roll(pending, 4, None, False)
     assert record.raw_rolls == (4,)
 
 
@@ -436,7 +434,7 @@ def test_consume_unsupported_expression_rejected() -> None:
     adapter = D20RulesSystemAdapter()
     pending = _make_pending(expression="3d6")
     with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 10, None, [], False)
+        adapter.consume_player_roll(pending, 10, None, False)
 
 
 # ---------------------------------------------------------------------------
@@ -448,7 +446,7 @@ def test_consume_1d20_mod5_max_boundary_accepted() -> None:
     """1d20 + mod=5, total=25 → raw=20, accepted (exact max)."""
     adapter = D20RulesSystemAdapter()
     pending = _make_pending(expression="1d20", visible_mod=5)
-    record = adapter.consume_player_roll(pending, 25, None, [], False)
+    record = adapter.consume_player_roll(pending, 25, None, False)
     assert record.raw_rolls == (20,)
 
 
@@ -456,7 +454,7 @@ def test_consume_1d20_mod5_min_boundary_accepted() -> None:
     """1d20 + mod=5, total=6 → raw=1, accepted (exact min)."""
     adapter = D20RulesSystemAdapter()
     pending = _make_pending(expression="1d20", visible_mod=5)
-    record = adapter.consume_player_roll(pending, 6, None, [], False)
+    record = adapter.consume_player_roll(pending, 6, None, False)
     assert record.raw_rolls == (1,)
 
 
@@ -465,7 +463,7 @@ def test_consume_1d20_mod5_one_over_max_rejected() -> None:
     adapter = D20RulesSystemAdapter()
     pending = _make_pending(expression="1d20", visible_mod=5)
     with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 26, None, [], False)
+        adapter.consume_player_roll(pending, 26, None, False)
 
 
 def test_consume_1d20_mod5_one_under_min_rejected() -> None:
@@ -473,14 +471,14 @@ def test_consume_1d20_mod5_one_under_min_rejected() -> None:
     adapter = D20RulesSystemAdapter()
     pending = _make_pending(expression="1d20", visible_mod=5)
     with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 5, None, [], False)
+        adapter.consume_player_roll(pending, 5, None, False)
 
 
 def test_consume_kh1_mod5_max_boundary_accepted() -> None:
     """2d20kh1 + mod=5, total=25 → raw=20, accepted (exact max)."""
     adapter = D20RulesSystemAdapter()
     pending = _make_pending(expression="2d20kh1", visible_mod=5)
-    record = adapter.consume_player_roll(pending, 25, None, [], False)
+    record = adapter.consume_player_roll(pending, 25, None, False)
     assert record.raw_rolls == (20,)
 
 
@@ -489,14 +487,14 @@ def test_consume_kh1_mod5_one_over_max_rejected() -> None:
     adapter = D20RulesSystemAdapter()
     pending = _make_pending(expression="2d20kh1", visible_mod=5)
     with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 26, None, [], False)
+        adapter.consume_player_roll(pending, 26, None, False)
 
 
 def test_consume_kl1_mod5_min_boundary_accepted() -> None:
     """2d20kl1 + mod=5, total=6 → raw=1, accepted (exact min)."""
     adapter = D20RulesSystemAdapter()
     pending = _make_pending(expression="2d20kl1", visible_mod=5)
-    record = adapter.consume_player_roll(pending, 6, None, [], False)
+    record = adapter.consume_player_roll(pending, 6, None, False)
     assert record.raw_rolls == (1,)
 
 
@@ -505,7 +503,7 @@ def test_consume_kl1_mod5_one_under_min_rejected() -> None:
     adapter = D20RulesSystemAdapter()
     pending = _make_pending(expression="2d20kl1", visible_mod=5)
     with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 5, None, [], False)
+        adapter.consume_player_roll(pending, 5, None, False)
 
 
 # ---------------------------------------------------------------------------
@@ -523,7 +521,7 @@ class TestSkillKeyNormalization:
         proposal = _make_proposal("stealth", RollVisibility.SHOWN)
         dice_svc = MagicMock()
         dice_svc.roll.return_value = MagicMock(chosen=10, raw_rolls=(10,))
-        record = adapter.resolve_roll(proposal, sheet, None, [], dice_svc, False)
+        record = adapter.resolve_roll(proposal, sheet, None, dice_svc, False)
         assert record.total == 17  # 10 + 7; pre-fix would be 10 + 3 = 13
         data = json.loads(record.modifiers_json)
         assert data["breakdown"]["stealth_modifier"] == 7
@@ -535,7 +533,7 @@ class TestSkillKeyNormalization:
         proposal = _make_proposal("Sleight of Hand", RollVisibility.SHOWN)
         dice_svc = MagicMock()
         dice_svc.roll.return_value = MagicMock(chosen=10, raw_rolls=(10,))
-        record = adapter.resolve_roll(proposal, sheet, None, [], dice_svc, False)
+        record = adapter.resolve_roll(proposal, sheet, None, dice_svc, False)
         assert record.total == 16  # 10 + 6; pre-fix would be 10 + 3 = 13
         data = json.loads(record.modifiers_json)
         assert data["breakdown"]["sleight_of_hand_modifier"] == 6
@@ -547,7 +545,7 @@ class TestSkillKeyNormalization:
         proposal = _make_proposal("Animal Handling", RollVisibility.SHOWN)
         dice_svc = MagicMock()
         dice_svc.roll.return_value = MagicMock(chosen=8, raw_rolls=(8,))
-        record = adapter.resolve_roll(proposal, sheet, None, [], dice_svc, False)
+        record = adapter.resolve_roll(proposal, sheet, None, dice_svc, False)
         assert record.total == 13  # 8 + 5; pre-fix would be 8 + 1 = 9
         data = json.loads(record.modifiers_json)
         assert data["breakdown"]["animal_handling_modifier"] == 5
@@ -559,7 +557,7 @@ class TestSkillKeyNormalization:
         proposal = _make_proposal("stealth", RollVisibility.SHOWN)
         dice_svc = MagicMock()
         dice_svc.roll.return_value = MagicMock(chosen=10, raw_rolls=(10,))
-        record = adapter.resolve_roll(proposal, sheet, None, [], dice_svc, False)
+        record = adapter.resolve_roll(proposal, sheet, None, dice_svc, False)
         assert record.total == 17  # 10 + 7; pre-fix would be 10 + 3 = 13
 
     def test_absent_skill_fallback_unaffected_by_normalization(self) -> None:
@@ -569,7 +567,7 @@ class TestSkillKeyNormalization:
         proposal = _make_proposal("stealth", RollVisibility.SHOWN)
         dice_svc = MagicMock()
         dice_svc.roll.return_value = MagicMock(chosen=10, raw_rolls=(10,))
-        record = adapter.resolve_roll(proposal, sheet, None, [], dice_svc, False)
+        record = adapter.resolve_roll(proposal, sheet, None, dice_svc, False)
         assert record.total == 13  # 10 + 3 (Dex fallback)
         data = json.loads(record.modifiers_json)
         assert data["breakdown"]["dexterity_modifier"] == 3
@@ -582,7 +580,7 @@ class TestSkillKeyNormalization:
         sheet = _make_sheet(skills={"Stealth": 7}, dex=16)
         proposal = _make_proposal("stealth", RollVisibility.PLAYER)
         pending, _view = adapter.prepare_player_roll_announce(
-            proposal, sheet, None, [], _uuid4(), _uuid4(), _uuid4()
+            proposal, sheet, None, _uuid4(), _uuid4(), _uuid4()
         )
         assert pending.visible_modifier_total == 7  # pre-fix would be 3 (Dex fallback)
         assert pending.visible_modifier_note == "+7"
@@ -595,7 +593,7 @@ class TestSkillKeyNormalization:
         proposal = _make_proposal("Perception", RollVisibility.SHOWN)
         dice_svc = MagicMock()
         dice_svc.roll.return_value = MagicMock(chosen=10, raw_rolls=(10,))
-        record = adapter.resolve_roll(proposal, sheet, None, [], dice_svc, False)
+        record = adapter.resolve_roll(proposal, sheet, None, dice_svc, False)
         assert record.total == 18  # 10 + 8; pre-fix would be 10 + 1 = 11
         data = json.loads(record.modifiers_json)
         assert data["visible_total"] == 8

@@ -5,14 +5,17 @@ RulesPackage records ingested from structured SRD JSON.
 
 Architecture invariants
 -----------------------
-- Source records (RuleChunk, MechanicalEntity) are immutable after creation.
+- Source records (RuleChunk) are immutable after creation.
   The ingestion service NEVER modifies existing source rows.
+- No mechanical authority is constructed here. The obsolete prose-only
+  ``MechanicalEntity`` family was retired at the final CRD Issue 5d cutover
+  (#137 contract 6, AC22); typed mechanical authority comes only from the
+  accepted 5d projection.
 - One manifest row per package (DB-enforced unique constraint).
 - Publication gate: fails explicitly if SQL ingest, manifest, or vector write
   is incomplete.
 - Idempotency: re-running with the same data does not duplicate records.
   Existing chunks are detected by (rules_package_id, source_id, source_locator_value).
-  Existing entities are detected by (rules_package_id, source_id, entity_type, name).
   Existing sources are detected by (rules_package_id, name).
 
 KNOWN UNKNOWN: ChromaDB collection schema is designated for CRD Issue 18
@@ -31,7 +34,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from afterworlds.ingestion.srd_parser import ParsedChunk, ParsedEntity, SRDParser
+from afterworlds.ingestion.srd_parser import ParsedChunk, SRDParser
 from afterworlds.ingestion.vector_writer import VectorWriter
 from afterworlds.models.enums import (
     PublicationStatusEnum,
@@ -41,7 +44,6 @@ from afterworlds.models.enums import (
 )
 from afterworlds.models.rules_package import IngestionConfig
 from afterworlds.persistence.orm.rules_package import (
-    MechanicalEntityORM,
     RuleChunkORM,
     RuleSourceORM,
     RulesPackageManifestORM,
@@ -62,8 +64,6 @@ class IngestionResult:
     source_id: str
     chunks_written: int
     chunks_skipped: int
-    entities_written: int
-    entities_skipped: int
     vector_chunks_written: int
     errors: list[str] = field(default_factory=list)
 
@@ -95,10 +95,6 @@ def _make_source_id() -> str:
 
 
 def _make_chunk_id() -> str:
-    return str(uuid4())
-
-
-def _make_entity_id() -> str:
     return str(uuid4())
 
 
@@ -140,16 +136,14 @@ class IngestionService:
     ) -> IngestionResult:
         """Run the full ingestion pipeline.
 
-        0. Parse all SRD data (chunks + entities) before any DB work so that a
+        0. Parse all SRD data before any DB work so that a
            ParseError aborts cleanly with no partial state written to the session.
         1. Upsert RulesPackage row (or locate existing).
         2. Upsert RuleSource row.
         3. Persist parsed chunks → RuleChunk rows (idempotent — skip existing).
-        4. Persist parsed entities → MechanicalEntity rows (idempotent — skip
-           existing).
-        5. Write chunks to ChromaDB vector store.
-        6. Upsert manifest row with gate flags.
-        7. Commit.
+        4. Write chunks to ChromaDB vector store.
+        5. Upsert manifest row with gate flags.
+        6. Commit.
 
         Parameters
         ----------
@@ -179,10 +173,10 @@ class IngestionService:
         )
 
         # 0. Parse everything first — no DB writes yet.
-        # If either raises ParseError, the session is untouched and the caller
-        # sees a clean failure with no partial package/source/chunk state.
+        # If it raises ParseError — including for an ``entities`` array, which
+        # is refused rather than ignored — the session is untouched and the
+        # caller sees a clean failure with no partial package/source/chunk state.
         parsed_chunks = self._parser.parse_chunks(srd_data)
-        parsed_entities = self._parser.parse_entities(srd_data)
 
         now = _now_iso()
 
@@ -204,17 +198,7 @@ class IngestionService:
             )
         )
 
-        # 4. Persist entities
-        entities_written, entities_skipped = self._persist_entities(
-            session,
-            parsed_entities,
-            package_id,
-            source_id,
-            source_file_name,
-            now,
-        )
-
-        # 5. Vector write — new chunks only, then verify full coverage.
+        # 4. Vector write — new chunks only, then verify full coverage.
         # sql_chunk_count is computed after flush so it includes both existing
         # and newly inserted rows.  If the Chroma count does not exactly match
         # the SQL count (total-loss, partial-loss, or surplus scenario),
@@ -235,7 +219,7 @@ class IngestionService:
             )
         vector_chunks_written = len(written_chunks) + repopulated_count
 
-        # 6. Upsert manifest
+        # 5. Upsert manifest
         # sql_ingest_complete requires at least one chunk in the SQL store.
         # An empty payload (zero sections) must not be marked complete —
         # publishing a package with no rules content would break downstream
@@ -251,7 +235,7 @@ class IngestionService:
             now,
         )
 
-        # 7. Commit
+        # 6. Commit
         session.commit()
 
         return IngestionResult(
@@ -259,8 +243,6 @@ class IngestionService:
             source_id=source_id,
             chunks_written=chunks_written,
             chunks_skipped=chunks_skipped,
-            entities_written=entities_written,
-            entities_skipped=entities_skipped,
             vector_chunks_written=vector_chunks_written,
         )
 
@@ -523,65 +505,6 @@ class IngestionService:
             written_chunk_ids.append(chunk_id)
         session.flush()
         return written, skipped, written_chunks, written_chunk_ids
-
-    def _persist_entities(
-        self,
-        session: Session,
-        parsed_entities: list[ParsedEntity],
-        package_id: str,
-        source_id: str,
-        source_file_name: str,
-        now: str,
-    ) -> tuple[int, int]:
-        """Persist parsed entities; skip existing by (source_id, entity_type, name).
-
-        The deduplication key is scoped to the source so that two different
-        sources with the same entity name each produce their own row, preserving
-        source-aware lookup and precedence ordering across layered rulebooks.
-
-        Returns
-        -------
-        (written_count, skipped_count)
-        """
-        # Build set of (source_id, entity_type_value, name) already persisted
-        existing_keys: set[tuple[str, str, str]] = {
-            (str(row[0]), str(row[1]), str(row[2]))
-            for row in session.execute(
-                select(
-                    MechanicalEntityORM.source_id,
-                    MechanicalEntityORM.entity_type,
-                    MechanicalEntityORM.name,
-                ).where(MechanicalEntityORM.rules_package_id == package_id)
-            ).all()
-        }
-        written = 0
-        skipped = 0
-        for ent in parsed_entities:
-            key = (source_id, ent.entity_type.value, ent.name)
-            if key in existing_keys:
-                skipped += 1
-                continue
-            entity_id = _make_entity_id()
-            session.add(
-                MechanicalEntityORM(
-                    entity_id=entity_id,
-                    rules_package_id=package_id,
-                    source_id=source_id,
-                    entity_type=ent.entity_type.value,
-                    name=ent.name,
-                    structured_data=ent.data.model_dump(),
-                    source_document=source_file_name,
-                    source_locator_type=SourceLocatorTypeEnum.SECTION_PATH.value,
-                    source_locator_value=ent.section_path,
-                    source_section_label=ent.name,
-                    is_enabled=True,
-                    created_at=now,
-                )
-            )
-            existing_keys.add(key)
-            written += 1
-        session.flush()
-        return written, skipped
 
     def _upsert_manifest(
         self,

@@ -454,24 +454,8 @@ class RuleSubsystemEnum(StrEnum):
     GENERAL = "general"
 
 
-class MechanicalEntityTypeEnum(StrEnum):
-    """Discriminated entity type for MechanicalEntity records.
-
-    Each value maps to a distinct typed Pydantic model:
-    ``spell`` → SpellEntity, ``condition`` → ConditionEntity,
-    ``stat_block`` → StatBlockEntity, ``action`` → ActionEntity,
-    ``item`` → ItemEntity.
-    """
-
-    CONDITION = "condition"
-    ACTION = "action"
-    SPELL = "spell"
-    ITEM = "item"
-    STAT_BLOCK = "stat_block"
-
-
 class OverrideOriginEnum(StrEnum):
-    """Origin classification for a RuleOverride.
+    """Origin classification for a typed mechanical override.
 
     ``house_rule`` — Sojourner-configured override for a play session.
     ``package_patch`` — administrative correction to packaged content.
@@ -482,7 +466,7 @@ class OverrideOriginEnum(StrEnum):
 
 
 class OverrideOperationEnum(StrEnum):
-    """Operation applied by a RuleOverride to its target record.
+    """Operation applied by a typed mechanical override to its target.
 
     ``replace`` — replace target content with override content.
     ``append`` — append override content to existing target content.
@@ -495,7 +479,7 @@ class OverrideOperationEnum(StrEnum):
 
 
 class SourceLocatorTypeEnum(StrEnum):
-    """Type discriminator for the source locator on RuleChunk/MechanicalEntity.
+    """Type discriminator for the source locator on a RuleChunk.
 
     Supports different source location schemes without forcing a rigid
     document/section/anchor column triad on sources that may not have a

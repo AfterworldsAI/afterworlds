@@ -38,14 +38,13 @@ from afterworlds.ingestion.corpus.hashing import hash_obj
 from afterworlds.ingestion.corpus.pdf_source import PDF_SHA256
 from afterworlds.ingestion.ingestion_service import IngestionService
 from afterworlds.ingestion.mechanical import bound_corpus, oracle, publication
-from afterworlds.models.enums import MechanicalEntityTypeEnum, RuleSubsystemEnum
+from afterworlds.models.enums import RuleSubsystemEnum
 from afterworlds.models.retrieval import rules_corpus_vector_identity
 from afterworlds.models.rules_package import IngestionConfig, RuleSliceRequest
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.persistence.orm.base import Base
 from afterworlds.persistence.orm.corpus import CorpusReleaseORM
 from afterworlds.persistence.orm.rules_package import (
-    MechanicalEntityORM,
     RuleChunkORM,
     RuleSourceORM,
     RulesPackageManifestORM,
@@ -63,7 +62,11 @@ from afterworlds.quarantine import (
     refuse_quarantined,
 )
 from afterworlds.services.rules_authority.binding import resolve_package_reference
-from afterworlds.services.rules_package import RulesPackageService
+from afterworlds.services.rules_authority.outcomes import AuthorityOutcome
+from afterworlds.services.rules_package import (
+    RuleSliceResolutionError,
+    RulesPackageService,
+)
 
 PKG = next(iter(QUARANTINED_PACKAGE_UUIDS))
 REL = next(iter(QUARANTINED_RELEASE_VERSIONS))
@@ -281,26 +284,31 @@ def test_active_rule_slice_raises_instead_of_returning_an_empty_slice(
     session.commit()
     with pytest.raises(QuarantinedAuthorityError):
         RulesPackageService(session).get_active_rule_slice(
-            UUID(PKG), [RuleSubsystemEnum.CONDITIONS], []
+            RuleSliceRequest(package_id=UUID(PKG), whole_package=True)
         )
 
 
-def test_an_unrelated_package_still_resolves_a_slice(session: Any) -> None:
-    """Quarantine is identity-scoped: custom Rules Packages keep working."""
+def test_an_unrelated_package_is_not_refused_by_the_quarantine(session: Any) -> None:
+    """Quarantine is identity-scoped: custom Rules Packages are not refused.
+
+    Since the final CRD Issue 5d cutover the slice reads typed authority, so an
+    unrelated package with no published projection gets the typed authority's
+    own refusal, never the quarantine's — and never an empty slice.
+    """
     session.add(_package_row(OTHER_PKG, "House Rules", OTHER_REL))
     session.commit()
-    slice_ = RulesPackageService(session).get_active_rule_slice(
-        UUID(OTHER_PKG), [RuleSubsystemEnum.CONDITIONS], []
-    )
-    assert slice_.package_id == UUID(OTHER_PKG)
-    assert slice_.chunks == ()
+    with pytest.raises(RuleSliceResolutionError) as excinfo:
+        RulesPackageService(session).get_active_rule_slice(
+            RuleSliceRequest(package_id=UUID(OTHER_PKG), whole_package=True)
+        )
+    assert excinfo.value.outcome is not AuthorityOutcome.RESOLVED
 
 
 def test_rule_slice_package_resolution_refuses_a_direct_reference(
     session: Any,
 ) -> None:
     with pytest.raises(QuarantinedAuthorityError):
-        RulesPackageService(session).resolve_slice_package(
+        RulesPackageService(session).get_active_rule_slice(
             RuleSliceRequest(package_id=UUID(PKG), whole_package=True)
         )
 
@@ -575,7 +583,7 @@ def _seed_ingested_package(session: Any, package_uuid: str, version: str) -> str
             created_at=stamp,
         )
     )
-    session.flush()  # the chunk/entity composite key needs the source row
+    session.flush()  # the chunk composite key needs the source row
     session.add(
         RuleChunkORM(
             chunk_id=chunk_id,
@@ -583,20 +591,6 @@ def _seed_ingested_package(session: Any, package_uuid: str, version: str) -> str
             source_id=source_id,
             subsystem="conditions",
             content="Probe content.",
-            source_document="SRD 5.2.1",
-            source_locator_type="page",
-            source_locator_value="9",
-            created_at=stamp,
-        )
-    )
-    session.add(
-        MechanicalEntityORM(
-            entity_id=str(uuid4()),
-            rules_package_id=package_uuid,
-            source_id=source_id,
-            entity_type="condition",
-            name="Grappled",
-            structured_data={"description": "Probe."},
             source_document="SRD 5.2.1",
             source_locator_type="page",
             source_locator_value="9",
@@ -665,22 +659,18 @@ def test_generic_ingestion_refuses_before_parsing_or_writing(session: Any) -> No
 def test_every_default_read_refuses_the_quarantined_package(session: Any) -> None:
     """The reproduced read bypass, across the whole by-id surface.
 
-    ``get_active_rule_slice`` was already guarded; these five share
-    ``_package_accessible``, which is where the refusal now lives, so entity and
-    override reads are covered by that one guard rather than by five copies.
+    ``get_active_rule_slice`` is guarded at its own entry; the two source-corpus
+    reads share ``_package_accessible``, which is where their refusal lives.
+    (The entity and legacy-override reads were retired at the final CRD Issue 5d
+    cutover.)
     """
-    chunk_id = _seed_ingested_package(session, PKG, REL)
+    _seed_ingested_package(session, PKG, REL)
     session.get(RulesPackageORM, PKG).publication_status = "published"
     session.commit()
     reads = RulesPackageService(session)
     calls = (
         lambda: reads.get_package_by_id(UUID(PKG)),
         lambda: reads.get_chunks_by_subsystem(UUID(PKG), RuleSubsystemEnum.CONDITIONS),
-        lambda: reads.get_entity_by_type_and_name(
-            UUID(PKG), MechanicalEntityTypeEnum.CONDITION, "Grappled"
-        ),
-        lambda: reads.get_overrides_for_chunk(UUID(chunk_id), UUID(PKG)),
-        lambda: reads.get_overrides_for_entity(UUID(str(uuid4())), UUID(PKG)),
     )
     for call in calls:
         with pytest.raises(QuarantinedAuthorityError) as refused:
@@ -717,7 +707,7 @@ def test_an_unrelated_package_still_publishes_and_reads(session: Any) -> None:
     service and stays readable across the default read surface, so these guards
     are not a subsystem outage.
     """
-    chunk_id = _seed_ingested_package(session, OTHER_PKG, OTHER_REL)
+    _seed_ingested_package(session, OTHER_PKG, OTHER_REL)
     service = IngestionService(
         IngestionConfig(package_name="SRD 5.2.1 Corpus", package_version=OTHER_REL)
     )
@@ -732,11 +722,6 @@ def test_an_unrelated_package_still_publishes_and_reads(session: Any) -> None:
         UUID(OTHER_PKG), RuleSubsystemEnum.CONDITIONS
     )
     assert [c.content for c in chunks.chunks] == ["Probe content."]
-    entity = reads.get_entity_by_type_and_name(
-        UUID(OTHER_PKG), MechanicalEntityTypeEnum.CONDITION, "Grappled"
-    )
-    assert entity is not None and entity.name == "Grappled"
-    assert reads.get_overrides_for_chunk(UUID(chunk_id), UUID(OTHER_PKG)) == []
 
 
 def test_an_unrelated_ingestion_configuration_is_not_refused(session: Any) -> None:

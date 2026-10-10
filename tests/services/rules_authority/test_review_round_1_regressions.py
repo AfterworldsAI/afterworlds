@@ -107,7 +107,7 @@ def test_the_rule_slice_seam_refuses_an_unknown_uuid(
     unknown = uuid4()
     resolver = RulesPackageService(runtime.session)
     with pytest.raises(RuleSliceResolutionError) as excinfo:
-        resolver.resolve_slice_package(
+        resolver.get_active_rule_slice(
             RuleSliceRequest(package_slug=str(unknown), whole_package=True)
         )
     assert excinfo.value.outcome is AuthorityOutcome.ABSENT

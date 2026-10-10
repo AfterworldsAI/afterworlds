@@ -1,6 +1,6 @@
 # CRD Issues 5c and 5d — clean restart: implementation state
 
-## Current state - verified 10 October 2026 UTC (PRs #178, #179 and #180 merged; main `b9ff329`; all six isolated operational obligations discharged; the Owner-approved local publication and activation of the accepted release completed and independently verified in `D:\AI\Claude\afterworlds-runtime`; app not launched)
+## Current state - verified 10 October 2026 UTC (PRs #178–#181 merged; main `71c77b2`; isolated obligations, source qualification, the 8781 projection acceptance and local publication/activation discharged; bounded local app smoke passed its boot and native-read checks, and the app is stopped; the two final CRD Issue 5d cutover obligations are **implemented in this bounded PR; Codex implementation review completed; required exact-head CI and Owner merge pending**; runtime migration/verification and the restart-completion assessment follow separately; the restart is not completion-ready)
 
 - **Authority and inputs.** The [21 September Owner Decision](../decisions/owner-decision-2026-09-21-5c-5d-clean-restart.md) governs the restart. The [official SRD 5.2.1 PDF](../sources/DnD5_5e_SRD_CC_v5_2_1.pdf) remains ultimate rules authority. The [qualified community source](../sources/community/dnd-5e-srd-markdown/PINNED-SOURCE.md), its [source manifest](../sources/community/dnd-5e-srd-markdown/source_pin.json) and the [correction evidence](issue-5c-5d-community-source-corrections.md) identify the corrected machine-readable inputs; source qualification is distinct from semantic acceptance.
 - **Current accepted recording.** The Owner accepted the exact [release-order replacement candidate](../../.claude/review-notes/issue-5c-release-order-candidate.md) (["I accept this exact release-order candidate."](../../.claude/review-notes/issue-5c-release-order-recording/owner-acceptance.json), `2026-10-07T05:28:37Z`). The native recording has oracle `srd-5-2-1-corpus-8781d4e0-a3b.json`, SHA-256 `def7caa1625458a40c1f635db153268082cf52d5e25c28f57fd29518e44de58c`: release `1299484e-c72d-509b-bd8d-d0169ee1f8d2` / `5.2.1-corpus.8781d4e0-a3b`, **24 accepted batches, 1,835 records, 1,486 reference resolutions, representation schema 17**, effective projection `1f0db408-ee07-5e8d-897d-29838d614c53`. See the [recorded follow-up](../../.claude/review-notes/issue-5c-release-order-recording/recorded-followup.md). Reference, uncovered-leaf and other native findings are all zero.
@@ -39,14 +39,41 @@
   - **Independent review.** Codex's execution review passed. It covered the receipt hashes, byte-copy inspection of both stores (integrity ok; 11,076 embeddings in one collection), and protection of the original checkout, settings and immutable inputs.
   - **Rehearsal evidence.** The earlier private rehearsals and guard controls remain preparation history, distinct from this execution.
   - This was first-time provisioning of a local development/runtime store, with no users or deployed consumers. It changed no source, semantics or accepted bytes.
+- **PR #181 merged** (`71c77b2c9be7c1c4ccdd06b84fc0148a52fec568`, 10 October 2026). It records the local publication and activation above.
+- **Bounded local app smoke (10 October 2026; Owner-authorized; app stopped).** See the [runtime smoke note](../../.claude/review-notes/issue-5c-5d-runtime-smoke.md).
+  - Merged main `71c77b2` served `afterworlds.main:app` against the published runtime stores, with one worker on loopback.
+  - **HTTP:** ready in 3.6 s. Health, the frontend index and its built JS asset, `/api/personas` and `/api/stories` returned 200. There is no rules or citation HTTP route.
+  - **Shutdown:** graceful, exit 0; the port was closed afterwards.
+  - **Native reads** on the app's own session factory, rolled back (not HTTP):
+    - the exact four-part binding by UUID and by slug, and active projection `1f0db408-…`;
+    - 1,835 records;
+    - `glossary.blinded` provenance with official locator `p. 177`;
+    - the four citation families resolved;
+    - an ONNX query with 5 hits;
+    - retired and superseded identities refused.
+  - **After:** no DB table delta, and `rp_*`, migration version and Chroma payload unchanged; the immutable inputs and the protected checkout unchanged.
+  - **Raw receipt correction.** The run's raw result is `FAIL`, preserved. Its only stop was the private harness comparing SQLAlchemy's rendered URL (`D%3A`) with the input string. Parsed-URL and resolved-file equality confirm the exact target, so it is a presentation false positive. The comparison is corrected privately and covered by a focused check.
+  - The first run's readiness timeout was a private launcher defect: a blocking stdin read stalled numpy's native import. It changed nothing but the normal identity row.
+- **Final CRD Issue 5d cutover obligations (settled and issue-scoped; no new Owner Decision).** Found by the smoke and Codex's completion assessment; now implemented in this bounded PR; Codex implementation review completed; required exact-head CI and Owner merge pending (branch `codex/5d-final-cutover`). See the [final-cutover evidence note](../../.claude/review-notes/issue-5d-final-cutover.md). The findings as recorded — behavior of merged main `71c77b2` at the time of the smoke, not of this branch:
+  1. **Production consumer cutover.** Contract 6 ([draft](issue-5d-practical-reliability-draft.md) lines 443-454) applies to the existing `RuleSliceRequest` / `get_active_rule_slice` path. The Context Builder still drops `recorded_binding`, the record/component selectors and `whole_package`, and its `ActiveRuleSlice` result carries no binding. In the smoke, record, whole-package and stale requests gave 1 / 1,835 / `stale` through the typed service, but empty slices through the app-wired path.
+  2. **Final legacy retirement.** AC22 and draft lines 510 and 546 apply. `MechanicalEntity` with `MechanicalEntityORM` / `rp_mechanical_entities` and its constructors and callers, and the legacy chunk/entity override path `RuleOverrideORM` / `rp_overrides`, remain. This is distinct from PR #179's completed original-product retirement.
+  - Neither obligation needs a new HTTP endpoint, an RPG selector policy, sheet storage (2b) or adapter work (15c).
+  - **Implementation in this bounded PR (not merged).**
+    1. `ContextBuilderService` passes the supplying `RuleSliceRequest` whole to `RulesPackageService.get_active_rule_slice`, which reads the accepted typed authority through `RulesAuthorityService` and returns an `ActiveRuleSlice` carrying the exact four-part binding, the request, the components read and a deterministic rendering of the GameMaster authority view. Every refusal is typed (`STALE`, `INVALID_REFERENCE`, `UNPUBLISHED`, `AMBIGUOUS`, quarantine). The legacy `subsystem_tags`, `entity_refs` and `include_non_published` selectors and `resolve_slice_package` are removed; the app wiring commits the retained override-set version so the named binding replays.
+    2. The `MechanicalEntity` family, the legacy `RuleOverride` model and `ChunkOverridePayload`/`AppliedChunk`/`AppliedEntity`, their ORMs, the entity enum, entity parsing and persistence, and the legacy entity/override readers are removed. Migration `0037` drops `rp_overrides` then `rp_mechanical_entities` under the clean-baseline policy; downgrade recreates the 0036 schema empty. Source corpus, typed overrides and retained replay are kept.
+    - Focused production-consumer, retirement and migration tests pass, as do the native Black, Ruff, strict mypy, detect-secrets and pip-audit gates. The full backend and accepted-corpus gate is left to required exact-head CI.
+  - **Runtime boundary.** No runtime store was opened or migrated. `create_app` runs `upgrade_to_head` at startup, so the first app launch at a head containing `0037` would apply it to `D:\AI\Claude\afterworlds-runtime`; the smoke's private receipt recorded 0 rows in both legacy tables there. That launch or migration needs separate authorization.
 - **States, kept distinct.**
   - Accepted: the 8781 recording.
-  - Merged: PRs #178, #179 and #180.
+  - Merged: PRs #178, #179, #180 and #181.
   - Isolated operational verification: all six §2.5 obligations discharged.
+  - CRD Issue 5c (#132) source and release outcomes: discharged.
   - Local publication and activation: completed and verified in `D:\AI\Claude\afterworlds-runtime`, as approved. 5c and 5d both committed, so no partial publication exists.
-  - App launch: not performed.
+  - Bounded app smoke: boot, HTTP and native reads passed; the app is stopped.
+  - Final CRD Issue 5d cutover: **implemented in this bounded PR; Codex implementation review completed; required exact-head CI and Owner merge pending**; not applied to any runtime store. Merging the code PR does not by itself complete the runtime obligations.
+  - Issue state: #132 and #137 were already closed before the smoke and are unchanged. Their closure does not waive these obligations.
   - Not claimed: operational restart completion or issue closure.
-- **Immediate next step.** Owner review and merge of the documentation-only pull request that records this execution and status, after its required checks. Launching the app against these stores is outside that pull request and remains a separately authorized action, only if the Owner requests it; the prepared configuration is in the runbook. All six isolated obligations remain discharged, and the historical §4.6 questions are answered by §7.
+- **Immediate next step.** Required exact-head CI on the bounded PR (including the accepted-corpus gate) and the Owner's merge decision. Completing the code PR is followed by separately authorized migration and verification of the actual runtime stores, and then the Owner's restart-completion assessment; merge alone completes neither. Reopening #137 or tracking the work in a linked follow-up is the Owner's issue-management choice. The historical §4.6 questions are answered by §7.
 
   Previously settled and still in force:
   - The final-ten recording evidence remains in force: the [recorded follow-up](../../.claude/review-notes/issue-5d-final-ten-references-recorded-followup.md) and the [Codex recording review](../../.claude/review-notes/issue-5d-final-ten-references-recording-codex-review.md).

@@ -133,25 +133,15 @@ def _render_cast_entry(entry: CastEntry) -> str:
 
 
 def _render_rule_slice(rule_slice: ActiveRuleSlice) -> str:
-    """Render ActiveRuleSlice to plain-text for prompt inclusion."""
-    parts: list[str] = [f"## Rules (Package {rule_slice.package_id})"]
+    """Render ActiveRuleSlice to plain-text for prompt inclusion.
 
-    enabled_chunks = [c for c in rule_slice.chunks if not c.is_disabled]
-    if enabled_chunks:
-        chunk_blocks = "\n\n".join(
-            f"### {c.chunk.subsystem.value}\n{c.applied_content}"
-            for c in enabled_chunks
-        )
-        parts.append(chunk_blocks)
-
-    if rule_slice.entities:
-        entity_blocks = "\n\n".join(
-            f"**{e.entity.entity_type.value}: {e.entity.name}**"
-            for e in rule_slice.entities
-        )
-        parts.append(entity_blocks)
-
-    return "\n\n".join(parts)
+    The slice already carries the deterministic rendering of its GameMaster
+    authority view, produced by the service layer from the exact typed
+    authority and beginning with the four-part binding (CRD Issue 5d final
+    cutover). It is used verbatim, so the stable prefix states exactly what the
+    bound authority says.
+    """
+    return rule_slice.authority_text
 
 
 # ---------------------------------------------------------------------------

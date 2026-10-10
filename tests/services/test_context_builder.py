@@ -373,29 +373,26 @@ def _make_service(
 
 
 def _make_minimal_active_slice() -> ActiveRuleSlice:
-    """Build a minimal ActiveRuleSlice with one enabled chunk; no entities."""
-    from afterworlds.models.enums import RuleSubsystemEnum, SourceLocatorTypeEnum
-    from afterworlds.models.rules_package import AppliedChunk, RuleChunk
+    """Build a minimal binding-bearing ActiveRuleSlice (final 5d cutover shape).
+
+    Unit-level stand-in for what ``RulesPackageService.get_active_rule_slice``
+    returns; the real production path is exercised against a published
+    projection in ``test_rule_slice_consumer_cutover.py``.
+    """
+    from afterworlds.models.rules_package import RulesPackageBinding
 
     pid = uuid4()
-    source_id = uuid4()
-    chunk = RuleChunk(
-        rules_package_id=pid,
-        source_id=source_id,
-        subsystem=RuleSubsystemEnum.COMBAT,
-        content="RULE_CONTENT_SENTINEL",
-        source_document="SRD",
-        source_locator_type=SourceLocatorTypeEnum.PAGE,
-        source_locator_value="p. 1",
-        created_at=_NOW,
+    return ActiveRuleSlice(
+        binding=RulesPackageBinding(
+            package_uuid=pid,
+            release_version="test-release",
+            mechanical_projection_uuid=uuid4(),
+            override_set_uuid=uuid4(),
+        ),
+        request=RuleSliceRequest(package_id=pid, record_selectors=("rec",)),
+        components=(("rec", "comp"),),
+        authority_text="## Rules authority\nAPPLIED_RULE_SENTINEL",
     )
-    applied = AppliedChunk(
-        chunk=chunk,
-        applied_content="APPLIED_RULE_SENTINEL",
-        is_disabled=False,
-        override_ids_applied=(),
-    )
-    return ActiveRuleSlice(package_id=pid, chunks=(applied,), entities=())
 
 
 # ===========================================================================
@@ -1112,14 +1109,9 @@ def test_rule_slice_request_without_service_raises() -> None:
         retrieval_memory=_CountingRetrievalMemoryProvider(),
         rules_package_service=None,
     )
-    from afterworlds.models.enums import RuleSubsystemEnum as _RuleSubsystemEnum
-
     # CRD Issue 5d (#137 contract 6): a rule-slice request must state what it
-    # selects, so the accidentally-empty form used here before is now refused
-    # at construction.
-    req = RuleSliceRequest(
-        package_id=uuid4(), subsystem_tags=[_RuleSubsystemEnum.COMBAT]
-    )
+    # selects with record/component selectors or ``whole_package``.
+    req = RuleSliceRequest(package_id=uuid4(), whole_package=True)
     with pytest.raises(ValueError, match="rules_package_service"):
         service.assemble(
             story_id=_STORY_ID,
@@ -1132,90 +1124,47 @@ def test_rule_slice_request_without_service_raises() -> None:
 
 
 def test_rule_slice_happy_path_wires_slice_and_covers_render() -> None:
-    """Rule slice end-to-end: seam called, slice wired into stable_prefix, rendered.
+    """Rule slice end-to-end: the supplying request reaches the seam whole.
 
-    Exercises _render_rule_slice (models/context.py) — the enabled-chunk path
-    and entity path both fire here.
+    Final CRD Issue 5d cutover (#137 contract 6): the Context Builder passes the
+    exact ``RuleSliceRequest`` — package reference, record/component selectors,
+    ``whole_package`` and recorded binding — to ``get_active_rule_slice`` rather
+    than unpacking a legacy subset of its fields. The returned binding-bearing
+    slice is wired into the stable prefix and rendered verbatim.
     Canonical order verified: stable prefix (incl. rule slice) → volatile suffix.
     """
-    from afterworlds.models.enums import (
-        MechanicalEntityTypeEnum,
-        RuleSubsystemEnum,
-        SourceLocatorTypeEnum,
-    )
     from afterworlds.models.rules_package import (
         ActiveRuleSlice,
-        AppliedChunk,
-        AppliedEntity,
-        ConditionEntity,
-        MechanicalEntity,
-        RuleChunk,
         RuleSliceRequest,
+        RulesPackageBinding,
     )
 
     package_id = uuid4()
-    source_id = uuid4()
-
-    chunk = RuleChunk(
-        rules_package_id=package_id,
-        source_id=source_id,
-        subsystem=RuleSubsystemEnum.COMBAT,
-        content="When you make an attack roll...",
-        source_document="SRD 5.2",
-        source_locator_type=SourceLocatorTypeEnum.PAGE,
-        source_locator_value="p. 72",
-        created_at=_NOW,
+    recorded = RulesPackageBinding(
+        package_uuid=package_id,
+        release_version="test-release",
+        mechanical_projection_uuid=uuid4(),
+        override_set_uuid=uuid4(),
     )
-    applied_chunk = AppliedChunk(
-        chunk=chunk,
-        applied_content="CHUNK_CONTENT_SENTINEL",
-        is_disabled=False,
-        override_ids_applied=(),
-    )
-
-    entity = MechanicalEntity(
-        rules_package_id=package_id,
-        source_id=source_id,
-        entity_type=MechanicalEntityTypeEnum.CONDITION,
-        name="ENTITY_NAME_SENTINEL",
-        structured_data=ConditionEntity(effects=("Incapacitated", "Can't move")),
-        source_document="SRD 5.2",
-        source_locator_type=SourceLocatorTypeEnum.PAGE,
-        source_locator_value="p. 290",
-        created_at=_NOW,
-    )
-    applied_entity = AppliedEntity(entity=entity, override_ids_applied=())
-
-    active_slice = ActiveRuleSlice(
+    req = RuleSliceRequest(
         package_id=package_id,
-        chunks=(applied_chunk,),
-        entities=(applied_entity,),
+        record_selectors=("glossary.blinded",),
+        component_selectors=(("glossary.grappled", "effect"),),
+        recorded_binding=recorded,
+    )
+    active_slice = ActiveRuleSlice(
+        binding=recorded,
+        request=req,
+        components=(("glossary.blinded", "effect"), ("glossary.grappled", "effect")),
+        authority_text="## Rules authority\nAUTHORITY_TEXT_SENTINEL",
     )
 
     class _StubRulesPackageService:
         def __init__(self) -> None:
-            self.call_count: int = 0
-            self.last_package_id: UUID | None = None
-            self.last_subsystem_tags: list[RuleSubsystemEnum] | None = None
-            self.last_entity_refs: list[tuple[MechanicalEntityTypeEnum, str]] | None = (
-                None
-            )
+            self.requests: list[RuleSliceRequest] = []
 
-        def resolve_slice_package(self, request: RuleSliceRequest) -> UUID:
-            assert request.package_id is not None
-            return request.package_id
-
-        def get_active_rule_slice(
-            self,
-            package_id: UUID,
-            subsystem_tags: list[RuleSubsystemEnum],
-            entity_refs: list[tuple[MechanicalEntityTypeEnum, str]],
-            include_non_published: bool = False,
-        ) -> ActiveRuleSlice:
-            self.call_count += 1
-            self.last_package_id = package_id
-            self.last_subsystem_tags = subsystem_tags
-            self.last_entity_refs = entity_refs
+        def get_active_rule_slice(self, request: RuleSliceRequest) -> ActiveRuleSlice:
+            self.requests.append(request)
             return active_slice
 
     stub_rules = _StubRulesPackageService()
@@ -1227,11 +1176,6 @@ def test_rule_slice_happy_path_wires_slice_and_covers_render() -> None:
         rules_package_service=stub_rules,
     )
 
-    req = RuleSliceRequest(
-        package_id=package_id,
-        subsystem_tags=[RuleSubsystemEnum.COMBAT],
-        entity_refs=[(MechanicalEntityTypeEnum.CONDITION, "ENTITY_NAME_SENTINEL")],
-    )
     volatile_input = "I attack the goblin."
     assembled = service.assemble(
         story_id=_STORY_ID,
@@ -1241,13 +1185,9 @@ def test_rule_slice_happy_path_wires_slice_and_covers_render() -> None:
         rule_slice_request=req,
     )
 
-    # Seam was called with the request's exact parameters
-    assert stub_rules.call_count == 1
-    assert stub_rules.last_package_id == package_id
-    assert stub_rules.last_subsystem_tags == [RuleSubsystemEnum.COMBAT]
-    assert stub_rules.last_entity_refs == [
-        (MechanicalEntityTypeEnum.CONDITION, "ENTITY_NAME_SENTINEL")
-    ]
+    # The seam received the supplying request itself: nothing dropped or widened.
+    assert stub_rules.requests == [req]
+    assert stub_rules.requests[0] is req
 
     # Slice is wired into StablePrefix, not a separate field on AssembledContext
     assert assembled.stable_prefix.rules_package_slice is active_slice
@@ -1256,15 +1196,12 @@ def test_rule_slice_happy_path_wires_slice_and_covers_render() -> None:
     # Canonical order in render_for_pass: stable prefix (incl. slice) → volatile suffix
     full = assembled.render_for_pass()
     mode_pos = full.find(_MODE_CONTRACT_SENTINEL)
-    chunk_pos = full.find("CHUNK_CONTENT_SENTINEL")
-    entity_pos = full.find("ENTITY_NAME_SENTINEL")
+    slice_pos = full.find("AUTHORITY_TEXT_SENTINEL")
     volatile_pos = full.find(volatile_input)
 
-    assert chunk_pos != -1, "chunk applied_content missing from render_for_pass"
-    assert entity_pos != -1, "entity name missing from render_for_pass"
-    assert mode_pos < chunk_pos, "rule slice must appear after mode contract"
-    assert chunk_pos < volatile_pos, "rule slice must appear before volatile suffix"
-    assert entity_pos < volatile_pos, "entity must appear before volatile suffix"
+    assert slice_pos != -1, "slice authority text missing from render_for_pass"
+    assert mode_pos < slice_pos, "rule slice must appear after mode contract"
+    assert slice_pos < volatile_pos, "rule slice must appear before volatile suffix"
 
 
 # ===========================================================================
@@ -1305,17 +1242,7 @@ def test_rule_slice_mode_intent_policy(
         def __init__(self) -> None:
             self.call_count = 0
 
-        def resolve_slice_package(self, request: RuleSliceRequest) -> UUID:
-            assert request.package_id is not None
-            return request.package_id
-
-        def get_active_rule_slice(
-            self,
-            package_id: UUID,
-            subsystem_tags: object,
-            entity_refs: object,
-            include_non_published: bool = False,
-        ) -> ActiveRuleSlice:
+        def get_active_rule_slice(self, request: RuleSliceRequest) -> ActiveRuleSlice:
             self.call_count += 1
             return active_slice
 
@@ -1327,14 +1254,9 @@ def test_rule_slice_mode_intent_policy(
         retrieval_memory=_CountingRetrievalMemoryProvider(),
         rules_package_service=stub_rules,
     )
-    from afterworlds.models.enums import RuleSubsystemEnum as _RuleSubsystemEnum
-
     # CRD Issue 5d (#137 contract 6): a rule-slice request must state what it
-    # selects, so the accidentally-empty form used here before is now refused
-    # at construction.
-    req = RuleSliceRequest(
-        package_id=uuid4(), subsystem_tags=[_RuleSubsystemEnum.COMBAT]
-    )
+    # selects with record/component selectors or ``whole_package``.
+    req = RuleSliceRequest(package_id=uuid4(), whole_package=True)
 
     assembled = service.assemble(
         story_id=_STORY_ID,
@@ -1804,39 +1726,25 @@ def test_stable_prefix_story_bible_context_collections_are_immutable() -> None:
 def test_stable_prefix_rules_package_slice_is_immutable() -> None:
     """ActiveRuleSlice stored in stable_prefix.rules_package_slice is deeply immutable.
 
-    ActiveRuleSlice, AppliedChunk, and AppliedEntity are all frozen Pydantic
-    models with tuple collection fields.  Verifies that:
-    - Appending to chunks/entities (tuples) raises AttributeError.
-    - Reassigning a frozen field on AppliedChunk raises ValidationError.
-    - Appending to override_ids_applied (tuple) raises AttributeError.
+    ActiveRuleSlice, its RulesPackageBinding and its RuleSliceRequest are all
+    frozen Pydantic models with tuple collection fields, so no pipeline pass can
+    re-point the slice at another binding, widen its selectors, or append a
+    component it did not read.
     """
     from pydantic import ValidationError
 
     rps = _make_minimal_active_slice()
 
-    # chunks is a tuple — append must fail
     with pytest.raises(AttributeError):
-        rps.chunks.append(rps.chunks[0])  # type: ignore[attr-defined]
-
-    # entities is a tuple — append must fail
-    with pytest.raises(AttributeError):
-        rps.entities.append(None)  # type: ignore[arg-type, attr-defined]
-
-    # AppliedChunk is frozen — normal field reassignment must raise ValidationError
+        rps.components.append(("other", "comp"))  # type: ignore[attr-defined]
     with pytest.raises(ValidationError):
-        rps.chunks[0].applied_content = "injected"  # type: ignore[misc]
-
-    # override_ids_applied is a tuple — append must fail
-    with pytest.raises(AttributeError):
-        rps.chunks[0].override_ids_applied.append(uuid4())  # type: ignore[attr-defined]
-
-
-def test_rule_chunk_is_immutable() -> None:
-    """RuleChunk nested inside AppliedChunk is frozen — field mutation raises
-    ValidationError, closing the immutability chain through the rule slice."""
-    rps = _make_minimal_active_slice()
+        rps.authority_text = "injected"  # type: ignore[misc]
     with pytest.raises(ValidationError):
-        rps.chunks[0].chunk.content = "hacked"  # type: ignore[misc]
+        rps.binding.override_set_uuid = uuid4()  # type: ignore[misc]
+    with pytest.raises(ValidationError):
+        rps.request.whole_package = True  # type: ignore[misc]
+    with pytest.raises(AttributeError):
+        rps.request.record_selectors.append("other")  # type: ignore[attr-defined]
 
 
 def test_story_bible_leaf_models_are_immutable() -> None:

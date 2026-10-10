@@ -1,38 +1,44 @@
-"""Rules Package service — typed read surface for mechanical canon.
+"""Rules Package service — the production rule-slice path and source-corpus reads.
 
-This module provides the typed read interface that downstream issues
-(CRD Issue 5b ingestion, CRD Issue 8 Context Builder) depend on.
+Rule slice (play time)
+----------------------
+:meth:`RulesPackageService.get_active_rule_slice` is the existing production
+path the Context Builder consumes, extended at the final CRD Issue 5d cutover
+(#137 contract 6). It takes the supplying :class:`RuleSliceRequest` whole —
+package reference, record/component selectors, ``whole_package`` and any
+recorded binding — reads the accepted typed mechanical authority through
+:class:`~afterworlds.services.rules_authority.RulesAuthorityService`, and
+returns a slice that names the exact four-part effective binding. Every
+refusal is typed and fails closed: a non-resolving reference, an empty
+selector set, a stale recorded binding or a missing selected element raises
+:class:`RuleSliceResolutionError` with its :class:`AuthorityOutcome`, and a
+quarantined identity raises
+:class:`~afterworlds.quarantine.QuarantinedAuthorityError`. Nothing returns an
+empty slice to mean "no rule applies".
 
-Play-time queries
------------------
-Surface only published, enabled content.  Disabled packages, disabled
-sources, and their associated chunks/entities are excluded.
+Source-corpus reads (informational)
+-----------------------------------
+:meth:`get_package_by_id` and :meth:`get_chunks_by_subsystem` read the
+authoritative 5c source records (``RulesPackage``, ``RuleSource``,
+``RuleChunk``). They are informational/administrative reads of source text and
+metadata, never mechanical authority: governing prose reaches a consumer only
+through the projection's exact prose binding.
 
-Administrative / internal queries
-----------------------------------
-Pass ``include_non_published=True`` to access draft packages during
-ingestion validation and publication flow support (CRD Issue 5b).
-
-Source record immutability
---------------------------
-Source records (RuleChunk, MechanicalEntity) are immutable after creation.
-All layered changes are expressed as RuleOverride rows.  No service method
-in this module modifies a source record.
+The obsolete prose-only ``MechanicalEntity`` family and the legacy chunk/entity
+override authority (``rp_mechanical_entities``, ``rp_overrides``) were retired
+at the same cutover (AC22); this module no longer reads, applies or falls back
+to either.
 """
 
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from afterworlds.models.enums import (
-    MechanicalEntityTypeEnum,
-    OverrideOperationEnum,
-    OverrideOriginEnum,
     PublicationStatusEnum,
     RuleSourceCategoryEnum,
     RulesSystemEnum,
@@ -40,34 +46,22 @@ from afterworlds.models.enums import (
     SourceLocatorTypeEnum,
 )
 from afterworlds.models.rules_package import (
-    ActionEntity,
     ActiveRuleSlice,
-    AppliedChunk,
-    AppliedEntity,
-    ChunkOverridePayload,
     ChunksResult,
-    ConditionEntity,
-    EntityData,
-    ItemEntity,
-    MechanicalEntity,
     RuleChunk,
-    RuleOverride,
     RuleSliceRequest,
     RuleSource,
     RulesPackageDetail,
-    SpellEntity,
-    StatBlockEntity,
 )
 from afterworlds.persistence.orm.rules_package import (
-    MechanicalEntityORM,
     RuleChunkORM,
-    RuleOverrideORM,
     RuleSourceORM,
     RulesPackageORM,
 )
 from afterworlds.quarantine import refuse_quarantined
-from afterworlds.services.rules_authority.binding import resolve_package_reference
 from afterworlds.services.rules_authority.outcomes import AuthorityOutcome
+from afterworlds.services.rules_authority.service import RulesAuthorityService
+from afterworlds.services.rules_authority.views import render_gamemaster_view
 
 
 class RuleSliceResolutionError(ValueError):
@@ -137,75 +131,22 @@ def _orm_to_chunk(row: RuleChunkORM) -> RuleChunk:
     )
 
 
-def _deserialize_entity_data(
-    entity_type: MechanicalEntityTypeEnum, data: dict[str, Any]
-) -> EntityData:
-    """Deserialise a structured_data dict to the correct typed entity model."""
-    if entity_type == MechanicalEntityTypeEnum.SPELL:
-        return SpellEntity.model_validate(data)
-    if entity_type == MechanicalEntityTypeEnum.CONDITION:
-        return ConditionEntity.model_validate(data)
-    if entity_type == MechanicalEntityTypeEnum.STAT_BLOCK:
-        return StatBlockEntity.model_validate(data)
-    if entity_type == MechanicalEntityTypeEnum.ACTION:
-        return ActionEntity.model_validate(data)
-    if entity_type == MechanicalEntityTypeEnum.ITEM:
-        return ItemEntity.model_validate(data)
-    raise ValueError(f"Unhandled entity type: {entity_type!r}")  # pragma: no cover
-
-
-def _orm_to_entity(row: MechanicalEntityORM) -> MechanicalEntity:
-    entity_type = MechanicalEntityTypeEnum(row.entity_type)
-    structured_data = _deserialize_entity_data(entity_type, row.structured_data)
-    return MechanicalEntity(
-        entity_id=UUID(row.entity_id),
-        rules_package_id=UUID(row.rules_package_id),
-        source_id=UUID(row.source_id),
-        entity_type=entity_type,
-        name=row.name,
-        structured_data=structured_data,
-        source_document=row.source_document,
-        source_locator_type=SourceLocatorTypeEnum(row.source_locator_type),
-        source_locator_value=row.source_locator_value,
-        source_section_label=row.source_section_label,
-        is_enabled=row.is_enabled,
-        created_at=datetime.fromisoformat(row.created_at),
-    )
-
-
-def _orm_to_override(row: RuleOverrideORM) -> RuleOverride:
-    return RuleOverride(
-        override_id=UUID(row.override_id),
-        rules_package_id=UUID(row.rules_package_id),
-        target_chunk_id=(UUID(row.target_chunk_id) if row.target_chunk_id else None),
-        target_entity_id=(UUID(row.target_entity_id) if row.target_entity_id else None),
-        override_origin=OverrideOriginEnum(row.override_origin),
-        override_operation=OverrideOperationEnum(row.override_operation),
-        override_payload=row.override_payload,
-        precedence=row.precedence,
-        is_enabled=row.is_enabled,
-        created_at=datetime.fromisoformat(row.created_at),
-    )
-
-
 # ---------------------------------------------------------------------------
 # Service
 # ---------------------------------------------------------------------------
 
 
 class RulesPackageService:
-    """Read-oriented service for the Rules Package subsystem.
+    """The production rule-slice path plus informational source-corpus reads.
 
-    Play-time methods surface only published, enabled content.
-    Administrative/internal callers may opt into draft reads via
-    ``include_non_published=True``.
-
-    Source records (RuleChunk, MechanicalEntity) are never modified by this
-    service.  All layered changes are expressed as RuleOverride rows.
+    Source records (RuleChunk) are never modified by this service.
     """
 
-    def __init__(self, session: Session) -> None:
+    def __init__(self, session: Session, *, now: str | None = None) -> None:
         self._session = session
+        # Audit metadata for override-set retention only (ADR-005d Decision 9);
+        # it never reaches an identity. ``None`` reads the clock per call.
+        self._now = now
 
     # -- Accessibility helpers ----------------------------------------------
 
@@ -214,10 +155,10 @@ class RulesPackageService:
     ) -> bool:
         """Return True if *row* is accessible under the given query policy.
 
-        Every by-id read method in this service routes through here — packages,
-        chunks, entities and both override readers — so the Recorded Owner
+        Both source-corpus reads route through here, so the Recorded Owner
         Decision 2026-09-21 quarantine is enforced once, at the point where a row
-        becomes readable content, rather than at six call sites.
+        becomes readable content. (The rule slice is refused by the typed
+        binding path itself.)
 
         It raises rather than returning False. An empty chunk list or a ``None``
         package is what "nothing configured" looks like, so a silent exclusion
@@ -299,10 +240,13 @@ class RulesPackageService:
         subsystem: RuleSubsystemEnum,
         include_non_published: bool = False,
     ) -> ChunksResult:
-        """Retrieve rule chunks for a package/subsystem.
+        """Retrieve source rule chunks for a package/subsystem.
 
-        Respects package, RuleSource, and chunk enable/disable state.
-        Play-time (default): only published and enabled content is surfaced.
+        Informational/administrative source-corpus read: chunk text is source
+        material, not mechanical authority, and no rule-slice or adjudication
+        path reads it from here. Respects package, RuleSource, and chunk
+        enable/disable state; by default only published, enabled content is
+        surfaced.
         """
         pkg_row = self._session.execute(
             select(RulesPackageORM).where(
@@ -343,303 +287,66 @@ class RulesPackageService:
             chunks=[_orm_to_chunk(r) for r in chunk_rows],
         )
 
-    def get_entity_by_type_and_name(
-        self,
-        package_id: UUID,
-        entity_type: MechanicalEntityTypeEnum,
-        name: str,
-        source_id: UUID | None = None,
-        include_non_published: bool = False,
-    ) -> MechanicalEntity | None:
-        """Retrieve a specific mechanical entity scoped to a package.
+    def get_active_rule_slice(self, request: RuleSliceRequest) -> ActiveRuleSlice:
+        """Resolve *request* against the accepted typed mechanical authority.
 
-        Optional ``source_id`` filter resolves ambiguity when the same name
-        exists across multiple RuleSource records within the package.
+        The request is used whole and unchanged: its package reference (UUID or
+        human-facing slug, resolved by the one code-owned service), its
+        deterministic record/component selectors or explicit ``whole_package``,
+        and its ``recorded_binding``. A recorded binding that no longer matches
+        current override state is ``STALE`` and refused — never silently
+        re-resolved against current authority — and selectors are never
+        widened.
 
-        Returns None if not found or not accessible.
+        Returns an :class:`ActiveRuleSlice` carrying the exact four-part
+        binding, the supplying request, the components read and the
+        deterministic GameMaster authority rendering.
+
+        Raises :class:`RuleSliceResolutionError` for every non-``RESOLVED``
+        outcome, and :class:`~afterworlds.quarantine.QuarantinedAuthorityError`
+        for a retired identity.
+
+        Binding resolution retains the override-set version it resolved, in
+        this service's session (ADR-005d Decision 9). The caller owns the
+        commit, so the binding the slice names stays replayable.
         """
-        pkg_row = self._session.execute(
-            select(RulesPackageORM).where(
-                RulesPackageORM.rules_package_id == str(package_id)
-            )
-        ).scalar_one_or_none()
-
-        if pkg_row is None or not self._package_accessible(
-            pkg_row, include_non_published
-        ):
-            return None
-
-        enabled_source_ids = self._enabled_source_ids_for_package(package_id)
-        if not enabled_source_ids:
-            return None
-
-        stmt = (
-            select(MechanicalEntityORM)
-            .join(
-                RuleSourceORM,
-                MechanicalEntityORM.source_id == RuleSourceORM.source_id,
-            )
-            .where(
-                MechanicalEntityORM.rules_package_id == str(package_id),
-                MechanicalEntityORM.entity_type == entity_type.value,
-                MechanicalEntityORM.name == name,
-                MechanicalEntityORM.is_enabled == True,  # noqa: E712
-                MechanicalEntityORM.source_id.in_(enabled_source_ids),
-            )
-            .order_by(RuleSourceORM.precedence_rank, MechanicalEntityORM.entity_id)
-        )
-        if source_id is not None:
-            stmt = stmt.where(MechanicalEntityORM.source_id == str(source_id))
-
-        row = self._session.execute(stmt).scalars().first()
-        return _orm_to_entity(row) if row is not None else None
-
-    def get_overrides_for_chunk(
-        self,
-        chunk_id: UUID,
-        package_id: UUID,
-        include_non_published: bool = False,
-    ) -> list[RuleOverride]:
-        """Retrieve active overrides for a chunk, scoped to its package.
-
-        Respects package accessibility.  Returns [] for a missing, disabled,
-        draft, or retired package under normal play-time access.
-        """
-        pkg_row = self._session.execute(
-            select(RulesPackageORM).where(
-                RulesPackageORM.rules_package_id == str(package_id)
-            )
-        ).scalar_one_or_none()
-        if pkg_row is None or not self._package_accessible(
-            pkg_row, include_non_published
-        ):
-            return []
-
-        rows = (
-            self._session.execute(
-                select(RuleOverrideORM)
-                .where(
-                    RuleOverrideORM.rules_package_id == str(package_id),
-                    RuleOverrideORM.target_chunk_id == str(chunk_id),
-                    RuleOverrideORM.is_enabled == True,  # noqa: E712
-                )
-                .order_by(RuleOverrideORM.precedence, RuleOverrideORM.override_id)
-            )
-            .scalars()
-            .all()
-        )
-        return [_orm_to_override(r) for r in rows]
-
-    def get_overrides_for_entity(
-        self,
-        entity_id: UUID,
-        package_id: UUID,
-        include_non_published: bool = False,
-    ) -> list[RuleOverride]:
-        """Retrieve active overrides for an entity, scoped to its package.
-
-        Respects package accessibility.  Returns [] for a missing, disabled,
-        draft, or retired package under normal play-time access.
-        """
-        pkg_row = self._session.execute(
-            select(RulesPackageORM).where(
-                RulesPackageORM.rules_package_id == str(package_id)
-            )
-        ).scalar_one_or_none()
-        if pkg_row is None or not self._package_accessible(
-            pkg_row, include_non_published
-        ):
-            return []
-
-        rows = (
-            self._session.execute(
-                select(RuleOverrideORM)
-                .where(
-                    RuleOverrideORM.rules_package_id == str(package_id),
-                    RuleOverrideORM.target_entity_id == str(entity_id),
-                    RuleOverrideORM.is_enabled == True,  # noqa: E712
-                )
-                .order_by(RuleOverrideORM.precedence, RuleOverrideORM.override_id)
-            )
-            .scalars()
-            .all()
-        )
-        return [_orm_to_override(r) for r in rows]
-
-    def resolve_slice_package(self, request: RuleSliceRequest) -> UUID:
-        """Resolve a rule-slice request's package reference to one UUID.
-
-        The single code-owned resolution seam for callers holding a
-        ``RuleSliceRequest``: a UUID passes through, and a human-facing slug
-        resolves through
-        :func:`afterworlds.services.rules_authority.resolve_package_reference`,
-        which is the only place a slug is interpreted (ADR-005d Decision 9).
-
-        Raises :class:`RuleSliceResolutionError` when the reference does not
-        resolve. A malformed or ambiguous reference is an explicit failure, not
-        an empty slice — an empty slice reads as "no rule applies", which is a
-        different and far more dangerous claim.
-        """
-        if request.package_id is not None:
-            refuse_quarantined(
-                "rule-slice package resolution", package_uuid=request.package_id
-            )
-            return request.package_id
-        assert request.package_slug is not None
-        resolution = resolve_package_reference(self._session, request.package_slug)
-        if resolution.outcome is not AuthorityOutcome.RESOLVED:
-            raise RuleSliceResolutionError(
-                resolution.outcome,
-                f"rules package reference {request.package_slug!r} did not "
-                f"resolve: {resolution.outcome.value}"
-                + (f" ({resolution.detail})" if resolution.detail else ""),
-            )
-        assert resolution.package_uuid is not None
+        # Retired identities are refused at the entry, before any lookup, so a
+        # quarantined package reads as quarantined rather than as merely absent
+        # when its rows are gone (Recorded Owner Decision 2026-09-21). The typed
+        # binding path refuses it again where a row exists.
+        recorded = request.recorded_binding
         refuse_quarantined(
-            "rule-slice package resolution", package_uuid=resolution.package_uuid
+            "active rule slice",
+            package_uuid=request.package_id,
         )
-        return resolution.package_uuid
-
-    def get_active_rule_slice(
-        self,
-        package_id: UUID,
-        subsystem_tags: list[RuleSubsystemEnum],
-        entity_refs: list[tuple[MechanicalEntityTypeEnum, str]],
-        include_non_published: bool = False,
-    ) -> ActiveRuleSlice:
-        """Assemble relevant rule chunks and entities for a turn context.
-
-        This is deterministic lookup against the provided subsystem tags and
-        entity references only.  Not a semantic search.  Semantic retrieval
-        belongs to CRD Issue 18.
-
-        Returns an ``ActiveRuleSlice`` with chunk override layering applied
-        in precedence order.  Disabled (``is_enabled=False``) chunks, sources,
-        and packages are excluded.  Override-disabled chunks appear with
-        ``is_disabled=True`` and empty ``applied_content``.
-
-        The return type ``ActiveRuleSlice`` is a stable named Pydantic model;
-        the Context Builder (CRD Issue 8) may depend on its shape.
-
-        A quarantined package raises rather than returning an empty slice. An
-        empty slice reads as "no rule applies", and a retired authority must not
-        be indistinguishable from a package that genuinely carries no rules.
-        """
-        refuse_quarantined("active rule slice", package_uuid=package_id)
-        pkg_row = self._session.execute(
-            select(RulesPackageORM).where(
-                RulesPackageORM.rules_package_id == str(package_id)
+        if recorded is not None:
+            refuse_quarantined(
+                "active rule slice",
+                package_uuid=recorded.package_uuid,
+                release_version=recorded.release_version,
+                projection_uuid=recorded.mechanical_projection_uuid,
             )
-        ).scalar_one_or_none()
-
-        if pkg_row is None or not self._package_accessible(
-            pkg_row, include_non_published
-        ):
-            return ActiveRuleSlice(package_id=package_id, chunks=(), entities=())
-
-        enabled_source_ids = self._enabled_source_ids_for_package(package_id)
-
-        # Collect and apply overrides to chunks for all requested subsystems
-        applied_chunks: list[AppliedChunk] = []
-        if subsystem_tags and enabled_source_ids:
-            subsystem_values = [s.value for s in subsystem_tags]
-            chunk_rows = (
-                self._session.execute(
-                    select(RuleChunkORM)
-                    .join(
-                        RuleSourceORM,
-                        RuleChunkORM.source_id == RuleSourceORM.source_id,
-                    )
-                    .where(
-                        RuleChunkORM.rules_package_id == str(package_id),
-                        RuleChunkORM.subsystem.in_(subsystem_values),
-                        RuleChunkORM.is_enabled == True,  # noqa: E712
-                        RuleChunkORM.source_id.in_(enabled_source_ids),
-                    )
-                    .order_by(RuleSourceORM.precedence_rank, RuleChunkORM.chunk_id)
-                )
-                .scalars()
-                .all()
+        now = self._now or datetime.now(UTC).isoformat()
+        result = RulesAuthorityService(self._session, now=now).gamemaster_view(request)
+        if result.outcome is not AuthorityOutcome.RESOLVED:
+            raise RuleSliceResolutionError(
+                result.outcome,
+                f"rule slice for {_reference(request)} did not resolve: "
+                f"{result.outcome.value}"
+                + (f" ({result.detail})" if result.detail else ""),
             )
-            for chunk_row in chunk_rows:
-                chunk = _orm_to_chunk(chunk_row)
-                applied_chunks.append(
-                    self._apply_chunk_overrides(chunk, include_non_published)
-                )
-
-        # Collect specific entities by (type, name) reference
-        applied_entities: list[AppliedEntity] = []
-        for etype, ename in entity_refs:
-            entity = self.get_entity_by_type_and_name(
-                package_id,
-                etype,
-                ename,
-                include_non_published=include_non_published,
-            )
-            if entity is not None:
-                overrides = self.get_overrides_for_entity(
-                    entity.entity_id,
-                    entity.rules_package_id,
-                    include_non_published=include_non_published,
-                )
-                applied_entities.append(
-                    AppliedEntity(
-                        entity=entity,
-                        override_ids_applied=tuple(o.override_id for o in overrides),
-                    )
-                )
-
+        assert result.binding is not None
+        assert result.gamemaster_view is not None
+        view = result.gamemaster_view
         return ActiveRuleSlice(
-            package_id=package_id,
-            chunks=tuple(applied_chunks),
-            entities=tuple(applied_entities),
+            binding=result.binding,
+            request=request,
+            components=tuple((c.record_key, c.component_key) for c in view.components),
+            authority_text=render_gamemaster_view(view),
         )
 
-    # -- Internal helpers ---------------------------------------------------
 
-    def _apply_chunk_overrides(
-        self, chunk: RuleChunk, include_non_published: bool = False
-    ) -> AppliedChunk:
-        """Apply active overrides to *chunk* in ascending precedence order.
-
-        - ``disable``: marks the chunk as disabled; stops further processing.
-        - ``replace``: replaces current content with payload content.
-        - ``append``: appends payload content to current content.
-        """
-        overrides = self.get_overrides_for_chunk(
-            chunk.chunk_id,
-            chunk.rules_package_id,
-            include_non_published=include_non_published,
-        )
-        content = chunk.content
-        is_disabled = False
-        applied_ids: list[UUID] = []
-
-        for override in overrides:
-            if override.override_operation == OverrideOperationEnum.DISABLE:
-                applied_ids.append(override.override_id)
-                is_disabled = True
-                break
-            elif override.override_operation == OverrideOperationEnum.REPLACE:
-                payload = ChunkOverridePayload.model_validate_json(
-                    override.override_payload
-                )
-                if payload.content is None:
-                    continue  # malformed replace payload; skip without applying
-                applied_ids.append(override.override_id)
-                content = payload.content
-            elif override.override_operation == OverrideOperationEnum.APPEND:
-                payload = ChunkOverridePayload.model_validate_json(
-                    override.override_payload
-                )
-                if payload.content is None:
-                    continue  # malformed append payload; skip without applying
-                applied_ids.append(override.override_id)
-                content = content + payload.content
-
-        return AppliedChunk(
-            chunk=chunk,
-            applied_content="" if is_disabled else content,
-            is_disabled=is_disabled,
-            override_ids_applied=tuple(applied_ids),
-        )
+def _reference(request: RuleSliceRequest) -> str:
+    if request.package_id is not None:
+        return f"package {request.package_id}"
+    return f"package reference {request.package_slug!r}"
