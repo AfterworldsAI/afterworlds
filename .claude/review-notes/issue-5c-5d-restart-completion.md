@@ -1,5 +1,7 @@
 # CRD Issues 5c/5d — restart completion: obligation (5) and reader retention
 
+> **Superseded status (10 October 2026 UTC).** PR #180 has merged (main `b9ff329`; final CI run 38028793489 on `4dc9709`). The state lines below are kept as the historical delivery record. For current status, including the Owner-approved local publication and activation completed and verified on 10 October 2026 UTC (first-time provisioning of a local store; no live users or deployed consumers; app not launched), see the restart opening and `issue-5c-5d-shared-publication-preparation.md`.
+
 Verified 10 October 2026 UTC. Branch `codex/5c-5d-completion`, based on current
 main `d3e803455013b97b4d1ac1dc1453ad82b5d45a0c`. PR #179 merged at
 `2026-10-10T02:42:07Z` (9 October PDT); PR #178's historical merge commit is
