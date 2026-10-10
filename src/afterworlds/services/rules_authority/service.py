@@ -48,7 +48,9 @@ from afterworlds.ingestion.mechanical.reference_resolution import (
     select_alternatives,
 )
 from afterworlds.ingestion.mechanical.representation import (
+    ProvenanceRole,
     ProvenanceTargetKind,
+    ReferenceDraft,
     RelationshipKind,
     reference_target_key,
     relationship_target_key,
@@ -429,46 +431,7 @@ class RulesAuthorityService:
                 binding=result.binding,
                 detail=f"the bound projection states no resolved citation {citation!r}",
             )
-        # The citation is the source's, so it is in effect only while the
-        # effective source still reads the passage that states it. Disabling or
-        # replacing the citing record, component or prose drops that passage;
-        # appending prose or editing a fact leaves it, and the citation with it.
-        #
-        # A record-owned citation may instead be read from supporting text of
-        # the record itself (ADR-005d Decision 7): a pointer that explains the
-        # record and is bound as no component's prose. It is the record's, so
-        # it is in effect while the source record is — present, and not
-        # supplied by a REPLACE, which keeps the old span_ids but not the text.
-        keys = {reference_target_key(ref) for ref in stated}
-        cited = {
-            claim.span_id
-            for claim in representation.provenance
-            if claim.target_kind is ProvenanceTargetKind.REFERENCE
-            and claim.target_key in keys
-        }
-        source = [r for r in authority.records if r.semantic_key == citation[0]]
-        carried = {
-            entry.span_id
-            for record in source
-            for component in record.components
-            if not citation[1] or component.semantic_key == citation[1]
-            for entry in component.governing_prose
-            if isinstance(entry, SourceProse)
-        }
-        bound = {binding.span_id for binding in representation.prose_bindings}
-        supporting = {
-            span.span_id
-            for span in candidate.classification.spans
-            if span.disposition is SemanticDisposition.SUPPORTING_AUTHORITY
-        }
-        unbound = cited - bound
-        record_text = (
-            not citation[1]
-            and bool(source)
-            and all(r.supplied_by_override_id is None for r in source)
-            and unbound <= supporting
-        )
-        if not cited or not cited & bound <= carried or (unbound and not record_text):
+        if not _citation_in_effect(citation, stated, candidate, authority):
             return AuthorityResult(
                 AuthorityOutcome.INVALID_REFERENCE,
                 binding=result.binding,
@@ -624,6 +587,109 @@ class RulesAuthorityService:
             recorded,
             leaf_order=source_leaf_order(self._session, candidate),
         )
+
+
+def _citation_in_effect(
+    citation: tuple[str, str, str, str],
+    stated: list[ReferenceDraft],
+    candidate: ProjectionCandidate,
+    authority: EffectiveAuthority,
+) -> bool:
+    """Whether the effective source still states *citation* (ADR-005d Decision 7).
+
+    A citation is the source's, so it is in effect while the effective source
+    still reads the passage that states it, and refused only once the citing
+    record, component or prose is disabled or replaced. Appending prose or
+    editing a fact leaves the passage, and the citation with it. Each citing
+    span is retained by its own original source owner:
+
+    * a span bound as governing prose must still be carried as effective
+      ``SourceProse`` of the citing record or component;
+    * an unbound ``SUPPORTING_AUTHORITY`` span is the citation owner's own
+      explanatory text. It is retained while that owner is present and not
+      supplied by an override: the record for a record-owned citation, the
+      citing component for a component-owned one. A sibling's contextual
+      provenance on the same span is not consulted, so the citation gains no
+      dependency on a sibling;
+    * an unbound ``SUBSTANTIVE`` span is structured authority. It is retained
+      while its unique PRIMARY component owner, which must be the citing
+      component or, for a record-owned citation, a component of the citing
+      record, is present, not override-supplied and still claims the span.
+
+    A replaced owner is refused by its supplier identity, not by span
+    membership: a record REPLACE deliberately keeps the replaced record's old
+    span ids while naming its supplier, so span ids alone would still match.
+    An owner key that is not exactly ``(record, component)`` is malformed
+    persisted state and is refused rather than unpacked. Any other disposition,
+    an absent or ambiguous owner, or a supplied owner is refused, as before.
+    """
+    record_key, component_key = citation[0], citation[1]
+    representation = candidate.representation
+    keys = {reference_target_key(ref) for ref in stated}
+    cited = {
+        claim.span_id
+        for claim in representation.provenance
+        if claim.target_kind is ProvenanceTargetKind.REFERENCE
+        and claim.target_key in keys
+    }
+    source = [r for r in authority.records if r.semantic_key == record_key]
+    carried = {
+        entry.span_id
+        for record in source
+        for component in record.components
+        if not component_key or component.semantic_key == component_key
+        for entry in component.governing_prose
+        if isinstance(entry, SourceProse)
+    }
+    bound = {binding.span_id for binding in representation.prose_bindings}
+    if not cited or not cited & bound <= carried:
+        return False
+    unbound = cited - bound
+    if not unbound:
+        return True
+    if not source or any(r.supplied_by_override_id is not None for r in source):
+        return False
+
+    components = {c.semantic_key: c for r in source for c in r.components}
+
+    def original(key: str) -> EffectiveComponent | None:
+        component = components.get(key)
+        if component is None or component.supplied_by_override_id is not None:
+            return None
+        return component
+
+    disposition = {s.span_id: s.disposition for s in candidate.classification.spans}
+    owners: dict[str, set[tuple[str, ...]]] = {}
+    for claim in representation.provenance:
+        if (
+            claim.target_kind is ProvenanceTargetKind.COMPONENT
+            and claim.role is ProvenanceRole.PRIMARY
+        ):
+            owners.setdefault(claim.span_id, set()).add(tuple(claim.target_key))
+
+    for span_id in unbound:
+        kind = disposition.get(span_id)
+        if kind is SemanticDisposition.SUPPORTING_AUTHORITY:
+            if component_key and original(component_key) is None:
+                return False
+        elif kind is SemanticDisposition.SUBSTANTIVE:
+            owner = owners.get(span_id, set())
+            if len(owner) != 1:
+                return False
+            (owner_key,) = owner
+            if len(owner_key) != 2:
+                return False
+            owner_record, owner_component = owner_key
+            if owner_record != record_key or (
+                component_key and owner_component != component_key
+            ):
+                return False
+            retained = original(owner_component)
+            if retained is None or span_id not in retained.span_ids:
+                return False
+        else:
+            return False
+    return True
 
 
 def source_leaf_order(
