@@ -46,8 +46,8 @@ from afterworlds.services.dnd5e_state.authority import (
 from afterworlds.services.dnd5e_state.errors import (
     BindingRefusedError,
     FailureCode,
-    StateFailure,
     StaleRevisionError,
+    StateFailure,
     StateServiceError,
     SubjectNotFoundError,
 )

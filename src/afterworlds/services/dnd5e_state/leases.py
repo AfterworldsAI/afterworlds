@@ -44,6 +44,7 @@ expired.
 
 from __future__ import annotations
 
+import contextlib
 import sys
 from pathlib import Path
 from threading import Lock
@@ -168,11 +169,10 @@ def clear_orphans(factory: sessionmaker[Session]) -> int:
                 )
                 recovered += int(result.rowcount)  # type: ignore[attr-defined]
     finally:
-        for _, handle in proofs:
-            handle.close()
+        for _, proof in proofs:
+            proof.close()
     for path, _ in proofs:
-        try:
+        # Still open elsewhere: an unleased file, removed by a later recovery.
+        with contextlib.suppress(OSError):
             path.unlink(missing_ok=True)
-        except OSError:
-            pass  # still open elsewhere: an unleased file, removed next time
     return recovered
