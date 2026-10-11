@@ -40,9 +40,9 @@ from afterworlds.pipeline.branching.visible_state import BranchingVisibleStateSe
 from afterworlds.pipeline.rpg.visible_state import RpgVisibleStateService
 from afterworlds.pipeline.writing.models import WritingVisibleState
 from afterworlds.pipeline.writing.visible_state import WritingVisibleStateService
-from afterworlds.services.dnd5e_state.holdings import Holder, HolderKind, items_held_by
 from afterworlds.services.dnd5e_state.authority import require_current
 from afterworlds.services.dnd5e_state.errors import BindingRefusedError
+from afterworlds.services.dnd5e_state.holdings import Holder, HolderKind, items_held_by
 from afterworlds.services.dnd5e_state.store import get_character
 
 VisibleStateUnion = RpgVisibleState | BranchingVisibleState | WritingVisibleState

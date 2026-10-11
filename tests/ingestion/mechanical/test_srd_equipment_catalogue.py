@@ -135,7 +135,7 @@ def test_the_source_catalogue_is_the_printed_srd_catalogue() -> None:
     assert len(catalogue["weapons"]) == 38
     categories = {c for c, _ in catalogue["weapons"].values()}
     assert categories == {"simple", "martial"}
-    assert G1_IDENTITIES <= catalogue["identities"]
+    assert catalogue["identities"] >= G1_IDENTITIES
 
 
 def test_committed_authority_names_every_catalogue_item(

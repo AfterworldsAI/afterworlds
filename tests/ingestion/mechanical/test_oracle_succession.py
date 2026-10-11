@@ -73,7 +73,7 @@ def test_superseding_the_only_claimant_resolves_nothing(
 
 def test_only_the_g1_predecessor_is_superseded_by_digest() -> None:
     prior = oracle.COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-8781d4e0-a3b.json"
-    assert oracle.SUPERSEDED_ORACLE_SHA256 == {_digest(prior)}
+    assert {_digest(prior)} == oracle.SUPERSEDED_ORACLE_SHA256
 
 
 def test_the_committed_release_resolves_to_the_recorded_g1_successor() -> None:
