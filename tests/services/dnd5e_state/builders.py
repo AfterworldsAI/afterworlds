@@ -31,6 +31,7 @@ from afterworlds.ingestion.mechanical.representation import (
     WeaponCategory,
 )
 from afterworlds.models.dnd5e_state import (
+    BaseArmorClass,
     ChoiceRecord,
     ClassLevel,
     ConditionInstance,
@@ -43,7 +44,9 @@ from afterworlds.models.dnd5e_state import (
     HitPointDicePool,
     HitPoints,
     LanguageGrant,
+    OptionChoice,
     OriginSelection,
+    RecordChoice,
     RestAnchors,
     SavingThrowGrant,
     SenseGrant,
@@ -53,6 +56,7 @@ from afterworlds.models.dnd5e_state import (
     SpellAccess,
     SpellSlotPool,
     UsageCounter,
+    VocabularyChoice,
     WeaponProficiencyGrant,
 )
 from afterworlds.models.dnd5e_vocabulary import Alignment, CreatureType, Language
@@ -115,7 +119,11 @@ def real_index() -> AuthorityIndex:
 
 
 def choice(
-    index: AuthorityIndex, choice_id: str, record: str, component: str, *selected: str
+    index: AuthorityIndex,
+    choice_id: str,
+    record: str,
+    component: str,
+    *selected: RecordChoice | OptionChoice | VocabularyChoice,
 ) -> ChoiceRecord:
     found = index.component(record, component)
     assert found is not None, (record, component)
@@ -208,7 +216,16 @@ def complete_character(
             charisma=10,
         ),
         ability_adjustments=(),
-        choices=(choice(index, "elf-lineage", ELF, "elven_lineage", "high_elf"),),
+        choices=(
+            choice(
+                index,
+                "elf-lineage",
+                ELF,
+                "elven_lineage",
+                VocabularyChoice(vocabulary="elven_lineage", value="high_elf"),
+                VocabularyChoice(vocabulary="ability", value="intelligence"),
+            ),
+        ),
         skill_proficiencies=(
             SkillGrant(skill=Skill.ARCANA, expertise=False, source=sage),
             SkillGrant(skill=Skill.HISTORY, expertise=False, source=sage),
@@ -277,6 +294,7 @@ def complete_character(
         ),
         currency={Currency.GP: 15},
         rest_anchors=RestAnchors(),
+        base_armor_class=BaseArmorClass(),  # recorded: the default calculation
     )
 
 

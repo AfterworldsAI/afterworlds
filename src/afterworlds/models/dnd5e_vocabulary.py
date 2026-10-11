@@ -11,7 +11,18 @@ from __future__ import annotations
 
 from enum import StrEnum
 
-__all__ = ["Alignment", "ArmorCategory", "CreatureType", "Language"]
+__all__ = [
+    "ORIGIN_CHOICE_SOURCES",
+    "Alignment",
+    "ArmorCategory",
+    "CreatureType",
+    "DraconicAncestor",
+    "ElvenLineage",
+    "FiendishLegacy",
+    "GiantAncestry",
+    "GnomishLineage",
+    "Language",
+]
 
 
 class Language(StrEnum):
@@ -81,3 +92,69 @@ class ArmorCategory(StrEnum):
     MEDIUM = "medium"
     HEAVY = "heavy"
     SHIELD = "shield"
+
+
+# ---------------------------------------------------------------------------
+# Origin choices whose options the source prints without accepted identities.
+# Each is offered by exactly one species component; a selection from one is
+# valid only as a choice made under that component.
+# ---------------------------------------------------------------------------
+
+
+class DraconicAncestor(StrEnum):
+    """Draconic Ancestors table, ``character-origins.md``:107."""
+
+    BLACK = "black"
+    BLUE = "blue"
+    BRASS = "brass"
+    BRONZE = "bronze"
+    COPPER = "copper"
+    GOLD = "gold"
+    GREEN = "green"
+    RED = "red"
+    SILVER = "silver"
+    WHITE = "white"
+
+
+class ElvenLineage(StrEnum):
+    """Elven Lineages table, ``character-origins.md``:196."""
+
+    DROW = "drow"
+    HIGH_ELF = "high_elf"
+    WOOD_ELF = "wood_elf"
+
+
+class GnomishLineage(StrEnum):
+    """Gnomish Lineage options, ``character-origins.md``:247-251."""
+
+    FOREST_GNOME = "forest_gnome"
+    ROCK_GNOME = "rock_gnome"
+
+
+class GiantAncestry(StrEnum):
+    """Giant Ancestry benefits, ``character-origins.md``:261-271."""
+
+    CLOUD_GIANT = "cloud_giant"
+    FIRE_GIANT = "fire_giant"
+    FROST_GIANT = "frost_giant"
+    HILL_GIANT = "hill_giant"
+    STONE_GIANT = "stone_giant"
+    STORM_GIANT = "storm_giant"
+
+
+class FiendishLegacy(StrEnum):
+    """Fiendish Legacies table, ``character-origins.md``:341."""
+
+    ABYSSAL = "abyssal"
+    CHTHONIC = "chthonic"
+    INFERNAL = "infernal"
+
+
+#: The (record, component) that offers each origin-choice vocabulary.
+ORIGIN_CHOICE_SOURCES: dict[type[StrEnum], tuple[str, str]] = {
+    DraconicAncestor: ("character_origins.dragonborn", "draconic_ancestry"),
+    ElvenLineage: ("character_origins.elf", "elven_lineage"),
+    GnomishLineage: ("character_origins.gnome", "gnomish_lineage"),
+    GiantAncestry: ("character_origins.goliath", "giant_ancestry"),
+    FiendishLegacy: ("character_origins.tiefling", "fiendish_legacy"),
+}

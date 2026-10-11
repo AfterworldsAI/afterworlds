@@ -37,6 +37,7 @@ def _item(record_key: str, quantity: int = 1) -> ItemInstance:
         equipped=False,
         attuned_subject_id=None,
         charges_remaining=None,
+        applied_poison_record_key=None,
         revision=1,
     )
 

@@ -6,9 +6,15 @@ import re
 from pathlib import Path
 
 from afterworlds.models.dnd5e_vocabulary import (
+    ORIGIN_CHOICE_SOURCES,
     Alignment,
     ArmorCategory,
     CreatureType,
+    DraconicAncestor,
+    ElvenLineage,
+    FiendishLegacy,
+    GiantAncestry,
+    GnomishLineage,
     Language,
 )
 
@@ -57,3 +63,45 @@ def test_armor_categories_are_the_armor_table_groups() -> None:
     body = text[start : text.index("</table>", start)]
     groups = re.findall(r'<th colspan="6"><em>(\w+)', body)
     assert {_slug(g) for g in groups} == {m.value for m in ArmorCategory}
+
+
+def _origins() -> str:
+    return (SRD / "character-origins.md").read_text("utf-8")
+
+
+def _section(text: str, start: str) -> str:
+    begin = text.index(start)
+    return text[begin : text.index("####", begin)]
+
+
+def test_draconic_ancestors_are_the_table_dragons() -> None:
+    cells = _cells_after(_origins(), "**Draconic Ancestors**")
+    assert {_slug(c) for c in cells[0::2]} == {m.value for m in DraconicAncestor}
+
+
+def test_elven_lineages_and_fiendish_legacies_are_their_table_rows() -> None:
+    text = _origins()
+    elven = _cells_after(text, "**Elven Lineages**")[0::4]
+    fiendish = _cells_after(text, "**Fiendish Legacies**")[0::4]
+    assert {_slug(c) for c in elven} == {m.value for m in ElvenLineage}
+    assert {_slug(c) for c in fiendish} == {m.value for m in FiendishLegacy}
+
+
+def test_gnomish_lineages_and_giant_ancestries_are_their_printed_options() -> None:
+    text = _origins()
+    gnome = re.findall(
+        r"\*\*([A-Z]\w+ Gnome)\.\*\*", _section(text, "_Gnomish Lineage._")
+    )
+    giant = re.findall(
+        r"\(([A-Z]\w+ Giant)\)\.\*\*", _section(text, "_Giant Ancestry._")
+    )
+    assert {_slug(g) for g in gnome} == {m.value for m in GnomishLineage}
+    assert {_slug(g) for g in giant} == {m.value for m in GiantAncestry}
+
+
+def test_each_origin_vocabulary_names_an_accepted_component() -> None:
+    from tests.services.dnd5e_state.builders import real_index
+
+    index = real_index()
+    for record, component in ORIGIN_CHOICE_SOURCES.values():
+        assert index.component(record, component) is not None, (record, component)

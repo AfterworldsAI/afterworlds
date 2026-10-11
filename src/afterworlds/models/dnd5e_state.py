@@ -31,7 +31,8 @@ Maximum hit points and spell-slot totals are stored, authoritative values.
 
 from __future__ import annotations
 
-from typing import Literal, Self
+from enum import StrEnum
+from typing import Annotated, Literal, Self
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -44,14 +45,21 @@ from afterworlds.ingestion.mechanical.representation import (
     DamageResponseKind,
     DamageType,
     DieSize,
+    DurationKind,
     MovementMode,
     Skill,
+    TimeUnit,
     WeaponCategory,
 )
 from afterworlds.models.dnd5e_vocabulary import (
     Alignment,
     ArmorCategory,
     CreatureType,
+    DraconicAncestor,
+    ElvenLineage,
+    FiendishLegacy,
+    GiantAncestry,
+    GnomishLineage,
     Language,
 )
 from afterworlds.models.enums import ConditionVisibility
@@ -62,19 +70,25 @@ __all__ = [
     "Dnd5eAbilityScores",
     "ActiveEffect",
     "ArmorTrainingGrant",
+    "BaseArmorClass",
     "ChoiceRecord",
+    "ChoiceSelection",
     "ClassLevel",
     "ConditionInstance",
+    "CreaturePresence",
     "CreatureState",
     "DamageResponseGrant",
     "DeathState",
     "Dnd5eCharacterState",
+    "EffectEnd",
     "FeatSelection",
     "GrantSource",
     "HitPointDicePool",
     "HitPoints",
     "LanguageGrant",
+    "OptionChoice",
     "OriginSelection",
+    "RecordChoice",
     "RestAnchors",
     "SavingThrowGrant",
     "SenseGrant",
@@ -83,9 +97,12 @@ __all__ = [
     "SpeedGrant",
     "SpellAccess",
     "SpellSlotPool",
+    "SubjectReference",
     "SummonOrigin",
     "ToolGrant",
     "UsageCounter",
+    "VOCABULARIES",
+    "VocabularyChoice",
     "WeaponProficiencyGrant",
 ]
 
@@ -119,6 +136,65 @@ class GrantSource(_Model):
     choice_id: str | None = Field(default=None, min_length=1)
 
 
+#: Closed vocabularies a selection can name, each source-backed: the accepted
+#: schema's own, the 2b state vocabularies, and the origin-choice vocabularies
+#: (each valid only under the component that offers it).
+VOCABULARIES: dict[str, type[StrEnum]] = {
+    "ability": AbilityScore,
+    "skill": Skill,
+    "language": Language,
+    "damage_type": DamageType,
+    "creature_type": CreatureType,
+    "movement_mode": MovementMode,
+    "condition": ConditionKind,
+    "alignment": Alignment,
+    "weapon_category": WeaponCategory,
+    "armor_category": ArmorCategory,
+    "draconic_ancestor": DraconicAncestor,
+    "elven_lineage": ElvenLineage,
+    "gnomish_lineage": GnomishLineage,
+    "giant_ancestry": GiantAncestry,
+    "fiendish_legacy": FiendishLegacy,
+}
+
+
+class RecordChoice(_Model):
+    """A selection that is an accepted record (a spell, feat, class, form...)."""
+
+    kind: Literal["record"] = "record"
+    record_key: str = Field(min_length=1)
+
+
+class OptionChoice(_Model):
+    """A selection that is one of the source component's structured options."""
+
+    kind: Literal["option"] = "option"
+    option_key: str = Field(min_length=1)
+
+
+class VocabularyChoice(_Model):
+    """A selection that is a member of a closed source-backed vocabulary."""
+
+    kind: Literal["vocabulary"] = "vocabulary"
+    vocabulary: str
+    value: str
+
+    @model_validator(mode="after")
+    def a_member(self) -> Self:
+        enum = VOCABULARIES.get(self.vocabulary)
+        if enum is None:
+            raise ValueError(f"{self.vocabulary!r} is not a selection vocabulary")
+        if self.value not in {m.value for m in enum}:
+            raise ValueError(f"{self.value!r} is not a {self.vocabulary}")
+        return self
+
+
+#: One typed selected identity. Never free text.
+ChoiceSelection = Annotated[
+    RecordChoice | OptionChoice | VocabularyChoice, Field(discriminator="kind")
+]
+
+
 class ChoiceRecord(_Model):
     """One recorded choice and the exact source schema it was made under.
 
@@ -127,14 +203,51 @@ class ChoiceRecord(_Model):
     authority whose component differs no longer offers the same choice, and
     adoption refuses rather than applying the obsolete schema.
 
-    ``selected`` holds the chosen identities: accepted record keys, component
-    option keys, or accepted vocabulary values, as the source states them.
+    ``selected`` holds the chosen identities, each typed: an accepted record,
+    an option of the source component, or a member of a closed source-backed
+    vocabulary. Validation checks each identity exists; whether the choice was
+    legal for the character is not 2b's.
     """
 
     choice_id: str = Field(min_length=1)
     source: GrantSource
     schema_id: str = Field(min_length=1)
-    selected: tuple[str, ...]
+    selected: tuple[ChoiceSelection, ...]
+
+
+class SubjectReference(_Model):
+    """A story-scoped reference to who a recorded entry is about.
+
+    A character or continuing creature of the same story, or a Story Bible
+    cast entry (read-only: a reference writes no canon). Checked against the
+    story on every production write.
+    """
+
+    kind: Literal["character", "creature", "cast_member"]
+    subject_id: UUID
+
+
+class EffectEnd(_Model):
+    """How a recorded condition or effect lasts, as recorded. Never executed.
+
+    ``kind`` and the stated ``amount``/``unit`` (timed only) record the
+    duration; ``expires_marker`` the fiction-time marker it was recorded to
+    expire at, if known.
+    """
+
+    kind: DurationKind
+    amount: int | None = Field(default=None, ge=1)
+    unit: TimeUnit | None = None
+    expires_marker: str | None = Field(default=None, min_length=1)
+
+    @model_validator(mode="after")
+    def amount_only_when_timed(self) -> Self:
+        timed = self.kind is DurationKind.TIMED
+        if timed != (self.amount is not None) or timed != (self.unit is not None):
+            raise ValueError(
+                "a timed end records amount and unit; others record neither"
+            )
+        return self
 
 
 # ---------------------------------------------------------------------------
@@ -248,6 +361,14 @@ class SpeedGrant(_Model):
     mode: MovementMode
     feet: int = Field(ge=0)
     source: GrantSource
+    #: Hover, for a fly speed only (``rules-glossary.md`` "Hover").
+    hover: bool | None = None
+
+    @model_validator(mode="after")
+    def hover_only_when_flying(self) -> Self:
+        if self.hover is not None and self.mode is not MovementMode.FLY:
+            raise ValueError("hover is recorded on a fly speed only")
+        return self
 
 
 class SenseGrant(_Model):
@@ -282,11 +403,19 @@ class DamageResponseGrant(_Model):
 
 class HitPoints(_Model):
     """ADR-0003: ``maximum`` is authoritative and stored; ``current`` has no
-    floor; ``current <= maximum`` is the retained D&D 5e integrity rule."""
+    floor; ``current <= maximum`` is the retained D&D 5e integrity rule.
+
+    ``maximum_reduction`` records an effect's reduction of the maximum apart
+    from the authoritative ``maximum`` (``rules-glossary.md`` "Hit Points");
+    applying it is 15c's. ``temporary_source`` is what granted the current
+    temporary hit points, when recorded.
+    """
 
     current: int
     maximum: int = Field(ge=0)
     temporary: int = Field(ge=0)
+    maximum_reduction: int | None = Field(default=None, ge=0)
+    temporary_source: GrantSource | None = None
 
     @model_validator(mode="after")
     def current_within_maximum(self) -> Self:
@@ -331,9 +460,20 @@ class ConditionInstance(_Model):
     level: int | None = Field(default=None, ge=1, le=6)
     source: GrantSource | None = None
     applied_marker: str | None = Field(default=None, min_length=1)
+    #: Who the condition is about: the grappler, the charmer, the source of fear.
+    referent: SubjectReference | None = None
+    #: Grappled's escape DC, fixed when the grapple was applied.
+    escape_dc: int | None = Field(default=None, ge=1)
+    #: A check total the source says to record (Hide's Stealth total).
+    recorded_check_total: int | None = None
+    #: The item instance that applied it (a cursed or sentient item).
+    item_id: UUID | None = None
+    ends: EffectEnd | None = None
 
     @model_validator(mode="after")
     def level_only_for_exhaustion(self) -> Self:
+        if self.escape_dc is not None and self.condition is not ConditionKind.GRAPPLED:
+            raise ValueError("an escape DC is recorded on Grappled only")
         if self.condition is ConditionKind.EXHAUSTION and self.level is None:
             raise ValueError("an Exhaustion instance records its level")
         if self.condition is not ConditionKind.EXHAUSTION and self.level is not None:
@@ -361,6 +501,16 @@ class ActiveEffect(_Model):
     concentration: bool
     started_marker: str | None = Field(default=None, min_length=1)
     form_record_key: str | None = Field(default=None, min_length=1)
+    #: Who created it, and whom it is on (Hex's and Hunter's Mark's target).
+    caster: SubjectReference | None = None
+    targets: tuple[SubjectReference, ...] | None = None
+    #: Parameters chosen for it (Hex's ability, a selected mode), typed.
+    selections: tuple[ChoiceSelection, ...] | None = None
+    #: The item instance it comes from (a curse's item, a per-item effect).
+    item_id: UUID | None = None
+    #: A curse entry (``glossary.curses``); it persists through death.
+    curse: bool = False
+    ends: EffectEnd | None = None
 
 
 class UsageCounter(_Model):
@@ -375,6 +525,8 @@ class UsageCounter(_Model):
 
     counter_id: str = Field(min_length=1)
     source: GrantSource
+    #: The item instance whose property this counts (per-instance uses).
+    item_id: UUID | None = None
     entitlement_key: str | None = Field(default=None, min_length=1)
     maximum: int | None = Field(default=None, ge=0)
     expended: int = Field(ge=0)
@@ -439,6 +591,16 @@ class SpellAccess(_Model):
     spell_record_key: str = Field(min_length=1)
     mode: SpellAccessMode
     source: GrantSource
+
+
+class BaseArmorClass(_Model):
+    """The selected base-AC calculation when more than one applies.
+
+    ``source`` is the feature, spell or item that supplies it; ``None`` is the
+    recorded choice of the default calculation. The AC value is 15c's.
+    """
+
+    source: GrantSource | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -543,6 +705,7 @@ class Dnd5eCharacterState(_SharedState):
     spell_access: tuple[SpellAccess, ...] | None = None
     currency: dict[Currency, int] | None = None
     rest_anchors: RestAnchors | None = None
+    base_armor_class: BaseArmorClass | None = None
 
     @model_validator(mode="after")
     def character_invariants(self) -> Self:
@@ -583,13 +746,30 @@ class SummonOrigin(_Model):
     dismissed_marker: str | None = Field(default=None, min_length=1)
 
 
+class CreaturePresence(StrEnum):
+    """Where a continuing creature is, for creatures whose source tracks it.
+
+    Find Familiar: present, dismissed to a pocket dimension, or gone. Absence
+    is never death and never a reset.
+    """
+
+    PRESENT = "present"
+    POCKET_DIMENSION = "pocket_dimension"
+    GONE = "gone"
+
+
 class CreatureState(_SharedState):
     """The persistent mechanical state of one continuing creature instance.
 
     ``template_record_key`` is the accepted stat block it is an instance of;
     the template never holds mutable state. Two creatures of one template are
-    two documents.
+    two documents. ``creature_type`` and ``speeds`` record source choices that
+    differ from the template (a familiar's chosen type; Investment of the
+    Chain Master's fly or swim speed), independent of template and association.
     """
 
     template_record_key: str = Field(min_length=1)
     summon: SummonOrigin | None = None
+    creature_type: CreatureType | None = None
+    speeds: tuple[SpeedGrant, ...] | None = None
+    presence: CreaturePresence | None = None

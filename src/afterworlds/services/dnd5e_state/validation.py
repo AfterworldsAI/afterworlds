@@ -23,12 +23,17 @@ from collections.abc import Iterator
 
 from afterworlds.ingestion.mechanical.representation import RecordKind
 from afterworlds.models.dnd5e_state import (
+    VOCABULARIES,
     ChoiceRecord,
     CreatureState,
     Dnd5eCharacterState,
     GrantSource,
+    OptionChoice,
+    RecordChoice,
     UsageCounter,
+    VocabularyChoice,
 )
+from afterworlds.models.dnd5e_vocabulary import ORIGIN_CHOICE_SOURCES
 from afterworlds.services.dnd5e_state.authority import (
     AuthorityIndex,
     component_schema_id,
@@ -88,6 +93,75 @@ def _source(
         )
 
 
+#: Origin-choice vocabularies by name, with the component that offers each.
+_SCOPED_VOCABULARIES = {
+    name: ORIGIN_CHOICE_SOURCES[enum]
+    for name, enum in VOCABULARIES.items()
+    if enum in ORIGIN_CHOICE_SOURCES
+}
+
+
+def _selections(
+    index: AuthorityIndex,
+    selected: tuple[object, ...],
+    source: GrantSource,
+    path: str,
+) -> Iterator[StateFailure]:
+    """Each selected identity exists. Whether it was a legal pick is 15c's.
+
+    Checked from the values themselves, so state built without model
+    validation (``model_copy``) still fails closed.
+    """
+    for i, sel in enumerate(selected):
+        at = f"{path}.selected[{i}]"
+        if isinstance(sel, RecordChoice):
+            if index.record(sel.record_key) is None:
+                yield _fail(
+                    FailureCode.INVALID_IDENTITY,
+                    at,
+                    f"{sel.record_key!r} is not an accepted record",
+                )
+        elif isinstance(sel, OptionChoice):
+            component = (
+                None
+                if source.component_key is None
+                else index.component(source.record_key, source.component_key)
+            )
+            options = (
+                {o.semantic_key for o in component.options} if component else set()
+            )
+            if sel.option_key not in options:
+                yield _fail(
+                    FailureCode.INVALID_IDENTITY,
+                    at,
+                    f"{source.record_key}/{source.component_key} states no option "
+                    f"{sel.option_key!r}",
+                )
+        elif isinstance(sel, VocabularyChoice):
+            enum = VOCABULARIES.get(sel.vocabulary)
+            if enum is None or sel.value not in {m.value for m in enum}:
+                yield _fail(
+                    FailureCode.INVALID_IDENTITY,
+                    at,
+                    f"{sel.value!r} is not a {sel.vocabulary}",
+                )
+            elif (scope := _SCOPED_VOCABULARIES.get(sel.vocabulary)) is not None and (
+                scope != (source.record_key, source.component_key)
+            ):
+                yield _fail(
+                    FailureCode.INVALID_IDENTITY,
+                    at,
+                    f"a {sel.vocabulary} is chosen under {scope[0]}/{scope[1]}, "
+                    f"not {source.record_key}/{source.component_key}",
+                )
+        else:
+            yield _fail(
+                FailureCode.INVALID_IDENTITY,
+                at,
+                f"{sel!r} is not a typed selection (record, option or vocabulary)",
+            )
+
+
 def _choices(
     index: AuthorityIndex, choices: tuple[ChoiceRecord, ...]
 ) -> Iterator[StateFailure]:
@@ -111,6 +185,7 @@ def _choices(
                 f"{choice.source.record_key}/{choice.source.component_key} no "
                 "longer states the schema this choice was made under",
             )
+        yield from _selections(index, choice.selected, choice.source, path)
 
 
 def _counter_maximum(
@@ -162,12 +237,17 @@ def _shared(
         yield from _source(
             index, adj.source, f"ability_adjustments[{adj.ability.value}]"
         )
+    if state.hit_points is not None and state.hit_points.temporary_source:
+        yield from _source(
+            index, state.hit_points.temporary_source, "hit_points.temporary_source"
+        )
     for cond in state.conditions or ():
         if cond.source is not None:
             yield from _source(index, cond.source, f"conditions[{cond.instance_id}]")
     for effect in state.active_effects or ():
         path = f"active_effects[{effect.instance_id}]"
         yield from _source(index, effect.source, path)
+        yield from _selections(index, effect.selections or (), effect.source, path)
         if effect.form_record_key is not None:
             yield from _identity(
                 index, effect.form_record_key, frozenset({RecordKind.CREATURE}), path
@@ -267,6 +347,8 @@ def validate_character(
     for counter in state.usage_counters or ():
         out += _counter_maximum(index, counter, class_levels)
     out += _slot_totals(index, state, class_levels)
+    if state.base_armor_class is not None and state.base_armor_class.source:
+        out += _source(index, state.base_armor_class.source, "base_armor_class")
     return tuple(out)
 
 
@@ -313,6 +395,8 @@ def validate_creature(
     out += _shared(index, state)
     if state.summon is not None:
         out += _source(index, state.summon.source, "summon")
+    for i, speed in enumerate(state.speeds or ()):
+        out += _source(index, speed.source, f"speeds[{i}]")
     return tuple(out)
 
 
