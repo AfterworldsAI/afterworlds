@@ -37,6 +37,7 @@ class SBSettingORM(Base):
         sa.String(36),
         sa.ForeignKey("stories.story_id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     summary: Mapped[str] = mapped_column(sa.Text, nullable=False)
     world_rules: Mapped[list[Any]] = mapped_column(sa.JSON, nullable=False)
@@ -61,6 +62,7 @@ class SBCastEntryORM(Base):
         sa.String(36),
         sa.ForeignKey("stories.story_id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     # Static partition
     static_name: Mapped[str] = mapped_column(sa.Text, nullable=False)
@@ -96,6 +98,7 @@ class SBLockedFactORM(Base):
         sa.String(36),
         sa.ForeignKey("stories.story_id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     fact_text: Mapped[str] = mapped_column(sa.Text, nullable=False)
     # Provenance — plain string, NOT a FK to turns. Traceability only.
@@ -121,6 +124,7 @@ class SBForbiddenFactORM(Base):
         sa.String(36),
         sa.ForeignKey("stories.story_id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     fact_text: Mapped[str] = mapped_column(sa.Text, nullable=False)
     source: Mapped[str] = mapped_column(sa.String(64), nullable=False)
@@ -142,6 +146,7 @@ class SBEventORM(Base):
         sa.String(36),
         sa.ForeignKey("stories.story_id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     description: Mapped[str] = mapped_column(sa.Text, nullable=False)
     significance: Mapped[str] = mapped_column(sa.String(64), nullable=False)
@@ -169,6 +174,7 @@ class SBRelationshipLedgerORM(Base):
         sa.String(36),
         sa.ForeignKey("stories.story_id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     # Plain strings — no FK to sb_cast_entries; service enforces integrity.
     subject_cast_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
@@ -198,6 +204,7 @@ class SBUnresolvedThreadORM(Base):
         sa.String(36),
         sa.ForeignKey("stories.story_id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     description: Mapped[str] = mapped_column(sa.Text, nullable=False)
     # Provenance — plain string, NOT a FK to turns. Traceability only.
@@ -222,6 +229,7 @@ class SBProvisionalStagingORM(Base):
         sa.String(36),
         sa.ForeignKey("stories.story_id", ondelete="CASCADE"),
         nullable=False,
+        index=True,
     )
     proposal_type: Mapped[str] = mapped_column(sa.String(32), nullable=False)
     target_entity_type: Mapped[str | None] = mapped_column(sa.String(64), nullable=True)
@@ -248,6 +256,9 @@ class SBDynamicFieldHistoryORM(Base):
     """
 
     __tablename__ = "sb_dynamic_field_history"
+    __table_args__ = (
+        sa.Index("ix_sb_dynamic_field_history_entity", "entity_type", "entity_id"),
+    )
 
     history_id: Mapped[str] = mapped_column(sa.String(36), primary_key=True)
     entity_type: Mapped[str] = mapped_column(sa.String(64), nullable=False)
