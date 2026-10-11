@@ -1320,17 +1320,27 @@ class OrchestratorService:
             rpg_character_id = sheet.sheet_id
             rpg_sheet = sheet
             rpg_play_status = session_state.play_status
-            # Gate: skip adjudication for setup turns and for sheets that
-            # aren't fully configured.  play_status SETUP covers character
-            # creation and world-setup turns that flow through _run_narrative
-            # (OOC turns are already short-circuited upstream).
-            # is_adjudicable is a second-line guard: if the sheet has since
-            # been corrupted, skip cleanly instead of throwing from the adapter.
+            # Gate: skip adjudication for setup turns. play_status SETUP covers
+            # character creation and world-setup turns that flow through
+            # _run_narrative (OOC turns are already short-circuited upstream).
+            # An IN_PLAY character whose recorded state is not ready for its
+            # binding fails the turn typed, naming what is missing (CRD Issue
+            # 2b): skipping mechanics silently would degrade the turn.
             _adj_svc = self._rpg_adjudication_service
             if (
                 session_state.play_status is RpgPlayStatus.IN_PLAY
-                and _adj_svc.is_adjudicable(sheet)
+                and not _adj_svc.is_adjudicable(sheet)
             ):
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    "rpg character state is not ready for its rules binding: "
+                    + "; ".join(str(f) for f in sheet.readiness[:8]),
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                )
+            if session_state.play_status is RpgPlayStatus.IN_PLAY:
                 # Use local to narrow from DiceService | None for the lambda capture.
                 _dice_svc = self._rpg_dice_service
                 try:

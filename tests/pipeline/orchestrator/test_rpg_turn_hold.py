@@ -137,3 +137,21 @@ def test_work_computed_against_a_character_that_changed_mid_turn_cannot_commit(
     assert result.pipeline_error_summary is not None
     assert "changed during the turn" in result.pipeline_error_summary
     assert _leases(session_factory, story_id) == 0
+
+
+def test_an_in_play_character_that_is_not_ready_fails_the_turn_typed(
+    session_factory: Any, seeded_story: tuple[UUID, UUID]
+) -> None:
+    """Mechanics are never skipped silently: missing state names itself."""
+    story_id, node_id = seeded_story
+    orch = _make_orchestrator_with_adjudication(session_factory, adjudicable=False)
+    session_state, _ = _make_rpg_session_and_sheet()
+    sheet = turn_character(story_id=story_id, ready=False)
+    orch._rpg_session_sheet_resolver = lambda _sid: (session_state, sheet)  # type: ignore[attr-defined]
+    result = orch.orchestrate_turn(
+        story_id, node_id, "I attack.", _SOJOURNER, RuntimeAccessPath.HOSTED
+    )
+    assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+    assert result.pipeline_error_summary is not None
+    assert "not ready" in result.pipeline_error_summary
+    assert "missing_state at feats" in result.pipeline_error_summary
