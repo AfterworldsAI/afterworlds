@@ -1129,6 +1129,25 @@ declares either.
 > corpus stays incomplete and runtime-unpublished, the acceptance published, activated and
 > retired **nothing**, and the full-corpus work Decision 5 requires remains undischarged.
 
+> **Amendment — representation schema 18 (CRD Issue 2b G1, Owner acceptance 11 October 2026).**
+> Schema 18 adds two declarative fact families, and nothing else:
+>
+> - `weapon_category`, over a `WeaponCategory` vocabulary of `simple` and `martial`. These are
+>   the two categories the *Category* rule prints.
+> - `weapon_mastery`, over the eight properties the *Mastery Properties* section defines.
+>
+> Each states what one Weapons-table row prints. No proficiency, attack, damage or mastery effect
+> is computed; those stay CRD Issue 15c. Melee or Ranged is a separate printed classification
+> and is not typed. The registered lift `5d-lift-schema-17-to-18` (hash `276c3d0c…8701`) proves
+> every previously accepted payload byte-identical under 18.
+>
+> The Owner accepted the exact G1 Equipment proposal (`8a8a737b…5345`). It names the twelve SRD
+> items no citation had named and states both facts for all 38 weapons. It was recorded natively
+> as a same-release successor artifact, `srd-5-2-1-corpus-8781d4e0-a3b-g1.json`, rather than by
+> rewriting the prior file. The prior is kept byte for byte and is skipped by digest
+> (`oracle.SUPERSEDED_ORACLE_SHA256`) so the release keeps exactly one claimant. The record is
+> `.claude/review-notes/issue-2b-g1-recording/`.
+
 ### Decision 5 — Exact completeness, not aggregate thresholds
 
 Publication is proven through the complete reviewed source inventory and accepted expected rules,

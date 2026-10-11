@@ -1,0 +1,1062 @@
+{
+ "artifact": ".claude/review-notes/issue-2b-g1-candidate/candidate/srd-5-2-1-corpus-8781d4e0-a3b-g1-candidate.json",
+ "summary": {
+  "record": 119,
+  "component": 45,
+  "none": 35
+ },
+ "none_by_table": {
+  "Adventuring Gear": [
+   "Spell Scroll (Cantrip)",
+   "Spell Scroll (Level 1)"
+  ],
+  "Arcane Focuses": [
+   "Crystal",
+   "Orb",
+   "Rod",
+   "Staff (also a Quarterstaff)"
+  ],
+  "Druidic Focuses": [
+   "Sprig of mistletoe",
+   "Wooden staff (also a Quarterstaff)",
+   "Yew wand"
+  ],
+  "Holy Symbols": [
+   "Amulet (worn or held)",
+   "Emblem (borne on fabric or a Shield)",
+   "Reliquary (held)"
+  ],
+  "Mounts and Other Animals": [
+   "Camel",
+   "Elephant",
+   "Horse, Draft",
+   "Horse, Riding",
+   "Mastiff",
+   "Mule",
+   "Pony",
+   "Warhorse"
+  ],
+  "Tack, Harness, and Drawn Vehicles": [
+   "Carriage",
+   "Cart",
+   "Chariot",
+   "Feed per day",
+   "Exotic",
+   "Military",
+   "Riding",
+   "Sled",
+   "Stabling per day",
+   "Wagon"
+  ],
+  "Airborne and Waterborne Vehicles": [
+   "Airship",
+   "Galley",
+   "Longship",
+   "Sailing Ship",
+   "Warship"
+  ]
+ },
+ "rows": {
+  "record": [
+   {
+    "table": "Weapons",
+    "name": "Club",
+    "key": "equipment.weapons.club"
+   },
+   {
+    "table": "Weapons",
+    "name": "Dagger",
+    "key": "equipment.weapons.dagger"
+   },
+   {
+    "table": "Weapons",
+    "name": "Greatclub",
+    "key": "equipment.weapons.greatclub"
+   },
+   {
+    "table": "Weapons",
+    "name": "Handaxe",
+    "key": "equipment.weapons.handaxe"
+   },
+   {
+    "table": "Weapons",
+    "name": "Javelin",
+    "key": "equipment.weapons.javelin"
+   },
+   {
+    "table": "Weapons",
+    "name": "Light Hammer",
+    "key": "equipment.weapons.light_hammer"
+   },
+   {
+    "table": "Weapons",
+    "name": "Mace",
+    "key": "equipment.weapons.mace"
+   },
+   {
+    "table": "Weapons",
+    "name": "Quarterstaff",
+    "key": "equipment.weapons.quarterstaff"
+   },
+   {
+    "table": "Weapons",
+    "name": "Sickle",
+    "key": "equipment.weapons.sickle"
+   },
+   {
+    "table": "Weapons",
+    "name": "Spear",
+    "key": "equipment.weapons.spear"
+   },
+   {
+    "table": "Weapons",
+    "name": "Dart",
+    "key": "equipment.weapons.dart"
+   },
+   {
+    "table": "Weapons",
+    "name": "Light Crossbow",
+    "key": "equipment.weapons.light_crossbow"
+   },
+   {
+    "table": "Weapons",
+    "name": "Shortbow",
+    "key": "equipment.weapons.shortbow"
+   },
+   {
+    "table": "Weapons",
+    "name": "Sling",
+    "key": "equipment.weapons.sling"
+   },
+   {
+    "table": "Weapons",
+    "name": "Battleaxe",
+    "key": "equipment.weapons.battleaxe"
+   },
+   {
+    "table": "Weapons",
+    "name": "Flail",
+    "key": "equipment.weapons.flail"
+   },
+   {
+    "table": "Weapons",
+    "name": "Glaive",
+    "key": "equipment.weapons.glaive"
+   },
+   {
+    "table": "Weapons",
+    "name": "Greataxe",
+    "key": "equipment.weapons.greataxe"
+   },
+   {
+    "table": "Weapons",
+    "name": "Greatsword",
+    "key": "equipment.weapons.greatsword"
+   },
+   {
+    "table": "Weapons",
+    "name": "Halberd",
+    "key": "equipment.weapons.halberd"
+   },
+   {
+    "table": "Weapons",
+    "name": "Lance",
+    "key": "equipment.weapons.lance"
+   },
+   {
+    "table": "Weapons",
+    "name": "Longsword",
+    "key": "equipment.weapons.longsword"
+   },
+   {
+    "table": "Weapons",
+    "name": "Maul",
+    "key": "equipment.weapons.maul"
+   },
+   {
+    "table": "Weapons",
+    "name": "Morningstar",
+    "key": "equipment.weapons.morningstar"
+   },
+   {
+    "table": "Weapons",
+    "name": "Pike",
+    "key": "equipment.weapons.pike"
+   },
+   {
+    "table": "Weapons",
+    "name": "Rapier",
+    "key": "equipment.weapons.rapier"
+   },
+   {
+    "table": "Weapons",
+    "name": "Scimitar",
+    "key": "equipment.weapons.scimitar"
+   },
+   {
+    "table": "Weapons",
+    "name": "Shortsword",
+    "key": "equipment.weapons.shortsword"
+   },
+   {
+    "table": "Weapons",
+    "name": "Trident",
+    "key": "equipment.weapons.trident"
+   },
+   {
+    "table": "Weapons",
+    "name": "Warhammer",
+    "key": "equipment.weapons.warhammer"
+   },
+   {
+    "table": "Weapons",
+    "name": "War Pick",
+    "key": "equipment.weapons.war_pick"
+   },
+   {
+    "table": "Weapons",
+    "name": "Whip",
+    "key": "equipment.weapons.whip"
+   },
+   {
+    "table": "Weapons",
+    "name": "Blowgun",
+    "key": "equipment.weapons.blowgun"
+   },
+   {
+    "table": "Weapons",
+    "name": "Hand Crossbow",
+    "key": "equipment.weapons.hand_crossbow"
+   },
+   {
+    "table": "Weapons",
+    "name": "Heavy Crossbow",
+    "key": "equipment.weapons.heavy_crossbow"
+   },
+   {
+    "table": "Weapons",
+    "name": "Longbow",
+    "key": "equipment.weapons.longbow"
+   },
+   {
+    "table": "Weapons",
+    "name": "Musket",
+    "key": "equipment.weapons.musket"
+   },
+   {
+    "table": "Weapons",
+    "name": "Pistol",
+    "key": "equipment.weapons.pistol"
+   },
+   {
+    "table": "Armor",
+    "name": "Padded Armor",
+    "key": "equipment.armor.padded_armor"
+   },
+   {
+    "table": "Armor",
+    "name": "Leather Armor",
+    "key": "equipment.armor.leather_armor"
+   },
+   {
+    "table": "Armor",
+    "name": "Studded Leather Armor",
+    "key": "equipment.armor.studded_leather_armor"
+   },
+   {
+    "table": "Armor",
+    "name": "Hide Armor",
+    "key": "equipment.armor.hide_armor"
+   },
+   {
+    "table": "Armor",
+    "name": "Chain Shirt",
+    "key": "equipment.armor.chain_shirt"
+   },
+   {
+    "table": "Armor",
+    "name": "Scale Mail",
+    "key": "equipment.armor.scale_mail"
+   },
+   {
+    "table": "Armor",
+    "name": "Breastplate",
+    "key": "equipment.armor.breastplate"
+   },
+   {
+    "table": "Armor",
+    "name": "Half Plate Armor",
+    "key": "equipment.armor.half_plate_armor"
+   },
+   {
+    "table": "Armor",
+    "name": "Ring Mail",
+    "key": "equipment.armor.ring_mail"
+   },
+   {
+    "table": "Armor",
+    "name": "Chain Mail",
+    "key": "equipment.armor.chain_mail"
+   },
+   {
+    "table": "Armor",
+    "name": "Splint Armor",
+    "key": "equipment.armor.splint_armor"
+   },
+   {
+    "table": "Armor",
+    "name": "Plate Armor",
+    "key": "equipment.armor.plate_armor"
+   },
+   {
+    "table": "Armor",
+    "name": "Shield",
+    "key": "equipment.armor.shield"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Acid",
+    "key": "equipment.adventuring_gear.acid"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Alchemist's Fire",
+    "key": "equipment.adventuring_gear.alchemists_fire"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Antitoxin",
+    "key": "equipment.adventuring_gear.antitoxin"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Arcane Focus",
+    "key": "equipment.adventuring_gear.arcane_focus"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Backpack",
+    "key": "equipment.adventuring_gear.backpack"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Ball Bearings",
+    "key": "equipment.adventuring_gear.ball_bearings"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Barrel",
+    "key": "equipment.adventuring_gear.barrel"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Basket",
+    "key": "equipment.adventuring_gear.basket"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Bell",
+    "key": "equipment.adventuring_gear.bell"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Block and Tackle",
+    "key": "equipment.adventuring_gear.block_and_tackle"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Book",
+    "key": "equipment.adventuring_gear.book"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Bottle, Glass",
+    "key": "equipment.adventuring_gear.bottle_glass"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Burglar's Pack",
+    "key": "equipment.adventuring_gear.burglars_pack"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Caltrops",
+    "key": "equipment.adventuring_gear.caltrops"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Climber's Kit",
+    "key": "equipment.adventuring_gear.climbers_kit"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Clothes, Traveler's",
+    "key": "equipment.adventuring_gear.clothes_travelers"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Component Pouch",
+    "key": "equipment.adventuring_gear.component_pouch"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Costume",
+    "key": "equipment.adventuring_gear.costume"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Crowbar",
+    "key": "equipment.adventuring_gear.crowbar"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Druidic Focus",
+    "key": "equipment.adventuring_gear.druidic_focus"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Dungeoneer's Pack",
+    "key": "equipment.adventuring_gear.dungeoneers_pack"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Entertainer's Pack",
+    "key": "equipment.adventuring_gear.entertainers_pack"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Explorer's Pack",
+    "key": "equipment.adventuring_gear.explorers_pack"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Grappling Hook",
+    "key": "equipment.adventuring_gear.grappling_hook"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Healer's Kit",
+    "key": "equipment.adventuring_gear.healers_kit"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Holy Symbol",
+    "key": "equipment.adventuring_gear.holy_symbol"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Holy Water",
+    "key": "equipment.adventuring_gear.holy_water"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Ink",
+    "key": "equipment.adventuring_gear.ink"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Jug",
+    "key": "equipment.adventuring_gear.jug"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Lantern, Bullseye",
+    "key": "equipment.adventuring_gear.lantern_bullseye"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Map",
+    "key": "equipment.adventuring_gear.map"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Mirror",
+    "key": "equipment.adventuring_gear.mirror"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Net",
+    "key": "equipment.adventuring_gear.net"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Parchment",
+    "key": "equipment.adventuring_gear.parchment"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Poison, Basic",
+    "key": "equipment.adventuring_gear.poison_basic"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Pole",
+    "key": "equipment.adventuring_gear.pole"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Potion of Healing",
+    "key": "equipment.adventuring_gear.potion_of_healing"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Pouch",
+    "key": "equipment.adventuring_gear.pouch"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Priest's Pack",
+    "key": "equipment.adventuring_gear.priests_pack"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Quiver",
+    "key": "equipment.adventuring_gear.quiver"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Rations",
+    "key": "equipment.adventuring_gear.rations"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Robe",
+    "key": "equipment.adventuring_gear.robe"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Rope",
+    "key": "equipment.adventuring_gear.rope"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Sack",
+    "key": "equipment.adventuring_gear.sack"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Scholar's Pack",
+    "key": "equipment.adventuring_gear.scholars_pack"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Spikes, Iron",
+    "key": "equipment.adventuring_gear.spikes_iron"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Torch",
+    "key": "equipment.adventuring_gear.torch"
+   },
+   {
+    "table": "Ammunition",
+    "name": "Arrows",
+    "key": "equipment.adventuring_gear.arrows"
+   },
+   {
+    "table": "Ammunition",
+    "name": "Bolts",
+    "key": "equipment.adventuring_gear.bolts"
+   },
+   {
+    "table": "Ammunition",
+    "name": "Bullets, Firearm",
+    "key": "equipment.adventuring_gear.bullets_firearm"
+   },
+   {
+    "table": "Ammunition",
+    "name": "Bullets, Sling",
+    "key": "equipment.adventuring_gear.bullets_sling"
+   },
+   {
+    "table": "Ammunition",
+    "name": "Needles",
+    "key": "equipment.adventuring_gear.needles"
+   },
+   {
+    "table": "Arcane Focuses",
+    "name": "Wand",
+    "key": "equipment.adventuring_gear.wand"
+   },
+   {
+    "table": "Airborne and Waterborne Vehicles",
+    "name": "Keelboat",
+    "key": "equipment.mounts_and_vehicles.keelboat"
+   },
+   {
+    "table": "Airborne and Waterborne Vehicles",
+    "name": "Rowboat",
+    "key": "equipment.mounts_and_vehicles.rowboat"
+   },
+   {
+    "table": "Tools",
+    "name": "Alchemist's Supplies",
+    "key": "equipment.tools.alchemists_supplies"
+   },
+   {
+    "table": "Tools",
+    "name": "Calligrapher's Supplies",
+    "key": "equipment.tools.calligraphers_supplies"
+   },
+   {
+    "table": "Tools",
+    "name": "Jeweler's Tools",
+    "key": "equipment.tools.jewelers_tools"
+   },
+   {
+    "table": "Tools",
+    "name": "Leatherworker's Tools",
+    "key": "equipment.tools.leatherworkers_tools"
+   },
+   {
+    "table": "Tools",
+    "name": "Smith's Tools",
+    "key": "equipment.tools.smiths_tools"
+   },
+   {
+    "table": "Tools",
+    "name": "Tinker's Tools",
+    "key": "equipment.tools.tinkers_tools"
+   },
+   {
+    "table": "Tools",
+    "name": "Weaver's Tools",
+    "key": "equipment.tools.weavers_tools"
+   },
+   {
+    "table": "Tools",
+    "name": "Woodcarver's Tools",
+    "key": "equipment.tools.woodcarvers_tools"
+   },
+   {
+    "table": "Tools",
+    "name": "Gaming Set",
+    "key": "equipment.tools.gaming_set"
+   },
+   {
+    "table": "Tools",
+    "name": "Herbalism Kit",
+    "key": "equipment.tools.herbalism_kit"
+   },
+   {
+    "table": "Tools",
+    "name": "Musical Instrument",
+    "key": "equipment.tools.musical_instrument"
+   },
+   {
+    "table": "Tools",
+    "name": "Poisoner's Kit",
+    "key": "equipment.tools.poisoners_kit"
+   },
+   {
+    "table": "Tools",
+    "name": "Thieves' Tools",
+    "key": "equipment.tools.thieves_tools"
+   }
+  ],
+  "component": [
+   {
+    "table": "Adventuring Gear",
+    "name": "Ammunition",
+    "key": "equipment.adventuring_gear.ammunition"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Bedroll",
+    "key": "equipment.adventuring_gear.bedroll"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Blanket",
+    "key": "equipment.adventuring_gear.blanket"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Bucket",
+    "key": "equipment.adventuring_gear.bucket"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Candle",
+    "key": "equipment.adventuring_gear.candle"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Case, Crossbow Bolt",
+    "key": "equipment.adventuring_gear.case_crossbow_bolt"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Case, Map or Scroll",
+    "key": "equipment.adventuring_gear.case_map_or_scroll"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Chain",
+    "key": "equipment.adventuring_gear.chain"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Chest",
+    "key": "equipment.adventuring_gear.chest"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Clothes, Fine",
+    "key": "equipment.adventuring_gear.clothes_fine"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Diplomat's Pack",
+    "key": "equipment.adventuring_gear.diplomats_pack"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Flask",
+    "key": "equipment.adventuring_gear.flask"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Hunting Trap",
+    "key": "equipment.adventuring_gear.hunting_trap"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Ink Pen",
+    "key": "equipment.adventuring_gear.ink_pen"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Ladder",
+    "key": "equipment.adventuring_gear.ladder"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Lamp",
+    "key": "equipment.adventuring_gear.lamp"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Lantern, Hooded",
+    "key": "equipment.adventuring_gear.lantern_hooded"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Lock",
+    "key": "equipment.adventuring_gear.lock"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Magnifying Glass",
+    "key": "equipment.adventuring_gear.magnifying_glass"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Manacles",
+    "key": "equipment.adventuring_gear.manacles"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Oil",
+    "key": "equipment.adventuring_gear.oil"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Paper",
+    "key": "equipment.adventuring_gear.paper"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Perfume",
+    "key": "equipment.adventuring_gear.perfume"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Pot, Iron",
+    "key": "equipment.adventuring_gear.pot_iron"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Ram, Portable",
+    "key": "equipment.adventuring_gear.ram_portable"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Shovel",
+    "key": "equipment.adventuring_gear.shovel"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Signal Whistle",
+    "key": "equipment.adventuring_gear.signal_whistle"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Spyglass",
+    "key": "equipment.adventuring_gear.spyglass"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "String",
+    "key": "equipment.adventuring_gear.string"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Tent",
+    "key": "equipment.adventuring_gear.tent"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Tinderbox",
+    "key": "equipment.adventuring_gear.tinderbox"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Vial",
+    "key": "equipment.adventuring_gear.vial"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Waterskin",
+    "key": "equipment.adventuring_gear.waterskin"
+   },
+   {
+    "table": "Tools",
+    "name": "Brewer's Supplies",
+    "key": "equipment.tools.brewers_supplies"
+   },
+   {
+    "table": "Tools",
+    "name": "Carpenter's Tools",
+    "key": "equipment.tools.carpenters_tools"
+   },
+   {
+    "table": "Tools",
+    "name": "Cartographer's Tools",
+    "key": "equipment.tools.cartographers_tools"
+   },
+   {
+    "table": "Tools",
+    "name": "Cobbler's Tools",
+    "key": "equipment.tools.cobblers_tools"
+   },
+   {
+    "table": "Tools",
+    "name": "Cook's Utensils",
+    "key": "equipment.tools.cooks_utensils"
+   },
+   {
+    "table": "Tools",
+    "name": "Glassblower's Tools",
+    "key": "equipment.tools.glassblowers_tools"
+   },
+   {
+    "table": "Tools",
+    "name": "Mason's Tools",
+    "key": "equipment.tools.masons_tools"
+   },
+   {
+    "table": "Tools",
+    "name": "Painter's Supplies",
+    "key": "equipment.tools.painters_supplies"
+   },
+   {
+    "table": "Tools",
+    "name": "Potter's Tools",
+    "key": "equipment.tools.potters_tools"
+   },
+   {
+    "table": "Tools",
+    "name": "Disguise Kit",
+    "key": "equipment.tools.disguise_kit"
+   },
+   {
+    "table": "Tools",
+    "name": "Forgery Kit",
+    "key": "equipment.tools.forgery_kit"
+   },
+   {
+    "table": "Tools",
+    "name": "Navigator's Tools",
+    "key": "equipment.tools.navigators_tools"
+   }
+  ],
+  "none": [
+   {
+    "table": "Adventuring Gear",
+    "name": "Spell Scroll (Cantrip)",
+    "key": "equipment.adventuring_gear.spell_scroll_cantrip"
+   },
+   {
+    "table": "Adventuring Gear",
+    "name": "Spell Scroll (Level 1)",
+    "key": "equipment.adventuring_gear.spell_scroll_level_1"
+   },
+   {
+    "table": "Arcane Focuses",
+    "name": "Crystal",
+    "key": "equipment.adventuring_gear.crystal"
+   },
+   {
+    "table": "Arcane Focuses",
+    "name": "Orb",
+    "key": "equipment.adventuring_gear.orb"
+   },
+   {
+    "table": "Arcane Focuses",
+    "name": "Rod",
+    "key": "equipment.adventuring_gear.rod"
+   },
+   {
+    "table": "Arcane Focuses",
+    "name": "Staff (also a Quarterstaff)",
+    "key": "equipment.adventuring_gear.staff_also_a_quarterstaff"
+   },
+   {
+    "table": "Druidic Focuses",
+    "name": "Sprig of mistletoe",
+    "key": "equipment.adventuring_gear.sprig_of_mistletoe"
+   },
+   {
+    "table": "Druidic Focuses",
+    "name": "Wooden staff (also a Quarterstaff)",
+    "key": "equipment.adventuring_gear.wooden_staff_also_a_quarterstaff"
+   },
+   {
+    "table": "Druidic Focuses",
+    "name": "Yew wand",
+    "key": "equipment.adventuring_gear.yew_wand"
+   },
+   {
+    "table": "Holy Symbols",
+    "name": "Amulet (worn or held)",
+    "key": "equipment.adventuring_gear.amulet_worn_or_held"
+   },
+   {
+    "table": "Holy Symbols",
+    "name": "Emblem (borne on fabric or a Shield)",
+    "key": "equipment.adventuring_gear.emblem_borne_on_fabric_or_a_shield"
+   },
+   {
+    "table": "Holy Symbols",
+    "name": "Reliquary (held)",
+    "key": "equipment.adventuring_gear.reliquary_held"
+   },
+   {
+    "table": "Mounts and Other Animals",
+    "name": "Camel",
+    "key": "equipment.mounts_and_vehicles.camel"
+   },
+   {
+    "table": "Mounts and Other Animals",
+    "name": "Elephant",
+    "key": "equipment.mounts_and_vehicles.elephant"
+   },
+   {
+    "table": "Mounts and Other Animals",
+    "name": "Horse, Draft",
+    "key": "equipment.mounts_and_vehicles.horse_draft"
+   },
+   {
+    "table": "Mounts and Other Animals",
+    "name": "Horse, Riding",
+    "key": "equipment.mounts_and_vehicles.horse_riding"
+   },
+   {
+    "table": "Mounts and Other Animals",
+    "name": "Mastiff",
+    "key": "equipment.mounts_and_vehicles.mastiff"
+   },
+   {
+    "table": "Mounts and Other Animals",
+    "name": "Mule",
+    "key": "equipment.mounts_and_vehicles.mule"
+   },
+   {
+    "table": "Mounts and Other Animals",
+    "name": "Pony",
+    "key": "equipment.mounts_and_vehicles.pony"
+   },
+   {
+    "table": "Mounts and Other Animals",
+    "name": "Warhorse",
+    "key": "equipment.mounts_and_vehicles.warhorse"
+   },
+   {
+    "table": "Tack, Harness, and Drawn Vehicles",
+    "name": "Carriage",
+    "key": "equipment.mounts_and_vehicles.carriage"
+   },
+   {
+    "table": "Tack, Harness, and Drawn Vehicles",
+    "name": "Cart",
+    "key": "equipment.mounts_and_vehicles.cart"
+   },
+   {
+    "table": "Tack, Harness, and Drawn Vehicles",
+    "name": "Chariot",
+    "key": "equipment.mounts_and_vehicles.chariot"
+   },
+   {
+    "table": "Tack, Harness, and Drawn Vehicles",
+    "name": "Feed per day",
+    "key": "equipment.mounts_and_vehicles.feed_per_day"
+   },
+   {
+    "table": "Tack, Harness, and Drawn Vehicles",
+    "name": "Exotic",
+    "key": "equipment.mounts_and_vehicles.exotic"
+   },
+   {
+    "table": "Tack, Harness, and Drawn Vehicles",
+    "name": "Military",
+    "key": "equipment.mounts_and_vehicles.military"
+   },
+   {
+    "table": "Tack, Harness, and Drawn Vehicles",
+    "name": "Riding",
+    "key": "equipment.mounts_and_vehicles.riding"
+   },
+   {
+    "table": "Tack, Harness, and Drawn Vehicles",
+    "name": "Sled",
+    "key": "equipment.mounts_and_vehicles.sled"
+   },
+   {
+    "table": "Tack, Harness, and Drawn Vehicles",
+    "name": "Stabling per day",
+    "key": "equipment.mounts_and_vehicles.stabling_per_day"
+   },
+   {
+    "table": "Tack, Harness, and Drawn Vehicles",
+    "name": "Wagon",
+    "key": "equipment.mounts_and_vehicles.wagon"
+   },
+   {
+    "table": "Airborne and Waterborne Vehicles",
+    "name": "Airship",
+    "key": "equipment.mounts_and_vehicles.airship"
+   },
+   {
+    "table": "Airborne and Waterborne Vehicles",
+    "name": "Galley",
+    "key": "equipment.mounts_and_vehicles.galley"
+   },
+   {
+    "table": "Airborne and Waterborne Vehicles",
+    "name": "Longship",
+    "key": "equipment.mounts_and_vehicles.longship"
+   },
+   {
+    "table": "Airborne and Waterborne Vehicles",
+    "name": "Sailing Ship",
+    "key": "equipment.mounts_and_vehicles.sailing_ship"
+   },
+   {
+    "table": "Airborne and Waterborne Vehicles",
+    "name": "Warship",
+    "key": "equipment.mounts_and_vehicles.warship"
+   }
+  ]
+ }
+}

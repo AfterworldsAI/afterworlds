@@ -1,0 +1,432 @@
+diff --git a/issue-5d-equipment-cited-targets-generator.py b/issue-2b-g1-candidate/issue-2b-g1-equipment-generator.py
+index ea3209a..c0681b5 100644
+--- a/issue-5d-equipment-cited-targets-generator.py
++++ b/issue-2b-g1-candidate/issue-2b-g1-equipment-generator.py
+@@ -2,6 +2,29 @@
+ """Author the **equipment** proposal: the whole *Equipment* part, one
+ dependency group.
+ 
++**CRD Issue 2b G1 candidate.** A copy of the recorded
++``issue-5d-equipment-cited-targets-generator.py`` with exactly two changes,
++both unaccepted review material. The build applies the accepted
++class-eligibility removal (``scripts/common.py``) exactly as the identity
++control that reproduces the recorded proposal does.
++
++1. The twelve SRD equipment items no citation named are named records too:
++   Dart, Glaive, Halberd, Lance, Maul, Trident, War Pick, Whip and Blowgun
++   (Weapons table), Scale Mail and Ring Mail (Armor table) and Needles
++   (Ammunition table), each owning its own row, read and cited as every
++   accepted row of its table is.
++2. Every one of the 38 Weapons-table rows states two schema-18 facts: the
++   category its group row prints and the mastery property its Mastery column
++   prints (``WEAPON_FACTS``). Each row component becomes ``mixed``: those two
++   facts are structured, the rest of the row stays governing prose under the
++   same retention reason. A ``weapon_rows`` clause holds the rows so the
++   review inventory expects both families of each row's owner and of nothing
++   else.
++
++The batch declares schema 18. Everything else is the recorded generator.
++
++---
++
+ REVIEW MATERIAL for CRD Issue 5d (#137) over the qualified 5c release
+ ``ebdd9333-eeed-5df1-b3e1-8b97c2f65f80`` / ``5.2.1-corpus.574662e9-0ef``. It
+ emits an *unaccepted* ``5d-proposal-2`` artifact. It accepts nothing, publishes
+@@ -138,11 +161,22 @@ from afterworlds.ingestion.mechanical.models import (
+ from afterworlds.ingestion.mechanical.reference_resolution import (
+     reference_resolution_payload,
+ )
+-from afterworlds.ingestion.mechanical.representation import RecordKind
++from afterworlds.ingestion.mechanical.representation import (
++    FactFamily,
++    RecordKind,
++    WeaponCategory,
++    WeaponCategoryFact,
++    WeaponMastery,
++    WeaponMasteryFact,
++)
++from afterworlds.ingestion.mechanical.schema_lift import (
++    SCHEMA_18_HASH,
++    SCHEMA_18_VERSION,
++)
+ 
+-ORIGIN = "issue-5d-equipment-cited-targets-generator.py"
+-PROPOSAL_FILE = "issue-5d-equipment-cited-targets-PROPOSAL.json"
+-DRAFTS_FILE = "issue-5d-equipment-cited-targets-resolutions-DRAFTS.json"
++ORIGIN = "issue-2b-g1-equipment-generator.py"
++PROPOSAL_FILE = "issue-2b-g1-equipment-PROPOSAL.json"
++DRAFTS_FILE = "issue-2b-g1-equipment-resolutions-DRAFTS.json"
+ #: Every record here is placed; the unplaced-entry default is never read.
+ PARENT = ("Rules Glossary", "Rules Definitions")
+ #: The parts this batch's records and pointers name, formed from the release's
+@@ -197,6 +231,7 @@ CTX = "contextual_applicability"
+ GM = "gamemaster_latitude"
+ NO_USE = "no_identified_structured_use"
+ P = ComponentHandling.PROSE_BOUND
++M = ComponentHandling.MIXED
+ PROSE = None
+ 
+ # ---------------------------------------------------------------------------
+@@ -631,20 +666,29 @@ WEAPON_ROWS = {
+         "Quarterstaff",
+         "Sickle",
+         "Spear",
++        "Dart",
+         "Light Crossbow",
+         "Shortbow",
+         "Sling",
+         "Battleaxe",
+         "Flail",
++        "Glaive",
+         "Greataxe",
+         "Greatsword",
++        "Halberd",
++        "Lance",
+         "Longsword",
++        "Maul",
+         "Morningstar",
+         "Pike",
+         "Rapier",
+         "Scimitar",
+         "Shortsword",
++        "Trident",
+         "Warhammer",
++        "War Pick",
++        "Whip",
++        "Blowgun",
+         "Hand Crossbow",
+         "Heavy Crossbow",
+         "Longbow",
+@@ -665,8 +709,10 @@ ARMOR_ROWS = {
+         "Studded Leather Armor",
+         "Hide Armor",
+         "Chain Shirt",
++        "Scale Mail",
+         "Breastplate",
+         "Half Plate Armor",
++        "Ring Mail",
+         "Chain Mail",
+         "Splint Armor",
+         "Plate Armor",
+@@ -731,8 +777,16 @@ GEAR_ROWS = {
+ AMMUNITION_HEAD = head_of(AMMUNITION_TABLE)
+ AMMUNITION_ROWS = {
+     n: row_of(AMMUNITION_TABLE, f"<td>{n}</td>")
+-    for n in ("Arrows", "Bolts", "Bullets, Firearm", "Bullets, Sling")
++    for n in ("Arrows", "Bolts", "Bullets, Firearm", "Bullets, Sling", "Needles")
+ }
++#: G1: Needles is the Ammunition table's last row. Cut alone it would leave the
++#: table's close as a piece of its own, the same text as the Arcane Focuses
++#: close in this entry, and a span is keyed by (entry, text), so the two
++#: printings could not be told apart (``ANCHORS`` holds one per key). The row
++#: owns the close it is printed with instead.
++AMMUNITION_ROWS["Needles"] = AMMUNITION_TABLE[
++    AMMUNITION_TABLE.index(AMMUNITION_ROWS["Needles"]) :
++]
+ 
+ 
+ def pieces(tbl: str, *cuts: str) -> tuple[str, ...]:
+@@ -969,7 +1023,15 @@ CLAUSES: tuple[Clause, ...] = (
+         "weapons",
+         "weapons_table",
+         "The Weapons table in this section shows the game's main weapons. The table lists the cost and weight of each weapon, as well as the following details:",
+-        *WEAPONS_PIECES,
++        *(t for t in WEAPONS_PIECES if t not in WEAPON_ROWS.values()),
++    ),
++    # CRD Issue 2b G1: every Weapons-table row, each owned by its weapon's
++    # record, which states the category and mastery the row prints.
++    (
++        "weapons",
++        "weapon_rows",
++        (PROSE, FactFamily.WEAPON_CATEGORY.value, FactFamily.WEAPON_MASTERY.value),
++        tuple(t for t in WEAPONS_PIECES if t in WEAPON_ROWS.values()),
+     ),
+     cl(
+         "weapons",
+@@ -2864,6 +2926,168 @@ NAMED_ROWS: tuple[
+         ),
+     ),
+     ("adventuring_gear", "bolts", E, AMMUNITION_ENTRY, AMMUNITION_ROWS["Bolts"], ()),
++    # -- CRD Issue 2b G1: the twelve rows no citation named, each read and
++    # cited as the accepted row it mirrors (named in each comment).
++    (  # as Dagger and Shortbow
++        "weapons",
++        "dart",
++        E,
++        SIMPLE_RANGED,
++        WEAPON_ROWS["Dart"],
++        _row_refs(
++            ("Simple", "category"),
++            ("Ranged", "melee_or_ranged"),
++            ("Finesse", "finesse"),
++            ("Thrown", "thrown"),
++            ("Range 20/60", "range"),
++            ("Vex", "vex"),
++        ),
++    ),
++    (  # as Pike
++        "weapons",
++        "glaive",
++        E,
++        MARTIAL_MELEE,
++        WEAPON_ROWS["Glaive"],
++        _row_refs(
++            ("Martial", "category"),
++            ("Melee", "melee_or_ranged"),
++            ("Heavy", "heavy"),
++            ("Reach", "reach"),
++            ("Two-Handed", "two_handed"),
++            ("Graze", "graze"),
++        ),
++    ),
++    (  # as Pike
++        "weapons",
++        "halberd",
++        E,
++        MARTIAL_MELEE,
++        WEAPON_ROWS["Halberd"],
++        _row_refs(
++            ("Martial", "category"),
++            ("Melee", "melee_or_ranged"),
++            ("Heavy", "heavy"),
++            ("Reach", "reach"),
++            ("Two-Handed", "two_handed"),
++            ("Cleave", "cleave"),
++        ),
++    ),
++    (  # as Pike; "(unless mounted)" stays the row's governing prose
++        "weapons",
++        "lance",
++        E,
++        MARTIAL_MELEE,
++        WEAPON_ROWS["Lance"],
++        _row_refs(
++            ("Martial", "category"),
++            ("Melee", "melee_or_ranged"),
++            ("Heavy", "heavy"),
++            ("Reach", "reach"),
++            ("Two-Handed", "two_handed"),
++            ("Topple", "topple"),
++        ),
++    ),
++    (  # as Greatsword
++        "weapons",
++        "maul",
++        E,
++        MARTIAL_MELEE,
++        WEAPON_ROWS["Maul"],
++        _row_refs(
++            ("Martial", "category"),
++            ("Melee", "melee_or_ranged"),
++            ("Heavy", "heavy"),
++            ("Two-Handed", "two_handed"),
++            ("Topple", "topple"),
++        ),
++    ),
++    (  # as Spear
++        "weapons",
++        "trident",
++        E,
++        MARTIAL_MELEE,
++        WEAPON_ROWS["Trident"],
++        _row_refs(
++            ("Martial", "category"),
++            ("Melee", "melee_or_ranged"),
++            ("Thrown", "thrown"),
++            ("Range 20/60", "range"),
++            ("Versatile (1d10)", "versatile"),
++            ("Topple", "topple"),
++        ),
++    ),
++    (  # as Longsword
++        "weapons",
++        "war_pick",
++        E,
++        MARTIAL_MELEE,
++        WEAPON_ROWS["War Pick"],
++        _row_refs(
++            ("Martial", "category"),
++            ("Melee", "melee_or_ranged"),
++            ("Versatile (1d10)", "versatile"),
++            ("Sap", "sap"),
++        ),
++    ),
++    (  # as Rapier and Pike
++        "weapons",
++        "whip",
++        E,
++        MARTIAL_MELEE,
++        WEAPON_ROWS["Whip"],
++        _row_refs(
++            ("Martial", "category"),
++            ("Melee", "melee_or_ranged"),
++            ("Finesse", "finesse"),
++            ("Reach", "reach"),
++            ("Slow", "slow"),
++        ),
++    ),
++    (  # as Hand Crossbow
++        "weapons",
++        "blowgun",
++        E,
++        MARTIAL_RANGED,
++        WEAPON_ROWS["Blowgun"],
++        (
++            *_row_refs(
++                ("Martial", "category"),
++                ("Ranged", "melee_or_ranged"),
++                ("Ammunition", "ammunition"),
++                ("Range 25/100", "range"),
++            ),
++            ("Needle", nm("adventuring_gear", "needles")),
++            *_row_refs(("Loading", "loading"), ("Vex", "vex")),
++        ),
++    ),
++    (  # as Half Plate Armor
++        "armor",
++        "scale_mail",
++        E,
++        (ARMOR_HEAD, ARMOR_GROUPS["Medium Armor"]),
++        ARMOR_ROWS["Scale Mail"],
++        _row_refs(
++            ("Medium Armor", "category"),
++            ("14 + Dex modifier (max 2)", "armor_class"),
++            ("Disadvantage", "stealth"),
++            entry="armor",
++        ),
++    ),
++    (  # as Chain Mail; its Strength cell is "—", cited by nothing
++        "armor",
++        "ring_mail",
++        E,
++        (ARMOR_HEAD, ARMOR_GROUPS["Heavy Armor"]),
++        ARMOR_ROWS["Ring Mail"],
++        _row_refs(
++            ("Heavy Armor (10 Minutes to Don and 5 Minutes to Doff)", "category"),
++            ("14", "armor_class"),
++            ("Disadvantage", "stealth"),
++            entry="armor",
++        ),
++    ),
++    ("adventuring_gear", "needles", E, AMMUNITION_ENTRY, AMMUNITION_ROWS["Needles"], ()),
+     ("adventuring_gear", "wand", E, WAND_CONTEXT, WAND_ROW, ()),
+     (
+         "mounts_and_vehicles",
+@@ -2893,6 +3117,8 @@ ROW_AFTER: dict[tuple[str, str], tuple[str, ...]] = {
+     ("armor", "breastplate"): ARMOR_RULES,
+     ("armor", "half_plate_armor"): ARMOR_RULES,
+     ("armor", "chain_mail"): ARMOR_RULES,
++    ("armor", "scale_mail"): ARMOR_RULES,
++    ("armor", "ring_mail"): ARMOR_RULES,
+     ("armor", "splint_armor"): ARMOR_RULES,
+     ("armor", "plate_armor"): ARMOR_RULES,
+     ("mounts_and_vehicles", "keelboat"): VEHICLE_NOTES,
+@@ -3196,6 +3422,60 @@ CONTEXTUAL: frozenset[tuple[str, str]] = frozenset(
+ )
+ 
+ 
++S, MA = WeaponCategory.SIMPLE, WeaponCategory.MARTIAL
++#: CRD Issue 2b G1 review data: (category, mastery) as each Weapons-table row
++#: prints them -- the category from the row's group row ("Simple Melee
++#: Weapons" ...), the mastery from its Mastery column (equipment.md, official
++#: SRD 5.2.1 pp. 90-91). Literal, never read from the table above, so the
++#: source catalogue check compares two independent statements.
++WEAPON_FACTS: dict[str, tuple[WeaponCategory, WeaponMastery]] = {
++    "club": (S, WeaponMastery.SLOW),
++    "dagger": (S, WeaponMastery.NICK),
++    "greatclub": (S, WeaponMastery.PUSH),
++    "handaxe": (S, WeaponMastery.VEX),
++    "javelin": (S, WeaponMastery.SLOW),
++    "light_hammer": (S, WeaponMastery.NICK),
++    "mace": (S, WeaponMastery.SAP),
++    "quarterstaff": (S, WeaponMastery.TOPPLE),
++    "sickle": (S, WeaponMastery.NICK),
++    "spear": (S, WeaponMastery.SAP),
++    "dart": (S, WeaponMastery.VEX),
++    "light_crossbow": (S, WeaponMastery.SLOW),
++    "shortbow": (S, WeaponMastery.VEX),
++    "sling": (S, WeaponMastery.SLOW),
++    "battleaxe": (MA, WeaponMastery.TOPPLE),
++    "flail": (MA, WeaponMastery.SAP),
++    "glaive": (MA, WeaponMastery.GRAZE),
++    "greataxe": (MA, WeaponMastery.CLEAVE),
++    "greatsword": (MA, WeaponMastery.GRAZE),
++    "halberd": (MA, WeaponMastery.CLEAVE),
++    "lance": (MA, WeaponMastery.TOPPLE),
++    "longsword": (MA, WeaponMastery.SAP),
++    "maul": (MA, WeaponMastery.TOPPLE),
++    "morningstar": (MA, WeaponMastery.SAP),
++    "pike": (MA, WeaponMastery.PUSH),
++    "rapier": (MA, WeaponMastery.VEX),
++    "scimitar": (MA, WeaponMastery.NICK),
++    "shortsword": (MA, WeaponMastery.VEX),
++    "trident": (MA, WeaponMastery.TOPPLE),
++    "warhammer": (MA, WeaponMastery.PUSH),
++    "war_pick": (MA, WeaponMastery.SAP),
++    "whip": (MA, WeaponMastery.SLOW),
++    "blowgun": (MA, WeaponMastery.VEX),
++    "hand_crossbow": (MA, WeaponMastery.VEX),
++    "heavy_crossbow": (MA, WeaponMastery.PUSH),
++    "longbow": (MA, WeaponMastery.SLOW),
++    "musket": (MA, WeaponMastery.SLOW),
++    "pistol": (MA, WeaponMastery.VEX),
++}
++assert len(WEAPON_FACTS) == len(WEAPON_ROWS) == 38
++
++
++def _weapon_facts(key: str) -> tuple[WeaponCategoryFact, WeaponMasteryFact]:
++    category, mastery = WEAPON_FACTS[key]
++    return WeaponCategoryFact(category=category), WeaponMasteryFact(mastery=mastery)
++
++
+ def _components() -> tuple[EntryComponent, ...]:
+     """Each clause's component -- its section's, or the named record's owning
+     it -- then each named row's.
+@@ -3245,9 +3525,20 @@ def _components() -> tuple[EntryComponent, ...]:
+             )
+         else:
+             kept = tuple(t for t in texts if t not in owned)
+-            out.append(
+-                C(entry, key, P, reason, refs=refs, texts=kept if kept != texts else ())
+-            )
++            # A clause every text of which a named row owns has no section
++            # component (G1's ``weapon_rows``); an empty ``texts`` would read
++            # the whole clause.
++            if kept:
++                out.append(
++                    C(
++                        entry,
++                        key,
++                        P,
++                        reason,
++                        refs=refs,
++                        texts=kept if kept != texts else (),
++                    )
++                )
+         for e, k, _, before, row, row_refs in NAMED_ROWS:
+             if e == entry and row in texts:
+                 context = (*before, *ROW_AFTER.get((e, k), ()))
+@@ -3259,12 +3550,14 @@ def _components() -> tuple[EntryComponent, ...]:
+                         raise ValueError(
+                             f"{k}: {text!r} is read from {len(held)} texts"
+                         )
++                weapon = e == "weapons" and k in WEAPON_FACTS
+                 out.append(
+                     C(
+                         e,
+                         k,
+-                        P,
++                        M if weapon else P,
+                         NO_USE,
++                        facts=_weapon_facts(k) if weapon else (),
+                         refs=row_refs,
+                         record=named(e, k),
+                         texts=(*before, row, *ROW_AFTER.get((e, k), ())),
+@@ -3315,6 +3608,7 @@ def batch() -> EntryBatch:
+         placements=PLACEMENTS,
+         excluded=EXCLUDED,
+         anchors=ANCHORS,
++        schema=(SCHEMA_18_VERSION, SCHEMA_18_HASH),
+         records=tuple(
+             (named(e, k), kind, e)
+             for e, k, kind in (

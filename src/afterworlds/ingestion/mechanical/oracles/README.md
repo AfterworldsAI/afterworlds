@@ -13,7 +13,33 @@ any of them.
 
 ## What is committed here
 
-**Current: `srd-5-2-1-corpus-8781d4e0-a3b.json`** — accepted authority for the
+**Current: `srd-5-2-1-corpus-8781d4e0-a3b-g1.json`** (SHA-256 `2ccbaeba…1258`)
+— the CRD Issue 2b G1 successor for the same official-order release
+(`1299484e-c72d-509b-bd8d-d0169ee1f8d2` / `5.2.1-corpus.8781d4e0-a3b`) at
+representation schema 18. The Owner accepted the exact G1 Equipment proposal
+`8a8a737b…5345` on 11 October 2026. That proposal makes the twelve previously
+missing items named records: Dart, Glaive, Halberd, Lance, Maul, Trident, War
+Pick, Whip, Blowgun, Scale Mail, Ring Mail and Needles. It also gives all 38
+SRD weapons a `weapon_category` and a `weapon_mastery` fact.
+`.claude/review-notes/issue-2b-g1-recording/record_successor.py` recorded it
+natively on 2026-10-11 UTC (07:39:53Z). The prior accepted file stays byte for
+byte (its Equipment batch is excised and the accepted proposal is accepted in
+its place). The successor holds twenty-four batches, 1,847 records and the same
+1,486 resolutions, with projection `efab27a9-5d44-52ba-ad74-47940d5fd717`.
+Relative to the reviewed preview, only the Equipment batch's reviewer, time
+and rule differ. The other twenty-three batches, every resolution and all
+their evidence are byte-identical to the prior. Running the script again
+rebuilds and verifies the successor. The record is
+`.claude/review-notes/issue-2b-g1-recording/recorded-followup.json`; the review
+packet is `.claude/review-notes/issue-2b-g1-candidate/README.md`.
+
+**Superseded by digest: `srd-5-2-1-corpus-8781d4e0-a3b.json`** (SHA-256
+`def7caa1…c58e`, unchanged). A same-release successor cannot be selected by
+release version, so `oracle.SUPERSEDED_ORACLE_SHA256` names this file's exact
+bytes; resolution skips it and the successor is the release's one claimant. It
+is kept in the source tree as test and replay evidence and excluded from the
+wheel and sdist. What follows describes it as it was accepted —
+accepted authority for the
 official-order release (`1299484e-c72d-509b-bd8d-d0169ee1f8d2` /
 `5.2.1-corpus.8781d4e0-a3b`), holding the same twenty-four batches, 1835
 records and 1486 reference resolutions at representation schema 17 (SHA-256

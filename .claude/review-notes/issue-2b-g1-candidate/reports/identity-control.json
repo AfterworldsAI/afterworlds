@@ -1,0 +1,45 @@
+{
+ "prior_sha256": "def7caa1625458a40c1f635db153268082cf52d5e25c28f57fd29518e44de58c",
+ "recorded_equipment_proposal_identity": "390f63672ea035abb0c8f0ae2efd4cffda81753df8089daee372931b5618d728",
+ "regenerated_schema16_identity": "390f63672ea035abb0c8f0ae2efd4cffda81753df8089daee372931b5618d728",
+ "redeclared_schema17_identity": "91a202595ae9686aee8aa8eff0ac5e15986277b589dc73ca2dccddd964c4e386",
+ "excision": {
+  "records": {
+   "removed": 147,
+   "kept_shared": 0
+  },
+  "components": {
+   "removed": 240,
+   "kept_shared": 0
+  },
+  "prose_bindings": {
+   "removed": 774,
+   "kept_shared": 0
+  },
+  "relationships": {
+   "removed": 133,
+   "kept_shared": 0
+  },
+  "references": {
+   "removed": 317,
+   "kept_shared": 0
+  },
+  "provenance": {
+   "removed": 1227,
+   "kept_shared": 0
+  },
+  "spans": {
+   "removed": 469,
+   "kept_shared": 0
+  },
+  "review_units": {
+   "removed": 14,
+   "kept_shared": 0
+  }
+ },
+ "oracle_identity_equal": true,
+ "oracle_payload_keys_differing": [],
+ "serialized_top_level_keys_differing": [
+  "acceptance"
+ ]
+}

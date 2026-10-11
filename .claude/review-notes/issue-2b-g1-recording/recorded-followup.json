@@ -1,0 +1,33 @@
+{
+ "mode": "record",
+ "recorded_at": "2026-10-11T07:39:53Z",
+ "successor": "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-g1.json",
+ "successor_sha256": "2ccbaeba6de75d9787fbdd407e42dc2425fa20d4d26bcc298b681b550bd11258",
+ "successor_bytes": 35790441,
+ "proposal_identity": "8a8a737b0d1e47410de86bbeca44b66522b46511e078727d20760678943b5345",
+ "oracle_identity": "3e7b27dbb291eb11ca7489719442308397b091d745beb3e48a517bf38685c05a",
+ "projection": "efab27a9-5d44-52ba-ad74-47940d5fd717",
+ "prior_oracle_sha256_after": "def7caa1625458a40c1f635db153268082cf52d5e25c28f57fd29518e44de58c",
+ "comparison_with_reviewed_preview": {
+  "outside_acceptance_differences": [],
+  "acceptance_equal_after_blanking_evidence": true,
+  "evidence_changed": {
+   "batches.rule": 1,
+   "records.accepted_at": 471,
+   "records.reviewer": 471,
+   "review_unit_records.accepted_at": 14,
+   "review_unit_records.reviewer": 14
+  },
+  "evidence_changed_outside_equipment": []
+ },
+ "native": {
+  "validate_candidate_findings": [],
+  "validate_candidate_finding_count": 0,
+  "verify_reconstruction": [],
+  "reconstructed_payload_identical": true,
+  "reidentified_projection": "efab27a9-5d44-52ba-ad74-47940d5fd717",
+  "projection": "efab27a9-5d44-52ba-ad74-47940d5fd717",
+  "gate_passed": true,
+  "gate_failures": []
+ }
+}

@@ -7,6 +7,9 @@ recursive-include src/afterworlds/modes/personas/profiles *.json
 recursive-include src/afterworlds/ingestion/mechanical/oracles *.json
 # Superseded intermediate releases: refused by release version before the
 # directory is read, so they are kept in the source tree for test and replay
-# evidence only and are not shipped.
+# evidence only and are not shipped. The release's predecessor artifact is
+# superseded by digest (oracle.SUPERSEDED_ORACLE_SHA256) by the CRD Issue 2b G1
+# successor srd-5-2-1-corpus-8781d4e0-a3b-g1.json, which ships.
 exclude src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-3fe24ff6-4e3.json
 exclude src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-574662e9-0ef.json
+exclude src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b.json

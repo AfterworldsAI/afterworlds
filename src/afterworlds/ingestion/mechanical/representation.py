@@ -126,6 +126,8 @@ __all__ = [
     "SpellSchool",
     "StateEffectKind",
     "TimeUnit",
+    "WeaponCategory",
+    "WeaponMastery",
     "WeaponProperty",
     # Shared typed value objects
     "DiceExpression",
@@ -167,6 +169,8 @@ __all__ = [
     "SpellListQualifierFact",
     "SpellSlotProgressionFact",
     "StateEffectFact",
+    "WeaponCategoryFact",
+    "WeaponMasteryFact",
     "WeaponPropertyFact",
     # Keyed drafts
     "Applicability",
@@ -2043,6 +2047,34 @@ class WeaponProperty(StrEnum):
     VERSATILE = "versatile"
 
 
+class WeaponCategory(StrEnum):
+    """The closed SRD weapon category: *"Every weapon falls into a category:
+    Simple or Martial."* (Weapons, printed 89).
+
+    Melee or Ranged is a separate printed classification, not a category, and
+    is deliberately not a member here.
+    """
+
+    SIMPLE = "simple"
+    MARTIAL = "martial"
+
+
+class WeaponMastery(StrEnum):
+    """The closed SRD mastery-property vocabulary: the eight properties the
+    *Mastery Properties* section defines (printed 90-91). Each is also a rule
+    record in its own right; this enum is how a weapon names the one it has.
+    """
+
+    CLEAVE = "cleave"
+    GRAZE = "graze"
+    NICK = "nick"
+    PUSH = "push"
+    SAP = "sap"
+    SLOW = "slow"
+    TOPPLE = "topple"
+    VEX = "vex"
+
+
 class ScalingBasis(StrEnum):
     """What a stated change scales with."""
 
@@ -2223,6 +2255,11 @@ class FactFamily(StrEnum):
     SPEED_CHANGE_PROPAGATION = "speed_change_propagation"
     SPECIAL_SPEED = "special_speed"
     MOVEMENT_COMPOSITION = "movement_composition"
+    #: Schema 18, CRD Issue 2b G1. A weapon's printed category and mastery
+    #: property, one fact each per Weapons-table row. Declarative only: no
+    #: proficiency, attack or mastery effect is computed (CRD Issue 15c).
+    WEAPON_CATEGORY = "weapon_category"
+    WEAPON_MASTERY = "weapon_mastery"
 
 
 # ---------------------------------------------------------------------------
@@ -3517,6 +3554,33 @@ class WeaponPropertyFact:
 
 
 @dataclass(frozen=True)
+class WeaponCategoryFact:
+    """The category a weapon's Weapons-table group row prints for it.
+
+    Stated, not derived: proficiency with the category and what it adds to an
+    attack are character state and adjudication (CRD Issues 2b and 15c).
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.WEAPON_CATEGORY
+
+    category: WeaponCategory
+
+
+@dataclass(frozen=True)
+class WeaponMasteryFact:
+    """The mastery property a weapon's Weapons-table row prints for it.
+
+    *"Each weapon has a mastery property"* -- exactly one per row. Using it
+    needs a feature that unlocks it; that permission and the property's effect
+    are not stated here (CRD Issue 15c).
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.WEAPON_MASTERY
+
+    mastery: WeaponMastery
+
+
+@dataclass(frozen=True)
 class EffectTerminationFact:
     """The effect this component is about stops.
 
@@ -4551,6 +4615,8 @@ MechanicalFact = (
     | ProficiencyApplicationFact
     | ProficiencyBonusOperationLimitFact
     | ProficiencyBonusUseFact
+    | WeaponCategoryFact
+    | WeaponMasteryFact
 )
 
 _FACT_TYPES: dict[FactFamily, type] = {
@@ -4590,6 +4656,8 @@ _FACT_TYPES: dict[FactFamily, type] = {
     FactFamily.SPELL_SLOT_PROGRESSION: SpellSlotProgressionFact,
     FactFamily.STATE_EFFECT: StateEffectFact,
     FactFamily.WEAPON_PROPERTY: WeaponPropertyFact,
+    FactFamily.WEAPON_CATEGORY: WeaponCategoryFact,
+    FactFamily.WEAPON_MASTERY: WeaponMasteryFact,
     FactFamily.CONDITION_REMOVAL_RESTRICTION: ConditionRemovalRestrictionFact,
     FactFamily.DAMAGE_MODIFICATION: DamageModificationFact,
     FactFamily.DERIVED_QUANTITY: DerivedQuantityFact,
@@ -6313,6 +6381,14 @@ def _check_equipment_descriptor(fact: EquipmentDescriptorFact) -> list[str]:
     return findings
 
 
+def _check_weapon_category(fact: WeaponCategoryFact) -> list[str]:
+    return _enum_field(fact.category, WeaponCategory, "category")
+
+
+def _check_weapon_mastery(fact: WeaponMasteryFact) -> list[str]:
+    return _enum_field(fact.mastery, WeaponMastery, "mastery")
+
+
 def _check_weapon_property(fact: WeaponPropertyFact) -> list[str]:
     findings = [
         *_enum_field(fact.weapon_property, WeaponProperty, "weapon_property"),
@@ -6725,6 +6801,8 @@ _FACT_INVARIANTS: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.SPELL_SLOT_PROGRESSION: _check_spell_slot_progression,
     FactFamily.STATE_EFFECT: _check_state_effect,
     FactFamily.WEAPON_PROPERTY: _check_weapon_property,
+    FactFamily.WEAPON_CATEGORY: _check_weapon_category,
+    FactFamily.WEAPON_MASTERY: _check_weapon_mastery,
     FactFamily.CONDITION_REMOVAL_RESTRICTION: _check_removal_restriction,
     FactFamily.DAMAGE_MODIFICATION: _check_damage_modification,
     FactFamily.DERIVED_QUANTITY: _check_derived_quantity,
@@ -7860,6 +7938,22 @@ def _build_equipment_descriptor(p: Mapping[str, Any]) -> EquipmentDescriptorFact
     )
 
 
+def _build_weapon_category(p: Mapping[str, Any]) -> WeaponCategoryFact:
+    _reject(
+        FactFamily.WEAPON_CATEGORY,
+        [*_json_enum(p["category"], WeaponCategory, "category")],
+    )
+    return WeaponCategoryFact(category=WeaponCategory(p["category"]))
+
+
+def _build_weapon_mastery(p: Mapping[str, Any]) -> WeaponMasteryFact:
+    _reject(
+        FactFamily.WEAPON_MASTERY,
+        [*_json_enum(p["mastery"], WeaponMastery, "mastery")],
+    )
+    return WeaponMasteryFact(mastery=WeaponMastery(p["mastery"]))
+
+
 def _build_weapon_property(p: Mapping[str, Any]) -> WeaponPropertyFact:
     _reject(
         FactFamily.WEAPON_PROPERTY,
@@ -8445,6 +8539,8 @@ _FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] 
     FactFamily.SPELL_SLOT_PROGRESSION: _build_spell_slot_progression,
     FactFamily.STATE_EFFECT: _build_state_effect,
     FactFamily.WEAPON_PROPERTY: _build_weapon_property,
+    FactFamily.WEAPON_CATEGORY: _build_weapon_category,
+    FactFamily.WEAPON_MASTERY: _build_weapon_mastery,
     FactFamily.CONDITION_REMOVAL_RESTRICTION: _build_removal_restriction,
     FactFamily.DAMAGE_MODIFICATION: _build_damage_modification,
     FactFamily.DERIVED_QUANTITY: _build_derived_quantity,
@@ -8695,7 +8791,14 @@ assert (
 #: so every accepted reference payload and provenance coordinate has the same
 #: canonical form under 16 and 17. The reference's own wire fields join this
 #: payload from 17 on; until then nothing in it described them.
-REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-17"
+#:
+#: Version ``18`` admits two fact families, :class:`WeaponCategoryFact` and
+#: :class:`WeaponMasteryFact`, and the two vocabularies minted with them,
+#: :class:`WeaponCategory` and :class:`WeaponMastery` (CRD Issue 2b G1). No
+#: field on any accepted family, no ownership form and no component key, so
+#: every accepted fact key and provenance coordinate has the same canonical
+#: form under 17 and 18.
+REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-18"
 
 
 class UnsupportedRepresentationShapeError(TypeError):
@@ -9283,6 +9386,17 @@ def _introductions() -> tuple[_Introduction, ...]:
             _Introduction("vocabulary_member", vocabulary, member, SCHEMA_17)
             for member in members
         )
+    # Schema 18 adds two families and the two vocabularies minted with them,
+    # and nothing else, as schema 15 does.
+    rows.extend(
+        _Introduction("fact_family", "FactFamily", family.value, SCHEMA_18)
+        for family in _SCHEMA_18_FAMILIES
+    )
+    for vocabulary, members in _SCHEMA_18_VOCABULARY_MEMBERS.items():
+        rows.extend(
+            _Introduction("vocabulary_member", vocabulary, member, SCHEMA_18)
+            for member in members
+        )
     rows.extend(
         _Introduction("nullable_field", _OPTIONAL_SINCE_WIRE_NAMES[owner], key, arrived)
         for owner, keys in _OPTIONAL_SINCE.items()
@@ -9347,6 +9461,7 @@ def _vocabulary_shape(owner: str) -> list[str] | None:
         or _SCHEMA_15_VOCABULARY_ALL.get(owner)
         or _SCHEMA_16_VOCABULARY_ALL.get(owner)
         or _SCHEMA_17_VOCABULARY_MEMBERS.get(owner)
+        or _SCHEMA_18_VOCABULARY_MEMBERS.get(owner)
     )
     return None if members is None else sorted(members)
 
@@ -9446,6 +9561,7 @@ def _collect_post_schema_3(
             (_SCHEMA_15_MEMBER_INDEX, SCHEMA_15),
             (_SCHEMA_16_MEMBER_INDEX, SCHEMA_16),
             (_SCHEMA_17_MEMBER_INDEX, SCHEMA_17),
+            (_SCHEMA_18_MEMBER_INDEX, SCHEMA_18),
         ):
             if (
                 type(value).__name__,
@@ -9986,6 +10102,27 @@ _SCHEMA_17_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
     for member in members
 )
 
+SCHEMA_18 = "5d-representation-schema-18"
+
+#: The two families schema 18 admitted, CRD Issue 2b G1.
+_SCHEMA_18_FAMILIES: tuple[FactFamily, ...] = (
+    FactFamily.WEAPON_CATEGORY,
+    FactFamily.WEAPON_MASTERY,
+)
+
+#: The two vocabularies minted with them, each wholly new, so the ``_MEMBERS``
+#: rows already name all of each, as schema 15's does.
+_SCHEMA_18_VOCABULARY_MEMBERS: dict[str, tuple[str, ...]] = {
+    "WeaponCategory": tuple(sorted(c.value for c in WeaponCategory)),
+    "WeaponMastery": tuple(sorted(m.value for m in WeaponMastery)),
+}
+
+_SCHEMA_18_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
+    (vocabulary, member)
+    for vocabulary, members in _SCHEMA_18_VOCABULARY_MEMBERS.items()
+    for member in members
+)
+
 #: The seven families schema 11 admitted, for batch ``speed-1``. One per
 #: distinct rule the Rules Glossary Speed entry and Playing the Game > Combat >
 #: Movement and Position print between them, named by member for the same
@@ -10064,6 +10201,7 @@ _FAMILY_INTRODUCTIONS: tuple[tuple[tuple[FactFamily, ...], str], ...] = (
     (_SCHEMA_13_FAMILIES, SCHEMA_13),
     (_SCHEMA_14_FAMILIES, SCHEMA_14),
     (_SCHEMA_15_FAMILIES, SCHEMA_15),
+    (_SCHEMA_18_FAMILIES, SCHEMA_18),
 )
 
 #: Fields a later schema made **required** on a family an earlier schema already
@@ -10273,6 +10411,25 @@ _VERSION_STATES: dict[str, frozenset[str]] = {
             SCHEMA_15,
             SCHEMA_16,
             SCHEMA_17,
+        }
+    ),
+    SCHEMA_18: frozenset(
+        {
+            "5d-representation-schema-4",
+            SCHEMA_5,
+            SCHEMA_6,
+            SCHEMA_7,
+            SCHEMA_8,
+            SCHEMA_9,
+            SCHEMA_10,
+            SCHEMA_11,
+            SCHEMA_12,
+            SCHEMA_13,
+            SCHEMA_14,
+            SCHEMA_15,
+            SCHEMA_16,
+            SCHEMA_17,
+            SCHEMA_18,
         }
     ),
 }

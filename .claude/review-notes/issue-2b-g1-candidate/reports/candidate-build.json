@@ -1,0 +1,66 @@
+{
+ "candidate": "candidate/srd-5-2-1-corpus-8781d4e0-a3b-g1-candidate.json",
+ "candidate_sha256": "bfd0d371fc7ee3cecee45bb607b5b709050347ddf9766b4a442783a966076082",
+ "candidate_bytes": 35798217,
+ "proposal": "candidate/issue-2b-g1-equipment-PROPOSAL.json",
+ "proposal_sha256": "d1385de0f02af5f63bd218c1fb2f6acc58857e1e7e6bb3e04a4fa28815ab4508",
+ "g1_proposal_identity": "8a8a737b0d1e47410de86bbeca44b66522b46511e078727d20760678943b5345",
+ "replaced_proposal_identity": "390f63672ea035abb0c8f0ae2efd4cffda81753df8089daee372931b5618d728",
+ "prior_oracle_identity": "c4e0ac6a580d7b9799feba80a83f30d731aab5b61501fda31a4044b447a5e681",
+ "candidate_oracle_identity": "3e7b27dbb291eb11ca7489719442308397b091d745beb3e48a517bf38685c05a",
+ "prior_projection_id": "1f0db408-ee07-5e8d-897d-29838d614c53",
+ "candidate_projection_id": "efab27a9-5d44-52ba-ad74-47940d5fd717",
+ "schema": [
+  "5d-representation-schema-18",
+  "276c3d0ca0bf4c2f98aa8e7d2db6cd321d7fb55dee6d8c60fdd4a58e51fa8701"
+ ],
+ "lifts": [
+  "5d-lift-schema-15-to-16",
+  "5d-lift-schema-16-to-17",
+  "5d-lift-schema-17-to-18"
+ ],
+ "excision": {
+  "records": {
+   "removed": 147,
+   "kept_shared": 0
+  },
+  "components": {
+   "removed": 240,
+   "kept_shared": 0
+  },
+  "prose_bindings": {
+   "removed": 774,
+   "kept_shared": 0
+  },
+  "relationships": {
+   "removed": 133,
+   "kept_shared": 0
+  },
+  "references": {
+   "removed": 317,
+   "kept_shared": 0
+  },
+  "provenance": {
+   "removed": 1227,
+   "kept_shared": 0
+  },
+  "spans": {
+   "removed": 469,
+   "kept_shared": 0
+  },
+  "review_units": {
+   "removed": 14,
+   "kept_shared": 0
+  }
+ },
+ "counts": {
+  "batches": 24,
+  "records": 1847,
+  "components": 3956,
+  "spans": 10495,
+  "review_units": 1476,
+  "reference_resolutions": 1486,
+  "references": 8104
+ },
+ "prior_sha256_after": "def7caa1625458a40c1f635db153268082cf52d5e25c28f57fd29518e44de58c"
+}

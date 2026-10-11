@@ -55,8 +55,8 @@ afterworlds = [
     "modes/personas/profiles/*.json",
     # CRD Issue 5d committed accepted oracles, resolved at runtime by
     # oracle.committed_oracle_for from the fixed packaged directory. The current
-    # accepted authority is the SRD 5.2.1 release 5.2.1-corpus.8781d4e0-a3b, so
-    # the glob must ship it, or an installed distribution would resolve no
+    # accepted authority is the SRD 5.2.1 release 5.2.1-corpus.8781d4e0-a3b, as
+    # recorded by its CRD Issue 2b G1 successor artifact, so the glob must ship it, or an installed distribution would resolve no
     # accepted authority and publication would return ABSENT.
     "ingestion/mechanical/oracles/*.json",
 ]
@@ -66,8 +66,11 @@ afterworlds = [
     # Superseded intermediate releases. Resolution refuses them by release
     # version before reading the directory, so an installed application never
     # needs them; they stay in the source tree only for test and replay evidence.
+    # The last is the release's predecessor artifact, superseded by digest
+    # (oracle.SUPERSEDED_ORACLE_SHA256) by the CRD Issue 2b G1 successor.
     "ingestion/mechanical/oracles/srd-5-2-1-corpus-3fe24ff6-4e3.json",
     "ingestion/mechanical/oracles/srd-5-2-1-corpus-574662e9-0ef.json",
+    "ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b.json",
 ]
 
 # ---------------------------------------------------------------------------
