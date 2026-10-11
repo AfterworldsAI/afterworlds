@@ -24,6 +24,7 @@ from afterworlds.services.dnd5e_state.errors import (
 from afterworlds.services.dnd5e_state.shared_changes import (
     ChangeStatus,
     OverrideSpec,
+    SharedChangeError,
     activate,
     request_change,
     withdraw,
@@ -379,3 +380,56 @@ def test_a_conflicting_write_during_the_final_commit_refuses_visibly(
         )
     assert outcome.status is AdoptionStatus.REFUSED
     assert outcome.reason is not None and "conflicting write" in outcome.reason
+
+
+def test_an_override_that_cannot_be_applied_is_refused_at_request(
+    table: Table,
+) -> None:
+    """Advisor: the trial applies the whole effective set, not only resolves it."""
+    from tests.services.rules_authority.conftest import replace_record_payload
+
+    wrong_kind = OverrideSpec(
+        override_id="house-wrong-kind",
+        target=SPELL_RECORD_TARGET,
+        operation=OverrideOperationEnum.REPLACE,
+        payload=replace_record_payload(record_kind="creature"),
+    )
+    before = _override_rows(table)
+    with pytest.raises(
+        SharedChangeError, match=AuthorityOutcome.INVALID_OVERRIDE.value
+    ):
+        _request(table, wrong_kind)
+    with table.factory() as s:
+        changes = s.execute(
+            sa.select(sa.func.count()).select_from(SharedRuleChangeORM)
+        ).scalar_one()
+    assert (changes, _override_rows(table)) == (0, before)
+
+
+def test_adoption_processing_claims_the_write_lock_first(table: Table) -> None:
+    """Advisor: no lease or activation can commit between check and rebind."""
+    story, sheet = _story_with_character(table)
+    with table.factory() as s, s.begin():
+        roll = add_pending_roll(s, story, sheet)
+    change = _request(table, HOUSE_RULE)
+    with table.factory() as s, s.begin():
+        held = adoption.request_adoption(
+            s, "character", sheet, change_id=change, now=NOW
+        )
+    assert held.status is AdoptionStatus.HELD
+    with table.factory() as s, s.begin():
+        resolve_pending_roll(s, roll)
+    assert _activate(table, change).status is ChangeStatus.ACTIVE
+    statements: list[str] = []
+
+    def record(*args: object) -> None:
+        statements.append(str(args[2]).lstrip().split()[0].upper())
+
+    sa.event.listen(table.runtime.engine, "before_cursor_execute", record)
+    try:
+        with table.factory() as s, s.begin():
+            outcome = adoption.process(s, held.request_id, now=NOW)
+    finally:
+        sa.event.remove(table.runtime.engine, "before_cursor_execute", record)
+    assert outcome.status is AdoptionStatus.APPLIED
+    assert statements[0] == "UPDATE"

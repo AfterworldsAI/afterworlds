@@ -213,7 +213,18 @@ def _held_item_failures(
 
 
 def process(session: Session, request_id: str, *, now: str) -> AdoptionOutcome:
-    """Advance one request as far as current state allows. Idempotent."""
+    """Advance one request as far as current state allows. Idempotent.
+
+    Claims SQLite's single write lock with its first statement (as shared-change
+    activation does), so no turn lease or activation can commit between the
+    event check and the rebind.
+    """
+    session.execute(
+        sa.update(Dnd5eAdoptionRequestORM)
+        .where(Dnd5eAdoptionRequestORM.request_id == request_id)
+        .values(status=Dnd5eAdoptionRequestORM.status)
+        .execution_options(synchronize_session=False)
+    )
     row = session.get(Dnd5eAdoptionRequestORM, request_id, populate_existing=True)
     if row is None:
         raise AdoptionError(f"no adoption request {request_id}")

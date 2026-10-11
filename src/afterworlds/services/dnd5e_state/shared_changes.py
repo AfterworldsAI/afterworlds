@@ -35,6 +35,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
 from afterworlds.models.enums import OverrideOperationEnum, OverrideOriginEnum
+from afterworlds.models.rules_package import RuleSliceRequest
 from afterworlds.persistence.orm.dnd5e_state import (
     Dnd5eCharacterStateORM,
     Dnd5eCreatureORM,
@@ -170,9 +171,10 @@ def request_change(
     """Hold a shared change and fix the exact identity it must activate to.
 
     The target is computed by trial: the rows are inserted inside a SAVEPOINT,
-    the package resolved through the one code-owned resolver (so an invalid
-    or cross-release override is refused here, with its own outcome, rather
-    than at activation), and the savepoint rolled back. The current rows are
+    the package resolved through the one code-owned resolver and its whole
+    effective authority applied (so an invalid, cross-release or inapplicable
+    override is refused here, with its own outcome, rather than at
+    activation), and the savepoint rolled back. The current rows are
     unchanged when this returns.
     """
     if not overrides:
@@ -196,11 +198,20 @@ def request_change(
             raise SharedChangeError(
                 f"{AuthorityOutcome.INVALID_OVERRIDE.value}: {exc}"
             ) from exc
-        trial = RulesAuthorityService(session, now=now).resolve(
+        authority = RulesAuthorityService(session, now=now)
+        trial = authority.resolve(
             package_uuid=package_uuid, expected_release=release_version
         )
         if trial.outcome is not AuthorityOutcome.RESOLVED:
             raise SharedChangeError(f"{trial.outcome.value}: {trial.detail}")
+        # Resolution checks identity; applying the set to the projection is
+        # what proves every override can take effect. Refuse here, not after
+        # the change has been held and activated.
+        applied = authority.rule_slice(
+            RuleSliceRequest(package_id=package_uuid, whole_package=True)
+        )
+        if applied.outcome is not AuthorityOutcome.RESOLVED:
+            raise SharedChangeError(f"{applied.outcome.value}: {applied.detail}")
     finally:
         savepoint.rollback()
     change_id = str(uuid4())
