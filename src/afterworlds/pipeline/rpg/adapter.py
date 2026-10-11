@@ -50,12 +50,11 @@ _DISADV_RE = re.compile(r"\bdisadvantage\b", re.IGNORECASE)
 
 
 def _normalize_skill_key(value: str) -> str:
-    """Normalize a skill key to lowercase underscore form for case-insensitive lookup.
+    """Normalize a label to lowercase underscore form for comparison.
 
     Strips leading/trailing whitespace, collapses repeated internal whitespace
-    and hyphens to underscores, and lowercases, so "Sleight of Hand", "stealth",
-    and "animal_handling" all map to the same canonical key form used in
-    _SKILL_ABILITY.
+    and hyphens to underscores, and lowercases, so "Dexterity Check" and
+    "dexterity_check" compare equal.
     """
     return re.sub(r"[\s\-]+", "_", value.strip()).lower()
 
@@ -80,37 +79,49 @@ if TYPE_CHECKING:
     from afterworlds.services.dnd5e_state.turn import TurnCharacter
 
 
-# Skill → governing ability score name (D&D 5e).
-_SKILL_ABILITY: dict[str, str] = {
-    "acrobatics": "dexterity",
-    "animal_handling": "wisdom",
-    "arcana": "intelligence",
-    "athletics": "strength",
-    "deception": "charisma",
-    "history": "intelligence",
-    "insight": "wisdom",
-    "intimidation": "charisma",
-    "investigation": "intelligence",
-    "medicine": "wisdom",
-    "nature": "intelligence",
-    "perception": "wisdom",
-    "performance": "charisma",
-    "persuasion": "charisma",
-    "religion": "intelligence",
-    "sleight_of_hand": "dexterity",
-    "stealth": "dexterity",
-    "survival": "wisdom",
-}
+_ABILITIES = (
+    "strength",
+    "dexterity",
+    "constitution",
+    "intelligence",
+    "wisdom",
+    "charisma",
+)
+_PURE_CHECK_KIND = "ability_check"
+_TAG_QUALIFIERS = frozenset({"advantage", "disadvantage"})
 
-# Saving throw → governing ability score (D&D 5e).
-_SAVE_ABILITY: dict[str, str] = {
-    "strength_save": "strength",
-    "dexterity_save": "dexterity",
-    "constitution_save": "constitution",
-    "intelligence_save": "intelligence",
-    "wisdom_save": "wisdom",
-    "charisma_save": "charisma",
-}
+
+def _pure_ability_check(proposal: RollProposal) -> str:
+    """The ability of a supported pure ability check, or a typed refusal.
+
+    The supported shape is closed (CRD Issue 2b): the check kind is
+    ``ability_check`` (optionally qualified by ``advantage``/``disadvantage``),
+    the governing label is one ability, and the check label names that same
+    ability and nothing else. Any other kind, label or combination - a skill,
+    save, attack, tool, initiative, or a label that contradicts its kind - is
+    proficiency-aware or unknown and is refused, never rolled ability-only.
+    """
+    kind, *qualifiers = proposal.subsystem_tag.lower().split() or [""]
+    label = _normalize_skill_key(proposal.skill_or_attribute_label or "")
+    check = _normalize_skill_key(proposal.check_label)
+    ability = next((a for a in _ABILITIES if label in _ability_forms(a)), None)
+    if (
+        kind != _PURE_CHECK_KIND
+        or not set(qualifiers) <= _TAG_QUALIFIERS
+        or ability is None
+        or check not in _ability_forms(ability)
+    ):
+        raise UnsupportedCheckError(
+            f"{proposal.check_label!r} ({proposal.subsystem_tag!r}, "
+            f"{proposal.skill_or_attribute_label!r}) is not a supported pure "
+            "ability check; proficiency-aware and unrecognized checks are CRD "
+            "Issue 15c's and are not rolled as ability-only checks"
+        )
+    return ability
+
+
+def _ability_forms(ability: str) -> tuple[str, ...]:
+    return (ability, f"{ability}_check", f"{ability}_ability_check")
 
 
 def _ability_modifier(score: int) -> int:
@@ -190,6 +201,16 @@ class D20RulesSystemAdapter:
         """
         return character.ready
 
+    def require_supported(
+        self, proposal: RollProposal, character: TurnCharacter
+    ) -> None:
+        """Raise :class:`UnsupportedCheckError` unless *proposal* can be assembled.
+
+        Pure: no dice, pending roll or record. Callers check every proposal of
+        a turn before any of them has an effect.
+        """
+        self._assemble_modifiers(proposal, character, None)
+
     def _assemble_modifiers(
         self,
         proposal: RollProposal,
@@ -201,30 +222,11 @@ class D20RulesSystemAdapter:
         Only an ability check on an unadjusted base score is assembled here.
         Every proficiency-aware or unrecognized check is refused.
         """
-        label = _normalize_skill_key(proposal.skill_or_attribute_label or "")
-        if label in _SKILL_ABILITY or label in _SAVE_ABILITY:
-            raise UnsupportedCheckError(
-                f"{proposal.check_label!r} is a proficiency-aware check "
-                f"({label}); applying proficiency is CRD Issue 15c's, and it is "
-                "not rolled as an ability-only check"
-            )
+        ability = _pure_ability_check(proposal)
         state = character.stored.state
         if state.ability_scores is None:
             raise UnsupportedCheckError("the character records no ability scores")
         scores = state.ability_scores.model_dump()
-        abilities = [a for a in scores if a == label] or [
-            a for a in scores if a in label.split("_")
-        ]
-        if len(abilities) != 1 or label not in (
-            abilities[0],
-            f"{abilities[0]}_check",
-            f"{abilities[0]}_ability_check",
-        ):
-            raise UnsupportedCheckError(
-                f"{proposal.check_label!r} ({label or 'no label'}) is not a "
-                "recognized pure ability check"
-            )
-        ability = abilities[0]
         if any(a.ability.value == ability for a in state.ability_adjustments or ()):
             raise UnsupportedCheckError(
                 f"{ability} has sourced adjustments; its total is a CRD Issue 15c "

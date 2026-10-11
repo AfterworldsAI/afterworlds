@@ -322,6 +322,16 @@ class RpgAdjudicationPassService:
         # Enforce multi-roll bound
         proposals: list[RollProposal] = output.rolls[:ADJUDICATION_MAX_ROLLS_PER_TURN]
 
+        # CRD Issue 2b: check every proposal before any has an effect, so a
+        # later unsupported check cannot follow an earlier roll or announce.
+        for proposal in proposals:
+            try:
+                self._adapter.require_supported(proposal, sheet)
+            except Exception as exc:
+                raise AdjudicationPassError(
+                    f"Unsupported proposal {proposal.check_label!r}: {exc}"
+                ) from exc
+
         records: list[ResolvedAdjudicationRecord] = []
         views: list[WriterAdjudicationView] = []
         pending_roll_request: PendingRollRequest | None = None
