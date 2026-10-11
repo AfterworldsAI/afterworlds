@@ -21,8 +21,8 @@ import json
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy import func, or_, select
+from sqlalchemy.orm import Session, aliased
 
 from afterworlds.models.enums import (
     EventKind,
@@ -404,38 +404,38 @@ class StoryBibleService:
         2. Any active event whose significance is in
            ``ALWAYS_INCLUDE_SIGNIFICANCE``, regardless of recency.
         3. Deduplication: an event in both sets appears only once.
+
+        Selection runs in SQL so older routine rows are never fetched.  The
+        recent-N rows are the head of the strict ``created_at DESC,
+        event_id ASC`` order, so one ordering of the filtered set yields the
+        recent-N segment followed by the older always-included events.
         """
-        all_rows = (
+        recent = aliased(SBEventORM)
+        recent_ids = (
+            select(recent.event_id)
+            .where(recent.story_id == story_id_str, recent.is_active.is_(True))
+            .order_by(recent.created_at.desc(), recent.event_id.asc())
+            .limit(EVENTS_LEDGER_N)
+        )
+        rows = (
             self._session.execute(
                 select(SBEventORM)
                 .where(
                     SBEventORM.story_id == story_id_str,
                     SBEventORM.is_active.is_(True),
+                    or_(
+                        SBEventORM.event_id.in_(recent_ids),
+                        SBEventORM.significance.in_(
+                            sorted(s.value for s in ALWAYS_INCLUDE_SIGNIFICANCE)
+                        ),
+                    ),
                 )
                 .order_by(SBEventORM.created_at.desc(), SBEventORM.event_id.asc())
             )
             .scalars()
             .all()
         )
-
-        included_ids: set[str] = set()
-        result: list[Event] = []
-
-        # Pass 1 — N most recent
-        for row in all_rows[:EVENTS_LEDGER_N]:
-            included_ids.add(row.event_id)
-            result.append(_event_orm_to_model(row))
-
-        # Pass 2 — always-include by significance (dedup by ID)
-        for row in all_rows:
-            if (
-                row.event_id not in included_ids
-                and EventSignificance(row.significance) in ALWAYS_INCLUDE_SIGNIFICANCE
-            ):
-                included_ids.add(row.event_id)
-                result.append(_event_orm_to_model(row))
-
-        return result
+        return [_event_orm_to_model(row) for row in rows]
 
     # ------------------------------------------------------------------
     # Fact queries
