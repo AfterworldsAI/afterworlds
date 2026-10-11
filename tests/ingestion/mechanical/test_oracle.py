@@ -19,6 +19,7 @@ import pytest
 from afterworlds.ingestion.mechanical import oracle as oracle_module
 from afterworlds.ingestion.mechanical.oracle import (
     COMMITTED_ORACLE_DIR,
+    SUPERSEDED_ORACLE_SHA256,
     SUPERSEDED_RELEASE_VERSIONS,
     AcceptedOracle,
     OracleLoadError,
@@ -94,6 +95,7 @@ def test_the_committed_oracle_directory_holds_one_artifact_per_release() -> None
     assert committed == [
         "srd-5-2-1-corpus-3fe24ff6-4e3.json",
         "srd-5-2-1-corpus-574662e9-0ef.json",
+        "srd-5-2-1-corpus-8781d4e0-a3b-g1.json",
         "srd-5-2-1-corpus-8781d4e0-a3b.json",
     ]
     releases = [
@@ -106,6 +108,9 @@ def test_the_committed_oracle_directory_holds_one_artifact_per_release() -> None
             ).oracle.binding.release_version,
         )
         for name in committed
+        # A predecessor superseded by digest is evidence, not a claimant.
+        if hashlib.sha256((COMMITTED_ORACLE_DIR / name).read_bytes()).hexdigest()
+        not in SUPERSEDED_ORACLE_SHA256
     ]
     assert len(set(releases)) == len(releases), releases
 
@@ -278,7 +283,7 @@ def test_a_superseded_release_is_refused_although_its_file_matches() -> None:
     )
     assert current is not None
     assert hashlib.sha256(serialize_accepted_inputs(current)).hexdigest() == (
-        "def7caa1625458a40c1f635db153268082cf52d5e25c28f57fd29518e44de58c"
+        "2ccbaeba6de75d9787fbdd407e42dc2425fa20d4d26bcc298b681b550bd11258"
     )
 
 

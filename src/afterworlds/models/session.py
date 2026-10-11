@@ -4,7 +4,7 @@ Architecture invariant enforced here:
 - Session state is cleanly separated from the core Node schema.
 - RPG session state holds ONLY transient session/combat context not already
   owned by the character sheet.  HP, spell slots, and similar persistent
-  character resources live on ``Dnd5eCharacterSheet`` — not here.
+  character resources live in the CRD Issue 2b typed state — not here.
 - Branching session state includes pacing stage, branch tree (distinct
   structured model), and plot thread tracker as separate typed fields.
 - Writing session state holds persona provenance, authoring controls, beat
@@ -58,7 +58,7 @@ class RpgSessionState(BaseModel):
     - Combat context (non-authoritative encounter scaffolding)
 
     HP, spell slots, ability scores, equipment, and active conditions are
-    owned by ``Dnd5eCharacterSheet``.  Do not duplicate them here.
+    owned by the CRD Issue 2b typed character state.  Do not duplicate them here.
 
     ``gm_cheating`` defaults to True (``gm_cheating = on`` per prompt contract).
     ``play_status`` transitions from SETUP to IN_PLAY when the character sheet

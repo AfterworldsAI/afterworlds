@@ -30,13 +30,11 @@ from pathlib import Path
 
 import pytest
 
-from tests.ingestion.mechanical._replacement_chain import (
-    CURRENT_SHA256 as _CURRENT_SHA256,
-)
-
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _ORACLES_REL = "afterworlds/ingestion/mechanical/oracles"
-_CURRENT = "srd-5-2-1-corpus-8781d4e0-a3b.json"
+#: The CRD Issue 2b G1 successor; its predecessor is superseded by digest.
+_CURRENT = "srd-5-2-1-corpus-8781d4e0-a3b-g1.json"
+_CURRENT_SHA256 = "2ccbaeba6de75d9787fbdd407e42dc2425fa20d4d26bcc298b681b550bd11258"
 _CURRENT_PKG = "1299484e-c72d-509b-bd8d-d0169ee1f8d2"
 _CURRENT_REL = "5.2.1-corpus.8781d4e0-a3b"
 _RETIRED_PKG = "4458fa10-4a66-5e0e-9ecc-ea37530ad2b4"
@@ -46,6 +44,7 @@ _NOT_SHIPPED = (
     "srd-5-2-1-corpus-36b786d8-fa2.json",
     "srd-5-2-1-corpus-3fe24ff6-4e3.json",
     "srd-5-2-1-corpus-574662e9-0ef.json",
+    "srd-5-2-1-corpus-8781d4e0-a3b.json",
 )
 
 _PROBE = f"""

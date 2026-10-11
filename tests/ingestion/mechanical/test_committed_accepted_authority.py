@@ -15,6 +15,8 @@ them. Two properties are still current:
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from afterworlds.ingestion.mechanical.oracle import (
@@ -46,6 +48,18 @@ from tests.ingestion.mechanical._replacement_chain import (
 PACKAGE_UUID = "4458fa10-4a66-5e0e-9ecc-ea37530ad2b4"
 RELEASE_VERSION = "5.2.1-corpus.36b786d8-fa2"
 
+#: The Owner-accepted CRD Issue 2b G1 proposal, by its reviewed file and the
+#: identity the Owner accepted (``.claude/review-notes/issue-2b-g1-recording/``).
+G1_PROPOSAL = (
+    NOTES
+    / "issue-2b-g1-candidate"
+    / "candidate"
+    / "issue-2b-g1-equipment-PROPOSAL.json"
+)
+G1_PROPOSAL_IDENTITY = (
+    "8a8a737b0d1e47410de86bbeca44b66522b46511e078727d20760678943b5345"
+)
+G1_RECEIPT = NOTES / "issue-2b-g1-recording" / "owner-acceptance.json"
 CONDITIONS_PILOT_PROPOSAL = proposal_path("conditions-pilot")
 ACTIONS_PILOT_PROPOSAL = proposal_path("actions-pilot")
 REFERENCE_CLOSURE_PROPOSAL = proposal_path("reference-closure")
@@ -185,4 +199,11 @@ def test_no_refused_candidate_is_selectable() -> None:
         "38dc2df713e64a8da6a7713f19b4ecb4ce58fbd47303de2c68d2b9195b2db34f",
         "93c816fba0698f551123cac5124f161e7b1ef2c7780b8d5bd35ab42dd4205d83",
         "4783913aeda24baed59b4d5c61487f6cfb64a25563d6203ab8d6ff8c3873fb8e",
+        # The same-release G1 successor (CRD Issue 2b): the Owner-accepted
+        # Equipment proposal (2026-10-11), named by the reviewed proposal file.
+        G1_PROPOSAL_IDENTITY,
     }
+    assert proposal_identity(load_proposal(G1_PROPOSAL)) == G1_PROPOSAL_IDENTITY
+    # The identity is the one the Owner's recorded receipt accepted.
+    receipt = json.loads(G1_RECEIPT.read_text("utf-8"))
+    assert receipt["accepted_proposal_identity"] == G1_PROPOSAL_IDENTITY

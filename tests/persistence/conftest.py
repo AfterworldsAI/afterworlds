@@ -69,7 +69,6 @@ def make_base_sheet(story_id: str) -> RpgCharacterSheetBase:
     now = datetime(2026, 1, 1, tzinfo=UTC)
     return RpgCharacterSheetBase(
         story_id=UUID(story_id),
-        rules_package_id="dnd5e",
         character_name="Test Character",
         created_at=now,
         updated_at=now,

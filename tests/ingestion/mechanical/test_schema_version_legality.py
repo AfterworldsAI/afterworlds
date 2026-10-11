@@ -203,6 +203,10 @@ from afterworlds.ingestion.mechanical.representation import (
     TriggeredResolutionFact,
     UnseenOriginRelocationFact,
     UnseenPlacement,
+    WeaponCategory,
+    WeaponCategoryFact,
+    WeaponMastery,
+    WeaponMasteryFact,
     introduction_manifest,
     post_schema_3_violations,
     representation_schema_hash,
@@ -236,7 +240,9 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_15_VERSION,
     SCHEMA_16_HASH,
     SCHEMA_16_VERSION,
+    SCHEMA_17_HASH,
     SCHEMA_17_VERSION,
+    SCHEMA_18_VERSION,
     SchemaLiftError,
     accepted_schema_contracts,
     lift_accepted_inputs,
@@ -839,6 +845,24 @@ SCHEMA_17_ONLY = [
     ),
 ]
 
+#: One live object per value schema 18 added (CRD Issue 2b G1): both families,
+#: each carrying every member of the vocabulary minted with it, since the
+#: family's whole surface is that vocabulary.
+SCHEMA_18_ONLY = [
+    *(
+        pytest.param(
+            WeaponCategoryFact(category=c), id=f"vocabulary-weapon_category-{c.value}"
+        )
+        for c in WeaponCategory
+    ),
+    *(
+        pytest.param(
+            WeaponMasteryFact(mastery=m), id=f"vocabulary-weapon_mastery-{m.value}"
+        )
+        for m in WeaponMastery
+    ),
+]
+
 
 # ---------------------------------------------------------------------------
 # The contract, driven from the manifest rather than from a hand-written list
@@ -866,6 +890,7 @@ def test_every_manifest_row_has_an_exemplar_here() -> None:
         *SCHEMA_15_ONLY,
         *SCHEMA_16_ONLY,
         *SCHEMA_17_ONLY,
+        *SCHEMA_18_ONLY,
     ):
         (obj,) = param.values
         exercised |= _groups_exercised_by(obj)
@@ -1113,6 +1138,26 @@ def test_schema_17_admits_what_it_introduced(obj: object) -> None:
 def test_schema_17_still_admits_every_earlier_introduction(obj: object) -> None:
     """A mint admits its predecessors' introductions; it does not replace them."""
     assert post_schema_3_violations(obj, SCHEMA_17_VERSION) == []
+
+
+@pytest.mark.parametrize("obj", SCHEMA_18_ONLY)
+def test_schema_17_refuses_every_schema_18_only_type_or_value(
+    obj: object,
+) -> None:
+    """Schema 17 cannot state a weapon's category or mastery as a fact."""
+    assert post_schema_3_violations(obj, SCHEMA_17_VERSION), obj
+
+
+@pytest.mark.parametrize("obj", SCHEMA_18_ONLY)
+def test_schema_18_admits_what_it_introduced(obj: object) -> None:
+    """And the other direction, so the rule is not "refuse everything newer"."""
+    assert post_schema_3_violations(obj, SCHEMA_18_VERSION) == []
+
+
+@pytest.mark.parametrize("obj", [*SCHEMA_17_ONLY, *SCHEMA_16_ONLY, *SCHEMA_15_ONLY])
+def test_schema_18_still_admits_every_earlier_introduction(obj: object) -> None:
+    """A mint admits its predecessors' introductions; it does not replace them."""
+    assert post_schema_3_violations(obj, SCHEMA_18_VERSION) == []
 
 
 def test_schema_16_leaves_every_pre_existing_relationship_kind_readable() -> None:
@@ -1601,7 +1646,8 @@ def test_the_recognized_contracts_are_exactly_the_live_pair_and_the_registry() -
         # the same way at schema 7, schema 7 at schema 8, schema 8 at schema 9,
         # schema 9 at schema 10, schema 10 at schema 11 and schema 11 at schema
         # 12, schema 12 at schema 13, schema 13 at schema 14, schema 14 at
-        # schema 15, schema 15 at schema 16 and schema 16 at schema 17. The
+        # schema 15, schema 15 at schema 16, schema 16 at schema 17 and schema
+        # 17 at schema 18. The
         # rule is the registry, not a list of versions somebody kept up to date.
         (SCHEMA_5_VERSION, SCHEMA_5_HASH),
         (SCHEMA_6_VERSION, SCHEMA_6_HASH),
@@ -1615,6 +1661,7 @@ def test_the_recognized_contracts_are_exactly_the_live_pair_and_the_registry() -
         (SCHEMA_14_VERSION, SCHEMA_14_HASH),
         (SCHEMA_15_VERSION, SCHEMA_15_HASH),
         (SCHEMA_16_VERSION, SCHEMA_16_HASH),
+        (SCHEMA_17_VERSION, SCHEMA_17_HASH),
     }
 
 

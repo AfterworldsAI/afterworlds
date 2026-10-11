@@ -1,0 +1,211 @@
+{
+ "candidate_sha256": "bfd0d371fc7ee3cecee45bb607b5b709050347ddf9766b4a442783a966076082",
+ "prior_findings": {
+  "reference": 0,
+  "uncovered_leaf": 0,
+  "other": 2,
+  "first": [
+   "candidate declares representation schema '5d-representation-schema-17', build implements '5d-representation-schema-18'",
+   "candidate declares representation schema hash '4881e51fb2fa73e52f7ff951ad7d00b863188c1a22133fb0e2873c7d32d10ada', committed union hashes to '276c3d0ca0bf4c2f98aa8e7d2db6cd321d7fb55dee6d8c60fdd4a58e51fa8701'"
+  ]
+ },
+ "candidate_findings": {
+  "reference": 0,
+  "uncovered_leaf": 0,
+  "other": 0,
+  "first": []
+ },
+ "prior_own_gate_categories": [
+  "schema_mismatch",
+  "semantic_validation"
+ ],
+ "prior_own_gate_failures": [
+  "candidate declares representation schema '5d-representation-schema-17', build implements '5d-representation-schema-18'",
+  "candidate declares representation schema hash '4881e51fb2fa73e52f7ff951ad7d00b863188c1a22133fb0e2873c7d32d10ada', committed union hashes to '276c3d0ca0bf4c2f98aa8e7d2db6cd321d7fb55dee6d8c60fdd4a58e51fa8701'",
+  "candidate declares representation schema '5d-representation-schema-17', build implements '5d-representation-schema-18'",
+  "candidate declares representation schema hash '4881e51fb2fa73e52f7ff951ad7d00b863188c1a22133fb0e2873c7d32d10ada', committed union hashes to '276c3d0ca0bf4c2f98aa8e7d2db6cd321d7fb55dee6d8c60fdd4a58e51fa8701'"
+ ],
+ "candidate_own_gate_categories": [],
+ "prior_cross_gate_categories": [
+  "classification_mismatch",
+  "identity_mismatch",
+  "missing_authority",
+  "schema_mismatch",
+  "semantic_validation",
+  "unexpected_authority",
+  "unsatisfied_obligation"
+ ],
+ "candidate_cross_gate_categories": [
+  "classification_mismatch",
+  "identity_mismatch",
+  "missing_authority",
+  "schema_mismatch",
+  "unexpected_authority"
+ ],
+ "projection_ids": {
+  "prior": "1f0db408-ee07-5e8d-897d-29838d614c53",
+  "candidate": "efab27a9-5d44-52ba-ad74-47940d5fd717"
+ },
+ "representation_delta": {
+  "components": {
+   "removed": 29,
+   "added": 41,
+   "removed_outside_equipment": 0
+  },
+  "prose_bindings": {
+   "removed": 10,
+   "added": 61,
+   "removed_outside_equipment": 0
+  },
+  "provenance": {
+   "removed": 10,
+   "added": 510,
+   "removed_outside_equipment": 0
+  },
+  "records": {
+   "removed": 0,
+   "added": 12,
+   "removed_outside_equipment": 0
+  },
+  "references": {
+   "removed": 0,
+   "added": 57,
+   "removed_outside_equipment": 0
+  },
+  "relationships": {
+   "removed": 0,
+   "added": 12,
+   "removed_outside_equipment": 0
+  }
+ },
+ "checks": [
+  {
+   "check": "prior: under schema 18 refused for its schema-17 declaration only",
+   "ok": true
+  },
+  {
+   "check": "candidate: validate_candidate reports no findings",
+   "ok": true
+  },
+  {
+   "check": "prior: verify_reconstruction is empty",
+   "ok": true
+  },
+  {
+   "check": "prior: reconstructed candidate's canonical payload is identical",
+   "ok": true
+  },
+  {
+   "check": "prior: reconstruction re-identifies to the persisted projection",
+   "ok": true
+  },
+  {
+   "check": "prior: under schema 18 its own gate refuses on schema only",
+   "ok": true
+  },
+  {
+   "check": "candidate: verify_reconstruction is empty",
+   "ok": true
+  },
+  {
+   "check": "candidate: reconstructed candidate's canonical payload is identical",
+   "ok": true
+  },
+  {
+   "check": "candidate: reconstruction re-identifies to the persisted projection",
+   "ok": true
+  },
+  {
+   "check": "candidate: publication gate passes against its own oracle",
+   "ok": true
+  },
+  {
+   "check": "prior projection is refused against the other oracle",
+   "ok": true
+  },
+  {
+   "check": "candidate projection is refused against the other oracle",
+   "ok": true
+  },
+  {
+   "check": "acceptance.batches: the other 23 batches' rows are byte-identical",
+   "ok": true
+  },
+  {
+   "check": "acceptance.records: the other 23 batches' rows are byte-identical",
+   "ok": true
+  },
+  {
+   "check": "acceptance.review_unit_records: the other 23 batches' rows are byte-identical",
+   "ok": true
+  },
+  {
+   "check": "acceptance.schema_anchors: the other 23 batches' rows are byte-identical",
+   "ok": true
+  },
+  {
+   "check": "acceptance.lifts: prior lifts kept, 17->18 appended",
+   "ok": true
+  },
+  {
+   "check": "reference_resolutions: all 1,486 byte-identical",
+   "ok": true
+  },
+  {
+   "check": "acceptance.reference_resolution_records: byte-identical",
+   "ok": true
+  },
+  {
+   "check": "release_binding: unchanged",
+   "ok": true
+  },
+  {
+   "check": "semantic_policy_hash: unchanged",
+   "ok": true
+  },
+  {
+   "check": "semantic_policy_version: unchanged",
+   "ok": true
+  },
+  {
+   "check": "artifact_kind: unchanged",
+   "ok": true
+  },
+  {
+   "check": "spans outside the Equipment scope are byte-identical",
+   "ok": true
+  },
+  {
+   "check": "review units outside Equipment are byte-identical",
+   "ok": true
+  },
+  {
+   "check": "representation.components: nothing outside Equipment removed or changed",
+   "ok": true
+  },
+  {
+   "check": "representation.prose_bindings: nothing outside Equipment removed or changed",
+   "ok": true
+  },
+  {
+   "check": "representation.provenance: nothing outside Equipment removed or changed",
+   "ok": true
+  },
+  {
+   "check": "representation.records: nothing outside Equipment removed or changed",
+   "ok": true
+  },
+  {
+   "check": "representation.references: nothing outside Equipment removed or changed",
+   "ok": true
+  },
+  {
+   "check": "representation.relationships: nothing outside Equipment removed or changed",
+   "ok": true
+  },
+  {
+   "check": "accepted oracle SHA-256 unchanged after verification",
+   "ok": true
+  }
+ ]
+}

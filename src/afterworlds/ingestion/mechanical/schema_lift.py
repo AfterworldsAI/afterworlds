@@ -111,6 +111,8 @@ __all__ = [
     "SCHEMA_16_VERSION",
     "SCHEMA_17_HASH",
     "SCHEMA_17_VERSION",
+    "SCHEMA_18_HASH",
+    "SCHEMA_18_VERSION",
     "SchemaLiftRecord",
     "UnknownSchemaLiftError",
     "lift_for",
@@ -158,6 +160,8 @@ SCHEMA_16_VERSION = "5d-representation-schema-16"
 SCHEMA_16_HASH = "7fb9254b11da1d6772ea6ee72ffde9b5e9d39e8885188777874c65e86ad9a941"
 SCHEMA_17_VERSION = "5d-representation-schema-17"
 SCHEMA_17_HASH = "4881e51fb2fa73e52f7ff951ad7d00b863188c1a22133fb0e2873c7d32d10ada"
+SCHEMA_18_VERSION = "5d-representation-schema-18"
+SCHEMA_18_HASH = "276c3d0ca0bf4c2f98aa8e7d2db6cd321d7fb55dee6d8c60fdd4a58e51fa8701"  # noqa: E501  # pragma: allowlist secret
 
 
 class SchemaLiftError(ValueError):
@@ -728,6 +732,38 @@ SCHEMA_LIFTS: dict[tuple[str, str], SchemaLift] = {
             "contracts, which verify_lift proves element by element rather "
             "than asserting. A schema-16 declaration carrying any new key or "
             "vocabulary member is refused, never flattened. "
+            "The policy contract does not move with it."
+        ),
+    ),
+    (SCHEMA_17_VERSION, SCHEMA_17_HASH): SchemaLift(
+        lift_id="5d-lift-schema-17-to-18",
+        from_version=SCHEMA_17_VERSION,
+        from_hash=SCHEMA_17_HASH,
+        to_version=SCHEMA_18_VERSION,
+        to_hash=SCHEMA_18_HASH,
+        rationale=(
+            "Schema 18 admits two fact families -- weapon_category and "
+            "weapon_mastery -- and the two whole vocabularies minted with "
+            "them, WeaponCategory (simple, martial) and WeaponMastery (the "
+            "eight mastery properties the Mastery Properties section "
+            "defines), and nothing else: no field on any family an earlier "
+            "schema had, no ownership form, no component key, no required "
+            "field and no newly nullable field. "
+            "The families exist because the approved CRD Issue 2b G1 "
+            "correction requires faithful structured category and mastery "
+            "authority for every SRD weapon, and the Weapons table states "
+            "both as printed columns and group rows that schema 17 could "
+            "carry only as prose and citations. Each states what one row "
+            "prints and stops there: no proficiency, attack, damage or "
+            "mastery effect is computed, and Melee or Ranged, a separate "
+            "printed classification, is not a category. "
+            "Nothing accepted moves. No accepted component states a fact of "
+            "either family and no accepted family gained a field, so every "
+            "accepted payload -- and its fact key and provenance coordinate "
+            "-- is byte-identical under both contracts, which verify_lift "
+            "proves element by element rather than asserting. A schema-17 "
+            "declaration carrying either family or vocabulary member is "
+            "refused by the introduction manifest, never flattened. "
             "The policy contract does not move with it."
         ),
     ),

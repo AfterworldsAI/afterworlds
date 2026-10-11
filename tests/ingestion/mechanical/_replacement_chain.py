@@ -56,9 +56,12 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import sys
+from collections.abc import Callable
+from dataclasses import replace
 from functools import cache
 from pathlib import Path
 from types import ModuleType
+from typing import Any
 
 from afterworlds.ingestion.mechanical.acceptance import accept_proposal
 from afterworlds.ingestion.mechanical.oracle import (
@@ -67,7 +70,18 @@ from afterworlds.ingestion.mechanical.oracle import (
     accepted_inputs_payload,
     load_accepted_inputs,
 )
+from afterworlds.ingestion.mechanical.projection import ProjectionCandidate
 from afterworlds.ingestion.mechanical.proposal import load_proposal
+from afterworlds.ingestion.mechanical.representation import (
+    REPRESENTATION_SCHEMA_VERSION,
+    representation_schema_hash,
+)
+from afterworlds.ingestion.mechanical.schema_lift import (
+    SCHEMA_17_HASH,
+    SCHEMA_17_VERSION,
+    lift_path,
+    verify_lift_path,
+)
 
 NOTES = Path(__file__).resolve().parents[3] / ".claude" / "review-notes"
 SCRIPT = NOTES / "issue-5d-monsters-corrections-ACCEPT.py"
@@ -149,6 +163,84 @@ CURRENT_SHA256 = "def7caa1625458a40c1f635db153268082cf52d5e25c28f57fd29518e44de5
 #: The Magic Items acceptance, for its one reviewed obligation enlargement,
 #: which the chain now carries at the magic-items batch.
 MAGIC_ITEMS = _load("magic_items_accept", NOTES / "issue-5d-magic-items-ACCEPT.py")
+
+#: The representation schema each historical script was recorded under, for the
+#: scripts that name "the build's current schema" as a target rather than a
+#: pinned contract. Written out, not derived (CRD Issue 2b): the
+#: reference-alternatives recording lifted to the build's schema, which was 17
+#: when it was recorded on 2026-10-01; under a later build (schema 18, the G1
+#: successor) an unpinned replay would lift on to 18 and no longer reproduce
+#: the recorded bytes. The script itself is byte-pinned historical evidence
+#: (5c delivery manifest), so its replay target is fixed here, at the replay
+#: boundary, per script. Its own ``reviewed()`` re-asserts that the pinned
+#: reviewed proposal states this schema, and every recorded SHA-256 downstream
+#: is still asserted unchanged. Nothing outside these named modules changes.
+RECORDED_SCHEMAS: dict[str, tuple[str, str]] = {
+    "reference_alternatives_accept": (SCHEMA_17_VERSION, SCHEMA_17_HASH),
+}
+
+
+def pin_recorded_schemas() -> None:
+    """Replay each loaded historical script at the schema it was recorded under."""
+    for name, (version, schema_hash) in RECORDED_SCHEMAS.items():
+        module = sys.modules.get(name)
+        if module is None:
+            continue
+        module.REPRESENTATION_SCHEMA_VERSION = version  # type: ignore[attr-defined]
+        module.representation_schema_hash = lambda h=schema_hash: h  # type: ignore[attr-defined]
+        if hasattr(module, "CURRENT"):
+            module.CURRENT = (version, schema_hash)  # type: ignore[attr-defined]
+
+
+pin_recorded_schemas()
+REFERENCE_ALTERNATIVES.reviewed()  # the pinned proposal states the pinned schema
+
+
+def _judged_at_build_schema(validate: Callable[..., Any]) -> Any:
+    def judged(candidate: ProjectionCandidate, *args: Any, **kwargs: Any) -> Any:
+        source = (candidate.schema_version, candidate.schema_hash)
+        build = (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
+        if source != build:
+            # Each registered crossing proved over this very representation,
+            # then only the candidate's declaration moves (what a lift
+            # certifies); the artifact and its evidence are not touched.
+            verify_lift_path(lift_path(source, build), candidate.representation)
+            candidate = replace(
+                candidate, schema_version=build[0], schema_hash=build[1]
+            )
+        return validate(candidate, *args, **kwargs)
+
+    judged.at_build_schema = True  # type: ignore[attr-defined]
+    return judged
+
+
+def judge_findings_at_build_schema() -> None:
+    """Judge the schema-17 recordings' release findings at the build's schema.
+
+    Their ``_check`` counts the build's release findings (``APC.findings`` ->
+    ``validate_candidate``), which admit only the live contract: a candidate at
+    schema 17 now draws two schema-binding findings that no reviewer saw. The
+    rule the earlier-schema recordings already follow (``_schema_pins.lifted``, "the
+    version-pinned verifier judges at this build's schema") is applied at the
+    judge instead of at the call, because these scripts also assert their own
+    recorded schema, lift and delta on the unlifted inputs. The registered
+    crossings are proved over the candidate's representation before its
+    declaration moves; a candidate already at the build's schema is judged as
+    it is.
+    """
+    for module in (
+        REFERENCE_ALTERNATIVES,
+        FINITE_REFERENCE_ROUTES,
+        EQUIPMENT_SPELL_REFERENCES,
+        FINAL_TEN_REFERENCES,
+    ):
+        apc = module.APC
+        if not getattr(apc.validate_candidate, "at_build_schema", False):
+            apc.validate_candidate = _judged_at_build_schema(apc.validate_candidate)
+
+
+judge_findings_at_build_schema()
+
 #: batch -> (proposal_identity, file SHA-256), as the approval names them.
 BATCHES = {batch: (identity, sha) for batch, identity, sha in REPLACEMENT.BATCHES}
 

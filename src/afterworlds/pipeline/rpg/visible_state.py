@@ -1,54 +1,69 @@
-"""RpgVisibleStateService — CRD Issue 15 Phase 7.
+"""RpgVisibleStateService — the player-visible RPG snapshot (CRD Issues 15, 2b).
 
-Builds the player-visible RPG state snapshot from the current character sheet.
-Character-visible only: hidden conditions are excluded by construction.
+Built from the CRD Issue 2b typed character state and the item instances the
+character holds. Character-visible only: hidden conditions are excluded by
+construction. A character whose state does not record classes, hit points
+or conditions has no visible snapshot (``None``): the snapshot cannot say
+"not recorded", and an unrecorded family is never shown as empty.
 
-v1 scope: character state and inventory.  Location, relationship meters, and
-known objectives are empty; those fields are deferred to a future issue once
-the Extractor writes authoritative session state for them.
-
-Note: ``build`` is called from the pre-mutation snapshot assembled by the
-resolver before this turn's sheet effects are applied.  Sheet-effect
-application is not yet implemented (Issue 15 v1 scope); the visible state
-therefore reflects the sheet at the START of the turn.  This is a deliberate
-v1 constraint, documented in Architecture Notes.
+Labels are read from the accepted identities themselves (``classes.wizard``
+reads "Wizard"); no display name is authored here.
 """
 
 from __future__ import annotations
 
-from afterworlds.models.character_sheet import Dnd5eCharacterSheet
 from afterworlds.models.enums import ConditionVisibility
 from afterworlds.models.rpg import (
     RpgVisibleState,
     VisibleCharacterState,
     VisibleItem,
 )
+from afterworlds.services.dnd5e_state.holdings import ItemInstance
+from afterworlds.services.dnd5e_state.store import StoredCharacter
+
+
+def identity_label(key: str) -> str:
+    """``equipment.weapons.war_pick`` -> ``War Pick``."""
+    return key.rsplit(".", 1)[-1].replace("_", " ").title()
 
 
 class RpgVisibleStateService:
-    """Builds RpgVisibleState from a Dnd5eCharacterSheet snapshot."""
+    """Builds RpgVisibleState from a stored character and its items."""
 
-    def build(self, sheet: Dnd5eCharacterSheet) -> RpgVisibleState:
-        """Return the player-visible snapshot of the given sheet."""
-        visible_conditions = tuple(
-            c.display_label
-            for c in sheet.active_conditions
-            if c.visibility is ConditionVisibility.VISIBLE
+    def build(
+        self, character: StoredCharacter, items: tuple[ItemInstance, ...]
+    ) -> RpgVisibleState | None:
+        state = character.state
+        if not state.classes or state.hit_points is None or state.conditions is None:
+            return None
+        classes = " / ".join(
+            f"{identity_label(c.class_record_key)} {c.level}" for c in state.classes
         )
         return RpgVisibleState(
             character=VisibleCharacterState(
-                character_name=sheet.character_name,
-                character_class=sheet.character_class,
-                level=sheet.level,
-                current_hp=sheet.current_hp,
-                maximum_hp=sheet.maximum_hp,
-                active_conditions=visible_conditions,
+                character_name=character.character_name,
+                character_class=classes,
+                level=sum(c.level for c in state.classes),
+                current_hp=state.hit_points.current,
+                maximum_hp=state.hit_points.maximum,
+                active_conditions=tuple(
+                    identity_label(c.condition.value)
+                    + (f" {c.level}" if c.level is not None else "")
+                    for c in state.conditions
+                    if c.visibility is ConditionVisibility.VISIBLE
+                ),
             ),
-            inventory=tuple(VisibleItem(name=item) for item in sheet.equipment),
+            inventory=tuple(
+                VisibleItem(
+                    name=identity_label(i.component_key or i.record_key),
+                    quantity=i.quantity,
+                )
+                for i in items
+            ),
             location=None,
             relationship_meters=(),
             known_objectives=(),
         )
 
 
-__all__ = ["RpgVisibleStateService"]
+__all__ = ["RpgVisibleStateService", "identity_label"]

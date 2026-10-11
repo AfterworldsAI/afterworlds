@@ -211,6 +211,10 @@ from afterworlds.ingestion.mechanical.representation import (
     UnknownFactFamilyError,
     UnseenOriginRelocationFact,
     UnseenPlacement,
+    WeaponCategory,
+    WeaponCategoryFact,
+    WeaponMastery,
+    WeaponMasteryFact,
     WeaponProperty,
     WeaponPropertyFact,
     fact_from_payload,
@@ -650,6 +654,11 @@ EXEMPLARS: dict[FactFamily, Any] = {
     FactFamily.PROFICIENCY_BONUS_USE: ProficiencyBonusUseFact(
         use=ProficiencyBonusUse.SPELL_ATTACK,
     ),
+    # Weapons table: "Simple Melee Weapons" heads the Club row's group (CRD
+    # Issue 2b G1).
+    FactFamily.WEAPON_CATEGORY: WeaponCategoryFact(category=WeaponCategory.SIMPLE),
+    # Weapons table, Mastery column: the Club row prints "Slow".
+    FactFamily.WEAPON_MASTERY: WeaponMasteryFact(mastery=WeaponMastery.SLOW),
 }
 
 FAMILY_IDS = [f.value for f in EXEMPLARS]

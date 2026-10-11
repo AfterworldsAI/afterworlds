@@ -525,31 +525,46 @@ class _AdjServiceAnnouncingPending:
 
 
 def _seed_character_sheet(session_factory: object, story_id: UUID) -> object:
-    """Persist a real RpgCharacterSheetBase + Dnd5eCharacterSheet row pair
-    for *story_id* and return the (session_state, sheet) pair to hand to the
+    """Persist a real character identity and its typed CRD Issue 2b state for
+    *story_id* and return the (session_state, character) pair to hand to the
     orchestrator. The announce path's FK to rpg_character_sheet_bases has
-    never been exercised by an existing fixture — every prior test either
+    never been exercised by an existing fixture -- every prior test either
     reads an existing DB-less fake pending or never reaches the INSERT."""
+    from datetime import UTC, datetime
+
+    from afterworlds.models.character_sheet import RpgCharacterSheetBase
     from afterworlds.models.enums import DiceHandling, RpgPlayStatus
     from afterworlds.models.session import RpgSessionState
-    from afterworlds.persistence.crud.character_sheet import (
-        create_dnd5e_sheet,
-        create_rpg_base_sheet,
-    )
+    from afterworlds.persistence.crud.character_sheet import create_rpg_base_sheet
+    from afterworlds.services.dnd5e_state import store
+    from afterworlds.services.dnd5e_state.turn import TurnCharacter
+    from tests.rpg_characters import BINDING, turn_character
 
-    _, sheet = _make_rpg_session_and_sheet()
-    sheet = sheet.model_copy(update={"story_id": story_id})  # type: ignore[attr-defined]
+    template = turn_character(story_id=story_id, name="Aldric")
+    now = datetime(2026, 1, 1, tzinfo=UTC)
     session = session_factory()  # type: ignore[operator]
     try:
-        create_rpg_base_sheet(session, sheet)  # type: ignore[arg-type]
-        create_dnd5e_sheet(session, sheet)  # type: ignore[arg-type]
+        create_rpg_base_sheet(
+            session,
+            RpgCharacterSheetBase(
+                sheet_id=template.sheet_id,
+                story_id=story_id,
+                character_name="Aldric",
+                created_at=now,
+                updated_at=now,
+            ),
+        )
+        stored = store.create_character_state(
+            session, template.sheet_id, template.stored.state, BINDING, now="t"
+        )
         session.commit()
     finally:
         session.close()
+    sheet = TurnCharacter(stored, ())
 
     session_state = RpgSessionState(
         story_id=story_id,
-        character_sheet_id=sheet.sheet_id,  # type: ignore[attr-defined]
+        character_sheet_id=sheet.sheet_id,
         dice_handling=DiceHandling.AI_ROLLS,
         play_status=RpgPlayStatus.IN_PLAY,
     )

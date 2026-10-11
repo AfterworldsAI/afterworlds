@@ -241,3 +241,33 @@ class OverrideSetEntryORM(Base):
     precedence: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     is_enabled: Mapped[bool] = mapped_column(sa.Boolean, nullable=False)
     payload: Mapped[dict[str, Any]] = mapped_column(sa.JSON, nullable=False)
+
+
+class SharedRuleChangeORM(Base):
+    """A requested shared rule change, held outside current override rows.
+
+    ``entries`` are the override rows to insert on activation.
+    ``base_override_set_uuid`` is the package's current override-set identity
+    when requested; ``target_override_set_uuid`` the identity activation must
+    produce. Activation reproduces exactly that target or refuses.
+    ``status``: ``held``, ``active``, ``rejected``, ``withdrawn``.
+    """
+
+    __tablename__ = "rp_mech_shared_changes"
+
+    change_id: Mapped[str] = mapped_column(sa.String(36), primary_key=True)
+    package_uuid: Mapped[str] = mapped_column(
+        sa.String(36),
+        sa.ForeignKey("rp_packages.rules_package_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    release_version: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    entries: Mapped[list[Any]] = mapped_column(sa.JSON, nullable=False)
+    base_override_set_uuid: Mapped[str] = mapped_column(sa.String(36), nullable=False)
+    target_override_set_uuid: Mapped[str] = mapped_column(sa.String(36), nullable=False)
+    status: Mapped[str] = mapped_column(sa.String(16), nullable=False)
+    requested_by: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    requested_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+    resolved_at: Mapped[str | None] = mapped_column(sa.String(64), nullable=True)
+    resolution_note: Mapped[str | None] = mapped_column(sa.Text, nullable=True)

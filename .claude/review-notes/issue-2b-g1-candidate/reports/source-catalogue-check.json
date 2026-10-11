@@ -1,0 +1,400 @@
+{
+ "sources": {
+  "markdown": "docs/sources/community/dnd-5e-srd-markdown/equipment.md",
+  "pdf": "docs/sources/DnD5_5e_SRD_CC_v5_2_1.pdf"
+ },
+ "catalogue_counts": {
+  "weapons": 38,
+  "armor": 13,
+  "ammunition": 5,
+  "masteries": [
+   "cleave",
+   "graze",
+   "nick",
+   "push",
+   "sap",
+   "slow",
+   "topple",
+   "vex"
+  ]
+ },
+ "weapons": {
+  "club": {
+   "name": "Club",
+   "category": "simple",
+   "mastery": "slow"
+  },
+  "dagger": {
+   "name": "Dagger",
+   "category": "simple",
+   "mastery": "nick"
+  },
+  "greatclub": {
+   "name": "Greatclub",
+   "category": "simple",
+   "mastery": "push"
+  },
+  "handaxe": {
+   "name": "Handaxe",
+   "category": "simple",
+   "mastery": "vex"
+  },
+  "javelin": {
+   "name": "Javelin",
+   "category": "simple",
+   "mastery": "slow"
+  },
+  "light_hammer": {
+   "name": "Light Hammer",
+   "category": "simple",
+   "mastery": "nick"
+  },
+  "mace": {
+   "name": "Mace",
+   "category": "simple",
+   "mastery": "sap"
+  },
+  "quarterstaff": {
+   "name": "Quarterstaff",
+   "category": "simple",
+   "mastery": "topple"
+  },
+  "sickle": {
+   "name": "Sickle",
+   "category": "simple",
+   "mastery": "nick"
+  },
+  "spear": {
+   "name": "Spear",
+   "category": "simple",
+   "mastery": "sap"
+  },
+  "dart": {
+   "name": "Dart",
+   "category": "simple",
+   "mastery": "vex"
+  },
+  "light_crossbow": {
+   "name": "Light Crossbow",
+   "category": "simple",
+   "mastery": "slow"
+  },
+  "shortbow": {
+   "name": "Shortbow",
+   "category": "simple",
+   "mastery": "vex"
+  },
+  "sling": {
+   "name": "Sling",
+   "category": "simple",
+   "mastery": "slow"
+  },
+  "battleaxe": {
+   "name": "Battleaxe",
+   "category": "martial",
+   "mastery": "topple"
+  },
+  "flail": {
+   "name": "Flail",
+   "category": "martial",
+   "mastery": "sap"
+  },
+  "glaive": {
+   "name": "Glaive",
+   "category": "martial",
+   "mastery": "graze"
+  },
+  "greataxe": {
+   "name": "Greataxe",
+   "category": "martial",
+   "mastery": "cleave"
+  },
+  "greatsword": {
+   "name": "Greatsword",
+   "category": "martial",
+   "mastery": "graze"
+  },
+  "halberd": {
+   "name": "Halberd",
+   "category": "martial",
+   "mastery": "cleave"
+  },
+  "lance": {
+   "name": "Lance",
+   "category": "martial",
+   "mastery": "topple"
+  },
+  "longsword": {
+   "name": "Longsword",
+   "category": "martial",
+   "mastery": "sap"
+  },
+  "maul": {
+   "name": "Maul",
+   "category": "martial",
+   "mastery": "topple"
+  },
+  "morningstar": {
+   "name": "Morningstar",
+   "category": "martial",
+   "mastery": "sap"
+  },
+  "pike": {
+   "name": "Pike",
+   "category": "martial",
+   "mastery": "push"
+  },
+  "rapier": {
+   "name": "Rapier",
+   "category": "martial",
+   "mastery": "vex"
+  },
+  "scimitar": {
+   "name": "Scimitar",
+   "category": "martial",
+   "mastery": "nick"
+  },
+  "shortsword": {
+   "name": "Shortsword",
+   "category": "martial",
+   "mastery": "vex"
+  },
+  "trident": {
+   "name": "Trident",
+   "category": "martial",
+   "mastery": "topple"
+  },
+  "warhammer": {
+   "name": "Warhammer",
+   "category": "martial",
+   "mastery": "push"
+  },
+  "war_pick": {
+   "name": "War Pick",
+   "category": "martial",
+   "mastery": "sap"
+  },
+  "whip": {
+   "name": "Whip",
+   "category": "martial",
+   "mastery": "slow"
+  },
+  "blowgun": {
+   "name": "Blowgun",
+   "category": "martial",
+   "mastery": "vex"
+  },
+  "hand_crossbow": {
+   "name": "Hand Crossbow",
+   "category": "martial",
+   "mastery": "vex"
+  },
+  "heavy_crossbow": {
+   "name": "Heavy Crossbow",
+   "category": "martial",
+   "mastery": "push"
+  },
+  "longbow": {
+   "name": "Longbow",
+   "category": "martial",
+   "mastery": "slow"
+  },
+  "musket": {
+   "name": "Musket",
+   "category": "martial",
+   "mastery": "slow"
+  },
+  "pistol": {
+   "name": "Pistol",
+   "category": "martial",
+   "mastery": "vex"
+  }
+ },
+ "markdown_pdf_agreement": {
+  "weapons_equal": true,
+  "armor_equal": true,
+  "ammunition_in_pdf": true,
+  "pages_found": true
+ },
+ "pdf_weapons_differing": [],
+ "judgements": [
+  {
+   "artifact": "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b.json",
+   "missing_identities": [
+    "equipment.weapons.dart",
+    "equipment.weapons.glaive",
+    "equipment.weapons.halberd",
+    "equipment.weapons.lance",
+    "equipment.weapons.maul",
+    "equipment.weapons.trident",
+    "equipment.weapons.war_pick",
+    "equipment.weapons.whip",
+    "equipment.weapons.blowgun",
+    "equipment.armor.scale_mail",
+    "equipment.armor.ring_mail",
+    "equipment.adventuring_gear.needles"
+   ],
+   "weapon_fact_findings": [
+    "equipment.weapons.club: category [] != source 'simple'",
+    "equipment.weapons.club: mastery [] != source 'slow'",
+    "equipment.weapons.dagger: category [] != source 'simple'",
+    "equipment.weapons.dagger: mastery [] != source 'nick'",
+    "equipment.weapons.greatclub: category [] != source 'simple'",
+    "equipment.weapons.greatclub: mastery [] != source 'push'",
+    "equipment.weapons.handaxe: category [] != source 'simple'",
+    "equipment.weapons.handaxe: mastery [] != source 'vex'",
+    "equipment.weapons.javelin: category [] != source 'simple'",
+    "equipment.weapons.javelin: mastery [] != source 'slow'",
+    "equipment.weapons.light_hammer: category [] != source 'simple'",
+    "equipment.weapons.light_hammer: mastery [] != source 'nick'",
+    "equipment.weapons.mace: category [] != source 'simple'",
+    "equipment.weapons.mace: mastery [] != source 'sap'",
+    "equipment.weapons.quarterstaff: category [] != source 'simple'",
+    "equipment.weapons.quarterstaff: mastery [] != source 'topple'",
+    "equipment.weapons.sickle: category [] != source 'simple'",
+    "equipment.weapons.sickle: mastery [] != source 'nick'",
+    "equipment.weapons.spear: category [] != source 'simple'",
+    "equipment.weapons.spear: mastery [] != source 'sap'",
+    "equipment.weapons.dart: category [] != source 'simple'",
+    "equipment.weapons.dart: mastery [] != source 'vex'",
+    "equipment.weapons.light_crossbow: category [] != source 'simple'",
+    "equipment.weapons.light_crossbow: mastery [] != source 'slow'",
+    "equipment.weapons.shortbow: category [] != source 'simple'",
+    "equipment.weapons.shortbow: mastery [] != source 'vex'",
+    "equipment.weapons.sling: category [] != source 'simple'",
+    "equipment.weapons.sling: mastery [] != source 'slow'",
+    "equipment.weapons.battleaxe: category [] != source 'martial'",
+    "equipment.weapons.battleaxe: mastery [] != source 'topple'",
+    "equipment.weapons.flail: category [] != source 'martial'",
+    "equipment.weapons.flail: mastery [] != source 'sap'",
+    "equipment.weapons.glaive: category [] != source 'martial'",
+    "equipment.weapons.glaive: mastery [] != source 'graze'",
+    "equipment.weapons.greataxe: category [] != source 'martial'",
+    "equipment.weapons.greataxe: mastery [] != source 'cleave'",
+    "equipment.weapons.greatsword: category [] != source 'martial'",
+    "equipment.weapons.greatsword: mastery [] != source 'graze'",
+    "equipment.weapons.halberd: category [] != source 'martial'",
+    "equipment.weapons.halberd: mastery [] != source 'cleave'",
+    "equipment.weapons.lance: category [] != source 'martial'",
+    "equipment.weapons.lance: mastery [] != source 'topple'",
+    "equipment.weapons.longsword: category [] != source 'martial'",
+    "equipment.weapons.longsword: mastery [] != source 'sap'",
+    "equipment.weapons.maul: category [] != source 'martial'",
+    "equipment.weapons.maul: mastery [] != source 'topple'",
+    "equipment.weapons.morningstar: category [] != source 'martial'",
+    "equipment.weapons.morningstar: mastery [] != source 'sap'",
+    "equipment.weapons.pike: category [] != source 'martial'",
+    "equipment.weapons.pike: mastery [] != source 'push'",
+    "equipment.weapons.rapier: category [] != source 'martial'",
+    "equipment.weapons.rapier: mastery [] != source 'vex'",
+    "equipment.weapons.scimitar: category [] != source 'martial'",
+    "equipment.weapons.scimitar: mastery [] != source 'nick'",
+    "equipment.weapons.shortsword: category [] != source 'martial'",
+    "equipment.weapons.shortsword: mastery [] != source 'vex'",
+    "equipment.weapons.trident: category [] != source 'martial'",
+    "equipment.weapons.trident: mastery [] != source 'topple'",
+    "equipment.weapons.warhammer: category [] != source 'martial'",
+    "equipment.weapons.warhammer: mastery [] != source 'push'",
+    "equipment.weapons.war_pick: category [] != source 'martial'",
+    "equipment.weapons.war_pick: mastery [] != source 'sap'",
+    "equipment.weapons.whip: category [] != source 'martial'",
+    "equipment.weapons.whip: mastery [] != source 'slow'",
+    "equipment.weapons.blowgun: category [] != source 'martial'",
+    "equipment.weapons.blowgun: mastery [] != source 'vex'",
+    "equipment.weapons.hand_crossbow: category [] != source 'martial'",
+    "equipment.weapons.hand_crossbow: mastery [] != source 'vex'",
+    "equipment.weapons.heavy_crossbow: category [] != source 'martial'",
+    "equipment.weapons.heavy_crossbow: mastery [] != source 'push'",
+    "equipment.weapons.longbow: category [] != source 'martial'",
+    "equipment.weapons.longbow: mastery [] != source 'slow'",
+    "equipment.weapons.musket: category [] != source 'martial'",
+    "equipment.weapons.musket: mastery [] != source 'slow'",
+    "equipment.weapons.pistol: category [] != source 'martial'",
+    "equipment.weapons.pistol: mastery [] != source 'vex'"
+   ],
+   "facts_on_non_catalogue_records": [],
+   "clean": false,
+   "informational_adventuring_gear_rows_without_record": [
+    "ammunition",
+    "bedroll",
+    "blanket",
+    "bucket",
+    "candle",
+    "case_crossbow_bolt",
+    "case_map_or_scroll",
+    "chain",
+    "chest",
+    "clothes_fine",
+    "diplomats_pack",
+    "flask",
+    "hunting_trap",
+    "ink_pen",
+    "ladder",
+    "lamp",
+    "lantern_hooded",
+    "lock",
+    "magnifying_glass",
+    "manacles",
+    "oil",
+    "paper",
+    "perfume",
+    "pot_iron",
+    "ram_portable",
+    "shovel",
+    "signal_whistle",
+    "spell_scroll_cantrip",
+    "spell_scroll_level_1",
+    "spyglass",
+    "string",
+    "tent",
+    "tinderbox",
+    "vial",
+    "waterskin"
+   ]
+  },
+  {
+   "artifact": ".claude/review-notes/issue-2b-g1-candidate/candidate/srd-5-2-1-corpus-8781d4e0-a3b-g1-candidate.json",
+   "missing_identities": [],
+   "weapon_fact_findings": [],
+   "facts_on_non_catalogue_records": [],
+   "clean": true,
+   "informational_adventuring_gear_rows_without_record": [
+    "ammunition",
+    "bedroll",
+    "blanket",
+    "bucket",
+    "candle",
+    "case_crossbow_bolt",
+    "case_map_or_scroll",
+    "chain",
+    "chest",
+    "clothes_fine",
+    "diplomats_pack",
+    "flask",
+    "hunting_trap",
+    "ink_pen",
+    "ladder",
+    "lamp",
+    "lantern_hooded",
+    "lock",
+    "magnifying_glass",
+    "manacles",
+    "oil",
+    "paper",
+    "perfume",
+    "pot_iron",
+    "ram_portable",
+    "shovel",
+    "signal_whistle",
+    "spell_scroll_cantrip",
+    "spell_scroll_level_1",
+    "spyglass",
+    "string",
+    "tent",
+    "tinderbox",
+    "vial",
+    "waterskin"
+   ]
+  }
+ ]
+}

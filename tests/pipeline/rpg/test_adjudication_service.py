@@ -12,7 +12,6 @@ from unittest.mock import MagicMock
 from uuid import UUID, uuid4
 
 from afterworlds.entitlement.enums import ModelTier, PipelinePassId
-from afterworlds.models.character_sheet import Dnd5eAbilityScores, Dnd5eCharacterSheet
 from afterworlds.models.context import (
     AssembledContext,
     PassForwardLedger,
@@ -37,6 +36,8 @@ from afterworlds.pipeline.provider._models import (
 from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
 from afterworlds.pipeline.rpg.caller import PRODUCE_ADJUDICATION_PROPOSALS_TOOL_NAME
 from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
+from afterworlds.services.dnd5e_state.turn import TurnCharacter
+from tests.rpg_characters import turn_character
 
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
 _STORY_ID: UUID = uuid4()
@@ -48,27 +49,8 @@ _TURN_ID: UUID = uuid4()
 # ---------------------------------------------------------------------------
 
 
-def _make_sheet() -> Dnd5eCharacterSheet:  # type: ignore[no-untyped-def]
-    return Dnd5eCharacterSheet(
-        story_id=_STORY_ID,
-        rules_package_id="dnd5e_v1",
-        character_name="Test Fighter",
-        created_at=_NOW,
-        updated_at=_NOW,
-        character_class="Fighter",
-        background="Soldier",
-        level=3,
-        ability_scores=Dnd5eAbilityScores(
-            strength=16,
-            dexterity=12,
-            constitution=14,
-            intelligence=10,
-            wisdom=10,
-            charisma=8,
-        ),
-        current_hp=28,
-        maximum_hp=28,
-    )
+def _make_sheet() -> TurnCharacter:
+    return turn_character(name="Test Fighter", hp=(28, 28))
 
 
 def _make_session(dice_handling: DiceHandling) -> RpgSessionState:  # type: ignore[no-untyped-def]
@@ -115,7 +97,7 @@ def _make_assembled() -> AssembledContext:  # type: ignore[no-untyped-def]
 def _proposal_dict(check_label: str, visibility: RollVisibility) -> dict:  # type: ignore[type-arg]
     return {
         "check_label": check_label,
-        "subsystem_tag": "attack",
+        "subsystem_tag": "ability_check",
         "skill_or_attribute_label": "strength",
         "visible_modifier_note": None,
         "difficulty_reference_note": None,
@@ -176,8 +158,8 @@ class TestMultipleVisibleProposalsPlayerRolls:
     def _adjudicate(self):  # type: ignore[no-untyped-def]
         dice = _make_dice_mock()
         proposals = [
-            _proposal_dict("Attack Roll", RollVisibility.SHOWN),
-            _proposal_dict("Damage Roll", RollVisibility.SHOWN),
+            _proposal_dict("Strength Check", RollVisibility.SHOWN),
+            _proposal_dict("Strength ability check", RollVisibility.SHOWN),
         ]
         result = _make_service().adjudicate(
             _make_assembled(),
@@ -193,7 +175,7 @@ class TestMultipleVisibleProposalsPlayerRolls:
     def test_one_pending_request_created(self) -> None:
         result, _ = self._adjudicate()
         assert result.pending_roll_request is not None
-        assert result.pending_roll_request.check_label == "Attack Roll"
+        assert result.pending_roll_request.check_label == "Strength Check"
 
     def test_no_resolved_records(self) -> None:
         result, _ = self._adjudicate()
@@ -219,8 +201,8 @@ class TestHiddenPreservationWithPendingVisible:
     def _adjudicate(self):  # type: ignore[no-untyped-def]
         dice = _make_dice_mock()
         proposals = [
-            _proposal_dict("Attack Roll", RollVisibility.SHOWN),
-            _proposal_dict("Hidden Saving Throw", RollVisibility.HIDDEN),
+            _proposal_dict("Strength Check", RollVisibility.SHOWN),
+            _proposal_dict("strength", RollVisibility.HIDDEN),
         ]
         result = _make_service().adjudicate(
             _make_assembled(),
@@ -254,8 +236,8 @@ class TestAiRollsRegression:
     def _adjudicate(self):  # type: ignore[no-untyped-def]
         dice = _make_dice_mock()
         proposals = [
-            _proposal_dict("Attack Roll", RollVisibility.SHOWN),
-            _proposal_dict("Damage Roll", RollVisibility.SHOWN),
+            _proposal_dict("Strength Check", RollVisibility.SHOWN),
+            _proposal_dict("Strength ability check", RollVisibility.SHOWN),
         ]
         result = _make_service().adjudicate(
             _make_assembled(),
@@ -276,3 +258,63 @@ class TestAiRollsRegression:
     def test_dice_called_twice(self) -> None:
         _, dice = self._adjudicate()
         assert dice.roll.call_count == 2
+
+
+# ---------------------------------------------------------------------------
+# CRD Issue 2b: a proficiency-aware proposal fails the pass visibly
+# ---------------------------------------------------------------------------
+
+
+import pytest  # noqa: E402
+
+from afterworlds.pipeline.rpg.models import AdjudicationPassError  # noqa: E402
+
+
+@pytest.mark.parametrize(
+    "dice_handling",
+    [DiceHandling.AI_ROLLS, DiceHandling.PLAYER_ROLLS],
+)
+def test_a_skill_proposal_fails_the_pass_rather_than_rolling_ability_only(
+    dice_handling: DiceHandling,
+) -> None:
+    proposal = {**_proposal_dict("Stealth check", RollVisibility.SHOWN)}
+    proposal["skill_or_attribute_label"] = "stealth"
+    svc = _make_service()
+    with pytest.raises(AdjudicationPassError, match="proficiency-aware"):
+        svc.adjudicate(
+            _make_assembled(),
+            _make_session(dice_handling),
+            _make_sheet(),
+            _make_dice_mock(),
+            provider=_FakeProvider([proposal]),  # type: ignore[arg-type]
+            story_id=_STORY_ID,
+            originating_turn_id=uuid4(),
+        )
+
+
+@pytest.mark.parametrize(
+    "dice_handling",
+    [DiceHandling.AI_ROLLS, DiceHandling.PLAYER_ROLLS],
+)
+def test_an_unsupported_proposal_refuses_before_any_earlier_one_rolls(
+    dice_handling: DiceHandling,
+) -> None:
+    """Every proposal is checked before dice, a pending roll or a record."""
+    supported = _proposal_dict("Strength Check", RollVisibility.HIDDEN)
+    unsupported = {
+        **_proposal_dict("Dexterity Saving Throw", RollVisibility.SHOWN),
+        "subsystem_tag": "saving_throw",
+        "skill_or_attribute_label": "dexterity",
+    }
+    dice = _make_dice_mock()
+    with pytest.raises(AdjudicationPassError, match="Dexterity Saving Throw"):
+        _make_service().adjudicate(
+            _make_assembled(),
+            _make_session(dice_handling),
+            _make_sheet(),
+            dice,
+            provider=_FakeProvider([supported, unsupported]),  # type: ignore[arg-type]
+            story_id=_STORY_ID,
+            originating_turn_id=uuid4(),
+        )
+    dice.roll.assert_not_called()

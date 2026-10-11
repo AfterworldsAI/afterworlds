@@ -32,6 +32,9 @@ from afterworlds.api.routes.visible_state import router as visible_state_router
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.pipeline.provider import ByokCredentialReadinessProvider
 from afterworlds.pipeline.provider.credentials import make_credential_store
+from afterworlds.services.dnd5e_state.leases import (
+    clear_orphans as clear_orphan_turn_leases,
+)
 
 logger = logging.getLogger("afterworlds.api")
 
@@ -53,6 +56,10 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
     upgrade_to_head(settings.database_url)
     engine = create_engine(settings.database_url)
     session_factory = create_session_factory(engine)
+    # CRD Issue 2b: recover turn leases whose owning process is proven dead
+    # (its OS owner lock is free). A live or unprovable lease is kept, so a
+    # second app or process on the same store cannot erase an in-flight turn.
+    clear_orphan_turn_leases(session_factory)
 
     app.state.settings = settings
     app.state.session_factory = session_factory

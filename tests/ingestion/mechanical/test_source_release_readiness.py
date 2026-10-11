@@ -411,7 +411,7 @@ def test_the_replacement_release_has_only_the_two_pilot_authorities(
         "framing-coverage",
         "character-creation-catalogue",
     }
-    assert len(inputs.oracle.spans) == 10493
+    assert len(inputs.oracle.spans) == 10495  # CRD Issue 2b G1 split two shared rows
     assert len(inputs.oracle.reference_resolutions) == 1486
 
 

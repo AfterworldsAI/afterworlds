@@ -1,0 +1,235 @@
+{
+ "markdown": "docs/sources/community/dnd-5e-srd-markdown/equipment.md",
+ "pdf": "docs/sources/DnD5_5e_SRD_CC_v5_2_1.pdf",
+ "pdf_pages_index_printed": {
+  "weapon_category_rule": [
+   88,
+   89
+  ],
+  "mastery_properties": [
+   [
+    89,
+    90
+   ]
+  ],
+  "weapons_table": [
+   90,
+   91
+  ],
+  "armor_table": [
+   91,
+   92
+  ],
+  "ammunition_table": [
+   95,
+   96
+  ]
+ },
+ "rows": {
+  "Club": {
+   "markdown_line": [
+    132
+   ]
+  },
+  "Dagger": {
+   "markdown_line": [
+    140
+   ]
+  },
+  "Greatclub": {
+   "markdown_line": [
+    148
+   ]
+  },
+  "Handaxe": {
+   "markdown_line": [
+    156
+   ]
+  },
+  "Javelin": {
+   "markdown_line": [
+    164
+   ]
+  },
+  "Light Hammer": {
+   "markdown_line": [
+    172
+   ]
+  },
+  "Mace": {
+   "markdown_line": [
+    180
+   ]
+  },
+  "Quarterstaff": {
+   "markdown_line": [
+    188
+   ]
+  },
+  "Sickle": {
+   "markdown_line": [
+    196
+   ]
+  },
+  "Spear": {
+   "markdown_line": [
+    204
+   ]
+  },
+  "Dart": {
+   "markdown_line": [
+    215
+   ]
+  },
+  "Light Crossbow": {
+   "markdown_line": [
+    223
+   ]
+  },
+  "Shortbow": {
+   "markdown_line": [
+    231
+   ]
+  },
+  "Sling": {
+   "markdown_line": [
+    239
+   ]
+  },
+  "Battleaxe": {
+   "markdown_line": [
+    250
+   ]
+  },
+  "Flail": {
+   "markdown_line": [
+    258
+   ]
+  },
+  "Glaive": {
+   "markdown_line": [
+    266
+   ]
+  },
+  "Greataxe": {
+   "markdown_line": [
+    274
+   ]
+  },
+  "Greatsword": {
+   "markdown_line": [
+    282
+   ]
+  },
+  "Halberd": {
+   "markdown_line": [
+    290
+   ]
+  },
+  "Lance": {
+   "markdown_line": [
+    298
+   ]
+  },
+  "Longsword": {
+   "markdown_line": [
+    306
+   ]
+  },
+  "Maul": {
+   "markdown_line": [
+    314
+   ]
+  },
+  "Morningstar": {
+   "markdown_line": [
+    322
+   ]
+  },
+  "Pike": {
+   "markdown_line": [
+    330
+   ]
+  },
+  "Rapier": {
+   "markdown_line": [
+    338
+   ]
+  },
+  "Scimitar": {
+   "markdown_line": [
+    346
+   ]
+  },
+  "Shortsword": {
+   "markdown_line": [
+    354
+   ]
+  },
+  "Trident": {
+   "markdown_line": [
+    362
+   ]
+  },
+  "Warhammer": {
+   "markdown_line": [
+    370
+   ]
+  },
+  "War Pick": {
+   "markdown_line": [
+    378
+   ]
+  },
+  "Whip": {
+   "markdown_line": [
+    386
+   ]
+  },
+  "Blowgun": {
+   "markdown_line": [
+    397
+   ]
+  },
+  "Hand Crossbow": {
+   "markdown_line": [
+    405
+   ]
+  },
+  "Heavy Crossbow": {
+   "markdown_line": [
+    413
+   ]
+  },
+  "Longbow": {
+   "markdown_line": [
+    421
+   ]
+  },
+  "Musket": {
+   "markdown_line": [
+    429
+   ]
+  },
+  "Pistol": {
+   "markdown_line": [
+    437
+   ]
+  },
+  "Scale Mail": {
+   "markdown_line": [
+    520
+   ]
+  },
+  "Ring Mail": {
+   "markdown_line": [
+    547
+   ]
+  },
+  "Needles": {
+   "markdown_line": [
+    1246
+   ]
+  }
+ }
+}

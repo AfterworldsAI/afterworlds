@@ -592,9 +592,11 @@ def test_the_schema_hash_is_a_declared_contract_not_a_file_digest() -> None:
 #: Restamped at schema 17 the same way: ``ReferenceDraft`` gained a destination
 #: component and one labelled alternative's conditions, with the
 #: ``ReferenceSituation`` vocabulary (Owner Decisions 2026-10-01).
-EXPECTED_SCHEMA_HASH = (
-    "4881e51fb2fa73e52f7ff951ad7d00b863188c1a22133fb0e2873c7d32d10ada"  # noqa: E501
-)
+#:
+#: Restamped at schema 18 the same way: the union gained
+#: ``WeaponCategoryFact`` and ``WeaponMasteryFact`` with the ``WeaponCategory``
+#: and ``WeaponMastery`` vocabularies (CRD Issue 2b G1 candidate).
+EXPECTED_SCHEMA_HASH = "276c3d0ca0bf4c2f98aa8e7d2db6cd321d7fb55dee6d8c60fdd4a58e51fa8701"  # noqa: E501  # pragma: allowlist secret
 
 
 def test_the_committed_union_still_hashes_to_its_recorded_value() -> None:

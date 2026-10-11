@@ -1,0 +1,24 @@
+{
+  "owner": "Ravenlok (Owner)",
+  "exact_user_message": "I accept the G1 semantic proposal in that packet. Continue CRD Issue 2b implementation and prepare its independently reviewed PR, preserving all existing checkout protections and stop boundaries.",
+  "receipt": ".claude/review-notes/issue-2b-g1-recording/owner-acceptance.md",
+  "receipt_sha256": "14fe1da93856a2ae50debed46be84475a86c6573bda289a5405ecc4d3a9df780",
+  "receipt_recorded_at_utc": "2026-10-11T07:25:33Z",
+  "owner_packet_sha256": "9a3c94149823f20626da92c0b0060ca14d1cef16e47b076687a73b022bd1c4eb",
+  "independent_review_sha256": "9baa01c02a2e1c3189b997adf3f6d37280127dde5299e204ac11babedeba8ac2",
+  "final_checkpoint_review_sha256": "45e7db001a3a0c3b425bde573930215c69a6deef7216c441df4857df82ef5bd8",
+  "recording_permission_authorization_sha256": "3a9e3687d081a22ad4b095859564e9830e4fe6a3becb32726aaf9feb7c25e00c",
+  "accepted_proposal_identity": "8a8a737b0d1e47410de86bbeca44b66522b46511e078727d20760678943b5345",
+  "accepted_proposal_sha256": "d1385de0f02af5f63bd218c1fb2f6acc58857e1e7e6bb3e04a4fa28815ab4508",
+  "reviewed_preview_sha256": "bfd0d371fc7ee3cecee45bb607b5b709050347ddf9766b4a442783a966076082",
+  "reviewed_preview_oracle_identity": "3e7b27dbb291eb11ca7489719442308397b091d745beb3e48a517bf38685c05a",
+  "reviewed_preview_projection": "efab27a9-5d44-52ba-ad74-47940d5fd717",
+  "schema": [
+    "5d-representation-schema-18",
+    "276c3d0ca0bf4c2f98aa8e7d2db6cd321d7fb55dee6d8c60fdd4a58e51fa8701"
+  ],
+  "prior_oracle": "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b.json",
+  "prior_oracle_sha256": "def7caa1625458a40c1f635db153268082cf52d5e25c28f57fd29518e44de58c",
+  "successor_oracle": "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-g1.json",
+  "boundary": "Recording installs repository authority only. No merge, shared-runtime change, publication/activation, app launch or CRD Issue 15c."
+}

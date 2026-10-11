@@ -105,6 +105,7 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_15_VERSION,
     SCHEMA_16_VERSION,
     SCHEMA_17_VERSION,
+    SCHEMA_18_VERSION,
     accepted_schema_contracts,
     lift_path,
 )
@@ -138,8 +139,8 @@ IRREDUCIBLE = "open_ended_effect"
 #: introduced. Derived from the succession registry rather than transcribed:
 #: registering a lift is what admits a contract, so a version list kept by hand
 #: here would be a second statement of the same fact, free to drift.
-#: Every recognised contract that predates schema 12. Schemas 13, 14, 15, 16
-#: and 17 are subtracted beside 12 itself rather than left in: a later succession
+#: Every recognised contract that predates schema 12. Schemas 13, 14, 15, 16,
+#: 17 and 18 are subtracted beside 12 itself rather than left in: a later succession
 #: states every earlier one's meaning, so each admits the shapes this module is
 #: about and would fail the refusal parametrization for the right reason. Written
 #: out rather than derived from version order, for the reason every registry
@@ -153,6 +154,7 @@ EARLIER_CONTRACTS = sorted(
         SCHEMA_15_VERSION,
         SCHEMA_16_VERSION,
         SCHEMA_17_VERSION,
+        SCHEMA_18_VERSION,
     }
 )
 

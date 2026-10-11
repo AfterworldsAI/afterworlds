@@ -175,6 +175,8 @@ def test_rules_package_tables_exist_with_rp_prefix() -> None:
         "rp_override_set_versions",
         "rp_override_set_entries",
         "rp_override_set_scopes",
+        # CRD Issue 2b: shared rule changes held until affected events resolve.
+        "rp_mech_shared_changes",
     }
     actual = {name for name in Base.metadata.tables if name.startswith(_RP_PREFIX)}
     assert (

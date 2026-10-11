@@ -56,6 +56,7 @@ rather than replacing them; the machinery that judges the result lives here.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from collections import Counter
 from dataclasses import dataclass
@@ -165,6 +166,7 @@ from afterworlds.quarantine import refuse_quarantined
 __all__ = [
     "ACCEPTED_ARTIFACT_KIND",
     "COMMITTED_ORACLE_DIR",
+    "SUPERSEDED_ORACLE_SHA256",
     "SUPERSEDED_RELEASE_VERSIONS",
     "AcceptedInputs",
     "AcceptedOracle",
@@ -193,6 +195,22 @@ COMMITTED_ORACLE_DIR = Path(__file__).resolve().parent / "oracles"
 #: authority again (Owner Decision 2026-09-21, "Retire superseded work").
 SUPERSEDED_RELEASE_VERSIONS = frozenset(
     {"5.2.1-corpus.3fe24ff6-4e3", "5.2.1-corpus.574662e9-0ef"}
+)
+
+#: Committed artifacts a recorded successor for the *same* release supersedes,
+#: by the SHA-256 of their exact bytes. A same-release successor cannot use
+#: :data:`SUPERSEDED_RELEASE_VERSIONS`, which would refuse the successor too.
+#: A listed file stays byte-for-byte in :data:`COMMITTED_ORACLE_DIR` as
+#: historical evidence and is skipped by resolution, so the successor is the
+#: release's one claimant. Adding a digest is part of recording a successor
+#: under explicit Owner acceptance.
+#:
+#: ``def7caa1…``: ``srd-5-2-1-corpus-8781d4e0-a3b.json``, superseded by the
+#: Owner-accepted CRD Issue 2b G1 successor
+#: ``srd-5-2-1-corpus-8781d4e0-a3b-g1.json`` (recorded 2026-10-11; see
+#: ``.claude/review-notes/issue-2b-g1-recording/``).
+SUPERSEDED_ORACLE_SHA256: frozenset[str] = frozenset(
+    {"def7caa1625458a40c1f635db153268082cf52d5e25c28f57fd29518e44de58c"}
 )
 
 #: The discriminator a committed accepted-inputs artifact must declare. A
@@ -2029,7 +2047,13 @@ def _resolve_committed_inputs(
     matches = [
         inputs
         for inputs in (
-            load_accepted_inputs(p) for p in sorted(directory.glob("*.json"))
+            load_accepted_inputs(p)
+            for p in sorted(directory.glob("*.json"))
+            if not (
+                SUPERSEDED_ORACLE_SHA256
+                and hashlib.sha256(p.read_bytes()).hexdigest()
+                in SUPERSEDED_ORACLE_SHA256
+            )
         )
         if inputs.oracle.binding.package_uuid == package_uuid
         and inputs.oracle.binding.release_version == release_version

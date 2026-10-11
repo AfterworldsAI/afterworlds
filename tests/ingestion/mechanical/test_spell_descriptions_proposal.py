@@ -96,6 +96,11 @@ from afterworlds.ingestion.mechanical.representation import (
     SpellSchool,
     representation_schema_hash,
 )
+from afterworlds.ingestion.mechanical.schema_lift import (
+    SCHEMA_17_HASH,
+    SCHEMA_17_VERSION,
+    lift_accepted_inputs,
+)
 from afterworlds.ingestion.mechanical.validation import (
     relationship_and_reference_violations,
 )
@@ -702,14 +707,24 @@ def test_the_committed_oracle_records_the_owner_acceptance(prior) -> None:  # ty
 
 @pytest.fixture(scope="module")
 def persisted(tmp_path_factory, source_release_db):  # type: ignore[no-untyped-def]
-    """The current accepted authority, persisted as one draft into a private
-    copy of the current release, so its class edges have their sources."""
-    candidate = candidate_from_accepted_inputs(current())
-    assert isinstance(candidate, ProjectionCandidate)
-    assert (candidate.schema_version, candidate.schema_hash) == (
-        REPRESENTATION_SCHEMA_VERSION,
-        representation_schema_hash(),
+    """The chain's committed authority, lifted on to the build's schema and
+    persisted as one draft into a private copy of the current release, so its
+    class edges have their sources.
+
+    The chain's authority was recorded under schema 17 and stays declared so;
+    the forward lift to the build's schema (18 since CRD Issue 2b) is explicit
+    and verified here rather than assumed.
+    """
+    recorded = current()
+    assert (recorded.oracle.schema_version, recorded.oracle.schema_hash) == (
+        SCHEMA_17_VERSION,
+        SCHEMA_17_HASH,
     )
+    build = (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
+    lifted, _ = lift_accepted_inputs(recorded, build)
+    candidate = candidate_from_accepted_inputs(lifted)
+    assert isinstance(candidate, ProjectionCandidate)
+    assert (candidate.schema_version, candidate.schema_hash) == build
     path = tmp_path_factory.mktemp("spells") / "release.db"
     shutil.copyfile(source_release_db, path)
     engine = create_engine(f"sqlite:///{path}")

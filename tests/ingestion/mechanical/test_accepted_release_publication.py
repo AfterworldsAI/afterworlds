@@ -109,16 +109,17 @@ from afterworlds.services.rules_authority.targets import (
     MechanicalTarget,
     MechanicalTargetKind,
 )
-from tests.ingestion.mechanical._replacement_chain import CURRENT_SHA256
 
 NOW = "2026-10-09T00:00:00Z"
 PACKAGE = "1299484e-c72d-509b-bd8d-d0169ee1f8d2"
 RELEASE = "5.2.1-corpus.8781d4e0-a3b"
-#: The effective projection the accepted authority derives (recorded in the
-#: restart document's opening).
-PROJECTION = "1f0db408-ee07-5e8d-897d-29838d614c53"
-ORACLE_FILE = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-8781d4e0-a3b.json"
-ACCEPTED_RECORDS = 1835
+#: The effective projection the accepted authority derives: the CRD Issue 2b G1
+#: successor recorded 2026-10-11 (the restart's ``1f0db408-…`` was its
+#: predecessor's, superseded by digest).
+PROJECTION = "efab27a9-5d44-52ba-ad74-47940d5fd717"
+ORACLE_FILE = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-8781d4e0-a3b-g1.json"
+ORACLE_SHA256 = "2ccbaeba6de75d9787fbdd407e42dc2425fa20d4d26bcc298b681b550bd11258"
+ACCEPTED_RECORDS = 1847
 
 #: One real accepted record, read back with its exact provenance.
 PROBE_RECORD = "glossary.blinded"
@@ -651,13 +652,13 @@ def test_every_accepted_citation_is_in_effect_with_no_override(
                 ref.scope_key,
             )
             stated.setdefault(citation, []).append(ref)
-    # The persisted projection carries the effective representation: 8,583
-    # resolved reference rows under 8,047 distinct four-part citation keys. (The
-    # stored committed representation has 8,047 reference rows, 6,561 with a
-    # stored target and 1,486 closed by recorded resolutions; different
-    # quantities.)
-    assert sum(len(refs) for refs in stated.values()) == 8583
-    assert len(stated) == 8047
+    # The persisted projection carries the effective representation: 8,640
+    # resolved reference rows under 8,104 distinct four-part citation keys --
+    # the predecessor's 8,583 and 8,047 plus the 57 citations the CRD Issue 2b
+    # G1 rows print. (The stored committed representation has 8,104 reference
+    # rows and 1,486 recorded resolutions; different quantities.)
+    assert sum(len(refs) for refs in stated.values()) == 8640
+    assert len(stated) == 8104
     refused = [
         citation
         for citation, refs in stated.items()
@@ -943,4 +944,4 @@ def test_the_refused_projection_left_nothing_active(refused: Refused) -> None:
 
 
 def test_the_committed_authority_bytes_are_unchanged() -> None:
-    assert hashlib.sha256(ORACLE_FILE.read_bytes()).hexdigest() == CURRENT_SHA256
+    assert hashlib.sha256(ORACLE_FILE.read_bytes()).hexdigest() == ORACLE_SHA256

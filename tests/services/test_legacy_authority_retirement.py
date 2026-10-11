@@ -344,7 +344,7 @@ def _upgrade_with_foreign_keys(db: Path) -> list[int]:
 
     sa.event.listen(sa.engine.Engine, "connect", enforce)
     try:
-        command.upgrade(_cfg(db), "head")
+        command.upgrade(_cfg(db), "0037")
     finally:
         sa.event.remove(sa.engine.Engine, "connect", enforce)
     return states
@@ -425,7 +425,7 @@ def test_0037_downgrade_recreates_the_0036_schema_empty_and_reupgrades(
     db = tmp_path / "roundtrip.db"
     command.upgrade(_cfg(db), "0036")
     _seed_legacy_rows(db)
-    command.upgrade(_cfg(db), "head")
+    command.upgrade(_cfg(db), "0037")
     command.downgrade(_cfg(db), "0036")
 
     assert _revision(db) == "0036"
@@ -436,7 +436,7 @@ def test_0037_downgrade_recreates_the_0036_schema_empty_and_reupgrades(
     assert rows["rp_overrides"] == []
     assert len(rows["rp_chunks"]) == 1
 
-    command.upgrade(_cfg(db), "head")
+    command.upgrade(_cfg(db), "0037")
     assert _revision(db) == "0037"
     assert set(_LEGACY_TABLES).isdisjoint(_schema(db))
 
