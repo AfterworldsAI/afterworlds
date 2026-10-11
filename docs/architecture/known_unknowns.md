@@ -294,19 +294,21 @@ activation, or merge is implied by this decision.
   active in the local runtime stores.
 - **Smoke.** A bounded app smoke passed its boot and native-read checks.
 - **Discharged.** CRD Issue 5c's (#132) source and release outcomes.
-- **Not complete.** CRD Issue 5d is not complete. The smoke found two settled, issue-scoped
-  obligations on merged main `71c77b2`; neither is a Known Unknown or needs a new Owner Decision:
-  1. the existing `RuleSliceRequest` / `get_active_rule_slice` consumer cutover under contract 6;
-  2. the final `MechanicalEntity` and legacy chunk/entity override retirement under AC22.
+- **Final 5d cutover discharged.** The smoke found two settled, issue-scoped obligations on merged
+  main `71c77b2`; neither was a Known Unknown or needed a new Owner Decision:
+  1. the `RuleSliceRequest` / `get_active_rule_slice` consumer cutover under contract 6;
+  2. the `MechanicalEntity` and legacy chunk/entity override retirement under AC22.
 
-  Both are implemented in this bounded PR (branch `codex/5d-final-cutover`; migration `0037` drops
-  `rp_overrides` and `rp_mechanical_entities`); Codex implementation review completed; required
-  exact-head CI and Owner merge pending. Separately authorized runtime migration/verification and
-  the Owner's restart-completion assessment follow the merge.
+  Both were delivered by PR #182 (merged at `47b80c0`; all required CI passed) and verified against
+  the actual runtime after migration `0037` on 10 October 2026.
+- **Completion.** On 10 October 2026 the Owner declared "The 5c/5d restart is complete.", adopting Codex's
+  completed runtime assessment. Downstream deferrals (2b, 15c, frozen #129/15b/19b) are unchanged;
+  restart completion does not lift the #129 freeze.
 - The downstream boundaries in this entry (2b, 15c) are unchanged.
 - See `/docs/architecture/issue-5c-5d-clean-restart.md`,
-  `.claude/review-notes/issue-5c-5d-runtime-smoke.md` and
-  `.claude/review-notes/issue-5d-final-cutover.md`.
+  `.claude/review-notes/issue-5c-5d-runtime-smoke.md`,
+  `.claude/review-notes/issue-5d-final-cutover.md` and
+  `.claude/review-notes/issue-5d-runtime-cutover.md`.
 
 **In progress — typed Rules Package authority (CRD Issue 5d, #137).** CRD Issue 5d is under
 construction and is **not complete**. Landed so far: span-exact semantic accounting, the closed typed

@@ -1,9 +1,18 @@
 # CRD Issue 5d — final cutover (evidence, 10 October 2026)
 
-**Status: implemented in this bounded PR; Codex implementation review completed; required exact-head CI and Owner merge pending** (branch `codex/5d-final-cutover`, from merged main `71c77b2`). Not applied to
-any runtime store. Completing the code PR is followed by separately authorized migration and
-verification of the actual runtime stores and the Owner's restart-completion assessment; merge alone
-completes neither. This note records no completion declaration and no issue-state change. Current status is in the
+**Current status (10 October 2026 UTC): merged and verified against the actual runtime.**
+- **Merged:** PR #182, `2026-10-10T23:24:27Z`, at `47b80c0ba2eccd2d3bcc1985bca771ede4446574`, tree
+  `1abd7888…`, identical to the reviewed head `75b540e`.
+- **CI:** all 11 required jobs passed in run 38079785975: 7,300 passed, 17 skipped, 94.146% coverage.
+- **Runtime:** migration `0037` and the production consumer were verified against
+  `D:\AI\Claude\afterworlds-runtime`; Codex's independent review passed. See the
+  [runtime cutover record](issue-5d-runtime-cutover.md).
+
+- **Completion:** on 10 October 2026 the Owner declared "The 5c/5d restart is complete." The declaration is recorded in the
+  runtime cutover record.
+
+The sections below record the implementation and its pre-merge review evidence as they stood. This
+note makes no issue-state change. Current restart status is in the
 [restart opening](../../docs/architecture/issue-5c-5d-clean-restart.md).
 
 ## Authority
@@ -89,7 +98,7 @@ completes neither. This note records no completion declaration and no issue-stat
   removed selectors. The banners were written before Codex's first review limited status edits to
   the restart opening, so they are offered for Codex to keep or drop.
 
-## Verification (native, this checkout)
+## Verification at pre-merge review (native, isolated checkout)
 
 | Check | Result |
 |---|---|
@@ -133,11 +142,12 @@ completes neither. This note records no completion declaration and no issue-stat
 
 ## Boundaries
 
-- **No runtime store was opened, migrated or launched against.**
-  - `create_app` runs `upgrade_to_head` at startup, so launching at a head containing `0037` would
-    migrate `D:\AI\Claude\afterworlds-runtime`.
-  - The 10 October smoke's private receipt recorded 0 rows in both legacy tables there.
-  - That launch or migration needs separate authorization.
+- **At implementation, no runtime store was opened, migrated or launched against.** `create_app`
+  runs `upgrade_to_head` at startup, so the runtime migration needed separate authorization.
+  - The smoke's private receipt recorded 0 rows in both legacy tables.
+  - **Since done:** after PR #182 merged, the migration was run as a separately authorized,
+    harness-driven operation without app startup, and verified. See the
+    [runtime cutover record](issue-5d-runtime-cutover.md).
 - **Untouched:**
   - no HTTP endpoint, gameplay selector policy, 2b sheet storage or 15c adapter behavior;
   - the frozen #129/15b/19b work;
