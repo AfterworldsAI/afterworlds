@@ -1,6 +1,6 @@
 # CRD Issue 2b — implementation status
 
-**State: the implementation is complete for the approved scope and Codex's review findings. Local static gates and focused checks pass. Full tests, the collection census and the aggregate coverage gate are delegated to the eight-shard CI run on the exact head of the draft PR.**
+**State: the implementation is complete for the approved scope and all Codex review findings, including the final identity-domain family. Local static gates and focused checks pass. Full tests, the collection census and the aggregate coverage gate are delegated to the eight-shard CI run on the exact head of the draft PR.**
 
 Branch `codex/issue2b-character-state`, base `c90a690`. The exact head is reported in the PR handoff.
 
@@ -35,16 +35,32 @@ Branch `codex/issue2b-character-state`, base `c90a690`. The exact head is report
   - The shared-change trial applies the whole effective set.
   - Summon references are story-scoped.
 
-## Checks run on the final source (Windows, the clone's Python 3.12 virtualenv)
+## Checks on source head `f303e870f11d573000fa0e4d65495d1467ccc23a`
 
-- **Static gates:** Black (check), Ruff, mypy strict (247 files), pip-audit with the CI ignores (no known vulnerabilities), and the detect-secrets hook over every changed file against the baseline (exit 0, baseline unchanged).
-- **Focused tests:** the 2b service suite, `tests/pipeline`, `tests/models`, `tests/api`, the migration tests and the published-SRD test (`tests/ingestion/mechanical/test_srd_state_on_published_release.py`, about 3 minutes). All pass.
-- **Codex probes, all passing as written:** `test_check_kind_review`, `test_source_coverage_review`, `test_transaction_review`, `test_owner_proof_race`, `test_startup_cleanup_review`, `test_party_hold_review`, `test_state_preservation_review` and `test_grant_family_review`.
+These ran on Windows with the clone's Python 3.12 virtualenv. The status commit on top of this head is docs-only.
+
+- **Static gates.** All pass:
+  - Black (check);
+  - Ruff;
+  - mypy strict (247 files);
+  - pip-audit with the CI ignores (no known vulnerabilities);
+  - the detect-secrets hook over every file changed since `c90a690` (exit 0, baseline unchanged).
+- **Focused tests** (`--no-cov`): 2043 passed, 10 skipped. They cover:
+  - `tests/services/dnd5e_state`;
+  - `tests/pipeline`, `tests/models`, `tests/api` and `tests/persistence`;
+  - the published-SRD state test, `test_oracle_succession` and `test_srd_equipment_catalogue`.
+- **Codex probes:** all eight files as written, 17 tests, passed.
+- **Frontend.** All pass:
+  - `npm ci`, typecheck, ESLint and Prettier;
+  - Vitest, 45 passed;
+  - `npm audit`;
+  - the OpenAPI drift check (no drift);
+  - the production build.
 - **Not run locally:**
-  - The whole suite. Two broad local attempts were cancelled by the coordinator and do not count.
-  - The E2E spine, which launches the app.
-  - The frontend npm gates.
-  - CI runs all three on the exact head.
+  - the full suite with its census and coverage;
+  - E2E, which launches the app; the spine covers Writing and Branching only.
+
+  The draft PR's exact-head CI runs both.
 
 ## Remaining
 
