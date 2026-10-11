@@ -31,9 +31,13 @@ worker proves that another process is not using the same database, so
   to a live process; the leases stay. An owner still starting (file created,
   not yet locked) that meets a held proof cannot lock its file, so its
   :func:`acquire` refuses before writing any lease; it never becomes live
-  underneath a deletion. Owner files are removed only after the commit, and
-  removal is best-effort and idempotent: a file still open elsewhere, or
-  already removed by a concurrent recovery, is left for the next recovery.
+  underneath a deletion. After the commit, recovery removes only the files
+  of owners whose leases it deleted: those owners had locked their file, so
+  they were real and are proven dead. A file whose owner had no lease is
+  kept, because it may belong to an owner still starting that could yet lock
+  it and lease; removing it would leave that owner's later leases without a
+  proof. Removal is best-effort and idempotent (a file still open elsewhere,
+  or already removed by a concurrent recovery, is left alone).
   Leases of the recovering process itself stay (another app in this process
   may be mid-turn). Leases whose owner file is missing, or whose database is
   not a file, cannot be proven abandoned and stay.
@@ -143,7 +147,7 @@ def clear_orphans(factory: sessionmaker[Session]) -> int:
     Returns the number of leases recovered.
     """
     recovered = 0
-    proofs: list[tuple[Path, IO[bytes]]] = []
+    proofs: list[tuple[Path, IO[bytes], int]] = []
     try:
         with factory() as session, session.begin():
             directory = _owner_dir(session)
@@ -162,17 +166,20 @@ def clear_orphans(factory: sessionmaker[Session]) -> int:
                 if not _try_lock(handle):
                     handle.close()  # a live process holds it
                     continue
-                # Proven dead; the lock is held until the deletion commits.
-                proofs.append((path, handle))
+                # Unlocked: the lock is held until the deletion commits.
                 result = session.execute(
                     sa.delete(RpgTurnLeaseORM).where(RpgTurnLeaseORM.owner_id == owner)
                 )
-                recovered += int(result.rowcount)  # type: ignore[attr-defined]
+                deleted = int(result.rowcount)  # type: ignore[attr-defined]
+                proofs.append((path, handle, deleted))
+                recovered += deleted
     finally:
-        for _, proof in proofs:
+        for _, proof, _ in proofs:
             proof.close()
-    for path, _ in proofs:
-        # Still open elsewhere: an unleased file, removed by a later recovery.
-        with contextlib.suppress(OSError):
-            path.unlink(missing_ok=True)
+    for path, _, deleted in proofs:
+        # ponytail: unleased owner files are kept (one small file per such
+        # process); prune by age if they ever accumulate.
+        if deleted:
+            with contextlib.suppress(OSError):
+                path.unlink(missing_ok=True)
     return recovered

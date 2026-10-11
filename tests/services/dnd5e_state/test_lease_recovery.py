@@ -214,3 +214,40 @@ def test_a_concurrent_recovery_holding_the_proof_is_not_duplicated(
     assert leases.clear_orphans(table.factory) == 1
     assert leases.clear_orphans(table.factory) == 0  # idempotent; file is gone
     assert not owner_file.exists()
+
+
+def test_recovery_keeps_a_starting_owners_proof_for_after_it_crashes(
+    table: Table,
+) -> None:
+    """Codex review: cleanup never removes an unleased owner's proof file.
+
+    The child creates its owner file and pauses before locking it. Recovery
+    runs to completion (nothing to recover). The child then locks, leases and
+    crashes; a later recovery must still be able to prove it dead. On POSIX
+    an unlinked-but-open file would have lost that proof.
+    """
+    story, _ = _story_with_character(table)
+    child = subprocess.Popen(
+        [sys.executable, "-c", _STARTING_CHILD, str(table.runtime.engine.url),
+         str(story)],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        text=True,
+        cwd=Path(__file__).resolve().parents[3],
+    )  # fmt: skip
+    assert child.stdin is not None and child.stdout is not None
+    try:
+        assert child.stdout.readline().strip() == "created"
+        assert leases.clear_orphans(table.factory) == 0
+        child.stdin.write("go\n")
+        child.stdin.flush()
+        assert child.stdout.readline().strip() == "leased"
+        child.stdin.write("crash\n")
+        child.stdin.flush()
+        child.wait(timeout=30)
+        assert leases.clear_orphans(table.factory) == 1
+        assert _leases(table) == 0
+    finally:
+        if child.poll() is None:
+            child.kill()
+        child.wait(timeout=30)
