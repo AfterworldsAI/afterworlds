@@ -23,7 +23,6 @@ from sqlalchemy.orm import Session, sessionmaker
 from afterworlds.models.rules_package import RulesPackageBinding
 from afterworlds.persistence.orm.dnd5e_state import (
     Dnd5eCharacterStateORM,
-    Dnd5eCreatureORM,
 )
 from afterworlds.persistence.orm.rules_authority import SharedRuleChangeORM
 from afterworlds.services.dnd5e_state import adoption, leases, shared_changes
@@ -102,18 +101,10 @@ def require_unchanged(
         )
 
 
-def _story_packages(session: Session, story_id: UUID) -> set[tuple[str, str]]:
-    out: set[tuple[str, str]] = set()
-    for table in (Dnd5eCharacterStateORM, Dnd5eCreatureORM):
-        out |= {
-            (p, r)
-            for p, r in session.execute(
-                sa.select(table.package_uuid, table.release_version)
-                .where(table.story_id == str(story_id))
-                .distinct()
-            )
-        }
-    return out
+def _uses(session: Session, story_id: UUID, package: str, release: str) -> bool:
+    """Whether the story uses (package, release): the same rule that decides
+    which stories a change affects (:func:`shared_changes.affected_stories`)."""
+    return str(story_id) in shared_changes.affected_stories(session, package, release)
 
 
 def after_events(factory: sessionmaker[Session], story_id: UUID, *, now: str) -> None:
@@ -124,7 +115,6 @@ def after_events(factory: sessionmaker[Session], story_id: UUID, *, now: str) ->
     A change that still finds affected events simply stays held.
     """
     with factory() as session:
-        packages = _story_packages(session, story_id)
         held = [
             change_id
             for change_id, pkg, release in session.execute(
@@ -138,7 +128,7 @@ def after_events(factory: sessionmaker[Session], story_id: UUID, *, now: str) ->
                 )
                 .order_by(SharedRuleChangeORM.requested_at)
             )
-            if (pkg, release) in packages
+            if _uses(session, story_id, pkg, release)
         ]
     for change_id in held:
         with factory() as session, session.begin():

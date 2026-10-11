@@ -6,7 +6,8 @@ touches the current override rows while it is held; it waits in
 activation must produce.
 
 **Affected events.** A change to (package, release) affects every story with
-a character or creature bound to that package and release. Its events are
+a character or creature bound to that package and release, or a party whose
+items that package governs. Its events are
 that story's pending rolls (``pending_roll_requests.status = 'pending'``) and
 in-flight adjudicating turns (:mod:`.leases`). Existing events finish under
 the rules they started with; the change activates only when none remain.
@@ -39,6 +40,7 @@ from afterworlds.models.rules_package import RuleSliceRequest
 from afterworlds.persistence.orm.dnd5e_state import (
     Dnd5eCharacterStateORM,
     Dnd5eCreatureORM,
+    RpgPartyORM,
     RpgTurnLeaseORM,
 )
 from afterworlds.persistence.orm.rpg import PendingRollRequestORM
@@ -127,7 +129,13 @@ def _current_identity(session: Session, package_uuid: str, release: str) -> str:
 
 
 def affected_stories(session: Session, package_uuid: str, release: str) -> set[str]:
-    """Stories with any character or creature bound to (package, release)."""
+    """Stories that use (package, release) as authority.
+
+    A character or creature bound to it, or a party whose held items are
+    governed by the package. A party records the package, not a release (its
+    items are validated under whatever binding is current), so it counts for
+    every release of its package: conservatively held, never under-held.
+    """
     stories: set[str] = set()
     for table in (Dnd5eCharacterStateORM, Dnd5eCreatureORM):
         stories |= set(
@@ -138,6 +146,13 @@ def affected_stories(session: Session, package_uuid: str, release: str) -> set[s
                 .distinct()
             ).scalars()
         )
+    stories |= set(
+        session.execute(
+            sa.select(RpgPartyORM.story_id)
+            .where(RpgPartyORM.package_uuid == package_uuid)
+            .distinct()
+        ).scalars()
+    )
     return stories
 
 

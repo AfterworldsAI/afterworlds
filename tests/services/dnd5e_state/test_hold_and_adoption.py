@@ -433,3 +433,55 @@ def test_adoption_processing_claims_the_write_lock_first(table: Table) -> None:
         sa.event.remove(table.runtime.engine, "before_cursor_execute", record)
     assert outcome.status is AdoptionStatus.APPLIED
     assert statements[0] == "UPDATE"
+
+
+def _party_story(table: Table, package: UUID) -> tuple[UUID, UUID]:
+    from afterworlds.services.dnd5e_state.holdings import create_party
+
+    with table.factory() as s, s.begin():
+        story = new_story(s)
+        party = create_party(s, story, "The Company", package, now=NOW)
+    return story, party
+
+
+def test_a_partys_package_context_holds_its_storys_events_then_activates(
+    table: Table,
+) -> None:
+    """Codex review: a party is a package-context participant in the hold."""
+    from afterworlds.services.dnd5e_state.holdings import (
+        Holder,
+        HolderKind,
+        holder_authority,
+    )
+
+    story, party = _party_story(table, table.package)
+    lease = leases.acquire(table.factory, story, now=NOW)
+    change = _request(table, HOUSE_RULE)
+    assert _activate(table, change).status is ChangeStatus.HELD
+    with table.factory() as s, s.begin():
+        leases.release(s, lease)
+    after_events(table.factory, story, now=NOW)  # post-event processing
+    with table.factory() as s:
+        assert s.get(SharedRuleChangeORM, change).status == ChangeStatus.ACTIVE.value
+        # New starts validate the party's items under the new current binding.
+        current = current_binding(s, table.package, now=NOW)
+        index = holder_authority(s, Holder(HolderKind.PARTY, party), now=NOW)
+        assert index.binding == current
+        assert current.override_set_uuid != _first_override_set(table)
+
+
+def test_a_party_of_another_package_does_not_hold_a_change(table: Table) -> None:
+    story, _ = _party_story(table, table.runtime.rival_package_uuid)
+    lease = leases.acquire(table.factory, story, now=NOW)
+    try:
+        assert _activate(table, _request(table, HOUSE_RULE)).status is (
+            ChangeStatus.ACTIVE
+        )
+    finally:
+        leases.release_committed(table.factory, lease)
+
+
+def _first_override_set(table: Table) -> UUID:
+    from afterworlds.services.rules_authority import EMPTY_OVERRIDE_SET_UUID
+
+    return UUID(EMPTY_OVERRIDE_SET_UUID)
