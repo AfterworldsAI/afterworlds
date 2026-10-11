@@ -26,7 +26,14 @@ worker proves that another process is not using the same database, so
   ``<database>.turn-owners/<owner>.owner`` for as long as it lives. The OS
   releases that lock when the process ends, however it ends;
 * recovery deletes an owner's leases only if it can take that owner's lock
-  itself. A lock it cannot take belongs to a live process; the leases stay.
+  itself, and it **holds that lock until the deletion has committed**: the
+  proof stays valid for the whole transaction. A lock it cannot take belongs
+  to a live process; the leases stay. An owner still starting (file created,
+  not yet locked) that meets a held proof cannot lock its file, so its
+  :func:`acquire` refuses before writing any lease; it never becomes live
+  underneath a deletion. Owner files are removed only after the commit, and
+  removal is best-effort and idempotent: a file still open elsewhere, or
+  already removed by a concurrent recovery, is left for the next recovery.
   Leases of the recovering process itself stay (another app in this process
   may be mid-turn). Leases whose owner file is missing, or whose database is
   not a file, cannot be proven abandoned and stay.
@@ -135,29 +142,37 @@ def clear_orphans(factory: sessionmaker[Session]) -> int:
     Returns the number of leases recovered.
     """
     recovered = 0
-    dead: list[Path] = []
-    with factory() as session, session.begin():
-        directory = _owner_dir(session)
-        if directory is None or not directory.is_dir():
-            return 0
-        with _GUARD:
-            mine = _OWNERS.get(directory)
-        for path in sorted(directory.glob(f"*{_SUFFIX}")):
-            owner = path.name.removesuffix(_SUFFIX)
-            if owner == mine:
-                continue
-            # ponytail: a file created by a starting owner that has not yet
-            # locked it can look dead; it has no leases yet (it locks before
-            # its first lease), so at worst its later leases are unprovable
-            # and retained.
-            with path.open("rb") as handle:
+    proofs: list[tuple[Path, IO[bytes]]] = []
+    try:
+        with factory() as session, session.begin():
+            directory = _owner_dir(session)
+            if directory is None or not directory.is_dir():
+                return 0
+            with _GUARD:
+                mine = _OWNERS.get(directory)
+            for path in sorted(directory.glob(f"*{_SUFFIX}")):
+                owner = path.name.removesuffix(_SUFFIX)
+                if owner == mine:
+                    continue
+                try:
+                    handle = path.open("rb")
+                except FileNotFoundError:
+                    continue  # a concurrent recovery removed it
                 if not _try_lock(handle):
-                    continue  # a live process holds it
-            result = session.execute(
-                sa.delete(RpgTurnLeaseORM).where(RpgTurnLeaseORM.owner_id == owner)
-            )
-            recovered += int(result.rowcount)  # type: ignore[attr-defined]
-            dead.append(path)
-    for path in dead:
-        path.unlink(missing_ok=True)
+                    handle.close()  # a live process holds it
+                    continue
+                # Proven dead; the lock is held until the deletion commits.
+                proofs.append((path, handle))
+                result = session.execute(
+                    sa.delete(RpgTurnLeaseORM).where(RpgTurnLeaseORM.owner_id == owner)
+                )
+                recovered += int(result.rowcount)  # type: ignore[attr-defined]
+    finally:
+        for _, handle in proofs:
+            handle.close()
+    for path, _ in proofs:
+        try:
+            path.unlink(missing_ok=True)
+        except OSError:
+            pass  # still open elsewhere: an unleased file, removed next time
     return recovered

@@ -123,3 +123,94 @@ def test_a_lease_whose_owner_cannot_be_proven_dead_is_kept(table: Table) -> None
         )
     leases.clear_orphans(table.factory)
     assert _leases(table) == 1
+
+
+_STARTING_CHILD = textwrap.dedent("""
+    import os, sys
+    from uuid import UUID
+    from afterworlds.persistence.database import create_engine, create_session_factory
+    import afterworlds.persistence.orm.story  # registers the FK target
+    from afterworlds.services.dnd5e_state import leases
+
+    real_lock = leases._try_lock
+
+    def paused(handle):
+        print("created", flush=True)  # owner file exists, not yet locked
+        sys.stdin.readline()
+        return real_lock(handle)
+
+    leases._try_lock = paused
+    factory = create_session_factory(create_engine(sys.argv[1]))
+    try:
+        leases.acquire(factory, UUID(sys.argv[2]), now="t")
+    except RuntimeError:
+        print("refused", flush=True)
+        os._exit(0)
+    print("leased", flush=True)
+    sys.stdin.readline()
+    os._exit(0)
+    """)
+
+
+def test_an_owner_starting_during_recovery_cannot_become_live_under_it(
+    table: Table,
+) -> None:
+    """Codex review: the proof lock is held until the deletion commits.
+
+    The child creates its owner file and pauses before locking it; recovery
+    proves that file unowned and, at its DELETE, lets the child continue. The
+    child cannot take a lock recovery still holds, so it refuses before writing
+    a lease; no live lease is ever deleted.
+    """
+    story, _ = _story_with_character(table)
+    child = subprocess.Popen(
+        [sys.executable, "-c", _STARTING_CHILD, str(table.runtime.engine.url),
+         str(story)],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        text=True,
+        cwd=Path(__file__).resolve().parents[3],
+    )  # fmt: skip
+    assert child.stdin is not None and child.stdout is not None
+    assert child.stdout.readline().strip() == "created"
+    outcome: list[str] = []
+
+    def at_delete(*args: object) -> None:
+        if str(args[2]).startswith("DELETE FROM rpg_turn_leases") and not outcome:
+            child.stdin.write("go\n")  # type: ignore[union-attr]
+            child.stdin.flush()  # type: ignore[union-attr]
+            outcome.append(child.stdout.readline().strip())  # type: ignore[union-attr]
+
+    sa.event.listen(table.runtime.engine, "before_cursor_execute", at_delete)
+    try:
+        leases.clear_orphans(table.factory)
+    finally:
+        sa.event.remove(table.runtime.engine, "before_cursor_execute", at_delete)
+        child.kill()
+        child.wait(timeout=30)
+    assert outcome == ["refused"]
+    assert _leases(table) == 0
+
+
+def test_a_concurrent_recovery_holding_the_proof_is_not_duplicated(
+    table: Table, other_process: tuple[subprocess.Popen[str], UUID]
+) -> None:
+    child, _ = other_process
+    assert child.stdin is not None
+    child.stdin.write("go\n")
+    child.stdin.flush()
+    child.wait(timeout=30)
+    database = Path(str(table.runtime.engine.url.database)).resolve()
+    mine = set(leases._OWNERS.values())  # noqa: SLF001
+    (owner_file,) = [
+        p
+        for p in database.with_name(database.name + ".turn-owners").glob("*.owner")
+        if p.stem not in mine
+    ]
+    with owner_file.open("rb") as proof:  # another recoverer, mid-transaction
+        assert leases._try_lock(proof)  # noqa: SLF001
+        assert leases.clear_orphans(table.factory) == 0
+        assert _leases(table) == 1
+    assert leases.clear_orphans(table.factory) == 1
+    assert leases.clear_orphans(table.factory) == 0  # idempotent; file is gone
+    assert not owner_file.exists()
