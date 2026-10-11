@@ -34,7 +34,7 @@ Families follow the supporting source inventory's coverage routes F1–F20. Rout
 | F2 species, background | `species`, `background` (`OriginSelection`) | `test_invalid_identities_and_wrong_kinds_are_typed` |
 | F3 classes, subclass, levels, XP | `classes` (`ClassLevel`), `level_history`, `experience_points` | All twelve classes at four tiers; multiclass; the subclass catalogue; `test_structural_integrity_rules` |
 | F4 abilities and sourced adjustments | `ability_scores` (base only), `ability_adjustments` | The adapter refuses adjusted totals (`tests/pipeline/rpg/test_adapter`) |
-| F5 proficiencies, expertise, training, languages | Skill, save, weapon, armor and tool grants; `languages` | G1 weapon identities; vocabulary tests |
+| F5 proficiencies, expertise, training, languages | Skill, save, weapon, armor and tool grants; `languages`. A weapon grant names a weapon (an accepted record with a weapon category) or a category; a tool grant names a member of the Tools catalogue. | `test_identity_domains` (armor as a weapon, a weapon as a tool, a rule as a sense: refused by validation, the service and adoption; all 38 SRD weapons, categories, tools and senses stay valid); vocabulary tests |
 | F6 feats | `feats` (`FeatSelection`) | Round trip; validation |
 | F7 feature choices | `choices` (`ChoiceRecord` with source `schema_id` and typed `selected`). A selection is a record, a component option or a closed-vocabulary member. | `test_selections_and_parameters` (invalid record, invalid option, misplaced or unknown vocabulary, untyped value, schema drift, Metamagic, Fighting Style, Skilled, Magic Initiate); origin vocabularies against the source (`tests/models/test_dnd5e_vocabulary`) |
 | F8 traits | `size`, `creature_type`, `speeds` (`hover` on fly only), `senses` (telepathy is a sense grant), `damage_responses`, `condition_immunities`, `base_armor_class` | Round trip; `test_telepathy_is_a_sense_grant…`; `test_parameter_structure_is_enforced`; `test_a_selected_base_armor_class_source_is_validated` |
@@ -118,6 +118,13 @@ Drift and boundaries are stated explicitly below.
   - A choice's selected identities and an effect's chosen parameters are records, component options or source-backed vocabulary members. Nothing is free text.
   - Validation checks only that each identity exists. Origin-choice vocabularies are valid only under the component that offers them.
   - References to characters, creatures, Story Bible cast entries and items are checked against the subject's story on every production write, including turn writes. Cast entries are read-only references and write no canon.
+- **Identity domains are narrower than record kinds.**
+  - Defect family: a broad accepted record kind mistaken for a field's narrower structural identity domain.
+  - A weapon proficiency names a record the accepted authority gives a weapon category (the G1 schema-18 facts).
+  - A tool proficiency names a member of the accepted Tools catalogue.
+  - A sense grant names a special sense the source lists (`playing-the-game.md`:756), or Telepathy.
+  - Other identity fields were sampled and were already safe. They are closed vocabularies, exact record kinds, the subclass catalogue, or the Poison and Contagion catalogues.
+  - A record selected in a choice is checked for identity only. Deciding which records a choice admits is selector work, which belongs to CRD Issue 15c.
 - **Hazards are recorded inputs.**
   - Exhaustion and damage are not derived.
   - The requirements by size, the breath a Constitution modifier allows, and contagion saves are not executed.

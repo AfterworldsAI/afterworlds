@@ -28,6 +28,7 @@ Branch `codex/issue2b-character-state`, base `c90a690`. The exact head is report
   - Turn writes check references.
   - Familiar readiness is source-specific.
   - Hazards are a typed family.
+- **Final structural identity review.** Weapon, tool and sense grants are now checked against their own identity domains (`8c64c2a`). The family disposition is in that commit and in the Architecture Notes.
 - **Advisor items.**
   - The readiness gate.
   - Adoption takes the write lock first.
@@ -38,7 +39,7 @@ Branch `codex/issue2b-character-state`, base `c90a690`. The exact head is report
 
 - **Static gates:** Black (check), Ruff, mypy strict (247 files), pip-audit with the CI ignores (no known vulnerabilities), and the detect-secrets hook over every changed file against the baseline (exit 0, baseline unchanged).
 - **Focused tests:** the 2b service suite, `tests/pipeline`, `tests/models`, `tests/api`, the migration tests and the published-SRD test (`tests/ingestion/mechanical/test_srd_state_on_published_release.py`, about 3 minutes). All pass.
-- **Codex probes, all passing as written:** `test_check_kind_review`, `test_source_coverage_review`, `test_transaction_review`, `test_owner_proof_race`, `test_startup_cleanup_review`, `test_party_hold_review` and `test_state_preservation_review`.
+- **Codex probes, all passing as written:** `test_check_kind_review`, `test_source_coverage_review`, `test_transaction_review`, `test_owner_proof_race`, `test_startup_cleanup_review`, `test_party_hold_review`, `test_state_preservation_review` and `test_grant_family_review`.
 - **Not run locally:**
   - The whole suite. Two broad local attempts were cancelled by the coordinator and do not count.
   - The E2E spine, which launches the app.
