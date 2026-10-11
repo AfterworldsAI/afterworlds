@@ -17,6 +17,9 @@ only after fresh validation:
   incompatible or cannot be proven compatible, when the target or intent
   drifted, when the referenced change was rejected or withdrawn, or when a
   conflicting write lands during the final commit.
+* Compatibility covers the items the subject holds: an item identity, item
+  component or applied poison the target no longer states refuses the
+  adoption rather than leaving equipment the target removed.
 * On success the subject is rebound: its state document is untouched and its
   binding history gains a row. Adopting a character never adopts its
   creatures.
@@ -35,12 +38,24 @@ from afterworlds.models.rules_package import RulesPackageBinding
 from afterworlds.persistence.orm.dnd5e_state import Dnd5eAdoptionRequestORM
 from afterworlds.persistence.orm.rules_authority import SharedRuleChangeORM
 from afterworlds.services.dnd5e_state import store
-from afterworlds.services.dnd5e_state.authority import authority_index, current_binding
+from afterworlds.services.dnd5e_state.authority import (
+    AuthorityIndex,
+    authority_index,
+    current_binding,
+)
 from afterworlds.services.dnd5e_state.errors import (
     BindingRefusedError,
+    FailureCode,
+    StateFailure,
     StaleRevisionError,
     StateServiceError,
     SubjectNotFoundError,
+)
+from afterworlds.services.dnd5e_state.holdings import (
+    Holder,
+    HolderKind,
+    item_identity_failure,
+    items_held_by,
 )
 from afterworlds.services.dnd5e_state.shared_changes import (
     ChangeStatus,
@@ -179,6 +194,24 @@ def _finish(
     return AdoptionOutcome(row.request_id, status, reason)
 
 
+def _held_item_failures(
+    session: Session, index: AuthorityIndex, kind: str, subject_id: UUID
+) -> tuple[StateFailure, ...]:
+    """Items the subject holds that the target authority cannot represent."""
+    out = []
+    for item in items_held_by(session, Holder(HolderKind(kind), subject_id)):
+        failure = item_identity_failure(
+            index, item.record_key, item.component_key, item.applied_poison_record_key
+        )
+        if failure is not None:
+            out.append(
+                StateFailure(
+                    FailureCode.INVALID_IDENTITY, f"items[{item.item_id}]", failure
+                )
+            )
+    return tuple(out)
+
+
 def process(session: Session, request_id: str, *, now: str) -> AdoptionOutcome:
     """Advance one request as far as current state allows. Idempotent."""
     row = session.get(Dnd5eAdoptionRequestORM, request_id, populate_existing=True)
@@ -236,7 +269,7 @@ def process(session: Session, request_id: str, *, now: str) -> AdoptionOutcome:
         validate_character(index, stored.state)
         if isinstance(stored, store.StoredCharacter)
         else validate_creature(index, stored.state)
-    )
+    ) + _held_item_failures(session, index, kind, subject_id)
     if failures:
         return _finish(
             row,

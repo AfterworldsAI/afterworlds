@@ -63,6 +63,9 @@ class RpgPartyORM(Base):
         index=True,
     )
     label: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    #: The Rules Package whose current exact binding governs items the party
+    #: holds; checked at every item operation, never cached as a binding.
+    package_uuid: Mapped[str] = mapped_column(sa.String(36), nullable=False)
     created_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
 
 
@@ -181,6 +184,10 @@ class Dnd5eItemInstanceORM(Base):
     equipped: Mapped[bool] = mapped_column(sa.Boolean, nullable=False)
     attuned_subject_id: Mapped[str | None] = mapped_column(sa.String(36), nullable=True)
     charges_remaining: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
+    #: An injury poison applied to this item (an accepted poison record).
+    applied_poison_record_key: Mapped[str | None] = mapped_column(
+        sa.Text, nullable=True
+    )
     revision: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     created_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
 
@@ -262,4 +269,6 @@ class RpgTurnLeaseORM(Base):
         nullable=False,
         index=True,
     )
+    #: The process that owns the lease (see ``services.dnd5e_state.leases``).
+    owner_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
     started_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)

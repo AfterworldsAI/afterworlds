@@ -56,9 +56,9 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
     upgrade_to_head(settings.database_url)
     engine = create_engine(settings.database_url)
     session_factory = create_session_factory(engine)
-    # CRD Issue 2b: a turn lease left by a process that stopped mid-turn marks
-    # no event (its turn never committed). One worker serves the app, so none
-    # can be live at start; recover them so held rule changes are not blocked.
+    # CRD Issue 2b: recover turn leases whose owning process is proven dead
+    # (its OS owner lock is free). A live or unprovable lease is kept, so a
+    # second app or process on the same store cannot erase an in-flight turn.
     clear_orphan_turn_leases(session_factory)
 
     app.state.settings = settings

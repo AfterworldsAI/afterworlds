@@ -10,7 +10,7 @@ against the committed authority in ``test_state_validation.py``.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
@@ -32,6 +32,7 @@ from afterworlds.models.dnd5e_state import (
     SpellAccess,
 )
 from afterworlds.models.enums import ConditionVisibility, IntentType, StoryMode
+from afterworlds.models.rules_package import RulesPackageBinding
 from afterworlds.models.story import Story
 from afterworlds.models.turn import Turn
 from afterworlds.persistence.crud.character_sheet import create_rpg_base_sheet
@@ -143,3 +144,42 @@ def resolve_pending_roll(session: Session, request_id: str) -> None:
 def table(runtime: RuntimeFixture) -> Iterator[Table]:  # noqa: F811
     runtime.session.commit()
     yield Table(runtime, create_session_factory(runtime.engine))
+
+
+@pytest.fixture()
+def srd_content(table: Table) -> Iterator[Callable[..., None]]:  # noqa: F811
+    """Give a binding the committed SRD records, alongside its own.
+
+    The bounded projection a real database publishes here has no item records,
+    and publishing the full SRD costs minutes. This seeds the binding-keyed
+    authority cache instead: production code still resolves the holder's
+    binding, requires it current and looks its authority up by that exact
+    binding; only the *content* behind the binding is the committed SRD's.
+    ``without`` drops record keys, to model a binding that lacks them.
+    ``tests/ingestion/mechanical/test_srd_state_on_published_release.py``
+    proves the same items against the genuinely published SRD.
+    """
+    from afterworlds.services.dnd5e_state import authority
+    from tests.services.dnd5e_state.builders import real_index
+
+    seeded: list[RulesPackageBinding] = []
+
+    def seed(binding: RulesPackageBinding, *, without: tuple[str, ...] = ()) -> None:
+        with table.factory() as s:
+            own = authority.authority_index(s, binding, now=NOW)
+        srd = real_index()
+        records = {**own.records, **srd.records}
+        for key in without:
+            records.pop(key, None)
+        with authority._CACHE_LOCK:  # noqa: SLF001
+            authority._CACHE[binding] = authority.AuthorityIndex(  # noqa: SLF001
+                binding=binding,
+                records=records,
+                members={**own.members, **srd.members},
+            )
+        seeded.append(binding)
+
+    yield seed
+    with authority._CACHE_LOCK:  # noqa: SLF001
+        for binding in seeded:
+            authority._CACHE.pop(binding, None)  # noqa: SLF001

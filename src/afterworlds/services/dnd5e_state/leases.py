@@ -14,15 +14,33 @@ SQLite admits one writer at a time, so either the lease commits first and
 activation sees it and holds, or activation commits first and the turn then
 reads a binding that is no longer current and refuses before doing any work.
 
-:func:`clear_orphans` runs once at application start. The application runs a
-single worker (the per-story lock is in-process), so a lease present at start
-belongs to a turn that never committed: no event exists behind it. Clearing it
-recovers a lease, never a pending roll; pending rolls are never cancelled or
+Recovery needs proof, not an assumption
+---------------------------------------
+A lease left by a process that stopped mid-turn marks no event, and would
+hold every affected rule change forever. Nothing about a single configured
+worker proves that another process is not using the same database, so
+:func:`clear_orphans` deletes a lease only when its **owner is proven dead**:
+
+* each process that takes a lease is an *owner* with its own id, recorded on
+  every lease it takes, and holds an exclusive OS lock on a sidecar file
+  ``<database>.turn-owners/<owner>.owner`` for as long as it lives. The OS
+  releases that lock when the process ends, however it ends;
+* recovery deletes an owner's leases only if it can take that owner's lock
+  itself. A lock it cannot take belongs to a live process; the leases stay.
+  Leases of the recovering process itself stay (another app in this process
+  may be mid-turn). Leases whose owner file is missing, or whose database is
+  not a file, cannot be proven abandoned and stay.
+
+Recovery never touches a pending roll; pending rolls are never cancelled or
 expired.
 """
 
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+from threading import Lock
+from typing import IO
 from uuid import UUID, uuid4
 
 import sqlalchemy as sa
@@ -32,13 +50,68 @@ from afterworlds.persistence.orm.dnd5e_state import RpgTurnLeaseORM
 
 __all__ = ["acquire", "clear_orphans", "release", "release_committed"]
 
+_SUFFIX = ".owner"
+_GUARD = Lock()
+#: This process's owner id per owner directory (``None``: no file database).
+_OWNERS: dict[Path | None, str] = {}
+#: Open, locked owner files; held for the life of the process.
+_HANDLES: list[IO[bytes]] = []
+
+
+def _owner_dir(session: Session) -> Path | None:
+    url = session.get_bind().engine.url
+    if url.get_backend_name() != "sqlite" or url.database in (None, "", ":memory:"):
+        return None
+    database = Path(str(url.database)).resolve()
+    return database.with_name(database.name + ".turn-owners")
+
+
+def _try_lock(handle: IO[bytes]) -> bool:
+    """Take an exclusive, non-blocking OS lock on *handle*'s first byte."""
+    try:
+        if sys.platform == "win32":
+            import msvcrt
+
+            handle.seek(0)
+            msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        return False
+    return True
+
+
+def _owner(session: Session) -> str:
+    """This process's owner id for the session's database, created once."""
+    directory = _owner_dir(session)
+    with _GUARD:
+        owner = _OWNERS.get(directory)
+        if owner is None:
+            owner = str(uuid4())
+            if directory is not None:
+                directory.mkdir(exist_ok=True)
+                handle = (directory / f"{owner}{_SUFFIX}").open("xb")
+                if not _try_lock(handle):
+                    handle.close()
+                    raise RuntimeError(f"cannot lock turn-lease owner file {owner}")
+                _HANDLES.append(handle)
+            _OWNERS[directory] = owner
+    return owner
+
 
 def acquire(factory: sessionmaker[Session], story_id: UUID, *, now: str) -> str:
     """Commit a lease for *story_id* in its own transaction; return its id."""
     lease_id = str(uuid4())
     with factory() as session, session.begin():
         session.add(
-            RpgTurnLeaseORM(lease_id=lease_id, story_id=str(story_id), started_at=now)
+            RpgTurnLeaseORM(
+                lease_id=lease_id,
+                story_id=str(story_id),
+                owner_id=_owner(session),
+                started_at=now,
+            )
         )
     return lease_id
 
@@ -57,7 +130,34 @@ def release_committed(factory: sessionmaker[Session], lease_id: str) -> None:
 
 
 def clear_orphans(factory: sessionmaker[Session]) -> int:
-    """At application start, delete leases no running turn can own."""
+    """Delete the leases of owners proven dead; keep every other lease.
+
+    Returns the number of leases recovered.
+    """
+    recovered = 0
+    dead: list[Path] = []
     with factory() as session, session.begin():
-        result = session.execute(sa.delete(RpgTurnLeaseORM))
-        return int(result.rowcount)  # type: ignore[attr-defined]
+        directory = _owner_dir(session)
+        if directory is None or not directory.is_dir():
+            return 0
+        with _GUARD:
+            mine = _OWNERS.get(directory)
+        for path in sorted(directory.glob(f"*{_SUFFIX}")):
+            owner = path.name.removesuffix(_SUFFIX)
+            if owner == mine:
+                continue
+            # ponytail: a file created by a starting owner that has not yet
+            # locked it can look dead; it has no leases yet (it locks before
+            # its first lease), so at worst its later leases are unprovable
+            # and retained.
+            with path.open("rb") as handle:
+                if not _try_lock(handle):
+                    continue  # a live process holds it
+            result = session.execute(
+                sa.delete(RpgTurnLeaseORM).where(RpgTurnLeaseORM.owner_id == owner)
+            )
+            recovered += int(result.rowcount)  # type: ignore[attr-defined]
+            dead.append(path)
+    for path in dead:
+        path.unlink(missing_ok=True)
+    return recovered

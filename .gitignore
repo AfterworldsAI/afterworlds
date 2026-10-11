@@ -225,3 +225,6 @@ frontend/blob-report/
 # (SHA-256 bfd0d371...), by issue-2b-g1-candidate/scripts/build_candidate.py;
 # it is review evidence only and never committed.
 .claude/review-notes/issue-2b-g1-candidate/candidate/srd-5-2-1-corpus-8781d4e0-a3b-g1-candidate.json
+
+# CRD Issue 2b turn-lease owner locks (beside a SQLite store)
+*.turn-owners/

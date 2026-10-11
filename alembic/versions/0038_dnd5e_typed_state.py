@@ -108,6 +108,7 @@ def upgrade() -> None:
         sa.Column("party_id", sa.String(36), primary_key=True),
         _story(),
         sa.Column("label", sa.Text, nullable=False),
+        sa.Column("package_uuid", sa.String(36), nullable=False),
         sa.Column("created_at", sa.String(64), nullable=False),
     )
     op.create_table(
@@ -179,6 +180,7 @@ def upgrade() -> None:
         sa.Column("equipped", sa.Boolean, nullable=False),
         sa.Column("attuned_subject_id", sa.String(36), nullable=True),
         sa.Column("charges_remaining", sa.Integer, nullable=True),
+        sa.Column("applied_poison_record_key", sa.Text, nullable=True),
         sa.Column("revision", sa.Integer, nullable=False),
         sa.Column("created_at", sa.String(64), nullable=False),
         sa.CheckConstraint(
@@ -230,6 +232,7 @@ def upgrade() -> None:
         "rpg_turn_leases",
         sa.Column("lease_id", sa.String(36), primary_key=True),
         _story(),
+        sa.Column("owner_id", sa.String(36), nullable=False),
         sa.Column("started_at", sa.String(64), nullable=False),
     )
     op.create_table(

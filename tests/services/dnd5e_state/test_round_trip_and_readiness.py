@@ -70,7 +70,7 @@ def test_a_complete_character_of_every_class_round_trips_every_family(
             )
         }
     )
-    unset = [n for n in state.model_fields if getattr(state, n) is None]
+    unset = [n for n in type(state).model_fields if getattr(state, n) is None]
     # Only families the class makes inapplicable may be unset.
     assert set(unset) <= {"spell_slot_pools", "spell_access"}
     binding = _binding(table)
