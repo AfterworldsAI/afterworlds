@@ -14,10 +14,11 @@ node-advancement policy, a story-graph engine, or new mode behavior:
 
 2. Per-mode session-state bootstrap: RPG session state has a required
    ``character_sheet_id`` FK, so a minimal ``RpgCharacterSheetBase`` row is
-   created first (character_name/rules_package_id only -- no ability scores
-   or adjudicable mechanics; the RPG conversational setup pipeline, already
-   built in Issue 15, fills those in). Branching and Writing session state
-   have no such precondition and are created with setup fields empty/None.
+   created first (character identity only -- no mechanics; the character's
+   typed CRD Issue 2b state, bound to an exact Rules Package binding, is
+   created separately through ``services.dnd5e_state``). Branching and
+   Writing session state have no such precondition and are created with setup
+   fields empty/None.
 """
 
 from __future__ import annotations
@@ -150,7 +151,6 @@ def ensure_mode_session_state(
             session,
             RpgCharacterSheetBase(
                 story_id=story_id,
-                rules_package_id="dnd5e",
                 character_name=character_name or "Unnamed",
                 created_at=now,
                 updated_at=now,

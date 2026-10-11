@@ -57,7 +57,7 @@ def test_alembic_upgrade_head() -> None:
             "branching_session_states",
             "writing_session_states",
             "rpg_character_sheet_bases",
-            "dnd5e_character_sheets",
+            "dnd5e_character_states",
             "rpg_roll_audit",
             "pending_roll_requests",
         ]

@@ -46,7 +46,6 @@ import pytest
 from sqlalchemy import select
 
 from afterworlds.entitlement.enums import RuntimeAccessPath
-from afterworlds.models.character_sheet import Dnd5eAbilityScores, Dnd5eCharacterSheet
 from afterworlds.models.context import AssembledContext
 from afterworlds.models.enums import (
     DiceHandling,
@@ -113,6 +112,7 @@ from afterworlds.pipeline.safety.models import (
     SafetyVerdict,
 )
 from afterworlds.pipeline.writer.models import WriterResult
+from afterworlds.services.dnd5e_state.turn import TurnCharacter
 from afterworlds.services.rules_authority import AuthorityOutcome
 from afterworlds.services.story_bible import StoryBibleService
 from tests.pipeline.orchestrator.conftest import (
@@ -127,6 +127,7 @@ from tests.pipeline.orchestrator.conftest import (
     make_intent,
     make_refusal,
 )
+from tests.rpg_characters import item, turn_character
 
 # ---------------------------------------------------------------------------
 # Test-scoped sojourner + fake resolver
@@ -1264,41 +1265,22 @@ def _make_rpg_session_state(story_id: UUID) -> RpgSessionState:
     )
 
 
-def _make_rpg_sheet(story_id: UUID) -> Dnd5eCharacterSheet:
-    return Dnd5eCharacterSheet(
-        story_id=story_id,
-        rules_package_id="dnd5e-v1",
-        character_name="Aldric",
-        created_at=_NOW_RPG,
-        updated_at=_NOW_RPG,
-        character_class="fighter",
-        background="soldier",
-        level=3,
-        ability_scores=Dnd5eAbilityScores(
-            strength=16,
-            dexterity=12,
-            constitution=14,
-            intelligence=10,
-            wisdom=11,
-            charisma=9,
-        ),
-        skills={},
-        current_hp=25,
-        maximum_hp=28,
-    )
+def _make_rpg_sheet(story_id: UUID) -> TurnCharacter:
+    return turn_character(story_id=story_id, name="Aldric", hp=(25, 28))
 
 
 class _FakeVisibleStateService:
     """Returns a canned RpgVisibleState for testing."""
 
-    def build(self, sheet: Dnd5eCharacterSheet) -> RpgVisibleState:
+    def build(self, stored: object, items: object = ()) -> RpgVisibleState:
+        state = stored.state  # type: ignore[attr-defined]
         return RpgVisibleState(
             character=VisibleCharacterState(
-                character_name=sheet.character_name,
-                character_class=sheet.character_class,
-                level=sheet.level,
-                current_hp=sheet.current_hp,
-                maximum_hp=sheet.maximum_hp,
+                character_name=stored.character_name,  # type: ignore[attr-defined]
+                character_class="Rogue 5",
+                level=sum(c.level for c in state.classes),
+                current_hp=state.hit_points.current,
+                maximum_hp=state.hit_points.maximum,
                 active_conditions=(),
             ),
             inventory=(),
@@ -1408,10 +1390,9 @@ class TestRpgOocStateGrounding:
             e.content for e in ledger.entries if e.pass_name == "rpg_ooc_state"
         )
         assert "Aldric" in content
-        assert "fighter" in content
-        assert "3" in content
-        assert "25" in content
-        assert "28" in content
+        assert "class: Rogue 5" in content
+        assert "level: 5" in content
+        assert "hp: 25/28" in content
 
     def test_rpg_ooc_with_pending_roll_includes_summary(
         self, session_factory, seeded_story
@@ -1637,31 +1618,27 @@ class TestRpgOocStateGrounding:
         self, session_factory, seeded_story
     ) -> None:
         """Hidden condition excluded; visible condition present in rpg_ooc_state."""
-        from afterworlds.models.character_sheet import Dnd5eActiveCondition
+        from afterworlds.ingestion.mechanical.representation import ConditionKind
+        from afterworlds.models.dnd5e_state import ConditionInstance
         from afterworlds.models.enums import ConditionVisibility
         from afterworlds.pipeline.rpg.visible_state import RpgVisibleStateService
 
         story_id, node_id = seeded_story
-        sheet_id = uuid4()
-        visible_cond = Dnd5eActiveCondition(
-            sheet_id=sheet_id,
-            identifier="blessed",
-            display_label="Blessed",
-            source="spell",
+        visible_cond = ConditionInstance(
+            instance_id="blessed",
+            condition=ConditionKind.FRIGHTENED,
             visibility=ConditionVisibility.VISIBLE,
         )
-        hidden_cond = Dnd5eActiveCondition(
-            sheet_id=sheet_id,
-            identifier="poisoned_secret",
-            display_label="Poisoned",
-            source="trap",
+        hidden_cond = ConditionInstance(
+            instance_id="secret",
+            condition=ConditionKind.POISONED,
             visibility=ConditionVisibility.HIDDEN,
         )
         writer = FakeWriterService()
 
         def resolver(sid):
-            sheet = _make_rpg_sheet(sid).model_copy(
-                update={"active_conditions": [visible_cond, hidden_cond]}
+            sheet = turn_character(
+                story_id=sid, name="Aldric", conditions=(visible_cond, hidden_cond)
             )
             return _make_rpg_session_state(sid), sheet
 
@@ -1691,7 +1668,7 @@ class TestRpgOocStateGrounding:
         content = next(
             e.content for e in ledger.entries if e.pass_name == "rpg_ooc_state"
         )
-        assert "Blessed" in content
+        assert "Frightened" in content
         assert "Poisoned" not in content
 
 
@@ -4729,40 +4706,18 @@ class _FakeRpgAdjudicationService:
 
 
 def _make_rpg_session_and_sheet() -> tuple[object, object]:
-    """Return (RpgSessionState, Dnd5eCharacterSheet) for an in-play RPG turn."""
-    from datetime import UTC, datetime
+    """Return (RpgSessionState, TurnCharacter) for an in-play RPG turn."""
     from uuid import uuid4
 
-    from afterworlds.models.character_sheet import (
-        Dnd5eAbilityScores,
-        Dnd5eCharacterSheet,
-    )
     from afterworlds.models.enums import DiceHandling, RpgPlayStatus
     from afterworlds.models.session import RpgSessionState
 
-    now = datetime(2026, 1, 1, tzinfo=UTC)
     story_id = uuid4()
-    sheet = Dnd5eCharacterSheet(
+    sheet = turn_character(
         story_id=story_id,
-        rules_package_id="dnd5e-v1",
-        character_name="Aldric",
-        character_class="Fighter",
-        background="Soldier",
-        level=3,
-        ability_scores=Dnd5eAbilityScores(
-            strength=16,
-            dexterity=12,
-            constitution=15,
-            intelligence=10,
-            wisdom=11,
-            charisma=9,
-        ),
-        equipment=["Longsword", "Shield"],
-        current_hp=28,
-        maximum_hp=28,
-        active_conditions=[],
-        created_at=now,
-        updated_at=now,
+        name="Aldric",
+        hp=(28, 28),
+        items=(item("equipment.weapons.longsword"), item("equipment.armor.shield")),
     )
     session_state = RpgSessionState(
         story_id=story_id,
@@ -4836,10 +4791,13 @@ class TestRpgVisibleState:
         assert result.disposition is PipelineDisposition.DELIVERED
         assert result.rpg_visible_state is not None
         assert result.rpg_visible_state.character.character_name == "Aldric"
-        assert result.rpg_visible_state.character.character_class == "Fighter"
+        assert result.rpg_visible_state.character.character_class == "Rogue 5"
         assert result.rpg_visible_state.character.current_hp == 28
         assert result.rpg_visible_state.character.active_conditions == ()
-        assert len(result.rpg_visible_state.inventory) == 2  # noqa: PLR2004
+        assert [i.name for i in result.rpg_visible_state.inventory] == [
+            "Longsword",
+            "Shield",
+        ]
 
     def test_visible_state_none_when_service_not_wired(
         self, session_factory: object, seeded_story: tuple[object, object]
@@ -5821,7 +5779,7 @@ class TestRuleSlicePreContext:
         spy: _SpyContextBuilder,
         *,
         intent_type: IntentType = IntentType.IN_CHARACTER_ACTION,
-        rules_package_id: str = "dnd5e-v1",
+        binding_refusal: Exception | None = None,
         mode: StoryMode = StoryMode.RPG,
         wire_adjudication: bool = True,
         play_status_setup: bool = False,
@@ -5829,7 +5787,12 @@ class TestRuleSlicePreContext:
         from afterworlds.pipeline.rpg.dice import SystemRandomDiceService
 
         session_state, sheet = _make_rpg_session_and_sheet()
-        sheet = sheet.model_copy(update={"rules_package_id": rules_package_id})
+
+        def resolve(_sid: object) -> tuple[object, object]:
+            if binding_refusal is not None:
+                raise binding_refusal
+            return session_state, sheet
+
         if play_status_setup:
             from afterworlds.models.enums import DiceHandling, RpgPlayStatus
             from afterworlds.models.session import RpgSessionState
@@ -5855,7 +5818,7 @@ class TestRuleSlicePreContext:
             rpg_adjudication_service=(
                 _FakeRpgAdjudicationService() if wire_adjudication else None  # type: ignore[arg-type]
             ),
-            rpg_session_sheet_resolver=lambda _sid: (session_state, sheet),  # type: ignore[arg-type]
+            rpg_session_sheet_resolver=resolve,  # type: ignore[arg-type]
             rpg_dice_service=SystemRandomDiceService(seed=42),  # type: ignore[arg-type]
             rpg_visible_state_service=_FakeVisibleStateService(),  # type: ignore[arg-type]
         )
@@ -5872,12 +5835,9 @@ class TestRuleSlicePreContext:
         it with a whole-package request: which mechanics an adjudicating turn
         needs is CRD Issue 15c's selection contract.
         """
-        from uuid import uuid4
-
-        pkg_id = str(uuid4())
         story_id, node_id = seeded_story
         spy = _SpyContextBuilder()
-        orch = self._make_orch(session_factory, spy, rules_package_id=pkg_id)
+        orch = self._make_orch(session_factory, spy)
         orch.orchestrate_turn(
             story_id,  # type: ignore[arg-type]
             node_id,  # type: ignore[arg-type]
@@ -5888,59 +5848,36 @@ class TestRuleSlicePreContext:
         assert len(spy.rule_slice_requests) == 1
         assert spy.rule_slice_requests[0] is None
 
-    def test_slug_binding_without_a_resolver_is_not_swallowed(
-        self, session_factory: object, seeded_story: tuple[object, object]
-    ) -> None:
-        """No resolver wired → no resolution attempted, and no parse swallowed.
-
-        The removed path parsed the reference with ``UUID(...)`` and caught the
-        ``ValueError``, so a malformed reference and a package with no rules
-        produced the same silence. There is no such parse now: with no
-        code-owned resolver wired there is nothing to resolve against, and the
-        turn proceeds under ADR-015's ``undetermined`` behaviour.
-        """
-        story_id, node_id = seeded_story
-        spy = _SpyContextBuilder()
-        orch = self._make_orch(session_factory, spy, rules_package_id="dnd5e-v1")
-        result = orch.orchestrate_turn(
-            story_id,  # type: ignore[arg-type]
-            node_id,  # type: ignore[arg-type]
-            "I attack the goblin.",
-            _SOJOURNER,
-            RuntimeAccessPath.HOSTED,
-        )
-        assert result.disposition is not PipelineDisposition.PIPELINE_ERROR
-        assert len(spy.rule_slice_requests) == 1
-        assert spy.rule_slice_requests[0] is None
-
     @pytest.mark.parametrize(
-        ("outcome", "expected"),
+        "outcome",
         [
-            (AuthorityOutcome.AMBIGUOUS, "ambiguous"),
-            (AuthorityOutcome.INVALID_SELECTOR, "invalid_selector"),
-            (AuthorityOutcome.ABSENT, "absent"),
+            AuthorityOutcome.STALE,
+            AuthorityOutcome.UNPUBLISHED,
+            AuthorityOutcome.MISMATCHED_RELEASE,
+            AuthorityOutcome.INVALID_OVERRIDE,
         ],
     )
-    def test_an_unresolvable_reference_fails_the_turn_explicitly(
+    def test_a_refused_character_binding_fails_the_turn_typed(
         self,
         session_factory: object,
         seeded_story: tuple[object, object],
         outcome: AuthorityOutcome,
-        expected: str,
     ) -> None:
-        """With the code-owned resolver wired, a refusal is a typed turn failure.
+        """CRD Issue 2b: the resolver enforces the character's exact binding.
 
-        This is the half of the fail-open removal that changes behaviour: a
-        reference that genuinely does not resolve can no longer be dropped in
-        silence.
+        A recorded binding that is no longer current (or authority that is
+        unpublished, mismatched or invalid) fails the adjudicating turn with a
+        typed ``PIPELINE_ERROR`` naming the outcome; it is never read as
+        though it were current authority.
         """
-        from afterworlds.services.rules_authority import PackageResolution
+        from afterworlds.services.dnd5e_state.errors import BindingRefusedError
 
         story_id, node_id = seeded_story
         spy = _SpyContextBuilder()
-        orch = self._make_orch(session_factory, spy, rules_package_id="dnd5e-v1")
-        orch._rules_package_reference_resolver = (  # type: ignore[attr-defined]
-            lambda ref: PackageResolution(outcome, detail=f"{ref} did not resolve")
+        orch = self._make_orch(
+            session_factory,
+            spy,
+            binding_refusal=BindingRefusedError(outcome, "recorded binding refused"),
         )
         result = orch.orchestrate_turn(
             story_id,  # type: ignore[arg-type]
@@ -5951,25 +5888,14 @@ class TestRuleSlicePreContext:
         )
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         assert result.pipeline_error_summary is not None
-        assert expected in result.pipeline_error_summary
-        assert "dnd5e-v1" in result.pipeline_error_summary
+        assert outcome.value in result.pipeline_error_summary
 
-    def test_a_resolving_reference_leaves_the_turn_alone(
+    def test_a_current_binding_leaves_the_turn_alone(
         self, session_factory: object, seeded_story: tuple[object, object]
     ) -> None:
-        """A resolver that resolves does not, by itself, change the turn."""
-        from uuid import uuid4
-
-        from afterworlds.services.rules_authority import PackageResolution
-
         story_id, node_id = seeded_story
         spy = _SpyContextBuilder()
-        orch = self._make_orch(session_factory, spy, rules_package_id="dnd5e-v1")
-        orch._rules_package_reference_resolver = (  # type: ignore[attr-defined]
-            lambda _ref: PackageResolution(
-                AuthorityOutcome.RESOLVED, package_uuid=uuid4()
-            )
-        )
+        orch = self._make_orch(session_factory, spy)
         result = orch.orchestrate_turn(
             story_id,  # type: ignore[arg-type]
             node_id,  # type: ignore[arg-type]
@@ -6009,14 +5935,9 @@ class TestRuleSlicePreContext:
         self, session_factory: object, seeded_story: tuple[object, object]
     ) -> None:
         """RPG + adjudicating intent but play_status=SETUP → no rule slice."""
-        from uuid import uuid4
-
-        pkg_id = str(uuid4())
         story_id, node_id = seeded_story
         spy = _SpyContextBuilder()
-        orch = self._make_orch(
-            session_factory, spy, rules_package_id=pkg_id, play_status_setup=True
-        )
+        orch = self._make_orch(session_factory, spy, play_status_setup=True)
         orch.orchestrate_turn(
             story_id,  # type: ignore[arg-type]
             node_id,  # type: ignore[arg-type]
@@ -6031,14 +5952,12 @@ class TestRuleSlicePreContext:
         self, session_factory: object, seeded_story: tuple[object, object]
     ) -> None:
         """Non-RPG mode → rule-slice construction skipped entirely."""
-        from uuid import uuid4
 
         story_id, node_id = seeded_story
         spy = _SpyContextBuilder()
         orch = self._make_orch(
             session_factory,
             spy,
-            rules_package_id=str(uuid4()),
             mode=StoryMode.BRANCHING,
             wire_adjudication=False,
         )
@@ -6056,14 +5975,12 @@ class TestRuleSlicePreContext:
         self, session_factory: object, seeded_story: tuple[object, object]
     ) -> None:
         """RPG + adjudicating intent but adjudication service absent → None."""
-        from uuid import uuid4
 
         story_id, node_id = seeded_story
         spy = _SpyContextBuilder()
         orch = self._make_orch(
             session_factory,
             spy,
-            rules_package_id=str(uuid4()),
             wire_adjudication=False,
         )
         orch.orchestrate_turn(

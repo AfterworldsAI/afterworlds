@@ -9,7 +9,7 @@ disposition, including OOC_HANDLED -- exactly the case where Branching/
 Writing config most often changes).
 
 Returns None when the owning mode's setup hasn't produced enough state yet
-(no session state row, no persona selected, no full RPG character sheet) --
+(no session state row, no persona selected, no recorded RPG character state) --
 never raises, never invents partial/placeholder visible state.
 """
 
@@ -23,7 +23,6 @@ from sqlalchemy.orm import Session
 from afterworlds.models.enums import StoryMode
 from afterworlds.models.rpg import RpgVisibleState
 from afterworlds.modes.personas.registry import get_default_registry
-from afterworlds.persistence.crud.character_sheet import get_dnd5e_sheet
 from afterworlds.persistence.crud.session_state import (
     get_branching_session_state_by_story,
     get_rpg_session_state_by_story,
@@ -34,6 +33,8 @@ from afterworlds.pipeline.branching.visible_state import BranchingVisibleStateSe
 from afterworlds.pipeline.rpg.visible_state import RpgVisibleStateService
 from afterworlds.pipeline.writing.models import WritingVisibleState
 from afterworlds.pipeline.writing.visible_state import WritingVisibleStateService
+from afterworlds.services.dnd5e_state.holdings import Holder, HolderKind, items_held_by
+from afterworlds.services.dnd5e_state.store import get_character
 
 VisibleStateUnion = RpgVisibleState | BranchingVisibleState | WritingVisibleState
 
@@ -47,10 +48,11 @@ def build_visible_state(
         rpg_state = get_rpg_session_state_by_story(session, story_id)
         if rpg_state is None:
             return None
-        sheet = get_dnd5e_sheet(session, rpg_state.character_sheet_id)
-        if sheet is None:
+        character = get_character(session, rpg_state.character_sheet_id)
+        if character is None:
             return None
-        return RpgVisibleStateService().build(sheet)
+        items = items_held_by(session, Holder(HolderKind.CHARACTER, character.sheet_id))
+        return RpgVisibleStateService().build(character, items)
 
     if mode is StoryMode.BRANCHING:
         branching_state = get_branching_session_state_by_story(session, story_id)

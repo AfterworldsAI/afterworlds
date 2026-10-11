@@ -88,10 +88,9 @@ from afterworlds.pipeline.branching.models import (
 from afterworlds.pipeline.rpg.models import AdjudicationPassError
 from afterworlds.pipeline.rpg.pending import PendingRollDuplicateError
 from afterworlds.pipeline.writing.models import WritingOocExtractionUsageError
-from afterworlds.services.rules_authority import AuthorityOutcome, PackageResolution
+from afterworlds.services.dnd5e_state.errors import StaleRevisionError
 
 if TYPE_CHECKING:
-    from afterworlds.models.character_sheet import Dnd5eCharacterSheet
     from afterworlds.models.rpg import PendingRollRequest, RpgVisibleState, SheetEffect
     from afterworlds.models.session import (
         BranchingSessionState,
@@ -121,6 +120,7 @@ if TYPE_CHECKING:
         WritingOocConfigExtractorService,
     )
     from afterworlds.pipeline.writing.visible_state import WritingVisibleStateService
+    from afterworlds.services.dnd5e_state.turn import RpgTurnHold, TurnCharacter
 from afterworlds.pipeline._stable_prefix_renderer import RenderedBlock
 from afterworlds.pipeline.contradiction.models import (
     ContradictionPassError,
@@ -386,14 +386,12 @@ class OrchestratorService:
         parallel_pass_max_workers: int = DEFAULT_PARALLEL_PASS_MAX_WORKERS,
         rpg_adjudication_service: RpgAdjudicationPassService | None = None,
         rpg_session_sheet_resolver: (
-            Callable[[UUID], tuple[RpgSessionState, Dnd5eCharacterSheet]] | None
+            Callable[[UUID], tuple[RpgSessionState, TurnCharacter]] | None
         ) = None,
         rpg_session_resolver: Callable[[UUID], RpgSessionState | None] | None = None,
-        #: Resolves an RPG sheet's rules-package reference — a UUID or a
-        #: human-facing slug — through CRD Issue 5d's one code-owned path.
-        rules_package_reference_resolver: (
-            Callable[[str], PackageResolution] | None
-        ) = None,
+        #: CRD Issue 2b: the durable in-flight lease around RPG turns, and the
+        #: post-turn processing of held rule changes and adoptions.
+        rpg_turn_hold: RpgTurnHold | None = None,
         rpg_dice_service: DiceService | None = None,
         rpg_pending_roll_service: PendingRollRequestService | None = None,
         rpg_visible_state_service: RpgVisibleStateService | None = None,
@@ -430,7 +428,7 @@ class OrchestratorService:
         self._rpg_adjudication_service = rpg_adjudication_service
         self._rpg_session_sheet_resolver = rpg_session_sheet_resolver
         self._rpg_session_resolver = rpg_session_resolver
-        self._rules_package_reference_resolver = rules_package_reference_resolver
+        self._rpg_turn_hold = rpg_turn_hold
         self._rpg_dice_service = rpg_dice_service
         self._rpg_pending_roll_service = rpg_pending_roll_service
         self._rpg_visible_state_service = rpg_visible_state_service
@@ -486,6 +484,55 @@ class OrchestratorService:
     # ------------------------------------------------------------------
 
     def orchestrate_turn(
+        self,
+        story_id: UUID,
+        node_id: UUID,
+        user_input: str,
+        sojourner_id: UUID,
+        access_path: RuntimeAccessPath,
+        *,
+        request_risk_signal: bool = False,
+        player_reported_total: int | None = None,
+        writing_turn_request: WritingTurnRequest | None = None,
+    ) -> OrchestrationResult:
+        """Run one full Sojourn Turn, bracketed by the RPG turn lease.
+
+        For an RPG story with the CRD Issue 2b hold wired, a durable lease is
+        committed before the turn reads any character binding, so a shared rule
+        change cannot activate underneath it. The lease is released once the
+        turn's transaction has ended, then held changes and adoptions for the
+        story are processed. A turn whose lease cannot be taken fails typed,
+        before any work.
+        """
+        lease: str | None = None
+        if self._rpg_turn_hold is not None:
+            try:
+                if self._mode_resolver(story_id) is StoryMode.RPG:
+                    lease = self._rpg_turn_hold.acquire(story_id)
+            except Exception as exc:  # noqa: BLE001
+                return self._pipeline_error(
+                    _synthesize_intent(user_input),
+                    {},
+                    time.perf_counter(),
+                    f"rpg turn lease could not be taken: {exc}",
+                )
+        try:
+            return self._orchestrate_turn(
+                story_id,
+                node_id,
+                user_input,
+                sojourner_id,
+                access_path,
+                request_risk_signal=request_risk_signal,
+                player_reported_total=player_reported_total,
+                writing_turn_request=writing_turn_request,
+            )
+        finally:
+            if lease is not None:
+                assert self._rpg_turn_hold is not None
+                self._rpg_turn_hold.finish(story_id, lease)
+
+    def _orchestrate_turn(
         self,
         story_id: UUID,
         node_id: UUID,
@@ -622,7 +669,7 @@ class OrchestratorService:
         # exactly once, with the rule slice already determined).
         rule_slice_request: RuleSliceRequest | None = None
         pre_session_state: RpgSessionState | None = None
-        pre_sheet: Dnd5eCharacterSheet | None = None
+        pre_sheet: TurnCharacter | None = None
         if (
             story_mode is StoryMode.RPG
             and intent_result.intent_type in _ADJUDICATING_INTENT_TYPES
@@ -646,30 +693,11 @@ class OrchestratorService:
                     turn_start,
                     f"RPG session/sheet resolution failed: {exc}",
                 )
-            # Only resolve rules-package authority for IN_PLAY sessions; setup
-            # turns do not run adjudication.
-            #
-            # CRD Issue 5d (#137 contract 6) removed two fail-open behaviours
-            # that used to live here. The sheet's ``rules_package_id`` may be a
-            # UUID or a human-facing slug, and a non-UUID reference was parsed
-            # with ``UUID(...)`` and, on ``ValueError``, silently dropped — a
-            # malformed reference and a package with no rules produced the same
-            # silence. It now resolves through the one code-owned path, and a
-            # reference that does not resolve fails the turn explicitly.
-            #
-            # The request this used to build carried no selectors at all, so the
-            # slice it produced was always empty (ADR-005d Decision 9's
-            # accidentally-empty selector, which ``RuleSliceRequest`` now refuses
-            # to construct). It is not replaced with a whole-package request:
-            # which mechanics an adjudicating turn needs is CRD Issue 15c's
-            # selection contract, and inventing one here would be this layer
-            # deciding product semantics it does not own.
-            if pre_session_state.play_status is RpgPlayStatus.IN_PLAY:
-                failure = self._resolve_rules_package_reference(
-                    pre_sheet.rules_package_id, intent_result, latency, turn_start
-                )
-                if failure is not None:
-                    return failure
+            # The resolver enforces the character's exact recorded binding
+            # (CRD Issue 2b): a stale, unpublished, quarantined or invalid
+            # binding raised above and failed the turn. Which mechanics an
+            # adjudicating turn selects is CRD Issue 15c's selection contract,
+            # so no rule slice is requested here.
 
         # 2a-retrieval. Build the retrieval query request before context
         # assembly (ADR-018 D8) — orchestrator-owned and deterministic,
@@ -1150,7 +1178,7 @@ class OrchestratorService:
         pending_roll: PendingRollRequest | None = None,
         player_reported_total: int | None = None,
         _pre_session_state: RpgSessionState | None = None,
-        _pre_sheet: Dnd5eCharacterSheet | None = None,
+        _pre_sheet: TurnCharacter | None = None,
         _pre_branching_state: BranchingSessionState | None = None,
         _pre_selected_context: SelectedBranchContext | None = None,
         _pre_writing_state: WritingSessionState | None = None,
@@ -1244,7 +1272,7 @@ class OrchestratorService:
         adj_result: AdjudicationPassResult | None = None
         rpg_session_id: UUID | None = None
         rpg_character_id: UUID | None = None
-        rpg_sheet: Dnd5eCharacterSheet | None = None
+        rpg_sheet: TurnCharacter | None = None
         # Threaded to _narrative_persist for the RPG turn-retrieval-marker
         # classification (ADR-018 D6). Resolved independently of adjudication
         # wiring below (Codex #119 P2) — a story can have Retrieval Memory
@@ -1273,7 +1301,7 @@ class OrchestratorService:
             # avoid a second resolver call for the same story within the same turn.
             if _pre_session_state is not None and _pre_sheet is not None:
                 _ss: RpgSessionState = _pre_session_state
-                _sh: Dnd5eCharacterSheet = _pre_sheet
+                _sh: TurnCharacter = _pre_sheet
             else:
                 try:
                     _ss, _sh = self._rpg_session_sheet_resolver(story_id)
@@ -1383,7 +1411,7 @@ class OrchestratorService:
             #
             # Prefers rpg_session_resolver (session-state-only) over
             # rpg_session_sheet_resolver (session+sheet): a concrete
-            # Dnd5eCharacterSheet does not exist yet during RPG setup (only
+            # recorded character state does not exist yet during RPG setup (only
             # RpgCharacterSheetBase is bootstrapped at story creation), so a
             # sheet-requiring resolver raises on every setup turn and
             # incorrectly fails this classification closed (Codex P1, PR
@@ -1478,7 +1506,7 @@ class OrchestratorService:
         rpg_session_id: UUID | None = None,
         rpg_character_id: UUID | None = None,
         pending_roll_consumed: PendingRollRequest | None = None,
-        rpg_sheet: Dnd5eCharacterSheet | None = None,
+        rpg_sheet: TurnCharacter | None = None,
         branching_state: BranchingSessionState | None = None,
         story_mode: StoryMode = StoryMode.WRITING,
         selected_branch_context: SelectedBranchContext | None = None,
@@ -2095,6 +2123,29 @@ class OrchestratorService:
                     branching_pass_result=branching_pass_result,
                 )
 
+        # 5a-2. [RPG only] Commit-time recheck (CRD Issue 2b): this turn's
+        # adjudication was computed against the character's revision and exact
+        # binding it read; if either moved, its work cannot commit.
+        if (
+            adj_result is not None
+            and rpg_sheet is not None
+            and self._rpg_turn_hold is not None
+        ):
+            try:
+                self._rpg_turn_hold.recheck(session, rpg_sheet)
+            except StaleRevisionError as exc:
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"rpg character changed during the turn: {exc}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                    writer_result=writer_result,
+                    rpg_adjudication_result=adj_result,
+                    branching_pass_result=branching_pass_result,
+                )
+
         # 5b. [RPG only] Write adjudication audit rows, consume/announce pending
         # roll, inside the outer transaction (Fork B→B1).  Runs only when
         # adjudication produced a result; skipped on non-RPG and no-proposal turns.
@@ -2167,7 +2218,9 @@ class OrchestratorService:
                     )
             if self._rpg_visible_state_service is not None:
                 try:
-                    rpg_visible_state = self._rpg_visible_state_service.build(rpg_sheet)
+                    rpg_visible_state = self._rpg_visible_state_service.build(
+                        rpg_sheet.stored, rpg_sheet.items
+                    )
                 except Exception as exc:  # noqa: BLE001
                     return self._pipeline_error(
                         intent_result,
@@ -2438,7 +2491,10 @@ class OrchestratorService:
             f"session_type: {session_state.session_type.value}",
         ]
         if self._rpg_visible_state_service is not None:
-            visible = self._rpg_visible_state_service.build(sheet)
+            visible = self._rpg_visible_state_service.build(sheet.stored, sheet.items)
+        else:
+            visible = None
+        if visible is not None:
             char = visible.character
             parts += [
                 "",
@@ -3499,106 +3555,38 @@ class OrchestratorService:
         self,
         session: Session,
         effects: tuple[SheetEffect, ...],
-        sheet: Dnd5eCharacterSheet,
-    ) -> Dnd5eCharacterSheet:
-        """Apply sheet effects to the character sheet inside the outer transaction.
+        character: TurnCharacter,
+    ) -> TurnCharacter:
+        """Apply sheet effects to the typed character state inside the outer
+        transaction, by compare-and-swap (CRD Issue 2b).
 
-        Supports delta/set for current_hp and spell_slot.<N>, plus
-        apply_condition and clear_condition against active_conditions.
-        Unknown or ambiguous targets fail closed (raise ValueError).
-        Callers must handle exceptions and return a pipeline error so the
-        outer transaction rolls back Turn + audit rows + mutations atomically.
+        The write commits only if the character's revision and exact binding
+        are still the ones this turn read. No current-HP floor is applied
+        (ADR-0003). Unknown or ambiguous targets fail closed (raise); callers
+        map that to a pipeline error so the outer transaction rolls back Turn,
+        audit rows and mutations atomically.
         """
-        import json as _json
+        from dataclasses import replace
         from datetime import UTC, datetime
 
-        from afterworlds.models.character_sheet import (
-            Dnd5eActiveCondition,
-            Dnd5eCharacterSheet,
-            SpellSlotLevel,
+        from afterworlds.services.dnd5e_state import store
+        from afterworlds.services.dnd5e_state.effects import apply_effects
+
+        stored = character.stored
+        new_state = apply_effects(stored.state, effects)
+        store.save_state(
+            session,
+            "character",
+            stored.sheet_id,
+            new_state,
+            expected_revision=stored.revision,
+            expected_binding=stored.binding,
+            now=datetime.now(tz=UTC).isoformat(),
         )
-        from afterworlds.persistence.crud.character_sheet import update_dnd5e_sheet
-
-        new_current_hp = sheet.current_hp
-        new_spell_slots: dict[int, SpellSlotLevel] = dict(sheet.spell_slots)
-        new_conditions: list[Dnd5eActiveCondition] = list(sheet.active_conditions)
-
-        for effect in effects:
-            value = _json.loads(effect.value_json)
-
-            if effect.operation in ("delta", "set"):
-                if effect.target == "current_hp":
-                    int_val = int(value)
-                    if effect.operation == "delta":
-                        new_current_hp = max(
-                            0, min(sheet.maximum_hp, new_current_hp + int_val)
-                        )
-                    else:
-                        new_current_hp = max(0, min(sheet.maximum_hp, int_val))
-                elif effect.target.startswith("spell_slot."):
-                    level_str = effect.target.removeprefix("spell_slot.")
-                    if not level_str.isdigit():
-                        raise ValueError(
-                            f"Unknown sheet-effect target: {effect.target!r}"
-                        )
-                    slot_level = int(level_str)
-                    if slot_level not in new_spell_slots:
-                        raise ValueError(
-                            f"Unknown sheet-effect target: {effect.target!r}"
-                            f" — no spell slot level {slot_level}"
-                        )
-                    slot = new_spell_slots[slot_level]
-                    int_val = int(value)
-                    if effect.operation == "delta":
-                        new_used = max(0, min(slot.total, slot.used + int_val))
-                    else:
-                        new_used = max(0, min(slot.total, int_val))
-                    new_spell_slots[slot_level] = SpellSlotLevel(
-                        total=slot.total, used=new_used
-                    )
-                else:
-                    raise ValueError(f"Unknown sheet-effect target: {effect.target!r}")
-
-            elif effect.operation == "apply_condition":
-                if not isinstance(value, dict):
-                    raise ValueError("apply_condition value_json must be a JSON object")
-                cond_data = {**value, "sheet_id": str(sheet.sheet_id)}
-                cond_data.setdefault("condition_id", str(__import__("uuid").uuid4()))
-                condition = Dnd5eActiveCondition.model_validate(cond_data)
-                new_conditions.append(condition)
-
-            elif effect.operation == "clear_condition":
-                if not isinstance(value, dict):
-                    raise ValueError("clear_condition value_json must be a JSON object")
-                identifier_to_clear = value.get("identifier")
-                if not identifier_to_clear:
-                    raise ValueError(
-                        "clear_condition value_json must contain 'identifier'"
-                    )
-                new_conditions = [
-                    c for c in new_conditions if c.identifier != identifier_to_clear
-                ]
-
-            else:
-                raise ValueError(
-                    f"Unknown sheet-effect operation: {effect.operation!r}"
-                )
-
-        mutated = Dnd5eCharacterSheet.model_validate(
-            {
-                **sheet.model_dump(mode="json"),
-                "current_hp": new_current_hp,
-                "spell_slots": {k: v.model_dump() for k, v in new_spell_slots.items()},
-                "active_conditions": [c.model_dump() for c in new_conditions],
-                "updated_at": datetime.now(tz=UTC).isoformat(),
-            }
-        )
-        result = update_dnd5e_sheet(session, mutated)
-        if result is None:
-            raise ValueError(
-                f"Sheet {sheet.sheet_id!r} not found during effect application"
-            )
-        return result
+        refreshed = store.get_character(session, stored.sheet_id)
+        if refreshed is None:
+            raise ValueError(f"character {stored.sheet_id} vanished during the turn")
+        return replace(character, stored=refreshed)
 
     # ------------------------------------------------------------------
     # Helpers
@@ -3700,47 +3688,6 @@ class OrchestratorService:
             total_latency_ms=total_ms,
             pass_latency_breakdown=dict(latency),
             stable_prefix_cache_warmed=cache_warmed,
-        )
-
-    def _resolve_rules_package_reference(
-        self,
-        reference: str,
-        intent_result: IntentClassificationResult,
-        latency: dict[str, int],
-        turn_start: float,
-    ) -> OrchestrationResult | None:
-        """Resolve an RPG sheet's rules-package reference, or fail the turn.
-
-        Returns ``None`` when the reference is usable and a typed
-        ``PIPELINE_ERROR`` otherwise. CRD Issue 5d requires a slug to resolve
-        through one code-owned service and an unresolvable, ambiguous, or
-        malformed reference to fail explicitly (#137 contract 6); none of those
-        may be swallowed into a turn that proceeds as though the Sojourner's
-        sheet named nothing.
-
-        With no resolver wired there is nothing to resolve *against*, and the
-        turn proceeds without mechanical authority — ADR-015's ``undetermined``
-        behaviour, reached by an explicit branch rather than by catching a
-        ``ValueError`` from a speculative ``UUID(...)`` parse. That parse is
-        what made the removed path fail open: it could not tell a malformed
-        reference from a package that simply has no rules, and answered both
-        with silence. How a Character Sheet stores and revalidates its package
-        reference is CRD Issue 2b's, so this layer resolves what it is given and
-        decides nothing about the storage.
-        """
-        if self._rules_package_reference_resolver is None:
-            return None
-
-        resolution = self._rules_package_reference_resolver(reference)
-        if resolution.outcome is AuthorityOutcome.RESOLVED:
-            return None
-        return self._pipeline_error(
-            intent_result,
-            latency,
-            turn_start,
-            f"RPG rules package reference {reference!r} did not resolve: "
-            f"{resolution.outcome.value}"
-            + (f" ({resolution.detail})" if resolution.detail else ""),
         )
 
     def _pipeline_error(

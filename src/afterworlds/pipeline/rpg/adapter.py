@@ -7,8 +7,13 @@ roll-authorship invariant enforcement, and sheet-effect derivation.
 Boundaries:
 - d20-specific concepts (DC, AC, proficiency, saving throws, ability scores,
   advantage/disadvantage) live HERE, not in generic adjudication code.
-- The adapter returns ``outcome="undetermined"`` when the mechanic is outside
-  the supported boundary, rather than inventing a result.
+- The adapter returns ``outcome="undetermined"`` only where no DC is verified
+  (DC verification is deferred). A check it cannot assemble faithfully is
+  refused instead: skill checks, saving throws and every other
+  proficiency-aware or unrecognized check raise
+  :class:`UnsupportedCheckError` (CRD Issue 2b) rather than becoming an
+  ability-only roll. Proficiency application, modifier derivation and
+  adjudication are CRD Issue 15c's.
 - ``gm_cheating=off`` is enforced at record creation time: the record is the
   immutable source of truth; Writer prose cannot change it.
 - Roll-authorship is code-enforced: the adapter, not the model, produces
@@ -59,10 +64,20 @@ class PlayerRollValueError(ValueError):
     """Raised when a player-reported total implies a die value outside legal range."""
 
 
+class UnsupportedCheckError(ValueError):
+    """A check this adapter cannot assemble without inventing mechanics.
+
+    Raised for proficiency-aware checks (skills, saving throws, tools, attacks),
+    for unrecognized check labels, and for an ability whose recorded score has
+    sourced adjustments (the total is a 15c derivation). Callers surface it as
+    a visible typed failure, never as an ability-only roll.
+    """
+
+
 if TYPE_CHECKING:
-    from afterworlds.models.character_sheet import Dnd5eCharacterSheet
     from afterworlds.models.rules_package import ActiveRuleSlice
     from afterworlds.pipeline.rpg.dice import DiceService
+    from afterworlds.services.dnd5e_state.turn import TurnCharacter
 
 
 # Skill → governing ability score name (D&D 5e).
@@ -102,18 +117,17 @@ def _ability_modifier(score: int) -> int:
     return (score - 10) // 2
 
 
-def _context_hash(sheet: Dnd5eCharacterSheet) -> str:
-    """Compute a short hash of adjudication-relevant sheet state.
+def _context_hash(character: TurnCharacter) -> str:
+    """A short hash of the exact state a roll was announced against.
 
-    Used to detect drift between PendingRollRequest announce and consume.
-    Only covers fields that affect modifier assembly; equipment and other
-    fields that don't affect the modifier total are excluded.
+    Covers the state revision and its exact binding, so any recorded change
+    between announce and consume is detectable.
     """
+    stored = character.stored
     payload = {
-        "level": sheet.level,
-        "ability_scores": sheet.ability_scores.model_dump(),
-        "skills": sheet.skills,
-        "current_hp": sheet.current_hp,
+        "sheet_id": str(stored.sheet_id),
+        "revision": stored.revision,
+        "binding": stored.binding.model_dump(mode="json"),
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
 
@@ -169,73 +183,56 @@ class D20RulesSystemAdapter:
     supported boundary rather than inventing a result.
     """
 
-    def is_adjudicable(self, sheet: Dnd5eCharacterSheet) -> bool:
-        """Return True if the sheet has enough data to support adjudication.
+    def is_adjudicable(self, character: TurnCharacter) -> bool:
+        """True when the character's recorded state is ready for its binding.
 
-        Checks that the sheet has the fields required by the bounded d20
-        adapter: ability scores, a rules_package_id, and a non-zero level.
+        Readiness is completeness of recorded inputs, not legality.
         """
-        try:
-            scores = sheet.ability_scores.model_dump()
-        except AttributeError:
-            return False
-        if not all(isinstance(v, int) and v > 0 for v in scores.values()):
-            return False
-        if not sheet.rules_package_id:
-            return False
-        return 1 <= sheet.level <= 20
+        return character.ready
 
     def _assemble_modifiers(
         self,
         proposal: RollProposal,
-        sheet: Dnd5eCharacterSheet,
+        character: TurnCharacter,
         _rule_slice: ActiveRuleSlice | None,
     ) -> _ModifierBreakdown:
-        """Assemble the modifier breakdown for a roll proposal.
+        """Assemble the modifier breakdown for a pure ability check.
 
-        Derives visible modifier (ability mod + proficiency where applicable)
-        from the character sheet.  Hidden modifiers are not implemented in v1
-        (no invisible conditional bonuses in the bounded d20 scope).
+        Only an ability check on an unadjusted base score is assembled here.
+        Every proficiency-aware or unrecognized check is refused.
         """
-        scores = sheet.ability_scores.model_dump()
-
         label = _normalize_skill_key(proposal.skill_or_attribute_label or "")
-        breakdown: dict[str, int] = {}
-        visible_total = 0
-
-        # Build a normalized lookup so display-case sheet keys ("Stealth",
-        # "Sleight of Hand") are found by the same underscore form used in
-        # _SKILL_ABILITY and by the normalized label above.
-        _skill_map = {_normalize_skill_key(k): v for k, v in sheet.skills.items()}
-
-        if label in _SKILL_ABILITY:
-            if label in _skill_map:
-                # skills stores the computed modifier (ability mod + prof).
-                stored = _skill_map[label]
-                breakdown[f"{label}_modifier"] = stored
-                visible_total += stored
-            else:
-                ability = _SKILL_ABILITY[label]
-                mod = _ability_modifier(scores[ability])
-                breakdown[f"{ability}_modifier"] = mod
-                visible_total += mod
-        elif label in _SAVE_ABILITY:
-            # v1: saves are ability-mod-only; no save-proficiency in sheet.
-            ability = _SAVE_ABILITY[label]
-            mod = _ability_modifier(scores[ability])
-            breakdown[f"{ability}_modifier"] = mod
-            visible_total += mod
-        elif label in scores:
-            mod = _ability_modifier(scores[label])
-            breakdown[f"{label}_modifier"] = mod
-            visible_total += mod
-        else:
-            for ability in scores:
-                if ability in label:
-                    mod = _ability_modifier(scores[ability])
-                    breakdown[f"{ability}_modifier"] = mod
-                    visible_total += mod
-                    break
+        if label in _SKILL_ABILITY or label in _SAVE_ABILITY:
+            raise UnsupportedCheckError(
+                f"{proposal.check_label!r} is a proficiency-aware check "
+                f"({label}); applying proficiency is CRD Issue 15c's, and it is "
+                "not rolled as an ability-only check"
+            )
+        state = character.stored.state
+        if state.ability_scores is None:
+            raise UnsupportedCheckError("the character records no ability scores")
+        scores = state.ability_scores.model_dump()
+        abilities = [a for a in scores if a == label] or [
+            a for a in scores if a in label.split("_")
+        ]
+        if len(abilities) != 1 or label not in (
+            abilities[0],
+            f"{abilities[0]}_check",
+            f"{abilities[0]}_ability_check",
+        ):
+            raise UnsupportedCheckError(
+                f"{proposal.check_label!r} ({label or 'no label'}) is not a "
+                "recognized pure ability check"
+            )
+        ability = abilities[0]
+        if any(a.ability.value == ability for a in state.ability_adjustments or ()):
+            raise UnsupportedCheckError(
+                f"{ability} has sourced adjustments; its total is a CRD Issue 15c "
+                "derivation"
+            )
+        mod = _ability_modifier(scores[ability])
+        breakdown = {f"{ability}_modifier": mod}
+        visible_total = mod
 
         tag = proposal.subsystem_tag
         advantage = bool(_ADV_RE.search(tag))
@@ -300,7 +297,7 @@ class D20RulesSystemAdapter:
     def resolve_roll(
         self,
         proposal: RollProposal,
-        sheet: Dnd5eCharacterSheet,
+        character: TurnCharacter,
         rule_slice: ActiveRuleSlice | None,
         dice_service: DiceService,
         gm_cheating: bool,
@@ -316,7 +313,7 @@ class D20RulesSystemAdapter:
                 "use prepare_player_roll_announce instead"
             )
 
-        mods = self._assemble_modifiers(proposal, sheet, rule_slice)
+        mods = self._assemble_modifiers(proposal, character, rule_slice)
         dice_result: DiceResult = dice_service.roll(mods.expression)
         total = dice_result.chosen + mods.full_total
         dc = self._verify_dc(rule_slice)
@@ -345,7 +342,7 @@ class D20RulesSystemAdapter:
     def prepare_player_roll_announce(
         self,
         proposal: RollProposal,
-        sheet: Dnd5eCharacterSheet,
+        character: TurnCharacter,
         rule_slice: ActiveRuleSlice | None,
         story_id: UUID,
         session_id: UUID,
@@ -361,7 +358,7 @@ class D20RulesSystemAdapter:
                 "prepare_player_roll_announce called on non-PLAYER proposal"
             )
 
-        mods = self._assemble_modifiers(proposal, sheet, rule_slice)
+        mods = self._assemble_modifiers(proposal, character, rule_slice)
 
         modifier_note: str | None = None
         if mods.visible_total != 0:
@@ -372,13 +369,13 @@ class D20RulesSystemAdapter:
         if modifier_note:
             instruction += f" {modifier_note}"
 
-        context_hash = _context_hash(sheet)
+        context_hash = _context_hash(character)
 
         pending = PendingRollRequest(
             request_id=uuid4(),
             story_id=story_id,
             session_id=session_id,
-            character_id=sheet.sheet_id,
+            character_id=character.sheet_id,
             check_label=proposal.check_label,
             player_facing_instruction=instruction,
             expected_value_shape="integer",
@@ -499,7 +496,7 @@ class D20RulesSystemAdapter:
     def compute_sheet_effects(
         self,
         record: ResolvedAdjudicationRecord,
-        _sheet: Dnd5eCharacterSheet,
+        _character: TurnCharacter,
     ) -> tuple[SheetEffect, ...]:
         """Derive mechanical sheet mutations from a resolved record.
 

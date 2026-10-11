@@ -9,14 +9,20 @@ from uuid import uuid4
 
 import pytest
 
-from afterworlds.models.character_sheet import Dnd5eAbilityScores, Dnd5eCharacterSheet
+from afterworlds.ingestion.mechanical.representation import AbilityScore
 from afterworlds.models.enums import RollVisibility
 from afterworlds.models.rpg import (
     PendingRollRequest,
     ResolvedAdjudicationRecord,
     RollProposal,
 )
-from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter, PlayerRollValueError
+from afterworlds.pipeline.rpg.adapter import (
+    D20RulesSystemAdapter,
+    PlayerRollValueError,
+    UnsupportedCheckError,
+)
+from afterworlds.services.dnd5e_state.turn import TurnCharacter
+from tests.rpg_characters import turn_character
 
 # ---------------------------------------------------------------------------
 # Shared helpers
@@ -25,37 +31,12 @@ from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter, PlayerRollVa
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
 
-def _make_sheet(
-    *,
-    skills: dict[str, int] | None = None,
-    level: int = 5,
-    dex: int = 16,
-) -> Dnd5eCharacterSheet:
-    return Dnd5eCharacterSheet(
-        story_id=uuid4(),
-        rules_package_id="dnd5e-v1",
-        character_name="Test Hero",
-        created_at=_NOW,
-        updated_at=_NOW,
-        character_class="rogue",
-        background="criminal",
-        level=level,
-        ability_scores=Dnd5eAbilityScores(
-            strength=10,
-            dexterity=dex,
-            constitution=14,
-            intelligence=12,
-            wisdom=13,
-            charisma=10,
-        ),
-        skills=skills or {},
-        current_hp=30,
-        maximum_hp=30,
-    )
+def _make_sheet(*, dex: int = 16, wis: int = 13) -> TurnCharacter:
+    return turn_character(dex=dex, wis=wis)
 
 
 def _make_proposal(
-    label: str | None = "stealth",
+    label: str | None = "dexterity",
     visibility: RollVisibility = RollVisibility.SHOWN,
     subsystem_tag: str = "skill_check",
 ) -> RollProposal:
@@ -193,9 +174,9 @@ def test_verify_dc_returns_none_for_dc_tag() -> None:
 def test_verify_dc_outcome_is_undetermined_when_dc_absent() -> None:
     """When _verify_dc returns None, resolve_roll produces outcome='undetermined'."""
     adapter = D20RulesSystemAdapter()
-    sheet = _make_sheet(skills={"stealth": 7})
+    sheet = _make_sheet()
     proposal = _make_proposal(
-        "stealth", RollVisibility.SHOWN, subsystem_tag="skill_check dc 5"
+        "dexterity", RollVisibility.SHOWN, subsystem_tag="ability_check dc 5"
     )
     dice_svc = MagicMock()
     dice_svc.roll.return_value = MagicMock(chosen=12, raw_rolls=(12,))
@@ -205,50 +186,77 @@ def test_verify_dc_outcome_is_undetermined_when_dc_absent() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Skill modifier: uses stored computed modifier (Fix 1)
+# CRD Issue 2b: proficiency-aware checks are refused, never ability-only
 # ---------------------------------------------------------------------------
 
 
-def test_skill_in_sheet_uses_stored_modifier() -> None:
-    """stealth: 7, Dex +3, level 5 — adapter must use stored +7, not recomputed +6."""
+@pytest.mark.parametrize(
+    "label",
+    ["stealth", "Sleight of Hand", "perception", "dexterity_save", "strength_save"],
+)
+def test_a_proficiency_aware_check_is_refused_not_rolled_ability_only(
+    label: str,
+) -> None:
     adapter = D20RulesSystemAdapter()
-    # Dex 16 → raw modifier +3; proficiency at level 5 = +3 → recomputed would be +6.
-    # The sheet stores +7 (e.g. from Expertise), so the adapter must use +7.
-    sheet = _make_sheet(skills={"stealth": 7}, level=5, dex=16)
-    proposal = _make_proposal("stealth", RollVisibility.SHOWN)
+    dice_svc = MagicMock()
+    with pytest.raises(UnsupportedCheckError, match="proficiency-aware"):
+        adapter.resolve_roll(
+            _make_proposal(label), _make_sheet(), None, dice_svc, False
+        )
+    dice_svc.roll.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "label", ["thieves_tools", "longsword_attack", "strength_saving_throw", None]
+)
+def test_an_unrecognized_check_is_refused_not_rolled_ability_only(
+    label: str | None,
+) -> None:
+    adapter = D20RulesSystemAdapter()
+    with pytest.raises(UnsupportedCheckError):
+        adapter.resolve_roll(
+            _make_proposal(label), _make_sheet(), None, MagicMock(), False
+        )
+
+
+def test_an_announced_player_roll_is_refused_the_same_way() -> None:
+    adapter = D20RulesSystemAdapter()
+    with pytest.raises(UnsupportedCheckError):
+        adapter.prepare_player_roll_announce(
+            _make_proposal("stealth", RollVisibility.PLAYER),
+            _make_sheet(),
+            None,
+            uuid4(),
+            uuid4(),
+            uuid4(),
+        )
+
+
+@pytest.mark.parametrize("label", ["dexterity", "Dexterity check", "dexterity_check"])
+def test_a_pure_ability_check_uses_the_base_score(label: str) -> None:
+    adapter = D20RulesSystemAdapter()
     dice_svc = MagicMock()
     dice_svc.roll.return_value = MagicMock(chosen=10, raw_rolls=(10,))
-    record = adapter.resolve_roll(proposal, sheet, None, dice_svc, False)
-    # total = 10 (die) + 7 (stored modifier) = 17
-    assert record.total == 17
-    breakdown = json.loads(record.modifiers_json)
-    assert breakdown["breakdown"]["stealth_modifier"] == 7
+    record = adapter.resolve_roll(
+        _make_proposal(label), _make_sheet(dex=16), None, dice_svc, False
+    )
+    assert record.total == 13  # 10 + Dex 16 (+3)
+    assert json.loads(record.modifiers_json)["breakdown"] == {"dexterity_modifier": 3}
 
 
-def test_skill_not_in_sheet_falls_back_to_ability_mod() -> None:
-    """When a skill is missing from sheet.skills, fall back to governing ability mod."""
+def test_an_adjusted_ability_is_refused_because_its_total_is_15c() -> None:
     adapter = D20RulesSystemAdapter()
-    # Dex 16 → +3; stealth not in skills dict
-    sheet = _make_sheet(skills={}, dex=16)
-    proposal = _make_proposal("stealth", RollVisibility.SHOWN)
-    dice_svc = MagicMock()
-    dice_svc.roll.return_value = MagicMock(chosen=10, raw_rolls=(10,))
-    record = adapter.resolve_roll(proposal, sheet, None, dice_svc, False)
-    # total = 10 + 3 (Dex mod) = 13
-    assert record.total == 13
-    breakdown = json.loads(record.modifiers_json)
-    assert breakdown["breakdown"]["dexterity_modifier"] == 3
+    sheet = turn_character(adjusted=(AbilityScore.DEXTERITY,))
+    with pytest.raises(UnsupportedCheckError, match="sourced adjustments"):
+        adapter.resolve_roll(
+            _make_proposal("dexterity"), sheet, None, MagicMock(), False
+        )
 
 
-def test_skill_modifier_differs_from_recomputed_value() -> None:
-    """Stored modifier 9 is used verbatim even when ability+prof differs."""
+def test_readiness_is_the_adjudicable_gate() -> None:
     adapter = D20RulesSystemAdapter()
-    sheet = _make_sheet(skills={"stealth": 9}, level=5, dex=16)
-    proposal = _make_proposal("stealth", RollVisibility.SHOWN)
-    dice_svc = MagicMock()
-    dice_svc.roll.return_value = MagicMock(chosen=5, raw_rolls=(5,))
-    record = adapter.resolve_roll(proposal, sheet, None, dice_svc, False)
-    assert record.total == 14  # 5 + 9
+    assert adapter.is_adjudicable(turn_character())
+    assert not adapter.is_adjudicable(turn_character(ready=False))
 
 
 # ---------------------------------------------------------------------------
@@ -258,16 +266,16 @@ def test_skill_modifier_differs_from_recomputed_value() -> None:
 
 def _make_adv_proposal(subsystem_tag: str) -> RollProposal:
     return RollProposal(
-        check_label="Stealth check",
+        check_label="Dexterity check",
         subsystem_tag=subsystem_tag,
-        skill_or_attribute_label="stealth",
+        skill_or_attribute_label="dexterity",
         visibility=RollVisibility.SHOWN,
     )
 
 
 def test_advantage_tag_selects_2d20kh1() -> None:
     adapter = D20RulesSystemAdapter()
-    sheet = _make_sheet(skills={"stealth": 3})
+    sheet = _make_sheet()
     dice_svc = MagicMock()
     dice_svc.roll.return_value = MagicMock(chosen=15, raw_rolls=(15, 10))
     adapter.resolve_roll(
@@ -278,7 +286,7 @@ def test_advantage_tag_selects_2d20kh1() -> None:
 
 def test_disadvantage_tag_selects_2d20kl1() -> None:
     adapter = D20RulesSystemAdapter()
-    sheet = _make_sheet(skills={"stealth": 3})
+    sheet = _make_sheet()
     dice_svc = MagicMock()
     dice_svc.roll.return_value = MagicMock(chosen=8, raw_rolls=(8, 15))
     adapter.resolve_roll(
@@ -305,7 +313,7 @@ def test_disadvantage_containing_advantage_substring_selects_2d20kl1() -> None:
 
 def test_plain_tag_selects_1d20() -> None:
     adapter = D20RulesSystemAdapter()
-    sheet = _make_sheet(skills={"stealth": 3})
+    sheet = _make_sheet()
     dice_svc = MagicMock()
     dice_svc.roll.return_value = MagicMock(chosen=12, raw_rolls=(12,))
     adapter.resolve_roll(
@@ -316,7 +324,7 @@ def test_plain_tag_selects_1d20() -> None:
 
 def test_both_advantage_and_disadvantage_cancel_to_1d20() -> None:
     adapter = D20RulesSystemAdapter()
-    sheet = _make_sheet(skills={"stealth": 3})
+    sheet = _make_sheet()
     dice_svc = MagicMock()
     dice_svc.roll.return_value = MagicMock(chosen=12, raw_rolls=(12,))
     adapter.resolve_roll(
@@ -504,97 +512,3 @@ def test_consume_kl1_mod5_one_under_min_rejected() -> None:
     pending = _make_pending(expression="2d20kl1", visible_mod=5)
     with pytest.raises(PlayerRollValueError):
         adapter.consume_player_roll(pending, 5, None, False)
-
-
-# ---------------------------------------------------------------------------
-# Skill key normalization: display-case and whitespace tolerance (Round 13)
-# ---------------------------------------------------------------------------
-
-
-class TestSkillKeyNormalization:
-    """Skill-key normalization: display-case/whitespace sheet keys resolve correctly."""
-
-    def test_display_case_single_word_key_uses_stored_modifier(self) -> None:
-        """sheet.skills={'Stealth': 7}: display-case key finds stored +7, not Dex +3."""
-        adapter = D20RulesSystemAdapter()
-        sheet = _make_sheet(skills={"Stealth": 7}, dex=16)
-        proposal = _make_proposal("stealth", RollVisibility.SHOWN)
-        dice_svc = MagicMock()
-        dice_svc.roll.return_value = MagicMock(chosen=10, raw_rolls=(10,))
-        record = adapter.resolve_roll(proposal, sheet, None, dice_svc, False)
-        assert record.total == 17  # 10 + 7; pre-fix would be 10 + 3 = 13
-        data = json.loads(record.modifiers_json)
-        assert data["breakdown"]["stealth_modifier"] == 7
-
-    def test_multiword_sleight_of_hand_display_case(self) -> None:
-        """{'Sleight of Hand': 6}: multiword display key finds stored +6, not Dex +3."""
-        adapter = D20RulesSystemAdapter()
-        sheet = _make_sheet(skills={"Sleight of Hand": 6}, dex=16)
-        proposal = _make_proposal("Sleight of Hand", RollVisibility.SHOWN)
-        dice_svc = MagicMock()
-        dice_svc.roll.return_value = MagicMock(chosen=10, raw_rolls=(10,))
-        record = adapter.resolve_roll(proposal, sheet, None, dice_svc, False)
-        assert record.total == 16  # 10 + 6; pre-fix would be 10 + 3 = 13
-        data = json.loads(record.modifiers_json)
-        assert data["breakdown"]["sleight_of_hand_modifier"] == 6
-
-    def test_multiword_animal_handling_display_case(self) -> None:
-        """{'Animal Handling': 5}: multiword display key finds stored +5, not Wis +1."""
-        adapter = D20RulesSystemAdapter()
-        sheet = _make_sheet(skills={"Animal Handling": 5})  # wis=13 default → mod +1
-        proposal = _make_proposal("Animal Handling", RollVisibility.SHOWN)
-        dice_svc = MagicMock()
-        dice_svc.roll.return_value = MagicMock(chosen=8, raw_rolls=(8,))
-        record = adapter.resolve_roll(proposal, sheet, None, dice_svc, False)
-        assert record.total == 13  # 8 + 5; pre-fix would be 8 + 1 = 9
-        data = json.loads(record.modifiers_json)
-        assert data["breakdown"]["animal_handling_modifier"] == 5
-
-    def test_leading_trailing_whitespace_in_sheet_key_normalized(self) -> None:
-        """{'  stealth  ': 7}: key with extra whitespace is stripped and found."""
-        adapter = D20RulesSystemAdapter()
-        sheet = _make_sheet(skills={"  stealth  ": 7}, dex=16)
-        proposal = _make_proposal("stealth", RollVisibility.SHOWN)
-        dice_svc = MagicMock()
-        dice_svc.roll.return_value = MagicMock(chosen=10, raw_rolls=(10,))
-        record = adapter.resolve_roll(proposal, sheet, None, dice_svc, False)
-        assert record.total == 17  # 10 + 7; pre-fix would be 10 + 3 = 13
-
-    def test_absent_skill_fallback_unaffected_by_normalization(self) -> None:
-        """When skill is absent from sheet.skills, ability-mod fallback still fires."""
-        adapter = D20RulesSystemAdapter()
-        sheet = _make_sheet(skills={}, dex=16)
-        proposal = _make_proposal("stealth", RollVisibility.SHOWN)
-        dice_svc = MagicMock()
-        dice_svc.roll.return_value = MagicMock(chosen=10, raw_rolls=(10,))
-        record = adapter.resolve_roll(proposal, sheet, None, dice_svc, False)
-        assert record.total == 13  # 10 + 3 (Dex fallback)
-        data = json.loads(record.modifiers_json)
-        assert data["breakdown"]["dexterity_modifier"] == 3
-
-    def test_announce_display_case_key_visible_modifier_and_note(self) -> None:
-        """Announce: display-case sheet key produces correct visible_modifier_total."""
-        from uuid import uuid4 as _uuid4
-
-        adapter = D20RulesSystemAdapter()
-        sheet = _make_sheet(skills={"Stealth": 7}, dex=16)
-        proposal = _make_proposal("stealth", RollVisibility.PLAYER)
-        pending, _view = adapter.prepare_player_roll_announce(
-            proposal, sheet, None, _uuid4(), _uuid4(), _uuid4()
-        )
-        assert pending.visible_modifier_total == 7  # pre-fix would be 3 (Dex fallback)
-        assert pending.visible_modifier_note == "+7"
-
-    def test_resolve_roll_display_case_modifiers_json_structure(self) -> None:
-        """resolve_roll: Perception key gives correct visible_total/breakdown."""
-        adapter = D20RulesSystemAdapter()
-        # Perception is Wis-governed; wisdom=13 → mod +1 fallback; stored +8.
-        sheet = _make_sheet(skills={"Perception": 8})  # wis=13 default
-        proposal = _make_proposal("Perception", RollVisibility.SHOWN)
-        dice_svc = MagicMock()
-        dice_svc.roll.return_value = MagicMock(chosen=10, raw_rolls=(10,))
-        record = adapter.resolve_roll(proposal, sheet, None, dice_svc, False)
-        assert record.total == 18  # 10 + 8; pre-fix would be 10 + 1 = 11
-        data = json.loads(record.modifiers_json)
-        assert data["visible_total"] == 8
-        assert data["breakdown"]["perception_modifier"] == 8

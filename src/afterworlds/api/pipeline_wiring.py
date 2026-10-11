@@ -69,8 +69,8 @@ per the module docstring above -- this is required product wiring for
 already-optional-but-load-bearing dependencies, not new mode policy.
 
 ``_make_rpg_session_resolver`` / ``rpg_session_resolver`` (P1 remediation, PR
-#126 round 3): ``_make_rpg_session_sheet_resolver`` requires a completed
-``Dnd5eCharacterSheet``, which does not exist yet during RPG setup (only
+#126 round 3): ``_make_rpg_session_sheet_resolver`` requires recorded CRD
+Issue 2b character state, which does not exist yet during RPG setup (only
 ``RpgCharacterSheetBase`` is bootstrapped at story creation) -- wiring it as
 the *only* RPG session resolver made every RPG setup turn's mandatory
 retrieval-marker classification fail closed as ``PIPELINE_ERROR``, since the
@@ -89,12 +89,12 @@ from __future__ import annotations
 
 import os
 from collections.abc import Callable
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy.orm import Session, sessionmaker
 
 from afterworlds.api.fake_pipeline import FakeProviderResolver
-from afterworlds.models.character_sheet import Dnd5eCharacterSheet
 from afterworlds.models.context import AssembledContext
 from afterworlds.models.enums import StoryMode
 from afterworlds.models.intent_classification import IntentClassificationResult
@@ -107,7 +107,6 @@ from afterworlds.models.session import (
 )
 from afterworlds.models.turn import Turn
 from afterworlds.modes.personas.registry import get_default_registry
-from afterworlds.persistence.crud.character_sheet import get_dnd5e_sheet
 from afterworlds.persistence.crud.session_state import (
     get_branching_session_state_by_story,
     get_rpg_session_state_by_story,
@@ -140,6 +139,11 @@ from afterworlds.services.context_builder import (
     ContextBuilderService,
     RetrievalMemoryProvider,
     SQLiteRecentTurnsProvider,
+)
+from afterworlds.services.dnd5e_state.turn import (
+    RpgTurnHold,
+    TurnCharacter,
+    load_turn_character,
 )
 from afterworlds.services.intent_classifier import IntentClassifierService
 from afterworlds.services.rolling_summary import RollingSummaryService
@@ -210,7 +214,7 @@ def _make_rpg_session_resolver(
 
     P1 remediation (PR #126 round 3): the orchestrator's mandatory RPG
     turn-retrieval-marker classification needs only ``RpgSessionState.
-    play_status``, not a completed ``Dnd5eCharacterSheet``. During RPG setup
+    play_status``, not recorded character state. During RPG setup
     (before Issue 15's conversational character-creation pipeline completes),
     only ``RpgCharacterSheetBase`` exists -- ``_make_rpg_session_sheet_resolver``
     below correctly raises in that state for its own (sheet-requiring)
@@ -230,28 +234,36 @@ def _make_rpg_session_resolver(
     return _resolve
 
 
+def _utc_now() -> str:
+    return datetime.now(UTC).isoformat()
+
+
 def _make_rpg_session_sheet_resolver(
     session_factory: sessionmaker[Session],
-) -> Callable[[UUID], tuple[RpgSessionState, Dnd5eCharacterSheet]]:
-    def _resolve(story_id: UUID) -> tuple[RpgSessionState, Dnd5eCharacterSheet]:
+) -> Callable[[UUID], tuple[RpgSessionState, TurnCharacter]]:
+    """The session state and the bound character an adjudicating turn reads.
+
+    Refuses (raises, which the orchestrator turns into a typed
+    ``PIPELINE_ERROR``) when the story has no recorded character state yet, or
+    when the character's recorded binding is not the package's current exact
+    binding: stale, unpublished, quarantined or invalid authority is never
+    read as though it were current (CRD Issue 2b). Readiness is computed here
+    and carried on the result; it is not legality.
+    """
+
+    def _resolve(story_id: UUID) -> tuple[RpgSessionState, TurnCharacter]:
         session = session_factory()
         try:
             state = get_rpg_session_state_by_story(session, story_id)
             if state is None:
                 raise ValueError(f"no RpgSessionState for story {story_id}")
-            sheet = get_dnd5e_sheet(session, state.character_sheet_id)
-            if sheet is None:
-                # Expected during RPG setup, before Issue 15's conversational
-                # character-creation pipeline has produced a full sheet --
-                # callers of THIS resolver (adjudication/pending-roll/sheet-
-                # dependent paths) correctly need a concrete sheet and fail
-                # closed here. Play-status-only resolution no longer uses
-                # this resolver -- see _make_rpg_session_resolver above.
-                raise ValueError(
-                    f"no Dnd5eCharacterSheet yet for story {story_id}"
-                    " (character creation not complete)"
-                )
-            return state, sheet
+            character = load_turn_character(
+                session, state.character_sheet_id, now=_utc_now()
+            )
+            # Resolution retained the current override-set version; keep it so
+            # a later replay of this exact binding can read it.
+            session.commit()
+            return state, character
         finally:
             session.close()
 
@@ -434,6 +446,7 @@ def build_orchestrator(session_factory: sessionmaker[Session]) -> OrchestratorSe
         # subclass, so this is a deliberate, narrow protocol substitution.
         provider_resolver=provider_resolver,  # type: ignore[arg-type]
         rpg_session_sheet_resolver=_make_rpg_session_sheet_resolver(session_factory),
+        rpg_turn_hold=RpgTurnHold(session_factory, _utc_now),
         rpg_session_resolver=_make_rpg_session_resolver(session_factory),
         branching_session_resolver=_make_branching_session_resolver(session_factory),
         writing_session_resolver=_make_writing_session_resolver(session_factory),

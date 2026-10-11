@@ -14,6 +14,7 @@ import afterworlds.persistence.orm.node  # noqa: F401
 import afterworlds.persistence.orm.state  # noqa: F401
 import afterworlds.persistence.orm.session_state  # noqa: F401
 import afterworlds.persistence.orm.character_sheet  # noqa: F401
+import afterworlds.persistence.orm.dnd5e_state  # noqa: F401
 import afterworlds.persistence.orm.story_bible  # noqa: F401
 import afterworlds.persistence.orm.rules_package  # noqa: F401
 import afterworlds.persistence.orm.corpus  # noqa: F401

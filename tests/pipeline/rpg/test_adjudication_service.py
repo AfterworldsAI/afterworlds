@@ -12,7 +12,6 @@ from unittest.mock import MagicMock
 from uuid import UUID, uuid4
 
 from afterworlds.entitlement.enums import ModelTier, PipelinePassId
-from afterworlds.models.character_sheet import Dnd5eAbilityScores, Dnd5eCharacterSheet
 from afterworlds.models.context import (
     AssembledContext,
     PassForwardLedger,
@@ -37,6 +36,8 @@ from afterworlds.pipeline.provider._models import (
 from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
 from afterworlds.pipeline.rpg.caller import PRODUCE_ADJUDICATION_PROPOSALS_TOOL_NAME
 from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
+from afterworlds.services.dnd5e_state.turn import TurnCharacter
+from tests.rpg_characters import turn_character
 
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
 _STORY_ID: UUID = uuid4()
@@ -48,27 +49,8 @@ _TURN_ID: UUID = uuid4()
 # ---------------------------------------------------------------------------
 
 
-def _make_sheet() -> Dnd5eCharacterSheet:  # type: ignore[no-untyped-def]
-    return Dnd5eCharacterSheet(
-        story_id=_STORY_ID,
-        rules_package_id="dnd5e_v1",
-        character_name="Test Fighter",
-        created_at=_NOW,
-        updated_at=_NOW,
-        character_class="Fighter",
-        background="Soldier",
-        level=3,
-        ability_scores=Dnd5eAbilityScores(
-            strength=16,
-            dexterity=12,
-            constitution=14,
-            intelligence=10,
-            wisdom=10,
-            charisma=8,
-        ),
-        current_hp=28,
-        maximum_hp=28,
-    )
+def _make_sheet() -> TurnCharacter:
+    return turn_character(name="Test Fighter", hp=(28, 28))
 
 
 def _make_session(dice_handling: DiceHandling) -> RpgSessionState:  # type: ignore[no-untyped-def]
@@ -276,3 +258,35 @@ class TestAiRollsRegression:
     def test_dice_called_twice(self) -> None:
         _, dice = self._adjudicate()
         assert dice.roll.call_count == 2
+
+
+# ---------------------------------------------------------------------------
+# CRD Issue 2b: a proficiency-aware proposal fails the pass visibly
+# ---------------------------------------------------------------------------
+
+
+import pytest  # noqa: E402
+
+from afterworlds.pipeline.rpg.models import AdjudicationPassError  # noqa: E402
+
+
+@pytest.mark.parametrize(
+    "dice_handling",
+    [DiceHandling.AI_ROLLS, DiceHandling.PLAYER_ROLLS],
+)
+def test_a_skill_proposal_fails_the_pass_rather_than_rolling_ability_only(
+    dice_handling: DiceHandling,
+) -> None:
+    proposal = {**_proposal_dict("Stealth check", RollVisibility.SHOWN)}
+    proposal["skill_or_attribute_label"] = "stealth"
+    svc = _make_service()
+    with pytest.raises(AdjudicationPassError, match="proficiency-aware"):
+        svc.adjudicate(
+            _make_assembled(),
+            _make_session(dice_handling),
+            _make_sheet(),
+            _make_dice_mock(),
+            provider=_FakeProvider([proposal]),  # type: ignore[arg-type]
+            story_id=_STORY_ID,
+            originating_turn_id=uuid4(),
+        )

@@ -1,165 +1,93 @@
-"""Unit tests for RpgVisibleStateService — CRD Issue 15 Phase 7."""
+"""Unit tests for RpgVisibleStateService over CRD Issue 2b typed state."""
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
-from uuid import UUID, uuid4
+from uuid import uuid4
 
-from afterworlds.models.character_sheet import (
-    Dnd5eAbilityScores,
-    Dnd5eActiveCondition,
-    Dnd5eCharacterSheet,
-)
+from afterworlds.ingestion.mechanical.representation import ConditionKind
+from afterworlds.models.dnd5e_state import ConditionInstance
 from afterworlds.models.enums import ConditionVisibility
-from afterworlds.pipeline.rpg.visible_state import RpgVisibleStateService
-
-_NOW = datetime(2026, 1, 1, tzinfo=UTC)
-_STORY_ID = uuid4()
-
-_ABILITY_SCORES = Dnd5eAbilityScores(
-    strength=10,
-    dexterity=18,
-    constitution=14,
-    intelligence=12,
-    wisdom=11,
-    charisma=13,
+from afterworlds.pipeline.rpg.visible_state import (
+    RpgVisibleStateService,
+    identity_label,
 )
+from afterworlds.services.dnd5e_state.holdings import Holder, HolderKind, ItemInstance
+from tests.rpg_characters import turn_character
 
 
-def _make_sheet(
-    *,
-    name: str = "Thalindra",
-    character_class: str = "Rogue",
-    level: int = 5,
-    current_hp: int = 30,
-    maximum_hp: int = 38,
-    equipment: list[str] | None = None,
-    conditions: list[Dnd5eActiveCondition] | None = None,
-) -> Dnd5eCharacterSheet:
-    return Dnd5eCharacterSheet(
-        story_id=_STORY_ID,
-        rules_package_id="dnd5e-v1",
-        character_name=name,
-        character_class=character_class,
-        background="Criminal",
-        level=level,
-        ability_scores=_ABILITY_SCORES,
-        equipment=equipment or [],
-        current_hp=current_hp,
-        maximum_hp=maximum_hp,
-        active_conditions=conditions or [],
-        created_at=_NOW,
-        updated_at=_NOW,
-    )
-
-
-def _make_condition(
-    display_label: str,
-    visibility: ConditionVisibility,
-    sheet_id: UUID | None = None,
-) -> Dnd5eActiveCondition:
-    return Dnd5eActiveCondition(
-        sheet_id=sheet_id or uuid4(),
-        identifier="test_condition",
-        display_label=display_label,
-        source="test",
+def _condition(
+    kind: ConditionKind, visibility: ConditionVisibility
+) -> ConditionInstance:
+    return ConditionInstance(
+        instance_id=str(uuid4()),
+        condition=kind,
         visibility=visibility,
+        level=2 if kind is ConditionKind.EXHAUSTION else None,
     )
 
 
-# ---------------------------------------------------------------------------
-# Character field mapping
-# ---------------------------------------------------------------------------
-
-
-def test_build_maps_character_fields() -> None:
-    svc = RpgVisibleStateService()
-    sheet = _make_sheet(
-        name="Aldric",
-        character_class="Fighter",
-        level=7,
-        current_hp=42,
-        maximum_hp=58,
+def _item(record_key: str, quantity: int = 1) -> ItemInstance:
+    return ItemInstance(
+        item_id=uuid4(),
+        story_id=uuid4(),
+        record_key=record_key,
+        component_key=None,
+        quantity=quantity,
+        holder=Holder(HolderKind.CHARACTER, uuid4()),
+        equipped=False,
+        attuned_subject_id=None,
+        charges_remaining=None,
+        revision=1,
     )
-    state = svc.build(sheet)
-    char = state.character
-    assert char.character_name == "Aldric"
-    assert char.character_class == "Fighter"
-    assert char.level == 7
-    assert char.current_hp == 42
-    assert char.maximum_hp == 58
 
 
-def test_build_empty_conditions_produces_empty_tuple() -> None:
-    svc = RpgVisibleStateService()
-    sheet = _make_sheet(conditions=[])
-    state = svc.build(sheet)
-    assert state.character.active_conditions == ()
+def test_build_maps_the_typed_character() -> None:
+    character = turn_character(name="Aldric", hp=(-4, 38))
+    visible = RpgVisibleStateService().build(character.stored, ())
+    assert visible is not None
+    assert visible.character.character_name == "Aldric"
+    assert visible.character.character_class == "Rogue 5"
+    assert visible.character.level == 5
+    # No HP floor is applied on display either (ADR-0003).
+    assert (visible.character.current_hp, visible.character.maximum_hp) == (-4, 38)
 
 
-# ---------------------------------------------------------------------------
-# Condition visibility filtering
-# ---------------------------------------------------------------------------
+def test_hidden_conditions_are_excluded_by_construction() -> None:
+    character = turn_character(
+        conditions=(
+            _condition(ConditionKind.POISONED, ConditionVisibility.VISIBLE),
+            _condition(ConditionKind.CHARMED, ConditionVisibility.HIDDEN),
+            _condition(ConditionKind.EXHAUSTION, ConditionVisibility.VISIBLE),
+        )
+    )
+    visible = RpgVisibleStateService().build(character.stored, ())
+    assert visible is not None
+    assert visible.character.active_conditions == ("Poisoned", "Exhaustion 2")
 
 
-def test_build_includes_visible_conditions() -> None:
-    svc = RpgVisibleStateService()
-    cond = _make_condition("Poisoned", ConditionVisibility.VISIBLE)
-    sheet = _make_sheet(conditions=[cond])
-    state = svc.build(sheet)
-    assert state.character.active_conditions == ("Poisoned",)
+def test_inventory_is_the_held_item_instances() -> None:
+    character = turn_character()
+    visible = RpgVisibleStateService().build(
+        character.stored,
+        (
+            _item("equipment.weapons.war_pick"),
+            _item("equipment.adventuring_gear.needles", 50),
+        ),
+    )
+    assert visible is not None
+    assert [(i.name, i.quantity) for i in visible.inventory] == [
+        ("War Pick", 1),
+        ("Needles", 50),
+    ]
 
 
-def test_build_excludes_hidden_conditions() -> None:
-    svc = RpgVisibleStateService()
-    cond = _make_condition("Cursed", ConditionVisibility.HIDDEN)
-    sheet = _make_sheet(conditions=[cond])
-    state = svc.build(sheet)
-    assert state.character.active_conditions == ()
+def test_unrecorded_hit_points_produce_no_snapshot() -> None:
+    character = turn_character()
+    state = character.stored.state.model_copy(update={"hit_points": None})
+    stored = character.stored.__class__(**{**character.stored.__dict__, "state": state})
+    assert RpgVisibleStateService().build(stored, ()) is None
 
 
-def test_build_filters_mixed_conditions() -> None:
-    svc = RpgVisibleStateService()
-    visible = _make_condition("Frightened", ConditionVisibility.VISIBLE)
-    hidden = _make_condition("Tracking Mark", ConditionVisibility.HIDDEN)
-    sheet = _make_sheet(conditions=[visible, hidden])
-    state = svc.build(sheet)
-    assert state.character.active_conditions == ("Frightened",)
-
-
-# ---------------------------------------------------------------------------
-# Inventory mapping
-# ---------------------------------------------------------------------------
-
-
-def test_build_maps_equipment_to_inventory() -> None:
-    svc = RpgVisibleStateService()
-    sheet = _make_sheet(equipment=["Short Sword", "Leather Armor", "Thieves' Tools"])
-    state = svc.build(sheet)
-    names = [item.name for item in state.inventory]
-    assert names == ["Short Sword", "Leather Armor", "Thieves' Tools"]
-
-
-def test_build_empty_equipment_produces_empty_inventory() -> None:
-    svc = RpgVisibleStateService()
-    sheet = _make_sheet(equipment=[])
-    state = svc.build(sheet)
-    assert state.inventory == ()
-
-
-# ---------------------------------------------------------------------------
-# v1 deferred fields
-# ---------------------------------------------------------------------------
-
-
-def test_build_location_is_none() -> None:
-    svc = RpgVisibleStateService()
-    state = svc.build(_make_sheet())
-    assert state.location is None
-
-
-def test_build_relationship_meters_and_objectives_empty() -> None:
-    svc = RpgVisibleStateService()
-    state = svc.build(_make_sheet())
-    assert state.relationship_meters == ()
-    assert state.known_objectives == ()
+def test_identity_labels_read_the_accepted_key() -> None:
+    assert identity_label("equipment.weapons.war_pick") == "War Pick"
+    assert identity_label("classes.wizard") == "Wizard"

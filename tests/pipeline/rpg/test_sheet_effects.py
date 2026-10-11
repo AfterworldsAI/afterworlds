@@ -1,63 +1,57 @@
-"""Tests for RPG sheet-effect application (Fork B→B1) — CRD Issue 15."""
+"""RPG sheet-effect application over CRD Issue 2b typed state (Fork B→B1)."""
 
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from datetime import UTC, datetime
-from uuid import uuid4
 
 import pytest
+from sqlalchemy.orm import Session
 
-from afterworlds.models.character_sheet import (
-    Dnd5eAbilityScores,
-    Dnd5eActiveCondition,
-    Dnd5eCharacterSheet,
-    SpellSlotLevel,
+from afterworlds.ingestion.mechanical.representation import ConditionKind
+from afterworlds.models.dnd5e_state import (
+    ConditionInstance,
+    Dnd5eCharacterState,
+    GrantSource,
+    HitPoints,
+    SlotLevel,
+    SpellSlotPool,
 )
-from afterworlds.models.enums import ConditionVisibility
 from afterworlds.models.rpg import SheetEffect
 from afterworlds.pipeline.orchestrator.service import OrchestratorService
+from afterworlds.services.dnd5e_state import store
+from afterworlds.services.dnd5e_state.effects import apply_effects
+from afterworlds.services.dnd5e_state.errors import StaleRevisionError
+from afterworlds.services.dnd5e_state.turn import TurnCharacter
+from tests.rpg_characters import BINDING
 
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
-_ABILITY_SCORES = Dnd5eAbilityScores(
-    strength=10,
-    dexterity=14,
-    constitution=12,
-    intelligence=10,
-    wisdom=10,
-    charisma=10,
-)
 
 
-def _make_sheet(
-    *,
-    current_hp: int = 30,
-    maximum_hp: int = 40,
-    spell_slots: dict[int, SpellSlotLevel] | None = None,
-    conditions: list[Dnd5eActiveCondition] | None = None,
-) -> Dnd5eCharacterSheet:
-    return Dnd5eCharacterSheet(
-        story_id=uuid4(),
-        rules_package_id="dnd5e-v1",
-        character_name="Aldric",
-        character_class="Fighter",
-        background="Soldier",
-        level=5,
-        ability_scores=_ABILITY_SCORES,
-        current_hp=current_hp,
-        maximum_hp=maximum_hp,
-        spell_slots=spell_slots or {},
-        active_conditions=conditions or [],
-        created_at=_NOW,
-        updated_at=_NOW,
+def _pool(pool_id: str, *levels: tuple[int, int, int]) -> SpellSlotPool:
+    return SpellSlotPool(
+        pool_id=pool_id,
+        source=GrantSource(record_key="classes.wizard"),
+        levels=tuple(SlotLevel(level=lv, total=t, expended=e) for lv, t, e in levels),
     )
 
 
-def _effect(
-    target: str,
-    operation: str,
-    value: object,
-) -> SheetEffect:
+def _state(
+    *,
+    current_hp: int = 30,
+    maximum_hp: int = 40,
+    pools: tuple[SpellSlotPool, ...] = (),
+    conditions: tuple[ConditionInstance, ...] = (),
+) -> Dnd5eCharacterState:
+    return Dnd5eCharacterState(
+        hit_points=HitPoints(current=current_hp, maximum=maximum_hp, temporary=0),
+        spell_slot_pools=pools,
+        conditions=conditions,
+    )
+
+
+def _effect(target: str, operation: str, value: object) -> SheetEffect:
     return SheetEffect(
         target=target,
         operation=operation,  # type: ignore[arg-type]
@@ -65,24 +59,95 @@ def _effect(
     )
 
 
-def _make_orchestrator() -> OrchestratorService:
-    """Minimal OrchestratorService for calling _apply_rpg_sheet_effects."""
-
-    from afterworlds.pipeline.orchestrator.service import OrchestratorService
-
-    svc = OrchestratorService.__new__(OrchestratorService)
-    svc._rpg_visible_state_service = None  # type: ignore[attr-defined]
-    return svc
+def _hp(state: Dnd5eCharacterState) -> int:
+    assert state.hit_points is not None
+    return state.hit_points.current
 
 
-# ---------------------------------------------------------------------------
-# Fixtures — in-memory DB session
-# ---------------------------------------------------------------------------
+# -- pure application ---------------------------------------------------------
+
+
+def test_hp_delta_applies_without_any_floor() -> None:
+    # ADR-0003 Decision 2: what happens below zero is adjudication's, so the
+    # stored value is not floored.
+    assert (
+        _hp(apply_effects(_state(current_hp=5), (_effect("current_hp", "delta", -9),)))
+        == -4
+    )
+
+
+def test_hp_never_exceeds_the_stored_maximum() -> None:
+    assert _hp(apply_effects(_state(), (_effect("current_hp", "delta", 25),))) == 40
+    assert _hp(apply_effects(_state(), (_effect("current_hp", "set", 12),))) == 12
+
+
+def test_slot_effects_adjust_expended_slots_in_their_one_pool() -> None:
+    state = _state(pools=(_pool("spellcasting", (1, 4, 0), (2, 3, 0)),))
+    after = apply_effects(state, (_effect("spell_slot.1", "delta", 2),))
+    (pool,) = after.spell_slot_pools or ()
+    assert [(s.level, s.expended) for s in pool.levels] == [(1, 2), (2, 0)]
+    after = apply_effects(state, (_effect("spell_slot.1", "set", 99),))
+    (pool,) = after.spell_slot_pools or ()
+    assert pool.levels[0].expended == 4  # structural: never beyond the total
+
+
+def test_a_slot_level_held_by_two_pools_is_refused_not_guessed() -> None:
+    state = _state(
+        pools=(_pool("spellcasting", (1, 4, 0)), _pool("pact_magic", (1, 1, 0)))
+    )
+    with pytest.raises(ValueError, match="2 pools hold level 1"):
+        apply_effects(state, (_effect("spell_slot.1", "delta", 1),))
+
+
+@pytest.mark.parametrize(
+    "effect",
+    [
+        _effect("spell_slot.7", "delta", 1),
+        _effect("armor_class", "set", 18),
+        _effect("current_hp", "delta", "3"),
+    ],
+)
+def test_unknown_or_malformed_targets_fail_closed(effect: SheetEffect) -> None:
+    with pytest.raises(ValueError):
+        apply_effects(_state(pools=(_pool("spellcasting", (1, 2, 0)),)), (effect,))
+
+
+def test_conditions_are_typed_instances_added_and_cleared() -> None:
+    added = apply_effects(
+        _state(),
+        (
+            _effect(
+                "conditions",
+                "apply_condition",
+                {"condition": "poisoned", "visibility": "visible"},
+            ),
+            _effect(
+                "conditions",
+                "apply_condition",
+                {"condition": "prone", "visibility": "hidden"},
+            ),
+        ),
+    )
+    assert [c.condition for c in added.conditions or ()] == [
+        ConditionKind.POISONED,
+        ConditionKind.PRONE,
+    ]
+    cleared = apply_effects(
+        added, (_effect("conditions", "clear_condition", {"condition": "poisoned"}),)
+    )
+    assert [c.condition for c in cleared.conditions or ()] == [ConditionKind.PRONE]
+    with pytest.raises(ValueError):
+        apply_effects(
+            _state(),
+            (_effect("conditions", "apply_condition", {"condition": "sleepy"}),),
+        )
+
+
+# -- the orchestrator's compare-and-swap write --------------------------------
 
 
 @pytest.fixture()
-def db_session():  # type: ignore[no-untyped-def]
-    """Provide a SQLAlchemy session with sheet tables created."""
+def db_session() -> Iterator[Session]:
     import afterworlds.persistence.orm.character_sheet  # noqa: F401
     import afterworlds.persistence.orm.story  # noqa: F401
     from afterworlds.persistence.database import create_engine, create_session_factory
@@ -90,228 +155,71 @@ def db_session():  # type: ignore[no-untyped-def]
 
     engine = create_engine("sqlite://")
     Base.metadata.create_all(engine)
-    factory = create_session_factory(engine)
-    sess = factory()
-    try:
-        yield sess
-    finally:
-        sess.close()
-    Base.metadata.drop_all(engine)
+    with create_session_factory(engine)() as session:
+        yield session
     engine.dispose()
 
 
-def _persist_sheet(session: object, sheet: Dnd5eCharacterSheet) -> None:
-    """Write base + dnd5e rows for the given sheet."""
+def _persisted(session: Session, state: Dnd5eCharacterState) -> TurnCharacter:
     from afterworlds.models.character_sheet import RpgCharacterSheetBase
     from afterworlds.models.enums import StoryMode
     from afterworlds.models.story import Story
-    from afterworlds.persistence.crud.character_sheet import (
-        create_dnd5e_sheet,
-        create_rpg_base_sheet,
-    )
+    from afterworlds.persistence.crud.character_sheet import create_rpg_base_sheet
     from afterworlds.persistence.crud.story import create_story
 
-    story = Story(
-        story_id=sheet.story_id,
-        title="Test",
-        mode=StoryMode.RPG,
+    story = Story(title="t", mode=StoryMode.RPG, created_at=_NOW, updated_at=_NOW)
+    create_story(session, story)
+    base = RpgCharacterSheetBase(
+        story_id=story.story_id,
+        character_name="Aldric",
         created_at=_NOW,
         updated_at=_NOW,
     )
-    create_story(session, story)
-    base = RpgCharacterSheetBase(
-        sheet_id=sheet.sheet_id,
-        story_id=sheet.story_id,
-        rules_package_id=sheet.rules_package_id,
-        character_name=sheet.character_name,
-        created_at=sheet.created_at,
-        updated_at=sheet.updated_at,
-    )
     create_rpg_base_sheet(session, base)
-    create_dnd5e_sheet(session, sheet)
-    session.commit()  # type: ignore[attr-defined]
-
-
-# ---------------------------------------------------------------------------
-# delta / set — current_hp
-# ---------------------------------------------------------------------------
-
-
-def test_apply_hp_delta_decreases_hp(db_session) -> None:  # type: ignore[no-untyped-def]
-    svc = _make_orchestrator()
-    sheet = _make_sheet(current_hp=30, maximum_hp=40)
-    _persist_sheet(db_session, sheet)
-
-    result = svc._apply_rpg_sheet_effects(
-        db_session, (_effect("current_hp", "delta", -5),), sheet
+    stored = store.create_character_state(
+        session, base.sheet_id, state, BINDING, now="t"
     )
-    assert result.current_hp == 25
+    session.commit()
+    return TurnCharacter(stored, ())
 
 
-def test_apply_hp_delta_cannot_go_below_zero(db_session) -> None:  # type: ignore[no-untyped-def]
-    svc = _make_orchestrator()
-    sheet = _make_sheet(current_hp=3, maximum_hp=40)
-    _persist_sheet(db_session, sheet)
+def _orchestrator() -> OrchestratorService:
+    return OrchestratorService.__new__(OrchestratorService)
 
-    result = svc._apply_rpg_sheet_effects(
-        db_session, (_effect("current_hp", "delta", -10),), sheet
+
+def test_the_turn_writes_effects_by_cas_and_returns_the_new_revision(
+    db_session: Session,
+) -> None:
+    character = _persisted(db_session, _state())
+    after = _orchestrator()._apply_rpg_sheet_effects(
+        db_session, (_effect("current_hp", "delta", -7),), character
     )
-    assert result.current_hp == 0
+    db_session.commit()
+    assert after.stored.revision == 2
+    assert _hp(after.stored.state) == 23
+    fresh = store.get_character(db_session, character.sheet_id)
+    assert fresh is not None and _hp(fresh.state) == 23
 
 
-def test_apply_hp_delta_cannot_exceed_maximum(db_session) -> None:  # type: ignore[no-untyped-def]
-    svc = _make_orchestrator()
-    sheet = _make_sheet(current_hp=38, maximum_hp=40)
-    _persist_sheet(db_session, sheet)
-
-    result = svc._apply_rpg_sheet_effects(
-        db_session, (_effect("current_hp", "delta", 10),), sheet
+def test_work_computed_against_a_superseded_revision_cannot_commit(
+    db_session: Session,
+) -> None:
+    character = _persisted(db_session, _state())
+    _orchestrator()._apply_rpg_sheet_effects(
+        db_session, (_effect("current_hp", "delta", -1),), character
     )
-    assert result.current_hp == 40
-
-
-def test_apply_hp_set(db_session) -> None:  # type: ignore[no-untyped-def]
-    svc = _make_orchestrator()
-    sheet = _make_sheet(current_hp=30, maximum_hp=40)
-    _persist_sheet(db_session, sheet)
-
-    result = svc._apply_rpg_sheet_effects(
-        db_session, (_effect("current_hp", "set", 20),), sheet
-    )
-    assert result.current_hp == 20
-
-
-# ---------------------------------------------------------------------------
-# delta / set — spell slots
-# ---------------------------------------------------------------------------
-
-
-def test_apply_spell_slot_delta(db_session) -> None:  # type: ignore[no-untyped-def]
-    svc = _make_orchestrator()
-    sheet = _make_sheet(spell_slots={1: SpellSlotLevel(total=3, used=1)})
-    _persist_sheet(db_session, sheet)
-
-    result = svc._apply_rpg_sheet_effects(
-        db_session, (_effect("spell_slot.1", "delta", 1),), sheet
-    )
-    assert result.spell_slots[1].used == 2
-
-
-def test_apply_spell_slot_set(db_session) -> None:  # type: ignore[no-untyped-def]
-    svc = _make_orchestrator()
-    sheet = _make_sheet(spell_slots={2: SpellSlotLevel(total=2, used=0)})
-    _persist_sheet(db_session, sheet)
-
-    result = svc._apply_rpg_sheet_effects(
-        db_session, (_effect("spell_slot.2", "set", 2),), sheet
-    )
-    assert result.spell_slots[2].used == 2
-
-
-def test_apply_spell_slot_unknown_level_fails_closed(db_session) -> None:  # type: ignore[no-untyped-def]
-    svc = _make_orchestrator()
-    sheet = _make_sheet(spell_slots={})
-    _persist_sheet(db_session, sheet)
-
-    with pytest.raises(ValueError, match="spell slot level 3"):
-        svc._apply_rpg_sheet_effects(
-            db_session, (_effect("spell_slot.3", "delta", 1),), sheet
+    db_session.commit()
+    with pytest.raises(StaleRevisionError):
+        _orchestrator()._apply_rpg_sheet_effects(
+            db_session, (_effect("current_hp", "delta", -1),), character
         )
 
 
-# ---------------------------------------------------------------------------
-# Unknown target fails closed
-# ---------------------------------------------------------------------------
-
-
-def test_apply_unknown_target_fails_closed(db_session) -> None:  # type: ignore[no-untyped-def]
-    svc = _make_orchestrator()
-    sheet = _make_sheet()
-    _persist_sheet(db_session, sheet)
-
-    with pytest.raises(ValueError, match="Unknown sheet-effect target"):
-        svc._apply_rpg_sheet_effects(
-            db_session, (_effect("wisdom_score", "delta", 2),), sheet
-        )
-
-
-# ---------------------------------------------------------------------------
-# apply_condition / clear_condition
-# ---------------------------------------------------------------------------
-
-
-def test_apply_condition_adds_to_active_conditions(db_session) -> None:  # type: ignore[no-untyped-def]
-    svc = _make_orchestrator()
-    sheet = _make_sheet()
-    _persist_sheet(db_session, sheet)
-
-    cond_data = {
-        "sheet_id": str(sheet.sheet_id),
-        "identifier": "poisoned",
-        "display_label": "Poisoned",
-        "source": "goblin_attack",
-        "visibility": "visible",
-    }
-    result = svc._apply_rpg_sheet_effects(
-        db_session,
-        (_effect("conditions", "apply_condition", cond_data),),
-        sheet,
-    )
-    assert len(result.active_conditions) == 1
-    assert result.active_conditions[0].identifier == "poisoned"
-
-
-def test_clear_condition_removes_matching_identifier(db_session) -> None:  # type: ignore[no-untyped-def]
-    svc = _make_orchestrator()
-    cond = Dnd5eActiveCondition(
-        sheet_id=uuid4(),
-        identifier="poisoned",
-        display_label="Poisoned",
-        source="test",
-        visibility=ConditionVisibility.VISIBLE,
-    )
-    sheet = _make_sheet(conditions=[cond])
-    # Re-set sheet_id on condition
-    cond2 = Dnd5eActiveCondition(
-        sheet_id=sheet.sheet_id,
-        identifier="poisoned",
-        display_label="Poisoned",
-        source="test",
-        visibility=ConditionVisibility.VISIBLE,
-    )
-    sheet = sheet.model_copy(update={"active_conditions": [cond2]})
-    _persist_sheet(db_session, sheet)
-
-    result = svc._apply_rpg_sheet_effects(
-        db_session,
-        (_effect("conditions", "clear_condition", {"identifier": "poisoned"}),),
-        sheet,
-    )
-    assert result.active_conditions == []
-
-
-# ---------------------------------------------------------------------------
-# Atomicity: rollback removes sheet mutation when transaction is aborted
-# ---------------------------------------------------------------------------
-
-
-def test_sheet_mutation_rolls_back_on_transaction_abort(db_session) -> None:  # type: ignore[no-untyped-def]
-    """If the session is rolled back after _apply_rpg_sheet_effects, the
-    sheet change must not be visible after a fresh load."""
-    from afterworlds.persistence.crud.character_sheet import get_dnd5e_sheet
-
-    svc = _make_orchestrator()
-    sheet = _make_sheet(current_hp=30, maximum_hp=40)
-    _persist_sheet(db_session, sheet)
-
-    # Begin a nested savepoint for rollback testing
-    db_session.begin_nested()
-    svc._apply_rpg_sheet_effects(
-        db_session, (_effect("current_hp", "delta", -15),), sheet
+def test_a_rolled_back_turn_leaves_no_mutation(db_session: Session) -> None:
+    character = _persisted(db_session, _state())
+    _orchestrator()._apply_rpg_sheet_effects(
+        db_session, (_effect("current_hp", "delta", -10),), character
     )
     db_session.rollback()
-
-    # After rollback, current_hp must still be 30
-    refetched = get_dnd5e_sheet(db_session, sheet.sheet_id)
-    assert refetched is not None
-    assert refetched.current_hp == 30
+    fresh = store.get_character(db_session, character.sheet_id)
+    assert fresh is not None and (fresh.revision, _hp(fresh.state)) == (1, 30)

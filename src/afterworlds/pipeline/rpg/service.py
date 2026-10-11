@@ -77,12 +77,12 @@ from afterworlds.pipeline.rpg.models import (
 )
 
 if TYPE_CHECKING:
-    from afterworlds.models.character_sheet import Dnd5eCharacterSheet
     from afterworlds.models.rules_package import ActiveRuleSlice
     from afterworlds.models.session import RpgSessionState
     from afterworlds.pipeline.provider._protocol import ProviderAdapter
     from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
     from afterworlds.pipeline.rpg.dice import DiceService
+    from afterworlds.services.dnd5e_state.turn import TurnCharacter
 
 # ---------------------------------------------------------------------------
 # Prompt loading
@@ -174,15 +174,15 @@ class RpgAdjudicationPassService:
         self._config = config or AdjudicationConfig.from_env()
         self._system_prompt: str = load_adjudication_prompt()
 
-    def is_adjudicable(self, sheet: Dnd5eCharacterSheet) -> bool:
-        """Delegate to adapter — True if the sheet has enough data to adjudicate."""
-        return self._adapter.is_adjudicable(sheet)
+    def is_adjudicable(self, character: TurnCharacter) -> bool:
+        """Delegate to adapter — True if the recorded state is ready."""
+        return self._adapter.is_adjudicable(character)
 
     def adjudicate(
         self,
         built_context: AssembledContext,
         session_state: RpgSessionState,
-        sheet: Dnd5eCharacterSheet,
+        sheet: TurnCharacter,
         dice_service: DiceService,
         *,
         provider: ProviderAdapter,
@@ -197,7 +197,7 @@ class RpgAdjudicationPassService:
             built_context: AssembledContext from the Context Builder.  The
                 rules_package_slice on its stable_prefix is the active rule slice.
             session_state: Current RpgSessionState (provides gm_cheating flag).
-            sheet: Active Dnd5eCharacterSheet for modifier assembly.
+            sheet: The active character (typed 2b state) for modifier assembly.
             dice_service: Injected DiceService for roll randomness.
             provider: ProviderAdapter for the LLM call (normal path only).
             story_id: Story UUID, forwarded to PendingRollRequest.
@@ -282,7 +282,7 @@ class RpgAdjudicationPassService:
         self,
         built_context: AssembledContext,
         session_state: RpgSessionState,
-        sheet: Dnd5eCharacterSheet,
+        sheet: TurnCharacter,
         dice_service: DiceService,
         *,
         provider: ProviderAdapter,
@@ -343,14 +343,20 @@ class RpgAdjudicationPassService:
                     # Overflow visible proposal deferred — not AI-resolved, not
                     # a second pending.
                     continue
-                pending, view = self._adapter.prepare_player_roll_announce(
-                    coerced,
-                    sheet,
-                    rule_slice,
-                    story_id=story_id,
-                    session_id=session_state.session_id,
-                    originating_turn_id=originating_turn_id,
-                )
+                try:
+                    pending, view = self._adapter.prepare_player_roll_announce(
+                        coerced,
+                        sheet,
+                        rule_slice,
+                        story_id=story_id,
+                        session_id=session_state.session_id,
+                        originating_turn_id=originating_turn_id,
+                    )
+                except Exception as exc:
+                    raise AdjudicationPassError(
+                        f"Adapter failed to announce proposal "
+                        f"{proposal.check_label!r}: {exc}"
+                    ) from exc
                 pending_roll_request = pending
                 views.append(view)
             else:
