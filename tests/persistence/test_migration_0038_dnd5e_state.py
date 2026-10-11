@@ -109,8 +109,8 @@ def test_a_populated_2b_store_refuses_to_downgrade(tmp_path: Path) -> None:
     _execute(db, _STORY)
     _execute(
         db,
-        "INSERT INTO rpg_parties (party_id, story_id, label, created_at) "
-        "VALUES ('p1', 's1', 'Company', 'now')",
+        "INSERT INTO rpg_parties (party_id, story_id, label, package_uuid, created_at) "
+        "VALUES ('p1', 's1', 'Company', 'pkg', 'now')",
     )
     with pytest.raises(RuntimeError, match="empty stores only"):
         command.downgrade(_cfg(db), "0037")
