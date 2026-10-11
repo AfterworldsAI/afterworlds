@@ -31,6 +31,7 @@ Maximum hit points and spell-slot totals are stored, authoritative values.
 
 from __future__ import annotations
 
+from decimal import Decimal
 from enum import StrEnum
 from typing import Annotated, Literal, Self
 from uuid import UUID
@@ -83,6 +84,7 @@ __all__ = [
     "EffectEnd",
     "FeatSelection",
     "GrantSource",
+    "Hazard",
     "HitPointDicePool",
     "HitPoints",
     "LanguageGrant",
@@ -481,6 +483,86 @@ class ConditionInstance(_Model):
         return self
 
 
+class _HazardEntry(_Model):
+    """A persistent hazard input: what the source says to track, not its rule.
+
+    ``source`` names the accepted record that states the hazard. What the
+    inputs mean (Exhaustion gained, damage taken, a requirement by size, the
+    breath a Constitution modifier allows) is a 15c derivation. Exhaustion a
+    hazard caused is an Exhaustion :class:`ConditionInstance` whose ``source``
+    names the hazard, so per-source removal stays possible.
+    """
+
+    source: GrantSource
+
+
+class BurningHazard(_HazardEntry):
+    """Burning [Hazard], ``rules-glossary.md``:365: it persists across turns."""
+
+    kind: Literal["burning"] = "burning"
+    started_marker: str | None = Field(default=None, min_length=1)
+
+
+class DehydrationHazard(_HazardEntry):
+    """Dehydration [Hazard], ``rules-glossary.md``:686: water drunk on a day,
+    in gallons as the Water Needs table states them."""
+
+    kind: Literal["dehydration"] = "dehydration"
+    day_marker: str = Field(min_length=1)
+    water_gallons: Decimal = Field(ge=0)
+
+
+class MalnutritionHazard(_HazardEntry):
+    """Malnutrition [Hazard], ``rules-glossary.md``:1064: food eaten on a day
+    (pounds, as the Food Needs table states them) and consecutive days with
+    no food."""
+
+    kind: Literal["malnutrition"] = "malnutrition"
+    day_marker: str = Field(min_length=1)
+    food_pounds: Decimal = Field(ge=0)
+    days_without_food: int = Field(ge=0)
+
+
+class SuffocationHazard(_HazardEntry):
+    """Suffocation [Hazard], ``rules-glossary.md``:1429: breath remaining while
+    holding it, and whether the creature has run out (is suffocating)."""
+
+    kind: Literal["suffocation"] = "suffocation"
+    breath_remaining: int | None = Field(default=None, ge=0)
+    breath_unit: TimeUnit | None = None
+    suffocating: bool
+    started_marker: str | None = Field(default=None, min_length=1)
+
+    @model_validator(mode="after")
+    def remaining_has_a_unit(self) -> Self:
+        if (self.breath_remaining is None) != (self.breath_unit is None):
+            raise ValueError("breath remaining records an amount and its unit")
+        return self
+
+
+class ContagionHazard(_HazardEntry):
+    """A Magical Contagion, ``gameplay-toolbox.md``:215: infection, onset,
+    successful saves, suppression (Sight Rot) and cure anchors."""
+
+    kind: Literal["contagion"] = "contagion"
+    infected_marker: str = Field(min_length=1)
+    onset_marker: str | None = Field(default=None, min_length=1)
+    successful_saves: int = Field(ge=0)
+    suppression_hours: int | None = Field(default=None, ge=0)
+    cured_marker: str | None = Field(default=None, min_length=1)
+
+
+#: One persistent hazard input. Instances are distinct (two contagions are two).
+Hazard = Annotated[
+    BurningHazard
+    | DehydrationHazard
+    | MalnutritionHazard
+    | SuffocationHazard
+    | ContagionHazard,
+    Field(discriminator="kind"),
+]
+
+
 # ---------------------------------------------------------------------------
 # F14-F17: active effects, usage counters, slots, spell access
 # ---------------------------------------------------------------------------
@@ -640,6 +722,7 @@ class _SharedState(_Model):
     ability_adjustments: tuple[AbilityAdjustment, ...] | None = None
     choices: tuple[ChoiceRecord, ...] | None = None
     death_state: DeathState | None = None
+    hazards: tuple[Hazard, ...] | None = None
 
     @model_validator(mode="after")
     def instance_ids_unique(self) -> Self:

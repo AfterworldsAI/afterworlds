@@ -295,6 +295,7 @@ def complete_character(
         currency={Currency.GP: 15},
         rest_anchors=RestAnchors(),
         base_armor_class=BaseArmorClass(),  # recorded: the default calculation
+        hazards=(),
     )
 
 
@@ -313,6 +314,7 @@ def cat(**updates: object) -> CreatureState:
         hit_points=HitPoints(current=2, maximum=2, temporary=0),
         conditions=(),
         active_effects=(),
+        hazards=(),
     )
     return base.model_copy(update=updates)
 

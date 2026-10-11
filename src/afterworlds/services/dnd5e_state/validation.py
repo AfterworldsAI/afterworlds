@@ -41,6 +41,7 @@ from afterworlds.services.dnd5e_state.authority import (
 from afterworlds.services.dnd5e_state.errors import FailureCode, StateFailure
 
 __all__ = [
+    "FAMILIAR_SOURCES",
     "KNOWN_COUNT_ENTITLEMENTS",
     "character_readiness",
     "creature_readiness",
@@ -229,6 +230,40 @@ def _counter_maximum(
         )
 
 
+#: The accepted record that states each hazard kind; contagions are the
+#: members of the accepted Magical Contagions catalogue.
+_HAZARD_RECORDS = {
+    "burning": "glossary.burning",
+    "dehydration": "glossary.dehydration",
+    "malnutrition": "glossary.malnutrition",
+    "suffocation": "glossary.suffocation",
+}
+CONTAGION_CATALOGUE = "gameplay_toolbox.curses_and_magical_contagions"
+
+
+def _hazard(index: AuthorityIndex, hazard: object, path: str) -> Iterator[StateFailure]:
+    kind = getattr(hazard, "kind", None)
+    source = getattr(hazard, "source", None)
+    if not isinstance(source, GrantSource) or kind is None:
+        yield _fail(FailureCode.INVALID_IDENTITY, path, "not a typed hazard entry")
+        return
+    yield from _source(index, source, path)
+    key = source.record_key
+    if kind == "contagion":
+        if not index.is_member(CONTAGION_CATALOGUE, key):
+            yield _fail(
+                FailureCode.WRONG_KIND,
+                path,
+                f"{key!r} is not an accepted Magical Contagion",
+            )
+    elif _HAZARD_RECORDS.get(kind) != key:
+        yield _fail(
+            FailureCode.WRONG_KIND,
+            path,
+            f"a {kind} hazard is stated by {_HAZARD_RECORDS.get(kind)!r}, not {key!r}",
+        )
+
+
 def _shared(
     index: AuthorityIndex, state: Dnd5eCharacterState | CreatureState
 ) -> Iterator[StateFailure]:
@@ -256,6 +291,8 @@ def _shared(
         yield from _source(
             index, counter.source, f"usage_counters[{counter.counter_id}]"
         )
+    for i, hazard in enumerate(state.hazards or ()):
+        yield from _hazard(index, hazard, f"hazards[{i}]")
 
 
 def validate_character(
@@ -427,6 +464,7 @@ _CHARACTER_FAMILIES = (
     "hit_points",
     "hit_point_dice",
     "death_state",
+    "hazards",
     "heroic_inspiration",
     "conditions",
     "active_effects",
@@ -484,9 +522,27 @@ def character_readiness(
     return tuple(out)
 
 
+#: Sources that create a familiar through Find Familiar: the spell
+#: (``spells.md`` "Find Familiar"), Wild Companion (``classes.md``:3511) and
+#: Pact of the Chain (``classes.md``:9122). A familiar's chosen creature type
+#: ("a Celestial, Fey, or Fiend ... instead of a Beast") and whether it is
+#: present or dismissed to the pocket dimension are applicable state.
+FAMILIAR_SOURCES = frozenset(
+    {
+        "spells.find_familiar",
+        "classes.druid.wild_companion",
+        "classes.warlock.eldritch_invocation_options.pact_of_the_chain",
+    }
+)
+
+
 def creature_readiness(state: CreatureState) -> tuple[StateFailure, ...]:
+    """Missing applicable families. Readiness is not legality."""
+    required = ["hit_points", "conditions", "active_effects", "hazards"]
+    if state.summon is not None and state.summon.source.record_key in FAMILIAR_SOURCES:
+        required += ["creature_type", "presence"]
     return tuple(
         _fail(FailureCode.MISSING_STATE, name, "not recorded")
-        for name in ("hit_points", "conditions", "active_effects")
+        for name in required
         if getattr(state, name) is None
     )

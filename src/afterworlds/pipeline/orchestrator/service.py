@@ -3579,11 +3579,12 @@ class OrchestratorService:
         from dataclasses import replace
         from datetime import UTC, datetime
 
-        from afterworlds.services.dnd5e_state import store
+        from afterworlds.services.dnd5e_state import service, store
         from afterworlds.services.dnd5e_state.effects import apply_effects
 
         stored = character.stored
         new_state = apply_effects(stored.state, effects)
+        service.check_references(session, stored.story_id, new_state)
         store.save_state(
             session,
             "character",

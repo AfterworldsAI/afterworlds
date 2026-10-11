@@ -56,6 +56,7 @@ def wizardish(**updates: object) -> Dnd5eCharacterState:
         hit_points=HitPoints(current=9, maximum=9, temporary=0),
         conditions=(),
         active_effects=(),
+        hazards=(),
         spell_access=(
             SpellAccess(
                 pool_id="wizard",

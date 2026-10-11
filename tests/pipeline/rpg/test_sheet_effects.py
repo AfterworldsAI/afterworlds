@@ -81,6 +81,22 @@ def test_hp_never_exceeds_the_stored_maximum() -> None:
     assert _hp(apply_effects(_state(), (_effect("current_hp", "set", 12),))) == 12
 
 
+def test_an_hp_change_keeps_every_other_recorded_hit_point_field() -> None:
+    """Codex review: only ``current`` changes; reduction and provenance stay."""
+    hp = HitPoints(
+        current=8,
+        maximum=10,
+        temporary=4,
+        maximum_reduction=3,
+        temporary_source=GrantSource(record_key="spells.false_life"),
+    )
+    state = _state().model_copy(update={"hit_points": hp})
+    for effect in (_effect("current_hp", "delta", -2), _effect("current_hp", "set", 1)):
+        after = apply_effects(state, (effect,)).hit_points
+        assert after is not None
+        assert after.model_copy(update={"current": hp.current}) == hp
+
+
 def test_slot_effects_adjust_expended_slots_in_their_one_pool() -> None:
     state = _state(pools=(_pool("spellcasting", (1, 4, 0), (2, 3, 0)),))
     after = apply_effects(state, (_effect("spell_slot.1", "delta", 2),))

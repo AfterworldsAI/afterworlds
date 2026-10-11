@@ -55,6 +55,7 @@ from afterworlds.services.dnd5e_state.validation import (
 )
 
 __all__ = [
+    "check_references",
     "create_character",
     "create_creature",
     "readiness",
@@ -144,6 +145,13 @@ def _references(
                     )
                 )
     return tuple(failures)
+
+
+def check_references(
+    session: Session, story_id: UUID, state: Dnd5eCharacterState | CreatureState
+) -> None:
+    """Refuse (typed) state whose references leave *story_id*."""
+    _checked(_references(session, story_id, state))
 
 
 def _story_of_sheet(session: Session, sheet_id: UUID) -> UUID:

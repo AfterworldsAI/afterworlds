@@ -24,9 +24,6 @@ from uuid import uuid4
 from afterworlds.models.dnd5e_state import (
     ConditionInstance,
     Dnd5eCharacterState,
-    HitPoints,
-    SlotLevel,
-    SpellSlotPool,
 )
 from afterworlds.models.rpg import SheetEffect
 
@@ -48,12 +45,9 @@ def _hp(
     amount = _int(value, effect.target)
     current = hp.current + amount if effect.operation == "delta" else amount
     current = min(hp.maximum, current)
+    # Only ``current`` changes; every other recorded field is kept.
     return state.model_copy(
-        update={
-            "hit_points": HitPoints(
-                current=current, maximum=hp.maximum, temporary=hp.temporary
-            )
-        }
+        update={"hit_points": hp.model_copy(update={"current": current})}
     )
 
 
@@ -79,13 +73,9 @@ def _slot(
     for s in pool.levels:
         if s.level == level:
             expended = s.expended + amount if effect.operation == "delta" else amount
-            s = SlotLevel(
-                level=level, total=s.total, expended=max(0, min(s.total, expended))
-            )
+            s = s.model_copy(update={"expended": max(0, min(s.total, expended))})
         levels.append(s)
-    new_pool = SpellSlotPool(
-        pool_id=pool.pool_id, source=pool.source, levels=tuple(levels)
-    )
+    new_pool = pool.model_copy(update={"levels": tuple(levels)})
     return state.model_copy(
         update={"spell_slot_pools": tuple(new_pool if p is pool else p for p in pools)}
     )
