@@ -1,12 +1,13 @@
 """RulesCorpusService — CRD Issue 18 / ADR-018 D10/D11.
 
-Finalizes the rules-corpus Chroma schema and reindexes the CRD Issue 5b
-interim collection (``rp_chunks_interim_{package_id_hex}``,
-``ingestion/vector_writer.py``) into the finalized per-Rules-Package
-``rules_corpus_{package_id_hex}`` collection, rebuilt from the SQLite
-``rp_chunks`` ground truth — never from the interim Chroma collection
-itself (Central Invariant: Chroma is a rebuildable SQLite-derived
-projection).
+Finalizes the rules-corpus Chroma schema: the per-Rules-Package
+``rules_corpus_{package_id_hex}`` collection supersedes the CRD Issue 5b
+interim collection (``rp_chunks_interim_{package_id_hex}``) and is rebuilt
+only from the SQLite ``rp_chunks`` ground truth. This module never reads the
+interim collection; a rebuild is independent of its existence or contents
+(Central Invariant: Chroma is a rebuildable SQLite-derived projection). The
+interim writer survives only as the write-only generic-ingestion projection in
+``ingestion/vector_writer.py`` (GitHub #121).
 
 The diagnostic query exposed here is internal/admin-only in v1 (D10): no
 Context Builder, RPG adjudication loop, Writer, Planner, pass service, or
@@ -58,8 +59,8 @@ class RulesCorpusService:
 
         Wipes the collection first (surplus removal) then re-upserts every
         enabled ``RuleChunk`` row for *rules_package_id*, as one or more
-        bounded embedding windows each. This absorbs the CRD Issue 5b
-        interim collection without mutating any 5a source record. Returns
+        bounded embedding windows each, without mutating any 5a source record
+        and without reading the CRD Issue 5b interim collection. Returns
         the number of **documents** written, which is the number of chunks
         only when no chunk needed more than one window.
 

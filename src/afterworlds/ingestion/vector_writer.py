@@ -1,25 +1,27 @@
-"""Vector write path — ChromaDB interim implementation.
+"""Generic-ingestion vector projection — write-only, non-runtime, non-authoritative.
 
-INTERIM COLLECTION SCHEMA — subject to revision in CRD Issue 18
-================================================================
-Collection: "rp_chunks_interim_{package_id_hex}"
-  where package_id_hex = full 32-hex-char UUID (hyphens stripped).
+GitHub #121 disposition (after CRD Issue 18 / ADR-018 D10)
+==========================================================
+This is the retained CRD Issue 5b interim writer. It is **not** the rules
+corpus and **not** a rules authority:
 
-Metadata per document:
-  - package_id      : str  — full rules_package_id UUID string
-  - chunk_id        : str  — full chunk_id UUID string
-  - subsystem       : str  — RuleSubsystemEnum value
-  - source_document : str  — source document name
+* It is write-only. It has no reader, and must never gain one: the superseded
+  interim reader (``query()``) was removed under the pre-release clean baseline.
+* Its only caller is the generic ``IngestionService``: ``ingest`` writes the
+  projection and ``publish`` compares its document count to the SQL chunk count
+  as an internal-consistency gate. No Context Builder, RPG adjudication,
+  Planner, Writer or pass service imports it or reads its collections.
+* The finalized rules corpus is ``rules_corpus_{package_id_hex}``, rebuilt only
+  from ``rp_chunks`` SQLite ground truth by
+  ``RulesCorpusService.reindex_from_sql``, independently of whether this
+  projection exists or what it contains. Its only reader is the
+  publication-gated ``RulesCorpusService.diagnostic_query``.
+* Runtime mechanical rules authority is exclusively ``get_active_rule_slice``.
 
-Embedding model: ChromaDB default (all-MiniLM-L6-v2)
-
-KNOWN UNKNOWN: collection naming convention, metadata field set, embedding
-model selection, chunking strategy, and retrieval scoring thresholds are all
-designated for revision in CRD Issue 18.  The schema here is intentionally
-minimal to unblock CRD Issue 5b testing without pre-empting Issue 18 design
-decisions.  Do not build downstream logic that depends on the collection name
-format or metadata field names defined in this file — treat both as unstable
-until CRD Issue 18 is complete.
+Collection: "rp_chunks_interim_{package_id_hex}" (full 32-hex-char UUID,
+hyphens stripped). The name is kept so existing stores are not orphaned.
+Metadata per document: ``package_id``, ``chunk_id``, ``subsystem``,
+``source_document``. Embedding model: ChromaDB default.
 """
 
 from __future__ import annotations
@@ -51,8 +53,6 @@ def _collection_name(package_id: str) -> str:
 
     Uses the full 32-hex-char UUID (hyphens stripped) to guarantee
     collision-freedom across all packages.
-
-    KNOWN UNKNOWN: naming convention — see module docstring.
     """
     full_hex = package_id.replace("-", "")
     return f"{_COLLECTION_PREFIX}{full_hex}"
@@ -64,14 +64,12 @@ def _collection_name(package_id: str) -> str:
 
 
 class VectorWriter:
-    """Interim ChromaDB write path for rule chunks (generic ingestion service).
+    """Write-only generic-ingestion projection of rule chunks (see module docstring).
 
-    The superseded interim semantic reader (``query()``) was removed under the
-    pre-release clean baseline; the supported diagnostic reader is
-    ``RulesCorpusService.diagnostic_query()`` (publication-gated, non-creating).
-
-    KNOWN UNKNOWN: collection schema, naming, metadata fields, and embedding
-    model are all designated for CRD Issue 18 revision.
+    Deliberately exposes no query/read method: nothing may consume this
+    projection as rules content. ``count_chunks``/``has_chunks`` exist only for
+    the ``IngestionService`` consistency gate. The supported diagnostic reader
+    is ``RulesCorpusService.diagnostic_query()`` over the finalized corpus.
 
     Parameters
     ----------
@@ -95,7 +93,7 @@ class VectorWriter:
         chunk_ids: list[str],
         source_document_name: str,
     ) -> None:
-        """Upsert parsed chunks into the interim ChromaDB collection.
+        """Upsert parsed chunks into the generic-ingestion projection.
 
         Parameters
         ----------
@@ -115,8 +113,6 @@ class VectorWriter:
         Uses ChromaDB ``upsert`` so re-running ingestion is idempotent at
         the vector layer — existing documents are overwritten rather than
         duplicated.
-
-        KNOWN UNKNOWN: See module docstring for schema caveats.
         """
         if not chunks:
             return
@@ -155,8 +151,6 @@ class VectorWriter:
             Parallel list of source file names for the ``source_document``
             metadata field.  Must match the ``source_document`` column from
             the corresponding SQL rows.
-
-        KNOWN UNKNOWN: See module docstring for schema caveats.
         """
         if not chunk_ids:
             return
@@ -195,8 +189,6 @@ class VectorWriter:
         Used by the repopulation path before rebuilding from SQL ground truth
         to ensure surplus documents are removed.  No-op if the collection does
         not exist.
-
-        KNOWN UNKNOWN: See module docstring for schema caveats.
         """
         with contextlib.suppress(Exception):
             self._client.delete_collection(_collection_name(package_id))

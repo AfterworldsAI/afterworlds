@@ -148,7 +148,9 @@ class RulesPackageManifest(BaseModel):
     """Manifest record for a RulesPackage — attribution, licensing, and gate flags.
 
     One manifest per package.  Publication is gated on ``sql_ingest_complete``
-    and ``vector_write_complete`` both being True.
+    and ``vector_write_complete`` both being True.  ``vector_write_complete``
+    refers to the generic-ingestion projection (``vector_writer.py``), not the
+    finalized ``rules_corpus_*`` collection.
     """
 
     manifest_id: UUID = Field(default_factory=uuid4)
