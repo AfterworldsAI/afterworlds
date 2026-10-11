@@ -166,6 +166,10 @@ def srd_content(table: Table) -> Iterator[Callable[..., None]]:  # noqa: F811
     seeded: list[RulesPackageBinding] = []
 
     def seed(binding: RulesPackageBinding, *, without: tuple[str, ...] = ()) -> None:
+        # Cold: another test may have cached this binding (identities are
+        # content-derived), which would hide a version this test never retained.
+        with authority._CACHE_LOCK:  # noqa: SLF001
+            authority._CACHE.pop(binding, None)  # noqa: SLF001
         with table.factory() as s:
             own = authority.authority_index(s, binding, now=NOW)
         srd = real_index()

@@ -62,9 +62,49 @@ These ran on Windows with the clone's Python 3.12 virtualenv. The status commit 
 
   The draft PR's exact-head CI runs both.
 
+## Exact-head CI on `432a0a6` (run 38130325519) and its remediation
+
+The run failed: frontend and E2E passed, and shards 1–7 had failures. Every failure falls into one of three families. All are remediated with tests and the boundary only; no production module, artifact or recorded hash changed.
+
+**1. Historical schema contract versus the build's current schema.**
+- **Root cause.** `issue-5d-reference-alternatives-ACCEPT.py` (byte-pinned at `7a959255…`) lifts to the build's current schema. That schema was 17 when the script was recorded and is 18 now, so the replayed `e9678ab3…` drifted, along with every later recorded prior.
+- **Remedy at the replay boundary** (`_replacement_chain`):
+  - a written-out per-script registry pins that script's target to schema 17, and the script's own `reviewed()` re-asserts it;
+  - the schema-17 checks' release findings are judged at the build's schema, after each registered crossing is proved over the candidate's representation.
+- **Siblings patched:**
+  - `test_reference_alternatives`: schema 17 is pinned for the historical lift and pre-fix identity, and the current 16→17→18 lift has its own assertion;
+  - `test_spell_descriptions_proposal`: an explicit forward lift;
+  - `test_character_origins_feats_proposal`: the literal current lift chain;
+  - `test_schema_12_practical_reliability`: schema 18 added to its earlier-contract set;
+  - `test_committed_accepted_authority`: the G1 proposal `8a8a737b…`, asserted against its reviewed file and against the Owner receipt.
+- **Already safe:**
+  - every other written-out version registry;
+  - the G1 scripts;
+  - the shared findings judge, which affects only the four schema-17 checks.
+
+**2. The new table's census.**
+- `rp_mech_shared_changes` is added to both closed `rp_*` censuses.
+- Its proof policy is `runtime_coordination`, which keeps it outside projection identity and digest.
+
+**3. Fixture transaction isolation.**
+- The holdings adoption test now commits its target resolution.
+- The seeder now starts cold.
+- Proof that the masking is closed: with the commit removed, the whole-file run fails.
+
+**Targeted evidence** (clone venv, `PYTHONDONTWRITEBYTECODE=1`, task-private basetemp):
+- The four recording rebuilds, the class-eligibility rebuild and the committed-authority file: 7 passed.
+- The 2b suite, both censuses, the proof-policy inventory, schema 12, reference alternatives, the origins-feats composition and the committed authority: 348 passed.
+- The cold single node: passed.
+- `test_spell_descriptions_proposal`: 22 passed.
+- The G1 receipt identity node: passed.
+- Static gates pass: Black, Ruff and `mypy src`.
+- The secrets scan finds no unaudited findings. The one new audited entry is the G1 identity literal.
+
+The new exact-head CI run is reported in the PR handoff.
+
 ## Remaining
 
-- Exact-head CI: eight shards, the census, coverage of at least 80%, the frontend gates and E2E.
+- A fully green exact-head CI run on the new head: eight shards, the census, coverage of at least 80%, the frontend gates and E2E.
 - Codex's independent review of the draft PR.
 - No merge, runtime publication or activation, app launch, CRD Issue 15c work, or #132/#137 changes.
 

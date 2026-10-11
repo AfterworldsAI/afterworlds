@@ -15,6 +15,8 @@ them. Two properties are still current:
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from afterworlds.ingestion.mechanical.oracle import (
@@ -57,6 +59,7 @@ G1_PROPOSAL = (
 G1_PROPOSAL_IDENTITY = (
     "8a8a737b0d1e47410de86bbeca44b66522b46511e078727d20760678943b5345"
 )
+G1_RECEIPT = NOTES / "issue-2b-g1-recording" / "owner-acceptance.json"
 CONDITIONS_PILOT_PROPOSAL = proposal_path("conditions-pilot")
 ACTIONS_PILOT_PROPOSAL = proposal_path("actions-pilot")
 REFERENCE_CLOSURE_PROPOSAL = proposal_path("reference-closure")
@@ -201,3 +204,6 @@ def test_no_refused_candidate_is_selectable() -> None:
         G1_PROPOSAL_IDENTITY,
     }
     assert proposal_identity(load_proposal(G1_PROPOSAL)) == G1_PROPOSAL_IDENTITY
+    # The identity is the one the Owner's recorded receipt accepted.
+    receipt = json.loads(G1_RECEIPT.read_text("utf-8"))
+    assert receipt["accepted_proposal_identity"] == G1_PROPOSAL_IDENTITY

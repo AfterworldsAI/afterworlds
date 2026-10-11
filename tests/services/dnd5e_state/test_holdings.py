@@ -392,7 +392,9 @@ def test_adoption_refuses_a_target_that_removed_a_held_item(
         before = service.read_character(s, sheet)
     change = _request(table, HOUSE_RULE)
     assert _activate(table, change).status is ChangeStatus.ACTIVE
-    with table.factory() as s:
+    # Resolving the target retains its override-set version; commit it so the
+    # replay in the seeder's own session reads it, as production does.
+    with table.factory() as s, s.begin():
         target = current_binding(s, table.package, now=NOW)
     srd_content(target, without=("equipment.weapons.whip",))
     with table.factory() as s, s.begin():

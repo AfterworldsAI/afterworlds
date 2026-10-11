@@ -99,6 +99,11 @@ Drift and boundaries are stated explicitly below.
     - Each registered crossing is proved over the candidate's representation (`verify_lift_path`) before only the candidate's declaration moves. Artifacts and evidence are not touched.
     - The scripts' own recorded-schema, lift and delta assertions still run on the unlifted inputs.
     - A candidate already at the build's schema is judged as it is.
+  - **The findings judge is shared, and bounded.**
+    - The judge replaces `validate_candidate` on the shared replay-helper module only, never in production.
+    - Only the four schema-17 `_check`s pass it candidates below the build's schema. Earlier recordings' checks pass `lifted()` (current) candidates, which are judged unchanged.
+    - The helpers' other `APC.findings` calls are in command-line paths no test executes.
+  - **Intentionally current compositions.** `test_character_origins_feats_proposal` composes at the build's schema. Its literal lift chain now names 17→18 as well.
   - **Committed proposals.** `test_no_refused_candidate_is_selectable` now names the Owner-accepted G1 proposal `8a8a737b…`, checked against its reviewed file. This was a G1-introduction sibling missed in `dca4af3`.
   - **Tests that wrote "17" as "current".** `test_reference_alternatives` now pins schema 17 for its historical lift and pre-fix identity, and asserts separately that lifting to the current build runs 16→17→18. `test_spell_descriptions_proposal` keeps the chain authority declared at 17 and lifts it to the build explicitly.
   - **Earlier-contract sets.** `test_schema_12_practical_reliability` omitted schema 18 from its written-out set of later contracts; this was a schema-18 introduction sibling missed in `dca4af3`.
@@ -109,7 +114,11 @@ Drift and boundaries are stated explicitly below.
       - every other written-out version registry in `src` and `tests`;
       - the G1 recording and candidate scripts (they do not read the current schema).
     - Unchanged historical evidence: the candidate and replacement scripts that read the current schema, in their command-line verification or in `resolved()`. No test replays any of them against recorded bytes.
-- **New table census.** `rp_mech_shared_changes` is registered in the `rp_*` census. Its proof policy is `runtime_coordination`: package-scoped operational coordination outside every projection's raw rows, identity and digest, like the override rows it stages.
+- **New table census.** `rp_mech_shared_changes` is registered in both closed `rp_*` censuses (`test_rules_package`, `test_schema_separation_invariant`). Its proof policy is `runtime_coordination`: package-scoped operational coordination outside every projection's raw rows, identity and digest, like the override rows it stages.
+
+- **Test fixture retention.** One holdings test resolved an adoption target in a read session that never committed. The seeder then replayed it in a new session, where the retained override-set version was correctly missing. Warm cache entries from other tests masked this, since identities are content-derived.
+  - The test now commits the resolution, and the SRD-content seeder starts each binding cold.
+  - Production writes that record a binding resolve it in the same committing transaction: creation and adoption's rebind. They are already safe.
 
 ### Holds and turn leases
 
