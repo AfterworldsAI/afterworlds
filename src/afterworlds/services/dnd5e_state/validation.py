@@ -19,9 +19,12 @@ whether a choice was legal, and what any of it computes to, is CRD Issue 15c.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 
-from afterworlds.ingestion.mechanical.representation import RecordKind
+from afterworlds.ingestion.mechanical.representation import (
+    RecordKind,
+    WeaponCategoryFact,
+)
 from afterworlds.models.dnd5e_state import (
     VOCABULARIES,
     ChoiceRecord,
@@ -76,6 +79,55 @@ def _identity(
         yield _fail(
             FailureCode.WRONG_KIND, path, f"{key!r} is a {kind.value}, not {allowed}"
         )
+
+
+#: The accepted catalogue of tools (``equipment.md`` "Tools").
+TOOL_CATALOGUE = "equipment.tools"
+#: The capabilities a sense grant records: the special senses the source
+#: defines (``playing-the-game.md``:756 "Special Senses") and Telepathy
+#: (``rules-glossary.md``:1449).
+SENSE_RECORDS = frozenset(
+    {
+        "glossary.blindsight",
+        "glossary.darkvision",
+        "glossary.tremorsense",
+        "glossary.truesight",
+        "glossary.telepathy",
+    }
+)
+
+
+def _is_weapon(index: AuthorityIndex, key: str) -> bool:
+    """A weapon is a record the accepted authority states a weapon category for
+    (schema 18, G1): every SRD weapon carries one; armor and gear do not."""
+    record = index.record(key)
+    return record is not None and any(
+        isinstance(f.fact, WeaponCategoryFact)
+        for c in record.components
+        for f in c.facts
+    )
+
+
+def _is_tool(index: AuthorityIndex, key: str) -> bool:
+    return index.is_member(TOOL_CATALOGUE, key)
+
+
+def _domain(
+    index: AuthorityIndex,
+    key: str,
+    within: Callable[[AuthorityIndex, str], bool],
+    what: str,
+    path: str,
+) -> Iterator[StateFailure]:
+    """A field's narrower identity domain than its record kind.
+
+    The record kind says what kind of record a key is; the field may name only
+    some of them (a weapon proficiency names a weapon, not armor). Domains come
+    from accepted structured authority or the source's own lists; whether a
+    grant was legal for the character is not 2b's.
+    """
+    if index.record(key) is not None and not within(index, key):
+        yield _fail(FailureCode.WRONG_KIND, path, f"{key!r} is not {what}")
 
 
 def _source(
@@ -354,13 +406,15 @@ def validate_character(
             out += _source(index, grant.source, f"{name}[{i}]")  # type: ignore[attr-defined]
     for i, w in enumerate(state.weapon_proficiencies or ()):
         if w.weapon_record_key is not None:
+            path = f"weapon_proficiencies[{i}]"
             out += _identity(
-                index, w.weapon_record_key, one({RecordKind.EQUIPMENT}),
-                f"weapon_proficiencies[{i}]",
-            )  # fmt: skip
+                index, w.weapon_record_key, one({RecordKind.EQUIPMENT}), path
+            )
+            out += _domain(index, w.weapon_record_key, _is_weapon, "a weapon", path)
     for i, t in enumerate(state.tool_proficiencies or ()):
         path = f"tool_proficiencies[{i}]"
         out += _identity(index, t.record_key, _ITEM_KINDS, path)
+        out += _domain(index, t.record_key, _is_tool, "a tool", path)
         if (
             t.component_key is not None
             and index.record(t.record_key) is not None
@@ -374,8 +428,12 @@ def validate_character(
                 )
             )
     for i, s in enumerate(state.senses or ()):
+        path = f"senses[{i}]"
         out += _identity(
-            index, s.sense_record_key, one({RecordKind.GLOSSARY_RULE}), f"senses[{i}]"
+            index, s.sense_record_key, one({RecordKind.GLOSSARY_RULE}), path
+        )
+        out += _domain(
+            index, s.sense_record_key, lambda _, k: k in SENSE_RECORDS, "a sense", path
         )
     for i, a in enumerate(state.spell_access or ()):
         out += _identity(
