@@ -22,7 +22,11 @@ from afterworlds.models.story_bible import (
     StoryBibleContext,
 )
 from afterworlds.persistence.crud.story import create_story
-from afterworlds.persistence.orm.story_bible import SBEventORM
+from afterworlds.persistence.orm.story_bible import (
+    SBDynamicFieldHistoryORM,
+    SBEventORM,
+    SBProvisionalStagingORM,
+)
 from afterworlds.services.story_bible import (
     ALWAYS_INCLUDE_SIGNIFICANCE,
     EVENTS_LEDGER_N,
@@ -38,6 +42,25 @@ from tests.services.conftest import (
     make_relationship,
     make_setting,
 )
+
+
+def _cast_proposal(
+    service: StoryBibleService,
+    story_id: UUID,
+    proposed_value: dict[str, object],
+    proposal_type: ProposalType = ProposalType.SOFT_FACT,
+) -> ProvisionalProposal:
+    """Return a contract-valid generic proposal targeting a new cast entry (#51)."""
+    entry = service.add_cast_entry(story_id, make_cast_entry(story_id))
+    return ProvisionalProposal(
+        story_id=story_id,
+        proposal_type=proposal_type,
+        target_entity_type="cast_entry",
+        target_entity_id=str(entry.cast_id),
+        proposed_value=proposed_value,
+        created_at=datetime(2026, 1, 1, tzinfo=UTC),
+    )
+
 
 # ---------------------------------------------------------------------------
 # Significance enum
@@ -350,12 +373,7 @@ class TestPartitionIsolation:
     def test_provisional_entries_not_returned_as_ratified_canon(
         self, service: StoryBibleService, story_id: UUID
     ) -> None:
-        proposal = ProvisionalProposal(
-            story_id=story_id,
-            proposal_type=ProposalType.SOFT_FACT,
-            proposed_value={"fact": "Sky is green"},
-            created_at=datetime(2026, 1, 1, tzinfo=UTC),
-        )
+        proposal = _cast_proposal(service, story_id, {"current_status": "Sky is green"})
         service.stage_proposed_update(story_id, proposal)
 
         # The context window must not include staging entries as canon
@@ -607,12 +625,7 @@ class TestStagingArea:
     def test_stage_proposed_update_does_not_touch_ratified_canon(
         self, service: StoryBibleService, story_id: UUID
     ) -> None:
-        proposal = ProvisionalProposal(
-            story_id=story_id,
-            proposal_type=ProposalType.SOFT_FACT,
-            proposed_value={"fact": "sky is green"},
-            created_at=datetime(2026, 1, 1, tzinfo=UTC),
-        )
+        proposal = _cast_proposal(service, story_id, {"current_status": "sky is green"})
         service.stage_proposed_update(story_id, proposal)
         # Nothing in locked or forbidden facts
         assert service.get_locked_facts(story_id) == []
@@ -638,20 +651,12 @@ class TestStagingArea:
     def test_reject_update_marks_correctly_without_deleting(
         self, service: StoryBibleService, story_id: UUID
     ) -> None:
-        proposal = ProvisionalProposal(
-            story_id=story_id,
-            proposal_type=ProposalType.SOFT_FACT,
-            proposed_value={"fact": "dragons are friendly"},
-            created_at=datetime(2026, 1, 1, tzinfo=UTC),
-        )
+        proposal = _cast_proposal(service, story_id, {"notes": "dragons are friendly"})
         staged = service.stage_proposed_update(story_id, proposal)
         rejected = service.reject_update(staged.proposal_id)
 
         assert rejected.status == ProposalStatus.REJECTED
         # The record must still exist — check via the ORM directly
-
-        from afterworlds.persistence.orm.story_bible import SBProvisionalStagingORM
-
         row = service._session.get(SBProvisionalStagingORM, str(staged.proposal_id))
         assert row is not None
         assert row.status == "rejected"
@@ -660,12 +665,7 @@ class TestStagingArea:
         self, service: StoryBibleService, story_id: UUID
     ) -> None:
         """A soft-deleted proposal must not be rejectable."""
-        proposal = ProvisionalProposal(
-            story_id=story_id,
-            proposal_type=ProposalType.SOFT_FACT,
-            proposed_value={"fact": "the kingdom fell"},
-            created_at=datetime(2026, 1, 1, tzinfo=UTC),
-        )
+        proposal = _cast_proposal(service, story_id, {"notes": "the kingdom fell"})
         staged = service.stage_proposed_update(story_id, proposal)
         service.soft_delete("proposal", staged.proposal_id)
 
@@ -692,12 +692,7 @@ class TestStagingArea:
         self, service: StoryBibleService, story_id: UUID
     ) -> None:
         """A soft-deleted (inactive) proposal must not be ratified."""
-        proposal = ProvisionalProposal(
-            story_id=story_id,
-            proposal_type=ProposalType.SOFT_FACT,
-            proposed_value={"fact": "sky is purple"},
-            created_at=datetime(2026, 1, 1, tzinfo=UTC),
-        )
+        proposal = _cast_proposal(service, story_id, {"notes": "sky is purple"})
         staged = service.stage_proposed_update(story_id, proposal)
         service.soft_delete("proposal", staged.proposal_id)
 
@@ -708,12 +703,7 @@ class TestStagingArea:
         self, service: StoryBibleService, story_id: UUID
     ) -> None:
         """A REJECTED proposal must not be re-ratified."""
-        proposal = ProvisionalProposal(
-            story_id=story_id,
-            proposal_type=ProposalType.SOFT_FACT,
-            proposed_value={"fact": "sky is purple"},
-            created_at=datetime(2026, 1, 1, tzinfo=UTC),
-        )
+        proposal = _cast_proposal(service, story_id, {"notes": "sky is purple"})
         staged = service.stage_proposed_update(story_id, proposal)
         service.reject_update(staged.proposal_id)
 
@@ -724,12 +714,7 @@ class TestStagingArea:
         self, service: StoryBibleService, story_id: UUID
     ) -> None:
         """A RATIFIED proposal must not be silently downgraded to REJECTED."""
-        proposal = ProvisionalProposal(
-            story_id=story_id,
-            proposal_type=ProposalType.SOFT_FACT,
-            proposed_value={"is_alive": False},
-            created_at=datetime(2026, 1, 1, tzinfo=UTC),
-        )
+        proposal = _cast_proposal(service, story_id, {"is_alive": False})
         staged = service.stage_proposed_update(story_id, proposal)
         service.ratify_update(staged.proposal_id)
 
@@ -777,9 +762,8 @@ class TestStagingArea:
     ) -> None:
         """Ratifying a soft_fact proposal sets status RATIFIED.
 
-        CRD Issue 4 scope: StoryBibleService records Sojourner approval only.
-        Applying proposed_value to live canon is deferred to the Extractor
-        (CRD Issue 10); the cast entry must be unchanged after ratification.
+        Generic ratification records approval only (#51); no path applies a
+        generic proposal to live canon, so the cast entry must be unchanged.
         """
         entry = make_cast_entry(story_id)
         service.add_cast_entry(story_id, entry)
@@ -797,7 +781,7 @@ class TestStagingArea:
         ratified = service.ratify_update(staged.proposal_id)
 
         assert ratified.status == ProposalStatus.RATIFIED
-        # CRD Issue 4 regression: canon must NOT be modified at ratification
+        # Regression: canon must NOT be modified at ratification
         unchanged = service.get_character(story_id, entry.cast_id)
         assert unchanged is not None
         assert unchanged.current_location == original_location
@@ -807,9 +791,8 @@ class TestStagingArea:
     ) -> None:
         """Ratifying a transient_state proposal sets status RATIFIED.
 
-        CRD Issue 4 scope: StoryBibleService records Sojourner approval only.
-        Applying proposed_value to live canon is deferred to the Extractor
-        (CRD Issue 10); the cast entry must be unchanged after ratification.
+        Generic ratification records approval only (#51); no path applies a
+        generic proposal to live canon, so the cast entry must be unchanged.
         """
         entry = make_cast_entry(story_id)
         service.add_cast_entry(story_id, entry)
@@ -826,7 +809,7 @@ class TestStagingArea:
         ratified = service.ratify_update(staged.proposal_id)
 
         assert ratified.status == ProposalStatus.RATIFIED
-        # CRD Issue 4 regression: canon must NOT be modified at ratification
+        # Regression: canon must NOT be modified at ratification
         unchanged = service.get_character(story_id, entry.cast_id)
         assert unchanged is not None
         assert unchanged.is_alive is True
@@ -836,9 +819,8 @@ class TestStagingArea:
     ) -> None:
         """Regression: soft_fact ratification must not auto-apply to live canon.
 
-        StoryBibleService.ratify_update() is CRD Issue 4 scope (schema /
-        service / staging).  Routing a RATIFIED soft_fact proposal to the
-        appropriate canon update path is CRD Issue 10 (Extractor) scope.
+        Generic ratification is approval/status-only (#51).  Typed Extractor
+        routing applies its own changes and never consumes generic rows.
         This test guards against future drift that re-introduces auto-apply
         inside ratify_update.
         """
@@ -856,9 +838,8 @@ class TestStagingArea:
         staged = service.stage_proposed_update(story_id, proposal)
         ratified = service.ratify_update(staged.proposal_id)
 
-        # Proposal is RATIFIED — Extractor can now act on it
         assert ratified.status == ProposalStatus.RATIFIED
-        # Live canon is unchanged — apply is deferred to CRD Issue 10
+        # Live canon is unchanged — generic ratification never applies canon
         character = service.get_character(story_id, entry.cast_id)
         assert character is not None
         assert character.is_alive is True
@@ -867,12 +848,15 @@ class TestStagingArea:
         self, service: StoryBibleService, story_id: UUID
     ) -> None:
         for ptype in ProposalType:
-            proposal = ProvisionalProposal(
-                story_id=story_id,
-                proposal_type=ptype,
-                proposed_value={"data": ptype.value},
-                created_at=datetime(2026, 1, 1, tzinfo=UTC),
-            )
+            if ptype in (ProposalType.SOFT_FACT, ProposalType.TRANSIENT_STATE):
+                proposal = _cast_proposal(service, story_id, {"notes": "x"}, ptype)
+            else:
+                proposal = ProvisionalProposal(
+                    story_id=story_id,
+                    proposal_type=ptype,
+                    proposed_value={"data": ptype.value},
+                    created_at=datetime(2026, 1, 1, tzinfo=UTC),
+                )
             staged = service.stage_proposed_update(story_id, proposal)
             assert staged.proposal_type == ptype
 
@@ -1211,3 +1195,286 @@ class TestContextWindowPayload:
         ctx = service.get_active_context_window(story_id)
         fact_texts = [f.fact_text for f in ctx.locked_facts]
         assert "Pending fact" not in fact_texts
+
+
+# ---------------------------------------------------------------------------
+# Generic soft/transient staging validation (#51)
+# ---------------------------------------------------------------------------
+
+
+def _staging_and_history_counts(session: Session) -> tuple[int, int]:
+    return (
+        session.query(SBProvisionalStagingORM).count(),
+        session.query(SBDynamicFieldHistoryORM).count(),
+    )
+
+
+_CAST = "<cast>"
+_REL = "<rel>"
+
+
+class TestGenericStagingValidation:
+    @pytest.fixture()
+    def targets(self, service: StoryBibleService, story_id: UUID) -> dict[str, str]:
+        """Map placeholder -> id of a cast entry / relationship in ``story_id``."""
+        aldric = service.add_cast_entry(story_id, make_cast_entry(story_id))
+        mira = service.add_cast_entry(story_id, make_cast_entry(story_id, "Mira"))
+        rel = service.add_relationship(
+            story_id, make_relationship(story_id, aldric.cast_id, mira.cast_id)
+        )
+        return {_CAST: str(aldric.cast_id), _REL: str(rel.relationship_id)}
+
+    @pytest.fixture()
+    def other_targets(self, session: Session) -> dict[str, str]:
+        """Map placeholder -> id of a cast entry / relationship in another Story."""
+        now = datetime(2026, 1, 1, tzinfo=UTC)
+        other = Story(title="Other", mode=StoryMode.RPG, created_at=now, updated_at=now)
+        create_story(session, other)
+        svc = StoryBibleService(session)
+        a = svc.add_cast_entry(other.story_id, make_cast_entry(other.story_id))
+        b = svc.add_cast_entry(other.story_id, make_cast_entry(other.story_id, "B"))
+        rel = svc.add_relationship(
+            other.story_id, make_relationship(other.story_id, a.cast_id, b.cast_id)
+        )
+        return {_CAST: str(a.cast_id), _REL: str(rel.relationship_id)}
+
+    @staticmethod
+    def _proposal(
+        story_id: UUID,
+        entity_type: str | None,
+        entity_id: str | None,
+        value: dict[str, object],
+        ptype: ProposalType = ProposalType.SOFT_FACT,
+    ) -> ProvisionalProposal:
+        return ProvisionalProposal(
+            story_id=story_id,
+            proposal_type=ptype,
+            target_entity_type=entity_type,
+            target_entity_id=entity_id,
+            proposed_value=value,
+            created_at=datetime(2026, 1, 1, tzinfo=UTC),
+        )
+
+    @pytest.mark.parametrize(
+        ("entity_type", "entity_id", "value", "exc", "match"),
+        [
+            # Missing / unsupported target types
+            (None, _CAST, {"notes": "x"}, ValueError, "Unsupported"),
+            ("world", _CAST, {"notes": "x"}, ValueError, "Unsupported"),
+            ("CAST_ENTRY", _CAST, {"notes": "x"}, ValueError, "Unsupported"),
+            # Missing / malformed IDs
+            ("cast_entry", None, {"notes": "x"}, ValueError, "valid UUID"),
+            ("cast_entry", "", {"notes": "x"}, ValueError, "valid UUID"),
+            ("cast_entry", "not-a-uuid", {"notes": "x"}, ValueError, "valid UUID"),
+            # Nonexistent / wrong-type targets
+            (
+                "cast_entry",
+                "00000000-0000-0000-0000-000000000000",
+                {"notes": "x"},
+                EntityNotFoundError,
+                "not found",
+            ),
+            (
+                "relationship_ledger",
+                _CAST,
+                {"current_status_description": "x"},
+                EntityNotFoundError,
+                "not found",
+            ),
+            ("cast_entry", _REL, {"notes": "x"}, EntityNotFoundError, "not found"),
+            # Empty payloads
+            ("cast_entry", _CAST, {}, ValueError, "nonempty"),
+            ("relationship_ledger", _REL, {}, ValueError, "nonempty"),
+            # Non-writable fields (including one bad field among good ones)
+            ("cast_entry", _CAST, {"name": "X"}, ValueError, "not writable"),
+            ("cast_entry", _CAST, {"fact": "x"}, ValueError, "not writable"),
+            (
+                "cast_entry",
+                _CAST,
+                {"notes": "ok", "role": "villain"},
+                ValueError,
+                "not writable",
+            ),
+            (
+                "cast_entry",
+                _CAST,
+                {"current_status_description": "x"},
+                ValueError,
+                "not writable",
+            ),
+            (
+                "relationship_ledger",
+                _REL,
+                {"current_location": "x"},
+                ValueError,
+                "not writable",
+            ),
+            # Wrong value types (including nested, non-flat values)
+            ("cast_entry", _CAST, {"is_alive": "no"}, ValueError, "bool"),
+            ("cast_entry", _CAST, {"is_alive": 0}, ValueError, "bool"),
+            ("cast_entry", _CAST, {"is_alive": None}, ValueError, "bool"),
+            ("cast_entry", _CAST, {"notes": None}, ValueError, "str"),
+            ("cast_entry", _CAST, {"notes": False}, ValueError, "str"),
+            ("cast_entry", _CAST, {"notes": {"a": "b"}}, ValueError, "str"),
+            ("cast_entry", _CAST, {"current_location": ["x"]}, ValueError, "str"),
+            (
+                "relationship_ledger",
+                _REL,
+                {"current_status_description": 3},
+                ValueError,
+                "str",
+            ),
+        ],
+    )
+    @pytest.mark.parametrize(
+        "ptype", [ProposalType.SOFT_FACT, ProposalType.TRANSIENT_STATE]
+    )
+    def test_invalid_proposal_rejected_before_staging(
+        self,
+        service: StoryBibleService,
+        session: Session,
+        story_id: UUID,
+        targets: dict[str, str],
+        entity_type: str | None,
+        entity_id: str | None,
+        value: dict[str, object],
+        exc: type[Exception],
+        match: str,
+        ptype: ProposalType,
+    ) -> None:
+        resolved = targets.get(entity_id or "", entity_id)
+        canon_before = service.get_active_context_window(story_id)
+        before = _staging_and_history_counts(session)
+
+        with pytest.raises(exc, match=match):
+            service.stage_proposed_update(
+                story_id, self._proposal(story_id, entity_type, resolved, value, ptype)
+            )
+
+        assert before[0] == 0
+        assert _staging_and_history_counts(session) == before
+        assert service.get_active_context_window(story_id) == canon_before
+
+    @pytest.mark.parametrize(
+        ("entity_type", "entity_id", "value"),
+        [
+            ("cast_entry", _CAST, {"notes": "x"}),
+            ("relationship_ledger", _REL, {"current_status_description": "x"}),
+        ],
+    )
+    def test_other_story_target_rejected(
+        self,
+        service: StoryBibleService,
+        session: Session,
+        story_id: UUID,
+        targets: dict[str, str],
+        other_targets: dict[str, str],
+        entity_type: str,
+        entity_id: str,
+        value: dict[str, object],
+    ) -> None:
+        canon_before = service.get_active_context_window(story_id)
+        before = _staging_and_history_counts(session)
+
+        with pytest.raises(EntityNotFoundError, match="not found for story"):
+            service.stage_proposed_update(
+                story_id,
+                self._proposal(story_id, entity_type, other_targets[entity_id], value),
+            )
+
+        assert _staging_and_history_counts(session) == before
+        assert service.get_active_context_window(story_id) == canon_before
+        # The same target kind in the supplied Story is accepted.
+        staged = service.stage_proposed_update(
+            story_id, self._proposal(story_id, entity_type, targets[entity_id], value)
+        )
+        assert staged.status == ProposalStatus.PENDING
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            {"is_alive": False},
+            {"current_location": ""},
+            {
+                "current_location": "The Iron Tower",
+                "current_status": "",
+                "is_alive": False,
+                "notes": "wounded",
+            },
+        ],
+    )
+    @pytest.mark.parametrize(
+        "ptype", [ProposalType.SOFT_FACT, ProposalType.TRANSIENT_STATE]
+    )
+    def test_valid_cast_proposal_stages_and_ratifies_without_canon(
+        self,
+        service: StoryBibleService,
+        session: Session,
+        story_id: UUID,
+        targets: dict[str, str],
+        value: dict[str, object],
+        ptype: ProposalType,
+    ) -> None:
+        cast_id = targets[_CAST]
+        canon_before = service.get_active_context_window(story_id)
+        _, history_before = _staging_and_history_counts(session)
+
+        staged = service.stage_proposed_update(
+            story_id, self._proposal(story_id, "cast_entry", cast_id, value, ptype)
+        )
+        assert staged.status == ProposalStatus.PENDING
+        assert staged.requires_confirmation is False
+        assert staged.target_entity_type == "cast_entry"
+        assert staged.target_entity_id == cast_id
+        assert staged.proposed_value == value
+
+        ratified = service.ratify_update(staged.proposal_id)
+        assert ratified.status == ProposalStatus.RATIFIED
+        assert service.get_active_context_window(story_id) == canon_before
+        assert _staging_and_history_counts(session) == (1, history_before)
+
+    @pytest.mark.parametrize("description", ["strained", ""])
+    @pytest.mark.parametrize(
+        "ptype", [ProposalType.SOFT_FACT, ProposalType.TRANSIENT_STATE]
+    )
+    def test_valid_relationship_proposal_stages_and_ratifies_without_canon(
+        self,
+        service: StoryBibleService,
+        session: Session,
+        story_id: UUID,
+        targets: dict[str, str],
+        description: str,
+        ptype: ProposalType,
+    ) -> None:
+        rel_id = targets[_REL]
+        value: dict[str, object] = {"current_status_description": description}
+        canon_before = service.get_active_context_window(story_id)
+        _, history_before = _staging_and_history_counts(session)
+
+        staged = service.stage_proposed_update(
+            story_id,
+            self._proposal(story_id, "relationship_ledger", rel_id, value, ptype),
+        )
+        assert staged.status == ProposalStatus.PENDING
+        assert staged.target_entity_type == "relationship_ledger"
+        assert staged.target_entity_id == rel_id
+        assert staged.proposed_value == value
+
+        ratified = service.ratify_update(staged.proposal_id)
+        assert ratified.status == ProposalStatus.RATIFIED
+        canon_after = service.get_active_context_window(story_id)
+        assert canon_after == canon_before
+        assert [
+            r.current_status_description for r in canon_after.relationship_ledger
+        ] == ["Trusted comrade"]
+        assert _staging_and_history_counts(session) == (1, history_before)
+
+    def test_target_id_stored_in_canonical_form(
+        self, service: StoryBibleService, story_id: UUID, targets: dict[str, str]
+    ) -> None:
+        cast_id = targets[_CAST]
+        staged = service.stage_proposed_update(
+            story_id,
+            self._proposal(story_id, "cast_entry", cast_id.upper(), {"notes": "x"}),
+        )
+        assert staged.target_entity_id == cast_id
