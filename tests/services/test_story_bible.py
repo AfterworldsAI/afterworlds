@@ -2,20 +2,27 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from itertools import count
 from uuid import UUID
 
 import pytest
+from sqlalchemy import event
+from sqlalchemy.orm import Session
 
 from afterworlds.models.enums import (
     EventSignificance,
     ProposalStatus,
     ProposalType,
+    StoryMode,
 )
+from afterworlds.models.story import Story
 from afterworlds.models.story_bible import (
     ProvisionalProposal,
     StoryBibleContext,
 )
+from afterworlds.persistence.crud.story import create_story
+from afterworlds.persistence.orm.story_bible import SBEventORM
 from afterworlds.services.story_bible import (
     ALWAYS_INCLUDE_SIGNIFICANCE,
     EVENTS_LEDGER_N,
@@ -169,6 +176,138 @@ class TestTieredInclusionPolicy:
         ctx = service.get_active_context_window(story_id)
         descriptions = [ev.description for ev in ctx.events]
         assert descriptions.count("Major plot turn.") == 1
+
+
+def _seed_tiered_layout(
+    service: StoryBibleService, session: Session, story_id: UUID
+) -> tuple[list[UUID], set[UUID]]:
+    """Seed events whose tiered selection is known by construction.
+
+    Returns the expected output ids in order and the ids of the active
+    older routine rows that the selection must never load.
+    """
+    base = datetime(2026, 1, 1, tzinfo=UTC)
+    ids = (UUID(int=i) for i in count(1))
+
+    def add(sid: UUID, minute: int, significance: EventSignificance, eid: UUID) -> UUID:
+        new = make_event(sid, desc=f"m{minute}", significance=significance)
+        service.add_event(
+            sid,
+            new.model_copy(
+                update={
+                    "event_id": eid,
+                    "created_at": base + timedelta(minutes=minute),
+                }
+            ),
+        )
+        return eid
+
+    routine = EventSignificance.ROUTINE
+    older_routine: set[UUID] = set()
+
+    # Many older significant events (three per always-include category),
+    # interleaved with older routine events.
+    older_significant: list[UUID] = []
+    categories = sorted(ALWAYS_INCLUDE_SIGNIFICANCE)
+    for j in range(3 * len(categories)):
+        older_significant.append(
+            add(story_id, 2 * j, categories[j % len(categories)], next(ids))
+        )
+        older_routine.add(add(story_id, 2 * j + 1, routine, next(ids)))
+
+    # Older significant events sharing a timestamp: event_id ASC breaks the tie
+    # regardless of insertion order.
+    tie_a, tie_b = next(ids), next(ids)
+    add(story_id, 60, EventSignificance.WORLD_STATE_CHANGE, tie_b)
+    add(story_id, 60, EventSignificance.CHARACTER_DEATH, tie_a)
+
+    # Timestamp tie straddling the N boundary: event_id decides the cut.
+    t0, t1, t2, t3 = (next(ids) for _ in range(4))
+    add(story_id, 100, routine, t3)
+    add(story_id, 100, EventSignificance.CHARACTER_DEATH, t2)
+    add(story_id, 100, routine, t1)
+    add(story_id, 100, routine, t0)
+    older_routine.add(t3)
+
+    # Recent window: N-2 newer events, one significant (overlap/dedup).
+    recent: list[UUID] = []
+    for k in range(EVENTS_LEDGER_N - 2):
+        sig = EventSignificance.MAJOR_PLOT_TURN if k == 3 else routine
+        recent.append(add(story_id, 101 + k, sig, next(ids)))
+
+    # Newest rows are inactive or belong to another story; neither may take a
+    # recent-N slot or appear in the output.
+    for sig in (routine, EventSignificance.CHARACTER_DEATH):
+        service.soft_delete("event", add(story_id, 500, sig, next(ids)))
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+    other = Story(title="Other", mode=StoryMode.RPG, created_at=now, updated_at=now)
+    create_story(session, other)
+    for sig in (routine, EventSignificance.CHARACTER_DEATH):
+        add(other.story_id, 500, sig, next(ids))
+    add(other.story_id, 0, EventSignificance.MAJOR_PLOT_TURN, next(ids))
+    session.commit()
+
+    expected = recent[::-1] + [t0, t1] + [t2, tie_a, tie_b] + older_significant[::-1]
+    return expected, older_routine
+
+
+class TestTieredEventSelection:
+    """CRD Issue 4 / #45: selection runs in SQL with the ADR-0005 policy."""
+
+    def test_selection_matches_policy(
+        self, service: StoryBibleService, session: Session, story_id: UUID
+    ) -> None:
+        expected, _ = _seed_tiered_layout(service, session, story_id)
+
+        ctx = service.get_active_context_window(story_id)
+
+        assert [ev.event_id for ev in ctx.events] == expected
+        assert all(ev.story_id == story_id and ev.is_active for ev in ctx.events)
+        recent_segment = ctx.events[:EVENTS_LEDGER_N]
+        older_segment = ctx.events[EVENTS_LEDGER_N:]
+        assert len(older_segment) == 3 * len(ALWAYS_INCLUDE_SIGNIFICANCE) + 3
+        assert all(
+            ev.significance in ALWAYS_INCLUDE_SIGNIFICANCE for ev in older_segment
+        )
+        assert any(
+            ev.significance in ALWAYS_INCLUDE_SIGNIFICANCE for ev in recent_segment
+        )
+
+    def test_older_routine_rows_are_not_materialized(
+        self, service: StoryBibleService, session: Session, story_id: UUID
+    ) -> None:
+        expected, older_routine = _seed_tiered_layout(service, session, story_id)
+        session.expunge_all()  # force rows to be loaded from SQL, not the map
+        loaded: list[UUID] = []
+
+        def on_load(target: SBEventORM, _context: object) -> None:
+            loaded.append(UUID(target.event_id))
+
+        event.listen(SBEventORM, "load", on_load)
+        try:
+            ctx = service.get_active_context_window(story_id)
+        finally:
+            event.remove(SBEventORM, "load", on_load)
+
+        assert loaded == expected == [ev.event_id for ev in ctx.events]
+        assert older_routine.isdisjoint(loaded)
+
+    def test_no_events_and_fewer_than_n(
+        self, service: StoryBibleService, story_id: UUID
+    ) -> None:
+        assert service.get_active_context_window(story_id).events == ()
+
+        added: list[UUID] = []
+        for hour, sig in enumerate(
+            (EventSignificance.ROUTINE, EventSignificance.RELATIONSHIP_CHANGE)
+        ):
+            e = make_event(story_id, significance=sig).model_copy(
+                update={"created_at": datetime(2026, 1, 1, hour, tzinfo=UTC)}
+            )
+            added.append(service.add_event(story_id, e).event_id)
+
+        ctx = service.get_active_context_window(story_id)
+        assert [ev.event_id for ev in ctx.events] == added[::-1]
 
 
 # ---------------------------------------------------------------------------
