@@ -96,8 +96,10 @@ def test_story_bible_tables_fk_to_stories_is_permitted() -> None:
             if fk.column.table.name == "stories":
                 sb_tables_with_story_fk.append(table_name)
 
-    # Every sb_* table except sb_dynamic_field_history should reference stories
-    # (history records reference cast entities, not stories directly)
+    # Every sb_* table except sb_dynamic_field_history should reference stories.
+    # History keeps a plain story_id with no FK so it survives Story deletion
+    # (ADR-0006, #50 Owner Decision).
+    assert "sb_dynamic_field_history" not in sb_tables_with_story_fk
     assert "sb_settings" in sb_tables_with_story_fk
     assert "sb_cast_entries" in sb_tables_with_story_fk
     assert "sb_locked_facts" in sb_tables_with_story_fk

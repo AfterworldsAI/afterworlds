@@ -119,7 +119,8 @@ def test_a_populated_store_gains_and_loses_only_these_indexes(tmp_path: Path) ->
     assert _rows(db) == rows
     assert _indexes(db) == before
 
-    command.upgrade(_cfg(db), "head")
+    # Pinned to 0039: this fixture's history row is unowned, which 0040 rejects.
+    command.upgrade(_cfg(db), "0039")
     assert _rows(db) == rows
     assert {(t, n, c, False) for t, n, c in _EXPECTED} <= _indexes(db)
 

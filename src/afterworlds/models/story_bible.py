@@ -215,6 +215,7 @@ class DynamicFieldHistory(BaseModel):
     """
 
     history_id: UUID = Field(default_factory=uuid4)
+    story_id: UUID
     entity_type: str  # e.g. "cast_entry", "relationship_ledger"
     entity_id: str
     field_name: str

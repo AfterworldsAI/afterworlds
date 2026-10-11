@@ -263,6 +263,7 @@ def _history_orm_to_model(row: SBDynamicFieldHistoryORM) -> DynamicFieldHistory:
         old = json.loads(row.old_value)
     return DynamicFieldHistory(
         history_id=UUID(row.history_id),
+        story_id=UUID(row.story_id),
         entity_type=row.entity_type,
         entity_id=row.entity_id,
         field_name=row.field_name,
@@ -583,6 +584,7 @@ class StoryBibleService:
         # Validation passed — record history and flush.
         history_row = SBDynamicFieldHistoryORM(
             history_id=str(uuid4()),
+            story_id=row.story_id,
             entity_type="cast_entry",
             entity_id=str(entity_id),
             field_name=field,
@@ -1155,6 +1157,7 @@ class StoryBibleService:
         old_val = getattr(row, field)
         history_row = SBDynamicFieldHistoryORM(
             history_id=str(uuid4()),
+            story_id=row.story_id,
             entity_type="relationship_ledger",
             entity_id=row.relationship_id,
             field_name=field,
@@ -1342,19 +1345,21 @@ class StoryBibleService:
             self._session.flush()
 
     def get_dynamic_field_history(
-        self, entity_type: str, entity_id: UUID
+        self, entity_type: str, entity_id: UUID, *, story_id: UUID | None = None
     ) -> list[DynamicFieldHistory]:
-        """Return the full change history for a dynamic entity."""
-        rows = (
-            self._session.execute(
-                select(SBDynamicFieldHistoryORM).where(
-                    SBDynamicFieldHistoryORM.entity_type == entity_type,
-                    SBDynamicFieldHistoryORM.entity_id == str(entity_id),
-                )
-            )
-            .scalars()
-            .all()
+        """Return the full change history for a dynamic entity.
+
+        ``story_id`` restricts results to that story.  Reads only the history
+        table, so retained history stays readable after its entity or Story
+        is deleted (ADR-0006).
+        """
+        query = select(SBDynamicFieldHistoryORM).where(
+            SBDynamicFieldHistoryORM.entity_type == entity_type,
+            SBDynamicFieldHistoryORM.entity_id == str(entity_id),
         )
+        if story_id is not None:
+            query = query.where(SBDynamicFieldHistoryORM.story_id == str(story_id))
+        rows = self._session.execute(query).scalars().all()
         return [_history_orm_to_model(r) for r in rows]
 
 
