@@ -144,7 +144,9 @@ class RulesPackageManifestORM(Base):
 
     The manifest carries attribution, licensing, and ingest-completion flags.
     Publication is blocked until both ``sql_ingest_complete`` and
-    ``vector_write_complete`` are True.
+    ``vector_write_complete`` are True.  ``vector_write_complete`` refers to the
+    generic-ingestion projection (``vector_writer.py``), not the finalized
+    ``rules_corpus_*`` collection.
 
     One manifest per package is enforced at the DB layer via a UNIQUE constraint
     on ``rules_package_id``.

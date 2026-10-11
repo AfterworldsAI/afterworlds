@@ -18,8 +18,10 @@ Architecture invariants
   Existing chunks are detected by (rules_package_id, source_id, source_locator_value).
   Existing sources are detected by (rules_package_id, name).
 
-KNOWN UNKNOWN: ChromaDB collection schema is designated for CRD Issue 18
-revision.  See ``vector_writer.py`` module docstring.
+The vector write here is the write-only generic-ingestion projection
+(``vector_writer.py``, GitHub #121): an ingestion-consistency check consumed only
+by ``publish``, never read as rules content and never the finalized rules corpus,
+which ``RulesCorpusService.reindex_from_sql`` rebuilds from SQLite ground truth.
 """
 
 from __future__ import annotations
@@ -259,6 +261,9 @@ class IngestionService:
         2. Manifest row exists for the package.
         3. ``sql_ingest_complete`` is True.
         4. ``vector_write_complete`` is True.
+        5. The generic-ingestion projection's document count equals the SQL
+           chunk count (consistency only; the projection is never read as rules
+           content — see ``vector_writer.py``).
 
         On success, sets ``publication_status`` = "published" and
         ``published_at`` on the package row.
@@ -551,9 +556,9 @@ class IngestionService:
         Used to validate Chroma coverage: the vector collection should contain
         exactly this many documents after a complete ingest.
 
-        KNOWN UNKNOWN: this assumes a 1-to-1 SQL-chunk-to-vector-doc mapping,
-        which is correct for Issue 5b but may change under CRD Issue 18 if the
-        chunking strategy is revised.
+        The generic-ingestion projection maps SQL chunks to vector documents
+        1-to-1. The finalized rules corpus does not (``corpus_windows``), so
+        this count is never compared against ``rules_corpus_*`` collections.
         """
         from sqlalchemy import func
 

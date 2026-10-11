@@ -10,7 +10,8 @@ Tests cover:
 - Play-time query exclusion of draft packages
 - Re-ingestion immutability (existing source chunks never rewritten)
 - Read surface: get_chunks_by_subsystem (informational source reads)
-- Vector index: ChromaDB collection populated; basic query returns results
+- Generic-ingestion vector projection populated and counted (write-only;
+  never read as rules content -- GitHub #121)
 
 The final CRD Issue 5d cutover (#137 contract 6, AC22) retired the obsolete
 ``MechanicalEntity`` family and the legacy chunk/entity ``RuleOverride``
@@ -1349,7 +1350,7 @@ class TestVectorIndex:
         ids_a = collection_a.get()["ids"]
         assert "test-chunk-b" not in ids_a
 
-        # Package B must be independently queryable
+        # Package B must be counted independently
         assert vector_writer.has_chunks(pkg_b_id)
 
     def test_partial_vector_loss_triggers_repopulation_on_reingest(

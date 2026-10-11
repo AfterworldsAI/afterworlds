@@ -102,8 +102,9 @@ STORY_MEMORY_COLLECTION_NAME = "story_memory"
 def rules_corpus_collection_name(rules_package_id: UUID) -> str:
     """Collection name for the finalized per-Rules-Package rules corpus.
 
-    One collection per published Rules Package (ADR-018 D1), absorbing the
-    CRD Issue 5b interim ``rp_chunks_interim_{package_id_hex}`` collection.
+    One collection per published Rules Package (ADR-018 D1). It supersedes the
+    CRD Issue 5b interim ``rp_chunks_interim_{package_id_hex}`` collection,
+    which it never reads (GitHub #121).
     """
     return f"rules_corpus_{rules_package_id.hex}"
 

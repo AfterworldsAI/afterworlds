@@ -994,3 +994,129 @@ def test_removed_interim_reader_and_no_recreate_by_deleted_uuid(
     assert service.diagnostic_query(session, package_id, "secret") == []
     with pytest.raises(NotFoundError):
         client.get_collection(rules_corpus_collection_name(package_id))
+
+
+# --- GitHub #121: the interim writer is a fenced, write-only projection ---
+
+
+def test_reindex_is_independent_of_the_interim_collection(session_factory, tmp_path):
+    """The finalized corpus rebuilds from SQLite alone: an interim collection
+    holding contradicting content under the same chunk IDs neither leaks into
+    the rebuild nor is touched by it, and deleting it changes nothing."""
+    from afterworlds.ingestion.vector_writer import _collection_name
+
+    session = session_factory()
+    package_id = uuid4()
+    _seed_package_with_chunks(session, package_id, ["Fireball deals fire damage."])
+    chunk_ids = [
+        str(c)
+        for c in session.execute(
+            select(RuleChunkORM.chunk_id).where(
+                RuleChunkORM.rules_package_id == str(package_id)
+            )
+        ).scalars()
+    ]
+    client = build_isolated_test_chroma_client(str(tmp_path))
+    interim = client.create_collection(
+        _collection_name(str(package_id)),
+        embedding_function=DeterministicFakeEmbeddingFunction(),  # type: ignore[arg-type]
+    )
+    interim.upsert(ids=chunk_ids, documents=["CONTRADICTION: fireball heals."])
+    service = RulesCorpusService(
+        client, RetrievalMemoryConfig(), DeterministicFakeEmbeddingFunction()
+    )
+    corpus_name = rules_corpus_collection_name(package_id)
+
+    service.reindex_from_sql(session, package_id)
+    with_interim = client.get_collection(corpus_name).get(include=["documents"])
+    assert interim.get()["documents"] == ["CONTRADICTION: fireball heals."]
+
+    client.delete_collection(interim.name)
+    service.reindex_from_sql(session, package_id)
+    without_interim = client.get_collection(corpus_name).get(include=["documents"])
+
+    assert with_interim == without_interim
+    assert not any("CONTRADICTION" in d for d in with_interim["documents"] or [])
+    _publish_release(session, package_id)
+    assert service.diagnostic_query(session, package_id, "fireball") == [
+        "Fireball deals fire damage."
+    ]
+
+
+def test_interim_writer_exposes_no_reader() -> None:
+    """The retained writer stays write-only: its public surface is the write
+    path plus the count used by the generic publish consistency gate."""
+    from afterworlds.ingestion.vector_writer import VectorWriter
+
+    public = {name for name in vars(VectorWriter) if not name.startswith("_")}
+    assert public == {
+        "write_chunks",
+        "write_chunks_raw",
+        "count_chunks",
+        "has_chunks",
+        "delete_collection",
+    }
+
+
+def test_interim_writer_is_reached_only_through_generic_ingestion() -> None:
+    """Across all of src/, only the generic IngestionService imports the
+    interim writer, and nothing in src/ imports IngestionService."""
+    import ast
+    from pathlib import Path as _Path
+
+    src_root = _Path(__file__).resolve().parents[3] / "src" / "afterworlds"
+    importers: dict[str, set[str]] = {
+        "vector_writer": set(),
+        "ingestion_service": set(),
+    }
+    for file_path in src_root.rglob("*.py"):
+        for node in ast.walk(ast.parse(file_path.read_text(encoding="utf-8"))):
+            if isinstance(node, ast.ImportFrom):
+                names = [node.module or ""] + [a.name for a in node.names]
+            elif isinstance(node, ast.Import):
+                names = [a.name for a in node.names]
+            else:
+                continue
+            for target, found in importers.items():
+                if any(n.split(".")[-1] == target for n in names):
+                    found.add(file_path.relative_to(src_root).as_posix())
+    assert importers == {
+        "vector_writer": {"ingestion/ingestion_service.py"},
+        "ingestion_service": set(),
+    }
+
+
+def test_runtime_entrypoints_load_no_rules_vector_path() -> None:
+    """Transitively, importing the API app, Context Builder, orchestrator and
+    every pass service loads neither the interim writer, generic ingestion,
+    nor the finalized-corpus service (ADR-018 D10; GitHub #121)."""
+    import subprocess
+    import sys
+
+    runtime = [
+        "afterworlds.api.app",
+        "afterworlds.api.pipeline_wiring",
+        "afterworlds.services.context_builder",
+        "afterworlds.pipeline.orchestrator.service",
+        "afterworlds.pipeline.rpg.service",
+        "afterworlds.pipeline.planner.service",
+        "afterworlds.pipeline.writer.service",
+        "afterworlds.pipeline.extractor.service",
+        "afterworlds.pipeline.contradiction.service",
+        "afterworlds.pipeline.safety.service",
+        "afterworlds.pipeline.branching.service",
+    ]
+    forbidden = [
+        "afterworlds.ingestion.vector_writer",
+        "afterworlds.ingestion.ingestion_service",
+        "afterworlds.pipeline.retrieval.rules_corpus_service",
+    ]
+    code = (
+        "import importlib, sys\n"
+        f"for m in {runtime!r}: importlib.import_module(m)\n"
+        f"print([m for m in {forbidden!r} if m in sys.modules])\n"
+    )
+    out = subprocess.run(
+        [sys.executable, "-c", code], capture_output=True, text=True, check=True
+    )
+    assert out.stdout.strip() == "[]"
