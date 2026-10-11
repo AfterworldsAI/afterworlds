@@ -61,7 +61,10 @@ from afterworlds.persistence.orm.mechanical import (
     MechanicalReviewUnitORM,
     MechanicalSpanORM,
 )
-from afterworlds.persistence.orm.rules_authority import MechanicalOverrideORM
+from afterworlds.persistence.orm.rules_authority import (
+    MechanicalOverrideORM,
+    SharedRuleChangeORM,
+)
 from afterworlds.persistence.orm.rules_package import RulesPackageORM
 from tests.ingestion.mechanical.conftest import (
     SCOPED_REFERENCES,
@@ -119,12 +122,22 @@ TABLE_POLICY: dict[type, str] = {
     # move when an override is authored, edited, or deleted, which is exactly
     # what including this table would do.
     MechanicalOverrideORM: "runtime_override",
+    # Package-scoped operational coordination, not projection meaning (CRD
+    # Issue 2b). A held shared rule change records a *request* and its audit
+    # outcome (held, active, rejected, withdrawn); it never touches the base
+    # projection, and its override rows enter ``rp_mech_overrides`` only on
+    # activation. Like the override rows it stages, it must not move any
+    # projection's identity or persisted-state digest, so it is outside the raw
+    # row set.
+    SharedRuleChangeORM: "runtime_coordination",
 }
 
 #: Policies whose rows are deliberately outside a projection's raw row set.
 #: Named once so the two inventory tests below cannot drift apart about which
 #: tables reconstruction is supposed to load.
-_NON_PROJECTION_POLICIES = frozenset({"header", "activation", "runtime_override"})
+_NON_PROJECTION_POLICIES = frozenset(
+    {"header", "activation", "runtime_override", "runtime_coordination"}
+)
 
 
 @pytest.fixture()

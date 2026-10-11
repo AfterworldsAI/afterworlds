@@ -191,6 +191,9 @@ class TestRpTablePrefix:
             "rp_mech_review_expectations",
             "rp_mech_review_groups",
             "rp_mech_review_unit_acceptances",
+            # CRD Issue 2b: shared rule changes held until affected events
+            # resolve (package-scoped operational coordination).
+            "rp_mech_shared_changes",
         }
         actual = {n for n in Base.metadata.tables if n.startswith("rp_")}
         assert (

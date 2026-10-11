@@ -89,6 +89,28 @@ Drift and boundaries are stated explicitly below.
   - Adoption also validates the identities, components and applied poisons of the items the subject holds.
 - **Live display reads through the binding.** The RPG visible-state snapshot is unavailable (`None`) when the character's binding is refused. The OOC path uses the binding-enforcing resolver. Historical replay and recorded-binding maintenance stay explicit service paths.
 
+- **Schema succession and historical replay.** Schema 18 (G1) is the build's current contract. Exact-head CI exposed one defect family: places that read "the build's current schema" where they meant a historical contract.
+  - **Historical replay.** `issue-5d-reference-alternatives-ACCEPT.py` lifts to `REPRESENTATION_SCHEMA_VERSION`, which was 17 when it was recorded (2026-10-01T19:01:31Z). Under build 18 its replay lifted on to 18, so the recorded `e9678ab3…` and every later replayed prior drifted.
+    - The script is byte-pinned (`7a959255…`, 5c delivery manifest). Its replay target is therefore fixed at the replay boundary, `tests/ingestion/mechanical/_replacement_chain.py`.
+    - That file holds a written-out per-script registry, `RECORDED_SCHEMAS`, which maps the script to schema 17. The script's own `reviewed()` re-asserts the pinned proposal's schema.
+    - No recorded hash, receipt or production module changed. `e9678ab3…`, `def7caa1…` and `2ccbaeba…` are reproduced or unchanged.
+  - **Findings judged at the build's schema.** The schema-17 recordings' `_check` counts the build's release findings, which admit only the live contract, so an unlifted schema-17 artifact drew two schema-binding findings.
+    - Using the rule earlier-schema recordings already follow (`lifted()`), the replay boundary now judges findings at the build's schema.
+    - Each registered crossing is proved over the candidate's representation (`verify_lift_path`) before only the candidate's declaration moves. Artifacts and evidence are not touched.
+    - The scripts' own recorded-schema, lift and delta assertions still run on the unlifted inputs.
+    - A candidate already at the build's schema is judged as it is.
+  - **Committed proposals.** `test_no_refused_candidate_is_selectable` now names the Owner-accepted G1 proposal `8a8a737b…`, checked against its reviewed file. This was a G1-introduction sibling missed in `dca4af3`.
+  - **Tests that wrote "17" as "current".** `test_reference_alternatives` now pins schema 17 for its historical lift and pre-fix identity, and asserts separately that lifting to the current build runs 16→17→18. `test_spell_descriptions_proposal` keeps the chain authority declared at 17 and lifts it to the build explicitly.
+  - **Earlier-contract sets.** `test_schema_12_practical_reliability` omitted schema 18 from its written-out set of later contracts; this was a schema-18 introduction sibling missed in `dca4af3`.
+  - **Sibling dispositions.**
+    - Patched: the three cases above.
+    - Already safe:
+      - the accepted-contract set in `test_schema_version_legality` (18 enters as the current contract);
+      - every other written-out version registry in `src` and `tests`;
+      - the G1 recording and candidate scripts (they do not read the current schema).
+    - Unchanged historical evidence: the candidate and replacement scripts that read the current schema, in their command-line verification or in `resolved()`. No test replays any of them against recorded bytes.
+- **New table census.** `rp_mech_shared_changes` is registered in the `rp_*` census. Its proof policy is `runtime_coordination`: package-scoped operational coordination outside every projection's raw rows, identity and digest, like the override rows it stages.
+
 ### Holds and turn leases
 
 - **In-progress adjudication was not durable.** `rpg_turn_leases` makes it durable: the lease commits before any binding read and is released after the turn's transaction ends. Releasing late can only delay activation.

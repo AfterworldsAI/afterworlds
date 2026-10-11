@@ -84,9 +84,12 @@ from afterworlds.ingestion.mechanical.representation import (
     ReferenceDraft,
     ReferenceSituation,
     reference_target_key,
-    representation_schema_hash,
 )
-from afterworlds.ingestion.mechanical.schema_lift import SCHEMA_16_HASH
+from afterworlds.ingestion.mechanical.schema_lift import (
+    SCHEMA_16_HASH,
+    SCHEMA_17_HASH,
+    SCHEMA_17_VERSION,
+)
 from afterworlds.ingestion.mechanical.validation import (
     relationship_and_reference_violations,
 )
@@ -466,7 +469,13 @@ ONE_ROUTE = tuple(
 )
 #: The identity the reversed route persisted under before route order was
 #: identity-bearing — the same as the stated order's, which is the defect.
-#: Captured from the unfixed build (parent ``5795e93``).
+#: Captured from the unfixed build (parent ``5795e93``), whose artifacts were
+#: schema 17: the pre-fix state is rebuilt under that contract
+#: (:data:`SCHEMA_17`), not under whatever schema the build has since reached.
+SCHEMA_16 = (SCHEMA_16_VERSION, SCHEMA_16_HASH)
+#: The contract the reference-alternatives lift introduced, pinned: it stays
+#: schema 17 after later successions (schema 18, CRD Issue 2b G1).
+SCHEMA_17 = (SCHEMA_17_VERSION, SCHEMA_17_HASH)
 PRE_FIX_UUID = "29b1d00f-737f-5605-90ea-0d7a1a984822"
 
 
@@ -566,7 +575,7 @@ def test_a_projection_persisted_before_route_order_counted_is_stale(
     session: Session, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Pre-fix state is refused as stale; nothing re-blesses its digest."""
-    resolved = _resolve(_accepted(), _resolution(destinations=ONE_ROUTE[::-1]))
+    resolved = _resolve(_accepted(SCHEMA_17), _resolution(destinations=ONE_ROUTE[::-1]))
     mark_release_published(session)
     with monkeypatch.context() as pre_fix:
         # The unfixed rule: every reference sorted as one set.
@@ -764,9 +773,6 @@ def test_selection_never_adds_or_reorders() -> None:
 
 # -- the schema seam and the native lift ---------------------------------------
 
-SCHEMA_16 = (SCHEMA_16_VERSION, SCHEMA_16_HASH)
-SCHEMA_17 = (SCHEMA_VERSION, representation_schema_hash())
-
 
 def test_a_schema_16_artifact_refuses_routes_at_the_seam() -> None:
     with pytest.raises(AcceptanceError, match="cannot"):
@@ -803,6 +809,24 @@ def test_lift_and_resolve_is_one_native_action(tmp_path: Path) -> None:
     with pytest.raises(AcceptanceError, match="provenance spans"):
         _resolve(prior, _resolution(provenance_span_ids=()), lift_to=SCHEMA_17)
     assert serialize_accepted_inputs(prior) == before
+
+
+def test_lifting_to_the_current_build_runs_every_later_succession() -> None:
+    """The current native action from schema 16 lifts through 17 to the build's
+    schema (18, CRD Issue 2b); the historical 16 -> 17 action above is unchanged."""
+    from afterworlds.ingestion.mechanical.representation import (
+        REPRESENTATION_SCHEMA_VERSION,
+        representation_schema_hash,
+    )
+
+    current = (REPRESENTATION_SCHEMA_VERSION, representation_schema_hash())
+    prior = _accepted(SCHEMA_16)
+    resolved = _resolve(prior, lift_to=current)
+    assert (resolved.oracle.schema_version, resolved.oracle.schema_hash) == current
+    assert [r.lift_id for r in resolved.lifts[len(prior.lifts) :]] == [
+        "5d-lift-schema-16-to-17",
+        "5d-lift-schema-17-to-18",
+    ]
 
 
 def test_a_singleton_resolution_needs_no_lift() -> None:
