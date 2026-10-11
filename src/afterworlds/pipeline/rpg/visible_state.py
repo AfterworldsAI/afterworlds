@@ -2,8 +2,9 @@
 
 Built from the CRD Issue 2b typed character state and the item instances the
 character holds. Character-visible only: hidden conditions are excluded by
-construction. A character whose state does not yet record classes or hit
-points has no visible snapshot (``None``); nothing is invented to fill one.
+construction. A character whose state does not record classes, hit points
+or conditions has no visible snapshot (``None``): the snapshot cannot say
+"not recorded", and an unrecorded family is never shown as empty.
 
 Labels are read from the accepted identities themselves (``classes.wizard``
 reads "Wizard"); no display name is authored here.
@@ -33,7 +34,7 @@ class RpgVisibleStateService:
         self, character: StoredCharacter, items: tuple[ItemInstance, ...]
     ) -> RpgVisibleState | None:
         state = character.state
-        if not state.classes or state.hit_points is None:
+        if not state.classes or state.hit_points is None or state.conditions is None:
             return None
         classes = " / ".join(
             f"{identity_label(c.class_record_key)} {c.level}" for c in state.classes
@@ -48,7 +49,7 @@ class RpgVisibleStateService:
                 active_conditions=tuple(
                     identity_label(c.condition.value)
                     + (f" {c.level}" if c.level is not None else "")
-                    for c in state.conditions or ()
+                    for c in state.conditions
                     if c.visibility is ConditionVisibility.VISIBLE
                 ),
             ),

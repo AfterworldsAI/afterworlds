@@ -91,3 +91,11 @@ def test_unrecorded_hit_points_produce_no_snapshot() -> None:
 def test_identity_labels_read_the_accepted_key() -> None:
     assert identity_label("equipment.weapons.war_pick") == "War Pick"
     assert identity_label("classes.wizard") == "Wizard"
+
+
+def test_unrecorded_conditions_produce_no_snapshot() -> None:
+    """Missing is not empty: the DTO cannot say "not recorded", so no snapshot."""
+    character = turn_character()
+    state = character.stored.state.model_copy(update={"conditions": None})
+    stored = character.stored.__class__(**{**vars(character.stored), "state": state})
+    assert RpgVisibleStateService().build(stored, ()) is None

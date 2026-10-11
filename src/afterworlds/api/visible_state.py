@@ -11,11 +11,18 @@ Writing config most often changes).
 Returns None when the owning mode's setup hasn't produced enough state yet
 (no session state row, no persona selected, no recorded RPG character state) --
 never raises, never invents partial/placeholder visible state.
+
+The RPG snapshot is live display, so it reads through the character's exact
+binding (CRD Issue 2b): a binding that is stale, unpublished, quarantined or
+otherwise refused yields no snapshot (unavailable), never a display of state
+as though its authority were current. Historical replay and recorded-binding
+maintenance stay on their explicit paths in ``services.dnd5e_state.service``.
 """
 
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -34,6 +41,8 @@ from afterworlds.pipeline.rpg.visible_state import RpgVisibleStateService
 from afterworlds.pipeline.writing.models import WritingVisibleState
 from afterworlds.pipeline.writing.visible_state import WritingVisibleStateService
 from afterworlds.services.dnd5e_state.holdings import Holder, HolderKind, items_held_by
+from afterworlds.services.dnd5e_state.authority import require_current
+from afterworlds.services.dnd5e_state.errors import BindingRefusedError
 from afterworlds.services.dnd5e_state.store import get_character
 
 VisibleStateUnion = RpgVisibleState | BranchingVisibleState | WritingVisibleState
@@ -50,6 +59,13 @@ def build_visible_state(
             return None
         character = get_character(session, rpg_state.character_sheet_id)
         if character is None:
+            return None
+        try:
+            require_current(
+                session, character.binding, now=datetime.now(UTC).isoformat()
+            )
+        except BindingRefusedError as exc:
+            logger.info("rpg visible state unavailable for story %s: %s", story_id, exc)
             return None
         items = items_held_by(session, Holder(HolderKind.CHARACTER, character.sheet_id))
         return RpgVisibleStateService().build(character, items)
