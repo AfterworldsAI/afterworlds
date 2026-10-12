@@ -12,6 +12,8 @@ ARCHITECTURE INVARIANT:
 
   ``story_id`` columns carry a FK to ``stories.story_id`` (the top-level
   story hierarchy) — this is NOT prose history and is explicitly permitted.
+  The exception is ``sb_dynamic_field_history.story_id``: a plain string, so
+  retained history survives Story deletion (ADR-0006, #50).
 """
 
 from __future__ import annotations
@@ -261,6 +263,8 @@ class SBDynamicFieldHistoryORM(Base):
     )
 
     history_id: Mapped[str] = mapped_column(sa.String(36), primary_key=True)
+    # Owning story — plain string, NOT a FK, so history outlives the Story.
+    story_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
     entity_type: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     entity_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
     field_name: Mapped[str] = mapped_column(sa.String(64), nullable=False)

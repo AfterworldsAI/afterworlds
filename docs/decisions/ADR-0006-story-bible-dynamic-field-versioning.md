@@ -35,6 +35,7 @@ Every call to `update_dynamic_field` on the service:
 ```
 sb_dynamic_field_history
   history_id      STRING(36) PK
+  story_id        STRING(36) NOT NULL   — owning Story (no FK; added by #50)
   entity_type     STRING(64) NOT NULL   — "cast_entry" | "relationship_ledger"
   entity_id       STRING(36) NOT NULL   — PK of the affected entity
   field_name      STRING(64) NOT NULL   — the logical field name (e.g. "current_location")
@@ -46,6 +47,14 @@ sb_dynamic_field_history
 The table carries no FK to the entity tables it describes.  Entity IDs are stored as
 plain strings.  This avoids cascading deletes and keeps the history table structurally
 independent.
+
+**Amendment (#50, Owner Decision 2026-10-11).**  `story_id` was added so history
+reads can be story-scoped.  Like `entity_id`, it is a plain string with no FK to
+`stories`: a cascading FK would delete retained history with its Story and a
+restricting FK would change Story deletion behaviour.  Writers copy it from the
+target entity row; migration 0040 backfills existing rows the same way and refuses
+to run (changing nothing) if any row's owner cannot be resolved.  The retention
+invariant below is unchanged.
 
 ### Why generic rather than per-entity history tables
 
@@ -79,7 +88,8 @@ does not mark history records as inactive.
 - The Extractor (Issue 10) must use `update_dynamic_field` for all dynamic field
   updates rather than writing to the ORM directly.
 - Prior values are recoverable for any dynamic field via
-  `get_dynamic_field_history(entity_type, entity_id)`.
+  `get_dynamic_field_history(entity_type, entity_id, story_id=...)`, which reads
+  only the history table and so works after the entity or Story is deleted.
 - The history table grows with every dynamic update.  This is expected and acceptable.
   Story Bible updates are low-frequency relative to prose generation.
 - If a future issue requires per-field history tables for performance reasons (e.g.
