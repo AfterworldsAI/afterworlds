@@ -78,7 +78,10 @@ from afterworlds.pipeline.provider._models import (
     ProviderTextPart,
     ProviderToolCallPart,
 )
-from afterworlds.services.story_bible import StoryBibleService
+from afterworlds.services.story_bible import (
+    StoryBibleService,
+    _proposal_orm_to_model,
+)
 
 # ---------------------------------------------------------------------------
 # Shared fixtures
@@ -460,6 +463,20 @@ class TestSoftFactRouting:
             .all()
         )
         assert len(rows) == 1, "No audit staging row — direct-write invariant violated"
+        # Typed audit rows keep their own envelope format; the generic
+        # staging contract (#51) is not imposed on them.
+        row = rows[0]
+        assert row.target_entity_type is None
+        assert row.target_entity_id == str(cast_id)
+        assert row.proposed_value == {
+            "target_domain": "character",
+            "target_natural_key": "Aldric",
+            "target_field": "current_status",
+            "proposed_value": "exhausted",
+        }
+        audit = _proposal_orm_to_model(row)
+        assert audit.target_entity_type is None
+        assert audit.status == ProposalStatus.RATIFIED
 
 
 # ---------------------------------------------------------------------------

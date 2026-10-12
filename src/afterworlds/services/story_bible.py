@@ -113,6 +113,13 @@ _FIELD_VALUE_TYPES: dict[tuple[str, str], type] = {
     ("relationship", "current_status_description"): str,
 }
 
+#: Generic soft/transient staging targets (#51): entity-type label ->
+#: writable-field domain.  Labels match dynamic-field history rows.
+_GENERIC_TARGETS: dict[str, TargetDomain] = {
+    "cast_entry": TargetDomain.CHARACTER,
+    "relationship_ledger": TargetDomain.RELATIONSHIP,
+}
+
 
 # ---------------------------------------------------------------------------
 # Exceptions
@@ -642,14 +649,42 @@ class StoryBibleService:
 
         Does NOT touch ratified canon.  The proposal status is set to
         PENDING regardless of what the caller passed.
+
+        Generic ``soft_fact`` / ``transient_state`` contract (#51, Owner
+        Decision 2026-10-11), checked before anything is added or flushed:
+
+        - ``target_entity_type`` is ``"cast_entry"`` or
+          ``"relationship_ledger"`` (CHARACTER / RELATIONSHIP writable-field
+          policy respectively); anything else raises ``ValueError``.
+        - ``target_entity_id`` is a valid UUID naming an existing row of that
+          type in ``story_id``.  Malformed IDs raise ``ValueError``;
+          nonexistent or other-Story targets raise ``EntityNotFoundError``.
+          The ID is stored in canonical form.  Staging does not decide
+          active/deleted-target policy, and existence at staging time is not
+          rechecked at ratification.
+        - ``proposed_value`` is a nonempty flat ``field: value`` map; every
+          field must be writable for the domain and every value must satisfy
+          the service-owned type rules (``False`` and ``""`` are valid where
+          the field type allows).  Otherwise ``ValueError``.
+
+        Typed Extractor audit rows never pass through here; they are written
+        by ``route_extractor_proposals`` in their own envelope format.
         """
+        target_entity_id = proposal.target_entity_id
+        if proposal.proposal_type in (
+            ProposalType.SOFT_FACT,
+            ProposalType.TRANSIENT_STATE,
+        ):
+            target_entity_id = self._validate_generic_dynamic_proposal(
+                story_id, proposal
+            )
         requires_conf = proposal.proposal_type == ProposalType.LOCKED_FACT
         row = SBProvisionalStagingORM(
             proposal_id=str(proposal.proposal_id),
             story_id=str(story_id),
             proposal_type=proposal.proposal_type.value,
             target_entity_type=proposal.target_entity_type,
-            target_entity_id=proposal.target_entity_id,
+            target_entity_id=target_entity_id,
             proposed_value=proposal.proposed_value,
             source_turn_id=proposal.source_turn_id,
             status=ProposalStatus.PENDING.value,
@@ -660,6 +695,47 @@ class StoryBibleService:
         self._session.add(row)
         self._session.flush()
         return _proposal_orm_to_model(row)
+
+    def _validate_generic_dynamic_proposal(
+        self, story_id: UUID, proposal: ProvisionalProposal
+    ) -> str:
+        """Enforce the generic soft/transient staging contract.
+
+        Returns the canonical target ID.  See ``stage_proposed_update``.
+        """
+        domain = _GENERIC_TARGETS.get(proposal.target_entity_type or "")
+        if domain is None:
+            raise ValueError(
+                f"Unsupported target_entity_type {proposal.target_entity_type!r}; "
+                f"expected one of {sorted(_GENERIC_TARGETS)}."
+            )
+        try:
+            entity_id = str(UUID(proposal.target_entity_id or ""))
+        except ValueError as exc:
+            raise ValueError(
+                f"target_entity_id {proposal.target_entity_id!r} is not a valid UUID."
+            ) from exc
+        row: SBCastEntryORM | SBRelationshipLedgerORM | None
+        if domain == TargetDomain.CHARACTER:
+            row = self._session.get(SBCastEntryORM, entity_id)
+        else:
+            row = self._session.get(SBRelationshipLedgerORM, entity_id)
+        if row is None or row.story_id != str(story_id):
+            raise EntityNotFoundError(
+                f"{proposal.target_entity_type} {entity_id} not found for story "
+                f"{story_id}."
+            )
+        if not proposal.proposed_value:
+            raise ValueError("proposed_value must be a nonempty field:value map.")
+        writable = self.get_writable_fields(domain)
+        for field, value in proposal.proposed_value.items():
+            if field not in writable:
+                raise ValueError(
+                    f"Field '{field}' is not writable for domain '{domain}'. "
+                    f"Writable fields: {sorted(writable)}"
+                )
+            _check_field_value_type(domain, field, value)
+        return entity_id
 
     def ratify_update(
         self, proposal_id: UUID, *, confirmed: bool = False
@@ -675,9 +751,10 @@ class StoryBibleService:
         - ``unresolved_thread``: creates an ``UnresolvedThread`` in
           ``sb_unresolved_threads``.
         - ``soft_fact`` / ``transient_state``: marks the proposal
-          ``RATIFIED`` only.  Dynamic field application is performed by
-          ``route_extractor_proposals``; these proposal types arriving here
-          are treated as already-applied audit rows.
+          ``RATIFIED`` only (approval/status).  No canon is applied and the
+          target is not revalidated.  Typed Extractor routing applies its
+          own dynamic-field changes and writes RATIFIED audit rows directly,
+          so those rows never reach this method as PENDING.
 
         Events are not ratified through this method; ``EventProposal``
         instances bypass staging and go directly to ``add_event`` via
@@ -747,9 +824,8 @@ class StoryBibleService:
             self._session.add(thread_row)
 
         else:
-            # soft_fact / transient_state: mark RATIFIED only.
-            # Dynamic field application is handled by route_extractor_proposals;
-            # these proposals arrive here as already-applied audit rows.
+            # soft_fact / transient_state: approval/status only (#51).
+            # Generic staged proposals are never applied to canon here.
             row.status = ProposalStatus.RATIFIED.value
 
         self._session.flush()
