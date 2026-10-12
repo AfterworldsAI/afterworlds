@@ -6,6 +6,14 @@
 **Status:** Proposed — Phase 1 (this document) requires explicit owner acceptance and merge before Phase 2
 (`feature/issue-15b-structured-roll-lifecycle`) may begin.
 
+> **Status note (2026-10-11, CRD Issue 15c):** this ADR was accepted and merged through PR #128; the
+> `Proposed` line above is historical. CRD Issue 15c discharges only the backend-roll part of
+> supersession item 7: it constructs the adjudication and dice services in `create_app()` for
+> shown/hidden rolls and wires no pending-roll service. Player-roll routes, pending construction,
+> adjustments, decisions, resume and the persisted action-resolution sequence remain CRD Issue
+> 15b/19b's; PR #129 stays frozen. The seam is recorded in
+> [`issue-15c-bounded-d20.md`](../architecture/issue-15c-bounded-d20.md).
+
 ---
 
 ## Central Invariant

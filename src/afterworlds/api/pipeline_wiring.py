@@ -4,8 +4,9 @@ This is assembly of already-shipped seams (Issues 3-14a), not new
 orchestration/provider/entitlement policy: every constructor call below uses
 an existing typed class with its own ``.from_env()`` / factory function.
 
-Mode-specific pass SERVICES (RPG adjudication, Branching writer, Writing OOC
-extractors) are wired in Phase 3 alongside the mode surfaces they serve --
+Mode-specific pass SERVICES (Branching writer, Writing OOC extractors) are
+wired in Phase 3 alongside the mode surfaces they serve; RPG adjudication and
+its dice service are wired by CRD Issue 15c (backend rolls only) --
 ``OrchestratorService`` already treats them as optional and falls back to the
 generic prose Writer path when absent (ADR-016 Decision 3). The three session
 RESOLVER callables (rpg_session_sheet_resolver, branching_session_resolver,
@@ -64,7 +65,7 @@ would reintroduce the identical cross-story-concurrency defect); and
 ``WritingVisibleStateService`` is constructed from the existing
 ``get_default_registry()`` singleton, the same factory ``api/visible_state.py``
 and ``api/routes/personas.py`` already use. RPG/Branching mode-specific pass
-SERVICES (adjudication, BranchingWriterService) remain deliberately unwired
+SERVICES (BranchingWriterService) remain deliberately unwired
 per the module docstring above -- this is required product wiring for
 already-optional-but-load-bearing dependencies, not new mode policy.
 
@@ -80,9 +81,9 @@ existing Writing/Branching session resolvers above (same pattern, no new
 CRUD); the orchestrator now prefers it for play-status resolution and falls
 back to the sheet resolver only when the newer one is not wired (see its
 docstring in ``pipeline/orchestrator/service.py``). The sheet resolver is
-still wired and still required for genuinely sheet-dependent paths
-(adjudication, pending-roll consume) -- none of which are reachable through
-Issue 19's product wiring today, since RPG adjudication remains unwired.
+still wired and still required for genuinely sheet-dependent paths:
+adjudication, which CRD Issue 15c wires, and the legacy pending-roll consume
+path, which stays unreachable (no pending-roll service is wired).
 """
 
 from __future__ import annotations
@@ -130,6 +131,10 @@ from afterworlds.pipeline.retrieval.client import build_chroma_client
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
 from afterworlds.pipeline.retrieval.query_builder import RetrievalQueryBuilder
 from afterworlds.pipeline.retrieval.write_service import RetrievalMemoryWriteService
+from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
+from afterworlds.pipeline.rpg.config import AdjudicationConfig
+from afterworlds.pipeline.rpg.dice import SystemRandomDiceService
+from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
 from afterworlds.pipeline.safety.config import SafetyConfig
 from afterworlds.pipeline.safety.service import SafetyService
 from afterworlds.pipeline.writer.config import WriterConfig
@@ -445,6 +450,15 @@ def build_orchestrator(session_factory: sessionmaker[Session]) -> OrchestratorSe
         # gated by AFTERWORLDS_FAKE_PROVIDER) -- not a ProviderResolver
         # subclass, so this is a deliberate, narrow protocol substitution.
         provider_resolver=provider_resolver,  # type: ignore[arg-type]
+        # CRD Issue 15c: the RPG adjudication pass runs after Planner and
+        # before Writer on in-play turns, resolving backend shown/hidden dice
+        # only. No pending-roll service is wired: player-rolled dice and their
+        # pending lifecycle are CRD Issue 15b/19b's, and the adjudication
+        # service refuses them before any pending request could exist.
+        rpg_adjudication_service=RpgAdjudicationPassService(
+            D20RulesSystemAdapter(), AdjudicationConfig.from_env()
+        ),
+        rpg_dice_service=SystemRandomDiceService(),
         rpg_session_sheet_resolver=_make_rpg_session_sheet_resolver(session_factory),
         rpg_turn_hold=RpgTurnHold(session_factory, _utc_now),
         rpg_session_resolver=_make_rpg_session_resolver(session_factory),

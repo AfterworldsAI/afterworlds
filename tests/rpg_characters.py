@@ -15,6 +15,7 @@ from afterworlds.models.dnd5e_state import (
     HitPoints,
 )
 from afterworlds.models.rules_package import RulesPackageBinding
+from afterworlds.services.dnd5e_state.authority import AuthorityIndex
 from afterworlds.services.dnd5e_state.errors import FailureCode, StateFailure
 from afterworlds.services.dnd5e_state.holdings import Holder, HolderKind, ItemInstance
 from afterworlds.services.dnd5e_state.store import StoredCharacter
@@ -95,3 +96,28 @@ def item(record_key: str, quantity: int = 1) -> ItemInstance:
         applied_poison_record_key=None,
         revision=1,
     )
+
+
+def srd_character(
+    state: Dnd5eCharacterState | None = None,
+    *,
+    items: tuple[ItemInstance, ...] = (),
+    index: AuthorityIndex | None = None,
+) -> TurnCharacter:
+    """A turn-ready character bound to the accepted G1 SRD authority.
+
+    *state* defaults to a complete level-3 elf wizard (``complete_character``);
+    the authority is the exact effective G1 view (``real_index``).
+    """
+    from tests.services.dnd5e_state.builders import complete_character, real_index
+
+    index = index or real_index()
+    stored = StoredCharacter(
+        sheet_id=uuid4(),
+        story_id=uuid4(),
+        character_name="Ilse",
+        revision=1,
+        binding=index.binding,
+        state=state or complete_character(index, "classes.wizard", 3),
+    )
+    return TurnCharacter(stored, (), items, index)

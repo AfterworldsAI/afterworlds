@@ -142,6 +142,7 @@ Drift and boundaries are stated explicitly below.
   - Every proposal of a turn is checked before any dice, pending roll or record.
   - The prompt contract (`docs/prompts/rpg_adjudication.md`) does not mention `ability_check`; it is unchanged here. Production does not yet wire an adjudication service. Both are CRD Issue 15c's.
 - **No current-HP floor at any write.** Turn effects change only their target field; ADR-0003's `current ≤ maximum` remains. A recorded maximum reduction is not applied here: that is 15c.
+- **Later status (CRD Issue 15c, 2026-10-11).** The closed shape above is superseded for backend rolls: production now wires the adjudication service, the prompt contract is v2, and backend proposals run only as certified roster operations. See [`issue-15c-bounded-d20.md`](issue-15c-bounded-d20.md). The text above records 2b as merged.
 
 ### What state records
 

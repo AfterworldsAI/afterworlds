@@ -11,6 +11,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from afterworlds.pipeline.rpg.capability import FIXED_DC_CHECKS, Operation
+
 PRODUCE_ADJUDICATION_PROPOSALS_TOOL_NAME: str = "produce_adjudication_proposals"
 
 PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC: dict[str, Any] = {
@@ -86,6 +88,31 @@ PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC: dict[str, Any] = {
                                 " absent."
                             ),
                         },
+                        "operation": {
+                            "type": "string",
+                            "enum": [o.value for o in Operation],
+                            "description": (
+                                "The roster operation this roll is. Required"
+                                " for every mechanical roll: the engine runs"
+                                " only a named, admitted operation and refuses"
+                                " anything else visibly."
+                            ),
+                        },
+                        "check_identity": {
+                            "oneOf": [
+                                {
+                                    "type": "string",
+                                    "enum": ["/".join(i) for i in FIXED_DC_CHECKS],
+                                },
+                                {"type": "null"},
+                            ],
+                            "description": (
+                                "For fixed_dc_check: the source rule whose"
+                                " printed check applies. The engine reads the"
+                                " ability, skill and DC from it. Null"
+                                " otherwise."
+                            ),
+                        },
                         "visibility": {
                             "type": "string",
                             "enum": ["shown", "hidden", "player"],
@@ -99,7 +126,12 @@ PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC: dict[str, Any] = {
                             ),
                         },
                     },
-                    "required": ["check_label", "subsystem_tag", "visibility"],
+                    "required": [
+                        "check_label",
+                        "subsystem_tag",
+                        "operation",
+                        "visibility",
+                    ],
                 },
             },
             "reasoning_note": {

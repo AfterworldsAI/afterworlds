@@ -1,4 +1,4 @@
-"""Bounded d20 Rules System Adapter — CRD Issue 15.
+"""Bounded d20 Rules System Adapter — CRD Issues 15, 2b and 15c.
 
 This is a hand-authored, bounded d20 adapter.  It covers modifier assembly,
 code-verified DC lookup, degree-of-success calculation, advantage/disadvantage,
@@ -7,13 +7,17 @@ roll-authorship invariant enforcement, and sheet-effect derivation.
 Boundaries:
 - d20-specific concepts (DC, AC, proficiency, saving throws, ability scores,
   advantage/disadvantage) live HERE, not in generic adjudication code.
-- The adapter returns ``outcome="undetermined"`` only where no DC is verified
-  (DC verification is deferred). A check it cannot assemble faithfully is
-  refused instead: skill checks, saving throws and every other
-  proficiency-aware or unrecognized check raise
-  :class:`UnsupportedCheckError` (CRD Issue 2b) rather than becoming an
-  ability-only roll. Proficiency application, modifier derivation and
-  adjudication are CRD Issue 15c's.
+- Backend (shown/hidden) rolls run only through the CRD Issue 15c capability
+  manifest: :meth:`require_supported` and :meth:`resolve_roll` validate the
+  proposal's roster operation and admitted identity, certify the operation
+  against the character's exact binding (:mod:`.capability`) and derive every
+  number from typed authority (:mod:`.checks`). Anything else refuses with a
+  typed :class:`~afterworlds.pipeline.rpg.capability.AdjudicationRefusal`; no
+  backend roll resolves ``undetermined``.
+- Player-rolled dice are not 15c's: the adjudication service refuses them
+  before any pending request exists. The label-based assembler below survives
+  only for the legacy announce/consume methods, whose retirement belongs to
+  CRD Issue 15b (ADR-015b Group 9).
 - ``gm_cheating=off`` is enforced at record creation time: the record is the
   immutable source of truth; Writer prose cannot change it.
 - Roll-authorship is code-enforced: the adapter, not the model, produces
@@ -31,13 +35,14 @@ from uuid import UUID, uuid4
 
 from afterworlds.models.enums import RollVisibility
 from afterworlds.models.rpg import (
-    DiceResult,
     PendingRollRequest,
     ResolvedAdjudicationRecord,
     RollProposal,
     SheetEffect,
     WriterAdjudicationView,
 )
+from afterworlds.pipeline.rpg import checks
+from afterworlds.pipeline.rpg.capability import AdjudicationRefusal, RefusalKind
 from afterworlds.pipeline.rpg.dice import chosen_die_range
 
 _Outcome = Literal[
@@ -204,12 +209,18 @@ class D20RulesSystemAdapter:
     def require_supported(
         self, proposal: RollProposal, character: TurnCharacter
     ) -> None:
-        """Raise :class:`UnsupportedCheckError` unless *proposal* can be assembled.
+        """Raise a typed refusal unless *proposal* can run as a backend roll.
 
         Pure: no dice, pending roll or record. Callers check every proposal of
         a turn before any of them has an effect.
         """
-        self._assemble_modifiers(proposal, character, None)
+        if proposal.visibility is RollVisibility.PLAYER:
+            raise AdjudicationRefusal(
+                RefusalKind.PLAYER_ROLL_UNSUPPORTED,
+                "player-rolled dice are CRD Issue 15b/19b's; 15c resolves "
+                "backend shown/hidden rolls only",
+            )
+        checks.prepare(proposal, character)
 
     def _assemble_modifiers(
         self,
@@ -304,10 +315,12 @@ class D20RulesSystemAdapter:
         dice_service: DiceService,
         gm_cheating: bool,
     ) -> ResolvedAdjudicationRecord:
-        """Resolve an AI or HIDDEN roll and return an immutable record.
+        """Resolve a backend (shown or hidden) roll into an immutable record.
 
-        PLAYER rolls must use ``prepare_player_roll_announce`` instead;
-        this method raises ``ValueError`` if called with a PLAYER proposal.
+        The record carries the code-derived DC, outcome and full provenance
+        (operation, identity, modifier breakdown, Advantage sources and the
+        certificate). ``rule_slice`` is unused: authority is the character's
+        exact binding. A PLAYER proposal raises ``ValueError``.
         """
         if proposal.visibility is RollVisibility.PLAYER:
             raise ValueError(
@@ -315,26 +328,17 @@ class D20RulesSystemAdapter:
                 "use prepare_player_roll_announce instead"
             )
 
-        mods = self._assemble_modifiers(proposal, character, rule_slice)
-        dice_result: DiceResult = dice_service.roll(mods.expression)
-        total = dice_result.chosen + mods.full_total
-        dc = self._verify_dc(rule_slice)
-        outcome = self._compute_outcome(total, dc, dice_result.chosen)
+        rolled = checks.roll(checks.prepare(proposal, character), dice_service)
+        outcome: _Outcome = "success" if rolled.outcome == "success" else "failure"
 
         return ResolvedAdjudicationRecord(
             check_label=proposal.check_label,
             visibility=proposal.visibility,
-            expression=mods.expression,
-            raw_rolls=dice_result.raw_rolls,
-            modifiers_json=json.dumps(
-                {
-                    "visible_total": mods.visible_total,
-                    "breakdown": json.loads(mods.breakdown_json),
-                },
-                sort_keys=True,
-            ),
-            total=total,
-            dc=dc,
+            expression=rolled.prepared.expression,
+            raw_rolls=rolled.raw_rolls,
+            modifiers_json=rolled.provenance_json(),
+            total=rolled.total,
+            dc=rolled.prepared.dc,
             outcome=outcome,
             sheet_effects=(),
             source=("hidden" if proposal.visibility is RollVisibility.HIDDEN else "ai"),

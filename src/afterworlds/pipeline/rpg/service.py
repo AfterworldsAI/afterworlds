@@ -1,34 +1,32 @@
-"""RPG Adjudication pass service — CRD Issue 15.
+"""RPG Adjudication pass service — CRD Issues 15 and 15c.
 
 Responsibilities:
   1. Normal path (no pending roll being consumed):
-       a. Render AssembledContext + character state into a ProviderCallRequest.
-       b. Call the LLM via forced tool use → AdjudicationProposalOutput.
-       c. Enforce multi-roll bound (ADJUDICATION_MAX_ROLLS_PER_TURN).
-       d. For each HIDDEN proposal (and SHOWN in AI_ROLLS mode): resolve via
-          D20RulesSystemAdapter + DiceService → ResolvedAdjudicationRecord.
-       e. For the first visible (SHOWN→PLAYER or PLAYER) proposal in
-          PLAYER_ROLLS mode: prepare announce via adapter → PendingRollRequest
-          + announce WriterAdjudicationView.  Overflow visible proposals are
-          deferred (not AI-resolved, not a second pending roll).
-       f. Return AdjudicationPassResult with resolved records + writer views
-          + optional pending_roll_request.
+       a. Render AssembledContext (the turn's one stable prefix) into a
+          ProviderCallRequest.
+       b. Call the LLM via forced tool use → AdjudicationProposalOutput. The
+          GameMaster's judgement is advisory: it names roster operations and
+          code-admitted identities, never numbers.
+       c. Refuse (typed, before anything else) proposals beyond
+          ADJUDICATION_MAX_ROLLS_PER_TURN and any proposal the story's dice
+          handling would hand to the player (CRD Issue 15b/19b's), so no
+          pending request is ever created here.
+       d. Validate and certify every proposal before any die is rolled.
+       e. Resolve each through D20RulesSystemAdapter + DiceService as a
+          backend shown/hidden roll → ResolvedAdjudicationRecord.
+       f. Return AdjudicationPassResult with resolved records + writer views.
 
   2. Consume path (pending_roll_request + player_reported_total provided):
-       No LLM call.  Delegate to adapter.consume_player_roll(); return
-       AdjudicationPassResult with the single resolved record and no token
-       counts (consume path is code-only).
+       Legacy CRD Issue 15 path, retired by CRD Issue 15b (ADR-015b Group 9).
+       Unreachable from production: no pending-roll service is wired.
 
 Architectural invariants enforced here:
   - Roll-authorship is structural: schema forbids result/DC/modifier fields on
     proposals; the adapter holds all resolution logic.
   - gm_cheating=off is honoured at record creation time in the adapter; this
     service never overrides it.
-  - PLAYER proposals on the normal path produce a PendingRollRequest — no
-    DiceService call.
-  - Multi-roll bound: proposals beyond ADJUDICATION_MAX_ROLLS_PER_TURN are
-    dropped (fail-safe, not fail-closed — partial adjudication is better than
-    a hard failure on narrative turns with many simultaneous checks).
+  - Refusals are typed (``AdjudicationRefusal``) and visible; a mechanic is
+    never dropped into narration.
   - Fail-closed for LLM/parse failures: AdjudicationPassError on any provider,
     parsing, or schema validation failure.  No silent fallback.
 """
@@ -46,7 +44,6 @@ from afterworlds.models.rpg import (
     AdjudicationProposalOutput,
     PendingRollRequest,
     ResolvedAdjudicationRecord,
-    RollProposal,
     WriterAdjudicationView,
 )
 from afterworlds.pipeline._refusal import ProviderRefusalError
@@ -66,6 +63,7 @@ from afterworlds.pipeline.rpg.caller import (
     PRODUCE_ADJUDICATION_PROPOSALS_TOOL_NAME,
     PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC,
 )
+from afterworlds.pipeline.rpg.capability import AdjudicationRefusal, RefusalKind
 from afterworlds.pipeline.rpg.config import (
     ADJUDICATION_MAX_ROLLS_PER_TURN,
     ADJUDICATION_MAX_TOKENS,
@@ -319,14 +317,42 @@ class RpgAdjudicationPassService:
                 f"Adjudication tool input failed schema validation: {exc}"
             ) from exc
 
-        # Enforce multi-roll bound
-        proposals: list[RollProposal] = output.rolls[:ADJUDICATION_MAX_ROLLS_PER_TURN]
+        # CRD Issue 15c: proposals beyond the per-turn bound are refused, never
+        # dropped -- a dropped proposal would let a mechanic pass to narration.
+        if len(output.rolls) > ADJUDICATION_MAX_ROLLS_PER_TURN:
+            raise AdjudicationRefusal(
+                RefusalKind.UNSUPPORTED_CAPABILITY,
+                f"{len(output.rolls)} roll proposals exceed the per-turn bound of "
+                f"{ADJUDICATION_MAX_ROLLS_PER_TURN}",
+            )
+        proposals = [
+            p.model_copy(
+                update={
+                    "visibility": _effective_visibility(
+                        p.visibility, session_state.dice_handling, False
+                    )
+                }
+            )
+            for p in output.rolls
+        ]
+
+        # CRD Issue 15c: player-rolled dice are CRD Issue 15b/19b's. Refuse
+        # before any proposal is checked, rolled or announced, so no pending
+        # request can exist.
+        if any(p.visibility is RollVisibility.PLAYER for p in proposals):
+            raise AdjudicationRefusal(
+                RefusalKind.PLAYER_ROLL_UNSUPPORTED,
+                "this story's dice handling asks the player to roll; player-"
+                "rolled dice are CRD Issue 15b/19b's and are not resolved here",
+            )
 
         # CRD Issue 2b: check every proposal before any has an effect, so a
-        # later unsupported check cannot follow an earlier roll or announce.
+        # later unsupported check cannot follow an earlier roll.
         for proposal in proposals:
             try:
                 self._adapter.require_supported(proposal, sheet)
+            except AdjudicationRefusal:
+                raise
             except Exception as exc:
                 raise AdjudicationPassError(
                     f"Unsupported proposal {proposal.check_label!r}: {exc}"
@@ -334,63 +360,29 @@ class RpgAdjudicationPassService:
 
         records: list[ResolvedAdjudicationRecord] = []
         views: list[WriterAdjudicationView] = []
-        pending_roll_request: PendingRollRequest | None = None
-
         for proposal in proposals:
-            effective_vis = _effective_visibility(
-                proposal.visibility,
-                session_state.dice_handling,
-                pending_roll_request is not None,
-            )
-            coerced = (
-                proposal.model_copy(update={"visibility": effective_vis})
-                if effective_vis is not proposal.visibility
-                else proposal
-            )
-
-            if effective_vis is RollVisibility.PLAYER:
-                if pending_roll_request is not None:
-                    # Overflow visible proposal deferred — not AI-resolved, not
-                    # a second pending.
-                    continue
-                try:
-                    pending, view = self._adapter.prepare_player_roll_announce(
-                        coerced,
-                        sheet,
-                        rule_slice,
-                        story_id=story_id,
-                        session_id=session_state.session_id,
-                        originating_turn_id=originating_turn_id,
-                    )
-                except Exception as exc:
-                    raise AdjudicationPassError(
-                        f"Adapter failed to announce proposal "
-                        f"{proposal.check_label!r}: {exc}"
-                    ) from exc
-                pending_roll_request = pending
-                views.append(view)
-            else:
-                try:
-                    record = self._adapter.resolve_roll(
-                        coerced,
-                        sheet,
-                        rule_slice,
-                        dice_service,
-                        session_state.gm_cheating,
-                    )
-                except Exception as exc:
-                    raise AdjudicationPassError(
-                        f"Adapter failed to resolve proposal "
-                        f"{proposal.check_label!r}: {exc}"
-                    ) from exc
-                view = self._adapter.to_writer_view(record)
-                records.append(record)
-                views.append(view)
+            try:
+                record = self._adapter.resolve_roll(
+                    proposal,
+                    sheet,
+                    rule_slice,
+                    dice_service,
+                    session_state.gm_cheating,
+                )
+            except AdjudicationRefusal:
+                raise
+            except Exception as exc:
+                raise AdjudicationPassError(
+                    f"Adapter failed to resolve proposal "
+                    f"{proposal.check_label!r}: {exc}"
+                ) from exc
+            records.append(record)
+            views.append(self._adapter.to_writer_view(record))
 
         return AdjudicationPassResult(
             proposals=tuple(records),
             writer_views=tuple(views),
-            pending_roll_request=pending_roll_request,
+            pending_roll_request=None,
             provider=result.provider_name,
             model_identifier=result.model_identifier,
             model_tier=result.model_tier.value,

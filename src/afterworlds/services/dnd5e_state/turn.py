@@ -26,6 +26,7 @@ from afterworlds.persistence.orm.dnd5e_state import (
 )
 from afterworlds.persistence.orm.rules_authority import SharedRuleChangeORM
 from afterworlds.services.dnd5e_state import adoption, leases, shared_changes
+from afterworlds.services.dnd5e_state.authority import AuthorityIndex, authority_index
 from afterworlds.services.dnd5e_state.errors import (
     StaleRevisionError,
     StateFailure,
@@ -57,6 +58,9 @@ class TurnCharacter:
     readiness: tuple[StateFailure, ...]
     #: The item instances the character holds.
     items: tuple[ItemInstance, ...] = ()
+    #: The exact effective authority the character's binding names (CRD Issue
+    #: 15c): the only authority adjudication reads for this character.
+    index: AuthorityIndex | None = None
 
     @property
     def sheet_id(self) -> UUID:
@@ -71,7 +75,9 @@ def load_turn_character(session: Session, sheet_id: UUID, *, now: str) -> TurnCh
     """The character a turn reads; refuses a non-current binding (typed)."""
     stored = read_character(session, sheet_id)
     items = items_held_by(session, Holder(HolderKind.CHARACTER, stored.sheet_id))
-    return TurnCharacter(stored, readiness(session, stored, now=now), items)
+    ready = readiness(session, stored, now=now)
+    index = authority_index(session, stored.binding, now=now)
+    return TurnCharacter(stored, ready, items, index)
 
 
 def require_unchanged(

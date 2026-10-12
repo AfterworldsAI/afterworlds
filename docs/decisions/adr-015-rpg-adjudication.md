@@ -196,6 +196,14 @@ representation separate from execution: projection publication never converts
 binding — package, release, mechanical projection, and override set — that
 supplied its authority. This decision's boundary is unchanged.
 
+**Forward reference (CRD Issue 15c, 2026-10-11):** under ADR-005c Decision 6
+and #191 (AC4, AC5), the backend adapter no longer returns `undetermined` for
+a mechanic outside its boundary: an unsupported, uncertified or authority-less
+mechanic is refused with a typed error, and `undetermined` is reserved for
+expressly admitted behavior (an Initiative roll with no comparison). The
+hand-authored, bounded adapter boundary of this decision is unchanged. See
+[`issue-15c-bounded-d20.md`](../architecture/issue-15c-bounded-d20.md).
+
 ---
 
 ## Decision 8: Active mechanical conditions/effects are sheet-owned concrete d20 state (owner decision)

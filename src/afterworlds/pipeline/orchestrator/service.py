@@ -88,7 +88,11 @@ from afterworlds.pipeline.branching.models import (
 from afterworlds.pipeline.rpg.models import AdjudicationPassError
 from afterworlds.pipeline.rpg.pending import PendingRollDuplicateError
 from afterworlds.pipeline.writing.models import WritingOocExtractionUsageError
-from afterworlds.services.dnd5e_state.errors import StaleRevisionError
+from afterworlds.services.dnd5e_state.errors import (
+    BindingRefusedError,
+    StaleRevisionError,
+)
+from afterworlds.services.rules_authority.outcomes import AuthorityOutcome
 
 if TYPE_CHECKING:
     from afterworlds.models.rpg import PendingRollRequest, RpgVisibleState, SheetEffect
@@ -683,15 +687,13 @@ class OrchestratorService:
                     "RPG adjudication wired without session/sheet resolver",
                 )
             try:
-                pre_session_state, pre_sheet = self._rpg_session_sheet_resolver(
-                    story_id
-                )
+                pre_session_state, pre_sheet = self._resolve_rpg_turn(story_id)
             except Exception as exc:  # noqa: BLE001
                 return self._pipeline_error(
                     intent_result,
                     latency,
                     turn_start,
-                    f"RPG session/sheet resolution failed: {exc}",
+                    _rpg_resolution_failure(exc),
                 )
             # The resolver enforces the character's exact recorded binding
             # (CRD Issue 2b): a stale, unpublished, quarantined or invalid
@@ -1299,27 +1301,28 @@ class OrchestratorService:
                 )
             # Use pre-resolved values from early phase (P2-2) when available to
             # avoid a second resolver call for the same story within the same turn.
-            if _pre_session_state is not None and _pre_sheet is not None:
+            _sh: TurnCharacter | None
+            if _pre_session_state is not None:
                 _ss: RpgSessionState = _pre_session_state
-                _sh: TurnCharacter = _pre_sheet
+                _sh = _pre_sheet
             else:
                 try:
-                    _ss, _sh = self._rpg_session_sheet_resolver(story_id)
+                    _ss, _sh = self._resolve_rpg_turn(story_id)
                 except Exception as exc:  # noqa: BLE001
                     return self._pipeline_error(
                         intent_result,
                         latency,
                         turn_start,
-                        f"RPG session/sheet resolution failed: {exc}",
+                        _rpg_resolution_failure(exc),
                         input_safety_result=input_safety,
                         planner_result=planner_result,
                     )
             session_state = _ss
-            sheet = _sh
             rpg_session_id = session_state.session_id
-            rpg_character_id = sheet.sheet_id
-            rpg_sheet = sheet
             rpg_play_status = session_state.play_status
+            if _sh is not None:
+                rpg_character_id = _sh.sheet_id
+                rpg_sheet = _sh
             # Gate: skip adjudication for setup turns. play_status SETUP covers
             # character creation and world-setup turns that flow through
             # _run_narrative (OOC turns are already short-circuited upstream).
@@ -1327,20 +1330,32 @@ class OrchestratorService:
             # binding fails the turn typed, naming what is missing (CRD Issue
             # 2b): skipping mechanics silently would degrade the turn.
             _adj_svc = self._rpg_adjudication_service
+            if session_state.play_status is RpgPlayStatus.IN_PLAY and _sh is None:
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    "[missing_state] an in-play RPG story has no recorded"
+                    " character state",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                )
+            sheet = _sh
             if (
                 session_state.play_status is RpgPlayStatus.IN_PLAY
+                and sheet is not None
                 and not _adj_svc.is_adjudicable(sheet)
             ):
                 return self._pipeline_error(
                     intent_result,
                     latency,
                     turn_start,
-                    "rpg character state is not ready for its rules binding: "
-                    + "; ".join(str(f) for f in sheet.readiness[:8]),
+                    "[missing_state] rpg character state is not ready for its"
+                    " rules binding: " + "; ".join(str(f) for f in sheet.readiness[:8]),
                     input_safety_result=input_safety,
                     planner_result=planner_result,
                 )
-            if session_state.play_status is RpgPlayStatus.IN_PLAY:
+            if session_state.play_status is RpgPlayStatus.IN_PLAY and sheet is not None:
                 # Use local to narrow from DiceService | None for the lambda capture.
                 _dice_svc = self._rpg_dice_service
                 try:
@@ -3557,6 +3572,26 @@ class OrchestratorService:
                 )
             )
 
+    def _resolve_rpg_turn(
+        self, story_id: UUID
+    ) -> tuple[RpgSessionState, TurnCharacter | None]:
+        """The RPG session state, and the bound character when in play.
+
+        CRD Issue 15c wires adjudication in production, so a setup turn must
+        not require recorded character state that setup has not created yet:
+        the session-only resolver decides play status first, and the
+        binding-enforcing sheet resolver runs only for an in-play story. With
+        no session-only resolver wired, the sheet resolver decides both.
+        """
+        assert self._rpg_session_sheet_resolver is not None  # noqa: S101
+        if self._rpg_session_resolver is not None:
+            state = self._rpg_session_resolver(story_id)
+            if state is None:
+                raise ValueError(f"no RpgSessionState for story {story_id}")
+            if state.play_status is not RpgPlayStatus.IN_PLAY:
+                return state, None
+        return self._rpg_session_sheet_resolver(story_id)
+
     # ------------------------------------------------------------------
     # RPG sheet-effect application (Fork B→B1)
     # ------------------------------------------------------------------
@@ -4188,6 +4223,22 @@ def _extract_classifier_usage(
         cache_creation_token_count=result.cache_creation_token_count,
         latency_ms=result.latency_ms,
     )
+
+
+def _rpg_resolution_failure(exc: Exception) -> str:
+    """The typed, visible message for a failed RPG session/sheet resolution.
+
+    CRD Issue 15c (AC5): a stale binding is distinguishable from missing or
+    unpublished authority; any other failure is reported as it is.
+    """
+    if isinstance(exc, BindingRefusedError):
+        kind = (
+            "stale_binding"
+            if exc.outcome is AuthorityOutcome.STALE
+            else "missing_authority"
+        )
+        return f"[{kind}] RPG session/sheet resolution failed: {exc}"
+    return f"RPG session/sheet resolution failed: {exc}"
 
 
 def _serialize_adj_views(adj_result: AdjudicationPassResult) -> str:

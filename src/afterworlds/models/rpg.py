@@ -51,6 +51,12 @@ class RollProposal(BaseModel):
     visible_modifier_note: str | None = None
     difficulty_reference_note: str | None = None
     visibility: RollVisibility
+    #: CRD Issue 15c: the roster operation the GameMaster selects, and the
+    #: code-admitted identity it selects (``record_key/component_key``). These
+    #: are identities, never numbers; code validates both and derives every
+    #: value. The labels above are display text only.
+    operation: str | None = None
+    check_identity: str | None = None
 
 
 class AdjudicationProposalOutput(BaseModel):

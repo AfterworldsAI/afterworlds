@@ -255,6 +255,10 @@ CRD Issue 5d (structured mechanical authority and deterministic rule binding), C
 character-state completeness for deterministic adjudication), and CRD Issue 15c (bounded d20 adapter
 production reachability).
 
+*Status note (2026-10-11), appended rather than rewritten:* the 5c/5d restart is complete and CRD Issue
+2b merged (PR #184, #185 closed). CRD Issue 15c (#191) is in implementation; its executable coverage and
+the semantic authority it still needs are recorded in `issue-15c-bounded-d20.md`.
+
 **Owner Decision 2026-09-21 — clean restart of CRD Issues 5c and 5d.** The existing 5c corpus and 5d
 authority products are **quarantined**: they are refused at every seam that could make them active
 authority (selection, direct loading, publication, activation, gating, fallback, and retrieval
