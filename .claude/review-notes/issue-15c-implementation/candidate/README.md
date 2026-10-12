@@ -55,7 +55,7 @@ The weapon identities, categories and mastery assignments are the accepted G1 fa
   - a fact names a component the accepted authority lacks;
   - the weapon count differs from 38.
 - Re-running each script reproduces the hashes above byte for byte.
-- No PDF cross-check was run for C1. G1's `source_catalogue_check.py` already cross-checked the same Weapons table against the PDF. That catalogue is the source of the rows here.
+- No PDF cross-check was run for C1. C1-B (326 stat blocks) and C1-C rest on the pinned Markdown alone; four creatures were spot-checked by hand. Codex may want to sample them against the PDF. G1's `source_catalogue_check.py` already cross-checked the same Weapons table against the PDF. That catalogue is the source of the rows here.
 
 ## Scope boundary for Codex to confirm before the Owner sees it
 
