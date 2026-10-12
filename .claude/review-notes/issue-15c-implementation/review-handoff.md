@@ -6,6 +6,10 @@
 - Nothing was migrated, published, activated or launched in any shared runtime.
 - `D:\AI\Claude\afterworlds-runtime` was never touched. #129 stays frozen; #132 and #137 are unchanged.
 
+## Update: scope revision and candidate C2
+
+#191 was updated (body `8225e1b6…57a2`) to add creature attacks, bounded Multiattack, and the tool and omitted-source repairs. The semantic packet under review is now **C2** (`candidate-c2/README.md`). C1, item 1 below, is superseded and preserved. The implementation on `eb60d9f` is unchanged; its operations that depend on C2 remain held.
+
 ## Two things to review
 
 1. **Semantic candidate C1** (`candidate/README.md`).
@@ -47,7 +51,10 @@ All of it was run on `eb60d9f` unless noted.
 - The E2E on G1 published in a disposable store (`tests/ingestion/mechanical/test_bounded_d20_on_published_release.py`): 8 passed.
 
 **Full suite:**
-- Full `pytest -q` with the configured coverage was started on `eb60d9f`. Its output goes to `gates/pytest-full.log`, which is block-buffered, so the log shows no progress until the run ends. **Result: not yet available.** It is reported here as running, not as passed.
+- Full `pytest -q` with the configured coverage on `eb60d9f`: **no result.**
+  - The serial run hit the 2-hour background-task limit and was stopped before it finished.
+  - The block-buffered log shows only early progress (about 6%).
+  - It is not reported as passed or failed, and it was not rerun for the candidate-only C2 work.
 - Exact-head CI (eight shards, collection census, combined coverage) has not run. It needs a push, which waits for review.
 
 ## Unresolved boundaries

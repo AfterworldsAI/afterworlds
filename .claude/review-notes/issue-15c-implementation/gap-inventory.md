@@ -1,5 +1,7 @@
 # CRD Issue 15c — roster gap inventory (supporting evidence)
 
+> **Revised for #191's updated scope (body `8225e1b6…57a2`) and candidate C2.** Where the tables below say "C1-A/B/C", read "C2-A/B/C". The rows marked *superseded* were changed by the Owner-approved scope update; see "Creature attacks and tools (C2)" at the end.
+
 Each roster operation of #191 is listed against the accepted G1 authority (`2ccbaeba…1258`, schema 18). "Typed" means a structured fact exists on an accepted component. "Prose" means the governing component is prose-bound. "Absent" means no accepted identity exists. Dispositions:
 
 * **now**: executable from accepted typed authority plus adapter procedure. Implemented in this branch.
@@ -33,7 +35,7 @@ If Codex or the Owner place any listed procedure under typed authority instead, 
 | Ability adjustments | `ability_adjustments` (amount, maximum, source), recorded | Procedure: sum, then cap at `maximum` or 20 | **now** for an adjustment whose source is a recorded grant. A conditional or unrecognised source refuses. |
 | Advantage/Disadvantage | `advantage` facts on recorded conditions (typed); `automatic_outcome` (typed) | Typed; several carry prose applicability (sight, hearing, source of fear in line of sight) | **now** for unconditional condition facts. A fact whose applicability code cannot decide refuses (AC4: unsupported contributing effects refuse). |
 | Initiative roll (no order management) | Dex check | `play.combat/initiative_roll` prose | **C1-A** (`initiative_roll`) |
-| Tool checks | Tool ability; Utilize DCs; tool proficiency PB; skill-plus-tool Advantage (typed `advantage` with `requires_proficiencies`) | Ability and DCs prose | **C1-A** for the 13 record-backed tools. Component-only tools (Disguise Kit, Forgery Kit, Navigator's Tools, the individual artisan's tools other than the 13) are not tool-grant identities in 2b: **refuse**. |
+| Tool checks | Tool ability; Utilize DCs; tool proficiency PB; skill-plus-tool Advantage (typed `advantage` with `requires_proficiencies`) | Ability and DCs prose | *Superseded:* **C2-A** covers all 25 tools at their accepted grain (13 records and 12 `equipment.tools` components), plus the variants. The repair to 2b tool validation and the variant addressing are held. |
 | Contests, Influence (target Int), Hide's recorded total as a later DC | — | — | **refuse**. Contests are not in the roster. Influence and recorded-total need a second subject's state, and the roster does not admit them. |
 
 ## Weapons and masteries
@@ -52,7 +54,7 @@ If Codex or the Owner place any listed procedure under typed authority instead, 
 | Target AC, character | Base AC 10 + Dex; armor table; Shield; Armor Training | Prose/absent (`BaseArmorClass`: "the AC value is 15c's") | **C1-C**. A non-default `BaseArmorClass.source` (Unarmored Defense etc.) refuses. |
 | Target AC, size, save modifiers and defenses, creature | Stat block | 336 creature records, **zero facts** | **C1-B** (defensive profile only) |
 | Damage resistance, vulnerability, immunity | Character `damage_responses` (recorded); creature: stat block; modifier factors typed (`glossary.resistance`, `glossary.vulnerability`) | Character typed; creature absent | Character: with C1-A. Creature: **C1-B** |
-| Monster stat-block actions (their own to-hit and damage) | — | — | **refuse**. Not "attacks using the 38 SRD weapons". *Consequence for Codex and the Owner:* a character reaches 0 HP through weapon attacks only. A monster's printed attacks cannot damage a character until a later scope admits them. |
+| Monster stat-block actions (their own to-hit and damage) | Printed bonus, reach/range, damage, rider; save DC and effect; Multiattack | Prose (all 336 creature records carry zero facts) | *Superseded:* in scope, and covered by **C2-B**. Each entry is classified individually. |
 | Position, distance, reach, range bands; Push/Cleave geometry | Explicit mechanical position state | Not recorded | State work held with C1-A dependents. Proposed placement: an additive 15c-owned per-subject table; the 2b document schema is not bumped. |
 | Unconscious "within 5 ft" automatic crit | Position | Typed with prose applicability | Held with position state |
 
@@ -84,3 +86,17 @@ If Codex or the Owner place any listed procedure under typed authority instead, 
 | Filtering of hidden state; `gm_cheating = off` immutability | **now** (existing records, extended to new outcomes) |
 | Multi-subject atomic application and subject identity on effects | Held with C1-B/C1-C. The first multi-subject operation is an attack. |
 | Explicit actor-turn and elapsed-time authority | Held with C1-A dependents (death saves, mastery timing, Nick/Cleave limits). Placement is recorded above. |
+
+## Creature attacks and tools (C2)
+
+| Family | Status | Disposition |
+| --- | --- | --- |
+| Ordinary creature attacks (weapon, natural, special) | 423 parsed, equal to the source count | **C2-B**: supported or conditional per entry, each with exact reasons |
+| Bounded save effects | 159 typed; 28 special effects named | **C2-B** |
+| Multiattack | 179 compositions | **C2-B**. A spellcasting substitution is a named deferral. |
+| Usage limits (X/Day, Recharge, rest, lair, form-only) | Typed per entry | **C2-A** rules plus C2-B entries. Timing and state prerequisites are named. |
+| Contributors | 4 recurring contributors typed with predicates; 57 named | **C2-B**. Operations they can affect refuse until accepted. |
+| Spellcasting, reactions, Shape-Shift, Berserk, Coven Magic | Deferred, named | Spellcasting is a non-goal; the others are new mechanics surfaced individually |
+| The six creatures printed in Spells or Magic Items | Giant Fly fixed; five parameterized | **C2-B**, as assessed creatures |
+| Half-Dragon, Archmage, Rakshasa, Vampire Familiar | Conditional | **C2-B**. The Vampire Familiar's master relation is a surfaced prerequisite. |
+| All 25 tools | Typed at their accepted grain | **C2-A**. The validation and variant repair is held. |

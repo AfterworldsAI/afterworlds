@@ -1,5 +1,8 @@
 # CRD Issue 15c — semantic candidate C1 (review packet)
 
+> **SUPERSEDED by C2 (`../candidate-c2/`) on 11 October 2026, after #191's scope update (body `8225e1b6…57a2`).** Its candidate JSON files and scripts are preserved byte for byte as unaccepted review evidence; only this banner was added. **Correction to the text below:** the C1 files *are* committed, in the local commit `eb60d9f`. That commit makes them review material on the branch, not accepted or recorded authority. Its blanket exclusion of monster stat-block actions, its record-only tool scan and its claim that all six non-chapter creatures scale with level are corrected in C2.
+
+
 **This is a candidate only.** Nothing in it has been accepted, recorded, committed, minted, published or activated. The accepted G1 oracle (`2ccbaeba…1258`) is read only; every script checks its digest. Scope approval of #191 does not accept this content.
 
 ## What is asked, and of whom

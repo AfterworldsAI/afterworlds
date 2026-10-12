@@ -1,0 +1,4103 @@
+{
+ "anchored_oracle_sha256": "2ccbaeba6de75d9787fbdd407e42dc2425fa20d4d26bcc298b681b550bd11258",
+ "candidate_id": "15c-C2-A",
+ "facts": [
+  {
+   "component_key": "club",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.club",
+   "source": {
+    "file": "equipment.md",
+    "line": 132,
+    "quote": "<td>Club</td>"
+   }
+  },
+  {
+   "component_key": "club",
+   "fact": {
+    "damage_type": "bludgeoning",
+    "dice": {
+     "count": 1,
+     "die": "d4",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.club",
+   "source": {
+    "file": "equipment.md",
+    "line": 132,
+    "quote": "<td>Club</td>"
+   }
+  },
+  {
+   "component_key": "club",
+   "fact": {
+    "family": "weapon_property",
+    "property": "light"
+   },
+   "record_key": "equipment.weapons.club",
+   "source": {
+    "file": "equipment.md",
+    "line": 132,
+    "quote": "<td>Club</td>"
+   }
+  },
+  {
+   "component_key": "dagger",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.dagger",
+   "source": {
+    "file": "equipment.md",
+    "line": 140,
+    "quote": "<td>Dagger</td>"
+   }
+  },
+  {
+   "component_key": "dagger",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d4",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.dagger",
+   "source": {
+    "file": "equipment.md",
+    "line": 140,
+    "quote": "<td>Dagger</td>"
+   }
+  },
+  {
+   "component_key": "dagger",
+   "fact": {
+    "family": "weapon_property",
+    "property": "finesse"
+   },
+   "record_key": "equipment.weapons.dagger",
+   "source": {
+    "file": "equipment.md",
+    "line": 140,
+    "quote": "<td>Dagger</td>"
+   }
+  },
+  {
+   "component_key": "dagger",
+   "fact": {
+    "family": "weapon_property",
+    "property": "light"
+   },
+   "record_key": "equipment.weapons.dagger",
+   "source": {
+    "file": "equipment.md",
+    "line": 140,
+    "quote": "<td>Dagger</td>"
+   }
+  },
+  {
+   "component_key": "dagger",
+   "fact": {
+    "family": "weapon_property",
+    "long_range_ft": 60,
+    "normal_range_ft": 20,
+    "property": "thrown"
+   },
+   "record_key": "equipment.weapons.dagger",
+   "source": {
+    "file": "equipment.md",
+    "line": 140,
+    "quote": "<td>Dagger</td>"
+   }
+  },
+  {
+   "component_key": "greatclub",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.greatclub",
+   "source": {
+    "file": "equipment.md",
+    "line": 148,
+    "quote": "<td>Greatclub</td>"
+   }
+  },
+  {
+   "component_key": "greatclub",
+   "fact": {
+    "damage_type": "bludgeoning",
+    "dice": {
+     "count": 1,
+     "die": "d8",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.greatclub",
+   "source": {
+    "file": "equipment.md",
+    "line": 148,
+    "quote": "<td>Greatclub</td>"
+   }
+  },
+  {
+   "component_key": "greatclub",
+   "fact": {
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.greatclub",
+   "source": {
+    "file": "equipment.md",
+    "line": 148,
+    "quote": "<td>Greatclub</td>"
+   }
+  },
+  {
+   "component_key": "handaxe",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.handaxe",
+   "source": {
+    "file": "equipment.md",
+    "line": 156,
+    "quote": "<td>Handaxe</td>"
+   }
+  },
+  {
+   "component_key": "handaxe",
+   "fact": {
+    "damage_type": "slashing",
+    "dice": {
+     "count": 1,
+     "die": "d6",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.handaxe",
+   "source": {
+    "file": "equipment.md",
+    "line": 156,
+    "quote": "<td>Handaxe</td>"
+   }
+  },
+  {
+   "component_key": "handaxe",
+   "fact": {
+    "family": "weapon_property",
+    "property": "light"
+   },
+   "record_key": "equipment.weapons.handaxe",
+   "source": {
+    "file": "equipment.md",
+    "line": 156,
+    "quote": "<td>Handaxe</td>"
+   }
+  },
+  {
+   "component_key": "handaxe",
+   "fact": {
+    "family": "weapon_property",
+    "long_range_ft": 60,
+    "normal_range_ft": 20,
+    "property": "thrown"
+   },
+   "record_key": "equipment.weapons.handaxe",
+   "source": {
+    "file": "equipment.md",
+    "line": 156,
+    "quote": "<td>Handaxe</td>"
+   }
+  },
+  {
+   "component_key": "javelin",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.javelin",
+   "source": {
+    "file": "equipment.md",
+    "line": 164,
+    "quote": "<td>Javelin</td>"
+   }
+  },
+  {
+   "component_key": "javelin",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d6",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.javelin",
+   "source": {
+    "file": "equipment.md",
+    "line": 164,
+    "quote": "<td>Javelin</td>"
+   }
+  },
+  {
+   "component_key": "javelin",
+   "fact": {
+    "family": "weapon_property",
+    "long_range_ft": 120,
+    "normal_range_ft": 30,
+    "property": "thrown"
+   },
+   "record_key": "equipment.weapons.javelin",
+   "source": {
+    "file": "equipment.md",
+    "line": 164,
+    "quote": "<td>Javelin</td>"
+   }
+  },
+  {
+   "component_key": "light_hammer",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.light_hammer",
+   "source": {
+    "file": "equipment.md",
+    "line": 172,
+    "quote": "<td>Light Hammer</td>"
+   }
+  },
+  {
+   "component_key": "light_hammer",
+   "fact": {
+    "damage_type": "bludgeoning",
+    "dice": {
+     "count": 1,
+     "die": "d4",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.light_hammer",
+   "source": {
+    "file": "equipment.md",
+    "line": 172,
+    "quote": "<td>Light Hammer</td>"
+   }
+  },
+  {
+   "component_key": "light_hammer",
+   "fact": {
+    "family": "weapon_property",
+    "property": "light"
+   },
+   "record_key": "equipment.weapons.light_hammer",
+   "source": {
+    "file": "equipment.md",
+    "line": 172,
+    "quote": "<td>Light Hammer</td>"
+   }
+  },
+  {
+   "component_key": "light_hammer",
+   "fact": {
+    "family": "weapon_property",
+    "long_range_ft": 60,
+    "normal_range_ft": 20,
+    "property": "thrown"
+   },
+   "record_key": "equipment.weapons.light_hammer",
+   "source": {
+    "file": "equipment.md",
+    "line": 172,
+    "quote": "<td>Light Hammer</td>"
+   }
+  },
+  {
+   "component_key": "mace",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.mace",
+   "source": {
+    "file": "equipment.md",
+    "line": 180,
+    "quote": "<td>Mace</td>"
+   }
+  },
+  {
+   "component_key": "mace",
+   "fact": {
+    "damage_type": "bludgeoning",
+    "dice": {
+     "count": 1,
+     "die": "d6",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.mace",
+   "source": {
+    "file": "equipment.md",
+    "line": 180,
+    "quote": "<td>Mace</td>"
+   }
+  },
+  {
+   "component_key": "quarterstaff",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.quarterstaff",
+   "source": {
+    "file": "equipment.md",
+    "line": 188,
+    "quote": "<td>Quarterstaff</td>"
+   }
+  },
+  {
+   "component_key": "quarterstaff",
+   "fact": {
+    "damage_type": "bludgeoning",
+    "dice": {
+     "count": 1,
+     "die": "d6",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.quarterstaff",
+   "source": {
+    "file": "equipment.md",
+    "line": 188,
+    "quote": "<td>Quarterstaff</td>"
+   }
+  },
+  {
+   "component_key": "quarterstaff",
+   "fact": {
+    "family": "weapon_property",
+    "property": "versatile",
+    "two_handed_dice": {
+     "count": 1,
+     "die": "d8"
+    }
+   },
+   "record_key": "equipment.weapons.quarterstaff",
+   "source": {
+    "file": "equipment.md",
+    "line": 188,
+    "quote": "<td>Quarterstaff</td>"
+   }
+  },
+  {
+   "component_key": "sickle",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.sickle",
+   "source": {
+    "file": "equipment.md",
+    "line": 196,
+    "quote": "<td>Sickle</td>"
+   }
+  },
+  {
+   "component_key": "sickle",
+   "fact": {
+    "damage_type": "slashing",
+    "dice": {
+     "count": 1,
+     "die": "d4",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.sickle",
+   "source": {
+    "file": "equipment.md",
+    "line": 196,
+    "quote": "<td>Sickle</td>"
+   }
+  },
+  {
+   "component_key": "sickle",
+   "fact": {
+    "family": "weapon_property",
+    "property": "light"
+   },
+   "record_key": "equipment.weapons.sickle",
+   "source": {
+    "file": "equipment.md",
+    "line": 196,
+    "quote": "<td>Sickle</td>"
+   }
+  },
+  {
+   "component_key": "spear",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.spear",
+   "source": {
+    "file": "equipment.md",
+    "line": 204,
+    "quote": "<td>Spear</td>"
+   }
+  },
+  {
+   "component_key": "spear",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d6",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.spear",
+   "source": {
+    "file": "equipment.md",
+    "line": 204,
+    "quote": "<td>Spear</td>"
+   }
+  },
+  {
+   "component_key": "spear",
+   "fact": {
+    "family": "weapon_property",
+    "long_range_ft": 60,
+    "normal_range_ft": 20,
+    "property": "thrown"
+   },
+   "record_key": "equipment.weapons.spear",
+   "source": {
+    "file": "equipment.md",
+    "line": 204,
+    "quote": "<td>Spear</td>"
+   }
+  },
+  {
+   "component_key": "spear",
+   "fact": {
+    "family": "weapon_property",
+    "property": "versatile",
+    "two_handed_dice": {
+     "count": 1,
+     "die": "d8"
+    }
+   },
+   "record_key": "equipment.weapons.spear",
+   "source": {
+    "file": "equipment.md",
+    "line": 204,
+    "quote": "<td>Spear</td>"
+   }
+  },
+  {
+   "component_key": "dart",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "ranged"
+   },
+   "record_key": "equipment.weapons.dart",
+   "source": {
+    "file": "equipment.md",
+    "line": 215,
+    "quote": "<td>Dart</td>"
+   }
+  },
+  {
+   "component_key": "dart",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d4",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.dart",
+   "source": {
+    "file": "equipment.md",
+    "line": 215,
+    "quote": "<td>Dart</td>"
+   }
+  },
+  {
+   "component_key": "dart",
+   "fact": {
+    "family": "weapon_property",
+    "property": "finesse"
+   },
+   "record_key": "equipment.weapons.dart",
+   "source": {
+    "file": "equipment.md",
+    "line": 215,
+    "quote": "<td>Dart</td>"
+   }
+  },
+  {
+   "component_key": "dart",
+   "fact": {
+    "family": "weapon_property",
+    "long_range_ft": 60,
+    "normal_range_ft": 20,
+    "property": "thrown"
+   },
+   "record_key": "equipment.weapons.dart",
+   "source": {
+    "file": "equipment.md",
+    "line": 215,
+    "quote": "<td>Dart</td>"
+   }
+  },
+  {
+   "component_key": "light_crossbow",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "ranged"
+   },
+   "record_key": "equipment.weapons.light_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 223,
+    "quote": "<td>Light Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "light_crossbow",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d8",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.light_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 223,
+    "quote": "<td>Light Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "light_crossbow",
+   "fact": {
+    "ammunition": "bolt",
+    "family": "weapon_property",
+    "long_range_ft": 320,
+    "normal_range_ft": 80,
+    "property": "ammunition"
+   },
+   "record_key": "equipment.weapons.light_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 223,
+    "quote": "<td>Light Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "light_crossbow",
+   "fact": {
+    "family": "weapon_property",
+    "property": "loading"
+   },
+   "record_key": "equipment.weapons.light_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 223,
+    "quote": "<td>Light Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "light_crossbow",
+   "fact": {
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.light_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 223,
+    "quote": "<td>Light Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "shortbow",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "ranged"
+   },
+   "record_key": "equipment.weapons.shortbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 231,
+    "quote": "<td>Shortbow</td>"
+   }
+  },
+  {
+   "component_key": "shortbow",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d6",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.shortbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 231,
+    "quote": "<td>Shortbow</td>"
+   }
+  },
+  {
+   "component_key": "shortbow",
+   "fact": {
+    "ammunition": "arrow",
+    "family": "weapon_property",
+    "long_range_ft": 320,
+    "normal_range_ft": 80,
+    "property": "ammunition"
+   },
+   "record_key": "equipment.weapons.shortbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 231,
+    "quote": "<td>Shortbow</td>"
+   }
+  },
+  {
+   "component_key": "shortbow",
+   "fact": {
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.shortbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 231,
+    "quote": "<td>Shortbow</td>"
+   }
+  },
+  {
+   "component_key": "sling",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "ranged"
+   },
+   "record_key": "equipment.weapons.sling",
+   "source": {
+    "file": "equipment.md",
+    "line": 239,
+    "quote": "<td>Sling</td>"
+   }
+  },
+  {
+   "component_key": "sling",
+   "fact": {
+    "damage_type": "bludgeoning",
+    "dice": {
+     "count": 1,
+     "die": "d4",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.sling",
+   "source": {
+    "file": "equipment.md",
+    "line": 239,
+    "quote": "<td>Sling</td>"
+   }
+  },
+  {
+   "component_key": "sling",
+   "fact": {
+    "ammunition": "bullet",
+    "family": "weapon_property",
+    "long_range_ft": 120,
+    "normal_range_ft": 30,
+    "property": "ammunition"
+   },
+   "record_key": "equipment.weapons.sling",
+   "source": {
+    "file": "equipment.md",
+    "line": 239,
+    "quote": "<td>Sling</td>"
+   }
+  },
+  {
+   "component_key": "battleaxe",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.battleaxe",
+   "source": {
+    "file": "equipment.md",
+    "line": 250,
+    "quote": "<td>Battleaxe</td>"
+   }
+  },
+  {
+   "component_key": "battleaxe",
+   "fact": {
+    "damage_type": "slashing",
+    "dice": {
+     "count": 1,
+     "die": "d8",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.battleaxe",
+   "source": {
+    "file": "equipment.md",
+    "line": 250,
+    "quote": "<td>Battleaxe</td>"
+   }
+  },
+  {
+   "component_key": "battleaxe",
+   "fact": {
+    "family": "weapon_property",
+    "property": "versatile",
+    "two_handed_dice": {
+     "count": 1,
+     "die": "d10"
+    }
+   },
+   "record_key": "equipment.weapons.battleaxe",
+   "source": {
+    "file": "equipment.md",
+    "line": 250,
+    "quote": "<td>Battleaxe</td>"
+   }
+  },
+  {
+   "component_key": "flail",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.flail",
+   "source": {
+    "file": "equipment.md",
+    "line": 258,
+    "quote": "<td>Flail</td>"
+   }
+  },
+  {
+   "component_key": "flail",
+   "fact": {
+    "damage_type": "bludgeoning",
+    "dice": {
+     "count": 1,
+     "die": "d8",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.flail",
+   "source": {
+    "file": "equipment.md",
+    "line": 258,
+    "quote": "<td>Flail</td>"
+   }
+  },
+  {
+   "component_key": "glaive",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.glaive",
+   "source": {
+    "file": "equipment.md",
+    "line": 266,
+    "quote": "<td>Glaive</td>"
+   }
+  },
+  {
+   "component_key": "glaive",
+   "fact": {
+    "damage_type": "slashing",
+    "dice": {
+     "count": 1,
+     "die": "d10",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.glaive",
+   "source": {
+    "file": "equipment.md",
+    "line": 266,
+    "quote": "<td>Glaive</td>"
+   }
+  },
+  {
+   "component_key": "glaive",
+   "fact": {
+    "family": "weapon_property",
+    "property": "heavy"
+   },
+   "record_key": "equipment.weapons.glaive",
+   "source": {
+    "file": "equipment.md",
+    "line": 266,
+    "quote": "<td>Glaive</td>"
+   }
+  },
+  {
+   "component_key": "glaive",
+   "fact": {
+    "family": "weapon_property",
+    "property": "reach"
+   },
+   "record_key": "equipment.weapons.glaive",
+   "source": {
+    "file": "equipment.md",
+    "line": 266,
+    "quote": "<td>Glaive</td>"
+   }
+  },
+  {
+   "component_key": "glaive",
+   "fact": {
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.glaive",
+   "source": {
+    "file": "equipment.md",
+    "line": 266,
+    "quote": "<td>Glaive</td>"
+   }
+  },
+  {
+   "component_key": "greataxe",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.greataxe",
+   "source": {
+    "file": "equipment.md",
+    "line": 274,
+    "quote": "<td>Greataxe</td>"
+   }
+  },
+  {
+   "component_key": "greataxe",
+   "fact": {
+    "damage_type": "slashing",
+    "dice": {
+     "count": 1,
+     "die": "d12",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.greataxe",
+   "source": {
+    "file": "equipment.md",
+    "line": 274,
+    "quote": "<td>Greataxe</td>"
+   }
+  },
+  {
+   "component_key": "greataxe",
+   "fact": {
+    "family": "weapon_property",
+    "property": "heavy"
+   },
+   "record_key": "equipment.weapons.greataxe",
+   "source": {
+    "file": "equipment.md",
+    "line": 274,
+    "quote": "<td>Greataxe</td>"
+   }
+  },
+  {
+   "component_key": "greataxe",
+   "fact": {
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.greataxe",
+   "source": {
+    "file": "equipment.md",
+    "line": 274,
+    "quote": "<td>Greataxe</td>"
+   }
+  },
+  {
+   "component_key": "greatsword",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.greatsword",
+   "source": {
+    "file": "equipment.md",
+    "line": 282,
+    "quote": "<td>Greatsword</td>"
+   }
+  },
+  {
+   "component_key": "greatsword",
+   "fact": {
+    "damage_type": "slashing",
+    "dice": {
+     "count": 2,
+     "die": "d6",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.greatsword",
+   "source": {
+    "file": "equipment.md",
+    "line": 282,
+    "quote": "<td>Greatsword</td>"
+   }
+  },
+  {
+   "component_key": "greatsword",
+   "fact": {
+    "family": "weapon_property",
+    "property": "heavy"
+   },
+   "record_key": "equipment.weapons.greatsword",
+   "source": {
+    "file": "equipment.md",
+    "line": 282,
+    "quote": "<td>Greatsword</td>"
+   }
+  },
+  {
+   "component_key": "greatsword",
+   "fact": {
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.greatsword",
+   "source": {
+    "file": "equipment.md",
+    "line": 282,
+    "quote": "<td>Greatsword</td>"
+   }
+  },
+  {
+   "component_key": "halberd",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.halberd",
+   "source": {
+    "file": "equipment.md",
+    "line": 290,
+    "quote": "<td>Halberd</td>"
+   }
+  },
+  {
+   "component_key": "halberd",
+   "fact": {
+    "damage_type": "slashing",
+    "dice": {
+     "count": 1,
+     "die": "d10",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.halberd",
+   "source": {
+    "file": "equipment.md",
+    "line": 290,
+    "quote": "<td>Halberd</td>"
+   }
+  },
+  {
+   "component_key": "halberd",
+   "fact": {
+    "family": "weapon_property",
+    "property": "heavy"
+   },
+   "record_key": "equipment.weapons.halberd",
+   "source": {
+    "file": "equipment.md",
+    "line": 290,
+    "quote": "<td>Halberd</td>"
+   }
+  },
+  {
+   "component_key": "halberd",
+   "fact": {
+    "family": "weapon_property",
+    "property": "reach"
+   },
+   "record_key": "equipment.weapons.halberd",
+   "source": {
+    "file": "equipment.md",
+    "line": 290,
+    "quote": "<td>Halberd</td>"
+   }
+  },
+  {
+   "component_key": "halberd",
+   "fact": {
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.halberd",
+   "source": {
+    "file": "equipment.md",
+    "line": 290,
+    "quote": "<td>Halberd</td>"
+   }
+  },
+  {
+   "component_key": "lance",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.lance",
+   "source": {
+    "file": "equipment.md",
+    "line": 298,
+    "quote": "<td>Lance</td>"
+   }
+  },
+  {
+   "component_key": "lance",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d10",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.lance",
+   "source": {
+    "file": "equipment.md",
+    "line": 298,
+    "quote": "<td>Lance</td>"
+   }
+  },
+  {
+   "component_key": "lance",
+   "fact": {
+    "family": "weapon_property",
+    "property": "heavy"
+   },
+   "record_key": "equipment.weapons.lance",
+   "source": {
+    "file": "equipment.md",
+    "line": 298,
+    "quote": "<td>Lance</td>"
+   }
+  },
+  {
+   "component_key": "lance",
+   "fact": {
+    "family": "weapon_property",
+    "property": "reach"
+   },
+   "record_key": "equipment.weapons.lance",
+   "source": {
+    "file": "equipment.md",
+    "line": 298,
+    "quote": "<td>Lance</td>"
+   }
+  },
+  {
+   "component_key": "lance",
+   "fact": {
+    "except_when": "mounted",
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.lance",
+   "source": {
+    "file": "equipment.md",
+    "line": 298,
+    "quote": "<td>Lance</td>"
+   }
+  },
+  {
+   "component_key": "longsword",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.longsword",
+   "source": {
+    "file": "equipment.md",
+    "line": 306,
+    "quote": "<td>Longsword</td>"
+   }
+  },
+  {
+   "component_key": "longsword",
+   "fact": {
+    "damage_type": "slashing",
+    "dice": {
+     "count": 1,
+     "die": "d8",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.longsword",
+   "source": {
+    "file": "equipment.md",
+    "line": 306,
+    "quote": "<td>Longsword</td>"
+   }
+  },
+  {
+   "component_key": "longsword",
+   "fact": {
+    "family": "weapon_property",
+    "property": "versatile",
+    "two_handed_dice": {
+     "count": 1,
+     "die": "d10"
+    }
+   },
+   "record_key": "equipment.weapons.longsword",
+   "source": {
+    "file": "equipment.md",
+    "line": 306,
+    "quote": "<td>Longsword</td>"
+   }
+  },
+  {
+   "component_key": "maul",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.maul",
+   "source": {
+    "file": "equipment.md",
+    "line": 314,
+    "quote": "<td>Maul</td>"
+   }
+  },
+  {
+   "component_key": "maul",
+   "fact": {
+    "damage_type": "bludgeoning",
+    "dice": {
+     "count": 2,
+     "die": "d6",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.maul",
+   "source": {
+    "file": "equipment.md",
+    "line": 314,
+    "quote": "<td>Maul</td>"
+   }
+  },
+  {
+   "component_key": "maul",
+   "fact": {
+    "family": "weapon_property",
+    "property": "heavy"
+   },
+   "record_key": "equipment.weapons.maul",
+   "source": {
+    "file": "equipment.md",
+    "line": 314,
+    "quote": "<td>Maul</td>"
+   }
+  },
+  {
+   "component_key": "maul",
+   "fact": {
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.maul",
+   "source": {
+    "file": "equipment.md",
+    "line": 314,
+    "quote": "<td>Maul</td>"
+   }
+  },
+  {
+   "component_key": "morningstar",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.morningstar",
+   "source": {
+    "file": "equipment.md",
+    "line": 322,
+    "quote": "<td>Morningstar</td>"
+   }
+  },
+  {
+   "component_key": "morningstar",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d8",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.morningstar",
+   "source": {
+    "file": "equipment.md",
+    "line": 322,
+    "quote": "<td>Morningstar</td>"
+   }
+  },
+  {
+   "component_key": "pike",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.pike",
+   "source": {
+    "file": "equipment.md",
+    "line": 330,
+    "quote": "<td>Pike</td>"
+   }
+  },
+  {
+   "component_key": "pike",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d10",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.pike",
+   "source": {
+    "file": "equipment.md",
+    "line": 330,
+    "quote": "<td>Pike</td>"
+   }
+  },
+  {
+   "component_key": "pike",
+   "fact": {
+    "family": "weapon_property",
+    "property": "heavy"
+   },
+   "record_key": "equipment.weapons.pike",
+   "source": {
+    "file": "equipment.md",
+    "line": 330,
+    "quote": "<td>Pike</td>"
+   }
+  },
+  {
+   "component_key": "pike",
+   "fact": {
+    "family": "weapon_property",
+    "property": "reach"
+   },
+   "record_key": "equipment.weapons.pike",
+   "source": {
+    "file": "equipment.md",
+    "line": 330,
+    "quote": "<td>Pike</td>"
+   }
+  },
+  {
+   "component_key": "pike",
+   "fact": {
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.pike",
+   "source": {
+    "file": "equipment.md",
+    "line": 330,
+    "quote": "<td>Pike</td>"
+   }
+  },
+  {
+   "component_key": "rapier",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.rapier",
+   "source": {
+    "file": "equipment.md",
+    "line": 338,
+    "quote": "<td>Rapier</td>"
+   }
+  },
+  {
+   "component_key": "rapier",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d8",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.rapier",
+   "source": {
+    "file": "equipment.md",
+    "line": 338,
+    "quote": "<td>Rapier</td>"
+   }
+  },
+  {
+   "component_key": "rapier",
+   "fact": {
+    "family": "weapon_property",
+    "property": "finesse"
+   },
+   "record_key": "equipment.weapons.rapier",
+   "source": {
+    "file": "equipment.md",
+    "line": 338,
+    "quote": "<td>Rapier</td>"
+   }
+  },
+  {
+   "component_key": "scimitar",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.scimitar",
+   "source": {
+    "file": "equipment.md",
+    "line": 346,
+    "quote": "<td>Scimitar</td>"
+   }
+  },
+  {
+   "component_key": "scimitar",
+   "fact": {
+    "damage_type": "slashing",
+    "dice": {
+     "count": 1,
+     "die": "d6",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.scimitar",
+   "source": {
+    "file": "equipment.md",
+    "line": 346,
+    "quote": "<td>Scimitar</td>"
+   }
+  },
+  {
+   "component_key": "scimitar",
+   "fact": {
+    "family": "weapon_property",
+    "property": "finesse"
+   },
+   "record_key": "equipment.weapons.scimitar",
+   "source": {
+    "file": "equipment.md",
+    "line": 346,
+    "quote": "<td>Scimitar</td>"
+   }
+  },
+  {
+   "component_key": "scimitar",
+   "fact": {
+    "family": "weapon_property",
+    "property": "light"
+   },
+   "record_key": "equipment.weapons.scimitar",
+   "source": {
+    "file": "equipment.md",
+    "line": 346,
+    "quote": "<td>Scimitar</td>"
+   }
+  },
+  {
+   "component_key": "shortsword",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.shortsword",
+   "source": {
+    "file": "equipment.md",
+    "line": 354,
+    "quote": "<td>Shortsword</td>"
+   }
+  },
+  {
+   "component_key": "shortsword",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d6",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.shortsword",
+   "source": {
+    "file": "equipment.md",
+    "line": 354,
+    "quote": "<td>Shortsword</td>"
+   }
+  },
+  {
+   "component_key": "shortsword",
+   "fact": {
+    "family": "weapon_property",
+    "property": "finesse"
+   },
+   "record_key": "equipment.weapons.shortsword",
+   "source": {
+    "file": "equipment.md",
+    "line": 354,
+    "quote": "<td>Shortsword</td>"
+   }
+  },
+  {
+   "component_key": "shortsword",
+   "fact": {
+    "family": "weapon_property",
+    "property": "light"
+   },
+   "record_key": "equipment.weapons.shortsword",
+   "source": {
+    "file": "equipment.md",
+    "line": 354,
+    "quote": "<td>Shortsword</td>"
+   }
+  },
+  {
+   "component_key": "trident",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.trident",
+   "source": {
+    "file": "equipment.md",
+    "line": 362,
+    "quote": "<td>Trident</td>"
+   }
+  },
+  {
+   "component_key": "trident",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d8",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.trident",
+   "source": {
+    "file": "equipment.md",
+    "line": 362,
+    "quote": "<td>Trident</td>"
+   }
+  },
+  {
+   "component_key": "trident",
+   "fact": {
+    "family": "weapon_property",
+    "long_range_ft": 60,
+    "normal_range_ft": 20,
+    "property": "thrown"
+   },
+   "record_key": "equipment.weapons.trident",
+   "source": {
+    "file": "equipment.md",
+    "line": 362,
+    "quote": "<td>Trident</td>"
+   }
+  },
+  {
+   "component_key": "trident",
+   "fact": {
+    "family": "weapon_property",
+    "property": "versatile",
+    "two_handed_dice": {
+     "count": 1,
+     "die": "d10"
+    }
+   },
+   "record_key": "equipment.weapons.trident",
+   "source": {
+    "file": "equipment.md",
+    "line": 362,
+    "quote": "<td>Trident</td>"
+   }
+  },
+  {
+   "component_key": "warhammer",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.warhammer",
+   "source": {
+    "file": "equipment.md",
+    "line": 370,
+    "quote": "<td>Warhammer</td>"
+   }
+  },
+  {
+   "component_key": "warhammer",
+   "fact": {
+    "damage_type": "bludgeoning",
+    "dice": {
+     "count": 1,
+     "die": "d8",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.warhammer",
+   "source": {
+    "file": "equipment.md",
+    "line": 370,
+    "quote": "<td>Warhammer</td>"
+   }
+  },
+  {
+   "component_key": "warhammer",
+   "fact": {
+    "family": "weapon_property",
+    "property": "versatile",
+    "two_handed_dice": {
+     "count": 1,
+     "die": "d10"
+    }
+   },
+   "record_key": "equipment.weapons.warhammer",
+   "source": {
+    "file": "equipment.md",
+    "line": 370,
+    "quote": "<td>Warhammer</td>"
+   }
+  },
+  {
+   "component_key": "war_pick",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.war_pick",
+   "source": {
+    "file": "equipment.md",
+    "line": 378,
+    "quote": "<td>War Pick</td>"
+   }
+  },
+  {
+   "component_key": "war_pick",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d8",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.war_pick",
+   "source": {
+    "file": "equipment.md",
+    "line": 378,
+    "quote": "<td>War Pick</td>"
+   }
+  },
+  {
+   "component_key": "war_pick",
+   "fact": {
+    "family": "weapon_property",
+    "property": "versatile",
+    "two_handed_dice": {
+     "count": 1,
+     "die": "d10"
+    }
+   },
+   "record_key": "equipment.weapons.war_pick",
+   "source": {
+    "file": "equipment.md",
+    "line": 378,
+    "quote": "<td>War Pick</td>"
+   }
+  },
+  {
+   "component_key": "whip",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.whip",
+   "source": {
+    "file": "equipment.md",
+    "line": 386,
+    "quote": "<td>Whip</td>"
+   }
+  },
+  {
+   "component_key": "whip",
+   "fact": {
+    "damage_type": "slashing",
+    "dice": {
+     "count": 1,
+     "die": "d4",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.whip",
+   "source": {
+    "file": "equipment.md",
+    "line": 386,
+    "quote": "<td>Whip</td>"
+   }
+  },
+  {
+   "component_key": "whip",
+   "fact": {
+    "family": "weapon_property",
+    "property": "finesse"
+   },
+   "record_key": "equipment.weapons.whip",
+   "source": {
+    "file": "equipment.md",
+    "line": 386,
+    "quote": "<td>Whip</td>"
+   }
+  },
+  {
+   "component_key": "whip",
+   "fact": {
+    "family": "weapon_property",
+    "property": "reach"
+   },
+   "record_key": "equipment.weapons.whip",
+   "source": {
+    "file": "equipment.md",
+    "line": 386,
+    "quote": "<td>Whip</td>"
+   }
+  },
+  {
+   "component_key": "blowgun",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "ranged"
+   },
+   "record_key": "equipment.weapons.blowgun",
+   "source": {
+    "file": "equipment.md",
+    "line": 397,
+    "quote": "<td>Blowgun</td>"
+   }
+  },
+  {
+   "component_key": "blowgun",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": null,
+    "family": "damage",
+    "flat_amount": 1,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.blowgun",
+   "source": {
+    "file": "equipment.md",
+    "line": 397,
+    "quote": "<td>Blowgun</td>"
+   }
+  },
+  {
+   "component_key": "blowgun",
+   "fact": {
+    "ammunition": "needle",
+    "family": "weapon_property",
+    "long_range_ft": 100,
+    "normal_range_ft": 25,
+    "property": "ammunition"
+   },
+   "record_key": "equipment.weapons.blowgun",
+   "source": {
+    "file": "equipment.md",
+    "line": 397,
+    "quote": "<td>Blowgun</td>"
+   }
+  },
+  {
+   "component_key": "blowgun",
+   "fact": {
+    "family": "weapon_property",
+    "property": "loading"
+   },
+   "record_key": "equipment.weapons.blowgun",
+   "source": {
+    "file": "equipment.md",
+    "line": 397,
+    "quote": "<td>Blowgun</td>"
+   }
+  },
+  {
+   "component_key": "hand_crossbow",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "ranged"
+   },
+   "record_key": "equipment.weapons.hand_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 405,
+    "quote": "<td>Hand Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "hand_crossbow",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d6",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.hand_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 405,
+    "quote": "<td>Hand Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "hand_crossbow",
+   "fact": {
+    "ammunition": "bolt",
+    "family": "weapon_property",
+    "long_range_ft": 120,
+    "normal_range_ft": 30,
+    "property": "ammunition"
+   },
+   "record_key": "equipment.weapons.hand_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 405,
+    "quote": "<td>Hand Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "hand_crossbow",
+   "fact": {
+    "family": "weapon_property",
+    "property": "light"
+   },
+   "record_key": "equipment.weapons.hand_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 405,
+    "quote": "<td>Hand Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "hand_crossbow",
+   "fact": {
+    "family": "weapon_property",
+    "property": "loading"
+   },
+   "record_key": "equipment.weapons.hand_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 405,
+    "quote": "<td>Hand Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "heavy_crossbow",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "ranged"
+   },
+   "record_key": "equipment.weapons.heavy_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 413,
+    "quote": "<td>Heavy Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "heavy_crossbow",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d10",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.heavy_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 413,
+    "quote": "<td>Heavy Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "heavy_crossbow",
+   "fact": {
+    "ammunition": "bolt",
+    "family": "weapon_property",
+    "long_range_ft": 400,
+    "normal_range_ft": 100,
+    "property": "ammunition"
+   },
+   "record_key": "equipment.weapons.heavy_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 413,
+    "quote": "<td>Heavy Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "heavy_crossbow",
+   "fact": {
+    "family": "weapon_property",
+    "property": "heavy"
+   },
+   "record_key": "equipment.weapons.heavy_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 413,
+    "quote": "<td>Heavy Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "heavy_crossbow",
+   "fact": {
+    "family": "weapon_property",
+    "property": "loading"
+   },
+   "record_key": "equipment.weapons.heavy_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 413,
+    "quote": "<td>Heavy Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "heavy_crossbow",
+   "fact": {
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.heavy_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 413,
+    "quote": "<td>Heavy Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "longbow",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "ranged"
+   },
+   "record_key": "equipment.weapons.longbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 421,
+    "quote": "<td>Longbow</td>"
+   }
+  },
+  {
+   "component_key": "longbow",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d8",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.longbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 421,
+    "quote": "<td>Longbow</td>"
+   }
+  },
+  {
+   "component_key": "longbow",
+   "fact": {
+    "ammunition": "arrow",
+    "family": "weapon_property",
+    "long_range_ft": 600,
+    "normal_range_ft": 150,
+    "property": "ammunition"
+   },
+   "record_key": "equipment.weapons.longbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 421,
+    "quote": "<td>Longbow</td>"
+   }
+  },
+  {
+   "component_key": "longbow",
+   "fact": {
+    "family": "weapon_property",
+    "property": "heavy"
+   },
+   "record_key": "equipment.weapons.longbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 421,
+    "quote": "<td>Longbow</td>"
+   }
+  },
+  {
+   "component_key": "longbow",
+   "fact": {
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.longbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 421,
+    "quote": "<td>Longbow</td>"
+   }
+  },
+  {
+   "component_key": "musket",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "ranged"
+   },
+   "record_key": "equipment.weapons.musket",
+   "source": {
+    "file": "equipment.md",
+    "line": 429,
+    "quote": "<td>Musket</td>"
+   }
+  },
+  {
+   "component_key": "musket",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d12",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.musket",
+   "source": {
+    "file": "equipment.md",
+    "line": 429,
+    "quote": "<td>Musket</td>"
+   }
+  },
+  {
+   "component_key": "musket",
+   "fact": {
+    "ammunition": "bullet",
+    "family": "weapon_property",
+    "long_range_ft": 120,
+    "normal_range_ft": 40,
+    "property": "ammunition"
+   },
+   "record_key": "equipment.weapons.musket",
+   "source": {
+    "file": "equipment.md",
+    "line": 429,
+    "quote": "<td>Musket</td>"
+   }
+  },
+  {
+   "component_key": "musket",
+   "fact": {
+    "family": "weapon_property",
+    "property": "loading"
+   },
+   "record_key": "equipment.weapons.musket",
+   "source": {
+    "file": "equipment.md",
+    "line": 429,
+    "quote": "<td>Musket</td>"
+   }
+  },
+  {
+   "component_key": "musket",
+   "fact": {
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.musket",
+   "source": {
+    "file": "equipment.md",
+    "line": 429,
+    "quote": "<td>Musket</td>"
+   }
+  },
+  {
+   "component_key": "pistol",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "ranged"
+   },
+   "record_key": "equipment.weapons.pistol",
+   "source": {
+    "file": "equipment.md",
+    "line": 437,
+    "quote": "<td>Pistol</td>"
+   }
+  },
+  {
+   "component_key": "pistol",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d10",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.pistol",
+   "source": {
+    "file": "equipment.md",
+    "line": 437,
+    "quote": "<td>Pistol</td>"
+   }
+  },
+  {
+   "component_key": "pistol",
+   "fact": {
+    "ammunition": "bullet",
+    "family": "weapon_property",
+    "long_range_ft": 90,
+    "normal_range_ft": 30,
+    "property": "ammunition"
+   },
+   "record_key": "equipment.weapons.pistol",
+   "source": {
+    "file": "equipment.md",
+    "line": 437,
+    "quote": "<td>Pistol</td>"
+   }
+  },
+  {
+   "component_key": "pistol",
+   "fact": {
+    "family": "weapon_property",
+    "property": "loading"
+   },
+   "record_key": "equipment.weapons.pistol",
+   "source": {
+    "file": "equipment.md",
+    "line": 437,
+    "quote": "<td>Pistol</td>"
+   }
+  },
+  {
+   "component_key": "typical_dcs",
+   "fact": {
+    "dc": 5,
+    "difficulty": "very_easy",
+    "family": "difficulty_band"
+   },
+   "record_key": "play.d20_tests",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 258,
+    "quote": "<td>Very easy</td>"
+   }
+  },
+  {
+   "component_key": "typical_dcs",
+   "fact": {
+    "dc": 10,
+    "difficulty": "easy",
+    "family": "difficulty_band"
+   },
+   "record_key": "play.d20_tests",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 264,
+    "quote": "<td>Easy</td>"
+   }
+  },
+  {
+   "component_key": "typical_dcs",
+   "fact": {
+    "dc": 15,
+    "difficulty": "medium",
+    "family": "difficulty_band"
+   },
+   "record_key": "play.d20_tests",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 270,
+    "quote": "<td>Medium</td>"
+   }
+  },
+  {
+   "component_key": "typical_dcs",
+   "fact": {
+    "dc": 20,
+    "difficulty": "hard",
+    "family": "difficulty_band"
+   },
+   "record_key": "play.d20_tests",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 276,
+    "quote": "<td>Hard</td>"
+   }
+  },
+  {
+   "component_key": "typical_dcs",
+   "fact": {
+    "dc": 25,
+    "difficulty": "very_hard",
+    "family": "difficulty_band"
+   },
+   "record_key": "play.d20_tests",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 260,
+    "quote": "<td>Very hard</td>"
+   }
+  },
+  {
+   "component_key": "typical_dcs",
+   "fact": {
+    "dc": 30,
+    "difficulty": "nearly_impossible",
+    "family": "difficulty_band"
+   },
+   "record_key": "play.d20_tests",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 266,
+    "quote": "<td>Nearly impossible</td>"
+   }
+  },
+  {
+   "component_key": "attack_ability_modifier",
+   "fact": {
+    "ability": "strength",
+    "family": "attack_roll_ability",
+    "range_class": "melee"
+   },
+   "record_key": "play.d20_tests",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 358,
+    "quote": "Melee attack with a weapon or an Unarmed Strike"
+   }
+  },
+  {
+   "component_key": "attack_ability_modifier",
+   "fact": {
+    "ability": "dexterity",
+    "family": "attack_roll_ability",
+    "range_class": "ranged"
+   },
+   "record_key": "play.d20_tests",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 362,
+    "quote": "Ranged attack with a weapon"
+   }
+  },
+  {
+   "component_key": "natural_20",
+   "fact": {
+    "context": "attack_roll",
+    "critical_hit": true,
+    "face": 20,
+    "family": "natural_roll_outcome",
+    "outcome": "hit"
+   },
+   "record_key": "play.d20_tests",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 391,
+    "quote": "the attack hits regardless of any modifiers"
+   }
+  },
+  {
+   "component_key": "natural_1",
+   "fact": {
+    "context": "attack_roll",
+    "critical_hit": false,
+    "face": 1,
+    "family": "natural_roll_outcome",
+    "outcome": "miss"
+   },
+   "record_key": "play.d20_tests",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 393,
+    "quote": "the attack misses regardless of any modifiers"
+   }
+  },
+  {
+   "component_key": "initiative_roll",
+   "fact": {
+    "ability": "dexterity",
+    "context": "ability_check",
+    "family": "initiative_roll"
+   },
+   "record_key": "play.combat",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 891,
+    "quote": "they make a Dexterity check"
+   }
+  },
+  {
+   "component_key": "damage_rolls",
+   "fact": {
+    "adds_attack_ability_modifier": true,
+    "family": "damage_roll_rule",
+    "fixed_amount_adds_modifier": false,
+    "minimum_damage": 0
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1156,
+    "quote": "you add your ability modifier—the same modifier used for the attack roll"
+   }
+  },
+  {
+   "component_key": "critical_hits",
+   "fact": {
+    "damage_dice_multiplier": 2,
+    "family": "critical_damage"
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1160,
+    "quote": "Roll the attack's damage dice twice"
+   }
+  },
+  {
+   "component_key": "temporary_hit_points",
+   "fact": {
+    "absorbed_first": true,
+    "family": "temporary_hit_point_absorption"
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1253,
+    "quote": "those points are lost first, and any leftover damage carries over"
+   }
+  },
+  {
+   "component_key": "hit_points",
+   "fact": {
+    "applied": "adjudication_after_overflow",
+    "family": "hit_point_bound",
+    "minimum_current": 0
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1142,
+    "quote": "which is the lowest Hit Points can go"
+   }
+  },
+  {
+   "component_key": "monster_death",
+   "fact": {
+    "family": "zero_hit_point_outcome",
+    "gamemaster_exception": "treat_as_character",
+    "outcome": "dies",
+    "subject": "monster"
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1215,
+    "quote": "A monster dies the instant it drops to 0 Hit Points"
+   }
+  },
+  {
+   "component_key": "hit_point_maximum_of_0",
+   "fact": {
+    "family": "zero_hit_point_outcome",
+    "outcome": "dies",
+    "subject": "any",
+    "trigger": "hit_point_maximum_zero"
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1217,
+    "quote": "A creature dies if its Hit Point maximum reaches 0"
+   }
+  },
+  {
+   "component_key": "massive_damage",
+   "fact": {
+    "dies_when_remainder_at_least": "hit_point_maximum",
+    "family": "massive_damage",
+    "subject": "character"
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1219,
+    "quote": "the character dies if the remainder equals or exceeds their Hit Point maximum"
+   }
+  },
+  {
+   "component_key": "falling_unconscious",
+   "fact": {
+    "family": "zero_hit_point_outcome",
+    "outcome": "unconscious_and_dying",
+    "subject": "character"
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1227,
+    "quote": "you now face making Death Saving Throws"
+   }
+  },
+  {
+   "component_key": "death_saving_throws",
+   "fact": {
+    "ability": null,
+    "die": "d20",
+    "failures_to_die": 3,
+    "family": "death_saving_throw",
+    "reset_on": [
+     "regains_hit_points",
+     "becomes_stable"
+    ],
+    "success_minimum": 10,
+    "successes_to_stable": 3,
+    "timing": {
+     "at_hit_points": 0,
+     "when": "start_of_turn",
+     "whose": "subject"
+    }
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1233,
+    "quote": "Roll 1d20. If the roll is 10 or higher, you succeed."
+   }
+  },
+  {
+   "component_key": "death_saving_throws",
+   "fact": {
+    "face": 1,
+    "failures": 2,
+    "family": "death_save_natural_roll"
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1237,
+    "quote": "When you roll a 1 on the d20 for a Death Saving Throw, you suffer two failures"
+   }
+  },
+  {
+   "component_key": "death_saving_throws",
+   "fact": {
+    "face": 20,
+    "family": "death_save_natural_roll",
+    "regain_hit_points": 1
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1237,
+    "quote": "If you roll a 20 on the d20, you regain 1 Hit Point"
+   }
+  },
+  {
+   "component_key": "damage_at_0_hit_points",
+   "fact": {
+    "critical_hit_failures": 2,
+    "dies_when_damage_at_least": "hit_point_maximum",
+    "failures": 1,
+    "family": "damage_at_zero_hit_points"
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1239,
+    "quote": "If the damage is from a Critical Hit, you suffer two failures instead"
+   }
+  },
+  {
+   "component_key": "stabilizing",
+   "fact": {
+    "action": "help",
+    "family": "stabilization",
+    "on_success": "stable"
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1243,
+    "quote": "You can take the Help action to try to stabilize a creature with 0 Hit Points"
+   }
+  },
+  {
+   "component_key": "stable",
+   "fact": {
+    "damage_ends_stable": true,
+    "family": "stable_state",
+    "makes_death_saves": false,
+    "recovery": {
+     "dice": {
+      "count": 1,
+      "die": "d4"
+     },
+     "regain_hit_points": 1,
+     "unit": "hour",
+     "unless": "healed"
+    },
+    "remains_unconscious": true
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1245,
+    "quote": "A Stable creature that isn't healed regains 1 Hit Point after 1d4 hours"
+   }
+  },
+  {
+   "component_key": "knocking_out",
+   "fact": {
+    "attack": "melee",
+    "condition": "unconscious",
+    "ends_after": "short_rest",
+    "ends_early_on": [
+     "regains_hit_points",
+     "first_aid_success"
+    ],
+    "family": "knockout_alternative",
+    "set_hit_points": 1
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1203,
+    "quote": "you can instead reduce the creature to 1 Hit Point"
+   }
+  },
+  {
+   "component_key": "short_rest",
+   "fact": {
+    "family": "rest_duration",
+    "hours": 1,
+    "rest": "short_rest"
+   },
+   "record_key": "glossary.short_rest",
+   "source": {
+    "file": "rules-glossary.md",
+    "line": 1279,
+    "quote": "A Short Rest is a 1-hour period"
+   }
+  },
+  {
+   "component_key": "finesse",
+   "fact": {
+    "abilities": [
+     "strength",
+     "dexterity"
+    ],
+    "family": "attack_ability_option",
+    "same_for_damage": true
+   },
+   "record_key": "equipment.weapons.finesse",
+   "source": {
+    "file": "equipment.md",
+    "line": 72,
+    "quote": "use your choice of your Strength or Dexterity"
+   }
+  },
+  {
+   "component_key": "heavy",
+   "fact": {
+    "ability": "strength",
+    "family": "ability_score_requirement",
+    "minimum": 13,
+    "range_class": "melee",
+    "unmet": "attack_disadvantage"
+   },
+   "record_key": "equipment.weapons.heavy",
+   "source": {
+    "file": "equipment.md",
+    "line": 74,
+    "quote": "your Strength score isn't at least 13"
+   }
+  },
+  {
+   "component_key": "heavy",
+   "fact": {
+    "ability": "dexterity",
+    "family": "ability_score_requirement",
+    "minimum": 13,
+    "range_class": "ranged",
+    "unmet": "attack_disadvantage"
+   },
+   "record_key": "equipment.weapons.heavy",
+   "source": {
+    "file": "equipment.md",
+    "line": 74,
+    "quote": "your Dexterity score isn't at least 13"
+   }
+  },
+  {
+   "component_key": "light",
+   "fact": {
+    "ability_modifier_damage": "only_if_negative",
+    "cost": "bonus_action",
+    "family": "light_extra_attack",
+    "limit": "once_per_turn",
+    "requires": "different_light_weapon"
+   },
+   "record_key": "equipment.weapons.light",
+   "source": {
+    "file": "equipment.md",
+    "line": 76,
+    "quote": "you can make one extra attack as a Bonus Action"
+   }
+  },
+  {
+   "component_key": "loading",
+   "fact": {
+    "family": "ammunition_per_activation",
+    "maximum": 1
+   },
+   "record_key": "equipment.weapons.loading",
+   "source": {
+    "file": "equipment.md",
+    "line": 78,
+    "quote": "You can fire only one piece of ammunition"
+   }
+  },
+  {
+   "component_key": "range",
+   "fact": {
+    "beyond_long": "cannot_attack",
+    "beyond_normal": "attack_disadvantage",
+    "family": "range_band_rule"
+   },
+   "record_key": "equipment.weapons.range",
+   "source": {
+    "file": "equipment.md",
+    "line": 80,
+    "quote": "you have Disadvantage on the attack roll"
+   }
+  },
+  {
+   "component_key": "reach",
+   "fact": {
+    "family": "reach_extension",
+    "feet": 5
+   },
+   "record_key": "equipment.weapons.reach",
+   "source": {
+    "file": "equipment.md",
+    "line": 82,
+    "quote": "adds 5 feet to your reach"
+   }
+  },
+  {
+   "component_key": "thrown",
+   "fact": {
+    "attack": "ranged",
+    "family": "thrown_attack",
+    "melee_weapon_ability": "as_melee_attack"
+   },
+   "record_key": "equipment.weapons.thrown",
+   "source": {
+    "file": "equipment.md",
+    "line": 84,
+    "quote": "you can throw the weapon to make a ranged attack"
+   }
+  },
+  {
+   "component_key": "two_handed",
+   "fact": {
+    "family": "hands_required",
+    "hands": 2
+   },
+   "record_key": "equipment.weapons.two_handed",
+   "source": {
+    "file": "equipment.md",
+    "line": 86,
+    "quote": "requires two hands"
+   }
+  },
+  {
+   "component_key": "versatile",
+   "fact": {
+    "attack": "melee",
+    "family": "versatile_damage",
+    "hands": 2
+   },
+   "record_key": "equipment.weapons.versatile",
+   "source": {
+    "file": "equipment.md",
+    "line": 88,
+    "quote": "when used with two hands to make a melee attack"
+   }
+  },
+  {
+   "component_key": "ammunition",
+   "fact": {
+    "family": "ammunition_expenditure",
+    "per_attack": 1
+   },
+   "record_key": "equipment.weapons.ammunition",
+   "source": {
+    "file": "equipment.md",
+    "line": 70,
+    "quote": "Each attack expends one piece of ammunition"
+   }
+  },
+  {
+   "component_key": "cleave",
+   "fact": {
+    "ability_modifier_damage": "only_if_negative",
+    "family": "mastery_effect",
+    "limit": "once_per_turn",
+    "mastery": "cleave",
+    "second_target_within_ft": 5,
+    "second_target_within_reach": true,
+    "trigger": "hit_melee_attack"
+   },
+   "record_key": "equipment.weapons.cleave",
+   "source": {
+    "file": "equipment.md",
+    "line": 98,
+    "quote": "against a second creature within 5 feet of the first"
+   }
+  },
+  {
+   "component_key": "graze",
+   "fact": {
+    "damage": "attack_ability_modifier",
+    "damage_type": "weapon",
+    "family": "mastery_effect",
+    "mastery": "graze",
+    "trigger": "miss"
+   },
+   "record_key": "equipment.weapons.graze",
+   "source": {
+    "file": "equipment.md",
+    "line": 100,
+    "quote": "equal to the ability modifier you used to make the attack roll"
+   }
+  },
+  {
+   "component_key": "nick",
+   "fact": {
+    "cost": "attack_action",
+    "family": "mastery_effect",
+    "limit": "once_per_turn",
+    "mastery": "nick",
+    "trigger": "light_extra_attack"
+   },
+   "record_key": "equipment.weapons.nick",
+   "source": {
+    "file": "equipment.md",
+    "line": 102,
+    "quote": "as part of the Attack action instead of as a Bonus Action"
+   }
+  },
+  {
+   "component_key": "push",
+   "fact": {
+    "direction": "away",
+    "distance_ft": 10,
+    "family": "mastery_effect",
+    "mastery": "push",
+    "maximum_size": "large",
+    "trigger": "hit"
+   },
+   "record_key": "equipment.weapons.push",
+   "source": {
+    "file": "equipment.md",
+    "line": 104,
+    "quote": "push the creature up to 10 feet straight away"
+   }
+  },
+  {
+   "component_key": "sap",
+   "fact": {
+    "effects": [
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": null,
+       "actor": "target",
+       "context": "attack_roll"
+      },
+      "state": "disadvantage",
+      "uses": "next_one"
+     },
+     {
+      "family": "effect_duration",
+      "turn": "next",
+      "until": "start_of_turn",
+      "whose": "attacker"
+     }
+    ],
+    "family": "mastery_effect",
+    "mastery": "sap",
+    "trigger": "hit"
+   },
+   "record_key": "equipment.weapons.sap",
+   "source": {
+    "file": "equipment.md",
+    "line": 106,
+    "quote": "Disadvantage on its next attack roll before the start of your next turn"
+   }
+  },
+  {
+   "component_key": "slow",
+   "fact": {
+    "duration": {
+     "turn": "next",
+     "until": "start_of_turn",
+     "whose": "attacker"
+    },
+    "family": "mastery_effect",
+    "mastery": "slow",
+    "maximum_reduction_ft": 10,
+    "speed_reduction_ft": 10,
+    "trigger": "hit_and_damage"
+   },
+   "record_key": "equipment.weapons.slow",
+   "source": {
+    "file": "equipment.md",
+    "line": 108,
+    "quote": "reduce its Speed by 10 feet until the start of your next turn"
+   }
+  },
+  {
+   "component_key": "topple",
+   "fact": {
+    "dc": {
+     "base": 8,
+     "plus": [
+      "attack_ability_modifier",
+      "proficiency_bonus"
+     ]
+    },
+    "family": "mastery_effect",
+    "mastery": "topple",
+    "on_failure": [
+     {
+      "condition": "prone",
+      "effect": "applies",
+      "family": "condition_effect"
+     }
+    ],
+    "save": "constitution",
+    "trigger": "hit"
+   },
+   "record_key": "equipment.weapons.topple",
+   "source": {
+    "file": "equipment.md",
+    "line": 110,
+    "quote": "DC 8 plus the ability modifier used to make the attack roll"
+   }
+  },
+  {
+   "component_key": "vex",
+   "fact": {
+    "effects": [
+     {
+      "family": "advantage",
+      "roll": {
+       "ability": null,
+       "actor": "attacker",
+       "against": "target",
+       "context": "attack_roll"
+      },
+      "state": "advantage",
+      "uses": "next_one"
+     },
+     {
+      "family": "effect_duration",
+      "turn": "next",
+      "until": "end_of_turn",
+      "whose": "attacker"
+     }
+    ],
+    "family": "mastery_effect",
+    "mastery": "vex",
+    "trigger": "hit_and_damage"
+   },
+   "record_key": "equipment.weapons.vex",
+   "source": {
+    "file": "equipment.md",
+    "line": 112,
+    "quote": "Advantage on your next attack roll against that creature"
+   }
+  },
+  {
+   "component_key": "alchemists_supplies",
+   "fact": {
+    "ability": "intelligence",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.alchemists_supplies",
+   "source": {
+    "file": "equipment.md",
+    "line": 626,
+    "quote": "**Alchemist's Supplies (50 GP)**"
+   }
+  },
+  {
+   "component_key": "alchemists_supplies",
+   "fact": {
+    "ability": "intelligence",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check",
+    "option_key": "identify_a_substance"
+   },
+   "record_key": "equipment.tools.alchemists_supplies",
+   "source": {
+    "file": "equipment.md",
+    "line": 626,
+    "quote": "**Alchemist's Supplies (50 GP)**"
+   }
+  },
+  {
+   "component_key": "alchemists_supplies",
+   "fact": {
+    "ability": "intelligence",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check",
+    "option_key": "start_a_fire"
+   },
+   "record_key": "equipment.tools.alchemists_supplies",
+   "source": {
+    "file": "equipment.md",
+    "line": 626,
+    "quote": "**Alchemist's Supplies (50 GP)**"
+   }
+  },
+  {
+   "component_key": "brewers_supplies",
+   "fact": {
+    "ability": "intelligence",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 632,
+    "quote": "**Brewer's Supplies (20 GP)**"
+   }
+  },
+  {
+   "component_key": "brewers_supplies",
+   "fact": {
+    "ability": "intelligence",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check",
+    "option_key": "detect_poisoned_drink"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 632,
+    "quote": "**Brewer's Supplies (20 GP)**"
+   }
+  },
+  {
+   "component_key": "brewers_supplies",
+   "fact": {
+    "ability": "intelligence",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check",
+    "option_key": "identify_alcohol"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 632,
+    "quote": "**Brewer's Supplies (20 GP)**"
+   }
+  },
+  {
+   "component_key": "calligraphers_supplies",
+   "fact": {
+    "ability": "dexterity",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.calligraphers_supplies",
+   "source": {
+    "file": "equipment.md",
+    "line": 638,
+    "quote": "**Calligrapher's Supplies (10 GP)**"
+   }
+  },
+  {
+   "component_key": "calligraphers_supplies",
+   "fact": {
+    "ability": "dexterity",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check",
+    "option_key": "write_text_with_impressive_flourishes_that_guard_against_forgery"
+   },
+   "record_key": "equipment.tools.calligraphers_supplies",
+   "source": {
+    "file": "equipment.md",
+    "line": 638,
+    "quote": "**Calligrapher's Supplies (10 GP)**"
+   }
+  },
+  {
+   "component_key": "carpenters_tools",
+   "fact": {
+    "ability": "strength",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 644,
+    "quote": "**Carpenter's Tools (8 GP)**"
+   }
+  },
+  {
+   "component_key": "carpenters_tools",
+   "fact": {
+    "ability": "strength",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 20,
+    "family": "ability_check",
+    "option_key": "seal_or_pry_open_a_door_or_container"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 644,
+    "quote": "**Carpenter's Tools (8 GP)**"
+   }
+  },
+  {
+   "component_key": "cartographers_tools",
+   "fact": {
+    "ability": "wisdom",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 650,
+    "quote": "**Cartographer's Tools (15 GP)**"
+   }
+  },
+  {
+   "component_key": "cartographers_tools",
+   "fact": {
+    "ability": "wisdom",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check",
+    "option_key": "draft_a_map_of_a_small_area"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 650,
+    "quote": "**Cartographer's Tools (15 GP)**"
+   }
+  },
+  {
+   "component_key": "cobblers_tools",
+   "fact": {
+    "ability": "dexterity",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 656,
+    "quote": "**Cobbler's Tools (5 GP)**"
+   }
+  },
+  {
+   "component_key": "cobblers_tools",
+   "fact": {
+    "ability": "dexterity",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check",
+    "option_key": "modify_footwear_to_give_advantage_on_the_wearers_next_dexterity_acrobatics_check"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 656,
+    "quote": "**Cobbler's Tools (5 GP)**"
+   }
+  },
+  {
+   "component_key": "cooks_utensils",
+   "fact": {
+    "ability": "wisdom",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 662,
+    "quote": "**Cook's Utensils (1 GP)**"
+   }
+  },
+  {
+   "component_key": "cooks_utensils",
+   "fact": {
+    "ability": "wisdom",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check",
+    "option_key": "improve_foods_flavor"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 662,
+    "quote": "**Cook's Utensils (1 GP)**"
+   }
+  },
+  {
+   "component_key": "cooks_utensils",
+   "fact": {
+    "ability": "wisdom",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check",
+    "option_key": "detect_spoiled_or_poisoned_food"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 662,
+    "quote": "**Cook's Utensils (1 GP)**"
+   }
+  },
+  {
+   "component_key": "glassblowers_tools",
+   "fact": {
+    "ability": "intelligence",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 668,
+    "quote": "**Glassblower's Tools (30 GP)**"
+   }
+  },
+  {
+   "component_key": "glassblowers_tools",
+   "fact": {
+    "ability": "intelligence",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check",
+    "option_key": "discern_what_a_glass_object_held_in_the_past_24_hours"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 668,
+    "quote": "**Glassblower's Tools (30 GP)**"
+   }
+  },
+  {
+   "component_key": "jewelers_tools",
+   "fact": {
+    "ability": "intelligence",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.jewelers_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 674,
+    "quote": "**Jeweler's Tools (25 GP)**"
+   }
+  },
+  {
+   "component_key": "jewelers_tools",
+   "fact": {
+    "ability": "intelligence",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check",
+    "option_key": "discern_a_gems_value"
+   },
+   "record_key": "equipment.tools.jewelers_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 674,
+    "quote": "**Jeweler's Tools (25 GP)**"
+   }
+  },
+  {
+   "component_key": "leatherworkers_tools",
+   "fact": {
+    "ability": "dexterity",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.leatherworkers_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 680,
+    "quote": "**Leatherworker's Tools (5 GP)**"
+   }
+  },
+  {
+   "component_key": "leatherworkers_tools",
+   "fact": {
+    "ability": "dexterity",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check",
+    "option_key": "add_a_design_to_a_leather_item"
+   },
+   "record_key": "equipment.tools.leatherworkers_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 680,
+    "quote": "**Leatherworker's Tools (5 GP)**"
+   }
+  },
+  {
+   "component_key": "masons_tools",
+   "fact": {
+    "ability": "strength",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 686,
+    "quote": "**Mason's Tools (10 GP)**"
+   }
+  },
+  {
+   "component_key": "masons_tools",
+   "fact": {
+    "ability": "strength",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check",
+    "option_key": "chisel_a_symbol_or_hole_in_stone"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 686,
+    "quote": "**Mason's Tools (10 GP)**"
+   }
+  },
+  {
+   "component_key": "painters_supplies",
+   "fact": {
+    "ability": "wisdom",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 692,
+    "quote": "**Painter's Supplies (10 GP)**"
+   }
+  },
+  {
+   "component_key": "painters_supplies",
+   "fact": {
+    "ability": "wisdom",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check",
+    "option_key": "paint_a_recognizable_image_of_something_youve_seen"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 692,
+    "quote": "**Painter's Supplies (10 GP)**"
+   }
+  },
+  {
+   "component_key": "potters_tools",
+   "fact": {
+    "ability": "intelligence",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 698,
+    "quote": "**Potter's Tools (10 GP)**"
+   }
+  },
+  {
+   "component_key": "potters_tools",
+   "fact": {
+    "ability": "intelligence",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check",
+    "option_key": "discern_what_a_ceramic_object_held_in_the_past_24_hours"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 698,
+    "quote": "**Potter's Tools (10 GP)**"
+   }
+  },
+  {
+   "component_key": "smiths_tools",
+   "fact": {
+    "ability": "strength",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.smiths_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 704,
+    "quote": "**Smith's Tools (20 GP)**"
+   }
+  },
+  {
+   "component_key": "smiths_tools",
+   "fact": {
+    "ability": "strength",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 20,
+    "family": "ability_check",
+    "option_key": "pry_open_a_door_or_container"
+   },
+   "record_key": "equipment.tools.smiths_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 704,
+    "quote": "**Smith's Tools (20 GP)**"
+   }
+  },
+  {
+   "component_key": "tinkers_tools",
+   "fact": {
+    "ability": "dexterity",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.tinkers_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 710,
+    "quote": "**Tinker's Tools (50 GP)**"
+   }
+  },
+  {
+   "component_key": "tinkers_tools",
+   "fact": {
+    "ability": "dexterity",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 20,
+    "family": "ability_check",
+    "option_key": "which_falls_apart_in_1_minute"
+   },
+   "record_key": "equipment.tools.tinkers_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 710,
+    "quote": "**Tinker's Tools (50 GP)**"
+   }
+  },
+  {
+   "component_key": "weavers_tools",
+   "fact": {
+    "ability": "dexterity",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.weavers_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 715,
+    "quote": "**Weaver's Tools (1 GP)**"
+   }
+  },
+  {
+   "component_key": "weavers_tools",
+   "fact": {
+    "ability": "dexterity",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check",
+    "option_key": "mend_a_tear_in_clothing"
+   },
+   "record_key": "equipment.tools.weavers_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 715,
+    "quote": "**Weaver's Tools (1 GP)**"
+   }
+  },
+  {
+   "component_key": "weavers_tools",
+   "fact": {
+    "ability": "dexterity",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check",
+    "option_key": "sew_a_tiny_design"
+   },
+   "record_key": "equipment.tools.weavers_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 715,
+    "quote": "**Weaver's Tools (1 GP)**"
+   }
+  },
+  {
+   "component_key": "woodcarvers_tools",
+   "fact": {
+    "ability": "dexterity",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.woodcarvers_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 720,
+    "quote": "**Woodcarver's Tools (1 GP)**"
+   }
+  },
+  {
+   "component_key": "woodcarvers_tools",
+   "fact": {
+    "ability": "dexterity",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check",
+    "option_key": "carve_a_pattern_in_wood"
+   },
+   "record_key": "equipment.tools.woodcarvers_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 720,
+    "quote": "**Woodcarver's Tools (1 GP)**"
+   }
+  },
+  {
+   "component_key": "disguise_kit",
+   "fact": {
+    "ability": "charisma",
+    "category": "other_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 727,
+    "quote": "**Disguise Kit (25 GP)**"
+   }
+  },
+  {
+   "component_key": "disguise_kit",
+   "fact": {
+    "ability": "charisma",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check",
+    "option_key": "apply_makeup"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 727,
+    "quote": "**Disguise Kit (25 GP)**"
+   }
+  },
+  {
+   "component_key": "forgery_kit",
+   "fact": {
+    "ability": "dexterity",
+    "category": "other_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 732,
+    "quote": "**Forgery Kit (15 GP)**"
+   }
+  },
+  {
+   "component_key": "forgery_kit",
+   "fact": {
+    "ability": "dexterity",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check",
+    "option_key": "mimic_10_or_fewer_words_of_someone_elses_handwriting"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 732,
+    "quote": "**Forgery Kit (15 GP)**"
+   }
+  },
+  {
+   "component_key": "forgery_kit",
+   "fact": {
+    "ability": "dexterity",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 20,
+    "family": "ability_check",
+    "option_key": "duplicate_a_wax_seal"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 732,
+    "quote": "**Forgery Kit (15 GP)**"
+   }
+  },
+  {
+   "component_key": "gaming_set",
+   "fact": {
+    "ability": "wisdom",
+    "category": "other_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.gaming_set",
+   "source": {
+    "file": "equipment.md",
+    "line": 736,
+    "quote": "**Gaming Set (Varies)**",
+    "variants_rule_line": 614
+   }
+  },
+  {
+   "component_key": "gaming_set",
+   "fact": {
+    "ability": "wisdom",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check",
+    "option_key": "discern_whether_someone_is_cheating"
+   },
+   "record_key": "equipment.tools.gaming_set",
+   "source": {
+    "file": "equipment.md",
+    "line": 736,
+    "quote": "**Gaming Set (Varies)**",
+    "variants_rule_line": 614
+   }
+  },
+  {
+   "component_key": "gaming_set",
+   "fact": {
+    "ability": "wisdom",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 20,
+    "family": "ability_check",
+    "option_key": "win_the_game"
+   },
+   "record_key": "equipment.tools.gaming_set",
+   "source": {
+    "file": "equipment.md",
+    "line": 736,
+    "quote": "**Gaming Set (Varies)**",
+    "variants_rule_line": 614
+   }
+  },
+  {
+   "component_key": "gaming_set",
+   "fact": {
+    "family": "tool_variants",
+    "separate_proficiency": true,
+    "variants": [
+     "dice",
+     "dragonchess",
+     "playing_cards",
+     "three_dragon_ante"
+    ]
+   },
+   "record_key": "equipment.tools.gaming_set",
+   "source": {
+    "file": "equipment.md",
+    "line": 736,
+    "quote": "**Gaming Set (Varies)**",
+    "variants_rule_line": 614
+   }
+  },
+  {
+   "component_key": "herbalism_kit",
+   "fact": {
+    "ability": "intelligence",
+    "category": "other_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.herbalism_kit",
+   "source": {
+    "file": "equipment.md",
+    "line": 741,
+    "quote": "**Herbalism Kit (5 GP)**"
+   }
+  },
+  {
+   "component_key": "herbalism_kit",
+   "fact": {
+    "ability": "intelligence",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check",
+    "option_key": "identify_a_plant"
+   },
+   "record_key": "equipment.tools.herbalism_kit",
+   "source": {
+    "file": "equipment.md",
+    "line": 741,
+    "quote": "**Herbalism Kit (5 GP)**"
+   }
+  },
+  {
+   "component_key": "musical_instrument",
+   "fact": {
+    "ability": "charisma",
+    "category": "other_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.musical_instrument",
+   "source": {
+    "file": "equipment.md",
+    "line": 746,
+    "quote": "**Musical Instrument (Varies)**",
+    "variants_rule_line": 614
+   }
+  },
+  {
+   "component_key": "musical_instrument",
+   "fact": {
+    "ability": "charisma",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check",
+    "option_key": "play_a_known_tune"
+   },
+   "record_key": "equipment.tools.musical_instrument",
+   "source": {
+    "file": "equipment.md",
+    "line": 746,
+    "quote": "**Musical Instrument (Varies)**",
+    "variants_rule_line": 614
+   }
+  },
+  {
+   "component_key": "musical_instrument",
+   "fact": {
+    "ability": "charisma",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check",
+    "option_key": "improvise_a_song"
+   },
+   "record_key": "equipment.tools.musical_instrument",
+   "source": {
+    "file": "equipment.md",
+    "line": 746,
+    "quote": "**Musical Instrument (Varies)**",
+    "variants_rule_line": 614
+   }
+  },
+  {
+   "component_key": "musical_instrument",
+   "fact": {
+    "family": "tool_variants",
+    "separate_proficiency": true,
+    "variants": [
+     "bagpipes",
+     "drum",
+     "dulcimer",
+     "flute",
+     "horn",
+     "lute",
+     "lyre",
+     "pan_flute",
+     "shawm",
+     "viol"
+    ]
+   },
+   "record_key": "equipment.tools.musical_instrument",
+   "source": {
+    "file": "equipment.md",
+    "line": 746,
+    "quote": "**Musical Instrument (Varies)**",
+    "variants_rule_line": 614
+   }
+  },
+  {
+   "component_key": "navigators_tools",
+   "fact": {
+    "ability": "wisdom",
+    "category": "other_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 751,
+    "quote": "**Navigator's Tools (25 GP)**"
+   }
+  },
+  {
+   "component_key": "navigators_tools",
+   "fact": {
+    "ability": "wisdom",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check",
+    "option_key": "plot_a_course"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 751,
+    "quote": "**Navigator's Tools (25 GP)**"
+   }
+  },
+  {
+   "component_key": "navigators_tools",
+   "fact": {
+    "ability": "wisdom",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check",
+    "option_key": "determine_position_by_stargazing"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 751,
+    "quote": "**Navigator's Tools (25 GP)**"
+   }
+  },
+  {
+   "component_key": "poisoners_kit",
+   "fact": {
+    "ability": "intelligence",
+    "category": "other_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.poisoners_kit",
+   "source": {
+    "file": "equipment.md",
+    "line": 755,
+    "quote": "**Poisoner's Kit (50 GP)**"
+   }
+  },
+  {
+   "component_key": "poisoners_kit",
+   "fact": {
+    "ability": "intelligence",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check",
+    "option_key": "detect_a_poisoned_object"
+   },
+   "record_key": "equipment.tools.poisoners_kit",
+   "source": {
+    "file": "equipment.md",
+    "line": 755,
+    "quote": "**Poisoner's Kit (50 GP)**"
+   }
+  },
+  {
+   "component_key": "thieves_tools",
+   "fact": {
+    "ability": "dexterity",
+    "category": "other_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.thieves_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 760,
+    "quote": "**Thieves' Tools (25 GP)**"
+   }
+  },
+  {
+   "component_key": "thieves_tools",
+   "fact": {
+    "ability": "dexterity",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check",
+    "option_key": "pick_a_lock"
+   },
+   "record_key": "equipment.tools.thieves_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 760,
+    "quote": "**Thieves' Tools (25 GP)**"
+   }
+  },
+  {
+   "component_key": "thieves_tools",
+   "fact": {
+    "ability": "dexterity",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check",
+    "option_key": "disarm_a_trap"
+   },
+   "record_key": "equipment.tools.thieves_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 760,
+    "quote": "**Thieves' Tools (25 GP)**"
+   }
+  },
+  {
+   "component_key": "attack_notation",
+   "fact": {
+    "family": "creature_attack_notation",
+    "sections": [
+     "hit",
+     "miss",
+     "hit_or_miss"
+    ],
+    "targets": 1
+   },
+   "record_key": "monsters.parts_of_a_stat_block",
+   "source": {
+    "file": "monsters.md",
+    "line": 379,
+    "quote": "An attack is against one target unless its entry says"
+   }
+  },
+  {
+   "component_key": "saving_throw_effect_notation",
+   "fact": {
+    "family": "creature_save_notation",
+    "half_damage_only_ignores_other_effects": true,
+    "half_damage_rounding": "down"
+   },
+   "record_key": "monsters.parts_of_a_stat_block",
+   "source": {
+    "file": "monsters.md",
+    "line": 391,
+    "quote": "\"Half damage only\" on a successful save means the target takes half as much damage"
+   }
+  },
+  {
+   "component_key": "damage_notation",
+   "fact": {
+    "exclusive": true,
+    "family": "damage_notation_option",
+    "options": [
+     "average",
+     "dice"
+    ],
+    "selected_by": "gamemaster"
+   },
+   "record_key": "monsters.parts_of_a_stat_block",
+   "source": {
+    "file": "monsters.md",
+    "line": 395,
+    "quote": "You decide whether to use the number or the die expression"
+   }
+  },
+  {
+   "component_key": "multiattack",
+   "fact": {
+    "action": "attack",
+    "composition": "per_entry",
+    "family": "multiattack_rule"
+   },
+   "record_key": "monsters.parts_of_a_stat_block",
+   "source": {
+    "file": "monsters.md",
+    "line": 399,
+    "quote": "Some creatures can make more than one attack when they take the Attack action"
+   }
+  },
+  {
+   "component_key": "limited_usage",
+   "fact": {
+    "family": "usage_limit_rule",
+    "kind": "per_day",
+    "regain": "long_rest"
+   },
+   "record_key": "monsters.parts_of_a_stat_block",
+   "source": {
+    "file": "monsters.md",
+    "line": 429,
+    "quote": "**X/Day.** This notation means"
+   }
+  },
+  {
+   "component_key": "limited_usage",
+   "fact": {
+    "also_regain": [
+     "short_rest",
+     "long_rest"
+    ],
+    "die": "d6",
+    "family": "usage_limit_rule",
+    "kind": "recharge",
+    "roll_at": "start_of_turn"
+   },
+   "record_key": "monsters.parts_of_a_stat_block",
+   "source": {
+    "file": "monsters.md",
+    "line": 431,
+    "quote": "**Recharge X–Y.** This notation means"
+   }
+  },
+  {
+   "component_key": "limited_usage",
+   "fact": {
+    "family": "usage_limit_rule",
+    "kind": "recharge_after_rest",
+    "regain": [
+     "short_rest",
+     "long_rest"
+    ]
+   },
+   "record_key": "monsters.parts_of_a_stat_block",
+   "source": {
+    "file": "monsters.md",
+    "line": 433,
+    "quote": "**Recharge after a Short or Long Rest.**"
+   }
+  },
+  {
+   "component_key": "legendary_actions",
+   "fact": {
+    "blocked_by": [
+     "incapacitated"
+    ],
+    "family": "legendary_action_rule",
+    "one_at_a_time": true,
+    "regain": "start_of_own_turn",
+    "timing": "after_another_creatures_turn"
+   },
+   "record_key": "monsters.parts_of_a_stat_block",
+   "source": {
+    "file": "monsters.md",
+    "line": 423,
+    "quote": "it regains all expended uses at the start of each of its turns"
+   }
+  }
+ ],
+ "proposed_schema": "5d-representation-schema-19 (proposed; not minted)",
+ "status": "CANDIDATE ONLY - not accepted, recorded, minted, published or activated"
+}

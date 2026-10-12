@@ -1,0 +1,55 @@
+{
+ "batches": {
+  "animals": [
+   "c2b.json"
+  ],
+  "checks-actions-rests": [
+   "c2a.json",
+   "c2c.json"
+  ],
+  "combat-damage-breaking": [
+   "c2a.json"
+  ],
+  "equipment": [
+   "c2a.json",
+   "c2c.json"
+  ],
+  "magic-items": [
+   "c2b.json"
+  ],
+  "monsters": [
+   "c2a.json",
+   "c2b.json"
+  ],
+  "spell-descriptions": [
+   "c2b.json"
+  ]
+ },
+ "batch_count": 7,
+ "all_batches": [
+  "actions-pilot",
+  "animals",
+  "character-creation-catalogue",
+  "character-creation-foundations",
+  "character-origins-feats",
+  "checks-actions-rests",
+  "class-option-catalogues",
+  "classes",
+  "combat-damage-breaking",
+  "combat-turn-1",
+  "conditions-pilot",
+  "core-play-completion",
+  "core-play-dependencies",
+  "damage-and-hit-points",
+  "equipment",
+  "framing-coverage",
+  "gameplay-toolbox",
+  "magic-items",
+  "monsters",
+  "movement-closure",
+  "reference-closure",
+  "rules-glossary-completion",
+  "spell-descriptions",
+  "spellcasting"
+ ]
+}
