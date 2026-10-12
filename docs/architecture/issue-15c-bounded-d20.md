@@ -2,7 +2,7 @@
 
 **Governing issue:** #191, as posted after Owner approval on 11 October 2026. The authority is the accepted G1 oracle (`srd-5-2-1-corpus-8781d4e0-a3b-g1.json`, SHA-256 `2ccbaeba…1258`), published as projection `efab27a9-5d44-52ba-ad74-47940d5fd717`.
 
-**Status:** partial and held. The roster depends on structured authority that G1 does not carry. Semantic candidate C1 has been prepared for independent review and explicit Owner acceptance; the packet is `.claude/review-notes/issue-15c-implementation/candidate/`. Everything that does not depend on C1 is implemented. Every held operation refuses visibly.
+**Status:** partial and held. The roster depends on structured authority that G1 does not carry. Semantic candidate C2 has been prepared for independent review and explicit Owner acceptance; the packet is `.claude/review-notes/issue-15c-implementation/candidate-c2/`. It supersedes C1, which is preserved. Everything that does not depend on C1 is implemented. Every held operation refuses visibly.
 
 ## What is built
 
@@ -51,8 +51,10 @@ Anything that could contribute to the roll but is not executed here refuses the 
 
 ### Deviations and boundaries, stated explicitly
 
-- **Semantic candidate C1 holds most of the roster.** The approved scope is not shrunk: all 38 weapons, the eight masteries and the zero-HP lifecycle stay in the manifest as `HELD` operations. They refuse as missing authority, naming the candidate part they need. Dependent implementation waits for Codex review and Owner acceptance.
-- **Monster stat-block actions are excluded (default reading).** They are not "attacks using the 38 SRD weapons". This is recorded in the candidate packet for confirmation.
+- **Semantic candidate C2 (formerly C1) holds most of the roster.** The approved scope is not shrunk: all 38 weapons, the eight masteries and the zero-HP lifecycle stay in the manifest as `HELD` operations. They refuse as missing authority, naming the candidate part they need. Dependent implementation waits for Codex review and Owner acceptance.
+- **Scope update (#191 body `8225e1b6…57a2`).** The Owner admitted ordinary monster and animal attacks, bounded Multiattack and their associated saves and effects. The Owner also directed repair of the component-tool addressing and the omitted-source gaps, and individual assessment of conditional creatures. Candidate C2 (`.claude/review-notes/issue-15c-implementation/candidate-c2/`) supersedes C1 accordingly. The manifest's `EXCLUSIONS` entry for monster stat-block actions predates that update and is superseded. Revising it belongs to the held dependent implementation; that code is unchanged here.
+- **Merge sequencing (a consequence, not decided in code).** Adjudication is wired, and prompt v2 directs the GameMaster to propose every mechanic. A merge before C2 is accepted would therefore leave combat turns and GameMaster-difficulty skill turns in an in-play RPG story failing visibly as `PIPELINE_ERROR`. AC1 requires that behaviour, but it makes RPG mode largely unplayable until C2 lands. Merge is separately gated.
+- **Armor is conservative.** Worn non-shield armor refuses Strength and Dexterity checks even for a trained wearer until C2-C.
 - **Classification rule (for Codex to confirm).** The rule:
   - Printed numbers and per-record data must be typed.
   - Universal arithmetic and sequencing are adapter procedure, certified against the components that govern them. That covers the modifier formula, the Advantage mechanics, Expertise doubling and the total ≥ DC comparison.

@@ -42,6 +42,7 @@
   "zero_hit_point_outcome": 3
  },
  "creatures": {
+  "entries_without_anchor_component": 0,
   "entry_classification": {
    "conditional": 564,
    "deferred": 147,
@@ -60,6 +61,11 @@
    "special_effect": 28,
    "spellcasting": 108
   },
+  "executable_once_accepted": {
+   "attack": 264,
+   "multiattack": 82,
+   "save_effect": 6
+  },
   "matched": 336,
   "record_classification": {
    "conditional": 4,
@@ -73,7 +79,7 @@
  },
  "hashes": {
   "c2a.json": "a15aab1839d6f86cc1fd4241b30b58dbdf9fa5d51cf2a8abd26ba48798df70d3",
-  "c2b.json": "a5e7c4e158b439ce0c25d529222b9721cdb7787526180fe9ad7bbee8fcf3f269",
+  "c2b.json": "0dd7538f3efd1b63832ba5d1963d175a2f6c0cd7addd19c2ca19cff9114f65ed",
   "c2c.json": "a21a5e893f8710fa9d109c1d84166571e264197979c98c8a62d89e58d3326f5a"
  },
  "tools": [

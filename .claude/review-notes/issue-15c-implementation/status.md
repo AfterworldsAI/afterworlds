@@ -12,7 +12,7 @@
 | Part | SHA-256 | Holds |
 | --- | --- | --- |
 | C2-A | `a15aab18…` | Rules, weapons, all 25 tools, the stat-block conventions |
-| C2-B | `a5e7c4e1…` | All 336 creature records, with per-entry classification |
+| C2-B | `0dd7538f…` | All 336 creature records: per-entry classification, section anchoring, block-level rollup |
 | C2-C | `a21a5e89…` | Armor and character AC |
 
 See `candidate-c2/README.md`: concordance, classification, assessed creatures, the schema and addressing delta, transition cost, holds, and the surfaced prerequisite.

@@ -17,9 +17,9 @@ That approval is scope, not semantic acceptance.
 | Part | File | SHA-256 | Content |
 | --- | --- | --- | --- |
 | **C2-A** | `c2a.json` | `a15aab1839d6f86cc1fd4241b30b58dbdf9fa5d51cf2a8abd26ba48798df70d3` | Rules, the 38 weapon rows, all 25 tools, and the stat-block conventions (see C2-A below) |
-| **C2-B** | `c2b.json` | `a5e7c4e158b439ce0c25d529222b9721cdb7787526180fe9ad7bbee8fcf3f269` | Every one of the 336 accepted creature records, wherever its stat block is printed (see C2-B below) |
+| **C2-B** | `c2b.json` | `0dd7538f3efd1b63832ba5d1963d175a2f6c0cd7addd19c2ca19cff9114f65ed` | Every one of the 336 accepted creature records, wherever its stat block is printed (see C2-B below) |
 | **C2-C** | `c2c.json` | `a21a5e893f8710fa9d109c1d84166571e264197979c98c8a62d89e58d3326f5a` | Armor and character AC. Content is identical to C1-C; only the identifier differs. |
-| Concordance | `concordance.json` | `3663eeb8…` | Hashes, the per-tool table, and the creature census and classification counts |
+| Concordance | `concordance.json` | `d63a6a3f…` | Hashes, the per-tool table, and the creature census and classification counts |
 | Transition | `transition.json` | `e9307d2a…` | The accepted batches a native mint would touch |
 
 **C2-A detail.**
@@ -51,6 +51,22 @@ C1 (`../candidate/`, parts `9e9645e8…`, `fbabf91a…`, `82cfb6b9…`) is prese
 | deferred | 147 | Named individually, each with its reason: spellcasting (108, a non-goal), reactions (21, new trigger/response mechanics), and Shape-Shift, Berserk and Coven Magic. |
 | no roster effect | 181 | Amphibious, Spider Climb, Flyby, Nimble Escape and similar. |
 
+**Executable once accepted (block-level rollup).** A trait applies to every roll it names in its block. An attack is executable only if no conditional contributor in its own block bears on attack rolls; a Multiattack is executable only if every attack it resolves to is. Under that rule:
+
+- 264 of 423 attacks are executable;
+- 82 of 179 Multiattacks are executable;
+- 6 of 159 save effects are executable (most are area or Recharge effects).
+
+Each attack records its `blocked_by` list. For example, the Wolf's Bite is blocked by Pack Tactics. Even "executable" entries need the shared position and actor-turn state (below).
+
+**Anchoring.** In the accepted authority, each creature's traits, actions, bonus actions, reactions and legendary actions are separate components, and the stat block's header is its own component. Accordingly:
+
+- each entry is anchored to its section's component (`component_key`);
+- defenses and the profile are anchored to the header component (`defense_component_key`);
+- every entry has an anchor (0 unanchored; see the concordance).
+
+**Assessed profiles are never flattened.** A conditional field carries an explicit `{"conditional": …}` term, never an empty list. The script asserts this.
+
 Entry kinds: 423 attacks (equal to the source's count of attack-roll lines), 159 bounded save effects, 179 Multiattacks, 32 references to another entry, and 28 special effects. The special effects are staged failures, preamble movement and death or aura triggers; each is named.
 
 ### Individually assessed creatures (none dropped)
@@ -81,6 +97,7 @@ Entry kinds: 423 attacks (equal to the source's count of attack-roll lines), 159
   - usage;
   - a contributor predicate (with `save_override`);
   - the parameterized formulas.
+- **Handling flips.** As in G1, every component that receives a fact changes from `prose_bound` to `mixed`, and its governing prose is retained under its existing reason. Accepting C2 includes accepting those handling changes.
 - **Tool addressing.** `ToolGrant` already records `(record_key, component_key)`. The gap is in 2b validation: `_is_tool` admits only catalogue *members*, so a grant on `equipment.tools/<component>` is refused. Nothing typed distinguished tool components from section components such as `ability`, `craft` and `utilize`.
   - **Repair:** `tool_entry` marks exactly the 25 tools. Validation would then admit `(equipment.tools, c)` exactly when `c` carries `tool_entry`.
   - **Variants:** variant tools need a variant identity on the grant, either a new `ToolGrant.variant` validated against `tool_variants` or a typed choice. This is a **2b state-contract addition**, recorded here for review. It is dependent implementation and is held.

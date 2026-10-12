@@ -514,6 +514,39 @@ def entries(block_lines: list[str]) -> list[dict[str, Any]]:
     return out
 
 
+_CONTEXT = {"attack": re.compile(r"attack rolls?", re.I)}
+
+
+def _rollup(block: list[dict[str, Any]]) -> None:
+    """Executable-once-accepted, per entry, at block level.
+
+    A trait applies to every roll it names in its block: an attack is
+    executable only if no conditional contributor of the same block bears on
+    attack rolls, and a Multiattack only if every attack it resolves to is.
+    """
+    blockers = [e["name"] for e in block
+                if e["kind"] == "contributor" and e["classification"] != "supported"
+                and (_CONTEXT["attack"].search(e.get("text", "")) or
+                     "attack_roll" in json.dumps(e.get("contributor", {})))]
+    by_name = {e["name"]: e for e in block}
+    for e in block:
+        if e["kind"] == "attack":
+            e["blocked_by"] = blockers
+            e["executable_once_accepted"] = e["classification"] == "supported" and not blockers
+        elif e["kind"] == "save_effect":
+            e["blocked_by"] = []
+            e["executable_once_accepted"] = e["classification"] == "supported"
+    for e in block:
+        if e["kind"] == "multiattack":
+            refs = [r for p in e["multiattack"]["composition"]
+                    for key in ("any_of_resolved", "attack_resolved", "uses_resolved")
+                    for r in p.get(key, [])]
+            ok = e["classification"] == "supported" and all(
+                isinstance(r, str) and by_name.get(r, {}).get("executable_once_accepted")
+                for r in refs)
+            e["executable_once_accepted"] = ok
+
+
 def stat_blocks(file: str, heading_level: str) -> list[dict[str, Any]]:
     src = lines(file)
     blocks = []
@@ -700,13 +733,42 @@ def creatures(rep: dict[str, Any]) -> tuple[list[Any], dict[str, Any]]:
                 fixed, _ = _profile_without_conditionals(b)
                 if fixed is not None:
                     record["defense"], record["profile"] = fixed
+                    for field, marker in CONDITIONAL_FIELDS[key].items():
+                        record["profile"][field] = [*record["profile"][field], marker]
+            for field in CONDITIONAL_FIELDS.get(key, {}):
+                assert record["profile"][field], (key, field)
+            # Anchor each part to the component its prose is bound to: defenses
+            # to the stat block's header component, entries to their section's.
+            record["defense_component_key"] = tail
+            section_components = {c for r, c in comps if r == key}
             record["entries"] = entries(b["lines"])
+            anchor = {"trait": "traits", "action": "actions", "bonus_action": "bonus_actions",
+                      "reaction": "reactions", "legendary_action": "legendary_actions"}
+            for e in record["entries"]:
+                component = anchor[e["section"]]
+                e["component_key"] = component if component in section_components else None
+            _rollup(record["entries"])
             record.setdefault("classification", "typed")
             out.append(record)
     census = {"creature_records": len(keys),
               "unmatched_records": [k for k in keys if k not in matched],
               "unmatched_stat_blocks": unmatched}
     return out, census
+
+
+#: The exact conditional term each assessed creature's profile field carries in
+#: place of the printed qualified term (never an empty list that reads "none").
+CONDITIONAL_FIELDS: dict[str, dict[str, dict[str, str]]] = {
+    "monsters.half_dragon.half_dragon": {
+        "resistance": {"conditional": "the damage type chosen for Draconic Origin"}},
+    "monsters.mages.archmage": {
+        "condition_immunity": {"conditional": "charmed, while under Mind Blank"}},
+    "monsters.rakshasa.rakshasa": {
+        "vulnerability": {"conditional": "piercing, from a weapon wielded by a creature "
+                                         "under Bless"}},
+    "monsters.vampires.vampire_familiar": {
+        "condition_immunity": {"conditional": "charmed, except from its vampire master"}},
+}
 
 
 def _profile_without_conditionals(b: dict[str, Any]) -> tuple[Any, list[str]]:
@@ -815,6 +877,12 @@ def main() -> None:
                                                   for r in creature_records)),
             "entry_kinds": dict(kinds),
             "entry_classification": dict(entry_classes),
+            "executable_once_accepted": dict(Counter(
+                e["kind"] for r in creature_records for e in r["entries"]
+                if e.get("executable_once_accepted"))),
+            "entries_without_anchor_component": sum(
+                1 for r in creature_records for e in r["entries"]
+                if e["component_key"] is None),
         },
         "a_families": dict(Counter(f["fact"]["family"] for f in a_facts)),
     }
