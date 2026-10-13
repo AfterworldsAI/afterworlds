@@ -124,6 +124,7 @@ from afterworlds.pipeline.rpg.grants import (
     weapon_mastery,
     weapon_proficiency,
 )
+from afterworlds.pipeline.rpg.hands import check_weapon_grip
 from afterworlds.pipeline.rpg.mastery import (
     attack_effects,
     new_effect,
@@ -925,8 +926,6 @@ def prepare(
     item = next((i for i in actor.items if i.item_id == sel.weapon_item_id), None)
     if item is None:
         raise _refuse(RefusalKind.MISSING_STATE, "the attacker holds no such weapon")
-    if not item.equipped:
-        raise _refuse(RefusalKind.MISSING_STATE, f"{item.record_key} is not wielded")
     for other in actor.items:
         if (other.equipped or other.attuned_subject_id) and index.kind(
             other.record_key
@@ -937,6 +936,13 @@ def prepare(
             )
     weapon = _weapon(index, item)
     props = weapon.properties
+    if sel.two_handed and WeaponProperty.VERSATILE not in props:
+        raise _refuse(
+            RefusalKind.INVALID_SELECTION, f"{weapon.record} is not Versatile"
+        )
+    # The approved hand/grip facts establish that the weapon is in hand, and
+    # how; equipped alone does not (Owner decision 2026-10-12).
+    check_weapon_grip(actor, sel.hands, item, set(props), two_handed=sel.two_handed)
     if WeaponProperty.AMMUNITION in props:
         # Expending ammunition needs the held item that is the printed type
         # (``ammunition_of_the_printed_type``); the ammunition gear records
@@ -947,16 +953,6 @@ def prepare(
             f"({props[WeaponProperty.AMMUNITION].ammunition}), so none can be "
             "expended",
         )
-    shield_held = any(
-        i.equipped and i.record_key == "equipment.armor.shield" for i in actor.items
-    )
-    two_hands = WeaponProperty.TWO_HANDED in props or sel.two_handed
-    if sel.two_handed and WeaponProperty.VERSATILE not in props:
-        raise _refuse(
-            RefusalKind.INVALID_SELECTION, f"{weapon.record} is not Versatile"
-        )
-    if two_hands and shield_held:
-        raise _refuse(RefusalKind.INVALID_SELECTION, "a Shield leaves no second hand")
 
     ranged = weapon.range_class is RangeClass.RANGED or sel.thrown
     if sel.thrown and WeaponProperty.THROWN not in props:

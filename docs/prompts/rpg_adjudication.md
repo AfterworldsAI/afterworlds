@@ -139,6 +139,10 @@ One proposal per required roll:
       the attack is not a melee attack with a 5-foot reach; otherwise null.
   - `two_handed` (a Versatile weapon used in two hands), `thrown`, and, for a
     Finesse weapon, `ability` (`strength` or `dexterity`).
+  - `hands` — what the attacker holds in its hands right now: `held`, each
+    item from the scene with how many hands hold it (1 or 2), and
+    `free_hands`. Required. Use the same hand facts for every attack in one
+    response. "Equipped" in the scene does not mean in hand.
   - `knock_out` — for a melee attack: if it would reduce the target to 0 Hit
     Points, knock it out instead.
   - `mastery` — use the weapon's optional mastery property (Graze, Push,

@@ -427,6 +427,7 @@ def _attack(target: str, weapon: str, kind: str = "creature") -> dict[str, Any]:
             "cover": "none",
             "attacker_light": "bright",
             "target_light": "bright",
+            "hands": {"held": [{"item_id": weapon, "hands": 1}], "free_hands": 1},
         },
     }
 

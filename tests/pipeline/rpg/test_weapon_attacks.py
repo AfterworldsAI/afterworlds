@@ -29,6 +29,8 @@ from afterworlds.models.dnd5e_state import (
 from afterworlds.models.enums import ConditionVisibility, RollVisibility
 from afterworlds.models.rpg import (
     DiceResult,
+    HandFacts,
+    HeldItem,
     RollProposal,
     SubjectRef,
     WeaponAttackSelection,
@@ -85,6 +87,28 @@ def _attacker(*items: ItemInstance, **state: Any) -> TurnCharacter:
     return srd_character(base.model_copy(update=state), items=items)
 
 
+def hands_for(*weapons: ItemInstance, two_handed: bool = False) -> HandFacts:
+    """Hand facts holding *weapons*: a lone Two-Handed (or two-handed
+    Versatile) weapon in both hands, otherwise one hand each."""
+    from afterworlds.ingestion.mechanical.representation import (
+        WeaponProperty,
+        WeaponPropertyFact,
+    )
+    from afterworlds.pipeline.rpg.defense import facts_of
+
+    def grip(weapon: ItemInstance) -> int:
+        props = {
+            f.weapon_property
+            for f in facts_of(real_index(), weapon.record_key)
+            if isinstance(f, WeaponPropertyFact)
+        }
+        both = two_handed or WeaponProperty.TWO_HANDED in props
+        return 2 if both and len(weapons) == 1 else 1
+
+    held = tuple(HeldItem(item_id=w.item_id, hands=grip(w)) for w in weapons)
+    return HandFacts(held=held, free_hands=2 - sum(h.hands for h in held))  # type: ignore[arg-type]
+
+
 def _proposal(
     target: TurnCreature | TurnCharacter, weapon: ItemInstance = CLUB, **facts: Any
 ) -> RollProposal:
@@ -96,6 +120,7 @@ def _proposal(
         "cover": "none",
         "attacker_light": "bright",
         "target_light": "bright",
+        "hands": hands_for(weapon, two_handed=bool(facts.get("two_handed"))),
         **facts,
     }
     return RollProposal(
@@ -318,13 +343,53 @@ def test_a_finesse_attack_names_its_ability() -> None:
     )
 
 
-def test_a_two_handed_weapon_with_a_shield_refuses() -> None:
+def test_hand_facts_must_fit_the_weapon_and_two_hands() -> None:
     wolf = _creature()
+    shielded = _attacker(GREATCLUB, SHIELD)
+    both = HandFacts(
+        held=(
+            HeldItem(item_id=GREATCLUB.item_id, hands=2),
+            HeldItem(item_id=SHIELD.item_id, hands=1),
+        ),
+        free_hands=0,
+    )
+    one = HandFacts(held=(HeldItem(item_id=GREATCLUB.item_id, hands=1),), free_hands=1)
+    for hands in (both, one):  # three hands; a Two-Handed weapon in one
+        _refused(
+            RefusalKind.INVALID_SELECTION,
+            shielded,
+            wolf,
+            _proposal(wolf, GREATCLUB, hands=hands),
+        )
+
+
+def test_loading_a_one_handed_ammunition_weapon_needs_a_free_hand() -> None:
+    wolf = _creature()
+    crossbow = _wielded("equipment.weapons.hand_crossbow")
+    facts = {
+        "range": "within_normal_range",
+        "hostile_within_5_feet": False,
+    }
+    full = HandFacts(
+        held=(
+            HeldItem(item_id=crossbow.item_id, hands=1),
+            HeldItem(item_id=DAGGER.item_id, hands=1),
+        ),
+        free_hands=0,
+    )
+    attacker = _attacker(crossbow, DAGGER)
     _refused(
         RefusalKind.INVALID_SELECTION,
-        _attacker(GREATCLUB, SHIELD),
+        attacker,
         wolf,
-        _proposal(wolf, GREATCLUB),
+        _proposal(wolf, crossbow, hands=full, **facts),
+    )
+    # With a hand free, it waits only on the ammunition authority (C7).
+    _refused(
+        RefusalKind.MISSING_AUTHORITY,
+        attacker,
+        wolf,
+        _proposal(wolf, crossbow, **facts),
     )
 
 
@@ -357,13 +422,25 @@ def test_an_attack_contributor_refuses() -> None:
     assert "feats.savage_attacker" in refusal.detail
 
 
-def test_a_weapon_not_held_or_not_wielded_refuses() -> None:
+def test_a_weapon_not_held_or_not_in_hand_refuses() -> None:
     wolf = _creature()
     _refused(RefusalKind.MISSING_STATE, _attacker(), wolf, _proposal(wolf))
-    sheathed = dataclasses.replace(CLUB, equipped=False)
     _refused(
-        RefusalKind.MISSING_STATE, _attacker(sheathed), wolf, _proposal(wolf, sheathed)
+        RefusalKind.MISSING_STATE, _attacker(CLUB), wolf, _proposal(wolf, hands=None)
     )
+    empty = HandFacts(held=(), free_hands=2)
+    _refused(
+        RefusalKind.INVALID_SELECTION,
+        _attacker(CLUB),
+        wolf,
+        _proposal(wolf, hands=empty),
+    )
+    # Equipped is not proof of holding, and not required: the facts are.
+    sheathed = dataclasses.replace(CLUB, equipped=False)
+    record = _run(
+        _attacker(sheathed), wolf, _proposal(wolf, sheathed), _dice((15,), (3,))
+    )
+    assert record.outcome == "success"
 
 
 def test_an_unread_target_refuses() -> None:

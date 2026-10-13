@@ -497,6 +497,18 @@ class RpgAdjudicationPassService:
         if coordination is not None:
             _ledger(coordination.document, proposals, sheet, subjects, openers)
         self._limited_uses(proposals, subjects)
+        # One subject's hand facts agree across the turn's operations: none
+        # changes grip, so a difference is a contradiction.
+        hands = {
+            p.weapon_attack.hands
+            for p in proposals
+            if p.weapon_attack is not None and p.weapon_attack.hands is not None
+        }
+        if len(hands) > 1:
+            raise AdjudicationRefusal(
+                RefusalKind.INVALID_SELECTION,
+                "the attacker's hand facts differ between operations of this turn",
+            )
 
         # CRD Issue 2b: check every proposal before any has an effect, so a
         # later unsupported check cannot follow an earlier roll. CRD Issue

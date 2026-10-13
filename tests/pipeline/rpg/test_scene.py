@@ -38,7 +38,7 @@ def test_the_scene_lists_every_nameable_id_and_no_target_number() -> None:
     assert isinstance(subjects, list)
     me, w, k, s = subjects
     assert me["acting"] and me["weapons"] == [
-        {"item_id": str(CLUB.item_id), "record": CLUB.record_key, "wielded": True}
+        {"item_id": str(CLUB.item_id), "record": CLUB.record_key, "equipped": True}
     ]
     assert w["subject_id"] == str(wolf.subject_id) and w["attack_entries"] == ["Bite"]
     assert k["conditions"][0]["instance_id"] == "ko"

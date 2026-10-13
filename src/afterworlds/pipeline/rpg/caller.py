@@ -96,6 +96,26 @@ _WEAPON_ATTACK_SCHEMA: dict[str, Any] = {
         "target_within_5_feet": {"oneOf": [{"type": "boolean"}, {"type": "null"}]},
         "two_handed": {"type": "boolean"},
         "knock_out": {"type": "boolean"},
+        "hands": {
+            "type": "object",
+            "properties": {
+                "held": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "item_id": {"type": "string", "format": "uuid"},
+                            "hands": {"type": "integer", "enum": [1, 2]},
+                        },
+                        "required": ["item_id", "hands"],
+                        "additionalProperties": False,
+                    },
+                },
+                "free_hands": {"type": "integer", "enum": [0, 1, 2]},
+            },
+            "required": ["held", "free_hands"],
+            "additionalProperties": False,
+        },
         "mastery": {"type": "boolean"},
         "cleave": {"type": "boolean"},
         "extra": {

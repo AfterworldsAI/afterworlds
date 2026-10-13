@@ -29,7 +29,13 @@ from tests.pipeline.rpg.test_adjudication_service import (
     _make_assembled,
     _make_session,
 )
-from tests.pipeline.rpg.test_weapon_attacks import CLUB, DAGGER, _attacker, _creature
+from tests.pipeline.rpg.test_weapon_attacks import (
+    CLUB,
+    DAGGER,
+    _attacker,
+    _creature,
+    hands_for,
+)
 
 
 def _attack(target: TurnCreature, label: str) -> dict[str, Any]:
@@ -48,6 +54,7 @@ def _attack(target: TurnCreature, label: str) -> dict[str, Any]:
             "cover": "none",
             "attacker_light": "bright",
             "target_light": "bright",
+            "hands": hands_for(CLUB, DAGGER).model_dump(mode="json"),
         },
     }
 

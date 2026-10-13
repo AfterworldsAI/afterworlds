@@ -41,6 +41,7 @@ from tests.pipeline.rpg.test_weapon_attacks import (
     _proposal,
     _refused,
     _run,
+    hands_for,
 )
 from tests.rpg_characters import item, srd_character
 from tests.services.dnd5e_state.builders import choice, complete_character, real_index
@@ -214,8 +215,14 @@ def test_the_light_extra_attack_spends_a_bonus_action_or_nick(
     result, _ = _actor_turn_service(
         fighter,
         [wolf],
-        _proposal(wolf, CLUB),
-        _proposal(wolf, DAGGER, extra=extra, ability="strength"),
+        _proposal(wolf, CLUB, hands=hands_for(CLUB, DAGGER)),
+        _proposal(
+            wolf,
+            DAGGER,
+            extra=extra,
+            ability="strength",
+            hands=hands_for(CLUB, DAGGER),
+        ),
     )
     first, second = result.proposals
     assert [u.key for u in first.turn_uses] == [
@@ -247,7 +254,10 @@ def test_attacks_beyond_the_turns_actions_refuse_before_any_die(
     fighter = _fighter("dagger", items=(CLUB, DAGGER))
     with pytest.raises(AdjudicationRefusal) as caught:
         _actor_turn_service(
-            fighter, [wolf], _proposal(wolf, CLUB), _proposal(wolf, CLUB, **second)
+            fighter,
+            [wolf],
+            _proposal(wolf, CLUB, hands=hands_for(CLUB, DAGGER)),
+            _proposal(wolf, CLUB, hands=hands_for(CLUB, DAGGER), **second),
         )
     assert caught.value.kind is kind
 
@@ -609,3 +619,17 @@ def test_cleave_needs_the_second_creature_within_5_feet_of_the_first() -> None:
         wolf,
         _proposal(wolf, GREATAXE, cleave=True, cleave_within_5_feet=False),
     )
+
+
+def test_hand_facts_that_differ_within_a_turn_refuse_before_any_die() -> None:
+    wolf = _creature(hp=60)
+    fighter = _fighter("dagger", items=(CLUB, DAGGER))
+    with pytest.raises(AdjudicationRefusal) as caught:
+        _actor_turn_service(
+            fighter,
+            [wolf],
+            _proposal(wolf, CLUB, hands=hands_for(CLUB, DAGGER)),
+            _proposal(wolf, DAGGER, extra="light", ability="strength"),
+        )
+    assert caught.value.kind is RefusalKind.INVALID_SELECTION
+    assert "hand facts differ" in caught.value.detail

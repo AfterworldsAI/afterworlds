@@ -145,3 +145,18 @@ The first matching edge of that subject's turn after creation (`next`), or of th
 - The instance is the knockout's Unconscious condition instance.
 - **Short Rest.** The GameMaster attests that a qualifying Short Rest was completed since that instance began, naming its condition instance id. Code ends the condition once; a removed instance refuses.
 - **Early endings.** Regaining HP and first aid are source events and need no attestation.
+
+## H. Hand and grip (Owner decision 2026-10-12, `owner-hand-grip-decision-2026-10-12.md`)
+
+- **The input.** The GameMaster supplies `hands` on every weapon attack:
+  - the acting subject's held items, chosen from its actual holdings in the scene, each with a grip of one or two hands;
+  - its free hands.
+- **What code validates** (`pipeline/rpg/hands.py`):
+  - **Holdings:** every named item is held, and named once.
+  - **Hand count:** at most two hands are accounted for. Unrepresented held objects may fill the rest.
+  - **Grip:** a Shield takes one hand; a Two-Handed weapon takes two; a two-handed Versatile attack takes two.
+  - **The attack itself:** the attacking weapon is in hand.
+  - **Loading:** a one-handed ammunition weapon needs a free hand to load (typed `loading_requires_free_hand`).
+- **`equipped` is neither required nor proof.** The scene labels it `equipped`, never `wielded`.
+- **Consistency within a delivered Turn.** No operation changes grip, so a subject's hand facts must be identical across its operations. A difference is a contradiction and refuses before any die.
+- **Limits.** The facts create no ammunition, grant no action and waive no source requirement. Missing facts are `missing_state`; contradictory facts are `invalid_selection`.

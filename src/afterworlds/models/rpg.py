@@ -66,6 +66,26 @@ LightLevel = Literal[
 ]
 
 
+class HeldItem(BaseModel):
+    """One item in a subject's hands, and how many hands hold it."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    item_id: UUID
+    hands: Literal[1, 2]
+
+
+class HandFacts(BaseModel):
+    """The GameMaster's hand/grip facts for the acting subject (Owner decision
+    2026-10-12): the actual held items in its hands and the hands left free.
+    Code validates them; they establish no ammunition, action or waiver."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    held: tuple[HeldItem, ...]
+    free_hands: Literal[0, 1, 2]
+
+
 class WeaponAttackSelection(BaseModel):
     """The GameMaster's selections for one ``weapon_attack``: identities and
     approved contextual facts only, never a number. Code validates each
@@ -93,6 +113,8 @@ class WeaponAttackSelection(BaseModel):
     two_handed: bool = False
     thrown: bool = False
     ability: str | None = None
+    #: What the attacker holds in its hands, and how (required).
+    hands: HandFacts | None = None
     #: A melee attack that would reduce the target to 0 Hit Points knocks it
     #: out instead (``knocking_out``, optional for the attacker).
     knock_out: bool = False

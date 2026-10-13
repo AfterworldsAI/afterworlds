@@ -56,7 +56,7 @@ def _subject(subject: TurnSubject, acting: bool) -> dict[str, object]:
         out["name"] = subject.stored.character_name
         out["acting"] = acting
         out["weapons"] = [
-            {"item_id": str(i.item_id), "record": i.record_key, "wielded": i.equipped}
+            {"item_id": str(i.item_id), "record": i.record_key, "equipped": i.equipped}
             for i in subject.items
             if i.record_key.startswith("equipment.weapons.")
         ]
