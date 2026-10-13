@@ -391,6 +391,22 @@ def _make_rpg_bounded_loader(
     return _load
 
 
+def _make_rpg_discovery_reader(
+    session_factory: sessionmaker[Session],
+) -> Callable[[UUID], frozenset[tuple[str, str, int]]]:
+    """The story snapshot discovery scans rest on (CRD Issue 15c)."""
+    from afterworlds.services.dnd5e_state.turn import story_revisions
+
+    def _read(story_id: UUID) -> frozenset[tuple[str, str, int]]:
+        session = session_factory()
+        try:
+            return story_revisions(session, story_id)
+        finally:
+            session.close()
+
+    return _read
+
+
 def _make_rpg_aura_loader(
     session_factory: sessionmaker[Session],
 ) -> Callable[[UUID], list[TurnCharacter]]:
@@ -639,6 +655,7 @@ def build_orchestrator(session_factory: sessionmaker[Session]) -> OrchestratorSe
             bounded_loader=_make_rpg_bounded_loader(session_factory),
             scene_loader=_make_rpg_scene_loader(session_factory),
             aura_loader=_make_rpg_aura_loader(session_factory),
+            discovery_reader=_make_rpg_discovery_reader(session_factory),
         ),
         rpg_dice_service=SystemRandomDiceService(),
         rpg_session_sheet_resolver=_make_rpg_session_sheet_resolver(session_factory),

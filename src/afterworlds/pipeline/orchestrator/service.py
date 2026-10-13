@@ -2161,6 +2161,13 @@ class OrchestratorService:
                 # CRD Issue 15c: every other subject the turn read, too.
                 for subject in adj_result.subjects:
                     self._rpg_turn_hold.recheck(session, subject)
+                # And the story its discovery scans' absences rest on.
+                if adj_result.discovery is not None:
+                    from afterworlds.services.dnd5e_state.turn import (
+                        require_story_unchanged,
+                    )
+
+                    require_story_unchanged(session, *adj_result.discovery)
             except StaleRevisionError as exc:
                 return self._pipeline_error(
                     intent_result,

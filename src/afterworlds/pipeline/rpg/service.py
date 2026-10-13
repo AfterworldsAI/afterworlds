@@ -338,6 +338,9 @@ class RpgAdjudicationPassService:
         bounded_loader: Callable[[UUID, SubjectRef], list[TurnSubject]] | None = None,
         scene_loader: Callable[[UUID, TurnCharacter], str] | None = None,
         aura_loader: Callable[[UUID], list[TurnCharacter]] | None = None,
+        discovery_reader: (
+            Callable[[UUID], frozenset[tuple[str, str, int]]] | None
+        ) = None,
     ) -> None:
         self._adapter = adapter
         self._config = config or AdjudicationConfig.from_env()
@@ -348,6 +351,9 @@ class RpgAdjudicationPassService:
         self._bounded_loader = bounded_loader
         self._scene_loader = scene_loader
         self._aura_loader = aura_loader
+        #: Snapshots the story before a discovery scan (production wiring
+        #: supplies it; the orchestrator rechecks it at commit).
+        self._discovery_reader = discovery_reader
         self._system_prompt: str = load_adjudication_prompt()
 
     def is_adjudicable(self, character: TurnCharacter) -> bool:
@@ -532,6 +538,13 @@ class RpgAdjudicationPassService:
 
         subjects = self._load_subjects(story_id, sheet, proposals)
         coordination = self._load_coordination(story_id, proposals)
+        discovery = None
+        scans = any(p.operation in _EDGE_OPERATIONS for p in proposals) or any(
+            self._adapter.savers(p, sheet, subjects) for p in proposals
+        )
+        if scans and self._discovery_reader is not None:
+            # Taken before the scans: a change after it fails the commit.
+            discovery = (story_id, self._discovery_reader(story_id))
         self._load_bounded(story_id, sheet, proposals, subjects)
         # Contract G1: every actor-turn edge is a legal transition, checked in
         # order before any die is rolled.
@@ -709,6 +722,7 @@ class RpgAdjudicationPassService:
             pending_roll_request=None,
             subjects=tuple(subjects.values()),
             coordination=coordination,
+            discovery=discovery,
             provider=result.provider_name,
             model_identifier=result.model_identifier,
             model_tier=result.model_tier.value,

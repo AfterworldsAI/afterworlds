@@ -43,6 +43,11 @@ class AdjudicationPassResult(BaseModel):
     #: an edge (``StoredCoordination``). The orchestrator replays the records'
     #: edges onto it and commits by compare-and-swap with the Turn.
     coordination: Any = None
+    #: CRD Issue 15c: ``(story_id, snapshot)`` of every character and creature
+    #: with its revision, taken before the turn's discovery scans (aura
+    #: holders, turn-bounded effects), whose absences it consumed. The
+    #: orchestrator requires the story unchanged at commit.
+    discovery: Any = None
 
     provider: str | None = None
     model_identifier: str | None = None

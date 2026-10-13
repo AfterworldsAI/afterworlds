@@ -824,3 +824,69 @@ def test_holdings_changed_after_the_turn_read_them_fail_it_with_nothing_spent(
     # Refused at the recheck; the rollback leaves the holding as read.
     assert [tuple(r) for r in _arrows(client, arrows)] == [(3, 1)]
     assert _audit(client, story) == []
+
+
+@pytest.mark.parametrize("change", ["unnamed_subject_changes", "subject_added"])
+def test_a_story_changed_after_the_turns_discovery_scan_fails_it(
+    client: TestClient,
+    gm: list[list[dict[str, Any]]],
+    monkeypatch: pytest.MonkeyPatch,
+    change: str,
+) -> None:
+    """The actor edge scans the story for turn-bounded effects (and finds
+    none on the bystander Wolf). If that Wolf changes, or a creature is
+    added, before the commit, the scan's absence is stale: the turn fails
+    and nothing commits (in-transaction change: SQLite has one writer)."""
+    from afterworlds.services.dnd5e_state import store
+    from afterworlds.services.dnd5e_state.turn import RpgTurnHold
+
+    story = _rpg_story(client)
+    wolf, club = _wolf_and_club(client, story)
+    bystander, _ = _wolf_and_club(client, story)
+    real = RpgTurnHold.recheck
+    done: list[bool] = []
+
+    def recheck(self: RpgTurnHold, session: Any, subject: Any) -> None:
+        if not done:
+            done.append(True)
+            if change == "unnamed_subject_changes":
+                stored = store.get_creature(session, UUID(bystander))
+                assert stored is not None
+                hp = stored.state.hit_points
+                assert hp is not None
+                store.save_state(
+                    session,
+                    "creature",
+                    stored.creature_id,
+                    stored.state.model_copy(
+                        update={"hit_points": hp.model_copy(update={"current": 5})}
+                    ),
+                    expected_revision=stored.revision,
+                    expected_binding=stored.binding,
+                    now=NOW,
+                )
+            else:
+                from afterworlds.models.dnd5e_state import CreatureState, HitPoints
+
+                service.create_creature(
+                    session,
+                    UUID(story),
+                    "Late Wolf",
+                    PACKAGE,
+                    CreatureState(
+                        template_record_key="animals.wolf",
+                        hit_points=HitPoints(current=11, maximum=11, temporary=0),
+                        conditions=(),
+                        active_effects=(),
+                    ),
+                    now=NOW,
+                )
+        real(self, session, subject)
+
+    monkeypatch.setattr(RpgTurnHold, "recheck", recheck)
+    gm.append([_begin_actor(client, story), _attack(wolf, club)])
+    body = _turn(client, story, "I swing my club at the wolf.")
+    assert body["disposition"] != "delivered", body
+    assert _audit(client, story) == []
+    assert _creature_row(client, wolf).revision == 1
+    assert _creature_row(client, bystander).revision == 1

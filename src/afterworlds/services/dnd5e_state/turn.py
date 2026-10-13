@@ -61,6 +61,8 @@ __all__ = [
     "load_turn_character",
     "load_turn_creature",
     "require_holdings_unchanged",
+    "require_story_unchanged",
+    "story_revisions",
     "require_unchanged",
     "ITEM_QUANTITY",
     "spent_items",
@@ -289,6 +291,41 @@ def require_unchanged(
         raise StaleRevisionError(
             f"{kind} {sheet_id} changed after this turn read it; its work "
             "cannot commit"
+        )
+
+
+def story_revisions(
+    session: Session, story_id: UUID
+) -> frozenset[tuple[str, str, int]]:
+    """Every character and creature of the story, with its revision: the
+    snapshot a discovery scan's absences rest on (an aura holder, a
+    turn-bounded effect). A subject that gained what the scan looked for moves
+    its revision; a new subject changes membership (CRD Issue 15c)."""
+    characters = session.execute(
+        sa.select(
+            Dnd5eCharacterStateORM.sheet_id, Dnd5eCharacterStateORM.revision
+        ).where(Dnd5eCharacterStateORM.story_id == str(story_id))
+    ).all()
+    creatures = session.execute(
+        sa.select(Dnd5eCreatureORM.creature_id, Dnd5eCreatureORM.revision).where(
+            Dnd5eCreatureORM.story_id == str(story_id)
+        )
+    ).all()
+    return frozenset(
+        {("character", str(i), int(r)) for i, r in characters}
+        | {("creature", str(i), int(r)) for i, r in creatures}
+    )
+
+
+def require_story_unchanged(
+    session: Session, story_id: UUID, snapshot: frozenset[tuple[str, str, int]]
+) -> None:
+    """Refuse a commit whose discovery scans read a story that has since
+    changed: any subject's revision or the set of subjects."""
+    if story_revisions(session, story_id) != snapshot:
+        raise StaleRevisionError(
+            f"story {story_id}'s characters or creatures changed after this turn "
+            "scanned them; its work cannot commit"
         )
 
 
