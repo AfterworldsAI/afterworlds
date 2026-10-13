@@ -186,6 +186,15 @@ _WEAPON_ATTACK_PROCEDURE: tuple[tuple[str, str], ...] = (
     ("glossary.immunity", "no_effect"),
 )
 _WEAPON_ATTACK_RECORD_PREFIXES = ("equipment.weapons", "equipment.armor")
+#: The Bloodied predicate (``damage.bloodied``): the universal procedure and
+#: the Hit Point rules it reads, for every operation a Bloodied trait,
+#: hit-effect damage or save can turn on.
+_BLOODIED_PROCEDURE: tuple[tuple[str, str], ...] = (
+    ("glossary.bloodied", "bloodied"),
+    ("play.damage_and_healing", "bloodied"),
+    ("play.damage_and_healing", "hit_points"),
+    ("play.damage_and_healing", "temporary_hit_points"),
+)
 #: The typed ammunition supplies a weapon attack fires (C7 ``ammunition_supply``).
 _AMMUNITION_SUPPLIES: tuple[tuple[str, str], ...] = tuple(
     (f"equipment.adventuring_gear.{name}", name)
@@ -370,7 +379,7 @@ MANIFEST: dict[Operation, Capability] = {
             "per attack, hit or miss, by CAS on the holding (none left removes "
             "it). Not yet: sight that needs a sense's range"
         ),
-        fingerprint="a5fe16ae59dff8657dcff34b1bbd4f410d20067be73b15fbfe5e1e2a0f267133",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="c300a9ca00877390339759decf9884f5029aa7d6ea3100d33432f3ef4e21a6aa",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.DEATH_SAVING_THROW: Capability(
         Operation.DEATH_SAVING_THROW,
@@ -460,7 +469,7 @@ MANIFEST: dict[Operation, Capability] = {
             "against one). Not yet: usage limits and Recharge, speed changes, "
             "forced movement, conditional damage, legendary actions"
         ),
-        fingerprint="da0e61c8852afc9938b9d01fe49858d6847a69bf43ca4fa25eed25010e9587da",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="a3dcf934db3c58aa4e7f1fe900558e819e91fef6b5d5d5df550829bece09fa8b",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.CREATURE_SAVE_EFFECT: Capability(
         Operation.CREATURE_SAVE_EFFECT,
@@ -477,7 +486,7 @@ MANIFEST: dict[Operation, Capability] = {
             "type, sight, environment or trigger predicates, formula DCs, "
             "failure effects beyond a condition"
         ),
-        fingerprint="835d1566b95587ec13cec855c5541bdc37b94d5f3586e4e4cf71ffe08397ad0d",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="e09799e62b4e25f16f1c23523c725ba4269c253bf80d48f73741a2b36541e41b",  # noqa: E501  # pragma: allowlist secret
     ),
 }
 
@@ -534,6 +543,7 @@ def _governing(
             *SAVE_PROCEDURE,
             *_ECONOMY_PROCEDURE,
             *_AMMUNITION_SUPPLIES,
+            *_BLOODIED_PROCEDURE,
         ),
         Operation.BEGIN_TURN: _TURN_PROCEDURE,
         Operation.END_TURN: _TURN_PROCEDURE,
@@ -546,12 +556,14 @@ def _governing(
             (_DAMAGE, "multiple_targets"),
             *_WEAPON_ATTACK_PROCEDURE,
             *_ECONOMY_PROCEDURE,
+            *_BLOODIED_PROCEDURE,
         ),
         Operation.CREATURE_ATTACK: (
             *_CREATURE_ATTACK_PROCEDURE,
             *_WEAPON_ATTACK_PROCEDURE,
             *SAVE_PROCEDURE,
             *_ECONOMY_PROCEDURE,
+            *_BLOODIED_PROCEDURE,
         ),
         Operation.STABLE_RECOVERY: _RECOVERY_PROCEDURE,
         Operation.KNOCKOUT_RECOVERY: _RECOVERY_PROCEDURE,

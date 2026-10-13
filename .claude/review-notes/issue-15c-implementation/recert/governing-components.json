@@ -374,6 +374,11 @@
      "d3741ec6d2aad0666e03b4b6f53ab268e2e702a82f7219b202dbca05f6072891"
     ],
     [
+     "glossary.bloodied",
+     "bloodied",
+     "5fedeaffecdc1987dae28526da79b6822ab44074570b2b249d1367efa6a998c2"
+    ],
+    [
      "glossary.charmed",
      "cant_harm_the_charmer",
      "1402f8c9747a09dff826111a3f55d7af93f314249216dd526dc654cf12d64a1b"
@@ -785,6 +790,11 @@
     ],
     [
      "play.damage_and_healing",
+     "bloodied",
+     "24836dd8e0f5888eeeecd3c0149123244be9c17a1ae4f8ba185e1ea1538963d3"
+    ],
+    [
+     "play.damage_and_healing",
      "critical_hits",
      "b2dbad45018ba114b3a8fa7ae8451a2b18db040bf04680f439ebeb1bf504926b"
     ],
@@ -802,6 +812,11 @@
      "play.damage_and_healing",
      "falling_unconscious",
      "82e4d137840c330085c1bbb3b3e90b6a12eccf59bef9403a6804a7c1633060e9"
+    ],
+    [
+     "play.damage_and_healing",
+     "hit_points",
+     "8052abd38ce99417f207ec39c6f682789695b861c61a15bf51940b3b02b3adf6"
     ],
     [
      "play.damage_and_healing",
@@ -839,6 +854,11 @@
      "b7aa25127220d0076c89e51b74a4fab6894fd746861c183e73ace72e9440e9db"
     ],
     [
+     "play.damage_and_healing",
+     "temporary_hit_points",
+     "3a604aca9285012a96c14250cc965f3588e4e83484e1a75f28c698db30a8a1b6"
+    ],
+    [
      "play.proficiency",
      "saving_throw_proficiency",
      "e15116169054e58f787766cf1e62dbdb2dc91ceee8ce8fa379e27caa0af90c2b"
@@ -869,7 +889,7 @@
      "64f4f80eb88b0691cfd9ca7b26cc8d0ff8916497a0a37a078946ffc1ef408abd"
     ]
    ],
-   "fingerprint": "da0e61c8852afc9938b9d01fe49858d6847a69bf43ca4fa25eed25010e9587da"
+   "fingerprint": "a3dcf934db3c58aa4e7f1fe900558e819e91fef6b5d5d5df550829bece09fa8b"
   },
   "creature_save_effect": {
    "components": [
@@ -892,6 +912,11 @@
      "glossary.blinded",
      "cant_see",
      "d3741ec6d2aad0666e03b4b6f53ab268e2e702a82f7219b202dbca05f6072891"
+    ],
+    [
+     "glossary.bloodied",
+     "bloodied",
+     "5fedeaffecdc1987dae28526da79b6822ab44074570b2b249d1367efa6a998c2"
     ],
     [
      "glossary.charmed",
@@ -1285,6 +1310,11 @@
     ],
     [
      "play.damage_and_healing",
+     "bloodied",
+     "24836dd8e0f5888eeeecd3c0149123244be9c17a1ae4f8ba185e1ea1538963d3"
+    ],
+    [
+     "play.damage_and_healing",
      "critical_hits",
      "b2dbad45018ba114b3a8fa7ae8451a2b18db040bf04680f439ebeb1bf504926b"
     ],
@@ -1312,6 +1342,11 @@
      "play.damage_and_healing",
      "half_damage",
      "880625f967efbaa01e330907c478843717b475eb119dd0b9a3fda2b351152d46"
+    ],
+    [
+     "play.damage_and_healing",
+     "hit_points",
+     "8052abd38ce99417f207ec39c6f682789695b861c61a15bf51940b3b02b3adf6"
     ],
     [
      "play.damage_and_healing",
@@ -1354,6 +1389,11 @@
      "b7aa25127220d0076c89e51b74a4fab6894fd746861c183e73ace72e9440e9db"
     ],
     [
+     "play.damage_and_healing",
+     "temporary_hit_points",
+     "3a604aca9285012a96c14250cc965f3588e4e83484e1a75f28c698db30a8a1b6"
+    ],
+    [
      "play.proficiency",
      "saving_throw_proficiency",
      "e15116169054e58f787766cf1e62dbdb2dc91ceee8ce8fa379e27caa0af90c2b"
@@ -1384,7 +1424,7 @@
      "64f4f80eb88b0691cfd9ca7b26cc8d0ff8916497a0a37a078946ffc1ef408abd"
     ]
    ],
-   "fingerprint": "835d1566b95587ec13cec855c5541bdc37b94d5f3586e4e4cf71ffe08397ad0d"
+   "fingerprint": "e09799e62b4e25f16f1c23523c725ba4269c253bf80d48f73741a2b36541e41b"
   },
   "death_saving_throw": {
    "components": [
@@ -5124,6 +5164,11 @@
      "d3741ec6d2aad0666e03b4b6f53ab268e2e702a82f7219b202dbca05f6072891"
     ],
     [
+     "glossary.bloodied",
+     "bloodied",
+     "5fedeaffecdc1987dae28526da79b6822ab44074570b2b249d1367efa6a998c2"
+    ],
+    [
      "glossary.charmed",
      "cant_harm_the_charmer",
      "1402f8c9747a09dff826111a3f55d7af93f314249216dd526dc654cf12d64a1b"
@@ -5515,6 +5560,11 @@
     ],
     [
      "play.damage_and_healing",
+     "bloodied",
+     "24836dd8e0f5888eeeecd3c0149123244be9c17a1ae4f8ba185e1ea1538963d3"
+    ],
+    [
+     "play.damage_and_healing",
      "critical_hits",
      "b2dbad45018ba114b3a8fa7ae8451a2b18db040bf04680f439ebeb1bf504926b"
     ],
@@ -5532,6 +5582,11 @@
      "play.damage_and_healing",
      "falling_unconscious",
      "82e4d137840c330085c1bbb3b3e90b6a12eccf59bef9403a6804a7c1633060e9"
+    ],
+    [
+     "play.damage_and_healing",
+     "hit_points",
+     "8052abd38ce99417f207ec39c6f682789695b861c61a15bf51940b3b02b3adf6"
     ],
     [
      "play.damage_and_healing",
@@ -5569,6 +5624,11 @@
      "b7aa25127220d0076c89e51b74a4fab6894fd746861c183e73ace72e9440e9db"
     ],
     [
+     "play.damage_and_healing",
+     "temporary_hit_points",
+     "3a604aca9285012a96c14250cc965f3588e4e83484e1a75f28c698db30a8a1b6"
+    ],
+    [
      "play.proficiency",
      "saving_throw_proficiency",
      "e15116169054e58f787766cf1e62dbdb2dc91ceee8ce8fa379e27caa0af90c2b"
@@ -5599,7 +5659,7 @@
      "64f4f80eb88b0691cfd9ca7b26cc8d0ff8916497a0a37a078946ffc1ef408abd"
     ]
    ],
-   "fingerprint": "a5fe16ae59dff8657dcff34b1bbd4f410d20067be73b15fbfe5e1e2a0f267133"
+   "fingerprint": "c300a9ca00877390339759decf9884f5029aa7d6ea3100d33432f3ef4e21a6aa"
   }
  }
 }

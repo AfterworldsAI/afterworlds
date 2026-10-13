@@ -82,6 +82,7 @@ from afterworlds.pipeline.rpg.capability import (
 )
 from afterworlds.pipeline.rpg.damage import (
     DamageTaken,
+    bloodied,
     fixed_part,
     preflight,
     take_damage,
@@ -312,20 +313,30 @@ def _rider_turn(duration: TurnBoundary | None) -> str | None:
     return "start" if duration.until is RecurrenceBoundary.START_OF_TURN else "end"
 
 
+def _rider_damage_applies(prepared: PreparedCreatureAttack) -> bool:
+    """Whether the hit effect's conditional damage applies: every stated
+    predicate holds -- the roll mode, and Bloodied read from the attacker
+    and target as this operation read them."""
+    effect = prepared.fact.hit_effect
+    extra = effect.conditional_damage if effect is not None else None
+    if extra is None:
+        return False
+    when = extra.when
+    return (
+        (not when.attack_roll_had_advantage or prepared.advantaged)
+        and (not when.source_bloodied or bloodied(prepared.attacker))
+        and (not when.target_bloodied or bloodied(prepared.target))
+    )
+
+
 def _check_conditional_damage(rider: Rider, entry: str, terms: int) -> None:
     """Admit damage stated under the attack roll having had Advantage (code
-    knows the roll mode). Bloodied has no typed threshold in the accepted
-    authority (``glossary.bloodied`` is prose-bound): it refuses."""
+    knows the roll mode) or the source or target being Bloodied (the
+    certified universal predicate, :func:`.damage.bloodied`)."""
     extra = rider.conditional_damage
     if extra is None:
         return
     when = extra.when
-    if when.source_bloodied or when.target_bloodied:
-        raise _refuse(
-            RefusalKind.MISSING_AUTHORITY,
-            f"{entry}'s damage turns on Bloodied, which has no typed threshold "
-            "(glossary.bloodied is prose-bound)",
-        )
     others = (
         when.target_grappled_by_source,
         when.source_moved_straight_toward_target_ft_min,
@@ -333,7 +344,11 @@ def _check_conditional_damage(rider: Rider, entry: str, terms: int) -> None:
     )
     instead = extra.mode is DamageMode.INSTEAD
     if (
-        not when.attack_roll_had_advantage
+        not (
+            when.attack_roll_had_advantage
+            or when.source_bloodied
+            or when.target_bloodied
+        )
         or any(v is not None for v in others)
         or extra.term.damage_type is None
         or extra.term.addends
@@ -774,7 +789,7 @@ def _rider(
     effects: list[SheetEffect] = []
     out: dict[str, object] = {}
     if rider.conditional_damage is not None:
-        out["conditional_damage"] = prepared.advantaged
+        out["conditional_damage"] = _rider_damage_applies(prepared)
     if rider.condition is not None:
         kind = rider.condition.condition
         if condition_immune(target, kind):
@@ -859,8 +874,8 @@ def roll(
         terms[replaced[0]] = replaced[1]
     effect = prepared.fact.hit_effect
     rider_damage = effect.conditional_damage if effect is not None else None
-    if rider_damage is not None and prepared.advantaged:
-        # Admitted only under "the attack roll had Advantage" (_check_rider).
+    if rider_damage is not None and _rider_damage_applies(prepared):
+        # Admitted only under Advantage and/or Bloodied (_check_rider).
         if rider_damage.mode is DamageMode.INSTEAD:
             assert rider_damage.replaces_hit_damage_index is not None
             terms[rider_damage.replaces_hit_damage_index] = rider_damage.term

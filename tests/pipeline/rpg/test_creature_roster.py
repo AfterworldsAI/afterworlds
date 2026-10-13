@@ -70,18 +70,6 @@ def test_the_roster_is_generated_from_the_accepted_capability() -> None:
 #: C5-positive shapes code does not execute, each a named boundary surfaced
 #: for Codex (status.md), not coverage: the refusal must say why.
 BOUNDARIES: dict[str, str] = {
-    **{
-        key: "Bloodied, which has no typed threshold"
-        for key in (
-            "animals.swarm_of_bats#1:Bites",
-            "animals.swarm_of_insects#2:Bites",
-            "animals.swarm_of_rats#1:Bites",
-            "animals.swarm_of_ravens#1:Beaks",
-            "animals.swarm_of_venomous_snakes#1:Bites",
-            "monsters.berserker.berserker#1:Greataxe",
-            "monsters.crawling_claw.swarm_of_crawling_claws#1:Swarm of Grasping Hands",
-        )
-    },
     # Restrained "until the grapple ends": no state contract links one
     # condition instance's end to another's.
     "monsters.purple_worm.purple_worm#2:Bite": "linked condition",

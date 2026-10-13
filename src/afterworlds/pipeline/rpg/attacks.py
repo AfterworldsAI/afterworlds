@@ -111,6 +111,7 @@ from afterworlds.pipeline.rpg.checks import proficiency_bonus
 from afterworlds.pipeline.rpg.conditions import effective
 from afterworlds.pipeline.rpg.damage import (
     DamageTaken,
+    bloodied,
     knockout_rule,
     preflight,
     take_damage,
@@ -465,12 +466,6 @@ def trait_applies(
     subject. *allies* settles Pack Tactics' named allies when attacking."""
     if when is None:
         return True
-    if when.subject_bloodied:
-        raise _refuse(
-            RefusalKind.MISSING_AUTHORITY,
-            f"{where} turns on Bloodied, which has no typed threshold "
-            "(glossary.bloodied is prose-bound)",
-        )
     ally = when.ally_within_ft_of_target is not None or when.ally_not is not None
     if (
         when.stated is not None
@@ -489,6 +484,8 @@ def trait_applies(
             f"{where}'s circumstance is not executable here",
         )
     applies = True
+    if when.subject_bloodied:
+        applies = bloodied(holder)
     if when.subject_not is not None:
         assert holder.index is not None
         applies = applies and all(

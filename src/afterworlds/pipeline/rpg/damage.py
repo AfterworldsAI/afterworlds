@@ -166,6 +166,19 @@ def _as_character(target: TurnSubject) -> bool:
     return treatment.as_character
 
 
+def bloodied(subject: TurnSubject) -> bool:
+    """Whether *subject* is Bloodied: *"half its Hit Points or fewer
+    remaining"* (``glossary.bloodied``, ``play.damage_and_healing/bloodied``).
+    The universal adapter procedure over its recorded Hit Points, certified
+    with those components: current against half the current maximum (less
+    any reduction), in integers; temporary Hit Points are not Hit Points
+    (``temporary_hit_points``). Read from the turn's advanced state."""
+    hp = subject.stored.state.hit_points
+    if hp is None:
+        raise _refuse(RefusalKind.MISSING_STATE, "the subject records no hit points")
+    return 2 * hp.current <= hp.maximum - (hp.maximum_reduction or 0)
+
+
 def fixed_part(term: DamageTerm) -> int | None:
     """A printed damage term's fixed amount: its constant, or for a flat
     printed amount (*"1 Piercing damage"*: an average and no dice) that

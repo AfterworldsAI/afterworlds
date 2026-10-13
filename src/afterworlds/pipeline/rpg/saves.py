@@ -316,7 +316,10 @@ def refuse_contributors(
             if isinstance(fact, CreatureRollModifierFact) and any(
                 e.roll.context in _SAVE_CONTEXTS for e in fact.effects
             ):
-                raise unsupported(f"{template}/{fact.entry}")
+                # Executed by _creature_traits when every save effect is the
+                # holder's own Advantage/Disadvantage under an evaluable
+                # circumstance; anything else refuses.
+                _creature_trait(subject, fact, ability, f"{template}/{fact.entry}")
         return
     character = subject.stored.state
     held = _held_keys(subject, index, extra)
@@ -407,6 +410,97 @@ def _character(
     return modifier, breakdown, disadvantage
 
 
+def _creature_trait(
+    creature: TurnCreature,
+    fact: CreatureRollModifierFact,
+    ability: AbilityScore | None,
+    where: str,
+) -> bool | None:
+    """Whether *fact* changes this save of *creature* (``None``: it does
+    not concern this ability), or a refusal: its save effects must be the
+    holder's own Advantage/Disadvantage, with no use limit or proficiency
+    requirement, under a circumstance code derives (none, a condition it
+    lacks, Bloodied)."""
+    from afterworlds.ingestion.mechanical.representation import (
+        AdvantageFact,
+        EntrySubject,
+        RollActor,
+    )
+    from afterworlds.pipeline.rpg.conditions import effective
+    from afterworlds.pipeline.rpg.damage import bloodied
+
+    saves = [e for e in fact.effects if e.roll.context in _SAVE_CONTEXTS]
+    if fact.subject is not EntrySubject.SELF or any(
+        not isinstance(e, AdvantageFact)
+        or e.roll.actor is not RollActor.SUBJECT
+        or e.use_limit is not None
+        or e.requires_proficiencies
+        for e in saves
+    ):
+        raise _refuse(
+            RefusalKind.UNSUPPORTED_CAPABILITY,
+            f"{where} can change this save and is not executable here",
+        )
+    if not any(e.roll.ability in (None, ability) for e in saves):
+        return None
+    when = fact.applies_when
+    if when is None:
+        return True
+    if (
+        when.stated is not None
+        or when.ally_not is not None
+        or when.ally_within_ft_of_target is not None
+        or when.target_missing_hit_points
+        or when.attack is not None
+    ):
+        raise _refuse(
+            RefusalKind.UNSUPPORTED_CAPABILITY,
+            f"{where}'s circumstance is not executable for a save",
+        )
+    applies = True
+    if when.subject_bloodied:
+        applies = bloodied(creature)
+    if when.subject_not is not None:
+        assert creature.index is not None
+        applies = applies and all(
+            e.condition is not when.subject_not
+            for e in effective(creature, creature.index)
+        )
+    return applies
+
+
+def _creature_traits(
+    creature: TurnCreature, index: AuthorityIndex, ability: AbilityScore
+) -> tuple[list[str], list[str]]:
+    """The creature's own standing traits on this save."""
+    from afterworlds.ingestion.mechanical.representation import (
+        AdvantageFact,
+        AdvantageState,
+    )
+    from afterworlds.pipeline.rpg.defense import facts_of
+
+    template = template_of(creature)
+    advantage: list[str] = []
+    disadvantage: list[str] = []
+    for fact in facts_of(index, template):
+        if not isinstance(fact, CreatureRollModifierFact):
+            continue
+        where = f"{template}/{fact.entry}"
+        if _creature_trait(creature, fact, ability, where):
+            for e in fact.effects:
+                if (
+                    isinstance(e, AdvantageFact)
+                    and e.roll.context in _SAVE_CONTEXTS
+                    and e.roll.ability in (None, ability)
+                ):
+                    (
+                        advantage
+                        if e.state is AdvantageState.ADVANTAGE
+                        else disadvantage
+                    ).append(where)
+    return advantage, disadvantage
+
+
 def _creature(
     creature: TurnCreature, index: AuthorityIndex, ability: AbilityScore
 ) -> tuple[int, dict[str, int]]:
@@ -447,8 +541,10 @@ def prepare(
             RefusalKind.MISSING_AUTHORITY, "the saver's authority is not resolved"
         )
     disadvantage: list[str] = []
+    trait_advantage: list[str] = []
     if isinstance(subject, TurnCreature):
         modifier, breakdown = _creature(subject, index, ability)
+        trait_advantage, disadvantage = _creature_traits(subject, index, ability)
         kind = "creature"
     else:
         modifier, breakdown, disadvantage = _character(subject, index, ability, imposes)
@@ -461,7 +557,7 @@ def prepare(
         dc=dc,
         dc_source=dc_source,
         modifier=modifier,
-        advantage_sources=tuple(advantage),
+        advantage_sources=tuple(advantage + trait_advantage),
         disadvantage_sources=tuple(disadvantage + dis2),
         automatic_failure=tuple(failure),
         breakdown=breakdown,
