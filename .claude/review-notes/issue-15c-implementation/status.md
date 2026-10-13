@@ -5,6 +5,32 @@
 - **Scope:** #191 as updated (body SHA-256 `8225e1b6…57a2`). It adds creature attacks, bounded Multiattack and their saves/effects, the tool-addressing and omitted-source repair, and individual conditional-creature assessment. The G1 oracle `2ccbaeba…1258` is unchanged.
 - **Process:** Opus 5.5 at medium effort, with the separate Opus 5.5 Advisor consulted on the approach, the candidate scope and completion.
 
+## Latest (13 October 2026, later)
+
+**`3741c60`, C5-positive coverage gaps:**
+- Flat printed damage is its amount (`damage.fixed_part`).
+- Goblin damage under Advantage executes.
+- Creature standing traits apply on both sides (`attacks.creature_traits`).
+  - **Sibling defect, patched:** a target creature's trait on attacks against it was silently ignored. The Steam Mephit's Blurred Form gave no Disadvantage to weapon or creature attacks against it.
+  - Non-Advantage trait effects now refuse instead of being skipped.
+  - Blood Frenzy reads the target's recorded HP.
+- Optional non-attack uses within a Multiattack are simply not made (Dryad, Erinyes).
+- Pummel reads the target's recorded Grappled referent.
+- `test_creature_roster` runs every C5 attack/save entry and every Multiattack selection through the adapter preflight.
+  - Every C5-positive shape executes, except the named `BOUNDARIES` below.
+  - Every entry outside the roster refuses.
+
+**Boundaries for Codex (C5-positive, refused, not counted as coverage):**
+- **Bloodied ×7:** the five animal swarms, Swarm of Crawling Claws, and the Berserker's Bloodied Frenzy.
+  - `glossary.bloodied` is prose-bound in the accepted authority ("A creature is Bloodied while it has half its Hit Points or fewer remaining", `rules-glossary.md:269`). C5's capability assumed "recorded HP", but no typed threshold or adapter procedure exists.
+  - **Options:** a typed Bloodied fact in a future candidate, or an accepted code-owned adapter procedure. Owner or Codex classification is needed.
+- **Linked Grappled→Restrained ×3:** the Purple Worm Bite (also its Multiattack) and the Remorhaz Bite. No state contract ends one condition instance with another.
+
+**C7, Owner-accepted 2026-10-13** (`issue-15c-c7-native/owner-acceptance-2026-10-13.md`, packet `4912928f…eb2c`):
+- **Blocked.** Integrating the reviewed preview commits into this branch was denied by the session's permission classifier as a shared-resource modification. The commits are `221a8e7`, `2d9f694`, `ed23cb7` and `3166f22`.
+- Recording the successor and dependent ammunition execution therefore wait for the human to authorize that integration in this session.
+- Nothing was integrated, recorded or executed.
+
 ## Latest (13 October 2026; relay pipe stale, so this is the durable report)
 
 Nothing is pushed and there is no PR. No C7 acceptance, recording or execution has occurred.
