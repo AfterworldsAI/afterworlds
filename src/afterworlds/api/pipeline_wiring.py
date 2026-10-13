@@ -100,6 +100,7 @@ from afterworlds.models.context import AssembledContext
 from afterworlds.models.enums import StoryMode
 from afterworlds.models.intent_classification import IntentClassificationResult
 from afterworlds.models.retrieval import RetrievalQueryRequest
+from afterworlds.models.rpg import SubjectRef
 from afterworlds.models.rules_package import RuleSliceRequest
 from afterworlds.models.session import (
     BranchingSessionState,
@@ -148,7 +149,9 @@ from afterworlds.services.context_builder import (
 from afterworlds.services.dnd5e_state.turn import (
     RpgTurnHold,
     TurnCharacter,
+    TurnSubject,
     load_turn_character,
+    load_turn_creature,
 )
 from afterworlds.services.intent_classifier import IntentClassifierService
 from afterworlds.services.rolling_summary import RollingSummaryService
@@ -273,6 +276,35 @@ def _make_rpg_session_sheet_resolver(
             session.close()
 
     return _resolve
+
+
+def _make_rpg_subject_loader(
+    session_factory: sessionmaker[Session],
+) -> Callable[[UUID, SubjectRef], TurnSubject]:
+    """Reads a character or creature an operation names (CRD Issue 15c), with
+    its own exact binding and revision. Refuses one of another story or under
+    a non-current binding, as the acting character's resolver does; the
+    orchestrator rechecks its revision and binding at commit."""
+
+    def _load(story_id: UUID, ref: SubjectRef) -> TurnSubject:
+        session = session_factory()
+        try:
+            if ref.kind == "creature":
+                subject: TurnSubject = load_turn_creature(
+                    session, story_id, ref.subject_id, now=_utc_now()
+                )
+            else:
+                subject = load_turn_character(session, ref.subject_id, now=_utc_now())
+                if subject.stored.story_id != story_id:
+                    raise ValueError(
+                        f"character {ref.subject_id} is not in story {story_id}"
+                    )
+            session.commit()
+            return subject
+        finally:
+            session.close()
+
+    return _load
 
 
 class _PerTurnContextBuilder:
@@ -456,7 +488,9 @@ def build_orchestrator(session_factory: sessionmaker[Session]) -> OrchestratorSe
         # pending lifecycle are CRD Issue 15b/19b's, and the adjudication
         # service refuses them before any pending request could exist.
         rpg_adjudication_service=RpgAdjudicationPassService(
-            D20RulesSystemAdapter(), AdjudicationConfig.from_env()
+            D20RulesSystemAdapter(),
+            AdjudicationConfig.from_env(),
+            subject_loader=_make_rpg_subject_loader(session_factory),
         ),
         rpg_dice_service=SystemRandomDiceService(),
         rpg_session_sheet_resolver=_make_rpg_session_sheet_resolver(session_factory),

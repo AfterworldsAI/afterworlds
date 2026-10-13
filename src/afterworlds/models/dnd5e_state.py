@@ -106,6 +106,7 @@ __all__ = [
     "VOCABULARIES",
     "VocabularyChoice",
     "WeaponProficiencyGrant",
+    "ZeroHitPointTreatment",
 ]
 
 #: The state document's own contract version. Independent of the Rules
@@ -841,6 +842,34 @@ class CreaturePresence(StrEnum):
     GONE = "gone"
 
 
+class ZeroHitPointTreatment(_Model):
+    """How a continuing creature is treated when it drops to 0 Hit Points
+    (CRD Issue 15c; ``play.damage_and_healing`` falling unconscious / monster
+    death), recorded per subject.
+
+    ``subject`` is the source treatment that applies to it: ``character``
+    (unconscious and dying) or ``monster`` (dies). ``gamemaster_exception``
+    records the GameMaster's per-subject choice to treat a monster like a
+    character (``treat_as_character``), which the source admits for an
+    individual monster only. A template's location in a Monsters or Animals
+    section never decides it; an unrecorded treatment refuses an operation
+    that would reduce the creature to 0 Hit Points.
+    """
+
+    subject: Literal["character", "monster"]
+    gamemaster_exception: Literal["treat_as_character"] | None = None
+
+    @model_validator(mode="after")
+    def exception_only_for_a_monster(self) -> Self:
+        if self.gamemaster_exception is not None and self.subject != "monster":
+            raise ValueError("the treat-as-character exception applies to a monster")
+        return self
+
+    @property
+    def as_character(self) -> bool:
+        return self.subject == "character" or self.gamemaster_exception is not None
+
+
 class CreatureState(_SharedState):
     """The persistent mechanical state of one continuing creature instance.
 
@@ -856,3 +885,5 @@ class CreatureState(_SharedState):
     creature_type: CreatureType | None = None
     speeds: tuple[SpeedGrant, ...] | None = None
     presence: CreaturePresence | None = None
+    #: CRD Issue 15c: the recorded zero-HP treatment (see the class above).
+    zero_hit_point_treatment: ZeroHitPointTreatment | None = None

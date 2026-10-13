@@ -147,6 +147,37 @@ TOOL_COMPONENTS: tuple[tuple[str, str], ...] = (
 _DIFFICULTY_TABLE = (("play.d20_tests", "typical_dcs"),)
 _TOOL_PROCEDURE = (("play.proficiency", "tool_proficiency"), *TOOL_COMPONENTS)
 _INITIATIVE_PROCEDURE = (("play.combat", "initiative_roll"),)
+_DAMAGE = "play.damage_and_healing"
+#: The weapon attack's procedure and tables beyond the check procedure; every
+#: component of the weapon, armor and Rules Glossary condition records is
+#: governing too (see :func:`_governing`).
+_WEAPON_ATTACK_PROCEDURE: tuple[tuple[str, str], ...] = (
+    ("play.d20_tests", "attack_ability_modifier"),
+    ("play.d20_tests", "natural_1"),
+    ("play.d20_tests", "natural_20"),
+    ("play.d20_tests", "base_ac"),
+    ("play.d20_tests", "only_one_base_ac"),
+    ("play.proficiency", "weapon_proficiency"),
+    ("play.combat", "cover_degrees"),
+    ("play.combat", "cover_selection"),
+    ("play.combat", "close_combat"),
+    ("play.combat", "unseen_attacker"),
+    ("play.combat", "unseen_target"),
+    (_DAMAGE, "damage_rolls"),
+    (_DAMAGE, "critical_hits"),
+    (_DAMAGE, "lost_first"),
+    (_DAMAGE, "hit_points"),
+    (_DAMAGE, "falling_unconscious"),
+    (_DAMAGE, "monster_death"),
+    (_DAMAGE, "massive_damage"),
+    (_DAMAGE, "damage_at_0_hit_points"),
+    (_DAMAGE, "stable"),
+    (_DAMAGE, "order_of_application"),
+    ("glossary.resistance", "halving"),
+    ("glossary.vulnerability", "doubling"),
+    ("glossary.immunity", "no_effect"),
+)
+_WEAPON_ATTACK_RECORD_PREFIXES = ("equipment.weapons", "equipment.armor")
 
 #: The release this adapter version was certified against: the accepted CRD
 #: Issue 15c native C5 successor (oracle SHA-256 ``23e5d8e0…4f69``), by the
@@ -253,10 +284,20 @@ MANIFEST: dict[Operation, Capability] = {
     ),
     Operation.WEAPON_ATTACK: Capability(
         Operation.WEAPON_ATTACK,
-        CapabilityStatus.HELD,
-        inputs="one of the 38 weapons, held; target; mastery eligibility",
-        effects="damage, masteries, zero-HP consequences across subjects",
-        held_by=_HELD_COMBAT_STATE,
+        CapabilityStatus.EXECUTABLE,
+        inputs=(
+            "a wielded weapon instance of an accepted weapon record; a target "
+            "character or creature of the story; the GameMaster's approved "
+            "contextual facts (range band, cover, light, a hostile within 5 feet "
+            "for a ranged attack); validated proficiency and ability"
+        ),
+        effects=(
+            "hit, miss or Critical Hit against the target's AC; damage with its "
+            "responses, temporary HP and zero-HP consequences on the target. Not "
+            "yet: masteries, ammunition, the Light extra attack, sight that needs "
+            "a sense's range"
+        ),
+        fingerprint="de7021f5c1d7bd3eac63d22a208df1399bc879d686bf136d09ec062f311b768d",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.DEATH_SAVING_THROW: Capability(
         Operation.DEATH_SAVING_THROW,
@@ -320,7 +361,13 @@ def _governing(
         Operation.DIFFICULTY_CHECK: _DIFFICULTY_TABLE,
         Operation.TOOL_CHECK: _TOOL_PROCEDURE,
         Operation.INITIATIVE: _INITIATIVE_PROCEDURE,
+        Operation.WEAPON_ATTACK: _WEAPON_ATTACK_PROCEDURE,
     }.get(operation, ())
+    if operation is Operation.WEAPON_ATTACK:
+        for record_key in sorted(index.records):
+            if record_key.startswith(_WEAPON_ATTACK_RECORD_PREFIXES):
+                for c in index.records[record_key].components:
+                    yield record_key, c.semantic_key
     for record_key in CONDITION_RECORDS:
         record = index.record(record_key)
         if record is None:

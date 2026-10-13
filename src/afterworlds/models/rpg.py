@@ -34,6 +34,63 @@ from afterworlds.models.enums import ConditionVisibility, RollVisibility
 # ---------------------------------------------------------------------------
 
 
+class SubjectRef(BaseModel):
+    """A character or continuing creature of the story, by id (CRD Issue 15c).
+    Code checks that it belongs to the story before reading it."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    kind: Literal["character", "creature"]
+    subject_id: UUID
+
+
+#: Where an attack's target is relative to the attacker, as the GameMaster
+#: selects it from the options code generates for this attack (Owner decision
+#: OD-15c-1): within the weapon's reach (melee), within its normal range,
+#: beyond normal but within long range, or beyond long range.
+RangeBand = Literal[
+    "within_reach",
+    "within_normal_range",
+    "beyond_normal_within_long_range",
+    "beyond_long_range",
+]
+#: The degree of cover the target has against this attack (``play.combat``).
+CoverDegree = Literal["none", "half", "three_quarters", "total"]
+#: The light and obscurement at a subject's location, as it bears on seeing
+#: it (``rules-glossary.md`` Vision and Light). Code derives sight from these,
+#: the subjects' recorded conditions and source-qualified senses; it executes
+#: bright and dim light only and refuses the rest until sense ranges are
+#: supplied for the operation.
+LightLevel = Literal[
+    "bright", "dim", "darkness", "magical_darkness", "heavily_obscured"
+]
+
+
+class WeaponAttackSelection(BaseModel):
+    """The GameMaster's selections for one ``weapon_attack``: identities and
+    approved contextual facts only, never a number. Code validates each
+    against the weapon, the subjects and the source, and derives every value.
+    The facts are recorded with this attack's provenance; they are not a
+    reusable position record."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    weapon_item_id: UUID
+    target: SubjectRef
+    range: RangeBand
+    cover: CoverDegree
+    attacker_light: LightLevel
+    target_light: LightLevel
+    #: For a ranged attack: whether a hostile creature that can see the
+    #: attacker and isn't Incapacitated is within 5 feet of it.
+    hostile_within_5_feet: bool | None = None
+    #: A Versatile weapon used in two hands; a Thrown weapon thrown; a
+    #: Finesse weapon's chosen ability.
+    two_handed: bool = False
+    thrown: bool = False
+    ability: str | None = None
+
+
 class RollProposal(BaseModel):
     """A single roll proposed by the adjudication pass model.
 
@@ -64,6 +121,8 @@ class RollProposal(BaseModel):
     skill: str | None = None
     difficulty: str | None = None
     tool_activity: str | None = None
+    #: The selections of a ``weapon_attack`` (CRD Issue 15c).
+    weapon_attack: WeaponAttackSelection | None = None
 
 
 class AdjudicationProposalOutput(BaseModel):
@@ -126,6 +185,10 @@ class SheetEffect(BaseModel):
     operation: Literal["delta", "set", "apply_condition", "clear_condition"]
     value_json: str
     schema_version: Literal[1] = 1
+    #: CRD Issue 15c: the subject the effect applies to. ``None`` is the
+    #: turn's acting character (the earlier single-subject meaning).
+    subject_kind: Literal["character", "creature"] | None = None
+    subject_id: UUID | None = None
 
 
 # ---------------------------------------------------------------------------

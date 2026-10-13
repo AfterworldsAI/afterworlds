@@ -2158,6 +2158,9 @@ class OrchestratorService:
         ):
             try:
                 self._rpg_turn_hold.recheck(session, rpg_sheet)
+                # CRD Issue 15c: every other subject the turn read, too.
+                for subject in adj_result.subjects:
+                    self._rpg_turn_hold.recheck(session, subject)
             except StaleRevisionError as exc:
                 return self._pipeline_error(
                     intent_result,
@@ -2226,8 +2229,16 @@ class OrchestratorService:
             )
             if all_effects:
                 try:
-                    rpg_sheet = self._apply_rpg_sheet_effects(
-                        session, all_effects, rpg_sheet
+                    own = tuple(e for e in all_effects if e.subject_id is None)
+                    if own:
+                        rpg_sheet = self._apply_rpg_sheet_effects(
+                            session, own, rpg_sheet
+                        )
+                    self._apply_subject_effects(
+                        session,
+                        tuple(e for e in all_effects if e.subject_id is not None),
+                        rpg_sheet,
+                        adj_result.subjects,
                     )
                 except Exception as exc:  # noqa: BLE001
                     return self._pipeline_error(
@@ -3633,6 +3644,52 @@ class OrchestratorService:
         if refreshed is None:
             raise ValueError(f"character {stored.sheet_id} vanished during the turn")
         return replace(character, stored=refreshed)
+
+    def _apply_subject_effects(
+        self,
+        session: Session,
+        effects: tuple[SheetEffect, ...],
+        actor: TurnCharacter,
+        subjects: tuple[object, ...],
+    ) -> None:
+        """Apply subject-addressed effects (CRD Issue 15c), each subject by
+        compare-and-swap against the revision and exact binding the turn read
+        it at. An effect for a subject the turn did not read fails closed, so
+        the outer transaction rolls back Turn, audit rows and every mutation.
+        """
+        from datetime import UTC, datetime
+
+        from afterworlds.services.dnd5e_state import service, store
+        from afterworlds.services.dnd5e_state.effects import apply_effects
+        from afterworlds.services.dnd5e_state.turn import TurnCreature
+
+        read: dict[tuple[str, str], object] = {
+            ("character", str(actor.sheet_id)): actor
+        }
+        for subject in subjects:
+            kind = "creature" if isinstance(subject, TurnCreature) else "character"
+            read[(kind, str(subject.subject_id))] = subject  # type: ignore[attr-defined]
+        grouped: dict[tuple[str, str], list[SheetEffect]] = {}
+        for effect in effects:
+            key = (str(effect.subject_kind), str(effect.subject_id))
+            if key not in read:
+                raise ValueError(f"an effect names {key}, which this turn did not read")
+            grouped.setdefault(key, []).append(effect)
+        now = datetime.now(tz=UTC).isoformat()
+        for (kind, _), group in grouped.items():
+            subject = read[(kind, _)]
+            stored = subject.stored  # type: ignore[attr-defined]
+            new_state = apply_effects(stored.state, tuple(group))
+            service.check_references(session, stored.story_id, new_state)
+            store.save_state(
+                session,
+                kind,
+                stored.subject_id,
+                new_state,
+                expected_revision=stored.revision,
+                expected_binding=stored.binding,
+                now=now,
+            )
 
     # ------------------------------------------------------------------
     # Helpers

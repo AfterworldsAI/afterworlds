@@ -23,6 +23,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from afterworlds.models.rules_package import RulesPackageBinding
 from afterworlds.persistence.orm.dnd5e_state import (
     Dnd5eCharacterStateORM,
+    Dnd5eCreatureORM,
 )
 from afterworlds.persistence.orm.rules_authority import SharedRuleChangeORM
 from afterworlds.services.dnd5e_state import adoption, leases, shared_changes
@@ -30,6 +31,7 @@ from afterworlds.services.dnd5e_state.authority import AuthorityIndex, authority
 from afterworlds.services.dnd5e_state.errors import (
     StaleRevisionError,
     StateFailure,
+    SubjectNotFoundError,
 )
 from afterworlds.services.dnd5e_state.holdings import (
     Holder,
@@ -37,14 +39,21 @@ from afterworlds.services.dnd5e_state.holdings import (
     ItemInstance,
     items_held_by,
 )
-from afterworlds.services.dnd5e_state.service import read_character, readiness
-from afterworlds.services.dnd5e_state.store import StoredCharacter
+from afterworlds.services.dnd5e_state.service import (
+    read_character,
+    read_creature,
+    readiness,
+)
+from afterworlds.services.dnd5e_state.store import StoredCharacter, StoredCreature
 
 __all__ = [
     "RpgTurnHold",
     "TurnCharacter",
+    "TurnCreature",
+    "TurnSubject",
     "after_events",
     "load_turn_character",
+    "load_turn_creature",
     "require_unchanged",
 ]
 
@@ -67,8 +76,51 @@ class TurnCharacter:
         return self.stored.sheet_id
 
     @property
+    def subject_id(self) -> UUID:
+        return self.stored.sheet_id
+
+    @property
     def ready(self) -> bool:
         return not self.readiness
+
+
+@dataclass(frozen=True)
+class TurnCreature:
+    """A continuing creature a turn reads as an independent subject (CRD Issue
+    15c): its own state, revision and exact binding, held items and authority.
+    """
+
+    stored: StoredCreature
+    readiness: tuple[StateFailure, ...]
+    items: tuple[ItemInstance, ...] = ()
+    index: AuthorityIndex | None = None
+
+    @property
+    def subject_id(self) -> UUID:
+        return self.stored.creature_id
+
+    @property
+    def ready(self) -> bool:
+        return not self.readiness
+
+
+#: One subject of a turn: the acting character, or another character or
+#: creature an operation targets.
+TurnSubject = TurnCharacter | TurnCreature
+
+
+def load_turn_creature(
+    session: Session, story_id: UUID, creature_id: UUID, *, now: str
+) -> TurnCreature:
+    """A creature of *story_id*, read with its exact binding; refuses a
+    creature of another story or a non-current binding (typed)."""
+    stored = read_creature(session, creature_id)
+    if stored.story_id != story_id:
+        raise SubjectNotFoundError(f"creature {creature_id} is not in story {story_id}")
+    items = items_held_by(session, Holder(HolderKind.CREATURE, stored.creature_id))
+    ready = readiness(session, stored, now=now)
+    index = authority_index(session, stored.binding, now=now)
+    return TurnCreature(stored, ready, items, index)
 
 
 def load_turn_character(session: Session, sheet_id: UUID, *, now: str) -> TurnCharacter:
@@ -81,17 +133,28 @@ def load_turn_character(session: Session, sheet_id: UUID, *, now: str) -> TurnCh
 
 
 def require_unchanged(
-    session: Session, sheet_id: UUID, revision: int, binding: RulesPackageBinding
+    session: Session,
+    sheet_id: UUID,
+    revision: int,
+    binding: RulesPackageBinding,
+    *,
+    kind: str = "character",
 ) -> None:
-    """Refuse a commit computed against a superseded revision or binding."""
+    """Refuse a commit computed against a superseded revision or binding, for
+    a character (by sheet id) or a creature (``kind="creature"``)."""
+    table: type[Dnd5eCharacterStateORM] | type[Dnd5eCreatureORM]
+    if kind == "creature":
+        table, key = Dnd5eCreatureORM, Dnd5eCreatureORM.creature_id
+    else:
+        table, key = Dnd5eCharacterStateORM, Dnd5eCharacterStateORM.sheet_id
     row = session.execute(
         sa.select(
-            Dnd5eCharacterStateORM.revision,
-            Dnd5eCharacterStateORM.package_uuid,
-            Dnd5eCharacterStateORM.release_version,
-            Dnd5eCharacterStateORM.projection_uuid,
-            Dnd5eCharacterStateORM.override_set_uuid,
-        ).where(Dnd5eCharacterStateORM.sheet_id == str(sheet_id))
+            table.revision,
+            table.package_uuid,
+            table.release_version,
+            table.projection_uuid,
+            table.override_set_uuid,
+        ).where(key == str(sheet_id))
     ).one_or_none()
     expected = (
         revision,
@@ -102,7 +165,7 @@ def require_unchanged(
     )
     if row is None or tuple(row) != expected:
         raise StaleRevisionError(
-            f"character {sheet_id} changed after this turn read it; its work "
+            f"{kind} {sheet_id} changed after this turn read it; its work "
             "cannot commit"
         )
 
@@ -155,9 +218,18 @@ class RpgTurnHold:
     def acquire(self, story_id: UUID) -> str:
         return leases.acquire(self._factory, story_id, now=self._clock())
 
-    def recheck(self, session: Session, character: TurnCharacter) -> None:
+    def recheck(self, session: Session, character: TurnSubject) -> None:
         """The commit-time recheck: refuse work computed against a superseded
         revision or binding (see :func:`require_unchanged`)."""
+        if isinstance(character, TurnCreature):
+            require_unchanged(
+                session,
+                character.subject_id,
+                character.stored.revision,
+                character.stored.binding,
+                kind="creature",
+            )
+            return
         require_unchanged(
             session,
             character.sheet_id,

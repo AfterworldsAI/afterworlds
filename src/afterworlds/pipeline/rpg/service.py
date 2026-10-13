@@ -33,6 +33,7 @@ Architectural invariants enforced here:
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import UUID
@@ -44,6 +45,8 @@ from afterworlds.models.rpg import (
     AdjudicationProposalOutput,
     PendingRollRequest,
     ResolvedAdjudicationRecord,
+    RollProposal,
+    SubjectRef,
     WriterAdjudicationView,
 )
 from afterworlds.pipeline._refusal import ProviderRefusalError
@@ -80,7 +83,7 @@ if TYPE_CHECKING:
     from afterworlds.pipeline.provider._protocol import ProviderAdapter
     from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
     from afterworlds.pipeline.rpg.dice import DiceService
-    from afterworlds.services.dnd5e_state.turn import TurnCharacter
+    from afterworlds.services.dnd5e_state.turn import TurnCharacter, TurnSubject
 
 # ---------------------------------------------------------------------------
 # Prompt loading
@@ -167,9 +170,13 @@ class RpgAdjudicationPassService:
         self,
         adapter: D20RulesSystemAdapter,
         config: AdjudicationConfig | None = None,
+        subject_loader: Callable[[UUID, SubjectRef], TurnSubject] | None = None,
     ) -> None:
         self._adapter = adapter
         self._config = config or AdjudicationConfig.from_env()
+        #: Reads a character or creature of a story, refusing one of another
+        #: story or under a non-current binding (CRD Issue 15c).
+        self._subject_loader = subject_loader
         self._system_prompt: str = load_adjudication_prompt()
 
     def is_adjudicable(self, character: TurnCharacter) -> bool:
@@ -346,11 +353,13 @@ class RpgAdjudicationPassService:
                 "rolled dice are CRD Issue 15b/19b's and are not resolved here",
             )
 
+        subjects = self._load_subjects(story_id, sheet, proposals)
+
         # CRD Issue 2b: check every proposal before any has an effect, so a
         # later unsupported check cannot follow an earlier roll.
         for proposal in proposals:
             try:
-                self._adapter.require_supported(proposal, sheet)
+                self._adapter.require_supported(proposal, sheet, subjects)
             except AdjudicationRefusal:
                 raise
             except Exception as exc:
@@ -368,6 +377,7 @@ class RpgAdjudicationPassService:
                     rule_slice,
                     dice_service,
                     session_state.gm_cheating,
+                    subjects,
                 )
             except AdjudicationRefusal:
                 raise
@@ -383,6 +393,7 @@ class RpgAdjudicationPassService:
             proposals=tuple(records),
             writer_views=tuple(views),
             pending_roll_request=None,
+            subjects=tuple(subjects.values()),
             provider=result.provider_name,
             model_identifier=result.model_identifier,
             model_tier=result.model_tier.value,
@@ -392,6 +403,41 @@ class RpgAdjudicationPassService:
             cache_read_token_count=result.cache_read_token_count,
             cache_creation_token_count=result.cache_creation_token_count,
         )
+
+    def _load_subjects(
+        self,
+        story_id: UUID,
+        sheet: TurnCharacter,
+        proposals: list[RollProposal],
+    ) -> dict[tuple[str, str], TurnSubject]:
+        """Every subject the proposals name besides the acting character, each
+        read once with its own binding and revision (CRD Issue 15c)."""
+        refs: dict[tuple[str, str], SubjectRef] = {}
+        for proposal in proposals:
+            if proposal.weapon_attack is not None:
+                ref = proposal.weapon_attack.target
+                refs[(ref.kind, str(ref.subject_id))] = ref
+        refs.pop(("character", str(sheet.sheet_id)), None)
+        if not refs:
+            return {}
+        if self._subject_loader is None:
+            raise AdjudicationRefusal(
+                RefusalKind.MISSING_STATE,
+                "no subject reader is wired, so a target cannot be read",
+            )
+        subjects: dict[tuple[str, str], TurnSubject] = {}
+        for key, ref in refs.items():
+            try:
+                subjects[key] = self._subject_loader(story_id, ref)
+            except AdjudicationRefusal:
+                raise
+            except Exception as exc:  # noqa: BLE001
+                raise AdjudicationRefusal(
+                    RefusalKind.MISSING_STATE,
+                    f"{ref.kind} {ref.subject_id} could not be read for this "
+                    f"story: {exc}",
+                ) from exc
+        return subjects
 
     # -----------------------------------------------------------------------
     # Prompt rendering

@@ -1,8 +1,8 @@
-# RPG Adjudication Pass Prompt Contract v3
+# RPG Adjudication Pass Prompt Contract v4
 
 *Canonical source for the RPG_ADJUDICATION pipeline pass system prompt.*
-*Version: v3 (CRD Issue 15c: difficulty, tool and Initiative checks; v2 bounded d20
-production reachability; v1 June 2026)*
+*Version: v4 (CRD Issue 15c: weapon attacks; v3 difficulty, tool and Initiative
+checks; v2 bounded d20 production reachability; v1 June 2026)*
 *Last updated: October 2026*
 
 ---
@@ -73,6 +73,23 @@ One proposal per required roll:
   the engine reads its DC from the rules. Null otherwise.
 - `tool_activity` — for `tool_check` only: the tool's printed activity (for
   example `pick_a_lock`). The engine reads its ability and DC. Null otherwise.
+- `weapon_attack` — for `weapon_attack` only: an object holding:
+  - `weapon_item_id` — the id of a weapon the attacker holds;
+  - `target` — `{kind, subject_id}`, a character or creature in the scene;
+  - the facts you judge about this attack, chosen from fixed options:
+    - `range` — `within_reach` for a melee attack. For a ranged or thrown
+      attack: `within_normal_range`, `beyond_normal_within_long_range` or
+      `beyond_long_range`.
+    - `cover` — `none`, `half`, `three_quarters` or `total`.
+    - `attacker_light` and `target_light` — `bright`, `dim`, `darkness`,
+      `magical_darkness` or `heavily_obscured`.
+    - `hostile_within_5_feet` — for a ranged attack: whether an enemy that can
+      see the attacker and isn't Incapacitated is within 5 feet of it.
+  - `two_handed` (a Versatile weapon used in two hands), `thrown`, and, for a
+    Finesse weapon, `ability` (`strength` or `dexterity`).
+
+  These facts describe this one attack only. Choose them honestly from the
+  scene; they never set a number. Null for every other operation.
 - `check_label` — a short human-readable label (e.g., "Athletics Check").
   Display text only; never authority.
 - `subsystem_tag` — a short descriptive tag. Display text only.

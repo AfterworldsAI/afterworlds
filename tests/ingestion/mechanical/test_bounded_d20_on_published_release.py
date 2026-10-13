@@ -294,7 +294,7 @@ def test_a_hidden_check_is_audited_but_filtered_from_the_player(
 @pytest.mark.parametrize(
     ("roll", "kind"),
     [
-        (_roll(operation="weapon_attack", identity=None), "unsupported_capability"),
+        (_roll(operation="death_saving_throw", identity=None), "unsupported_capability"),  # noqa: E501
         (_roll(identity="glossary.hide/hide_check"), "invalid_selection"),
         ({"check_label": "Stealth", "subsystem_tag": "stealth", "visibility": "shown"},
          "unsupported_capability"),
@@ -345,3 +345,126 @@ def test_a_setup_turn_never_reaches_adjudication(
     body = _turn(client, story, "I want to play a half-elf ranger.")
     assert body["disposition"] == "delivered", body
     assert gm == [[_roll(operation="weapon_attack", identity=None)]]  # never asked
+
+
+# ---------------------------------------------------------------------------
+# Weapon attacks: independent subjects, atomic delivery (CRD Issue 15c)
+# ---------------------------------------------------------------------------
+
+
+def _wolf_and_club(client: TestClient, story_id: str) -> tuple[str, str]:
+    """A Wolf of the story (recorded monster treatment) and a Club the
+    character wields, created through the 2b services."""
+    from afterworlds.models.dnd5e_state import (
+        CreatureState,
+        DeathState,
+        HitPoints,
+        ZeroHitPointTreatment,
+    )
+    from afterworlds.services.dnd5e_state.holdings import (
+        Holder,
+        HolderKind,
+        create_item,
+    )
+
+    with client.app.state.session_factory() as s:
+        state = get_rpg_session_state_by_story(s, UUID(story_id))
+        assert state is not None
+        wolf = service.create_creature(
+            s,
+            UUID(story_id),
+            "Wolf",
+            PACKAGE,
+            CreatureState(
+                template_record_key="animals.wolf",
+                hit_points=HitPoints(current=11, maximum=11, temporary=0),
+                conditions=(),
+                active_effects=(),
+                death_state=DeathState(
+                    successes=0, failures=0, stable=False, dead=False
+                ),
+                zero_hit_point_treatment=ZeroHitPointTreatment(subject="monster"),
+            ),
+            now=NOW,
+        )
+        club = create_item(
+            s,
+            real_index(),
+            Holder(HolderKind.CHARACTER, state.character_sheet_id),
+            "equipment.weapons.club",
+            equipped=True,
+            now=NOW,
+        )
+        s.commit()
+        return str(wolf.creature_id), str(club.item_id)
+
+
+def _attack(target: str, weapon: str, kind: str = "creature") -> dict[str, Any]:
+    return {
+        "check_label": "Club attack",
+        "subsystem_tag": "attack",
+        "visibility": "shown",
+        "operation": "weapon_attack",
+        "weapon_attack": {
+            "weapon_item_id": weapon,
+            "target": {"kind": kind, "subject_id": target},
+            "range": "within_reach",
+            "cover": "none",
+            "attacker_light": "bright",
+            "target_light": "bright",
+        },
+    }
+
+
+def _creature_row(client: TestClient, creature_id: str) -> Any:
+    (row,) = _rows(
+        client,
+        "SELECT revision, document FROM dnd5e_creatures WHERE creature_id = :c",
+        c=creature_id,
+    )
+    return row
+
+
+def test_a_weapon_attack_commits_the_targets_damage_with_the_delivered_turn(
+    client: TestClient, gm: list[list[dict[str, Any]]]
+) -> None:
+    story = _rpg_story(client)
+    wolf, club = _wolf_and_club(client, story)
+    gm.append([_attack(wolf, club)])
+    body = _turn(client, story, "I swing my club at the wolf.")
+    assert body["disposition"] == "delivered", body
+    (row,) = _audit(client, story)
+    provenance = json.loads(row.modifiers_json)
+    assert (provenance["operation"], row.dc) == ("weapon_attack", 12)
+    assert provenance["certificate"]["projection_uuid"] == str(
+        real_index().binding.mechanical_projection_uuid
+    )
+    creature = _creature_row(client, wolf)
+    document = (
+        creature.document
+        if isinstance(creature.document, dict)
+        else json.loads(creature.document)
+    )
+    if row.outcome == "failure":
+        assert creature.revision == 1
+        assert document["hit_points"]["current"] == 11
+    else:
+        damage = provenance["damage"]
+        assert creature.revision == 2
+        assert document["hit_points"]["current"] == max(0, 11 - damage["taken"])
+    assert "12" not in json.dumps(body.get("adjudication", ""))
+    assert _turns(client) == 1
+
+
+def test_a_target_from_another_story_refuses_and_leaves_nothing(
+    client: TestClient, gm: list[list[dict[str, Any]]]
+) -> None:
+    story = _rpg_story(client)
+    other = _rpg_story(client)
+    wolf, _ = _wolf_and_club(client, other)
+    _, club = _wolf_and_club(client, story)
+    gm.append([_attack(wolf, club)])
+    body = _turn(client, story, "I swing at the wolf from the other tale.")
+    assert body["disposition"] != "delivered", body
+    assert _audit(client, story) == []
+    assert _creature_row(client, wolf).revision == 1

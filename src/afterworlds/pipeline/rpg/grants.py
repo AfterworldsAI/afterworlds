@@ -35,6 +35,7 @@ from afterworlds.ingestion.mechanical.representation import (
     AbilityIncreaseChoiceFact,
     AbilityIncreaseRuleFact,
     AbilityScore,
+    ArmorTrainingGrantFact,
     ComponentReference,
     ExpertiseChoiceFact,
     ExpertiseRuleFact,
@@ -44,6 +45,7 @@ from afterworlds.ingestion.mechanical.representation import (
     GrantContext,
     MulticlassProficiencyGrantFact,
     MulticlassSkillProficiencyChoiceFact,
+    QualifiedWeaponCategory,
     SavingThrowProficiencyGrantFact,
     Skill,
     SkillProficiencyChoiceFact,
@@ -52,6 +54,10 @@ from afterworlds.ingestion.mechanical.representation import (
     ToolProficiencyChoiceFact,
     ToolProficiencyGrantFact,
     ToolSelector,
+    WeaponAndArmorGrantFact,
+    WeaponCategory,
+    WeaponProficiencyGrantFact,
+    WeaponProperty,
 )
 from afterworlds.models.dnd5e_state import (
     AbilityAdjustment,
@@ -64,16 +70,20 @@ from afterworlds.models.dnd5e_state import (
     SkillGrant,
     ToolGrant,
     VocabularyChoice,
+    WeaponProficiencyGrant,
 )
+from afterworlds.models.dnd5e_vocabulary import ArmorCategory
 from afterworlds.pipeline.rpg.capability import AdjudicationRefusal, RefusalKind
 from afterworlds.services.dnd5e_state.authority import AuthorityIndex
 
 __all__ = [
     "EXPERTISE_RULE",
     "ability_score",
+    "armor_training",
     "save_proficiency",
     "skill_proficiency",
     "tool_proficiency",
+    "weapon_proficiency",
 ]
 
 #: The rule component every Expertise grant is checked against.
@@ -960,3 +970,126 @@ def tool_proficiency(
         (g.record_key, g.component_key) == (record, component)
         for g in state.tool_proficiencies or ()
     )
+
+
+# ---------------------------------------------------------------------------
+# Weapon proficiency and armor training
+# ---------------------------------------------------------------------------
+
+
+def _weapon_admitted(
+    fact: object,
+    grant: WeaponProficiencyGrant,
+    weapon_category: WeaponCategory | None,
+    weapon_properties: frozenset[WeaponProperty],
+) -> bool:
+    """Whether a typed weapon grant *fact* admits the recorded *grant*."""
+    categories: tuple[WeaponCategory, ...] = ()
+    qualified: tuple[QualifiedWeaponCategory, ...] = ()
+    if isinstance(fact, WeaponProficiencyGrantFact):
+        categories, qualified = fact.categories, fact.qualified
+    elif isinstance(fact, (MulticlassProficiencyGrantFact, WeaponAndArmorGrantFact)):
+        categories = fact.weapons.categories
+    else:
+        return False
+    if grant.category is not None:
+        return grant.category in categories
+    # A grant of one weapon: its category is granted, or a qualified category
+    # whose printed properties the weapon has.
+    return weapon_category in categories or any(
+        q.category is weapon_category and weapon_properties & set(q.with_any_property)
+        for q in qualified
+    )
+
+
+def weapon_proficiency(
+    index: AuthorityIndex,
+    state: Dnd5eCharacterState,
+    weapon_record: str,
+    weapon_category: WeaponCategory | None,
+    weapon_properties: frozenset[WeaponProperty],
+) -> bool:
+    """Whether the character is validly proficient with *weapon_record*.
+
+    Every recorded weapon grant that could cover it is validated against its
+    source; a grant whose source does not admit it refuses.
+    """
+    classes = _classes(state)
+    for grant in state.weapon_proficiencies or ():
+        covers = (
+            grant.weapon_record_key == weapon_record
+            if grant.weapon_record_key is not None
+            else grant.category is weapon_category
+        )
+        if not covers:
+            continue
+        own_properties = weapon_properties if grant.weapon_record_key else frozenset()
+        facts = _facts(index, grant.source, state)
+        admitting = [
+            f
+            for f in facts
+            if _weapon_admitted(f, grant, weapon_category, own_properties)
+        ]
+        if not admitting:
+            granting = (
+                WeaponProficiencyGrantFact,
+                MulticlassProficiencyGrantFact,
+                WeaponAndArmorGrantFact,
+            )
+            if not any(isinstance(f, granting) for f in facts):
+                raise _missing(f"{_where(grant.source)} states no typed weapon grant")
+            raise _invalid(f"{_where(grant.source)} does not grant {weapon_record}")
+        fact = admitting[0]
+        if isinstance(fact, MulticlassProficiencyGrantFact):
+            _require_held(index, state, classes, grant.source, multiclass=True)
+        elif isinstance(fact, WeaponProficiencyGrantFact):
+            _require_held(index, state, classes, grant.source, context=fact.context)
+        else:
+            assert isinstance(fact, WeaponAndArmorGrantFact)
+            _require_held(index, state, classes, grant.source)
+            if not _gains(index, classes, fact.gain_levels.entitlement_key):
+                raise _invalid(
+                    f"the character has not gained {fact.gain_levels.entitlement_key}"
+                )
+        return True
+    return False
+
+
+def armor_training(
+    index: AuthorityIndex, state: Dnd5eCharacterState, category: ArmorCategory
+) -> bool:
+    """Whether the character has valid training with *category* (Light,
+    Medium, Heavy armor or Shields)."""
+    classes = _classes(state)
+    for grant in state.armor_training or ():
+        if grant.category is not category:
+            continue
+        facts = _facts(index, grant.source, state)
+        for fact in facts:
+            training: tuple[tuple[str, ...], bool] | None = None
+            if isinstance(fact, ArmorTrainingGrantFact):
+                training = (tuple(a.value for a in fact.armor), fact.shields)
+            elif isinstance(
+                fact, (MulticlassProficiencyGrantFact, WeaponAndArmorGrantFact)
+            ):
+                t = fact.armor_training
+                training = (tuple(a.value for a in t.armor), t.shields)
+            if training is None:
+                continue
+            armor, shields = training
+            if not (
+                category.value in armor
+                or (category is ArmorCategory.SHIELD and shields)
+            ):
+                continue
+            if isinstance(fact, MulticlassProficiencyGrantFact):
+                _require_held(index, state, classes, grant.source, multiclass=True)
+            elif isinstance(fact, ArmorTrainingGrantFact):
+                _require_held(index, state, classes, grant.source, context=fact.context)
+            else:
+                _require_held(index, state, classes, grant.source)
+            return True
+        raise _invalid(
+            f"{_where(grant.source)} does not grant {category.value} training"
+        )
+    return False

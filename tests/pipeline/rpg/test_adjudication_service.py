@@ -260,7 +260,7 @@ def test_an_unsupported_proposal_refuses_before_any_earlier_one_rolls(
     supported = _proposal_dict("Climb", RollVisibility.HIDDEN)
     held = {
         **_proposal_dict("Longsword", RollVisibility.HIDDEN),
-        "operation": "weapon_attack",
+        "operation": "death_saving_throw",
         "check_identity": None,
     }
     _refusal(RefusalKind.UNSUPPORTED_CAPABILITY, [supported, held], dice_handling)

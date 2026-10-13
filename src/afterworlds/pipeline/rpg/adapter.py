@@ -41,8 +41,12 @@ from afterworlds.models.rpg import (
     SheetEffect,
     WriterAdjudicationView,
 )
-from afterworlds.pipeline.rpg import checks
-from afterworlds.pipeline.rpg.capability import AdjudicationRefusal, RefusalKind
+from afterworlds.pipeline.rpg import attacks, checks
+from afterworlds.pipeline.rpg.capability import (
+    AdjudicationRefusal,
+    Operation,
+    RefusalKind,
+)
 from afterworlds.pipeline.rpg.dice import chosen_die_range
 
 _Outcome = Literal[
@@ -81,7 +85,7 @@ class UnsupportedCheckError(ValueError):
 if TYPE_CHECKING:
     from afterworlds.models.rules_package import ActiveRuleSlice
     from afterworlds.pipeline.rpg.dice import DiceService
-    from afterworlds.services.dnd5e_state.turn import TurnCharacter
+    from afterworlds.services.dnd5e_state.turn import TurnCharacter, TurnSubject
 
 
 _ABILITIES = (
@@ -207,7 +211,10 @@ class D20RulesSystemAdapter:
         return character.ready
 
     def require_supported(
-        self, proposal: RollProposal, character: TurnCharacter
+        self,
+        proposal: RollProposal,
+        character: TurnCharacter,
+        subjects: dict[tuple[str, str], TurnSubject] | None = None,
     ) -> None:
         """Raise a typed refusal unless *proposal* can run as a backend roll.
 
@@ -220,6 +227,9 @@ class D20RulesSystemAdapter:
                 "player-rolled dice are CRD Issue 15b/19b's; 15c resolves "
                 "backend shown/hidden rolls only",
             )
+        if proposal.operation == Operation.WEAPON_ATTACK.value:
+            attacks.prepare(proposal, character, subjects or {})
+            return
         checks.prepare(proposal, character)
 
     def _assemble_modifiers(
@@ -314,6 +324,7 @@ class D20RulesSystemAdapter:
         rule_slice: ActiveRuleSlice | None,
         dice_service: DiceService,
         gm_cheating: bool,
+        subjects: dict[tuple[str, str], TurnSubject] | None = None,
     ) -> ResolvedAdjudicationRecord:
         """Resolve a backend (shown or hidden) roll into an immutable record.
 
@@ -328,6 +339,33 @@ class D20RulesSystemAdapter:
                 "use prepare_player_roll_announce instead"
             )
 
+        source: Literal["hidden", "ai"] = (
+            "hidden" if proposal.visibility is RollVisibility.HIDDEN else "ai"
+        )
+        if proposal.operation == Operation.WEAPON_ATTACK.value:
+            attack = attacks.roll(
+                attacks.prepare(proposal, character, subjects or {}),
+                dice_service,
+                character,
+            )
+            attack_outcomes: dict[str, _Outcome] = {
+                "success": "success",
+                "failure": "failure",
+                "critical_success": "critical_success",
+            }
+            return ResolvedAdjudicationRecord(
+                check_label=proposal.check_label,
+                visibility=proposal.visibility,
+                expression=attack.prepared.expression,
+                raw_rolls=attack.raw_rolls,
+                modifiers_json=attack.provenance_json(),
+                total=attack.total,
+                dc=attack.prepared.target_ac,
+                outcome=attack_outcomes[attack.outcome],
+                sheet_effects=attack.effects,
+                source=source,
+                gm_cheating_at_roll=gm_cheating,
+            )
         rolled = checks.roll(checks.prepare(proposal, character), dice_service)
         outcomes: dict[str, _Outcome] = {
             "success": "success",
@@ -490,9 +528,16 @@ class D20RulesSystemAdapter:
                 outcome=None,
             )
 
+        # A weapon attack's comparison target is the target's Armor Class: the
+        # target's state, not the actor's, so the Writer gets the outcome only.
+        target_state = (
+            json.loads(record.modifiers_json).get("operation")
+            == Operation.WEAPON_ATTACK.value
+        )
+        dc = None if target_state else record.dc
         summary_parts = [f"{record.check_label}: rolled {record.total}"]
-        if record.dc is not None:
-            summary_parts.append(f"vs DC {record.dc}")
+        if dc is not None:
+            summary_parts.append(f"vs DC {dc}")
         if record.outcome not in (None, "undetermined"):
             summary_parts.append(f"— {record.outcome.replace('_', ' ')}")
 
@@ -501,7 +546,7 @@ class D20RulesSystemAdapter:
             visibility=record.visibility,
             player_facing_summary=", ".join(summary_parts),
             total=record.total,
-            dc=record.dc,
+            dc=dc,
             outcome=record.outcome,
         )
 

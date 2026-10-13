@@ -23,6 +23,57 @@ from afterworlds.pipeline.rpg.capability import (
     Operation,
 )
 
+_SUBJECT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "kind": {"type": "string", "enum": ["character", "creature"]},
+        "subject_id": {"type": "string", "format": "uuid"},
+    },
+    "required": ["kind", "subject_id"],
+    "additionalProperties": False,
+}
+_LIGHT = ["bright", "dim", "darkness", "magical_darkness", "heavily_obscured"]
+_WEAPON_ATTACK_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "weapon_item_id": {"type": "string", "format": "uuid"},
+        "target": _SUBJECT_SCHEMA,
+        "range": {
+            "type": "string",
+            "enum": [
+                "within_reach",
+                "within_normal_range",
+                "beyond_normal_within_long_range",
+                "beyond_long_range",
+            ],
+        },
+        "cover": {
+            "type": "string",
+            "enum": ["none", "half", "three_quarters", "total"],
+        },
+        "attacker_light": {"type": "string", "enum": _LIGHT},
+        "target_light": {"type": "string", "enum": _LIGHT},
+        "hostile_within_5_feet": {"oneOf": [{"type": "boolean"}, {"type": "null"}]},
+        "two_handed": {"type": "boolean"},
+        "thrown": {"type": "boolean"},
+        "ability": {
+            "oneOf": [
+                {"type": "string", "enum": [a.value for a in AbilityScore]},
+                {"type": "null"},
+            ]
+        },
+    },
+    "required": [
+        "weapon_item_id",
+        "target",
+        "range",
+        "cover",
+        "attacker_light",
+        "target_light",
+    ],
+    "additionalProperties": False,
+}
+
 
 def _selection(values: list[str], description: str) -> dict[str, Any]:
     return {
@@ -148,6 +199,15 @@ PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC: dict[str, Any] = {
                             "For difficulty_check: the Typical DC you select. The"
                             " engine reads the DC from the rules.",
                         ),
+                        "weapon_attack": {
+                            "oneOf": [_WEAPON_ATTACK_SCHEMA, {"type": "null"}],
+                            "description": (
+                                "For weapon_attack: the weapon (an item id the"
+                                " attacker holds), the target, and the"
+                                " contextual facts you select. The engine reads"
+                                " every number from the rules and the sheets."
+                            ),
+                        },
                         "tool_activity": _selection(
                             [t.value for t in ToolActivity],
                             "For tool_check: the tool's printed activity.",
