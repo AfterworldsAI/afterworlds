@@ -61,3 +61,194 @@ def test_the_roster_is_generated_from_the_accepted_capability() -> None:
     data = CAPABILITY.read_bytes()
     assert hashlib.sha256(data).hexdigest() == roster.CAPABILITY_SHA256
     assert admitted(json.loads(data)["entries"]) == roster.EXECUTABLE
+
+
+# ---------------------------------------------------------------------------
+# Every admitted shape, through the adapter's own preflight
+# ---------------------------------------------------------------------------
+
+#: C5-positive shapes code does not execute, each a named boundary surfaced
+#: for Codex (status.md), not coverage: the refusal must say why.
+BOUNDARIES: dict[str, str] = {
+    **{
+        key: "Bloodied, which has no typed threshold"
+        for key in (
+            "animals.swarm_of_bats#1:Bites",
+            "animals.swarm_of_insects#2:Bites",
+            "animals.swarm_of_rats#1:Bites",
+            "animals.swarm_of_ravens#1:Beaks",
+            "animals.swarm_of_venomous_snakes#1:Bites",
+            "monsters.berserker.berserker#1:Greataxe",
+            "monsters.crawling_claw.swarm_of_crawling_claws#1:Swarm of Grasping Hands",
+        )
+    },
+    # Restrained "until the grapple ends": no state contract links one
+    # condition instance's end to another's.
+    "monsters.purple_worm.purple_worm#2:Bite": "linked condition",
+    "monsters.remorhaz.remorhaz#1:Bite": "linked condition",
+    "monsters.purple_worm.purple_worm#1:Multiattack | alternative 1": (
+        "linked condition"
+    ),
+}
+
+
+def _scenario(key: str, creature: Any, target: Any) -> Any:
+    """A target in the state an entry's own targeting requires."""
+    if key == "monsters.glabrezu.glabrezu#4:Pummel":
+        import dataclasses
+
+        from afterworlds.models.dnd5e_state import (
+            ConditionInstance,
+            SubjectReference,
+        )
+        from afterworlds.models.enums import ConditionVisibility
+
+        grappled = ConditionInstance(
+            instance_id="g",
+            condition="grappled",  # type: ignore[arg-type]
+            visibility=ConditionVisibility.VISIBLE,
+            escape_dc=15,
+            referent=SubjectReference(kind="creature", subject_id=creature.subject_id),
+        )
+        state = target.stored.state.model_copy(update={"conditions": (grappled,)})
+        return dataclasses.replace(
+            target, stored=dataclasses.replace(target.stored, state=state)
+        )
+    return target
+
+
+def _results() -> dict[str, tuple[bool, bool, str | None]]:
+    """For each C5 attack/save entry and Multiattack selection: (C5
+    executable, admitted, refusal or None)."""
+    from afterworlds.ingestion.mechanical.representation import (
+        CreatureAttackFact,
+        CreatureAttackRange,
+        CreatureMultiattackFact,
+    )
+    from afterworlds.models.enums import RollVisibility
+    from afterworlds.models.rpg import CreatureSaveEffectSelection, RollProposal
+    from afterworlds.pipeline.rpg import creature_clauses
+    from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
+    from afterworlds.pipeline.rpg.capability import AdjudicationRefusal
+    from afterworlds.pipeline.rpg.creature_attacks import check_multiattack
+    from afterworlds.pipeline.rpg.defense import facts_of
+    from afterworlds.pipeline.rpg.roster import EXECUTABLE
+    from tests.pipeline.rpg.test_creature_attacks import (
+        _bite,
+        _medium_wizard,
+        _ref,
+        _subjects,
+    )
+    from tests.pipeline.rpg.test_weapon_attacks import _creature
+
+    adapter, wizard = D20RulesSystemAdapter(), _medium_wizard()
+
+    def attack(creature: Any, entry: str) -> None:
+        template = creature.stored.state.template_record_key
+        fact = next(
+            f
+            for f in facts_of(creature.index, template)
+            if isinstance(f, CreatureAttackFact) and f.entry == entry
+        )
+        facts: dict[str, Any] = {"target_within_5_feet": True}
+        if fact.kind is CreatureAttackRange.RANGED:
+            facts = {"range": "within_normal_range", "hostiles_within_5_feet": ()}
+        try:
+            if creature_clauses.plan(creature, fact).charge_ft:
+                facts["moved_straight_toward_target"] = True
+        except AdjudicationRefusal:
+            pass
+        proposal = _bite(creature, wizard, entry=entry, **facts)
+        adapter.require_supported(proposal, wizard, _subjects(creature))
+
+    def save(key: str, creature: Any, entry: str) -> None:
+        target = _scenario(key, creature, wizard)
+        proposal = RollProposal(
+            check_label="save effect",
+            subsystem_tag="save",
+            visibility=RollVisibility.SHOWN,
+            operation="creature_save_effect",
+            creature_save_effect=CreatureSaveEffectSelection(
+                source=_ref(creature),
+                entry=entry,
+                targets=(_ref(target),),
+                auras_in_range=(),
+            ),
+        )
+        adapter.require_supported(proposal, target, _subjects(creature))
+
+    out: dict[str, tuple[bool, bool, str | None]] = {}
+    for key, entry in json.loads(CAPABILITY.read_bytes())["entries"].items():
+        kind = entry.get("entry_kind")
+        template, name = key.split("#")[0], key.split(":", 1)[1]
+        if kind not in ("attack", "save_effect", "multiattack"):
+            continue
+        creature = _creature(template, hp=150)
+        why: str | None
+        if kind != "multiattack":
+            try:
+                if kind == "attack":
+                    attack(creature, name)
+                else:
+                    save(key, creature, name)
+                why = None
+            except AdjudicationRefusal as exc:
+                why = f"{exc.kind.value}: {exc.detail}"
+            out[key] = (
+                bool(entry.get("executable_once_accepted")),
+                f"{template}:{name}" in EXECUTABLE,
+                why,
+            )
+            continue
+        multiattack = next(
+            f
+            for f in facts_of(creature.index, template)
+            if isinstance(f, CreatureMultiattackFact)
+        )
+        for selection in entry["selections"]:
+            label = selection["selection"]
+            alternative = multiattack.alternatives[int(label.split()[1]) - 1]
+            certified = {o for g in selection.get("certified_options", []) for o in g}
+            entries: list[str] = []
+            for part in alternative.parts:
+                part_name = part.attack or next(
+                    (o for o in part.any_of if not certified or o in certified), None
+                )
+                if not part.optional and part.count and part_name:
+                    entries += [part_name] * part.count
+            if " with replacement " in label:
+                index = int(label.split(" with replacement ")[1].split(":")[0]) - 1
+                replacement = multiattack.replacements[index]
+                for _ in range(replacement.replaces or 1):
+                    entries.remove(replacement.replaces_attack or entries[-1])
+                entries.append(label.split(": ", 1)[1])
+            try:
+                check_multiattack(creature, entries)
+                for part_entry in dict.fromkeys(entries):
+                    attack(creature, part_entry)
+                why = None
+            except AdjudicationRefusal as exc:
+                why = f"{exc.kind.value}: {exc.detail}"
+            except StopIteration:
+                why = "a part is not an attack entry"
+            out[f"{key} | {label}"] = (
+                bool(selection.get("executable_once_accepted")),
+                True,
+                why,
+            )
+    return out
+
+
+def test_every_admitted_shape_executes_and_every_other_entry_refuses() -> None:
+    """C5-positive shapes execute (or are a named boundary); entries outside
+    the roster refuse before any die; nothing else is claimed."""
+    results = _results()
+    failing = {k: why for k, (positive, _, why) in results.items() if positive and why}
+    assert set(failing) == set(BOUNDARIES), sorted(set(failing) ^ set(BOUNDARIES))
+    for key, why in failing.items():
+        assert BOUNDARIES[key] in why, (key, why)
+    for key, (positive, admitted_, why) in results.items():
+        if not positive and not admitted_:
+            assert why is not None, key  # outside the roster: refused
+    # Nothing beyond C5 executes unless the roster admits it.
+    assert all(admitted_ for _, admitted_, why in results.values() if why is None)

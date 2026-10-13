@@ -36,6 +36,7 @@ from afterworlds.ingestion.mechanical.representation import (
     DamageModificationFact,
     DamageResponseFact,
     DamageResponseKind,
+    DamageTerm,
     DamageType,
     HitPointBoundFact,
     KnockoutAlternativeFact,
@@ -163,6 +164,17 @@ def _as_character(target: TurnSubject) -> bool:
             "(character or monster); its template's location does not decide it",
         )
     return treatment.as_character
+
+
+def fixed_part(term: DamageTerm) -> int | None:
+    """A printed damage term's fixed amount: its constant, or for a flat
+    printed amount (*"1 Piercing damage"*: an average and no dice) that
+    amount; ``None`` when the term types neither dice nor an amount."""
+    if term.constant is not None:
+        return term.constant
+    if term.dice is None:
+        return term.average
+    return 0
 
 
 def preflight(target: TurnSubject, damage_type: DamageType) -> None:

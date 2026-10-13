@@ -35,6 +35,7 @@ property's extra attack, and sight that needs a sense's range.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from uuid import uuid4
 
@@ -50,7 +51,9 @@ from afterworlds.ingestion.mechanical.representation import (
     AutomaticOutcomeFact,
     ConditionEffectKind,
     ConditionKind,
+    ContributorPredicate,
     CoverDefensiveBonusFact,
+    CreatureRollModifierFact,
     CreatureSize,
     CreatureSizeFact,
     CriticalDamageFact,
@@ -60,6 +63,7 @@ from afterworlds.ingestion.mechanical.representation import (
     DamageRollRuleFact,
     DamageType,
     DiceExpression,
+    EntrySubject,
     FormulaTerm,
     LightExtraAttackFact,
     MasteryDamage,
@@ -435,6 +439,118 @@ _ATTACK_RULES: dict[tuple[str, str], str] = {
     (_G + "unconscious", "speed_0"): "none",
     (_G + "unconscious", "unaware"): "none",
 }
+
+
+def trait_applies(
+    holder: TurnSubject,
+    other: TurnSubject,
+    when: ContributorPredicate | None,
+    melee: bool,
+    where: str,
+    *,
+    attacking: bool,
+    allies: Callable[[], bool] | None = None,
+) -> bool:
+    """Whether a creature's standing trait applies to this attack: each
+    stated circumstance derived in code, or refused. *holder* holds the trait
+    and is attacking (*attacking*) or attacked; *other* is the attack's other
+    subject. *allies* settles Pack Tactics' named allies when attacking."""
+    if when is None:
+        return True
+    if when.subject_bloodied:
+        raise _refuse(
+            RefusalKind.MISSING_AUTHORITY,
+            f"{where} turns on Bloodied, which has no typed threshold "
+            "(glossary.bloodied is prose-bound)",
+        )
+    ally = when.ally_within_ft_of_target is not None or when.ally_not is not None
+    if (
+        when.stated is not None
+        or (when.target_missing_hit_points and not attacking)
+        or (
+            ally
+            and (
+                allies is None
+                or when.ally_within_ft_of_target != 5
+                or when.ally_not is not ConditionKind.INCAPACITATED
+            )
+        )
+    ):
+        raise _refuse(
+            RefusalKind.UNSUPPORTED_CAPABILITY,
+            f"{where}'s circumstance is not executable here",
+        )
+    applies = True
+    if when.subject_not is not None:
+        assert holder.index is not None
+        applies = applies and all(
+            e.condition is not when.subject_not for e in effective(holder, holder.index)
+        )
+    if when.attack is not None:
+        applies = applies and (when.attack is RangeClass.MELEE) is melee
+    if when.target_missing_hit_points:
+        hp = other.stored.state.hit_points
+        if hp is None:
+            raise _refuse(RefusalKind.MISSING_STATE, "the target records no hit points")
+        applies = applies and hp.current < hp.maximum - (hp.maximum_reduction or 0)
+    if ally and applies:
+        assert allies is not None
+        applies = allies()
+    return applies
+
+
+def creature_traits(
+    holder: TurnSubject,
+    other: TurnSubject,
+    melee: bool,
+    out: _Modifiers,
+    *,
+    attacking: bool,
+    allies: Callable[[], bool] | None = None,
+) -> None:
+    """A creature's standing traits on an attack it makes (*attacking*) or
+    that is made against it: Advantage/Disadvantage applied, anything else
+    refused, never ignored."""
+    if not isinstance(holder, TurnCreature):
+        return
+    assert holder.index is not None
+    side = RollActor.SUBJECT if attacking else RollActor.AGAINST_SUBJECT
+    template = template_of(holder)
+    for fact in facts_of(holder.index, template):
+        if not isinstance(fact, CreatureRollModifierFact):
+            continue
+        rolls = [
+            e
+            for e in fact.effects
+            if e.roll.context in (RollContext.ATTACK_ROLL, RollContext.D20_TEST)
+            and e.roll.actor is side
+        ]
+        if not rolls:
+            continue
+        where = f"{template}/{fact.entry}"
+        if fact.subject is not EntrySubject.SELF or any(
+            not isinstance(e, AdvantageFact) for e in rolls
+        ):
+            raise _refuse(
+                RefusalKind.UNSUPPORTED_CAPABILITY,
+                f"{where} changes this attack and is not executable here",
+            )
+        if trait_applies(
+            holder,
+            other,
+            fact.applies_when,
+            melee,
+            where,
+            attacking=attacking,
+            allies=allies,
+        ):
+            for e in rolls:
+                assert isinstance(e, AdvantageFact)
+                (
+                    out.advantage
+                    if e.state is AdvantageState.ADVANTAGE
+                    else out.disadvantage
+                ).append(where)
 
 
 @dataclass
@@ -1030,6 +1146,7 @@ def prepare(
     mods = _Modifiers()
     _conditions(actor, RollActor.SUBJECT, target, within_5_feet, mods)
     _conditions(target, RollActor.AGAINST_SUBJECT, actor, within_5_feet, mods)
+    creature_traits(target, actor, not ranged, mods, attacking=False)
     advantage, disadvantage = mods.advantage, mods.disadvantage
     a3, d3, spent = attack_effects(actor, target)
     advantage += a3

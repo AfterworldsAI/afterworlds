@@ -338,3 +338,153 @@ def test_a_replacement_by_a_save_effect_is_not_an_attack_sequence() -> None:
     check_multiattack(dragon, ["Rend", "Rend", "Rend"])
     with pytest.raises(AdjudicationRefusal):
         check_multiattack(dragon, ["Rend"])  # Sleep Breath is not executed
+
+
+# ---------------------------------------------------------------------------
+# Standing traits, conditional and flat damage, targeting by condition
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("incapacitated", "expression"), [(False, "2d20kl1"), (True, "1d20")]
+)
+def test_blurred_form_hinders_attacks_against_the_mephit(
+    incapacitated: bool, expression: str
+) -> None:
+    """A trait on attacks against its holder applies when the holder is the
+    target (it used to be ignored), unless its circumstance fails."""
+    import dataclasses
+
+    from afterworlds.models.dnd5e_state import ConditionInstance
+    from afterworlds.models.enums import ConditionVisibility
+    from tests.pipeline.rpg.test_weapon_attacks import (
+        DAGGER,
+        _attacker,
+        _proposal,
+    )
+    from tests.pipeline.rpg.test_weapon_attacks import _subjects as one
+
+    mephit = _creature("monsters.mephits.steam_mephit", hp=21)
+    if incapacitated:
+        stunned = ConditionInstance(
+            instance_id="s",
+            condition="incapacitated",  # type: ignore[arg-type]
+            visibility=ConditionVisibility.VISIBLE,
+        )
+        state = mephit.stored.state.model_copy(update={"conditions": (stunned,)})
+        mephit = dataclasses.replace(
+            mephit, stored=dataclasses.replace(mephit.stored, state=state)
+        )
+    dice = _dice((10, 15), (2,))
+    from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
+
+    D20RulesSystemAdapter().resolve_roll(
+        _proposal(mephit, DAGGER, ability="dexterity"),
+        _attacker(DAGGER),
+        None,
+        dice,
+        False,
+        one(mephit),
+    )
+    assert dice.calls[0] == expression
+
+
+def test_the_mephits_own_claw_is_not_refused_for_its_defensive_trait() -> None:
+    mephit, wizard = _creature("monsters.mephits.steam_mephit", hp=21), _medium_wizard()
+    record = _resolve(
+        _attack(mephit, wizard, "Claw"), wizard, _subjects(mephit), _dice((18,), (1,))
+    )
+    assert record.outcome in ("success", "critical_success")
+
+
+@pytest.mark.parametrize(
+    ("prone", "calls"), [(True, ["2d20kh1", "1d6", "1d4"]), (False, ["1d20", "1d6"])]
+)
+def test_a_goblin_adds_damage_only_with_advantage(
+    prone: bool, calls: list[str]
+) -> None:
+    goblin, wizard = (
+        _creature("monsters.goblins.goblin_warrior", hp=10),
+        _medium_wizard(),
+    )
+    if prone:
+        wizard = _prone(wizard)
+    dice = _dice((18, 18), (1,))
+    record = _resolve(
+        _attack(goblin, wizard, "Scimitar"), wizard, _subjects(goblin), dice
+    )
+    assert dice.calls == calls
+    assert _provenance(record)["rider"]["conditional_damage"] is prone
+
+
+def test_flat_printed_damage_is_its_amount() -> None:
+    badger, wizard = _creature("animals.badger", hp=5), _medium_wizard()
+    dice = _dice((19,))
+    record = _resolve(_attack(badger, wizard, "Bite"), wizard, _subjects(badger), dice)
+    assert dice.calls == ["1d20"]  # "1 Piercing damage": no damage die
+    assert _provenance(record)["damage"][0]["rolled"] == 1
+
+
+@pytest.mark.parametrize(("hurt", "expression"), [(True, "2d20kh1"), (False, "1d20")])
+def test_blood_frenzy_turns_on_the_targets_recorded_hit_points(
+    hurt: bool, expression: str
+) -> None:
+    sahuagin = _creature("monsters.sahuagin.sahuagin_warrior", hp=22)
+    wolf = _creature(hp=11)
+    if hurt:
+        import dataclasses
+
+        hp = wolf.stored.state.hit_points
+        assert hp is not None
+        state = wolf.stored.state.model_copy(
+            update={"hit_points": hp.model_copy(update={"current": 5})}
+        )
+        wolf = dataclasses.replace(
+            wolf, stored=dataclasses.replace(wolf.stored, state=state)
+        )
+    dice = _dice((18, 18), (1,))
+    _resolve(
+        _attack(sahuagin, wolf, "Claw"),
+        _medium_wizard(),
+        _subjects(sahuagin, wolf),
+        dice,
+    )
+    assert dice.calls[0] == expression
+
+
+def test_pummel_targets_only_a_creature_its_source_grapples() -> None:
+    from afterworlds.models.enums import RollVisibility
+    from afterworlds.models.rpg import CreatureSaveEffectSelection, RollProposal
+    from tests.pipeline.rpg.test_creature_attacks import _ref
+    from tests.pipeline.rpg.test_creature_roster import _scenario
+
+    glabrezu, wizard = _creature("monsters.glabrezu.glabrezu", hp=174), _medium_wizard()
+
+    def pummel(target: Any) -> RollProposal:
+        return RollProposal(
+            check_label="Pummel",
+            subsystem_tag="save",
+            visibility=RollVisibility.SHOWN,
+            operation="creature_save_effect",
+            creature_save_effect=CreatureSaveEffectSelection(
+                source=_ref(glabrezu),
+                entry="Pummel",
+                targets=(_ref(target),),
+                auras_in_range=(),
+            ),
+        )
+
+    _refused(RefusalKind.INVALID_SELECTION, pummel(wizard), wizard, _subjects(glabrezu))
+    held = _scenario("monsters.glabrezu.glabrezu#4:Pummel", glabrezu, wizard)
+    from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
+
+    D20RulesSystemAdapter().require_supported(pummel(held), held, _subjects(glabrezu))
+
+
+def test_an_optional_use_of_another_entry_is_simply_not_made() -> None:
+    from afterworlds.pipeline.rpg.creature_attacks import check_multiattack
+
+    erinyes = _creature("monsters.erinyes.erinyes", hp=178)
+    check_multiattack(erinyes, ["Withering Sword"] * 3)
+    with pytest.raises(AdjudicationRefusal):
+        check_multiattack(erinyes, ["Withering Sword"] * 3 + ["Entangling Rope"])

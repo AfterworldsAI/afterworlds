@@ -32,17 +32,16 @@ from uuid import uuid4
 
 from afterworlds.ingestion.mechanical.representation import (
     AdvantageFact,
-    AdvantageState,
     ConditionEffectKind,
     ConditionKind,
     CreatureAttackFact,
     CreatureAttackRange,
     CreatureEntryUsageFact,
     CreatureMultiattackFact,
-    CreatureRollModifierFact,
+    DamageMode,
+    DamageTerm,
     DamageType,
     EntrySection,
-    EntrySubject,
     MultiattackAlternative,
     MultiattackReplacement,
     NaturalRollOutcomeFact,
@@ -70,6 +69,7 @@ from afterworlds.pipeline.rpg.attacks import (
     _conditions,
     _Modifiers,
     _size,
+    creature_traits,
     subject_key,
 )
 from afterworlds.pipeline.rpg.capability import (
@@ -80,7 +80,12 @@ from afterworlds.pipeline.rpg.capability import (
     certify,
     governing_fingerprint,
 )
-from afterworlds.pipeline.rpg.damage import DamageTaken, preflight, take_damage
+from afterworlds.pipeline.rpg.damage import (
+    DamageTaken,
+    fixed_part,
+    preflight,
+    take_damage,
+)
 from afterworlds.pipeline.rpg.defense import (
     armor_class,
     condition_immune,
@@ -252,7 +257,7 @@ def _attack_fact(attacker: TurnCreature, entry: str) -> CreatureAttackFact:
         )
     creature_clauses.plan(attacker, fact)  # every clause executed, or refused
     for term in fact.hit_damage:
-        if term.dice is None and term.constant is None:
+        if fixed_part(term) is None:
             raise _refuse(RefusalKind.MISSING_AUTHORITY, f"{entry}: untyped damage")
         if term.addends or term.damage_type is None:
             raise _refuse(
@@ -270,69 +275,21 @@ def _standing_traits(
     out: _Modifiers,
     actor: TurnCharacter,
     subjects: dict[tuple[str, str], TurnSubject],
+    melee: bool,
 ) -> None:
-    """Standing traits that change this attack roll: the attacker's own
-    (subject ``self``), settled by the GameMaster's facts, or refused."""
-    assert attacker.index is not None
-    template = template_of(attacker)
-    for fact in facts_of(attacker.index, template):
-        if not isinstance(fact, CreatureRollModifierFact):
-            continue
-        rolls = [
-            e
-            for e in fact.effects
-            if e.roll.context in (RollContext.ATTACK_ROLL, RollContext.D20_TEST)
-        ]
-        if not rolls:
-            continue
-        where = f"{template}/{fact.entry}"
-        if fact.subject is not EntrySubject.SELF or any(
-            e.roll.actor is not RollActor.SUBJECT for e in rolls
-        ):
-            raise _refuse(
-                RefusalKind.UNSUPPORTED_CAPABILITY,
-                f"{where} changes other creatures' rolls and is not executable here",
+    """Standing traits that change this attack roll: the attacker's own, and
+    a creature target's on attacks against it (:func:`.attacks.creature_traits`);
+    Pack Tactics' allies are the GameMaster's named, read subjects."""
+
+    def allies() -> bool:
+        return bool(
+            bystanders.allies(
+                sel.allies_within_5_feet_of_target, attacker, target, actor, subjects
             )
-        when = fact.applies_when
-        if when is None:
-            applies = True
-        elif (
-            when.ally_within_ft_of_target == 5
-            and when.ally_not is ConditionKind.INCAPACITATED
-            and all(
-                getattr(when, name) is None
-                for name in (
-                    "stated",
-                    "subject_not",
-                    "subject_bloodied",
-                    "target_missing_hit_points",
-                    "attack",
-                )
-            )
-        ):
-            applies = bool(
-                bystanders.allies(
-                    sel.allies_within_5_feet_of_target,
-                    attacker,
-                    target,
-                    actor,
-                    subjects,
-                )
-            )
-        else:
-            raise _refuse(
-                RefusalKind.UNSUPPORTED_CAPABILITY,
-                f"{where}'s circumstance is not executable here",
-            )
-        if applies:
-            for e in rolls:
-                if not isinstance(e, AdvantageFact):
-                    continue
-                (
-                    out.advantage
-                    if e.state is AdvantageState.ADVANTAGE
-                    else out.disadvantage
-                ).append(where)
+        )
+
+    creature_traits(attacker, target, melee, out, attacking=True, allies=allies)
+    creature_traits(target, attacker, melee, out, attacking=False)
 
 
 def _rider_turn(duration: TurnBoundary | None) -> str | None:
@@ -355,8 +312,53 @@ def _rider_turn(duration: TurnBoundary | None) -> str | None:
     return "start" if duration.until is RecurrenceBoundary.START_OF_TURN else "end"
 
 
+def _check_conditional_damage(rider: Rider, entry: str, terms: int) -> None:
+    """Admit damage stated under the attack roll having had Advantage (code
+    knows the roll mode). Bloodied has no typed threshold in the accepted
+    authority (``glossary.bloodied`` is prose-bound): it refuses."""
+    extra = rider.conditional_damage
+    if extra is None:
+        return
+    when = extra.when
+    if when.source_bloodied or when.target_bloodied:
+        raise _refuse(
+            RefusalKind.MISSING_AUTHORITY,
+            f"{entry}'s damage turns on Bloodied, which has no typed threshold "
+            "(glossary.bloodied is prose-bound)",
+        )
+    others = (
+        when.target_grappled_by_source,
+        when.source_moved_straight_toward_target_ft_min,
+        when.target_maximum_size,
+    )
+    instead = extra.mode is DamageMode.INSTEAD
+    if (
+        not when.attack_roll_had_advantage
+        or any(v is not None for v in others)
+        or extra.term.damage_type is None
+        or extra.term.addends
+        or fixed_part(extra.term) is None
+        or (
+            instead
+            and (
+                extra.replaces_hit_damage_index is None
+                or extra.replaces_hit_damage_index >= terms
+            )
+        )
+        or (not instead and extra.mode is not DamageMode.ADDITIONAL)
+    ):
+        raise _refuse(
+            RefusalKind.UNSUPPORTED_CAPABILITY,
+            f"{entry}'s hit effect includes conditional damage, not executable here",
+        )
+
+
 def _check_rider(
-    rider: Rider | None, attacker: TurnCreature, target: TurnSubject, entry: str
+    rider: Rider | None,
+    attacker: TurnCreature,
+    target: TurnSubject,
+    entry: str,
+    hit_damage: tuple[DamageTerm, ...] = (),
 ) -> PreparedSave | None:
     """Validate the hit effect before any die; prepare its save, if any."""
     if rider is None:
@@ -365,7 +367,6 @@ def _check_rider(
         name
         for name, value in (
             ("a speed change", rider.speed),
-            ("conditional damage", rider.conditional_damage),
             ("forced movement", rider.forced_movement),
             ("a linked condition", rider.linked),
         )
@@ -381,6 +382,7 @@ def _check_rider(
             RefusalKind.UNSUPPORTED_CAPABILITY,
             f"{entry}'s hit effect is not on the target",
         )
+    _check_conditional_damage(rider, entry, len(hit_damage))
     if rider.maximum_size is not None and _size(target) is None:
         raise _refuse(
             RefusalKind.MISSING_STATE,
@@ -535,7 +537,7 @@ def prepare(
 
     _conditions(attacker, RollActor.SUBJECT, target, within_5_feet, mods)
     _conditions(target, RollActor.AGAINST_SUBJECT, attacker, within_5_feet, mods)
-    _standing_traits(attacker, target, sel, mods, actor, subjects)
+    _standing_traits(attacker, target, sel, mods, actor, subjects, melee)
 
     ac = armor_class(target)
     ac_breakdown = dict(ac.breakdown)
@@ -560,7 +562,13 @@ def prepare(
     for term in terms:
         assert term.damage_type is not None
         preflight(target, term.damage_type)
-    rider_save = _check_rider(fact.hit_effect, attacker, target, fact.entry)
+    rider_save = _check_rider(
+        fact.hit_effect, attacker, target, fact.entry, fact.hit_damage
+    )
+    if fact.hit_effect is not None and fact.hit_effect.conditional_damage:
+        damage_type = fact.hit_effect.conditional_damage.term.damage_type
+        assert damage_type is not None
+        preflight(target, damage_type)
     assert fact.attack_bonus is not None
     return PreparedCreatureAttack(
         selection=sel,
@@ -765,6 +773,8 @@ def _rider(
             return [], {"result": "too_large"}
     effects: list[SheetEffect] = []
     out: dict[str, object] = {}
+    if rider.conditional_damage is not None:
+        out["conditional_damage"] = prepared.advantaged
     if rider.condition is not None:
         kind = rider.condition.condition
         if condition_immune(target, kind):
@@ -847,8 +857,17 @@ def roll(
     replaced = prepared.clauses.advantage_damage
     if replaced is not None and prepared.advantaged:
         terms[replaced[0]] = replaced[1]
+    effect = prepared.fact.hit_effect
+    rider_damage = effect.conditional_damage if effect is not None else None
+    if rider_damage is not None and prepared.advantaged:
+        # Admitted only under "the attack roll had Advantage" (_check_rider).
+        if rider_damage.mode is DamageMode.INSTEAD:
+            assert rider_damage.replaces_hit_damage_index is not None
+            terms[rider_damage.replaces_hit_damage_index] = rider_damage.term
+        else:
+            terms.append(rider_damage.term)
     for term in terms:
-        amount = term.constant or 0
+        amount = fixed_part(term) or 0
         if term.dice is not None:
             count = term.dice.count * (multiplier if critical else 1)
             drawn = dice.roll(f"{count}{term.dice.die.value}")
@@ -994,8 +1013,9 @@ def check_multiattack(attacker: TurnCreature, entries: list[str]) -> None:
     printed alternative of the attacker's Multiattack: every required part's
     count, optional parts up to theirs, and nothing else, or that with a
     printed replacement by another attack entry. Alternatives with a
-    condition, a count formula, a spell use or an "if available" part, and
-    replacements by a spell or a non-attack entry, are not executable here."""
+    condition, a count formula, a required use of another entry or an "if
+    available" part, optional uses of another entry, and replacements by a
+    spell or a non-attack entry, are not executable here."""
     assert attacker.index is not None
     template = template_of(attacker)
     facts = [
@@ -1014,8 +1034,12 @@ def check_multiattack(attacker: TurnCreature, entries: list[str]) -> None:
     }
     made = Counter(entries)
     for alternative in facts[0].alternatives:
+        # An optional use of another entry (a spell, Entangling Rope) is not
+        # executed here: the alternative is made without it.
         if alternative.condition is not None or any(
-            p.count_formula is not None or p.uses_one_of or p.if_available
+            p.count_formula is not None
+            or p.if_available
+            or (p.uses_one_of and not p.optional)
             for p in alternative.parts
         ):
             continue

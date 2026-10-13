@@ -52,7 +52,12 @@ from afterworlds.pipeline.rpg.capability import (
     certify,
     governing_fingerprint,
 )
-from afterworlds.pipeline.rpg.damage import DamageTaken, preflight, take_damage
+from afterworlds.pipeline.rpg.damage import (
+    DamageTaken,
+    fixed_part,
+    preflight,
+    take_damage,
+)
 from afterworlds.pipeline.rpg.defense import (
     condition_immune,
     facts_of,
@@ -311,7 +316,7 @@ def _fact(source: TurnCreature, entry: str) -> CreatureSaveEffectFact:
         name
         for name, value in (
             ("creature types", t.types or t.excludes_types),
-            ("conditions on targets", t.has_conditions or t.related_to_source),
+            ("conditions on targets", t.has_conditions),
             ("sight", t.requires_source_sees_target or t.requires_source_sees_point),
             ("the target's sight", t.requires_target_sees_source),
             ("the environment", t.source_environment),
@@ -329,11 +334,7 @@ def _fact(source: TurnCreature, entry: str) -> CreatureSaveEffectFact:
             f"{where} turns on {unexecuted[0]}, which is not executable here",
         )
     for term in fact.failure_damage:
-        if (
-            term.addends
-            or term.damage_type is None
-            or (term.dice is None and term.constant is None)
-        ):
+        if term.addends or term.damage_type is None or fixed_part(term) is None:
             raise _refuse(
                 RefusalKind.UNSUPPORTED_CAPABILITY,
                 f"{where}: damage by choice or formula is not executable here",
@@ -423,6 +424,22 @@ def prepare(
                 RefusalKind.INCOMPATIBLE_CERTIFICATION,
                 "the source's and a target's bindings disagree on this procedure",
             )
+        for kind in t.related_to_source:
+            # "a creature Grappled by the glabrezu": a recorded instance of
+            # the condition whose referent is the source.
+            recorded = target.stored.state.conditions
+            if recorded is None:
+                raise _refuse(
+                    RefusalKind.MISSING_STATE, "a target records no conditions"
+                )
+            if not any(
+                c.condition.value == kind.value and c.referent == reference(source)
+                for c in recorded
+            ):
+                raise _refuse(
+                    RefusalKind.INVALID_SELECTION,
+                    f"{sel.entry} targets a creature {kind.value} by its source",
+                )
         if t.maximum_size is not None:
             size = _size(target)
             if size is None:
@@ -478,7 +495,7 @@ def roll(
     rolls: list[int] = []
     parts: list[tuple[int, DamageType]] = []
     for term in fact.failure_damage:
-        amount = term.constant or 0
+        amount = fixed_part(term) or 0
         if term.dice is not None:
             drawn = dice.roll(f"{term.dice.count}{term.dice.die.value}")
             rolls.extend(drawn.raw_rolls)
