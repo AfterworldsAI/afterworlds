@@ -244,9 +244,15 @@ def take_damage(
     *,
     critical: bool,
     knock_out: bool = False,
+    more: tuple[tuple[int, DamageType], ...] = (),
 ) -> DamageTaken:
-    """The effects on *target* of *amount* damage of *damage_type*, or a
-    typed refusal. Pure: nothing is written."""
+    """The effects on *target* of *amount* damage of *damage_type* (and of
+    each further ``(amount, type)`` in *more*: one hit's other damage terms),
+    or a typed refusal. Pure: nothing is written.
+
+    Responses apply per type; the hit's damage is then one amount, so
+    temporary hit points, the bound, massive damage and every zero-HP
+    consequence are judged once per hit (``play.damage_and_healing``)."""
     index = target.index
     if index is None:
         raise _refuse(
@@ -256,8 +262,14 @@ def take_damage(
     hp = state.hit_points
     if hp is None:
         raise _refuse(RefusalKind.MISSING_STATE, "the target records no hit points")
-    responses = damage_responses(target, damage_type)
-    taken = _modified(index, max(0, amount), responses)
+    found: list[DamageResponseKind] = []
+    taken = 0
+    for part, part_type in ((amount, damage_type), *more):
+        part_responses = damage_responses(target, part_type)
+        found += part_responses
+        taken += _modified(index, max(0, part), part_responses)
+    responses = tuple(found)
+    amount += sum(part for part, _ in more)
     kind: str = "character" if not isinstance(target, TurnCreature) else "creature"
     subject = {"subject_kind": kind, "subject_id": target.subject_id}
 

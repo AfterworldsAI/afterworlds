@@ -185,3 +185,83 @@ def test_a_turn_bounded_condition_ends_at_its_edge() -> None:
         {"instance_id": "g1"},
     )
     assert expiring(held, "end", source, 1) == []
+
+
+# ---------------------------------------------------------------------------
+# One hit, one damage: several damage terms judge zero-HP consequences once
+# ---------------------------------------------------------------------------
+
+
+def _at(hp: int, maximum: int, **death: Any) -> TurnCreature:
+    import dataclasses
+
+    from afterworlds.models.dnd5e_state import (
+        DeathState,
+        HitPoints,
+        ZeroHitPointTreatment,
+    )
+
+    wolf = _creature(hp=maximum, treatment=ZeroHitPointTreatment(subject="character"))
+    state = wolf.stored.state.model_copy(
+        update={
+            "hit_points": HitPoints(current=hp, maximum=maximum, temporary=0),
+            "death_state": DeathState(
+                **{
+                    "successes": 0,
+                    "failures": 0,
+                    "stable": False,
+                    "dead": False,
+                    **death,
+                }
+            ),
+        }
+    )
+    return dataclasses.replace(
+        wolf, stored=dataclasses.replace(wolf.stored, state=state)
+    )
+
+
+def test_a_two_term_hit_falls_once() -> None:
+    from afterworlds.ingestion.mechanical.representation import DamageType
+    from afterworlds.pipeline.rpg.damage import take_damage
+
+    hit = take_damage(
+        _at(5, 20),
+        4,
+        DamageType.PIERCING,
+        critical=False,
+        more=((3, DamageType.POISON),),
+    )
+    assert hit.outcome == "unconscious_and_dying" and hit.taken == 7
+    assert [e.target for e in hit.effects].count("death_state") == 1
+
+
+def test_massive_damage_is_judged_on_the_whole_hit() -> None:
+    from afterworlds.ingestion.mechanical.representation import DamageType
+    from afterworlds.pipeline.rpg.damage import take_damage
+
+    # Each term alone would overflow by 3; together by 11, past the maximum.
+    hit = take_damage(
+        _at(5, 10),
+        8,
+        DamageType.PIERCING,
+        critical=False,
+        more=((8, DamageType.POISON),),
+    )
+    assert hit.outcome == "died_massive_damage"
+
+
+def test_a_two_term_critical_at_0_hit_points_counts_two_failures() -> None:
+    from afterworlds.ingestion.mechanical.representation import DamageType
+    from afterworlds.models.dnd5e_state import DeathState
+    from afterworlds.pipeline.rpg.damage import take_damage
+
+    hit = take_damage(
+        _at(0, 20),
+        2,
+        DamageType.PIERCING,
+        critical=True,
+        more=((2, DamageType.POISON),),
+    )
+    (death,) = [e for e in hit.effects if e.target == "death_state"]
+    assert DeathState.model_validate(json.loads(death.value_json)).failures == 2

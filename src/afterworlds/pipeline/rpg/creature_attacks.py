@@ -37,6 +37,7 @@ from afterworlds.ingestion.mechanical.representation import (
     CreatureAttackRange,
     CreatureEntryUsageFact,
     CreatureRollModifierFact,
+    DamageType,
     EntrySection,
     EntrySubject,
     NaturalRollOutcomeFact,
@@ -311,6 +312,12 @@ def _standing_traits(
 def _rider_turn(duration: TurnBoundary | None) -> str | None:
     if duration is None:
         return None
+    if duration.turn_of not in (TurnOwner.SOURCE, TurnOwner.TARGET):
+        raise _refuse(
+            RefusalKind.UNSUPPORTED_CAPABILITY,
+            f"a duration bounded by the {duration.turn_of.value}'s turn is not "
+            "executable here",
+        )
     if duration.turn is not TurnWhich.NEXT or duration.until not in (
         RecurrenceBoundary.START_OF_TURN,
         RecurrenceBoundary.END_OF_TURN,
@@ -672,7 +679,7 @@ def roll(
         raise _refuse(RefusalKind.MISSING_AUTHORITY, "no typed critical damage rule")
     target = prepared.target
     rolls: list[int] = []
-    taken: list[DamageTaken] = []
+    parts: list[tuple[int, DamageType]] = []
     for term in prepared.fact.hit_damage:
         amount = term.constant or 0
         if term.dice is not None:
@@ -681,12 +688,13 @@ def roll(
             rolls.extend(drawn.raw_rolls)
             amount += drawn.chosen + term.dice.modifier
         assert term.damage_type is not None
-        result = take_damage(
-            target, max(0, amount), term.damage_type, critical=critical
-        )
-        taken.append(result)
-        # The next term, and the hit effect, see what this term left.
-        target = with_effects(target, list(result.effects))
+        parts.append((max(0, amount), term.damage_type))
+    # One hit, one damage: every term together (responses per type).
+    (first, first_type), *rest = parts
+    result = take_damage(target, first, first_type, critical=critical, more=tuple(rest))
+    taken = [result]
+    # The hit effect sees what the damage left.
+    target = with_effects(target, list(result.effects))
     effects, rider = _rider(prepared, target, dice, coordination)
     return RolledCreatureAttack(
         prepared,
