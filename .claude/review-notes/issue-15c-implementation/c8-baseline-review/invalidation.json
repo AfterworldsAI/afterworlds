@@ -1,0 +1,11 @@
+{
+  "checked_utc": "2026-10-13T17:54:56.278639+00:00",
+  "reviewed_commit": "5c4d8d6e56c015862cb16f5e34d2229c985faf5a",
+  "current_commit": "5c4d8d6e56c015862cb16f5e34d2229c985faf5a",
+  "later_committed_changes_to_review_inputs": [],
+  "working_source_or_baseline_changes_after_line_ending_normalization": [],
+  "working_control_changes": [],
+  "detect_secrets_version": "1.5.0",
+  "working_baseline_raw_sha256": "c22026f52d39b72530437b3ddf0e3429fe342f93060d2fcafb276d5d53b4dc0c",
+  "review_still_applies_to_inputs": true
+}

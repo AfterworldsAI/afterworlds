@@ -1,0 +1,9 @@
+{
+  "ended_utc": "2026-10-13T17:57:07.7928621Z",
+  "actual_python_exit": 0,
+  "recorded_report_exists": true,
+  "recorded_report_sha256": "c43748bd9366cc5f1a99bc26b54d2ff4c61721f5d163f38d56b3eb6acb752338",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stdout_sha256": "51f7808c82ef1ae22fa7ed3379d8e4cddea7e34f5b9d5d95632910ec8f453327",
+  "warning": "The original cmd record.exit.txt may reflect early errorlevel expansion; use this actual OS Python exit plus full recording proofs."
+}

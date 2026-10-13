@@ -1,0 +1,3744 @@
+{
+  "base_commit": "1d4193c4b162e3db4df3a3240d00313f36dd918b",
+  "reviewed_commit": "5c4d8d6e56c015862cb16f5e34d2229c985faf5a",
+  "base_baseline_sha256": "ca3f383cbb646de71737d965c5168393c657972d24c17c1820ff316092531156",
+  "reviewed_baseline_sha256": "c22026f52d39b72530437b3ddf0e3429fe342f93060d2fcafb276d5d53b4dc0c",
+  "settings_identical_including_metadata": true,
+  "ci_and_hook_config_unchanged": true,
+  "added": 284,
+  "removed": 0,
+  "modified_existing_entries": 0,
+  "is_secret_added_or_modified": 0,
+  "new_is_verified_false": 284,
+  "configured_hex_entropy_limit": 3.0,
+  "in_memory_detector_matches": 284,
+  "categories": {
+    "Mechanical schema digest": 11,
+    "Artifact/source SHA-256 pin": 206,
+    "Mechanical proposal identity": 35,
+    "Mechanical oracle identity": 4,
+    "Mechanical projection payload digest": 11,
+    "Git revision pin": 17
+  },
+  "transitions": [
+    {
+      "commit": "ad1ef59f388e8146231fe846fc84c159a6fa669c",
+      "added": 86,
+      "removed": 0,
+      "changed_existing": 0
+    },
+    {
+      "commit": "5c4d8d6e56c015862cb16f5e34d2229c985faf5a",
+      "added": 198,
+      "removed": 0,
+      "changed_existing": 0
+    }
+  ],
+  "sources": [
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\build_c8_preview.py",
+      "committed_blob_sha256": "bf4e57b0362e3fa6c51c56fc9d78bffc6e0b818f329e710197e1bd3a8af3aa09"
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "committed_blob_sha256": "4b2b06ef544df426309b1e0433ded35b67bed395bf94634e9c261d8bdf40d48f"
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "committed_blob_sha256": "ebc0023ff34d6e16af50c278f7934c5094a2a7477f4f9a30c865aecba67321e6"
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-revalidation.json",
+      "committed_blob_sha256": "77b22fd668c8b773aa1d25c322cbbb40b369cf54c68966872e0ba373e228f584"
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\check_corrected_identity.py",
+      "committed_blob_sha256": "b88c741142b1a064d485a6483c64d86b53197f7d3b9adb559a81d16a1e48494a"
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\corrected-identity.json",
+      "committed_blob_sha256": "731f4b3a3f8e5fca8dba5beb8a92e62f9a3f1f47866ec9de30aa4d0efe227e64"
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-c8-revalidation.json",
+      "committed_blob_sha256": "77b22fd668c8b773aa1d25c322cbbb40b369cf54c68966872e0ba373e228f584"
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-completion-evidence.json",
+      "committed_blob_sha256": "28d441e08ad44b175d717189d5a0339c1ffcb9b94d50a2d5889f54be0b40c296"
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-review-run-observation.json",
+      "committed_blob_sha256": "6ecdd746eeff9ad83838b0e0daf25874fffba6c6b4af15236f2dc6fef711ab68"
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-build_c8_preview.py",
+      "committed_blob_sha256": "bf4e57b0362e3fa6c51c56fc9d78bffc6e0b818f329e710197e1bd3a8af3aa09"
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "committed_blob_sha256": "ebc0023ff34d6e16af50c278f7934c5094a2a7477f4f9a30c865aecba67321e6"
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-common.py",
+      "committed_blob_sha256": "20761dc0f9e13007cbb7270dae6fad7ba6d122899aa2e30ea03e0153369d9b07"
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "committed_blob_sha256": "27214c0884dc9998986229cf6187a06374c90c665d1939b2b788751e27de8dcc"
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-schema-review\\correction-controls.json",
+      "committed_blob_sha256": "b63f0348dd81407a3f1cba9d7a701d51c621d27d220799ef7fbd57bbd24483c9"
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-schema-review\\descriptor-delta.json",
+      "committed_blob_sha256": "eb5f3a7c00a9445dba623b26ba7f2b6c4982cc595dfdbb0f26d485574722a4f5"
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-schema-review\\form-scope-probe.json",
+      "committed_blob_sha256": "ac70aecdd7d49659ba812ee2d1a7cdf9145eb0431f1b7b3f1b14f1789b2a85b4"
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\correction-inspection.json",
+      "committed_blob_sha256": "63521b7b2f1efc4cbeab5127b0b007b5084cb606d1f906ff0a4710ed0a9806ea"
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\post-c7-baseline-review\\check.py",
+      "committed_blob_sha256": "9c4bc8241902d61019de1835bb1bc5fef09408811e30d03665c982dc7084cf80"
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\post-c7-baseline-review\\results.json",
+      "committed_blob_sha256": "bf3ca863a43583e8b1db6aee4bd328fc06a0036447e881a8b60801a5d9188dcd"
+    }
+  ],
+  "entries": [
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\build_c8_preview.py",
+      "line": 123,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical schema digest",
+      "fields": [],
+      "redacted_source_line": "    \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\build_c8_preview.py",
+      "line": 158,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "    \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\build_c8_preview.py",
+      "line": 161,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "    SUCCESSOR: \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\build_c8_preview.py",
+      "line": 162,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "    C8: \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\build_c8_preview.py",
+      "line": 163,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "    CORRESPONDENCE: \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\build_c8_preview.py",
+      "line": 164,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "    INVENTORY: \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\build_c8_preview.py",
+      "line": 165,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "    DELTA: \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\build_c8_preview.py",
+      "line": 185,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "        \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\build_c8_preview.py",
+      "line": 186,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [],
+      "redacted_source_line": "        \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\build_c8_preview.py",
+      "line": 190,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "        \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\build_c8_preview.py",
+      "line": 191,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [],
+      "redacted_source_line": "        \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\build_c8_preview.py",
+      "line": 195,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "        \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\build_c8_preview.py",
+      "line": 196,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [],
+      "redacted_source_line": "        \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\build_c8_preview.py",
+      "line": 200,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "        \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\build_c8_preview.py",
+      "line": 201,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [],
+      "redacted_source_line": "        \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\build_c8_preview.py",
+      "line": 205,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "        \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\build_c8_preview.py",
+      "line": 206,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [],
+      "redacted_source_line": "        \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 7,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/builder_sha256"
+      ],
+      "redacted_source_line": " \"builder_sha256\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 9,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/scripts_sha256/common.py"
+      ],
+      "redacted_source_line": "  \"common.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 10,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/scripts_sha256/excise.py"
+      ],
+      "redacted_source_line": "  \"excise.py\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 13,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json"
+      ],
+      "redacted_source_line": "  \"src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 14,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/.claude/review-notes/issue-15c-implementation/candidate-c8/c8.json"
+      ],
+      "redacted_source_line": "  \".claude/review-notes/issue-15c-implementation/candidate-c8/c8.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 15,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/.claude/review-notes/issue-15c-implementation/candidate-c8/correspondence.json"
+      ],
+      "redacted_source_line": "  \".claude/review-notes/issue-15c-implementation/candidate-c8/correspondence.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 16,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/.claude/review-notes/issue-15c-implementation/candidate-c8/inventory.json"
+      ],
+      "redacted_source_line": "  \".claude/review-notes/issue-15c-implementation/candidate-c8/inventory.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 17,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/.claude/review-notes/issue-15c-implementation/candidate-c8/schema-21-delta.md"
+      ],
+      "redacted_source_line": "  \".claude/review-notes/issue-15c-implementation/candidate-c8/schema-21-delta.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 18,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/D:/AI/Claude/scratch/AW docs/issue2b-implementation/afterworlds/.claude/review-notes/issue-15c-implementation/codex-c8-raw-correction-review.md"
+      ],
+      "redacted_source_line": "  \"D:/AI/Claude/scratch/AW docs/issue2b-implementation/afterworlds/.claude/review-notes/issue-15c-implementation/codex-c8-raw-correction-review.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 19,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/animals.md"
+      ],
+      "redacted_source_line": "  \"docs/sources/community/dnd-5e-srd-markdown/animals.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 20,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/character-origins.md"
+      ],
+      "redacted_source_line": "  \"docs/sources/community/dnd-5e-srd-markdown/character-origins.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 21,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/classes.md"
+      ],
+      "redacted_source_line": "  \"docs/sources/community/dnd-5e-srd-markdown/classes.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 22,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/magic-items.md"
+      ],
+      "redacted_source_line": "  \"docs/sources/community/dnd-5e-srd-markdown/magic-items.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 23,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/monsters-A-Z.md"
+      ],
+      "redacted_source_line": "  \"docs/sources/community/dnd-5e-srd-markdown/monsters-A-Z.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 24,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/monsters.md"
+      ],
+      "redacted_source_line": "  \"docs/sources/community/dnd-5e-srd-markdown/monsters.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 25,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/rules-glossary.md"
+      ],
+      "redacted_source_line": "  \"docs/sources/community/dnd-5e-srd-markdown/rules-glossary.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 26,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/spells.md"
+      ],
+      "redacted_source_line": "  \"docs/sources/community/dnd-5e-srd-markdown/spells.md\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 31,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/accepted_inputs_located/animals/1"
+      ],
+      "redacted_source_line": "   \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 35,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/accepted_inputs_located/character-origins-feats/1"
+      ],
+      "redacted_source_line": "   \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 39,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/accepted_inputs_located/magic-items/1"
+      ],
+      "redacted_source_line": "   \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 43,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/accepted_inputs_located/monsters/1"
+      ],
+      "redacted_source_line": "   \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 47,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/accepted_inputs_located/spell-descriptions/1"
+      ],
+      "redacted_source_line": "   \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 57,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/preview_sha256"
+      ],
+      "redacted_source_line": " \"preview_sha256\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 59,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical oracle identity",
+      "fields": [
+        "/oracle_identity"
+      ],
+      "redacted_source_line": " \"oracle_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 62,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical schema digest",
+      "fields": [
+        "/schema/1"
+      ],
+      "redacted_source_line": "  \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 103,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical projection payload digest",
+      "fields": [
+        "/native/payload_hash"
+      ],
+      "redacted_source_line": "  \"payload_hash\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-build.log.out",
+      "line": 105,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical projection payload digest",
+      "fields": [
+        "/native/successor_lifted_payload_hash"
+      ],
+      "redacted_source_line": "  \"successor_lifted_payload_hash\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 5,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/accepted_inputs_located/animals/1",
+        "/batches/animals/accepted_rendered_sha256"
+      ],
+      "redacted_source_line": "   \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 9,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/accepted_inputs_located/character-origins-feats/1",
+        "/batches/character-origins-feats/accepted_rendered_sha256"
+      ],
+      "redacted_source_line": "   \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 13,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/accepted_inputs_located/magic-items/1",
+        "/batches/magic-items/accepted_rendered_sha256"
+      ],
+      "redacted_source_line": "   \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 17,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/accepted_inputs_located/monsters/1",
+        "/batches/monsters/accepted_rendered_sha256"
+      ],
+      "redacted_source_line": "   \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 21,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/accepted_inputs_located/spell-descriptions/1",
+        "/batches/spell-descriptions/accepted_rendered_sha256"
+      ],
+      "redacted_source_line": "   \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 28,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/batches/animals/accepted_proposal_identity"
+      ],
+      "redacted_source_line": "   \"accepted_proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 134,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/batches/animals/proposal_identity"
+      ],
+      "redacted_source_line": "   \"proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 135,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/batches/animals/rendered_proposal_sha256"
+      ],
+      "redacted_source_line": "   \"rendered_proposal_sha256\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 139,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/batches/character-origins-feats/accepted_proposal_identity"
+      ],
+      "redacted_source_line": "   \"accepted_proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 169,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/batches/character-origins-feats/proposal_identity"
+      ],
+      "redacted_source_line": "   \"proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 170,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/batches/character-origins-feats/rendered_proposal_sha256"
+      ],
+      "redacted_source_line": "   \"rendered_proposal_sha256\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 174,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/batches/magic-items/accepted_proposal_identity"
+      ],
+      "redacted_source_line": "   \"accepted_proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 187,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/batches/magic-items/proposal_identity"
+      ],
+      "redacted_source_line": "   \"proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 188,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/batches/magic-items/rendered_proposal_sha256"
+      ],
+      "redacted_source_line": "   \"rendered_proposal_sha256\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 192,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/batches/monsters/accepted_proposal_identity"
+      ],
+      "redacted_source_line": "   \"accepted_proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 438,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/batches/monsters/proposal_identity"
+      ],
+      "redacted_source_line": "   \"proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 439,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/batches/monsters/rendered_proposal_sha256"
+      ],
+      "redacted_source_line": "   \"rendered_proposal_sha256\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 443,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/batches/spell-descriptions/accepted_proposal_identity"
+      ],
+      "redacted_source_line": "   \"accepted_proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 462,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/batches/spell-descriptions/proposal_identity"
+      ],
+      "redacted_source_line": "   \"proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 463,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/batches/spell-descriptions/rendered_proposal_sha256"
+      ],
+      "redacted_source_line": "   \"rendered_proposal_sha256\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 466,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/builder_sha256"
+      ],
+      "redacted_source_line": " \"builder_sha256\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 499,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical projection payload digest",
+      "fields": [
+        "/native/payload_hash"
+      ],
+      "redacted_source_line": "  \"payload_hash\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 503,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical projection payload digest",
+      "fields": [
+        "/native/successor_lifted_payload_hash"
+      ],
+      "redacted_source_line": "  \"successor_lifted_payload_hash\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 510,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical oracle identity",
+      "fields": [
+        "/oracle_identity"
+      ],
+      "redacted_source_line": " \"oracle_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 512,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/.claude/review-notes/issue-15c-implementation/candidate-c8/c8.json"
+      ],
+      "redacted_source_line": "  \".claude/review-notes/issue-15c-implementation/candidate-c8/c8.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 513,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/.claude/review-notes/issue-15c-implementation/candidate-c8/correspondence.json"
+      ],
+      "redacted_source_line": "  \".claude/review-notes/issue-15c-implementation/candidate-c8/correspondence.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 514,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/.claude/review-notes/issue-15c-implementation/candidate-c8/inventory.json"
+      ],
+      "redacted_source_line": "  \".claude/review-notes/issue-15c-implementation/candidate-c8/inventory.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 515,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/.claude/review-notes/issue-15c-implementation/candidate-c8/schema-21-delta.md"
+      ],
+      "redacted_source_line": "  \".claude/review-notes/issue-15c-implementation/candidate-c8/schema-21-delta.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 516,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/D:/AI/Claude/scratch/AW docs/issue2b-implementation/afterworlds/.claude/review-notes/issue-15c-implementation/codex-c8-raw-correction-review.md"
+      ],
+      "redacted_source_line": "  \"D:/AI/Claude/scratch/AW docs/issue2b-implementation/afterworlds/.claude/review-notes/issue-15c-implementation/codex-c8-raw-correction-review.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 517,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/animals.md"
+      ],
+      "redacted_source_line": "  \"docs/sources/community/dnd-5e-srd-markdown/animals.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 518,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/character-origins.md"
+      ],
+      "redacted_source_line": "  \"docs/sources/community/dnd-5e-srd-markdown/character-origins.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 519,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/classes.md"
+      ],
+      "redacted_source_line": "  \"docs/sources/community/dnd-5e-srd-markdown/classes.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 520,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/magic-items.md"
+      ],
+      "redacted_source_line": "  \"docs/sources/community/dnd-5e-srd-markdown/magic-items.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 521,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/monsters-A-Z.md"
+      ],
+      "redacted_source_line": "  \"docs/sources/community/dnd-5e-srd-markdown/monsters-A-Z.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 522,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/monsters.md"
+      ],
+      "redacted_source_line": "  \"docs/sources/community/dnd-5e-srd-markdown/monsters.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 523,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/rules-glossary.md"
+      ],
+      "redacted_source_line": "  \"docs/sources/community/dnd-5e-srd-markdown/rules-glossary.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 524,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/spells.md"
+      ],
+      "redacted_source_line": "  \"docs/sources/community/dnd-5e-srd-markdown/spells.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 525,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json"
+      ],
+      "redacted_source_line": "  \"src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 603,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/preview_sha256"
+      ],
+      "redacted_source_line": " \"preview_sha256\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 614,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical schema digest",
+      "fields": [
+        "/schema/1"
+      ],
+      "redacted_source_line": "  \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 617,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/scripts_sha256/common.py"
+      ],
+      "redacted_source_line": "  \"common.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-preview.json",
+      "line": 618,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/scripts_sha256/excise.py"
+      ],
+      "redacted_source_line": "  \"excise.py\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-revalidation.json",
+      "line": 3,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/builder_sha256"
+      ],
+      "redacted_source_line": " \"builder_sha256\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-revalidation.json",
+      "line": 123,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical projection payload digest",
+      "fields": [
+        "/native/payload_hash"
+      ],
+      "redacted_source_line": "  \"payload_hash\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-revalidation.json",
+      "line": 127,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical projection payload digest",
+      "fields": [
+        "/native/successor_lifted_payload_hash"
+      ],
+      "redacted_source_line": "  \"successor_lifted_payload_hash\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-revalidation.json",
+      "line": 145,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/script_sha256"
+      ],
+      "redacted_source_line": " \"script_sha256\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-c8-native\\reports\\c8-revalidation.json",
+      "line": 147,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/validation_py_sha256"
+      ],
+      "redacted_source_line": " \"validation_py_sha256\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\check_corrected_identity.py",
+      "line": 5,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "fields": [],
+      "redacted_source_line": "rev='<HEX>';assert subprocess.check_output(['git','-C',str(W),'rev-parse','HEAD'],text=True).strip()==rev",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\corrected-identity.json",
+      "line": 2,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "fields": [
+        "/preview_code_revision"
+      ],
+      "redacted_source_line": "  \"preview_code_revision\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\corrected-identity.json",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/preview_sha256"
+      ],
+      "redacted_source_line": "  \"preview_sha256\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\corrected-identity.json",
+      "line": 6,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical oracle identity",
+      "fields": [
+        "/oracle_identity"
+      ],
+      "redacted_source_line": "  \"oracle_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\corrected-identity.json",
+      "line": 8,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical projection payload digest",
+      "fields": [
+        "/payload_hash"
+      ],
+      "redacted_source_line": "  \"payload_hash\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\corrected-identity.json",
+      "line": 9,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical schema digest",
+      "fields": [
+        "/schema_hash"
+      ],
+      "redacted_source_line": "  \"schema_hash\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\corrected-identity.json",
+      "line": 11,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/reviewed_file_sha256/src/afterworlds/ingestion/mechanical/oracle.py"
+      ],
+      "redacted_source_line": "    \"src/afterworlds/ingestion/mechanical/oracle.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\corrected-identity.json",
+      "line": 12,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/reviewed_file_sha256/src/afterworlds/ingestion/mechanical/projection.py"
+      ],
+      "redacted_source_line": "    \"src/afterworlds/ingestion/mechanical/projection.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\corrected-identity.json",
+      "line": 13,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/reviewed_file_sha256/src/afterworlds/ingestion/mechanical/representation.py"
+      ],
+      "redacted_source_line": "    \"src/afterworlds/ingestion/mechanical/representation.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\corrected-identity.json",
+      "line": 14,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/reviewed_file_sha256/src/afterworlds/ingestion/mechanical/validation.py"
+      ],
+      "redacted_source_line": "    \"src/afterworlds/ingestion/mechanical/validation.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\corrected-identity.json",
+      "line": 15,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/reviewed_file_sha256/src/afterworlds/ingestion/mechanical/schema_lift.py"
+      ],
+      "redacted_source_line": "    \"src/afterworlds/ingestion/mechanical/schema_lift.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\corrected-identity.json",
+      "line": 16,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/reviewed_file_sha256/.claude\\review-notes\\issue-15c-c8-native\\OWNER-PACKET.md"
+      ],
+      "redacted_source_line": "    \".claude\\\\review-notes\\\\issue-15c-c8-native\\\\OWNER-PACKET.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\corrected-identity.json",
+      "line": 17,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/reviewed_file_sha256/.claude\\review-notes\\issue-15c-c8-native\\PLANNING-ADDENDUM-target-domain.md"
+      ],
+      "redacted_source_line": "    \".claude\\\\review-notes\\\\issue-15c-c8-native\\\\PLANNING-ADDENDUM-target-domain.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\corrected-identity.json",
+      "line": 18,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/reviewed_file_sha256/.claude\\review-notes\\issue-15c-c8-native\\revalidate_c8_preview.py"
+      ],
+      "redacted_source_line": "    \".claude\\\\review-notes\\\\issue-15c-c8-native\\\\revalidate_c8_preview.py\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-c8-revalidation.json",
+      "line": 3,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/builder_sha256"
+      ],
+      "redacted_source_line": " \"builder_sha256\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-c8-revalidation.json",
+      "line": 123,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical projection payload digest",
+      "fields": [
+        "/native/payload_hash"
+      ],
+      "redacted_source_line": "  \"payload_hash\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-c8-revalidation.json",
+      "line": 127,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical projection payload digest",
+      "fields": [
+        "/native/successor_lifted_payload_hash"
+      ],
+      "redacted_source_line": "  \"successor_lifted_payload_hash\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-c8-revalidation.json",
+      "line": 145,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/script_sha256"
+      ],
+      "redacted_source_line": " \"script_sha256\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-c8-revalidation.json",
+      "line": 147,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/validation_py_sha256"
+      ],
+      "redacted_source_line": " \"validation_py_sha256\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-completion-evidence.json",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "fields": [
+        "/heads/D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds"
+      ],
+      "redacted_source_line": "    \"D:\\\\AI\\\\Claude\\\\scratch\\\\AW docs\\\\issue2b-implementation\\\\afterworlds\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-completion-evidence.json",
+      "line": 5,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "fields": [
+        "/heads/D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39"
+      ],
+      "redacted_source_line": "    \"D:\\\\AI\\\\Claude\\\\scratch\\\\AW docs\\\\issue2b-implementation\\\\afterworlds\\\\.claude\\\\worktrees\\\\agent-aa5b1ea6bf4ee4f39\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-completion-evidence.json",
+      "line": 22,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/file_sha256/.claude\\review-notes\\issue-15c-implementation\\codex-c8-owner-decision-packet.md"
+      ],
+      "redacted_source_line": "    \".claude\\\\review-notes\\\\issue-15c-implementation\\\\codex-c8-owner-decision-packet.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-completion-evidence.json",
+      "line": 23,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/file_sha256/.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\.claude\\review-notes\\issue-15c-c8-native\\reports\\c8-revalidation.json"
+      ],
+      "redacted_source_line": "    \".claude\\\\worktrees\\\\agent-aa5b1ea6bf4ee4f39\\\\.claude\\\\review-notes\\\\issue-15c-c8-native\\\\reports\\\\c8-revalidation.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-completion-evidence.json",
+      "line": 24,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/file_sha256/.claude\\review-notes\\issue-15c-preparation\\c8-corrected-revalidation-supervised-run\\launch.json"
+      ],
+      "redacted_source_line": "    \".claude\\\\review-notes\\\\issue-15c-preparation\\\\c8-corrected-revalidation-supervised-run\\\\launch.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-completion-evidence.json",
+      "line": 25,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/file_sha256/.claude\\review-notes\\issue-15c-preparation\\c8-corrected-revalidation-supervised-run\\result.json"
+      ],
+      "redacted_source_line": "    \".claude\\\\review-notes\\\\issue-15c-preparation\\\\c8-corrected-revalidation-supervised-run\\\\result.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-completion-evidence.json",
+      "line": 26,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/file_sha256/.claude\\review-notes\\issue-15c-preparation\\c8-corrected-revalidation-supervised-run\\stdout.txt"
+      ],
+      "redacted_source_line": "    \".claude\\\\review-notes\\\\issue-15c-preparation\\\\c8-corrected-revalidation-supervised-run\\\\stdout.txt\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-completion-evidence.json",
+      "line": 27,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/file_sha256/.claude\\review-notes\\issue-15c-preparation\\c8-corrected-revalidation-supervised-run\\stderr.txt"
+      ],
+      "redacted_source_line": "    \".claude\\\\review-notes\\\\issue-15c-preparation\\\\c8-corrected-revalidation-supervised-run\\\\stderr.txt\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-completion-evidence.json",
+      "line": 28,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/file_sha256/.claude\\review-notes\\issue-15c-preparation\\c8-corrected-revalidation-supervised-run\\inputs-before.json",
+        "/file_sha256/.claude\\review-notes\\issue-15c-preparation\\c8-corrected-revalidation-supervised-run\\inputs-after.json"
+      ],
+      "redacted_source_line": "    \".claude\\\\review-notes\\\\issue-15c-preparation\\\\c8-corrected-revalidation-supervised-run\\\\inputs-before.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-completion-evidence.json",
+      "line": 30,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/file_sha256/.claude\\review-notes\\issue-15c-preparation\\c8-corrected-revalidation-supervised-run\\exit.txt"
+      ],
+      "redacted_source_line": "    \".claude\\\\review-notes\\\\issue-15c-preparation\\\\c8-corrected-revalidation-supervised-run\\\\exit.txt\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-completion-evidence.json",
+      "line": 33,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/working_packet_code_pins_unchanged/src/afterworlds/ingestion/mechanical/oracle.py"
+      ],
+      "redacted_source_line": "    \"src/afterworlds/ingestion/mechanical/oracle.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-completion-evidence.json",
+      "line": 34,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/working_packet_code_pins_unchanged/src/afterworlds/ingestion/mechanical/projection.py"
+      ],
+      "redacted_source_line": "    \"src/afterworlds/ingestion/mechanical/projection.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-completion-evidence.json",
+      "line": 35,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/working_packet_code_pins_unchanged/src/afterworlds/ingestion/mechanical/representation.py"
+      ],
+      "redacted_source_line": "    \"src/afterworlds/ingestion/mechanical/representation.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-completion-evidence.json",
+      "line": 36,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/working_packet_code_pins_unchanged/src/afterworlds/ingestion/mechanical/validation.py"
+      ],
+      "redacted_source_line": "    \"src/afterworlds/ingestion/mechanical/validation.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-completion-evidence.json",
+      "line": 37,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/working_packet_code_pins_unchanged/src/afterworlds/ingestion/mechanical/schema_lift.py"
+      ],
+      "redacted_source_line": "    \"src/afterworlds/ingestion/mechanical/schema_lift.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-completion-evidence.json",
+      "line": 38,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/working_packet_code_pins_unchanged/.claude\\review-notes\\issue-15c-c8-native\\OWNER-PACKET.md"
+      ],
+      "redacted_source_line": "    \".claude\\\\review-notes\\\\issue-15c-c8-native\\\\OWNER-PACKET.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-completion-evidence.json",
+      "line": 39,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/working_packet_code_pins_unchanged/.claude\\review-notes\\issue-15c-c8-native\\PLANNING-ADDENDUM-target-domain.md"
+      ],
+      "redacted_source_line": "    \".claude\\\\review-notes\\\\issue-15c-c8-native\\\\PLANNING-ADDENDUM-target-domain.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-completion-evidence.json",
+      "line": 40,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/working_packet_code_pins_unchanged/.claude\\review-notes\\issue-15c-c8-native\\revalidate_c8_preview.py"
+      ],
+      "redacted_source_line": "    \".claude\\\\review-notes\\\\issue-15c-c8-native\\\\revalidate_c8_preview.py\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-review-run-observation.json",
+      "line": 7,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "fields": [
+        "/launch/main_head"
+      ],
+      "redacted_source_line": "    \"main_head\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-review-run-observation.json",
+      "line": 8,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "fields": [
+        "/launch/preview_head"
+      ],
+      "redacted_source_line": "    \"preview_head\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-review-run-observation.json",
+      "line": 10,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/launch/native_pins/reports/c8-preview.json"
+      ],
+      "redacted_source_line": "      \"reports/c8-preview.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-review-run-observation.json",
+      "line": 11,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/launch/native_pins/build_c8_preview.py"
+      ],
+      "redacted_source_line": "      \"build_c8_preview.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-review-run-observation.json",
+      "line": 12,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/launch/native_pins/revalidate_c8_preview.py"
+      ],
+      "redacted_source_line": "      \"revalidate_c8_preview.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\final-review-run-observation.json",
+      "line": 13,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/launch/native_pins/preview/srd-5-2-1-corpus-8781d4e0-a3b-c8-PREVIEW.json"
+      ],
+      "redacted_source_line": "      \"preview/srd-5-2-1-corpus-8781d4e0-a3b-c8-PREVIEW.json\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-build_c8_preview.py",
+      "line": 123,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical schema digest",
+      "fields": [],
+      "redacted_source_line": "    \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-build_c8_preview.py",
+      "line": 158,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "    \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-build_c8_preview.py",
+      "line": 161,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "    SUCCESSOR: \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-build_c8_preview.py",
+      "line": 162,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "    C8: \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-build_c8_preview.py",
+      "line": 163,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "    CORRESPONDENCE: \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-build_c8_preview.py",
+      "line": 164,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "    INVENTORY: \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-build_c8_preview.py",
+      "line": 165,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "    DELTA: \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-build_c8_preview.py",
+      "line": 185,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "        \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-build_c8_preview.py",
+      "line": 186,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [],
+      "redacted_source_line": "        \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-build_c8_preview.py",
+      "line": 190,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "        \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-build_c8_preview.py",
+      "line": 191,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [],
+      "redacted_source_line": "        \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-build_c8_preview.py",
+      "line": 195,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "        \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-build_c8_preview.py",
+      "line": 196,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [],
+      "redacted_source_line": "        \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-build_c8_preview.py",
+      "line": 200,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "        \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-build_c8_preview.py",
+      "line": 201,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [],
+      "redacted_source_line": "        \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-build_c8_preview.py",
+      "line": 205,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "        \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-build_c8_preview.py",
+      "line": 206,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [],
+      "redacted_source_line": "        \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 5,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/accepted_inputs_located/animals/1",
+        "/batches/animals/accepted_rendered_sha256"
+      ],
+      "redacted_source_line": "   \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 9,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/accepted_inputs_located/character-origins-feats/1",
+        "/batches/character-origins-feats/accepted_rendered_sha256"
+      ],
+      "redacted_source_line": "   \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 13,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/accepted_inputs_located/magic-items/1",
+        "/batches/magic-items/accepted_rendered_sha256"
+      ],
+      "redacted_source_line": "   \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 17,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/accepted_inputs_located/monsters/1",
+        "/batches/monsters/accepted_rendered_sha256"
+      ],
+      "redacted_source_line": "   \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 21,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/accepted_inputs_located/spell-descriptions/1",
+        "/batches/spell-descriptions/accepted_rendered_sha256"
+      ],
+      "redacted_source_line": "   \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 28,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/batches/animals/accepted_proposal_identity"
+      ],
+      "redacted_source_line": "   \"accepted_proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 134,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/batches/animals/proposal_identity"
+      ],
+      "redacted_source_line": "   \"proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 135,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/batches/animals/rendered_proposal_sha256"
+      ],
+      "redacted_source_line": "   \"rendered_proposal_sha256\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 139,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/batches/character-origins-feats/accepted_proposal_identity"
+      ],
+      "redacted_source_line": "   \"accepted_proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 169,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/batches/character-origins-feats/proposal_identity"
+      ],
+      "redacted_source_line": "   \"proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 170,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/batches/character-origins-feats/rendered_proposal_sha256"
+      ],
+      "redacted_source_line": "   \"rendered_proposal_sha256\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 174,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/batches/magic-items/accepted_proposal_identity"
+      ],
+      "redacted_source_line": "   \"accepted_proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 187,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/batches/magic-items/proposal_identity"
+      ],
+      "redacted_source_line": "   \"proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 188,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/batches/magic-items/rendered_proposal_sha256"
+      ],
+      "redacted_source_line": "   \"rendered_proposal_sha256\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 192,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/batches/monsters/accepted_proposal_identity"
+      ],
+      "redacted_source_line": "   \"accepted_proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 438,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/batches/monsters/proposal_identity"
+      ],
+      "redacted_source_line": "   \"proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 439,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/batches/monsters/rendered_proposal_sha256"
+      ],
+      "redacted_source_line": "   \"rendered_proposal_sha256\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 443,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/batches/spell-descriptions/accepted_proposal_identity"
+      ],
+      "redacted_source_line": "   \"accepted_proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 462,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/batches/spell-descriptions/proposal_identity"
+      ],
+      "redacted_source_line": "   \"proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 463,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/batches/spell-descriptions/rendered_proposal_sha256"
+      ],
+      "redacted_source_line": "   \"rendered_proposal_sha256\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 466,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/builder_sha256"
+      ],
+      "redacted_source_line": " \"builder_sha256\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 499,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical projection payload digest",
+      "fields": [
+        "/native/payload_hash"
+      ],
+      "redacted_source_line": "  \"payload_hash\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 503,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical projection payload digest",
+      "fields": [
+        "/native/successor_lifted_payload_hash"
+      ],
+      "redacted_source_line": "  \"successor_lifted_payload_hash\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 510,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical oracle identity",
+      "fields": [
+        "/oracle_identity"
+      ],
+      "redacted_source_line": " \"oracle_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 512,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/.claude/review-notes/issue-15c-implementation/candidate-c8/c8.json"
+      ],
+      "redacted_source_line": "  \".claude/review-notes/issue-15c-implementation/candidate-c8/c8.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 513,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/.claude/review-notes/issue-15c-implementation/candidate-c8/correspondence.json"
+      ],
+      "redacted_source_line": "  \".claude/review-notes/issue-15c-implementation/candidate-c8/correspondence.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 514,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/.claude/review-notes/issue-15c-implementation/candidate-c8/inventory.json"
+      ],
+      "redacted_source_line": "  \".claude/review-notes/issue-15c-implementation/candidate-c8/inventory.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 515,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/.claude/review-notes/issue-15c-implementation/candidate-c8/schema-21-delta.md"
+      ],
+      "redacted_source_line": "  \".claude/review-notes/issue-15c-implementation/candidate-c8/schema-21-delta.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 516,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/D:/AI/Claude/scratch/AW docs/issue2b-implementation/afterworlds/.claude/review-notes/issue-15c-implementation/codex-c8-raw-correction-review.md"
+      ],
+      "redacted_source_line": "  \"D:/AI/Claude/scratch/AW docs/issue2b-implementation/afterworlds/.claude/review-notes/issue-15c-implementation/codex-c8-raw-correction-review.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 517,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/animals.md"
+      ],
+      "redacted_source_line": "  \"docs/sources/community/dnd-5e-srd-markdown/animals.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 518,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/character-origins.md"
+      ],
+      "redacted_source_line": "  \"docs/sources/community/dnd-5e-srd-markdown/character-origins.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 519,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/classes.md"
+      ],
+      "redacted_source_line": "  \"docs/sources/community/dnd-5e-srd-markdown/classes.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 520,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/magic-items.md"
+      ],
+      "redacted_source_line": "  \"docs/sources/community/dnd-5e-srd-markdown/magic-items.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 521,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/monsters-A-Z.md"
+      ],
+      "redacted_source_line": "  \"docs/sources/community/dnd-5e-srd-markdown/monsters-A-Z.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 522,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/monsters.md"
+      ],
+      "redacted_source_line": "  \"docs/sources/community/dnd-5e-srd-markdown/monsters.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 523,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/rules-glossary.md"
+      ],
+      "redacted_source_line": "  \"docs/sources/community/dnd-5e-srd-markdown/rules-glossary.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 524,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/spells.md"
+      ],
+      "redacted_source_line": "  \"docs/sources/community/dnd-5e-srd-markdown/spells.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 525,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json"
+      ],
+      "redacted_source_line": "  \"src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 603,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/preview_sha256"
+      ],
+      "redacted_source_line": " \"preview_sha256\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 614,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical schema digest",
+      "fields": [
+        "/schema/1"
+      ],
+      "redacted_source_line": "  \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 617,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/scripts_sha256/common.py"
+      ],
+      "redacted_source_line": "  \"common.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json",
+      "line": 618,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/scripts_sha256/excise.py"
+      ],
+      "redacted_source_line": "  \"excise.py\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-common.py",
+      "line": 37,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "G1_SHA256 = \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-common.py",
+      "line": 39,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "PREDECESSOR_SHA256 = \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-common.py",
+      "line": 42,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "OLD_RELEASE_SHA256 = \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-common.py",
+      "line": 46,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "STORE_SHA256 = \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-common.py",
+      "line": 51,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "    \"c5a.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-common.py",
+      "line": 52,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "    \"c5b.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-common.py",
+      "line": 53,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "    \"c5c.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-common.py",
+      "line": 54,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [],
+      "redacted_source_line": "    \"capability.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/tracked_original_blob_sha256/build_c8_preview.py"
+      ],
+      "redacted_source_line": "    \"build_c8_preview.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 5,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/tracked_original_blob_sha256/reports/c8-preview.json",
+        "/input_sha256/.claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json"
+      ],
+      "redacted_source_line": "    \"reports/c8-preview.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 6,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/tracked_original_blob_sha256/reports/c8-build.log.out"
+      ],
+      "redacted_source_line": "    \"reports/c8-build.log.out\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 7,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/tracked_original_blob_sha256/reports/c8-build.log.err"
+      ],
+      "redacted_source_line": "    \"reports/c8-build.log.err\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 8,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/tracked_original_blob_sha256/README.md"
+      ],
+      "redacted_source_line": "    \"README.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 9,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/tracked_original_blob_sha256/OWNER-PACKET.md"
+      ],
+      "redacted_source_line": "    \"OWNER-PACKET.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 10,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/tracked_original_blob_sha256/common.py"
+      ],
+      "redacted_source_line": "    \"common.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 11,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/tracked_original_blob_sha256/excise.py"
+      ],
+      "redacted_source_line": "    \"excise.py\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 44,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "fields": [
+        "/artifact_commit"
+      ],
+      "redacted_source_line": "  \"artifact_commit\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 45,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "fields": [
+        "/original_code"
+      ],
+      "redacted_source_line": "  \"original_code\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 48,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\.claude\\review-notes\\issue-15c-c8-native\\preview\\srd-5-2-1-corpus-8781d4e0-a3b-c8-PREVIEW.json",
+        "/snapshot_sha256"
+      ],
+      "redacted_source_line": "    \".claude\\\\worktrees\\\\agent-aa5b1ea6bf4ee4f39\\\\.claude\\\\review-notes\\\\issue-15c-c8-native\\\\preview\\\\srd-5-2-1-corpus-8781d4e0-a3b-c8-PREVIEW.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 49,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/src\\afterworlds\\ingestion\\mechanical\\oracles\\srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json",
+        "/input_sha256/D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\src\\afterworlds\\ingestion\\mechanical\\oracles\\srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json"
+      ],
+      "redacted_source_line": "    \"src\\\\afterworlds\\\\ingestion\\\\mechanical\\\\oracles\\\\srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 50,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-implementation\\candidate-c8\\c8.json",
+        "/input_sha256/.claude\\review-notes\\issue-15c-implementation\\candidate-c8\\c8.json"
+      ],
+      "redacted_source_line": "    \"D:\\\\AI\\\\Claude\\\\scratch\\\\AW docs\\\\issue2b-implementation\\\\afterworlds\\\\.claude\\\\review-notes\\\\issue-15c-implementation\\\\candidate-c8\\\\c8.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 51,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-implementation\\candidate-c8\\correspondence.json",
+        "/input_sha256/.claude\\review-notes\\issue-15c-implementation\\candidate-c8\\correspondence.json"
+      ],
+      "redacted_source_line": "    \"D:\\\\AI\\\\Claude\\\\scratch\\\\AW docs\\\\issue2b-implementation\\\\afterworlds\\\\.claude\\\\review-notes\\\\issue-15c-implementation\\\\candidate-c8\\\\correspondence.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 52,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-implementation\\candidate-c8\\inventory.json"
+      ],
+      "redacted_source_line": "    \"D:\\\\AI\\\\Claude\\\\scratch\\\\AW docs\\\\issue2b-implementation\\\\afterworlds\\\\.claude\\\\review-notes\\\\issue-15c-implementation\\\\candidate-c8\\\\inventory.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 53,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-implementation\\candidate-c8\\schema-21-delta.md"
+      ],
+      "redacted_source_line": "    \"D:\\\\AI\\\\Claude\\\\scratch\\\\AW docs\\\\issue2b-implementation\\\\afterworlds\\\\.claude\\\\review-notes\\\\issue-15c-implementation\\\\candidate-c8\\\\schema-21-delta.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 54,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-implementation\\codex-c8-raw-correction-review.md"
+      ],
+      "redacted_source_line": "    \"D:\\\\AI\\\\Claude\\\\scratch\\\\AW docs\\\\issue2b-implementation\\\\afterworlds\\\\.claude\\\\review-notes\\\\issue-15c-implementation\\\\codex-c8-raw-correction-review.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 55,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\docs\\sources\\community\\dnd-5e-srd-markdown\\animals.md"
+      ],
+      "redacted_source_line": "    \"D:\\\\AI\\\\Claude\\\\scratch\\\\AW docs\\\\issue2b-implementation\\\\afterworlds\\\\docs\\\\sources\\\\community\\\\dnd-5e-srd-markdown\\\\animals.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 56,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\docs\\sources\\community\\dnd-5e-srd-markdown\\character-origins.md"
+      ],
+      "redacted_source_line": "    \"D:\\\\AI\\\\Claude\\\\scratch\\\\AW docs\\\\issue2b-implementation\\\\afterworlds\\\\docs\\\\sources\\\\community\\\\dnd-5e-srd-markdown\\\\character-origins.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 57,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\docs\\sources\\community\\dnd-5e-srd-markdown\\classes.md"
+      ],
+      "redacted_source_line": "    \"D:\\\\AI\\\\Claude\\\\scratch\\\\AW docs\\\\issue2b-implementation\\\\afterworlds\\\\docs\\\\sources\\\\community\\\\dnd-5e-srd-markdown\\\\classes.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 58,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\docs\\sources\\community\\dnd-5e-srd-markdown\\magic-items.md"
+      ],
+      "redacted_source_line": "    \"D:\\\\AI\\\\Claude\\\\scratch\\\\AW docs\\\\issue2b-implementation\\\\afterworlds\\\\docs\\\\sources\\\\community\\\\dnd-5e-srd-markdown\\\\magic-items.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 59,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\docs\\sources\\community\\dnd-5e-srd-markdown\\monsters-A-Z.md"
+      ],
+      "redacted_source_line": "    \"D:\\\\AI\\\\Claude\\\\scratch\\\\AW docs\\\\issue2b-implementation\\\\afterworlds\\\\docs\\\\sources\\\\community\\\\dnd-5e-srd-markdown\\\\monsters-A-Z.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 60,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\docs\\sources\\community\\dnd-5e-srd-markdown\\monsters.md"
+      ],
+      "redacted_source_line": "    \"D:\\\\AI\\\\Claude\\\\scratch\\\\AW docs\\\\issue2b-implementation\\\\afterworlds\\\\docs\\\\sources\\\\community\\\\dnd-5e-srd-markdown\\\\monsters.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 61,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\docs\\sources\\community\\dnd-5e-srd-markdown\\rules-glossary.md"
+      ],
+      "redacted_source_line": "    \"D:\\\\AI\\\\Claude\\\\scratch\\\\AW docs\\\\issue2b-implementation\\\\afterworlds\\\\docs\\\\sources\\\\community\\\\dnd-5e-srd-markdown\\\\rules-glossary.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 62,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\docs\\sources\\community\\dnd-5e-srd-markdown\\spells.md"
+      ],
+      "redacted_source_line": "    \"D:\\\\AI\\\\Claude\\\\scratch\\\\AW docs\\\\issue2b-implementation\\\\afterworlds\\\\docs\\\\sources\\\\community\\\\dnd-5e-srd-markdown\\\\spells.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 66,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/.claude\\review-notes\\issue-15c-native\\preview\\proposals\\animals-PROPOSAL.json"
+      ],
+      "redacted_source_line": "    \".claude\\\\review-notes\\\\issue-15c-native\\\\preview\\\\proposals\\\\animals-PROPOSAL.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 67,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\.claude\\review-notes\\issue-15c-c8-native\\preview\\animals-C8-PROPOSAL.json",
+        "/proposals/animals/rendered_sha256"
+      ],
+      "redacted_source_line": "    \".claude\\\\worktrees\\\\agent-aa5b1ea6bf4ee4f39\\\\.claude\\\\review-notes\\\\issue-15c-c8-native\\\\preview\\\\animals-C8-PROPOSAL.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 68,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/.claude\\worktrees\\agent-afb6123d0b7851456\\.claude\\review-notes\\issue-15c-c7-native\\preview\\character-origins-feats-C7-PROPOSAL.json"
+      ],
+      "redacted_source_line": "    \".claude\\\\worktrees\\\\agent-afb6123d0b7851456\\\\.claude\\\\review-notes\\\\issue-15c-c7-native\\\\preview\\\\character-origins-feats-C7-PROPOSAL.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 69,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\.claude\\review-notes\\issue-15c-c8-native\\preview\\character-origins-feats-C8-PROPOSAL.json",
+        "/proposals/character-origins-feats/rendered_sha256"
+      ],
+      "redacted_source_line": "    \".claude\\\\worktrees\\\\agent-aa5b1ea6bf4ee4f39\\\\.claude\\\\review-notes\\\\issue-15c-c8-native\\\\preview\\\\character-origins-feats-C8-PROPOSAL.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 70,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/.claude\\review-notes\\issue-15c-native\\preview\\proposals\\magic-items-PROPOSAL.json"
+      ],
+      "redacted_source_line": "    \".claude\\\\review-notes\\\\issue-15c-native\\\\preview\\\\proposals\\\\magic-items-PROPOSAL.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 71,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\.claude\\review-notes\\issue-15c-c8-native\\preview\\magic-items-C8-PROPOSAL.json",
+        "/proposals/magic-items/rendered_sha256"
+      ],
+      "redacted_source_line": "    \".claude\\\\worktrees\\\\agent-aa5b1ea6bf4ee4f39\\\\.claude\\\\review-notes\\\\issue-15c-c8-native\\\\preview\\\\magic-items-C8-PROPOSAL.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 72,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/.claude\\review-notes\\issue-15c-native\\preview\\proposals\\monsters-PROPOSAL.json"
+      ],
+      "redacted_source_line": "    \".claude\\\\review-notes\\\\issue-15c-native\\\\preview\\\\proposals\\\\monsters-PROPOSAL.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 73,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\.claude\\review-notes\\issue-15c-c8-native\\preview\\monsters-C8-PROPOSAL.json",
+        "/proposals/monsters/rendered_sha256"
+      ],
+      "redacted_source_line": "    \".claude\\\\worktrees\\\\agent-aa5b1ea6bf4ee4f39\\\\.claude\\\\review-notes\\\\issue-15c-c8-native\\\\preview\\\\monsters-C8-PROPOSAL.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 74,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/.claude\\review-notes\\issue-15c-native\\preview\\proposals\\spell-descriptions-PROPOSAL.json"
+      ],
+      "redacted_source_line": "    \".claude\\\\review-notes\\\\issue-15c-native\\\\preview\\\\proposals\\\\spell-descriptions-PROPOSAL.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 75,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/input_sha256/.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\.claude\\review-notes\\issue-15c-c8-native\\preview\\spell-descriptions-C8-PROPOSAL.json",
+        "/proposals/spell-descriptions/rendered_sha256"
+      ],
+      "redacted_source_line": "    \".claude\\\\worktrees\\\\agent-aa5b1ea6bf4ee4f39\\\\.claude\\\\review-notes\\\\issue-15c-c8-native\\\\preview\\\\spell-descriptions-C8-PROPOSAL.json\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 157,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/proposals/animals/proposal_identity"
+      ],
+      "redacted_source_line": "      \"proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 162,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/proposals/character-origins-feats/proposal_identity"
+      ],
+      "redacted_source_line": "      \"proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 167,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/proposals/magic-items/proposal_identity"
+      ],
+      "redacted_source_line": "      \"proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 172,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/proposals/monsters/proposal_identity"
+      ],
+      "redacted_source_line": "      \"proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-native-review\\results.json",
+      "line": 177,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical proposal identity",
+      "fields": [
+        "/proposals/spell-descriptions/proposal_identity"
+      ],
+      "redacted_source_line": "      \"proposal_identity\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-schema-review\\correction-controls.json",
+      "line": 2,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "fields": [
+        "/head"
+      ],
+      "redacted_source_line": "  \"head\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-schema-review\\correction-controls.json",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical schema digest",
+      "fields": [
+        "/schema_hash",
+        "/schema21_pin"
+      ],
+      "redacted_source_line": "  \"schema_hash\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-schema-review\\correction-controls.json",
+      "line": 5,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical schema digest",
+      "fields": [
+        "/schema20_hash"
+      ],
+      "redacted_source_line": "  \"schema20_hash\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-schema-review\\correction-controls.json",
+      "line": 50,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/src/afterworlds/ingestion/mechanical/representation.py"
+      ],
+      "redacted_source_line": "    \"src/afterworlds/ingestion/mechanical/representation.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-schema-review\\correction-controls.json",
+      "line": 51,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/src/afterworlds/ingestion/mechanical/projection.py"
+      ],
+      "redacted_source_line": "    \"src/afterworlds/ingestion/mechanical/projection.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-schema-review\\correction-controls.json",
+      "line": 52,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/src/afterworlds/ingestion/mechanical/schema_lift.py"
+      ],
+      "redacted_source_line": "    \"src/afterworlds/ingestion/mechanical/schema_lift.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-schema-review\\correction-controls.json",
+      "line": 53,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/src/afterworlds/ingestion/mechanical/validation.py"
+      ],
+      "redacted_source_line": "    \"src/afterworlds/ingestion/mechanical/validation.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-schema-review\\correction-controls.json",
+      "line": 54,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/tests/ingestion/mechanical/test_creature_type_facts.py"
+      ],
+      "redacted_source_line": "    \"tests/ingestion/mechanical/test_creature_type_facts.py\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-schema-review\\descriptor-delta.json",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical schema digest",
+      "fields": [
+        "/prior_schema_hash"
+      ],
+      "redacted_source_line": "  \"prior_schema_hash\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-schema-review\\descriptor-delta.json",
+      "line": 5,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical schema digest",
+      "fields": [
+        "/preview_schema_hash"
+      ],
+      "redacted_source_line": "  \"preview_schema_hash\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-schema-review\\descriptor-delta.json",
+      "line": 345,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/.gitignore"
+      ],
+      "redacted_source_line": "    \".gitignore\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-schema-review\\descriptor-delta.json",
+      "line": 346,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/src/afterworlds/ingestion/mechanical/representation.py"
+      ],
+      "redacted_source_line": "    \"src/afterworlds/ingestion/mechanical/representation.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-schema-review\\descriptor-delta.json",
+      "line": 347,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/src/afterworlds/ingestion/mechanical/projection.py"
+      ],
+      "redacted_source_line": "    \"src/afterworlds/ingestion/mechanical/projection.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-schema-review\\descriptor-delta.json",
+      "line": 348,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/src/afterworlds/ingestion/mechanical/schema_lift.py"
+      ],
+      "redacted_source_line": "    \"src/afterworlds/ingestion/mechanical/schema_lift.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-schema-review\\descriptor-delta.json",
+      "line": 349,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/src/afterworlds/ingestion/mechanical/validation.py"
+      ],
+      "redacted_source_line": "    \"src/afterworlds/ingestion/mechanical/validation.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-schema-review\\descriptor-delta.json",
+      "line": 350,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/tests/ingestion/mechanical/test_creature_type_facts.py"
+      ],
+      "redacted_source_line": "    \"tests/ingestion/mechanical/test_creature_type_facts.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-schema-review\\descriptor-delta.json",
+      "line": 351,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/tests/ingestion/mechanical/_schema_pins.py"
+      ],
+      "redacted_source_line": "    \"tests/ingestion/mechanical/_schema_pins.py\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-schema-review\\descriptor-delta.json",
+      "line": 352,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/pins/tests/ingestion/mechanical/data/bounded_oracle.json"
+      ],
+      "redacted_source_line": "    \"tests/ingestion/mechanical/data/bounded_oracle.json\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\c8-schema-review\\form-scope-probe.json",
+      "line": 3,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical schema digest",
+      "fields": [
+        "/schema_hash"
+      ],
+      "redacted_source_line": "  \"schema_hash\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\correction-inspection.json",
+      "line": 2,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "fields": [
+        "/head"
+      ],
+      "redacted_source_line": "  \"head\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\correction-inspection.json",
+      "line": 5,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/r1_preserved/README.md/sha256"
+      ],
+      "redacted_source_line": "      \"sha256\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\correction-inspection.json",
+      "line": 9,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/r1_preserved/c8.json/sha256"
+      ],
+      "redacted_source_line": "      \"sha256\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\correction-inspection.json",
+      "line": 13,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/r1_preserved/correspondence.json/sha256"
+      ],
+      "redacted_source_line": "      \"sha256\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\correction-inspection.json",
+      "line": 17,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/r1_preserved/derive_c8.py/sha256"
+      ],
+      "redacted_source_line": "      \"sha256\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\correction-inspection.json",
+      "line": 21,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/r1_preserved/inventory.json/sha256"
+      ],
+      "redacted_source_line": "      \"sha256\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\correction-inspection.json",
+      "line": 25,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/r1_preserved/schema-21-delta.md/sha256"
+      ],
+      "redacted_source_line": "      \"sha256\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\correction-inspection.json",
+      "line": 29,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/r1_preserved/validate_c8.py/sha256"
+      ],
+      "redacted_source_line": "      \"sha256\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\correction-inspection.json",
+      "line": 33,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/r1_preserved/validation.json/sha256"
+      ],
+      "redacted_source_line": "      \"sha256\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\correction-inspection.json",
+      "line": 38,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/r2_hashes/c8.json"
+      ],
+      "redacted_source_line": "    \"c8.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\correction-inspection.json",
+      "line": 39,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/r2_hashes/correspondence.json"
+      ],
+      "redacted_source_line": "    \"correspondence.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\correction-inspection.json",
+      "line": 40,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/r2_hashes/inventory.json"
+      ],
+      "redacted_source_line": "    \"inventory.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\correction-inspection.json",
+      "line": 41,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/r2_hashes/validation.json"
+      ],
+      "redacted_source_line": "    \"validation.json\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\correction-inspection.json",
+      "line": 42,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/r2_hashes/README.md"
+      ],
+      "redacted_source_line": "    \"README.md\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\correction-inspection.json",
+      "line": 43,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/r2_hashes/schema-21-delta.md"
+      ],
+      "redacted_source_line": "    \"schema-21-delta.md\": \"<HEX>\"",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\post-c7-baseline-review\\check.py",
+      "line": 13,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "fields": [],
+      "redacted_source_line": "BASE = '<HEX>'",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\post-c7-baseline-review\\check.py",
+      "line": 14,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "fields": [],
+      "redacted_source_line": "HEAD = '<HEX>'",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\post-c7-baseline-review\\results.json",
+      "line": 2,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "fields": [
+        "/base_commit"
+      ],
+      "redacted_source_line": "  \"base_commit\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\post-c7-baseline-review\\results.json",
+      "line": 3,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "fields": [
+        "/reviewed_commit",
+        "/transitions/3/commit"
+      ],
+      "redacted_source_line": "  \"reviewed_commit\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\post-c7-baseline-review\\results.json",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/base_baseline_sha256"
+      ],
+      "redacted_source_line": "  \"base_baseline_sha256\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\post-c7-baseline-review\\results.json",
+      "line": 5,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "fields": [
+        "/reviewed_baseline_sha256",
+        "/worktree_baseline_raw_sha256"
+      ],
+      "redacted_source_line": "  \"reviewed_baseline_sha256\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\post-c7-baseline-review\\results.json",
+      "line": 25,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "fields": [
+        "/transitions/0/commit"
+      ],
+      "redacted_source_line": "      \"commit\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\post-c7-baseline-review\\results.json",
+      "line": 31,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "fields": [
+        "/transitions/1/commit"
+      ],
+      "redacted_source_line": "      \"commit\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\post-c7-baseline-review\\results.json",
+      "line": 37,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "fields": [
+        "/transitions/2/commit"
+      ],
+      "redacted_source_line": "      \"commit\": \"<HEX>\",",
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    }
+  ],
+  "negative_control": "Reuse independently reviewed C7 and post-C7 evidence; unchanged settings and matching machinery; not repeated."
+}

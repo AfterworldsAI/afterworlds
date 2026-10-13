@@ -1,0 +1,229 @@
+{
+  "reviewed_at_utc": "2026-10-13T18:48:07.583048+00:00",
+  "reviewed_revision": "183a664e8645ecadd97c55517e8ba1120e9c5b19",
+  "head_observed": "183a664e8645ecadd97c55517e8ba1120e9c5b19",
+  "only_added_superseded_digest": "2853f30a832ca581c9d4169b82d0c360f3d6a2d78f0ad8980de9997eef51f373",
+  "prior_supersession_and_resolver_guards_preserved": true,
+  "sole_current_release_candidate": [
+    "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json"
+  ],
+  "static_wheel_inclusion": [
+    "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json"
+  ],
+  "static_sdist_inclusion": [
+    "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json"
+  ],
+  "test_constants_match_actual_recording": true,
+  "focused_diagnostics": {
+    "exit": 0,
+    "args": [
+      "scripts/run_focused_tests.py",
+      "--check",
+      "src/afterworlds/ingestion/mechanical/oracle.py",
+      "tests/ingestion/mechanical/test_oracle_succession.py",
+      "tests/ingestion/mechanical/test_oracle.py",
+      "tests/ingestion/mechanical/test_accepted_inputs.py",
+      "tests/ingestion/mechanical/test_committed_accepted_authority.py",
+      "tests/ingestion/mechanical/test_accepted_release_publication.py",
+      "tests/ingestion/mechanical/test_packaging.py"
+    ],
+    "started_utc": "2026-10-13T18:09:02.8771052Z",
+    "name": "recording-focused",
+    "pid": 56092,
+    "ended_utc": "2026-10-13T18:40:34.8004864Z"
+  },
+  "focused_output_summary": "168 passed in 1889.68s; six mechanical targets; no coverage; real distribution install smoke test excluded",
+  "artifact_pins": {
+    "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-3fe24ff6-4e3.json": {
+      "sha256": "e6f5f36aa3af13807bbff721797d971dcf0d8e588a97483c7d769cf88cbd1308",
+      "binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "87d95278c3349a5162ae7475a788c3d047bfdef30f56a73db9d7c22e3fe7f760",
+        "package_uuid": "67c81736-15fd-5e82-8523-e84922f0a7c6",
+        "persisted_corpus_digest": "8b7227d3792566a46651b675b89448d85a2c5cefee2f3c61bbcf57486e302d42",
+        "release_version": "5.2.1-corpus.3fe24ff6-4e3",
+        "transform_config_hash": "648ac3dd3b68b160d573338ad3bf50fba6c4726d5141da2f7b0c86224928d947"
+      },
+      "schema": {
+        "hash": "4881e51fb2fa73e52f7ff951ad7d00b863188c1a22133fb0e2873c7d32d10ada",
+        "version": "5d-representation-schema-17"
+      }
+    },
+    "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-574662e9-0ef.json": {
+      "sha256": "fc62c47cde83cd341f714b7e51660354a22b69dc59f214c0a6e5ec379dee5a62",
+      "binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "3da7b5b30e23647c219d1630b5c5051be02b5882d17f0cd13421af8c57754689",
+        "package_uuid": "ebdd9333-eeed-5df1-b3e1-8b97c2f65f80",
+        "persisted_corpus_digest": "df64eb40029576bae61229056f07ccdf025a2a5c2d75aacfefdf88fe596acb02",
+        "release_version": "5.2.1-corpus.574662e9-0ef",
+        "transform_config_hash": "2a7feddf7910684b8427745b9f9ecd5f394382d00955ed7b98920c2e12c0e64d"
+      },
+      "schema": {
+        "hash": "7fb9254b11da1d6772ea6ee72ffde9b5e9d39e8885188777874c65e86ad9a941",
+        "version": "5d-representation-schema-16"
+      }
+    },
+    "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json": {
+      "sha256": "2853f30a832ca581c9d4169b82d0c360f3d6a2d78f0ad8980de9997eef51f373",
+      "binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "0941dc966337f190f5a6ed3b5dfc0370dc29efd15483889bf2a0d9fb7c564787",
+        "package_uuid": "1299484e-c72d-509b-bd8d-d0169ee1f8d2",
+        "persisted_corpus_digest": "3717fa115a5abb68c4be179d0d643992ab7392a0f9cd5ca5dc4a73da9258e3c3",
+        "release_version": "5.2.1-corpus.8781d4e0-a3b",
+        "transform_config_hash": "753e76087885ee99fb3fa97932c6a0e5b5075bbed1b0acd466d90a029ff0bc01"
+      },
+      "schema": {
+        "hash": "759dcc1f9de2cac9254be108ca8a83433ca30854061276a9c349a370e1c6e77a",
+        "version": "5d-representation-schema-20"
+      }
+    },
+    "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json": {
+      "sha256": "ead7fa9d4fde484098f71221ca5ef82dfb2c82229d8fca80ab5feeb4e4d62d0d",
+      "binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "0941dc966337f190f5a6ed3b5dfc0370dc29efd15483889bf2a0d9fb7c564787",
+        "package_uuid": "1299484e-c72d-509b-bd8d-d0169ee1f8d2",
+        "persisted_corpus_digest": "3717fa115a5abb68c4be179d0d643992ab7392a0f9cd5ca5dc4a73da9258e3c3",
+        "release_version": "5.2.1-corpus.8781d4e0-a3b",
+        "transform_config_hash": "753e76087885ee99fb3fa97932c6a0e5b5075bbed1b0acd466d90a029ff0bc01"
+      },
+      "schema": {
+        "hash": "4499b3964aac338e10c7b6d1f67a5eb37570878600e0c5f04bd4464d58f1df55",
+        "version": "5d-representation-schema-21"
+      }
+    },
+    "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c.json": {
+      "sha256": "23e5d8e0fac60e3f5417b3a41e40e6f475366dd385856f38c42104f4dd264f69",
+      "binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "0941dc966337f190f5a6ed3b5dfc0370dc29efd15483889bf2a0d9fb7c564787",
+        "package_uuid": "1299484e-c72d-509b-bd8d-d0169ee1f8d2",
+        "persisted_corpus_digest": "3717fa115a5abb68c4be179d0d643992ab7392a0f9cd5ca5dc4a73da9258e3c3",
+        "release_version": "5.2.1-corpus.8781d4e0-a3b",
+        "transform_config_hash": "753e76087885ee99fb3fa97932c6a0e5b5075bbed1b0acd466d90a029ff0bc01"
+      },
+      "schema": {
+        "hash": "3734ccf7d6be7f25e0a0d7c0395121c5525afcb87144f5cf9d6895e03c1cd18f",
+        "version": "5d-representation-schema-19"
+      }
+    },
+    "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-g1.json": {
+      "sha256": "2ccbaeba6de75d9787fbdd407e42dc2425fa20d4d26bcc298b681b550bd11258",
+      "binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "0941dc966337f190f5a6ed3b5dfc0370dc29efd15483889bf2a0d9fb7c564787",
+        "package_uuid": "1299484e-c72d-509b-bd8d-d0169ee1f8d2",
+        "persisted_corpus_digest": "3717fa115a5abb68c4be179d0d643992ab7392a0f9cd5ca5dc4a73da9258e3c3",
+        "release_version": "5.2.1-corpus.8781d4e0-a3b",
+        "transform_config_hash": "753e76087885ee99fb3fa97932c6a0e5b5075bbed1b0acd466d90a029ff0bc01"
+      },
+      "schema": {
+        "hash": "276c3d0ca0bf4c2f98aa8e7d2db6cd321d7fb55dee6d8c60fdd4a58e51fa8701",
+        "version": "5d-representation-schema-18"
+      }
+    },
+    "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b.json": {
+      "sha256": "def7caa1625458a40c1f635db153268082cf52d5e25c28f57fd29518e44de58c",
+      "binding": {
+        "authoritative_source_hash": "8974902d109d6e63672d7c490bde9ccf052410503d9cfa768237154fbc5e3d87",
+        "bundle_root_hash": "0941dc966337f190f5a6ed3b5dfc0370dc29efd15483889bf2a0d9fb7c564787",
+        "package_uuid": "1299484e-c72d-509b-bd8d-d0169ee1f8d2",
+        "persisted_corpus_digest": "3717fa115a5abb68c4be179d0d643992ab7392a0f9cd5ca5dc4a73da9258e3c3",
+        "release_version": "5.2.1-corpus.8781d4e0-a3b",
+        "transform_config_hash": "753e76087885ee99fb3fa97932c6a0e5b5075bbed1b0acd466d90a029ff0bc01"
+      },
+      "schema": {
+        "hash": "4881e51fb2fa73e52f7ff951ad7d00b863188c1a22133fb0e2873c7d32d10ada",
+        "version": "5d-representation-schema-17"
+      }
+    }
+  },
+  "reviewed_blob_sha256": {
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19:MANIFEST.in": "b2b0f56b9171bc5b9f95e761ba93e2a47f37d7a47aa677ab1057e54ca2e219f3",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19:pyproject.toml": "e8fabe361a8cc534290f1fbe27c72047f45c0524956c804c157e497ad5b62cdf",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19:src/afterworlds/ingestion/mechanical/oracle.py": "ef44f007fd0303d83c851ef1862608607edbf9fae79220f047447f1b8d04acc5",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19:tests/ingestion/corpus/test_packaging.py": "94d2532c65ce8ddd0e9e9c0f635bc9a0765f498e574df7357ee0d153c67f198e",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19:tests/ingestion/mechanical/test_accepted_inputs.py": "670237cb1efbb8a730bd74b0fcdcf0936cfc7fbb17c8904b273f9ff0485a0b73",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19:tests/ingestion/mechanical/test_accepted_release_publication.py": "03340fa97a0271226e596393626ff635a9f33d90ae8beb9c8fc5abfa1734b523",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19:tests/ingestion/mechanical/test_committed_accepted_authority.py": "29ed3be588c341d44fb2ece8b99fdcd78fa78593ba631f58e8147e5ed163c2ec",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19:tests/ingestion/mechanical/test_oracle.py": "1e75260de8eb3e84f040740b75561d1c9d6ad3bb09f8b132709e6e8966478e64",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19:tests/ingestion/mechanical/test_oracle_succession.py": "ce655bb9ccbf412e48d104d9c6c5f4eeb9d23f8b0302087d8347e7eb7bfe27d9",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19:tests/ingestion/mechanical/test_packaging.py": "c1930955da0452e5f4f26179af6128998a9d162319f67ab2fed7f43efa9f32f3",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19:scripts/run_focused_tests.py": "ef6969b5f09e59ebd4001aad2137ade7ca74509d4075753de73336d7595050e9",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19^:src/afterworlds/ingestion/mechanical/oracle.py": "9cddc78d0b6e99cf7695ba23661ac41fa50b5549bbcfb5ab89ed975c49dcb69d",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19^:pyproject.toml": "d5e47e684851531e43b0e9898d6673924168aedcbfebb11474c0a00f2fdb638a",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19^:MANIFEST.in": "8ff3df7648578a1642550da64634807e0d275287eee9eca5ef74f6cb7459be4d",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19:src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-3fe24ff6-4e3.json": "e6f5f36aa3af13807bbff721797d971dcf0d8e588a97483c7d769cf88cbd1308",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19:src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-574662e9-0ef.json": "fc62c47cde83cd341f714b7e51660354a22b69dc59f214c0a6e5ec379dee5a62",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19:src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json": "2853f30a832ca581c9d4169b82d0c360f3d6a2d78f0ad8980de9997eef51f373",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19:src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json": "ead7fa9d4fde484098f71221ca5ef82dfb2c82229d8fca80ab5feeb4e4d62d0d",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19:src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c.json": "23e5d8e0fac60e3f5417b3a41e40e6f475366dd385856f38c42104f4dd264f69",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19:src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-g1.json": "2ccbaeba6de75d9787fbdd407e42dc2425fa20d4d26bcc298b681b550bd11258",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19:src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b.json": "def7caa1625458a40c1f635db153268082cf52d5e25c28f57fd29518e44de58c",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19^:src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c.json": "23e5d8e0fac60e3f5417b3a41e40e6f475366dd385856f38c42104f4dd264f69",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19^:src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json": "2853f30a832ca581c9d4169b82d0c360f3d6a2d78f0ad8980de9997eef51f373",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19^:src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-g1.json": "2ccbaeba6de75d9787fbdd407e42dc2425fa20d4d26bcc298b681b550bd11258",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19^:src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b.json": "def7caa1625458a40c1f635db153268082cf52d5e25c28f57fd29518e44de58c",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19:.claude/review-notes/issue-15c-c8-recording/runs/recording-focused.result.json": "fa94205892b7235f71f89d18c7e31bdc775172b7cf5cb07b08a67ef6bf5fc59d",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19:.claude/review-notes/issue-15c-c8-recording/runs/recording-focused.out.txt": "d325ed0eae54a2c0fd24c763d61081e1f254171c274bb93f6bc0cc17e91b155e",
+    "183a664e8645ecadd97c55517e8ba1120e9c5b19:.claude/review-notes/issue-15c-c8-recording/runs/recording-focused.err.txt": "84b9efe87539186dc93860b3f3a897d1a12d9d88af87ec1dd653ef7f7d1eab58"
+  },
+  "working_file_boundary": {
+    "MANIFEST.in": {
+      "sha256": "b2b0f56b9171bc5b9f95e761ba93e2a47f37d7a47aa677ab1057e54ca2e219f3",
+      "matches_reviewed_commit": true
+    },
+    "pyproject.toml": {
+      "sha256": "e8fabe361a8cc534290f1fbe27c72047f45c0524956c804c157e497ad5b62cdf",
+      "matches_reviewed_commit": true
+    },
+    "src/afterworlds/ingestion/mechanical/oracle.py": {
+      "sha256": "ef44f007fd0303d83c851ef1862608607edbf9fae79220f047447f1b8d04acc5",
+      "matches_reviewed_commit": true
+    },
+    "tests/ingestion/corpus/test_packaging.py": {
+      "sha256": "94d2532c65ce8ddd0e9e9c0f635bc9a0765f498e574df7357ee0d153c67f198e",
+      "matches_reviewed_commit": true
+    },
+    "tests/ingestion/mechanical/test_accepted_inputs.py": {
+      "sha256": "670237cb1efbb8a730bd74b0fcdcf0936cfc7fbb17c8904b273f9ff0485a0b73",
+      "matches_reviewed_commit": true
+    },
+    "tests/ingestion/mechanical/test_accepted_release_publication.py": {
+      "sha256": "03340fa97a0271226e596393626ff635a9f33d90ae8beb9c8fc5abfa1734b523",
+      "matches_reviewed_commit": true
+    },
+    "tests/ingestion/mechanical/test_committed_accepted_authority.py": {
+      "sha256": "29ed3be588c341d44fb2ece8b99fdcd78fa78593ba631f58e8147e5ed163c2ec",
+      "matches_reviewed_commit": true
+    },
+    "tests/ingestion/mechanical/test_oracle.py": {
+      "sha256": "1e75260de8eb3e84f040740b75561d1c9d6ad3bb09f8b132709e6e8966478e64",
+      "matches_reviewed_commit": true
+    },
+    "tests/ingestion/mechanical/test_oracle_succession.py": {
+      "sha256": "ce655bb9ccbf412e48d104d9c6c5f4eeb9d23f8b0302087d8347e7eb7bfe27d9",
+      "matches_reviewed_commit": true
+    },
+    "tests/ingestion/mechanical/test_packaging.py": {
+      "sha256": "c1930955da0452e5f4f26179af6128998a9d162319f67ab2fed7f43efa9f32f3",
+      "matches_reviewed_commit": true
+    },
+    "scripts/run_focused_tests.py": {
+      "sha256": "ef6969b5f09e59ebd4001aad2137ade7ca74509d4075753de73336d7595050e9",
+      "matches_reviewed_commit": true
+    },
+    "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json": {
+      "sha256": "ead7fa9d4fde484098f71221ca5ef82dfb2c82229d8fca80ab5feeb4e4d62d0d",
+      "matches_reviewed_commit": true
+    }
+  },
+  "limits": [
+    "Static manifest selection is not an actual distribution build/install",
+    "No builder/store/re-record/test run performed",
+    "Baseline and independent gameplay changes outside this review",
+    "Full configured-coverage pytest, installed packaging smoke test and exact-head CI remain whole-PR gates"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "revision": "c6c2b2ad295d7d474eaa900a77988af20832e7d5",
+  "sha256": {
+    ".claude/review-notes/issue-15c-c8-recording/runs/rpg-suites-3.result.json": "157dc4917fce1c50e68dcc7c5c3ac8115c5a08a9f7bb5c0e1b07a31ee85ca611",
+    ".claude/review-notes/issue-15c-c8-recording/runs/rpg-suites-3.out.txt": "3a7eaff790c96fd1ec2e16e5f4119b6bf748164d3874346788737a6e7a633156",
+    ".claude/review-notes/issue-15c-c8-recording/runs/rpg-suites-3.err.txt": "a9a65992e3f653b3d393a9e3338e5d5430c43057d69582956e89e7f91bd7479b",
+    "probe.py": "8ea38bf1f0ff50751ab7f051cdf39a4236da491f2a243b4ee1197b54c7c35456",
+    "results.json": "987d466cb730d559537dac72de555ac59076835df2c8d2dd29f83dce2c1b86d7"
+  }
+}
