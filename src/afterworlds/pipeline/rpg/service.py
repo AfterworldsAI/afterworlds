@@ -651,6 +651,11 @@ class RpgAdjudicationPassService:
                     proposal.creature_attack.attacker,
                     proposal.creature_attack.target,
                 ]
+            if proposal.creature_save_effect is not None:
+                named += [
+                    proposal.creature_save_effect.source,
+                    *proposal.creature_save_effect.targets,
+                ]
             for ref in named:
                 if ref is not None:
                     refs[(ref.kind, str(ref.subject_id))] = ref
@@ -750,7 +755,9 @@ class RpgAdjudicationPassService:
         an actor-turn edge (contract G1)."""
         if not any(p.operation in _EDGE_OPERATIONS for p in proposals):
             if self._coordination_loader is not None and any(
-                p.weapon_attack is not None or p.creature_attack is not None
+                p.weapon_attack is not None
+                or p.creature_attack is not None
+                or p.creature_save_effect is not None
                 for p in proposals
             ):
                 return self._coordination_loader(story_id)

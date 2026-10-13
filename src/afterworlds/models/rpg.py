@@ -136,6 +136,18 @@ class CreatureAttackSelection(BaseModel):
     multiattack: bool = False
 
 
+class CreatureSaveEffectSelection(BaseModel):
+    """The GameMaster's selections for one ``creature_save_effect``: the source
+    creature, one of its printed save-effect entries, and the creatures in
+    its area or otherwise subject to it (OD-15c-1). Never a number."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    source: SubjectRef
+    entry: str = Field(min_length=1)
+    targets: tuple[SubjectRef, ...] = Field(min_length=1)
+
+
 class LifecycleAttestation(BaseModel):
     """The GameMaster's attestation about one recovery instance (CRD Issue
     15c, OD-15c-2), never a result: code holds the interval, the thresholds and
@@ -194,6 +206,8 @@ class RollProposal(BaseModel):
     attestation: LifecycleAttestation | None = None
     #: The selections of a ``creature_attack`` (CRD Issue 15c).
     creature_attack: CreatureAttackSelection | None = None
+    #: The selections of a ``creature_save_effect`` (CRD Issue 15c).
+    creature_save_effect: CreatureSaveEffectSelection | None = None
 
 
 class AdjudicationProposalOutput(BaseModel):

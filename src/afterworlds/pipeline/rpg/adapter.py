@@ -48,6 +48,7 @@ from afterworlds.pipeline.rpg import (
     attacks,
     checks,
     creature_attacks,
+    creature_effects,
     lifecycle,
     mastery,
 )
@@ -58,6 +59,7 @@ from afterworlds.pipeline.rpg.capability import (
     certify,
 )
 from afterworlds.pipeline.rpg.dice import chosen_die_range
+from afterworlds.services.dnd5e_state.turn import TurnCreature
 
 _Outcome = Literal[
     "success", "failure", "critical_success", "critical_failure", "undetermined"
@@ -291,6 +293,9 @@ class D20RulesSystemAdapter:
         if proposal.operation == Operation.CREATURE_ATTACK.value:
             creature_attacks.prepare(proposal, character, subjects or {})
             return
+        if proposal.operation == Operation.CREATURE_SAVE_EFFECT.value:
+            creature_effects.prepare(proposal, character, subjects or {})
+            return
         if proposal.operation == Operation.STABILIZE.value:
             lifecycle.prepare_first_aid(proposal, character, subjects or {})
             return
@@ -318,6 +323,8 @@ class D20RulesSystemAdapter:
             return attacks.possible_conditions(proposal, subjects)
         if proposal.operation == Operation.CREATURE_ATTACK.value:
             return creature_attacks.possible_conditions(proposal, _character, subjects)
+        if proposal.operation == Operation.CREATURE_SAVE_EFFECT.value:
+            return creature_effects.possible_conditions(proposal, _character, subjects)
         if proposal.operation in (Operation.STABILIZE.value, *_ATTESTATIONS):
             # Ending a knockout's or a regained creature's Unconscious leaves
             # it Prone.
@@ -359,6 +366,11 @@ class D20RulesSystemAdapter:
         sel = proposal.weapon_attack or proposal.creature_attack
         if sel is not None:
             return {(sel.target.kind, str(sel.target.subject_id))}
+        if proposal.creature_save_effect is not None:
+            return {
+                (r.kind, str(r.subject_id))
+                for r in proposal.creature_save_effect.targets
+            }
         if proposal.operation in (*_EDGES, *_LIFECYCLE) and proposal.subject:
             ref = proposal.subject
             return {(ref.kind, str(ref.subject_id))}
@@ -389,6 +401,11 @@ class D20RulesSystemAdapter:
             return {
                 (sel.attacker.kind, str(sel.attacker.subject_id)),
                 (sel.target.kind, str(sel.target.subject_id)),
+            }
+        area = proposal.creature_save_effect
+        if area is not None:
+            return {(area.source.kind, str(area.source.subject_id))} | {
+                (r.kind, str(r.subject_id)) for r in area.targets
             }
         return set()
 
@@ -535,6 +552,24 @@ class D20RulesSystemAdapter:
                 source=source,
                 gm_cheating_at_roll=gm_cheating,
             )
+        if proposal.operation == Operation.CREATURE_SAVE_EFFECT.value:
+            effect = creature_effects.roll(
+                creature_effects.prepare(proposal, character, subjects or {}),
+                dice_service,
+                coordination,
+            )
+            return ResolvedAdjudicationRecord(
+                check_label=proposal.check_label,
+                visibility=proposal.visibility,
+                expression="",
+                raw_rolls=(),
+                modifiers_json=effect.provenance_json(),
+                total=0,
+                outcome="undetermined",
+                sheet_effects=effect.effects,
+                source=source,
+                gm_cheating_at_roll=gm_cheating,
+            )
         if proposal.operation == Operation.STABILIZE.value:
             aid = lifecycle.roll_first_aid(
                 lifecycle.prepare_first_aid(proposal, character, subjects or {}),
@@ -647,11 +682,15 @@ class D20RulesSystemAdapter:
         ref = mastery.reference(subject)
         active = coordination.active if coordination is not None else None
         instance = active.instance if active is not None else 0
-        expired = tuple(
+        expired: tuple[SheetEffect, ...] = tuple(
             e
             for holder in (character, *subjects.values())
             for e in mastery.expiring(holder, kind, ref, instance)
         )
+        recharges: list[dict[str, object]] = []
+        if kind == "begin" and isinstance(subject, TurnCreature):
+            recharged, recharges = creature_effects.recharge(subject, dice_service)
+            expired = (*expired, *recharged)
         if kind == "begin" and lifecycle.dying(subject):
             saved = lifecycle.roll(lifecycle.prepare(subject), dice_service)
             outcomes: dict[str, _Outcome] = {
@@ -687,6 +726,7 @@ class D20RulesSystemAdapter:
                 {
                     "operation": proposal.operation,
                     "subject": proposal.subject.model_dump(mode="json"),
+                    "recharge": recharges,
                 },
                 sort_keys=True,
             ),

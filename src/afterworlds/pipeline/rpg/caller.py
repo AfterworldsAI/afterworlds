@@ -269,6 +269,30 @@ PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC: dict[str, Any] = {
                                 " and the contextual facts you select."
                             ),
                         },
+                        "creature_save_effect": {
+                            "oneOf": [
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "source": _SUBJECT_SCHEMA,
+                                        "entry": {"type": "string"},
+                                        "targets": {
+                                            "type": "array",
+                                            "items": _SUBJECT_SCHEMA,
+                                            "minItems": 1,
+                                        },
+                                    },
+                                    "required": ["source", "entry", "targets"],
+                                    "additionalProperties": False,
+                                },
+                                {"type": "null"},
+                            ],
+                            "description": (
+                                "For creature_save_effect: the creature, one of its"
+                                " save-effect entries from the scene, and every"
+                                " creature in its area."
+                            ),
+                        },
                         "attestation": {
                             "oneOf": [
                                 {

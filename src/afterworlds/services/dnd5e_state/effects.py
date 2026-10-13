@@ -29,6 +29,7 @@ from afterworlds.models.dnd5e_state import (
     CreatureState,
     DeathState,
     Dnd5eCharacterState,
+    UsageCounter,
 )
 from afterworlds.models.rpg import SheetEffect
 
@@ -113,6 +114,17 @@ def _slot(
     )
 
 
+def _usage_counter(state: _State, effect: SheetEffect, value: object) -> _State:
+    """``set`` one usage counter, by ``counter_id``: replaced, or added."""
+    if effect.operation != "set" or not isinstance(value, dict):
+        raise ValueError("usage_counter: set a JSON object")
+    if state.usage_counters is None:
+        raise ValueError("usage_counter: the subject records no usage counters")
+    counter = UsageCounter.model_validate(value)
+    kept = tuple(c for c in state.usage_counters if c.counter_id != counter.counter_id)
+    return state.model_copy(update={"usage_counters": (*kept, counter)})
+
+
 def apply_effects[S: _State](state: S, effects: tuple[SheetEffect, ...]) -> S:
     """*state* after *effects*, re-validated as its own document type."""
     return cast(S, _apply(state, effects))
@@ -128,6 +140,8 @@ def _apply(state: _State, effects: tuple[SheetEffect, ...]) -> _State:
                 state = _temporary_hp(state, effect, value)
             elif effect.target == "death_state":
                 state = _death_state(state, effect, value)
+            elif effect.target == "usage_counter":
+                state = _usage_counter(state, effect, value)
             elif effect.target.startswith("spell_slot."):
                 if not isinstance(state, Dnd5eCharacterState):
                     raise ValueError(f"{effect.target}: a creature records no slots")

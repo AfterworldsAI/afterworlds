@@ -55,6 +55,7 @@ from afterworlds.ingestion.mechanical.representation import (
 from afterworlds.models.dnd5e_state import TurnCoordination
 from afterworlds.models.enums import ConditionVisibility
 from afterworlds.models.rpg import CreatureAttackSelection, RollProposal, SheetEffect
+from afterworlds.pipeline.rpg import creature_effects
 from afterworlds.pipeline.rpg.attacks import (
     _SIGHT_LIGHT,
     _SIZES_UP_TO,
@@ -114,6 +115,7 @@ class PreparedCreatureAttack:
     certificate: Certificate
     rider_save: PreparedSave | None = None
     ac_breakdown: dict[str, int] = field(default_factory=dict)
+    usage: CreatureEntryUsageFact | None = None
 
     @property
     def expression(self) -> str:
@@ -203,17 +205,6 @@ def _attack_fact(attacker: TurnCreature, entry: str) -> CreatureAttackFact:
         raise _refuse(
             RefusalKind.UNSUPPORTED_CAPABILITY,
             "legendary actions are not executable here",
-        )
-    usage = [
-        f
-        for f in facts_of(attacker.index, template)
-        if isinstance(f, CreatureEntryUsageFact) and f.entry == entry
-    ]
-    if usage:
-        raise _refuse(
-            RefusalKind.UNSUPPORTED_CAPABILITY,
-            f"{template}/{entry} has a usage limit ({usage[0].kind.value}); usage "
-            "counters and Recharge are not executed here",
         )
     unexecuted = [
         name
@@ -550,16 +541,21 @@ def prepare(
         certificate=certificate,
         rider_save=rider_save,
         ac_breakdown=ac_breakdown,
+        usage=creature_effects.usable(attacker, fact.entry),
     )
 
 
-def _condition_effect(
-    prepared: PreparedCreatureAttack,
+def _condition_value(
+    attacker: TurnCreature,
+    target: TurnSubject,
     condition: ConditionKind,
     duration: TurnBoundary | None,
     coordination: TurnCoordination | None,
-) -> SheetEffect:
-    attacker, target = prepared.attacker, prepared.target
+    escape_dc: int | None = None,
+) -> dict[str, object]:
+    """An applied condition's typed value: sourced to the creature's
+    template, about the creature, with Grappled's escape DC and any
+    turn-bounded end (contract G2)."""
     boundary = _rider_turn(duration)
     value: dict[str, object] = {
         "instance_id": str(uuid4()),
@@ -571,8 +567,8 @@ def _condition_effect(
         },
         "referent": reference(attacker).model_dump(mode="json"),
     }
-    if condition is ConditionKind.GRAPPLED and prepared.fact.hit_effect is not None:
-        value["escape_dc"] = prepared.fact.hit_effect.escape_dc
+    if condition is ConditionKind.GRAPPLED:
+        value["escape_dc"] = escape_dc
     if boundary is not None and duration is not None:
         of = attacker if duration.turn_of is TurnOwner.SOURCE else target
         ref = reference(of)
@@ -589,12 +585,30 @@ def _condition_effect(
                 ),
             },
         }
-    kind, subject_id = subject_key(target)
+    return value
+
+
+def _condition_effect(
+    prepared: PreparedCreatureAttack,
+    condition: ConditionKind,
+    duration: TurnBoundary | None,
+    coordination: TurnCoordination | None,
+) -> SheetEffect:
+    target = prepared.target
+    rider = prepared.fact.hit_effect
+    value = _condition_value(
+        prepared.attacker,
+        target,
+        condition,
+        duration,
+        coordination,
+        rider.escape_dc if rider is not None else None,
+    )
     return SheetEffect(
         target=condition.value,
         operation="apply_condition",
         value_json=json.dumps(value),
-        subject_kind=kind,  # type: ignore[arg-type]
+        subject_kind=subject_key(target)[0],  # type: ignore[arg-type]
         subject_id=target.subject_id,
     )
 
@@ -665,9 +679,13 @@ def roll(
         hit, critical = total >= prepared.target_ac, False
     if hit and prepared.automatic_critical:
         critical = True
+    spent = creature_effects.spend(
+        prepared.attacker, prepared.fact.entry, prepared.usage
+    )
     if not hit:
+        # A used limited entry is spent whether or not it hits.
         return RolledCreatureAttack(
-            prepared, attack.raw_rolls, attack.chosen, False, False
+            prepared, attack.raw_rolls, attack.chosen, False, False, rider_effects=spent
         )
     from afterworlds.ingestion.mechanical.representation import CriticalDamageFact
 
@@ -708,7 +726,7 @@ def roll(
         critical,
         tuple(rolls),
         tuple(taken),
-        tuple(effects),
+        (*spent, *effects),
         rider,
     )
 

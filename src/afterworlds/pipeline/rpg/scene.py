@@ -17,7 +17,10 @@ from __future__ import annotations
 
 import json
 
-from afterworlds.ingestion.mechanical.representation import CreatureAttackFact
+from afterworlds.ingestion.mechanical.representation import (
+    CreatureAttackFact,
+    CreatureSaveEffectFact,
+)
 from afterworlds.models.dnd5e_state import TurnCoordination
 from afterworlds.pipeline.rpg.defense import facts_of
 from afterworlds.services.dnd5e_state.turn import (
@@ -37,10 +40,17 @@ def _subject(subject: TurnSubject, acting: bool) -> dict[str, object]:
         out["name"] = subject.stored.display_name
         out["template"] = state.template_record_key  # type: ignore[union-attr]
         if subject.index is not None:
+            facts = facts_of(subject.index, out["template"])  # type: ignore[arg-type]
             out["attack_entries"] = sorted(
-                f.entry
-                for f in facts_of(subject.index, out["template"])  # type: ignore[arg-type]
-                if isinstance(f, CreatureAttackFact)
+                f.entry for f in facts if isinstance(f, CreatureAttackFact)
+            )
+            out["save_effect_entries"] = sorted(
+                f.entry for f in facts if isinstance(f, CreatureSaveEffectFact)
+            )
+            out["spent_uses"] = sorted(
+                c.counter_id.rsplit("/", 1)[-1]
+                for c in state.usage_counters or ()
+                if c.expended
             )
     else:
         out["name"] = subject.stored.character_name

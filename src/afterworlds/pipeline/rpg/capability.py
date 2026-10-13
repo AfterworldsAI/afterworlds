@@ -89,6 +89,7 @@ class Operation(StrEnum):
     END_TURN = "end_turn"
     STABLE_RECOVERY = "stable_recovery"
     CREATURE_ATTACK = "creature_attack"
+    CREATURE_SAVE_EFFECT = "creature_save_effect"
     KNOCKOUT_RECOVERY = "knockout_recovery"
 
 
@@ -446,13 +447,30 @@ MANIFEST: dict[Operation, Capability] = {
         ),
         fingerprint="b2491c1ebef0f3770fd5cb5acd24ad2ddd4325a4ff512927beff016ce1b95d4f",  # noqa: E501  # pragma: allowlist secret
     ),
+    Operation.CREATURE_SAVE_EFFECT: Capability(
+        Operation.CREATURE_SAVE_EFFECT,
+        CapabilityStatus.EXECUTABLE,
+        inputs=(
+            "a continuing creature and one of its printed save-effect entries; "
+            "the targets the GameMaster selects in its area (OD-15c-1); each "
+            "target's save under its own binding; the entry's usage (Recharge, "
+            "X/Day)"
+        ),
+        effects=(
+            "damage rolled once: full on a failure, halved on a success when "
+            "printed; a typed condition on a failure; the use spent. Not yet: "
+            "type, sight, environment or trigger predicates, formula DCs, "
+            "failure effects beyond a condition"
+        ),
+        fingerprint="e14932c0f6f2046d6c5b8743bcc9c53871e2ee630d27e5571b66c6dbc771b04d",  # noqa: E501  # pragma: allowlist secret
+    ),
 }
 
 #: Explicit exclusions (unsupported capability, never coverage).
 EXCLUSIONS: tuple[str, ...] = (
     "contests and opposed checks",
-    "monster stat-block actions other than printed attacks (save effects, "
-    "Multiattack, legendary and usage-limited actions)",
+    "legendary actions and other usage kinds (legendary uses, form-only, "
+    "required entries)",
     "general spell and feature execution",
     "general healing, rests and resurrection",
     "initiative order management and general encounter state",
@@ -500,6 +518,13 @@ def _governing(
         Operation.END_TURN: _TURN_PROCEDURE,
         Operation.DEATH_SAVING_THROW: _DEATH_SAVE_PROCEDURE,
         Operation.STABILIZE: _FIRST_AID_PROCEDURE,
+        Operation.CREATURE_SAVE_EFFECT: (
+            *SAVE_PROCEDURE,
+            (_DAMAGE, "half_damage"),
+            (_DAMAGE, "damage_rolls"),
+            (_DAMAGE, "multiple_targets"),
+            *_WEAPON_ATTACK_PROCEDURE,
+        ),
         Operation.CREATURE_ATTACK: (
             *_CREATURE_ATTACK_PROCEDURE,
             *_WEAPON_ATTACK_PROCEDURE,

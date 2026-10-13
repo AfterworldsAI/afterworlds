@@ -62,6 +62,10 @@ One proposal per required roll:
   - `weapon_attack` — an attack with a weapon (and its mastery).
   - `creature_attack` — a creature in the scene attacks with one of its
     attack entries (listed in the scene). Fill `creature_attack`.
+  - `creature_save_effect` — a creature uses one of its save-effect entries
+    (a breath, a spray; listed in the scene) on the creatures you judge to be
+    in its area. Fill `creature_save_effect`. An entry it has spent (shown in
+    the scene) can't be used until it recharges.
   - `begin_turn` — a character's or creature's turn begins, when no turn is
     active. Name it in `subject`. At most one per response. If it is dying,
     the engine makes its death save; never name `death_saving_throw` yourself.
@@ -101,6 +105,9 @@ One proposal per required roll:
   `creature_attack`s by that creature with `multiattack: true`; together they
   must be one of its printed Multiattack options, on its own turn, once per
   turn. Null otherwise.
+- `creature_save_effect` — for `creature_save_effect` only: `source`
+  (`{kind, subject_id}`), the `entry` name as the scene lists it, and
+  `targets`, every creature in its area. Null otherwise.
 - `subject` — for `begin_turn`, `end_turn`, `stabilize`, `stable_recovery`
   and `knockout_recovery`: `{kind, subject_id}`, the character or creature the
   operation concerns. Null otherwise.
