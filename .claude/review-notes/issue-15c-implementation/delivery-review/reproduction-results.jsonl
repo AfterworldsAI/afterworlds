@@ -1,0 +1,4 @@
+{"case": "two distinct dagger items, legal Light attack", "result": "refused", "kind": "invalid_selection", "detail": "Light's extra attack is made with a different Light weapon after an attack with a Light weapon", "dice_calls": 0}
+{"case": "Hand Crossbow gripped with both hands and zero free hands", "result": "accepted", "dice_calls": 2, "outcomes": ["success"], "advantage": [[]]}
+{"case": "Hand Crossbow one hand with free hand", "result": "accepted", "dice_calls": 2, "outcomes": ["success"], "advantage": [[]]}
+{"case": "Push ally then consume its old Pack Tactics proximity", "result": "accepted", "dice_calls": 4, "outcomes": ["success", "undetermined", "undetermined", "success"], "advantage": [[], null, null, ["animals.wolf/Pack Tactics"]]}

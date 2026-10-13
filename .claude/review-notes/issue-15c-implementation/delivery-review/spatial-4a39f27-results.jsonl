@@ -1,0 +1,4 @@
+{"case": "pack_tactics", "kind": "invalid_selection", "detail": "'Wolf bites' states spatial facts about creature 1128fdf5-c568-45bf-b3a6-56041d4d1b77, which an earlier operation of this turn can move; they need a later turn", "dice_calls": 0}
+{"case": "close_combat", "kind": "invalid_selection", "detail": "'Wolf bites' states spatial facts about creature 1128fdf5-c568-45bf-b3a6-56041d4d1b77, which an earlier operation of this turn can move; they need a later turn", "dice_calls": 0}
+{"case": "discovered_out_of_range_aura", "kind": "invalid_selection", "detail": "'Roar' states spatial facts about character f38899bf-15a9-44f5-89f3-ad0574d0e50b, which an earlier operation of this turn can move; they need a later turn", "dice_calls": 0}
+{"frozen_creature_effects_sha256": "5daf6328108d1573699ce549cabe4c823c2d5f042feeffacd5ff42c2e9c6b301", "revision": "4a39f27becb1ae265ba549727e72846fbce83ae8", "result": "3 spatial regressions refused before dice"}

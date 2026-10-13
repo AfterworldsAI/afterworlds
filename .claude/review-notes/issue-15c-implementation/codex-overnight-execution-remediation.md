@@ -1,0 +1,26 @@
+# CRD Issue 15c — consolidated execution remediation
+
+The Owner's latest direct instruction supersedes the monitor-only role: “I'm going to bed, you don't need to give me reports every 10 mins anymore. I'll be back in about 8 hours. Do as much as you can without me. Stop for true Owner Decisions and Merge, otherwise keep going.” Routine coordination and ordinary issue-scoped remediation are authorized. Preserve separate shared-runtime migration, publication/activation and app-launch holds.
+
+## Disposition
+
+Independent C7 recording review is CLEARED: `codex-c7-recording-final-review.md`. Reuse that proof; do not regenerate accepted artifacts or reopen semantic acceptance. C7 remains Owner accepted, recorded and independently verified.
+
+Execution review at `b5051d8433ac2be7336daa41f2aae038b9d21c9e` identifies six concrete findings in four recurring families. They are merge-blocking implementation work under #191 and settled input/source contracts, not new Owner Decisions. Later commits `9b63bce` and `782f441` add holdings E2E/documentation and do not claim to repair these findings. Read both full reports: `codex-creature-execution-final-review.md` and `codex-delivery-execution-final-review.md`. Their bounded reproductions and evidence are linked within them.
+
+| Family / trigger and sibling map | Required disposition and proof |
+| --- | --- |
+| Before-dice completeness: direct/linked/clause condition immunity and Bloodied-dependent damage; creature save-effect sibling | Preflight every refusal-capable required input for an applicable selected operation before dice, while retaining actual advanced-state evaluation. Wolf/Purple Worm/Allosaurus recorded immunity and Swarm missing HP presently consume dice before refusal. Correct hit/miss paths and sibling saves, with zero dice. |
+| Positive roster coverage: eight newly admitted typed shapes still unconditionally refuse, while assertions check only old C5 positives | Execute existing accepted qualifications for Elephant/Mammoth/Gorgon Trample, Ghast/Ghoul Claw target exclusions, Dragon Turtle Steam Breath underwater qualification, and both named Sphinx roars. Validate authoritative target state/binding. Every claimed admission needs a valid successful resolution/effect scenario, not merely preparation or refusal. Preserve genuine general-engine exclusions. |
+| Mechanical dependency closure: negative aura/expiry discovery, collection membership, and geometry consumed through bystanders/aura contributors | Retain or revalidate consumed absence and matching membership at delivery; nonmatching-to-matching and newly added subjects must fail atomically when stale. Invalidate all consumed spatial participants after movement. The Push → actor edges → Wolf Pack Tactics probe currently reuses moved B's proximity. Cover close-combat/area-aura siblings without inventing initiative scheduling. |
+| Physical/source identity: Light/Nick individual weapon and one-handed loading classification | Distinct same-kind held items must satisfy “different weapon”; retain actual item identity and durable replay, reject the same item. A one-handed ammunition weapon must not bypass free-hand loading by declaring two gripping hands. Derive classification from accepted source, not GM assertion. Correct the all-ammunition helper that currently bypasses this check; preserve legitimate Two-Handed behavior. |
+
+Boundary check performed: these families concern already accepted validation, state integrity, source execution and positive coverage. No source-policy invention, general condition graph, inventory simulator or encounter engine is admitted. Do not silently remove promised admissions to obtain green assertions. Update traceability truthfully after proofs exist. Preserve accepted pins, original packets/receipts, protected recovery checkout and runtime.
+
+## Claude-ready task
+
+Continue this same isolated `codex/issue-15c-bounded-d20` implementation as the existing engineer. Repair the consolidated families above, choosing the smallest sufficient implementation. Use the detailed independent reports and their deterministic probes. Add focused meaningful regressions at the real adjudication/delivery seam; retain wrong/missing input zero-dice refusals, atomic rollback, authoritative source/binding validation, replay and safe labels. Reuse unaffected verification.
+
+Local commits are authorized. Report the exact head and evidence when fixes are ready, then leave source/gate inputs stable for Codex's independent final checks. Do not run full pytest through Claude Bash background; coordinator will run the existing process-independent supervisor after the stable reviewed head. Do not push/open a PR before coordinator clearance. Never merge or change shared runtime/publication/activation/app launch. Do not alter #129/#132/#137 or weaken CI/secrets/dependency gates.
+
+The newly reported chromadb advisories require separate evidence-based disposition; do not add ignores or change dependency/security policy yourself. Coordinator is investigating the unchanged gate and current upstream evidence. Continue these independent gameplay corrections meanwhile, and surface only a genuine new authority conflict or established blocker. The Owner is away; another routine permission question is unnecessary.

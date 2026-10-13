@@ -1,0 +1,24 @@
+# CRD Issue 15c â€” C7 recording, selection, packaging and baseline review
+
+Verdict: **no blocking defect found in this bounded review**. Reviewed recording commit `952ae5349d8d7137b90ccb3dab19c7231418809c` and checkout HEAD `b5051d8433ac2be7336daa41f2aae038b9d21c9e` on 13 October 2026. This clears the recording/selection/baseline slice, not full CRD Issue 15c acceptance or merge readiness.
+
+Authority: full current `issue-15c-preparation/issue-draft.md`, exact Owner acceptance `issue-15c-c7-native/owner-acceptance-2026-10-13.md`, and direct integration authorization `owner-c7-integration-2026-10-13.md`. Applied Afterworlds Review 2026-09-25 and routing; reused the coordinator's current-task Library resolution. No new semantic decision was inferred.
+
+## Independently verified
+
+- Actual recorded C7 bytes hash to `2853f30a832ca581c9d4169b82d0c360f3d6a2d78f0ad8980de9997eef51f373`; the preserved exact accepted preview still hashes to `d661cc3be22aa6aca996a4e67cac4f8ebbd2dfa1908dd29a0c7ae2e38177ef6d`. Full JSON comparison finds no difference outside acceptance evidence. Row identity sets and cardinalities match; only two batch rules, 643 record reviewers/timestamps, and 47 review-unit reviewers/timestamps differ. Changes are restricted to character-origins-feats and equipment; the 22 untouched batches and their evidence ordering are preserved. Touched timestamps are later than Owner acceptance and reviewers identify the real Owner. No SIMULATION residue exists.
+- C5 SHA `23e5d8e0fac60e3f5417b3a41e40e6f475366dd385856f38c42104f4dd264f69`, all preview-report source/prior-candidate pins, receipt/authorization/packet pins and both preserved rendered-proposal hashes match. Preview semantic review is reused because the exhaustive comparison proves semantic content unchanged.
+- Using this checkout's `venv/Scripts/python.exe -B` and verifying the imported `afterworlds.__file__`, pure native load/serialize is byte-identical. Independent oracle identification yields `cb04163ba0374e95ce0fcdaae939b00793e71f84ed3222593c4babfc9065ef6e`; projection is `8446ab6b-be75-5999-8a9b-74fa133c030a`; payload is `cffcdbfa70a6e64351b852ff9b932aa32df81abdd45700ef6c0034aefdaeb65a`. `committed_inputs_for` selects this identity. Reproducible read-only checks are in `c7-recording-review/check.py`.
+- `src/afterworlds/ingestion/mechanical/oracle.py:218` adds C5's exact digest to the existing three-artifact succession guard without removing the old guards. `MANIFEST.in:10` and `pyproject.toml:69` exclude superseded artifacts from distributions while retaining them in the source tree. `tests/ingestion/mechanical/test_oracle_succession.py:74` pins preservation and `:135` tests C7 selection. The real wheel/sdist/install test at `tests/ingestion/corpus/test_packaging.py:149` checks C7 byte identity, absence of retired artifacts and installed resolution; it remains part of the coordinator's full gate run.
+
+## Secrets-baseline integrity
+
+Compared parsed `.secrets.baseline` against `e83018c`; reviewed baseline SHA `3006e93343aee4ec5150631db5af7bddc0c935031b76711b7f2ed6ac683bfe55`. Detector plugins, thresholds, filters and other settings are identical. `.pre-commit-config.yaml` and `.github` have no changes from that base.
+
+There are 587 new `(filename, detector, hashed-value)` entries and six removals. Every one of the 586 added Hex High Entropy entries SHA-1-matches a hex digest on its recorded source line; locations are candidate/recording/source pins, projection/schema identities, component fingerprints and test authority. The one added Secret Keyword entry is the narrative label in `tests/pipeline/rpg/test_adapter.py:174`, not a credential. Existing-entry audit metadata loses 48 `is_secret: false` fields; this does not broaden matching, and detector configuration is unchanged.
+
+A read-only in-memory negative control used the actual baseline settings and the hook's `SecretsCollection` subtraction behavior with the same test filename and a synthetic changed value. Three detector findings survived baseline subtraction. No values were printed, no real credentials were used, and no baseline was modified. Disposition: **already safe / no change**; no broad suppression was introduced.
+
+## Limits and retained boundaries
+
+Inspected the recording script's private-store validation/reconstruction/gate path and its recorded clean report (`issue-15c-c7-recording/recorded-followup.json:40`). Independently recomputed the bytes and pure identities, but did not repeat persistence, store writes, candidate construction, acceptance recording or gate execution. No suite, packaging build, app launch, shared-runtime change, Git mutation or publication ran in this review. Exact-head full repository/CI and installed-package gate evidence remain required and are coordinated separately. Execution certification and delivery behavior belong to the other review tracks. No unresolved Owner Decision emerged in this slice.
