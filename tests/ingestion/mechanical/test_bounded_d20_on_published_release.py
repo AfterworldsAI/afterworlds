@@ -113,13 +113,28 @@ def g1_store(
     return path
 
 
+#: Every provider request of the current test, in order.
+REQUESTS: list[ProviderCallRequest] = []
+
+
+def _request_text(pass_id: str) -> str:
+    return "\n".join(
+        block.text
+        for request in REQUESTS
+        if request.pass_id.value == pass_id
+        for block in request.rendered_blocks
+    )
+
+
 @pytest.fixture()
 def gm(monkeypatch: pytest.MonkeyPatch) -> list[list[dict[str, Any]]]:
     """The GameMaster's scripted proposals, one list per adjudication call."""
     script: list[list[dict[str, Any]]] = []
     real_call = FakeProviderAdapter.call
+    REQUESTS.clear()
 
     def call(self: FakeProviderAdapter, request: ProviderCallRequest) -> Any:
+        REQUESTS.append(request)
         if request.pass_id.value != "rpg_adjudication":
             return real_call(self, request)
         rolls = script.pop(0) if script else []
@@ -483,6 +498,10 @@ def test_a_hits_subject_addressed_effects_are_audited_and_committed(
     )
     (effect,) = json.loads(row.sheet_effects_json)
     assert (effect["subject_kind"], effect["subject_id"]) == ("creature", wolf)
+    # The production GameMaster was shown the ids it named; the Writer was not.
+    scene = _request_text("rpg_adjudication")
+    assert wolf in scene and club in scene and "Bite" in scene
+    assert wolf not in _request_text("writer")
     assert _creature_row(client, wolf).revision == 2
 
 

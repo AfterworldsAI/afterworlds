@@ -142,6 +142,7 @@ from afterworlds.pipeline.retrieval.write_service import RetrievalMemoryWriteSer
 from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
 from afterworlds.pipeline.rpg.config import AdjudicationConfig
 from afterworlds.pipeline.rpg.dice import SystemRandomDiceService
+from afterworlds.pipeline.rpg.scene import render as render_scene
 from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
 from afterworlds.pipeline.safety.config import SafetyConfig
 from afterworlds.pipeline.safety.service import SafetyService
@@ -386,6 +387,42 @@ def _make_rpg_bounded_loader(
     return _load
 
 
+def _make_rpg_scene_loader(
+    session_factory: sessionmaker[Session],
+) -> Callable[[UUID, TurnCharacter], str]:
+    """Renders the story's mechanical scene for the GameMaster (CRD Issue
+    15c): every character and creature of the story with the ids a proposal
+    may name, and the active turn."""
+
+    def _load(story_id: UUID, actor: TurnCharacter) -> str:
+        session = session_factory()
+        try:
+            now = _utc_now()
+            others: list[TurnSubject] = []
+            for (sheet_id,) in session.execute(
+                sa.select(Dnd5eCharacterStateORM.sheet_id).where(
+                    Dnd5eCharacterStateORM.story_id == str(story_id)
+                )
+            ).all():
+                if UUID(sheet_id) != actor.sheet_id:
+                    others.append(load_turn_character(session, UUID(sheet_id), now=now))
+            for (creature_id,) in session.execute(
+                sa.select(Dnd5eCreatureORM.creature_id).where(
+                    Dnd5eCreatureORM.story_id == str(story_id)
+                )
+            ).all():
+                others.append(
+                    load_turn_creature(session, story_id, UUID(creature_id), now=now)
+                )
+            coordination = read_coordination(session, story_id).document
+            session.commit()
+            return render_scene(actor, others, coordination)
+        finally:
+            session.close()
+
+    return _load
+
+
 class _PerTurnContextBuilder:
     """Assembles context via a fresh SQLAlchemy Session per ``assemble()`` call.
 
@@ -572,6 +609,7 @@ def build_orchestrator(session_factory: sessionmaker[Session]) -> OrchestratorSe
             subject_loader=_make_rpg_subject_loader(session_factory),
             coordination_loader=_make_rpg_coordination_loader(session_factory),
             bounded_loader=_make_rpg_bounded_loader(session_factory),
+            scene_loader=_make_rpg_scene_loader(session_factory),
         ),
         rpg_dice_service=SystemRandomDiceService(),
         rpg_session_sheet_resolver=_make_rpg_session_sheet_resolver(session_factory),

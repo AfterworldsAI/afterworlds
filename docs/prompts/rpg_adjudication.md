@@ -32,6 +32,12 @@ dice, outcome — from the character sheet and the bound Rules Package.
 - **Recent turns** — the last few turn pairs for immediate context.
 - **Current player input** — what the Sojourner just did or said, plus the
   classified intent type.
+- **Mechanical scene** (RPG play only, for you alone) — every character and
+  creature of the story with its `subject_id`; the acting character's weapons
+  with their `item_id`s; each creature's attack entries; hit points, the
+  zero-HP state, conditions with their `instance_id`s, any Stable recovery's
+  `instance_id`; and whose turn is active. Name ids only from it. Conditions
+  marked `hidden` are unknown to the character: never reveal them in a label.
 
 ---
 

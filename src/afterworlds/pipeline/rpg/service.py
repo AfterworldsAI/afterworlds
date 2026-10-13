@@ -257,6 +257,7 @@ class RpgAdjudicationPassService:
         subject_loader: Callable[[UUID, SubjectRef], TurnSubject] | None = None,
         coordination_loader: Callable[[UUID], StoredCoordination] | None = None,
         bounded_loader: Callable[[UUID, SubjectRef], list[TurnSubject]] | None = None,
+        scene_loader: Callable[[UUID, TurnCharacter], str] | None = None,
     ) -> None:
         self._adapter = adapter
         self._config = config or AdjudicationConfig.from_env()
@@ -265,6 +266,7 @@ class RpgAdjudicationPassService:
         self._subject_loader = subject_loader
         self._coordination_loader = coordination_loader
         self._bounded_loader = bounded_loader
+        self._scene_loader = scene_loader
         self._system_prompt: str = load_adjudication_prompt()
 
     def is_adjudicable(self, character: TurnCharacter) -> bool:
@@ -383,7 +385,13 @@ class RpgAdjudicationPassService:
         story_id: UUID,
         originating_turn_id: UUID,
     ) -> AdjudicationPassResult:
-        request = self._render(built_context)
+        # CRD Issue 15c: the identities a proposal may name, GameMaster-only.
+        scene = (
+            self._scene_loader(story_id, sheet)
+            if self._scene_loader is not None
+            else None
+        )
+        request = self._render(built_context, scene)
 
         try:
             result = provider.call(request)
@@ -673,7 +681,9 @@ class RpgAdjudicationPassService:
     # Prompt rendering
     # -----------------------------------------------------------------------
 
-    def _render(self, built_context: AssembledContext) -> ProviderCallRequest:
+    def _render(
+        self, built_context: AssembledContext, scene: str | None = None
+    ) -> ProviderCallRequest:
         """Render AssembledContext into a ProviderCallRequest.
 
         Stable-prefix blocks are shared with the Planner/Writer for cache reuse.
@@ -687,6 +697,9 @@ class RpgAdjudicationPassService:
         ledger_text = built_context.pass_forward_ledger.render()
         if ledger_text:
             rendered_blocks.append(RenderedBlock(text=ledger_text))
+        if scene:
+            # After the shared stable prefix, which it never changes.
+            rendered_blocks.append(RenderedBlock(text=scene))
 
         vs = built_context.volatile_suffix
         for turn in vs.recent_turns:
