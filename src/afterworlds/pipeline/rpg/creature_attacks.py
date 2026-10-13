@@ -25,6 +25,7 @@ linked conditions, save exclusions by creature type, and usage limits
 from __future__ import annotations
 
 import json
+from collections import Counter
 from dataclasses import dataclass, field
 from uuid import uuid4
 
@@ -36,6 +37,7 @@ from afterworlds.ingestion.mechanical.representation import (
     CreatureAttackFact,
     CreatureAttackRange,
     CreatureEntryUsageFact,
+    CreatureMultiattackFact,
     CreatureRollModifierFact,
     DamageType,
     EntrySection,
@@ -86,6 +88,8 @@ from afterworlds.services.dnd5e_state.turn import (
 __all__ = [
     "PreparedCreatureAttack",
     "RolledCreatureAttack",
+    "check_multiattack",
+    "multiattack_key",
     "possible_conditions",
     "prepare",
     "roll",
@@ -737,3 +741,52 @@ def possible_conditions(
     if rider is not None and rider.rider_save is not None:
         kinds.add(rider.rider_save.on_failure.condition)
     return {key: frozenset(kinds)}
+
+
+def multiattack_key(attacker: TurnCreature) -> str:
+    """The once-per-turn use a Multiattack takes."""
+    return f"{attacker.stored.state.template_record_key}/Multiattack"
+
+
+def check_multiattack(attacker: TurnCreature, entries: list[str]) -> None:
+    """Refuse unless *entries* (one Multiattack's attacks, in order) are one
+    printed alternative of the attacker's Multiattack: every required part's
+    count, optional parts up to theirs, and nothing else. Alternatives with a
+    condition, a count formula, a spell use or an "if available" part, and
+    replacements, are not executable here."""
+    assert attacker.index is not None
+    template = attacker.stored.state.template_record_key
+    facts = [
+        f
+        for f in facts_of(attacker.index, template)
+        if isinstance(f, CreatureMultiattackFact)
+    ]
+    if len(facts) != 1:
+        raise _refuse(
+            RefusalKind.INVALID_SELECTION, f"{template} prints no single Multiattack"
+        )
+    for alternative in facts[0].alternatives:
+        if alternative.condition is not None or any(
+            p.count_formula is not None or p.uses_one_of or p.if_available
+            for p in alternative.parts
+        ):
+            continue
+        remaining = Counter(entries)
+        fits = True
+        ordered = sorted(alternative.parts, key=lambda p: p.attack is None)
+        for part in ordered:
+            names = {part.attack} if part.attack else set(part.any_of)
+            want = part.count or 0
+            took = 0
+            for name in sorted(names):
+                step = min(want - took, remaining[name])
+                remaining[name] -= step
+                took += step
+            if took < want and not part.optional:
+                fits = False
+        if fits and not +remaining:
+            return
+    raise _refuse(
+        RefusalKind.INVALID_SELECTION,
+        f"{entries} is not an executable alternative of {template}'s Multiattack",
+    )

@@ -265,3 +265,91 @@ def test_a_two_term_critical_at_0_hit_points_counts_two_failures() -> None:
     )
     (death,) = [e for e in hit.effects if e.target == "death_state"]
     assert DeathState.model_validate(json.loads(death.value_json)).failures == 2
+
+
+# ---------------------------------------------------------------------------
+# Multiattack: one printed alternative, on the creature's turn, once per turn
+# ---------------------------------------------------------------------------
+
+
+def _multiattack_turn(
+    bear: TurnCreature, entries: list[str], *, active: bool = True
+) -> tuple[Any, Any]:
+    from unittest.mock import MagicMock
+
+    from afterworlds.models.dnd5e_state import (
+        ActiveTurn,
+        SubjectReference,
+        TurnCoordination,
+    )
+    from afterworlds.models.enums import DiceHandling
+    from afterworlds.models.rpg import DiceResult
+    from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
+    from afterworlds.services.dnd5e_state.coordination import StoredCoordination
+    from tests.pipeline.rpg.test_adjudication_service import (
+        _STORY_ID,
+        _TURN_ID,
+        _FakeProvider,
+        _make_assembled,
+        _make_session,
+    )
+
+    wizard = _medium_wizard()
+    me = SubjectReference(kind="creature", subject_id=bear.subject_id)
+    document = TurnCoordination(
+        active=ActiveTurn(subject=me, instance=1) if active else None,
+        next_instance=2,
+    )
+    proposals = [
+        _bite(bear, wizard, entry=e, multiattack=True).model_dump(
+            mode="json", exclude_none=True
+        )
+        for e in entries
+    ]
+
+    def roll(expression: str) -> DiceResult:
+        face = 2 if "d20" in expression else 1
+        return DiceResult(expression=expression, raw_rolls=(face,), chosen=face)
+
+    dice = MagicMock()
+    dice.roll.side_effect = roll
+    result = RpgAdjudicationPassService(
+        adapter=D20RulesSystemAdapter(),
+        subject_loader=lambda _story, _ref: bear,
+        coordination_loader=lambda _story: StoredCoordination(_STORY_ID, 1, document),
+    ).adjudicate(
+        _make_assembled(),
+        _make_session(DiceHandling.AI_ROLLS),
+        wizard,
+        dice,
+        provider=_FakeProvider(proposals),
+        story_id=_STORY_ID,
+        originating_turn_id=_TURN_ID,
+    )
+    return result, dice
+
+
+def test_a_multiattack_is_one_printed_alternative_taking_one_use() -> None:
+    bear = _creature("animals.brown_bear", hp=34)
+    result, _ = _multiattack_turn(bear, ["Bite", "Claw"])
+    first, second = result.proposals
+    assert first.turn_use == "animals.brown_bear/Multiattack"
+    assert first.turn_use_by.subject_id == bear.subject_id
+    assert second.turn_use is None
+
+
+@pytest.mark.parametrize(
+    ("entries", "active"),
+    [
+        (["Bite", "Bite"], True),  # not a printed alternative
+        (["Bite", "Claw"], False),  # not the bear's turn
+        (["Bite", "Claw", "Bite", "Claw"], True),  # twice in one turn
+    ],
+)
+def test_an_illegal_multiattack_refuses_before_any_die(
+    entries: list[str], active: bool
+) -> None:
+    bear = _creature("animals.brown_bear", hp=34)
+    with pytest.raises(AdjudicationRefusal) as caught:
+        _multiattack_turn(bear, entries, active=active)
+    assert caught.value.kind is RefusalKind.INVALID_SELECTION

@@ -130,6 +130,10 @@ class CreatureAttackSelection(BaseModel):
     #: For a trait like Pack Tactics: whether an ally of the attacker that
     #: isn't Incapacitated is within 5 feet of the target.
     ally_within_5_feet_of_target: bool | None = None
+    #: Part of the attacker's Multiattack: consecutive ``creature_attack``
+    #: proposals by one creature marked so form one Multiattack action, which
+    #: must match one of its printed alternatives.
+    multiattack: bool = False
 
 
 class LifecycleAttestation(BaseModel):
@@ -313,6 +317,8 @@ class ResolvedAdjudicationRecord(BaseModel):
     #: A once-per-turn use this record takes (``record/component``) for the
     #: acting character in the active turn; replayed and committed like edges.
     turn_use: str | None = None
+    #: Who takes ``turn_use`` (the acting character when ``None``).
+    turn_use_by: SubjectRef | None = None
 
 
 # ---------------------------------------------------------------------------

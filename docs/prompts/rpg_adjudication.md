@@ -97,7 +97,10 @@ One proposal per required roll:
   (`{kind, subject_id}`), the `entry` name exactly as the scene lists it, and
   the same contextual facts as a weapon attack, plus
   `ally_within_5_feet_of_target` when the creature has a trait like Pack
-  Tactics. Null otherwise.
+  Tactics. For a Multiattack, propose each of its attacks as consecutive
+  `creature_attack`s by that creature with `multiattack: true`; together they
+  must be one of its printed Multiattack options, on its own turn, once per
+  turn. Null otherwise.
 - `subject` — for `begin_turn`, `end_turn`, `stabilize`, `stable_recovery`
   and `knockout_recovery`: `{kind, subject_id}`, the character or creature the
   operation concerns. Null otherwise.

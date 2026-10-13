@@ -64,6 +64,7 @@ from afterworlds.pipeline.provider._models import (
     ProviderToolCallPart,
     ProviderToolDefinition,
 )
+from afterworlds.pipeline.rpg import creature_attacks
 from afterworlds.pipeline.rpg.adapter import PlayerRollValueError
 from afterworlds.pipeline.rpg.caller import (
     PRODUCE_ADJUDICATION_PROPOSALS_TOOL_NAME,
@@ -119,12 +120,22 @@ def _edges(
     document: TurnCoordination,
     proposals: list[RollProposal],
     actor: SubjectReference,
+    group_uses: dict[int, tuple[SubjectReference, str]] | None = None,
 ) -> tuple[TurnCoordination, tuple[AppliedEdge, ...]]:
     """*document* after the proposals' actor-turn edges and once-per-turn
-    uses in order, or a typed refusal for the first that is not legal."""
+    uses in order, or a typed refusal for the first that is not legal.
+    *group_uses* names the use a proposal opening a Multiattack takes."""
     applied: list[AppliedEdge] = []
     begun = False
     for index, proposal in enumerate(proposals):
+        if group_uses and index in group_uses:
+            by, key = group_uses[index]
+            try:
+                document = take_use(document, by, key)
+            except EdgeRefused as exc:
+                raise AdjudicationRefusal(
+                    RefusalKind.INVALID_SELECTION, str(exc)
+                ) from exc
         sel = proposal.weapon_attack
         if sel is not None and sel.cleave:
             _cleave_follows(proposals, index)
@@ -466,8 +477,15 @@ class RpgAdjudicationPassService:
                 RefusalKind.MISSING_STATE,
                 "Cleave is once per turn, and no turn coordination is read",
             )
+        group_uses = self._multiattacks(proposals, subjects)
+        if group_uses and coordination is None:
+            raise AdjudicationRefusal(
+                RefusalKind.MISSING_STATE,
+                "a Multiattack is one action of the creature's turn, and no turn "
+                "coordination is read",
+            )
         if coordination is not None:
-            _edges(coordination.document, proposals, actor_ref)
+            _edges(coordination.document, proposals, actor_ref, group_uses)
 
         # CRD Issue 2b: check every proposal before any has an effect, so a
         # later unsupported check cannot follow an earlier roll. CRD Issue
@@ -525,7 +543,7 @@ class RpgAdjudicationPassService:
         current, current_subjects = sheet, dict(subjects)
         document = coordination.document if coordination is not None else None
         begun = False
-        for proposal in proposals:
+        for index, proposal in enumerate(proposals):
             sel = proposal.weapon_attack
             if sel is not None and sel.cleave and not _cleaves(records):
                 record = self._adapter.not_triggered(
@@ -562,8 +580,30 @@ class RpgAdjudicationPassService:
                 ) from exc
             records.append(record)
             views.append(self._adapter.to_writer_view(record))
+            if index in group_uses:
+                use_by, use_key = group_uses[index]
+                record = record.model_copy(
+                    update={
+                        "turn_use": use_key,
+                        "turn_use_by": SubjectRef(
+                            kind="creature", subject_id=use_by.subject_id
+                        ),
+                    }
+                )
+                records[-1] = record
             if record.turn_use is not None and document is not None:
-                document = take_use(document, actor_ref, record.turn_use)
+                by_ref = record.turn_use_by
+                document = take_use(
+                    document,
+                    (
+                        actor_ref
+                        if by_ref is None
+                        else SubjectReference(
+                            kind=by_ref.kind, subject_id=by_ref.subject_id
+                        )
+                    ),
+                    record.turn_use,
+                )
             if record.turn_edge is not None and document is not None:
                 ref = record.turn_edge.subject
                 document, _ = apply_edge(
@@ -636,6 +676,46 @@ class RpgAdjudicationPassService:
                 ) from exc
         return subjects
 
+    @staticmethod
+    def _multiattacks(
+        proposals: list[RollProposal],
+        subjects: dict[tuple[str, str], TurnSubject],
+    ) -> dict[int, tuple[SubjectReference, str]]:
+        """Each Multiattack (consecutive ``creature_attack`` proposals by one
+        creature marked ``multiattack``), validated against the creature's
+        printed alternatives before any die; keyed by its opening proposal,
+        with the once-per-turn use it takes."""
+        uses: dict[int, tuple[SubjectReference, str]] = {}
+        index = 0
+        while index < len(proposals):
+            sel = proposals[index].creature_attack
+            if sel is None or not sel.multiattack:
+                index += 1
+                continue
+            end = index
+            while end < len(proposals):
+                nxt = proposals[end].creature_attack
+                if nxt is None or not nxt.multiattack or nxt.attacker != sel.attacker:
+                    break
+                end += 1
+            attacker = subjects.get((sel.attacker.kind, str(sel.attacker.subject_id)))
+            if not isinstance(attacker, TurnCreature):
+                raise AdjudicationRefusal(
+                    RefusalKind.MISSING_STATE, "the Multiattack's creature was not read"
+                )
+            entries = [
+                p.creature_attack.entry
+                for p in proposals[index:end]
+                if p.creature_attack is not None
+            ]
+            creature_attacks.check_multiattack(attacker, entries)
+            uses[index] = (
+                SubjectReference(kind="creature", subject_id=attacker.subject_id),
+                creature_attacks.multiattack_key(attacker),
+            )
+            index = end
+        return uses
+
     def _load_bounded(
         self,
         story_id: UUID,
@@ -670,7 +750,8 @@ class RpgAdjudicationPassService:
         an actor-turn edge (contract G1)."""
         if not any(p.operation in _EDGE_OPERATIONS for p in proposals):
             if self._coordination_loader is not None and any(
-                p.weapon_attack is not None for p in proposals
+                p.weapon_attack is not None or p.creature_attack is not None
+                for p in proposals
             ):
                 return self._coordination_loader(story_id)
             return None

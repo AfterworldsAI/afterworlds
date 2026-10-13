@@ -3692,7 +3692,16 @@ class OrchestratorService:
         actor = SubjectReference(kind="character", subject_id=actor_id)
         for record in adj_result.proposals:
             if record.turn_use is not None:
-                document = coordination.take_use(document, actor, record.turn_use)
+                by = record.turn_use_by
+                document = coordination.take_use(
+                    document,
+                    (
+                        actor
+                        if by is None
+                        else SubjectReference(kind=by.kind, subject_id=by.subject_id)
+                    ),
+                    record.turn_use,
+                )
             if record.turn_edge is None:
                 continue
             ref = record.turn_edge.subject
