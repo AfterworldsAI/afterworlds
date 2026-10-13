@@ -111,6 +111,11 @@ One proposal per required roll:
     Finesse weapon, `ability` (`strength` or `dexterity`).
   - `knock_out` — for a melee attack: if it would reduce the target to 0 Hit
     Points, knock it out instead.
+  - `mastery` — use the weapon's optional mastery property (Graze, Push,
+    Slow, Topple). The engine checks the attacker can use it; Sap and Vex
+    apply on their own.
+  - `push_ft` — for Push: 5 or 10, how far you push the target. Don't state
+    facts about a pushed creature for a later attack in the same response.
 
   These facts describe this one attack only. Choose them honestly from the
   scene; they never set a number. Null for every other operation.

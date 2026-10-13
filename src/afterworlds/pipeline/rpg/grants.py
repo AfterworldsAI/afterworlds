@@ -56,6 +56,8 @@ from afterworlds.ingestion.mechanical.representation import (
     ToolSelector,
     WeaponAndArmorGrantFact,
     WeaponCategory,
+    WeaponCategoryFact,
+    WeaponMasteryChoiceFact,
     WeaponProficiencyGrantFact,
     WeaponProperty,
 )
@@ -74,7 +76,10 @@ from afterworlds.models.dnd5e_state import (
 )
 from afterworlds.models.dnd5e_vocabulary import ArmorCategory
 from afterworlds.pipeline.rpg.capability import AdjudicationRefusal, RefusalKind
-from afterworlds.services.dnd5e_state.authority import AuthorityIndex
+from afterworlds.services.dnd5e_state.authority import (
+    AuthorityIndex,
+    component_schema_id,
+)
 
 __all__ = [
     "EXPERTISE_RULE",
@@ -83,6 +88,7 @@ __all__ = [
     "save_proficiency",
     "skill_proficiency",
     "tool_proficiency",
+    "weapon_mastery",
     "weapon_proficiency",
 ]
 
@@ -1093,3 +1099,78 @@ def armor_training(
             f"{_where(grant.source)} does not grant {category.value} training"
         )
     return False
+
+
+def weapon_mastery(
+    index: AuthorityIndex,
+    state: Dnd5eCharacterState,
+    weapon_record: str,
+    weapon_category: WeaponCategory | None,
+) -> bool:
+    """Whether a validated Weapon Mastery choice lets the character use
+    *weapon_record*'s mastery property.
+
+    Each recorded choice made under a component with a typed
+    ``weapon_mastery_choice`` is validated: its source feature gained, the
+    choice made under the component's current schema, every selection a weapon
+    record of an admitted category, and no more kinds than the class level's
+    typed count. A choice that fails refuses rather than being ignored.
+    """
+    classes = _classes(state)
+    covered = False
+    for choice in state.choices or ():
+        source = choice.source
+        if source.component_key is None:
+            continue
+        component = index.component(source.record_key, source.component_key)
+        rules = [
+            f.fact
+            for f in (component.facts if component else ())
+            if isinstance(f.fact, WeaponMasteryChoiceFact)
+        ]
+        if component is None or not rules:
+            continue
+        rule = rules[0]
+        where = _where(source)
+        if choice.schema_id != component_schema_id(component):
+            raise _invalid(f"{where}: the choice was made under another schema")
+        gained_by = (
+            rule.gain_levels.entitlement_key if rule.gain_levels else None
+        ) or (source.record_key)
+        if not _gains(index, classes, gained_by):
+            raise _invalid(f"the character has not gained {gained_by}")
+        level = next(
+            (
+                classes.levels[k]
+                for k in classes.levels
+                if any(e.entitlement_key == gained_by for e in index.progression(k))
+            ),
+            0,
+        )
+        allowed = max(
+            (c.count for c in rule.count_by_level if c.level <= level),
+            default=rule.kinds_of_weapons,
+        )
+        kinds = [s.record_key for s in choice.selected if isinstance(s, RecordChoice)]
+        if len(kinds) != len(choice.selected) or len(set(kinds)) != len(kinds):
+            raise _invalid(f"{where} selects something other than weapon kinds")
+        if len(kinds) > allowed:
+            raise _invalid(
+                f"{where} selects {len(kinds)} weapon kinds; level {level} allows "
+                f"{allowed}"
+            )
+        for kind in kinds:
+            weapon = index.record(kind)
+            categories = [
+                f.fact.category
+                for c in (weapon.components if weapon is not None else ())
+                for f in c.facts
+                if isinstance(f.fact, WeaponCategoryFact)
+            ]
+            if len(categories) != 1 or categories[0] not in rule.categories:
+                raise _invalid(f"{where}: {kind} is not an admitted weapon kind")
+            if rule.melee_only or rule.requires_weapon_proficiency:
+                raise _missing(f"{where} limits its kinds in a way not executed here")
+        covered = covered or weapon_record in kinds
+    del weapon_category
+    return covered

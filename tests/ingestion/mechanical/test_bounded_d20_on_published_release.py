@@ -456,6 +456,36 @@ def test_a_weapon_attack_commits_the_targets_damage_with_the_delivered_turn(
     assert _turns(client) == 1
 
 
+def test_a_hits_subject_addressed_effects_are_audited_and_committed(
+    client: TestClient,
+    gm: list[list[dict[str, Any]]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A certain hit: the target's effects carry its subject id, and the audit
+    row and the target's state commit with the delivered Turn."""
+    from afterworlds.models.rpg import DiceResult
+    from afterworlds.pipeline.rpg.dice import SystemRandomDiceService
+
+    def roll(self: object, expression: str) -> DiceResult:
+        face = 15 if "d20" in expression else 3
+        return DiceResult(expression=expression, raw_rolls=(face,), chosen=face)
+
+    monkeypatch.setattr(SystemRandomDiceService, "roll", roll)
+    story = _rpg_story(client)
+    wolf, club = _wolf_and_club(client, story)
+    gm.append([_attack(wolf, club)])
+    body = _turn(client, story, "I swing my club at the wolf.")
+    assert body["disposition"] == "delivered", body
+    (row,) = _rows(
+        client,
+        "SELECT sheet_effects_json FROM rpg_roll_audit WHERE story_id = :s",
+        s=story,
+    )
+    (effect,) = json.loads(row.sheet_effects_json)
+    assert (effect["subject_kind"], effect["subject_id"]) == ("creature", wolf)
+    assert _creature_row(client, wolf).revision == 2
+
+
 def test_a_target_from_another_story_refuses_and_leaves_nothing(
     client: TestClient, gm: list[list[dict[str, Any]]]
 ) -> None:

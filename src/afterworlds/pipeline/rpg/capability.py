@@ -178,11 +178,22 @@ _WEAPON_ATTACK_PROCEDURE: tuple[tuple[str, str], ...] = (
     (_DAMAGE, "stable"),
     (_DAMAGE, "order_of_application"),
     (_DAMAGE, "knocking_out"),
+    ("play.combat", "rounds_and_turns"),
     ("glossary.resistance", "halving"),
     ("glossary.vulnerability", "doubling"),
     ("glossary.immunity", "no_effect"),
 )
 _WEAPON_ATTACK_RECORD_PREFIXES = ("equipment.weapons", "equipment.armor")
+#: The save procedure (prose-bound universal components, certified with the
+#: operation that causes the save) and the typed rules it reads.
+SAVE_PROCEDURE: tuple[tuple[str, str], ...] = (
+    ("play.d20_tests", "saving_throws"),
+    ("play.d20_tests", "save_ability_modifier"),
+    ("play.d20_tests", "save_proficiency"),
+    ("play.d20_tests", "save_dc"),
+    ("play.proficiency", "saving_throw_proficiency"),
+    ("glossary.saving_throw", "saving_throw"),
+)
 #: First aid (the Help action): stabilizing a dying creature, or ending a
 #: knockout's Unconscious; and the recovery attestations (OD-15c-2).
 _FIRST_AID_PROCEDURE: tuple[tuple[str, str], ...] = (
@@ -203,7 +214,13 @@ _RECOVERY_PROCEDURE: tuple[tuple[str, str], ...] = (
     ("glossary.short_rest", "interruptions"),
 )
 #: Actor-turn edges (contract G1): the turn structure they mark.
-_TURN_PROCEDURE: tuple[tuple[str, str], ...] = (("play.combat", "rounds_and_turns"),)
+_TURN_PROCEDURE: tuple[tuple[str, str], ...] = (
+    ("play.combat", "rounds_and_turns"),
+    # The turn-bounded mastery effects an edge ends.
+    ("equipment.weapons.sap", "sap"),
+    ("equipment.weapons.slow", "slow"),
+    ("equipment.weapons.vex", "vex"),
+)
 #: The death save a dying subject makes when its turn begins, and what its
 #: results lead to (Stable and its recovery, regaining a Hit Point).
 _DEATH_SAVE_PROCEDURE: tuple[tuple[str, str], ...] = (
@@ -328,7 +345,7 @@ MANIFEST: dict[Operation, Capability] = {
             "yet: masteries, ammunition, the Light extra attack, sight that needs "
             "a sense's range"
         ),
-        fingerprint="7edaa48a05d2da0e57d6a3e8a60129f139412513b8113a09855dee3b48e64c17",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="9857b379c813d2d50633bbab6bc0693c0fb5cafcd84836f21912dc5a8f840c30",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.DEATH_SAVING_THROW: Capability(
         Operation.DEATH_SAVING_THROW,
@@ -343,7 +360,7 @@ MANIFEST: dict[Operation, Capability] = {
             "Stable with a rolled recovery interval; three failures death; a "
             "natural 20 regains 1 Hit Point, ending Unconscious and leaving Prone"
         ),
-        fingerprint="1bdb8493ff432c4f9e21b04a12c903fcb856a6aa02fdd5f37bfc831774d6a20a",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="e4b8645eb5074c87ada15c0969574c439cd09623bd8f81c59808f10591c3053a",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.STABILIZE: Capability(
         Operation.STABILIZE,
@@ -393,14 +410,14 @@ MANIFEST: dict[Operation, Capability] = {
             "the subject's turn instance begins (an appended edge); a dying "
             "subject makes its death save"
         ),
-        fingerprint="c40c89c6b64ddecf12226acf87c5b1eb2c2457525d231316731cef69bbc120e1",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="2fa222179f05d4c504dabf0b453165edcac05dbb99db33a6d932c8828c0e756f",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.END_TURN: Capability(
         Operation.END_TURN,
         CapabilityStatus.EXECUTABLE,
         inputs="the subject whose turn is active",
         effects="its turn instance ends (an appended edge)",
-        fingerprint="c40c89c6b64ddecf12226acf87c5b1eb2c2457525d231316731cef69bbc120e1",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="2fa222179f05d4c504dabf0b453165edcac05dbb99db33a6d932c8828c0e756f",  # noqa: E501  # pragma: allowlist secret
     ),
 }
 
@@ -450,7 +467,7 @@ def _governing(
         Operation.DIFFICULTY_CHECK: _DIFFICULTY_TABLE,
         Operation.TOOL_CHECK: _TOOL_PROCEDURE,
         Operation.INITIATIVE: _INITIATIVE_PROCEDURE,
-        Operation.WEAPON_ATTACK: _WEAPON_ATTACK_PROCEDURE,
+        Operation.WEAPON_ATTACK: (*_WEAPON_ATTACK_PROCEDURE, *SAVE_PROCEDURE),
         Operation.BEGIN_TURN: _TURN_PROCEDURE,
         Operation.END_TURN: _TURN_PROCEDURE,
         Operation.DEATH_SAVING_THROW: _DEATH_SAVE_PROCEDURE,

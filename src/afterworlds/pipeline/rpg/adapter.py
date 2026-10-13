@@ -34,6 +34,7 @@ from typing import TYPE_CHECKING, Literal
 from uuid import UUID, uuid4
 
 from afterworlds.ingestion.mechanical.representation import ConditionKind
+from afterworlds.models.dnd5e_state import TurnCoordination
 from afterworlds.models.enums import RollVisibility
 from afterworlds.models.rpg import (
     PendingRollRequest,
@@ -43,7 +44,7 @@ from afterworlds.models.rpg import (
     TurnEdge,
     WriterAdjudicationView,
 )
-from afterworlds.pipeline.rpg import attacks, checks, lifecycle
+from afterworlds.pipeline.rpg import attacks, checks, lifecycle, mastery
 from afterworlds.pipeline.rpg.capability import (
     AdjudicationRefusal,
     Operation,
@@ -317,6 +318,20 @@ class D20RulesSystemAdapter:
                 return {attacks.subject_key(subject): frozenset({ConditionKind.PRONE})}
         return {}
 
+    def moved_subjects(self, proposal: RollProposal) -> set[tuple[str, str]]:
+        """Subjects *proposal* could move (Push)."""
+        if proposal.operation == Operation.WEAPON_ATTACK.value:
+            return attacks.moved_subjects(proposal)
+        return set()
+
+    def spatial_subjects(
+        self, proposal: RollProposal, character: TurnCharacter
+    ) -> set[tuple[str, str]]:
+        """Subjects *proposal*'s spatial facts are about."""
+        if proposal.operation == Operation.WEAPON_ATTACK.value:
+            return attacks.spatial_subjects(proposal, character)
+        return set()
+
     def _assemble_modifiers(
         self,
         proposal: RollProposal,
@@ -410,6 +425,7 @@ class D20RulesSystemAdapter:
         dice_service: DiceService,
         gm_cheating: bool,
         subjects: dict[tuple[str, str], TurnSubject] | None = None,
+        coordination: TurnCoordination | None = None,
     ) -> ResolvedAdjudicationRecord:
         """Resolve a backend (shown or hidden) roll into an immutable record.
 
@@ -429,7 +445,12 @@ class D20RulesSystemAdapter:
         )
         if proposal.operation in _EDGES:
             return self._resolve_edge(
-                proposal, character, dice_service, gm_cheating, subjects or {}
+                proposal,
+                character,
+                dice_service,
+                gm_cheating,
+                subjects or {},
+                coordination,
             )
         if proposal.operation == Operation.STABILIZE.value:
             aid = lifecycle.roll_first_aid(
@@ -468,6 +489,7 @@ class D20RulesSystemAdapter:
                 attacks.prepare(proposal, character, subjects or {}),
                 dice_service,
                 character,
+                coordination,
             )
             attack_outcomes: dict[str, _Outcome] = {
                 "success": "success",
@@ -517,10 +539,13 @@ class D20RulesSystemAdapter:
         dice_service: DiceService,
         gm_cheating: bool,
         subjects: dict[tuple[str, str], TurnSubject],
+        coordination: TurnCoordination | None,
     ) -> ResolvedAdjudicationRecord:
         """An actor-turn edge; a dying subject's turn begins with its death
-        save (contract G1). The coordination transition itself is validated
-        and threaded by the service."""
+        save (contract G1). Every turn-bounded mastery effect this edge ends,
+        on any subject the turn read, ends with it (contract G2). The
+        coordination transition itself is validated and threaded by the
+        service."""
         subject = _edge_subject(proposal, character, subjects)
         kind: Literal["begin", "end"] = (
             "begin" if proposal.operation == Operation.BEGIN_TURN.value else "end"
@@ -529,6 +554,14 @@ class D20RulesSystemAdapter:
         edge = TurnEdge(kind=kind, subject=proposal.subject)
         source: Literal["hidden", "ai"] = (
             "hidden" if proposal.visibility is RollVisibility.HIDDEN else "ai"
+        )
+        ref = mastery.reference(subject)
+        active = coordination.active if coordination is not None else None
+        instance = active.instance if active is not None else 0
+        expired = tuple(
+            e
+            for holder in (character, *subjects.values())
+            for e in mastery.expiring(holder, kind, ref, instance)
         )
         if kind == "begin" and lifecycle.dying(subject):
             saved = lifecycle.roll(lifecycle.prepare(subject), dice_service)
@@ -551,7 +584,7 @@ class D20RulesSystemAdapter:
                 total=saved.chosen,
                 dc=saved.prepared.rule.success_minimum,
                 outcome=outcome,
-                sheet_effects=saved.effects,
+                sheet_effects=(*expired, *saved.effects),
                 source=source,
                 gm_cheating_at_roll=gm_cheating,
                 turn_edge=edge,
@@ -570,7 +603,7 @@ class D20RulesSystemAdapter:
             ),
             total=0,
             outcome="undetermined",
-            sheet_effects=(),
+            sheet_effects=expired,
             source=source,
             gm_cheating_at_roll=gm_cheating,
             turn_edge=edge,

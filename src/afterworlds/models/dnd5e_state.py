@@ -104,6 +104,7 @@ __all__ = [
     "SubjectReference",
     "SummonOrigin",
     "ToolGrant",
+    "TurnBoundEnd",
     "TurnCoordination",
     "UsageCounter",
     "VOCABULARIES",
@@ -233,6 +234,17 @@ class SubjectReference(_Model):
     subject_id: UUID
 
 
+class TurnBoundEnd(_Model):
+    """An end at an actor-turn edge (CRD Issue 15c, contract G2): the start or
+    end of a named subject's next turn. ``created_in_turn`` is that subject's
+    turn instance active when the effect began, if any, so an end-of-next-turn
+    boundary passes over that turn's own end."""
+
+    boundary: Literal["start", "end"]
+    of: SubjectReference
+    created_in_turn: int | None = Field(default=None, ge=1)
+
+
 class EffectEnd(_Model):
     """How a recorded condition or effect lasts, as recorded. Never executed.
 
@@ -245,9 +257,13 @@ class EffectEnd(_Model):
     amount: int | None = Field(default=None, ge=1)
     unit: TimeUnit | None = None
     expires_marker: str | None = Field(default=None, min_length=1)
+    #: CRD Issue 15c: an end at an actor-turn edge (kind ``special``).
+    turn: TurnBoundEnd | None = None
 
     @model_validator(mode="after")
     def amount_only_when_timed(self) -> Self:
+        if self.turn is not None and self.kind is not DurationKind.SPECIAL:
+            raise ValueError("a turn-edge end is a special duration")
         timed = self.kind is DurationKind.TIMED
         if timed != (self.amount is not None) or timed != (self.unit is not None):
             raise ValueError(

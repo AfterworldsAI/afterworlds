@@ -30,6 +30,9 @@ from afterworlds.ingestion.mechanical.representation import (
     AbilityScore,
     ArmorClassFormulaFact,
     BaseArmorClassFact,
+    ConditionEffectFact,
+    ConditionEffectKind,
+    ConditionKind,
     CreatureConditionalDefenseFact,
     CreatureDefenseFact,
     CreatureDefenseParameterizedFact,
@@ -44,6 +47,7 @@ from afterworlds.models.dnd5e_state import Dnd5eCharacterState
 from afterworlds.models.dnd5e_vocabulary import ArmorCategory
 from afterworlds.pipeline.rpg.capability import AdjudicationRefusal, RefusalKind
 from afterworlds.pipeline.rpg.grants import ability_score, armor_training
+from afterworlds.pipeline.rpg.mastery import other_effects
 from afterworlds.services.dnd5e_state.authority import AuthorityIndex
 from afterworlds.services.dnd5e_state.turn import (
     TurnCharacter,
@@ -157,10 +161,11 @@ def _character_ac(character: TurnCharacter, index: AuthorityIndex) -> ArmorClass
             "the target's recorded base AC "
             f"({state.base_armor_class.source.record_key}) is not executable here",
         )
-    if state.active_effects:
+    unexecuted = other_effects(character)
+    if unexecuted:
         raise _refuse(
             RefusalKind.UNSUPPORTED_CAPABILITY,
-            f"the target's active effect {state.active_effects[0].source.record_key} "
+            f"the target's active effect {unexecuted[0].source.record_key} "
             "can change its Armor Class and is not executable here",
         )
     for item in character.items:
@@ -233,8 +238,7 @@ def _template(creature: TurnCreature, index: AuthorityIndex) -> str:
 
 def _creature_ac(creature: TurnCreature, index: AuthorityIndex) -> ArmorClass:
     template = _template(creature, index)
-    state = creature.stored.state
-    if state.active_effects:
+    if other_effects(creature):
         raise _refuse(
             RefusalKind.UNSUPPORTED_CAPABILITY,
             "the creature's active effect can change its Armor Class and is not "
@@ -308,3 +312,35 @@ def damage_responses(
             "validated against its source here",
         )
     return ()
+
+
+def condition_immune(target: TurnSubject, condition: ConditionKind) -> bool:
+    """Whether *target* is immune to *condition*: a creature template's typed,
+    unqualified immunity, or one its conditions state (Petrified: Poisoned).
+    A character's recorded immunity is not validated against its source here,
+    so it refuses."""
+    from afterworlds.pipeline.rpg.conditions import effective
+
+    index = target.index
+    assert index is not None
+
+    def immune(facts: list[object]) -> bool:
+        return any(
+            isinstance(f, ConditionEffectFact)
+            and f.effect is ConditionEffectKind.IMMUNITY
+            and f.condition is condition
+            for f in facts
+        )
+
+    for eff in effective(target, index):
+        if immune(facts_of(index, f"glossary.{eff.condition.value}")):
+            return True
+    if isinstance(target, TurnCreature):
+        return immune(facts_of(index, _template(target, index)))
+    if condition in (target.stored.state.condition_immunities or ()):
+        raise _refuse(
+            RefusalKind.UNSUPPORTED_CAPABILITY,
+            f"the target's recorded {condition.value} immunity is not validated "
+            "against its source here",
+        )
+    return False

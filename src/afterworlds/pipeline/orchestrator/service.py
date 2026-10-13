@@ -3565,7 +3565,7 @@ class OrchestratorService:
                     source=record.source,
                     gm_cheating_at_roll=record.gm_cheating_at_roll,
                     sheet_effects_json=json.dumps(
-                        [e.model_dump() for e in record.sheet_effects]
+                        [e.model_dump(mode="json") for e in record.sheet_effects]
                     ),
                     created_at=now_str,
                 )

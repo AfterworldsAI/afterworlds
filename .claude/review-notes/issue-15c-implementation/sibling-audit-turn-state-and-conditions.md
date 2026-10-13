@@ -60,3 +60,16 @@
 
 - **Action economy (owner decision needed or Codex classification).** Nothing bounds how many `weapon_attack` proposals one character makes in a delivered Turn. Light's extra attack and Nick ("once per turn", "as part of the Attack action") assume code can tell which attack belongs to the Attack action. Light and Nick are held until this is classified.
 - **Contributors held by another creature (Codex classification).** An ally's Aura of Protection, Boon of Fate and Countercharm can't be seen by a save that loads only its saver (`saves/save-contributor-scan.md`).
+
+## Family 3: Python-mode dumps written as JSON
+
+**Symptom (latent since `86c0436`).** `_write_rpg_audit` serialized `record.sheet_effects` with `model_dump()` (Python mode). A subject-addressed effect carries a `UUID` `subject_id`, so every *hit* failed the audit write ("Object of type UUID is not JSON serializable") and the turn failed closed. The E2E attack test rolls real dice and passed only on misses. A 25-turn loop reproduced the failure.
+
+**Fix.** `model_dump(mode="json")`.
+
+**Regression.** A deterministic-hit E2E (`test_a_hits_subject_addressed_effects_are_audited_and_committed`).
+
+| Sibling inspected | Disposition |
+| --- | --- |
+| `json.dumps(... model_dump())` across `src/` | patched (the audit); `damage.py`'s `DeathState` dumps hold no UUID (already safe) |
+| `lifecycle.py`, `mastery.py` effect values | already safe (`mode="json"` / `model_dump_json`) |

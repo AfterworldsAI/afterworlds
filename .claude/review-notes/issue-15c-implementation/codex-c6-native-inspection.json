@@ -1,0 +1,134 @@
+{
+  "strict_ordered_preservation": true,
+  "raw_four_unchanged_except_part": true,
+  "facts_added": 4,
+  "contextual_claims_added": [
+    {
+      "role": "contextual",
+      "span_id": "3b829285-0b34-5858-8f90-15109648dd6f",
+      "target_key": [
+        "feats.savage_attacker",
+        "category",
+        "73df36a2051b0917"
+      ],
+      "target_kind": "fact"
+    },
+    {
+      "role": "contextual",
+      "span_id": "42c57e7d-57b4-5950-8495-6194f98e7dd1",
+      "target_key": [
+        "feats.magic_initiate",
+        "category",
+        "73df36a2051b0917"
+      ],
+      "target_kind": "fact"
+    },
+    {
+      "role": "contextual",
+      "span_id": "caaa6712-5ef7-5265-94bd-b3f55027e1ea",
+      "target_key": [
+        "feats.skilled",
+        "category",
+        "73df36a2051b0917"
+      ],
+      "target_kind": "fact"
+    },
+    {
+      "role": "contextual",
+      "span_id": "edd825c0-7c98-5f2d-857b-3b56a3fb665d",
+      "target_key": [
+        "feats.alert",
+        "category",
+        "73df36a2051b0917"
+      ],
+      "target_kind": "fact"
+    }
+  ],
+  "expected_rules_added": [
+    {
+      "component_key": "category",
+      "fact_family": "feat_prerequisite",
+      "record_key": "feats.alert",
+      "source_span_ids": [
+        "edd825c0-7c98-5f2d-857b-3b56a3fb665d"
+      ]
+    },
+    {
+      "component_key": "category",
+      "fact_family": "feat_prerequisite",
+      "record_key": "feats.magic_initiate",
+      "source_span_ids": [
+        "42c57e7d-57b4-5950-8495-6194f98e7dd1"
+      ]
+    },
+    {
+      "component_key": "category",
+      "fact_family": "feat_prerequisite",
+      "record_key": "feats.savage_attacker",
+      "source_span_ids": [
+        "3b829285-0b34-5858-8f90-15109648dd6f"
+      ]
+    },
+    {
+      "component_key": "category",
+      "fact_family": "feat_prerequisite",
+      "record_key": "feats.skilled",
+      "source_span_ids": [
+        "caaa6712-5ef7-5265-94bd-b3f55027e1ea"
+      ]
+    }
+  ],
+  "modified_review_units": [
+    "character-origins-feats/alert",
+    "character-origins-feats/magic_initiate",
+    "character-origins-feats/savage_attacker",
+    "character-origins-feats/skilled"
+  ],
+  "affected_acceptance_rows": {
+    "batches": 1,
+    "records": 172,
+    "review_unit_records": 33,
+    "schema_anchors": 1
+  },
+  "proposal_identity": "77407b7e1bd374be18cdf89461025cffb3b74ada116d8eac1ee99781dcb275e2",
+  "oracle_identity": "268979f0e5b44e02dcbd079e2d91653ea7af90192b2dcf7d21a46b08b1620add",
+  "reported_native": {
+    "own_gate_passed": true,
+    "payload_hash": "0fb1f03721782fa858e13875f65f39ac6797eee2d2bb46e6e3bcc8e177b42c9f",
+    "preview_reconstruction_clean": true,
+    "preview_refused_against_successor": true,
+    "projection": "d7f7a09c-616d-5605-8c5f-6364f7af9718",
+    "successor_reconstruction_clean": true,
+    "successor_refused_against_preview": true,
+    "validate_candidate_findings": []
+  },
+  "packet_linkage_verified": true,
+  "artifact_sha256": {
+    "issue-15c-c6-native/README.md": "5f56b8ad5274135ec1c008d4dff8bc3ffb2809d318367ba856ead32fdd2f2d43",
+    "issue-15c-c6-native/build_c6_preview.py": "00ebf62382a3afbe9ab42de5966fc6b59d56e9d17762e24e63b829e628ee5d53",
+    "issue-15c-c6-native/reports/c6-preview.json": "4bc06dbad0c356f0c082320a3a00ce7b860f6a1b9dc6dcef52bb85ce3d3b02eb",
+    "issue-15c-c6-native/preview/srd-5-2-1-corpus-8781d4e0-a3b-c6-PREVIEW.json": "5b86d880d85e91d9f7c0bf5104e50b08248af6986b5b325279d8dd87969900e3",
+    "issue-15c-c6-native/preview/character-origins-feats-C6-PROPOSAL.json": "1e634d0cdc2059e846cb699ad33387accab497c41d0b57b751aadf5697629162"
+  },
+  "label": "Codex independent C6-r2 native review; no Owner acceptance, execution certification or full-gate result",
+  "verdict": "Ready for exact Owner semantic acceptance; no blocking findings",
+  "prior_c5_sha256": "23e5d8e0fac60e3f5417b3a41e40e6f475366dd385856f38c42104f4dd264f69",
+  "schema": {
+    "version": "5d-representation-schema-19",
+    "hash": "3734ccf7d6be7f25e0a0d7c0395121c5525afcb87144f5cf9d6895e03c1cd18f"
+  },
+  "private_store_review": "Builder uses common.private_store: hashes original, copies to TemporaryDirectory, opens only copy, disposes engine, hashes original afterward. Review opened no store and repeated no native checks.",
+  "independent_pin_checks": [
+    "raw C6 and C6-r2",
+    "11 SRD source files",
+    "C5 predecessor",
+    "retained C5 proposal",
+    "C5 packet and real Owner receipt",
+    "C6 native preview and rendered proposal"
+  ],
+  "limits": [
+    "Projection identity, gate/reconstruction and twice-built determinism are reviewed completed native report evidence; not independently rerun.",
+    "No app imports, native generation, tests, store operations, acceptance recording or gameplay review.",
+    "C6-B remains withdrawn and unaccepted. Exact Owner semantic acceptance is required before recording or dependent category mechanics."
+  ]
+}

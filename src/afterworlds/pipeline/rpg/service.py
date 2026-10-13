@@ -85,7 +85,11 @@ from afterworlds.services.dnd5e_state.coordination import (
     StoredCoordination,
     apply_edge,
 )
-from afterworlds.services.dnd5e_state.turn import advanced, with_possible
+from afterworlds.services.dnd5e_state.turn import (
+    TurnCreature,
+    advanced,
+    with_possible,
+)
 
 if TYPE_CHECKING:
     from afterworlds.models.rules_package import ActiveRuleSlice
@@ -208,6 +212,7 @@ class RpgAdjudicationPassService:
         config: AdjudicationConfig | None = None,
         subject_loader: Callable[[UUID, SubjectRef], TurnSubject] | None = None,
         coordination_loader: Callable[[UUID], StoredCoordination] | None = None,
+        bounded_loader: Callable[[UUID, SubjectRef], list[TurnSubject]] | None = None,
     ) -> None:
         self._adapter = adapter
         self._config = config or AdjudicationConfig.from_env()
@@ -215,6 +220,7 @@ class RpgAdjudicationPassService:
         #: story or under a non-current binding (CRD Issue 15c).
         self._subject_loader = subject_loader
         self._coordination_loader = coordination_loader
+        self._bounded_loader = bounded_loader
         self._system_prompt: str = load_adjudication_prompt()
 
     def is_adjudicable(self, character: TurnCharacter) -> bool:
@@ -393,6 +399,7 @@ class RpgAdjudicationPassService:
 
         subjects = self._load_subjects(story_id, sheet, proposals)
         coordination = self._load_coordination(story_id, proposals)
+        self._load_bounded(story_id, sheet, proposals, subjects)
         # Contract G1: every actor-turn edge is a legal transition, checked in
         # order before any die is rolled.
         if coordination is not None:
@@ -405,7 +412,17 @@ class RpgAdjudicationPassService:
         # with a subject's conditions, so passing that state covers whichever
         # outcome the dice give.
         possible: dict[tuple[str, str], set[ConditionKind]] = {}
+        moved: set[tuple[str, str]] = set()
         for proposal in proposals:
+            stale = moved & self._adapter.spatial_subjects(proposal, sheet)
+            if stale:
+                raise AdjudicationRefusal(
+                    RefusalKind.INVALID_SELECTION,
+                    f"{proposal.check_label!r} states spatial facts about "
+                    f"{sorted(stale)[0][0]} {sorted(stale)[0][1]}, which an earlier "
+                    "operation of this turn can move; they need a later turn",
+                )
+            moved |= self._adapter.moved_subjects(proposal)
             view, view_subjects = with_possible(sheet, subjects, possible)
             try:
                 self._adapter.require_supported(proposal, view, view_subjects)
@@ -427,6 +444,8 @@ class RpgAdjudicationPassService:
         # turn read stay in the result, unadvanced: the orchestrator rechecks
         # their revisions and applies every effect to them in order.
         current, current_subjects = sheet, dict(subjects)
+        document = coordination.document if coordination is not None else None
+        begun = False
         for proposal in proposals:
             try:
                 record = self._adapter.resolve_roll(
@@ -436,6 +455,7 @@ class RpgAdjudicationPassService:
                     dice_service,
                     session_state.gm_cheating,
                     current_subjects,
+                    document,
                 )
             except AdjudicationRefusal as exc:
                 if records:
@@ -455,6 +475,15 @@ class RpgAdjudicationPassService:
                 ) from exc
             records.append(record)
             views.append(self._adapter.to_writer_view(record))
+            if record.turn_edge is not None and document is not None:
+                ref = record.turn_edge.subject
+                document, _ = apply_edge(
+                    document,
+                    record.turn_edge.kind,
+                    SubjectReference(kind=ref.kind, subject_id=ref.subject_id),
+                    begun_this_turn=begun,
+                )
+                begun = begun or record.turn_edge.kind == "begin"
             current, current_subjects = advanced(
                 current, current_subjects, record.sheet_effects
             )
@@ -513,12 +542,43 @@ class RpgAdjudicationPassService:
                 ) from exc
         return subjects
 
+    def _load_bounded(
+        self,
+        story_id: UUID,
+        sheet: TurnCharacter,
+        proposals: list[RollProposal],
+        subjects: dict[tuple[str, str], TurnSubject],
+    ) -> None:
+        """Add every subject of the story holding an effect bounded by an
+        edge subject's turn (contract G2), so the edge can end it with the
+        same recheck as any other subject."""
+        for proposal in proposals:
+            if proposal.operation not in _EDGE_OPERATIONS or proposal.subject is None:
+                continue
+            if self._bounded_loader is None:
+                raise AdjudicationRefusal(
+                    RefusalKind.MISSING_STATE,
+                    "no reader of turn-bounded effects is wired, so an edge cannot "
+                    "end them",
+                )
+            for holder in self._bounded_loader(story_id, proposal.subject):
+                key = (
+                    "creature" if isinstance(holder, TurnCreature) else "character",
+                    str(holder.subject_id),
+                )
+                if key != ("character", str(sheet.sheet_id)):
+                    subjects.setdefault(key, holder)
+
     def _load_coordination(
         self, story_id: UUID, proposals: list[RollProposal]
     ) -> StoredCoordination | None:
         """The story's actor-turn coordination, read once when a proposal is
         an actor-turn edge (contract G1)."""
         if not any(p.operation in _EDGE_OPERATIONS for p in proposals):
+            if self._coordination_loader is not None and any(
+                p.weapon_attack is not None for p in proposals
+            ):
+                return self._coordination_loader(story_id)
             return None
         if self._coordination_loader is None:
             raise AdjudicationRefusal(

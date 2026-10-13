@@ -76,6 +76,7 @@ from afterworlds.pipeline.rpg.grants import (
     skill_proficiency,
     tool_proficiency,
 )
+from afterworlds.pipeline.rpg.mastery import other_effects
 from afterworlds.services.dnd5e_state.authority import AuthorityIndex
 from afterworlds.services.dnd5e_state.turn import TurnCharacter
 
@@ -534,8 +535,9 @@ def _refuse_contributors(
             f"{what} can contribute to this check and is not executable here",
         )
 
-    if state.active_effects:
-        raise unsupported(f"active effect {state.active_effects[0].source.record_key}")
+    unexecuted = other_effects(character)
+    if unexecuted:
+        raise unsupported(f"active effect {unexecuted[0].source.record_key}")
     contributors = CHECK_CONTRIBUTING_FEATURES | extra
     found = sorted(_features(state, index, contributors) & contributors)
     found += sorted(

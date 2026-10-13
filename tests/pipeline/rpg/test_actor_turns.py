@@ -196,6 +196,7 @@ def _service_run(subject: TurnCreature, document: TurnCoordination, *ops: str) -
         adapter=D20RulesSystemAdapter(),
         subject_loader=lambda _story, _ref: subject,
         coordination_loader=lambda _story: read,
+        bounded_loader=lambda _story, _ref: [],
     )
     dice = _dice((10,), (1,))
     result = service.adjudicate(
@@ -246,6 +247,7 @@ def test_an_illegal_edge_refuses_before_any_die(
             adapter=D20RulesSystemAdapter(),
             subject_loader=lambda _story, _ref: wolf,
             coordination_loader=lambda _story: read,
+            bounded_loader=lambda _story, _ref: [],
         ).adjudicate(
             _make_assembled(),
             _make_session(DiceHandling.AI_ROLLS),

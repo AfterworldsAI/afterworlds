@@ -52,6 +52,7 @@ from afterworlds.models.rpg import SheetEffect
 from afterworlds.pipeline.rpg.capability import AdjudicationRefusal, RefusalKind
 from afterworlds.pipeline.rpg.conditions import effective
 from afterworlds.pipeline.rpg.defense import damage_responses, facts_of
+from afterworlds.pipeline.rpg.mastery import other_effects
 from afterworlds.services.dnd5e_state.authority import AuthorityIndex
 from afterworlds.services.dnd5e_state.turn import TurnCreature, TurnSubject
 
@@ -188,6 +189,13 @@ def preflight(target: TurnSubject, damage_type: DamageType) -> None:
             RefusalKind.MISSING_STATE, f"the target records no {', '.join(missing)}"
         )
     _as_character(target)
+    unexecuted = other_effects(target)
+    if unexecuted:
+        raise _refuse(
+            RefusalKind.UNSUPPORTED_CAPABILITY,
+            f"the target's active effect {unexecuted[0].source.record_key} can "
+            "change the damage it takes and is not executable here",
+        )
     _modified(index, 1, damage_responses(target, damage_type))
     for eff in effective(target, index):
         for fact in facts_of(index, f"glossary.{eff.condition.value}"):

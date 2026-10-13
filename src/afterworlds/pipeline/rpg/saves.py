@@ -41,10 +41,15 @@ from afterworlds.ingestion.mechanical.representation import (
     RollActor,
     RollContext,
 )
-from afterworlds.pipeline.rpg.capability import AdjudicationRefusal, RefusalKind
+from afterworlds.pipeline.rpg.capability import (
+    SAVE_PROCEDURE,
+    AdjudicationRefusal,
+    RefusalKind,
+)
 from afterworlds.pipeline.rpg.conditions import effective
 from afterworlds.pipeline.rpg.dice import DiceService
 from afterworlds.pipeline.rpg.grants import ability_score, save_proficiency
+from afterworlds.pipeline.rpg.mastery import other_effects
 from afterworlds.services.dnd5e_state.authority import AuthorityIndex
 from afterworlds.services.dnd5e_state.turn import (
     TurnCharacter,
@@ -64,16 +69,6 @@ __all__ = [
     "roll",
 ]
 
-#: The save procedure (prose-bound universal components, certified with the
-#: operation that causes the save) and the typed rules it reads.
-SAVE_PROCEDURE: tuple[tuple[str, str], ...] = (
-    ("play.d20_tests", "saving_throws"),
-    ("play.d20_tests", "save_ability_modifier"),
-    ("play.d20_tests", "save_proficiency"),
-    ("play.d20_tests", "save_dc"),
-    ("play.proficiency", "saving_throw_proficiency"),
-    ("glossary.saving_throw", "saving_throw"),
-)
 
 #: Class features and feats that change their holder's own saving throws or
 #: their outcome, read entry by entry from a phrase scan of the pinned source
@@ -309,8 +304,9 @@ def refuse_contributors(
     state = subject.stored.state
     if state.active_effects is None:
         raise _refuse(RefusalKind.MISSING_STATE, "the saver records no active effects")
-    if state.active_effects:
-        raise unsupported(f"active effect {state.active_effects[0].source.record_key}")
+    unexecuted = other_effects(subject)
+    if unexecuted:
+        raise unsupported(f"active effect {unexecuted[0].source.record_key}")
     if isinstance(subject, TurnCreature):
         template = subject.stored.state.template_record_key
         for fact in facts_of(index, template):

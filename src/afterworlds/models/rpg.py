@@ -96,6 +96,13 @@ class WeaponAttackSelection(BaseModel):
     #: A melee attack that would reduce the target to 0 Hit Points knocks it
     #: out instead (``knocking_out``, optional for the attacker).
     knock_out: bool = False
+    #: Use the weapon's optional mastery property (Graze, Push, Slow, Topple),
+    #: which the wielder's Weapon Mastery feature must cover. Sap and Vex are
+    #: not optional and apply whenever it does.
+    mastery: bool = False
+    #: Push: how far the target is pushed straight away, up to the source's
+    #: distance (OD-15c-1).
+    push_ft: Literal[5, 10] | None = None
 
 
 class LifecycleAttestation(BaseModel):
@@ -213,7 +220,14 @@ class SheetEffect(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     target: str
-    operation: Literal["delta", "set", "apply_condition", "clear_condition"]
+    operation: Literal[
+        "delta",
+        "set",
+        "apply_condition",
+        "clear_condition",
+        "apply_effect",
+        "end_effect",
+    ]
     value_json: str
     schema_version: Literal[1] = 1
     #: CRD Issue 15c: the subject the effect applies to. ``None`` is the

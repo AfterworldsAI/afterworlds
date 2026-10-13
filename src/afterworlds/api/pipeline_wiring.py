@@ -88,11 +88,14 @@ path, which stays unreachable (no pending-roll service is wired).
 
 from __future__ import annotations
 
+import json
 import os
 from collections.abc import Callable
 from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
+import sqlalchemy as sa
 from sqlalchemy.orm import Session, sessionmaker
 
 from afterworlds.api.fake_pipeline import FakeProviderResolver
@@ -113,6 +116,10 @@ from afterworlds.persistence.crud.session_state import (
     get_branching_session_state_by_story,
     get_rpg_session_state_by_story,
     get_writing_session_state_by_story,
+)
+from afterworlds.persistence.orm.dnd5e_state import (
+    Dnd5eCharacterStateORM,
+    Dnd5eCreatureORM,
 )
 from afterworlds.pipeline.contradiction.config import ContradictionConfig
 from afterworlds.pipeline.contradiction.service import ContradictionService
@@ -327,6 +334,58 @@ def _make_rpg_coordination_loader(
     return _load
 
 
+def _bounded_by(document: Any, ref: SubjectRef) -> bool:
+    """Whether a state document holds an effect bounded by *ref*'s turn."""
+    if not isinstance(document, dict):
+        document = json.loads(document)
+    for effect in document.get("active_effects") or ():
+        turn = (effect.get("ends") or {}).get("turn")
+        if turn and turn["of"] == {"kind": ref.kind, "subject_id": str(ref.subject_id)}:
+            return True
+    return False
+
+
+def _make_rpg_bounded_loader(
+    session_factory: sessionmaker[Session],
+) -> Callable[[UUID, SubjectRef], list[TurnSubject]]:
+    """Reads every character and creature of a story holding an effect bounded
+    by a subject's turn (CRD Issue 15c, contract G2): an edge of that turn ends
+    them, and the orchestrator rechecks each one at commit."""
+
+    def _load(story_id: UUID, ref: SubjectRef) -> list[TurnSubject]:
+        session = session_factory()
+        try:
+            found: list[TurnSubject] = []
+            characters = session.execute(
+                sa.select(
+                    Dnd5eCharacterStateORM.sheet_id, Dnd5eCharacterStateORM.document
+                ).where(Dnd5eCharacterStateORM.story_id == str(story_id))
+            ).all()
+            for sheet_id, document in characters:
+                if _bounded_by(document, ref):
+                    found.append(
+                        load_turn_character(session, UUID(sheet_id), now=_utc_now())
+                    )
+            creatures = session.execute(
+                sa.select(
+                    Dnd5eCreatureORM.creature_id, Dnd5eCreatureORM.document
+                ).where(Dnd5eCreatureORM.story_id == str(story_id))
+            ).all()
+            for creature_id, document in creatures:
+                if _bounded_by(document, ref):
+                    found.append(
+                        load_turn_creature(
+                            session, story_id, UUID(creature_id), now=_utc_now()
+                        )
+                    )
+            session.commit()
+            return found
+        finally:
+            session.close()
+
+    return _load
+
+
 class _PerTurnContextBuilder:
     """Assembles context via a fresh SQLAlchemy Session per ``assemble()`` call.
 
@@ -512,6 +571,7 @@ def build_orchestrator(session_factory: sessionmaker[Session]) -> OrchestratorSe
             AdjudicationConfig.from_env(),
             subject_loader=_make_rpg_subject_loader(session_factory),
             coordination_loader=_make_rpg_coordination_loader(session_factory),
+            bounded_loader=_make_rpg_bounded_loader(session_factory),
         ),
         rpg_dice_service=SystemRandomDiceService(),
         rpg_session_sheet_resolver=_make_rpg_session_sheet_resolver(session_factory),

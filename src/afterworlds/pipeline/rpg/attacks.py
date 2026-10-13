@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+from uuid import uuid4
 
 from afterworlds.ingestion.mechanical.models import ComponentHandling
 from afterworlds.ingestion.mechanical.representation import (
@@ -47,8 +48,11 @@ from afterworlds.ingestion.mechanical.representation import (
     AttackAbilityOptionFact,
     AttackRollAbilityFact,
     AutomaticOutcomeFact,
+    ConditionEffectKind,
     ConditionKind,
     CoverDefensiveBonusFact,
+    CreatureSize,
+    CreatureSizeFact,
     CriticalDamageFact,
     CriticalHitChange,
     CriticalHitRuleFact,
@@ -56,21 +60,36 @@ from afterworlds.ingestion.mechanical.representation import (
     DamageRollRuleFact,
     DamageType,
     DiceExpression,
+    FormulaTerm,
+    MasteryDamage,
+    MasteryDamageType,
+    MasteryEffectFact,
+    MasteryTrigger,
     NaturalRollOutcomeFact,
     ProficiencyApplicationFact,
     ProficiencyKind,
     RangeBandRuleFact,
     RangeClass,
     RecordKind,
+    RecurrenceBoundary,
     RollActor,
     RollContext,
+    TurnWhich,
     WeaponCategory,
     WeaponCategoryFact,
+    WeaponMastery,
+    WeaponMasteryFact,
     WeaponProperty,
     WeaponPropertyFact,
     WeaponRangeClassFact,
 )
-from afterworlds.models.dnd5e_state import Dnd5eCharacterState, RecordChoice
+from afterworlds.models.dnd5e_state import (
+    ConditionInstance,
+    Dnd5eCharacterState,
+    RecordChoice,
+    TurnCoordination,
+)
+from afterworlds.models.enums import ConditionVisibility
 from afterworlds.models.rpg import RollProposal, SheetEffect, WeaponAttackSelection
 from afterworlds.pipeline.rpg.capability import (
     AdjudicationRefusal,
@@ -89,9 +108,26 @@ from afterworlds.pipeline.rpg.damage import (
     take_damage,
 )
 from afterworlds.pipeline.rpg.damage import possible_conditions as damage_conditions
-from afterworlds.pipeline.rpg.defense import armor_class, facts_of, untrained_armor
+from afterworlds.pipeline.rpg.defense import (
+    armor_class,
+    condition_immune,
+    facts_of,
+    untrained_armor,
+)
 from afterworlds.pipeline.rpg.dice import DiceService
-from afterworlds.pipeline.rpg.grants import ability_score, weapon_proficiency
+from afterworlds.pipeline.rpg.grants import (
+    ability_score,
+    weapon_mastery,
+    weapon_proficiency,
+)
+from afterworlds.pipeline.rpg.mastery import (
+    attack_effects,
+    new_effect,
+    other_effects,
+)
+from afterworlds.pipeline.rpg.saves import PreparedSave
+from afterworlds.pipeline.rpg.saves import prepare as prepare_save
+from afterworlds.pipeline.rpg.saves import roll as roll_save
 from afterworlds.services.dnd5e_state.authority import AuthorityIndex
 from afterworlds.services.dnd5e_state.holdings import ItemInstance
 from afterworlds.services.dnd5e_state.turn import (
@@ -232,6 +268,10 @@ class PreparedAttack:
     ac_breakdown: dict[str, int] = field(default_factory=dict)
     #: Rules that make any hit a Critical Hit (Paralyzed, Unconscious).
     automatic_critical: tuple[str, ...] = ()
+    #: The attacker's mastery effects this roll spends (Sap, Vex).
+    spent: tuple[SheetEffect, ...] = ()
+    #: The weapon's mastery property this attack uses, if any.
+    mastery: _Mastery | None = None
 
     @property
     def expression(self) -> str:
@@ -252,6 +292,8 @@ class RolledAttack:
     critical: bool
     damage_rolls: tuple[int, ...] = ()
     damage: DamageTaken | None = None
+    mastery_effects: tuple[SheetEffect, ...] = ()
+    mastery_result: dict[str, object] | None = None
 
     @property
     def total(self) -> int:
@@ -265,7 +307,8 @@ class RolledAttack:
 
     @property
     def effects(self) -> tuple[SheetEffect, ...]:
-        return self.damage.effects if self.damage else ()
+        own = self.damage.effects if self.damage else ()
+        return (*self.prepared.spent, *own, *self.mastery_effects)
 
     def provenance_json(self) -> str:
         p = self.prepared
@@ -292,6 +335,7 @@ class RolledAttack:
                 "critical": self.critical,
                 "damage_rolls": list(self.damage_rolls),
                 "damage": self.damage.provenance() if self.damage else None,
+                "mastery": self.mastery_result,
                 "certificate": p.certificate.as_json(),
             },
             sort_keys=True,
@@ -517,6 +561,242 @@ def _agreeing_bindings(actor: TurnCharacter, target: TurnSubject) -> None:
         )
 
 
+@dataclass(frozen=True)
+class _Mastery:
+    """The mastery property this attack uses, fixed before any die."""
+
+    name: WeaponMastery
+    rule: MasteryEffectFact
+    save: PreparedSave | None = None
+    push_ft: int | None = None
+
+
+#: Masteries whose use waits on a classification: Nick and the Light extra
+#: attack need to know which attack is the Attack action's (action economy,
+#: surfaced for Codex); Cleave's extra attack is its own operation.
+_HELD_MASTERIES = {
+    WeaponMastery.NICK: "which attack is the Attack action's (action economy)",
+    WeaponMastery.CLEAVE: "Cleave's extra attack, a separate operation",
+}
+
+
+def _mastery(
+    sel: WeaponAttackSelection,
+    actor: TurnCharacter,
+    target: TurnSubject,
+    weapon: _Weapon,
+    ability_modifier: int,
+    level: int,
+) -> _Mastery | None:
+    """The weapon's mastery property, when the wielder's validated Weapon
+    Mastery choice covers the weapon and the property applies (optional ones
+    only when selected); a selection it can't honour refuses."""
+    index = actor.index
+    assert index is not None
+    printed = [
+        f for f in facts_of(index, weapon.record) if isinstance(f, WeaponMasteryFact)
+    ]
+    has = len(printed) == 1 and weapon_mastery(
+        index, actor.stored.state, weapon.record, weapon.category
+    )
+    if not has:
+        if sel.mastery or sel.push_ft is not None:
+            raise _refuse(
+                RefusalKind.INVALID_SELECTION,
+                f"the wielder can't use {weapon.record}'s mastery property",
+            )
+        return None
+    name = printed[0].mastery
+    record = f"equipment.weapons.{name.value}"
+    rules = [f for f in facts_of(index, record) if isinstance(f, MasteryEffectFact)]
+    if len(rules) != 1:
+        raise _refuse(RefusalKind.MISSING_AUTHORITY, f"{record} is not typed")
+    rule = rules[0]
+    if rule.optional and not sel.mastery:
+        if sel.push_ft is not None:
+            raise _refuse(RefusalKind.INVALID_SELECTION, "a push needs Push selected")
+        return None
+    if not rule.optional and sel.mastery:
+        raise _refuse(
+            RefusalKind.INVALID_SELECTION, f"{name.value} is not a property to select"
+        )
+    if name in _HELD_MASTERIES:
+        raise _refuse(
+            RefusalKind.UNSUPPORTED_CAPABILITY,
+            f"{name.value} waits on {_HELD_MASTERIES[name]}",
+        )
+    if name is WeaponMastery.PUSH:
+        if sel.push_ft is None or rule.distance_ft_up_to is None:
+            raise _refuse(RefusalKind.INVALID_SELECTION, "a push names its distance")
+        if sel.push_ft > rule.distance_ft_up_to:
+            raise _refuse(
+                RefusalKind.INVALID_SELECTION,
+                f"Push moves a creature up to {rule.distance_ft_up_to} feet",
+            )
+        if rule.maximum_size is None or _size(target) not in _SIZES_UP_TO(
+            rule.maximum_size
+        ):
+            raise _refuse(
+                RefusalKind.INVALID_SELECTION,
+                "Push moves a creature no larger than "
+                f"{rule.maximum_size.value if rule.maximum_size else '?'}",
+            )
+        return _Mastery(name, rule, push_ft=sel.push_ft)
+    if sel.push_ft is not None:
+        raise _refuse(RefusalKind.INVALID_SELECTION, "only Push moves the target")
+    if name is WeaponMastery.TOPPLE:
+        if rule.save is None or rule.dc is None:
+            raise _refuse(RefusalKind.MISSING_AUTHORITY, "Topple's save is not typed")
+        terms = {
+            FormulaTerm.ATTACK_ABILITY_MODIFIER: ability_modifier,
+            FormulaTerm.PROFICIENCY_BONUS: proficiency_bonus(index, level),
+        }
+        if any(term not in terms for term in rule.dc.plus):
+            raise _refuse(RefusalKind.MISSING_AUTHORITY, "Topple's DC is not typed")
+        dc = rule.dc.base + sum(terms[term] for term in rule.dc.plus)
+        imposes = frozenset(
+            e.condition
+            for e in rule.on_failure
+            if e.effect is ConditionEffectKind.APPLIES
+        )
+        save = prepare_save(target, rule.save, dc, f"{record}/{name.value}", imposes)
+        return _Mastery(name, rule, save=save)
+    if name in (WeaponMastery.SAP, WeaponMastery.VEX, WeaponMastery.SLOW) and (
+        rule.duration is None or rule.duration.turn is not TurnWhich.NEXT
+    ):
+        raise _refuse(
+            RefusalKind.MISSING_AUTHORITY, f"{name.value}'s duration is not typed"
+        )
+    if name is WeaponMastery.GRAZE and (
+        rule.damage is not MasteryDamage.ATTACK_ABILITY_MODIFIER
+        or rule.damage_type is not MasteryDamageType.WEAPON
+    ):
+        raise _refuse(RefusalKind.MISSING_AUTHORITY, "Graze's damage is not typed")
+    return _Mastery(name, rule)
+
+
+_ORDER = tuple(CreatureSize)
+
+
+def _SIZES_UP_TO(maximum: CreatureSize) -> set[CreatureSize]:  # noqa: N802
+    return set(_ORDER[: _ORDER.index(maximum) + 1])
+
+
+def _size(subject: TurnSubject) -> CreatureSize | None:
+    if isinstance(subject, TurnCreature):
+        assert subject.index is not None
+        sizes = [
+            s
+            for f in facts_of(subject.index, subject.stored.state.template_record_key)
+            if isinstance(f, CreatureSizeFact)
+            for s in f.sizes
+        ]
+        return sizes[0] if len(sizes) == 1 else None
+    return subject.stored.state.size
+
+
+def _mastery_outcome(
+    prepared: PreparedAttack,
+    actor: TurnCharacter,
+    dice: DiceService,
+    hit: bool,
+    taken: DamageTaken | None,
+    coordination: TurnCoordination | None,
+) -> tuple[list[SheetEffect], dict[str, object] | None]:
+    """What the mastery does once the attack's dice are known."""
+    m = prepared.mastery
+    if m is None:
+        return [], None
+    target = prepared.target
+    damaged = taken is not None and taken.taken > 0
+    alive = taken is None or taken.outcome not in ("died", "died_massive_damage")
+    trigger = m.rule.trigger
+    applies = {
+        MasteryTrigger.MISS_CREATURE: not hit,
+        MasteryTrigger.HIT_CREATURE: hit,
+        MasteryTrigger.HIT_AND_DAMAGE: hit and damaged,
+    }.get(trigger)
+    if applies is None:
+        raise _refuse(RefusalKind.MISSING_AUTHORITY, f"{trigger.value} is not executed")
+    if not applies:
+        return [], {"mastery": m.name.value, "result": "not_triggered"}
+    name = m.name
+    if name is WeaponMastery.GRAZE:
+        modifier = prepared.breakdown[f"{prepared.ability.value}_modifier"]
+        grazed = take_damage(
+            target, max(0, modifier), prepared.damage_type, critical=False
+        )
+        return list(grazed.effects), {
+            "mastery": "graze",
+            "result": "damaged",
+            "damage": grazed.provenance(),
+        }
+    if name is WeaponMastery.PUSH:
+        return [], {"mastery": "push", "result": "pushed", "feet": m.push_ft}
+    if name is WeaponMastery.TOPPLE:
+        assert m.save is not None
+        if not alive:
+            return [], {"mastery": "topple", "result": "target_died"}
+        saved = roll_save(m.save, dice)
+        out: dict[str, object] = {"mastery": "topple", "save": saved.provenance()}
+        if saved.succeeded or condition_immune(target, ConditionKind.PRONE):
+            return [], {**out, "result": "resisted" if saved.succeeded else "immune"}
+        if any(c.condition is ConditionKind.PRONE for c in _conditions_of(target)):
+            return [], {**out, "result": "already_prone"}
+        return [
+            SheetEffect(
+                target="prone",
+                operation="apply_condition",
+                value_json=json.dumps(
+                    {
+                        "instance_id": str(uuid4()),
+                        "condition": ConditionKind.PRONE.value,
+                        "visibility": ConditionVisibility.VISIBLE.value,
+                        "source": {
+                            "record_key": "equipment.weapons.topple",
+                            "component_key": "topple",
+                        },
+                    }
+                ),
+                subject_kind=subject_key(target)[0],  # type: ignore[arg-type]
+                subject_id=target.subject_id,
+            )
+        ], {**out, "result": "prone"}
+    if not alive:
+        return [], {"mastery": name.value, "result": "target_died"}
+    assert m.rule.duration is not None
+    boundary = {
+        RecurrenceBoundary.START_OF_TURN: "start",
+        RecurrenceBoundary.END_OF_TURN: "end",
+    }[m.rule.duration.until]
+    if name is WeaponMastery.SAP:
+        return [new_effect(target, "sap", actor, boundary, coordination)], {
+            "mastery": "sap",
+            "result": "applied",
+        }
+    if name is WeaponMastery.SLOW:
+        if any(
+            e.source.record_key == "equipment.weapons.slow"
+            for e in target.stored.state.active_effects or ()
+        ):
+            return [], {"mastery": "slow", "result": "already_slowed"}
+        return [new_effect(target, "slow", actor, boundary, coordination)], {
+            "mastery": "slow",
+            "result": "applied",
+            "speed_reduction_ft": m.rule.speed_reduction_ft,
+        }
+    if name is WeaponMastery.VEX:
+        return [new_effect(actor, "vex", actor, boundary, coordination, target)], {
+            "mastery": "vex",
+            "result": "applied",
+        }
+    raise _refuse(RefusalKind.UNSUPPORTED_CAPABILITY, f"{name.value} is not executed")
+
+
+def _conditions_of(subject: TurnSubject) -> tuple[ConditionInstance, ...]:
+    return subject.stored.state.conditions or ()
+
+
 def prepare(
     proposal: RollProposal,
     actor: TurnCharacter,
@@ -558,11 +838,12 @@ def prepare(
             "a target behind Total Cover can't be targeted",
         )
 
-    # Contributors.
-    if state.active_effects:
+    # Contributors. Mastery effects are executed where they apply.
+    unexecuted = other_effects(actor)
+    if unexecuted:
         raise _refuse(
             RefusalKind.UNSUPPORTED_CAPABILITY,
-            f"active effect {state.active_effects[0].source.record_key} can change "
+            f"active effect {unexecuted[0].source.record_key} can change "
             "this attack and is not executable here",
         )
     found = sorted(_held(index, state) & ATTACK_CONTRIBUTORS)
@@ -680,6 +961,9 @@ def prepare(
     _conditions(actor, RollActor.SUBJECT, target, within_5_feet, mods)
     _conditions(target, RollActor.AGAINST_SUBJECT, actor, within_5_feet, mods)
     advantage, disadvantage = mods.advantage, mods.disadvantage
+    a3, d3, spent = attack_effects(actor, target)
+    advantage += a3
+    disadvantage += d3
     if WeaponProperty.HEAVY in props:
         for req in facts_of(index, "equipment.weapons.heavy", "heavy"):
             if (
@@ -801,11 +1085,16 @@ def prepare(
         breakdown=breakdown,
         ac_breakdown=ac_breakdown,
         automatic_critical=tuple(mods.automatic_critical),
+        spent=tuple(spent),
+        mastery=_mastery(sel, actor, target, weapon, modifier, level),
     )
 
 
 def roll(
-    prepared: PreparedAttack, dice: DiceService, actor: TurnCharacter
+    prepared: PreparedAttack,
+    dice: DiceService,
+    actor: TurnCharacter,
+    coordination: TurnCoordination | None = None,
 ) -> RolledAttack:
     """Roll the attack; on a hit, roll damage and derive its effects."""
     index = actor.index
@@ -827,7 +1116,18 @@ def roll(
     if hit and prepared.automatic_critical:
         critical = True
     if not hit:
-        return RolledAttack(prepared, attack.raw_rolls, attack.chosen, False, False)
+        effects, result = _mastery_outcome(
+            prepared, actor, dice, False, None, coordination
+        )
+        return RolledAttack(
+            prepared,
+            attack.raw_rolls,
+            attack.chosen,
+            False,
+            False,
+            mastery_effects=tuple(effects),
+            mastery_result=result,
+        )
     d = prepared.damage_dice
     count = d.count * (prepared.critical_multiplier if critical else 1)
     damage_roll = dice.roll(f"{count}{d.die.value}")
@@ -842,6 +1142,7 @@ def roll(
         critical=critical,
         knock_out=prepared.selection.knock_out,
     )
+    effects, result = _mastery_outcome(prepared, actor, dice, True, taken, coordination)
     return RolledAttack(
         prepared,
         attack.raw_rolls,
@@ -850,6 +1151,8 @@ def roll(
         critical,
         damage_roll.raw_rolls,
         taken,
+        tuple(effects),
+        result,
     )
 
 
@@ -865,7 +1168,32 @@ def possible_conditions(
     if target is None:
         return {}
     knocked = {ConditionKind.UNCONSCIOUS} if sel.knock_out else set()
+    if sel.mastery:
+        # Topple's failed save leaves the target Prone.
+        knocked.add(ConditionKind.PRONE)
     return {key: damage_conditions(target) | knocked}
+
+
+def moved_subjects(proposal: RollProposal) -> set[tuple[str, str]]:
+    """Subjects this attack could move (Push): a later operation's spatial
+    facts about them, asserted before the move, are invalid (OD-15c-1)."""
+    sel = proposal.weapon_attack
+    if sel is None or sel.push_ft is None:
+        return set()
+    return {(sel.target.kind, str(sel.target.subject_id))}
+
+
+def spatial_subjects(
+    proposal: RollProposal, actor: TurnCharacter
+) -> set[tuple[str, str]]:
+    """The subjects this attack's spatial facts are about."""
+    sel = proposal.weapon_attack
+    if sel is None:
+        return set()
+    return {
+        ("character", str(actor.subject_id)),
+        (sel.target.kind, str(sel.target.subject_id)),
+    }
 
 
 def subject_key(subject: TurnSubject) -> tuple[str, str]:

@@ -24,6 +24,7 @@ from typing import cast
 from uuid import uuid4
 
 from afterworlds.models.dnd5e_state import (
+    ActiveEffect,
     ConditionInstance,
     CreatureState,
     DeathState,
@@ -160,6 +161,27 @@ def _apply(state: _State, effects: tuple[SheetEffect, ...]) -> _State:
                 and c.condition.value != value.get("condition")
             )
             state = state.model_copy(update={"conditions": kept})
+        elif effect.operation == "apply_effect":
+            if state.active_effects is None:
+                raise ValueError("apply_effect: the subject records no active effects")
+            added = ActiveEffect.model_validate(value)
+            state = state.model_copy(
+                update={"active_effects": (*state.active_effects, added)}
+            )
+        elif effect.operation == "end_effect":
+            if not isinstance(value, dict) or not value.get("instance_id"):
+                raise ValueError("end_effect value_json must name an instance_id")
+            if state.active_effects is None:
+                raise ValueError("end_effect: the subject records no active effects")
+            state = state.model_copy(
+                update={
+                    "active_effects": tuple(
+                        e
+                        for e in state.active_effects
+                        if e.instance_id != value["instance_id"]
+                    )
+                }
+            )
         else:
             raise ValueError(f"Unknown sheet-effect operation: {effect.operation!r}")
     # Re-validate the whole document: model_copy does not run validators.
