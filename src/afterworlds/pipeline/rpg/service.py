@@ -469,7 +469,22 @@ class RpgAdjudicationPassService:
         # outcome the dice give.
         possible: dict[tuple[str, str], set[ConditionKind]] = {}
         moved: set[tuple[str, str]] = set()
+        changed: set[tuple[str, str]] = set()
         for proposal in proposals:
+            # Whether a subject is dying, knocked out or has a recovery
+            # instance is not monotone like conditions: an earlier operation
+            # of this turn can falsify it after its dice. Such an operation
+            # needs a later turn.
+            unsettled = changed & self._adapter.lifecycle_reads(proposal)
+            if unsettled:
+                kind, subject_id = sorted(unsettled)[0]
+                raise AdjudicationRefusal(
+                    RefusalKind.INVALID_SELECTION,
+                    f"{proposal.check_label!r} turns on {kind} {subject_id}'s "
+                    "zero-HP state, which an earlier operation of this turn can "
+                    "change; it needs a later turn",
+                )
+            changed |= self._adapter.lifecycle_changes(proposal)
             stale = moved & self._adapter.spatial_subjects(proposal, sheet)
             if stale:
                 raise AdjudicationRefusal(

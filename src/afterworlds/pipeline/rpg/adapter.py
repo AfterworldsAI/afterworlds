@@ -64,6 +64,8 @@ _DISADV_RE = re.compile(r"\bdisadvantage\b", re.IGNORECASE)
 
 _EDGES = (Operation.BEGIN_TURN.value, Operation.END_TURN.value)
 _ATTESTATIONS = (Operation.STABLE_RECOVERY.value, Operation.KNOCKOUT_RECOVERY.value)
+#: Operations whose validity turns on a subject's zero-HP lifecycle state.
+_LIFECYCLE = (Operation.STABILIZE.value, *_ATTESTATIONS)
 #: Cleave's once-per-turn use (``turn_use``).
 _CLEAVE = "equipment.weapons.cleave/cleave"
 
@@ -339,6 +341,25 @@ class D20RulesSystemAdapter:
             source=("hidden" if proposal.visibility is RollVisibility.HIDDEN else "ai"),
             gm_cheating_at_roll=gm_cheating,
         )
+
+    def lifecycle_changes(self, proposal: RollProposal) -> set[tuple[str, str]]:
+        """Subjects whose hit points, death state or recovery instances
+        *proposal* could change, whatever its dice give."""
+        sel = proposal.weapon_attack
+        if sel is not None:
+            return {(sel.target.kind, str(sel.target.subject_id))}
+        if proposal.operation in (*_EDGES, *_LIFECYCLE) and proposal.subject:
+            ref = proposal.subject
+            return {(ref.kind, str(ref.subject_id))}
+        return set()
+
+    def lifecycle_reads(self, proposal: RollProposal) -> set[tuple[str, str]]:
+        """Subjects whose dying, knocked-out or recovery-instance state
+        *proposal*'s validity turns on."""
+        if proposal.operation in _LIFECYCLE and proposal.subject is not None:
+            ref = proposal.subject
+            return {(ref.kind, str(ref.subject_id))}
+        return set()
 
     def moved_subjects(self, proposal: RollProposal) -> set[tuple[str, str]]:
         """Subjects *proposal* could move (Push)."""

@@ -234,3 +234,89 @@ def test_a_completed_short_rest_ends_the_knockout_once() -> None:
     ):
         refusal = _refused(wolf, _op(wolf, "knockout_recovery", attestation))
         assert refusal.kind is RefusalKind.INVALID_SELECTION
+
+
+# ---------------------------------------------------------------------------
+# Lifecycle state an earlier operation of the turn can change is not
+# preflightable: such an operation refuses before any die (needs a later turn)
+# ---------------------------------------------------------------------------
+
+
+def _turn_of(subject: TurnCreature, *proposals: RollProposal) -> AdjudicationRefusal:
+    from unittest.mock import MagicMock
+
+    from afterworlds.models.dnd5e_state import TurnCoordination
+    from afterworlds.models.enums import DiceHandling
+    from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
+    from afterworlds.services.dnd5e_state.coordination import StoredCoordination
+    from tests.pipeline.rpg.test_adjudication_service import (
+        _STORY_ID,
+        _TURN_ID,
+        _FakeProvider,
+        _make_assembled,
+        _make_session,
+    )
+
+    dice = MagicMock()
+    with pytest.raises(AdjudicationRefusal) as caught:
+        RpgAdjudicationPassService(
+            adapter=D20RulesSystemAdapter(),
+            subject_loader=lambda _story, _ref: subject,
+            coordination_loader=lambda _story: StoredCoordination(
+                _STORY_ID, 1, TurnCoordination()
+            ),
+            bounded_loader=lambda _story, _ref: [],
+        ).adjudicate(
+            _make_assembled(),
+            _make_session(DiceHandling.AI_ROLLS),
+            _attacker(CLUB),
+            dice,
+            provider=_FakeProvider(
+                [p.model_dump(mode="json", exclude_none=True) for p in proposals]
+            ),
+            story_id=_STORY_ID,
+            originating_turn_id=_TURN_ID,
+        )
+    dice.roll.assert_not_called()
+    assert caught.value.kind is RefusalKind.INVALID_SELECTION
+    assert "later turn" in caught.value.detail
+    return caught.value
+
+
+def test_an_attack_then_a_recovery_attestation_on_its_target_refuses() -> None:
+    stable = _stable()
+    _turn_of(
+        stable,
+        _proposal(stable, CLUB),
+        _op(
+            stable,
+            "stable_recovery",
+            LifecycleAttestation(instance_id="rec", elapsed_hours=4),
+        ),
+    )
+
+
+def test_a_death_save_then_first_aid_on_the_same_subject_refuses() -> None:
+    wolf = _dying()
+    begin = RollProposal(
+        check_label="Turn",
+        subsystem_tag="turn",
+        visibility=RollVisibility.SHOWN,
+        operation="begin_turn",
+        subject=SubjectRef(kind="creature", subject_id=wolf.subject_id),
+    )
+    _turn_of(wolf, begin, _op(wolf, "stabilize"))
+
+
+def test_first_aid_then_the_knockouts_short_rest_refuses() -> None:
+    wolf = _knocked_out()
+    _turn_of(
+        wolf,
+        _op(wolf, "stabilize"),
+        _op(wolf, "knockout_recovery", LifecycleAttestation(instance_id="ko")),
+    )
+
+
+def test_an_attack_then_first_aid_on_its_target_refuses() -> None:
+    wolf = _creature(hp=2, treatment=CHARACTER)
+    _turn_of(wolf, _proposal(wolf, CLUB), _op(wolf, "stabilize"))

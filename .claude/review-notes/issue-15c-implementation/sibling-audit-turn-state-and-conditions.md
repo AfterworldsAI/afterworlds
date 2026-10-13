@@ -73,3 +73,22 @@
 | --- | --- |
 | `json.dumps(... model_dump())` across `src/` | patched (the audit); `damage.py`'s `DeathState` dumps hold no UUID (already safe) |
 | `lifecycle.py`, `mastery.py` effect values | already safe (`mode="json"` / `model_dump_json`) |
+
+## Family 1, continued: every predicate a `prepare` reads
+
+The union preflight is sound only for predicates that grow monotonically with conditions. Each predicate an operation's validity reads has its own disposition:
+
+| Predicate | Read by | Disposition |
+| --- | --- | --- |
+| Conditions (recorded and implied) | attacks, saves, checks, death saves | Union preflight (`possible_conditions`). Refusals only grow with conditions. |
+| Position (spatial facts) | weapon attacks, Cleave | A later operation's facts about a subject an earlier one can push refuse before any die (`moved_subjects`). |
+| Coordination (active turn, edges, uses) | edges, Cleave | Simulated in order before any die (`_edges`, `take_use`). |
+| Hit points, death state, recovery and knockout instances | `stabilize`, `stable_recovery`, `knockout_recovery` | **Patched.** A later operation on a subject an earlier one can change refuses before any die, as it needs a later turn (`lifecycle_changes` / `lifecycle_reads`). |
+| Dying, at `begin_turn` | death save | The death save is prepared whenever the subject is dying or possibly Unconscious. |
+| Active effects | attacks (Sap, Vex) | Executed and spent, never refused. Unexecuted effects refuse in every path, so they are present before the turn. |
+
+**Regressions:** `test_zero_hp_lifecycle.py` covers:
+- an attack, then a recovery attestation;
+- a death save, then first aid;
+- first aid, then the knockout's Short Rest;
+- an attack, then first aid.
