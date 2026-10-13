@@ -16,7 +16,7 @@ It writes `reports/c8-preview.json` (`--dry` stops after the mapping). The build
 - the isolated release store `g1-work/rel/afterworlds.db`, which is only ever copied privately;
 - the Codex correction review (untracked in the main checkout).
 
-**Run of record:** 2026-10-13, head `056d3d4`, `--twice`, launcher PID 61644 (Python PID 696), exit 0, 849 s (`reports/c8-build.log`, `.log.out`, `.log.err`). One build; no rebuild was needed.
+**Run of record:** 2026-10-13, head `056d3d4`, `--twice`, launcher PID 61644 (Python PID 696), exit 0, 849 s (committed `reports/c8-build.log.out` and `.log.err`; the supervisor log `reports/c8-build.log` and `reports/focused-tests-1.log` are `*.log`, so git-ignored and kept locally in the worktree). One build; no rebuild was needed.
 
 ## Exact identities
 
