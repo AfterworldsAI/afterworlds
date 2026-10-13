@@ -13,6 +13,10 @@ compare-and-swap against the revision and binding the turn read.
 * ``apply_condition``: a typed :class:`ConditionInstance` (``condition``,
   ``visibility``, optional ``level``, ``source``, ``instance_id``).
 * ``clear_condition``: by ``instance_id``, or every instance of ``condition``.
+* ``creature_species`` ``set``: a creature's whole
+  :class:`CreatureSpeciesSelection` (CRD Issue 15c, bounded species input);
+  only on a creature that records none under the same binding. Eligibility is the state
+  validation's, rechecked when the turn commits.
 
 Anything else, or a family the state does not record, raises ``ValueError``.
 """
@@ -26,6 +30,7 @@ from uuid import uuid4
 from afterworlds.models.dnd5e_state import (
     ActiveEffect,
     ConditionInstance,
+    CreatureSpeciesSelection,
     CreatureState,
     DeathState,
     Dnd5eCharacterState,
@@ -125,6 +130,28 @@ def _usage_counter(state: _State, effect: SheetEffect, value: object) -> _State:
     return state.model_copy(update={"usage_counters": (*kept, counter)})
 
 
+def _creature_species(state: _State, effect: SheetEffect, value: object) -> _State:
+    if not isinstance(state, CreatureState):
+        raise ValueError("creature_species: only a creature records one")
+    if effect.operation != "set" or not isinstance(value, dict):
+        raise ValueError("creature_species: set a JSON object")
+    selection = CreatureSpeciesSelection.model_validate(value)
+    held = state.species
+    if held is not None and (
+        held.template_record_key,
+        held.mechanical_projection_uuid,
+        held.override_set_uuid,
+    ) == (
+        selection.template_record_key,
+        selection.mechanical_projection_uuid,
+        selection.override_set_uuid,
+    ):
+        # One under another template or binding is invalidated; it may be
+        # recorded again. One still current is never overwritten.
+        raise ValueError("creature_species: the creature already records a species")
+    return state.model_copy(update={"species": selection})
+
+
 def apply_effects[S: _State](state: S, effects: tuple[SheetEffect, ...]) -> S:
     """*state* after *effects*, re-validated as its own document type."""
     return cast(S, _apply(state, effects))
@@ -142,6 +169,8 @@ def _apply(state: _State, effects: tuple[SheetEffect, ...]) -> _State:
                 state = _death_state(state, effect, value)
             elif effect.target == "usage_counter":
                 state = _usage_counter(state, effect, value)
+            elif effect.target == "creature_species":
+                state = _creature_species(state, effect, value)
             elif effect.target.startswith("spell_slot."):
                 if not isinstance(state, Dnd5eCharacterState):
                     raise ValueError(f"{effect.target}: a creature records no slots")

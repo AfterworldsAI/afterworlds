@@ -49,8 +49,8 @@ __all__ = [
     "governing_fingerprint",
 ]
 
-MANIFEST_VERSION = "15c-manifest-3"
-ADAPTER_VERSION = "15c-d20-3"
+MANIFEST_VERSION = "15c-manifest-4"
+ADAPTER_VERSION = "15c-d20-4"
 
 
 class RefusalKind(StrEnum):
@@ -91,6 +91,7 @@ class Operation(StrEnum):
     CREATURE_ATTACK = "creature_attack"
     CREATURE_SAVE_EFFECT = "creature_save_effect"
     KNOCKOUT_RECOVERY = "knockout_recovery"
+    CREATURE_SPECIES = "creature_species"
 
 
 class CapabilityStatus(StrEnum):
@@ -200,6 +201,20 @@ _AMMUNITION_SUPPLIES: tuple[tuple[str, str], ...] = tuple(
     (f"equipment.adventuring_gear.{name}", name)
     for name in ("arrows", "bolts", "bullets_firearm", "bullets_sling", "needles")
 )
+#: The creature types a target predicate reads (C8): each species' type (a
+#: character's, and the Humanoid species a source-open creature may record)
+#: and Find Familiar's source-qualified type choice. A creature's own type is
+#: on its template, certified per subject.
+_CREATURE_TYPES: tuple[tuple[str, str], ...] = (
+    *(
+        (f"character_origins.{name}", "creature_type")
+        for name in (
+            "dragonborn", "dwarf", "elf", "gnome", "goliath", "halfling",
+            "human", "orc", "tiefling",
+        )
+    ),
+    ("spells.find_familiar", "effect"),
+)  # fmt: skip
 #: The save procedure (prose-bound universal components, certified with the
 #: operation that causes the save) and the typed rules it reads.
 SAVE_PROCEDURE: tuple[tuple[str, str], ...] = (
@@ -264,15 +279,16 @@ _DEATH_SAVE_PROCEDURE: tuple[tuple[str, str], ...] = (
 )
 
 #: The release this adapter version was certified against: the accepted CRD
-#: Issue 15c C7 successor (oracle SHA-256 ``2853f30a…f373``), by the
+#: Issue 15c C8 successor (oracle SHA-256 ``ead7fa9d…0d0d``), by the
 #: projection identity it derives; a store must publish it before it binds.
-#: Recertified from the native C5 successor (projection ``44f212d5-…``) by
-#: reviewing every governing component; C7 changed only the nine components
-#: it typed (``.claude/review-notes/issue-15c-implementation/recert/``).
+#: Recertified from C7 (projection ``8446ab6b-…``), itself from the native C5
+#: successor (``44f212d5-…``), by reviewing every governing component; C8
+#: changed only the 346 components it typed
+#: (``.claude/review-notes/issue-15c-implementation/recert/``).
 CERTIFIED_RELEASE: tuple[UUID, str, UUID] = (
     UUID("1299484e-c72d-509b-bd8d-d0169ee1f8d2"),
     "5.2.1-corpus.8781d4e0-a3b",
-    UUID("8446ab6b-be75-5999-8a9b-74fa133c030a"),
+    UUID("e4f8f4fb-de6c-53c9-98f1-fa7a0159fe42"),
 )
 
 #: Procedure components the check executor implements (ADR-005d D3/ADR-015 D7:
@@ -469,11 +485,13 @@ MANIFEST: dict[Operation, Capability] = {
             "(condition, size limit, escape DC, turn-bounded duration, or a save "
             "against one, a Grappled-linked condition); every typed same-entry "
             "clause (creature_clauses.py); damage under Advantage or Bloodied; "
-            "usage limits and Recharge; Multiattack with replacements. Not "
+            "usage limits and Recharge; Multiattack with replacements; a save's "
+            "creature-type and Elf exclusions from the target's accepted type "
+            "(C8): a spared target takes the damage and makes no save. Not "
             "executed (refused): speed changes, forced movement, legendary "
-            "actions, a target's creature type"
+            "actions, a type or species not established (creature_types.py)"
         ),
-        fingerprint="a3dcf934db3c58aa4e7f1fe900558e819e91fef6b5d5d5df550829bece09fa8b",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="26b90a5a9df851f99cf97b100ce9384a42adefaea83ea01e9e4e3ec75c7a3ecd",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.CREATURE_SAVE_EFFECT: Capability(
         Operation.CREATURE_SAVE_EFFECT,
@@ -493,6 +511,22 @@ MANIFEST: dict[Operation, Capability] = {
             "effects beyond a condition"
         ),
         fingerprint="e09799e62b4e25f16f1c23523c725ba4269c253bf80d48f73741a2b36541e41b",  # noqa: E501  # pragma: allowlist secret
+    ),
+    Operation.CREATURE_SPECIES: Capability(
+        Operation.CREATURE_SPECIES,
+        CapabilityStatus.EXECUTABLE,
+        inputs=(
+            "a continuing creature whose template is a source-open Humanoid "
+            "(monsters.md:55) and one accepted Humanoid species from the "
+            "code-generated options (Owner decision 2026-10-13); no dice"
+        ),
+        effects=(
+            "the creature's exact species recorded under its template and "
+            "binding, by CAS when the Turn is delivered; read only by target "
+            "predicates (the Ghoul's Elf exception). No traits, numbers or type "
+            "change"
+        ),
+        fingerprint="bafd77c6c5edad6892dbce70bdfb34ad5a60636198ef82d64e71fb5b0b360e41",  # noqa: E501  # pragma: allowlist secret
     ),
 }
 
@@ -571,7 +605,9 @@ def _governing(
             *SAVE_PROCEDURE,
             *_ECONOMY_PROCEDURE,
             *_BLOODIED_PROCEDURE,
+            *_CREATURE_TYPES,
         ),
+        Operation.CREATURE_SPECIES: _CREATURE_TYPES[:-1],
         Operation.STABLE_RECOVERY: _RECOVERY_PROCEDURE,
         Operation.KNOCKOUT_RECOVERY: _RECOVERY_PROCEDURE,
     }.get(operation, ())

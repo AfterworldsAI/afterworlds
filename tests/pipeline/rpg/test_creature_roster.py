@@ -69,14 +69,10 @@ def test_the_roster_is_generated_from_the_accepted_capability() -> None:
 # ---------------------------------------------------------------------------
 
 #: Admitted entries code does not execute, each a named boundary surfaced
-#: for Codex (status.md), not coverage: the refusal must say why.
-BOUNDARIES: dict[str, str] = {
-    # "unless the target is Undead (or an Elf)": no accepted authority types
-    # a target's creature type or species tag, so the exclusion cannot be
-    # evaluated (authority boundary, not decided in code).
-    "monsters.ghast.ghast#2:Claw": "excludes creature types",
-    "monsters.ghoul.ghoul#2:Claw": "excludes creature types",
-}
+#: for Codex (status.md), not coverage: the refusal must say why. None
+#: remain: the Ghast's and Ghoul's Claw exclusions execute from the accepted
+#: C8 creature types (test_creature_types), against the harness's Elf target.
+BOUNDARIES: dict[str, str] = {}
 
 
 def _scenario(key: str, creature: Any, target: Any) -> Any:

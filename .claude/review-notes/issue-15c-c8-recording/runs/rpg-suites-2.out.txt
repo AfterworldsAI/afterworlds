@@ -1,0 +1,69 @@
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+........................................................................ [ 10%]
+........................................................................ [ 21%]
+........................................................................ [ 32%]
+........................................................................ [ 43%]
+........................................................................ [ 54%]
+........................................................................ [ 65%]
+........................................................................ [ 76%]
+........................................................................ [ 87%]
+........................................................................ [ 98%]
+....F..                                                                  [100%]
+================================== FAILURES ===================================
+_____ test_a_species_whose_creature_moved_after_the_read_records_nothing ______
+tests\ingestion\mechanical\test_bounded_d20_on_published_release.py:1037: in test_a_species_whose_creature_moved_after_the_read_records_nothing
+    assert revision == 1 and "species" not in str(document)
+E   assert (1 == 1 and 'species' not in '{"state_sch...cies": null}'
+E     
+E     'species' is contained here:
+E       : null}, "species": null}
+E     ?           +++++++)
+---------------------------- Captured stderr setup ----------------------------
+INFO  [alembic.runtime.migration] Context impl SQLiteImpl.
+INFO  [alembic.runtime.migration] Will assume non-transactional DDL.
+============================== warnings summary ===============================
+tests/pipeline/rpg/test_before_dice.py: 8 warnings
+tests/pipeline/rpg/test_bloodied.py: 14 warnings
+tests/pipeline/rpg/test_certification.py: 1 warning
+tests/pipeline/rpg/test_creature_attacks.py: 3 warnings
+tests/pipeline/rpg/test_creature_clauses.py: 16 warnings
+tests/pipeline/rpg/test_creature_effects.py: 2 warnings
+tests/pipeline/rpg/test_creature_roster.py: 1 warning
+tests/pipeline/rpg/test_creature_types.py: 3 warnings
+tests/pipeline/rpg/test_linked_conditions.py: 1 warning
+  D:\AI\Claude\scratch\AW docs\issue2b-implementation\afterworlds\venv\Lib\site-packages\pydantic\main.py:520: UserWarning: Pydantic serializer warnings:
+    PydanticSerializationUnexpectedValue(Expected `enum` - serialized value may not be as expected [field_name='size', input_value='medium', input_type=str])
+    return self.__pydantic_serializer__.to_python(
+
+tests/pipeline/rpg/test_before_dice.py::test_a_stored_prone_establishes_trample_whatever_its_id[real-prone]
+tests/pipeline/rpg/test_before_dice.py::test_a_stored_prone_establishes_trample_whatever_its_id[possible:prone]
+tests/pipeline/rpg/test_before_dice.py::test_a_stored_prone_establishes_trample_whatever_its_id[possible:imported]
+  D:\AI\Claude\scratch\AW docs\issue2b-implementation\afterworlds\venv\Lib\site-packages\pydantic\main.py:587: UserWarning: Pydantic serializer warnings:
+    PydanticSerializationUnexpectedValue(Expected `enum` - serialized value may not be as expected [field_name='size', input_value='medium', input_type=str])
+    return self.__pydantic_serializer__.to_json(
+
+tests/ingestion/mechanical/test_bounded_d20_on_published_release.py::test_a_recorded_elf_is_spared_the_ghouls_paralysis_in_a_later_turn
+tests/ingestion/mechanical/test_bounded_d20_on_published_release.py::test_a_recorded_elf_is_spared_the_ghouls_paralysis_in_a_later_turn
+tests/ingestion/mechanical/test_bounded_d20_on_published_release.py::test_a_species_whose_creature_moved_after_the_read_records_nothing
+tests/ingestion/mechanical/test_bounded_d20_on_published_release.py::test_a_species_for_a_creature_whose_source_fixes_its_type_refuses
+tests/ingestion/mechanical/test_bounded_d20_on_published_release.py::test_a_purple_worm_bite_commits_a_restraint_lasting_while_its_grapple
+  D:\AI\Claude\scratch\AW docs\issue2b-implementation\afterworlds\venv\Lib\site-packages\alembic\config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+tests/ingestion/mechanical/test_bounded_d20_on_published_release.py: 11 warnings
+  D:\AI\Claude\scratch\AW docs\issue2b-implementation\afterworlds\src\afterworlds\entitlement\service.py:342: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = self._clock()
+
+tests/ingestion/mechanical/test_bounded_d20_on_published_release.py::test_a_recorded_elf_is_spared_the_ghouls_paralysis_in_a_later_turn
+tests/ingestion/mechanical/test_bounded_d20_on_published_release.py::test_a_recorded_elf_is_spared_the_ghouls_paralysis_in_a_later_turn
+tests/ingestion/mechanical/test_bounded_d20_on_published_release.py::test_a_species_whose_creature_moved_after_the_read_records_nothing
+tests/ingestion/mechanical/test_bounded_d20_on_published_release.py::test_a_species_for_a_creature_whose_source_fixes_its_type_refuses
+tests/ingestion/mechanical/test_bounded_d20_on_published_release.py::test_a_purple_worm_bite_commits_a_restraint_lasting_while_its_grapple
+  D:\AI\Claude\scratch\AW docs\issue2b-implementation\afterworlds\src\afterworlds\entitlement\service.py:104: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = self._clock()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/ingestion/mechanical/test_bounded_d20_on_published_release.py::test_a_species_whose_creature_moved_after_the_read_records_nothing
+1 failed, 654 passed, 73 warnings in 392.84s (0:06:32)
+Focused diagnostics FAILED (exit 1). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence

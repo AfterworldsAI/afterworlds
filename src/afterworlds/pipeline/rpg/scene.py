@@ -31,6 +31,7 @@ from afterworlds.services.dnd5e_state.turn import (
     TurnCreature,
     TurnSubject,
 )
+from afterworlds.services.dnd5e_state.validation import species_open, species_options
 
 __all__ = ["render"]
 
@@ -81,6 +82,21 @@ def _subject(subject: TurnSubject, acting: bool) -> dict[str, object]:
                 for c in state.usage_counters or ()
                 if c.expended
             )
+            # A source-open Humanoid's species (bounded species input): the
+            # recorded one, or the code-generated options to record from.
+            key = subject.stored.state.template_record_key
+            if species_open(subject.index, key):
+                held = subject.stored.state.species
+                binding = subject.index.binding
+                current = held is not None and (
+                    held.mechanical_projection_uuid,
+                    held.override_set_uuid,
+                ) == (binding.mechanical_projection_uuid, binding.override_set_uuid)
+                out["species"] = (
+                    held.species_record_key if held is not None and current else None
+                )
+                if not current:
+                    out["species_options"] = list(species_options(subject.index))
     else:
         out["name"] = subject.stored.character_name
         out["acting"] = acting

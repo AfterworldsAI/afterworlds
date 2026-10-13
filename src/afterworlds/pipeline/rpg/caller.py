@@ -291,8 +291,20 @@ PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC: dict[str, Any] = {
                             "oneOf": [_SUBJECT_SCHEMA, {"type": "null"}],
                             "description": (
                                 "For begin_turn and end_turn: the character or"
-                                " creature whose turn begins or ends. Null"
+                                " creature whose turn begins or ends. For"
+                                " creature_species: the creature. Null"
                                 " otherwise."
+                            ),
+                        },
+                        "species": {
+                            "oneOf": [{"type": "string"}, {"type": "null"}],
+                            "description": (
+                                "For creature_species: one of the"
+                                " species_options the scene lists for that"
+                                " creature (a Humanoid whose stat block leaves"
+                                " its species open). Record it only when the"
+                                " story establishes it; it grants nothing but"
+                                " the identity. Null otherwise."
                             ),
                         },
                         "creature_attack": {

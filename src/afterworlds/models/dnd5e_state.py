@@ -78,6 +78,7 @@ __all__ = [
     "ClassLevel",
     "ConditionInstance",
     "CreaturePresence",
+    "CreatureSpeciesSelection",
     "CreatureState",
     "DamageResponseGrant",
     "DeathState",
@@ -894,6 +895,28 @@ class SummonOrigin(_Model):
     dismissed_marker: str | None = Field(default=None, min_length=1)
 
 
+class CreatureSpeciesSelection(_Model):
+    """The exact accepted species of one creature whose source leaves it open.
+
+    CRD Issue 15c, Owner decision of 2026-10-13 (bounded species input): a
+    Humanoid stat block is "people defined by their roles and professions
+    ... members of varied species" (``monsters.md``:55), so the individual's
+    species is a recorded fact, never inferred from a name or a missing tag.
+    It is recorded only through the code-validated ``creature_species``
+    operation, solely so a target predicate such as the Ghoul's Elf exception
+    can be decided. It grants no species traits, numbers or type change.
+
+    It holds under the template and binding it was recorded under; a
+    different template or binding invalidates it, and it must be recorded
+    again.
+    """
+
+    species_record_key: str = Field(min_length=1)
+    template_record_key: str = Field(min_length=1)
+    mechanical_projection_uuid: UUID
+    override_set_uuid: UUID
+
+
 class CreaturePresence(StrEnum):
     """Where a continuing creature is, for creatures whose source tracks it.
 
@@ -981,3 +1004,6 @@ class CreatureState(_SharedState):
     presence: CreaturePresence | None = None
     #: CRD Issue 15c: the recorded zero-HP treatment (see the class above).
     zero_hit_point_treatment: ZeroHitPointTreatment | None = None
+    #: CRD Issue 15c: a source-open Humanoid's recorded species (see the
+    #: class above). ``None``: not recorded, never "not an Elf".
+    species: CreatureSpeciesSelection | None = None

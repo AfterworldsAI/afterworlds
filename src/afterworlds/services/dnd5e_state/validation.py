@@ -22,6 +22,7 @@ from __future__ import annotations
 from collections.abc import Callable, Iterator
 
 from afterworlds.ingestion.mechanical.representation import (
+    CreatureTypeFact,
     RecordKind,
     WeaponCategoryFact,
 )
@@ -476,6 +477,66 @@ def _slot_totals(
             )
 
 
+def _humanoid(index: AuthorityIndex, key: str) -> bool:
+    """Whether *key* states exactly one creature type, fixed Humanoid."""
+    record = index.record(key)
+    facts = [
+        f.fact
+        for c in (record.components if record is not None else ())
+        for f in c.facts
+        if isinstance(f.fact, CreatureTypeFact)
+    ]
+    return (
+        len(facts) == 1
+        and facts[0].type is not None
+        and (facts[0].type.value == "humanoid")
+    )
+
+
+def species_open(index: AuthorityIndex, template: str) -> bool:
+    """Whether a creature of *template* may record a species (CRD Issue 15c,
+    Owner decision 2026-10-13): its source leaves the individual's species
+    open, as ``monsters.md``:55 states of every Humanoid stat block. Decided
+    from the template's own fixed Humanoid type; nothing else is eligible."""
+    return index.kind(template) is RecordKind.CREATURE and _humanoid(index, template)
+
+
+def species_options(index: AuthorityIndex) -> tuple[str, ...]:
+    """The species a source-open creature may record: every accepted species
+    under *index* whose own creature type is Humanoid."""
+    return tuple(
+        key
+        for key in sorted(index.records)
+        if index.kind(key) is RecordKind.SPECIES and _humanoid(index, key)
+    )
+
+
+def _creature_species(
+    index: AuthorityIndex, state: CreatureState
+) -> Iterator[StateFailure]:
+    selected = state.species
+    if selected is None:
+        return
+    if selected.template_record_key != state.template_record_key:
+        yield _fail(
+            FailureCode.INCONSISTENT,
+            "species",
+            "recorded for another template",
+        )
+    elif not species_open(index, state.template_record_key):
+        yield _fail(
+            FailureCode.INCONSISTENT,
+            "species",
+            f"{state.template_record_key} is not a source-open Humanoid",
+        )
+    elif selected.species_record_key not in species_options(index):
+        yield _fail(
+            FailureCode.INVALID_IDENTITY,
+            "species",
+            f"{selected.species_record_key!r} is not an accepted Humanoid species",
+        )
+
+
 def validate_creature(
     index: AuthorityIndex, state: CreatureState
 ) -> tuple[StateFailure, ...]:
@@ -492,6 +553,7 @@ def validate_creature(
         out += _source(index, state.summon.source, "summon")
     for i, speed in enumerate(state.speeds or ()):
         out += _source(index, speed.source, f"speeds[{i}]")
+    out += _creature_species(index, state)
     return tuple(out)
 
 

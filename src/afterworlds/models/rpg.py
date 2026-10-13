@@ -256,6 +256,10 @@ class RollProposal(BaseModel):
     creature_attack: CreatureAttackSelection | None = None
     #: The selections of a ``creature_save_effect`` (CRD Issue 15c).
     creature_save_effect: CreatureSaveEffectSelection | None = None
+    #: For ``creature_species`` (CRD Issue 15c, bounded species input): the
+    #: accepted species record the scene offers for ``subject``. An identity
+    #: from code-generated options, validated in code.
+    species: str | None = None
 
 
 class AdjudicationProposalOutput(BaseModel):

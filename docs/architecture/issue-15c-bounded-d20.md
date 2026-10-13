@@ -2,13 +2,13 @@
 
 **Governing issue:** #191, as updated with the Owner's context-input decisions of 12 October 2026 (body SHA-256 `8ad87786…727426f`).
 
-**Authority:** the Owner-accepted C7 successor `srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json`.
-- **Identity:** SHA-256 `2853f30a…f373`, schema 20, recorded locally 13 October 2026, projection `8446ab6b-be75-5999-8a9b-74fa133c030a`.
-- **Preserved and superseded:** it supersedes the native C5 successor `…-15c.json` (`23e5d8e0…4f69`, projection `44f212d5-…`) by digest. C5, G1 and the original artifact are all kept byte for byte.
+**Authority:** the Owner-accepted C8 successor `srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json`.
+- **Identity:** SHA-256 `ead7fa9d…0d0d`, schema 21 (`4499b396…`), recorded locally 13 October 2026, projection `e4f8f4fb-de6c-53c9-98f1-fa7a0159fe42`, oracle identity `70646cd9…`.
+- **Preserved and superseded:** it supersedes the C7 successor `…-15c-c7.json` (`2853f30a…f373`, projection `8446ab6b-…`) by digest, which superseded the native C5 successor (`23e5d8e0…4f69`, projection `44f212d5-…`). C7, C5, G1 and the original artifact are all kept byte for byte.
 - **Not shared authority:** it is not published or activated. Shared migration, publication and activation remain separately gated.
-- **Recording evidence:** `.claude/review-notes/issue-15c-c7-recording/`. For C5, see `issue-15c-recording/`.
+- **Recording evidence:** `.claude/review-notes/issue-15c-c8-recording/`. For C7 and C5, see `issue-15c-c7-recording/` and `issue-15c-recording/`.
 
-**Status (14 October 2026): implemented for the admitted roster except the Ghast/Ghoul Claw rider saves, whose Undead/Elf target exclusion is held pending independent boundary review (no accepted authority types a target's creature type or species); Codex review and final gates pending.** Every operation below is certified against the C7 successor: adapter `15c-d20-3`, manifest `15c-manifest-3`, and component evidence in `.claude/review-notes/issue-15c-implementation/recert/`.
+**Status (13 October 2026): implemented for the whole admitted roster, including the Ghast and Ghoul Claw rider exclusions from the accepted C8 creature types and the Owner-approved bounded species input; whole-PR Codex review, the final full pytest and exact-head CI pending.** Every operation below is certified against the C8 successor: adapter `15c-d20-4`, manifest `15c-manifest-4`, and component evidence in `.claude/review-notes/issue-15c-implementation/recert/`. The remaining holds are named under Architecture Notes (C8).
 
 - **Checks:**
   - source-fixed-DC checks;
@@ -105,12 +105,73 @@ Anything that could contribute to the roll but is not executed here refuses the 
 | 1. Wiring reaches adjudication after Planner and before Writer; nothing bypasses mechanics through narration; setup, OOC and non-mechanical turns are unchanged | Met for the executable scope. A proposal past the per-turn bound now refuses rather than being dropped. | `tests/ingestion/mechanical/test_bounded_d20_on_published_release.py` (production `create_app`); `tests/api/test_fake_provider_product_path.py`; `tests/pipeline/rpg/test_adjudication_service.py` |
 | 2. Versioned manifest; certification binds the exact identity; changes invalidate | Met | `test_bounded_checks.py`: `test_the_certificate_binds…`, `…override_of_a_governing_component…`, `…unrelated_override_keeps…`, `…another_projection…` |
 | 3. Validation before rolling; exact identities; stable prefix reused | Met | Every proposal is checked before any die (`test_an_unsupported_proposal_refuses_before_any_earlier_one_rolls`). Labels refuse (`test_a_label_only_backend_proposal_is_refused_not_rolled`). The pass renders the turn's single `AssembledContext`. |
-| 4. Calculations, targets from authority, roster coverage | Met, pending review | `test_bounded_checks.py`, `test_weapon_attacks.py` (all nine ammunition weapons, incompatible ammunition), `test_masteries.py`, `test_zero_hp_lifecycle.py`, `test_creature_attacks.py`, `test_creature_clauses.py`, `test_creature_roster.py` (every C5 entry and Multiattack selection), `test_bloodied.py`, `test_linked_conditions.py` |
+| 4. Calculations, targets from authority, roster coverage | Met, pending review | `test_bounded_checks.py`, `test_weapon_attacks.py` (all nine ammunition weapons, incompatible ammunition), `test_masteries.py`, `test_zero_hp_lifecycle.py`, `test_creature_attacks.py`, `test_creature_clauses.py`, `test_creature_roster.py` (every C5 entry and Multiattack selection, no remaining boundary), `test_bloodied.py`, `test_linked_conditions.py`, `test_creature_types.py` (Ghast/Ghoul: ordinary non-Humanoid, Elf and non-Elf characters, recorded Elf/Dwarf Humanoids, Undead, familiars; refusals before any die; the species operation) |
 | 5. Distinguishable failures; no partial application; `undetermined` only where admitted; player roll refused before pending | Met for the executable scope | E2E refusal tests: no Turn and no audit row; `pending_roll_requests` stays empty |
 | 6. Independent subjects; commit recheck; atomic delivery-gated effects; holds | Met, pending review | Each subject and its holdings are rechecked at commit (`RpgTurnHold.recheck`, `require_holdings_unchanged`, `test_coordination.py`); subject effects and ammunition CAS commit with the Turn (E2E) |
-| 7. End-to-end on the accepted successor published in disposable stores | Met, pending review | `test_bounded_d20_on_published_release.py` on the C7 successor: checks, refusals, hidden filtering, weapon attacks, edges, ammunition expenditure and rollback, a creature's linked grapple |
+| 7. End-to-end on the accepted successor published in disposable stores | Met, pending review | `test_bounded_d20_on_published_release.py` on the C8 successor: checks, refusals, hidden filtering, weapon attacks, edges, ammunition expenditure and rollback, a creature's linked grapple, a recorded species honoured by the Ghoul's Elf exception in a later Turn, a species whose creature moved before commit (rollback), an ineligible species |
 
 ## Architecture Notes
+
+### CRD Issue 15c C8: target creature types and the bounded species input (13 October 2026)
+
+**Authority.** The Owner answered "Accept exact C8" and "Approve bounded species input" (`.claude/review-notes/issue-15c-c8-native/owner-acceptance-2026-10-13.md`; decision packet `codex-c8-owner-decision-packet.md`, `7a29c7cd…`).
+- **Integration:** the reviewed schema-21 code (`056d3d4`…`bf3fb2d`) is integrated unchanged.
+- **Recording:** the successor is recorded locally (`ead7fa9d…`). Only the acceptance evidence differs from the reviewed SIMULATED preview `a2d96264…`, which is preserved.
+- **Further planning correction:** `issue-15c-c8-native/PLANNING-ADDENDUM-target-domain.md` supersedes the RAW-r2 "every non-Undead creature needs species input" wording.
+
+**Ghast and Ghoul Claw.** Their rider save ("If the target is a creature that isn't an Undead or elf"; the Ghast's spares Undead) executes from the target's accepted type (`pipeline/rpg/creature_types.py`).
+- **A spared target:** takes the hit's damage, rolls no save and gets no condition. The audit records `{"result": "excluded", "by": …}`.
+- **Otherwise:** the save is made as before. The provenance records the type and its basis.
+
+**Where the type comes from.**
+- **Characters:** the validated species' `creature_type` fact. The recorded `creature_type` must agree with it.
+- **Creatures:** the certified template's fact.
+- **Departures:** a stored type that departs is trusted only through a represented source:
+  - Find Familiar's named forms, with a choice within Celestial/Fey/Fiend and `summon.source` exactly the spell;
+  - a template whose own fact is a choice (Find Steed), with its own summoning source.
+
+**The ordinary domain** (`codex-elf-type-domain-classification.md`). The type is read only when nothing recorded can change it:
+- active effects are recorded (`None` refuses);
+- every effect is a reviewed mastery effect;
+- no effect names an assumed form.
+
+A bare or departing stored type, an unexecuted effect or a form refuses before any die. The visual form's header is never read.
+
+**Elf.**
+- **A character:** an Elf exactly when its species is `character_origins.elf`.
+- **A non-Humanoid creature:** not an Elf, by the contrapositive of the accepted Elf ⇒ Humanoid. This is code-owned deduction, not a new fact or policy.
+- **A Humanoid creature:** decided only by its recorded species. With none recorded, the Ghoul's Claw refuses before any die (the Ghast's does not ask).
+
+**Bounded species input** (`creature_species`, a new certified operation, no dice).
+- **Who may record it:** only a creature whose template's own type is fixed Humanoid. `monsters.md`:55 says every Humanoid stat block leaves species open, so all 26 Humanoid templates qualify.
+- **What may be recorded:** one of the code-generated options, the accepted species whose own type is Humanoid (all nine).
+- **Storage:** a `CreatureSpeciesSelection` (species, template, projection, override set) on the creature's own state document.
+  - It is applied as a `creature_species` sheet effect by CAS when the Turn is delivered. A moved revision rolls the whole Turn back.
+  - The delivered Turn's audit row records it (Invariant 11).
+  - A selection under another template or binding is stale. Reads refuse it, and it may be recorded again.
+  - A current selection is never changed.
+- **Shared rules:** the state validator applies the same eligibility rule to every write path.
+- **Bounds:** it grants no traits, numbers or type change.
+- **Visibility:** the selection is GameMaster state. A hidden record reveals nothing to the Writer, and the shown label is only "Species noted". Creatures are not in the player snapshot.
+- **Timing:** within one Turn, a Claw is checked before the species has an effect, so it refuses; it needs a later Turn.
+
+**Recertification.** `CERTIFIED_RELEASE` moves to `e4f8f4fb`; the adapter and manifest are now `15c-d20-4` and `15c-manifest-4`.
+- **Evidence:** regenerated in `recert/governing-components.json`.
+- **What moved:** against C7, only `creature_attack` changed, by exactly the ten type components it now reads (nine species `creature_type` components and `spells.find_familiar/effect`).
+- **New operation:** `creature_species` is new, certified over the species components and the shared check procedure.
+- **Unchanged:** no other operation's governing set or fingerprint moved.
+- **Per subject:** creature templates stay certified per subject.
+
+**Holds that remain (refused before any die; not coverage, not accepted exclusions):**
+- a Humanoid creature with no recorded species, for the Ghoul;
+- familiars from Wild Companion (Fey) and Pact of the Chain (extra forms), whose type authority is not represented;
+- Find Familiar's other Challenge Rating 0 Beast forms;
+- the Vampire's mist form (no state records it);
+- any target in an assumed form or under a non-mastery active effect: transformations are not executed.
+
+**Sibling audit** (type predicates):
+- **Save-effect target clauses** naming creature types or species (`creature_effects`): the roster admits no such entry. They still refuse (`out of scope`, unchanged).
+- **The roster harness:** it has no boundaries left. Both Claws prepare and resolve (`test_creature_roster`).
 
 ### CRD Issue 15c C7 remediation and completion (13 October 2026)
 

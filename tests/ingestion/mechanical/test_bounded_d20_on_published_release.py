@@ -890,3 +890,162 @@ def test_a_story_changed_after_the_turns_discovery_scan_fails_it(
     assert _audit(client, story) == []
     assert _creature_row(client, wolf).revision == 1
     assert _creature_row(client, bystander).revision == 1
+
+
+# --- C8: the bounded species input and the Ghoul's Elf exception -------------
+
+
+def _creature(client: TestClient, story_id: str, name: str, template: str) -> str:
+    from afterworlds.models.dnd5e_state import (
+        CreatureState,
+        DeathState,
+        HitPoints,
+        ZeroHitPointTreatment,
+    )
+
+    with client.app.state.session_factory() as s:
+        created = service.create_creature(
+            s,
+            UUID(story_id),
+            name,
+            PACKAGE,
+            CreatureState(
+                template_record_key=template,
+                hit_points=HitPoints(current=40, maximum=40, temporary=0),
+                conditions=(),
+                active_effects=(),
+                death_state=DeathState(
+                    successes=0, failures=0, stable=False, dead=False
+                ),
+                zero_hit_point_treatment=ZeroHitPointTreatment(subject="monster"),
+            ),
+            now=NOW,
+        )
+        s.commit()
+        return str(created.creature_id)
+
+
+def _species(creature: str, species: str = "character_origins.elf") -> dict[str, Any]:
+    return {
+        "check_label": "The bandit is an elf",
+        "subsystem_tag": "species",
+        "visibility": "shown",
+        "operation": "creature_species",
+        "subject": {"kind": "creature", "subject_id": creature},
+        "species": species,
+    }
+
+
+def _claw(ghoul: str, target: str) -> dict[str, Any]:
+    return {
+        "check_label": "Ghoul claw",
+        "subsystem_tag": "attack",
+        "visibility": "shown",
+        "operation": "creature_attack",
+        "creature_attack": {
+            "attacker": {"kind": "creature", "subject_id": ghoul},
+            "entry": "Claw",
+            "target": {"kind": "creature", "subject_id": target},
+            "range": "within_reach",
+            "cover": "none",
+            "attacker_light": "bright",
+            "target_light": "bright",
+            "target_within_5_feet": True,
+            "allies_within_5_feet_of_target": [],
+        },
+    }
+
+
+def test_a_recorded_elf_is_spared_the_ghouls_paralysis_in_a_later_turn(
+    client: TestClient,
+    gm: list[list[dict[str, Any]]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The species commits with its delivered Turn (audited, by CAS); the
+    next Turn's Claw reads it: damage, no save, no Paralyzed."""
+    from afterworlds.models.dnd5e_state import CreatureState
+    from afterworlds.models.rpg import DiceResult
+    from afterworlds.pipeline.rpg.dice import SystemRandomDiceService
+
+    def roll(self: object, expression: str) -> DiceResult:
+        face = 15 if "d20" in expression else 1
+        return DiceResult(expression=expression, raw_rolls=(face,), chosen=face)
+
+    monkeypatch.setattr(SystemRandomDiceService, "roll", roll)
+    story = _rpg_story(client)
+    bandit = _creature(client, story, "Bandit", "monsters.bandits.bandit")
+    ghoul = _creature(client, story, "Ghoul", "monsters.ghoul.ghoul")
+    gm.append([_species(bandit)])
+    body = _turn(client, story, "The bandit's pointed ears catch the light.")
+    assert body["disposition"] == "delivered", body
+    revision, document = _creature_row(client, bandit)
+    recorded = CreatureState.model_validate(
+        document if isinstance(document, dict) else json.loads(document)
+    ).species
+    assert (
+        recorded is not None and recorded.species_record_key == "character_origins.elf"
+    )
+    assert revision == 2
+    (audit,) = _audit(client, story)
+    assert json.loads(audit[5])["species"] == "character_origins.elf"
+
+    gm.append([_edge_roll("begin_turn", ghoul), _claw(ghoul, bandit)])
+    body = _turn(client, story, "The ghoul rakes the bandit.")
+    assert body["disposition"] == "delivered", body
+    _revision, document = _creature_row(client, bandit)
+    state = CreatureState.model_validate(
+        document if isinstance(document, dict) else json.loads(document)
+    )
+    assert state.hit_points is not None and state.hit_points.current == 37
+    assert not state.conditions
+    claw = json.loads(_audit(client, story)[-1][5])
+    assert claw["rider"] == {"result": "excluded", "by": "elf"}
+
+
+def test_a_species_whose_creature_moved_after_the_read_records_nothing(
+    client: TestClient,
+    gm: list[list[dict[str, Any]]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The creature's revision moves between the turn's read and its
+    commit: the recheck refuses and the whole Turn rolls back."""
+    from afterworlds.services.dnd5e_state.turn import RpgTurnHold
+
+    story = _rpg_story(client)
+    bandit = _creature(client, story, "Bandit", "monsters.bandits.bandit")
+    real = RpgTurnHold.recheck
+    moved: list[bool] = []
+
+    def recheck(self: RpgTurnHold, session: Any, subject: Any) -> None:
+        if not moved and str(subject.subject_id) == bandit:
+            moved.append(True)
+            stored = service.read_creature(session, UUID(bandit))
+            service.update_creature(
+                session,
+                UUID(bandit),
+                stored.state,
+                expected_revision=stored.revision,
+                now=NOW,
+            )
+        real(self, session, subject)
+
+    monkeypatch.setattr(RpgTurnHold, "recheck", recheck)
+    gm.append([_species(bandit)])
+    body = _turn(client, story, "The bandit's pointed ears catch the light.")
+    assert body["disposition"] != "delivered", body
+    revision, document = _creature_row(client, bandit)
+    loaded = document if isinstance(document, dict) else json.loads(document)
+    assert revision == 1 and loaded.get("species") is None
+    assert _audit(client, story) == []
+
+
+def test_a_species_for_a_creature_whose_source_fixes_its_type_refuses(
+    client: TestClient, gm: list[list[dict[str, Any]]]
+) -> None:
+    story = _rpg_story(client)
+    wolf = _creature(client, story, "Wolf", "animals.wolf")
+    gm.append([_species(wolf)])
+    body = _turn(client, story, "The wolf is an elf.")
+    assert body["disposition"] != "delivered", body
+    assert _creature_row(client, wolf)[0] == 1
+    assert _audit(client, story) == []

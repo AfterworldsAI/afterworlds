@@ -78,6 +78,13 @@ One proposal per required roll:
     The engine decides whether it recovers.
   - `knockout_recovery` — a knocked-out creature completed its Short Rest.
     Give the knockout's condition instance in `attestation`.
+  - `creature_species` — the story has established the species of a creature
+    whose stat block leaves it open (a Humanoid such as a bandit or a mage;
+    the scene lists its `species_options`). Name it in `subject` and the
+    species in `species`. No dice; it grants no traits. Record it only once
+    the story establishes it, never to change an outcome. A Ghoul's Claw
+    spares an Elf, so the engine refuses that attack on such a creature until
+    its species is recorded, in an earlier response.
 
   You decide whose turn begins and when; the engine keeps no turn order.
   Attacks, first aid, and creature attacks and effects are actions of the
@@ -127,9 +134,11 @@ One proposal per required roll:
   creatures in the area that are the source's enemies (an empty list if
   none); `targets` must be exactly those. Leave `enemies_in_area` null for
   any other entry. Null otherwise.
-- `subject` — for `begin_turn`, `end_turn`, `stabilize`, `stable_recovery`
-  and `knockout_recovery`: `{kind, subject_id}`, the character or creature the
-  operation concerns. Null otherwise.
+- `subject` — for `begin_turn`, `end_turn`, `stabilize`, `stable_recovery`,
+  `knockout_recovery` and `creature_species`: `{kind, subject_id}`, the
+  character or creature the operation concerns. Null otherwise.
+- `species` — for `creature_species` only: one of the creature's
+  `species_options` from the scene. Null otherwise.
 - `attestation` — for `stable_recovery` and `knockout_recovery` only: the
   `instance_id` named in the creature's state and, for `stable_recovery`,
   `elapsed_hours` (1–4; 4 means four or more), the total since it began. You

@@ -62,6 +62,7 @@ from afterworlds.pipeline.rpg import (
     bystanders,
     creature_clauses,
     creature_effects,
+    creature_types,
     roster,
 )
 from afterworlds.pipeline.rpg.attacks import (
@@ -142,6 +143,10 @@ class PreparedCreatureAttack:
     clauses: creature_clauses.HitClauses = creature_clauses.HitClauses()
     #: Whether the clauses' predicate holds (size, charge), known pre-dice.
     predicate_holds: bool = False
+    #: The rider's exclusion the target meets (``undead``, ``elf``), and the
+    #: type it was decided from (C8): known before any die.
+    rider_excluded: str | None = None
+    rider_target: creature_types.TargetType | None = None
 
     @property
     def advantaged(self) -> bool:
@@ -320,6 +325,7 @@ def _preflight_reads(
     holds: bool,
     attacker: TurnCreature,
     target: TurnSubject,
+    excluded: str | None = None,
 ) -> None:
     """Every refusal-capable read the hit could make, made now, before any
     die (CRD Issue 15c): the target's immunity to each condition the hit can
@@ -338,7 +344,7 @@ def _preflight_reads(
             kinds.append(rider.condition.condition)
             if rider.linked is not None:
                 kinds.append(rider.linked.condition.condition)
-        if rider.rider_save is not None:
+        if rider.rider_save is not None and excluded is None:
             kinds.append(rider.rider_save.on_failure.condition)
         extra = rider.conditional_damage
         if extra is not None and extra.when.source_bloodied:
@@ -425,8 +431,10 @@ def _check_rider(
     target: TurnSubject,
     entry: str,
     hit_damage: tuple[DamageTerm, ...] = (),
+    excluded: str | None = None,
 ) -> PreparedSave | None:
-    """Validate the hit effect before any die; prepare its save, if any."""
+    """Validate the hit effect before any die; prepare its save, if any
+    (none for a target its exclusion spares)."""
     if rider is None:
         return None
     unexecuted = [
@@ -465,12 +473,18 @@ def _check_rider(
     if rider.rider_save is None:
         return None
     save = rider.rider_save
-    if save.target_excludes:
+    if save.target_excludes and (
+        rider.condition is not None or rider.conditional_damage is not None
+    ):
+        # The exclusion scopes "the following effect": the save. Nothing
+        # admitted prints another part beside it.
         raise _refuse(
             RefusalKind.UNSUPPORTED_CAPABILITY,
-            f"{entry}'s save excludes creature types, which is not executable here",
+            f"{entry}'s exclusion beside another hit effect is not executable here",
         )
     _rider_turn(save.duration)
+    if excluded is not None:
+        return None
     template = attacker.stored.state.template_record_key
     return prepare_save(
         target,
@@ -622,7 +636,13 @@ def prepare(
         ac_breakdown["cover"] = bonuses[0].bonus
     hit_clauses = creature_clauses.plan(attacker, fact)
     holds = _predicate(sel, hit_clauses, target, f"{template_of(attacker)}/{sel.entry}")
-    _preflight_reads(fact, hit_clauses, holds, attacker, target)
+    excluded, typed = None, None
+    rider = fact.hit_effect
+    if rider is not None and rider.rider_save and rider.rider_save.target_excludes:
+        excluded, typed = creature_types.excluded_by(
+            rider.rider_save.target_excludes, target
+        )
+    _preflight_reads(fact, hit_clauses, holds, attacker, target, excluded)
     terms = [*fact.hit_damage]
     if hit_clauses.advantage_damage is not None:
         terms.append(hit_clauses.advantage_damage[1])
@@ -630,7 +650,7 @@ def prepare(
         assert term.damage_type is not None
         preflight(target, term.damage_type)
     rider_save = _check_rider(
-        fact.hit_effect, attacker, target, fact.entry, fact.hit_damage
+        fact.hit_effect, attacker, target, fact.entry, fact.hit_damage, excluded
     )
     if fact.hit_effect is not None and fact.hit_effect.conditional_damage:
         damage_type = fact.hit_effect.conditional_damage.term.damage_type
@@ -654,6 +674,8 @@ def prepare(
         usage=creature_effects.usable(attacker, fact.entry),
         clauses=hit_clauses,
         predicate_holds=holds,
+        rider_excluded=excluded,
+        rider_target=typed,
     )
 
 
@@ -838,8 +860,13 @@ def _rider(
         size = _size(target)
         if size not in _SIZES_UP_TO(rider.maximum_size):
             return [], {"result": "too_large"}
+    if prepared.rider_excluded is not None:
+        return [], {"result": "excluded", "by": prepared.rider_excluded}
     effects: list[SheetEffect] = []
     out: dict[str, object] = {}
+    if prepared.rider_target is not None:
+        out["target_type"] = prepared.rider_target.type.value
+        out["basis"] = prepared.rider_target.basis
     if rider.conditional_damage is not None:
         out["conditional_damage"] = _rider_damage_applies(prepared)
     if rider.condition is not None:

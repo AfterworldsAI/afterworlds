@@ -49,6 +49,7 @@ from afterworlds.pipeline.rpg import (
     checks,
     creature_attacks,
     creature_effects,
+    creature_types,
     lifecycle,
     mastery,
 )
@@ -114,6 +115,7 @@ _OPERATION_LABELS = {
     Operation.STABLE_RECOVERY.value: "Recovery",
     Operation.KNOCKOUT_RECOVERY.value: "Recovery",
     Operation.DEATH_SAVING_THROW.value: "Death saving throw",
+    Operation.CREATURE_SPECIES.value: "Species noted",
 }
 
 
@@ -337,6 +339,9 @@ class D20RulesSystemAdapter:
             return
         if proposal.operation == Operation.CREATURE_SAVE_EFFECT.value:
             creature_effects.prepare(proposal, character, subjects or {})
+            return
+        if proposal.operation == Operation.CREATURE_SPECIES.value:
+            creature_types.prepare_species(proposal, subjects or {})
             return
         if proposal.operation == Operation.STABILIZE.value:
             lifecycle.prepare_first_aid(proposal, character, subjects or {})
@@ -634,6 +639,22 @@ class D20RulesSystemAdapter:
                     else "success" if struck.hit else "failure"
                 ),
                 sheet_effects=struck.effects,
+                source=source,
+                gm_cheating_at_roll=gm_cheating,
+            )
+        if proposal.operation == Operation.CREATURE_SPECIES.value:
+            recorded, provenance = creature_types.record_species(
+                creature_types.prepare_species(proposal, subjects or {})
+            )
+            return ResolvedAdjudicationRecord(
+                check_label=proposal.check_label,
+                visibility=proposal.visibility,
+                expression="",
+                raw_rolls=(),
+                modifiers_json=provenance,
+                total=0,
+                outcome="undetermined",
+                sheet_effects=(recorded,),
                 source=source,
                 gm_cheating_at_roll=gm_cheating,
             )
