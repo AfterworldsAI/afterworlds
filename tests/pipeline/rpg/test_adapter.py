@@ -127,19 +127,30 @@ def test_hidden_roll_serialized_ledger_does_not_leak_skill() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_shown_roll_preserves_check_label() -> None:
+def test_a_shown_roll_takes_a_code_derived_public_label() -> None:
+    """The GameMaster's check_label is backend-only (CRD Issue 15c)."""
     adapter = D20RulesSystemAdapter()
     record = _make_record(
         check_label="Athletics check", visibility=RollVisibility.SHOWN
+    ).model_copy(
+        update={
+            "modifiers_json": json.dumps(
+                {
+                    "operation": "difficulty_check",
+                    "ability": "strength",
+                    "skill": "athletics",
+                }
+            )
+        }
     )
     view = adapter.to_writer_view(record)
-    assert view.check_label == "Athletics check"
+    assert view.check_label == "Strength (Athletics) check"
     assert view.total == 14
     assert view.dc == 12
     assert view.outcome == "success"
 
 
-def test_player_roll_preserves_all_fields() -> None:
+def test_player_roll_keeps_its_numbers_under_a_public_label() -> None:
     adapter = D20RulesSystemAdapter()
     record = _make_record(
         check_label="Persuasion check",
@@ -149,11 +160,29 @@ def test_player_roll_preserves_all_fields() -> None:
         outcome="success",
     )
     view = adapter.to_writer_view(record)
-    assert view.check_label == "Persuasion check"
+    assert view.check_label == "Check"
     assert view.total == 18
     assert view.dc == 15
     assert view.outcome == "success"
     assert "18" in view.player_facing_summary
+
+
+def test_a_secret_in_the_gamemasters_label_never_reaches_the_writer() -> None:
+    """The GameMaster saw a hidden condition in the scene and wrote it into
+    a shown roll's label; the Writer view carries none of it."""
+    adapter = D20RulesSystemAdapter()
+    secret = "Strike the secretly Poisoned wolf (instance c-poisoned)"
+    for operation, extra in (
+        ("weapon_attack", {"weapon": "equipment.weapons.club"}),
+        ("creature_attack", {"entry": "Bite"}),
+        ("begin_turn", {}),
+    ):
+        record = _make_record(check_label=secret).model_copy(
+            update={"modifiers_json": json.dumps({"operation": operation, **extra})}
+        )
+        view = adapter.to_writer_view(record)
+        public = f"{view.check_label} {view.player_facing_summary}"
+        assert "Poisoned" not in public and "c-poisoned" not in public, public
 
 
 # ---------------------------------------------------------------------------

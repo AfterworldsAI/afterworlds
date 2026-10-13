@@ -102,6 +102,50 @@ def _edge_subject(
     return subject
 
 
+def _title(key: str) -> str:
+    return key.rsplit(".", 1)[-1].replace("_", " ").capitalize()
+
+
+#: The public name of each operation that names nothing more specific.
+_OPERATION_LABELS = {
+    Operation.BEGIN_TURN.value: "Turn begins",
+    Operation.END_TURN.value: "Turn ends",
+    Operation.INITIATIVE.value: "Initiative",
+    Operation.STABLE_RECOVERY.value: "Recovery",
+    Operation.KNOCKOUT_RECOVERY.value: "Recovery",
+    Operation.DEATH_SAVING_THROW.value: "Death saving throw",
+}
+
+
+def public_label(record: ResolvedAdjudicationRecord) -> str:
+    """A visibility-safe label for the Writer, derived in code from the
+    record's operation and its admitted identities (CRD Issue 15c).
+
+    The GameMaster's ``check_label`` is free text written after seeing hidden
+    state, so it stays backend-only (the audit row): a public label never
+    carries it.
+    """
+    provenance = json.loads(record.modifiers_json)
+    operation = provenance.get("operation", "")
+    if operation in _OPERATION_LABELS:
+        return _OPERATION_LABELS[operation]
+    if operation == Operation.WEAPON_ATTACK.value:
+        return f"{_title(provenance.get('weapon', 'weapon'))} attack"
+    if operation in (
+        Operation.CREATURE_ATTACK.value,
+        Operation.CREATURE_SAVE_EFFECT.value,
+    ):
+        return str(provenance.get("entry", "Attack"))
+    if provenance.get("first_aid"):
+        return "First aid"
+    skill, ability = provenance.get("skill"), provenance.get("ability")
+    if skill:
+        return f"{_title(str(ability))} ({_title(str(skill))}) check"
+    if ability:
+        return f"{_title(str(ability))} check"
+    return "Check"
+
+
 def _normalize_skill_key(value: str) -> str:
     """Normalize a label to lowercase underscore form for comparison.
 
@@ -871,9 +915,9 @@ class D20RulesSystemAdapter:
 
         if not record.expression:  # an edge or attestation: no roll, no number
             return WriterAdjudicationView(
-                check_label=record.check_label,
+                check_label=public_label(record),
                 visibility=record.visibility,
-                player_facing_summary=record.check_label,
+                player_facing_summary=public_label(record),
                 total=None,
                 dc=None,
                 outcome=None,
@@ -885,14 +929,15 @@ class D20RulesSystemAdapter:
             Operation.CREATURE_ATTACK.value,
         )
         dc = None if target_state else record.dc
-        summary_parts = [f"{record.check_label}: rolled {record.total}"]
+        label = public_label(record)
+        summary_parts = [f"{label}: rolled {record.total}"]
         if dc is not None:
             summary_parts.append(f"vs DC {dc}")
         if record.outcome not in (None, "undetermined"):
             summary_parts.append(f"— {record.outcome.replace('_', ' ')}")
 
         return WriterAdjudicationView(
-            check_label=record.check_label,
+            check_label=label,
             visibility=record.visibility,
             player_facing_summary=", ".join(summary_parts),
             total=record.total,
