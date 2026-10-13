@@ -7,6 +7,8 @@ candidate C7's five Ammunition table rows and the weapon rows they cite.
 
 from __future__ import annotations
 
+import pytest
+
 from afterworlds.ingestion.mechanical.representation import (
     AmmunitionKind,
     AmmunitionSupplyFact,
@@ -137,3 +139,79 @@ def test_the_rule_runs_inside_validate_representation() -> None:
 
     assert supply_findings(_draft(*C7_SUPPLIES)) == []
     assert supply_findings(_draft(_supply("arrows", "arrow", ("dagger",))))
+
+
+class _Tuple(tuple):  # type: ignore[type-arg]
+    pass
+
+
+def _malformed_supply(for_weapons: object) -> ComponentDraft:
+    return ComponentDraft(
+        record_key="equipment.adventuring_gear.bullets_sling",
+        semantic_key="bullets_sling",
+        handling=ComponentHandling.STRUCTURED,
+        facts=(
+            AmmunitionSupplyFact(
+                kind=AmmunitionKind.BULLET,
+                for_weapons=for_weapons,  # type: ignore[arg-type]
+            ),
+        ),
+    )
+
+
+def _malformed_weapon() -> ComponentDraft:
+    return ComponentDraft(
+        record_key="equipment.weapons.sling",
+        semantic_key="sling",
+        handling=ComponentHandling.STRUCTURED,
+        facts=(
+            WeaponPropertyFact(
+                weapon_property=WeaponProperty.AMMUNITION,
+                ammunition="bullet",  # type: ignore[arg-type]
+            ),
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    ("draft", "refused"),
+    [
+        (_draft(_malformed_supply((0,))), "for_weapons[0] must be ComponentReference"),
+        (
+            _draft(_malformed_supply(_Tuple((_ref("sling"),)))),
+            "for_weapons must be a tuple",
+        ),
+        (
+            RepresentationDraft(
+                records=(
+                    RecordDraft(
+                        semantic_key="equipment.weapons.sling",
+                        kind=RecordKind.EQUIPMENT,
+                    ),
+                    RecordDraft(
+                        semantic_key="equipment.adventuring_gear.bullets_sling",
+                        kind=RecordKind.EQUIPMENT,
+                    ),
+                ),
+                components=(
+                    _malformed_weapon(),
+                    _supply("bullets_sling", "bullet", ("sling",)),
+                ),
+                prose_bindings=(),
+                relationships=(),
+                references=(),
+                provenance=(),
+            ),
+            "ammunition must be AmmunitionKind",
+        ),
+    ],
+)
+def test_refused_structure_is_reported_and_never_read_relationally(
+    draft: RepresentationDraft, refused: str
+) -> None:
+    """The structural refusal is kept; the relational rule neither crashes
+    on the refused value nor reports on it."""
+    found = validate_representation(draft, build_ledger(), bound_corpus())
+    assert any(refused in f for f in found), found
+    assert not [f for f in found if "ammunition_supply names" in f]
+    assert not [f for f in _validate_ammunition_supplies(draft) if refused in f]

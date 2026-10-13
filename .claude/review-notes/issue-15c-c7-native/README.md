@@ -80,4 +80,4 @@ The separate "Bullets, Sling" row (`:1239`) takes the Sling. The source never li
 These are not done:
 - real acceptance, recording, a committed oracle or supersession;
 - ammunition or Origin-category execution;
-- Loading and action economy, free-hand eligibility and zero-quantity depletion. These remain separately held boundary work.
+- ammunition execution itself (compatibility, held quantity, zero-quantity depletion), which follows recording under existing authority. Loading, action accounting and hand/grip facts are approved and implemented on the main branch; they are not open boundaries here.

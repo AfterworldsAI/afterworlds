@@ -1020,11 +1020,19 @@ def _validate_ammunition_supplies(draft: RepresentationDraft) -> list[str]:
     """
     weapon_kinds: dict[tuple[str, str], set[AmmunitionKind]] = {}
     supplies: list[tuple[str, AmmunitionSupplyFact]] = []
+    refused: set[tuple[str, str]] = set()
     components = {(c.record_key, c.semantic_key) for c in draft.components}
     for component in draft.components:
         key = (component.record_key, component.semantic_key)
         facts = (*component.facts, *(f for o in component.options for f in o.facts))
         for fact in facts:
+            # Only structure the fact's own invariants admitted: a refused
+            # fact is reported by _validate_components and never read here.
+            if type(fact) in (WeaponPropertyFact, AmmunitionSupplyFact) and (
+                fact_invariant_violations(fact)
+            ):
+                refused.add(key)
+                continue
             if (
                 type(fact) is WeaponPropertyFact
                 and fact.weapon_property is WeaponProperty.AMMUNITION
@@ -1041,6 +1049,8 @@ def _validate_ammunition_supplies(draft: RepresentationDraft) -> list[str]:
             target = (ref.record_key, ref.component_key)
             where = f"{tag}: ammunition_supply names {target[0]}/{target[1]}"
             kinds = weapon_kinds.get(target)
+            if target in refused:
+                continue  # its own refusal is the finding
             if target not in components:
                 findings.append(f"{where}, which is not a component of this draft")
             elif kinds is None:
