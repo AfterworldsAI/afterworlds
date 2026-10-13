@@ -173,3 +173,14 @@ def test_overriding_the_bloodied_rule_refuses_the_operations_that_read_it() -> N
 
 def test_bloodied_needs_no_extra_hp_field() -> None:
     assert HitPoints(current=1, maximum=2, temporary=0).maximum_reduction is None
+
+
+def test_magic_resistance_on_a_save_refuses_rather_than_always_applying() -> None:
+    """Magic Resistance's Advantage turns on whether the forcing effect is a
+    spell or magical, which the save does not establish: it refuses, never
+    granting Advantage on every save."""
+    balor = _creature("monsters.balor.balor", hp=287)
+    with pytest.raises(AdjudicationRefusal) as caught:
+        prepare_save(balor, AbilityScore.DEXTERITY, 13, "test")
+    assert caught.value.kind is RefusalKind.UNSUPPORTED_CAPABILITY
+    assert "Magic Resistance" in caught.value.detail
