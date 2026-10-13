@@ -6,6 +6,7 @@
 - **Identity:** SHA-256 `ead7fa9d…0d0d`, schema 21 (`4499b396…`), recorded locally 13 October 2026, projection `e4f8f4fb-de6c-53c9-98f1-fa7a0159fe42`, oracle identity `70646cd9…`.
 - **Preserved and superseded:** it supersedes the C7 successor `…-15c-c7.json` (`2853f30a…f373`, projection `8446ab6b-…`) by digest, which superseded the native C5 successor (`23e5d8e0…4f69`, projection `44f212d5-…`). C7, C5, G1 and the original artifact are all kept byte for byte.
 - **Not shared authority:** it is not published or activated. Shared migration, publication and activation remain separately gated.
+- **Schema migrations this branch carries relative to `main`:** `0038_dnd5e_typed_state` through `0042_item_tool_variant`. CRD Issue 15c itself added `0041_rpg_turn_coordination` and `0042_item_tool_variant`. Any later runtime activation must apply them to the shared store, which stays Owner-gated.
 - **Recording evidence:** `.claude/review-notes/issue-15c-c8-recording/`. For C7 and C5, see `issue-15c-c7-recording/` and `issue-15c-recording/`.
 
 **Status (13 October 2026): implemented for the whole admitted roster, including the Ghast and Ghoul Claw rider exclusions from the accepted C8 creature types and the Owner-approved bounded species input; whole-PR Codex review, the final full pytest and exact-head CI pending.** Every operation below is certified against the C8 successor: adapter `15c-d20-4`, manifest `15c-manifest-4`, and component evidence in `.claude/review-notes/issue-15c-implementation/recert/`. The remaining holds are named under Architecture Notes (C8).
@@ -197,7 +198,7 @@ A bare or departing stored type, an unexecuted effect or a form refuses before a
   - damage to it refuses before any die, on every path. This is `damage.preflight` and `take_damage`, where weapon, creature, Graze and save-effect damage converge.
   - Its death save, first aid and recovery attestations refuse too: its zero-HP consequence is not executed, and the ordinary monster or character path is not that consequence.
   - These are holds, not Familiar-lifecycle coverage. Ordinary creatures are unaffected.
-- **Hidden species:** a refused repeat selection no longer names the held species, since a refusal's text can reach the player. The backend audit keeps the exact identity.
+- **Hidden species:** a refused repeat selection no longer names the held species, since a refusal's text can reach the player. The backend audit keeps the exact identity. Sibling check: the one other refusal that named a recorded species (an inadmissible stored selection in `creature_types._creature`) no longer does either (patched).
 
 **Holds that remain (refused before any die; not coverage, not accepted exclusions):**
 - a Humanoid creature with no recorded species, for the Ghoul;

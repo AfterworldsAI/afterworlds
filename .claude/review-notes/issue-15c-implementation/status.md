@@ -7,7 +7,7 @@
 
 ## Latest (13 October 2026): complete CRD Issue 15c implementation, ready for Codex's whole-PR review and final gates
 
-**Branch and head:** `codex/issue-15c-bounded-d20`, head `6caa63e`. Not pushed, no PR. Writing has stopped, and the source and index are stable for Codex's supervised full gate. The Owner accepts or rejects the complete PR (`owner-whole-pr-review-2026-10-13.md`).
+**Branch and head:** `codex/issue-15c-bounded-d20`; the head is the commit containing this note (a file cannot name its own commit; the engineer's final report states the exact hash). Not pushed, no PR. Writing has stopped, and the source and index are stable for Codex's supervised full gate. The Owner accepts or rejects the complete PR (`owner-whole-pr-review-2026-10-13.md`).
 
 **Commits since `1d4193c`, in order:**
 
@@ -22,6 +22,7 @@
 | `41eb8bd` `d71035d` `57f3a7b` | Coverage: damage/lifecycle branches; all 38 weapons (with the Blowgun fixed-damage fix); all 123 Multiattack selections in 8 shapes, run whole through the service |
 | `5cc19c8` | Temporary HP at 0 HP (P1-B); absent familiars are no bystanders (P1-A); AC map and Architecture Notes |
 | `6caa63e` | Codex review evidence, with narrow baseline entries |
+| this note's commit | No species identity in the defensive inadmissible-selection refusal (sibling of the hidden-species P2); migrations 0038-0042 disclosed in the traceability header; this handoff |
 
 **Focused diagnostics** (none are a final gate):
 - **Last broad run:** rpg + state suites + published-release E2E, 812 passed, exit 0 (`issue-15c-c8-recording/runs/rpg-suites-4.*`).
@@ -29,6 +30,7 @@
   - duplicate species: 2 fail without the guard;
   - temporary HP at 0: 4 fail without the fix;
   - bystander presence: 3 fail without the guard.
+- **Changed-path check of shared models and storage:** tests/persistence (all files), the quarantine test and test_creature_types: 296 passed, exit 0 (`runs/changed-path-5.*`). The frontend has no generated types for the new fields.
 - **Static gates on this head:** Black, Ruff (src and tests) and mypy strict (`src/`, 268 files) are clean.
 
 **Not run here, Codex's to run:**

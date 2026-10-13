@@ -285,8 +285,10 @@ def _creature(creature: TurnCreature, who: str) -> TargetType:
     ):
         raise _refuse(
             RefusalKind.INVALID_SELECTION,
-            f"{who}'s species {selected.species_record_key} is not a Humanoid "
-            f"species its template {key} admits",
+            # Not named: refusal text can reach the player, and the selection
+            # may have been recorded hidden.
+            f"{who}'s recorded species is not a Humanoid species its template "
+            f"{key} admits",
         )
     return TargetType(
         kind,

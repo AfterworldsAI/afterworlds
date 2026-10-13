@@ -1,0 +1,27 @@
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+........................................................................ [ 24%]
+........................................................................ [ 48%]
+........................................................................ [ 72%]
+........................................................................ [ 97%]
+........                                                                 [100%]
+============================== warnings summary ===============================
+tests/persistence/test_alembic.py: 7 warnings
+tests/persistence/test_migration_0038_dnd5e_state.py: 9 warnings
+tests/persistence/test_migration_0039_story_bible_indexes.py: 5 warnings
+tests/persistence/test_migration_0040_history_story_id.py: 6 warnings
+tests/persistence/test_migration_0041_rpg_turn_coordination.py: 5 warnings
+tests/persistence/test_migration_0042_item_tool_variant.py: 3 warnings
+tests/persistence/test_rpg_roll_audit_db.py: 1 warning
+  D:\AI\Claude\scratch\AW docs\issue2b-implementation\afterworlds\venv\Lib\site-packages\alembic\config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+tests/pipeline/rpg/test_creature_types.py::test_a_ghast_claw_paralyzes_an_elf_character
+tests/pipeline/rpg/test_creature_types.py::test_a_ghoul_claw_paralyzes_a_non_elf_character
+tests/pipeline/rpg/test_creature_types.py::test_a_ghoul_claw_spares_an_elf_character
+  D:\AI\Claude\scratch\AW docs\issue2b-implementation\afterworlds\venv\Lib\site-packages\pydantic\main.py:520: UserWarning: Pydantic serializer warnings:
+    PydanticSerializationUnexpectedValue(Expected `enum` - serialized value may not be as expected [field_name='size', input_value='medium', input_type=str])
+    return self.__pydantic_serializer__.to_python(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+296 passed, 39 warnings in 161.25s (0:02:41)
+Focused diagnostics PASSED (exit 0). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
