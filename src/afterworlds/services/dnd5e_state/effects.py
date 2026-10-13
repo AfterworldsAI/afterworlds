@@ -174,6 +174,13 @@ def _apply(state: _State, effects: tuple[SheetEffect, ...]) -> _State:
                 if c.instance_id != value.get("instance_id")
                 and c.condition.value != value.get("condition")
             )
+            # A condition lasting while a removed instance ends with it.
+            ids = {c.instance_id for c in kept}
+            kept = tuple(
+                c
+                for c in kept
+                if c.lasts_while_instance is None or c.lasts_while_instance in ids
+            )
             state = state.model_copy(update={"conditions": kept})
         elif effect.operation == "apply_effect":
             if state.active_effects is None:

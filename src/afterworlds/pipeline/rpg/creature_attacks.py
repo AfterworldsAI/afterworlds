@@ -42,6 +42,7 @@ from afterworlds.ingestion.mechanical.representation import (
     DamageTerm,
     DamageType,
     EntrySection,
+    LinkEnd,
     MultiattackAlternative,
     MultiattackReplacement,
     NaturalRollOutcomeFact,
@@ -313,6 +314,21 @@ def _rider_turn(duration: TurnBoundary | None) -> str | None:
     return "start" if duration.until is RecurrenceBoundary.START_OF_TURN else "end"
 
 
+def _grapple_link(rider: Rider) -> bool:
+    """The one executed linked shape: a condition lasting until the grapple
+    this same hit applies ends (Purple Worm, Remorhaz)."""
+    linked = rider.linked
+    return (
+        linked is not None
+        and linked.until is LinkEnd.GRAPPLE_ENDS
+        and linked.condition.effect is ConditionEffectKind.APPLIES
+        and rider.condition is not None
+        and rider.condition.condition is ConditionKind.GRAPPLED
+        and rider.condition.effect is ConditionEffectKind.APPLIES
+        and rider.duration is None
+    )
+
+
 def _rider_damage_applies(prepared: PreparedCreatureAttack) -> bool:
     """Whether the hit effect's conditional damage applies: every stated
     predicate holds -- the roll mode, and Bloodied read from the attacker
@@ -383,7 +399,7 @@ def _check_rider(
         for name, value in (
             ("a speed change", rider.speed),
             ("forced movement", rider.forced_movement),
-            ("a linked condition", rider.linked),
+            ("a linked condition", rider.linked if not _grapple_link(rider) else None),
         )
         if value is not None
     ]
@@ -795,10 +811,30 @@ def _rider(
         if condition_immune(target, kind):
             out["condition"] = "immune"
         else:
-            effects.append(
-                _condition_effect(prepared, kind, rider.duration, coordination)
-            )
+            applied = _condition_effect(prepared, kind, rider.duration, coordination)
+            effects.append(applied)
             out["condition"] = kind.value
+            if rider.linked is not None:
+                # Lasts while this grapple: its instance, generated here.
+                held = json.loads(applied.value_json)["instance_id"]
+                linked = rider.linked.condition.condition
+                if condition_immune(target, linked):
+                    out["linked"] = "immune"
+                else:
+                    value = _condition_value(
+                        prepared.attacker, target, linked, None, coordination
+                    )
+                    value["lasts_while_instance"] = held
+                    effects.append(
+                        SheetEffect(
+                            target=linked.value,
+                            operation="apply_condition",
+                            value_json=json.dumps(value),
+                            subject_kind=subject_key(target)[0],  # type: ignore[arg-type]
+                            subject_id=target.subject_id,
+                        )
+                    )
+                    out["linked"] = linked.value
     if rider.rider_save is not None and prepared.rider_save is not None:
         saved: RolledSave = roll_save(prepared.rider_save, dice)
         out["save"] = saved.provenance()
@@ -949,6 +985,8 @@ def possible_conditions(
     rider = fact.hit_effect
     if rider is not None and rider.condition is not None:
         kinds.add(rider.condition.condition)
+    if rider is not None and rider.linked is not None:
+        kinds.add(rider.linked.condition.condition)
     if rider is not None and rider.rider_save is not None:
         kinds.add(rider.rider_save.on_failure.condition)
     return {key: frozenset(kinds)}

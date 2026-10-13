@@ -510,6 +510,10 @@ class ConditionInstance(_Model):
     #: The item instance that applied it (a cursed or sentient item).
     item_id: UUID | None = None
     ends: EffectEnd | None = None
+    #: CRD Issue 15c: the Grappled instance this condition lasts while
+    #: (*"Restrained until the grapple ends"*), on the same subject from the
+    #: same source application; it ends when that instance ends.
+    lasts_while_instance: str | None = Field(default=None, min_length=1)
 
     @model_validator(mode="after")
     def level_only_for_exhaustion(self) -> Self:
@@ -766,6 +770,7 @@ class _SharedState(_Model):
     @model_validator(mode="after")
     def instance_ids_unique(self) -> Self:
         _unique("conditions", [c.instance_id for c in self.conditions or ()])
+        _linked_conditions_resolve(self.conditions or ())
         _unique("active_effects", [e.instance_id for e in self.active_effects or ()])
         _unique("usage_counters", [c.counter_id for c in self.usage_counters or ()])
         _unique("choices", [c.choice_id for c in self.choices or ()])
@@ -780,6 +785,27 @@ class _SharedState(_Model):
         for value in self.model_dump(mode="python").values():
             _collect_choice_ids(value, cited)
         return cited
+
+
+def _linked_conditions_resolve(conditions: tuple[ConditionInstance, ...]) -> None:
+    """Every link names a Grappled instance of the same subject, from the
+    same referent, that is not itself linked: a dangling or malformed link
+    must not survive as a permanent condition (CRD Issue 15c)."""
+    by_id = {c.instance_id: c for c in conditions}
+    for c in conditions:
+        if c.lasts_while_instance is None:
+            continue
+        held = by_id.get(c.lasts_while_instance)
+        if (
+            held is None
+            or held.condition is not ConditionKind.GRAPPLED
+            or held.lasts_while_instance is not None
+            or held.referent != c.referent
+        ):
+            raise ValueError(
+                f"condition {c.instance_id} lasts while {c.lasts_while_instance!r}, "
+                "which is not a Grappled instance of this subject from its referent"
+            )
 
 
 def _collect_choice_ids(value: object, out: list[str]) -> None:

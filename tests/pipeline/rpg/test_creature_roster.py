@@ -68,16 +68,9 @@ def test_the_roster_is_generated_from_the_accepted_capability() -> None:
 # ---------------------------------------------------------------------------
 
 #: C5-positive shapes code does not execute, each a named boundary surfaced
-#: for Codex (status.md), not coverage: the refusal must say why.
-BOUNDARIES: dict[str, str] = {
-    # Restrained "until the grapple ends": no state contract links one
-    # condition instance's end to another's.
-    "monsters.purple_worm.purple_worm#2:Bite": "linked condition",
-    "monsters.remorhaz.remorhaz#1:Bite": "linked condition",
-    "monsters.purple_worm.purple_worm#1:Multiattack | alternative 1": (
-        "linked condition"
-    ),
-}
+#: for Codex (status.md), not coverage: the refusal must say why. None remain
+#: (Bloodied and the linked grapple executed per Codex's classification).
+BOUNDARIES: dict[str, str] = {}
 
 
 def _scenario(key: str, creature: Any, target: Any) -> Any:

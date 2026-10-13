@@ -709,3 +709,77 @@ def test_a_failure_after_the_expenditure_rolls_the_whole_turn_back(
     assert [tuple(r) for r in _arrows(client, arrows)] == [(1, 1)]
     assert _audit(client, story) == []
     assert _turns(client) == 0
+
+
+# ---------------------------------------------------------------------------
+# A creature's linked grapple (CRD Issue 15c): committed on the character
+# ---------------------------------------------------------------------------
+
+
+def test_a_purple_worm_bite_commits_a_restraint_lasting_while_its_grapple(
+    client: TestClient,
+    gm: list[list[dict[str, Any]]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from afterworlds.models.dnd5e_state import (
+        CreatureState,
+        DeathState,
+        HitPoints,
+        ZeroHitPointTreatment,
+    )
+    from afterworlds.models.rpg import DiceResult
+    from afterworlds.pipeline.rpg.dice import SystemRandomDiceService
+
+    def roll(self: object, expression: str) -> DiceResult:
+        face = 19 if "d20" in expression else 1
+        return DiceResult(expression=expression, raw_rolls=(face,), chosen=face)
+
+    monkeypatch.setattr(SystemRandomDiceService, "roll", roll)
+    story = _rpg_story(client)
+    with client.app.state.session_factory() as s:
+        state = get_rpg_session_state_by_story(s, UUID(story))
+        assert state is not None
+        sheet = state.character_sheet_id
+        worm = service.create_creature(
+            s,
+            UUID(story),
+            "Purple Worm",
+            PACKAGE,
+            CreatureState(
+                template_record_key="monsters.purple_worm.purple_worm",
+                hit_points=HitPoints(current=247, maximum=247, temporary=0),
+                conditions=(),
+                active_effects=(),
+                death_state=DeathState(
+                    successes=0, failures=0, stable=False, dead=False
+                ),
+                zero_hit_point_treatment=ZeroHitPointTreatment(subject="monster"),
+            ),
+            now=NOW,
+        ).creature_id
+        s.commit()
+    bite = {
+        "check_label": "Worm bite",
+        "subsystem_tag": "attack",
+        "visibility": "shown",
+        "operation": "creature_attack",
+        "creature_attack": {
+            "attacker": {"kind": "creature", "subject_id": str(worm)},
+            "entry": "Bite",
+            "target": {"kind": "character", "subject_id": str(sheet)},
+            "range": "within_reach",
+            "cover": "none",
+            "attacker_light": "bright",
+            "target_light": "bright",
+            "target_within_5_feet": False,
+            "allies_within_5_feet_of_target": [],
+        },
+    }
+    gm.append([_edge_roll("begin_turn", str(worm)), bite])
+    body = _turn(client, story, "The purple worm lunges at me.")
+    assert body["disposition"] == "delivered", body
+    with client.app.state.session_factory() as s:
+        conditions = service.read_character(s, sheet).state.conditions or ()
+    by_kind = {c.condition.value: c for c in conditions}
+    assert by_kind["restrained"].lasts_while_instance == by_kind["grappled"].instance_id
+    assert by_kind["grappled"].escape_dc == 19
