@@ -22,6 +22,9 @@
 | `46f8b50` | Production reachability: the GameMaster previously saw no ids; now it gets a GameMaster-only scene block |
 | `0c873cc` | Creature attacks |
 | `da179a5` | Fix: one hit's damage terms judged as one damage |
+| `b33daa5` | Raw candidate C7 packet |
+| `f392913` | Bounded Multiattack |
+| `c3cb332` | Creature save effects; usage limits and Recharge |
 
 **Raw candidate C7** (`candidate-c7/`, `c7.json` `bf2a269c…fa77`) consolidates C6-r2 with ammunition identity under the Owner's ammunition directive.
 - It proposes schema-20 `ammunition_supply`.
@@ -30,7 +33,7 @@
 - **Next gate:** Codex raw review.
 
 **Still open:**
-- Implementation: Multiattack, creature save effects, usage/Recharge, ammunition plumbing (refusing until acceptance).
+- Implementation: everything executable without new authority or classification is implemented. Ammunition execution waits on C7's acceptance and the Loading, free-hand and depletion residues.
 - For classification: action economy (Nick/Light/Loading), bystander contributors, cross-Turn edge manufacture.
 - The self-derived fingerprints in `recert/governing-set-changes.md` need independent recert review.
 
