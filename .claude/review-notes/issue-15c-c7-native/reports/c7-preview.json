@@ -1,0 +1,156 @@
+{
+ "accepted_inputs_located": {
+  "character-origins-feats": "a8928f18d65538d21993e7f94090272bdc7e279c412134ebb8ffc996ada48b89",
+  "equipment": "7f8dadcd28c072cc22965dc36e7e1d7debb99aec3139c9f8b72178be06aff4b6"
+ },
+ "batches": {
+  "character-origins-feats": {
+   "accepted_proposal_identity": "20716b7dcadd5e1216ff3594c5aa654cb41c2961fe49048b0c853c1eed381838",
+   "accepted_rendered_sha256": "a8928f18d65538d21993e7f94090272bdc7e279c412134ebb8ffc996ada48b89",
+   "claimed_spans": {
+    "feats.alert/category": [
+     "edd825c0-7c98-5f2d-857b-3b56a3fb665d"
+    ],
+    "feats.magic_initiate/category": [
+     "42c57e7d-57b4-5950-8495-6194f98e7dd1"
+    ],
+    "feats.savage_attacker/category": [
+     "3b829285-0b34-5858-8f90-15109648dd6f"
+    ],
+    "feats.skilled/category": [
+     "caaa6712-5ef7-5265-94bd-b3f55027e1ea"
+    ]
+   },
+   "claims_added": 4,
+   "expected_rules_added": 4,
+   "fact_keys": [
+    "feats.alert/category:73df36a2051b0917",
+    "feats.magic_initiate/category:73df36a2051b0917",
+    "feats.savage_attacker/category:73df36a2051b0917",
+    "feats.skilled/category:73df36a2051b0917"
+   ],
+   "facts_added": 4,
+   "proposal_identity": "1e7b63d3800154eee539297b0ae5d4f9efbfe21c1776986db133e3cc046bfd28",
+   "rendered_proposal_sha256": "587068868bbcbc05cb881f3ae4b2e68cb2c47c257192671470bdf792c17f178e"
+  },
+  "equipment": {
+   "accepted_proposal_identity": "b01f54b917653f83b7dbeebd6ad54757bdf183f71235d76e9198815f21789c4b",
+   "accepted_rendered_sha256": "7f8dadcd28c072cc22965dc36e7e1d7debb99aec3139c9f8b72178be06aff4b6",
+   "claimed_spans": {
+    "equipment.adventuring_gear.arrows/arrows": [
+     "7471c04d-ae28-525c-b922-5c7cbb77bc3b"
+    ],
+    "equipment.adventuring_gear.bolts/bolts": [
+     "fad145ed-b666-5fe8-a16f-b7b22e7a1697"
+    ],
+    "equipment.adventuring_gear.bullets_firearm/bullets_firearm": [
+     "52fe7b49-5eb6-591a-8fd4-5161f7d6cf4f"
+    ],
+    "equipment.adventuring_gear.bullets_sling/bullets_sling": [
+     "b1fcd774-f574-59ab-870e-7922a91b0ab5"
+    ],
+    "equipment.adventuring_gear.needles/needles": [
+     "961fe50e-d0ff-50cd-9c17-09700c58590a"
+    ]
+   },
+   "claims_added": 5,
+   "expected_rules_added": 5,
+   "fact_keys": [
+    "equipment.adventuring_gear.arrows/arrows:27c014f15df4f7df",
+    "equipment.adventuring_gear.bolts/bolts:b1267a523dc3bb0d",
+    "equipment.adventuring_gear.bullets_firearm/bullets_firearm:28358c478e68b693",
+    "equipment.adventuring_gear.bullets_sling/bullets_sling:13fbc2ad2ccd8ada",
+    "equipment.adventuring_gear.needles/needles:c3bc2408468fe137"
+   ],
+   "facts_added": 5,
+   "proposal_identity": "b8c65454cae97f82cdb96c857aad84c70ba8c78e96fa24f1e95e89360e144a76",
+   "rendered_proposal_sha256": "5eb398b632b8dc226c22136df14e0b140408f27c5754ffbb115b7ccfba52c2ab"
+  }
+ },
+ "deterministic_twice": true,
+ "label": "SIMULATION - review-only native preview; not an Owner acceptance",
+ "lifts": [
+  "5d-lift-schema-15-to-16",
+  "5d-lift-schema-16-to-17",
+  "5d-lift-schema-17-to-18",
+  "5d-lift-schema-18-to-19",
+  "5d-lift-schema-19-to-20"
+ ],
+ "native": {
+  "malformed_variants_refused": {
+   "arrows_for_a_weapon_without_ammunition": [
+    "component equipment.adventuring_gear.arrows/arrows: ammunition_supply names equipment.weapons.dagger/dagger, which has no Ammunition weapon property"
+   ],
+   "bolts_for_an_arrow_weapon": [
+    "component equipment.adventuring_gear.bolts/bolts: ammunition_supply names equipment.weapons.shortbow/shortbow, whose ammunition is ['arrow'], not bolt"
+   ],
+   "needles_for_an_unknown_component": [
+    "component equipment.adventuring_gear.needles/needles: ammunition_supply names equipment.weapons.no_such_weapon/no_such_weapon, which is not a component of this draft"
+   ],
+   "sling_bullets_also_claim_musket": [
+    "component equipment.adventuring_gear.bullets_sling/bullets_sling: ammunition_supply names equipment.weapons.musket/musket, already narrowed to by component equipment.adventuring_gear.bullets_firearm/bullets_firearm; two bullet rows may not both claim one weapon"
+   ]
+  },
+  "own_gate_passed": true,
+  "payload_hash": "cffcdbfa70a6e64351b852ff9b932aa32df81abdd45700ef6c0034aefdaeb65a",
+  "preview_reconstruction_clean": true,
+  "preview_refused_against_successor": true,
+  "projection": "8446ab6b-be75-5999-8a9b-74fa133c030a",
+  "successor_lifted_payload_hash": "2e17f51398461b69fcdeecbe231dcfb405d848d82fac76a503288e3b1562a602",
+  "successor_lifted_projection": "4d2acb55-22c5-51c0-89e9-eb543dae5123",
+  "successor_lifted_reconstruction_clean": true,
+  "successor_refused_against_preview": true,
+  "validate_candidate_findings": []
+ },
+ "oracle_identity": "cb04163ba0374e95ce0fcdaae939b00793e71f84ed3222593c4babfc9065ef6e",
+ "pins": {
+  ".claude/review-notes/issue-15c-implementation/candidate-c6-r2/c6r2.json": "699718ff9bac8298c08fc6da706309819b864b604685c88f462669d68e8923f4",
+  ".claude/review-notes/issue-15c-implementation/candidate-c6/c6.json": "eb014b30e685543c435930913d00fe8762963c95b0fdcc9ce470c019bbfb554a",
+  ".claude/review-notes/issue-15c-implementation/candidate-c7/c7.json": "bf2a269c6f5446a63d5ce2353c27d5dc75224935cd16960ce79da7e766aefa77",
+  "docs/sources/community/dnd-5e-srd-markdown/character-creation.md": "1c8f477398cc7ca5721542698d67147f303e4dd5a5dacdad7cb7cec1119f7c42",
+  "docs/sources/community/dnd-5e-srd-markdown/equipment.md": "ba4d96bf7c08a44103b11be1ae5385e6e09f3f5478d56c3a2f38f97bd77d645b",
+  "docs/sources/community/dnd-5e-srd-markdown/feats.md": "3894f4a147df40adb8b090825b4c2e3e5ee2c67851aca42305b11f2477bcfbf7",
+  "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c.json": "23e5d8e0fac60e3f5417b3a41e40e6f475366dd385856f38c42104f4dd264f69"
+ },
+ "pins_after": true,
+ "preservation": {
+  "acceptance.batches": true,
+  "acceptance.batches.order": true,
+  "acceptance.records": true,
+  "acceptance.review_unit_records": true,
+  "acceptance.schema_anchors": true,
+  "artifact_kind": true,
+  "lifts.added_exactly_19_to_20": true,
+  "lifts.prefix_unchanged": true,
+  "obligations.changed_only_on_fact_records": true,
+  "reference_resolutions": true,
+  "release_binding": true,
+  "representation.components": true,
+  "representation.prose_bindings": true,
+  "representation.provenance": true,
+  "representation.records": true,
+  "representation.references": true,
+  "representation.relationships": true,
+  "representation_schema.was_19_now_20": true,
+  "resolution_records": true,
+  "review_units.other_batches": true,
+  "semantic_policy_hash": true,
+  "semantic_policy_version": true,
+  "spans": true
+ },
+ "preview_sha256": "d661cc3be22aa6aca996a4e67cac4f8ebbd2dfa1908dd29a0c7ae2e38177ef6d",
+ "schema": [
+  "5d-representation-schema-20",
+  "759dcc1f9de2cac9254be108ca8a83433ca30854061276a9c349a370e1c6e77a"
+ ],
+ "successor_lift": {
+  "lift_ids": [
+   "5d-lift-schema-19-to-20"
+  ],
+  "representation_unchanged": true
+ },
+ "touched_batches": [
+  "character-origins-feats",
+  "equipment"
+ ]
+}
