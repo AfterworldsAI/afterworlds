@@ -1,0 +1,13 @@
+# CRD Issue 15c — reference-closed native assembly
+
+Independent read-only review of the first native control and the existing acceptance contract; no tests or native operations rerun by Codex. This clarifies the preparation outcome, not new source semantics or Owner acceptance.
+
+The first grouped control's failure is the expected reference-closure guard: retained resolutions still name animal/other destinations removed in the temporary staging prior. Native `accept_proposal` checks the **merged** result before returning (`acceptance.py:593–613`; `reference_resolution.py:393–455,493–513`). It must restore both the destination records and their original unresolved citations. Do not delete recorded resolutions or bypass that validation.
+
+The revised singleton controls in `reports/identity-control.json` prove each of the 11 old batches is individually reversible to G1 oracle content. They do not prove a sequential reacceptance path after all 11 have been removed, nor preservation of untouched acceptance metadata. Keep that distinction in the proof.
+
+The existing native contract explicitly supports a complete proposal reviewed across disjoint span batches (`acceptance.py:37–47`). A single atomic proposal restoring the required dependency closure, or dependency-closed grouping/order whose every accepted result validates, is ordinary preparation organization. The strict keyed union refuses conflicting same-key content (`:195–256`). Any newly combined proposal needs its own exact proposal identity, scope/unit inventory and independently reviewed native equality proof; grouping cannot hide a changed source fact or alter the retained 13.
+
+The prompt's “11 affected batches” describes the **minimum old source/acceptance scope to replace**, not a requirement for 11 individual calls or exactly 24 batches in the successor. Preserve G1 as its immutable historical artifact, all 13 untouched batches' serialized evidence, shared provenance, resolutions and lift/history invariants. Report the chosen replacement grouping and its old-to-new scope correspondence transparently. No new generic authoring framework or Owner architecture policy is required merely to use the existing combined-proposal contract.
+
+Native simulated preview, exact review and explicit Owner semantic acceptance remain separate. No real acceptance/recording, gameplay implementation, full-suite/CI rerun, commits/publication, shared-runtime change or app launch is authorized by this note. Capture focused command exit/report evidence accurately; a pipeline's successful final `tail` is not the Python command's exit code.

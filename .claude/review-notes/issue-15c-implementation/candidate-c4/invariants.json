@@ -1,0 +1,16 @@
+{
+ "formula_references": [
+  "spells.attack_rolls/spell_attack_modifier",
+  "spells.saving_throws/spell_save_dc"
+ ],
+ "parameterized_entries_without_formula": [],
+ "scope_vocabulary_leaks": [],
+ "target_residue": [
+  {
+   "entry": "Thunderous Bellow",
+   "record": "monsters.tarrasque.tarrasque",
+   "untyped_target_clause": "each object that isn't being worn or carried"
+  }
+ ],
+ "unaccounted_numbers": []
+}

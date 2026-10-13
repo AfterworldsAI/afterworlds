@@ -1,0 +1,80 @@
+{
+ "anchored_successor_sha256": "23e5d8e0fac60e3f5417b3a41e40e6f475366dd385856f38c42104f4dd264f69",
+ "candidate_id": "15c-C6-r2-feat-category",
+ "facts": [
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "origin",
+    "family": "feat_prerequisite",
+    "minimum_ability_score": null,
+    "minimum_character_level": null,
+    "requires_feature": null
+   },
+   "part": "C6-r2",
+   "record_key": "feats.alert",
+   "source": {
+    "file": "feats.md",
+    "line": 23,
+    "quote": "_Origin Feat_"
+   }
+  },
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "origin",
+    "family": "feat_prerequisite",
+    "minimum_ability_score": null,
+    "minimum_character_level": null,
+    "requires_feature": null
+   },
+   "part": "C6-r2",
+   "record_key": "feats.magic_initiate",
+   "source": {
+    "file": "feats.md",
+    "line": 33,
+    "quote": "_Origin Feat_"
+   }
+  },
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "origin",
+    "family": "feat_prerequisite",
+    "minimum_ability_score": null,
+    "minimum_character_level": null,
+    "requires_feature": null
+   },
+   "part": "C6-r2",
+   "record_key": "feats.savage_attacker",
+   "source": {
+    "file": "feats.md",
+    "line": 47,
+    "quote": "_Origin Feat_"
+   }
+  },
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "origin",
+    "family": "feat_prerequisite",
+    "minimum_ability_score": null,
+    "minimum_character_level": null,
+    "requires_feature": null
+   },
+   "part": "C6-r2",
+   "record_key": "feats.skilled",
+   "source": {
+    "file": "feats.md",
+    "line": 53,
+    "quote": "_Origin Feat_"
+   }
+  }
+ ],
+ "schema": "5d-representation-schema-19 (unchanged; no vocabulary change)",
+ "status": "RAW CANDIDATE ONLY - not accepted, minted, recorded or published",
+ "supersedes_raw": {
+  "candidate": "15c-C6-feat-category",
+  "sha256": "eb014b30e685543c435930913d00fe8762963c95b0fdcc9ce470c019bbfb554a"
+ }
+}

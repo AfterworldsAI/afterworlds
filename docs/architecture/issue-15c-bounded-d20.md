@@ -1,7 +1,7 @@
 # CRD Issue 15c — bounded d20 production reachability: traceability
 
 **Governing issue:** #191, as updated with the Owner's context-input decisions of 12 October 2026 (body SHA-256 `9c3d6f3a…6c`).
-- **Authority:** the Owner-accepted native C5 successor `srd-5-2-1-corpus-8781d4e0-a3b-15c.json` (SHA-256 `23e5d8e0…4f69`, schema 19), published as projection `44f212d5-32dd-5469-8f05-f0d236492347`. It supersedes G1 (`2ccbaeba…1258`, projection `efab27a9-…`) by digest; G1 is preserved.
+- **Authority:** the Owner-accepted native C5 successor `srd-5-2-1-corpus-8781d4e0-a3b-15c.json` (SHA-256 `23e5d8e0…4f69`, schema 19), recorded locally with projection identity `44f212d5-32dd-5469-8f05-f0d236492347`. It is not published or activated shared authority: shared migration, publication and activation remain separately gated. It supersedes G1 (`2ccbaeba…1258`, projection `efab27a9-…`) by digest; G1 is preserved.
 - **Recording evidence:** `.claude/review-notes/issue-15c-recording/`.
 
 **Status (12 October 2026): partial, in implementation.**
@@ -10,7 +10,7 @@
   - difficulty checks (a GameMaster-selected Typical DC);
   - tool checks (tool plus typed activity, the tool held, validated proficiency);
   - Initiative (`undetermined` outcome).
-- **Contributing grants:** ability increases, skill, Expertise, save and tool grants are validated against their exact typed source authority before any number is used (`pipeline/rpg/grants.py`).
+- **Contributing grants, partial:** ability increases, skill, Expertise, save and tool grants, and the feat selections they depend on, are validated against their exact typed source authority before any number is used (`pipeline/rpg/grants.py`). Weapon proficiency, armor training and Weapon Mastery grants are pending with the attack operations. Corpus and capability work for the held operations is pending.
 - **Not yet executable:** weapon attacks and masteries, creature attacks, Multiattack and save effects, death saves and stabilizing, and the zero-HP lifecycle. They refuse as `unsupported_capability`, naming what they wait on. The Owner approved their spatial and timing input origins on 12 October 2026 (`.claude/review-notes/issue-15c-implementation/owner-context-decisions-2026-10-12.md`); implementation is in progress.
 - **Refused for a recorded reason:**
   - Gaming Set and Musical Instrument checks: 2b records no tool kind (missing state).

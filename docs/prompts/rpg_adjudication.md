@@ -1,7 +1,8 @@
-# RPG Adjudication Pass Prompt Contract v2
+# RPG Adjudication Pass Prompt Contract v3
 
 *Canonical source for the RPG_ADJUDICATION pipeline pass system prompt.*
-*Version: v2 (CRD Issue 15c, bounded d20 production reachability; v1 June 2026)*
+*Version: v3 (CRD Issue 15c: difficulty, tool and Initiative checks; v2 bounded d20
+production reachability; v1 June 2026)*
 *Last updated: October 2026*
 
 ---
@@ -43,11 +44,15 @@ One proposal per required roll:
 - `operation` — **required.** One of:
   - `fixed_dc_check` — an ability check whose rule prints its own DC. Name the
     rule in `check_identity`.
-  - `difficulty_check` — an ability or skill check whose DC the GameMaster sets
-    from the Typical Difficulty Classes.
+  - `difficulty_check` — an ability or skill check whose DC you set by
+    selecting one of the Typical Difficulty Classes in `difficulty`. Give the
+    `ability`, and the `skill` when one applies (it must be one that ability
+    governs, such as Strength (Athletics)).
+  - `tool_check` — a check made using a tool the character holds. Name the tool
+    in `check_identity` and the tool's printed activity in `tool_activity`.
+  - `initiative` — an Initiative roll. It yields a total, not a success or
+    failure.
   - `saving_throw` — a saving throw some effect forces.
-  - `tool_check` — a check made using a tool.
-  - `initiative` — an Initiative roll.
   - `weapon_attack` — an attack with a weapon (and its mastery).
   - `death_saving_throw` — a creature at 0 Hit Points starting its turn.
   - `stabilize` — the Help action to stabilize a creature at 0 Hit Points.
@@ -58,7 +63,16 @@ One proposal per required roll:
     jump (Strength (Athletics)).
   - `glossary.swimming/rough_water` — swimming in rough water (Strength
     (Athletics)).
-  Null for every other operation.
+
+  For `tool_check`, the tool, as one of the listed tool identities (for example
+  `equipment.tools.thieves_tools/thieves_tools`). Null for every other
+  operation.
+- `ability`, `skill`, `difficulty` — for `difficulty_check` only: the ability,
+  the skill if any, and the Typical DC you select (`very_easy`, `easy`,
+  `medium`, `hard`, `very_hard`, `nearly_impossible`). You select a difficulty;
+  the engine reads its DC from the rules. Null otherwise.
+- `tool_activity` — for `tool_check` only: the tool's printed activity (for
+  example `pick_a_lock`). The engine reads its ability and DC. Null otherwise.
 - `check_label` — a short human-readable label (e.g., "Athletics Check").
   Display text only; never authority.
 - `subsystem_tag` — a short descriptive tag. Display text only.
@@ -144,6 +158,9 @@ Sojourner.
     {
       "operation": "difficulty_check",
       "check_identity": null,
+      "ability": "dexterity",
+      "skill": "stealth",
+      "difficulty": "medium",
       "check_label": "Stealth Check",
       "subsystem_tag": "stealth",
       "skill_or_attribute_label": "stealth",
@@ -153,6 +170,24 @@ Sojourner.
     }
   ],
   "reasoning_note": "Sneaking past an alert guard is uncertain."
+}
+```
+
+### Picking a lock (tool check)
+
+```json
+{
+  "rolls": [
+    {
+      "operation": "tool_check",
+      "check_identity": "equipment.tools.thieves_tools/thieves_tools",
+      "tool_activity": "pick_a_lock",
+      "check_label": "Thieves' Tools",
+      "subsystem_tag": "lockpicking",
+      "visibility": "shown"
+    }
+  ],
+  "reasoning_note": "Picking the lock uses the tool's printed activity."
 }
 ```
 

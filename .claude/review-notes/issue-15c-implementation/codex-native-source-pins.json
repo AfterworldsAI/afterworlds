@@ -1,0 +1,73 @@
+{
+  "label": "Codex read-only source-pin inspection; not acceptance or a test-suite result",
+  "head": "1473426762970dd532a01924dcfcb6183ccdf603",
+  "sources": [
+    {
+      "file": "docs/sources/community/dnd-5e-srd-markdown/animals.md",
+      "sha256": "c42082103eb868c5b8b2f6c0cbdcc8146545c149cfc7af32524f9938eed658f9",
+      "bytes": 139887,
+      "equals_committed_head": true
+    },
+    {
+      "file": "docs/sources/community/dnd-5e-srd-markdown/character-origins.md",
+      "sha256": "76c92948e8e86011f3bab326d81faac5eaff9515016039cb33c3bf89e34163af",
+      "bytes": 17267,
+      "equals_committed_head": true
+    },
+    {
+      "file": "docs/sources/community/dnd-5e-srd-markdown/classes.md",
+      "sha256": "2012dfa34600116f1e0d8383012e8cc597404bfad4d2e985145746bc4980e5bb",
+      "bytes": 297727,
+      "equals_committed_head": true
+    },
+    {
+      "file": "docs/sources/community/dnd-5e-srd-markdown/equipment.md",
+      "sha256": "ba4d96bf7c08a44103b11be1ae5385e6e09f3f5478d56c3a2f38f97bd77d645b",
+      "bytes": 72594,
+      "equals_committed_head": true
+    },
+    {
+      "file": "docs/sources/community/dnd-5e-srd-markdown/feats.md",
+      "sha256": "3894f4a147df40adb8b090825b4c2e3e5ee2c67851aca42305b11f2477bcfbf7",
+      "bytes": 7623,
+      "equals_committed_head": true
+    },
+    {
+      "file": "docs/sources/community/dnd-5e-srd-markdown/magic-items.md",
+      "sha256": "3b5ca6f44a15f9cfda7be876c94de7c63cfcbe633c3680db8c076843d6c5283e",
+      "bytes": 244403,
+      "equals_committed_head": true
+    },
+    {
+      "file": "docs/sources/community/dnd-5e-srd-markdown/monsters-A-Z.md",
+      "sha256": "e6581e2a330cd900dacbc321d9cb9533362f3b81e3f4adef342baf1b1a4864c2",
+      "bytes": 517138,
+      "equals_committed_head": true
+    },
+    {
+      "file": "docs/sources/community/dnd-5e-srd-markdown/monsters.md",
+      "sha256": "784a7e14a1f667b5c187b1fee5ef09bf88316f7174e81b2f74d54742bab813d3",
+      "bytes": 18735,
+      "equals_committed_head": true
+    },
+    {
+      "file": "docs/sources/community/dnd-5e-srd-markdown/playing-the-game.md",
+      "sha256": "7110c6ed7dca81776a346cd03665011aabc7ff11db8d85d6c010e7b7d473de76",
+      "bytes": 65245,
+      "equals_committed_head": true
+    },
+    {
+      "file": "docs/sources/community/dnd-5e-srd-markdown/rules-glossary.md",
+      "sha256": "3fa8904be1e84bfafda24bf673c5e30ad899bd4135809a4c4dfd1d738f0d5ead",
+      "bytes": 72861,
+      "equals_committed_head": true
+    },
+    {
+      "file": "docs/sources/community/dnd-5e-srd-markdown/spells.md",
+      "sha256": "767d50542d8f26a9fff4a0c101ab48df4845a055d70734fee6e9e37d2e821aeb",
+      "bytes": 325719,
+      "equals_committed_head": true
+    }
+  ],
+  "all_equal_committed_head": true
+}

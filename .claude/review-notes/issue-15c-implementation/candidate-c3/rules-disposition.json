@@ -1,0 +1,292 @@
+[
+ {
+  "disposition": "qualified: added ['applies_to'], changed []",
+  "quote": "<td>Very easy</td>",
+  "rule": "play.d20_tests/typical_dcs"
+ },
+ {
+  "disposition": "qualified: added ['applies_to'], changed []",
+  "quote": "<td>Easy</td>",
+  "rule": "play.d20_tests/typical_dcs"
+ },
+ {
+  "disposition": "qualified: added ['applies_to'], changed []",
+  "quote": "<td>Medium</td>",
+  "rule": "play.d20_tests/typical_dcs"
+ },
+ {
+  "disposition": "qualified: added ['applies_to'], changed []",
+  "quote": "<td>Hard</td>",
+  "rule": "play.d20_tests/typical_dcs"
+ },
+ {
+  "disposition": "qualified: added ['applies_to'], changed []",
+  "quote": "<td>Very hard</td>",
+  "rule": "play.d20_tests/typical_dcs"
+ },
+ {
+  "disposition": "qualified: added ['applies_to'], changed []",
+  "quote": "<td>Nearly impossible</td>",
+  "rule": "play.d20_tests/typical_dcs"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "Melee attack with a weapon or an Unarmed Strike",
+  "rule": "play.d20_tests/attack_ability_modifier"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "Ranged attack with a weapon",
+  "rule": "play.d20_tests/attack_ability_modifier"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "the attack hits regardless of any modifiers",
+  "rule": "play.d20_tests/natural_20"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "the attack misses regardless of any modifiers",
+  "rule": "play.d20_tests/natural_1"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "they make a Dexterity check",
+  "rule": "play.combat/initiative_roll"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "you add your ability modifier—the same modifier used for the attack roll",
+  "rule": "play.damage_and_healing/damage_rolls"
+ },
+ {
+  "disposition": "qualified: added ['applies_to', 'modifiers'], changed []",
+  "quote": "Roll the attack's damage dice twice",
+  "rule": "play.damage_and_healing/critical_hits"
+ },
+ {
+  "disposition": "qualified: added ['overflow_to_hit_points'], changed []",
+  "quote": "those points are lost first, and any leftover damage carries over",
+  "rule": "play.damage_and_healing/temporary_hit_points"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "which is the lowest Hit Points can go",
+  "rule": "play.damage_and_healing/hit_points"
+ },
+ {
+  "disposition": "qualified: added ['exception_scope'], changed []",
+  "quote": "A monster dies the instant it drops to 0 Hit Points",
+  "rule": "play.damage_and_healing/monster_death"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "A creature dies if its Hit Point maximum reaches 0",
+  "rule": "play.damage_and_healing/hit_point_maximum_of_0"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "the character dies if the remainder equals or exceeds their Hit Point maximum",
+  "rule": "play.damage_and_healing/massive_damage"
+ },
+ {
+  "disposition": "qualified: added ['until'], changed []",
+  "quote": "you now face making Death Saving Throws",
+  "rule": "play.damage_and_healing/falling_unconscious"
+ },
+ {
+  "disposition": "qualified: added [], changed ['timing']",
+  "quote": "Roll 1d20. If the roll is 10 or higher, you succeed.",
+  "rule": "play.damage_and_healing/death_saving_throws"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "When you roll a 1 on the d20 for a Death Saving Throw, you suffer two failures",
+  "rule": "play.damage_and_healing/death_saving_throws"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "If you roll a 20 on the d20, you regain 1 Hit Point",
+  "rule": "play.damage_and_healing/death_saving_throws"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "If the damage is from a Critical Hit, you suffer two failures instead",
+  "rule": "play.damage_and_healing/damage_at_0_hit_points"
+ },
+ {
+  "disposition": "qualified: added ['target_at_hit_points'], changed []",
+  "quote": "You can take the Help action to try to stabilize a creature with 0 Hit Points",
+  "rule": "play.damage_and_healing/stabilizing"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "A Stable creature that isn't healed regains 1 Hit Point after 1d4 hours",
+  "rule": "play.damage_and_healing/stable"
+ },
+ {
+  "disposition": "qualified: added ['optional', 'starts', 'trigger'], changed []",
+  "quote": "you can instead reduce the creature to 1 Hit Point",
+  "rule": "play.damage_and_healing/knocking_out"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "A Short Rest is a 1-hour period",
+  "rule": "glossary.short_rest/short_rest"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "use your choice of your Strength or Dexterity",
+  "rule": "equipment.weapons.finesse/finesse"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "your Strength score isn't at least 13",
+  "rule": "equipment.weapons.heavy/heavy"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "your Dexterity score isn't at least 13",
+  "rule": "equipment.weapons.heavy/heavy"
+ },
+ {
+  "disposition": "qualified: added ['first_attack', 'optional', 'trigger', 'when'], changed []",
+  "quote": "you can make one extra attack as a Bonus Action",
+  "rule": "equipment.weapons.light/light"
+ },
+ {
+  "disposition": "qualified: added ['per'], changed []",
+  "quote": "You can fire only one piece of ammunition",
+  "rule": "equipment.weapons.loading/loading"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "you have Disadvantage on the attack roll",
+  "rule": "equipment.weapons.range/range"
+ },
+ {
+  "disposition": "qualified: added ['applies_to'], changed []",
+  "quote": "adds 5 feet to your reach",
+  "rule": "equipment.weapons.reach/reach"
+ },
+ {
+  "disposition": "qualified: added ['draw_as_part_of_attack'], changed []",
+  "quote": "you can throw the weapon to make a ranged attack",
+  "rule": "equipment.weapons.thrown/thrown"
+ },
+ {
+  "disposition": "qualified: added ['when'], changed []",
+  "quote": "requires two hands",
+  "rule": "equipment.weapons.two_handed/two_handed"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "when used with two hands to make a melee attack",
+  "rule": "equipment.weapons.versatile/versatile"
+ },
+ {
+  "disposition": "qualified: added ['recovery', 'requires'], changed []",
+  "quote": "Each attack expends one piece of ammunition",
+  "rule": "equipment.weapons.ammunition/ammunition"
+ },
+ {
+  "disposition": "qualified: added ['optional'], changed ['trigger']",
+  "quote": "against a second creature within 5 feet of the first",
+  "rule": "equipment.weapons.cleave/cleave"
+ },
+ {
+  "disposition": "qualified: added ['increase', 'optional'], changed ['trigger']",
+  "quote": "equal to the ability modifier you used to make the attack roll",
+  "rule": "equipment.weapons.graze/graze"
+ },
+ {
+  "disposition": "qualified: added ['optional'], changed []",
+  "quote": "as part of the Attack action instead of as a Bonus Action",
+  "rule": "equipment.weapons.nick/nick"
+ },
+ {
+  "disposition": "qualified: added ['distance_ft_up_to', 'optional'], changed ['direction', 'trigger']",
+  "quote": "push the creature up to 10 feet straight away",
+  "rule": "equipment.weapons.push/push"
+ },
+ {
+  "disposition": "qualified: added ['applies_to', 'duration', 'effect', 'optional'], changed ['trigger']",
+  "quote": "Disadvantage on its next attack roll before the start of your next turn",
+  "rule": "equipment.weapons.sap/sap"
+ },
+ {
+  "disposition": "qualified: added ['applies_to', 'optional'], changed ['duration']",
+  "quote": "reduce its Speed by 10 feet until the start of your next turn",
+  "rule": "equipment.weapons.slow/slow"
+ },
+ {
+  "disposition": "qualified: added ['applies_to', 'optional'], changed ['trigger']",
+  "quote": "DC 8 plus the ability modifier used to make the attack roll",
+  "rule": "equipment.weapons.topple/topple"
+ },
+ {
+  "disposition": "qualified: added ['against', 'applies_to', 'duration', 'effect', 'optional'], changed []",
+  "quote": "Advantage on your next attack roll against that creature",
+  "rule": "equipment.weapons.vex/vex"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "An attack is against one target unless its entry says",
+  "rule": "monsters.parts_of_a_stat_block/attack_notation"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "\"Half damage only\" on a successful save means the target takes half as much damage",
+  "rule": "monsters.parts_of_a_stat_block/saving_throw_effect_notation"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "You decide whether to use the number or the die expression",
+  "rule": "monsters.parts_of_a_stat_block/damage_notation"
+ },
+ {
+  "disposition": "qualified: added ['certification'], changed []",
+  "quote": "Some creatures can make more than one attack when they take the Attack action",
+  "rule": "monsters.parts_of_a_stat_block/multiattack"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "**X/Day.** This notation means",
+  "rule": "monsters.parts_of_a_stat_block/limited_usage"
+ },
+ {
+  "disposition": "qualified: added ['turn_of'], changed []",
+  "quote": "**Recharge X–Y.** This notation means",
+  "rule": "monsters.parts_of_a_stat_block/limited_usage"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "**Recharge after a Short or Long Rest.**",
+  "rule": "monsters.parts_of_a_stat_block/limited_usage"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "it regains all expended uses at the start of each of its turns",
+  "rule": "monsters.parts_of_a_stat_block/legendary_actions"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "**Base AC** = 10 + the creature's Dexterity modifier",
+  "rule": "play.d20_tests/base_ac"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "only one base calculation can be in effect",
+  "rule": "play.d20_tests/only_one_base_ac"
+ },
+ {
+  "disposition": "qualified: added ['also', 'applies_when'], changed []",
+  "quote": "you have Disadvantage on any D20 Test that involves Strength or Dexterity",
+  "rule": "equipment.armor/light_medium_or_heavy_armor"
+ },
+ {
+  "disposition": "unchanged",
+  "quote": "You gain the Armor Class benefit of a Shield only if you have training with it",
+  "rule": "equipment.armor/armor_training"
+ }
+]

@@ -1,0 +1,47 @@
+{
+ "all_batches": 24,
+ "batch_count": 11,
+ "batches": {
+  "animals": [
+   "c4b.json"
+  ],
+  "character-origins-feats": [
+   "c4a.json"
+  ],
+  "checks-actions-rests": [
+   "c4a.json",
+   "c4c.json"
+  ],
+  "classes": [
+   "c4a.json"
+  ],
+  "combat-damage-breaking": [
+   "c4a.json"
+  ],
+  "core-play-completion": [
+   "c4a.json"
+  ],
+  "equipment": [
+   "c4a.json",
+   "c4c.json"
+  ],
+  "magic-items": [
+   "c4b.json"
+  ],
+  "monsters": [
+   "c4a.json",
+   "c4b.json"
+  ],
+  "spell-descriptions": [
+   "c4b.json"
+  ],
+  "spellcasting": [
+   "c4a.json"
+  ]
+ },
+ "records_touched": {
+  "c4a.json": 158,
+  "c4b.json": 336,
+  "c4c.json": 15
+ }
+}

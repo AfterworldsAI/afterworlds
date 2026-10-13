@@ -1,0 +1,1893 @@
+--- .claude/review-notes/issue-15c-implementation/candidate-c4/derive_c4.py	2026-10-12 01:12:51.720637400 -0700
++++ .claude/review-notes/issue-15c-implementation/candidate-c5/derive_c5.py	2026-10-12 02:04:08.009481500 -0700
+@@ -1,15 +1,15 @@
+-"""CRD Issue 15c semantic candidate C4 — source-derived content (REVIEW MATERIAL).
++"""CRD Issue 15c semantic candidate C5 — source-derived content (REVIEW MATERIAL).
+ 
+ Candidate only. Nothing here is accepted, recorded, minted, published or
+-activated, and nothing is written outside this directory. C4 supersedes the
++activated, and nothing is written outside this directory. C5 supersedes the
+ unaccepted final C3 (``../candidate-c3/``) after Codex's independent review
+ (``../codex-c3-review.md``). C1, C2 and C3 are read, never written; their
+-digests are checked before and after every run. ``derive_c4.py`` is a fork of
+-``derive_c3.py``; ``derive_c4.diff`` shows every change.
++digests are checked before and after every run. ``derive_c5.py`` is a fork of
++``derive_c4.py``; ``derive_c5.diff`` shows every change.
+ 
+-C4 applies the settled source/capability contract:
++C5 keeps C4's settled source/capability contract:
+ 
+-* **Source parts** (``c4a.json``, ``c4b.json``, ``c4c.json``) carry only
++* **Source parts** (``c5a.json``, ``c5b.json``, ``c5c.json``) carry only
+   source facts, formulas and participant predicates, which are what a native
+   mint would contain.
+ * **Capability** (``capability.json``) carries everything about execution:
+@@ -19,7 +19,7 @@
+ 
+ Run from the repository root with the clone venv::
+ 
+-    venv/Scripts/python.exe .claude/review-notes/issue-15c-implementation/candidate-c4/derive_c4.py
++    venv/Scripts/python.exe .claude/review-notes/issue-15c-implementation/candidate-c5/derive_c5.py
+ """
+ 
+ from __future__ import annotations
+@@ -58,6 +58,11 @@
+     "candidate-c3/c3b.json": "bb086082b02e879706218a4ad016110d3c6d5b3f9cc095076adec1cc89095524",  # pragma: allowlist secret
+     "candidate-c3/c3c.json": "36be82a04ff2c587af754ed9430dfdfeb9b6053b8073d80add716313069e422b",  # pragma: allowlist secret
+     "candidate-c3/derive_c3.py": "88ddb75a9a82249c3d35afe48f23e0f24ebdfe998eb056a8573cf9d26d9a972a",  # pragma: allowlist secret
++    "candidate-c4/c4a.json": "901083ec3c8c25e9cd95a638a537cf3db41d8277420e07f0fc2b5d023cd15e62",  # pragma: allowlist secret
++    "candidate-c4/c4b.json": "f679b06c7e8e3513b9886716754db78b5a28c8cf254cb09d1e195b4f30765c08",  # pragma: allowlist secret
++    "candidate-c4/c4c.json": "2c34a6f03fc081a0adbe3abf8f9e50f0dcad55e9c07469cf3204ccb36e68fb5f",  # pragma: allowlist secret
++    "candidate-c4/capability.json": "2d884ffbb254af6849a8bd0b61cc5f2f2c4a84dd568f664e3606fb02cb783a8e",  # pragma: allowlist secret
++    "candidate-c4/derive_c4.py": "319919c641deab501c2e187e0e50457a75b9a15422e4e9beea8263131e5994f0",  # pragma: allowlist secret
+ }
+ PROPOSED_SCHEMA = "5d-representation-schema-19 (proposed; not minted)"
+ STATUS = "CANDIDATE ONLY - not accepted, recorded, minted, published or activated"
+@@ -323,7 +328,7 @@
+      "it regains all expended uses at the start of each of its turns",
+      {"family": "legendary_action_rule", "timing": "after_another_creatures_turn",
+       "one_at_a_time": True, "regain": "start_of_own_turn",
+-      "blocked_by": ["incapacitated"]}),
++      "not_while_has_conditions": ["incapacitated"]}),
+ ]
+ 
+ 
+@@ -392,6 +397,203 @@
+     return [slug(x) for x in re.split(r",? or |, ", text) if x.strip()]
+ 
+ 
++_ARMOR = ("light", "medium", "heavy")
++def _tool(slug_: str) -> dict[str, str]:
++    return {"record_key": f"equipment.tools.{slug_}", "component_key": slug_}
++
++
++_TOOL_KEYS = {"Calligrapher's Supplies": _tool("calligraphers_supplies"),
++              "Thieves' Tools": _tool("thieves_tools"),
++              "Herbalism Kit": _tool("herbalism_kit")}
++
++
++def _weapons(text: str) -> dict[str, Any]:
++    """Weapon proficiency as printed: categories, or a category qualified by
++    weapon properties."""
++    if text == "Simple and Martial weapons":
++        return {"categories": ["simple", "martial"]}
++    if text == "Simple weapons":
++        return {"categories": ["simple"]}
++    if text == "Martial weapons":
++        return {"categories": ["martial"]}
++    m = re.fullmatch(r"Simple weapons and Martial weapons that have the (\w+)(?: or (\w+))? "
++                     r"property", text)
++    assert m, text
++    return {"categories": ["simple"],
++            "qualified": [{"category": "martial", "with_any_property":
++                           [p.lower() for p in m.groups() if p]}]}
++
++
++def _armor(text: str) -> dict[str, Any]:
++    if text == "None":
++        return {"armor": [], "shields": False}
++    words = re.findall(r"Light|Medium|Heavy|Shields", text)
++    assert words and re.sub(r"Light|Medium|Heavy|Shields|armor|and|,|\s", "", text) == "", text
++    return {"armor": [w.lower() for w in words if w != "Shields"], "shields": "Shields" in words}
++
++
++def _tools(text: str) -> dict[str, Any]:
++    if text in _TOOL_KEYS:
++        return {"family": "tool_proficiency_grant", "tools": [_TOOL_KEYS[text]]}
++    if m := re.fullmatch(r"Choose (\d+) Musical Instruments \(see Equipment\)", text):
++        return {"family": "tool_proficiency_choice", "count": int(m[1]),
++                "from": {"tool_variants_of": _tool("musical_instrument")}}
++    if text == "Choose one type of Artisan's Tools or Musical Instrument (see Equipment)":
++        return {"family": "tool_proficiency_choice", "count": 1,
++                "from": [{"tool_category": "artisans_tools"},
++                         {"tool_variants_of": _tool("musical_instrument")}]}
++    raise AssertionError(text)
++
++
++def proficiency_and_training_grants(add: Any) -> None:
++    """Who earns saving-throw, weapon, armor, tool and Weapon Mastery
++    entitlements, as printed (Codex C5 grant-family addendum)."""
++    src = lines(CLASSES)
++    rows = {}
++    for i, l in enumerate(src):
++        m = re.match(r"\s*<td>(Saving Throw Proficiencies|Weapon Proficiencies|Tool "
++                     r"Proficiencies|Armor Training)</td>", l)
++        if m:
++            rows.setdefault(m[1], []).append((i + 2, re.sub(r"<[^>]+>", "", src[i + 1]).strip()))
++    assert [len(rows[k]) for k in ("Saving Throw Proficiencies", "Weapon Proficiencies",
++                                   "Armor Training")] == [12, 12, 12], rows.keys()
++    tools_by_line = dict(rows["Tool Proficiencies"])
++    weapon_lines = [n for n, _ in rows["Weapon Proficiencies"]]
++    for idx, cls in enumerate(_CLASSES12):
++        record = f"classes.{cls}"
++        n, sv = rows["Saving Throw Proficiencies"][idx]
++        add(record, "core_traits", CLASSES, sv,
++            {"family": "saving_throw_proficiency_grant", "context": "level_1_character",
++             "abilities": [a.lower() for a in re.split(r" and ", sv)]}, line=n)
++        n, wp = rows["Weapon Proficiencies"][idx]
++        add(record, "core_traits", CLASSES, wp,
++            {"family": "weapon_proficiency_grant", "context": "level_1_character",
++             **_weapons(wp)}, line=n)
++        n, ar = rows["Armor Training"][idx]
++        add(record, "core_traits", CLASSES, ar,
++            {"family": "armor_training_grant", "context": "level_1_character", **_armor(ar)},
++            line=n)
++        # The class's own tool row, when its table prints one (between its
++        # weapon row and the next class's weapon row).
++        nxt = weapon_lines[idx + 1] if idx + 1 < 12 else 10 ** 9
++        for tn, tv in tools_by_line.items():
++            if weapon_lines[idx] < tn < nxt:
++                add(record, "core_traits", CLASSES, tv,
++                    {**_tools(tv), "context": "level_1_character"}, line=tn)
++    # Multiclass: only the listed traits (no saving throws).
++    heads = [i for i, l in enumerate(src) if l == "#### As a Multiclass Character"]
++    for cls, i in zip(_CLASSES12, heads, strict=True):
++        n = next(j for j in range(i, i + 6) if re.search(r"Core \w+ Traits table", src[j]))
++        text = src[n].lstrip("•- ").strip()
++        listed = text.split(": ", 1)[1].rstrip(".") if ": " in text else ""
++        fact: dict[str, Any] = {"family": "multiclass_proficiency_grant",
++                                "saving_throws": []}
++        if m := re.search(r"proficiency with (Simple and Martial|Martial|Simple) weapons", listed):
++            fact["weapons"] = _weapons(f"{m[1]} weapons")
++        else:
++            fact["weapons"] = {"categories": []}
++        if m := re.search(r"training with ((?:Light|Medium|Heavy|Shields)[\w ,]*?)(?:,|$| and "
++                          r"(?=proficiency))", listed):
++            fact["armor_training"] = _armor(m[1].strip())
++        else:
++            fact["armor_training"] = {"armor": [], "shields": False}
++        if "one Musical Instrument of your choice" in listed:
++            fact["tools"] = {"family": "tool_proficiency_choice", "count": 1,
++                             "from": {"tool_variants_of": _tool("musical_instrument")}}
++        elif "Thieves' Tools" in listed:
++            fact["tools"] = {"family": "tool_proficiency_grant",
++                             "tools": [_tool("thieves_tools")]}
++        add(f"classes.{cls}.as_a_multiclass_character", "as_a_multiclass_character",
++            CLASSES, text, fact, line=n + 1)
++    # Feature grants with their exact G1 progression entries.
++    for record, component, quote, fact in (
++            ("classes.monk.disciplined_survivor", "disciplined_survivor",
++             "Your physical and mental discipline grant you proficiency in all saving throws.",
++             {"family": "saving_throw_proficiency_grant", "abilities": list(ABILITY)}),
++            ("classes.rogue.slippery_mind", "slippery_mind",
++             "You gain proficiency in Wisdom and Charisma saving throws.",
++             {"family": "saving_throw_proficiency_grant", "abilities": ["wisdom", "charisma"]}),
++            ("classes.cleric.divine_order", "protector",
++             "_Protector._ Trained for battle, you gain proficiency with Martial weapons and "
++             "training with Heavy armor.",
++             {"family": "weapon_and_armor_grant", "weapons": {"categories": ["martial"]},
++              "armor_training": {"armor": ["heavy"], "shields": False},
++              "chosen_option_of": "classes.cleric.divine_order"}),
++            ("classes.druid.primal_order", "warden",
++             "_Warden._ Trained for battle, you gain proficiency with Martial weapons and "
++             "training with Medium armor.",
++             {"family": "weapon_and_armor_grant", "weapons": {"categories": ["martial"]},
++              "armor_training": {"armor": ["medium"], "shields": False},
++              "chosen_option_of": "classes.druid.primal_order"})):
++        add(record, component, CLASSES, quote,
++            {**fact, "gain_levels": {"family": "progression_entry", "entitlement_key": record}})
++    # Weapon Mastery: count, eligible kinds, gain levels and the rest-swap
++    # qualifier as printed. Barbarian and Fighter counts come from their own
++    # Features tables (G1's quantity-bearing entry is keyed for neither class).
++    for cls, quote, restriction, swap in (
++            ("barbarian", "Your training with weapons allows you to use the mastery properties of "
++             "two kinds of Simple or Martial Melee weapons of your choice",
++             {"categories": ["simple", "martial"], "melee_only": True}, "one"),
++            ("fighter", "Your training with weapons allows you to use the mastery properties of "
++             "three kinds of Simple or Martial weapons of your choice",
++             {"categories": ["simple", "martial"]}, "one"),
++            ("paladin", "Your training with weapons allows you to use the mastery properties of "
++             "two kinds of weapons of your choice with which you have proficiency",
++             {"requires_weapon_proficiency": True}, "any"),
++            ("ranger", "Your training with weapons allows you to use the mastery properties of "
++             "two kinds of weapons of your choice with which you have proficiency",
++             {"requires_weapon_proficiency": True}, "any"),
++            ("rogue", "Your training with weapons allows you to use the mastery properties of "
++             "two kinds of weapons of your choice with which you have proficiency",
++             {"requires_weapon_proficiency": True}, "any")):
++        head = next(i for i, l in enumerate(src) if l == "#### Level 1: Weapon Mastery"
++                    and i > next(j for j, x in enumerate(src)
++                                 if x.startswith(f"## {cls.title()}")))
++        n = next(j for j in range(head, head + 4) if src[j].startswith("Your training"))
++        count = {"two": 2, "three": 3}[re.search(r"of (two|three) kinds", quote)[1]]
++        fact = {"family": "weapon_mastery_choice", "kinds_of_weapons": count, **restriction,
++                "rest_swap": {"after": "long_rest", "change": swap},
++                "gain_levels": {"family": "progression_entry",
++                                "entitlement_key": f"classes.{cls}.weapon_mastery"}}
++        if cls in ("barbarian", "fighter"):
++            fact["count_by_level"] = _mastery_column(src, cls)
++        add(f"classes.{cls}.weapon_mastery", "weapon_mastery", CLASSES, quote, fact,
++            line=n + 1)
++    # Background tools (the Soldier chooses one kind of Gaming Set).
++    o = lines(ORIGINS)
++    for bg in ("acolyte", "criminal", "sage", "soldier"):
++        head = next(i for i, l in enumerate(o) if re.match(rf"#{{3,4}} {bg.title()}\b", l))
++        n = next(j for j in range(head, len(o)) if o[j].startswith("**Tool Proficiency:**"))
++        value = o[n].split("**", 2)[2].strip()
++        if value.startswith("_Choose one kind of_ Gaming Set"):
++            fact = {"family": "tool_proficiency_choice", "count": 1,
++                    "from": {"tool_variants_of": _tool("gaming_set")}}
++        else:
++            fact = {"family": "tool_proficiency_grant", "tools": [_TOOL_KEYS[value]]}
++        add(f"character_origins.{bg}", "tool_proficiency", ORIGINS, o[n].strip(), fact,
++            line=n + 1)
++
++
++def _mastery_column(src: list[str], cls: str) -> dict[str, int]:
++    """The Weapon Mastery column of a class's Features table, by level."""
++    start = src.index(f"**{cls.title()} Features**")
++    i = next(j for j in range(start, start + 40) if "<table" in src[j])
++    end = next(j for j in range(i, len(src)) if "</table>" in src[j])
++    rows, cur = [], None
++    for line in src[i:end]:
++        if "<tr>" in line:
++            cur = []
++        if cur is not None:
++            cur += re.findall(r"<t[hd]>(.*?)</t[hd]>", line)
++        if "</tr>" in line:
++            rows.append(cur)
++            cur = None
++    col = rows[0].index("Weapon Mastery")
++    out = {r[0]: int(r[col]) for r in rows[1:]}
++    assert sorted(map(int, out)) == list(range(1, 21)), out
++    return out
++
++
+ def grant_facts(comps: set[tuple[str, str]]) -> list[dict[str, Any]]:
+     out: list[dict[str, Any]] = []
+ 
+@@ -399,6 +601,15 @@
+             line: int | None = None) -> None:
+         """``line`` (1-based) pins provenance when the same quote recurs."""
+         assert (record, component) in comps, (record, component)
++        if line is not None and quote not in lines(file)[line - 1]:
++            # A sentence wrapped onto the next physical line: quote the joined
++            # logical text and record both lines.
++            joined = lines(file)[line - 1].strip() + " " + lines(file)[line].strip()
++            assert quote in joined, (file, line, quote)
++            out.append({"record_key": record, "component_key": component, "fact": fact,
++                        "source": {"file": file, "line": line, "last_line": line + 1,
++                                   "quote": quote}})
++            return
+         src_ = located(file, quote)
+         if line is not None:
+             assert quote in lines(file)[line - 1], (file, line, quote)
+@@ -415,12 +626,12 @@
+         text = re.sub(r"<[^>]+>", "", row).strip()
+         if m := re.fullmatch(r"Choose any (\d+) skills \(see Playing the Game\)", text):
+             fact = {"family": "skill_proficiency_choice", "count": int(m.group(1)),
+-                    "from": _ALL_SKILLS}
++                    "from": _ALL_SKILLS, "context": "level_1_character"}
+         else:
+             m = re.fullmatch(r"Choose (\d+): (.+)", text)
+             assert m, text
+             fact = {"family": "skill_proficiency_choice", "count": int(m.group(1)),
+-                    "from": _skill_list(m.group(2))}
++                    "from": _skill_list(m.group(2)), "context": "level_1_character"}
+         assert set(fact["from"]) <= set(_ALL_SKILLS), fact
+         add(f"classes.{cls}", "core_traits", CLASSES, text, fact)
+     # Backgrounds: fixed skills and the three listed abilities.
+@@ -486,7 +697,7 @@
+     add("feats.skilled", "skilled", FEATS,
+         "You gain proficiency in any combination of three skills or tools of your choice.",
+         {"family": "skill_proficiency_choice", "count": 3, "from": _ALL_SKILLS,
+-         "or_tools": True, "repeatable": True})
++         "or_tools": {"from": {"any_tool_entry": True}}, "repeatable": True})
+     # Species.
+     add("character_origins.elf", "keen_senses", ORIGINS,
+         "You have proficiency in the Insight, Perception, or Survival skill.",
+@@ -518,10 +729,22 @@
+         "You gain proficiency in another skill of your choice from the skill list available "
+         "to Barbarians at level 1.",
+         {"family": "skill_proficiency_choice", "count": 1,
+-         "from": "classes.barbarian/core_traits"})
++         "from": "classes.barbarian/core_traits",
++         "gain_levels": {"family": "progression_entry",
++                         "entitlement_key": "classes.barbarian.primal_knowledge"}})
++    lore_q = "You gain proficiency with three skills of your choice."
++    src_l = lines(CLASSES)
++    at = next(i for i, l in enumerate(src_l) if l == lore_q)
++    lvl = next(src_l[j] for j in range(at, 0, -1) if src_l[j].startswith("#### "))
++    sub = next(src_l[j] for j in range(at, 0, -1) if src_l[j].startswith("### "))
++    assert lvl == "#### Level 3: Bonus Proficiencies", lvl
++    assert sub == "### Bard Subclass: College of Lore", sub
+     add("classes.bard.college_of_lore.bonus_proficiencies", "bonus_proficiencies", CLASSES,
+-        "You gain proficiency with three skills of your choice.",
+-        {"family": "skill_proficiency_choice", "count": 3, "from": _ALL_SKILLS})
++        lore_q,
++        {"family": "skill_proficiency_choice", "count": 3, "from": _ALL_SKILLS,
++         "eligibility": {"class": "classes.bard", "subclass": "classes.bard.college_of_lore",
++                         "minimum_class_level": int(re.search(r"Level (\d+)", lvl)[1]),
++                         "source_headings": [sub, lvl]}}, line=at + 1)
+     # Multiclass entry grants (only Bard, Ranger and Rogue grant a skill).
+     src_c = lines(CLASSES)
+     heads = [i for i, l in enumerate(src_c) if l == "#### As a Multiclass Character"]
+@@ -540,6 +763,7 @@
+             fact = {"family": "multiclass_skill_proficiency_choice", "count": 0}
+         add(f"classes.{cls}.as_a_multiclass_character", "as_a_multiclass_character",
+             CLASSES, quote, fact)
++    proficiency_and_training_grants(add)
+     # Origin feats granted by backgrounds; Human Versatile's origin-feat choice.
+     o = lines(ORIGINS)
+     for bg in ("acolyte", "criminal", "sage", "soldier"):
+@@ -614,7 +838,7 @@
+     for record, component, _, quote, fact in RULES + STAT_BLOCK_RULES + ARMOR_RULES + SPELLCASTING_RULES:
+         before = old.get((record, component, quote))
+         if before is None:
+-            disposition = "new in C4"
++            disposition = "new in C4 (kept in C5)"
+         elif before == fact:
+             disposition = "unchanged"
+         else:
+@@ -1003,7 +1227,10 @@
+         else:
+             rest = rest[: m.start()] + " " + rest[m.end():]
+     words = [w for w in re.split(r"(\s+|[,.;])", rest) if w.strip()]
+-    residue = " ".join(w for w in words if not _FILLER.match(w)).strip()
++    residue = ""
++    if any(not _FILLER.match(w) for w in words):
++        residue = re.sub(r"\s+", " ", rest).strip(" ,;.")
++        residue = re.sub(r"\s+([,.;])", r"\1", residue)
+     residue = "; ".join(x for x in (kept, residue) if x)
+     return out, residue or None
+ 
+@@ -1017,7 +1244,8 @@
+     if not m:
+         return None
+     reach = m.group("reach")
+-    rm = re.fullmatch(r"(?:reach (\d+) ft\.?)?(?: or )?(?:range (\d+)(?:/(\d+))? ft)?", reach)
++    rm = re.fullmatch(r"(?:reach (\d+) (?:ft\.?|feet))?(?: or )?(?:range (\d+)(?:/(\d+))? "
++                      r"(?:ft|feet))?", reach)
+     terms, rest = _damage_terms(m.group("hit"))
+     effect, residue = _rider(rest)
+     if effect and "additional_damage" in effect:
+@@ -1050,6 +1278,35 @@
+             "hit_damage": terms, "hit_effect": effect, "untyped": reasons}
+ 
+ 
++def _framed_save(frame: str, text: str) -> dict[str, Any] | None:
++    """A save with a framing preamble, or with outcome branches the plain
++    save shape does not read. Target reasons come from the plain shape."""
++    sv = _save(text)
++    if sv is None:
++        hm = re.match(r"^_(?P<ab>\w+) Saving Throw:_ DC (?P<dc>\d+)(?:, (?P<t>.+?))?\. "
++                      r"(?P<out>_.*)$", text)
++        if not hm:
++            return None
++        probe = _save(f"_{hm['ab']} Saving Throw:_ DC {hm['dc']}, "
++                      f"{hm['t'] or 'the target'}. _Failure:_ x")
++        assert probe is not None, text
++        sv = {**probe, "failure_damage": [], "failure_effect": None, "success": None,
++              "untyped": [r for r in probe["untyped"]
++                          if not r.startswith("failure rider not typed")
++                          and (hm["t"] or not r.startswith("target predicate"))],
++              "untyped_clauses": [c for c in probe["untyped_clauses"]
++                                  if c["part"] == "targets" and hm["t"]]
++              + [{"part": "outcomes", "text": hm["out"]}]}
++        if not hm["t"]:
++            # "Each creature whose space ... is targeted once by the following
++            # effect": the participants are stated by the frame.
++            sv["targets"] = {"stated_by": "frame"}
++    if frame.strip():
++        sv["untyped_clauses"].insert(0, {"part": "frame", "text": frame.strip()})
++        sv["untyped"].append("frame not typed")
++    return sv
++
++
+ def _save(text: str) -> dict[str, Any] | None:
+     m = re.match(r"^_(?P<ability>\w+) Saving Throw:_ (?:DC (?P<dc>\d+)|DC equals your spell "
+                  r"save DC|Your spell save DC), (?P<targets>.+?)\. "
+@@ -1263,11 +1520,13 @@
+     "Training": ("self", ["own_check"], "missing runtime input: the GameMaster's skill choice",
+                  "proficiency and Advantage in one chosen skill"),
+     "Swarm": ("self", ["zero_hp_outcome"], None,
+-              "can't regain Hit Points or gain Temporary Hit Points. Only where character-"
+-              "style zero-HP treatment applies to the subject: the natural-20 Death Saving "
+-              "Throw and the Stable 1d4-hour 1 Hit Point regains do not happen, because an "
+-              "exception supersedes the general rule; the rest of the death-save rule is "
+-              "unchanged. The default monster death determination is unaffected"),
++              "the source prohibition is unconditional. It is relevant to admitted "
++              "operations only where character-style zero-HP treatment applies to the "
++              "subject: then the natural-20 Death Saving Throw and the Stable 1d4-hour 1 "
++              "Hit Point regains do not happen, because 'When an exception and a general "
++              "rule disagree, the exception wins' (playing-the-game.md 109); the rest of "
++              "the death-save rule is unchanged. The default monster death determination "
++              "is unaffected"),
+     "Sunlight Weakness": ("self", ["own_attack", "own_check", "target_save"],
+                           "missing state: sunlight", "Disadvantage on D20 Tests in sunlight"),
+     "Sunlight": ("self", ["own_attack", "own_check"], "missing state: sunlight",
+@@ -1311,8 +1570,12 @@
+     "Stake to the Heart": ("self", [], "unsupported: destruction/paralysis by stake",
+                            "a specific narrative act"),
+     "Freeze": ("self", [], None, "Speed change after cold damage; touches no admitted roll"),
+-    "Undead Fortitude": ("self", ["zero_hp_outcome"], "unsupported: save to stay at 1 HP",
+-                         "DC 5 plus the damage taken"),
++    "Undead Fortitude": ("self", ["zero_hp_outcome"],
++                         "missing state: the triggering damage event (amount taken, damage "
++                         "type and whether it was a Critical Hit), resolved synchronously "
++                         "with that damage",
++                         "applies to these monsters whatever their zero-HP treatment; not "
++                         "healing"),
+     "Bloodied Fury": ("self", ["own_attack"], None,
+                       "Advantage on melee attack rolls while Bloodied (recorded HP)"),
+     "Life Bond": ("self", [], None, "healing shared with the caster; healing is a non-goal"),
+@@ -1337,9 +1600,18 @@
+                      "applies_when": {"subject_not": "incapacitated"}},
+     "Swarm": {"effects": [{"family": "hit_point_regain_prohibition", "hit_points": True,
+                            "temporary_hit_points": True}],
+-              "applies_when": {"zero_hp_treatment": "character_style"},
+-              "precedence": located(PTG, "When an exception and a general rule disagree, the "
+-                                         "exception wins.")},
++              },
++    "Undead Fortitude": {
++        "family": "zero_hit_point_save",
++        "trigger": "damage reduces the subject to 0 Hit Points",
++        "save": "constitution", "dc": {"base": 5, "plus": "damage_taken"},
++        "unless": {"damage_type": "radiant", "critical_hit": True},
++        "on_success": {"set_hit_points": 1, "instead_of": "0 Hit Points"}},
++    "Inscrutable": {"effects": [{"family": "advantage", "state": "disadvantage",
++                                 "roll": {"actor": "against_subject", "context": "ability_check",
++                                          "ability": "wisdom"}}],
++                    "skill": "insight",
++                    "purpose": "to ascertain the subject's intentions or sincerity"},
+     "Evasion": {"save_damage_override": {"save": "dexterity", "on": "half_damage_effects",
+                                          "success": "no_damage", "failure": "half_damage"},
+                 "applies_when": {"subject_not": "incapacitated"}},
+@@ -1378,6 +1650,31 @@
+         "Water Breathing"],
+ }.items() for n in names}
+ 
++def _observer_check(text: str) -> dict[str, Any] | None:
++    """A source-fixed check another creature makes about this one (Mimicry,
++    Transparent): an admitted skill check with its source predicate."""
++    m = re.search(r"(?P<who>A hearer|A creature that hears the sounds|a creature) (?:can "
++                  r"discern the sounds are imitations|can tell they are imitations|must succeed "
++                  r"on a DC (?P<dc0>\d+) (?P<ab0>\w+) \((?P<sk0>\w+)\) check to notice the "
++                  r"[\w' -]+? if the creature hasn't witnessed the [\w' -]+? move or otherwise "
++                  r"act)(?: only)? with a successful DC (?P<dc>\d+) (?P<ab>\w+) \((?P<sk>\w+)\) "
++                  r"check|(?P<who2>a creature) must succeed on a DC (?P<dc2>\d+) (?P<ab2>\w+) "
++                  r"\((?P<sk2>\w+)\) check to notice the [\w' -]+? if the creature hasn't "
++                  r"witnessed the [\w' -]+? move or otherwise act", text)
++    if not m:
++        return None
++    if m["dc2"]:
++        return {"made_by": "another creature", "purpose": "to notice the subject",
++                "check": {"ability": m["ab2"].lower(), "skill": m["sk2"].lower(),
++                          "dc": int(m["dc2"])},
++                "only_if": {"checker_has_not_witnessed_subject_move_or_act": True},
++                "needs": "whether the checking creature has witnessed the subject move or act"}
++    return {"made_by": m["who"][0].lower() + m["who"][1:],
++            "purpose": "to discern the sounds are imitations",
++            "check": {"ability": m["ab"].lower(), "skill": m["sk"].lower(), "dc": int(m["dc"])},
++            "needs": "whether the checking creature heard the imitated sounds"}
++
++
+ #: Named mechanics outside the roster's bounded shapes (deferred, individually).
+ NAMED_DEFERRED: dict[str, str] = {
+     "Shape-Shift": "changes form; form-dependent entries need a recorded current form",
+@@ -1393,8 +1690,6 @@
+     "Roar": "a rotating sequence of effects with its own lifecycle",
+     "Destroy Metal": "object destruction",
+     "Soul Bag": "item-gated action",
+-    "Mimicry": "a check by observers (DC 14 Insight) outside the roster",
+-    "Transparent": "a check by observers (DC 15 Perception) outside the roster",
+     "Reactive": "extra Reactions (reactions are deferred)",
+     "Reactive Heads": "extra Reactions (reactions are deferred)",
+     "Swoop": "drops a grappled creature from the air (falling outside the roster)",
+@@ -1428,10 +1723,712 @@
+     return {"own_rolls": own, "rolls_against": against, "contextual": contextual}
+ 
+ 
+-def entries(block_lines: list[str], cond_index: dict[str, Any]) -> list[dict[str, Any]]:
+-    section = "trait"
+-    raw = []
+-    for line in block_lines:
++# -- Sub-clause dispositions (C5; Codex C4 review finding 1) ------------------
++#
++# Every clause the entry parsers leave untyped is split into exact pieces
++# (sentences, conjuncts, leading predicates and branch labels) that rebuild it
++# byte for byte. Each piece gets exactly one disposition:
++#
++# * ``typed``: a source fact in ``typed`` (it stays in the source part);
++# * ``unsupported``: a genuinely different engine, named by its cluster;
++# * ``no_mechanical_consequence``: narrative information only;
++# * ``untyped``: an ordinary shape not yet typed (missing source authority).
++#
++# Typing a piece states what the source says; what the runtime still needs
++# (position, actor-turn, elapsed time, a recorded choice) is capability.
++
++_CONJUNCT = re.compile(
++    r"(?<=[.])\s+(?=[A-Z_*])"                     # sentence boundary
++    r"|(?<=:_)\s+(?!DC )"                         # after a branch label
++    r"|\s+(?=_[A-Z][\w ]*?:_)"                    # before a branch label
++    r"|;\s+(?![^()]*\))(?:and\s+)?"               # semicolon conjuncts
++    r"|,\s+(?=and (?:the target|it|its|the [a-z][\w' -]*? (?:can|has|pulls|moves))\b)"
++    r"|\s+(?=and (?:repeats|takes|subtracts|can't|has|doesn't|is transported|"
++    r"loses|it takes|it has)\b)"
++    r"|\s+(?=but has)"
++    r"|,\s+(?=which )"
++    r"|,\s+(?=at which point the)"
++    r"|,\s+(?=(?:is suffocating|has the|and takes|takes|can't cast)\b)"
++    r"|,\s+(?=(?:its|it) (?:Speed|Hit Point maximum|gains no)\b)")
++_PREDICATE = re.compile(
++    r"^(?P<p>(?:If|While|Until|Otherwise|At the end of each of its turns)\b[^,]*?),\s+"
++    r"(?P<rest>.+)$", re.S)
++_COND_WORDS = "|".join(sorted((c.capitalize() for c in CONDITIONS), key=len, reverse=True))
++_CONDS = rf"(?P<conds>(?:{_COND_WORDS})(?:(?:,| and|, and) (?:{_COND_WORDS}))*)"
++_SUBJ = r"(?:(?:[Tt]he target|[Ii]t|which) )?(?:also )?"
++_WHOSE_TURN = r"(?P<whose>its|the target's|this|the [\w' -]+?'s)"
++_DMG_TERM = r"(?P<avg>\d+) \((?P<n>\d+)d(?P<d>\d+)(?: (?P<sg>[+−-]) (?P<mod>\d+))?\)"
++
++
++def _conds(text: str) -> list[str]:
++    return [c.lower() for c in re.findall(_COND_WORDS, text)]
++
++
++def _turn(whose: str) -> str:
++    return ("target" if whose in ("its", "the target's") else
++            "this_turn" if whose == "this" else "source")
++
++
++def _until(m: re.Match[str]) -> dict[str, Any]:
++    return {"until": f"{m['edge']}_of_turn", "turn": "this" if m["whose"] == "this"
++            else "next", "turn_of": _turn(m["whose"])}
++
++
++_TIMED = rf" until the (?P<edge>start|end) of {_WHOSE_TURN} (?:next turn|turn)"
++_ENDS = (r"(?P<ends>(?:,? (?:or )?until it takes damage|,? (?:or )?until it ends its turn "
++         r"with the [\w' -]+? out of line of sight|,? (?:or )?until a creature within 5 feet of "
++         r"it takes an action to wake it)+)?")
++
++
++def _end_events(text: str | None) -> list[Any]:
++    out: list[Any] = []
++    if text and re.search(r"takes (?:any )?damage", text):
++        out.append("target_takes_damage")
++    if text and (m := re.search(r"a creature within (\d+) feet of it takes an action to wake "
++                                r"it", text)):
++        out.append({"event": "woken_by_an_action", "by_creature_within_ft": int(m[1])})
++    if text and re.search(r"out of line of sight", text):
++        out.append("ends_turn_out_of_line_of_sight")
++    return out
++
++
++def _cond_payloads(conds: list[str]) -> list[dict[str, Any]]:
++    return [{"family": "condition_effect", "condition": c, "effect": "applies"} for c in conds]
++
++
++#: (family, pattern on the normalized piece, builder, needs). ``needs`` names
++#: what an execution must validate; it is capability, never source.
++_READERS: list[tuple[str, str, Any, list[str]]] = [
++    ("grapple",
++     r"^(?:(?:it|the target|The target) has|the [\w' -]+? can give it) the Grappled condition "
++     r"\(escape DC (?P<dc>\d+)\)(?: from (?P<app>one of (?P<of>two|four|six|ten) \w+|both "
++     r"(?:of the [\w' -]+?'s )?[\w ]+?|all (?P<all>\w+) \w+))?(?P<instead> instead of dealing "
++     r"damage)?$",
++     lambda m: {"family": "grapple", "condition": "grappled", "escape_dc": int(m["dc"]),
++                **({"appendages": m["app"]} if m["app"] else {}),
++                **({"instead_of_damage": True} if m["instead"] else {})},
++     ["missing state: the source's occupied appendages (grapples held)"]),
++    ("grapple",
++     r"^(?:the target |it )?(?:can give it|has) the Grappled condition \(escape DC (?P<dc>\d+)\)$",
++     lambda m: {"family": "grapple", "condition": "grappled", "escape_dc": int(m["dc"])},
++     []),
++    ("timed_condition",
++     rf"^{_SUBJ}has the {_CONDS} conditions?{_TIMED}$",
++     lambda m: {"effects": _cond_payloads(_conds(m["conds"])), "duration": _until(m)},
++     ["missing state: actor-turn authority for the duration"]),
++    ("timed_condition",
++     rf"^{_SUBJ}has the {_CONDS} conditions?,?(?: instead of the "
++     rf"(?P<inst>\w+) condition,?)? for (?P<n>\d+) (?P<unit>minute|hour)s?{_ENDS}$",
++     lambda m: {"effects": _cond_payloads(_conds(m["conds"])),
++                "duration": {"amount": int(m["n"]), "unit": m["unit"]},
++                **({"replaces_condition": m["inst"].lower()} if m["inst"] else {}),
++                **({"ends_early_when": _end_events(m["ends"])} if m["ends"] else {})},
++     ["missing state: elapsed-time authority for the duration"]),
++    ("linked_condition",
++     rf"^{_SUBJ}has the {_CONDS} conditions? until the "
++     r"(?P<link>grapple|curse|song) ends$",
++     lambda m: {"effects": _cond_payloads(_conds(m["conds"])), "while": m["link"]}, []),
++    ("condition",
++     rf"^{_SUBJ}has the {_CONDS} conditions?(?: instead "
++     r"of the (?P<inst>\w+) condition)?(?P<rep> and repeats the save at the end of "
++     r"(?P<when>each of its turns|its next turn if it is still Restrained), ending the effect on "
++     r"itself on a success)?$",
++     lambda m: {"effects": _cond_payloads(_conds(m["conds"])),
++                **({"replaces_condition": m["inst"].lower()} if m["inst"] else {}),
++                **({"repeat_save": {"at": "end_of_each_of_its_turns" if "each" in m["when"]
++                                    else "end_of_its_next_turn_if_still_restrained",
++                                    "ends_on": "success"}} if m["rep"] else {})},
++     []),
++    ("condition_until_repeat",
++     rf"^The target has the {_CONDS} condition until the end of its next turn,? (?:at which "
++     r"point|when) it repeats the save$",
++     lambda m: {"effects": _cond_payloads(_conds(m["conds"])),
++                "duration": {"until": "end_of_turn", "turn": "next", "turn_of": "target"},
++                "repeat_save": {"at": "end_of_its_next_turn", "turn_of": "target",
++                                "once": True}},
++     ["missing state: actor-turn authority for the duration and repeat save"]),
++    ("condition_ends_early",
++     r"^which ends early if the target takes (?:any )?damage(?: or a creature within 5 feet "
++     r"of it takes an action to wake it)?$",
++     lambda m: {"ends_early_when": _end_events(m.string)}, []),
++    ("effect_ends",
++     r"^This effect ends for the target if it takes damage or a creature within 5 feet of it "
++     r"takes an action to wake it$",
++     lambda m: {"ends_early_when": _end_events(m.string)}, []),
++    ("effect_lasts",
++     r"^This effect lasts until the (?P<edge>end|start) of (?P<whose>its) next turn$",
++     lambda m: {"duration": _until(m), "scope": "sentence_effects_above"},
++     ["missing state: actor-turn authority for the duration"]),
++    ("speed_change",
++     rf"^(?:the target's|its) Speed (?P<chg>decreases by (?P<ft>\d+) feet|is halved|is 0)"
++     rf"(?:{_TIMED})?$",
++     lambda m: {"family": "timed_speed_change",
++                "change": ("decrease" if m["ft"] else "halve" if "halved" in m["chg"]
++                           else "set_to"),
++                **({"feet": int(m["ft"])} if m["ft"] else
++                   {"feet": 0} if m["chg"] == "is 0" else {}),
++                **({"duration": _until(m)} if m["edge"] else {})},
++     ["missing state: actor-turn authority for the duration"]),
++    ("ac_penalty",
++     rf"^the target takes a [−-](?P<n>\d+) penalty to AC{_TIMED}$",
++     lambda m: {"family": "timed_ac_modifier", "modifier": -int(m["n"]), "duration": _until(m)},
++     ["missing state: actor-turn authority for the duration"]),
++    ("next_roll",
++     r"^the (?P<who>target|[\w' -]+?) has (?P<state>Advantage|Disadvantage) on the next attack "
++     r"roll it makes before the (?P<edge>end|start) of (?P<whose>its|this) (?:next )?turn$",
++     lambda m: {"family": "next_roll_modifier",
++                "roll": {"actor": "target" if m["who"] == "target" else "source",
++                         "context": "attack_roll"},
++                "state": m["state"].lower(), "uses": 1,
++                "expires": {"until": f"{m['edge']}_of_turn",
++                            "turn": "this" if m["whose"] == "this" else "next",
++                            "turn_of": "target" if m["who"] == "target" else "source"}},
++     ["missing state: actor-turn authority for the expiry"]),
++    ("next_roll",
++     r"^the next attack roll made against the target before the (?P<edge>start|end) of "
++     r"(?P<whose>the [\w' -]+?'s) next turn has (?P<state>Advantage|Disadvantage)$",
++     lambda m: {"family": "next_roll_modifier",
++                "roll": {"actor": "any", "against": "target", "context": "attack_roll"},
++                "state": m["state"].lower(), "uses": 1,
++                "expires": {"until": f"{m['edge']}_of_turn", "turn": "next",
++                            "turn_of": "source"}},
++     ["missing state: actor-turn authority for the expiry"]),
++    ("penalty_die",
++     r"^the target rolls 1d(?P<d>\d+) whenever it makes an ability check or attack roll$",
++     lambda m: {"family": "d20_test_penalty_die", "count": 1, "die": f"d{m['d']}",
++                "contexts": ["ability_check", "attack_roll"]},
++     []),
++    ("penalty_die_application",
++     r"^(?:and )?subtracts the number rolled from the D20 Test$",
++     lambda m: {"family": "penalty_die_application", "subtracts_from": "d20_test"}, []),
++    ("ability_disadvantage",
++     r"^The target has Disadvantage on (?P<ab>Strength)-based D20 Tests$",
++     lambda m: {"subject": "target",
++                "effects": [{"family": "advantage", "state": "disadvantage",
++                             "roll": {"actor": "subject", "context": "d20_test",
++                                      "ability": m["ab"].lower()}}]},
++     []),
++    ("roll_disadvantage",
++     r"^the target also has Disadvantage on ability checks and attack rolls$",
++     lambda m: {"subject": "target",
++                "effects": [_adv("disadvantage", c) for c in ("ability_check", "attack_roll")]},
++     []),
++    ("damage_roll_penalty",
++     r"^and subtracts (?P<avg>\d+) \((?P<n>\d+)d(?P<d>\d+)\) from its damage rolls$",
++     lambda m: {"family": "damage_roll_penalty", "average": int(m["avg"]),
++                "dice": {"count": int(m["n"]), "die": f"d{m['d']}"}}, []),
++    ("repeat_save",
++     r"^(?:and )?(?:it |It |the target |The target )?repeats the save,? at the end of each of "
++     r"its turns, ending the effect on itself on a success$",
++     lambda m: {"family": "repeat_save", "at": "end_of_each_of_its_turns",
++                "turn_of": "target", "ends_on": "success"},
++     ["missing state: actor-turn authority for the repeat save"]),
++    ("repeat_save",
++     r"^the target repeats the save, ending the effect on itself on a success$",
++     lambda m: {"family": "repeat_save", "ends_on": "success"}, []),
++    ("repeat_save",
++     r"^(?:and )?(?:[Tt]he target |it )?repeats the save at the end of its next turn if it is "
++     r"still Restrained, "
++     r"ending the effect on itself on a success$",
++     lambda m: {"family": "repeat_save", "at": "end_of_its_next_turn", "turn_of": "target",
++                "only_if": {"has_condition": "restrained"}, "ends_on": "success"},
++     ["missing state: actor-turn authority for the repeat save"]),
++    ("repeat_save",
++     r"^and repeats the save at the end of each of its turns$",
++     lambda m: {"family": "repeat_save", "at": "end_of_each_of_its_turns",
++                "turn_of": "target"},
++     ["missing state: actor-turn authority for the repeat save"]),
++    ("repeat_save_limit",
++     r"^After (?P<n>\d+) minutes?, it succeeds automatically$",
++     lambda m: {"family": "repeat_save_limit", "automatic_success_after_minutes": int(m["n"])},
++     ["missing state: elapsed-time authority for the automatic success"]),
++    ("temporary_immunity",
++     r"^[Tt]he target is immune to this (?P<src>[\w' -]+?)'s (?P<what>[\w' -]+?) for (?:the next )?"
++     r"(?P<n>\d+) hours$",
++     lambda m: {"family": "temporary_immunity", "to": "this_source_entry",
++                "entry": m["what"], "hours": int(m["n"])},
++     ["missing state: elapsed-time authority for the immunity"]),
++    ("branch_label",
++     r"^_(?P<b>Failure|Success|First Failure|Second Failure|Subsequent Failures|Failure by 5 or "
++     r"More|Failure or Success|Hit or Miss):_$",
++     lambda m: {"family": "branch", "branch": slug(m["b"])}, []),
++    ("nested_save",
++     r"^_(?P<ab>\w+) Saving Throw:_ DC (?P<dc>\d+)$",
++     lambda m: {"family": "nested_save", "ability": m["ab"].lower(), "dc": int(m["dc"])}, []),
++    ("nested_save",
++     r"^(?:it|the target) (?:is subjected to the following effect|must make the following "
++     r"saving throw)$",
++     lambda m: {"family": "nested_save_trigger"}, []),
++    ("hit_points_set",
++     r"^it drops to 0 Hit Points$",
++     lambda m: {"family": "hit_points_set", "to": 0}, []),
++    ("otherwise_damage",
++     rf"^(?:the target takes |It otherwise takes )?{_DMG_TERM} (?P<type>[A-Z][a-z]+) damage"
++     r"(?: plus (?P<avg2>\d+) \((?P<n2>\d+)d(?P<d2>\d+)\) (?P<type2>[A-Z][a-z]+) damage)?$",
++     lambda m: {"family": "damage_branch", "terms": [_dice_term(m, m["type"])] + (
++         [{"average": int(m["avg2"]), "dice": {"count": int(m["n2"]), "die": f"d{m['d2']}",
++                                               "modifier": 0},
++           "damage_type": m["type2"].lower()}] if m["avg2"] else [])}, []),
++    ("stable",
++     r"^the target becomes Stable$",
++     lambda m: {"family": "zero_hit_point_outcome", "becomes": "stable"}, []),
++    ("death_on_zero",
++     r"^(?:The target|A creature) dies(?: and turns to dust)? if (?:it is )?reduced to 0 Hit "
++     r"Points by this attack$",
++     lambda m: {"family": "zero_hit_point_outcome", "becomes": "dead",
++                "when": "reduced_to_0_by_this_attack"}, []),
++    ("choice_damage",
++     r"^(?P<avg>\d+) \((?P<n>\d+)d(?P<d>\d+)\) damage of the type chosen for the "
++     r"(?P<trait>[\w' ]+) trait$",
++     lambda m: {"family": "choice_typed_damage", "average": int(m["avg"]),
++                "dice": {"count": int(m["n"]), "die": f"d{m['d']}", "modifier": 0},
++                "damage_type": {"chosen_for": m["trait"]}},
++     ["missing runtime input: the recorded Draconic Origin choice"]),
++    ("underwater_fire",
++     r"^Being underwater doesn't grant Resistance to this Fire damage$",
++     lambda m: {"family": "damage_qualification",
++                "underwater_fire_resistance_applies": False}, []),
++    ("returning_weapon",
++     r"^The (?P<w>\w+) magically returns to the [\w' -]+?'s hand(?: or hovers within "
++     r"(?P<ft>\d+) feet of the [\w' -]+?)? immediately after a ranged attack$",
++     lambda m: {"family": "returning_weapon", "weapon": m["w"],
++                **({"or_hovers_within_ft": int(m["ft"])} if m["ft"] else {})}, []),
++    ("periodic_damage",
++     rf"^(?:and )?(?:the target |it )?takes {_DMG_TERM} (?P<type>[A-Z][a-z]+) damage at the "
++     r"start of each of (?P<whose>its|the [\w' -]+?'s) turns$",
++     lambda m: {"family": "periodic_damage", "term": _dice_term(m, m["type"]),
++                "at": "start_of_each_turn", "turn_of": _turn(m["whose"])},
++     ["missing state: actor-turn authority for the periodic damage"]),
++    ("periodic_hp_loss",
++     r"^the target loses (?P<avg>\d+) \((?P<n>\d+)d(?P<d>\d+)\) Hit Points at the start of "
++     r"each of its turns$",
++     lambda m: {"family": "periodic_hit_point_loss", "average": int(m["avg"]),
++                "dice": {"count": int(m["n"]), "die": f"d{m['d']}"},
++                "at": "start_of_each_turn", "turn_of": "target"},
++     ["missing state: actor-turn authority for the periodic loss"]),
++    ("forced_movement",
++     r"^the [\w' -]+? (?P<verb>pulls|pushes|moves) the target (?P<up>up to )?(?P<ft>\d+) feet "
++     r"straight (?P<dir>toward|away from) itself$",
++     lambda m: {"family": "forced_movement",
++                "distance_ft" + ("_up_to" if m["up"] else ""): int(m["ft"]),
++                "direction": "straight_toward_source" if m["dir"] == "toward"
++                else "straight_away"},
++     ["missing state: position"]),
++    ("forced_movement",
++     r"^the target is pushed (?P<ft>\d+) feet straight away from the [\w' -]+?$",
++     lambda m: {"family": "forced_movement", "distance_ft": int(m["ft"]),
++                "direction": "straight_away"},
++     ["missing state: position"]),
++    ("follow_up_attack",
++     r"^the [\w' -]+? can make one (?P<a>[\w' ]+?) attack against it$",
++     lambda m: {"family": "follow_up_attack", "attack": m["a"], "count": 1,
++                "optional": True}, []),
++    ("source_movement",
++     r"^The [\w' -]+? then moves up to its Speed$",
++     lambda m: {"family": "source_movement", "up_to": "speed"}, ["missing state: position"]),
++    ("hit_point_regain_prohibition",
++     r"^the target can't regain Hit Points$",
++     lambda m: {"family": "hit_point_regain_prohibition", "hit_points": True}, []),
++    ("escape_disadvantage",
++     r"^Ability checks made to escape this grapple have Disadvantage$",
++     lambda m: {"subject": "target", "purpose": "escape_this_grapple",
++                "effects": [_adv("disadvantage", "ability_check")]}, []),
++    ("targeting_restriction",
++     r"^(?:and )?can't be targeted by the [\w' -]+?'s (?P<a>\w+)$",
++     lambda m: {"family": "targeting_restriction", "source_attack": m["a"],
++                "excludes": "the creature grappled by this attack"}, []),
++    ("named_effect",
++     r"^the target is cursed for (?P<n>\d+) (?P<unit>hour)s?(?P<or> or until the [\w' -]+? "
++     r"dies)?$",
++     lambda m: {"family": "named_effect", "name": "cursed",
++                "duration": {"amount": int(m["n"]), "unit": m["unit"],
++                             **({"or_until": "source_dies"} if m["or"] else {})}},
++     ["missing state: elapsed-time authority for the duration"]),
++    ("conditional_damage",
++     rf"^or {_DMG_TERM} (?P<type>[A-Z][a-z]+) damage if the [\w' -]+? had Advantage on the "
++     r"attack roll$",
++     lambda m: {"family": "conditional_damage", "mode": "instead", "replaces_hit_damage_index": 0,
++                "term": _dice_term(m, m["type"]), "when": {"attack_roll_had_advantage": True}},
++     []),
++    ("conditional_damage",
++     rf"^—or {_DMG_TERM} (?P<type>[A-Z][a-z]+) damage if the target is Grappled by the "
++     r"[\w' -]+?—plus (?P<avg2>\d+) \((?P<n2>\d+)d(?P<d2>\d+)\) (?P<type2>[A-Z][a-z]+) damage$",
++     lambda m: {"family": "conditional_damage", "mode": "instead", "replaces_hit_damage_index": 0,
++                "term": _dice_term(m, m["type"]),
++                "when": {"target_grappled_by_source": True},
++                # ``when`` governs only ``term``; this applies in both branches.
++                "unconditional_damage": [{"average": int(m["avg2"]),
++                                       "dice": {"count": int(m["n2"]), "die": f"d{m['d2']}",
++                                                "modifier": 0},
++                                       "damage_type": m["type2"].lower()}]}, []),
++    ("named_effect",
++     r"^(?:it|[Tt]he target) is cursed$",
++     lambda m: {"family": "named_effect", "name": "cursed"}, []),
++    ("condition_ends",
++     r"^The (?P<c>\w+) condition ends$",
++     lambda m: {"family": "condition_ends", "condition": m["c"].lower()}, []),
++    ("rescue_check",
++     r"^As an action, a creature within (?P<ft>\d+) feet of the [\w' -]+? can pull a creature "
++     r"out of it by succeeding on a DC (?P<dc>\d+) (?P<ab>\w+) \((?P<sk>[\w ]+)\) check$",
++     lambda m: {"family": "rescue_check", "actor_within_ft": int(m["ft"]), "uses": "action",
++                "check": {"ability": m["ab"].lower(), "skill": slug(m["sk"]),
++                          "dc": int(m["dc"])}, "ends": "grapple"},
++     ["missing state: position"]),
++    ("choice_damage",
++     r"^(?P<n>\d+)d(?P<d>\d+) damage of a type this spirit has Resistance to \(your choice when "
++     r"you cast the spell\)$",
++     lambda m: {"family": "choice_typed_damage", "dice": {"count": int(m["n"]), "die": f"d{m['d']}"},
++                "damage_type": {"chosen_from": "this creature's Resistances",
++                                "chosen_by": "caster", "when": "casting"}},
++     ["missing runtime input: the caster's damage-type choice"]),
++    ("save_success",
++     r"^Half damage(?P<only> only)?$",
++     lambda m: {"family": "save_success", "half_damage": True,
++                **({"only": True} if m["only"] else {})}, []),
++    ("self_save_predicate",
++     r"^If the [\w' -]+? sees its reflection in the (?P<area>\w+), the [\w' -]+? must make "
++     r"this save$",
++     lambda m: {"family": "self_save_predicate", "when": {"source_sees_own_reflection_in":
++                                                           m["area"].lower()}},
++     ["missing state: visibility (the source seeing its reflection)"]),
++    ("area_origin_point",
++     r"^The [\w' -]+? hurls a boulder at a point it can see within (?P<ft>\d+) feet$",
++     lambda m: {"family": "area_origin_point", "within_ft": int(m["ft"]),
++                "requires_source_sees_point": True},
++     ["missing state: position and visibility of the point"]),
++    ("area_origin_point",
++     r"^centered on that point$",
++     lambda m: {"family": "area_origin_point", "centered_on": "the_frame_point"}, []),
++    ("aura",
++     r"^The [\w' -]+? emanates an aura in a (?P<ft>\d+)-foot Emanation while it doesn't have "
++     r"the (?P<c>\w+) condition$",
++     lambda m: {"family": "aura", "emanation_ft": int(m["ft"]),
++                "suspended_while_source_has": m["c"].lower()},
++     ["missing state: position"]),
++    ("aura",
++     r"^(?:in )?the aura$",
++     lambda m: {"family": "aura", "targets_within": "the_aura"},
++     ["missing state: position and actor-turn authority for the turn-start trigger"]),
++    ("save_timing",
++     r"^at the end of the [\w' -]+?'s turn$",
++     lambda m: {"family": "save_timing", "at": "end_of_turn", "turn": "this",
++                "turn_of": "source"},
++     ["missing state: actor-turn authority for the save timing"]),
++    ("trigger",
++     r"^The [\w' -]+? explodes when it dies$",
++     lambda m: {"family": "trigger", "on": "source_dies"},
++     ["missing state: the trigger event (the source's death)"]),
++]
++#: Leading predicates; each scopes the rest of its sentence.
++_PREDICATES: list[tuple[str, Any, list[str]]] = [
++    (r"^If (?:the )?target is (?:a |an )?(?P<size>\w+) or smaller(?: creature)?(?: and the "
++     r"[\w' -]+? (?:moved (?P<ft>\d+)\+ feet straight toward it immediately before the hit|"
++     r"(?P<adv>had Advantage on the attack roll)))?$",
++     lambda m: {"target_maximum_size": m["size"].lower(),
++                **({"source_moved_straight_toward_target_ft_min": int(m["ft"])}
++                   if m["ft"] else {}),
++                **({"attack_roll_had_advantage": True} if m["adv"] else {})},
++     []),
++    (r"^If the target is a creature$", lambda m: {"target_is_creature": True}, []),
++    (r"^If the target is a (?P<t>Humanoid)$", lambda m: {"target_type": m["t"].lower()}, []),
++    (r"^If (?:this damage reduces the target|the target is reduced) to 0 Hit Points(?: by this "
++     r"attack)?$", lambda m: {"target_reduced_to_0_hit_points_by_this": True}, []),
++    (r"^If the (?:target|creature) has (?P<n>\d+) Hit Points or fewer$",
++     lambda m: {"target_hit_points_at_most": int(m["n"])}, []),
++    (r"^Otherwise$", lambda m: {"otherwise": True}, []),
++    (r"^While (?P<c>Grappled|Poisoned|Charmed|Deafened)$",
++     lambda m: {"while_condition": m["c"].lower()}, []),
++    (r"^While it has the (?P<c>\w+) condition$", lambda m: {"while_condition": m["c"].lower()},
++     []),
++    (r"^Until the (?P<x>grapple|curse) ends$", lambda m: {"while": m["x"]}, []),
++    (r"^Until this poison ends$", lambda m: {"while_condition": "poisoned",
++                                             "refers_to": "this poison"}, []),
++    (r"^While wounded$", lambda m: {"while": "infernal_wound"}, []),
++    (r"^While cursed$", lambda m: {"while": "curse"}, []),
++    (r"^Until the end of its next turn$",
++     lambda m: {"duration": {"until": "end_of_turn", "turn": "next", "turn_of": "target"}},
++     ["missing state: actor-turn authority for the duration"]),
++    (r"^At the end of each of its turns$", lambda m: {"at": "end_of_each_of_its_turns"},
++     ["missing state: actor-turn authority for the repeat save"]),
++]
++#: Genuinely different engines, named; matched against one piece only.
++SUBCLAUSE_CLUSTERS: list[tuple[str, str]] = [
++    ("object targeting", r"^each object|metal object|creature with the object"),
++    ("aquatic mucus curse", r"surrounded by mucus|outside a body of water|moisture|"
++                            r"breathe air and water"),
++    ("possession and body control", r"possess|controls the body|game statistics are the same|"
++                                    r"the ghost disappears|loses control of its body|"
++                                    r"can't be targeted by any attack, spell"),
++    ("swallowing", r"swallow|regurgitate|from the corpse"),
++    ("engulfing", r"engulf|pulled into the [\w' -]+?'s space|moves with it"),
++    ("attachment", r"attach|detach|covers the target|moves with the target|"
++                   r"can attack only the target"),
++    ("suffocation", r"suffocating|smother"),
++    ("Hit Point maximum changes", r"Hit Point maximum"),
++    ("lycanthropy and creature transformation", r"becomes a \*\*|rises|\*\*Shadow\*\*"),
++    ("rest benefits", r"benefit from finishing|finishes a Long Rest"),
++    ("teleport, banishment or planar travel", r"teleport|reappears|transported|demiplane|"
++                                              r"plane of existence|Abyss"),
++    ("object burning and armor or object degradation", r"burning|penalty to the AC it offers|"
++                                                       r"destroyed|can be damaged|Mending|"
++                                                       r"flammable object"),
++    ("Reactions and action economy", r"Reactions?|Bonus Action|takes no action|"
++                                     r"move or take one action|either an action"),
++    ("spellcasting", r"cast spells|spell restores|Concentration"),
++    ("Exhaustion and aging", r"Exhaustion|years older"),
++    ("death caused directly by an effect", r"\bdies\b|is slain|\bslain\b"),
++    ("the source regaining Hit Points", r"regains? (?:10 \(3d6\) )?Hit Points|regains Hit"),
++    ("ability score reduction", r"Strength score decreases"),
++    ("infernal wound", r"infernal wound|wound closes|stanch"),
++    ("item interaction", r"Holy Water"),
++    ("charm control and telepathy", r"acts as an ally|under its control|communicate "
++                                    r"telepathically|repeats the save whenever it takes damage"),
++    ("random behaviour table", r"rolls 1d8 to determine|\*\*\d"),
++    ("compelling song or babbling", r"(?i:song)|babbl|moves on its turn toward|"
++                                    r"avoid Opportunity Attacks|damaging terrain"),
++    ("encounter movement and placement", r"moves up to its Speed without provoking|"
++                                         r"move through the spaces|feet of movement to jump|"
++                                         r"throws a [\w ]+? creature|unoccupied space|"
++                                         r"escapes and enters|space the [\w' -]+? enters|"
++                                         r"destination space|targeted once by the following"),
++    ("halved damage sharing", r"halves the damage it takes|the same amount of damage"),
++    ("multi-target grapple capacity", r"only one creature at a time|up to two Medium|"
++                                      r"one creature Grappled by this action at a time|"
++                                      r"can smother only"),
++    ("stat-block self-restriction while acting", r"can't (?:make|take) (?:this action|Attach|"
++                                                  r"Proboscis)"),
++]
++#: Narrative information only: no roll, DC, damage, condition or state.
++NO_MECHANICAL_CONSEQUENCE = (
++    r"^The sprite knows the target's emotions and alignment$",
++    r"^The aboleth gains the target's memories if the target is a Humanoid and is reduced to 0 "
++    r"Hit Points by this action$",
++    r"^Its body is then absorbed into the mouther, leaving only equipment behind$",
++    r"^the target's skin becomes slimy$",
++    r"^The [\w' -]+? conjures a fiery chain to bind a creature$",
++    r"^at which point the chain disappears$",
++    r"^The chain disappears$",
++)
++
++
++def _norm_piece(p: str) -> str:
++    t = re.sub(r"[;,]\s*and$", "", p.strip()).strip(" ,;")
++    t = re.sub(r"^(?:and|but)\s+(?=(?:the|it|its|has|repeats|takes|can't|is)\b)", "", t)
++    return t.rstrip(".").strip()
++
++
++def split_pieces(text: str) -> list[str]:
++    """Exact pieces of a clause; ``"".join(pieces) == text`` is asserted."""
++    pieces, last = [], 0
++    for m in _CONJUNCT.finditer(text):
++        pieces.append(text[last:m.end()])
++        last = m.end()
++    pieces.append(text[last:])
++    out = []
++    for p in pieces:
++        n = _norm_piece(p)
++        if (pm := _PREDICATE.match(n)) and any(re.match(rx, pm["p"]) for rx, _, _ in
++                                               _PREDICATES):
++            cut = p.index(pm["rest"])
++            out += [p[:cut], p[cut:]]
++        else:
++            out.append(p)
++    out = [p for p in out if p]
++    assert "".join(out) == text, (text, out)
++    return out
++
++
++def dispose_clause(text: str) -> list[dict[str, Any]]:
++    """Per-piece disposition of one untyped clause (see the section comment)."""
++    out = []
++    active: list[int] = []
++    pieces = split_pieces(text)
++    sentence_of, cur = [], 0
++    for p in pieces:
++        sentence_of.append(cur)
++        if p.rstrip().endswith("."):
++            cur += 1
++    for i, piece in enumerate(pieces):
++        n = _norm_piece(piece)
++        row: dict[str, Any] = {"text": piece}
++        if not n:
++            row["disposition"] = "punctuation"
++            out.append(row)
++            continue
++        for rx, build, needs in _PREDICATES:
++            if pm := re.match(rx, n):
++                row.update(disposition="typed", typed={"family": "predicate", **build(pm)},
++                           needs=needs, scope="rest_of_sentence")
++                active.append(i)
++                break
++        else:
++            for family, rx, build, needs in _READERS:
++                if rm := re.match(rx, n):
++                    typed = build(rm)
++                    typed.setdefault("family", family)
++                    row.update(disposition="typed", typed=typed, needs=needs)
++                    if active:
++                        row["typed"]["under_predicates"] = list(active)
++                    break
++            else:
++                cluster = next((name for name, crx in SUBCLAUSE_CLUSTERS
++                                if re.search(crx, n)), None)
++                sentence = "".join(p for j, p in enumerate(pieces)
++                                   if sentence_of[j] == sentence_of[i])
++                context = next((name for name, crx in SUBCLAUSE_CLUSTERS
++                                if re.search(crx, sentence)), None)
++                if cluster:
++                    row.update(disposition="unsupported", cluster=cluster)
++                elif any(re.match(rx, n) for rx in NO_MECHANICAL_CONSEQUENCE):
++                    row["disposition"] = "no_mechanical_consequence"
++                elif context:
++                    row.update(disposition="unsupported", cluster=context,
++                               by_sentence_context=True)
++                else:
++                    row["disposition"] = "untyped"
++        if piece.rstrip().endswith(".") or row.get("typed", {}).get("family") == "branch":
++            active = []
++        out.append(row)
++    return out
++
++
++#: Families whose typed piece creates a mechanical effect on its subject.
++_EFFECT_FAMILIES = frozenset({
++    "grapple", "condition", "timed_condition", "linked_condition", "condition_until_repeat",
++    "named_effect", "timed_speed_change", "timed_ac_modifier", "next_roll_modifier",
++    "d20_test_penalty_die", "hit_point_regain_prohibition", "periodic_damage",
++    "periodic_hit_point_loss", "targeting_restriction", "temporary_immunity",
++    "ability_disadvantage", "roll_disadvantage", "damage_roll_penalty", "escape_disadvantage"})
++
++
++def _applied(t: dict[str, Any]) -> set[str]:
++    out = {x["condition"] for x in t.get("effects", []) if x.get("family") == "condition_effect"}
++    if t["family"] == "grapple":
++        out.add("grappled")
++    if t["family"] == "named_effect":
++        out.add(t["name"])
++    return out
++
++
++def link_effects(clauses: list[dict[str, Any]]) -> None:
++    """Source-local effect identity, branch ownership and termination.
++
++    Each effect-creating piece gets an entry-local ``effect_id`` (E1, E2, …);
++    these name effects within this entry's source text only and are never
++    runtime identifiers. Every typed piece states its ``branch`` (the clause
++    part, or the branch label it follows). Links are explicit fields:
++
++    * ``bound_effect``: a "While X" / "Until X ends" predicate or a linked
++      condition refers to the nearest preceding effect of this entry that
++      applies X ("this poison", the grapple, the curse), never to an unrelated
++      effect the subject may also have;
++    * ``ends_effects``: a termination (ends early, ends on a repeat-save
++      success) ends exactly these effects, and no others;
++    * ``duration_of_effects``: a sentence-level duration governs exactly
++      these effects.
++    """
++    effects: list[tuple[str, str, set[str]]] = []  # (id, branch, applied)
++    n = 0
++    for c in clauses:
++        branch = c["part"]
++        for p in c["pieces"]:
++            t = p.get("typed")
++            if t is None:
++                continue
++            fam = t["family"]
++            if fam == "branch":
++                branch = t["branch"]
++                continue
++            t["branch"] = branch
++            if fam in _EFFECT_FAMILIES:
++                n += 1
++                t["effect_id"] = f"E{n}"
++                effects.append((t["effect_id"], branch, _applied(t)))
++            in_branch = [i for i, b, _ in effects if b == branch and i != t.get("effect_id")]
++            link = t.get("while_condition") or ({"grapple": "grappled", "curse": "cursed"}
++                                                .get(t.get("while", "")))
++            if link and (fam == "predicate" or fam == "linked_condition"):
++                bound = next((i for i, _, ap in reversed(effects)
++                              if link in ap and i != t.get("effect_id")), None)
++                t["bound_effect"] = bound
++            if fam in ("condition_ends_early",):
++                t["ends_effects"] = [effects[-1][0]]
++            elif fam in ("effect_ends", "repeat_save", "repeat_save_limit"):
++                t["ends_effects"] = in_branch
++            elif fam == "effect_lasts":
++                t["duration_of_effects"] = in_branch
++            elif fam == "condition" and "repeat_save" in t:
++                t["repeat_save"]["ends_effects"] = [t["effect_id"]]
++        # An effect stated under a bound "While X" predicate lasts exactly
++        # while that effect lasts.
++        for p in c["pieces"]:
++            t = p.get("typed") or {}
++            for j in t.get("under_predicates", []):
++                bound = (c["pieces"][j].get("typed") or {}).get("bound_effect")
++                if bound and "effect_id" in t:
++                    t["lasts_while_effect"] = bound
++
++
++_OLD_UNTYPED = ("hit rider not typed", "failure rider not typed", "success effect not typed",
++                "failure-or-success effect not typed", "miss effect not typed",
++                "target predicate not typed", "reach/range not typed", "frame not typed")
++
++
++def dispose_entry(e: dict[str, Any]) -> None:
++    """Replace whole-clause residue with per-piece dispositions. Typed pieces
++    stay in the source entry (``clauses``); dispositions are capability."""
++    body = e.get("attack") or e.get("save")
++    if not body or "untyped_clauses" not in body:
++        return
++    reasons = [r for r in e["reasons"] if not r.startswith(_OLD_UNTYPED)]
++    clauses, dispositions = [], []
++    for u in body.pop("untyped_clauses"):
++        rows = dispose_clause(u["text"])
++        clauses.append({"part": u["part"], "text": u["text"],
++                        "pieces": [{"text": r["text"], **({"typed": r["typed"]}
++                                                          if "typed" in r else {})}
++                                   for r in rows]})
++        for r in rows:
++            d = {"part": u["part"], "piece": r["text"], "disposition": r["disposition"]}
++            if "cluster" in r:
++                d["cluster"] = r["cluster"]
++                if r.get("by_sentence_context"):
++                    d["by_sentence_context"] = True
++            dispositions.append(d)
++            if r["disposition"] == "unsupported":
++                reasons.append(f"unsupported mechanic ({r['cluster']}): {r['text'].strip()!r}")
++            elif r["disposition"] == "untyped":
++                reasons.append(f"untyped source clause: {r['text'].strip()!r}")
++            for need in r.get("needs", []):
++                if need not in reasons:
++                    reasons.append(need)
++    # One representation for unconditional damage printed beside a
++    # conditional replacement (Mimic, as Venomous Snakes): it joins
++    # ``hit_damage``; the piece points at it, and ``when`` governs only the
++    # replacement of ``hit_damage[replaces_hit_damage_index]``.
++    for c in clauses:
++        for p in c["pieces"]:
++            t = p.get("typed") or {}
++            if t.get("family") == "conditional_damage" and "unconditional_damage" in t:
++                start = len(body["hit_damage"])
++                body["hit_damage"] += t.pop("unconditional_damage")
++                t["unconditional_hit_damage_indices"] = list(
++                    range(start, len(body["hit_damage"])))
++    link_effects(clauses)
++    body["clauses"] = clauses
++    e["clause_dispositions"] = dispositions
++    e["reasons"] = reasons
++    if e["classification"] != "deferred":
++        e["classification"] = "supported" if not reasons else "conditional"
++
++
++def logical_entries(block_lines: list[str]) -> list[dict[str, Any]]:
++    """Complete logical entries: a head line plus every following continuation
++    line (a wrapped line or an ``&emsp;`` paragraph) up to the next entry head,
++    heading, blank line or ``<hr>``. Each keeps its 0-based physical span; the
++    joined text is what every later parser reads (C4 review finding 2)."""
++    section, out = "trait", []
++    for i, line in enumerate(block_lines):
+         h = re.match(r"^#{3,6} (.+)$", line)
+         if h and h.group(1).lower() in _SECTIONS:
+             section = _SECTIONS[h.group(1).lower()]
+@@ -1442,15 +2439,32 @@
+             text = e.group("text")
+             if e.group("c"):  # "_Name. Melee Attack Roll:_" → restore the italic head
+                 text = "_" + text
+-            u = _USAGE.match(name)
+-            usage = None
+-            if u:
+-                name, usage = u.group("base"), u.group("usage")
+-            raw.append((section, name, usage, text))
+-    names = {n for _, n, _, _ in raw}
++            out.append({"section": section, "name": name, "text": text, "span": [i, i]})
++        elif out and line.strip() and not line.startswith(("#", "<")) \
++                and out[-1]["span"][1] == i - 1:
++            out[-1]["text"] += " " + line.removeprefix("&emsp;").strip()
++            out[-1]["span"][1] = i
++    for le in out:  # formatting only: an HTML line break is not source content
++        le["text"] = re.sub(r"\s*<br>\s*", " ", le["text"]).strip()
++    return out
++
++
++def entries(block_lines: list[str], cond_index: dict[str, Any], file: str,
++            first_line: int) -> list[dict[str, Any]]:
++    assert file and first_line > 0, (file, first_line)
++    raw = []
++    for le in logical_entries(block_lines):
++        name, usage = le["name"], None
++        if u := _USAGE.match(name):
++            name, usage = u.group("base"), u.group("usage")
++        raw.append((le["section"], name, usage, le["text"],
++                    {"file": file, "first_line": first_line + le["span"][0],
++                     "last_line": first_line + le["span"][1]}))
++    names = {n for _, n, _, _, _ in raw}
+     out = []
+-    for section, name, usage, text in raw:
+-        entry: dict[str, Any] = {"section": section, "name": name, "_text": text}
++    for section, name, usage, text, span in raw:
++        entry: dict[str, Any] = {"section": section, "name": name, "_text": text,
++                                 "source_span": span}
+         reasons: list[str] = []
+         if hm := re.match(r"Legendary Action Uses: (\d)(?: \((\d) in Lair\))?", name):
+             # The section's usage header, not an entry.
+@@ -1502,7 +2516,7 @@
+                         # "a number of attacks" names none: the source set is
+                         # every attack-roll action of the block, each keeping
+                         # its own form qualification (Giant Insect).
+-                        p["any_of"] = [n for s_, n, _, t in raw if s_ == "action"
++                        p["any_of"] = [n for s_, n, _, t, _ in raw if s_ == "action"
+                                        and re.match(r"_?(?:Melee|Ranged) Attack Roll:", t)]
+                         assert p["any_of"], name
+         elif "Spellcasting" in name or re.search(
+@@ -1529,6 +2543,9 @@
+                          reasons=["reaction trigger/response is a new mechanic; named"])
+             out.append(entry)
+             continue
++        elif oc := _observer_check(text):
++            entry.update(kind="observer_check", text=text, observer_check=oc)
++            reasons.append("missing state: " + oc.pop("needs"))
+         elif name in NAMED_DEFERRED:
+             entry.update(kind="named_mechanic", text=text, classification="deferred",
+                          reasons=[NAMED_DEFERRED[name]])
+@@ -1540,6 +2557,13 @@
+             entry.update(kind="entry_reference", text=text, references=ref)
+             reasons.append(f"missing state: position and actor-turn for {ref!r} (an "
+                            "already typed entry) used under this entry's movement terms")
++        elif (sm := re.search(r"_\w+ Saving Throw:_", text)) and (
++                save := _framed_save(text[:sm.start()], text[sm.start():])):
++            # A save inside a framing sentence (a death trigger, a leap, a
++            # gaze) or with First/Second Failure branches: the frame and the
++            # outcomes go through the per-piece dispositions (C5).
++            entry.update(kind="save_effect", save=save)
++            reasons += save.pop("untyped")
+         elif "Saving Throw:_" in text or "Attack Roll:" in text:
+             entry.update(kind="special_effect", text=text)
+             reasons.append("special effect outside the bounded attack/save shapes; named")
+@@ -1811,7 +2835,7 @@
+     "monsters.half_dragon.half_dragon": {"resistance": {
+         "conditional": "the one damage type chosen for Draconic Origin",
+         "selection": {"vocabulary": ["acid", "cold", "fire", "lightning", "poison"],
+-                      "recorded_as": "ChoiceRecord on the creature (existing 2b contract)"},
++                      "chosen_for": "Draconic Origin", "chosen_by": "GM"},
+         "source_terms": ["damage type chosen"]}},
+     "monsters.mages.archmage": {"condition_immunity": {
+         "conditional": "charmed, while under Mind Blank",
+@@ -1824,9 +2848,9 @@
+         "source_terms": ["bless"]}},
+     "monsters.vampires.vampire_familiar": {"condition_immunity": {
+         "conditional": "charmed, except from its vampire master",
+-        "predicate": {"condition": "charmed", "unless_source_is": "vampire_master"},
+-        "requires": "a validated vampire-master relation (proposed below; not inferred "
+-                    "from summoner/controller)",
++        "predicate": {"condition": "charmed",
++                      "unless_source_is": {"relation": "master_of_the_subject",
++                                           "qualification": "vampire"}},
+         "source_terms": ["vampire master"]}},
+ }
+ 
+@@ -1965,12 +2989,16 @@
+     "relation": "vampire_master",
+     "owner": "the familiar's CreatureState (2b), additive optional field",
+     "value": "one SubjectReference to a creature in the same story",
++    "source_qualification": "vampire (the source says 'its vampire master')",
+     "validation": ["the referenced creature exists in the same story",
+-                   "the source leaves the master's identity otherwise unconstrained; "
+-                   "no template or type restriction is proposed",
++                   "the referenced creature's vampire qualification is itself validated; "
++                   "a same-story reference alone does not make a creature a vampire master",
++                   "how that qualification is validated is a held determination; no exact "
++                   "template or type restriction is proposed and none is invented",
+                    "not inferred from summoner/controller"],
+     "consumer": "only the Charmed-immunity determination on the familiar",
+-    "absent": "that one determination refuses as missing state; nothing else changes",
++    "absent": "a missing relation, or a missing or unvalidated vampire qualification, "
++              "refuses that one determination as missing state; nothing else changes",
+     "status": "proposal for review; adding the field is dependent implementation (held)",
+ }
+ 
+@@ -1991,7 +3019,8 @@
+             if h and len(h.group(1)) <= level:
+                 break
+             k += 1
+-        blocks.append({"file": file, "line": i + 1, "heading": src[j].lstrip("#").strip(),
++        blocks.append({"file": file, "line": i + 1, "first_line": j + 1,
++                       "heading": src[j].lstrip("#").strip(),
+                        "lines": src[j:k], "ac_line": line, "body": src[i:k],
+                        "size_line": next(src[x] for x in range(j + 1, i)
+                                          if src[x].startswith("_"))})
+@@ -2023,7 +3052,9 @@
+             assert (key, tail) in comps, key
+             record: dict[str, Any] = {
+                 "record_key": key, "defense_component_key": tail,
+-                "source": {"file": file, "line": b["line"], "heading": b["heading"]},
++                "source": {"file": file, "line": b["line"], "heading": b["heading"],
++                           "block_first_line": b["first_line"],
++                           "block_last_line": b["first_line"] + len(b["lines"]) - 1},
+                 "defense": None,
+                 "profile": _profile(b, CONDITIONAL_FIELDS.get(key, {})),
+             }
+@@ -2047,9 +3078,11 @@
+                 record["classification"] = "conditional"
+             if key == "monsters.vampires.vampire_familiar":
+                 record["proposed_relation"] = VAMPIRE_MASTER_PROPOSAL
+-            record["entries"] = entries(b["lines"], cond_index)
++            record["entries"] = entries(b["lines"], cond_index, b["file"], b["first_line"])
+             _apply_formulas(key, b["lines"], record["entries"])
+             for e in record["entries"]:
++                dispose_entry(e)
++            for e in record["entries"]:
+                 component = _ANCHOR[e["section"]]
+                 assert (key, component) in comps, (key, component, e["name"])
+                 e["component_key"] = component
+@@ -2187,6 +3220,8 @@
+ 
+ 
+ def main() -> None:
++    own = Path(__file__).read_text("utf-8")
++    assert not re.search(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", own), "control character"
+     for rel, digest in PRESERVED.items():
+         assert sha((NOTES / rel).read_bytes()) == digest, f"preserved file changed: {rel}"
+     raw = ORACLE.read_bytes()
+@@ -2215,16 +3250,26 @@
+     creature_records, census = creatures(rep)
+ 
+     meta = {"status": STATUS, "proposed_schema": PROPOSED_SCHEMA,
+-            "anchored_oracle_sha256": ORACLE_SHA256, "supersedes": "15c-C3 (unaccepted)"}
++            "anchored_oracle_sha256": ORACLE_SHA256, "supersedes": "15c-C4 (unaccepted)"}
+     regressions(creature_records, a_facts, c_facts)
+     source_records, capability = split_capability(creature_records)
+     invariant_report = invariants(source_records, creature_records, a_facts, c_facts)
+-    h_a = write("c4a.json", {"candidate_id": "15c-C4-A", **meta, "facts": a_facts})
+-    h_b = write("c4b.json", {"candidate_id": "15c-C4-B", **meta,
+-                             "creatures": source_records, "census": census})
+-    h_c = write("c4c.json", {"candidate_id": "15c-C4-C", **meta, "facts": c_facts})
++    part_a = {"candidate_id": "15c-C5-A", **meta, "facts": a_facts}
++    part_b = {"candidate_id": "15c-C5-B", **meta, "creatures": source_records,
++              "census": census}
++    part_c = {"candidate_id": "15c-C5-C", **meta, "facts": c_facts}
++    write("source-key-review.json", source_key_review([part_a, part_b, part_c]))
++    write("entitlement-examples.json", {
++        "note": "source-rule assertions over the candidate's facts; not runtime entitlement "
++                "validation, which stays held until native semantic acceptance",
++        "source_rule_assertions": entitlement_examples(a_facts),
++        "vocabulary_resolution": grant_vocabulary_resolution(
++            a_facts, c_facts, [f for c in rep["components"] for f in c.get("facts", [])])})
++    h_a = write("c5a.json", part_a)
++    h_b = write("c5b.json", part_b)
++    h_c = write("c5c.json", part_c)
+     capability["scope"] = CAPABILITY_SCOPE
+-    h_cap = write("capability.json", {"candidate_id": "15c-C4-capability", "status": STATUS,
++    h_cap = write("capability.json", {"candidate_id": "15c-C5-capability", "status": STATUS,
+                                       "note": "execution evidence, not source authority",
+                                       **capability})
+     reuse = reuse_validation(a_facts, source_records, c_facts)
+@@ -2237,9 +3282,9 @@
+         f"no-roster-effect instances changed ({reviewed_digest}); read no-effect-review.json "
+         "and re-pin only after every instance is reviewed")
+     trans = transition({
+-        "c4a.json": [f["record_key"] for f in a_facts],
+-        "c4b.json": [r["record_key"] for r in creature_records],
+-        "c4c.json": [f["record_key"] for f in c_facts]}, oracle)
++        "c5a.json": [f["record_key"] for f in a_facts],
++        "c5b.json": [r["record_key"] for r in creature_records],
++        "c5c.json": [f["record_key"] for f in c_facts]}, oracle)
+     write("transition.json", trans)
+     write("invariants.json", invariant_report)
+ 
+@@ -2252,7 +3297,7 @@
+     deps = collections.Counter(d["kind"] for c in capability["entries"].values()
+                                for d in c["dependencies"])
+     concordance = {
+-        "hashes": {"c4a.json": h_a, "c4b.json": h_b, "c4c.json": h_c, "capability.json": h_cap},
++        "hashes": {"c5a.json": h_a, "c5b.json": h_b, "c5c.json": h_c, "capability.json": h_cap},
+         "tools": tool_concord,
+         "attack_roll_lines": {"by_file": attack_lines, "total": sum(attack_lines.values()),
+                               "parsed_attacks": parsed_attacks,
+@@ -2303,9 +3348,24 @@
+     "execution_exclusions": [
+         {"identity": "equipment.weapons.ammunition/ammunition", "part": "recovery",
+          "why": "post-fight ammunition recovery is outside the bounded roster; the source "
+-                "rule is kept intact in c4a"},
++                "rule is kept intact in c5a"},
+         {"identity": "equipment.armor/light_medium_or_heavy_armor", "part": "cannot_cast_spells",
+-         "why": "spellcasting is a non-goal; the source rule is kept intact in c4c"},
++         "why": "spellcasting is a non-goal; the source rule is kept intact in c5c"},
++        {"identity": "classes.*.weapon_mastery/weapon_mastery", "part": "rest_swap",
++         "why": "changing mastery choices after a Long Rest is a rest-resource transition; "
++                "it refuses explicitly. The source qualifier is kept intact in c5a"},
++    ],
++    "observations": [
++        {"identity": "G1 progression_entry 'weapon_mastery'",
++         "note": "G1 records the Barbarian and Fighter Weapon Mastery column quantities under "
++                 "one unqualified entitlement key, so it cannot say which class a count "
++                 "belongs to. C5-A types each class's count from its own Features table; the "
++                 "accepted G1 entry is preserved unchanged and is not relied on for counts"},
++        {"identity": "clause links (effect_id, bound_effect, ends_effects, "
++                     "duration_of_effects, lasts_while_effect, branch)",
++         "note": "entry-local source associations, not runtime identifiers. Execution binds "
++                 "the effect instances it creates to these ids; it never recovers an "
++                 "association from prose"},
+     ],
+     "adapter_procedures": [
+         {"identity": "play.damage_and_healing/hit_points",
+@@ -2329,7 +3389,7 @@
+                                "miss effect not typed", "target predicate not typed",
+                                "reach/range not typed")),
+     ("missing_source_authority", ("formula hit pending", "turn owner",
+-                                  "missing source authority")),
++                                  "missing source authority", "untyped source clause")),
+     ("unsupported_mechanic", ("unsupported", "special effect", "separately selected",
+                               "composition residue", "hit prints no", "usage not typed",
+                               "general spell execution", "reaction trigger",
+@@ -2359,6 +3419,8 @@
+ 
+ 
+ def _dependency(reason: str, deferred_named: bool) -> dict[str, str]:
++    if m := re.match(r"unsupported mechanic \((?P<c>[^)]+)\): ", reason):
++        return {"kind": "unsupported_mechanic", "cluster": m["c"], "detail": reason}
+     for kind, prefixes in _DEPENDENCY:
+         if reason.startswith(prefixes):
+             if kind == "untyped_source_clause":
+@@ -2375,7 +3437,12 @@
+ 
+ 
+ _CAPABILITY_KEYS = ("classification", "reasons", "blocked_by", "executable_once_accepted",
+-                    "selections", "reviewed", "applies", "applicability", "affects")
++                    "selections", "reviewed", "applies", "applicability", "affects",
++                    "clause_dispositions")
++
++
++SOURCE_KINDS = frozenset({"attack", "save_effect", "multiattack", "usage_header",
++                          "entry_reference", "reaction", "observer_check"})
+ 
+ 
+ def split_capability(records: list[Any]) -> tuple[list[Any], dict[str, Any]]:
+@@ -2386,17 +3453,26 @@
+         rec["entries"] = []
+         for i, e in enumerate(r["entries"]):
+             src = {k: v for k, v in e.items() if k not in _CAPABILITY_KEYS and k != "_text"}
+-            if src["kind"] in ("no_roster_effect", "unreviewed"):
+-                # Whether a trait touches admitted operations is a capability
+-                # judgment; as source it is a prose trait.
+-                src["kind"] = "prose_trait"
++            # The complete logical source entry, verbatim, on every entry.
++            src.pop("text", None)
++            src["source_text"] = e["_text"]
++            if "grants_conditions" in src:
++                # Which roll contexts a granted condition touches is derived
++                # applicability (capability); the source states the grant.
++                src["grants_conditions"] = sorted(src["grants_conditions"])
++            # Source kind is the printed shape only; roles such as contributor,
++            # separate action, named mechanic or no effect are capability.
++            if src["kind"] not in SOURCE_KINDS:
++                src["kind"] = "prose"
+             rec["entries"].append(src)
+             entries_cap[f"{r['record_key']}#{i}:{e['name']}"] = {
++                "entry_kind": e["kind"],
+                 "classification": e["classification"],
+                 "dependencies": [_dependency(x, e["classification"] == "deferred")
+                                  for x in e.get("reasons", [])],
+                 **{k: e[k] for k in ("blocked_by", "applies", "executable_once_accepted",
+-                                     "selections", "reviewed", "applicability", "affects")
++                                     "selections", "reviewed", "applicability", "affects",
++                                     "clause_dispositions", "grants_conditions")
+                    if k in e},
+             }
+         records_cap[r["record_key"]] = {
+@@ -2427,13 +3503,221 @@
+     return out
+ 
+ 
++#: The one normalization applied to raw source lines when joining a logical
++#: entry: an ``&emsp;`` paragraph prefix and ``<br>`` are formatting only, and
++#: physical lines join with one space.
++def _normalize(raw_lines: list[str]) -> str:
++    text = " ".join(x.removeprefix("&emsp;").strip() for x in raw_lines)
++    return re.sub(r"\s*<br>\s*", " ", text).strip()
++
++
++_RAW_HEAD = re.compile(r"^(?:\*\*_|_[A-Z])")
++_PROFILE_LABELS = ("**AC**", "**HP**", "**Speed**", "**Initiative**", "**Skills**",
++                   "**Senses**", "**Languages**", "**CR**", "**Resistances**",
++                   "**Immunities**", "**Vulnerabilities**", "**Gear**", "**Saving Throws**")
++
++
++def conservation(source_records: list[Any]) -> dict[str, Any]:
++    """Logical-entry completeness, re-read from the raw files without the
++    entry or clause parsers: after each block's CR line, every non-blank,
++    non-heading, non-``<hr>`` line belongs to exactly one entry span; each
++    span reproduces that entry's ``source_text``; raw head lines and entries
++    correspond one to one."""
++    problems, entries_checked, lines_checked = [], 0, 0
++    profile_strays = []
++    for r in source_records:
++        src = r["source"]
++        raw = lines(src["file"])
++        first, last = src["block_first_line"], src["block_last_line"]
++        block = list(range(first, last + 1))
++        cr = next(n for n in block if raw[n - 1].startswith("**CR**"))
++        size = next(n for n in block if raw[n - 1].startswith("_"))
++        for n in range(size + 1, cr):
++            t = raw[n - 1].strip()
++            if t and not t.startswith(_PROFILE_LABELS + ("<", "|")):
++                profile_strays.append({"record": r["record_key"], "line": n, "text": t})
++        content = {n for n in block if n > cr and raw[n - 1].strip()
++                   and not raw[n - 1].startswith("#") and raw[n - 1].strip() != "<hr>"}
++        heads = {n for n in content if _RAW_HEAD.match(raw[n - 1])}
++        claimed: list[int] = []
++        for e in r["entries"]:
++            sp = e["source_span"]
++            assert sp["file"] == src["file"], (r["record_key"], e["name"])
++            span = list(range(sp["first_line"], sp["last_line"] + 1))
++            claimed += span
++            joined = _normalize([raw[n - 1] for n in span])
++            text = e["source_text"]
++            if re.match(r"^_[^_.]+?\. [A-Z]", raw[span[0] - 1]):
++                # The malformed spells.md head "_Name. Melee Attack Roll:_" is
++                # read with its italic restored; the raw line lacks that "_".
++                text = text.removeprefix("_")
++            if not joined.endswith(text) or sp["first_line"] not in heads:
++                problems.append({"record": r["record_key"], "entry": e["name"],
++                                 "span": [span[0], span[-1]]})
++        entries_checked += len(r["entries"])
++        lines_checked += len(content)
++        if sorted(claimed) != sorted(content) or len(claimed) != len(set(claimed)):
++            problems.append({"record": r["record_key"],
++                             "unclaimed": sorted(content - set(claimed)),
++                             "outside_or_twice": sorted(n for n in claimed
++                                                        if n not in content
++                                                        or claimed.count(n) > 1)})
++        if len(heads) != len(r["entries"]):
++            problems.append({"record": r["record_key"], "heads": len(heads),
++                             "entries": len(r["entries"])})
++    assert not problems, problems[:5]
++    assert not profile_strays, profile_strays[:5]
++    return {"entries": entries_checked, "content_lines": lines_checked,
++            "problems": problems, "profile_region_strays": profile_strays,
++            "normalization": "an &emsp; prefix and <br> removed; physical lines joined "
++                             "with one space"}
++
++
++_SIZE_WORDS = ("tiny", "small", "medium", "large", "huge", "gargantuan")
++_ARMOR_WORDS = ("light", "medium", "heavy", "shields")
++
++
++def _tokens(text: str, vocab: set[str]) -> collections.Counter[str]:
++    words = re.findall(r"[a-z]+|\d+", text.lower().replace("_", " "))
++    return collections.Counter(w for w in words if w in vocab or w.isdigit())
++
++
++def _stem_tokens(text: str, vocab: set[str]) -> collections.Counter[str]:
++    words = re.findall(r"[a-z]+|\d+", text.lower().replace("_", " "))
++    return collections.Counter(w.rstrip("s") for w in words
++                               if w.rstrip("s") in vocab or w.isdigit())
++
++
++def _turn_owner(raw: str) -> str | None:
++    m = re.search(r"(?:start|end) of (its|the target's|this|the [\w' -]+?'s) (?:next )?turn",
++                  raw)
++    if not m:
++        return None
++    return {"its": "target", "the target's": "target", "this": "this_turn"}.get(m[1], "source")
++
++
++def fidelity(source_records: list[Any], a_facts: list[Any]) -> dict[str, Any]:
++    """Source-to-field fidelity without the readers: the closed-vocabulary
++    tokens (sizes, conditions, damage types, abilities, numbers and dice) of
++    each typed piece's raw text must all be present in its serialized fields,
++    as a multiset. Grant facts are checked the same way against their quote
++    (abilities, armor words, numbers)."""
++    vocab = (set(_SIZE_WORDS) | set(CONDITIONS) | set(DAMAGE) | set(ABILITY)
++             | {"minute", "minutes", "hour", "hours"})
++    fails, pieces, turns = [], collections.Counter(), 0
++    for r in source_records:
++        for e in r["entries"]:
++            body = e.get("attack") or e.get("save") or {}
++            for c in body.get("clauses", []):
++                for p in c["pieces"]:
++                    if "typed" not in p:
++                        continue
++                    pieces[p["typed"]["family"]] += 1
++                    raw = _tokens(p["text"].replace("minutes", "minute")
++                                  .replace("hours", "hour"), vocab)
++                    pointed = [body["hit_damage"][i] for i in
++                               p["typed"].get("unconditional_hit_damage_indices", [])]
++                    held = _tokens(json.dumps([p["typed"], pointed], ensure_ascii=False)
++                                   .replace("minutes", "minute").replace("hours", "hour"), vocab)
++                    if raw - held:
++                        fails.append({"record": r["record_key"], "entry": e["name"],
++                                      "piece": p["text"], "missing": sorted(raw - held)})
++                    owner = _turn_owner(p["text"])
++                    if owner:
++                        turns += 1
++                        found = {v["turn_of"] if v["turn_of"] != "target" or v.get("turn")
++                                 != "this" else "this_turn"
++                                 for v in _walk(p["typed"])
++                                 if isinstance(v, dict) and "turn_of" in v}
++                        found |= {"this_turn" for v in _walk(p["typed"]) if isinstance(v, dict)
++                                  and v.get("turn") == "this"}
++                        if owner not in found:
++                            fails.append({"record": r["record_key"], "entry": e["name"],
++                                          "piece": p["text"], "turn_owner": owner,
++                                          "typed_turn_of": sorted(found)})
++    gvocab = (set(ABILITY) | {w.rstrip("s") for w in _ARMOR_WORDS}
++              | {"simple", "martial", "finesse", "melee", "tool", "supplie", "kit",
++                 "musical", "instrument", "gaming", "set", "artisan", "thieve", "herbalism",
++                 "calligrapher"})
++    grants = 0
++    for f in a_facts:
++        if not f["fact"]["family"].endswith(("_grant", "_choice")) \
++                or f["fact"]["family"].startswith(("skill", "multiclass_skill", "feat")):
++            continue
++        grants += 1
++        raw = _stem_tokens(f["source"]["quote"], gvocab)
++        held = _stem_tokens(json.dumps(f["fact"]), gvocab)
++        if raw - held:
++            fails.append({"record": f["record_key"], "quote": f["source"]["quote"],
++                          "missing": sorted(raw - held)})
++    assert not fails, fails[:5]
++    return {"typed_pieces_by_family": dict(sorted(pieces.items())),
++            "turn_owner_pieces_checked": turns,
++            "grant_facts_checked": grants, "failures": fails}
++
++
++#: Every key path in the source parts, reviewed once as source fact (not
++#: storage, applicability, certification or execution policy). A new path
++#: fails the derivation until it is reviewed here.
++def key_paths(node: Any, prefix: str = "") -> set[str]:
++    out: set[str] = set()
++    if isinstance(node, dict):
++        for k, v in node.items():
++            p = f"{prefix}.{k}"
++            # Option, choice and table keys inside a value are data, not schema.
++            if k in ("count_by_level", "by_family", "patterns") or re.fullmatch(r"\d+", k):
++                out.add(p)
++                continue
++            out.add(p)
++            out |= key_paths(v, p)
++    elif isinstance(node, list):
++        for v in node:
++            out |= key_paths(v, prefix + "[]")
++    return out
++
++
++#: Candidate packaging around the minted facts (identity, status, census);
++#: never minted as source facts.
++PACKAGING_KEYS = frozenset({"candidate_id", "status", "proposed_schema", "supersedes",
++                            "anchored_oracle_sha256", "census", "creature_records",
++                            "unmatched_records", "unmatched_stat_blocks"})
++#: SHA-256 of the sorted key names of C5-A/B/C after the one-by-one review in
++#: source-key-review.json (each is a source fact, a source location, or
++#: packaging). A new key name fails the derivation until reviewed.
++REVIEWED_SOURCE_KEYS_SHA256 = "dc0b1521029a9458694281699b2ba1bc8fad381219f3b786155a0f486d1bbfcd"  # pragma: allowlist secret
++
++
++def source_key_review(parts: list[Any]) -> dict[str, Any]:
++    names: set[str] = set()
++    for part in parts:
++        names |= {k.rsplit(".", 1)[-1].removesuffix("[]") for k in key_paths(part)}
++    names = {n for n in names if not re.fullmatch(r"\d+", n)}
++    digest = sha("\n".join(sorted(names)).encode())
++    if digest != REVIEWED_SOURCE_KEYS_SHA256:
++        prior = set(json.loads((HERE / "source-key-review.json").read_text("utf-8"))
++                    .get("key_names", [])) if (HERE / "source-key-review.json").exists() else set()
++        raise AssertionError(("unreviewed source keys", digest,
++                              {"added": sorted(names - prior),
++                               "removed": sorted(prior - names)}))
++    return {"key_names": sorted(names), "packaging": sorted(PACKAGING_KEYS & names),
++            "sha256": digest,
++            "review": "each name read once as a source fact, a source location/quote, a "
++                      "reader-local link (effect_id, bound_effect, ends_effects, branch: "
++                      "entry-local, never runtime identity) or candidate packaging; "
++                      "removed after review: grants_conditions roll-context mapping (to "
++                      "capability), Half-Dragon recorded_as and Vampire Familiar requires "
++                      "(to capability), Swarm applies_when/precedence (to capability), "
++                      "legendary blocked_by renamed not_while_has_conditions"}
++
++
+ def invariants(source_records: list[Any], records: list[Any], a_facts: list[Any],
+                c_facts: list[Any]) -> dict[str, Any]:
+     """General completeness checks (not example assertions)."""
+-    report: dict[str, Any] = {}
++    report: dict[str, Any] = {"logical_entry_conservation": conservation(source_records),
++                              "source_to_field_fidelity": fidelity(source_records, a_facts)}
+     # 1. Source parts carry no scope/capability vocabulary (prose fields aside).
+     prose = ("text", "quote", "source", "formula_source", "_text", "untyped_clauses",
+-             "trigger")
++             "trigger", "source_text")
+     leaks = [v for v in _values([a_facts, c_facts, source_records], prose)
+              if _SCOPE_WORDS.search(v)]
+     assert not leaks, leaks[:10]
+@@ -2451,7 +3735,8 @@
+             body = re.sub(r"\(Recharge [^)]*\)|\(\d/Day[^)]*\)", "", e["_text"])
+             printed = set(re.findall(r"\d+", body))
+             held = set(re.findall(r"\d+", json.dumps(
+-                {k: v for k, v in se.items() if k != "name"}, ensure_ascii=False)))
++                {k: v for k, v in se.items()
++                 if k not in ("name", "source_text", "source_span")}, ensure_ascii=False)))
+             if printed - held:
+                 missing.append({"record": r["record_key"], "entry": e["name"],
+                                 "numbers": sorted(printed - held)})
+@@ -2468,7 +3753,7 @@
+     residue = [{"record": r["record_key"], "entry": e["name"],
+                 "untyped_target_clause": c["text"]}
+                for r in source_records for e in r["entries"] if e.get("save")
+-               for c in e["save"]["untyped_clauses"] if c["part"] == "targets"]
++               for c in e["save"].get("clauses", []) if c["part"] == "targets"]
+     report["target_residue"] = residue
+     # 5. Every parameterized attack has its formula (no pending overlay).
+     pending = [(r["record_key"], e["name"]) for r in records for e in r["entries"]
+@@ -2489,6 +3774,131 @@
+     return out
+ 
+ 
++def grant_vocabulary_resolution(a_facts: list[Any], c_facts: list[Any],
++                                g1_facts: list[Any]) -> dict[str, Any]:
++    """Every choice vocabulary or granted identity in a grant fact resolves to
++    a typed fact (C5-A/C or accepted G1): skills, tool identities, tool
++    variants, the Artisan's Tools category, weapon categories and properties,
++    armor categories, and record/component references."""
++    pair = lambda f: (f["record_key"], f["component_key"])  # noqa: E731
++    tools = {pair(f) for f in a_facts if f["fact"]["family"] == "tool_entry"}
++    tool_cats = {f["fact"]["category"] for f in a_facts if f["fact"]["family"] == "tool_entry"}
++    variants = {pair(f) for f in a_facts if f["fact"]["family"] == "tool_variants"}
++    props = {f["fact"]["property"] for f in a_facts if f["fact"]["family"] == "weapon_property"}
++    ranges = {f["fact"]["range_class"] for f in a_facts
++              if f["fact"]["family"] == "weapon_range_class"}
++    cats = {f.get("category") for f in g1_facts if f.get("family") == "weapon_category"}
++    armor = {str(v) for f in c_facts for v in f["fact"].values() if isinstance(v, str)}
++    refs = {f"{f['record_key']}/{f['component_key']}" for f in a_facts}
++    checked, bad = 0, []
++
++    def ok(v: Any, field: str) -> bool:
++        if isinstance(v, list):
++            return all(ok(x, field) for x in v)
++        if isinstance(v, dict):
++            if "tool_variants_of" in v:
++                sel = v["tool_variants_of"]
++                return (sel["record_key"], sel["component_key"]) in variants
++            if "record_key" in v and field == "tools":
++                return (v["record_key"], v["component_key"]) in tools
++            if "tool_category" in v:
++                return v["tool_category"] in tool_cats
++            if "any_tool_entry" in v:
++                return bool(tools)
++            return all(ok(x, k) for k, x in v.items() if k in _VOCAB_FIELDS)
++        if field == "from":
++            return v in _ALL_SKILLS or v in refs
++        if field == "tools":
++            return v in tools
++        if field == "categories" or field == "category":
++            return v in cats
++        if field == "with_any_property":
++            return v in props
++        if field == "armor":
++            return v in armor
++        return True
++
++    for f in a_facts:
++        fam = f["fact"]["family"]
++        if not fam.endswith(("_grant", "_choice")) or fam.startswith(("feat", "ability")):
++            continue
++        for k, v in f["fact"].items():
++            if k in _VOCAB_FIELDS:
++                checked += 1
++                if not ok(v, k):
++                    bad.append({"record": f["record_key"], "family": fam, "field": k,
++                                "value": v})
++        if f["fact"].get("melee_only"):
++            checked += 1
++            if "melee" not in ranges:
++                bad.append({"record": f["record_key"], "field": "melee_only"})
++    assert cats >= {"simple", "martial"}, cats
++    assert not bad, bad[:5]
++    return {"fields_checked": checked, "unresolved": bad}
++
++
++_VOCAB_FIELDS = ("from", "tools", "categories", "with_any_property", "armor", "weapons",
++                 "armor_training", "qualified", "or_tools", "category")
++
++
++def entitlement_examples(a_facts: list[Any]) -> list[dict[str, Any]]:
++    """Source-backed positive and invalid entitlement distinctions, each
++    asserted against the candidate's own facts."""
++    by = collections.defaultdict(list)
++    for f in a_facts:
++        by[(f["record_key"], f["fact"]["family"])].append(f["fact"])
++
++    def one(record: str, family: str) -> dict[str, Any]:
++        (fact,) = by[(record, family)]
++        return fact
++
++    rows = []
++
++    def check(claim: str, ok: bool, _: bool) -> None:
++        assert ok, claim
++        rows.append({"source_rule_assertion": claim,
++                     "asserted_against": "the candidate's own typed facts"})
++
++    bmc = one("classes.barbarian.as_a_multiclass_character", "multiclass_proficiency_grant")
++    check("Barbarian as a multiclass entry grants Martial weapons and Shields",
++          bmc["weapons"]["categories"] == ["martial"] and bmc["armor_training"]["shields"],
++          True)
++    check("Barbarian as a multiclass entry grants no saving throws or Simple weapons",
++          bmc["saving_throws"] == [] and "simple" not in bmc["weapons"]["categories"], False)
++    monk = one("classes.monk", "weapon_proficiency_grant")
++    check("Monk (level 1) is proficient with Martial weapons only if they have the Light "
++          "property", monk["qualified"] == [{"category": "martial",
++                                             "with_any_property": ["light"]}], True)
++    check("Monk (level 1) Martial proficiency with a Heavy-only weapon is not granted",
++          "martial" not in monk["categories"], False)
++    check("Wizard has no Expertise grant (only Scholar's one listed skill)",
++          [x["count_per_gain"] for x in by[("classes.wizard.scholar", "expertise_choice")]]
++          == [1] and not by[("classes.wizard", "expertise_choice")], False)
++    bwm = one("classes.barbarian.weapon_mastery", "weapon_mastery_choice")
++    check("Barbarian Weapon Mastery counts only Melee weapons", bwm.get("melee_only") is True,
++          False)
++    check("Barbarian Weapon Mastery is 2 kinds at level 3 and 4 at level 10",
++          bwm["count_by_level"]["3"] == 2 and bwm["count_by_level"]["10"] == 4, True)
++    pwm = one("classes.paladin.weapon_mastery", "weapon_mastery_choice")
++    check("Paladin Weapon Mastery requires proficiency with the weapon",
++          pwm["requires_weapon_proficiency"] is True, True)
++    sol = one("character_origins.soldier", "tool_proficiency_choice")
++    check("Soldier chooses exactly one kind of Gaming Set", sol["count"] == 1
++          and sol["from"] == {"tool_variants_of": _tool("gaming_set")}, True)
++    mono = one("classes.monk.disciplined_survivor", "saving_throw_proficiency_grant")
++    check("All six saving throws only through Disciplined Survivor (level 14)",
++          len(mono["abilities"]) == 6 and mono["gain_levels"]["entitlement_key"]
++          == "classes.monk.disciplined_survivor", True)
++    lore = one("classes.bard.college_of_lore.bonus_proficiencies", "skill_proficiency_choice")
++    check("College of Lore's three skills need the College of Lore subclass at Bard level 3",
++          lore["eligibility"]["minimum_class_level"] == 3, True)
++    asi = one("feats.grappler", "feat_prerequisite")
++    check("Grappler's +1 needs level 4 and Strength or Dexterity 13",
++          asi["minimum_character_level"] == 4
++          and asi["minimum_ability_score"]["score"] == 13, False)
++    return rows
++
++
+ def regressions(creature_records: list[Any], a_facts: list[Any], c_facts: list[Any]) -> None:
+     """Cited examples from the C2 and C3 reviews (illustrations; the general
+     invariants are the completeness evidence)."""

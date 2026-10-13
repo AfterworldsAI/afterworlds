@@ -1,0 +1,219 @@
+{
+ "anchored_successor_sha256": "23e5d8e0fac60e3f5417b3a41e40e6f475366dd385856f38c42104f4dd264f69",
+ "candidate_id": "15c-C6-feat-category",
+ "facts": [
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "origin",
+    "family": "feat_prerequisite",
+    "minimum_ability_score": null,
+    "minimum_character_level": null,
+    "requires_feature": null
+   },
+   "part": "C6-A (schema 19, no vocabulary change)",
+   "record_key": "feats.alert",
+   "source": {
+    "file": "feats.md",
+    "line": 23,
+    "quote": "_Origin Feat_"
+   }
+  },
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "origin",
+    "family": "feat_prerequisite",
+    "minimum_ability_score": null,
+    "minimum_character_level": null,
+    "requires_feature": null
+   },
+   "part": "C6-A (schema 19, no vocabulary change)",
+   "record_key": "feats.magic_initiate",
+   "source": {
+    "file": "feats.md",
+    "line": 33,
+    "quote": "_Origin Feat_"
+   }
+  },
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "origin",
+    "family": "feat_prerequisite",
+    "minimum_ability_score": null,
+    "minimum_character_level": null,
+    "requires_feature": null
+   },
+   "part": "C6-A (schema 19, no vocabulary change)",
+   "record_key": "feats.savage_attacker",
+   "source": {
+    "file": "feats.md",
+    "line": 47,
+    "quote": "_Origin Feat_"
+   }
+  },
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "origin",
+    "family": "feat_prerequisite",
+    "minimum_ability_score": null,
+    "minimum_character_level": null,
+    "requires_feature": null
+   },
+   "part": "C6-A (schema 19, no vocabulary change)",
+   "record_key": "feats.skilled",
+   "source": {
+    "file": "feats.md",
+    "line": 53,
+    "quote": "_Origin Feat_"
+   }
+  },
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "fighting_style",
+    "family": "feat_prerequisite",
+    "minimum_ability_score": null,
+    "minimum_character_level": null,
+    "requires_feature": "fighting_style"
+   },
+   "part": "C6-B (needs schema 20: FeatCategory.fighting_style, RequiredFeature.fighting_style)",
+   "record_key": "feats.archery",
+   "source": {
+    "file": "feats.md",
+    "line": 87,
+    "quote": "_Fighting Style Feat (Prerequisite: Fighting Style Feature)_"
+   }
+  },
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "fighting_style",
+    "family": "feat_prerequisite",
+    "minimum_ability_score": null,
+    "minimum_character_level": null,
+    "requires_feature": "fighting_style"
+   },
+   "part": "C6-B (needs schema 20: FeatCategory.fighting_style, RequiredFeature.fighting_style)",
+   "record_key": "feats.defense",
+   "source": {
+    "file": "feats.md",
+    "line": 93,
+    "quote": "_Fighting Style Feat (Prerequisite: Fighting Style Feature)_"
+   }
+  },
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "fighting_style",
+    "family": "feat_prerequisite",
+    "minimum_ability_score": null,
+    "minimum_character_level": null,
+    "requires_feature": "fighting_style"
+   },
+   "part": "C6-B (needs schema 20: FeatCategory.fighting_style, RequiredFeature.fighting_style)",
+   "record_key": "feats.great_weapon_fighting",
+   "source": {
+    "file": "feats.md",
+    "line": 99,
+    "quote": "_Fighting Style Feat (Prerequisite: Fighting Style Feature)_"
+   }
+  },
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "fighting_style",
+    "family": "feat_prerequisite",
+    "minimum_ability_score": null,
+    "minimum_character_level": null,
+    "requires_feature": "fighting_style"
+   },
+   "part": "C6-B (needs schema 20: FeatCategory.fighting_style, RequiredFeature.fighting_style)",
+   "record_key": "feats.two_weapon_fighting",
+   "source": {
+    "file": "feats.md",
+    "line": 105,
+    "quote": "_Fighting Style Feat (Prerequisite: Fighting Style Feature)_"
+   }
+  },
+  {
+   "component_key": "fighting_style",
+   "fact": {
+    "category": "fighting_style",
+    "count": 1,
+    "count_per_gain": null,
+    "family": "feat_choice",
+    "gain_levels": null,
+    "named_feat": null,
+    "or_any_feat_whose_prerequisites_are_met": null
+   },
+   "part": "C6-B (needs schema 20: FeatCategory.fighting_style)",
+   "record_key": "classes.fighter.fighting_style",
+   "source": {
+    "file": "classes.md",
+    "line": 4715,
+    "quote": "gain a Fighting Style feat of your choice"
+   }
+  },
+  {
+   "component_key": "additional_fighting_style",
+   "fact": {
+    "category": "fighting_style",
+    "count": 1,
+    "count_per_gain": null,
+    "family": "feat_choice",
+    "gain_levels": null,
+    "named_feat": null,
+    "or_any_feat_whose_prerequisites_are_met": null
+   },
+   "part": "C6-B (needs schema 20: FeatCategory.fighting_style)",
+   "record_key": "classes.fighter.champion.additional_fighting_style",
+   "source": {
+    "file": "classes.md",
+    "line": 4803,
+    "quote": "You gain another Fighting Style feat of your choice."
+   }
+  },
+  {
+   "component_key": "fighting_style",
+   "fact": {
+    "category": "fighting_style",
+    "count": 1,
+    "count_per_gain": null,
+    "family": "feat_choice",
+    "gain_levels": null,
+    "named_feat": null,
+    "or_any_feat_whose_prerequisites_are_met": null
+   },
+   "part": "C6-B (needs schema 20: FeatCategory.fighting_style)",
+   "record_key": "classes.paladin.fighting_style",
+   "source": {
+    "file": "classes.md",
+    "line": 5578,
+    "quote": "You gain a Fighting Style feat of your choice"
+   }
+  },
+  {
+   "component_key": "fighting_style",
+   "fact": {
+    "category": "fighting_style",
+    "count": 1,
+    "count_per_gain": null,
+    "family": "feat_choice",
+    "gain_levels": null,
+    "named_feat": null,
+    "or_any_feat_whose_prerequisites_are_met": null
+   },
+   "part": "C6-B (needs schema 20: FeatCategory.fighting_style)",
+   "record_key": "classes.ranger.fighting_style",
+   "source": {
+    "file": "classes.md",
+    "line": 6362,
+    "quote": "You gain a Fighting Style feat of your choice"
+   }
+  }
+ ],
+ "status": "RAW CANDIDATE ONLY - not accepted, minted, recorded or published"
+}

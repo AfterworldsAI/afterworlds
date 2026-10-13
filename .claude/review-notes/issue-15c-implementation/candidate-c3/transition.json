@@ -1,0 +1,35 @@
+{
+ "all_batches": 24,
+ "batch_count": 7,
+ "batches": {
+  "animals": [
+   "c3b.json"
+  ],
+  "checks-actions-rests": [
+   "c3a.json",
+   "c3c.json"
+  ],
+  "combat-damage-breaking": [
+   "c3a.json"
+  ],
+  "equipment": [
+   "c3a.json",
+   "c3c.json"
+  ],
+  "magic-items": [
+   "c3b.json"
+  ],
+  "monsters": [
+   "c3a.json",
+   "c3b.json"
+  ],
+  "spell-descriptions": [
+   "c3b.json"
+  ]
+ },
+ "records_touched": {
+  "c3a.json": 75,
+  "c3b.json": 336,
+  "c3c.json": 15
+ }
+}

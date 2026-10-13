@@ -1,0 +1,47 @@
+{
+  "candidate_sha256": "eb014b30e685543c435930913d00fe8762963c95b0fdcc9ce470c019bbfb554a",
+  "accepted_c5_sha256": "23e5d8e0fac60e3f5417b3a41e40e6f475366dd385856f38c42104f4dd264f69",
+  "schema19_hash_unchanged": "3734ccf7d6be7f25e0a0d7c0395121c5525afcb87144f5cf9d6895e03c1cd18f",
+  "source_pin_verified": {
+    "file": "docs/sources/community/dnd-5e-srd-markdown/feats.md",
+    "sha256": "3894f4a147df40adb8b090825b4c2e3e5ee2c67851aca42305b11f2477bcfbf7",
+    "bytes": 7623,
+    "equals_committed_head": true
+  },
+  "part_a": [
+    {
+      "record_key": "feats.alert",
+      "component_key": "category",
+      "source_line": 23,
+      "typed_fact": "FeatPrerequisiteFact",
+      "source_quote_and_heading_match": true,
+      "accepted_component_has_no_facts": true
+    },
+    {
+      "record_key": "feats.magic_initiate",
+      "component_key": "category",
+      "source_line": 33,
+      "typed_fact": "FeatPrerequisiteFact",
+      "source_quote_and_heading_match": true,
+      "accepted_component_has_no_facts": true
+    },
+    {
+      "record_key": "feats.savage_attacker",
+      "component_key": "category",
+      "source_line": 47,
+      "typed_fact": "FeatPrerequisiteFact",
+      "source_quote_and_heading_match": true,
+      "accepted_component_has_no_facts": true
+    },
+    {
+      "record_key": "feats.skilled",
+      "component_key": "category",
+      "source_line": 53,
+      "typed_fact": "FeatPrerequisiteFact",
+      "source_quote_and_heading_match": true,
+      "accepted_component_has_no_facts": true
+    }
+  ],
+  "part_b": "not cleared or parsed; proposed schema20 content remains held",
+  "scope": "Strict parsing and read-only source/placement inspection only, not native generation, acceptance or gameplay testing."
+}

@@ -5,6 +5,24 @@
 - **Scope:** #191 as updated (body SHA-256 `8225e1b6…57a2`). It adds creature attacks, bounded Multiattack and their saves/effects, the tool-addressing and omitted-source repair, and individual conditional-creature assessment. The G1 oracle `2ccbaeba…1258` is unchanged.
 - **Process:** Opus 5.5 at medium effort, with the separate Opus 5.5 Advisor consulted on the approach, the candidate scope and completion.
 
+## Current (13 October 2026)
+
+**Commits** (local only, not pushed):
+- `3f0ba29`: the successor recording; G1 superseded; schema-19 tests; grant validation; difficulty, tool and Initiative checks.
+- A follow-up commit: the feat-entitlement residues, raw C6/C6-r2 and the review notes.
+
+**Focused diagnostics only.** These are separate runs; none is full acceptance and they are not summed:
+- 241 passed: selection, packaging, publication and E2E. Some sources changed during this run; the invalidated cases were rerun.
+- 137 passed: RPG.
+- 345 passed and 1 failed, the failed case then fixed and rerun: the final rerun.
+- 86 passed: `test_bounded_checks` after the residue fixes.
+
+**Approved inputs.** The Owner approved bounded GameMaster spatial facts and instance-linked timing attestations (`owner-context-decisions-2026-10-12.md`). Combat/state implementation is in progress under the corrected `boundary-input-contracts.md`.
+
+**Raw candidates.** C6 (`eb014b30…`) is preserved. C6-r2 (`699718ff…`) awaits independent review. Neither is accepted, and dependent semantics stay held.
+
+**Coverage boundary to raise with Codex.** Fighting Style feats (Fighter 1, Paladin/Ranger 2), Savage Attacker (Soldier) and Defense are attack/AC contributors. Until typed and executed, an attack by or against a character holding them refuses.
+
 ## Successor recorded; implementation continuing (12 October 2026, Owner accepted the exact native C5 packet)
 
 - **Recorded:** `src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c.json`.
@@ -13,10 +31,7 @@
   - Only `reviewer`, `accepted_at` and `rule` differ from the preview, and only on the eleven batches.
   - Evidence: `../issue-15c-recording/` (`record_successor.py`, `owner-acceptance.json`, `recorded-followup.json`).
   - Re-verified (write-once verify mode) after the closed-type fix below: byte-identical, 0 native findings, gate passes.
-- **BLOCKED: supersession of G1 by digest.** Adding G1's digest `2ccbaeba…` to `oracle.SUPERSEDED_ORACLE_SHA256` was refused by the session's permission classifier ("Modify Shared Resources"), and it has not been retried.
-  - Until that one line lands, the release has two claimants. `committed_oracle_for` / `committed_inputs_for` raise, which breaks every real-authority test and the E2E publish path.
-  - Packaging (`MANIFEST.in`, `pyproject.toml`), the oracles README and the oracle-selection tests follow the same supersession and are held with it.
-  - **Owner/user action needed.**
+- **Supersession landed (12 October 2026, through the scoped native-edit authorization).** G1's digest `2ccbaeba…` is in `oracle.SUPERSEDED_ORACLE_SHA256`. Packaging ships the successor and excludes G1. The successor is the release's one claimant. Committed in `3f0ba29`.
 - **Schema-19 native contract fix.**
   - Schema-19 nested value objects (`DamageTerm`, `Rider`, ...) joined `_CLOSED_TYPES`, so the structural and version-legality walkers now descend into them.
   - The schema hash is unchanged (`3734ccf7…`) and the accepted successor re-verifies.

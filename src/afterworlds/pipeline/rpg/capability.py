@@ -149,8 +149,9 @@ _TOOL_PROCEDURE = (("play.proficiency", "tool_proficiency"), *TOOL_COMPONENTS)
 _INITIATIVE_PROCEDURE = (("play.combat", "initiative_roll"),)
 
 #: The release this adapter version was certified against: the accepted CRD
-#: Issue 15c native C5 successor (oracle SHA-256 ``23e5d8e0…4f69``) as
-#: published. Recertified from G1 (projection ``efab27a9-…``) by reviewing
+#: Issue 15c native C5 successor (oracle SHA-256 ``23e5d8e0…4f69``), by the
+#: projection identity it derives; a store must publish it before it binds.
+#: Recertified from G1 (projection ``efab27a9-…``) by reviewing
 #: every governing component: none changed, so the check fingerprint is G1's
 #: (``.claude/review-notes/issue-15c-implementation/recert/``).
 CERTIFIED_RELEASE: tuple[UUID, str, UUID] = (

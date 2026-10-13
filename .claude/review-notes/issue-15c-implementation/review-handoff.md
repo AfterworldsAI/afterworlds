@@ -1,12 +1,23 @@
 # CRD Issue 15c — handoff for Codex independent review
 
 - **Branch:** `codex/issue-15c-bounded-d20`.
-- **Commit:** local `eb60d9f`, on baseline `e83018c`.
+- **Commits:** local `eb60d9f` … `3f0ba29` and later, on baseline `e83018c`. See `status.md` "Current".
 - **Not pushed. No PR opened. Nothing merged.**
 - Nothing was migrated, published, activated or launched in any shared runtime.
 - `D:\AI\Claude\afterworlds-runtime` was never touched. #129 stays frozen; #132 and #137 are unchanged.
 
-## Update: native schema-19 preview, Owner acceptance HELD
+## Update: successor recorded, implementation continuing
+
+- **Owner acceptance.** The Owner accepted the exact native C5 packet on 12 October 2026.
+- **Recorded successor.** `srd-5-2-1-corpus-8781d4e0-a3b-15c.json` (`23e5d8e0…`), whose identities equal the packet. G1 is superseded by digest.
+- **In `3f0ba29`:**
+  - the schema-19 test reconciliation;
+  - contributing-grant validation;
+  - difficulty, tool and Initiative checks.
+- **Since then:** the feat-entitlement residues are fixed, and raw C6-r2 is ready for review.
+- **Combat/state work** is in progress under the approved input decisions.
+
+## Earlier update: native schema-19 preview, Owner acceptance HELD
 
 `../issue-15c-native/OWNER-ACCEPTANCE-PACKET.md` gives the exact identities: schema `3734ccf7…d18f`, preview `cd9d1d27…20d3`, oracle `000c4c10…6e76`, projection `44f212d5-32dd-5469-8f05-f0d236492347`.
 - It supersedes the earlier `aa9fe91e…` preview. Only the schema descriptor changed (a class-name leak in rule text, fixed). Content equality is shown indirectly; the packet has the old→new table and its evidence.

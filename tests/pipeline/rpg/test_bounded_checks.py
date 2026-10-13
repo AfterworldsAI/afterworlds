@@ -1123,3 +1123,112 @@ def test_increases_apply_only_when_their_order_cannot_matter() -> None:
         )
         == 20
     )
+
+
+# ---------------------------------------------------------------------------
+# Earned feat entitlement (Codex feat-entitlement boundary audit)
+# ---------------------------------------------------------------------------
+
+WIZARD_ASI = GrantSource(
+    record_key="classes.wizard.ability_score_improvement",
+    component_key="ability_score_improvement",
+)
+
+
+def _wizard(level: int, *feats: FeatSelection, **update: object) -> Dnd5eCharacterState:
+    base = _state(
+        classes=(
+            ClassLevel(class_record_key="classes.wizard", level=level, hit_die="d6"),
+        ),
+        level_history=("classes.wizard",) * level,
+        **update,
+    )
+    return base.model_copy(update={"feats": (*(base.feats or ()), *feats)})
+
+
+def test_a_feat_without_typed_repeatability_cannot_be_counted_twice() -> None:
+    """Two Grappler selections from two earned ASI gains: Grappler states no
+    Repeatable rule, and unstated repeatability is not permission."""
+    grappler = FeatSelection(feat_record_key="feats.grappler", source=WIZARD_ASI)
+    increase = AbilityAdjustment(
+        ability=AbilityScore.DEXTERITY,
+        amount=1,
+        source=GrantSource(
+            record_key="feats.grappler", component_key="ability_score_increase"
+        ),
+    )
+    state = _wizard(8, grappler, grappler, ability_adjustments=(increase,))
+    with pytest.raises(AdjudicationRefusal) as caught:
+        grants.ability_score(real_index(), state, AbilityScore.DEXTERITY)
+    assert caught.value.kind is RefusalKind.MISSING_AUTHORITY
+
+
+def test_a_feat_selection_must_be_the_feat_its_choice_selected() -> None:
+    """The ASI feature's choice selected Grappler; a selection of Ability
+    Score Improvement citing it is not that choice."""
+    index = real_index()
+    picked = choice(
+        index,
+        "asi-gain-4",
+        WIZARD_ASI.record_key,
+        WIZARD_ASI.component_key or "",
+        RecordChoice(record_key="feats.grappler"),
+    )
+    cited = FeatSelection(
+        feat_record_key=ASI[0],
+        source=WIZARD_ASI.model_copy(update={"choice_id": "asi-gain-4"}),
+    )
+    state = _wizard(4, cited)
+    state = state.model_copy(update={"choices": (*(state.choices or ()), picked)})
+    with pytest.raises(AdjudicationRefusal) as caught:
+        grants.ability_score(
+            real_index(),
+            _with(
+                state,
+                ability_adjustments=(
+                    AbilityAdjustment(
+                        ability=AbilityScore.STRENGTH,
+                        amount=2,
+                        source=GrantSource(record_key=ASI[0], component_key=ASI[1]),
+                    ),
+                ),
+            ),
+            AbilityScore.STRENGTH,
+        )
+    assert caught.value.kind is RefusalKind.INVALID_SELECTION
+
+
+def test_the_epic_boon_alternative_admits_a_qualifying_feat_of_any_category() -> None:
+    """Wizard 19's Epic Boon: an Epic Boon feat *or* any feat it qualifies for
+    -- here the General Ability Score Improvement."""
+    boon = FeatSelection(
+        feat_record_key=ASI[0],
+        source=GrantSource(
+            record_key="classes.wizard.epic_boon", component_key="epic_boon"
+        ),
+    )
+    increase = AbilityAdjustment(
+        ability=AbilityScore.STRENGTH,
+        amount=2,
+        source=GrantSource(record_key=ASI[0], component_key=ASI[1]),
+    )
+    state = _wizard(19, boon, ability_adjustments=(increase,))
+    assert grants.ability_score(real_index(), state, AbilityScore.STRENGTH)[0] == 10
+
+
+def test_the_prompt_contract_lists_exactly_the_manifest_roster() -> None:
+    """The GameMaster is told the roster the engine runs (prompt contract,
+    authority level 4): every manifest operation and selection field is
+    described, and nothing else is offered."""
+    from afterworlds.pipeline.rpg.caller import PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC
+    from afterworlds.pipeline.rpg.service import load_adjudication_prompt
+
+    prompt = load_adjudication_prompt()
+    for operation in MANIFEST:
+        assert f"`{operation.value}`" in prompt, operation
+    item = PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC["input_schema"]["properties"][
+        "rolls"
+    ]["items"]
+    for field in item["properties"]:
+        assert f"`{field}`" in prompt, field
+    assert item["properties"]["operation"]["enum"] == [o.value for o in Operation]

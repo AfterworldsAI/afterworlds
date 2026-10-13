@@ -218,6 +218,17 @@ def _gains(index: AuthorityIndex, classes: _Classes, entitlement_key: str) -> in
     )
 
 
+def _repeatable(index: AuthorityIndex, feat_key: str) -> bool:
+    """Whether a typed fact of the feat states it repeatable: the Ability
+    Score Improvement's increase choice and Skilled's skill choice do."""
+    record = index.record(feat_key)
+    return record is not None and any(
+        getattr(f.fact, "repeatable", None) is True
+        for c in record.components
+        for f in c.facts
+    )
+
+
 def _feat_prerequisite(
     index: AuthorityIndex, feat_key: str
 ) -> FeatPrerequisiteFact | None:
@@ -244,6 +255,12 @@ def _feat_entitled(
     selections = [f for f in state.feats or () if f.feat_record_key == feat_key]
     if not selections:
         raise _invalid(f"the character holds no selection of {feat_key}")
+    if len(selections) > 1 and not _repeatable(index, feat_key):
+        raise _missing(
+            f"{feat_key} is selected {len(selections)} times, and no typed fact "
+            "states that it is repeatable (a feat is taken once unless its source "
+            "says otherwise; unstated is not permission)"
+        )
     prerequisite = _feat_prerequisite(index, feat_key)
     for selection in selections:
         _check_feat_source(index, state, classes, selection, prerequisite)
@@ -294,6 +311,14 @@ def _check_feat_source(
 ) -> None:
     source = selection.source
     feat = selection.feat_record_key
+    linked = _linked(state, source)
+    if linked is not None and not any(
+        isinstance(s, RecordChoice) and s.record_key == feat for s in linked.selected
+    ):
+        raise _invalid(
+            f"{feat} cites choice {source.choice_id!r} under {_where(source)}, "
+            "which did not select it"
+        )
     facts = _facts(index, source, state)
     if any(isinstance(f, FeatGrantFact) and f.feat == feat for f in facts):
         _require_held(index, state, classes, source)
@@ -309,9 +334,10 @@ def _check_feat_source(
                 and choice.category is not None
                 and in_category
             )
-            # "or another feat of your choice for which you qualify": the
-            # feat's own typed prerequisite is then checked by the caller.
-            or (bool(choice.or_any_feat_whose_prerequisites_are_met) and in_category)
+            # "or another feat of your choice for which you qualify": any
+            # category; the feat's own typed prerequisite is checked by the
+            # caller.
+            or bool(choice.or_any_feat_whose_prerequisites_are_met)
         )
         if not admits:
             continue

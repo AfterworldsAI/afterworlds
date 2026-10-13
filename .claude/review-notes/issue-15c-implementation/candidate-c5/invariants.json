@@ -1,0 +1,137 @@
+{
+ "formula_references": [
+  "spells.attack_rolls/spell_attack_modifier",
+  "spells.saving_throws/spell_save_dc"
+ ],
+ "logical_entry_conservation": {
+  "content_lines": 1512,
+  "entries": 1377,
+  "normalization": "an &emsp; prefix and <br> removed; physical lines joined with one space",
+  "problems": [],
+  "profile_region_strays": []
+ },
+ "parameterized_entries_without_formula": [],
+ "scope_vocabulary_leaks": [],
+ "source_to_field_fidelity": {
+  "failures": [],
+  "grant_facts_checked": 83,
+  "turn_owner_pieces_checked": 42,
+  "typed_pieces_by_family": {
+   "ability_disadvantage": 4,
+   "area_origin_point": 2,
+   "aura": 2,
+   "branch": 44,
+   "choice_typed_damage": 3,
+   "condition": 49,
+   "condition_ends": 1,
+   "condition_ends_early": 2,
+   "condition_until_repeat": 8,
+   "conditional_damage": 2,
+   "d20_test_penalty_die": 2,
+   "damage_branch": 4,
+   "damage_qualification": 3,
+   "damage_roll_penalty": 4,
+   "effect_ends": 4,
+   "effect_lasts": 4,
+   "escape_disadvantage": 1,
+   "follow_up_attack": 1,
+   "forced_movement": 7,
+   "grapple": 25,
+   "hit_point_regain_prohibition": 5,
+   "hit_points_set": 1,
+   "linked_condition": 5,
+   "named_effect": 11,
+   "nested_save": 11,
+   "nested_save_trigger": 9,
+   "next_roll_modifier": 3,
+   "penalty_die_application": 2,
+   "periodic_damage": 12,
+   "periodic_hit_point_loss": 2,
+   "predicate": 92,
+   "repeat_save": 18,
+   "repeat_save_limit": 13,
+   "rescue_check": 1,
+   "returning_weapon": 4,
+   "roll_disadvantage": 1,
+   "save_success": 2,
+   "save_timing": 1,
+   "self_save_predicate": 2,
+   "source_movement": 1,
+   "targeting_restriction": 2,
+   "temporary_immunity": 15,
+   "timed_ac_modifier": 2,
+   "timed_condition": 23,
+   "timed_speed_change": 12,
+   "trigger": 6,
+   "zero_hit_point_outcome": 5
+  }
+ },
+ "target_residue": [
+  {
+   "entry": "Mucus Cloud",
+   "record": "monsters.aboleth.aboleth",
+   "untyped_target_clause": "at the end of the aboleth's turn"
+  },
+  {
+   "entry": "Petrifying Gaze",
+   "record": "monsters.basilisk.basilisk",
+   "untyped_target_clause": "If the basilisk sees its reflection in the Cone, the basilisk must make this save"
+  },
+  {
+   "entry": "Deadly Leap",
+   "record": "monsters.bulette.bulette",
+   "untyped_target_clause": "in the bulette's destination space"
+  },
+  {
+   "entry": "Engulf",
+   "record": "monsters.gelatinous_cube.gelatinous_cube",
+   "untyped_target_clause": "whose space the cube enters for the first time during this move"
+  },
+  {
+   "entry": "Gibbering",
+   "record": "monsters.gibbering_mouther.gibbering_mouther",
+   "untyped_target_clause": "while it is babbling"
+  },
+  {
+   "entry": "Luring Song",
+   "record": "monsters.harpy.harpy",
+   "untyped_target_clause": "when the song starts"
+  },
+  {
+   "entry": "Fling",
+   "record": "monsters.kraken.kraken",
+   "untyped_target_clause": "the creature thrown and each creature in the destination space"
+  },
+  {
+   "entry": "Petrifying Gaze",
+   "record": "monsters.medusa.medusa",
+   "untyped_target_clause": "If the medusa sees its reflection in the Cone, the medusa must make this save"
+  },
+  {
+   "entry": "Fear Aura",
+   "record": "monsters.pit_fiend.pit_fiend",
+   "untyped_target_clause": "in the aura"
+  },
+  {
+   "entry": "Antennae",
+   "record": "monsters.rust_monster.rust_monster",
+   "untyped_target_clause": "the creature with the object"
+  },
+  {
+   "entry": "Radiant Teleport",
+   "record": "monsters.solar.solar",
+   "untyped_target_clause": "at its destination space"
+  },
+  {
+   "entry": "Thunderous Bellow",
+   "record": "monsters.tarrasque.tarrasque",
+   "untyped_target_clause": "each object that isn't being worn or carried"
+  },
+  {
+   "entry": "Boulder Toss",
+   "record": "animals.giant_ape",
+   "untyped_target_clause": "centered on that point"
+  }
+ ],
+ "unaccounted_numbers": []
+}
