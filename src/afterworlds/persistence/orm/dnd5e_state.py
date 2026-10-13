@@ -294,17 +294,24 @@ class RpgTurnCoordinationORM(Base):
 
 
 class RpgTurnEdgeORM(Base):
-    """Append-only: every actor-turn edge a delivered Turn applied, in order.
+    """Append-only: every actor-turn edge (``begin``/``end``) and once-per-turn
+    ``use`` a delivered Turn applied, in order.
 
     ``sequence`` is per story; ``coordination_revision`` is the revision the
-    edge was applied to. The coordination document is reconstructable by
-    replaying these rows.
+    event was applied to; ``use_key`` names a use's source. The coordination
+    document is reconstructable by replaying these rows
+    (:func:`afterworlds.services.dnd5e_state.coordination.replay`).
     """
 
     __tablename__ = "rpg_turn_edges"
     __table_args__ = (
         sa.UniqueConstraint("story_id", "sequence", name="uq_rpg_turn_edges_sequence"),
-        sa.CheckConstraint("kind IN ('begin', 'end')", name="ck_rpg_turn_edges_kind"),
+        sa.CheckConstraint(
+            "kind IN ('begin', 'end', 'use')", name="ck_rpg_turn_edges_kind"
+        ),
+        sa.CheckConstraint(
+            "(kind = 'use') = (use_key IS NOT NULL)", name="ck_rpg_turn_edges_use_key"
+        ),
     )
 
     edge_id: Mapped[str] = mapped_column(sa.String(36), primary_key=True)
@@ -322,4 +329,5 @@ class RpgTurnEdgeORM(Base):
     subject_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
     turn_instance: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     coordination_revision: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    use_key: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     recorded_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)

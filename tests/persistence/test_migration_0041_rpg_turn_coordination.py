@@ -81,3 +81,17 @@ def test_the_edge_log_enforces_its_sequence_and_kind(tmp_path: Path) -> None:
         _execute(db, _edge(1, "end"))
     with pytest.raises(sa.exc.IntegrityError):
         _execute(db, _edge(2, "round"))
+
+
+def test_a_use_event_names_its_source_and_an_edge_does_not(tmp_path: Path) -> None:
+    db = tmp_path / "store.db"
+    command.upgrade(_cfg(db), "head")
+    _execute(db, _STORY)
+    with pytest.raises(sa.exc.IntegrityError):
+        _execute(db, _edge(1, "use"))  # a use without its key
+    _execute(
+        db,
+        _edge(1, "use")
+        .replace("recorded_at)", "recorded_at, use_key)")
+        .replace("'now')", "'now', 'equipment.weapons.cleave/cleave')"),
+    )

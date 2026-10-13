@@ -42,7 +42,9 @@ __all__ = [
     "apply_edge",
     "commit",
     "read",
+    "replay",
     "take_use",
+    "use_event",
 ]
 
 
@@ -60,9 +62,13 @@ class StoredCoordination:
 
 @dataclass(frozen=True)
 class AppliedEdge:
+    """One applied turn event: a ``begin``/``end`` edge, or a once-per-turn
+    ``use`` of ``key``."""
+
     kind: str
     subject: SubjectReference
     instance: int
+    key: str | None = None
 
 
 def read(session: Session, story_id: UUID) -> StoredCoordination:
@@ -113,6 +119,33 @@ def apply_edge(
     raise EdgeRefused(f"{kind!r} is not an actor-turn edge")
 
 
+def use_event(
+    document: TurnCoordination, subject: SubjectReference, key: str
+) -> tuple[TurnCoordination, AppliedEdge]:
+    """:func:`take_use`, with the event that records it."""
+    after = take_use(document, subject, key)
+    assert after.active is not None
+    return after, AppliedEdge("use", subject, after.active.instance, key)
+
+
+def replay(events: list[tuple[str, AppliedEdge]]) -> TurnCoordination:
+    """The coordination document the logged events rebuild, from an empty
+    one: each ``(delivered turn id, event)`` in sequence order."""
+    document = TurnCoordination()
+    begun: set[str] = set()
+    for turn_id, event in events:
+        if event.kind == "use":
+            assert event.key is not None
+            document = take_use(document, event.subject, event.key)
+            continue
+        document, _ = apply_edge(
+            document, event.kind, event.subject, begun_this_turn=turn_id in begun
+        )
+        if event.kind == "begin":
+            begun.add(turn_id)
+    return document
+
+
 def take_use(
     document: TurnCoordination, subject: SubjectReference, key: str
 ) -> TurnCoordination:
@@ -141,10 +174,19 @@ def commit(
 ) -> int:
     """Write *after* over the revision the turn read and append *edges*;
     returns the new revision. A concurrent change raises
-    :class:`StaleRevisionError` so the delivery transaction rolls back."""
-    if not edges and after == read_state.document:
-        return read_state.revision
+    :class:`StaleRevisionError` so the delivery transaction rolls back --
+    including when the turn only read the coordination (its timing fed an
+    effect) and writes nothing: the read is still rechecked."""
     story = str(read_state.story_id)
+    if not edges and after == read_state.document:
+        current = session.execute(
+            sa.select(RpgTurnCoordinationORM.revision).where(
+                RpgTurnCoordinationORM.story_id == story
+            )
+        ).scalar_one_or_none()
+        if (current or 0) != read_state.revision:
+            raise StaleRevisionError(f"story {story}'s turn coordination changed")
+        return read_state.revision
     revision = read_state.revision + 1
     document = after.model_dump(mode="json")
     if read_state.revision == 0:
@@ -184,6 +226,7 @@ def commit(
                 subject_id=str(edge.subject.subject_id),
                 turn_instance=edge.instance,
                 coordination_revision=read_state.revision,
+                use_key=edge.key,
                 recorded_at=now,
             )
         )

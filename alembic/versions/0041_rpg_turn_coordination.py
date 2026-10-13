@@ -2,8 +2,9 @@
 
 Creates ``rpg_turn_coordination`` (one row per story: the active turn and the
 next turn instance, with a revision) and ``rpg_turn_edges`` (every applied
-``begin``/``end`` edge, sequenced per story). Create-only: no existing row is
-read or changed.
+``begin``/``end`` edge and once-per-turn ``use``, sequenced per story, so the
+coordination document is reconstructable by replay). Create-only: no existing
+row is read or changed.
 """
 
 from __future__ import annotations
@@ -45,9 +46,15 @@ def upgrade() -> None:
         sa.Column("subject_id", sa.String(36), nullable=False),
         sa.Column("turn_instance", sa.Integer, nullable=False),
         sa.Column("coordination_revision", sa.Integer, nullable=False),
+        sa.Column("use_key", sa.Text, nullable=True),
         sa.Column("recorded_at", sa.String(64), nullable=False),
         sa.UniqueConstraint("story_id", "sequence", name="uq_rpg_turn_edges_sequence"),
-        sa.CheckConstraint("kind IN ('begin', 'end')", name="ck_rpg_turn_edges_kind"),
+        sa.CheckConstraint(
+            "kind IN ('begin', 'end', 'use')", name="ck_rpg_turn_edges_kind"
+        ),
+        sa.CheckConstraint(
+            "(kind = 'use') = (use_key IS NOT NULL)", name="ck_rpg_turn_edges_use_key"
+        ),
     )
 
 

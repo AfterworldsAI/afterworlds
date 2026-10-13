@@ -60,6 +60,7 @@ __all__ = [
     "after_events",
     "load_turn_character",
     "load_turn_creature",
+    "require_holdings_unchanged",
     "require_unchanged",
     "with_effects",
     "with_possible",
@@ -258,6 +259,21 @@ def require_unchanged(
         )
 
 
+def require_holdings_unchanged(
+    session: Session, holder: Holder, items: tuple[ItemInstance, ...]
+) -> None:
+    """Refuse a commit computed against holdings that changed after the turn
+    read them: an item gained, lost or transferred, or one whose revision
+    moved (equipped, attuned, charges, quantity). A subject's state revision
+    does not cover its holdings (CRD Issue 15c)."""
+    now = {(i.item_id, i.revision) for i in items_held_by(session, holder)}
+    if now != {(i.item_id, i.revision) for i in items}:
+        raise StaleRevisionError(
+            f"{holder.kind.value} {holder.holder_id}'s holdings changed after this "
+            "turn read them; its work cannot commit"
+        )
+
+
 def _uses(session: Session, story_id: UUID, package: str, release: str) -> bool:
     """Whether the story uses (package, release): the same rule that decides
     which stories a change affects (:func:`shared_changes.affected_stories`)."""
@@ -317,13 +333,16 @@ class RpgTurnHold:
                 character.stored.binding,
                 kind="creature",
             )
-            return
-        require_unchanged(
-            session,
-            character.sheet_id,
-            character.stored.revision,
-            character.stored.binding,
-        )
+            holder = Holder(HolderKind.CREATURE, character.subject_id)
+        else:
+            require_unchanged(
+                session,
+                character.sheet_id,
+                character.stored.revision,
+                character.stored.binding,
+            )
+            holder = Holder(HolderKind.CHARACTER, character.sheet_id)
+        require_holdings_unchanged(session, holder, character.items)
 
     def finish(self, story_id: UUID, lease_id: str) -> None:
         """Release the lease (idempotent), then process what it held back.

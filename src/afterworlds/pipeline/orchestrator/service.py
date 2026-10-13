@@ -3693,7 +3693,7 @@ class OrchestratorService:
         for record in adj_result.proposals:
             if record.turn_use is not None:
                 by = record.turn_use_by
-                document = coordination.take_use(
+                document, used = coordination.use_event(
                     document,
                     (
                         actor
@@ -3702,6 +3702,7 @@ class OrchestratorService:
                     ),
                     record.turn_use,
                 )
+                edges.append(used)
             if record.turn_edge is None:
                 continue
             ref = record.turn_edge.subject

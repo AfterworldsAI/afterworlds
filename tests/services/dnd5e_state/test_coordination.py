@@ -4,6 +4,7 @@ rebuilt from."""
 
 from __future__ import annotations
 
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -140,3 +141,106 @@ def test_a_once_per_turn_use_needs_the_subjects_turn_and_a_new_turn_clears_it(
     with table.factory() as session:
         current = coordination.read(session, story)
     assert _commit(table, story, current, take_use(current.document, A, key)) == 2
+
+
+# ---------------------------------------------------------------------------
+# Delivery read set: uses are logged events, read-only coordination reads and
+# holdings are rechecked at commit (codex-c7-delivery-review)
+# ---------------------------------------------------------------------------
+
+
+def _log(table: Table, story: Any) -> list[tuple[str, coordination.AppliedEdge]]:
+    with table.factory() as session:
+        rows = session.execute(
+            sa.select(RpgTurnEdgeORM)
+            .where(RpgTurnEdgeORM.story_id == str(story))
+            .order_by(RpgTurnEdgeORM.sequence)
+        ).scalars()
+        return [
+            (
+                r.turn_id,
+                coordination.AppliedEdge(
+                    r.kind,
+                    SubjectReference(kind=r.subject_kind, subject_id=r.subject_id),
+                    r.turn_instance,
+                    r.use_key,
+                ),
+            )
+            for r in rows
+        ]
+
+
+def test_a_use_only_delivery_is_logged_and_the_log_replays_it(table: Table) -> None:
+    key = "equipment.weapons.cleave/cleave"
+    with table.factory() as session:
+        story = new_story(session)
+        session.commit()
+    with table.factory() as session:
+        read = coordination.read(session, story)
+    doc, begin = apply_edge(read.document, "begin", A, begun_this_turn=False)
+    _commit(table, story, read, doc, begin)
+    with table.factory() as session:
+        current = coordination.read(session, story)
+    used, event = coordination.use_event(current.document, A, key)
+    assert event == coordination.AppliedEdge("use", A, 1, key)
+    _commit(table, story, current, used, event)
+    with table.factory() as session:
+        stored = coordination.read(session, story).document
+    assert stored.uses and coordination.replay(_log(table, story)) == stored
+
+
+def test_a_read_only_coordination_snapshot_is_rechecked_at_commit(
+    table: Table,
+) -> None:
+    with table.factory() as session:
+        story = new_story(session)
+        session.commit()
+    with table.factory() as session:
+        stale = coordination.read(session, story)  # absent: revision 0
+    doc, begin = apply_edge(stale.document, "begin", A, begun_this_turn=False)
+    _commit(table, story, stale, doc, begin)  # a concurrent delivery
+    # A turn that only read the (then absent) coordination writes nothing,
+    # yet cannot commit timing computed from it.
+    with pytest.raises(StaleRevisionError):
+        _commit(table, story, stale, stale.document)
+    with table.factory() as session:
+        current = coordination.read(session, story)
+    assert _commit(table, story, current, current.document) == current.revision
+
+
+def test_a_holdings_change_after_the_read_refuses_the_commit(
+    table: Table, srd_content: Any
+) -> None:
+    from afterworlds.services.dnd5e_state import holdings
+    from afterworlds.services.dnd5e_state.holdings import Holder, HolderKind
+    from afterworlds.services.dnd5e_state.turn import require_holdings_unchanged
+    from tests.services.dnd5e_state.test_holdings import _bound, _setup
+
+    _, sheet = _setup(table)
+    index = _bound(table, sheet, srd_content)
+    holder = Holder(HolderKind.CHARACTER, sheet)
+    with table.factory() as s, s.begin():
+        club = holdings.create_item(
+            s, index, holder, "equipment.weapons.club", equipped=True, now=NOW
+        )
+    with table.factory() as s:
+        snapshot = holdings.items_held_by(s, holder)
+        require_holdings_unchanged(s, holder, snapshot)  # unchanged: passes
+    with table.factory() as s, s.begin():  # unequipped: its revision moves
+        holdings.update_item_use(
+            s,
+            club.item_id,
+            expected_revision=club.revision,
+            equipped=False,
+            attuned=False,
+            charges_remaining=None,
+            now=NOW,
+        )
+    with table.factory() as s, pytest.raises(StaleRevisionError):
+        require_holdings_unchanged(s, holder, snapshot)
+    with table.factory() as s:
+        current = holdings.items_held_by(s, holder)
+    with table.factory() as s, s.begin():  # an item gained
+        holdings.create_item(s, index, holder, "equipment.weapons.dagger", now=NOW)
+    with table.factory() as s, pytest.raises(StaleRevisionError):
+        require_holdings_unchanged(s, holder, current)
