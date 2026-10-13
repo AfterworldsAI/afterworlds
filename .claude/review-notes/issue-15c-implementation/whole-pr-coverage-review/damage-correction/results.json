@@ -1,0 +1,151 @@
+{
+  "revision": "6caa63e36a143feab0d3ddec50175803d24ee8c4",
+  "oracle_sha256": "ead7fa9d4fde484098f71221ca5ef82dfb2c82229d8fca80ab5feeb4e4d62d0d",
+  "source_sha256": "7110c6ed7dca81776a346cd03665011aabc7ff11db8d85d6c010e7b7d473de76",
+  "damage_sha256": "8c3c9f38c083ea19c077d7bf581170267ce9083828401d174c08ed5fe6f56721",
+  "cases": [
+    {
+      "case": "dying_fully_absorbed",
+      "incoming": 3,
+      "maximum": 11,
+      "taken": 3,
+      "outcome": "death_save_failure",
+      "effects": {
+        "temporary_hp": 2,
+        "death_state": {
+          "successes": 1,
+          "failures": 1,
+          "stable": false,
+          "dead": false,
+          "stable_recovery": null
+        }
+      }
+    },
+    {
+      "case": "stable_fully_absorbed",
+      "incoming": 3,
+      "maximum": 11,
+      "taken": 3,
+      "outcome": "death_save_failure",
+      "effects": {
+        "temporary_hp": 2,
+        "death_state": {
+          "successes": 0,
+          "failures": 1,
+          "stable": false,
+          "dead": false,
+          "stable_recovery": null
+        }
+      }
+    },
+    {
+      "case": "equals_maximum",
+      "incoming": 11,
+      "maximum": 11,
+      "taken": 11,
+      "outcome": "died",
+      "effects": {
+        "temporary_hp": 0,
+        "death_state": {
+          "successes": 1,
+          "failures": 1,
+          "stable": false,
+          "dead": true,
+          "stable_recovery": null
+        }
+      }
+    },
+    {
+      "case": "below_maximum",
+      "incoming": 9,
+      "maximum": 11,
+      "taken": 9,
+      "outcome": "death_save_failure",
+      "effects": {
+        "temporary_hp": 0,
+        "death_state": {
+          "successes": 1,
+          "failures": 1,
+          "stable": false,
+          "dead": false,
+          "stable_recovery": null
+        }
+      }
+    },
+    {
+      "case": "dying_without_temporary",
+      "incoming": 3,
+      "maximum": 11,
+      "taken": 3,
+      "outcome": "death_save_failure",
+      "effects": {
+        "death_state": {
+          "successes": 1,
+          "failures": 1,
+          "stable": false,
+          "dead": false,
+          "stable_recovery": null
+        }
+      }
+    },
+    {
+      "case": "stable_without_temporary",
+      "incoming": 3,
+      "maximum": 11,
+      "taken": 3,
+      "outcome": "death_save_failure",
+      "effects": {
+        "death_state": {
+          "successes": 0,
+          "failures": 1,
+          "stable": false,
+          "dead": false,
+          "stable_recovery": null
+        }
+      }
+    },
+    {
+      "case": "zero_incoming",
+      "incoming": 0,
+      "maximum": 11,
+      "taken": 0,
+      "outcome": "absorbed",
+      "effects": {}
+    },
+    {
+      "case": "above_zero_absorption",
+      "incoming": 3,
+      "maximum": 11,
+      "taken": 3,
+      "outcome": "absorbed",
+      "effects": {
+        "temporary_hp": 2
+      }
+    },
+    {
+      "case": "critical_absorbed",
+      "incoming": 3,
+      "maximum": 11,
+      "taken": 3,
+      "outcome": "death_save_failure",
+      "effects": {
+        "temporary_hp": 2,
+        "death_state": {
+          "successes": 1,
+          "failures": 2,
+          "stable": false,
+          "dead": false,
+          "stable_recovery": null
+        }
+      }
+    },
+    {
+      "case": "immune_at_zero",
+      "incoming": 3,
+      "maximum": 11,
+      "taken": 0,
+      "outcome": "absorbed",
+      "effects": {}
+    }
+  ]
+}

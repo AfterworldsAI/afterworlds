@@ -1,12 +1,44 @@
 # CRD Issue 15c — handoff for Codex independent review
 
 - **Branch:** `codex/issue-15c-bounded-d20`.
-- **Commits:** local `eb60d9f` … `246e6ae` and later, on baseline `e83018c`. See `status.md` "Latest".
+- **Commits:** local `eb60d9f` … `3509b96` and the evidence-closure commit after it, on baseline `e83018c`. See `status.md` "Latest".
 - **Not pushed. No PR opened. Nothing merged.**
 - Nothing was migrated, published, activated or launched in any shared runtime.
 - `D:\AI\Claude\afterworlds-runtime` was never touched. #129 stays frozen; #132 and #137 are unchanged.
 
-## Current (13 October 2026): C7 accepted, recorded locally, ammunition executing
+## Current (13 October 2026): C8 integrated and recorded; complete implementation awaiting the whole-PR gates
+
+**Authority.** The Owner answered "Accept exact C8" and "Approve bounded species input" (`../issue-15c-c8-native/owner-acceptance-2026-10-13.md`; decision packet `codex-c8-owner-decision-packet.md`, `7a29c7cd…`). The Owner then asked for one complete PR to accept or reject (`owner-whole-pr-review-2026-10-13.md`).
+
+**Recorded C8 successor** (`183a664`, `../issue-15c-c8-recording/`): `srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json`, SHA-256 `ead7fa9d4fde484098f71221ca5ef82dfb2c82229d8fca80ab5feeb4e4d62d0d`.
+- **Identities equal the accepted preview** `a2d96264…`: oracle `70646cd9…`, projection `e4f8f4fb-de6c-53c9-98f1-fa7a0159fe42`, payload `e615d010…`, schema 21 `4499b396…`, and the five proposals. Only the acceptance evidence differs. C7 is superseded by digest.
+
+**Implementation head for the gates:** `3509b96`. This closure commit adds evidence and notes only. The commits, focused diagnostics and named holds are in `status.md` "Latest".
+
+**Independent review closures adopted by the parent:**
+- C8 execution, correction and presence-final checks;
+- the zero-HP temporary-damage check and its correction check;
+- the whole-PR coverage remediation (weapons, Multiattack, damage branches, tool kinds);
+- the evidence-baseline reviews.
+
+**Remaining for Codex and the parent:**
+- the supervised full pytest with configured coverage (`run-final-pytest.ps1`) at the final head;
+- the unchanged repository and CI gates;
+- the same complete PR.
+
+The focused diagnostics (812 and 296 passes) are not gate evidence.
+
+**Holds** (refused before any die; not positive coverage):
+- the Ghoul against a Humanoid with no recorded species;
+- Wild Companion and Pact familiars' type;
+- other Challenge Rating 0 familiar forms;
+- the Vampire's mist form;
+- transformed targets;
+- familiar attacks, damage and zero-HP paths;
+- the Steed's parameterized AC;
+- ammunition recovery (excluded).
+
+## Earlier (13 October 2026): C7 accepted, recorded locally, ammunition executing
 
 **C7 is Owner-accepted**: the exact consolidated packet `4912928f…eb2c` (`../issue-15c-c7-native/owner-acceptance-2026-10-13.md`). The Owner also authorized integration and recording (`owner-c7-integration-2026-10-13.md`). The earlier "C7 integration blocked" note is superseded.
 

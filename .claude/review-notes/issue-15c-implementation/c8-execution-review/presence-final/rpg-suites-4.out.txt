@@ -1,0 +1,50 @@
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+........................................................................ [  8%]
+........................................................................ [ 17%]
+........................................................................ [ 26%]
+........................................................................ [ 35%]
+........................................................................ [ 44%]
+........................................................................ [ 53%]
+........................................................................ [ 62%]
+........................................................................ [ 70%]
+........................................................................ [ 79%]
+........................................................................ [ 88%]
+........................................................................ [ 97%]
+....................                                                     [100%]
+============================== warnings summary ===============================
+tests/pipeline/rpg/test_before_dice.py: 8 warnings
+tests/pipeline/rpg/test_bloodied.py: 14 warnings
+tests/pipeline/rpg/test_certification.py: 1 warning
+tests/pipeline/rpg/test_creature_attacks.py: 3 warnings
+tests/pipeline/rpg/test_creature_clauses.py: 16 warnings
+tests/pipeline/rpg/test_creature_effects.py: 2 warnings
+tests/pipeline/rpg/test_creature_roster.py: 1 warning
+tests/pipeline/rpg/test_creature_types.py: 3 warnings
+tests/pipeline/rpg/test_familiar_limits.py: 1 warning
+tests/pipeline/rpg/test_linked_conditions.py: 1 warning
+  D:\AI\Claude\scratch\AW docs\issue2b-implementation\afterworlds\venv\Lib\site-packages\pydantic\main.py:520: UserWarning: Pydantic serializer warnings:
+    PydanticSerializationUnexpectedValue(Expected `enum` - serialized value may not be as expected [field_name='size', input_value='medium', input_type=str])
+    return self.__pydantic_serializer__.to_python(
+
+tests/pipeline/rpg/test_before_dice.py::test_a_stored_prone_establishes_trample_whatever_its_id[real-prone]
+tests/pipeline/rpg/test_before_dice.py::test_a_stored_prone_establishes_trample_whatever_its_id[possible:prone]
+tests/pipeline/rpg/test_before_dice.py::test_a_stored_prone_establishes_trample_whatever_its_id[possible:imported]
+  D:\AI\Claude\scratch\AW docs\issue2b-implementation\afterworlds\venv\Lib\site-packages\pydantic\main.py:587: UserWarning: Pydantic serializer warnings:
+    PydanticSerializationUnexpectedValue(Expected `enum` - serialized value may not be as expected [field_name='size', input_value='medium', input_type=str])
+    return self.__pydantic_serializer__.to_json(
+
+tests/ingestion/mechanical/test_bounded_d20_on_published_release.py: 23 warnings
+  D:\AI\Claude\scratch\AW docs\issue2b-implementation\afterworlds\venv\Lib\site-packages\alembic\config.py:604: DeprecationWarning: No path_separator found in configuration; falling back to legacy splitting on spaces, commas, and colons for prepend_sys_path.  Consider adding path_separator=os to Alembic config.
+    util.warn_deprecated(
+
+tests/ingestion/mechanical/test_bounded_d20_on_published_release.py: 57 warnings
+  D:\AI\Claude\scratch\AW docs\issue2b-implementation\afterworlds\src\afterworlds\entitlement\service.py:342: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = self._clock()
+
+tests/ingestion/mechanical/test_bounded_d20_on_published_release.py: 26 warnings
+  D:\AI\Claude\scratch\AW docs\issue2b-implementation\afterworlds\src\afterworlds\entitlement\service.py:104: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = self._clock()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+812 passed, 159 warnings in 395.47s (0:06:35)
+Focused diagnostics PASSED (exit 0). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence

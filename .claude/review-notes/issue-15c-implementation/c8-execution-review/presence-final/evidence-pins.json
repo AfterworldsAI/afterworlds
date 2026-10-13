@@ -1,0 +1,9 @@
+{
+  "revision": "6caa63e36a143feab0d3ddec50175803d24ee8c4",
+  "sha256": {
+    "rpg-suites-4.result.json": "88fc5bfa7a23943faa6f927a6dd4a45663753b18e595ce6c91a6abc34cda2cbf",
+    "rpg-suites-4.out.txt": "4ed37059d0f1f07f30cfcb01e6e4b65c1ff368463059d82c2f941507bc1b00a1",
+    "rpg-suites-4.err.txt": "f22f34221366ddf3d0a03d425960eff2da6c1f5c0a060d66d08d3f39ee28d8ee",
+    "results.json": "ecac2425f17392f2023f5e683de0aaa58a90a6eec72759c19cb2d1a7359b93fb"
+  }
+}

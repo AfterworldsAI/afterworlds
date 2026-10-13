@@ -1,9 +1,9 @@
 # CRD Issue 15c — implementation status
 
-- **Branch and head:** `codex/issue-15c-bounded-d20`. Local commits: `eb60d9f` (implementation), `abca92d` (review notes) and a C2 review-notes commit. Baseline `e83018c` = remote main.
-- **Not pushed. No PR.** Stopped at the semantic-acceptance gate for Codex review.
-- **Scope:** #191 as updated (body SHA-256 `8225e1b6…57a2`). It adds creature attacks, bounded Multiattack and their saves/effects, the tool-addressing and omitted-source repair, and individual conditional-creature assessment. The G1 oracle `2ccbaeba…1258` is unchanged.
-- **Process:** Opus 5.5 at medium effort, with the separate Opus 5.5 Advisor consulted on the approach, the candidate scope and completion.
+- **Branch and head:** `codex/issue-15c-bounded-d20`, the commit containing this note. The implementation head reviewed by Codex is `3509b96`; this closure adds evidence and notes only. Baseline `e83018c` = remote main.
+- **State:** C8 is integrated and recorded (`ead7fa9d…`). The complete implementation awaits the whole-PR gates: Codex's supervised full pytest with configured coverage, the unchanged repository gates, exact-head CI, then one PR for the Owner's acceptance or rejection. Not pushed. No PR.
+- **Scope:** #191, the governing draft `issue-draft.md` SHA-256 `8ad87786…727426f`, with its recorded Owner decisions: C5, C7 and exact C8 acceptance, and the bounded species input. Named holds remain holds, not positive coverage (see the latest section).
+- **Process:** Opus 5.5 at medium effort, with the separate Opus 5.5 Advisor consulted on the approach and completion.
 
 ## Latest (13 October 2026): complete CRD Issue 15c implementation, ready for Codex's whole-PR review and final gates
 
