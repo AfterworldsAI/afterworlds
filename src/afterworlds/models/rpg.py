@@ -239,11 +239,13 @@ class RollProposal(BaseModel):
     check_identity: str | None = None
     #: Closed-vocabulary selections an operation may need, validated in code:
     #: the ability and skill of a difficulty check, the Typical DC identity
-    #: the GameMaster selects, and the tool activity of a tool check.
+    #: the GameMaster selects, and the tool activity of a tool check, with
+    #: the kind of a Gaming Set or Musical Instrument used.
     ability: str | None = None
     skill: str | None = None
     difficulty: str | None = None
     tool_activity: str | None = None
+    tool_variant: str | None = None
     #: The selections of a ``weapon_attack`` (CRD Issue 15c).
     weapon_attack: WeaponAttackSelection | None = None
     #: The one subject an operation names: whose turn ``begin_turn`` or

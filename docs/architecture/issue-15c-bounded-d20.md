@@ -13,7 +13,7 @@
 - **Checks:**
   - source-fixed-DC checks;
   - difficulty checks (a GameMaster-selected Typical DC);
-  - tool checks;
+  - tool checks, including the Gaming Set and Musical Instrument: the GameMaster selects the kind (`tool_variant`), which must be one of the activity's typed `ToolVariantsFact` kinds and held (`ItemInstance.tool_variant`, migration 0042). Proficiency counts only from a validated `ToolGrant` of that same tool and kind (`ToolGrant.variant`); a grant of another kind is no proficiency, a grant recording no kind refuses `missing_state`, and a kind that is not the tool's refuses at state, holding and grant validation;
   - Initiative.
 - **Grants and feats:** contributing grants are validated against their exact typed source before any number is used (`pipeline/rpg/grants.py`). Origin-feat category eligibility is now typed (C7).
 - **Saving throws**, made by the operation that causes them (`pipeline/rpg/saves.py`):
@@ -37,7 +37,6 @@
 - **Linked condition:** Restrained "until the grapple ends" is tied to its Grappled instance (`ConditionInstance.lasts_while_instance`).
 
 **Refused for a recorded reason (not counted as coverage):**
-- Gaming Set and Musical Instrument checks: 2b records no tool kind.
 - Fighting Style feat eligibility through a category choice: no typed category, since C6-B was withdrawn.
 - Ability increases whose result depends on an unrecorded acquisition order.
 - Extra Attack (prose-bound) and Reactions.
@@ -111,6 +110,15 @@ Anything that could contribute to the roll but is not executed here refuses the 
 | 7. End-to-end on the accepted successor published in disposable stores | Met, pending review | `test_bounded_d20_on_published_release.py` on the C8 successor: checks, refusals, hidden filtering, weapon attacks, edges, ammunition expenditure and rollback, a creature's linked grapple, a recorded species honoured by the Ghoul's Elf exception in a later Turn, a species whose creature moved before commit (rollback), an ineligible species |
 
 ## Architecture Notes
+
+### CRD Issue 15c: Gaming Set and Musical Instrument kinds (13 October 2026)
+
+**Built.** Each kind is its own proficiency (`equipment.md` "Tools"; the accepted `ToolVariantsFact`, stated per activity option):
+- **State:** `ToolGrant.variant` and `ItemInstance.tool_variant` (migration 0042, `dnd5e_item_instances.tool_variant`) keep the exact typed `ToolVariant`. A recorded kind that is not one of the tool component's typed kinds is refused by state validation, by item identity (create, transfer, use and adoption) and by grant validation.
+- **GameMaster input:** `tool_variant` selects the kind used; the scene lists held tools with their kind. A kind is required exactly for a tool with kinds.
+- **Check:** the selected kind must be held (`missing_state` otherwise). Proficiency counts only from a validated grant of the same tool and kind. A grant of another kind is no proficiency; a grant recording no kind refuses `missing_state` for checks of that tool only, so the character's other checks still run.
+
+**Named boundary (not a refusal).** A tool-choice `ChoiceRecord` (Soldier's Gaming Set, the Bard's three instruments) records the tool, not the kind: the kind lives only on the `ToolGrant`, validated against the tool's typed kinds and the source's typed selector (which admits any kind of that tool). No choice vocabulary for tool kinds was added.
 
 ### CRD Issue 15c C8: target creature types and the bounded species input (13 October 2026)
 

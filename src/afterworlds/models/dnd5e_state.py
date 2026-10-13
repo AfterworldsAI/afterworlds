@@ -50,6 +50,7 @@ from afterworlds.ingestion.mechanical.representation import (
     MovementMode,
     Skill,
     TimeUnit,
+    ToolVariant,
     WeaponCategory,
 )
 from afterworlds.models.dnd5e_vocabulary import (
@@ -362,12 +363,17 @@ class ArmorTrainingGrant(_Model):
 
 
 class ToolGrant(_Model):
-    """Proficiency with a tool: an accepted record, or (record, component)."""
+    """Proficiency with a tool: an accepted record, or (record, component).
+
+    ``variant`` is the kind of a Gaming Set or Musical Instrument, each kind
+    its own proficiency (CRD Issue 15c): one of that tool's typed variants.
+    """
 
     record_key: str = Field(min_length=1)
     component_key: str | None = Field(default=None, min_length=1)
     expertise: bool
     source: GrantSource
+    variant: ToolVariant | None = None
 
 
 class LanguageGrant(_Model):

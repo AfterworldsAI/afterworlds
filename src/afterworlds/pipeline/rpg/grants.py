@@ -54,6 +54,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ToolProficiencyChoiceFact,
     ToolProficiencyGrantFact,
     ToolSelector,
+    ToolVariant,
     WeaponAndArmorGrantFact,
     WeaponCategory,
     WeaponCategoryFact,
@@ -80,6 +81,7 @@ from afterworlds.services.dnd5e_state.authority import (
     AuthorityIndex,
     component_schema_id,
 )
+from afterworlds.services.dnd5e_state.validation import tool_variant_failure
 
 __all__ = [
     "EXPERTISE_RULE",
@@ -889,6 +891,8 @@ def _tool_grant_count(
     allowance with its skill picks."""
     source = grant.source
     target = (grant.record_key, grant.component_key)
+    if failure := tool_variant_failure(index, *target, grant.variant):
+        raise _invalid(failure)
     linked = _linked(state, source)
     if linked is not None and not any(
         (isinstance(s, RecordChoice) and s.record_key == grant.record_key)
@@ -960,10 +964,17 @@ def _proficiency_picks(
 
 
 def tool_proficiency(
-    index: AuthorityIndex, state: Dnd5eCharacterState, record: str, component: str
+    index: AuthorityIndex,
+    state: Dnd5eCharacterState,
+    record: str,
+    component: str,
+    variant: ToolVariant | None = None,
 ) -> bool:
     """Whether the character is validly proficient with the tool at
-    (*record*, *component*). Tool Expertise has no typed source and refuses."""
+    (*record*, *component*) -- for a Gaming Set or Musical Instrument, with
+    its kind *variant*, each kind a separate proficiency. A grant of such a
+    tool that records no kind refuses: which kind it gives is unrecorded.
+    Tool Expertise has no typed source and refuses."""
     classes = _classes(state)
     for grant in state.tool_proficiencies or ():
         if grant.expertise:
@@ -973,10 +984,20 @@ def tool_proficiency(
                 "authority",
             )
     _proficiency_picks(index, state, classes)
-    return any(
-        (g.record_key, g.component_key) == (record, component)
+    mine = [
+        g
         for g in state.tool_proficiencies or ()
-    )
+        if (g.record_key, g.component_key) == (record, component)
+    ]
+    if variant is None:
+        return bool(mine)
+    if any(g.variant is None for g in mine):
+        raise AdjudicationRefusal(
+            RefusalKind.MISSING_STATE,
+            f"a {record}/{component} grant records no kind; each kind is a "
+            "separate proficiency",
+        )
+    return any(g.variant == variant for g in mine)
 
 
 # ---------------------------------------------------------------------------

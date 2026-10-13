@@ -165,6 +165,8 @@ class Dnd5eItemInstanceORM(Base):
     )
     record_key: Mapped[str] = mapped_column(sa.Text, nullable=False)
     component_key: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    #: The kind of a Gaming Set or Musical Instrument (CRD Issue 15c).
+    tool_variant: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     quantity: Mapped[int] = mapped_column(sa.Integer, nullable=False)
     holder_character_id: Mapped[str | None] = mapped_column(
         sa.String(36),

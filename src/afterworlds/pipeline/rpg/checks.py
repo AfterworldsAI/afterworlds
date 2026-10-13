@@ -56,6 +56,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ToolActivity,
     ToolActivityFact,
     ToolEntryFact,
+    ToolVariant,
     ToolVariantsFact,
 )
 from afterworlds.models.dnd5e_state import Dnd5eCharacterState
@@ -217,6 +218,8 @@ class _Spec:
     proficiency: str  # "skill" | "tool" | "none"
     contexts: frozenset[RollContext]
     tool: tuple[str, str] | None = None
+    #: The kind of a Gaming Set or Musical Instrument used.
+    tool_variant: ToolVariant | None = None
 
 
 _CHECK_CONTEXTS = frozenset({RollContext.ABILITY_CHECK, RollContext.D20_TEST})
@@ -359,11 +362,18 @@ def _tool_spec(
             f"{activity.value} is not an activity of {record}/{component}",
         )
     key, facts = chosen[0]
-    if any(isinstance(f, ToolVariantsFact) for f in facts):
+    kinds = {v for f in facts if isinstance(f, ToolVariantsFact) for v in f.variants}
+    variant = None
+    if kinds:
+        variant = _member(ToolVariant, proposal.tool_variant, "tool kind")
+        if variant not in kinds:
+            raise _refuse(
+                RefusalKind.INVALID_SELECTION,
+                f"{variant.value} is not a kind of {record}/{component}",
+            )
+    elif proposal.tool_variant is not None:
         raise _refuse(
-            RefusalKind.MISSING_STATE,
-            f"{record}/{component} is a separate proficiency per kind, and CRD "
-            "Issue 2b records no kind for a tool grant or item",
+            RefusalKind.INVALID_SELECTION, f"{record}/{component} has no kinds"
         )
     checks = [f for f in facts if isinstance(f, AbilityCheckFact)]
     where = f"{record}/{component}" + (f"#{key}" if key else "")
@@ -374,14 +384,17 @@ def _tool_spec(
     fact = _fixed_check(checks[0], where)
     assert fact.ability is not None
     if not any(
-        (i.record_key, i.component_key) == (record, component) for i in character.items
+        (i.record_key, i.component_key) == (record, component)
+        and (variant is None or i.tool_variant == variant)
+        for i in character.items
     ):
+        kind = f" ({variant.value})" if variant else ""
         raise _refuse(
             RefusalKind.MISSING_STATE,
-            f"the character holds no {record}/{component} to use",
+            f"the character holds no {record}/{component}{kind} to use",
         )
     return _Spec(
-        identity=f"{where}:{activity.value}",
+        identity=f"{where}:{activity.value}" + (f":{variant.value}" if variant else ""),
         ability=AbilityScore(fact.ability),
         skill=None,
         dc=fact.dc_value,
@@ -389,6 +402,7 @@ def _tool_spec(
         proficiency="tool",
         contexts=_CHECK_CONTEXTS,
         tool=(record, component),
+        tool_variant=variant,
     )
 
 
@@ -698,7 +712,9 @@ def prepare(proposal: RollProposal, character: TurnCharacter) -> PreparedCheck:
         multiplier, expertise = skill_proficiency(index, state, skill)
         applies = _skill_applies(index)
     elif spec.proficiency == "tool" and spec.tool is not None:
-        multiplier = int(tool_proficiency(index, state, *spec.tool))
+        multiplier = int(
+            tool_proficiency(index, state, *spec.tool, variant=spec.tool_variant)
+        )
         applies = _tool_applies(index)
     proficiency = 0
     if multiplier:

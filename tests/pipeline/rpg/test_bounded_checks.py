@@ -18,6 +18,7 @@ from afterworlds.ingestion.mechanical.representation import (
     AbilityScore,
     ConditionKind,
     Skill,
+    ToolVariant,
 )
 from afterworlds.models.dnd5e_state import (
     AbilityAdjustment,
@@ -1047,15 +1048,9 @@ def test_a_tool_check_uses_the_activitys_printed_dc_and_validated_proficiency() 
     [
         (RefusalKind.MISSING_STATE, "/".join(THIEVES), "pick_a_lock", False),
         (RefusalKind.INVALID_SELECTION, "/".join(THIEVES), "start_a_fire", True),
-        (
-            RefusalKind.MISSING_STATE,
-            "equipment.tools.gaming_set/gaming_set",
-            "win_the_game",
-            True,
-        ),
         (RefusalKind.INVALID_SELECTION, "equipment.armor/armor", "pick_a_lock", True),
     ],
-    ids=["tool-not-held", "other-tools-activity", "kind-not-recorded", "not-a-tool"],
+    ids=["tool-not-held", "other-tools-activity", "not-a-tool"],
 )
 def test_an_unusable_tool_check_is_refused(
     kind: RefusalKind, identity: str, activity: str, held: bool
@@ -1068,6 +1063,172 @@ def test_an_unusable_tool_check_is_refused(
         kind,
         character,
         _op("tool_check", check_identity=identity, tool_activity=activity),
+    )
+
+
+GAMING = ("equipment.tools.gaming_set", "gaming_set")
+MUSIC = ("equipment.tools.musical_instrument", "musical_instrument")
+SOLDIER_TOOL = GrantSource(
+    record_key="character_origins.soldier", component_key="tool_proficiency"
+)
+BARD_TRAITS = GrantSource(record_key="classes.bard", component_key="core_traits")
+
+
+def _kinds(
+    target: tuple[str, str], *kinds: ToolVariant | None
+) -> tuple[ItemInstance, ...]:
+    return tuple(
+        dataclasses.replace(item(target[0]), component_key=target[1], tool_variant=k)
+        for k in kinds
+    )
+
+
+def _kind_grant(
+    target: tuple[str, str], source: GrantSource, kind: str | None
+) -> ToolGrant:
+    """Built from the raw value, so an off-roster kind reaches the engine."""
+    grant = ToolGrant(
+        record_key=target[0], component_key=target[1], expertise=False, source=source
+    )
+    return grant.model_copy(update={"variant": kind})
+
+
+def _soldier_with(kind: str | None) -> Dnd5eCharacterState:
+    """Soldier's background: one kind of Gaming Set of the character's choice."""
+    return _soldier(
+        skill_proficiencies=(),
+        tool_proficiencies=(_kind_grant(GAMING, SOLDIER_TOOL, kind),),
+    )
+
+
+def _bard_with(*kinds: str | None) -> Dnd5eCharacterState:
+    """A level-1 Bard: three Musical Instruments of the character's choice."""
+    return _state(
+        classes=(ClassLevel(class_record_key="classes.bard", level=1, hit_die="d8"),),
+        level_history=("classes.bard",),
+        tool_proficiencies=tuple(_kind_grant(MUSIC, BARD_TRAITS, k) for k in kinds),
+    )
+
+
+def _tool(target: tuple[str, str], activity: str, kind: str | None) -> RollProposal:
+    return _op(
+        "tool_check",
+        check_identity="/".join(target),
+        tool_activity=activity,
+        tool_variant=kind,
+    )
+
+
+@pytest.mark.parametrize(
+    ("target", "state", "activity", "dc", "ability", "granted", "other"),
+    [
+        (
+            GAMING,
+            _soldier_with("playing_cards"),
+            "win_the_game",
+            20,
+            "wisdom",
+            ToolVariant.PLAYING_CARDS,
+            ToolVariant.DICE,
+        ),
+        (
+            MUSIC,
+            _bard_with("lute", "flute", "drum"),
+            "improvise_a_song",
+            15,
+            "charisma",
+            ToolVariant.LUTE,
+            ToolVariant.VIOL,
+        ),
+    ],
+    ids=["soldier-gaming-set", "bard-musical-instrument"],
+)
+def test_a_gaming_set_or_instrument_check_is_proficient_per_kind(
+    target: tuple[str, str],
+    state: Dnd5eCharacterState,
+    activity: str,
+    dc: int,
+    ability: str,
+    granted: ToolVariant,
+    other: ToolVariant,
+) -> None:
+    """Each kind is a separate proficiency (``equipment.md`` "Tools"): the
+    character's validated grant of one kind adds the Proficiency Bonus to
+    checks with that kind only. A grant of another kind is no proficiency."""
+    character = srd_character(state, items=_kinds(target, granted, other))
+    record, dice = _resolve(character, 10, proposal=_tool(target, activity, granted))
+    dice.roll.assert_called_once_with("1d20")
+    provenance = json.loads(record.modifiers_json)
+    assert record.dc == dc
+    assert provenance["ability"] == ability
+    assert provenance["dc_source"] == f"{'/'.join(target)}#{activity}"
+    assert provenance["check_identity"].endswith(f":{activity}:{granted.value}")
+    assert provenance["breakdown"]["proficiency_bonus"] == 2
+    unproficient, _ = _resolve(
+        character, 10, proposal=_tool(target, activity, other.value)
+    )
+    breakdown = json.loads(unproficient.modifiers_json)["breakdown"]
+    assert "proficiency_bonus" not in breakdown
+    assert unproficient.total == record.total - 2
+
+
+@pytest.mark.parametrize(
+    ("kind", "state", "held", "selected"),
+    [
+        (RefusalKind.MISSING_STATE, _soldier_with("dice"), (None,), "dice"),
+        (
+            RefusalKind.MISSING_STATE,
+            _soldier_with("dice"),
+            (ToolVariant.PLAYING_CARDS,),
+            "dice",
+        ),
+        (
+            RefusalKind.INVALID_SELECTION,
+            _soldier_with("dice"),
+            (ToolVariant.DICE,),
+            None,
+        ),
+        (
+            RefusalKind.INVALID_SELECTION,
+            _soldier_with("dice"),
+            (ToolVariant.DICE,),
+            "lute",
+        ),
+        (RefusalKind.MISSING_STATE, _soldier_with(None), (ToolVariant.DICE,), "dice"),
+        (
+            RefusalKind.INVALID_SELECTION,
+            _soldier_with("lute"),
+            (ToolVariant.DICE,),
+            "dice",
+        ),
+    ],
+    ids=[
+        "held-without-kind",
+        "kind-not-held",
+        "kind-not-selected",
+        "selected-kind-not-the-tools",
+        "grant-without-kind",
+        "grant-of-a-kind-not-the-tools",
+    ],
+)
+def test_an_unrecorded_or_wrong_tool_kind_is_refused(
+    kind: RefusalKind,
+    state: Dnd5eCharacterState,
+    held: tuple[ToolVariant | None, ...],
+    selected: str | None,
+) -> None:
+    _refused(
+        kind,
+        srd_character(state, items=_kinds(GAMING, *held)),
+        _tool(GAMING, "discern_whether_someone_is_cheating", selected),
+    )
+
+
+def test_a_tool_without_kinds_refuses_a_selected_kind() -> None:
+    _refused(
+        RefusalKind.INVALID_SELECTION,
+        srd_character(_rogue_with_tools(), items=_holding(THIEVES)),
+        _tool(THIEVES, "pick_a_lock", "dice"),
     )
 
 

@@ -16,6 +16,7 @@ from afterworlds.ingestion.mechanical.representation import (
     Difficulty,
     Skill,
     ToolActivity,
+    ToolVariant,
 )
 from afterworlds.pipeline.rpg.capability import (
     FIXED_DC_CHECKS,
@@ -375,6 +376,11 @@ PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC: dict[str, Any] = {
                         "tool_activity": _selection(
                             [t.value for t in ToolActivity],
                             "For tool_check: the tool's printed activity.",
+                        ),
+                        "tool_variant": _selection(
+                            [v.value for v in ToolVariant],
+                            "For tool_check of a Gaming Set or Musical Instrument:"
+                            " the kind used, one the character holds.",
                         ),
                         "visibility": {
                             "type": "string",

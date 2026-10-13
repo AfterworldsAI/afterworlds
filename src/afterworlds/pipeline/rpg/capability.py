@@ -360,9 +360,10 @@ MANIFEST: dict[Operation, Capability] = {
         Operation.TOOL_CHECK,
         CapabilityStatus.EXECUTABLE,
         inputs=(
-            "a tool component and one of its typed activity identities; the "
-            "tool held; validated tool proficiency (Gaming Set and Musical "
-            "Instrument refuse: 2b records no variant)"
+            "a tool component and one of its typed activity identities, with "
+            "the typed kind for a Gaming Set or Musical Instrument; that tool "
+            "(and kind) held; validated tool proficiency, per kind for a "
+            "Gaming Set or Musical Instrument"
         ),
         effects="success or failure against the activity's printed DC",
         fingerprint="929069d89f6eb1e3c7aac49cede11b5fdd2b7d6ab502f9eb92c1e21e4df1e088",  # noqa: E501  # pragma: allowlist secret

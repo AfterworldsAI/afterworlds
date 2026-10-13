@@ -9,6 +9,7 @@ import pytest
 import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
 
+from afterworlds.ingestion.mechanical.representation import ToolVariant
 from afterworlds.models.dnd5e_state import (
     CreatureState,
     GrantSource,
@@ -249,6 +250,45 @@ def test_an_identity_that_is_not_an_item_is_refused_with_a_type(
                 holdings.create_item(
                     s, index, holder, key, component_key=component, now=NOW
                 )
+
+
+def test_a_held_gaming_set_or_instrument_records_one_of_its_typed_kinds(
+    table: Table, srd_content: Seeder
+) -> None:
+    """CRD Issue 15c: each kind is its own proficiency, so a held kind is
+    stored and read back typed; a kind the tool does not state refuses."""
+    _, sheet = _setup(table)
+    index = _bound(table, sheet, srd_content)
+    holder = Holder(HolderKind.CHARACTER, sheet)
+    gaming = ("equipment.tools.gaming_set", "gaming_set")
+    with table.factory() as s, s.begin():
+        cards = holdings.create_item(
+            s,
+            index,
+            holder,
+            gaming[0],
+            component_key=gaming[1],
+            tool_variant=ToolVariant.PLAYING_CARDS,
+            now=NOW,
+        )
+        for key, component, kind in (
+            (*gaming, ToolVariant.LUTE),  # an instrument, not a gaming set
+            ("equipment.tools.thieves_tools", "thieves_tools", ToolVariant.DICE),
+            (gaming[0], None, ToolVariant.DICE),  # the kind is the component's
+        ):
+            with pytest.raises(UnsupportedIdentityError):
+                holdings.create_item(
+                    s,
+                    index,
+                    holder,
+                    key,
+                    component_key=component,
+                    tool_variant=kind,
+                    now=NOW,
+                )
+    with table.factory() as s:
+        (held,) = holdings.items_held_by(s, holder)
+    assert held == cards and held.tool_variant is ToolVariant.PLAYING_CARDS
 
 
 def test_accepted_poisons_are_dosed_items_and_coat_a_weapon(

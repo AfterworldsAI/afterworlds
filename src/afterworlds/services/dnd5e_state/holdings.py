@@ -34,7 +34,7 @@ from uuid import UUID, uuid4
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
-from afterworlds.ingestion.mechanical.representation import RecordKind
+from afterworlds.ingestion.mechanical.representation import RecordKind, ToolVariant
 from afterworlds.persistence.orm.character_sheet import RpgCharacterSheetBaseORM
 from afterworlds.persistence.orm.dnd5e_state import (
     Dnd5eCreatureAssociationORM,
@@ -56,6 +56,7 @@ from afterworlds.services.dnd5e_state.errors import (
     SubjectNotFoundError,
     UnsupportedIdentityError,
 )
+from afterworlds.services.dnd5e_state.validation import tool_variant_failure
 from afterworlds.services.rules_authority.outcomes import AuthorityOutcome
 
 __all__ = [
@@ -115,6 +116,8 @@ class ItemInstance:
     charges_remaining: int | None
     applied_poison_record_key: str | None
     revision: int
+    #: The kind of a Gaming Set or Musical Instrument (CRD Issue 15c).
+    tool_variant: ToolVariant | None = None
 
 
 _HOLDER_COLUMN = {
@@ -257,8 +260,10 @@ def item_identity_failure(
     record_key: str,
     component_key: str | None,
     applied_poison_record_key: str | None = None,
+    tool_variant: str | None = None,
 ) -> str | None:
-    """Why an item identity is not representable under *index*, or ``None``."""
+    """Why an item identity is not representable under *index*, or ``None``.
+    A recorded *tool_variant* must be one of the tool component's typed kinds."""
     kind = index.kind(record_key)
     if kind is None:
         return f"{record_key!r} is not an accepted record"
@@ -269,6 +274,8 @@ def item_identity_failure(
         return f"{record_key!r} is a {kind.value}, not an item"
     if component_key is not None and index.component(record_key, component_key) is None:
         return f"{record_key!r} has no component {component_key!r}"
+    if failure := tool_variant_failure(index, record_key, component_key, tool_variant):
+        return failure
     if applied_poison_record_key is not None:
         return poison_identity_failure(index, applied_poison_record_key)
     return None
@@ -310,6 +317,7 @@ def _admit(
     *,
     now: str,
     given: AuthorityIndex | None = None,
+    tool_variant: str | None = None,
 ) -> None:
     index = holder_authority(session, holder, now=now)
     if given is not None and given.binding != index.binding:
@@ -319,7 +327,7 @@ def _admit(
             f"{holder.kind.value} {holder.holder_id} ({index.binding})",
         )
     if failure := item_identity_failure(
-        index, record_key, component_key, applied_poison_record_key
+        index, record_key, component_key, applied_poison_record_key, tool_variant
     ):
         raise UnsupportedIdentityError(failure)
 
@@ -343,6 +351,7 @@ def _to_item(row: Dnd5eItemInstanceORM) -> ItemInstance:
         charges_remaining=row.charges_remaining,
         applied_poison_record_key=row.applied_poison_record_key,
         revision=row.revision,
+        tool_variant=ToolVariant(row.tool_variant) if row.tool_variant else None,
     )
 
 
@@ -357,6 +366,7 @@ def create_item(
     equipped: bool = False,
     charges_remaining: int | None = None,
     applied_poison_record_key: str | None = None,
+    tool_variant: ToolVariant | None = None,
     now: str,
 ) -> ItemInstance:
     """Create an item instance held by *holder*.
@@ -373,6 +383,7 @@ def create_item(
         applied_poison_record_key,
         now=now,
         given=index,
+        tool_variant=tool_variant,
     )
     item_id = str(uuid4())
     session.add(
@@ -381,6 +392,7 @@ def create_item(
             story_id=story_id,
             record_key=record_key,
             component_key=component_key,
+            tool_variant=tool_variant,
             quantity=quantity,
             equipped=equipped,
             charges_remaining=charges_remaining,
@@ -445,6 +457,7 @@ def transfer_item(
         row.component_key,
         row.applied_poison_record_key,
         now=now,
+        tool_variant=row.tool_variant,
     )
     values: dict[str, object] = {column: None for column in _HOLDER_COLUMN.values()}
     values[_HOLDER_COLUMN[to.kind]] = str(to.holder_id)
@@ -480,6 +493,7 @@ def update_item_use(
         row.component_key,
         applied_poison_record_key,
         now=now,
+        tool_variant=row.tool_variant,
     )
     return _cas_update(
         session,

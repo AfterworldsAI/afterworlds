@@ -24,6 +24,8 @@ from collections.abc import Callable, Iterator
 from afterworlds.ingestion.mechanical.representation import (
     CreatureTypeFact,
     RecordKind,
+    ToolVariant,
+    ToolVariantsFact,
     WeaponCategoryFact,
 )
 from afterworlds.models.dnd5e_state import (
@@ -48,6 +50,8 @@ __all__ = [
     "FAMILIAR_SOURCES",
     "KNOWN_COUNT_ENTITLEMENTS",
     "character_readiness",
+    "tool_variant_failure",
+    "tool_variants",
     "creature_readiness",
     "validate_character",
     "validate_creature",
@@ -111,6 +115,40 @@ def _is_weapon(index: AuthorityIndex, key: str) -> bool:
 
 def _is_tool(index: AuthorityIndex, key: str) -> bool:
     return index.is_member(TOOL_CATALOGUE, key)
+
+
+def tool_variants(
+    index: AuthorityIndex, record_key: str, component_key: str | None
+) -> frozenset[ToolVariant]:
+    """The typed kinds of a Gaming Set or Musical Instrument component, each a
+    separate proficiency; empty for any other tool. Stated per activity
+    option, so read across the component and its options."""
+    c = None if component_key is None else index.component(record_key, component_key)
+    facts = [
+        *(c.facts if c else ()),
+        *(f for o in (c.options if c else ()) for f in o.facts),
+    ]
+    return frozenset(
+        v
+        for f in facts
+        if isinstance(f.fact, ToolVariantsFact)
+        for v in f.fact.variants
+    )
+
+
+def tool_variant_failure(
+    index: AuthorityIndex, record_key: str, component_key: str | None, variant: object
+) -> str | None:
+    """Why a recorded tool kind is not one of its tool's typed variants, or
+    ``None`` (no kind recorded). Checked from the raw value, so state built
+    without model validation still fails closed."""
+    if variant is None:
+        return None
+    if variant not in {
+        v.value for v in tool_variants(index, record_key, component_key)
+    }:
+        return f"{variant!r} is not a typed kind of {record_key}/{component_key}"
+    return None
 
 
 def _domain(
@@ -428,6 +466,10 @@ def validate_character(
                     f"{t.record_key!r} has no component {t.component_key!r}",
                 )
             )
+        if failure := tool_variant_failure(
+            index, t.record_key, t.component_key, t.variant
+        ):
+            out.append(_fail(FailureCode.INVALID_IDENTITY, path, failure))
     for i, s in enumerate(state.senses or ()):
         path = f"senses[{i}]"
         out += _identity(

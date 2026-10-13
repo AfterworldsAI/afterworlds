@@ -34,7 +34,8 @@ dice, outcome — from the character sheet and the bound Rules Package.
   classified intent type.
 - **Mechanical scene** (RPG play only, for you alone) — every character and
   creature of the story with its `subject_id`; the acting character's weapons
-  with their `item_id`s; each creature's attack entries; hit points, the
+  with their `item_id`s and its held tools (with the kind of a Gaming Set or
+  Musical Instrument); each creature's attack entries; hit points, the
   zero-HP state, conditions with their `instance_id`s, any Stable recovery's
   `instance_id`; and whose turn is active. Name ids only from it. Conditions
   marked `hidden` are unknown to the character: never reveal them in a label.
@@ -111,6 +112,9 @@ One proposal per required roll:
   the engine reads its DC from the rules. Null otherwise.
 - `tool_activity` — for `tool_check` only: the tool's printed activity (for
   example `pick_a_lock`). The engine reads its ability and DC. Null otherwise.
+- `tool_variant` — for `tool_check` of a Gaming Set or Musical Instrument
+  only: the kind used (for example `playing_cards` or `lute`), one the
+  character holds. Each kind is its own proficiency. Null otherwise.
 - `creature_attack` — for `creature_attack` only: `attacker` and `target`
   (`{kind, subject_id}`), the `entry` name exactly as the scene lists it, and
   the same contextual facts as a weapon attack, plus

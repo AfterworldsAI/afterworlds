@@ -4,8 +4,10 @@ stable prefix; no target number or rolled interval is shown."""
 
 from __future__ import annotations
 
+import dataclasses
 import json
 
+from afterworlds.ingestion.mechanical.representation import ToolVariant
 from afterworlds.models.dnd5e_state import (
     ActiveTurn,
     SubjectReference,
@@ -17,6 +19,7 @@ from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
 from tests.pipeline.rpg.test_adjudication_service import _make_assembled
 from tests.pipeline.rpg.test_weapon_attacks import CLUB, _attacker, _creature
 from tests.pipeline.rpg.test_zero_hp_lifecycle import _knocked_out, _stable
+from tests.rpg_characters import item
 
 
 def _scene(text: str) -> dict[str, object]:
@@ -50,6 +53,25 @@ def test_the_scene_lists_every_nameable_id_and_no_target_number() -> None:
     }
     # No AC, DC, modifier or rolled interval.
     assert '"interval"' not in text and "armor" not in text.lower()
+
+
+def test_the_scene_lists_held_tools_with_their_kind() -> None:
+    """CRD Issue 15c: a tool check names a held tool and, for a Gaming Set
+    or Musical Instrument, the held kind; the scene shows both."""
+    lute = dataclasses.replace(
+        item("equipment.tools.musical_instrument"),
+        component_key="musical_instrument",
+        tool_variant=ToolVariant.LUTE,
+    )
+    actor = _attacker(CLUB)
+    actor = dataclasses.replace(actor, items=(*actor.items, lute))
+    (me,) = _scene(render(actor, [], TurnCoordination()))["subjects"]  # type: ignore[misc]
+    assert me["tools"] == [
+        {
+            "tool": "equipment.tools.musical_instrument/musical_instrument",
+            "kind": "lute",
+        }
+    ]
 
 
 def test_the_scene_follows_the_unchanged_stable_prefix() -> None:
