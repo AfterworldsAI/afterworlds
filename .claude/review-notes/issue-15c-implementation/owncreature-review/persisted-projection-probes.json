@@ -1,0 +1,450 @@
+{
+  "head": "e5d9a684c33d232fd468c9eea705d2b184ecfba8",
+  "import": "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\src\\afterworlds\\__init__.py",
+  "cases": [
+    {
+      "label": "persisted-character/review-real-prone",
+      "status": "completed",
+      "records": [
+        {
+          "outcome": "undetermined",
+          "provenance": {
+            "certificate": {
+              "adapter_version": "15c-d20-3",
+              "fingerprint": "e09799e62b4e25f16f1c23523c725ba4269c253bf80d48f73741a2b36541e41b",
+              "manifest_version": "15c-manifest-3",
+              "operation": "creature_save_effect",
+              "override_set_uuid": "521a6242-e6bc-5e76-9564-323c4c0deacb",
+              "package_uuid": "1299484e-c72d-509b-bd8d-d0169ee1f8d2",
+              "projection_uuid": "8446ab6b-be75-5999-8a9b-74fa133c030a",
+              "release_version": "5.2.1-corpus.8781d4e0-a3b"
+            },
+            "damage_rolls": [
+              8
+            ],
+            "dc": 16,
+            "entry": "Trample",
+            "operation": "creature_save_effect",
+            "save": "dexterity",
+            "source": {
+              "kind": "creature",
+              "subject_id": "10140a7a-e47a-4c4c-962f-e72579d598e7"
+            },
+            "targets": [
+              {
+                "damage": {
+                  "outcome": "damaged",
+                  "responses": [],
+                  "rolled": 14,
+                  "taken": 14
+                },
+                "save": {
+                  "ability": "dexterity",
+                  "advantage_sources": [],
+                  "automatic_failure": [],
+                  "breakdown": {
+                    "dexterity_modifier": 2
+                  },
+                  "dc": 16,
+                  "dc_source": "animals.elephant/Trample",
+                  "disadvantage_sources": [],
+                  "modifier": 2,
+                  "outcome": "failure",
+                  "raw_rolls": [
+                    1
+                  ],
+                  "subject_id": "e9b868f5-6890-43e3-98c6-3f69999fe415",
+                  "subject_kind": "character",
+                  "total": 3
+                },
+                "subject": {
+                  "kind": "character",
+                  "subject_id": "e9b868f5-6890-43e3-98c6-3f69999fe415"
+                }
+              }
+            ],
+            "templates": {
+              "creature:10140a7a-e47a-4c4c-962f-e72579d598e7": "37be92d6ab932817525cb1db08488ec6443a8deb28ddfb80c07a7abea6bbf4b0"
+            }
+          },
+          "effects": [
+            {
+              "target": "current_hp",
+              "operation": "set",
+              "value_json": "186",
+              "schema_version": 1,
+              "subject_kind": "character",
+              "subject_id": "e9b868f5-6890-43e3-98c6-3f69999fe415"
+            }
+          ]
+        }
+      ],
+      "dice": [
+        "2d10",
+        "1d20"
+      ],
+      "serialized_state_validation": "passed"
+    },
+    {
+      "label": "persisted-character/possible:prone",
+      "status": "completed",
+      "records": [
+        {
+          "outcome": "undetermined",
+          "provenance": {
+            "certificate": {
+              "adapter_version": "15c-d20-3",
+              "fingerprint": "e09799e62b4e25f16f1c23523c725ba4269c253bf80d48f73741a2b36541e41b",
+              "manifest_version": "15c-manifest-3",
+              "operation": "creature_save_effect",
+              "override_set_uuid": "521a6242-e6bc-5e76-9564-323c4c0deacb",
+              "package_uuid": "1299484e-c72d-509b-bd8d-d0169ee1f8d2",
+              "projection_uuid": "8446ab6b-be75-5999-8a9b-74fa133c030a",
+              "release_version": "5.2.1-corpus.8781d4e0-a3b"
+            },
+            "damage_rolls": [
+              8
+            ],
+            "dc": 16,
+            "entry": "Trample",
+            "operation": "creature_save_effect",
+            "save": "dexterity",
+            "source": {
+              "kind": "creature",
+              "subject_id": "10140a7a-e47a-4c4c-962f-e72579d598e7"
+            },
+            "targets": [
+              {
+                "damage": {
+                  "outcome": "damaged",
+                  "responses": [],
+                  "rolled": 14,
+                  "taken": 14
+                },
+                "save": {
+                  "ability": "dexterity",
+                  "advantage_sources": [],
+                  "automatic_failure": [],
+                  "breakdown": {
+                    "dexterity_modifier": 2
+                  },
+                  "dc": 16,
+                  "dc_source": "animals.elephant/Trample",
+                  "disadvantage_sources": [],
+                  "modifier": 2,
+                  "outcome": "failure",
+                  "raw_rolls": [
+                    1
+                  ],
+                  "subject_id": "c230da19-4060-4aa3-b9c1-277952d93e63",
+                  "subject_kind": "character",
+                  "total": 3
+                },
+                "subject": {
+                  "kind": "character",
+                  "subject_id": "c230da19-4060-4aa3-b9c1-277952d93e63"
+                }
+              }
+            ],
+            "templates": {
+              "creature:10140a7a-e47a-4c4c-962f-e72579d598e7": "37be92d6ab932817525cb1db08488ec6443a8deb28ddfb80c07a7abea6bbf4b0"
+            }
+          },
+          "effects": [
+            {
+              "target": "current_hp",
+              "operation": "set",
+              "value_json": "186",
+              "schema_version": 1,
+              "subject_kind": "character",
+              "subject_id": "c230da19-4060-4aa3-b9c1-277952d93e63"
+            }
+          ]
+        }
+      ],
+      "dice": [
+        "2d10",
+        "1d20"
+      ],
+      "serialized_state_validation": "passed"
+    },
+    {
+      "label": "persisted-character/possible:legitimate-imported-condition",
+      "status": "completed",
+      "records": [
+        {
+          "outcome": "undetermined",
+          "provenance": {
+            "certificate": {
+              "adapter_version": "15c-d20-3",
+              "fingerprint": "e09799e62b4e25f16f1c23523c725ba4269c253bf80d48f73741a2b36541e41b",
+              "manifest_version": "15c-manifest-3",
+              "operation": "creature_save_effect",
+              "override_set_uuid": "521a6242-e6bc-5e76-9564-323c4c0deacb",
+              "package_uuid": "1299484e-c72d-509b-bd8d-d0169ee1f8d2",
+              "projection_uuid": "8446ab6b-be75-5999-8a9b-74fa133c030a",
+              "release_version": "5.2.1-corpus.8781d4e0-a3b"
+            },
+            "damage_rolls": [
+              8
+            ],
+            "dc": 16,
+            "entry": "Trample",
+            "operation": "creature_save_effect",
+            "save": "dexterity",
+            "source": {
+              "kind": "creature",
+              "subject_id": "10140a7a-e47a-4c4c-962f-e72579d598e7"
+            },
+            "targets": [
+              {
+                "damage": {
+                  "outcome": "damaged",
+                  "responses": [],
+                  "rolled": 14,
+                  "taken": 14
+                },
+                "save": {
+                  "ability": "dexterity",
+                  "advantage_sources": [],
+                  "automatic_failure": [],
+                  "breakdown": {
+                    "dexterity_modifier": 2
+                  },
+                  "dc": 16,
+                  "dc_source": "animals.elephant/Trample",
+                  "disadvantage_sources": [],
+                  "modifier": 2,
+                  "outcome": "failure",
+                  "raw_rolls": [
+                    1
+                  ],
+                  "subject_id": "37aacd6f-b2db-446f-8529-67d957ae1312",
+                  "subject_kind": "character",
+                  "total": 3
+                },
+                "subject": {
+                  "kind": "character",
+                  "subject_id": "37aacd6f-b2db-446f-8529-67d957ae1312"
+                }
+              }
+            ],
+            "templates": {
+              "creature:10140a7a-e47a-4c4c-962f-e72579d598e7": "37be92d6ab932817525cb1db08488ec6443a8deb28ddfb80c07a7abea6bbf4b0"
+            }
+          },
+          "effects": [
+            {
+              "target": "current_hp",
+              "operation": "set",
+              "value_json": "186",
+              "schema_version": 1,
+              "subject_kind": "character",
+              "subject_id": "37aacd6f-b2db-446f-8529-67d957ae1312"
+            }
+          ]
+        }
+      ],
+      "dice": [
+        "2d10",
+        "1d20"
+      ],
+      "serialized_state_validation": "passed"
+    },
+    {
+      "label": "persisted-creature/possible:prone",
+      "status": "completed",
+      "records": [
+        {
+          "outcome": "undetermined",
+          "provenance": {
+            "certificate": {
+              "adapter_version": "15c-d20-3",
+              "fingerprint": "e09799e62b4e25f16f1c23523c725ba4269c253bf80d48f73741a2b36541e41b",
+              "manifest_version": "15c-manifest-3",
+              "operation": "creature_save_effect",
+              "override_set_uuid": "521a6242-e6bc-5e76-9564-323c4c0deacb",
+              "package_uuid": "1299484e-c72d-509b-bd8d-d0169ee1f8d2",
+              "projection_uuid": "8446ab6b-be75-5999-8a9b-74fa133c030a",
+              "release_version": "5.2.1-corpus.8781d4e0-a3b"
+            },
+            "damage_rolls": [
+              8
+            ],
+            "dc": 16,
+            "entry": "Trample",
+            "operation": "creature_save_effect",
+            "save": "dexterity",
+            "source": {
+              "kind": "creature",
+              "subject_id": "10140a7a-e47a-4c4c-962f-e72579d598e7"
+            },
+            "targets": [
+              {
+                "damage": {
+                  "outcome": "damaged",
+                  "responses": [],
+                  "rolled": 14,
+                  "taken": 14
+                },
+                "save": {
+                  "ability": "dexterity",
+                  "advantage_sources": [],
+                  "automatic_failure": [],
+                  "breakdown": {
+                    "dexterity_save": 2
+                  },
+                  "dc": 16,
+                  "dc_source": "animals.elephant/Trample",
+                  "disadvantage_sources": [],
+                  "modifier": 2,
+                  "outcome": "failure",
+                  "raw_rolls": [
+                    1
+                  ],
+                  "subject_id": "d24e6d9e-ddda-4159-b2ca-8e5163a4c57c",
+                  "subject_kind": "creature",
+                  "total": 3
+                },
+                "subject": {
+                  "kind": "creature",
+                  "subject_id": "d24e6d9e-ddda-4159-b2ca-8e5163a4c57c"
+                }
+              }
+            ],
+            "templates": {
+              "creature:10140a7a-e47a-4c4c-962f-e72579d598e7": "37be92d6ab932817525cb1db08488ec6443a8deb28ddfb80c07a7abea6bbf4b0",
+              "creature:d24e6d9e-ddda-4159-b2ca-8e5163a4c57c": "f3d2ae99e58bf675b55e7fa176bfc7f0c428fc27f1cddfafc225b0407633d0e7"
+            }
+          },
+          "effects": [
+            {
+              "target": "current_hp",
+              "operation": "set",
+              "value_json": "286",
+              "schema_version": 1,
+              "subject_kind": "creature",
+              "subject_id": "d24e6d9e-ddda-4159-b2ca-8e5163a4c57c"
+            }
+          ]
+        }
+      ],
+      "dice": [
+        "2d10",
+        "1d20"
+      ]
+    },
+    {
+      "label": "persisted-implied-prone",
+      "status": "completed",
+      "records": [
+        {
+          "outcome": "undetermined",
+          "provenance": {
+            "certificate": {
+              "adapter_version": "15c-d20-3",
+              "fingerprint": "e09799e62b4e25f16f1c23523c725ba4269c253bf80d48f73741a2b36541e41b",
+              "manifest_version": "15c-manifest-3",
+              "operation": "creature_save_effect",
+              "override_set_uuid": "521a6242-e6bc-5e76-9564-323c4c0deacb",
+              "package_uuid": "1299484e-c72d-509b-bd8d-d0169ee1f8d2",
+              "projection_uuid": "8446ab6b-be75-5999-8a9b-74fa133c030a",
+              "release_version": "5.2.1-corpus.8781d4e0-a3b"
+            },
+            "damage_rolls": [
+              8
+            ],
+            "dc": 16,
+            "entry": "Trample",
+            "operation": "creature_save_effect",
+            "save": "dexterity",
+            "source": {
+              "kind": "creature",
+              "subject_id": "10140a7a-e47a-4c4c-962f-e72579d598e7"
+            },
+            "targets": [
+              {
+                "damage": {
+                  "outcome": "damaged",
+                  "responses": [],
+                  "rolled": 14,
+                  "taken": 14
+                },
+                "save": {
+                  "ability": "dexterity",
+                  "advantage_sources": [],
+                  "automatic_failure": [
+                    "glossary.unconscious/saving_throws_affected"
+                  ],
+                  "breakdown": {
+                    "dexterity_modifier": 2
+                  },
+                  "dc": 16,
+                  "dc_source": "animals.elephant/Trample",
+                  "disadvantage_sources": [],
+                  "modifier": 2,
+                  "outcome": "failure",
+                  "raw_rolls": [],
+                  "subject_id": "7db74942-64f0-4643-863a-cd4e1ff610b4",
+                  "subject_kind": "character",
+                  "total": null
+                },
+                "subject": {
+                  "kind": "character",
+                  "subject_id": "7db74942-64f0-4643-863a-cd4e1ff610b4"
+                }
+              }
+            ],
+            "templates": {
+              "creature:10140a7a-e47a-4c4c-962f-e72579d598e7": "37be92d6ab932817525cb1db08488ec6443a8deb28ddfb80c07a7abea6bbf4b0"
+            }
+          },
+          "effects": [
+            {
+              "target": "current_hp",
+              "operation": "set",
+              "value_json": "186",
+              "schema_version": 1,
+              "subject_kind": "character",
+              "subject_id": "7db74942-64f0-4643-863a-cd4e1ff610b4"
+            }
+          ]
+        }
+      ],
+      "dice": [
+        "2d10"
+      ]
+    },
+    {
+      "label": "animals.elephant/speculative-gore-prone",
+      "status": "AdjudicationRefusal",
+      "detail": "[invalid_selection] Trample targets a creature with the prone condition",
+      "dice": []
+    },
+    {
+      "label": "animals.mammoth/speculative-gore-prone",
+      "status": "AdjudicationRefusal",
+      "detail": "[invalid_selection] Trample targets a creature with the prone condition",
+      "dice": []
+    },
+    {
+      "label": "monsters.gorgon.gorgon/speculative-gore-prone",
+      "status": "AdjudicationRefusal",
+      "detail": "[invalid_selection] Trample targets a creature with the prone condition",
+      "dice": []
+    },
+    {
+      "label": "speculative-implied-prone",
+      "status": "AdjudicationRefusal",
+      "detail": "[invalid_selection] Trample targets a creature with the prone condition",
+      "dice": []
+    }
+  ],
+  "lifecycle_assertions": "passed: original subjects unmodified, own-subject marker sets, real Prone retained, direct/implied projections excluded, markers survive advancement and repeat projection; no persisted provenance field",
+  "hashes": {
+    "src/afterworlds/services/dnd5e_state/turn.py": "62c07289af79017a40646df27ffb3da6e62b4aa2a89c846166d573ab53fd71f9",
+    "src/afterworlds/pipeline/rpg/conditions.py": "d4103afca88b65195a7dda12bc61ee6ae8e1247fa56575052b4e43619b8bbd03",
+    "tests/pipeline/rpg/test_before_dice.py": "e25a0cb4b42eeb06fbfe821ee168e46f64416f9b5ff4badcf77c44050f866ef2",
+    "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json": "2853f30a832ca581c9d4169b82d0c360f3d6a2d78f0ad8980de9997eef51f373"
+  }
+}

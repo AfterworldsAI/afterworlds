@@ -1,0 +1,102 @@
+{
+ "correspondence_matches_facts": true,
+ "every_row_has_claim_spans_and_one_batch": true,
+ "facts": 345,
+ "forms_lines": {
+  "monsters.doppelganger.doppelganger": "**_Shape-Shift._** The doppelganger shape-shifts into a Medi",
+  "monsters.imp.imp": "**_Shape-Shift._** The imp shape-shifts to resemble a rat (S",
+  "monsters.incubus.incubus": "**_Succubus Form._** When the incubus finishes a Long Rest, ",
+  "monsters.mimic.mimic": "**_Shape-Shift._** The mimic shape-shifts to resemble a Medi",
+  "monsters.night_hag.night_hag": "**_Shape-Shift._** The hag shape-shifts into a Small or Medi",
+  "monsters.oni.oni": "**_Shape-Shift._** The oni shape-shifts into a Small or Medi",
+  "monsters.quasit.quasit": "**_Shape-Shift._** The quasit shape-shifts to resemble a bat",
+  "monsters.succubus.succubus": "**_Shape-Shift._** The succubus shape-shifts into a Medium o",
+  "monsters.succubus.succubus#form": "**_Incubus Form._** When the succubus finishes a Long Rest, ",
+  "monsters.vampires.vampire": "**_Shape-Shift._** If the vampire isn't in sunlight or runni",
+  "monsters.werebear.werebear": "**_Shape-Shift._** The werebear shape-shifts into a Large be",
+  "monsters.wereboar.wereboar": "**_Shape-Shift._** The wereboar shape-shifts into a Medium b",
+  "monsters.wererat.wererat": "**_Shape-Shift._** The wererat shape-shifts into a Medium ra",
+  "monsters.weretiger.weretiger": "**_Shape-Shift._** The weretiger shape-shifts into a Large t",
+  "monsters.werewolf.werewolf": "**_Shape-Shift._** The werewolf shape-shifts into a Large wo"
+ },
+ "held_evidence_lines": [
+  [
+   "Ghoul Claw against a creature that is not Undead",
+   "monsters.md",
+   7,
+   "**Name and General Details.** The name of the monster is followed by its size, c"
+  ],
+  [
+   "Ghoul Claw against a creature that is not Undead",
+   "monsters.md",
+   65,
+   "#### Descriptive Tags"
+  ],
+  [
+   "Ghoul Claw against a creature that is not Undead",
+   "monsters.md",
+   67,
+   "A monster might have one or more tags in parentheses following its type. Such ta"
+  ],
+  [
+   "Ghoul Claw against a creature that is not Undead",
+   "monsters-A-Z.md",
+   6919,
+   "**_Claw._** _Melee Attack Roll:_ +4, reach 5 ft. _Hit:_ 4 (1d4 + 2) Slashing dam"
+  ]
+ ],
+ "interpretation_evidence": [
+  [
+   "I1",
+   "monsters.md",
+   7,
+   true
+  ],
+  [
+   "I1",
+   "animals.md",
+   6129,
+   true
+  ],
+  [
+   "I2",
+   "monsters.md",
+   7,
+   true
+  ],
+  [
+   "I2",
+   "classes.md",
+   3505,
+   true
+  ]
+ ],
+ "interpretation_evidence_quotes_on_cited_lines": true,
+ "one_fact_per_record": true,
+ "quotes_match_cited_lines": true,
+ "species_humanoid": [
+  "character_origins.dragonborn",
+  "character_origins.dwarf",
+  "character_origins.elf",
+  "character_origins.gnome",
+  "character_origins.goliath",
+  "character_origins.halfling",
+  "character_origins.human",
+  "character_origins.orc",
+  "character_origins.tiefling"
+ ],
+ "swarms_I1": [
+  "animals.swarm_of_bats",
+  "animals.swarm_of_insects",
+  "animals.swarm_of_piranhas",
+  "animals.swarm_of_rats",
+  "animals.swarm_of_ravens",
+  "animals.swarm_of_venomous_snakes",
+  "monsters.crawling_claw.swarm_of_crawling_claws"
+ ],
+ "type_choices": [
+  "spells.find_steed.otherworldly_steed"
+ ],
+ "type_word_in_quote": true,
+ "types_in_closed_vocabulary": true
+}

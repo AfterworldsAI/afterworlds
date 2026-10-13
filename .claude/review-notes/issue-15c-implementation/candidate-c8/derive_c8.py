@@ -147,11 +147,24 @@ FORMS = {
     # type applies (its template key changes); nothing to add.
     "monsters.incubus.incubus": ("other_stat_block", 10011, None),
     "monsters.succubus.succubus#form": ("other_stat_block", 16810, None),
-    # A bat or a cloud of mist, with no statement about its statistics: the
-    # form's type is not stated. HELD: a vampire target refuses until its
-    # form is represented.
-    "monsters.vampires.vampire": ("held", 17724, None),
+    # Vampire (r2, per codex-c8-raw-review): the base profile is Undead
+    # (direct). Bat form: "Its game statistics, other than its size and
+    # Speed, are unchanged" (:17725), so the type is kept (I2). Mist form
+    # (:17726) lists specific changes (no actions or speech, weightless,
+    # Resistance to all damage) and states nothing about the type; and a
+    # vampire's current form is not represented in CreatureState. Only that
+    # form-state/semantics question is held, not the base target.
+    "monsters.vampires.vampire#bat": ("kept", 17725, "I2"),
+    "monsters.vampires.vampire#mist": ("held_form_state", 17726, None),
 }
+
+#: Find Familiar (spells.md:2290): the familiar "has the statistics of the
+#: chosen form ... though it is a Celestial, Fey, or Fiend (your choice)
+#: instead of a Beast". Source-qualified: the spell's component names the
+#: choice, the type it replaces and the named forms. "another Beast that has
+#: a Challenge Rating of 0" is held: no accepted fact types a Challenge Rating.
+FAMILIAR_FORMS = "bat cat frog hawk lizard octopus owl rat raven spider weasel".split()
+FAMILIAR_LINE = 2290
 
 INTERPRETATIONS = {
     "I1": {
@@ -197,15 +210,30 @@ HELD = [
         ],
     },
     {
-        "case": "a vampire target (monsters.vampires.vampire)",
-        "why": "its bat or mist form's type is not stated (monsters-A-Z.md:17724) "
-        "and the form is not represented; refuses until it is",
+        "case": "a vampire in mist form (monsters.vampires.vampire)",
+        "why": "the mist paragraph (monsters-A-Z.md:17726) states specific changes "
+        "and nothing about the type, and CreatureState records no current form. "
+        "The base (Undead, direct) and bat (I2) forms are not held; a vampire "
+        "target is read by its recorded template. Only an effective mist form, "
+        "which nothing executes or records, stays held.",
+        "evidence": [
+            {"file": "monsters-A-Z.md", "line": 17724},
+            {"file": "monsters-A-Z.md", "line": 17725},
+            {"file": "monsters-A-Z.md", "line": 17726},
+        ],
     },
     {
         "case": "a creature whose stored creature_type departs from its template's "
-        "fixed type (a familiar's chosen type)",
-        "why": "the departure's source (a spell or feature) is not represented; "
-        "an unvalidated stored type is not trusted: refuses",
+        "fixed type without a represented source",
+        "why": "an unvalidated stored type is not trusted: refuses. A familiar's "
+        "chosen type is represented by the Find Familiar source choice below "
+        "(summon.source spells.find_familiar, a named form, a chosen type).",
+    },
+    {
+        "case": "a familiar in a Challenge Rating 0 Beast form other than the "
+        "eleven named",
+        "why": "no accepted fact types a Challenge Rating, so eligibility cannot "
+        "be validated (spells.md:2290): refuses",
     },
     {
         "case": "a creature under Shapechange, Polymorph or another form-changing "
@@ -215,6 +243,16 @@ HELD = [
         "(classes.md:3505), so a character's type stays its species type",
     },
 ]
+
+
+def _form(key: str) -> str:
+    """A row's form disposition: its own entry, or its named forms'."""
+    if key in FORMS:
+        return FORMS[key][0]
+    named = sorted(
+        f"{k.split('#')[1]}:{v[0]}" for k, v in FORMS.items() if k.startswith(key + "#")
+    )
+    return ";".join(named) or "none"
 
 
 def main() -> None:
@@ -296,7 +334,7 @@ def main() -> None:
                     "quote": block["quote"],
                     "claim_spans": size_spans,
                     "batch": batches[0],
-                    "form": FORMS.get(key, ("none", None, None))[0],
+                    "form": _form(key),
                 }
             )
     # Each classified form trait lies in its own template's stat block.
@@ -367,8 +405,52 @@ def main() -> None:
 
     facts.sort(key=lambda f: (f["record_key"], f["component_key"]))
     corr.sort(key=lambda r: (r["record_key"], r["component_key"]))
+
+    # The Find Familiar source-qualified type choice (r2).
+    spells = lines("spells.md")
+    quote = spells[FAMILIAR_LINE - 1]
+    assert "Celestial, Fey, or Fiend (your choice) instead of a Beast" in quote
+    familiar = ("spells.find_familiar", "effect")
+    assert components[familiar]["handling"] == "prose_bound"
+    forms = [("animals." + n, n) for n in FAMILIAR_FORMS]
+    by_key = {(f["record_key"], f["component_key"]): f for f in facts}
+    for form in forms:
+        assert form in by_key, form
+        assert by_key[form]["fact"]["type"] == "beast", form
+        assert f"**{form[1].title()}" in quote or form[1].title() in quote, form
+    fam_spans = sorted(bindings[familiar])
+    fam_batches = sorted({batch_of[s] for s in fam_spans if s in batch_of})
+    assert len(fam_batches) == 1, fam_batches
+    source_choices = [
+        {
+            "record_key": familiar[0],
+            "component_key": familiar[1],
+            "fact": {
+                "family": "summoned_creature_type",
+                "type_choice": ["celestial", "fey", "fiend"],
+                "instead_of": "beast",
+                "forms": [
+                    {"record_key": r, "component_key": c} for r, c in sorted(forms)
+                ],
+            },
+            "basis": "direct",
+            "source": {"file": "spells.md", "line": FAMILIAR_LINE, "quote": quote},
+        }
+    ]
+    source_corr = [
+        {
+            "record_key": familiar[0],
+            "component_key": familiar[1],
+            "file": "spells.md",
+            "line": FAMILIAR_LINE,
+            "quote": quote,
+            "claim_spans": fam_spans,
+            "batch": fam_batches[0],
+            "form": "none",
+        }
+    ]
     per_batch: dict[str, dict[str, Any]] = {}
-    for row in corr:
+    for row in [*corr, *source_corr]:
         b = per_batch.setdefault(
             row["batch"], {"components": 0, "facts": 0, "records": []}
         )
@@ -379,16 +461,39 @@ def main() -> None:
         "candidate_id": "15c-C8-creature-type",
         "status": "RAW CANDIDATE - review only; not accepted, minted or recorded",
         "anchored_successor_sha256": PINS[ORACLE],
+        "revision": "r2 (r1 preserved in r1/; codex-c8-raw-review corrections and "
+        "the Find Familiar source choice)",
         "schema": {
             "proposed": "5d-representation-schema-21",
-            "family": "creature_type",
-            "fields": {
-                "type": "CreatureType | None (the closed 14-value vocabulary)",
-                "type_choice": "tuple[CreatureType, ...] (a chosen type; empty otherwise)",
+            "families": {
+                "creature_type": {
+                    "fields": {
+                        "type": "CreatureType | None (the closed 14-value vocabulary)",
+                        "type_choice": "tuple[CreatureType, ...] (a chosen type; "
+                        "empty otherwise)",
+                    },
+                    "invariant": "exactly one of type / a non-empty sorted, "
+                    "distinct type_choice",
+                },
+                "summoned_creature_type": {
+                    "fields": {
+                        "type_choice": "tuple[CreatureType, ...] (at least two, "
+                        "sorted, distinct)",
+                        "instead_of": "CreatureType (the form's own type it replaces)",
+                        "forms": "tuple[ComponentReference, ...] (the named forms' "
+                        "profile components; non-empty, sorted, distinct)",
+                    },
+                    "relational": "each form is a creature profile whose "
+                    "creature_type is instead_of",
+                },
             },
-            "invariant": "exactly one of type / a non-empty sorted, distinct type_choice",
+            "handling": "creature profiles keep their existing (mixed) handling, "
+            "facts, options, retention reasons and prose bindings; the species "
+            "creature_type components and spells.find_familiar/effect go from "
+            "prose_bound to mixed",
         },
         "facts": facts,
+        "source_type_choices": source_choices,
         "interpretations": INTERPRETATIONS,
         "forms": {
             k: {"disposition": v[0], "line": v[1], "interpretation": v[2]}
@@ -405,13 +510,15 @@ def main() -> None:
             for b, v in sorted(per_batch.items())
         },
         "untouched_batch_count": len(oracle["acceptance"]["batches"]) - len(per_batch),
-        "total_facts": len(facts),
+        "total_facts": len(facts) + len(source_choices),
+        "base_type_facts": len(facts),
+        "source_type_choices": len(source_choices),
         "why": "Ghast and Ghoul Claw can target any creature or character; each "
         "admitted target needs its source type to decide the Undead exclusion",
     }
     for name, data in (
         ("c8.json", candidate),
-        ("correspondence.json", corr),
+        ("correspondence.json", [*corr, *source_corr]),
         ("inventory.json", inventory),
     ):
         (HERE / name).write_text(

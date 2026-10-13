@@ -1,4 +1,11 @@
-# CRD Issue 15c — raw candidate C8: target creature types
+# CRD Issue 15c — raw candidate C8 (revision r2): target creature types
+
+**Revision r2** applies `../codex-c8-raw-review.md`:
+- profile handling is preserved;
+- the Vampire is split into base, bat and mist;
+- the Find Familiar source-qualified type choice is consolidated in, per the parent's direction.
+
+The 345 base type facts are byte-identical to r1. The reviewed r1 artifacts are preserved unchanged in `r1/`: `c8.json` `81991739…`, correspondence `5cd59009…`, inventory `c49b6a58…`, validation `d6d9b42e…`.
 
 **RAW CANDIDATE ONLY.** Nothing here is accepted, minted, recorded or published, and no schema or `src` code is changed. **C7 stays the accepted authority**: `srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json`, `2853f30a…f373`, digest-checked and only read.
 
@@ -10,10 +17,18 @@
 
 | File | SHA-256 |
 | --- | --- |
-| `c8.json` | `8199173955d5543665b03c2adbbff52554d6d50b4e6fba055909a9fb83720cd6` |
-| `correspondence.json` (345 rows) | `5cd590097fc59d29bf6e441e83a7830e973220b9da9861e4b296e6448bb292b0` |
-| `inventory.json` | `c49b6a58b102e7d3e4079c735e003a4712455cc89cf048f1cb5bda181a0e6320` |
-| `validation.json` | `d6d9b42ea5f74a48fd69c55c53e8447b6d6d4d1b8467a83777f1dd601c8628a0` |
+| `c8.json` (r2) | `7e7d5b43ccd7bd877e0764643e57df1270419dd758a6ae5fcf52422081e42628` |
+| `correspondence.json` (346 rows) | `43589153ee7befe4e46052f0e7fe7db053b5a9a22c3ff8a6b4468e41c9e0ce24` |
+| `inventory.json` | `3f05591efa78656132db3a179f174b560ca3e8f3d3ebfd525e56b400e87ce55d` |
+| `validation.json` | `c4e1c3ecbaf162cac3fb8f30e4625fca46ec8aa2084a000280168d0b9fb03e61` |
+
+**Changed from r1:**
+- the `schema` metadata (both families; handling preserved);
+- `forms` (the Vampire split);
+- `held` (the Vampire, departures, Challenge Rating 0 forms);
+- the new `source_type_choices`.
+
+In the correspondence, the Vampire row's `form` changes (`held` → `bat:kept;mist:held_form_state`) and one row is added. No other row changes.
 
 **Reproduce** (two runs are byte-identical):
 ```
@@ -41,6 +56,18 @@ PYTHONIOENCODING=utf-8 venv/Scripts/python.exe .claude/review-notes/issue-15c-im
 - `monsters.md:65–67` says tags "have no rules of their own".
 - **Nothing in the candidate treats a missing tag as "not an elf".**
 
+## Source-qualified type choice: Find Familiar (r2, family `summoned_creature_type`)
+
+| Record / component | Source anchor | Fact |
+| --- | --- | --- |
+| `spells.find_familiar/effect`: prose-bound, becomes `mixed` | `spells.md:2290` "…though it is a Celestial, Fey, or Fiend (your choice) instead of a Beast" | `type_choice` celestial/fey/fiend, `instead_of` beast, `forms`: the eleven named animal profiles (Bat, Cat, Frog, Hawk, Lizard, Octopus, Owl, Rat, Raven, Spider, Weasel), each a Beast in C8 |
+
+**Scope:** it is target authority for an existing familiar: a creature whose `summon.source` is this spell, a named form, and a stored type within the choice. It is not casting, creation, lifecycle or an attack grant. No template's fixed type is generically overridden.
+
+**Held:** "another Beast that has a Challenge Rating of 0" (no typed Challenge Rating).
+
+**Cost:** it lands in the already changed `spell-descriptions` batch, 4 → 5 components. No new batch.
+
 ## Interpretations (for independent review)
 
 - **I1 — a swarm's type is its members' type.**
@@ -56,9 +83,9 @@ PYTHONIOENCODING=utf-8 venv/Scripts/python.exe .claude/review-notes/issue-15c-im
 
 | Disposition | Templates |
 | --- | --- |
-| **Kept (I2)** | Doppelganger, Imp, Mimic, Night Hag, Oni, Quasit, Succubus (Shape-Shift), Werebear, Wereboar, Wererat, Weretiger, Werewolf |
+| **Kept (I2)** | Doppelganger, Imp, Mimic, Night Hag, Oni, Quasit, Succubus (Shape-Shift), Werebear, Wereboar, Wererat, Weretiger, Werewolf; **Vampire bat form** (r2): `monsters-A-Z.md:17725`, "Its game statistics, other than its size and Speed, are unchanged" |
 | **Another stat block** | Incubus's Succubus Form, Succubus's Incubus Form: that template's own type applies |
-| **Held** | Vampire: its bat or mist form's type is not stated (`monsters-A-Z.md:17724`) and the form is not represented |
+| **Held: form state only** (r2) | Vampire mist form (`:17726`). The paragraph lists specific changes (no actions or speech, weightless, Resistance to all damage) and states nothing about the type. `CreatureState` records no current form. The base Vampire (Undead, direct `:17626`) and its bat form are **not** held; a vampire target is read by its recorded template. |
 
 ## Held (surfaced, not decided)
 
@@ -75,11 +102,12 @@ PYTHONIOENCODING=utf-8 venv/Scripts/python.exe .claude/review-notes/issue-15c-im
      - Ghast against any typed target;
      - Ghoul against characters;
      - Ghoul against Undead creatures, where Undead suppresses the rider conclusively.
-2. **A Vampire target.** Form-dependent, as in Forms.
-3. **A stored `creature_type` departing from a fixed template type** (a familiar's chosen type). The departure's source is not represented, and an unvalidated stored type is not trusted.
+2. **A Vampire in mist form.** The form state is not represented and the mist type is unstated. No refusal is claimed, since nothing records or executes the form. The base and bat targets are not held.
+3. **A stored `creature_type` departing from a fixed template type without a represented source.** An unvalidated stored type is not trusted. A familiar's chosen type is now represented by the Find Familiar source choice, for its named forms.
+   - **Familiar in another form:** a Challenge Rating 0 Beast form other than the eleven named stays held (no typed Challenge Rating).
 4. **Shapechange, Polymorph and other form-changing spells.** General spell execution is excluded; they refuse as unexecuted active effects. Wild Shape keeps a character's type (`classes.md:3505`).
 
-No GameMaster type or species input is proposed.
+No GameMaster type input is proposed. A species input for creatures whose stat block leaves species open is **proposed separately for the Owner** (`owner-proposal-creature-species.md`). It is not approved and not part of this candidate.
 
 ## Affected batches and replay cost (`inventory.json`)
 
@@ -88,14 +116,14 @@ No GameMaster type or species input is proposed.
 | monsters | 235 | every monster profile is a possible Claw target |
 | animals | 95 | every animal profile |
 | character-origins-feats | 9 | species types (characters as targets) |
-| spell-descriptions | 4 | creatures a spell creates |
+| spell-descriptions | 5 | 4 creatures a spell creates, plus the Find Familiar source choice (r2) |
 | magic-items | 2 | creatures a magic item creates |
 
 **Untouched:** 19 of the 24 batches, whose ordered records and receipts are reused byte for byte.
 
 **Native replay cost**, after raw clearance:
 - 5 proposals rebuilt and re-declared at schema 21;
-- 345 provenance claims and their expected rules;
+- 346 provenance claims and their expected rules (345 base facts plus one source choice);
 - 5 batches excised and re-accepted in anchor order;
 - one `20→21` lift;
 - private-store round trips;

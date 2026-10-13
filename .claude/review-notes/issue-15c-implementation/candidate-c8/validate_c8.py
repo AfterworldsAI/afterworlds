@@ -39,6 +39,43 @@ def main() -> None:
         line(f["source"]["file"], f["source"]["line"]) == f["source"]["quote"]
         for f in facts
     )
+    choices = c8.get("source_type_choices", [])
+    by_key = {(f["record_key"], f["component_key"]): f for f in facts}
+    checks["source_type_choices"] = len(choices)
+    checks["source_choice_quotes_match_cited_lines"] = all(
+        line(s["source"]["file"], s["source"]["line"]) == s["source"]["quote"]
+        for s in choices
+    )
+    checks["source_choice_forms_exist_and_are_the_replaced_type"] = all(
+        (form["record_key"], form["component_key"]) in by_key
+        and by_key[(form["record_key"], form["component_key"])]["fact"]["type"]
+        == s["fact"]["instead_of"]
+        and form["component_key"].title() in s["source"]["quote"]
+        for s in choices
+        for form in s["fact"]["forms"]
+    )
+    checks["source_choice_well_formed"] = all(
+        len(s["fact"]["type_choice"]) >= 2
+        and s["fact"]["type_choice"] == sorted(set(s["fact"]["type_choice"]))
+        and set(s["fact"]["type_choice"]) <= TYPES
+        and s["fact"]["instead_of"] in TYPES
+        and s["fact"]["forms"]
+        == sorted(
+            s["fact"]["forms"], key=lambda f: (f["record_key"], f["component_key"])
+        )
+        and all(t.title() in s["source"]["quote"] for t in s["fact"]["type_choice"])
+        for s in choices
+    )
+    checks["vampire_forms_cite_their_paragraphs"] = (
+        "bat form"
+        in line("monsters-A-Z.md", c8["forms"]["monsters.vampires.vampire#bat"]["line"])
+        and "other than its size and Speed, are unchanged"
+        in line("monsters-A-Z.md", c8["forms"]["monsters.vampires.vampire#bat"]["line"])
+        and "mist form"
+        in line(
+            "monsters-A-Z.md", c8["forms"]["monsters.vampires.vampire#mist"]["line"]
+        )
+    )
     checks["correspondence_matches_facts"] = [
         (r["record_key"], r["component_key"], r["file"], r["line"], r["quote"])
         for r in corr
@@ -50,7 +87,7 @@ def main() -> None:
             f["source"]["line"],
             f["source"]["quote"],
         )
-        for f in facts
+        for f in [*facts, *choices]
     ]
     checks["every_row_has_claim_spans_and_one_batch"] = all(
         r["claim_spans"] and r["batch"] for r in corr
@@ -70,9 +107,7 @@ def main() -> None:
         and all(t in f["source"]["quote"].lower() for t in f["fact"]["type_choice"])
         for f in facts
     )
-    checks["swarms_I1"] = sorted(
-        f["record_key"] for f in facts if f["basis"] == "I1"
-    )
+    checks["swarms_I1"] = sorted(f["record_key"] for f in facts if f["basis"] == "I1")
     checks["type_choices"] = [
         f["record_key"] for f in facts if f["fact"]["type_choice"]
     ]
@@ -86,9 +121,16 @@ def main() -> None:
     for name, interp in c8["interpretations"].items():
         for ev in interp["evidence"]:
             evidence_ok.append(
-                (name, ev["file"], ev["line"], ev["quote"] in line(ev["file"], ev["line"]))
+                (
+                    name,
+                    ev["file"],
+                    ev["line"],
+                    ev["quote"] in line(ev["file"], ev["line"]),
+                )
             )
-    checks["interpretation_evidence_quotes_on_cited_lines"] = all(e[3] for e in evidence_ok)
+    checks["interpretation_evidence_quotes_on_cited_lines"] = all(
+        e[3] for e in evidence_ok
+    )
     checks["interpretation_evidence"] = evidence_ok
     held_lines = [
         (h["case"], ev["file"], ev["line"], line(ev["file"], ev["line"])[:80])
@@ -102,12 +144,10 @@ def main() -> None:
     (HERE / "validation.json").write_text(
         json.dumps(checks, indent=1, sort_keys=True) + "\n", "utf-8", newline="\n"
     )
-    bad = [
-        k
-        for k, v in checks.items()
-        if v is False
-    ]
-    print(json.dumps({k: v for k, v in checks.items() if not isinstance(v, (list, dict))}))
+    bad = [k for k, v in checks.items() if v is False]
+    print(
+        json.dumps({k: v for k, v in checks.items() if not isinstance(v, (list, dict))})
+    )
     assert not bad, bad
 
 

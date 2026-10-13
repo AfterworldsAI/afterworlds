@@ -5,7 +5,38 @@
 - **Scope:** #191 as updated (body SHA-256 `8225e1b6…57a2`). It adds creature attacks, bounded Multiattack and their saves/effects, the tool-addressing and omitted-source repair, and individual conditional-creature assessment. The G1 oracle `2ccbaeba…1258` is unchanged.
 - **Process:** Opus 5.5 at medium effort, with the separate Opus 5.5 Advisor consulted on the approach, the candidate scope and completion.
 
-## Latest (14 October 2026): Codex creature correction review (P1, P2)
+## Latest (14 October 2026): C8 raw revision r2 and the persisted-id correction (raw review gate)
+
+**Code, `e5d9a68`** (`codex-creature-final-correction-check.md` P2):
+- **The fix:** projected conditions carry their provenance on the subject (`TurnCharacter/TurnCreature.speculative`, fresh ids). `established()` excludes exactly those. A stored id is never read as speculative, and no prefix is reserved.
+- **Tests:** stored Prone instances with `possible:` ids, serialized and state-validated, execute Trample. Gore→Trample stays zero dice for Elephant, Mammoth and Gorgon. An implied speculative Prone (a goblin hit's possible Unconscious) refuses with zero dice.
+- **Sibling inspection:**
+  - Pummel's related-to-source: already safe;
+  - Pack Tactics and close combat: already safe;
+  - immunity from a projected Petrified: unreachable.
+- **RPG suite (focused):** 438 passed.
+
+**C8 raw r2** (`candidate-c8/`; r1 preserved in `candidate-c8/r1/`), per `codex-c8-raw-review.md`:
+- **Profile handling (P2):** all 336 mixed profiles keep their handling, facts, options, retention reasons and bindings. Corrected in `schema-21-delta.md` and the metadata.
+- **Vampire (P2):** the base is Undead (direct); the bat form keeps its type (I2, `:17725`). Only the mist form's state and type stays held (`:17726`), with no refusal claimed and no base exclusion.
+- **Find Familiar:** consolidated as the source-qualified `summoned_creature_type` fact on `spells.find_familiar/effect` (`spells.md:2290`).
+  - The fact holds the type choice (Celestial/Fey/Fiend), the type it replaces (Beast) and the eleven named forms.
+  - Challenge Rating 0 forms are held.
+  - It lands in the already changed spell-descriptions batch (4 → 5). No new batch.
+- **Base facts:** the 345 are byte-identical to r1. The correspondence changes only the Vampire's form field, plus one row.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| `c8.json` | `7e7d5b43…42628` |
+| correspondence | `43589153…0ce24` |
+| inventory | `3f05591e…7ce55d` |
+| validation | `c4e1c3ec…03e61` (every check true; deterministic across two runs) |
+
+**Owner proposal** (`candidate-c8/owner-proposal-creature-species.md`, proposed only): a creature whose stat block leaves species open may record one exact accepted species identity from code-generated options, solely for target predicates. Unknown or unrecorded refuses. Until then, Ghoul against a non-Undead creature stays a promised, explicit gap.
+
+**Next gate:** Codex independent review of the changed raw delta, including the new Familiar fact. No schema or native mint before clearance.
+
+## Earlier (14 October 2026): Codex creature correction review (P1, P2)
 
 From `codex-creature-correction-review.md`, adopted by the parent as ordinary implementation:
 - **P1, `78e0efa`.** A speculative condition never establishes a positive prerequisite.

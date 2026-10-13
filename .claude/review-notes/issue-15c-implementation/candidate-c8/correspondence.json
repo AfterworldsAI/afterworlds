@@ -5030,7 +5030,7 @@
   ],
   "component_key": "vampire",
   "file": "monsters-A-Z.md",
-  "form": "held",
+  "form": "bat:kept;mist:held_form_state",
   "line": 17626,
   "quote": "_Medium or Small Undead, Lawful Evil_",
   "record_key": "monsters.vampires.vampire"
@@ -5497,5 +5497,22 @@
   "line": 5281,
   "quote": "_Large Dragon, Neutral_",
   "record_key": "spells.summon_dragon.draconic_spirit"
+ },
+ {
+  "batch": "spell-descriptions",
+  "claim_spans": [
+   "47052965-b356-5347-845a-70070faa5af6",
+   "a595f1ba-49ac-537b-80a6-091e71b9b3a8",
+   "b91fcb64-9cd1-516d-9ce0-6677a7f47911",
+   "c37aaf96-2d78-587a-8f64-683563b90a76",
+   "d1dedd79-fdd5-5d16-9a0d-42d16a9e4092",
+   "e53720e9-6380-5e57-b73f-69da22c9831a"
+  ],
+  "component_key": "effect",
+  "file": "spells.md",
+  "form": "none",
+  "line": 2290,
+  "quote": "You gain the service of a familiar, a spirit that takes an animal form you choose: **Bat, Cat, Frog, Hawk, Lizard, Octopus, Owl, Rat, Raven, Spider, Weasel**, or another Beast that has a Challenge Rating of 0. Appearing in an unoccupied space within range, the familiar has the statistics of the chosen form (see \"Monsters\"), though it is a Celestial, Fey, or Fiend (your choice) instead of a Beast. Your familiar acts independently of you, but it obeys your commands.",
+  "record_key": "spells.find_familiar"
  }
 ]

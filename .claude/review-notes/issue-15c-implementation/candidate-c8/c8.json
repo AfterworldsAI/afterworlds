@@ -5228,10 +5228,15 @@
    "interpretation": null,
    "line": 16810
   },
-  "monsters.vampires.vampire": {
-   "disposition": "held",
+  "monsters.vampires.vampire#bat": {
+   "disposition": "kept",
+   "interpretation": "I2",
+   "line": 17725
+  },
+  "monsters.vampires.vampire#mist": {
+   "disposition": "held_form_state",
    "interpretation": null,
-   "line": 17724
+   "line": 17726
   },
   "monsters.werebear.werebear": {
    "disposition": "kept",
@@ -5283,12 +5288,30 @@
    "why": "the rider save excludes Elves; a creature template's header lists its type and descriptive tags (monsters.md:7, :65-67), but no source statement makes those tags a statement of species, and a creature instance records no species. Absence of an Elf tag is not evidence of not being an Elf (governing instruction). Refuses before any die; open policy point surfaced with this evidence."
   },
   {
-   "case": "a vampire target (monsters.vampires.vampire)",
-   "why": "its bat or mist form's type is not stated (monsters-A-Z.md:17724) and the form is not represented; refuses until it is"
+   "case": "a vampire in mist form (monsters.vampires.vampire)",
+   "evidence": [
+    {
+     "file": "monsters-A-Z.md",
+     "line": 17724
+    },
+    {
+     "file": "monsters-A-Z.md",
+     "line": 17725
+    },
+    {
+     "file": "monsters-A-Z.md",
+     "line": 17726
+    }
+   ],
+   "why": "the mist paragraph (monsters-A-Z.md:17726) states specific changes and nothing about the type, and CreatureState records no current form. The base (Undead, direct) and bat (I2) forms are not held; a vampire target is read by its recorded template. Only an effective mist form, which nothing executes or records, stays held."
   },
   {
-   "case": "a creature whose stored creature_type departs from its template's fixed type (a familiar's chosen type)",
-   "why": "the departure's source (a spell or feature) is not represented; an unvalidated stored type is not trusted: refuses"
+   "case": "a creature whose stored creature_type departs from its template's fixed type without a represented source",
+   "why": "an unvalidated stored type is not trusted: refuses. A familiar's chosen type is represented by the Find Familiar source choice below (summon.source spells.find_familiar, a named form, a chosen type)."
+  },
+  {
+   "case": "a familiar in a Challenge Rating 0 Beast form other than the eleven named",
+   "why": "no accepted fact types a Challenge Rating, so eligibility cannot be validated (spells.md:2290): refuses"
   },
   {
    "case": "a creature under Shapechange, Polymorph or another form-changing spell; a character in Wild Shape",
@@ -5340,14 +5363,94 @@
   "docs/sources/community/dnd-5e-srd-markdown/spells.md": "767d50542d8f26a9fff4a0c101ab48df4845a055d70734fee6e9e37d2e821aeb",
   "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json": "2853f30a832ca581c9d4169b82d0c360f3d6a2d78f0ad8980de9997eef51f373"
  },
+ "revision": "r2 (r1 preserved in r1/; codex-c8-raw-review corrections and the Find Familiar source choice)",
  "schema": {
-  "family": "creature_type",
-  "fields": {
-   "type": "CreatureType | None (the closed 14-value vocabulary)",
-   "type_choice": "tuple[CreatureType, ...] (a chosen type; empty otherwise)"
+  "families": {
+   "creature_type": {
+    "fields": {
+     "type": "CreatureType | None (the closed 14-value vocabulary)",
+     "type_choice": "tuple[CreatureType, ...] (a chosen type; empty otherwise)"
+    },
+    "invariant": "exactly one of type / a non-empty sorted, distinct type_choice"
+   },
+   "summoned_creature_type": {
+    "fields": {
+     "forms": "tuple[ComponentReference, ...] (the named forms' profile components; non-empty, sorted, distinct)",
+     "instead_of": "CreatureType (the form's own type it replaces)",
+     "type_choice": "tuple[CreatureType, ...] (at least two, sorted, distinct)"
+    },
+    "relational": "each form is a creature profile whose creature_type is instead_of"
+   }
   },
-  "invariant": "exactly one of type / a non-empty sorted, distinct type_choice",
+  "handling": "creature profiles keep their existing (mixed) handling, facts, options, retention reasons and prose bindings; the species creature_type components and spells.find_familiar/effect go from prose_bound to mixed",
   "proposed": "5d-representation-schema-21"
  },
+ "source_type_choices": [
+  {
+   "basis": "direct",
+   "component_key": "effect",
+   "fact": {
+    "family": "summoned_creature_type",
+    "forms": [
+     {
+      "component_key": "bat",
+      "record_key": "animals.bat"
+     },
+     {
+      "component_key": "cat",
+      "record_key": "animals.cat"
+     },
+     {
+      "component_key": "frog",
+      "record_key": "animals.frog"
+     },
+     {
+      "component_key": "hawk",
+      "record_key": "animals.hawk"
+     },
+     {
+      "component_key": "lizard",
+      "record_key": "animals.lizard"
+     },
+     {
+      "component_key": "octopus",
+      "record_key": "animals.octopus"
+     },
+     {
+      "component_key": "owl",
+      "record_key": "animals.owl"
+     },
+     {
+      "component_key": "rat",
+      "record_key": "animals.rat"
+     },
+     {
+      "component_key": "raven",
+      "record_key": "animals.raven"
+     },
+     {
+      "component_key": "spider",
+      "record_key": "animals.spider"
+     },
+     {
+      "component_key": "weasel",
+      "record_key": "animals.weasel"
+     }
+    ],
+    "instead_of": "beast",
+    "type_choice": [
+     "celestial",
+     "fey",
+     "fiend"
+    ]
+   },
+   "record_key": "spells.find_familiar",
+   "source": {
+    "file": "spells.md",
+    "line": 2290,
+    "quote": "You gain the service of a familiar, a spirit that takes an animal form you choose: **Bat, Cat, Frog, Hawk, Lizard, Octopus, Owl, Rat, Raven, Spider, Weasel**, or another Beast that has a Challenge Rating of 0. Appearing in an unoccupied space within range, the familiar has the statistics of the chosen form (see \"Monsters\"), though it is a Celestial, Fey, or Fiend (your choice) instead of a Beast. Your familiar acts independently of you, but it obeys your commands."
+   }
+  }
+ ],
  "status": "RAW CANDIDATE - review only; not accepted, minted or recorded"
 }

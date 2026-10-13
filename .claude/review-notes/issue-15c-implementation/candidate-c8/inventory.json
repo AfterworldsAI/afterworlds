@@ -1,5 +1,7 @@
 {
- "total_facts": 345,
+ "base_type_facts": 345,
+ "source_type_choices": 1,
+ "total_facts": 346,
  "touched_batches": {
   "animals": {
    "components": 95,
@@ -18,8 +20,8 @@
    "facts": 235
   },
   "spell-descriptions": {
-   "components": 4,
-   "facts": 4
+   "components": 5,
+   "facts": 5
   }
  },
  "untouched_batch_count": 19,

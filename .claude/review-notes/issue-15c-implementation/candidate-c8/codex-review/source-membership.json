@@ -1,0 +1,26 @@
+{
+  "monsters-A-Z.md": {
+    "source_headers": 235,
+    "candidate_headers": 235,
+    "missing": [],
+    "extra": []
+  },
+  "animals.md": {
+    "source_headers": 95,
+    "candidate_headers": 95,
+    "missing": [],
+    "extra": []
+  },
+  "spells.md": {
+    "source_headers": 4,
+    "candidate_headers": 4,
+    "missing": [],
+    "extra": []
+  },
+  "magic-items.md": {
+    "source_headers": 2,
+    "candidate_headers": 2,
+    "missing": [],
+    "extra": []
+  }
+}

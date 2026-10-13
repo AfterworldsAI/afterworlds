@@ -12,7 +12,8 @@
   "monsters.quasit.quasit": "**_Shape-Shift._** The quasit shape-shifts to resemble a bat",
   "monsters.succubus.succubus": "**_Shape-Shift._** The succubus shape-shifts into a Medium o",
   "monsters.succubus.succubus#form": "**_Incubus Form._** When the succubus finishes a Long Rest, ",
-  "monsters.vampires.vampire": "**_Shape-Shift._** If the vampire isn't in sunlight or runni",
+  "monsters.vampires.vampire#bat": "&emsp;While in bat form, the vampire can't speak. Its game s",
+  "monsters.vampires.vampire#mist": "&emsp;While in mist form, the vampire can't take any actions",
   "monsters.werebear.werebear": "**_Shape-Shift._** The werebear shape-shifts into a Large be",
   "monsters.wereboar.wereboar": "**_Shape-Shift._** The wereboar shape-shifts into a Medium b",
   "monsters.wererat.wererat": "**_Shape-Shift._** The wererat shape-shifts into a Medium ra",
@@ -43,6 +44,24 @@
    "monsters-A-Z.md",
    6919,
    "**_Claw._** _Melee Attack Roll:_ +4, reach 5 ft. _Hit:_ 4 (1d4 + 2) Slashing dam"
+  ],
+  [
+   "a vampire in mist form (monsters.vampires.vampire)",
+   "monsters-A-Z.md",
+   17724,
+   "**_Shape-Shift._** If the vampire isn't in sunlight or running water, it shape-s"
+  ],
+  [
+   "a vampire in mist form (monsters.vampires.vampire)",
+   "monsters-A-Z.md",
+   17725,
+   "&emsp;While in bat form, the vampire can't speak. Its game statistics, other tha"
+  ],
+  [
+   "a vampire in mist form (monsters.vampires.vampire)",
+   "monsters-A-Z.md",
+   17726,
+   "&emsp;While in mist form, the vampire can't take any actions, speak, or manipula"
   ]
  ],
  "interpretation_evidence": [
@@ -74,6 +93,10 @@
  "interpretation_evidence_quotes_on_cited_lines": true,
  "one_fact_per_record": true,
  "quotes_match_cited_lines": true,
+ "source_choice_forms_exist_and_are_the_replaced_type": true,
+ "source_choice_quotes_match_cited_lines": true,
+ "source_choice_well_formed": true,
+ "source_type_choices": 1,
  "species_humanoid": [
   "character_origins.dragonborn",
   "character_origins.dwarf",
@@ -98,5 +121,6 @@
   "spells.find_steed.otherworldly_steed"
  ],
  "type_word_in_quote": true,
- "types_in_closed_vocabulary": true
+ "types_in_closed_vocabulary": true,
+ "vampire_forms_cite_their_paragraphs": true
 }
