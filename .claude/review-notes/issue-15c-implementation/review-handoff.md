@@ -63,7 +63,7 @@
   - Loading and action-budget refusals roll no dice;
   - end-to-end, a shot expends one, the last arrow is removed, and a failure after expenditure rolls everything back.
 
-**In progress:** Codex's Bloodied and linked Grappled→Restrained classification (`codex-bloodied-linked-conditions-classification.md`). Those ten C5-positive shapes stay visibly refused until then.
+**Completed since:** Codex's Bloodied and linked Grappled→Restrained classification is implemented (`10ddbfd`, `ae011bb`). No C5-positive boundary remains. See `status.md` "Latest" and `sibling-audit-creature-silent-drops.md`. pip-audit reports five pre-existing `chromadb` advisories with no fix versions; they need a disposition.
 
 **Still required:**
 - Codex review of the roster, traits, clauses and Multiattack implementation;

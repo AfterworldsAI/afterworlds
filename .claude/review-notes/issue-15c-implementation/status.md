@@ -5,7 +5,45 @@
 - **Scope:** #191 as updated (body SHA-256 `8225e1b6…57a2`). It adds creature attacks, bounded Multiattack and their saves/effects, the tool-addressing and omitted-source repair, and individual conditional-creature assessment. The G1 oracle `2ccbaeba…1258` is unchanged.
 - **Process:** Opus 5.5 at medium effort, with the separate Opus 5.5 Advisor consulted on the approach, the candidate scope and completion.
 
-## Latest (13 October 2026, C7 recorded): C7 accepted, recorded locally, ammunition executing
+## Latest (13 October 2026, end of session): admitted roster executing; awaiting Codex review and final gates
+
+These commits follow the C7 recording report below; all are local, none pushed.
+
+| Commit | Change |
+| --- | --- |
+| `10ddbfd` | **Bloodied.** A certified universal predicate (`damage.bloodied`). Pins: `weapon_attack` `c300a9ca`, `creature_attack` `a3dcf934`, `creature_save_effect` `e09799e6`. Creature save traits now execute. |
+| `ae011bb` | **Linked Grappled→Restrained.** `ConditionInstance.lasts_while_instance`, a state validator, and a cascade on clear. |
+| `acf6432` | After the mouther's lethal Bite, first aid on its target refuses before any die. |
+| `b5051d8` | Architecture Notes reconciled on the C7 successor; the manifest names the ammunition-recovery exclusion. |
+| `9b63bce` | End to end: holdings that move after the read fail the turn at the recheck, with nothing spent. |
+
+Sibling audit: `sibling-audit-creature-silent-drops.md`.
+
+**Focused diagnostics only** (not acceptance or full-gate evidence):
+
+| Run | Result |
+| --- | --- |
+| RPG suite | 412 passed, in two runs |
+| End-to-end file | 15 passed, plus 2 new end-to-end tests passed individually |
+| Publication | 27 passed |
+| Oracle and selection | 139 passed |
+| Committed census | 2 passed |
+| State service | 184 passed |
+| Model and persistence | 21 passed |
+
+**Repository-wide static gates on `9b63bce`:**
+- black, ruff and mypy are clean;
+- detect-secrets passes on all 274 changed files.
+
+**pip-audit reports five `chromadb` 1.5.9 advisories.** They are `PYSEC-2026-311` (twice), `-3813`, `-3814` and `-3815`, and none lists a fixed version. The dependency was not changed by CRD Issue 15c, and remediating it is infrastructure work, not absorbed here. It needs a decision by the coordinator or Owner before merge readiness.
+
+**Remaining before merge readiness:**
+1. Codex review of the C7 recording and of this implementation (roster, traits, clauses, Multiattack, ammunition, Bloodied, linked conditions).
+2. Full pytest on the stable head, via the independent supervisor.
+3. The pip-audit disposition.
+4. Unchanged CI, then push and PR (no merge).
+
+## Earlier (13 October 2026, C7 recorded): C7 accepted, recorded locally, ammunition executing
 
 **C7 is Owner-accepted**: the exact consolidated packet `4912928f…eb2c` (`../issue-15c-c7-native/owner-acceptance-2026-10-13.md`). The Owner also authorized integration and recording (`owner-c7-integration-2026-10-13.md`). The earlier "C7 integration blocked" note is superseded.
 
