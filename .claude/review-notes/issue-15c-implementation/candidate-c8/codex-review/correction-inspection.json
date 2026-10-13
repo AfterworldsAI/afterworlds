@@ -1,0 +1,259 @@
+{
+  "head": "1d4193c4b162e3db4df3a3240d00313f36dd918b",
+  "r1_preserved": {
+    "README.md": {
+      "sha256": "a825723b5580b62239b3683da53c0663eb685d2dc3ca513448abd5d7d75594e3",
+      "matches_prior_commit_bytes": true
+    },
+    "c8.json": {
+      "sha256": "8199173955d5543665b03c2adbbff52554d6d50b4e6fba055909a9fb83720cd6",
+      "matches_prior_commit_bytes": true
+    },
+    "correspondence.json": {
+      "sha256": "5cd590097fc59d29bf6e441e83a7830e973220b9da9861e4b296e6448bb292b0",
+      "matches_prior_commit_bytes": true
+    },
+    "derive_c8.py": {
+      "sha256": "b202daddfc2499b3dd6287c2e3783a9ece37fe79a205f24d823dac6a6c25445c",
+      "matches_prior_commit_bytes": true
+    },
+    "inventory.json": {
+      "sha256": "c49b6a58b102e7d3e4079c735e003a4712455cc89cf048f1cb5bda181a0e6320",
+      "matches_prior_commit_bytes": true
+    },
+    "schema-21-delta.md": {
+      "sha256": "3aabf74ced97715faee268a8579c0e28c5ec4c11da14db9f8dc838f9f285ced6",
+      "matches_prior_commit_bytes": true
+    },
+    "validate_c8.py": {
+      "sha256": "28cb1ac1710ad93777db53d955a0f76e09dc8b3882cfdaf0fbb59e435f6cac4a",
+      "matches_prior_commit_bytes": true
+    },
+    "validation.json": {
+      "sha256": "d6d9b42ea5f74a48fd69c55c53e8447b6d6d4d1b8467a83777f1dd601c8628a0",
+      "matches_prior_commit_bytes": true
+    }
+  },
+  "r2_hashes": {
+    "c8.json": "7e7d5b43ccd7bd877e0764643e57df1270419dd758a6ae5fcf52422081e42628",
+    "correspondence.json": "43589153ee7befe4e46052f0e7fe7db053b5a9a22c3ff8a6b4468e41c9e0ce24",
+    "inventory.json": "3f05591efa78656132db3a179f174b560ca3e8f3d3ebfd525e56b400e87ce55d",
+    "validation.json": "c4e1c3ecbaf162cac3fb8f30e4625fca46ec8aa2084a000280168d0b9fb03e61",
+    "README.md": "6cf2416629025f2aec99b5fb878001ac8df79527eff972c412778f81a940e4b7",
+    "schema-21-delta.md": "1c33046c692692f48e63766e61fa6f2b7785b9118f50db241503f5868223b1b5"
+  },
+  "base345_identical": true,
+  "pins_identical": true,
+  "current_pins_match": true,
+  "correspondence_changes": {
+    "monsters.vampires.vampire/vampire": {
+      "old": {
+        "batch": "monsters",
+        "claim_spans": [
+          "00b311f9-948c-5f2b-9735-d3aad36facee",
+          "0acfc148-cda6-5ad8-9ded-701bc0ce4e70",
+          "92a8e926-3d5c-5a63-bf0b-8d4d41bdfbc1",
+          "b918f1e9-0343-5fdf-8f66-1cc87b7b0e67",
+          "e994ba0d-4df8-5bdd-907c-cef723cfcea6"
+        ],
+        "component_key": "vampire",
+        "file": "monsters-A-Z.md",
+        "form": "held",
+        "line": 17626,
+        "quote": "_Medium or Small Undead, Lawful Evil_",
+        "record_key": "monsters.vampires.vampire"
+      },
+      "new": {
+        "batch": "monsters",
+        "claim_spans": [
+          "00b311f9-948c-5f2b-9735-d3aad36facee",
+          "0acfc148-cda6-5ad8-9ded-701bc0ce4e70",
+          "92a8e926-3d5c-5a63-bf0b-8d4d41bdfbc1",
+          "b918f1e9-0343-5fdf-8f66-1cc87b7b0e67",
+          "e994ba0d-4df8-5bdd-907c-cef723cfcea6"
+        ],
+        "component_key": "vampire",
+        "file": "monsters-A-Z.md",
+        "form": "bat:kept;mist:held_form_state",
+        "line": 17626,
+        "quote": "_Medium or Small Undead, Lawful Evil_",
+        "record_key": "monsters.vampires.vampire"
+      }
+    }
+  },
+  "correspondence_added": [
+    [
+      "spells.find_familiar",
+      "effect"
+    ]
+  ],
+  "familiar_fact": {
+    "basis": "direct",
+    "component_key": "effect",
+    "fact": {
+      "family": "summoned_creature_type",
+      "forms": [
+        {
+          "component_key": "bat",
+          "record_key": "animals.bat"
+        },
+        {
+          "component_key": "cat",
+          "record_key": "animals.cat"
+        },
+        {
+          "component_key": "frog",
+          "record_key": "animals.frog"
+        },
+        {
+          "component_key": "hawk",
+          "record_key": "animals.hawk"
+        },
+        {
+          "component_key": "lizard",
+          "record_key": "animals.lizard"
+        },
+        {
+          "component_key": "octopus",
+          "record_key": "animals.octopus"
+        },
+        {
+          "component_key": "owl",
+          "record_key": "animals.owl"
+        },
+        {
+          "component_key": "rat",
+          "record_key": "animals.rat"
+        },
+        {
+          "component_key": "raven",
+          "record_key": "animals.raven"
+        },
+        {
+          "component_key": "spider",
+          "record_key": "animals.spider"
+        },
+        {
+          "component_key": "weasel",
+          "record_key": "animals.weasel"
+        }
+      ],
+      "instead_of": "beast",
+      "type_choice": [
+        "celestial",
+        "fey",
+        "fiend"
+      ]
+    },
+    "record_key": "spells.find_familiar",
+    "source": {
+      "file": "spells.md",
+      "line": 2290,
+      "quote": "You gain the service of a familiar, a spirit that takes an animal form you choose: **Bat, Cat, Frog, Hawk, Lizard, Octopus, Owl, Rat, Raven, Spider, Weasel**, or another Beast that has a Challenge Rating of 0. Appearing in an unoccupied space within range, the familiar has the statistics of the chosen form (see \"Monsters\"), though it is a Celestial, Fey, or Fiend (your choice) instead of a Beast. Your familiar acts independently of you, but it obeys your commands."
+    }
+  },
+  "familiar_existing_component": {
+    "applies_when": null,
+    "fact_qualifiers": [],
+    "facts": [],
+    "handling": "prose_bound",
+    "irreducibility_reason_code": null,
+    "options": [],
+    "prose_retention_reason_code": "no_identified_structured_use",
+    "record_key": "spells.find_familiar",
+    "semantic_key": "effect"
+  },
+  "familiar_existing_prose_bindings": [
+    {
+      "chunk_char_end": 170,
+      "chunk_char_start": 0,
+      "chunk_id": "5d435bdc-151a-5728-9ec1-449a8e4eed6b",
+      "component_key": "effect",
+      "irreducibility_reason_code": null,
+      "prose_retention_reason_code": "no_identified_structured_use",
+      "record_key": "spells.find_familiar",
+      "span_id": "a595f1ba-49ac-537b-80a6-091e71b9b3a8"
+    },
+    {
+      "chunk_char_end": 177,
+      "chunk_char_start": 0,
+      "chunk_id": "18496513-c707-58a9-a165-b5ee01d3ad0f",
+      "component_key": "effect",
+      "irreducibility_reason_code": null,
+      "prose_retention_reason_code": "no_identified_structured_use",
+      "record_key": "spells.find_familiar",
+      "span_id": "c37aaf96-2d78-587a-8f64-683563b90a76"
+    },
+    {
+      "chunk_char_end": 210,
+      "chunk_char_start": 0,
+      "chunk_id": "dc92472c-761d-53a4-85c2-51e79010c228",
+      "component_key": "effect",
+      "irreducibility_reason_code": null,
+      "prose_retention_reason_code": "no_identified_structured_use",
+      "record_key": "spells.find_familiar",
+      "span_id": "d1dedd79-fdd5-5d16-9a0d-42d16a9e4092"
+    },
+    {
+      "chunk_char_end": 297,
+      "chunk_char_start": 0,
+      "chunk_id": "62d5a336-cf4a-5f4b-b1aa-191b90a5792d",
+      "component_key": "effect",
+      "irreducibility_reason_code": null,
+      "prose_retention_reason_code": "no_identified_structured_use",
+      "record_key": "spells.find_familiar",
+      "span_id": "47052965-b356-5347-845a-70070faa5af6"
+    },
+    {
+      "chunk_char_end": 468,
+      "chunk_char_start": 0,
+      "chunk_id": "b55cfa7b-89a6-58d2-82f2-1ef7962f8d6d",
+      "component_key": "effect",
+      "irreducibility_reason_code": null,
+      "prose_retention_reason_code": "no_identified_structured_use",
+      "record_key": "spells.find_familiar",
+      "span_id": "e53720e9-6380-5e57-b73f-69da22c9831a"
+    },
+    {
+      "chunk_char_end": 540,
+      "chunk_char_start": 0,
+      "chunk_id": "e475e2f8-b53d-5afe-aa6e-00a55eb3a18a",
+      "component_key": "effect",
+      "irreducibility_reason_code": null,
+      "prose_retention_reason_code": "no_identified_structured_use",
+      "record_key": "spells.find_familiar",
+      "span_id": "b91fcb64-9cd1-516d-9ce0-6677a7f47911"
+    }
+  ],
+  "familiar_claim_spans_match": true,
+  "familiar_batch_matches": true,
+  "familiar_form_types": {
+    "animals.bat/bat": "beast",
+    "animals.cat/cat": "beast",
+    "animals.frog/frog": "beast",
+    "animals.hawk/hawk": "beast",
+    "animals.lizard/lizard": "beast",
+    "animals.octopus/octopus": "beast",
+    "animals.owl/owl": "beast",
+    "animals.rat/rat": "beast",
+    "animals.raven/raven": "beast",
+    "animals.spider/spider": "beast",
+    "animals.weasel/weasel": "beast"
+  },
+  "source_quote_matches": true,
+  "forms_changed": {
+    "monsters.vampires.vampire#bat": {
+      "disposition": "kept",
+      "interpretation": "I2",
+      "line": 17725
+    },
+    "monsters.vampires.vampire#mist": {
+      "disposition": "held_form_state",
+      "interpretation": null,
+      "line": 17726
+    }
+  },
+  "forms_removed": [
+    "monsters.vampires.vampire"
+  ]
+}

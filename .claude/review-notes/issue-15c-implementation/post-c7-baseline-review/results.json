@@ -1,0 +1,1324 @@
+{
+  "base_commit": "b5051d8433ac2be7336daa41f2aae038b9d21c9e",
+  "reviewed_commit": "1d4193c4b162e3db4df3a3240d00313f36dd918b",
+  "base_baseline_sha256": "3006e93343aee4ec5150631db5af7bddc0c935031b76711b7f2ed6ac683bfe55",
+  "reviewed_baseline_sha256": "ca3f383cbb646de71737d965c5168393c657972d24c17c1820ff316092531156",
+  "worktree_baseline_raw_sha256": "ca3f383cbb646de71737d965c5168393c657972d24c17c1820ff316092531156",
+  "settings_identical_including_metadata": true,
+  "ci_and_hook_config_unchanged": true,
+  "referenced_worktree_content_matches_head_after_line_ending_normalization": true,
+  "added": 105,
+  "removed": 0,
+  "modified_existing_entries": 0,
+  "is_secret_added_or_modified": 0,
+  "new_is_verified_false": 105,
+  "configured_hex_entropy_limit": 3.0,
+  "in_memory_detector_matches": 105,
+  "categories": {
+    "Artifact/source SHA-256 pin": 72,
+    "Git revision pin": 8,
+    "Mechanical certificate fingerprint": 7,
+    "Mechanical template fingerprint": 18
+  },
+  "transitions": [
+    {
+      "commit": "41f892cc9d1e2ce235fc4334b4b63a3fd2d71650",
+      "added": 29,
+      "removed": 0,
+      "changed_existing": 0
+    },
+    {
+      "commit": "dc68b3c9aa1f2a33d4d7185b01ed7edd82706ff3",
+      "added": 10,
+      "removed": 0,
+      "changed_existing": 0
+    },
+    {
+      "commit": "f8be6caa8b6d3dc7e86c2d7c23b50718869ee2ba",
+      "added": 23,
+      "removed": 0,
+      "changed_existing": 0
+    },
+    {
+      "commit": "1d4193c4b162e3db4df3a3240d00313f36dd918b",
+      "added": 43,
+      "removed": 0,
+      "changed_existing": 8
+    }
+  ],
+  "entries": [
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\c8.json",
+      "line": 2,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/anchored_successor_sha256",
+        "/pins/src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\c8.json",
+      "line": 5356,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/animals.md"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\c8.json",
+      "line": 5357,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/character-origins.md"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\c8.json",
+      "line": 5358,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/classes.md"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\c8.json",
+      "line": 5359,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/magic-items.md"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\c8.json",
+      "line": 5360,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/monsters-A-Z.md"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\c8.json",
+      "line": 5361,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/monsters.md"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\c8.json",
+      "line": 5362,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/rules-glossary.md"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\c8.json",
+      "line": 5363,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/spells.md"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\static-inspection.json",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\static-inspection.json",
+      "line": 5,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/c8.json"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\static-inspection.json",
+      "line": 6,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/correspondence.json"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\static-inspection.json",
+      "line": 7,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/inventory.json"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\static-inspection.json",
+      "line": 8,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/validation.json"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\static-inspection.json",
+      "line": 9,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/derive_c8.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\static-inspection.json",
+      "line": 10,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/validate_c8.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\static-inspection.json",
+      "line": 11,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/schema-21-delta.md"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\codex-review\\static-inspection.json",
+      "line": 12,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/README.md"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\derive_c8.py",
+      "line": 34,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\r1\\c8.json",
+      "line": 2,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/anchored_successor_sha256",
+        "/pins/src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\r1\\c8.json",
+      "line": 5333,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/animals.md"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\r1\\c8.json",
+      "line": 5334,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/character-origins.md"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\r1\\c8.json",
+      "line": 5335,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/classes.md"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\r1\\c8.json",
+      "line": 5336,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/magic-items.md"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\r1\\c8.json",
+      "line": 5337,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/monsters-A-Z.md"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\r1\\c8.json",
+      "line": 5338,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/monsters.md"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\r1\\c8.json",
+      "line": 5339,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/rules-glossary.md"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\r1\\c8.json",
+      "line": 5340,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/pins/docs/sources/community/dnd-5e-srd-markdown/spells.md"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\candidate-c8\\r1\\derive_c8.py",
+      "line": 34,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\recheck_spatial_4a39f27.py",
+      "line": 12,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "json_field_examples": [],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-frozen-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "json_field_examples": [
+        "/revision"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-frozen-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/frozen_modules/src/afterworlds/pipeline/rpg/lifecycle.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-frozen-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/frozen_modules/src/afterworlds/pipeline/rpg/creature_clauses.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-frozen-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/frozen_modules/src/afterworlds/pipeline/rpg/defense.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-frozen-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/frozen_modules/src/afterworlds/pipeline/rpg/service.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-frozen-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/frozen_modules/src/afterworlds/pipeline/rpg/config.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-frozen-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/frozen_modules/src/afterworlds/pipeline/rpg/adapter.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-frozen-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/frozen_modules/src/afterworlds/pipeline/rpg/checks.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-frozen-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/frozen_modules/src/afterworlds/pipeline/rpg/hands.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-frozen-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/frozen_modules/src/afterworlds/pipeline/rpg/creature_attacks.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-frozen-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/frozen_modules/src/afterworlds/pipeline/rpg/capability.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-frozen-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/frozen_modules/src/afterworlds/pipeline/rpg/conditions.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-frozen-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/frozen_modules/src/afterworlds/pipeline/rpg/attacks.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-frozen-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/frozen_modules/src/afterworlds/pipeline/rpg/saves.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-frozen-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/frozen_modules/src/afterworlds/pipeline/rpg/roster.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-frozen-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/frozen_modules/src/afterworlds/pipeline/rpg/damage.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-frozen-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/frozen_modules/src/afterworlds/pipeline/rpg/grants.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-frozen-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/frozen_modules/src/afterworlds/pipeline/rpg/bystanders.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-frozen-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/frozen_modules/src/afterworlds/pipeline/rpg/dice.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-frozen-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/frozen_modules/src/afterworlds/pipeline/rpg/mastery.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-frozen-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/frozen_modules/src/afterworlds/pipeline/rpg/caller.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-frozen-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/frozen_modules/src/afterworlds/pipeline/rpg/economy.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-frozen-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/frozen_modules/src/afterworlds/pipeline/rpg/creature_effects.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-frozen-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/frozen_modules/src/afterworlds/pipeline/rpg/models.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "json_field_examples": [
+        "/revision"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\delivery-review\\spatial-4a39f27-results.jsonl",
+      "line": 4,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/frozen_creature_effects_sha256"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\inspect_c7_native.py",
+      "line": 27,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\inspect_c7_native.py",
+      "line": 28,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\correction-probes.json",
+      "line": 2,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "json_field_examples": [
+        "/head"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\correction-probes.json",
+      "line": 14,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical certificate fingerprint",
+      "json_field_examples": [
+        "/cases/0/records/0/provenance/certificate/fingerprint",
+        "/cases/1/records/0/provenance/certificate/fingerprint"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\correction-probes.json",
+      "line": 67,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical template fingerprint",
+      "json_field_examples": [
+        "/cases/0/records/0/provenance/templates/creature:5843f62e-cfa1-4f9d-a354-66fbda9fbe91",
+        "/cases/1/records/0/provenance/templates/creature:5843f62e-cfa1-4f9d-a354-66fbda9fbe91"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\correction-probes.json",
+      "line": 249,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical template fingerprint",
+      "json_field_examples": [
+        "/cases/5/records/0/provenance/templates/creature:5398e725-aa2d-4d89-940b-8327e18536fd",
+        "/cases/6/records/0/provenance/templates/creature:5398e725-aa2d-4d89-940b-8327e18536fd"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\correction-probes.json",
+      "line": 431,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical template fingerprint",
+      "json_field_examples": [
+        "/cases/10/records/0/provenance/templates/creature:83479b5a-de3e-47c6-8c7d-c03b7d5a41ec",
+        "/cases/11/records/0/provenance/templates/creature:83479b5a-de3e-47c6-8c7d-c03b7d5a41ec"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\correction-probes.json",
+      "line": 613,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical template fingerprint",
+      "json_field_examples": [
+        "/cases/15/records/0/provenance/templates/creature:27643f58-f5c6-4506-8137-c9e692022a18",
+        "/cases/16/records/0/provenance/templates/creature:27643f58-f5c6-4506-8137-c9e692022a18"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\correction-probes.json",
+      "line": 800,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical template fingerprint",
+      "json_field_examples": [
+        "/cases/18/records/0/provenance/templates/creature:77ff700e-3c7e-4bea-8e70-0ea456795f53",
+        "/cases/19/records/0/provenance/templates/creature:77ff700e-3c7e-4bea-8e70-0ea456795f53"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\correction-probes.json",
+      "line": 981,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical template fingerprint",
+      "json_field_examples": [
+        "/cases/21/records/0/provenance/templates/creature:a3efac01-61dc-4ba5-b24d-44da2b11cce3",
+        "/cases/22/records/0/provenance/templates/creature:a3efac01-61dc-4ba5-b24d-44da2b11cce3"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\correction-probes.json",
+      "line": 1164,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical certificate fingerprint",
+      "json_field_examples": [
+        "/cases/32/records/0/provenance/certificate/fingerprint",
+        "/cases/34/records/0/provenance/certificate/fingerprint"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\correction-probes.json",
+      "line": 1213,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical template fingerprint",
+      "json_field_examples": [
+        "/cases/32/records/0/provenance/templates/creature:ac1eb1c0-52ae-4757-89b3-f884440d53a7"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\correction-probes.json",
+      "line": 1844,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical template fingerprint",
+      "json_field_examples": [
+        "/cases/40/records/0/provenance/templates/creature:50c6739d-53e5-409c-bc9b-e8cea2ab5a63",
+        "/cases/41/records/0/provenance/templates/creature:50c6739d-53e5-409c-bc9b-e8cea2ab5a63"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\correction-probes.json",
+      "line": 2304,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical template fingerprint",
+      "json_field_examples": [
+        "/cases/44/records/0/provenance/templates/creature:33894fd8-dfc9-487a-b4f9-b677c70d6572"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\correction-probes.json",
+      "line": 2354,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/.claude\\review-notes\\issue-15c-preparation\\issue-draft.md"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\correction-probes.json",
+      "line": 2355,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/src\\afterworlds\\ingestion\\mechanical\\oracles\\srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\correction-probes.json",
+      "line": 2356,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/src\\afterworlds\\pipeline\\rpg\\creature_attacks.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\correction-probes.json",
+      "line": 2357,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/src\\afterworlds\\pipeline\\rpg\\creature_effects.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\correction-probes.json",
+      "line": 2358,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/src\\afterworlds\\pipeline\\rpg\\service.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\correction_probes.py",
+      "line": 18,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "json_field_examples": [],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\final-correction-probes.json",
+      "line": 2,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "json_field_examples": [
+        "/head"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\final-correction-probes.json",
+      "line": 38,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical certificate fingerprint",
+      "json_field_examples": [
+        "/cases/2/records/0/provenance/certificate/fingerprint",
+        "/cases/3/records/0/provenance/certificate/fingerprint"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\final-correction-probes.json",
+      "line": 74,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical template fingerprint",
+      "json_field_examples": [
+        "/cases/2/records/0/provenance/templates/creature:7ac1ddc1-5e41-41b5-bc96-f554c8a5183b",
+        "/cases/2/records/1/provenance/templates/creature:7ac1ddc1-5e41-41b5-bc96-f554c8a5183b"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\final-correction-probes.json",
+      "line": 85,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical certificate fingerprint",
+      "json_field_examples": [
+        "/cases/2/records/1/provenance/certificate/fingerprint",
+        "/cases/3/records/1/provenance/certificate/fingerprint"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\final-correction-probes.json",
+      "line": 401,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical template fingerprint",
+      "json_field_examples": [
+        "/cases/6/records/0/provenance/templates/creature:bc827f34-4635-4bf0-879d-540b8602cc85",
+        "/cases/6/records/1/provenance/templates/creature:bc827f34-4635-4bf0-879d-540b8602cc85"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\final-correction-probes.json",
+      "line": 728,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical template fingerprint",
+      "json_field_examples": [
+        "/cases/10/records/0/provenance/templates/creature:b77eeedb-40cf-466e-915f-3b694d18557d",
+        "/cases/10/records/1/provenance/templates/creature:b77eeedb-40cf-466e-915f-3b694d18557d"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\final-correction-probes.json",
+      "line": 1146,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical template fingerprint",
+      "json_field_examples": [
+        "/cases/15/records/0/provenance/templates/creature:49eba5f6-3fa4-4ed9-aed4-9bdb36272da3",
+        "/cases/16/records/0/provenance/templates/creature:49eba5f6-3fa4-4ed9-aed4-9bdb36272da3"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\final-correction-probes.json",
+      "line": 1357,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical template fingerprint",
+      "json_field_examples": [
+        "/cases/23/records/0/provenance/templates/creature:16c110ae-0a69-4c49-895e-74d5e43e4f75",
+        "/cases/24/records/0/provenance/templates/creature:16c110ae-0a69-4c49-895e-74d5e43e4f75"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\final-correction-probes.json",
+      "line": 1521,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/src/afterworlds/pipeline/rpg/conditions.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\final-correction-probes.json",
+      "line": 1522,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/src/afterworlds/pipeline/rpg/creature_effects.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\final-correction-probes.json",
+      "line": 1523,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/src/afterworlds/pipeline/rpg/adapter.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\final-correction-probes.json",
+      "line": 1524,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/src/afterworlds/pipeline/rpg/scene.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\final-correction-probes.json",
+      "line": 1525,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/src/afterworlds/pipeline/rpg/caller.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\final-correction-probes.json",
+      "line": 1526,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/src/afterworlds/models/rpg.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\final-correction-probes.json",
+      "line": 1527,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/docs/prompts/rpg_adjudication.md"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\final-correction-probes.json",
+      "line": 1528,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\persisted-projection-probes.json",
+      "line": 2,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "json_field_examples": [
+        "/head"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\persisted-projection-probes.json",
+      "line": 14,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical certificate fingerprint",
+      "json_field_examples": [
+        "/cases/0/records/0/provenance/certificate/fingerprint",
+        "/cases/1/records/0/provenance/certificate/fingerprint"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\persisted-projection-probes.json",
+      "line": 67,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical template fingerprint",
+      "json_field_examples": [
+        "/cases/0/records/0/provenance/templates/creature:10140a7a-e47a-4c4c-962f-e72579d598e7",
+        "/cases/1/records/0/provenance/templates/creature:10140a7a-e47a-4c4c-962f-e72579d598e7"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\persisted-projection-probes.json",
+      "line": 317,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical template fingerprint",
+      "json_field_examples": [
+        "/cases/3/records/0/provenance/templates/creature:d24e6d9e-ddda-4159-b2ca-8e5163a4c57c"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\persisted-projection-probes.json",
+      "line": 445,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/src/afterworlds/services/dnd5e_state/turn.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\persisted-projection-probes.json",
+      "line": 446,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/src/afterworlds/pipeline/rpg/conditions.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\persisted-projection-probes.json",
+      "line": 447,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/tests/pipeline/rpg/test_before_dice.py"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\persisted-projection-probes.json",
+      "line": 448,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Artifact/source SHA-256 pin",
+      "json_field_examples": [
+        "/hashes/src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\supplemental-probes.json",
+      "line": 2,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 40,
+      "category": "Git revision pin",
+      "json_field_examples": [
+        "/head"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\supplemental-probes.json",
+      "line": 50,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical certificate fingerprint",
+      "json_field_examples": [
+        "/cases/4/records/0/provenance/certificate/fingerprint",
+        "/cases/6/records/0/provenance/certificate/fingerprint"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\supplemental-probes.json",
+      "line": 86,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical template fingerprint",
+      "json_field_examples": [
+        "/cases/4/records/0/provenance/templates/creature:5d6e6e86-efb6-46bc-8bac-bf6f0c771d16",
+        "/cases/4/records/1/provenance/templates/creature:5d6e6e86-efb6-46bc-8bac-bf6f0c771d16"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\supplemental-probes.json",
+      "line": 97,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical certificate fingerprint",
+      "json_field_examples": [
+        "/cases/4/records/1/provenance/certificate/fingerprint",
+        "/cases/6/records/1/provenance/certificate/fingerprint"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    },
+    {
+      "file": ".claude\\review-notes\\issue-15c-implementation\\owncreature-review\\supplemental-probes.json",
+      "line": 234,
+      "detector": "Hex High Entropy String",
+      "matched_hex_length": 64,
+      "category": "Mechanical template fingerprint",
+      "json_field_examples": [
+        "/cases/6/records/0/provenance/templates/creature:9ada4e75-fbaa-4235-81b6-c1000c2908f0",
+        "/cases/6/records/1/provenance/templates/creature:9ada4e75-fbaa-4235-81b6-c1000c2908f0"
+      ],
+      "sha1_content_match": true,
+      "configured_detector_match": true
+    }
+  ],
+  "negative_control": "Reused C7 review evidence; unchanged settings and matching machinery; not repeated."
+}

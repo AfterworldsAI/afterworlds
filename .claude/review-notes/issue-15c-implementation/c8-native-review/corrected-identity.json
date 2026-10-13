@@ -1,0 +1,20 @@
+{
+  "preview_code_revision": "bf3fb2d17279114b0981da13ee76fd9f1ddc88bc",
+  "afterworlds_file": "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\src\\afterworlds\\__init__.py",
+  "preview_sha256": "a2d96264dd18605680358393270e1f9f4fc27da144fda09da06e31cbd5250016",
+  "serialization_byte_identical": true,
+  "oracle_identity": "70646cd987dcf75adc7b57b6271e38c6ca8cc9b508584dac89c5acefafa3e8d9",
+  "projection": "e4f8f4fb-de6c-53c9-98f1-fa7a0159fe42",
+  "payload_hash": "e615d0106996466b8ab72dacd481934b7982e4c421a661eb2cc0e3fcdfad5d87",
+  "schema_hash": "4499b3964aac338e10c7b6d1f67a5eb37570878600e0c5f04bd4464d58f1df55",
+  "reviewed_file_sha256": {
+    "src/afterworlds/ingestion/mechanical/oracle.py": "9cddc78d0b6e99cf7695ba23661ac41fa50b5549bbcfb5ab89ed975c49dcb69d",
+    "src/afterworlds/ingestion/mechanical/projection.py": "56a9b0cfe17d5757aa74698a8acc68db2fc9acaa4ce7ea33273c399f27486df4",
+    "src/afterworlds/ingestion/mechanical/representation.py": "7f0abd45113548f32f35ee6d58cf986a8cea59877b63995cfedd96ac2a0f052c",
+    "src/afterworlds/ingestion/mechanical/validation.py": "3b32df131007deb4efcba401e3b2cc012015f8703a32df670422c377a25d499c",
+    "src/afterworlds/ingestion/mechanical/schema_lift.py": "46df4ccb1e4418c955358f195c798ddf9dd4a6b53709492fd6cfb0a87e44d00f",
+    ".claude\\review-notes\\issue-15c-c8-native\\OWNER-PACKET.md": "b9c6cbec31f386d8962d44edb5c8615e59596e5c5c32f73b83ff4ce65d8c59a7",
+    ".claude\\review-notes\\issue-15c-c8-native\\PLANNING-ADDENDUM-target-domain.md": "cb76230c7b98344ccf60bebacddaf1408d779ae0e8eb7ae5cbb1240af9a4fa8a",
+    ".claude\\review-notes\\issue-15c-c8-native\\revalidate_c8_preview.py": "c4e7c8b5cb39740e556159c86bd0f858f13d28b4785d38cbca9370015031b745"
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "head": "bf3fb2d17279114b0981da13ee76fd9f1ddc88bc",
+  "import": "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\src\\afterworlds\\__init__.py",
+  "schema_hash": "4499b3964aac338e10c7b6d1f67a5eb37570878600e0c5f04bd4464d58f1df55",
+  "schema20_hash": "759dcc1f9de2cac9254be108ca8a83433ca30854061276a9c349a370e1c6e77a",
+  "schema21_pin": "4499b3964aac338e10c7b6d1f67a5eb37570878600e0c5f04bd4464d58f1df55",
+  "cases": {
+    "fixed_beast_positive": {
+      "draft_type_findings": [],
+      "component_findings": [],
+      "relational_findings": []
+    },
+    "wrong_fixed_type_negative": {
+      "draft_type_findings": [],
+      "component_findings": [],
+      "relational_findings": [
+        "component spells.find_familiar/effect: summoned_creature_type names animals.bat/bat, whose creature_type is ['fey'], not exactly beast"
+      ]
+    },
+    "choice_missing_type_in_one_arm": {
+      "draft_type_findings": [],
+      "component_findings": [],
+      "relational_findings": [
+        "component spells.find_familiar/effect: summoned_creature_type names animals.bat/bat, whose creature_size or creature_type is held in an option or under a condition, so the component states no fixed profile"
+      ]
+    },
+    "conditional_component": {
+      "draft_type_findings": [],
+      "component_findings": [],
+      "relational_findings": [
+        "component spells.find_familiar/effect: summoned_creature_type names animals.bat/bat, whose creature_size or creature_type is held in an option or under a condition, so the component states no fixed profile"
+      ]
+    },
+    "conditional_type_fact": {
+      "draft_type_findings": [],
+      "component_findings": [],
+      "relational_findings": [
+        "component spells.find_familiar/effect: summoned_creature_type names animals.bat/bat, whose creature_size or creature_type is held in an option or under a condition, so the component states no fixed profile"
+      ]
+    },
+    "conditional_size_fact": {
+      "draft_type_findings": [],
+      "component_findings": [],
+      "relational_findings": [
+        "component spells.find_familiar/effect: summoned_creature_type names animals.bat/bat, whose creature_size or creature_type is held in an option or under a condition, so the component states no fixed profile"
+      ]
+    }
+  },
+  "pins": {
+    "src/afterworlds/ingestion/mechanical/representation.py": "7f0abd45113548f32f35ee6d58cf986a8cea59877b63995cfedd96ac2a0f052c",
+    "src/afterworlds/ingestion/mechanical/projection.py": "56a9b0cfe17d5757aa74698a8acc68db2fc9acaa4ce7ea33273c399f27486df4",
+    "src/afterworlds/ingestion/mechanical/schema_lift.py": "46df4ccb1e4418c955358f195c798ddf9dd4a6b53709492fd6cfb0a87e44d00f",
+    "src/afterworlds/ingestion/mechanical/validation.py": "3b32df131007deb4efcba401e3b2cc012015f8703a32df670422c377a25d499c",
+    "tests/ingestion/mechanical/test_creature_type_facts.py": "5318fe6c5c15b4fa204c1e786d4bd5b0def53a6aeca40fd55593e0939631aef6"
+  },
+  "working_files_match_commit": {
+    "src/afterworlds/ingestion/mechanical/representation.py": true,
+    "src/afterworlds/ingestion/mechanical/projection.py": true,
+    "src/afterworlds/ingestion/mechanical/schema_lift.py": true,
+    "src/afterworlds/ingestion/mechanical/validation.py": true,
+    "tests/ingestion/mechanical/test_creature_type_facts.py": true
+  },
+  "schema_files_unchanged_since_056d3d4": {
+    "src/afterworlds/ingestion/mechanical/representation.py": true,
+    "src/afterworlds/ingestion/mechanical/projection.py": true,
+    "src/afterworlds/ingestion/mechanical/schema_lift.py": true
+  },
+  "ammunition_validator_exactly_unchanged": true,
+  "preexisting_validation_prefix_unchanged": true
+}

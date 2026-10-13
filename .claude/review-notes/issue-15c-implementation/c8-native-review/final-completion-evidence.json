@@ -1,0 +1,42 @@
+{
+  "checked_utc": "2026-10-13T15:35:04.284710+00:00",
+  "heads": {
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds": "1d4193c4b162e3db4df3a3240d00313f36dd918b",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39": "bf3fb2d17279114b0981da13ee76fd9f1ddc88bc"
+  },
+  "supervisor_result": {
+    "ended_utc": "2026-10-13T15:29:40.2745249Z",
+    "python_exit": 0,
+    "inputs_stable": true,
+    "heads_stable": true,
+    "report_exists": true,
+    "passed": true
+  },
+  "manifest_entries": 286,
+  "before_after_exact": true,
+  "all_manifest_files_current_exact": true,
+  "stdout_terminal": "REVALIDATION PASSED 697 s",
+  "stderr_empty": true,
+  "exit": 0,
+  "file_sha256": {
+    ".claude\\review-notes\\issue-15c-implementation\\codex-c8-owner-decision-packet.md": "61e49c48153d7ba7abae3d0d3f2418f6ec9ffc0327e8eff15872f2d1bec21378",
+    ".claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\.claude\\review-notes\\issue-15c-c8-native\\reports\\c8-revalidation.json": "77b22fd668c8b773aa1d25c322cbbb40b369cf54c68966872e0ba373e228f584",
+    ".claude\\review-notes\\issue-15c-preparation\\c8-corrected-revalidation-supervised-run\\launch.json": "41e295d4d401e5a81c11ca0a8bf3be0da73ce405db2fb23cd846c09ab683ad24",
+    ".claude\\review-notes\\issue-15c-preparation\\c8-corrected-revalidation-supervised-run\\result.json": "49f1c2a64714e309638623eec25f9a0925e44a34d7110ae923003ee813bb8ca9",
+    ".claude\\review-notes\\issue-15c-preparation\\c8-corrected-revalidation-supervised-run\\stdout.txt": "814cc8dc7788a3a0ac67f540cc09fb9ecdaef6311c3560d0ba3be4202575ff70",
+    ".claude\\review-notes\\issue-15c-preparation\\c8-corrected-revalidation-supervised-run\\stderr.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    ".claude\\review-notes\\issue-15c-preparation\\c8-corrected-revalidation-supervised-run\\inputs-before.json": "171327165c9ffb6e85abe01766ff799315cb992bfcb0ee9494540bebffd633aa",
+    ".claude\\review-notes\\issue-15c-preparation\\c8-corrected-revalidation-supervised-run\\inputs-after.json": "171327165c9ffb6e85abe01766ff799315cb992bfcb0ee9494540bebffd633aa",
+    ".claude\\review-notes\\issue-15c-preparation\\c8-corrected-revalidation-supervised-run\\exit.txt": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9"
+  },
+  "working_packet_code_pins_unchanged": {
+    "src/afterworlds/ingestion/mechanical/oracle.py": "9cddc78d0b6e99cf7695ba23661ac41fa50b5549bbcfb5ab89ed975c49dcb69d",
+    "src/afterworlds/ingestion/mechanical/projection.py": "56a9b0cfe17d5757aa74698a8acc68db2fc9acaa4ce7ea33273c399f27486df4",
+    "src/afterworlds/ingestion/mechanical/representation.py": "7f0abd45113548f32f35ee6d58cf986a8cea59877b63995cfedd96ac2a0f052c",
+    "src/afterworlds/ingestion/mechanical/validation.py": "3b32df131007deb4efcba401e3b2cc012015f8703a32df670422c377a25d499c",
+    "src/afterworlds/ingestion/mechanical/schema_lift.py": "46df4ccb1e4418c955358f195c798ddf9dd4a6b53709492fd6cfb0a87e44d00f",
+    ".claude\\review-notes\\issue-15c-c8-native\\OWNER-PACKET.md": "b9c6cbec31f386d8962d44edb5c8615e59596e5c5c32f73b83ff4ce65d8c59a7",
+    ".claude\\review-notes\\issue-15c-c8-native\\PLANNING-ADDENDUM-target-domain.md": "cb76230c7b98344ccf60bebacddaf1408d779ae0e8eb7ae5cbb1240af9a4fa8a",
+    ".claude\\review-notes\\issue-15c-c8-native\\revalidate_c8_preview.py": "c4e7c8b5cb39740e556159c86bd0f858f13d28b4785d38cbca9370015031b745"
+  }
+}

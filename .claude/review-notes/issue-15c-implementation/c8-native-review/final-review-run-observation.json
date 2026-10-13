@@ -1,0 +1,23 @@
+{
+  "observed_utc": "2026-10-13T15:22:12.473804+00:00",
+  "launch": {
+    "started_utc": "2026-10-13T15:18:01.8038925Z",
+    "supervisor_pid": 6760,
+    "python_pid": 43792,
+    "main_head": "1d4193c4b162e3db4df3a3240d00313f36dd918b",
+    "preview_head": "bf3fb2d17279114b0981da13ee76fd9f1ddc88bc",
+    "native_pins": {
+      "reports/c8-preview.json": "ebc0023ff34d6e16af50c278f7934c5094a2a7477f4f9a30c865aecba67321e6",
+      "build_c8_preview.py": "bf4e57b0362e3fa6c51c56fc9d78bffc6e0b818f329e710197e1bd3a8af3aa09",
+      "revalidate_c8_preview.py": "c4e7c8b5cb39740e556159c86bd0f858f13d28b4785d38cbca9370015031b745",
+      "preview/srd-5-2-1-corpus-8781d4e0-a3b-c8-PREVIEW.json": "a2d96264dd18605680358393270e1f9f4fc27da144fda09da06e31cbd5250016"
+    },
+    "scope": "Existing captured SIMULATED C8 snapshot; corrected-code validation, identities and temporary private-store round trips only. No build, integration, recording, runtime or full pytest."
+  },
+  "run_files": [
+    "inputs-before.json",
+    "launch.json"
+  ],
+  "completion_available": false,
+  "corrected_report_available": false
+}

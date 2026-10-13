@@ -1,0 +1,19 @@
+# CRD Issue 15c — C8 native review corrections
+
+Parent read and adopts `codex-c8-schema-code-review.md` at preview commit `056d3d4fdf0617a0b4539778bbcdf7fbdcb637a8` and `codex-elf-type-domain-classification.md`. These narrow ordinary implementation/planning corrections do not change the 346 reviewed RAW payloads or grant C8 semantic/species-input acceptance.
+
+## One P2 schema implementation correction
+
+The new summoned-type relationship promotes conditional authority to unconditional authority: it flattens mutually exclusive options and ignores component/type/size qualifiers to assert the referenced form's fixed Beast type. The report proves valid conditional drafts passing this relationship incorrectly. Require an unambiguous unqualified profile/type relationship that the plain component reference actually establishes; refuse unresolved option/applicability evidence rather than adding a form/option evaluator. Preserve current direct-profile controls and add the demonstrated option, component and fact qualifier regressions as one defect family.
+
+**Keep current build inputs stable until its run finishes.** Preserve the original completed native snapshot, reports and code revision. Then apply the bounded correction in the existing preview worktree and report exactly what changed. Determine invalidation from actual schema/hash, payload, ordering, correspondence and code/report changes. If those native inputs/identities remain unchanged and all actual named forms are direct/unqualified, revalidation of the captured snapshot plus affected malformed controls and refreshed code/report pins may suffice. That is conditional, not preapproval: demonstrate it. If contract/hash/payload changes require regeneration, explain the dependency and rebuild only what is genuinely invalidated. Do not discard prior evidence or automatically repeat the unaffected 2,993 focused tests or whole native work.
+
+## Correct the future target-domain plan
+
+The blanket “all non-Undead creature Ghoul targets need species input” hold overstates the gap. After exact C8 acceptance, an authoritative, applicable ordinary non-Humanoid target type can establish non-Elf by contrapositive of the represented Elf→Humanoid assignment. This is source-backed code-owned deduction, not a new negative-taxonomy fact or Owner policy.
+
+The ordinary domain must be proved: exact applicable binding/base facts and source-consistent state, explicitly recorded effects rather than `None` treated as empty, and correct source/form/choice validation. Bare stored type, missing form fields, `other_effects`' source-key allowlist, or visual Beast form is insufficient. Conditional transformations, type masks, unrepresented choices and independent parameterized inputs retain their actual holds. No runtime implementation of this new path before acceptance.
+
+The remaining true Owner input question is exact accepted species selection for **source-open Humanoid individuals**, with code-generated compatible options, audit/revision/binding checks and unknown refusal. That approval does not resolve every conditional form or unrepresented target. Update current packet/planning language accordingly. Preserve exact pinned RAW/schema input bytes and historical revisions; use an explicit superseding planning addendum/packet correction if changing those bytes would unnecessarily invalidate the current run. Do not silently restate a source gap as a scope exclusion or call a refusal full coverage.
+
+Read the complete two reports and use their source lines/domain map. Finish these corrections and affected proof, retain all original artifacts, and bring back the exact native packet for independent review. Main stays C7/schema20; no C8 main integration, real recording, dependent execution or unapproved species input. No full pytest/push/PR/merge/shared-runtime changes/app launch or gate weakening. Report actual code/snapshot/head/hash/test identities and limits only.

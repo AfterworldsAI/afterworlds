@@ -1,0 +1,12 @@
+[
+  {
+    "tool_use_id": "toolu_011FkTnjA4SaaGuYcLCvbus1",
+    "is_error": false,
+    "content": " src/afterworlds/ingestion/mechanical/validation.py | 32 +++++++++++---\n .../mechanical/test_creature_type_facts.py         | 51 ++++++++++++++++++++++\n 2 files changed, 78 insertions(+), 5 deletions(-)\nAll checks passed!\nSuccess: no issues found in 1 source file\r\n............................................                             [100%]\r\n44 passed in 0.11s\r\nFocused diagnostics PASSED (exit 0). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence"
+  },
+  {
+    "tool_use_id": "toolu_019CnyLvgdqzb53aHzd7PYDZ",
+    "is_error": false,
+    "content": "FAILED tests/ingestion/mechanical/test_creature_type_facts.py::test_conditional_profile_authority_is_not_a_fixed_form[option-arms]\nFAILED tests/ingestion/mechanical/test_creature_type_facts.py::test_conditional_profile_authority_is_not_a_fixed_form[component-applies-when]\nFAILED tests/ingestion/mechanical/test_creature_type_facts.py::test_conditional_profile_authority_is_not_a_fixed_form[qualified-type]\nFAILED tests/ingestion/mechanical/test_creature_type_facts.py::test_conditional_profile_authority_is_not_a_fixed_form[qualified-size]\n4 failed, 31 passed in 0.21s\n src/afterworlds/ingestion/mechanical/validation.py | 32 ++++++++++++++++++----\n 1 file changed, 27 insertions(+), 5 deletions(-)"
+  }
+]

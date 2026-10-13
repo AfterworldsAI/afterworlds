@@ -38,7 +38,7 @@ The 336 creature profiles are 235 monsters, 95 animals, 4 spell creatures and 2 
 
 **Find Familiar:**
 - The fact is `type_choice` Celestial/Fey/Fiend, `instead_of` Beast.
-- It names eleven forms: Bat, Cat, Frog, Hawk, Lizard, Octopus, Owl, Rat, Raven, Spider and Weasel. Each is a represented animal profile whose own type is Beast, and native validation enforces that.
+- It names eleven forms: Bat, Cat, Frog, Hawk, Lizard, Octopus, Owl, Rat, Raven, Spider and Weasel. Each is a represented animal profile whose own fixed, unconditional type is Beast. Native validation enforces this, and it refuses any form whose size or type is held in an option or under a condition (`codex-c8-schema-code-review` P2, corrected in `bf3fb2d`).
 - It is target authority for an existing familiar only. It is not casting, creation, lifecycle or an attack grant.
 - The source's alternative, **"another Beast that has a Challenge Rating of 0", is not represented and stays held**, because no accepted fact types a Challenge Rating.
 
@@ -67,10 +67,23 @@ The 336 creature profiles are 235 monsters, 95 animals, 4 spell creatures and 2 
 
 **Type-dependent execution follows as separate engineering.** This covers the Ghast/Ghoul rider exclusions, familiar target typing and `creature_attack` recertification, under the existing issue/RAW contract. It is not executed or claimed here.
 
-**Ghast/Ghoul full coverage is NOT claimed.**
-- **Now decidable:** Undead targets, and characters by validated exact species.
-- **Still held:** the Ghoul's elf exclusion against non-Undead *creatures* refuses before any die. It stays held behind the separate creature-species input proposal (`../issue-15c-implementation/candidate-c8/owner-proposal-creature-species.md`; the coordinator's `owner-creature-species-input-proposal.md`).
-- **That proposal is UNAPPROVED and unimplemented.** It is a separate Owner question, and accepting C8 does not answer it. Nothing in reviewer or candidate text grants that policy.
+**Ghast/Ghoul full coverage is NOT claimed.** The target-domain plan is corrected by `PLANNING-ADDENDUM-target-domain.md`, which supersedes the earlier "every non-Undead creature needs species input" wording.
+
+After acceptance, the following become settled implementation, with no further Owner policy needed:
+- Undead targets;
+- characters, by their validated exact species;
+- ordinary creatures with a certified fixed non-Humanoid base type and validated unchanged state. These are not Elf, by the contrapositive of the represented Elf ⇒ Humanoid;
+- Find Familiar and Find Steed targets, with their exact validated source/form/choice.
+
+**Still held:**
+- **Source-open Humanoid individuals** with no established species. This is the one remaining Owner input question: an auditable exact species selection from code-generated compatible options. It is **UNAPPROVED and unimplemented**, a separate question that accepting C8 does not answer, and nothing in reviewer or candidate text grants it.
+- **Other holds remain whatever the policy decides:**
+  - conditional forms and transformations;
+  - unrepresented choices (including the Challenge Rating 0 familiar);
+  - contradictory or missing state;
+  - parameterized inputs.
+
+A refusal is never called coverage.
 
 **Acceptance does not authorize:**
 - merging, shared-runtime migration, publication/activation or app launch;
@@ -80,4 +93,4 @@ C8 r1 (`candidate-c8/r1/`), C1–C7 artifacts and the C7 preview worktree stay p
 
 ## Reproduce and verify
 
-The README has the full command. `build_c8_preview.py --twice` regenerates byte-identical outputs. The run of record took 849 s, exit 0, on head `056d3d4`.
+The README has the full command. `build_c8_preview.py --twice` regenerates byte-identical outputs. The run of record took 849 s, exit 0, on head `056d3d4`. After the P2 correction (`bf3fb2d`, relational validation only; no schema, payload or byte change), `revalidate_c8_preview.py` re-ran the native stage on the captured snapshot. Results are in `reports/c8-revalidation.json`.
