@@ -5,7 +5,113 @@
 - **Scope:** #191 as updated (body SHA-256 `8225e1b6…57a2`). It adds creature attacks, bounded Multiattack and their saves/effects, the tool-addressing and omitted-source repair, and individual conditional-creature assessment. The G1 oracle `2ccbaeba…1258` is unchanged.
 - **Process:** Opus 5.5 at medium effort, with the separate Opus 5.5 Advisor consulted on the approach, the candidate scope and completion.
 
-## Latest (14 October 2026): C8 raw revision r2 and the persisted-id correction (raw review gate)
+## Latest (13 October 2026): complete CRD Issue 15c implementation, ready for Codex's whole-PR review and final gates
+
+**Branch and head:** `codex/issue-15c-bounded-d20`, head `6caa63e`. Not pushed, no PR. Writing has stopped, and the source and index are stable for Codex's supervised full gate. The Owner accepts or rejects the complete PR (`owner-whole-pr-review-2026-10-13.md`).
+
+**Commits since `1d4193c`, in order:**
+
+| Commit(s) | What |
+| --- | --- |
+| `e4221de` `ad1ef59` `a2c3fb0` `3fbcca9` | The reviewed C8 schema-21 code and preview, cherry-picked unchanged (from `056d3d4` `e09b650` `277a235` `bf3fb2d`) |
+| `5c4d8d6` | Owner acceptance, reviewed packet (`b9c6cbec`) and addendum (`cb76230c`), revalidation (`77b22fd6`), C8 review evidence |
+| `183a664` | Recorded C8 successor `ead7fa9d4fde484098f71221ca5ef82dfb2c82229d8fca80ab5feeb4e4d62d0d` (the semantic identities equal the preview; only acceptance evidence differs; actual Python exit 0 per Codex's observer). C7 is superseded by digest; packaging and pins follow. Focused: 168 passed. |
+| `555be9a` | Ghast/Ghoul exclusions from accepted types; the bounded `creature_species` input; recertification to `e4f8f4fb` (adapter `15c-d20-4`, manifest `15c-manifest-4`; only `creature_attack` moved, by its 10 type components) |
+| `b92493e` | Gaming Set/Musical Instrument tool checks per kind (migration 0042) |
+| `c6c2b2a` | C8 execution review: species once per turn before dice; familiar source limits; no hidden species in refusals |
+| `41eb8bd` `d71035d` `57f3a7b` | Coverage: damage/lifecycle branches; all 38 weapons (with the Blowgun fixed-damage fix); all 123 Multiattack selections in 8 shapes, run whole through the service |
+| `5cc19c8` | Temporary HP at 0 HP (P1-B); absent familiars are no bystanders (P1-A); AC map and Architecture Notes |
+| `6caa63e` | Codex review evidence, with narrow baseline entries |
+
+**Focused diagnostics** (none are a final gate):
+- **Last broad run:** rpg + state suites + published-release E2E, 812 passed, exit 0 (`issue-15c-c8-recording/runs/rpg-suites-4.*`).
+- **Negative controls:**
+  - duplicate species: 2 fail without the guard;
+  - temporary HP at 0: 4 fail without the fix;
+  - bystander presence: 3 fail without the guard.
+- **Static gates on this head:** Black, Ruff (src and tests) and mypy strict (`src/`, 268 files) are clean.
+
+**Not run here, Codex's to run:**
+- the full pytest with the configured 80% coverage (`run-final-pytest.ps1`);
+- pip-audit and npm/frontend under Node 22;
+- detect-secrets over the whole tree;
+- exact-head CI.
+
+**Baseline note for Codex:** `6caa63e` adds 191 "Secret Keyword" entries for `c8-baseline-review/recert/results.json`. These are Codex's own listing of `hashed_secret` SHA-1 values, not secrets. The other new entries are hex digests.
+
+**Remaining holds** (refused before any die; not coverage; see Architecture Notes):
+- the Ghoul against a Humanoid with no recorded species;
+- Wild Companion and Pact familiars' type;
+- other Challenge Rating 0 familiar forms;
+- the Vampire's mist form;
+- transformed targets or targets under non-mastery effects;
+- familiar attacks, damage and zero-HP paths;
+- the Otherworldly Steed's parameterized AC;
+- ammunition recovery (excluded).
+
+## Earlier (13 October 2026): C8 native SIMULATED preview ready for independent Codex review
+
+**Build location:**
+- Worktree `.claude/worktrees/agent-aa5b1ea6bf4ee4f39`, branch `codex/issue-15c-c8-preview`, from main `1d4193c`.
+- Commits: `056d3d4` (schema 21 code and tests), `e09b650` (builder, report, README, Owner packet), `277a235` (README note on git-ignored logs). The head is `277a235`.
+- `afterworlds.__file__` resolves to the worktree.
+- The six input pins matched before and after the build.
+
+**Main is unchanged:**
+- Still at `1d4193c`, on C7 and schema 20.
+- No `src` or `tests` changes.
+- The old C7 preview worktree is clean.
+
+**Interruption:**
+- The first native run was cut off by the parent process's 600 s background-wait ceiling, before any build or test verdict.
+- I resumed the same agent's context, which kept its partial edits. It was not restarted from scratch.
+
+**Identities**
+
+| Item | Value |
+| --- | --- |
+| Schema 21 | `5d-representation-schema-21` `4499b396…df55`, lift `5d-lift-schema-20-to-21` (schema 20 still `759dcc1f…6e77a`) |
+| Preview oracle file | `a2d96264dd18605680358393270e1f9f4fc27da144fda09da06e31cbd5250016` |
+| Oracle identity | `70646cd987dcf75adc7b57b6271e38c6ca8cc9b508584dac89c5acefafa3e8d9` |
+| Projection / payload | `e4f8f4fb-de6c-53c9-98f1-fa7a0159fe42` / `e615d0106996466b8ab72dacd481934b7982e4c421a661eb2cc0e3fcdfad5d87` |
+| Builder | `bf4e57b0…aa09` |
+
+**Proposals:** `reports/c8-preview.json` records them; the rendered SHA-256 of each new proposal:
+- spell-descriptions `68c75262…` (5 facts);
+- magic-items `f6a8b412…` (2);
+- monsters `c12dad28…` (235);
+- animals `6c2cd657…` (95);
+- character-origins-feats `9705cf1d…` (9).
+
+**Results** (all true in the report; independently re-checked: preview file hashes recomputed and no false proof in the report):
+- **Untouched batches:** 19 byte-identical.
+- **Representation:** exactly 346 single-fact additions, plus 10 handling changes from prose-bound to mixed. The 336 profiles stay mixed and unchanged.
+- **Native checks:**
+  - `validate_candidate` returns 0 findings.
+  - 5 malformed variants are each refused.
+  - Persist → reconstruct → re-identify is clean.
+- **Gates:** the publication gate passes, and the cross-gate refuses both directions.
+- **Successor lift:** lifting C7 20→21 leaves its representation unchanged.
+- **Determinism:** `--twice` is byte-identical.
+- **Build run:** `--twice`, exit 0, 849 s.
+
+**Focused diagnostics** (not acceptance evidence): 2993 passed over 18 schema and oracle files. Black, Ruff and mypy are clean.
+
+**Disclosed deviations:**
+- **Anchor order:** re-accepted batches append after the 19 untouched ones. The exact order is asserted; it is not claimed to be unchanged.
+- **Find Familiar:** a choice that includes its own `instead_of` type is refused as ill-formed (documented).
+
+**Gate:** stop for independent Codex review of `OWNER-PACKET.md`, then explicit Owner acceptance.
+
+**Not done, per the boundaries:**
+- no real C8 recording;
+- no type-dependent execution;
+- no species input (still unapproved);
+- no main integration;
+- no push, PR or merge;
+- no runtime or app.
+
+## Previous: C8 raw revision r2 and the persisted-id correction (raw review gate)
 
 **Code, `e5d9a68`** (`codex-creature-final-correction-check.md` P2):
 - **The fix:** projected conditions carry their provenance on the subject (`TurnCharacter/TurnCreature.speculative`, fresh ids). `established()` excludes exactly those. A stored id is never read as speculative, and no prefix is reserved.
