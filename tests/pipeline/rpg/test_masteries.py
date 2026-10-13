@@ -369,3 +369,123 @@ def test_a_later_operations_spatial_facts_about_a_pushed_target_refuse() -> None
     assert caught.value.kind is RefusalKind.INVALID_SELECTION
     assert "can move" in caught.value.detail
     dice.roll.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Cleave: an extra attack after a hit, once per turn
+# ---------------------------------------------------------------------------
+
+GREATAXE = _wielded("greataxe")
+
+
+def _cleave_turn(
+    fighter: TurnCharacter,
+    first: TurnCreature,
+    second: TurnCreature,
+    d20s: list[int],
+    *extra: dict[str, Any],
+    active: bool = True,
+) -> tuple[Any, MagicMock]:
+    from afterworlds.models.enums import DiceHandling
+    from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
+    from afterworlds.services.dnd5e_state.coordination import StoredCoordination
+    from tests.pipeline.rpg.test_adjudication_service import (
+        _STORY_ID,
+        _TURN_ID,
+        _FakeProvider,
+        _make_assembled,
+        _make_session,
+    )
+
+    me = SubjectReference(kind="character", subject_id=fighter.subject_id)
+    document = TurnCoordination(
+        active=ActiveTurn(subject=me, instance=2) if active else None,
+        next_instance=3,
+    )
+    by_id = {str(c.subject_id): c for c in (first, second)}
+    trigger = _proposal(first, GREATAXE, mastery=True).model_dump(
+        mode="json", exclude_none=True
+    )
+    cleave = _proposal(
+        second, GREATAXE, cleave=True, cleave_within_5_feet=True
+    ).model_dump(mode="json", exclude_none=True)
+
+    def roll(expression: str) -> DiceResult:
+        face = d20s.pop(0) if "d20" in expression else 3
+        return DiceResult(expression=expression, raw_rolls=(face,), chosen=face)
+
+    dice = MagicMock()
+    dice.roll.side_effect = roll
+    result = RpgAdjudicationPassService(
+        adapter=D20RulesSystemAdapter(),
+        subject_loader=lambda _story, ref: by_id[str(ref.subject_id)],
+        coordination_loader=lambda _story: StoredCoordination(_STORY_ID, 1, document),
+    ).adjudicate(
+        _make_assembled(),
+        _make_session(DiceHandling.AI_ROLLS),
+        fighter,
+        dice,
+        provider=_FakeProvider([trigger, cleave, *extra]),
+        story_id=_STORY_ID,
+        originating_turn_id=_TURN_ID,
+    )
+    return result, dice
+
+
+def test_cleave_follows_a_hit_once_with_no_positive_ability_damage() -> None:
+    fighter = _fighter("greataxe", items=(GREATAXE,))
+    first, second = _creature(hp=40), _creature(hp=40)
+    result, _ = _cleave_turn(fighter, first, second, [15, 15])
+    trigger, extra = result.proposals
+    assert _mastery(trigger)["result"] == "may_cleave"
+    assert extra.turn_use == "equipment.weapons.cleave/cleave"
+    provenance = json.loads(extra.modifiers_json)
+    strength = provenance["breakdown"]["strength_modifier"]
+    # The die, plus the ability modifier only if it is negative.
+    assert provenance["damage"]["rolled"] == 3 + min(0, strength)
+
+
+def test_cleave_after_a_miss_is_not_triggered_and_rolls_nothing() -> None:
+    fighter = _fighter("greataxe", items=(GREATAXE,))
+    first, second = _creature(hp=40), _creature(hp=40)
+    result, dice = _cleave_turn(fighter, first, second, [2])
+    assert json.loads(result.proposals[1].modifiers_json)["cleave"] == "not_triggered"
+    assert result.proposals[1].turn_use is None
+    assert dice.roll.call_count == 1
+
+
+@pytest.mark.parametrize("case", ["no_turn", "twice"])
+def test_cleave_is_once_in_the_attackers_turn(case: str) -> None:
+    fighter = _fighter("greataxe", items=(GREATAXE,))
+    first, second = _creature(hp=40), _creature(hp=40)
+    again = [
+        _proposal(first, GREATAXE, mastery=True).model_dump(
+            mode="json", exclude_none=True
+        ),
+        _proposal(second, GREATAXE, cleave=True, cleave_within_5_feet=True).model_dump(
+            mode="json", exclude_none=True
+        ),
+    ]
+    with pytest.raises(AdjudicationRefusal) as caught:
+        if case == "no_turn":
+            _cleave_turn(fighter, first, second, [15, 15], active=False)
+        else:
+            _cleave_turn(fighter, first, second, [15, 15, 15, 15], *again)
+    assert caught.value.kind is RefusalKind.INVALID_SELECTION
+
+
+def test_cleave_needs_the_second_creature_within_5_feet_of_the_first() -> None:
+    fighter = _fighter("greataxe", items=(GREATAXE,))
+    wolf = _creature(hp=40)
+    _refused(
+        RefusalKind.MISSING_STATE,
+        fighter,
+        wolf,
+        _proposal(wolf, GREATAXE, cleave=True),
+    )
+    _refused(
+        RefusalKind.INVALID_SELECTION,
+        fighter,
+        wolf,
+        _proposal(wolf, GREATAXE, cleave=True, cleave_within_5_feet=False),
+    )

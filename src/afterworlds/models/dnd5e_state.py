@@ -106,6 +106,7 @@ __all__ = [
     "ToolGrant",
     "TurnBoundEnd",
     "TurnCoordination",
+    "TurnUse",
     "UsageCounter",
     "VOCABULARIES",
     "VocabularyChoice",
@@ -886,6 +887,14 @@ class ActiveTurn(_Model):
     instance: int = Field(ge=1)
 
 
+class TurnUse(_Model):
+    """A once-per-turn use a subject took in a turn instance."""
+
+    instance: int = Field(ge=1)
+    subject: SubjectReference
+    key: str = Field(min_length=1)
+
+
 class TurnCoordination(_Model):
     """A story's actor-turn coordination (CRD Issue 15c, contract G1).
 
@@ -896,6 +905,9 @@ class TurnCoordination(_Model):
 
     active: ActiveTurn | None = None
     next_instance: int = Field(default=1, ge=1)
+    #: Once-per-turn uses taken in the active turn (Cleave); a new turn
+    #: clears them.
+    uses: tuple[TurnUse, ...] = ()
 
 
 class ZeroHitPointTreatment(_Model):

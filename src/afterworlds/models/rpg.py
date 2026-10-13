@@ -103,6 +103,12 @@ class WeaponAttackSelection(BaseModel):
     #: Push: how far the target is pushed straight away, up to the source's
     #: distance (OD-15c-1).
     push_ft: Literal[5, 10] | None = None
+    #: Cleave's extra attack, against a second creature, made with the same
+    #: weapon after the previous attack hit. ``cleave_within_5_feet`` is the
+    #: GameMaster's fact that the second creature is within 5 feet of the
+    #: first (OD-15c-1).
+    cleave: bool = False
+    cleave_within_5_feet: bool | None = None
 
 
 class LifecycleAttestation(BaseModel):
@@ -281,6 +287,9 @@ class ResolvedAdjudicationRecord(BaseModel):
     #: orchestrator replays every record's edge onto the coordination the
     #: turn read and commits it with the Turn.
     turn_edge: TurnEdge | None = None
+    #: A once-per-turn use this record takes (``record/component``) for the
+    #: acting character in the active turn; replayed and committed like edges.
+    turn_use: str | None = None
 
 
 # ---------------------------------------------------------------------------

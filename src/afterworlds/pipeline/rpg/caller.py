@@ -58,6 +58,8 @@ _WEAPON_ATTACK_SCHEMA: dict[str, Any] = {
         "two_handed": {"type": "boolean"},
         "knock_out": {"type": "boolean"},
         "mastery": {"type": "boolean"},
+        "cleave": {"type": "boolean"},
+        "cleave_within_5_feet": {"oneOf": [{"type": "boolean"}, {"type": "null"}]},
         "push_ft": {"oneOf": [{"type": "integer", "enum": [5, 10]}, {"type": "null"}]},
         "thrown": {"type": "boolean"},
         "ability": {

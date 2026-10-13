@@ -109,3 +109,34 @@ def test_edges_commit_once_and_the_log_rebuilds_the_document(table: Table) -> No
         subject = A if subject_id == str(A.subject_id) else B
         rebuilt, _edge = apply_edge(rebuilt, kind, subject, begun_this_turn=False)
     assert rebuilt == stored
+
+
+def test_a_once_per_turn_use_needs_the_subjects_turn_and_a_new_turn_clears_it(
+    table: Table,
+) -> None:
+    from afterworlds.services.dnd5e_state.coordination import take_use
+
+    key = "equipment.weapons.cleave/cleave"
+    with pytest.raises(EdgeRefused):
+        take_use(TurnCoordination(), A, key)
+    doc, _ = apply_edge(TurnCoordination(), "begin", A, begun_this_turn=False)
+    used = take_use(doc, A, key)
+    with pytest.raises(EdgeRefused):
+        take_use(used, A, key)
+    with pytest.raises(EdgeRefused):
+        take_use(doc, B, key)
+    ended, _ = apply_edge(used, "end", A, begun_this_turn=False)
+    renewed, _ = apply_edge(ended, "begin", A, begun_this_turn=False)
+    assert renewed.uses == () and take_use(renewed, A, key).uses
+
+    # A use alone changes the document, so it commits.
+    with table.factory() as session:
+        story = new_story(session)
+        session.commit()
+    with table.factory() as session:
+        read = coordination.read(session, story)
+    doc, begin = apply_edge(read.document, "begin", A, begun_this_turn=False)
+    assert _commit(table, story, read, doc, begin) == 1
+    with table.factory() as session:
+        current = coordination.read(session, story)
+    assert _commit(table, story, current, take_use(current.document, A, key)) == 2

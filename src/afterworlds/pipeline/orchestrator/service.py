@@ -2260,7 +2260,9 @@ class OrchestratorService:
                         branching_pass_result=branching_pass_result,
                     )
             try:
-                self._commit_turn_edges(session, adj_result, writer_result.turn_id)
+                self._commit_turn_edges(
+                    session, adj_result, writer_result.turn_id, rpg_sheet.sheet_id
+                )
             except Exception as exc:  # noqa: BLE001
                 return self._pipeline_error(
                     intent_result,
@@ -3668,7 +3670,10 @@ class OrchestratorService:
 
     @staticmethod
     def _commit_turn_edges(
-        session: Session, adj_result: AdjudicationPassResult, turn_id: UUID
+        session: Session,
+        adj_result: AdjudicationPassResult,
+        turn_id: UUID,
+        actor_id: UUID,
     ) -> None:
         """Replay the records' actor-turn edges onto the coordination the turn
         read and commit them with the Turn (CRD Issue 15c, contract G1). A
@@ -3684,7 +3689,10 @@ class OrchestratorService:
         document = read.document
         edges = []
         begun = False
+        actor = SubjectReference(kind="character", subject_id=actor_id)
         for record in adj_result.proposals:
+            if record.turn_use is not None:
+                document = coordination.take_use(document, actor, record.turn_use)
             if record.turn_edge is None:
                 continue
             ref = record.turn_edge.subject

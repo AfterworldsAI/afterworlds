@@ -116,6 +116,11 @@ One proposal per required roll:
     apply on their own.
   - `push_ft` — for Push: 5 or 10, how far you push the target. Don't state
     facts about a pushed creature for a later attack in the same response.
+  - `cleave` and `cleave_within_5_feet` — Cleave's extra attack: propose it
+    right after the attack that selects Cleave (same weapon, another
+    creature), with whether the second creature is within 5 feet of the
+    first. It happens only if that attack hits, once per turn, on the
+    attacker's turn.
 
   These facts describe this one attack only. Choose them honestly from the
   scene; they never set a number. Null for every other operation.

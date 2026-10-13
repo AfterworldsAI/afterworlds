@@ -65,6 +65,7 @@ from afterworlds.ingestion.mechanical.representation import (
     MasteryDamageType,
     MasteryEffectFact,
     MasteryTrigger,
+    ModifierDamage,
     NaturalRollOutcomeFact,
     ProficiencyApplicationFact,
     ProficiencyKind,
@@ -576,7 +577,6 @@ class _Mastery:
 #: surfaced for Codex); Cleave's extra attack is its own operation.
 _HELD_MASTERIES = {
     WeaponMastery.NICK: "which attack is the Attack action's (action economy)",
-    WeaponMastery.CLEAVE: "Cleave's extra attack, a separate operation",
 }
 
 
@@ -619,6 +619,14 @@ def _mastery(
     if not rule.optional and sel.mastery:
         raise _refuse(
             RefusalKind.INVALID_SELECTION, f"{name.value} is not a property to select"
+        )
+    if name is WeaponMastery.CLEAVE and (
+        rule.trigger is not MasteryTrigger.HIT_MELEE_ATTACK_ROLL
+        or weapon.range_class is not RangeClass.MELEE
+        or sel.thrown
+    ):
+        raise _refuse(
+            RefusalKind.INVALID_SELECTION, "Cleave follows a melee attack's hit"
         )
     if name in _HELD_MASTERIES:
         raise _refuse(
@@ -675,6 +683,51 @@ def _mastery(
     return _Mastery(name, rule)
 
 
+def _cleave_rule(
+    sel: WeaponAttackSelection, actor: TurnCharacter, weapon: _Weapon, ranged: bool
+) -> MasteryEffectFact:
+    """Validate Cleave's extra attack: a melee attack with a Cleave weapon the
+    wielder's mastery covers, against a creature within reach and, on the
+    GameMaster's fact, within 5 feet of the first (OD-15c-1)."""
+    index = actor.index
+    assert index is not None
+    printed = [
+        f for f in facts_of(index, weapon.record) if isinstance(f, WeaponMasteryFact)
+    ]
+    if (
+        len(printed) != 1
+        or printed[0].mastery is not WeaponMastery.CLEAVE
+        or not weapon_mastery(index, actor.stored.state, weapon.record, weapon.category)
+    ):
+        raise _refuse(
+            RefusalKind.INVALID_SELECTION,
+            f"the wielder can't Cleave with {weapon.record}",
+        )
+    rules = [
+        f
+        for f in facts_of(index, "equipment.weapons.cleave", "cleave")
+        if isinstance(f, MasteryEffectFact)
+    ]
+    if len(rules) != 1 or rules[0].second_target_within_ft != 5:
+        raise _refuse(RefusalKind.MISSING_AUTHORITY, "Cleave is not typed")
+    if ranged or sel.mastery:
+        raise _refuse(
+            RefusalKind.INVALID_SELECTION,
+            "Cleave's extra attack is a melee attack using no further mastery",
+        )
+    if sel.cleave_within_5_feet is None:
+        raise _refuse(
+            RefusalKind.MISSING_STATE,
+            "Cleave needs whether the second creature is within 5 feet of the first",
+        )
+    if not sel.cleave_within_5_feet:
+        raise _refuse(
+            RefusalKind.INVALID_SELECTION,
+            "Cleave's second creature must be within 5 feet of the first",
+        )
+    return rules[0]
+
+
 _ORDER = tuple(CreatureSize)
 
 
@@ -715,6 +768,7 @@ def _mastery_outcome(
         MasteryTrigger.MISS_CREATURE: not hit,
         MasteryTrigger.HIT_CREATURE: hit,
         MasteryTrigger.HIT_AND_DAMAGE: hit and damaged,
+        MasteryTrigger.HIT_MELEE_ATTACK_ROLL: hit,
     }.get(trigger)
     if applies is None:
         raise _refuse(RefusalKind.MISSING_AUTHORITY, f"{trigger.value} is not executed")
@@ -733,6 +787,9 @@ def _mastery_outcome(
         }
     if name is WeaponMastery.PUSH:
         return [], {"mastery": "push", "result": "pushed", "feet": m.push_ft}
+    if name is WeaponMastery.CLEAVE:
+        # The extra attack is the next proposal (``cleave``).
+        return [], {"mastery": "cleave", "result": "may_cleave"}
     if name is WeaponMastery.TOPPLE:
         assert m.save is not None
         if not alive:
@@ -1067,6 +1124,12 @@ def prepare(
         CriticalDamageFact,
         "critical hits",
     )
+    damage_modifier = modifier if rule.adds_attack_ability_modifier else 0
+    mastery_used = _mastery(sel, actor, target, weapon, modifier, level)
+    if sel.cleave:
+        cleave = _cleave_rule(sel, actor, weapon, ranged)
+        if cleave.ability_modifier_damage is ModifierDamage.ONLY_IF_NEGATIVE:
+            damage_modifier = min(0, damage_modifier)
     return PreparedAttack(
         selection=sel,
         weapon=weapon.record,
@@ -1075,7 +1138,7 @@ def prepare(
         attack_modifier=sum(breakdown.values()),
         damage_dice=dice,
         damage_type=weapon.damage.damage_type,
-        damage_modifier=modifier if rule.adds_attack_ability_modifier else 0,
+        damage_modifier=damage_modifier,
         minimum_damage=rule.minimum_damage,
         critical_multiplier=critical.damage_dice_multiplier,
         target_ac=sum(ac_breakdown.values()),
@@ -1086,7 +1149,7 @@ def prepare(
         ac_breakdown=ac_breakdown,
         automatic_critical=tuple(mods.automatic_critical),
         spent=tuple(spent),
-        mastery=_mastery(sel, actor, target, weapon, modifier, level),
+        mastery=mastery_used,
     )
 
 

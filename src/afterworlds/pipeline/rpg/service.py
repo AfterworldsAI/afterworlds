@@ -33,6 +33,7 @@ Architectural invariants enforced here:
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -84,6 +85,7 @@ from afterworlds.services.dnd5e_state.coordination import (
     EdgeRefused,
     StoredCoordination,
     apply_edge,
+    take_use,
 )
 from afterworlds.services.dnd5e_state.turn import (
     TurnCreature,
@@ -114,13 +116,25 @@ _EDGE_OPERATIONS = ("begin_turn", "end_turn")
 
 
 def _edges(
-    document: TurnCoordination, proposals: list[RollProposal]
+    document: TurnCoordination,
+    proposals: list[RollProposal],
+    actor: SubjectReference,
 ) -> tuple[TurnCoordination, tuple[AppliedEdge, ...]]:
-    """*document* after the proposals' actor-turn edges in order, or a typed
-    refusal for the first that is not a legal transition."""
+    """*document* after the proposals' actor-turn edges and once-per-turn
+    uses in order, or a typed refusal for the first that is not legal."""
     applied: list[AppliedEdge] = []
     begun = False
-    for proposal in proposals:
+    for index, proposal in enumerate(proposals):
+        sel = proposal.weapon_attack
+        if sel is not None and sel.cleave:
+            _cleave_follows(proposals, index)
+            try:
+                document = take_use(document, actor, _CLEAVE)
+            except EdgeRefused as exc:
+                raise AdjudicationRefusal(
+                    RefusalKind.INVALID_SELECTION, str(exc)
+                ) from exc
+            continue
         if proposal.operation not in _EDGE_OPERATIONS or proposal.subject is None:
             continue
         kind = "begin" if proposal.operation == "begin_turn" else "end"
@@ -134,6 +148,36 @@ def _edges(
         begun = begun or kind == "begin"
         applied.append(edge)
     return document, tuple(applied)
+
+
+_CLEAVE = "equipment.weapons.cleave/cleave"
+
+
+def _cleaves(records: list[ResolvedAdjudicationRecord]) -> bool:
+    """Whether the attack just resolved hit and may Cleave."""
+    if not records:
+        return False
+    provenance = json.loads(records[-1].modifiers_json)
+    return (provenance.get("mastery") or {}).get("result") == "may_cleave"
+
+
+def _cleave_follows(proposals: list[RollProposal], index: int) -> None:
+    """Cleave's extra attack directly follows a weapon attack with the same
+    weapon that selects its mastery, against another creature."""
+    sel = proposals[index].weapon_attack
+    before = proposals[index - 1].weapon_attack if index else None
+    if (
+        sel is None
+        or before is None
+        or before.weapon_item_id != sel.weapon_item_id
+        or not before.mastery
+        or before.target == sel.target
+    ):
+        raise AdjudicationRefusal(
+            RefusalKind.INVALID_SELECTION,
+            "Cleave's extra attack follows an attack with the same weapon that "
+            "selects Cleave, against another creature",
+        )
 
 
 def load_adjudication_prompt() -> str:
@@ -402,8 +446,20 @@ class RpgAdjudicationPassService:
         self._load_bounded(story_id, sheet, proposals, subjects)
         # Contract G1: every actor-turn edge is a legal transition, checked in
         # order before any die is rolled.
+        actor_ref = SubjectReference(kind="character", subject_id=sheet.sheet_id)
+        if (
+            any(
+                p.weapon_attack is not None and p.weapon_attack.cleave
+                for p in proposals
+            )
+            and coordination is None
+        ):
+            raise AdjudicationRefusal(
+                RefusalKind.MISSING_STATE,
+                "Cleave is once per turn, and no turn coordination is read",
+            )
         if coordination is not None:
-            _edges(coordination.document, proposals)
+            _edges(coordination.document, proposals, actor_ref)
 
         # CRD Issue 2b: check every proposal before any has an effect, so a
         # later unsupported check cannot follow an earlier roll. CRD Issue
@@ -447,6 +503,14 @@ class RpgAdjudicationPassService:
         document = coordination.document if coordination is not None else None
         begun = False
         for proposal in proposals:
+            sel = proposal.weapon_attack
+            if sel is not None and sel.cleave and not _cleaves(records):
+                record = self._adapter.not_triggered(
+                    proposal, session_state.gm_cheating
+                )
+                records.append(record)
+                views.append(self._adapter.to_writer_view(record))
+                continue
             try:
                 record = self._adapter.resolve_roll(
                     proposal,
@@ -475,6 +539,8 @@ class RpgAdjudicationPassService:
                 ) from exc
             records.append(record)
             views.append(self._adapter.to_writer_view(record))
+            if record.turn_use is not None and document is not None:
+                document = take_use(document, actor_ref, record.turn_use)
             if record.turn_edge is not None and document is not None:
                 ref = record.turn_edge.subject
                 document, _ = apply_edge(

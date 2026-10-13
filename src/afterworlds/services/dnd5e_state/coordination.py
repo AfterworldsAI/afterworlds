@@ -27,6 +27,7 @@ from afterworlds.models.dnd5e_state import (
     ActiveTurn,
     SubjectReference,
     TurnCoordination,
+    TurnUse,
 )
 from afterworlds.persistence.orm.dnd5e_state import (
     RpgTurnCoordinationORM,
@@ -41,6 +42,7 @@ __all__ = [
     "apply_edge",
     "commit",
     "read",
+    "take_use",
 ]
 
 
@@ -96,6 +98,7 @@ def apply_edge(
             update={
                 "active": ActiveTurn(subject=subject, instance=instance),
                 "next_instance": instance + 1,
+                "uses": (),
             }
         )
         return after, AppliedEdge(kind, subject, instance)
@@ -110,6 +113,23 @@ def apply_edge(
     raise EdgeRefused(f"{kind!r} is not an actor-turn edge")
 
 
+def take_use(
+    document: TurnCoordination, subject: SubjectReference, key: str
+) -> TurnCoordination:
+    """*document* after *subject* takes its once-per-turn *key* use, or
+    :class:`EdgeRefused`: it must be *subject*'s active turn, and unused."""
+    active = document.active
+    if active is None or active.subject != subject:
+        raise EdgeRefused(
+            f"{key} is once per turn, and it is not {subject.kind} "
+            f"{subject.subject_id}'s turn"
+        )
+    use = TurnUse(instance=active.instance, subject=subject, key=key)
+    if use in document.uses:
+        raise EdgeRefused(f"{key} was already used this turn")
+    return document.model_copy(update={"uses": (*document.uses, use)})
+
+
 def commit(
     session: Session,
     read_state: StoredCoordination,
@@ -122,7 +142,7 @@ def commit(
     """Write *after* over the revision the turn read and append *edges*;
     returns the new revision. A concurrent change raises
     :class:`StaleRevisionError` so the delivery transaction rolls back."""
-    if not edges:
+    if not edges and after == read_state.document:
         return read_state.revision
     story = str(read_state.story_id)
     revision = read_state.revision + 1

@@ -64,6 +64,8 @@ _DISADV_RE = re.compile(r"\bdisadvantage\b", re.IGNORECASE)
 
 _EDGES = (Operation.BEGIN_TURN.value, Operation.END_TURN.value)
 _ATTESTATIONS = (Operation.STABLE_RECOVERY.value, Operation.KNOCKOUT_RECOVERY.value)
+#: Cleave's once-per-turn use (``turn_use``).
+_CLEAVE = "equipment.weapons.cleave/cleave"
 
 
 def _edge_subject(
@@ -318,6 +320,26 @@ class D20RulesSystemAdapter:
                 return {attacks.subject_key(subject): frozenset({ConditionKind.PRONE})}
         return {}
 
+    def not_triggered(
+        self, proposal: RollProposal, gm_cheating: bool
+    ) -> ResolvedAdjudicationRecord:
+        """Cleave's extra attack when the attack before it did not hit: no
+        die, no effect, and the once-per-turn use is not taken."""
+        return ResolvedAdjudicationRecord(
+            check_label=proposal.check_label,
+            visibility=proposal.visibility,
+            expression="",
+            raw_rolls=(),
+            modifiers_json=json.dumps(
+                {"operation": proposal.operation, "cleave": "not_triggered"}
+            ),
+            total=0,
+            outcome="undetermined",
+            sheet_effects=(),
+            source=("hidden" if proposal.visibility is RollVisibility.HIDDEN else "ai"),
+            gm_cheating_at_roll=gm_cheating,
+        )
+
     def moved_subjects(self, proposal: RollProposal) -> set[tuple[str, str]]:
         """Subjects *proposal* could move (Push)."""
         if proposal.operation == Operation.WEAPON_ATTACK.value:
@@ -508,6 +530,12 @@ class D20RulesSystemAdapter:
                 sheet_effects=attack.effects,
                 source=source,
                 gm_cheating_at_roll=gm_cheating,
+                turn_use=(
+                    _CLEAVE
+                    if proposal.weapon_attack is not None
+                    and proposal.weapon_attack.cleave
+                    else None
+                ),
             )
         rolled = checks.roll(checks.prepare(proposal, character), dice_service)
         outcomes: dict[str, _Outcome] = {
