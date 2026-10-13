@@ -1254,7 +1254,12 @@ def prepare(
         CriticalDamageFact,
         "critical hits",
     )
-    damage_modifier = modifier if rule.adds_attack_ability_modifier else 0
+    # "you don't add your ability modifier to a fixed damage amount that
+    # doesn't use a roll, such as the damage of a Blowgun" (``damage_rolls``).
+    adds = rule.adds_attack_ability_modifier and (
+        dice is not None or rule.fixed_amount_adds_modifier
+    )
+    damage_modifier = modifier if adds else 0
     mastery_used = _mastery(sel, actor, target, weapon, modifier, level)
     if sel.extra is not None:
         if sel.cleave or sel.mastery:
