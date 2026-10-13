@@ -140,11 +140,16 @@ def _attack_costs(
                 "one needs Extra Attack, which the accepted authority states only in "
                 "prose",
             )
-        uses = [Use(me, ACTION), Use(me, f"{ATTACK_ROLL}#1:{record}")]
+        # The weapon record and the individual item: Light needs a different
+        # weapon, not a different kind (two Daggers are two weapons).
+        uses = [
+            Use(me, ACTION),
+            Use(me, f"{ATTACK_ROLL}#1:{record}:{sel.weapon_item_id}"),
+        ]
         activation = ActionCost.ACTION
     else:
         light = _one(actor, "equipment.weapons.light", LightExtraAttackFact)
-        first = [k.split(":", 1)[1] for k in rolls]
+        first = [k.split(":")[1:] for k in rolls]  # [record, item id]
         if not first:
             raise _refuse(
                 RefusalKind.INVALID_SELECTION,
@@ -152,13 +157,14 @@ def _attack_costs(
             )
         first_props = {
             f.weapon_property
-            for f in facts_of(actor.index, first[0])
+            for f in facts_of(actor.index, first[0][0])
             if isinstance(f, WeaponPropertyFact)
         }
         if (
             WeaponProperty.LIGHT not in first_props
             or WeaponProperty.LIGHT not in props
-            or record == first[0]
+            or len(first[0]) != 2
+            or first[0][1] == str(sel.weapon_item_id)
         ):
             raise _refuse(
                 RefusalKind.INVALID_SELECTION,

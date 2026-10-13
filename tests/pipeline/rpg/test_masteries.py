@@ -227,7 +227,7 @@ def test_the_light_extra_attack_spends_a_bonus_action_or_nick(
     first, second = result.proposals
     assert [u.key for u in first.turn_uses] == [
         "glossary.action/action",
-        "glossary.attack/attack_roll#1:equipment.weapons.club",
+        f"glossary.attack/attack_roll#1:equipment.weapons.club:{CLUB.item_id}",
     ]
     assert [u.key for u in second.turn_uses] == [
         "equipment.weapons.light/light",
@@ -633,3 +633,29 @@ def test_hand_facts_that_differ_within_a_turn_refuse_before_any_die() -> None:
         )
     assert caught.value.kind is RefusalKind.INVALID_SELECTION
     assert "hand facts differ" in caught.value.detail
+
+
+@pytest.mark.parametrize("extra", ["light", "nick"])
+def test_two_daggers_are_two_weapons_but_one_dagger_is_not(extra: str) -> None:
+    """Light needs a different weapon, not a different kind: a second held
+    Dagger qualifies; the same Dagger again refuses before any die."""
+    wolf = _creature(hp=60)
+    other = _wielded("dagger")
+    fighter = _fighter("dagger", items=(DAGGER, other))
+    hands = hands_for(DAGGER, other)
+    first = _proposal(wolf, DAGGER, ability="strength", hands=hands)
+    result, _ = _actor_turn_service(
+        fighter,
+        [wolf],
+        first,
+        _proposal(wolf, other, extra=extra, ability="strength", hands=hands),
+    )
+    assert len(result.proposals) == 2
+    with pytest.raises(AdjudicationRefusal) as caught:
+        _actor_turn_service(
+            fighter,
+            [wolf],
+            first,
+            _proposal(wolf, DAGGER, extra=extra, ability="strength", hands=hands),
+        )
+    assert caught.value.kind is RefusalKind.INVALID_SELECTION

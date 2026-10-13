@@ -457,7 +457,7 @@ def _shot(weapon: str, ammo: str, quantity: int = 2) -> tuple[Any, Any, Any]:
         gun,
         range="within_normal_range",
         hostiles_within_5_feet=(),
-        hands=HandFacts(held=(HeldItem(item_id=gun.item_id, hands=2),), free_hands=0),
+        hands=hands_for(gun),  # one-handed weapons leave a hand free to load
         ammunition_item_id=supply.item_id,
     )
     return _attacker(gun, supply), wolf, proposal
@@ -812,3 +812,25 @@ def test_a_shot_beyond_the_action_budget_refuses_before_any_die(case: str) -> No
         else:
             _service_turn(attacker, wolf, [shot, shot], dice=dice)
     dice.roll.assert_not_called()
+
+
+@pytest.mark.parametrize("weapon", ["hand_crossbow", "pistol", "sling", "blowgun"])
+def test_a_two_hand_grip_does_not_waive_loading_a_one_handed_weapon(
+    weapon: str,
+) -> None:
+    """The free hand is required by the weapon's source classification; a
+    declared two-hand grip with no hand free refuses before any die."""
+    attacker, wolf, proposal = _shot(weapon, AMMUNITION_WEAPONS[weapon])
+    sel = proposal.weapon_attack
+    assert sel is not None
+    gripped = HandFacts(
+        held=(HeldItem(item_id=sel.weapon_item_id, hands=2),), free_hands=0
+    )
+    _refused(
+        RefusalKind.INVALID_SELECTION,
+        attacker,
+        wolf,
+        proposal.model_copy(
+            update={"weapon_attack": sel.model_copy(update={"hands": gripped})}
+        ),
+    )

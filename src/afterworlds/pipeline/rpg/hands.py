@@ -10,7 +10,8 @@ the facts against holdings and the source's hand rules:
 * a Shield is held in one hand; a Two-Handed weapon in two;
 * the attacking weapon is in hand; a Versatile weapon's two-handed damage
   needs it held in two;
-* loading a one-handed ammunition weapon needs a free hand
+* loading a one-handed ammunition weapon (one without the Two-Handed
+  property, however it is gripped) needs a free hand
   (``ammunition_expenditure.loading_requires_free_hand``).
 
 The facts cannot create ammunition, waive a requirement or grant an action.
@@ -101,7 +102,9 @@ def check_weapon_grip(
             raise _refuse(
                 RefusalKind.INVALID_SELECTION, "a Shield leaves no second hand"
             )
-    if WeaponProperty.AMMUNITION in props and hands == 1:
+    # One-handed by source classification (no Two-Handed property), whatever
+    # grip the facts declare: loading it needs a hand free.
+    if WeaponProperty.AMMUNITION in props and WeaponProperty.TWO_HANDED not in props:
         rules = [
             f
             for f in facts_of(subject.index, "equipment.weapons.ammunition")

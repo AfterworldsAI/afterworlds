@@ -581,7 +581,7 @@ def test_actor_turn_edges_commit_with_the_delivered_turn(
     assert document["active"]["subject"]["subject_id"] == me
     assert [u["key"] for u in document["uses"]] == [
         "glossary.action/action",
-        "glossary.attack/attack_roll#1:equipment.weapons.club",
+        f"glossary.attack/attack_roll#1:equipment.weapons.club:{club}",
     ]
 
     # Beginning another turn while mine is active refuses, leaving the
