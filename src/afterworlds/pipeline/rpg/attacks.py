@@ -1467,13 +1467,16 @@ def moved_subjects(proposal: RollProposal) -> set[tuple[str, str]]:
 def spatial_subjects(
     proposal: RollProposal, actor: TurnCharacter
 ) -> set[tuple[str, str]]:
-    """The subjects this attack's spatial facts are about."""
+    """The subjects this attack's spatial facts are about: attacker,
+    target, and the named bystanders whose proximity it consumes."""
     sel = proposal.weapon_attack
     if sel is None:
         return set()
+    named = (*(sel.hostiles_within_5_feet or ()), *(sel.auras_in_range or ()))
     return {
         ("character", str(actor.subject_id)),
         (sel.target.kind, str(sel.target.subject_id)),
+        *((r.kind, str(r.subject_id)) for r in named),
     }
 
 

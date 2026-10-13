@@ -472,14 +472,21 @@ class D20RulesSystemAdapter:
             return attacks.spatial_subjects(proposal, character)
         sel = proposal.creature_attack
         if sel is not None:
+            named = (
+                *(sel.hostiles_within_5_feet or ()),
+                *(sel.allies_within_5_feet_of_target or ()),
+                *(sel.auras_in_range or ()),
+            )
             return {
                 (sel.attacker.kind, str(sel.attacker.subject_id)),
                 (sel.target.kind, str(sel.target.subject_id)),
+                *((r.kind, str(r.subject_id)) for r in named),
             }
         area = proposal.creature_save_effect
         if area is not None:
             return {(area.source.kind, str(area.source.subject_id))} | {
-                (r.kind, str(r.subject_id)) for r in area.targets
+                (r.kind, str(r.subject_id))
+                for r in (*area.targets, *(area.auras_in_range or ()))
             }
         return set()
 

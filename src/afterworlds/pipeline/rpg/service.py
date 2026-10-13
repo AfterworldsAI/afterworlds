@@ -550,7 +550,7 @@ class RpgAdjudicationPassService:
             _ledger(coordination.document, proposals, sheet, subjects, openers)
         self._limited_uses(proposals, subjects)
         _ammunition_supply(proposals, sheet)
-        self._auras(story_id, sheet, proposals, subjects)
+        aura_holders = self._auras(story_id, sheet, proposals, subjects)
         # One subject's hand facts agree across the turn's operations: none
         # changes grip, so a difference is a contradiction.
         hands = {
@@ -588,7 +588,11 @@ class RpgAdjudicationPassService:
                     "change; it needs a later turn",
                 )
             changed |= self._adapter.lifecycle_changes(proposal)
-            stale = moved & self._adapter.spatial_subjects(proposal, sheet)
+            spatial = self._adapter.spatial_subjects(proposal, sheet)
+            if self._adapter.savers(proposal, sheet, subjects):
+                # "Out of range" of each aura holder is consumed too.
+                spatial |= aura_holders
+            stale = moved & spatial
             if stale:
                 raise AdjudicationRefusal(
                     RefusalKind.INVALID_SELECTION,
@@ -833,13 +837,13 @@ class RpgAdjudicationPassService:
         sheet: TurnCharacter,
         proposals: list[RollProposal],
         subjects: dict[tuple[str, str], TurnSubject],
-    ) -> None:
+    ) -> set[tuple[str, str]]:
         """Refuse, before any die, a save another creature's aura could
         change (:mod:`.bystanders`). Holders are found in the whole story and
         read like any other subject, so their revisions are rechecked."""
         forcing = [(p, self._adapter.savers(p, sheet, subjects)) for p in proposals]
         if not any(savers for _, savers in forcing):
-            return
+            return set()
         if self._aura_loader is None:
             raise AdjudicationRefusal(
                 RefusalKind.MISSING_STATE,
@@ -860,6 +864,7 @@ class RpgAdjudicationPassService:
                 savers,
                 selection.auras_in_range if selection is not None else None,
             )
+        return {("character", str(h.subject_id)) for h in holders}
 
     def _load_bounded(
         self,

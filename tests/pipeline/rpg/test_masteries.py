@@ -659,3 +659,76 @@ def test_two_daggers_are_two_weapons_but_one_dagger_is_not(extra: str) -> None:
             _proposal(wolf, DAGGER, extra=extra, ability="strength", hands=hands),
         )
     assert caught.value.kind is RefusalKind.INVALID_SELECTION
+
+
+@pytest.mark.parametrize("rule", ["pack_tactics", "close_combat"])
+def test_a_pushed_bystanders_proximity_is_not_reused_after_the_push(rule: str) -> None:
+    """The fighter pushes creature B; a second Wolf then names B as the ally
+    beside its target (Pack Tactics). B's proximity predates the push, so the
+    bite refuses before any die, like a fact about the pushed target."""
+    from afterworlds.models.enums import DiceHandling
+    from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
+    from tests.pipeline.rpg.test_adjudication_service import (
+        _STORY_ID,
+        _TURN_ID,
+        _FakeProvider,
+        _make_assembled,
+        _make_session,
+    )
+    from tests.pipeline.rpg.test_creature_attacks import _bite, _ref
+    from tests.pipeline.rpg.test_turn_sequencing import actor_turn
+
+    pushed = _creature(hp=40)
+    biter = (
+        _creature(hp=40)
+        if rule == "pack_tactics"
+        else _creature("monsters.goblins.goblin_warrior", hp=10)
+    )
+    by_id = {str(c.subject_id): c for c in (pushed, biter)}
+    fighter = _fighter("greatclub", items=(GREATCLUB,))
+    push = _proposal(pushed, GREATCLUB, mastery=True, push_ft=10).model_dump(
+        mode="json", exclude_none=True
+    )
+
+    def edge(operation: str, subject: Any) -> dict[str, Any]:
+        kind = "creature" if isinstance(subject, TurnCreature) else "character"
+        return {
+            "check_label": operation,
+            "subsystem_tag": "turn",
+            "visibility": "shown",
+            "operation": operation,
+            "subject": {"kind": kind, "subject_id": str(subject.subject_id)},
+        }
+
+    if rule == "pack_tactics":
+        attack = _bite(biter, fighter, allies_within_5_feet_of_target=(_ref(pushed),))
+    else:  # a ranged attack with the pushed creature named beside the archer
+        attack = _bite(
+            biter,
+            fighter,
+            entry="Shortbow",
+            range="within_normal_range",
+            hostiles_within_5_feet=(_ref(pushed),),
+        )
+    bite = attack.model_dump(mode="json", exclude_none=True)
+    dice = MagicMock()
+    with pytest.raises(AdjudicationRefusal) as caught:
+        RpgAdjudicationPassService(
+            adapter=D20RulesSystemAdapter(),
+            subject_loader=lambda _story, ref: by_id[str(ref.subject_id)],
+            coordination_loader=actor_turn(fighter),
+            bounded_loader=lambda _story, _ref: [],
+        ).adjudicate(
+            _make_assembled(),
+            _make_session(DiceHandling.AI_ROLLS),
+            fighter,
+            dice,
+            provider=_FakeProvider(
+                [push, edge("end_turn", fighter), edge("begin_turn", biter), bite]
+            ),
+            story_id=_STORY_ID,
+            originating_turn_id=_TURN_ID,
+        )
+    assert caught.value.kind is RefusalKind.INVALID_SELECTION
+    assert str(pushed.subject_id) in caught.value.detail
+    dice.roll.assert_not_called()
