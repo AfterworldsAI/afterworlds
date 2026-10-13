@@ -294,7 +294,7 @@ def test_a_hidden_check_is_audited_but_filtered_from_the_player(
 @pytest.mark.parametrize(
     ("roll", "kind"),
     [
-        (_roll(operation="death_saving_throw", identity=None), "unsupported_capability"),  # noqa: E501
+        (_roll(operation="stabilize", identity=None), "unsupported_capability"),
         (_roll(identity="glossary.hide/hide_check"), "invalid_selection"),
         ({"check_label": "Stealth", "subsystem_tag": "stealth", "visibility": "shown"},
          "unsupported_capability"),
@@ -468,3 +468,60 @@ def test_a_target_from_another_story_refuses_and_leaves_nothing(
     assert body["disposition"] != "delivered", body
     assert _audit(client, story) == []
     assert _creature_row(client, wolf).revision == 1
+
+
+# ---------------------------------------------------------------------------
+# Actor-turn edges (contract G1), committed with the delivered Turn
+# ---------------------------------------------------------------------------
+
+
+def _edge_roll(operation: str, subject: str, kind: str = "creature") -> dict[str, Any]:
+    return {
+        "check_label": operation,
+        "subsystem_tag": "turn",
+        "visibility": "shown",
+        "operation": operation,
+        "subject": {"kind": kind, "subject_id": subject},
+    }
+
+
+def _edges(client: TestClient, story_id: str) -> list[Any]:
+    return _rows(
+        client,
+        "SELECT sequence, kind, subject_id, turn_instance FROM rpg_turn_edges"
+        " WHERE story_id = :s ORDER BY sequence",
+        s=story_id,
+    )
+
+
+def test_actor_turn_edges_commit_with_the_delivered_turn(
+    client: TestClient, gm: list[list[dict[str, Any]]]
+) -> None:
+    story = _rpg_story(client)
+    wolf, club = _wolf_and_club(client, story)
+    gm.append([_edge_roll("begin_turn", wolf), _attack(wolf, club)])
+    assert _turn(client, story, "The wolf's turn; I strike.")["disposition"] == (
+        "delivered"
+    )
+    assert [tuple(r) for r in _edges(client, story)] == [(1, "begin", wolf, 1)]
+    (coordination,) = _rows(
+        client,
+        "SELECT revision, document FROM rpg_turn_coordination WHERE story_id = :s",
+        s=story,
+    )
+    document = coordination.document
+    if not isinstance(document, dict):
+        document = json.loads(document)
+    assert coordination.revision == 1
+    assert document["active"]["subject"]["subject_id"] == wolf
+
+    # Beginning another turn while the wolf's is active refuses, leaving the
+    # coordination, the edge log and the turn count as they were.
+    gm.append([_edge_roll("begin_turn", wolf)])
+    body = _turn(client, story, "The wolf goes again.")
+    assert body["disposition"] != "delivered", body
+    assert len(_edges(client, story)) == 1 and _turns(client) == 1
+
+    gm.append([_edge_roll("end_turn", wolf)])
+    assert _turn(client, story, "The wolf's turn ends.")["disposition"] == ("delivered")
+    assert [tuple(r) for r in _edges(client, story)][-1] == (2, "end", wolf, 1)

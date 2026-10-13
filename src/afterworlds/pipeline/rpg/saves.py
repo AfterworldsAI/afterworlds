@@ -58,7 +58,9 @@ __all__ = [
     "SAVE_PROCEDURE",
     "PreparedSave",
     "RolledSave",
+    "condition_modifiers",
     "prepare",
+    "refuse_contributors",
     "roll",
 ]
 
@@ -126,7 +128,9 @@ SAVE_CONTRIBUTING_TRAITS: dict[tuple[str, str], _Relevance] = {
 
 
 def _relevant(
-    relevance: _Relevance, ability: AbilityScore, imposes: frozenset[ConditionKind]
+    relevance: _Relevance,
+    ability: AbilityScore | None,
+    imposes: frozenset[ConditionKind],
 ) -> bool:
     abilities, conditions = relevance
     if abilities is not None and ability not in abilities:
@@ -205,9 +209,12 @@ class RolledSave:
         return json.dumps(self.provenance(), sort_keys=True)
 
 
-def _conditions(
-    subject: TurnSubject, index: AuthorityIndex, ability: AbilityScore
+def condition_modifiers(
+    subject: TurnSubject, index: AuthorityIndex, ability: AbilityScore | None
 ) -> tuple[list[str], list[str], list[str]]:
+    """Advantage, Disadvantage and automatic-failure sources the saver's
+    recorded and implied conditions give a save of *ability* (``None``: a save
+    that names no ability, such as a death save)."""
     advantage: list[str] = []
     disadvantage: list[str] = []
     failure: list[str] = []
@@ -261,7 +268,9 @@ def _conditions(
     return advantage, disadvantage, failure
 
 
-def _held_keys(character: TurnCharacter, index: AuthorityIndex) -> set[str]:
+def _held_keys(
+    character: TurnCharacter, index: AuthorityIndex, extra: frozenset[str]
+) -> set[str]:
     state = character.stored.state
     held = {f.feat_record_key for f in state.feats or ()}
     for cl in state.classes or ():
@@ -272,8 +281,70 @@ def _held_keys(character: TurnCharacter, index: AuthorityIndex) -> set[str]:
         }
         if cl.subclass_record_key:
             prefix = cl.subclass_record_key + "."
-            held |= {k for k in SAVE_CONTRIBUTORS if k.startswith(prefix)}
+            held |= {
+                k for k in SAVE_CONTRIBUTORS.keys() | extra if k.startswith(prefix)
+            }
     return held
+
+
+def refuse_contributors(
+    subject: TurnSubject,
+    index: AuthorityIndex,
+    ability: AbilityScore | None,
+    imposes: frozenset[ConditionKind],
+    extra: frozenset[str] = frozenset(),
+) -> None:
+    """Refuse when anything not executed here could change *subject*'s save:
+    an active effect, a relevant feature, feat, trait or *extra* key, a
+    magical contagion or magic item; a creature's save override or a standing
+    trait that changes saves."""
+    from afterworlds.pipeline.rpg.defense import facts_of
+
+    def unsupported(what: str) -> AdjudicationRefusal:
+        return _refuse(
+            RefusalKind.UNSUPPORTED_CAPABILITY,
+            f"{what} can change this save and is not executable here",
+        )
+
+    state = subject.stored.state
+    if state.active_effects is None:
+        raise _refuse(RefusalKind.MISSING_STATE, "the saver records no active effects")
+    if state.active_effects:
+        raise unsupported(f"active effect {state.active_effects[0].source.record_key}")
+    if isinstance(subject, TurnCreature):
+        template = subject.stored.state.template_record_key
+        for fact in facts_of(index, template):
+            if isinstance(fact, CreatureSaveOverrideFact):
+                raise unsupported(f"{template}/{fact.entry} (a save override)")
+            if isinstance(fact, CreatureRollModifierFact) and any(
+                e.roll.context in _SAVE_CONTEXTS for e in fact.effects
+            ):
+                raise unsupported(f"{template}/{fact.entry}")
+        return
+    character = subject.stored.state
+    held = _held_keys(subject, index, extra)
+    found = sorted(
+        k
+        for k in held & SAVE_CONTRIBUTORS.keys()
+        if _relevant(SAVE_CONTRIBUTORS[k], ability, imposes)
+    )
+    found += sorted(held & extra)
+    if found:
+        raise unsupported(f"feature or feat {found[0]}")
+    if character.species is None:
+        raise _refuse(RefusalKind.MISSING_STATE, "the saver records no species")
+    for (record, trait), relevance in sorted(SAVE_CONTRIBUTING_TRAITS.items()):
+        if record == character.species.record_key and _relevant(
+            relevance, ability, imposes
+        ):
+            raise unsupported(f"species trait {record}/{trait}")
+    if any(h.kind == "contagion" for h in character.hazards or ()):
+        raise unsupported("a magical contagion")
+    for item in subject.items:
+        if index.kind(item.record_key) is RecordKind.MAGIC_ITEM and (
+            item.equipped or item.attuned_subject_id
+        ):
+            raise unsupported(f"magic item {item.record_key}")
 
 
 def _character(
@@ -304,34 +375,7 @@ def _character(
             RefusalKind.MISSING_STATE, f"the saver records no {', '.join(missing)}"
         )
 
-    def unsupported(what: str) -> AdjudicationRefusal:
-        return _refuse(
-            RefusalKind.UNSUPPORTED_CAPABILITY,
-            f"{what} can change this save and is not executable here",
-        )
-
-    if state.active_effects:
-        raise unsupported(f"active effect {state.active_effects[0].source.record_key}")
-    found = sorted(
-        k
-        for k in _held_keys(character, index) & SAVE_CONTRIBUTORS.keys()
-        if _relevant(SAVE_CONTRIBUTORS[k], ability, imposes)
-    )
-    if found:
-        raise unsupported(f"feature or feat {found[0]}")
-    assert state.species is not None
-    for (record, trait), relevance in sorted(SAVE_CONTRIBUTING_TRAITS.items()):
-        if record == state.species.record_key and _relevant(
-            relevance, ability, imposes
-        ):
-            raise unsupported(f"species trait {record}/{trait}")
-    if any(h.kind == "contagion" for h in state.hazards or ()):
-        raise unsupported("a magical contagion")
-    for item in character.items:
-        if index.kind(item.record_key) is RecordKind.MAGIC_ITEM and (
-            item.equipped or item.attuned_subject_id
-        ):
-            raise unsupported(f"magic item {item.record_key}")
+    refuse_contributors(character, index, ability, imposes)
 
     score, _ = ability_score(index, state, ability)
     modifier = (score - 10) // 2
@@ -375,28 +419,8 @@ def _creature(
     template = state.template_record_key
     if index.record(template) is None:
         raise _refuse(RefusalKind.MISSING_AUTHORITY, f"template {template} is absent")
-    if state.active_effects:
-        raise _refuse(
-            RefusalKind.UNSUPPORTED_CAPABILITY,
-            f"active effect {state.active_effects[0].source.record_key} can change "
-            "this save and is not executable here",
-        )
+    refuse_contributors(creature, index, ability, frozenset())
     facts = facts_of(index, template)
-    for fact in facts:
-        if isinstance(fact, CreatureSaveOverrideFact):
-            raise _refuse(
-                RefusalKind.UNSUPPORTED_CAPABILITY,
-                f"{template}/{fact.entry}: a save override is a choice not "
-                "executable here",
-            )
-        if isinstance(fact, CreatureRollModifierFact) and any(
-            e.roll.context in _SAVE_CONTEXTS for e in fact.effects
-        ):
-            raise _refuse(
-                RefusalKind.UNSUPPORTED_CAPABILITY,
-                f"{template}/{fact.entry} can change this save and is not "
-                "executable here",
-            )
     rows = [
         f
         for f in facts
@@ -433,7 +457,7 @@ def prepare(
     else:
         modifier, breakdown, disadvantage = _character(subject, index, ability, imposes)
         kind = "character"
-    advantage, dis2, failure = _conditions(subject, index, ability)
+    advantage, dis2, failure = condition_modifiers(subject, index, ability)
     return PreparedSave(
         subject_kind=kind,
         subject_id=str(subject.subject_id),

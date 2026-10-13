@@ -39,6 +39,10 @@ class AdjudicationPassResult(BaseModel):
     #: the revision and binding it was read at. The orchestrator rechecks
     #: every one at commit and applies their effects atomically with the Turn.
     subjects: tuple[Any, ...] = ()
+    #: CRD Issue 15c: the actor-turn coordination the turn read, when it has
+    #: an edge (``StoredCoordination``). The orchestrator replays the records'
+    #: edges onto it and commits by compare-and-swap with the Turn.
+    coordination: Any = None
 
     provider: str | None = None
     model_identifier: str | None = None

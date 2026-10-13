@@ -272,3 +272,54 @@ class RpgTurnLeaseORM(Base):
     #: The process that owns the lease (see ``services.dnd5e_state.leases``).
     owner_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
     started_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+
+
+class RpgTurnCoordinationORM(Base):
+    """A story's actor-turn coordination (CRD Issue 15c): whose turn is active
+    and the next turn instance, as a typed document with a ``revision`` for
+    compare-and-swap. It holds no hit points, conditions, effects or pending
+    state; those stay on each subject's own state.
+    """
+
+    __tablename__ = "rpg_turn_coordination"
+
+    story_id: Mapped[str] = mapped_column(
+        sa.String(36),
+        sa.ForeignKey("stories.story_id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    revision: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    document: Mapped[dict[str, Any]] = mapped_column(sa.JSON, nullable=False)
+    updated_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+
+
+class RpgTurnEdgeORM(Base):
+    """Append-only: every actor-turn edge a delivered Turn applied, in order.
+
+    ``sequence`` is per story; ``coordination_revision`` is the revision the
+    edge was applied to. The coordination document is reconstructable by
+    replaying these rows.
+    """
+
+    __tablename__ = "rpg_turn_edges"
+    __table_args__ = (
+        sa.UniqueConstraint("story_id", "sequence", name="uq_rpg_turn_edges_sequence"),
+        sa.CheckConstraint("kind IN ('begin', 'end')", name="ck_rpg_turn_edges_kind"),
+    )
+
+    edge_id: Mapped[str] = mapped_column(sa.String(36), primary_key=True)
+    story_id: Mapped[str] = mapped_column(
+        sa.String(36),
+        sa.ForeignKey("stories.story_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    sequence: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    #: The delivered Turn that applied it (plain string, like the audit rows).
+    turn_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
+    kind: Mapped[str] = mapped_column(sa.String(8), nullable=False)
+    subject_kind: Mapped[str] = mapped_column(sa.String(16), nullable=False)
+    subject_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
+    turn_instance: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    coordination_revision: Mapped[int] = mapped_column(sa.Integer, nullable=False)
+    recorded_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)

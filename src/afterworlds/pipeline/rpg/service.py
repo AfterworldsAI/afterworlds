@@ -41,6 +41,7 @@ from uuid import UUID
 from afterworlds.entitlement.enums import PipelinePassId
 from afterworlds.ingestion.mechanical.representation import ConditionKind
 from afterworlds.models.context import AssembledContext
+from afterworlds.models.dnd5e_state import SubjectReference, TurnCoordination
 from afterworlds.models.enums import DiceHandling, RollVisibility
 from afterworlds.models.rpg import (
     AdjudicationProposalOutput,
@@ -78,6 +79,12 @@ from afterworlds.pipeline.rpg.models import (
     AdjudicationPassResult,
     PreflightGapError,
 )
+from afterworlds.services.dnd5e_state.coordination import (
+    AppliedEdge,
+    EdgeRefused,
+    StoredCoordination,
+    apply_edge,
+)
 from afterworlds.services.dnd5e_state.turn import advanced, with_possible
 
 if TYPE_CHECKING:
@@ -97,6 +104,32 @@ _PROMPT_DIR: Path = Path(__file__).parents[4] / "docs" / "prompts"
 
 class UnknownPromptError(ValueError):
     """Raised when the adjudication prompt file is missing."""
+
+
+_EDGE_OPERATIONS = ("begin_turn", "end_turn")
+
+
+def _edges(
+    document: TurnCoordination, proposals: list[RollProposal]
+) -> tuple[TurnCoordination, tuple[AppliedEdge, ...]]:
+    """*document* after the proposals' actor-turn edges in order, or a typed
+    refusal for the first that is not a legal transition."""
+    applied: list[AppliedEdge] = []
+    begun = False
+    for proposal in proposals:
+        if proposal.operation not in _EDGE_OPERATIONS or proposal.subject is None:
+            continue
+        kind = "begin" if proposal.operation == "begin_turn" else "end"
+        subject = SubjectReference(
+            kind=proposal.subject.kind, subject_id=proposal.subject.subject_id
+        )
+        try:
+            document, edge = apply_edge(document, kind, subject, begun_this_turn=begun)
+        except EdgeRefused as exc:
+            raise AdjudicationRefusal(RefusalKind.INVALID_SELECTION, str(exc)) from exc
+        begun = begun or kind == "begin"
+        applied.append(edge)
+    return document, tuple(applied)
 
 
 def load_adjudication_prompt() -> str:
@@ -174,12 +207,14 @@ class RpgAdjudicationPassService:
         adapter: D20RulesSystemAdapter,
         config: AdjudicationConfig | None = None,
         subject_loader: Callable[[UUID, SubjectRef], TurnSubject] | None = None,
+        coordination_loader: Callable[[UUID], StoredCoordination] | None = None,
     ) -> None:
         self._adapter = adapter
         self._config = config or AdjudicationConfig.from_env()
         #: Reads a character or creature of a story, refusing one of another
         #: story or under a non-current binding (CRD Issue 15c).
         self._subject_loader = subject_loader
+        self._coordination_loader = coordination_loader
         self._system_prompt: str = load_adjudication_prompt()
 
     def is_adjudicable(self, character: TurnCharacter) -> bool:
@@ -357,6 +392,11 @@ class RpgAdjudicationPassService:
             )
 
         subjects = self._load_subjects(story_id, sheet, proposals)
+        coordination = self._load_coordination(story_id, proposals)
+        # Contract G1: every actor-turn edge is a legal transition, checked in
+        # order before any die is rolled.
+        if coordination is not None:
+            _edges(coordination.document, proposals)
 
         # CRD Issue 2b: check every proposal before any has an effect, so a
         # later unsupported check cannot follow an earlier roll. CRD Issue
@@ -424,6 +464,7 @@ class RpgAdjudicationPassService:
             writer_views=tuple(views),
             pending_roll_request=None,
             subjects=tuple(subjects.values()),
+            coordination=coordination,
             provider=result.provider_name,
             model_identifier=result.model_identifier,
             model_tier=result.model_tier.value,
@@ -444,9 +485,12 @@ class RpgAdjudicationPassService:
         read once with its own binding and revision (CRD Issue 15c)."""
         refs: dict[tuple[str, str], SubjectRef] = {}
         for proposal in proposals:
+            named = [proposal.subject]
             if proposal.weapon_attack is not None:
-                ref = proposal.weapon_attack.target
-                refs[(ref.kind, str(ref.subject_id))] = ref
+                named.append(proposal.weapon_attack.target)
+            for ref in named:
+                if ref is not None:
+                    refs[(ref.kind, str(ref.subject_id))] = ref
         refs.pop(("character", str(sheet.sheet_id)), None)
         if not refs:
             return {}
@@ -468,6 +512,21 @@ class RpgAdjudicationPassService:
                     f"story: {exc}",
                 ) from exc
         return subjects
+
+    def _load_coordination(
+        self, story_id: UUID, proposals: list[RollProposal]
+    ) -> StoredCoordination | None:
+        """The story's actor-turn coordination, read once when a proposal is
+        an actor-turn edge (contract G1)."""
+        if not any(p.operation in _EDGE_OPERATIONS for p in proposals):
+            return None
+        if self._coordination_loader is None:
+            raise AdjudicationRefusal(
+                RefusalKind.MISSING_STATE,
+                "no turn-coordination reader is wired, so an actor-turn edge "
+                "cannot be applied",
+            )
+        return self._coordination_loader(story_id)
 
     # -----------------------------------------------------------------------
     # Prompt rendering

@@ -85,6 +85,8 @@ class Operation(StrEnum):
     WEAPON_ATTACK = "weapon_attack"
     DEATH_SAVING_THROW = "death_saving_throw"
     STABILIZE = "stabilize"
+    BEGIN_TURN = "begin_turn"
+    END_TURN = "end_turn"
 
 
 class CapabilityStatus(StrEnum):
@@ -178,6 +180,18 @@ _WEAPON_ATTACK_PROCEDURE: tuple[tuple[str, str], ...] = (
     ("glossary.immunity", "no_effect"),
 )
 _WEAPON_ATTACK_RECORD_PREFIXES = ("equipment.weapons", "equipment.armor")
+#: Actor-turn edges (contract G1): the turn structure they mark.
+_TURN_PROCEDURE: tuple[tuple[str, str], ...] = (("play.combat", "rounds_and_turns"),)
+#: The death save a dying subject makes when its turn begins, and what its
+#: results lead to (Stable and its recovery, regaining a Hit Point).
+_DEATH_SAVE_PROCEDURE: tuple[tuple[str, str], ...] = (
+    *_TURN_PROCEDURE,
+    ("glossary.saving_throw", "saving_throw"),
+    ("glossary.death_saving_throw", "death_saving_throw"),
+    (_DAMAGE, "death_saving_throws"),
+    (_DAMAGE, "falling_unconscious"),
+    (_DAMAGE, "stable"),
+)
 
 #: The release this adapter version was certified against: the accepted CRD
 #: Issue 15c native C5 successor (oracle SHA-256 ``23e5d8e0…4f69``), by the
@@ -301,10 +315,18 @@ MANIFEST: dict[Operation, Capability] = {
     ),
     Operation.DEATH_SAVING_THROW: Capability(
         Operation.DEATH_SAVING_THROW,
-        CapabilityStatus.HELD,
-        inputs="a dying subject at the start of its turn",
-        effects="death-save counters, Stable, death, recovery",
-        held_by=_HELD_COMBAT_STATE,
+        CapabilityStatus.EXECUTABLE,
+        inputs=(
+            "made by begin_turn, never named alone: a dying subject (0 Hit "
+            "Points, not Stable, not dead) whose turn begins; Advantage/"
+            "Disadvantage from typed condition facts"
+        ),
+        effects=(
+            "a success or failure (a natural 1 two failures); three successes "
+            "Stable with a rolled recovery interval; three failures death; a "
+            "natural 20 regains 1 Hit Point, ending Unconscious and leaving Prone"
+        ),
+        fingerprint="1bdb8493ff432c4f9e21b04a12c903fcb856a6aa02fdd5f37bfc831774d6a20a",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.STABILIZE: Capability(
         Operation.STABILIZE,
@@ -312,6 +334,26 @@ MANIFEST: dict[Operation, Capability] = {
         inputs="Help; Wisdom (Medicine) DC 10 on a subject at 0 HP",
         effects="Stable",
         held_by="the zero-HP lifecycle, implemented with the multi-subject path",
+    ),
+    Operation.BEGIN_TURN: Capability(
+        Operation.BEGIN_TURN,
+        CapabilityStatus.EXECUTABLE,
+        inputs=(
+            "a character or creature of the story the GameMaster names, when no "
+            "turn is active; at most one per delivered Turn"
+        ),
+        effects=(
+            "the subject's turn instance begins (an appended edge); a dying "
+            "subject makes its death save"
+        ),
+        fingerprint="c40c89c6b64ddecf12226acf87c5b1eb2c2457525d231316731cef69bbc120e1",  # noqa: E501  # pragma: allowlist secret
+    ),
+    Operation.END_TURN: Capability(
+        Operation.END_TURN,
+        CapabilityStatus.EXECUTABLE,
+        inputs="the subject whose turn is active",
+        effects="its turn instance ends (an appended edge)",
+        fingerprint="c40c89c6b64ddecf12226acf87c5b1eb2c2457525d231316731cef69bbc120e1",  # noqa: E501  # pragma: allowlist secret
     ),
 }
 
@@ -362,6 +404,9 @@ def _governing(
         Operation.TOOL_CHECK: _TOOL_PROCEDURE,
         Operation.INITIATIVE: _INITIATIVE_PROCEDURE,
         Operation.WEAPON_ATTACK: _WEAPON_ATTACK_PROCEDURE,
+        Operation.BEGIN_TURN: _TURN_PROCEDURE,
+        Operation.END_TURN: _TURN_PROCEDURE,
+        Operation.DEATH_SAVING_THROW: _DEATH_SAVE_PROCEDURE,
     }.get(operation, ())
     if operation is Operation.WEAPON_ATTACK:
         for record_key in sorted(index.records):

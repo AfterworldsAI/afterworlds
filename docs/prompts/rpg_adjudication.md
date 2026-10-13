@@ -1,7 +1,7 @@
 # RPG Adjudication Pass Prompt Contract v4
 
 *Canonical source for the RPG_ADJUDICATION pipeline pass system prompt.*
-*Version: v4 (CRD Issue 15c: weapon attacks; v3 difficulty, tool and Initiative
+*Version: v4 (CRD Issue 15c: weapon attacks and actor-turn edges; v3 difficulty, tool and Initiative
 checks; v2 bounded d20 production reachability; v1 June 2026)*
 *Last updated: October 2026*
 
@@ -54,8 +54,13 @@ One proposal per required roll:
     failure.
   - `saving_throw` — a saving throw some effect forces.
   - `weapon_attack` — an attack with a weapon (and its mastery).
-  - `death_saving_throw` — a creature at 0 Hit Points starting its turn.
+  - `begin_turn` — a character's or creature's turn begins, when no turn is
+    active. Name it in `subject`. At most one per response. If it is dying,
+    the engine makes its death save; never name `death_saving_throw` yourself.
+  - `end_turn` — the active turn ends. Name its subject in `subject`.
   - `stabilize` — the Help action to stabilize a creature at 0 Hit Points.
+
+  You decide whose turn begins and when; the engine keeps no turn order.
 - `check_identity` — for `fixed_dc_check`, the rule whose printed check applies:
   - `glossary.climbing/difficult_climb` — climbing a slippery or handhold-poor
     surface (Strength (Athletics)).
@@ -73,6 +78,8 @@ One proposal per required roll:
   the engine reads its DC from the rules. Null otherwise.
 - `tool_activity` — for `tool_check` only: the tool's printed activity (for
   example `pick_a_lock`). The engine reads its ability and DC. Null otherwise.
+- `subject` — for `begin_turn` and `end_turn` only: `{kind, subject_id}`, the
+  character or creature whose turn it is. Null otherwise.
 - `weapon_attack` — for `weapon_attack` only: an object holding:
   - `weapon_item_id` — the id of a weapon the attacker holds;
   - `target` — `{kind, subject_id}`, a character or creature in the scene;

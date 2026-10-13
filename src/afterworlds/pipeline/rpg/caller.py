@@ -209,6 +209,14 @@ PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC: dict[str, Any] = {
                                 " every number from the rules and the sheets."
                             ),
                         },
+                        "subject": {
+                            "oneOf": [_SUBJECT_SCHEMA, {"type": "null"}],
+                            "description": (
+                                "For begin_turn and end_turn: the character or"
+                                " creature whose turn begins or ends. Null"
+                                " otherwise."
+                            ),
+                        },
                         "tool_activity": _selection(
                             [t.value for t in ToolActivity],
                             "For tool_check: the tool's printed activity.",

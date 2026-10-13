@@ -2229,14 +2229,21 @@ class OrchestratorService:
             )
             if all_effects:
                 try:
-                    own = tuple(e for e in all_effects if e.subject_id is None)
+                    # The actor's effects, however addressed, apply in order.
+                    def _own(e: SheetEffect) -> bool:
+                        return e.subject_id is None or (
+                            e.subject_kind == "character"
+                            and e.subject_id == rpg_sheet.sheet_id  # type: ignore[union-attr]
+                        )
+
+                    own = tuple(e for e in all_effects if _own(e))
                     if own:
                         rpg_sheet = self._apply_rpg_sheet_effects(
                             session, own, rpg_sheet
                         )
                     self._apply_subject_effects(
                         session,
-                        tuple(e for e in all_effects if e.subject_id is not None),
+                        tuple(e for e in all_effects if not _own(e)),
                         rpg_sheet,
                         adj_result.subjects,
                     )
@@ -2252,6 +2259,20 @@ class OrchestratorService:
                         rpg_adjudication_result=adj_result,
                         branching_pass_result=branching_pass_result,
                     )
+            try:
+                self._commit_turn_edges(session, adj_result, writer_result.turn_id)
+            except Exception as exc:  # noqa: BLE001
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"actor-turn edges could not commit: {exc}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                    writer_result=writer_result,
+                    rpg_adjudication_result=adj_result,
+                    branching_pass_result=branching_pass_result,
+                )
             if self._rpg_visible_state_service is not None:
                 try:
                     rpg_visible_state = self._rpg_visible_state_service.build(
@@ -3644,6 +3665,45 @@ class OrchestratorService:
         if refreshed is None:
             raise ValueError(f"character {stored.sheet_id} vanished during the turn")
         return replace(character, stored=refreshed)
+
+    @staticmethod
+    def _commit_turn_edges(
+        session: Session, adj_result: AdjudicationPassResult, turn_id: UUID
+    ) -> None:
+        """Replay the records' actor-turn edges onto the coordination the turn
+        read and commit them with the Turn (CRD Issue 15c, contract G1). A
+        concurrent change raises, so the outer transaction rolls back."""
+        from datetime import UTC, datetime
+
+        from afterworlds.models.dnd5e_state import SubjectReference
+        from afterworlds.services.dnd5e_state import coordination
+
+        read = adj_result.coordination
+        if read is None:
+            return
+        document = read.document
+        edges = []
+        begun = False
+        for record in adj_result.proposals:
+            if record.turn_edge is None:
+                continue
+            ref = record.turn_edge.subject
+            document, edge = coordination.apply_edge(
+                document,
+                record.turn_edge.kind,
+                SubjectReference(kind=ref.kind, subject_id=ref.subject_id),
+                begun_this_turn=begun,
+            )
+            begun = begun or edge.kind == "begin"
+            edges.append(edge)
+        coordination.commit(
+            session,
+            read,
+            document,
+            tuple(edges),
+            turn_id=turn_id,
+            now=datetime.now(tz=UTC).isoformat(),
+        )
 
     def _apply_subject_effects(
         self,

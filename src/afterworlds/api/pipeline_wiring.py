@@ -146,6 +146,10 @@ from afterworlds.services.context_builder import (
     RetrievalMemoryProvider,
     SQLiteRecentTurnsProvider,
 )
+from afterworlds.services.dnd5e_state.coordination import (
+    StoredCoordination,
+)
+from afterworlds.services.dnd5e_state.coordination import read as read_coordination
 from afterworlds.services.dnd5e_state.turn import (
     RpgTurnHold,
     TurnCharacter,
@@ -301,6 +305,22 @@ def _make_rpg_subject_loader(
                     )
             session.commit()
             return subject
+        finally:
+            session.close()
+
+    return _load
+
+
+def _make_rpg_coordination_loader(
+    session_factory: sessionmaker[Session],
+) -> Callable[[UUID], StoredCoordination]:
+    """Reads a story's actor-turn coordination (CRD Issue 15c, contract G1);
+    the orchestrator commits the turn's edges by compare-and-swap on it."""
+
+    def _load(story_id: UUID) -> StoredCoordination:
+        session = session_factory()
+        try:
+            return read_coordination(session, story_id)
         finally:
             session.close()
 
@@ -491,6 +511,7 @@ def build_orchestrator(session_factory: sessionmaker[Session]) -> OrchestratorSe
             D20RulesSystemAdapter(),
             AdjudicationConfig.from_env(),
             subject_loader=_make_rpg_subject_loader(session_factory),
+            coordination_loader=_make_rpg_coordination_loader(session_factory),
         ),
         rpg_dice_service=SystemRandomDiceService(),
         rpg_session_sheet_resolver=_make_rpg_session_sheet_resolver(session_factory),

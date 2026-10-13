@@ -127,6 +127,9 @@ class RollProposal(BaseModel):
     tool_activity: str | None = None
     #: The selections of a ``weapon_attack`` (CRD Issue 15c).
     weapon_attack: WeaponAttackSelection | None = None
+    #: The one subject an operation names: whose turn ``begin_turn`` or
+    #: ``end_turn`` marks (CRD Issue 15c).
+    subject: SubjectRef | None = None
 
 
 class AdjudicationProposalOutput(BaseModel):
@@ -200,6 +203,15 @@ class SheetEffect(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class TurnEdge(BaseModel):
+    """One explicit actor-turn edge (CRD Issue 15c, contract G1)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    kind: Literal["begin", "end"]
+    subject: SubjectRef
+
+
 class ResolvedAdjudicationRecord(BaseModel):
     """Internal authoritative record of a resolved RPG roll.
 
@@ -227,6 +239,10 @@ class ResolvedAdjudicationRecord(BaseModel):
     sheet_effects: tuple[SheetEffect, ...]
     source: Literal["ai", "hidden", "player"]
     gm_cheating_at_roll: bool
+    #: The actor-turn edge this record applies, if any (CRD Issue 15c). The
+    #: orchestrator replays every record's edge onto the coordination the
+    #: turn read and commits it with the Turn.
+    turn_edge: TurnEdge | None = None
 
 
 # ---------------------------------------------------------------------------

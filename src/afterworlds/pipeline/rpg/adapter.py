@@ -40,13 +40,15 @@ from afterworlds.models.rpg import (
     ResolvedAdjudicationRecord,
     RollProposal,
     SheetEffect,
+    TurnEdge,
     WriterAdjudicationView,
 )
-from afterworlds.pipeline.rpg import attacks, checks
+from afterworlds.pipeline.rpg import attacks, checks, lifecycle
 from afterworlds.pipeline.rpg.capability import (
     AdjudicationRefusal,
     Operation,
     RefusalKind,
+    certify,
 )
 from afterworlds.pipeline.rpg.dice import chosen_die_range
 
@@ -57,6 +59,35 @@ _Outcome = Literal[
 # Word-boundary patterns so "disadvantage" doesn't trigger the advantage branch.
 _ADV_RE = re.compile(r"\badvantage\b", re.IGNORECASE)
 _DISADV_RE = re.compile(r"\bdisadvantage\b", re.IGNORECASE)
+
+
+_EDGES = (Operation.BEGIN_TURN.value, Operation.END_TURN.value)
+
+
+def _edge_subject(
+    proposal: RollProposal,
+    character: TurnCharacter,
+    subjects: dict[tuple[str, str], TurnSubject],
+) -> TurnSubject:
+    """The subject an actor-turn edge names, read for this turn, and the
+    edge operation certified under its binding."""
+    ref = proposal.subject
+    if ref is None:
+        raise AdjudicationRefusal(
+            RefusalKind.INVALID_SELECTION, f"{proposal.operation} names no subject"
+        )
+    key = (ref.kind, str(ref.subject_id))
+    subject = (
+        character
+        if key == ("character", str(character.subject_id))
+        else subjects.get(key)
+    )
+    if subject is None or subject.index is None:
+        raise AdjudicationRefusal(
+            RefusalKind.MISSING_STATE, f"{ref.kind} {ref.subject_id} was not read"
+        )
+    certify(Operation(proposal.operation or ""), subject.index)
+    return subject
 
 
 def _normalize_skill_key(value: str) -> str:
@@ -231,6 +262,26 @@ class D20RulesSystemAdapter:
         if proposal.operation == Operation.WEAPON_ATTACK.value:
             attacks.prepare(proposal, character, subjects or {})
             return
+        if proposal.operation in _EDGES:
+            subject = _edge_subject(proposal, character, subjects or {})
+            # The preflight view carries every condition earlier operations
+            # could apply: an Unconscious subject may be dying by the time its
+            # turn begins, so its death save is checked now.
+            unconscious = any(
+                c.condition is ConditionKind.UNCONSCIOUS
+                for c in subject.stored.state.conditions or ()
+            )
+            if proposal.operation == Operation.BEGIN_TURN.value and (
+                lifecycle.dying(subject) or unconscious
+            ):
+                lifecycle.prepare(subject)
+            return
+        if proposal.operation == Operation.DEATH_SAVING_THROW.value:
+            raise AdjudicationRefusal(
+                RefusalKind.INVALID_SELECTION,
+                "a death save is made when a dying subject's turn begins "
+                "(begin_turn), never named alone",
+            )
         checks.prepare(proposal, character)
 
     def possible_conditions(
@@ -244,6 +295,11 @@ class D20RulesSystemAdapter:
         them present. Checks change no state."""
         if proposal.operation == Operation.WEAPON_ATTACK.value:
             return attacks.possible_conditions(proposal, subjects)
+        if proposal.operation == Operation.BEGIN_TURN.value:
+            subject = _edge_subject(proposal, _character, subjects)
+            if lifecycle.dying(subject):
+                # A natural 20 ends Unconscious and leaves the subject Prone.
+                return {attacks.subject_key(subject): frozenset({ConditionKind.PRONE})}
         return {}
 
     def _assemble_modifiers(
@@ -356,6 +412,10 @@ class D20RulesSystemAdapter:
         source: Literal["hidden", "ai"] = (
             "hidden" if proposal.visibility is RollVisibility.HIDDEN else "ai"
         )
+        if proposal.operation in _EDGES:
+            return self._resolve_edge(
+                proposal, character, dice_service, gm_cheating, subjects or {}
+            )
         if proposal.operation == Operation.WEAPON_ATTACK.value:
             attack = attacks.roll(
                 attacks.prepare(proposal, character, subjects or {}),
@@ -401,6 +461,72 @@ class D20RulesSystemAdapter:
             sheet_effects=(),
             source=("hidden" if proposal.visibility is RollVisibility.HIDDEN else "ai"),
             gm_cheating_at_roll=gm_cheating,
+        )
+
+    def _resolve_edge(
+        self,
+        proposal: RollProposal,
+        character: TurnCharacter,
+        dice_service: DiceService,
+        gm_cheating: bool,
+        subjects: dict[tuple[str, str], TurnSubject],
+    ) -> ResolvedAdjudicationRecord:
+        """An actor-turn edge; a dying subject's turn begins with its death
+        save (contract G1). The coordination transition itself is validated
+        and threaded by the service."""
+        subject = _edge_subject(proposal, character, subjects)
+        kind: Literal["begin", "end"] = (
+            "begin" if proposal.operation == Operation.BEGIN_TURN.value else "end"
+        )
+        assert proposal.subject is not None
+        edge = TurnEdge(kind=kind, subject=proposal.subject)
+        source: Literal["hidden", "ai"] = (
+            "hidden" if proposal.visibility is RollVisibility.HIDDEN else "ai"
+        )
+        if kind == "begin" and lifecycle.dying(subject):
+            saved = lifecycle.roll(lifecycle.prepare(subject), dice_service)
+            outcomes: dict[str, _Outcome] = {
+                "regained_hit_points": "critical_success",
+                "stable": "success",
+                "success": "success",
+                "died": "failure",
+                "failure": "failure",
+            }
+            outcome = outcomes[saved.outcome]
+            if saved.chosen == 1:
+                outcome = "critical_failure"
+            return ResolvedAdjudicationRecord(
+                check_label=proposal.check_label,
+                visibility=proposal.visibility,
+                expression=saved.prepared.expression,
+                raw_rolls=saved.raw_rolls,
+                modifiers_json=saved.provenance_json(),
+                total=saved.chosen,
+                dc=saved.prepared.rule.success_minimum,
+                outcome=outcome,
+                sheet_effects=saved.effects,
+                source=source,
+                gm_cheating_at_roll=gm_cheating,
+                turn_edge=edge,
+            )
+        return ResolvedAdjudicationRecord(
+            check_label=proposal.check_label,
+            visibility=proposal.visibility,
+            expression="",
+            raw_rolls=(),
+            modifiers_json=json.dumps(
+                {
+                    "operation": proposal.operation,
+                    "subject": proposal.subject.model_dump(mode="json"),
+                },
+                sort_keys=True,
+            ),
+            total=0,
+            outcome="undetermined",
+            sheet_effects=(),
+            source=source,
+            gm_cheating_at_roll=gm_cheating,
+            turn_edge=edge,
         )
 
     def prepare_player_roll_announce(
@@ -542,6 +668,15 @@ class D20RulesSystemAdapter:
                 outcome=None,
             )
 
+        if record.turn_edge is not None and not record.raw_rolls:
+            return WriterAdjudicationView(
+                check_label=record.check_label,
+                visibility=record.visibility,
+                player_facing_summary=record.check_label,
+                total=None,
+                dc=None,
+                outcome=None,
+            )
         # A weapon attack's comparison target is the target's Armor Class: the
         # target's state, not the actor's, so the Writer gets the outcome only.
         target_state = (

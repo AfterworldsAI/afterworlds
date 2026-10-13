@@ -70,6 +70,7 @@ __all__ = [
     "AbilityAdjustment",
     "Dnd5eAbilityScores",
     "ActiveEffect",
+    "ActiveTurn",
     "ArmorTrainingGrant",
     "BaseArmorClass",
     "ChoiceRecord",
@@ -97,11 +98,13 @@ __all__ = [
     "SkillGrant",
     "SlotLevel",
     "SpeedGrant",
+    "StableRecovery",
     "SpellAccess",
     "SpellSlotPool",
     "SubjectReference",
     "SummonOrigin",
     "ToolGrant",
+    "TurnCoordination",
     "UsageCounter",
     "VOCABULARIES",
     "VocabularyChoice",
@@ -441,11 +444,29 @@ class HitPointDicePool(_Model):
         return self
 
 
+class StableRecovery(_Model):
+    """A Stable subject's pending recovery (CRD Issue 15c, OD-15c-2): the
+    interval code rolled from ``StableStateFact.recovery`` when it became
+    Stable. An elapsed-time attestation names ``instance_id``; damage, healing
+    or death ends the instance."""
+
+    instance_id: str = Field(min_length=1)
+    interval: int = Field(ge=1)
+    unit: TimeUnit
+
+
 class DeathState(_Model):
     successes: int = Field(ge=0, le=3)
     failures: int = Field(ge=0, le=3)
     stable: bool
     dead: bool
+    stable_recovery: StableRecovery | None = None
+
+    @model_validator(mode="after")
+    def recovery_only_when_stable(self) -> Self:
+        if self.stable_recovery is not None and (not self.stable or self.dead):
+            raise ValueError("a recovery instance belongs to a living Stable subject")
+        return self
 
 
 class ConditionInstance(_Model):
@@ -840,6 +861,25 @@ class CreaturePresence(StrEnum):
     PRESENT = "present"
     POCKET_DIMENSION = "pocket_dimension"
     GONE = "gone"
+
+
+class ActiveTurn(_Model):
+    """The turn in progress: whose it is, and its instance number."""
+
+    subject: SubjectReference
+    instance: int = Field(ge=1)
+
+
+class TurnCoordination(_Model):
+    """A story's actor-turn coordination (CRD Issue 15c, contract G1).
+
+    Changed only by explicit GameMaster ``begin_turn``/``end_turn`` edges;
+    nothing schedules whose turn is next. Holds no hit points, conditions,
+    effects or pending state.
+    """
+
+    active: ActiveTurn | None = None
+    next_instance: int = Field(default=1, ge=1)
 
 
 class ZeroHitPointTreatment(_Model):
