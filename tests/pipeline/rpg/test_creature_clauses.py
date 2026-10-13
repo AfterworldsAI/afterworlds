@@ -488,3 +488,71 @@ def test_an_optional_use_of_another_entry_is_simply_not_made() -> None:
     check_multiattack(erinyes, ["Withering Sword"] * 3)
     with pytest.raises(AdjudicationRefusal):
         check_multiattack(erinyes, ["Withering Sword"] * 3 + ["Entangling Rope"])
+
+
+def test_after_the_mouthers_bite_the_targets_zero_hp_state_needs_a_later_turn() -> None:
+    """The Bite can kill the character it reduces to 0; a later operation of
+    the same turn that turns on that character's zero-HP state (first aid)
+    refuses before any die. (A dead subject's turn start makes no death
+    save, so the edge itself needs no refusal.)"""
+    from afterworlds.models.dnd5e_state import (
+        ActiveTurn,
+        SubjectReference,
+        TurnCoordination,
+    )
+    from afterworlds.models.enums import DiceHandling
+    from afterworlds.models.rpg import RollProposal
+    from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
+    from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
+    from tests.pipeline.rpg.test_adjudication_service import (
+        _STORY_ID,
+        _TURN_ID,
+        _FakeProvider,
+        _make_assembled,
+        _make_session,
+    )
+
+    mouther = _creature("monsters.gibbering_mouther.gibbering_mouther", hp=67)
+    wizard = _medium_wizard()
+    me = SubjectReference(kind="creature", subject_id=mouther.subject_id)
+    document = TurnCoordination(
+        active=ActiveTurn(subject=me, instance=1), next_instance=2
+    )
+
+    def edge(operation: str, subject: Any, kind: str) -> dict[str, Any]:
+        return RollProposal(
+            check_label=operation,
+            subsystem_tag="turn",
+            visibility="shown",  # type: ignore[arg-type]
+            operation=operation,
+            subject={"kind": kind, "subject_id": subject.subject_id},  # type: ignore[arg-type]
+        ).model_dump(mode="json", exclude_none=True)
+
+    bite = _attack(mouther, wizard, "Bite").model_dump(mode="json", exclude_none=True)
+    dice = MagicMock()
+    with pytest.raises(AdjudicationRefusal) as caught:
+        RpgAdjudicationPassService(
+            adapter=D20RulesSystemAdapter(),
+            subject_loader=lambda _story, _ref: mouther,
+            coordination_loader=lambda _story: StoredCoordination(
+                _STORY_ID, 1, document
+            ),
+            bounded_loader=lambda _story, _ref: [],
+        ).adjudicate(
+            _make_assembled(),
+            _make_session(DiceHandling.AI_ROLLS),
+            wizard,
+            dice,
+            provider=_FakeProvider(
+                [
+                    bite,
+                    edge("end_turn", mouther, "creature"),
+                    edge("begin_turn", wizard, "character"),
+                    edge("stabilize", wizard, "character"),
+                ]
+            ),
+            story_id=_STORY_ID,
+            originating_turn_id=_TURN_ID,
+        )
+    assert "zero-HP state" in caught.value.detail
+    dice.roll.assert_not_called()
