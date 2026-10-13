@@ -22,7 +22,8 @@ from afterworlds.ingestion.mechanical.representation import (
     CreatureSaveEffectFact,
 )
 from afterworlds.models.dnd5e_state import TurnCoordination
-from afterworlds.pipeline.rpg import bystanders
+from afterworlds.pipeline.rpg import bystanders, creature_clauses
+from afterworlds.pipeline.rpg.capability import AdjudicationRefusal
 from afterworlds.pipeline.rpg.defense import facts_of
 from afterworlds.services.dnd5e_state.turn import (
     TurnCharacter,
@@ -48,6 +49,24 @@ def _subject(subject: TurnSubject, acting: bool) -> dict[str, object]:
             out["save_effect_entries"] = sorted(
                 f.entry for f in facts if isinstance(f, CreatureSaveEffectFact)
             )
+            # Entries whose hit asks for a charge, or allows a follow-up.
+            charges: dict[str, int] = {}
+            follow_ups: dict[str, str] = {}
+            for f in facts:
+                if not isinstance(f, CreatureAttackFact):
+                    continue
+                try:
+                    plan = creature_clauses.plan(subject, f)
+                except AdjudicationRefusal:
+                    continue
+                if plan.charge_ft is not None:
+                    charges[f.entry] = plan.charge_ft
+                if plan.follow_up is not None:
+                    follow_ups[f.entry] = plan.follow_up
+            if charges:
+                out["charge_feet"] = charges
+            if follow_ups:
+                out["follow_up_attacks"] = follow_ups
             out["spent_uses"] = sorted(
                 c.counter_id.rsplit("/", 1)[-1]
                 for c in state.usage_counters or ()

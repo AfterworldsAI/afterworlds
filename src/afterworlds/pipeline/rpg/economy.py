@@ -231,6 +231,9 @@ def costs(
         sel = proposal.creature_attack
         assert sel is not None
         by = SubjectReference(kind="creature", subject_id=sel.attacker.subject_id)
+        if sel.follows_up:
+            # Part of the hit it follows (validated adjacent to it).
+            return []
         if in_multiattack:
             if opens_multiattack is None:
                 return []

@@ -55,7 +55,7 @@ from afterworlds.ingestion.mechanical.representation import (
 from afterworlds.models.dnd5e_state import TurnCoordination
 from afterworlds.models.enums import ConditionVisibility
 from afterworlds.models.rpg import CreatureAttackSelection, RollProposal, SheetEffect
-from afterworlds.pipeline.rpg import bystanders, creature_effects
+from afterworlds.pipeline.rpg import bystanders, creature_clauses, creature_effects
 from afterworlds.pipeline.rpg.attacks import (
     _SIGHT_LIGHT,
     _SIZES_UP_TO,
@@ -124,6 +124,13 @@ class PreparedCreatureAttack:
     usage: CreatureEntryUsageFact | None = None
     #: Each creature subject's certified template digest.
     templates: dict[str, str] = field(default_factory=dict)
+    clauses: creature_clauses.HitClauses = creature_clauses.HitClauses()
+    #: Whether the clauses' predicate holds (size, charge), known pre-dice.
+    predicate_holds: bool = False
+
+    @property
+    def advantaged(self) -> bool:
+        return self.expression == "2d20kh1"
 
     @property
     def expression(self) -> str:
@@ -146,6 +153,7 @@ class RolledCreatureAttack:
     damage: tuple[DamageTaken, ...] = ()
     rider_effects: tuple[SheetEffect, ...] = ()
     rider: dict[str, object] | None = None
+    clauses: dict[str, object] | None = None
 
     @property
     def total(self) -> int:
@@ -189,6 +197,7 @@ class RolledCreatureAttack:
                 "damage_rolls": list(self.damage_rolls),
                 "damage": [d.provenance() for d in self.damage],
                 "rider": self.rider,
+                "clauses": self.clauses,
                 "certificate": p.certificate.as_json(),
                 "templates": p.templates,
             },
@@ -232,6 +241,7 @@ def _attack_fact(attacker: TurnCreature, entry: str) -> CreatureAttackFact:
             f"{template}/{entry} prints {unexecuted[0] if unexecuted else 'no bonus'}, "
             "which is not executable here",
         )
+    creature_clauses.plan(attacker, fact)  # every clause executed, or refused
     for term in fact.hit_damage:
         if term.dice is None and term.constant is None:
             raise _refuse(RefusalKind.MISSING_AUTHORITY, f"{entry}: untyped damage")
@@ -533,7 +543,12 @@ def prepare(
         if len(bonuses) != 1:
             raise _refuse(RefusalKind.MISSING_AUTHORITY, f"no typed {sel.cover} cover")
         ac_breakdown["cover"] = bonuses[0].bonus
-    for term in fact.hit_damage:
+    hit_clauses = creature_clauses.plan(attacker, fact)
+    holds = _predicate(sel, hit_clauses, target, f"{template_of(attacker)}/{sel.entry}")
+    terms = [*fact.hit_damage]
+    if hit_clauses.advantage_damage is not None:
+        terms.append(hit_clauses.advantage_damage[1])
+    for term in terms:
         assert term.damage_type is not None
         preflight(target, term.damage_type)
     rider_save = _check_rider(fact.hit_effect, attacker, target, fact.entry)
@@ -553,7 +568,106 @@ def prepare(
         rider_save=rider_save,
         ac_breakdown=ac_breakdown,
         usage=creature_effects.usable(attacker, fact.entry),
+        clauses=hit_clauses,
+        predicate_holds=holds,
     )
+
+
+def _predicate(
+    sel: CreatureAttackSelection,
+    hit_clauses: creature_clauses.HitClauses,
+    target: TurnSubject,
+    where: str,
+) -> bool:
+    """Whether the clauses' leading predicate holds: the target's size in
+    its own binding, and the GameMaster's charge selection."""
+    charged = creature_clauses.charged(sel, hit_clauses, where)
+    if not hit_clauses.predicated:
+        return False
+    if hit_clauses.maximum_size is not None:
+        size = _size(target)
+        if size is None:
+            raise _refuse(RefusalKind.MISSING_AUTHORITY, "the target has no size")
+        if size not in _SIZES_UP_TO(hit_clauses.maximum_size):
+            return False
+    return charged
+
+
+def check_follow_up(
+    proposals: list[RollProposal],
+    index: int,
+    actor: TurnCharacter,
+    subjects: dict[tuple[str, str], TurnSubject],
+) -> None:
+    """Refuse, before any die, a follow-up attack that does not directly
+    follow an attack by the same creature against the same target whose
+    entry allows it, with that entry's predicate holding."""
+    sel = proposals[index].creature_attack
+    before = proposals[index - 1].creature_attack if index else None
+    allowed = None
+    if sel is not None and before is not None and not before.follows_up:
+        attacker = _subject(subjects, actor, before.attacker)
+        target = _subject(subjects, actor, before.target)
+        if isinstance(attacker, TurnCreature) and target is not None:
+            plan = creature_clauses.plan(attacker, _attack_fact(attacker, before.entry))
+            if _predicate(before, plan, target, before.entry):
+                allowed = plan.follow_up
+    if (
+        sel is None
+        or before is None
+        or sel.multiattack
+        or before.attacker != sel.attacker
+        or before.target != sel.target
+        or allowed != sel.entry
+    ):
+        raise _refuse(
+            RefusalKind.INVALID_SELECTION,
+            "a follow-up attack directly follows an attack by the same creature "
+            "against the same target whose printed hit allows it",
+        )
+
+
+def follow_up_of(prepared: PreparedCreatureAttack) -> str | None:
+    """The follow-up attack this attack's hit allows, if its predicate
+    holds."""
+    if prepared.predicate_holds:
+        return prepared.clauses.follow_up
+    return None
+
+
+def _clause_effects(
+    prepared: PreparedCreatureAttack,
+    target: TurnSubject,
+    taken: DamageTaken,
+    coordination: TurnCoordination | None,
+) -> tuple[list[SheetEffect], dict[str, object] | None]:
+    """The executed clauses on a hit, on the target as the damage left it."""
+    plan = prepared.clauses
+    if plan == creature_clauses.HitClauses():
+        return [], None
+    out: dict[str, object] = {"no_effect": list(plan.no_effect)}
+    if plan.advantage_damage is not None:
+        out["advantage_damage"] = prepared.advantaged
+    if plan.dies_at_zero:
+        out["dies_at_zero"] = taken.outcome == "died_by_attack"
+    if not plan.predicated:
+        return [], out
+    out["predicate"] = prepared.predicate_holds
+    if plan.follow_up is not None:
+        out["follow_up"] = "may_follow_up" if prepared.predicate_holds else None
+    effects: list[SheetEffect] = []
+    if plan.prone and prepared.predicate_holds:
+        death = target.stored.state.death_state
+        if death is not None and death.dead:
+            out["prone"] = "target_died"
+        elif condition_immune(target, ConditionKind.PRONE):
+            out["prone"] = "immune"
+        else:
+            effects.append(
+                _condition_effect(prepared, ConditionKind.PRONE, None, coordination)
+            )
+            out["prone"] = "applied"
+    return effects, out
 
 
 def _condition_value(
@@ -695,8 +809,15 @@ def roll(
     )
     if not hit:
         # A used limited entry is spent whether or not it hits.
+        missed = prepared.clauses.no_effect
         return RolledCreatureAttack(
-            prepared, attack.raw_rolls, attack.chosen, False, False, rider_effects=spent
+            prepared,
+            attack.raw_rolls,
+            attack.chosen,
+            False,
+            False,
+            rider_effects=spent,
+            clauses={"no_effect": list(missed)} if missed else None,
         )
     from afterworlds.ingestion.mechanical.representation import CriticalDamageFact
 
@@ -713,7 +834,11 @@ def roll(
     target = prepared.target
     rolls: list[int] = []
     parts: list[tuple[int, DamageType]] = []
-    for term in prepared.fact.hit_damage:
+    terms = list(prepared.fact.hit_damage)
+    replaced = prepared.clauses.advantage_damage
+    if replaced is not None and prepared.advantaged:
+        terms[replaced[0]] = replaced[1]
+    for term in terms:
         amount = term.constant or 0
         if term.dice is not None:
             count = term.dice.count * (multiplier if critical else 1)
@@ -724,11 +849,20 @@ def roll(
         parts.append((max(0, amount), term.damage_type))
     # One hit, one damage: every term together (responses per type).
     (first, first_type), *rest = parts
-    result = take_damage(target, first, first_type, critical=critical, more=tuple(rest))
+    result = take_damage(
+        target,
+        first,
+        first_type,
+        critical=critical,
+        more=tuple(rest),
+        dies_at_zero=prepared.clauses.dies_at_zero,
+    )
     taken = [result]
     # The hit effect sees what the damage left.
     target = with_effects(target, list(result.effects))
     effects, rider = _rider(prepared, target, dice, coordination)
+    more, clauses = _clause_effects(prepared, target, result, coordination)
+    effects += more
     return RolledCreatureAttack(
         prepared,
         attack.raw_rolls,
@@ -739,6 +873,7 @@ def roll(
         tuple(taken),
         (*spent, *effects),
         rider,
+        clauses,
     )
 
 
@@ -762,9 +897,13 @@ def possible_conditions(
         return {}
     kinds = set(damage_kinds(target))
     try:
-        rider = _attack_fact(attacker, sel.entry).hit_effect
+        fact = _attack_fact(attacker, sel.entry)
+        plan = creature_clauses.plan(attacker, fact)
+        if plan.prone and _predicate(sel, plan, target, sel.entry):
+            kinds.add(ConditionKind.PRONE)
     except AdjudicationRefusal:
         return {key: frozenset(kinds)}
+    rider = fact.hit_effect
     if rider is not None and rider.condition is not None:
         kinds.add(rider.condition.condition)
     if rider is not None and rider.rider_save is not None:

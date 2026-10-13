@@ -383,17 +383,18 @@ class D20RulesSystemAdapter:
         return {}
 
     def not_triggered(
-        self, proposal: RollProposal, gm_cheating: bool
+        self, proposal: RollProposal, gm_cheating: bool, what: str = "cleave"
     ) -> ResolvedAdjudicationRecord:
-        """Cleave's extra attack when the attack before it did not hit: no
-        die, no effect, and the once-per-turn use is not taken."""
+        """An extra attack when the attack before it did not hit (Cleave's,
+        or a creature entry's follow-up): no die, no effect, and Cleave's
+        once-per-turn use is not taken."""
         return ResolvedAdjudicationRecord(
             check_label=proposal.check_label,
             visibility=proposal.visibility,
             expression="",
             raw_rolls=(),
             modifiers_json=json.dumps(
-                {"operation": proposal.operation, "cleave": "not_triggered"}
+                {"operation": proposal.operation, what: "not_triggered"}
             ),
             total=0,
             outcome="undetermined",

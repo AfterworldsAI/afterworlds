@@ -245,6 +245,7 @@ def take_damage(
     critical: bool,
     knock_out: bool = False,
     more: tuple[tuple[int, DamageType], ...] = (),
+    dies_at_zero: bool = False,
 ) -> DamageTaken:
     """The effects on *target* of *amount* damage of *damage_type* (and of
     each further ``(amount, type)`` in *more*: one hit's other damage terms),
@@ -252,7 +253,9 @@ def take_damage(
 
     Responses apply per type; the hit's damage is then one amount, so
     temporary hit points, the bound, massive damage and every zero-HP
-    consequence are judged once per hit (``play.damage_and_healing``)."""
+    consequence are judged once per hit (``play.damage_and_healing``).
+    *dies_at_zero*: the attack's own clause, *"The target dies if it is
+    reduced to 0 Hit Points by this attack"*, replaces falling Unconscious."""
     index = target.index
     if index is None:
         raise _refuse(
@@ -366,6 +369,16 @@ def take_damage(
     # Reaching 0 Hit Points: overflow before the bound.
     overflow = floor - new_current
     effects.append(effect("current_hp", "set", floor))
+    if dies_at_zero:
+        died = DeathState(successes=0, failures=0, stable=False, dead=True)
+        effects.append(effect("death_state", "set", died.model_dump()))
+        return DamageTaken(
+            amount,
+            taken,
+            tuple(r.value for r in responses),
+            "died_by_attack",
+            tuple(effects),
+        )
     as_character = _as_character(target)
     outcomes = {
         f.subject.value: f

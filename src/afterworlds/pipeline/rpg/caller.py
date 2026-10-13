@@ -63,6 +63,10 @@ _CREATURE_ATTACK_SCHEMA: dict[str, Any] = {
         "target_within_5_feet": {"oneOf": [{"type": "boolean"}, {"type": "null"}]},
         "allies_within_5_feet_of_target": _SUBJECT_LIST,
         "multiattack": {"type": "boolean"},
+        "moved_straight_toward_target": {
+            "oneOf": [{"type": "boolean"}, {"type": "null"}]
+        },
+        "follows_up": {"type": "boolean"},
     },
     "required": [
         "attacker",

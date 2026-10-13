@@ -137,6 +137,9 @@ def _ledger(
         sel = proposal.weapon_attack
         if sel is not None and sel.cleave:
             _cleave_follows(proposals, index)
+        creature = proposal.creature_attack
+        if creature is not None and creature.follows_up:
+            creature_attacks.check_follow_up(proposals, index, actor, subjects)
         document = _spend(document, proposal, actor, subjects, index, openers)
         if proposal.operation not in _EDGE_OPERATIONS or proposal.subject is None:
             continue
@@ -193,6 +196,15 @@ def _cleaves(records: list[ResolvedAdjudicationRecord]) -> bool:
         return False
     provenance = json.loads(records[-1].modifiers_json)
     return (provenance.get("mastery") or {}).get("result") == "may_cleave"
+
+
+def _follows_up(records: list[ResolvedAdjudicationRecord]) -> bool:
+    """Whether the creature attack just resolved hit and allows its
+    follow-up attack."""
+    if not records:
+        return False
+    provenance = json.loads(records[-1].modifiers_json)
+    return (provenance.get("clauses") or {}).get("follow_up") == "may_follow_up"
 
 
 def _cleave_follows(proposals: list[RollProposal], index: int) -> None:
@@ -576,9 +588,17 @@ class RpgAdjudicationPassService:
         begun = False
         for index, proposal in enumerate(proposals):
             sel = proposal.weapon_attack
-            if sel is not None and sel.cleave and not _cleaves(records):
+            creature = proposal.creature_attack
+            skipped = (sel is not None and sel.cleave and not _cleaves(records)) or (
+                creature is not None
+                and creature.follows_up
+                and not _follows_up(records)
+            )
+            if skipped:
                 record = self._adapter.not_triggered(
-                    proposal, session_state.gm_cheating
+                    proposal,
+                    session_state.gm_cheating,
+                    "cleave" if sel is not None else "follow_up",
                 )
                 records.append(record)
                 views.append(self._adapter.to_writer_view(record))

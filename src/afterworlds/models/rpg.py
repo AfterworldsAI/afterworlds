@@ -165,6 +165,13 @@ class CreatureAttackSelection(BaseModel):
     #: proposals by one creature marked so form one Multiattack action, which
     #: must match one of its printed alternatives.
     multiattack: bool = False
+    #: For an entry printing a charge (*"moved 20+ feet straight toward it
+    #: immediately before the hit"*): whether the attacker did (OD-15c-1).
+    moved_straight_toward_target: bool | None = None
+    #: The follow-up attack an entry's hit allows (*"can make one Bite
+    #: attack against it"*): it directly follows that attack, against its
+    #: target, and takes no action of its own.
+    follows_up: bool = False
 
 
 class CreatureSaveEffectSelection(BaseModel):

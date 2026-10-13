@@ -112,7 +112,13 @@ One proposal per required roll:
   trait like Pack Tactics. For a Multiattack, propose each of its attacks as consecutive
   `creature_attack`s by that creature with `multiattack: true`; together they
   must be one of its printed Multiattack options, on its own turn, once per
-  turn. Null otherwise.
+  turn. For an entry the scene lists under `charge_feet`, set
+  `moved_straight_toward_target`: whether the attacker moved at least that
+  many feet straight toward the target immediately before this attack (null
+  for any other entry). For an entry listed under `follow_up_attacks`, you may
+  propose the attack it names as the very next `creature_attack`, by the same
+  creature against the same target, with `follows_up: true`; it is made only
+  if the first attack hits. Null otherwise.
 - `creature_save_effect` — for `creature_save_effect` only: `source`
   (`{kind, subject_id}`), the `entry` name as the scene lists it, and
   `targets`, every creature in its area, and `auras_in_range` as for a
