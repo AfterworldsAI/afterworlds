@@ -290,14 +290,16 @@ def test_the_retired_release_has_no_artifact_and_is_refused() -> None:
     Step 5 of the Recorded Owner Decision of 21 September 2026; Git history
     retains it. Resolution must still refuse the release as quarantined rather
     than report it absent, because ``None`` is a releasable answer. Beside the
-    current accepted authority (the CRD Issue 15c native C5 successor), the
-    directory holds the two superseded intermediates and the release's two
-    earlier artifacts (the original and the CRD Issue 2b G1 successor), each
-    superseded by digest, kept for test and replay evidence.
+    current accepted authority (the CRD Issue 15c C7 successor), the
+    directory holds the two superseded intermediates and the release's three
+    earlier artifacts (the original, the CRD Issue 2b G1 successor and the CRD
+    Issue 15c native C5 successor), each superseded by digest, kept for test
+    and replay evidence.
     """
     assert sorted(p.name for p in COMMITTED_ORACLE_DIR.glob("*.json")) == [
         "srd-5-2-1-corpus-3fe24ff6-4e3.json",
         "srd-5-2-1-corpus-574662e9-0ef.json",
+        "srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json",
         "srd-5-2-1-corpus-8781d4e0-a3b-15c.json",
         "srd-5-2-1-corpus-8781d4e0-a3b-g1.json",
         "srd-5-2-1-corpus-8781d4e0-a3b.json",

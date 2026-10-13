@@ -43,7 +43,10 @@ from tests.ingestion.mechanical._replacement_chain import (
     REMAINING,
     proposal_path,
 )
-from tests.ingestion.mechanical.test_oracle_succession import _ACCEPTED_15C_PROPOSALS
+from tests.ingestion.mechanical.test_oracle_succession import (
+    _ACCEPTED_15C_PROPOSALS,
+    _ACCEPTED_C7_PROPOSALS,
+)
 
 #: The retired original release, refused rather than resolved.
 PACKAGE_UUID = "4458fa10-4a66-5e0e-9ecc-ea37530ad2b4"
@@ -206,6 +209,9 @@ def test_no_refused_candidate_is_selectable() -> None:
         # The same-release CRD Issue 15c native C5 successor: the eleven
         # proposals the Owner accepted (2026-10-12) with the exact packet.
         *_ACCEPTED_15C_PROPOSALS.values(),
+        # The same-release CRD Issue 15c C7 successor: the two proposals the
+        # Owner accepted (2026-10-13) with the exact consolidated packet.
+        *_ACCEPTED_C7_PROPOSALS.values(),
     }
     assert proposal_identity(load_proposal(G1_PROPOSAL)) == G1_PROPOSAL_IDENTITY
     # The identity is the one the Owner's recorded receipt accepted.

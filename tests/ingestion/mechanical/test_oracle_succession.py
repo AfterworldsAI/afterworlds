@@ -71,15 +71,27 @@ def test_superseding_the_only_claimant_resolves_nothing(
     assert _resolve_committed_inputs(PACKAGE_UUID, RELEASE_VERSION, tmp_path) is None
 
 
-def test_only_the_release_predecessor_and_g1_are_superseded_by_digest() -> None:
-    """The original artifact and its CRD Issue 2b G1 successor, each kept byte
-    for byte; the CRD Issue 15c native C5 successor is the one claimant."""
+def test_only_the_release_predecessor_g1_and_c5_are_superseded_by_digest() -> None:
+    """The original artifact, its CRD Issue 2b G1 successor and the CRD Issue
+    15c native C5 successor, each kept byte for byte; the CRD Issue 15c C7
+    successor is the one claimant."""
     directory = oracle.COMMITTED_ORACLE_DIR
     prior = directory / "srd-5-2-1-corpus-8781d4e0-a3b.json"
     g1 = directory / "srd-5-2-1-corpus-8781d4e0-a3b-g1.json"
-    assert {_digest(prior), _digest(g1)} == oracle.SUPERSEDED_ORACLE_SHA256
+    c5 = directory / "srd-5-2-1-corpus-8781d4e0-a3b-15c.json"
+    assert {
+        _digest(prior),
+        _digest(g1),
+        _digest(c5),
+    } == oracle.SUPERSEDED_ORACLE_SHA256
     assert _digest(g1) == (
         "2ccbaeba6de75d9787fbdd407e42dc2425fa20d4d26bcc298b681b550bd11258"  # noqa: E501  # pragma: allowlist secret
+    )
+    assert _digest(c5) == (
+        "23e5d8e0fac60e3f5417b3a41e40e6f475366dd385856f38c42104f4dd264f69"  # noqa: E501  # pragma: allowlist secret
+    )
+    assert _digest(directory / "srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json") == (
+        "2853f30a832ca581c9d4169b82d0c360f3d6a2d78f0ad8980de9997eef51f373"  # noqa: E501  # pragma: allowlist secret
     )
 
 
@@ -110,15 +122,26 @@ _ACCEPTED_15C_PROPOSALS = {
 }
 
 
-def test_the_committed_release_resolves_to_the_recorded_15c_successor() -> None:
+#: The two proposals the Owner accepted with the exact consolidated C7
+#: packet (``.claude/review-notes/issue-15c-c7-native/OWNER-PACKET.md``).
+_ACCEPTED_C7_PROPOSALS = {
+    "character-origins-feats": (
+        "1e7b63d3800154eee539297b0ae5d4f9efbfe21c1776986db133e3cc046bfd28"  # noqa: E501  # pragma: allowlist secret
+    ),
+    "equipment": "b8c65454cae97f82cdb96c857aad84c70ba8c78e96fa24f1e95e89360e144a76",  # noqa: E501  # pragma: allowlist secret
+}
+
+
+def test_the_committed_release_resolves_to_the_recorded_c7_successor() -> None:
+    """The C7 successor: C5's eleven accepted proposals, two of them replaced
+    by C7's, at the accepted oracle identity."""
     inputs = oracle.committed_inputs_for(
         "1299484e-c72d-509b-bd8d-d0169ee1f8d2", "5.2.1-corpus.8781d4e0-a3b"
     )
     assert inputs is not None
     identities = {b.batch_id: b.proposal_identity for b in inputs.batches}
-    assert {k: identities[k] for k in _ACCEPTED_15C_PROPOSALS} == (
-        _ACCEPTED_15C_PROPOSALS
-    )
+    expected = {**_ACCEPTED_15C_PROPOSALS, **_ACCEPTED_C7_PROPOSALS}
+    assert {k: identities[k] for k in expected} == expected
     assert oracle.oracle_identity(inputs.oracle) == (
-        "000c4c108daf609c26eb9ae9f1197a26eef6fb80a3cb5c788f9e89ba20ad6e76"  # noqa: E501  # pragma: allowlist secret
+        "cb04163ba0374e95ce0fcdaae939b00793e71f84ed3222593c4babfc9065ef6e"  # noqa: E501  # pragma: allowlist secret
     )
