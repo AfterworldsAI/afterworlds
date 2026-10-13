@@ -315,22 +315,25 @@ def take_damage(
     effects: list[SheetEffect] = []
     absorb = _one(index, "lost_first", TemporaryHitPointAbsorptionFact)
     remaining = taken
-    if absorb.absorbed_first and hp.temporary:
+    if absorb.absorbed_first and hp.temporary and remaining:
         absorbed = min(hp.temporary, remaining)
         remaining -= absorbed
         effects.append(effect("temporary_hp", "set", hp.temporary - absorbed))
         if not absorb.overflow_to_hit_points:
             remaining = 0
-    if remaining == 0:
+    floor = _one(index, "hit_points", HitPointBoundFact).minimum_current
+    at_zero = hp.current <= floor
+    # At 0 Hit Points any damage taken is judged below, whatever temporary
+    # Hit Points absorbed of it (the temporary loss stays spent).
+    if remaining == 0 and not (at_zero and taken > 0):
         return DamageTaken(
             amount, taken, tuple(r.value for r in responses), "absorbed", tuple(effects)
         )
 
-    floor = _one(index, "hit_points", HitPointBoundFact).minimum_current
     maximum = hp.maximum - (hp.maximum_reduction or 0)
     death = state.death_state
 
-    if hp.current <= floor:
+    if at_zero:
         # Already at 0 Hit Points.
         rule = _one(index, "damage_at_0_hit_points", DamageAtZeroHitPointsFact)
         if not _as_character(target):
@@ -349,7 +352,9 @@ def take_damage(
         failures = death.failures + (
             rule.critical_hit_failures if critical else rule.failures
         )
-        dead = remaining >= maximum or failures >= 3
+        # "damage that equals or exceeds your Hit Point maximum": the damage
+        # taken, after its responses, not what temporary Hit Points left.
+        dead = taken >= maximum or failures >= 3
         new = DeathState(
             successes=death.successes,
             failures=min(failures, 3),

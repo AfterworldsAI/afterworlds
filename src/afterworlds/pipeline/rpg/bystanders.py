@@ -28,6 +28,7 @@ from __future__ import annotations
 
 from afterworlds.ingestion.mechanical.representation import ConditionKind
 from afterworlds.models.rpg import SubjectRef
+from afterworlds.pipeline.rpg import familiars
 from afterworlds.pipeline.rpg.capability import AdjudicationRefusal, RefusalKind
 from afterworlds.pipeline.rpg.conditions import cannot_act, effective
 from afterworlds.services.dnd5e_state.turn import (
@@ -78,6 +79,9 @@ def _read(
         subject = actor if key == _key(actor) else subjects.get(key)
         if subject is None or subject.index is None:
             raise _refuse(RefusalKind.MISSING_STATE, f"{ref.kind} {ref.subject_id}")
+        # A named physical bystander must be here: a familiar not recorded
+        # present (dismissed, gone, unknown) is no ally or enemy within 5 feet.
+        familiars.require_present(subject)
         if any(_key(subject) == _key(e) for e in excluded):
             raise _refuse(
                 RefusalKind.INVALID_SELECTION, f"a {what} must be another creature"

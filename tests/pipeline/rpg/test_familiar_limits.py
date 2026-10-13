@@ -121,3 +121,61 @@ def test_a_familiars_zero_hp_operations_are_held() -> None:
         stable,
     )
     assert recovery.kind is RefusalKind.INVALID_SELECTION
+
+
+@pytest.mark.parametrize(
+    ("presence", "kind"),
+    [
+        (None, RefusalKind.MISSING_STATE),
+        (CreaturePresence.POCKET_DIMENSION, RefusalKind.INVALID_SELECTION),
+        (CreaturePresence.GONE, RefusalKind.INVALID_SELECTION),
+    ],
+)
+def test_an_absent_familiar_is_no_bystander(
+    presence: CreaturePresence | None, kind: RefusalKind
+) -> None:
+    """Pack Tactics' named ally, and a ranged attack's named enemy within 5
+    feet, must be present (codex-c8-execution-correction-review P1-A)."""
+    from afterworlds.models.rpg import SubjectRef
+
+    wolf, wizard = _creature(hp=40), _medium_wizard()
+    cat = _familiar(_creature("animals.cat", hp=4), presence)
+    ref = SubjectRef(kind="creature", subject_id=cat.subject_id)
+    ally = _bite(wolf, wizard, allies_within_5_feet_of_target=(ref,))
+    refusal = _refused(ally, wizard, wolf, cat)
+    assert refusal.kind is kind and str(cat.subject_id) in refusal.detail
+    from tests.pipeline.rpg.test_weapon_attacks import DAGGER
+
+    shot = _proposal(
+        wolf,
+        DAGGER,
+        range="within_normal_range",
+        thrown=True,
+        hostiles_within_5_feet=(ref,),
+        ability="dexterity",
+        target_within_5_feet=False,
+    )
+    refusal = _refused(shot, _attacker(DAGGER), wolf, cat)
+    assert refusal.kind is kind and str(cat.subject_id) in refusal.detail
+
+
+def test_a_present_familiar_is_a_bystander() -> None:
+    from afterworlds.models.rpg import SubjectRef
+    from tests.pipeline.rpg.test_creature_attacks import _resolve
+    from tests.pipeline.rpg.test_weapon_attacks import _dice
+
+    wolf, wizard = _creature(hp=40), _medium_wizard()
+    cat = _familiar(_creature("animals.cat", hp=4))
+    ref = SubjectRef(kind="creature", subject_id=cat.subject_id)
+    subjects = {("creature", str(c.subject_id)): c for c in (wolf, cat)}
+    record = _resolve(
+        _bite(wolf, wizard, allies_within_5_feet_of_target=(ref,)),
+        wizard,
+        subjects,
+        _dice((5, 18), (3,)),
+    )
+    import json
+
+    assert json.loads(record.modifiers_json)["advantage_sources"] == [
+        "animals.wolf/Pack Tactics"
+    ]

@@ -174,3 +174,83 @@ def test_ordinary_noncritical_damage_at_0_hit_points_is_one_failure(
         failures + at_zero.failures,
         dead,
     )
+
+
+# ---------------------------------------------------------------------------
+# Temporary Hit Points at 0 Hit Points (codex-zero-hp-temporary-damage-review)
+# ---------------------------------------------------------------------------
+
+
+def _at_zero(base: TurnCreature, temporary: int) -> TurnCreature:
+    state = base.stored.state.model_copy(
+        update={"hit_points": HitPoints(current=0, maximum=11, temporary=temporary)}
+    )
+    return dataclasses.replace(
+        base, stored=dataclasses.replace(base.stored, state=state)
+    )
+
+
+def _hit(target: TurnCreature, amount: int, kind: str = "piercing") -> Any:
+    from afterworlds.ingestion.mechanical.representation import DamageType
+    from afterworlds.pipeline.rpg.damage import take_damage
+
+    return take_damage(target, amount, DamageType(kind), critical=False)
+
+
+def _death(taken: Any) -> Any:
+    from afterworlds.models.dnd5e_state import DeathState
+
+    (effect,) = [e for e in taken.effects if e.target == "death_state"]
+    return DeathState.model_validate(json.loads(effect.value_json))
+
+
+def _temporary(taken: Any) -> int | None:
+    found = [e for e in taken.effects if e.target == "temporary_hp"]
+    return json.loads(found[0].value_json) if found else None
+
+
+def test_damage_temporary_hp_absorbs_at_zero_is_still_a_failure() -> None:
+    taken = _hit(_at_zero(_dying(), 5), 3)
+    assert (taken.outcome, _temporary(taken)) == ("death_save_failure", 2)
+    assert _death(taken).failures == 1 and not _death(taken).dead
+
+
+def test_absorbed_damage_ends_stability_at_zero() -> None:
+    taken = _hit(_at_zero(_stable(), 5), 3)
+    death = _death(taken)
+    assert _temporary(taken) == 2
+    assert (death.stable, death.failures, death.stable_recovery) == (False, 1, None)
+
+
+def test_damage_at_zero_equal_to_the_maximum_kills_whatever_temporary_hp_took() -> None:
+    taken = _hit(_at_zero(_dying(), 5), 11)
+    assert taken.outcome == "died" and _death(taken).dead
+    assert _temporary(taken) == 0
+
+
+def test_damage_at_zero_below_the_maximum_after_temporary_hp_is_one_failure() -> None:
+    taken = _hit(_at_zero(_dying(), 5), 9)
+    assert taken.outcome == "death_save_failure" and not _death(taken).dead
+
+
+@pytest.mark.parametrize("base", [_dying, _stable], ids=["dying", "stable"])
+def test_damage_at_zero_without_temporary_hp_is_a_failure(base: Any) -> None:
+    death = _death(_hit(_at_zero(base(), 0), 3))
+    assert death.failures == 1 and not death.stable
+
+
+def test_no_damage_taken_at_zero_changes_nothing() -> None:
+    nothing = _hit(_at_zero(_dying(), 5), 0)
+    assert (nothing.taken, nothing.effects) == (0, ())
+    skeleton = _at_zero(
+        _creature("monsters.skeletons.skeleton", hp=11, treatment=CHARACTER), 0
+    )
+    immune = _hit(skeleton, 3, "poison")
+    assert (immune.taken, immune.effects) == (0, ())
+
+
+def test_temporary_hp_above_zero_absorbs_without_a_failure() -> None:
+    target = _with_temporary(current=7, temporary=5)
+    taken = _hit(target, 3)
+    assert taken.outcome == "absorbed" and _temporary(taken) == 2
+    assert [e.target for e in taken.effects] == ["temporary_hp"]
