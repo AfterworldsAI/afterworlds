@@ -287,6 +287,9 @@ def _fact(source: TurnCreature, entry: str) -> CreatureSaveEffectFact:
         )
     fact = found[0]
     where = f"{template}/{entry}"
+    from afterworlds.pipeline.rpg import roster
+
+    roster.require(template, entry)
     from afterworlds.pipeline.rpg.creature_clauses import clauses
 
     printed = clauses(source, entry)

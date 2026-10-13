@@ -58,7 +58,12 @@ from afterworlds.ingestion.mechanical.representation import (
 from afterworlds.models.dnd5e_state import TurnCoordination
 from afterworlds.models.enums import ConditionVisibility
 from afterworlds.models.rpg import CreatureAttackSelection, RollProposal, SheetEffect
-from afterworlds.pipeline.rpg import bystanders, creature_clauses, creature_effects
+from afterworlds.pipeline.rpg import (
+    bystanders,
+    creature_clauses,
+    creature_effects,
+    roster,
+)
 from afterworlds.pipeline.rpg.attacks import (
     _SIGHT_LIGHT,
     _SIZES_UP_TO,
@@ -227,6 +232,7 @@ def _attack_fact(attacker: TurnCreature, entry: str) -> CreatureAttackFact:
             RefusalKind.UNSUPPORTED_CAPABILITY,
             "legendary actions are not executable here",
         )
+    roster.require(template, entry)
     unexecuted = [
         name
         for name, value in (
