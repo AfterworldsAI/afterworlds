@@ -103,6 +103,9 @@ _WEAPON_ATTACK_SCHEMA: dict[str, Any] = {
         "auras_in_range": _SUBJECT_LIST,
         "target_within_5_feet": {"oneOf": [{"type": "boolean"}, {"type": "null"}]},
         "two_handed": {"type": "boolean"},
+        "ammunition_item_id": {
+            "oneOf": [{"type": "string", "format": "uuid"}, {"type": "null"}]
+        },
         "knock_out": {"type": "boolean"},
         "hands": {
             "type": "object",

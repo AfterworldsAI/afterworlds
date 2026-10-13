@@ -2222,11 +2222,32 @@ class OrchestratorService:
         # when adjudication produced proposals; skipped otherwise.
         rpg_visible_state: RpgVisibleState | None = None
         if adj_result is not None and rpg_sheet is not None:
-            all_effects = tuple(
+            from afterworlds.services.dnd5e_state.turn import ITEM_QUANTITY
+
+            every_effect = tuple(
                 effect
                 for record in adj_result.proposals
                 for effect in record.sheet_effects
             )
+            item_effects = tuple(e for e in every_effect if e.target == ITEM_QUANTITY)
+            all_effects = tuple(e for e in every_effect if e.target != ITEM_QUANTITY)
+            if item_effects:
+                try:
+                    self._apply_item_effects(
+                        session, item_effects, rpg_sheet, adj_result.subjects
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    return self._pipeline_error(
+                        intent_result,
+                        latency,
+                        turn_start,
+                        f"item expenditure failed: {exc}",
+                        input_safety_result=input_safety,
+                        planner_result=planner_result,
+                        writer_result=writer_result,
+                        rpg_adjudication_result=adj_result,
+                        branching_pass_result=branching_pass_result,
+                    )
             if all_effects:
                 try:
                     # The actor's effects, however addressed, apply in order.
@@ -3717,6 +3738,38 @@ class OrchestratorService:
             turn_id=turn_id,
             now=datetime.now(tz=UTC).isoformat(),
         )
+
+    @staticmethod
+    def _apply_item_effects(
+        session: Session,
+        effects: tuple[SheetEffect, ...],
+        actor: TurnCharacter,
+        subjects: tuple[object, ...],
+    ) -> None:
+        """Expend held items (ammunition) the turn's records spent (CRD Issue
+        15c), each by compare-and-swap against the revision the turn read it
+        at; the last one removes the holding. Raises on an item the turn did
+        not read or a moved revision, so the outer transaction rolls back."""
+        from afterworlds.services.dnd5e_state.holdings import spend_item
+
+        read = {
+            str(i.item_id): i
+            for holder in (actor, *subjects)
+            for i in getattr(holder, "items", ())
+        }
+        spend: dict[str, int] = {}
+        for effect in effects:
+            value = json.loads(effect.value_json)
+            spend[value["item_id"]] = spend.get(value["item_id"], 0) + int(
+                value["spend"]
+            )
+        for item_id, count in spend.items():
+            item = read.get(item_id)
+            if item is None:
+                raise ValueError(f"item {item_id} was not read by this turn")
+            spend_item(
+                session, item.item_id, expected_revision=item.revision, count=count
+            )
 
     def _apply_subject_effects(
         self,

@@ -190,6 +190,25 @@ def _spend(
     return document
 
 
+def _ammunition_supply(proposals: list[RollProposal], actor: TurnCharacter) -> None:
+    """Refuse, before any die, attacks that together fire more of a held
+    ammunition item than the actor holds: each attack expends one, hit or
+    miss (CRD Issue 15c C7)."""
+    fired = Counter(
+        p.weapon_attack.ammunition_item_id
+        for p in proposals
+        if p.weapon_attack is not None and p.weapon_attack.ammunition_item_id
+    )
+    held = {i.item_id: i.quantity for i in actor.items}
+    for item_id, count in fired.items():
+        if count > held.get(item_id, 0):
+            raise AdjudicationRefusal(
+                RefusalKind.INVALID_SELECTION,
+                f"the turn fires {count} of ammunition item {item_id}, which "
+                f"holds {held.get(item_id, 0)}",
+            )
+
+
 def _cleaves(records: list[ResolvedAdjudicationRecord]) -> bool:
     """Whether the attack just resolved hit and may Cleave."""
     if not records:
@@ -516,6 +535,7 @@ class RpgAdjudicationPassService:
         if coordination is not None:
             _ledger(coordination.document, proposals, sheet, subjects, openers)
         self._limited_uses(proposals, subjects)
+        _ammunition_supply(proposals, sheet)
         self._auras(story_id, sheet, proposals, subjects)
         # One subject's hand facts agree across the turn's operations: none
         # changes grip, so a difference is a contradiction.

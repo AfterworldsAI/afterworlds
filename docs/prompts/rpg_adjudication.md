@@ -155,6 +155,10 @@ One proposal per required roll:
     item from the scene with how many hands hold it (1 or 2), and
     `free_hands`. Required. Use the same hand facts for every attack in one
     response. "Equipped" in the scene does not mean in hand.
+  - `ammunition_item_id` — for a weapon with the Ammunition property (bows,
+    crossbows, a sling, a blowgun, firearms): the scene `ammunition` item the
+    attack fires. The engine checks that it fits the weapon, expends one per
+    attack, hit or miss, and refuses when none is left. Null otherwise.
   - `knock_out` — for a melee attack: if it would reduce the target to 0 Hit
     Points, knock it out instead.
   - `mastery` — use the weapon's optional mastery property (Graze, Push,

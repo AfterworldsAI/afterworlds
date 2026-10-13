@@ -596,3 +596,116 @@ def test_actor_turn_edges_commit_with_the_delivered_turn(
     gm.append([_edge_roll("end_turn", me, kind="character")])
     assert _turn(client, story, "My turn ends.")["disposition"] == "delivered"
     assert [tuple(r) for r in _edges(client, story)][-1] == (4, "end", me, 1)
+
+
+# ---------------------------------------------------------------------------
+# Ammunition (CRD Issue 15c C7): expended with the delivered Turn
+# ---------------------------------------------------------------------------
+
+
+def _bow_and_arrows(
+    client: TestClient, story_id: str, quantity: int
+) -> tuple[str, str, str]:
+    """A Wolf, a Longbow and *quantity* Arrows the character holds."""
+    from afterworlds.services.dnd5e_state.holdings import (
+        Holder,
+        HolderKind,
+        create_item,
+    )
+
+    wolf, _ = _wolf_and_club(client, story_id)
+    with client.app.state.session_factory() as s:
+        state = get_rpg_session_state_by_story(s, UUID(story_id))
+        assert state is not None
+        holder = Holder(HolderKind.CHARACTER, state.character_sheet_id)
+        bow = create_item(s, real_index(), holder, "equipment.weapons.longbow", now=NOW)
+        arrows = create_item(
+            s,
+            real_index(),
+            holder,
+            "equipment.adventuring_gear.arrows",
+            quantity=quantity,
+            now=NOW,
+        )
+        s.commit()
+        return wolf, str(bow.item_id), str(arrows.item_id)
+
+
+def _shoot(target: str, bow: str, arrows: str) -> dict[str, Any]:
+    roll = _attack(target, bow)
+    roll["check_label"] = "Longbow shot"
+    roll["weapon_attack"].update(
+        range="within_normal_range",
+        hostiles_within_5_feet=[],
+        hands={"held": [{"item_id": bow, "hands": 2}], "free_hands": 0},
+        ammunition_item_id=arrows,
+    )
+    return roll
+
+
+def _arrows(client: TestClient, item_id: str) -> list[Any]:
+    return _rows(
+        client,
+        "SELECT quantity, revision FROM dnd5e_item_instances WHERE item_id = :i",
+        i=item_id,
+    )
+
+
+@pytest.mark.parametrize(("quantity", "left"), [(2, [(1, 2)]), (1, [])])
+def test_a_shot_expends_one_arrow_with_the_delivered_turn(
+    client: TestClient,
+    gm: list[list[dict[str, Any]]],
+    quantity: int,
+    left: list[tuple[int, int]],
+) -> None:
+    """Hit or miss, one arrow is expended by CAS on the holding the turn read;
+    the last one removes it. The audit row carries the expenditure."""
+    story = _rpg_story(client)
+    wolf, bow, arrows = _bow_and_arrows(client, story, quantity)
+    gm.append([_begin_actor(client, story), _shoot(wolf, bow, arrows)])
+    body = _turn(client, story, "I loose an arrow at the wolf.")
+    assert body["disposition"] == "delivered", body
+    assert [tuple(r) for r in _arrows(client, arrows)] == left
+    (row,) = _rows(
+        client,
+        "SELECT sheet_effects_json, modifiers_json FROM rpg_roll_audit"
+        " WHERE story_id = :s AND check_label = 'Longbow shot'",
+        s=story,
+    )
+    spent = [
+        e for e in json.loads(row.sheet_effects_json) if e["target"] == "item_quantity"
+    ]
+    assert [json.loads(e["value_json"]) for e in spent] == [
+        {"item_id": arrows, "spend": 1}
+    ]
+    assert json.loads(row.modifiers_json)["ammunition"]["kind"] == "arrow"
+
+
+def test_a_failure_after_the_expenditure_rolls_the_whole_turn_back(
+    client: TestClient,
+    gm: list[list[dict[str, Any]]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A certain hit: the arrow is spent, then the target's damage cannot
+    commit; Turn, audit row and the expenditure roll back together."""
+    from afterworlds.models.rpg import DiceResult
+    from afterworlds.pipeline.orchestrator.service import OrchestratorService
+    from afterworlds.pipeline.rpg.dice import SystemRandomDiceService
+
+    def roll(self: object, expression: str) -> DiceResult:
+        face = 18 if "d20" in expression else 3
+        return DiceResult(expression=expression, raw_rolls=(face,), chosen=face)
+
+    def fail(*args: Any, **kwargs: Any) -> None:
+        raise RuntimeError("injected failure after the arrow was spent")
+
+    monkeypatch.setattr(SystemRandomDiceService, "roll", roll)
+    monkeypatch.setattr(OrchestratorService, "_apply_subject_effects", fail)
+    story = _rpg_story(client)
+    wolf, bow, arrows = _bow_and_arrows(client, story, 1)
+    gm.append([_begin_actor(client, story), _shoot(wolf, bow, arrows)])
+    body = _turn(client, story, "I loose my last arrow.")
+    assert body["disposition"] != "delivered", body
+    assert [tuple(r) for r in _arrows(client, arrows)] == [(1, 1)]
+    assert _audit(client, story) == []
+    assert _turns(client) == 0

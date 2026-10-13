@@ -119,6 +119,10 @@ class WeaponAttackSelection(BaseModel):
     ability: str | None = None
     #: What the attacker holds in its hands, and how (required).
     hands: HandFacts | None = None
+    #: For a weapon with the Ammunition property: the held ammunition item
+    #: fired (OD-15c-1 selection; code checks its typed kind, the weapons it
+    #: serves and the quantity, and expends one whether the attack hits).
+    ammunition_item_id: UUID | None = None
     #: A melee attack that would reduce the target to 0 Hit Points knocks it
     #: out instead (``knocking_out``, optional for the attacker).
     knock_out: bool = False

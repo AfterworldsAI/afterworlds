@@ -358,9 +358,10 @@ def _check_feat_source(
         if not admits:
             continue
         if choice.named_feat != feat and prerequisite is None:
-            # Origin and Fighting Style feats state their category in prose
-            # only, so eligibility under a category or "any feat you qualify
-            # for" choice cannot be certified from typed authority.
+            # A feat with no typed category or prerequisite (the Fighting
+            # Style feats; C7 typed the Origin ones): its eligibility under a
+            # category or "any feat you qualify for" choice cannot be
+            # certified from typed authority.
             raise _missing(
                 f"{feat} states no typed category or prerequisite, so its "
                 f"eligibility under {_where(source)} cannot be certified"

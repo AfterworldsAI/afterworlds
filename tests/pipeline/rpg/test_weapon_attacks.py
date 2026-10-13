@@ -406,9 +406,11 @@ def test_hand_facts_must_fit_the_weapon_and_two_hands() -> None:
 def test_loading_a_one_handed_ammunition_weapon_needs_a_free_hand() -> None:
     wolf = _creature()
     crossbow = _wielded("equipment.weapons.hand_crossbow")
+    bolts = item("equipment.adventuring_gear.bolts", quantity=20)
     facts = {
         "range": "within_normal_range",
         "hostiles_within_5_feet": (),
+        "ammunition_item_id": bolts.item_id,
     }
     full = HandFacts(
         held=(
@@ -417,31 +419,137 @@ def test_loading_a_one_handed_ammunition_weapon_needs_a_free_hand() -> None:
         ),
         free_hands=0,
     )
-    attacker = _attacker(crossbow, DAGGER)
+    attacker = _attacker(crossbow, DAGGER, bolts)
     _refused(
         RefusalKind.INVALID_SELECTION,
         attacker,
         wolf,
         _proposal(wolf, crossbow, hands=full, **facts),
     )
-    # With a hand free, it waits only on the ammunition authority (C7).
-    _refused(
-        RefusalKind.MISSING_AUTHORITY,
-        attacker,
-        wolf,
-        _proposal(wolf, crossbow, **facts),
+    # With a hand free to load it, it fires.
+    record = _run(
+        attacker, wolf, _proposal(wolf, crossbow, **facts), _dice((15,), (3,))
     )
+    assert record.outcome in ("success", "failure", "critical_success")
 
 
-def test_an_ammunition_weapon_refuses_without_a_typed_ammunition_item() -> None:
-    wolf = _creature()
+#: The nine accepted Ammunition weapons and the ammunition each fires (C7;
+#: firearm and sling bullets are distinct supplies).
+AMMUNITION_WEAPONS = {
+    "blowgun": "needles",
+    "hand_crossbow": "bolts",
+    "heavy_crossbow": "bolts",
+    "light_crossbow": "bolts",
+    "longbow": "arrows",
+    "musket": "bullets_firearm",
+    "pistol": "bullets_firearm",
+    "shortbow": "arrows",
+    "sling": "bullets_sling",
+}
+
+
+def _shot(weapon: str, ammo: str, quantity: int = 2) -> tuple[Any, Any, Any]:
+    gun = _wielded(f"equipment.weapons.{weapon}")
+    supply = item(f"equipment.adventuring_gear.{ammo}", quantity=quantity)
+    wolf = _creature(hp=40)
     proposal = _proposal(
-        wolf, LONGBOW, range="within_normal_range", hostiles_within_5_feet=()
+        wolf,
+        gun,
+        range="within_normal_range",
+        hostiles_within_5_feet=(),
+        hands=HandFacts(held=(HeldItem(item_id=gun.item_id, hands=2),), free_hands=0),
+        ammunition_item_id=supply.item_id,
     )
-    refusal = _refused(
-        RefusalKind.MISSING_AUTHORITY, _attacker(LONGBOW), wolf, proposal
+    return _attacker(gun, supply), wolf, proposal
+
+
+@pytest.mark.parametrize(("weapon", "ammo"), sorted(AMMUNITION_WEAPONS.items()))
+@pytest.mark.parametrize("d20", [15, 1])
+def test_every_ammunition_weapon_fires_its_ammunition_hit_or_miss(
+    weapon: str, ammo: str, d20: int
+) -> None:
+    attacker, wolf, proposal = _shot(weapon, ammo)
+    record = _run(attacker, wolf, proposal, _dice((d20,), (3,)))
+    spent = [e for e in record.sheet_effects if e.target == "item_quantity"]
+    assert len(spent) == 1, record.sheet_effects
+    assert json.loads(spent[0].value_json)["spend"] == 1
+    assert spent[0].subject_id == attacker.subject_id
+    provenance = json.loads(record.modifiers_json)["ammunition"]
+    assert provenance["record"] == f"equipment.adventuring_gear.{ammo}"
+    assert provenance["quantity_before"] == 2
+    if d20 == 1:
+        assert record.outcome == "failure"  # spent anyway
+
+
+@pytest.mark.parametrize(
+    ("weapon", "ammo"),
+    [
+        ("musket", "bullets_sling"),  # sling bullets are not firearm bullets
+        ("pistol", "bullets_sling"),
+        ("sling", "bullets_firearm"),  # nor the reverse
+        ("longbow", "bolts"),
+        ("light_crossbow", "arrows"),
+        ("blowgun", "arrows"),
+    ],
+)
+def test_incompatible_ammunition_refuses_before_any_die(weapon: str, ammo: str) -> None:
+    attacker, wolf, proposal = _shot(weapon, ammo)
+    refusal = _refused(RefusalKind.INVALID_SELECTION, attacker, wolf, proposal)
+    assert "is not ammunition for" in refusal.detail
+
+
+def test_an_ammunition_weapon_needs_named_held_ammunition() -> None:
+    attacker, wolf, proposal = _shot("longbow", "arrows")
+    sel = proposal.weapon_attack
+    assert sel is not None
+
+    def with_ammo(value: Any) -> RollProposal:
+        return proposal.model_copy(
+            update={
+                "weapon_attack": sel.model_copy(update={"ammunition_item_id": value})
+            }
+        )
+
+    _refused(RefusalKind.MISSING_STATE, attacker, wolf, with_ammo(None))
+    _refused(RefusalKind.INVALID_SELECTION, attacker, wolf, with_ammo(uuid4()))
+    # Gear that is not typed ammunition, and a weapon that fires none.
+    rope = item("equipment.adventuring_gear.rope")
+    _refused(
+        RefusalKind.INVALID_SELECTION,
+        _attacker(attacker.items[0], rope),  # the proposal's own longbow
+        wolf,
+        with_ammo(rope.item_id),
     )
-    assert "arrow" in refusal.detail
+    arrows = item("equipment.adventuring_gear.arrows")
+    _refused(
+        RefusalKind.INVALID_SELECTION,
+        _attacker(DAGGER, arrows),
+        wolf,
+        _proposal(
+            wolf,
+            DAGGER,
+            ability="dexterity",
+            ammunition_item_id=arrows.item_id,
+        ),
+    )
+
+
+def test_the_turn_cannot_fire_more_than_it_holds_and_the_last_is_removed() -> None:
+    """The preflight counts every shot of the turn before any die; the
+    turn's own view of the holdings advances, and the last one goes."""
+    from afterworlds.pipeline.rpg.service import _ammunition_supply
+    from afterworlds.services.dnd5e_state.turn import with_effects
+
+    attacker, wolf, proposal = _shot("longbow", "arrows", quantity=1)
+    _ammunition_supply([proposal], attacker)
+    with pytest.raises(AdjudicationRefusal) as caught:
+        _ammunition_supply([proposal, proposal], attacker)
+    assert caught.value.kind is RefusalKind.INVALID_SELECTION
+    record = _run(attacker, wolf, proposal, _dice((15,), (3,)))
+    spent = [e for e in record.sheet_effects if e.target == "item_quantity"]
+    after = with_effects(attacker, spent)
+    assert [i.record_key for i in after.items] == ["equipment.weapons.longbow"]
+    _refused(RefusalKind.INVALID_SELECTION, after, wolf, proposal)
 
 
 def test_an_attack_contributor_refuses() -> None:

@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 
 from afterworlds.ingestion.mechanical.representation import (
+    AmmunitionSupplyFact,
     CreatureAttackFact,
     CreatureSaveEffectFact,
 )
@@ -82,6 +83,20 @@ def _subject(subject: TurnSubject, acting: bool) -> dict[str, object]:
             for i in subject.items
             if i.record_key.startswith("equipment.weapons.")
         ]
+        # Held ammunition (C7 typed supply), with how many are left.
+        if subject.index is not None:
+            out["ammunition"] = [
+                {
+                    "item_id": str(i.item_id),
+                    "record": i.record_key,
+                    "quantity": i.quantity,
+                }
+                for i in subject.items
+                if any(
+                    isinstance(f, AmmunitionSupplyFact)
+                    for f in facts_of(subject.index, i.record_key)
+                )
+            ]
     hp = state.hit_points
     if hp is not None:
         out["hit_points"] = {

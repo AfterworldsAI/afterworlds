@@ -45,6 +45,7 @@ from afterworlds.ingestion.mechanical.representation import (
     AbilityScoreRequirementFact,
     AdvantageFact,
     AdvantageState,
+    AmmunitionSupplyFact,
     ArmorTrainingPenaltyFact,
     AttackAbilityOptionFact,
     AttackRollAbilityFact,
@@ -141,6 +142,7 @@ from afterworlds.pipeline.rpg.saves import roll as roll_save
 from afterworlds.services.dnd5e_state.authority import AuthorityIndex
 from afterworlds.services.dnd5e_state.holdings import ItemInstance
 from afterworlds.services.dnd5e_state.turn import (
+    ITEM_QUANTITY,
     TurnCharacter,
     TurnCreature,
     TurnSubject,
@@ -265,7 +267,8 @@ class PreparedAttack:
     target: TurnSubject
     ability: AbilityScore
     attack_modifier: int
-    damage_dice: DiceExpression
+    #: ``None`` for a weapon printing a flat amount (the Blowgun's 1).
+    damage_dice: DiceExpression | None
     damage_type: DamageType
     damage_modifier: int
     minimum_damage: int
@@ -284,6 +287,10 @@ class PreparedAttack:
     spent: tuple[SheetEffect, ...] = ()
     #: The weapon's mastery property this attack uses, if any.
     mastery: _Mastery | None = None
+    #: A weapon's flat printed damage, when it prints no dice.
+    flat_damage: int | None = None
+    #: The ammunition fired: item, record, kind (CRD Issue 15c C7).
+    ammunition: dict[str, object] | None = None
 
     @property
     def expression(self) -> str:
@@ -348,6 +355,7 @@ class RolledAttack:
                 "damage_rolls": list(self.damage_rolls),
                 "damage": self.damage.provenance() if self.damage else None,
                 "mastery": self.mastery_result,
+                "ammunition": p.ammunition,
                 "certificate": p.certificate.as_json(),
                 "templates": p.templates,
             },
@@ -1060,15 +1068,12 @@ def prepare(
     # The approved hand/grip facts establish that the weapon is in hand, and
     # how; equipped alone does not (Owner decision 2026-10-12).
     check_weapon_grip(actor, sel.hands, item, set(props), two_handed=sel.two_handed)
+    ammunition: tuple[SheetEffect, dict[str, object]] | None = None
     if WeaponProperty.AMMUNITION in props:
-        # Expending ammunition needs the held item that is the printed type
-        # (``ammunition_of_the_printed_type``); the ammunition gear records
-        # state no typed kind, so none can be identified from authority.
+        ammunition = _ammunition(actor, item, props[WeaponProperty.AMMUNITION], sel)
+    elif sel.ammunition_item_id is not None:
         raise _refuse(
-            RefusalKind.MISSING_AUTHORITY,
-            f"{weapon.record}: no ammunition item states its typed kind "
-            f"({props[WeaponProperty.AMMUNITION].ammunition}), so none can be "
-            "expended",
+            RefusalKind.INVALID_SELECTION, f"{weapon.record} fires no ammunition"
         )
 
     ranged = weapon.range_class is RangeClass.RANGED or sel.thrown
@@ -1228,7 +1233,9 @@ def prepare(
                 f"{weapon.record} states no Versatile die",
             )
         dice = versatile
-    if dice is None or weapon.damage.damage_type is None:
+    if (
+        dice is None and weapon.damage.flat_amount is None
+    ) or weapon.damage.damage_type is None:
         raise _refuse(
             RefusalKind.MISSING_AUTHORITY, f"{weapon.record} states no damage dice"
         )
@@ -1278,6 +1285,7 @@ def prepare(
         ability=ability,
         attack_modifier=sum(breakdown.values()),
         damage_dice=dice,
+        flat_damage=weapon.damage.flat_amount if dice is None else None,
         damage_type=weapon.damage.damage_type,
         damage_modifier=damage_modifier,
         minimum_damage=rule.minimum_damage,
@@ -1290,9 +1298,77 @@ def prepare(
         breakdown=breakdown,
         ac_breakdown=ac_breakdown,
         automatic_critical=tuple(mods.automatic_critical),
-        spent=tuple(spent),
+        spent=(*spent, *((ammunition[0],) if ammunition else ())),
         mastery=mastery_used,
+        ammunition=ammunition[1] if ammunition else None,
     )
+
+
+def _ammunition(
+    actor: TurnCharacter,
+    weapon: ItemInstance,
+    rule: WeaponPropertyFact,
+    sel: WeaponAttackSelection,
+) -> tuple[SheetEffect, dict[str, object]]:
+    """The ammunition this attack fires and the effect expending one, or a
+    refusal: a held item whose typed ``ammunition_supply`` is the weapon's
+    kind and, when narrowed, names this weapon (C7; firearm and sling
+    bullets are distinct), with one left."""
+    assert actor.index is not None
+    if sel.ammunition_item_id is None:
+        raise _refuse(
+            RefusalKind.MISSING_STATE,
+            f"{weapon.record_key} fires ammunition: name the held ammunition item",
+        )
+    ammo = next((i for i in actor.items if i.item_id == sel.ammunition_item_id), None)
+    if ammo is None:
+        raise _refuse(
+            RefusalKind.INVALID_SELECTION, "the attacker holds no such ammunition"
+        )
+    supplies = [
+        f
+        for f in facts_of(actor.index, ammo.record_key)
+        if isinstance(f, AmmunitionSupplyFact)
+    ]
+    if len(supplies) != 1:
+        raise _refuse(
+            RefusalKind.INVALID_SELECTION, f"{ammo.record_key} is not ammunition"
+        )
+    supply = supplies[0]
+    record = actor.index.record(weapon.record_key)
+    assert record is not None
+    served = {
+        (record.semantic_key, c.semantic_key)
+        for c in record.components
+        if any(
+            isinstance(f.fact, WeaponPropertyFact)
+            and f.fact.weapon_property is WeaponProperty.AMMUNITION
+            for f in c.facts
+        )
+    }
+    if supply.kind is not rule.ammunition or (
+        supply.for_weapons is not None
+        and not served & {(r.record_key, r.component_key) for r in supply.for_weapons}
+    ):
+        raise _refuse(
+            RefusalKind.INVALID_SELECTION,
+            f"{ammo.record_key} is not ammunition for {weapon.record_key}",
+        )
+    if ammo.quantity < 1:
+        raise _refuse(RefusalKind.INVALID_SELECTION, f"no {ammo.record_key} is left")
+    effect = SheetEffect(
+        target=ITEM_QUANTITY,
+        operation="delta",
+        value_json=json.dumps({"item_id": str(ammo.item_id), "spend": 1}),
+        subject_kind="character",
+        subject_id=actor.subject_id,
+    )
+    return effect, {
+        "item_id": str(ammo.item_id),
+        "record": ammo.record_key,
+        "kind": supply.kind.value,
+        "quantity_before": ammo.quantity,
+    }
 
 
 def roll(
@@ -1334,12 +1410,15 @@ def roll(
             mastery_result=result,
         )
     d = prepared.damage_dice
-    count = d.count * (prepared.critical_multiplier if critical else 1)
-    damage_roll = dice.roll(f"{count}{d.die.value}")
-    amount = max(
-        prepared.minimum_damage,
-        damage_roll.chosen + d.modifier + prepared.damage_modifier,
-    )
+    if d is None:
+        # A flat printed amount: no die to roll or to double on a Critical.
+        rolled: tuple[int, ...] = ()
+        base = prepared.flat_damage or 0
+    else:
+        count = d.count * (prepared.critical_multiplier if critical else 1)
+        damage_roll = dice.roll(f"{count}{d.die.value}")
+        rolled, base = damage_roll.raw_rolls, damage_roll.chosen + d.modifier
+    amount = max(prepared.minimum_damage, base + prepared.damage_modifier)
     taken = take_damage(
         prepared.target,
         amount,
@@ -1354,7 +1433,7 @@ def roll(
         attack.chosen,
         True,
         critical,
-        damage_roll.raw_rolls,
+        rolled,
         taken,
         tuple(effects),
         result,

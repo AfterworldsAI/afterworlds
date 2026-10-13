@@ -494,6 +494,35 @@ def update_item_use(
     )
 
 
+def spend_item(
+    session: Session, item_id: UUID, *, expected_revision: int, count: int
+) -> ItemInstance | None:
+    """Expend *count* of an item (ammunition), by CAS against the revision
+    the turn read (CRD Issue 15c). The last one removes the row: a quantity
+    of zero is not a holding. Returns the item left, or ``None``."""
+    row = _item_row(session, item_id)
+    if count < 1 or count > row.quantity:
+        raise StateServiceError(
+            f"item {item_id} holds {row.quantity}; {count} cannot be expended"
+        )
+    if count < row.quantity:
+        return _cas_update(
+            session, row, expected_revision, {"quantity": row.quantity - count}
+        )
+    result = session.execute(
+        sa.delete(Dnd5eItemInstanceORM)
+        .where(Dnd5eItemInstanceORM.item_id == row.item_id)
+        .where(Dnd5eItemInstanceORM.revision == expected_revision)
+        .execution_options(synchronize_session=False)
+    )
+    if result.rowcount != 1:  # type: ignore[attr-defined]
+        raise StaleRevisionError(
+            f"item {item_id} revision {expected_revision} is stale"
+        )
+    session.expunge(row)
+    return None
+
+
 def items_held_by(session: Session, holder: Holder) -> tuple[ItemInstance, ...]:
     column = getattr(Dnd5eItemInstanceORM, _HOLDER_COLUMN[holder.kind])
     rows = session.execute(

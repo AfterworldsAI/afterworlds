@@ -62,6 +62,8 @@ __all__ = [
     "load_turn_creature",
     "require_holdings_unchanged",
     "require_unchanged",
+    "ITEM_QUANTITY",
+    "spent_items",
     "with_effects",
     "with_possible",
 ]
@@ -151,9 +153,40 @@ def advanced(
 def with_effects[T: TurnSubject](subject: T, effects: list[SheetEffect]) -> T:
     """*subject* after *effects*, in memory; revision and binding as read."""
     stored: StoredCharacter | StoredCreature = subject.stored
-    state = apply_effects(stored.state, tuple(effects))
+    state = apply_effects(
+        stored.state, tuple(e for e in effects if e.target != ITEM_QUANTITY)
+    )
     stored = replace(stored, state=state)  # type: ignore[arg-type]
-    return replace(subject, stored=stored)  # type: ignore[arg-type]
+    items = spent_items(
+        subject.items, [e for e in effects if e.target == ITEM_QUANTITY]
+    )
+    return replace(subject, stored=stored, items=items)  # type: ignore[arg-type]
+
+
+#: The effect target that expends a held item (ammunition): ``value_json`` is
+#: ``{"item_id": ..., "spend": n}``, applied to holdings, never to state.
+ITEM_QUANTITY = "item_quantity"
+
+
+def spent_items(
+    items: tuple[ItemInstance, ...], effects: list[SheetEffect]
+) -> tuple[ItemInstance, ...]:
+    """*items* after the expenditures in *effects*; an item spent to zero is
+    gone. Revisions stay as read: the commit applies them by CAS."""
+    spend: dict[str, int] = {}
+    for effect in effects:
+        value = json.loads(effect.value_json)
+        spend[value["item_id"]] = spend.get(value["item_id"], 0) + int(value["spend"])
+    out = []
+    for item in items:
+        left = item.quantity - spend.pop(str(item.item_id), 0)
+        if left < 0:
+            raise ValueError(f"item {item.item_id} is spent below zero")
+        if left:
+            out.append(replace(item, quantity=left))
+    if spend:
+        raise ValueError(f"items not held: {sorted(spend)}")
+    return tuple(out)
 
 
 def with_possible(

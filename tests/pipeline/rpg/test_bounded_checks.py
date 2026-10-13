@@ -403,8 +403,8 @@ def test_the_certificate_binds_the_exact_release_and_versions() -> None:
     cert = json.loads(record.modifiers_json)["certificate"]
     binding = real_index().binding
     assert cert == {
-        "manifest_version": "15c-manifest-2",
-        "adapter_version": "15c-d20-2",
+        "manifest_version": "15c-manifest-3",
+        "adapter_version": "15c-d20-3",
         "operation": "fixed_dc_check",
         "package_uuid": str(binding.package_uuid),
         "release_version": binding.release_version,
@@ -783,21 +783,23 @@ def test_a_class_feat_choice_admits_a_qualifying_feat() -> None:
     assert grants.ability_score(real_index(), state, AbilityScore.DEXTERITY)[0] == 15
 
 
-def test_a_feat_with_no_typed_category_cannot_be_certified_by_a_choice() -> None:
-    """Skilled's Origin category is prose in the accepted authority, so its
-    eligibility under a category or qualifying-feat choice is refused as
-    missing authority, naming the feat."""
+def test_a_feats_typed_category_certifies_it_under_a_qualifying_feat_choice() -> None:
+    """C7 types the Origin category (``feats.md``): Skilled taken with an
+    Ability Score Improvement's "or another feat for which you qualify" is now
+    certified, so the character's check resolves. (Fighting Style feats keep
+    a prose-only category, C6-B being withdrawn; they contribute to attacks,
+    where they refuse as unsupported contributors.)"""
     state = _wizard_with_feat("feats.skilled")
     state = state.model_copy(update={"skill_proficiencies": (_athletics(SKILLED),)})
-    refusal = _refused(RefusalKind.MISSING_AUTHORITY, srd_character(state))
-    assert "feats.skilled" in refusal.detail
+    record, dice = _resolve(srd_character(state), 12)
+    assert dice.roll.call_count == 1 and record.outcome in ("success", "failure")
 
 
 @pytest.fixture
 def skilled_entitled(monkeypatch: pytest.MonkeyPatch) -> None:
     """Treat every feat selection as entitled, to exercise Skilled's shared
-    skill/tool allowance on its own: no Skilled path is certifiable from the
-    accepted authority (see the test above)."""
+    skill/tool allowance on its own, independent of how Skilled was
+    obtained."""
     monkeypatch.setattr(grants, "_check_feat_source", lambda *a, **k: None)
 
 

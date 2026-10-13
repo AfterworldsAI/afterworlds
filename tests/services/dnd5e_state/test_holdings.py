@@ -465,3 +465,42 @@ def test_transfer_moves_one_holder_by_cas_and_ends_attunement(
             sa.select(sa.func.count()).select_from(Dnd5eItemInstanceORM)
         ).scalar_one()
     assert rows == 1
+
+
+def test_spending_ammunition_is_cas_and_the_last_one_removes_the_holding(
+    table: Table, srd_content: Seeder
+) -> None:
+    """CRD Issue 15c C7: expenditure by CAS against the read revision; a
+    stale revision or overspend refuses; zero is no holding."""
+    _, sheet = _setup(table)
+    index = _bound(table, sheet, srd_content)
+    holder = Holder(HolderKind.CHARACTER, sheet)
+    with table.factory() as s, s.begin():
+        arrows = holdings.create_item(
+            s, index, holder, "equipment.adventuring_gear.needles", quantity=2, now=NOW
+        )
+    with table.factory() as s, s.begin(), pytest.raises(StateServiceError):
+        holdings.spend_item(
+            s, arrows.item_id, expected_revision=arrows.revision, count=3
+        )
+    with table.factory() as s, s.begin():
+        left = holdings.spend_item(
+            s, arrows.item_id, expected_revision=arrows.revision, count=1
+        )
+    assert left is not None and (left.quantity, left.revision) == (
+        1,
+        arrows.revision + 1,
+    )
+    with table.factory() as s, s.begin(), pytest.raises(StaleRevisionError):
+        holdings.spend_item(
+            s, arrows.item_id, expected_revision=arrows.revision, count=1
+        )
+    with table.factory() as s, s.begin():
+        assert (
+            holdings.spend_item(
+                s, arrows.item_id, expected_revision=left.revision, count=1
+            )
+            is None
+        )
+    with table.factory() as s:
+        assert holdings.items_held_by(s, holder) == ()

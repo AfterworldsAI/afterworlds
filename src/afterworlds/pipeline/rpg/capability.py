@@ -49,8 +49,8 @@ __all__ = [
     "governing_fingerprint",
 ]
 
-MANIFEST_VERSION = "15c-manifest-2"
-ADAPTER_VERSION = "15c-d20-2"
+MANIFEST_VERSION = "15c-manifest-3"
+ADAPTER_VERSION = "15c-d20-3"
 
 
 class RefusalKind(StrEnum):
@@ -186,6 +186,11 @@ _WEAPON_ATTACK_PROCEDURE: tuple[tuple[str, str], ...] = (
     ("glossary.immunity", "no_effect"),
 )
 _WEAPON_ATTACK_RECORD_PREFIXES = ("equipment.weapons", "equipment.armor")
+#: The typed ammunition supplies a weapon attack fires (C7 ``ammunition_supply``).
+_AMMUNITION_SUPPLIES: tuple[tuple[str, str], ...] = tuple(
+    (f"equipment.adventuring_gear.{name}", name)
+    for name in ("arrows", "bolts", "bullets_firearm", "bullets_sling", "needles")
+)
 #: The save procedure (prose-bound universal components, certified with the
 #: operation that causes the save) and the typed rules it reads.
 SAVE_PROCEDURE: tuple[tuple[str, str], ...] = (
@@ -250,15 +255,15 @@ _DEATH_SAVE_PROCEDURE: tuple[tuple[str, str], ...] = (
 )
 
 #: The release this adapter version was certified against: the accepted CRD
-#: Issue 15c native C5 successor (oracle SHA-256 ``23e5d8e0…4f69``), by the
+#: Issue 15c C7 successor (oracle SHA-256 ``2853f30a…f373``), by the
 #: projection identity it derives; a store must publish it before it binds.
-#: Recertified from G1 (projection ``efab27a9-…``) by reviewing
-#: every governing component: none changed, so the check fingerprint is G1's
-#: (``.claude/review-notes/issue-15c-implementation/recert/``).
+#: Recertified from the native C5 successor (projection ``44f212d5-…``) by
+#: reviewing every governing component; C7 changed only the nine components
+#: it typed (``.claude/review-notes/issue-15c-implementation/recert/``).
 CERTIFIED_RELEASE: tuple[UUID, str, UUID] = (
     UUID("1299484e-c72d-509b-bd8d-d0169ee1f8d2"),
     "5.2.1-corpus.8781d4e0-a3b",
-    UUID("44f212d5-32dd-5469-8f05-f0d236492347"),
+    UUID("8446ab6b-be75-5999-8a9b-74fa133c030a"),
 )
 
 #: Procedure components the check executor implements (ADR-005d D3/ADR-015 D7:
@@ -353,16 +358,19 @@ MANIFEST: dict[Operation, Capability] = {
         inputs=(
             "a wielded weapon instance of an accepted weapon record; a target "
             "character or creature of the story; the GameMaster's approved "
-            "contextual facts (range band, cover, light, a hostile within 5 feet "
-            "for a ranged attack); validated proficiency and ability"
+            "contextual facts (range band, cover, light, named enemies within 5 "
+            "feet for a ranged attack, hand facts); validated proficiency and "
+            "ability; for an Ammunition weapon, a held ammunition item whose typed "
+            "supply serves it"
         ),
         effects=(
             "hit, miss or Critical Hit against the target's AC; damage with its "
-            "responses, temporary HP and zero-HP consequences on the target. Not "
-            "yet: masteries, ammunition, the Light extra attack, sight that needs "
-            "a sense's range"
+            "responses, temporary HP and zero-HP consequences on the target; "
+            "masteries; the Light and Nick extra attacks; one ammunition expended "
+            "per attack, hit or miss, by CAS on the holding (none left removes "
+            "it). Not yet: sight that needs a sense's range"
         ),
-        fingerprint="463322bfdc89cfe8209c66db593911cff50c2f27d2939af727ff6e215a58d7ed",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="a5fe16ae59dff8657dcff34b1bbd4f410d20067be73b15fbfe5e1e2a0f267133",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.DEATH_SAVING_THROW: Capability(
         Operation.DEATH_SAVING_THROW,
@@ -525,6 +533,7 @@ def _governing(
             *_WEAPON_ATTACK_PROCEDURE,
             *SAVE_PROCEDURE,
             *_ECONOMY_PROCEDURE,
+            *_AMMUNITION_SUPPLIES,
         ),
         Operation.BEGIN_TURN: _TURN_PROCEDURE,
         Operation.END_TURN: _TURN_PROCEDURE,

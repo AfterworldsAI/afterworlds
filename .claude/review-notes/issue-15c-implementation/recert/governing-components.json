@@ -2,7 +2,7 @@
  "binding": {
   "override_set_uuid": "521a6242-e6bc-5e76-9564-323c4c0deacb",
   "package_uuid": "1299484e-c72d-509b-bd8d-d0169ee1f8d2",
-  "projection_uuid": "44f212d5-32dd-5469-8f05-f0d236492347",
+  "projection_uuid": "8446ab6b-be75-5999-8a9b-74fa133c030a",
   "release_version": "5.2.1-corpus.8781d4e0-a3b"
  },
  "operations": {
@@ -4644,6 +4644,31 @@
   "weapon_attack": {
    "components": [
     [
+     "equipment.adventuring_gear.arrows",
+     "arrows",
+     "dde4db54d5b6059635847acb044ad17a4bc133ebf85ff8b87bd61792ec894040"
+    ],
+    [
+     "equipment.adventuring_gear.bolts",
+     "bolts",
+     "cbd0ceea19e65657905a6cf6b1d2f9dadfdec2270ddde808b52739a5c5391ed2"
+    ],
+    [
+     "equipment.adventuring_gear.bullets_firearm",
+     "bullets_firearm",
+     "23ced1c49870f0bd44d986a05fe6eeb645c3b48d9913ae2d55c64e5db5f74e12"
+    ],
+    [
+     "equipment.adventuring_gear.bullets_sling",
+     "bullets_sling",
+     "8781315d11e9434ba0d2de6aeb2f81b90f86a18b562633fd2d7a11d08e4de70c"
+    ],
+    [
+     "equipment.adventuring_gear.needles",
+     "needles",
+     "936101970caeddc130df53f908ad8e091eefbba54a43cd0d4cc7d1fbb4572196"
+    ],
+    [
      "equipment.armor",
      "armor_table",
      "232f5f3f139122fcc4e27a3c0326a11d8265c5969de568275b0ad72316b5388b"
@@ -5574,7 +5599,7 @@
      "64f4f80eb88b0691cfd9ca7b26cc8d0ff8916497a0a37a078946ffc1ef408abd"
     ]
    ],
-   "fingerprint": "463322bfdc89cfe8209c66db593911cff50c2f27d2939af727ff6e215a58d7ed"
+   "fingerprint": "a5fe16ae59dff8657dcff34b1bbd4f410d20067be73b15fbfe5e1e2a0f267133"
   }
  }
 }
