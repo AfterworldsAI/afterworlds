@@ -104,7 +104,7 @@ Anything that could contribute to the roll but is not executed here refuses the 
 | 1. Wiring reaches adjudication after Planner and before Writer; nothing bypasses mechanics through narration; setup, OOC and non-mechanical turns are unchanged | Met for the executable scope. A proposal past the per-turn bound now refuses rather than being dropped. | `tests/ingestion/mechanical/test_bounded_d20_on_published_release.py` (production `create_app`); `tests/api/test_fake_provider_product_path.py`; `tests/pipeline/rpg/test_adjudication_service.py` |
 | 2. Versioned manifest; certification binds the exact identity; changes invalidate | Met | `test_bounded_checks.py`: `test_the_certificate_binds…`, `…override_of_a_governing_component…`, `…unrelated_override_keeps…`, `…another_projection…` |
 | 3. Validation before rolling; exact identities; stable prefix reused | Met | Every proposal is checked before any die (`test_an_unsupported_proposal_refuses_before_any_earlier_one_rolls`). Labels refuse (`test_a_label_only_backend_proposal_is_refused_not_rolled`). The pass renders the turn's single `AssembledContext`. |
-| 4. Calculations, targets from authority, roster coverage | Met, pending review | `test_bounded_checks.py`, `test_weapon_attacks.py` (all nine ammunition weapons, incompatible ammunition), `test_masteries.py`, `test_zero_hp_lifecycle.py`, `test_creature_attacks.py`, `test_creature_clauses.py`, `test_creature_roster.py` (every C5 entry and Multiattack selection, no remaining boundary), `test_bloodied.py`, `test_linked_conditions.py`, `test_creature_types.py` (Ghast/Ghoul: ordinary non-Humanoid, Elf and non-Elf characters, recorded Elf/Dwarf Humanoids, Undead, familiars; refusals before any die; the species operation) |
+| 4. Calculations, targets from authority, roster coverage | Met, pending review | `test_bounded_checks.py`, `test_weapon_attacks.py` (all nine ammunition weapons, incompatible ammunition), `test_masteries.py`, `test_zero_hp_lifecycle.py`, `test_creature_attacks.py`, `test_creature_clauses.py`, `test_creature_roster.py` (every C5 entry and Multiattack selection, no remaining boundary), `test_bloodied.py`, `test_linked_conditions.py`, `test_creature_types.py` (Ghast/Ghoul: ordinary non-Humanoid, Elf and non-Elf characters, recorded Elf/Dwarf Humanoids, Undead, familiar typing (familiar combat held, `test_familiar_limits.py`); refusals before any die; the species operation and its once-per-turn rule) |
 | 5. Distinguishable failures; no partial application; `undetermined` only where admitted; player roll refused before pending | Met for the executable scope | E2E refusal tests: no Turn and no audit row; `pending_roll_requests` stays empty |
 | 6. Independent subjects; commit recheck; atomic delivery-gated effects; holds | Met, pending review | Each subject and its holdings are rechecked at commit (`RpgTurnHold.recheck`, `require_holdings_unchanged`, `test_coordination.py`); subject effects and ammunition CAS commit with the Turn (E2E) |
 | 7. End-to-end on the accepted successor published in disposable stores | Met, pending review | `test_bounded_d20_on_published_release.py` on the C8 successor: checks, refusals, hidden filtering, weapon attacks, edges, ammunition expenditure and rollback, a creature's linked grapple, a recorded species honoured by the Ghoul's Elf exception in a later Turn, a species whose creature moved before commit (rollback), an ineligible species |
@@ -170,9 +170,20 @@ A bare or departing stored type, an unexecuted effect or a form refuses before a
 - **Unchanged:** no other operation's governing set or fingerprint moved.
 - **Per subject:** creature templates stay certified per subject.
 
+**C8 execution review corrections** (`codex-c8-execution-review.md`, at `555be9a`):
+- **Duplicate species in one turn:** a turn that records one creature's species twice, same or conflicting, refuses in the whole-turn preflight. This happens before any die, even after an otherwise valid rolled operation (`service._species_once`). Independent creatures may each record one.
+- **Familiar source limits** (`pipeline/rpg/familiars.py`; Find Familiar: "A familiar can't attack"; at 0 Hit Points it disappears, leaving what it carried; it can be dismissed). The type proof grants none of these. For a creature summoned by any familiar source:
+  - its attacks refuse;
+  - anything naming it while not recorded present refuses (unrecorded: missing state; pocket dimension or gone: invalid selection);
+  - damage to it refuses before any die, on every path. This is `damage.preflight` and `take_damage`, where weapon, creature, Graze and save-effect damage converge.
+  - Its death save, first aid and recovery attestations refuse too: its zero-HP consequence is not executed, and the ordinary monster or character path is not that consequence.
+  - These are holds, not Familiar-lifecycle coverage. Ordinary creatures are unaffected.
+- **Hidden species:** a refused repeat selection no longer names the held species, since a refusal's text can reach the player. The backend audit keeps the exact identity.
+
 **Holds that remain (refused before any die; not coverage, not accepted exclusions):**
 - a Humanoid creature with no recorded species, for the Ghoul;
 - familiars from Wild Companion (Fey) and Pact of the Chain (extra forms), whose type authority is not represented;
+- a familiar attacking, absent, taking damage or on a zero-HP path (above);
 - Find Familiar's other Challenge Rating 0 Beast forms;
 - the Vampire's mist form (no state records it);
 - any target in an assumed form or under a non-mastery active effect: transformations are not executed.

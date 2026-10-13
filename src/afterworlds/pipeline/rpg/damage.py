@@ -50,6 +50,7 @@ from afterworlds.ingestion.mechanical.representation import (
 from afterworlds.models.dnd5e_state import DeathState
 from afterworlds.models.enums import ConditionVisibility
 from afterworlds.models.rpg import SheetEffect
+from afterworlds.pipeline.rpg import familiars
 from afterworlds.pipeline.rpg.capability import AdjudicationRefusal, RefusalKind
 from afterworlds.pipeline.rpg.conditions import effective
 from afterworlds.pipeline.rpg.defense import damage_responses, facts_of
@@ -194,6 +195,7 @@ def preflight(target: TurnSubject, damage_type: DamageType) -> None:
     """Every refusal :func:`take_damage` could raise for *target* and
     *damage_type*, raised now, before any die is rolled: the recorded state the
     lifecycle needs, the zero-HP treatment and the damage responses."""
+    familiars.no_zero_hp_path(target, "damage")
     index = target.index
     if index is None:
         raise _refuse(
@@ -281,6 +283,7 @@ def take_damage(
     consequence are judged once per hit (``play.damage_and_healing``).
     *dies_at_zero*: the attack's own clause, *"The target dies if it is
     reduced to 0 Hit Points by this attack"*, replaces falling Unconscious."""
+    familiars.no_zero_hp_path(target, "damage")
     index = target.index
     if index is None:
         raise _refuse(

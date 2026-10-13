@@ -63,6 +63,7 @@ from afterworlds.pipeline.rpg import (
     creature_clauses,
     creature_effects,
     creature_types,
+    familiars,
     roster,
 )
 from afterworlds.pipeline.rpg.attacks import (
@@ -541,6 +542,8 @@ def prepare(
         )
     if subject_key(attacker) == subject_key(target):
         raise _refuse(RefusalKind.INVALID_SELECTION, "a creature cannot attack itself")
+    familiars.no_attack(attacker)
+    familiars.require_present(target)
     certificate = certify(Operation.CREATURE_ATTACK, attacker.index)
     certify(Operation.CREATURE_ATTACK, target.index)
     _agreeing(attacker, target)

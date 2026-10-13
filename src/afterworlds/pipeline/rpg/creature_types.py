@@ -393,8 +393,10 @@ def prepare_species(
     ) == (key, binding.mechanical_projection_uuid, binding.override_set_uuid):
         raise _refuse(
             RefusalKind.INVALID_SELECTION,
-            f"creature {ref.subject_id} already records species "
-            f"{held.species_record_key}; an individual's species does not change",
+            # The held identity is not named: a refusal's text can reach the
+            # player, and the selection may have been recorded hidden.
+            f"creature {ref.subject_id} already records a species; an "
+            "individual's species does not change",
         )
     return SpeciesRecord(creature, selection, certificate)
 

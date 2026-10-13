@@ -19,6 +19,7 @@ import pytest
 
 from afterworlds.models.dnd5e_state import (
     ActiveEffect,
+    CreaturePresence,
     CreatureSpeciesSelection,
     GrantSource,
     OriginSelection,
@@ -278,6 +279,7 @@ def test_an_invalid_familiar_refuses(
     familiar = _with(
         _creature(template, hp=40),
         summon=SummonOrigin(source=GrantSource(record_key="spells.find_familiar")),
+        presence=CreaturePresence.PRESENT,
         **state,
     )
     _refuses(kind, familiar)
@@ -290,6 +292,7 @@ def test_an_unrepresented_familiar_source_refuses() -> None:
             source=GrantSource(record_key="classes.druid.wild_companion")
         ),
         creature_type=CreatureType.FEY,
+        presence=CreaturePresence.PRESENT,
     )
     _refuses(RefusalKind.UNSUPPORTED_CAPABILITY, familiar)
 
@@ -489,3 +492,93 @@ def test_a_species_and_a_ghoul_claw_in_one_turn_refuse_with_no_die() -> None:
     assert caught.value.kind is RefusalKind.MISSING_STATE
     assert "species is not recorded" in caught.value.detail
     dice.roll.assert_not_called()
+
+
+def _turn_refusal(
+    proposals: list[Any], actor: Any, *creatures: TurnCreature
+) -> tuple[AdjudicationRefusal, Any]:
+    """Adjudicate *proposals* in one turn through the service; its refusal
+    and the dice service (to prove nothing was rolled)."""
+    from unittest.mock import MagicMock
+
+    from afterworlds.models.enums import DiceHandling
+    from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
+    from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
+    from tests.pipeline.rpg.test_adjudication_service import (
+        _STORY_ID,
+        _TURN_ID,
+        _FakeProvider,
+        _make_assembled,
+        _make_session,
+    )
+    from tests.pipeline.rpg.test_turn_sequencing import actor_turn
+
+    by_id = {str(c.subject_id): c for c in creatures}
+    dice = MagicMock()
+    with pytest.raises(AdjudicationRefusal) as caught:
+        RpgAdjudicationPassService(
+            adapter=D20RulesSystemAdapter(),
+            subject_loader=lambda _story, ref: by_id[str(ref.subject_id)],
+            coordination_loader=actor_turn(creatures[0]),
+            bounded_loader=lambda _story, _ref: [],
+            aura_loader=lambda _story: [],
+        ).adjudicate(
+            _make_assembled(),
+            _make_session(DiceHandling.AI_ROLLS),
+            actor,
+            dice,
+            provider=_FakeProvider(
+                [p.model_dump(mode="json", exclude_none=True) for p in proposals]
+            ),
+            story_id=_STORY_ID,
+            originating_turn_id=_TURN_ID,
+        )
+    return caught.value, dice
+
+
+@pytest.mark.parametrize(
+    "second",
+    [creature_types.ELF, "character_origins.dwarf"],
+    ids=["same", "conflicting"],
+)
+def test_a_species_recorded_twice_in_one_turn_refuses_before_any_die(
+    second: str,
+) -> None:
+    """Even after an otherwise valid rolled operation earlier in the turn."""
+    wolf, bandit, wizard = _creature(hp=40), _humanoid(), _medium_wizard()
+    proposals = [
+        _bite(wolf, wizard, target_within_5_feet=True),
+        _species_proposal(bandit, creature_types.ELF),
+        _species_proposal(bandit, second),
+    ]
+    refusal, dice = _turn_refusal(proposals, wizard, wolf, bandit)
+    assert refusal.kind is RefusalKind.INVALID_SELECTION
+    assert "recorded once" in refusal.detail
+    dice.roll.assert_not_called()
+
+
+def test_independent_creatures_may_each_record_a_species_in_one_turn() -> None:
+    from afterworlds.pipeline.rpg.service import _species_once
+
+    one, two = _humanoid(), _humanoid()
+    _species_once(
+        [
+            _species_proposal(one, creature_types.ELF),
+            _species_proposal(two, "character_origins.dwarf"),
+        ]
+    )
+
+
+def test_a_repeat_refusal_does_not_name_a_hidden_held_species() -> None:
+    from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
+
+    bandit = _humanoid()
+    held = _with(bandit, species=_species(bandit, creature_types.ELF))
+    with pytest.raises(AdjudicationRefusal) as caught:
+        D20RulesSystemAdapter().require_supported(
+            _species_proposal(held, "character_origins.dwarf", "hidden"),
+            _medium_wizard(),
+            _subjects(held),
+        )
+    assert "already records a species" in caught.value.detail
+    assert "elf" not in str(caught.value).lower()

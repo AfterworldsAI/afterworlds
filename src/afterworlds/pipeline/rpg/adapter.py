@@ -50,6 +50,7 @@ from afterworlds.pipeline.rpg import (
     creature_attacks,
     creature_effects,
     creature_types,
+    familiars,
     lifecycle,
     mastery,
 )
@@ -100,6 +101,7 @@ def _edge_subject(
             RefusalKind.MISSING_STATE, f"{ref.kind} {ref.subject_id} was not read"
         )
     certify(Operation(proposal.operation or ""), subject.index)
+    familiars.require_present(subject)
     return subject
 
 

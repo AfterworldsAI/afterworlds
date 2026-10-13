@@ -42,7 +42,7 @@ from afterworlds.ingestion.mechanical.representation import (
 from afterworlds.models.dnd5e_state import DeathState, StableRecovery
 from afterworlds.models.enums import ConditionVisibility
 from afterworlds.models.rpg import RollProposal, SheetEffect
-from afterworlds.pipeline.rpg import checks
+from afterworlds.pipeline.rpg import checks, familiars
 from afterworlds.pipeline.rpg.capability import (
     AdjudicationRefusal,
     Certificate,
@@ -180,6 +180,7 @@ def _kind(subject: TurnSubject) -> str:
 
 def prepare(subject: TurnSubject) -> PreparedDeathSave:
     """Validate the death save *subject* makes now, or refuse (typed)."""
+    familiars.no_zero_hp_path(subject, "a death save")
     index = subject.index
     if index is None:
         raise _refuse(
@@ -425,6 +426,7 @@ def prepare_first_aid(
     """The acting character's first aid on the named subject, or a typed
     refusal: the subject must be dying or knocked out."""
     subject = _named(proposal, actor, subjects)
+    familiars.no_zero_hp_path(subject, "first aid")
     if subject is actor:
         raise _refuse(RefusalKind.INVALID_SELECTION, "first aid is given to another")
     blocked = cannot_act(actor)
@@ -530,6 +532,7 @@ def attest(
     refuse (typed). The GameMaster attests time; code holds the interval and
     the consequence, and an instance is consumed once."""
     subject = _named(proposal, actor, subjects)
+    familiars.no_zero_hp_path(subject, "a recovery")
     assert subject.index is not None
     operation = Operation(proposal.operation or "")
     certificate = certify(operation, subject.index)

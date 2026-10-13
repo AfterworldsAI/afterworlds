@@ -48,6 +48,7 @@ from afterworlds.models.rpg import (
     RollProposal,
     SheetEffect,
 )
+from afterworlds.pipeline.rpg import familiars
 from afterworlds.pipeline.rpg.attacks import _SIZES_UP_TO, _size, subject_key
 from afterworlds.pipeline.rpg.capability import (
     AdjudicationRefusal,
@@ -485,8 +486,11 @@ def prepare(
     targets: list[TurnSubject] = []
     saves: list[PreparedSave] = []
     template = source.stored.state.template_record_key
+    familiars.require_present(source)
     for ref in sel.targets:
         target = _subject(subjects, actor, ref)
+        if target is not None:
+            familiars.require_present(target)
         if target is None or target.index is None:
             raise _refuse(RefusalKind.MISSING_STATE, "a target was not read")
         if subject_key(target) == subject_key(source) and not t.in_source_space:

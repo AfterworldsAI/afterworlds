@@ -78,7 +78,11 @@ from afterworlds.pipeline.rpg.caller import (
     PRODUCE_ADJUDICATION_PROPOSALS_TOOL_NAME,
     PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC,
 )
-from afterworlds.pipeline.rpg.capability import AdjudicationRefusal, RefusalKind
+from afterworlds.pipeline.rpg.capability import (
+    AdjudicationRefusal,
+    Operation,
+    RefusalKind,
+)
 from afterworlds.pipeline.rpg.config import (
     ADJUDICATION_MAX_ROLLS_PER_TURN,
     ADJUDICATION_MAX_TOKENS,
@@ -220,6 +224,24 @@ def _ammunition_supply(proposals: list[RollProposal], actor: TurnCharacter) -> N
                 RefusalKind.INVALID_SELECTION,
                 f"the turn fires {count} of ammunition item {item_id}, which "
                 f"holds {held.get(item_id, 0)}",
+            )
+
+
+def _species_once(proposals: list[RollProposal]) -> None:
+    """Refuse, before any die, a turn recording a creature's species twice:
+    each is checked against the state the turn read, so a second would pass
+    the preflight and fail only after the first had an effect (C8)."""
+    named = Counter(
+        str(p.subject.subject_id)
+        for p in proposals
+        if p.operation == Operation.CREATURE_SPECIES.value and p.subject is not None
+    )
+    for subject_id, count in named.items():
+        if count > 1:
+            raise AdjudicationRefusal(
+                RefusalKind.INVALID_SELECTION,
+                f"the turn records creature {subject_id}'s species {count} times; "
+                "an individual's species is recorded once",
             )
 
 
@@ -563,6 +585,7 @@ class RpgAdjudicationPassService:
             _ledger(coordination.document, proposals, sheet, subjects, openers)
         self._limited_uses(proposals, subjects)
         _ammunition_supply(proposals, sheet)
+        _species_once(proposals)
         aura_holders = self._auras(story_id, sheet, proposals, subjects)
         # One subject's hand facts agree across the turn's operations: none
         # changes grip, so a difference is a contradiction.

@@ -1,0 +1,35 @@
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+........................................................................ [ 10%]
+........................................................................ [ 21%]
+........................................................................ [ 32%]
+........................................................................ [ 42%]
+........................................................................ [ 53%]
+........................................................................ [ 64%]
+........................................................................ [ 74%]
+........................................................................ [ 85%]
+........................................................................ [ 96%]
+...........................                                              [100%]
+============================== warnings summary ===============================
+tests/pipeline/rpg/test_before_dice.py: 8 warnings
+tests/pipeline/rpg/test_bloodied.py: 14 warnings
+tests/pipeline/rpg/test_certification.py: 1 warning
+tests/pipeline/rpg/test_creature_attacks.py: 3 warnings
+tests/pipeline/rpg/test_creature_clauses.py: 16 warnings
+tests/pipeline/rpg/test_creature_effects.py: 2 warnings
+tests/pipeline/rpg/test_creature_roster.py: 1 warning
+tests/pipeline/rpg/test_creature_types.py: 3 warnings
+tests/pipeline/rpg/test_linked_conditions.py: 1 warning
+  D:\AI\Claude\scratch\AW docs\issue2b-implementation\afterworlds\venv\Lib\site-packages\pydantic\main.py:520: UserWarning: Pydantic serializer warnings:
+    PydanticSerializationUnexpectedValue(Expected `enum` - serialized value may not be as expected [field_name='size', input_value='medium', input_type=str])
+    return self.__pydantic_serializer__.to_python(
+
+tests/pipeline/rpg/test_before_dice.py::test_a_stored_prone_establishes_trample_whatever_its_id[real-prone]
+tests/pipeline/rpg/test_before_dice.py::test_a_stored_prone_establishes_trample_whatever_its_id[possible:prone]
+tests/pipeline/rpg/test_before_dice.py::test_a_stored_prone_establishes_trample_whatever_its_id[possible:imported]
+  D:\AI\Claude\scratch\AW docs\issue2b-implementation\afterworlds\venv\Lib\site-packages\pydantic\main.py:587: UserWarning: Pydantic serializer warnings:
+    PydanticSerializationUnexpectedValue(Expected `enum` - serialized value may not be as expected [field_name='size', input_value='medium', input_type=str])
+    return self.__pydantic_serializer__.to_json(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+675 passed, 52 warnings in 77.23s (0:01:17)
+Focused diagnostics PASSED (exit 0). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
