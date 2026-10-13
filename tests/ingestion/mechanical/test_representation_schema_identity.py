@@ -601,7 +601,7 @@ def test_the_schema_hash_is_a_declared_contract_not_a_file_digest() -> None:
 #: vocabularies of the Owner-accepted CRD Issue 15c native C5 successor
 #: (2026-10-12). Schema 18 (``SCHEMA_18_HASH``) stays its historical anchor in
 #: ``schema_lift``.
-EXPECTED_SCHEMA_HASH = "3734ccf7d6be7f25e0a0d7c0395121c5525afcb87144f5cf9d6895e03c1cd18f"  # noqa: E501  # pragma: allowlist secret
+EXPECTED_SCHEMA_HASH = "759dcc1f9de2cac9254be108ca8a83433ca30854061276a9c349a370e1c6e77a"  # noqa: E501  # pragma: allowlist secret
 
 
 def test_the_committed_union_still_hashes_to_its_recorded_value() -> None:

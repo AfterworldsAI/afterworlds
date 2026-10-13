@@ -1692,7 +1692,7 @@ def test_composed_every_glossary_target_closes_and_208_leaves_gain_coverage(
     )
     # Validated at the build's schema, so it crosses every later registered
     # succession too: 16 -> 17, since CRD Issue 2b's G1 17 -> 18, and since
-    # CRD Issue 15c's native C5 18 -> 19. Written
+    # CRD Issue 15c's native C5 18 -> 19, and C7's 19 -> 20. Written
     # out as the literal chain so a new succession is reviewed here, not
     # inherited.
     assert [r.lift_id for r in crossed] == [
@@ -1700,6 +1700,7 @@ def test_composed_every_glossary_target_closes_and_208_leaves_gain_coverage(
         "5d-lift-schema-16-to-17",
         "5d-lift-schema-17-to-18",
         "5d-lift-schema-18-to-19",
+        "5d-lift-schema-19-to-20",
     ]
     assert current.oracle.representation is accepted
     composed = _composed(current, recorded)

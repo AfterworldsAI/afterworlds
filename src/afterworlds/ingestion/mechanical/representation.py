@@ -3435,6 +3435,8 @@ class FactFamily(StrEnum):
     BASE_ARMOR_CLASS_EXCLUSIVITY = "base_armor_class_exclusivity"
     ARMOR_TRAINING_PENALTY = "armor_training_penalty"
     SHIELD_TRAINING_REQUIREMENT = "shield_training_requirement"
+    #: Schema 20, CRD Issue 15c C7. What one Ammunition table row supplies.
+    AMMUNITION_SUPPLY = "ammunition_supply"
 
 
 # ---------------------------------------------------------------------------
@@ -6873,6 +6875,26 @@ class ShieldTrainingRequirementFact:
     untrained: UntrainedShield
 
 
+@dataclass(frozen=True, kw_only=True)
+class AmmunitionSupplyFact:
+    """Schema 20: the ammunition one Ammunition table row supplies.
+
+    ``kind`` is the weapon-side :class:`AmmunitionKind` the row is.
+    ``for_weapons`` narrows a kind several weapon rows share to the weapons
+    the row names (*"Bullets, Sling"*); ``None`` means every weapon whose
+    Ammunition property names ``kind``. When stated it is non-empty, distinct
+    and sorted, so one meaning has one fact key. Whether each reference is
+    an accepted Ammunition weapon of ``kind`` is relational and checked by
+    the representation validator. Amount, storage, weight and cost are not
+    represented.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.AMMUNITION_SUPPLY
+
+    kind: AmmunitionKind
+    for_weapons: tuple[ComponentReference, ...] | None
+
+
 @dataclass(frozen=True)
 class EffectTerminationFact:
     """The effect this component is about stops.
@@ -8036,6 +8058,7 @@ MechanicalFact = (
     | BaseArmorClassExclusivityFact
     | ArmorTrainingPenaltyFact
     | ShieldTrainingRequirementFact
+    | AmmunitionSupplyFact
 )
 
 _FACT_TYPES: dict[FactFamily, type] = {
@@ -8860,9 +8883,15 @@ def held_container_violations(value: object, tag: str) -> list[str]:
     """
     if type(value) not in _admitted_structures():
         return []
+    # An optional sequence (schema 20's ``for_weapons``) may be unset; when set
+    # it is held to the same exact-tuple rule.
+    optional = {
+        f.name for f in fields(cast(Any, type(value))) if str(f.type).endswith("| None")
+    }
     return [
         v
         for name in declared_tuple_fields(type(value))
+        if not (name in optional and getattr(value, name) is None)
         for v in exact_tuple_violations(getattr(value, name), f"{tag}: {name}")
     ]
 
@@ -12674,6 +12703,16 @@ def _rule_parameterized_hit_points(h: ParameterizedHitPoints) -> list[str]:
     return findings
 
 
+def _rule_ammunition_supply(fact: AmmunitionSupplyFact) -> list[str]:
+    weapons = fact.for_weapons
+    if weapons is None:
+        return []
+    keys = [(w.record_key, w.component_key) for w in weapons]
+    if not keys or keys != sorted(set(keys)):
+        return ["for_weapons, when stated, is non-empty, distinct and sorted"]
+    return []
+
+
 _SCHEMA_19_FAMILY_RULES: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.CREATURE_ATTACK: _rule_attack_bonus,
     FactFamily.CREATURE_SAVE_EFFECT: _rule_save_dc,
@@ -12682,6 +12721,8 @@ _SCHEMA_19_FAMILY_RULES: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.CLAUSE_ROLL_MODIFIER: _rule_clause_roll_modifier,
     FactFamily.SKILL_PROFICIENCY_CHOICE: _rule_skill_choice,
     FactFamily.MULTICLASS_SKILL_PROFICIENCY_CHOICE: _rule_skill_choice,
+    # Schema 20 (CRD Issue 15c C7), checked by the same declared machinery.
+    FactFamily.AMMUNITION_SUPPLY: _rule_ammunition_supply,
 }
 
 _SCHEMA_19_SHAPE_RULES: dict[type, Callable[[Any], list[str]]] = {
@@ -12738,6 +12779,22 @@ _FACT_BUILDERS.update(
 )
 _FACT_INVARIANTS.update(
     {cast(FactFamily, cls.FAMILY): _check_declared for cls in _SCHEMA_19_FACT_CLASSES}
+)
+
+#: The families schema 20 admitted (CRD Issue 15c C7), built and checked by
+#: the schema-19 declared machinery but introduced, and manifested, as 20.
+_SCHEMA_20_FACT_CLASSES: tuple[type[Any], ...] = (AmmunitionSupplyFact,)
+_FACT_TYPES.update(
+    {cast(FactFamily, cls.FAMILY): cls for cls in _SCHEMA_20_FACT_CLASSES}
+)
+_FACT_BUILDERS.update(
+    {
+        cast(FactFamily, cls.FAMILY): _build_declared(cls)
+        for cls in _SCHEMA_20_FACT_CLASSES
+    }
+)
+_FACT_INVARIANTS.update(
+    {cast(FactFamily, cls.FAMILY): _check_declared for cls in _SCHEMA_20_FACT_CLASSES}
 )
 
 #: Every family must declare a builder and an invariant checker. A family added
@@ -12967,7 +13024,14 @@ assert (
 #: component states any of them and no accepted field changes meaning, so
 #: every accepted fact key and provenance coordinate has the same canonical
 #: form under 18 and 19.
-REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-19"
+#:
+#: Version ``20`` admits one fact family, :class:`AmmunitionSupplyFact`
+#: (CRD Issue 15c C7): what an Ammunition table row supplies, by the
+#: existing schema-19 :class:`AmmunitionKind` and, where a row narrows a
+#: shared kind, the weapons it names. No vocabulary, no field on any
+#: accepted family and no component key, so every accepted fact key and
+#: provenance coordinate has the same canonical form under 19 and 20.
+REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-20"
 
 
 class UnsupportedRepresentationShapeError(TypeError):
@@ -13577,6 +13641,11 @@ def _introductions() -> tuple[_Introduction, ...]:
             _Introduction("vocabulary_member", vocabulary, member, SCHEMA_19)
             for member in members
         )
+    # Schema 20 adds one family and no vocabulary.
+    rows.extend(
+        _Introduction("fact_family", "FactFamily", family.value, SCHEMA_20)
+        for family in _SCHEMA_20_FAMILIES
+    )
     rows.extend(
         _Introduction("nullable_field", _OPTIONAL_SINCE_WIRE_NAMES[owner], key, arrived)
         for owner, keys in _OPTIONAL_SINCE.items()
@@ -14461,6 +14530,13 @@ _SCHEMA_19_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
     for member in members
 )
 
+SCHEMA_20 = "5d-representation-schema-20"
+
+#: The family schema 20 admitted, CRD Issue 15c C7.
+_SCHEMA_20_FAMILIES: tuple[FactFamily, ...] = tuple(
+    cast(FactFamily, cls.FAMILY) for cls in _SCHEMA_20_FACT_CLASSES
+)
+
 #: The seven families schema 11 admitted, for batch ``speed-1``. One per
 #: distinct rule the Rules Glossary Speed entry and Playing the Game > Combat >
 #: Movement and Position print between them, named by member for the same
@@ -14541,6 +14617,7 @@ _FAMILY_INTRODUCTIONS: tuple[tuple[tuple[FactFamily, ...], str], ...] = (
     (_SCHEMA_15_FAMILIES, SCHEMA_15),
     (_SCHEMA_18_FAMILIES, SCHEMA_18),
     (_SCHEMA_19_FAMILIES, SCHEMA_19),
+    (_SCHEMA_20_FAMILIES, SCHEMA_20),
 )
 
 #: Fields a later schema made **required** on a family an earlier schema already
@@ -14789,6 +14866,27 @@ _VERSION_STATES: dict[str, frozenset[str]] = {
             SCHEMA_17,
             SCHEMA_18,
             SCHEMA_19,
+        }
+    ),
+    SCHEMA_20: frozenset(
+        {
+            "5d-representation-schema-4",
+            SCHEMA_5,
+            SCHEMA_6,
+            SCHEMA_7,
+            SCHEMA_8,
+            SCHEMA_9,
+            SCHEMA_10,
+            SCHEMA_11,
+            SCHEMA_12,
+            SCHEMA_13,
+            SCHEMA_14,
+            SCHEMA_15,
+            SCHEMA_16,
+            SCHEMA_17,
+            SCHEMA_18,
+            SCHEMA_19,
+            SCHEMA_20,
         }
     ),
 }
@@ -16685,6 +16783,9 @@ def _admit(value: object, declared: object, path: str) -> list[str]:
         # A closed union of declared classes — the fact union is the one that
         # matters. Exact membership, then the member's own fields if it has any.
         for option in options:
+            # An optional sequence (schema 20's ``for_weapons``): the tuple rule.
+            if get_origin(option) is tuple and type(value) is tuple:
+                return _admit(value, option, path)
             if type(value) is option:
                 return (
                     _admit_declared_object(value, path) if is_dataclass(option) else []
@@ -17038,6 +17139,14 @@ _SCHEMA_19_INVARIANTS: tuple[_Invariant, ...] = (
         "rules (at least one die; a positive denominator, a non-negative numerator)",
     ),
     *_int_domain_rows(),
+    # Schema 20 (CRD Issue 15c C7).
+    _Invariant(
+        id="ammunition_supply.for_weapons.non-empty-distinct-sorted",
+        locus="fact:ammunition_supply",
+        field="for_weapons",
+        rule="when stated, non-empty, distinct and sorted by record and component "
+        "key, so one narrowing has one fact key",
+    ),
 )
 
 

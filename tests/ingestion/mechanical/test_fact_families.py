@@ -673,6 +673,22 @@ for _payload in json.loads(
 ):
     EXEMPLARS.setdefault(FactFamily(_payload["family"]), fact_from_payload(_payload))
 
+#: Schema 20 (CRD Issue 15c C7): the Ammunition table's "Bullets, Firearm"
+#: row (equipment.md:1232), as raw candidate C7 states it.
+EXEMPLARS.setdefault(
+    FactFamily.AMMUNITION_SUPPLY,
+    fact_from_payload(
+        {
+            "family": "ammunition_supply",
+            "kind": "bullet",
+            "for_weapons": [
+                {"record_key": "equipment.weapons.musket", "component_key": "musket"},
+                {"record_key": "equipment.weapons.pistol", "component_key": "pistol"},
+            ],
+        }
+    ),
+)
+
 FAMILY_IDS = [f.value for f in EXEMPLARS]
 
 

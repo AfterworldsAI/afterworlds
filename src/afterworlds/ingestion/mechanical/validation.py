@@ -40,6 +40,8 @@ from afterworlds.ingestion.mechanical.policy import (
 from afterworlds.ingestion.mechanical.representation import (
     PROVENANCE_REQUIRED_KINDS,
     RECORD_OWNED_REFERENCE,
+    AmmunitionKind,
+    AmmunitionSupplyFact,
     ComponentDraft,
     FactFamily,
     ProseBindingDraft,
@@ -51,6 +53,8 @@ from afterworlds.ingestion.mechanical.representation import (
     RelationshipKind,
     RepresentationDraft,
     UnknownFactFamilyError,
+    WeaponProperty,
+    WeaponPropertyFact,
     applicability_violations,
     component_damage_composition_violations,
     component_participant_violations,
@@ -1006,6 +1010,55 @@ def _validate_duplicated_fact_authority(
     return findings
 
 
+def _validate_ammunition_supplies(draft: RepresentationDraft) -> list[str]:
+    """Each narrowed ``ammunition_supply`` names accepted Ammunition weapons of
+    its own kind, and no weapon is claimed by two narrowed rows of one kind.
+
+    Schema 20 (CRD Issue 15c C7). Relational, so it lives here rather than in
+    the intrinsic invariant manifest: whether a reference resolves, and to
+    which weapon-side ammunition, is a property of the rest of the draft.
+    """
+    weapon_kinds: dict[tuple[str, str], set[AmmunitionKind]] = {}
+    supplies: list[tuple[str, AmmunitionSupplyFact]] = []
+    components = {(c.record_key, c.semantic_key) for c in draft.components}
+    for component in draft.components:
+        key = (component.record_key, component.semantic_key)
+        facts = (*component.facts, *(f for o in component.options for f in o.facts))
+        for fact in facts:
+            if (
+                type(fact) is WeaponPropertyFact
+                and fact.weapon_property is WeaponProperty.AMMUNITION
+                and fact.ammunition is not None
+            ):
+                weapon_kinds.setdefault(key, set()).add(fact.ammunition)
+            elif type(fact) is AmmunitionSupplyFact:
+                supplies.append((f"component {key[0]}/{key[1]}", fact))
+
+    findings: list[str] = []
+    claimed: dict[tuple[AmmunitionKind, tuple[str, str]], str] = {}
+    for tag, supply in supplies:
+        for ref in supply.for_weapons or ():
+            target = (ref.record_key, ref.component_key)
+            where = f"{tag}: ammunition_supply names {target[0]}/{target[1]}"
+            kinds = weapon_kinds.get(target)
+            if target not in components:
+                findings.append(f"{where}, which is not a component of this draft")
+            elif kinds is None:
+                findings.append(f"{where}, which has no Ammunition weapon property")
+            elif supply.kind not in kinds:
+                findings.append(
+                    f"{where}, whose ammunition is {sorted(k.value for k in kinds)}, "
+                    f"not {supply.kind.value}"
+                )
+            other = claimed.setdefault((supply.kind, target), tag)
+            if other != tag:
+                findings.append(
+                    f"{where}, already narrowed to by {other}; two {supply.kind.value} "
+                    "rows may not both claim one weapon"
+                )
+    return findings
+
+
 def validate_representation(
     draft: RepresentationDraft,
     ledger: ClassificationLedger,
@@ -1034,4 +1087,5 @@ def validate_representation(
     findings.extend(relationship_and_reference_violations(draft))
     findings.extend(_validate_provenance(draft, ledger, corpus))
     findings.extend(_validate_duplicated_fact_authority(draft, ledger))
+    findings.extend(_validate_ammunition_supplies(draft))
     return tuple(findings)

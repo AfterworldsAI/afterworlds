@@ -1001,6 +1001,30 @@ def _schema_19_refused(case: dict[str, object]) -> list[object]:
     ]
 
 
+#: Schema 20 (CRD Issue 15c C7): C7's two firearm weapons, out of order.
+CASES["ammunition_supply.for_weapons.non-empty-distinct-sorted"] = (
+    fact_from_payload(
+        {
+            "family": "ammunition_supply",
+            "kind": "bullet",
+            "for_weapons": [
+                {"record_key": "equipment.weapons.pistol", "component_key": "pistol"},
+                {"record_key": "equipment.weapons.musket", "component_key": "musket"},
+            ],
+        }
+    ),
+    fact_from_payload(
+        {
+            "family": "ammunition_supply",
+            "kind": "bullet",
+            "for_weapons": [
+                {"record_key": "equipment.weapons.musket", "component_key": "musket"},
+                {"record_key": "equipment.weapons.pistol", "component_key": "pistol"},
+            ],
+        }
+    ),
+)
+
 for _case in _SCHEMA_19_CASES:
     CASES[_case["id"]] = (
         _schema_19_refused(_case)[0],

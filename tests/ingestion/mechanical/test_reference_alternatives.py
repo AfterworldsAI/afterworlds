@@ -813,7 +813,7 @@ def test_lift_and_resolve_is_one_native_action(tmp_path: Path) -> None:
 
 def test_lifting_to_the_current_build_runs_every_later_succession() -> None:
     """The current native action from schema 16 lifts through 17 to the build's
-    schema (19, CRD Issue 15c); the historical 16 -> 17 action above is unchanged."""
+    schema (20, CRD Issue 15c C7); the historical 16 -> 17 action above is unchanged."""
     from afterworlds.ingestion.mechanical.representation import (
         REPRESENTATION_SCHEMA_VERSION,
         representation_schema_hash,
@@ -827,6 +827,7 @@ def test_lifting_to_the_current_build_runs_every_later_succession() -> None:
         "5d-lift-schema-16-to-17",
         "5d-lift-schema-17-to-18",
         "5d-lift-schema-18-to-19",
+        "5d-lift-schema-19-to-20",
     ]
 
 

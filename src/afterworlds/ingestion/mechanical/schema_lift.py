@@ -115,6 +115,8 @@ __all__ = [
     "SCHEMA_18_VERSION",
     "SCHEMA_19_HASH",
     "SCHEMA_19_VERSION",
+    "SCHEMA_20_HASH",
+    "SCHEMA_20_VERSION",
     "SchemaLiftRecord",
     "UnknownSchemaLiftError",
     "lift_for",
@@ -166,6 +168,8 @@ SCHEMA_18_VERSION = "5d-representation-schema-18"
 SCHEMA_18_HASH = "276c3d0ca0bf4c2f98aa8e7d2db6cd321d7fb55dee6d8c60fdd4a58e51fa8701"  # noqa: E501  # pragma: allowlist secret
 SCHEMA_19_VERSION = "5d-representation-schema-19"
 SCHEMA_19_HASH = "3734ccf7d6be7f25e0a0d7c0395121c5525afcb87144f5cf9d6895e03c1cd18f"  # noqa: E501  # pragma: allowlist secret
+SCHEMA_20_VERSION = "5d-representation-schema-20"
+SCHEMA_20_HASH = "759dcc1f9de2cac9254be108ca8a83433ca30854061276a9c349a370e1c6e77a"  # noqa: E501  # pragma: allowlist secret
 
 
 class SchemaLiftError(ValueError):
@@ -796,6 +800,27 @@ SCHEMA_LIFTS: dict[tuple[str, str], SchemaLift] = {
             "rather than asserting. A schema-18 declaration carrying any new "
             "family, vocabulary member or field is refused by the introduction "
             "manifest and the field registry, never flattened. "
+            "The policy contract does not move with it."
+        ),
+    ),
+    (SCHEMA_19_VERSION, SCHEMA_19_HASH): SchemaLift(
+        lift_id="5d-lift-schema-19-to-20",
+        from_version=SCHEMA_19_VERSION,
+        from_hash=SCHEMA_19_HASH,
+        to_version=SCHEMA_20_VERSION,
+        to_hash=SCHEMA_20_HASH,
+        rationale=(
+            "Schema 20 admits one family, ammunition_supply (CRD Issue 15c "
+            "C7): what one Ammunition table row supplies, by the existing "
+            "schema-19 AmmunitionKind and, where a row narrows a kind several "
+            "weapon rows share, the weapons it names. It mints no vocabulary "
+            "and adds no field to any accepted family. "
+            "Nothing accepted moves. No accepted component states a fact of "
+            "the new family, so every accepted payload -- and its fact key "
+            "and provenance coordinate -- is byte-identical under both "
+            "contracts, which verify_lift proves element by element rather "
+            "than asserting. A schema-19 declaration carrying the new family "
+            "is refused by the introduction manifest, never flattened. "
             "The policy contract does not move with it."
         ),
     ),
