@@ -783,3 +783,44 @@ def test_a_purple_worm_bite_commits_a_restraint_lasting_while_its_grapple(
     by_kind = {c.condition.value: c for c in conditions}
     assert by_kind["restrained"].lasts_while_instance == by_kind["grappled"].instance_id
     assert by_kind["grappled"].escape_dc == 19
+
+
+def test_holdings_changed_after_the_turn_read_them_fail_it_with_nothing_spent(
+    client: TestClient,
+    gm: list[list[dict[str, Any]]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The arrows' revision moves between the turn's read and its commit:
+    the recheck refuses, and neither the Turn, its audit row nor the
+    expenditure commits."""
+    from afterworlds.services.dnd5e_state.holdings import update_item_use
+    from afterworlds.services.dnd5e_state.turn import RpgTurnHold
+
+    story = _rpg_story(client)
+    wolf, bow, arrows = _bow_and_arrows(client, story, 3)
+    real = RpgTurnHold.recheck
+    moved: list[bool] = []
+
+    def recheck(self: RpgTurnHold, session: Any, subject: Any) -> None:
+        if not moved:
+            # The holding moves after the read (in-transaction: SQLite allows
+            # one writer); the recheck must see it.
+            moved.append(True)
+            update_item_use(
+                session,
+                UUID(arrows),
+                expected_revision=1,
+                equipped=True,
+                attuned=False,
+                charges_remaining=None,
+                now=NOW,
+            )
+        real(self, session, subject)
+
+    monkeypatch.setattr(RpgTurnHold, "recheck", recheck)
+    gm.append([_begin_actor(client, story), _shoot(wolf, bow, arrows)])
+    body = _turn(client, story, "I loose an arrow at the wolf.")
+    assert body["disposition"] != "delivered", body
+    # Refused at the recheck; the rollback leaves the holding as read.
+    assert [tuple(r) for r in _arrows(client, arrows)] == [(3, 1)]
+    assert _audit(client, story) == []
