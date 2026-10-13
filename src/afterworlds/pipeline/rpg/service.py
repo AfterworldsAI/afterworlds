@@ -606,6 +606,11 @@ class RpgAdjudicationPassService:
             named = [proposal.subject]
             if proposal.weapon_attack is not None:
                 named.append(proposal.weapon_attack.target)
+            if proposal.creature_attack is not None:
+                named += [
+                    proposal.creature_attack.attacker,
+                    proposal.creature_attack.target,
+                ]
             for ref in named:
                 if ref is not None:
                     refs[(ref.kind, str(ref.subject_id))] = ref

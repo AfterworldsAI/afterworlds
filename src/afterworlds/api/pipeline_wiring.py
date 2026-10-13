@@ -339,7 +339,11 @@ def _bounded_by(document: Any, ref: SubjectRef) -> bool:
     """Whether a state document holds an effect bounded by *ref*'s turn."""
     if not isinstance(document, dict):
         document = json.loads(document)
-    for effect in document.get("active_effects") or ():
+    held = (
+        *(document.get("active_effects") or ()),
+        *(document.get("conditions") or ()),
+    )
+    for effect in held:
         turn = (effect.get("ends") or {}).get("turn")
         if turn and turn["of"] == {"kind": ref.kind, "subject_id": str(ref.subject_id)}:
             return True

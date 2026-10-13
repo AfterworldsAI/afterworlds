@@ -111,6 +111,27 @@ class WeaponAttackSelection(BaseModel):
     cleave_within_5_feet: bool | None = None
 
 
+class CreatureAttackSelection(BaseModel):
+    """The GameMaster's selections for one ``creature_attack``: the attacking
+    creature, one of its printed attack entries, the target, and the approved
+    contextual facts (OD-15c-1). Never a number."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    attacker: SubjectRef
+    entry: str = Field(min_length=1)
+    target: SubjectRef
+    range: RangeBand
+    cover: CoverDegree
+    attacker_light: LightLevel
+    target_light: LightLevel
+    hostile_within_5_feet: bool | None = None
+    target_within_5_feet: bool | None = None
+    #: For a trait like Pack Tactics: whether an ally of the attacker that
+    #: isn't Incapacitated is within 5 feet of the target.
+    ally_within_5_feet_of_target: bool | None = None
+
+
 class LifecycleAttestation(BaseModel):
     """The GameMaster's attestation about one recovery instance (CRD Issue
     15c, OD-15c-2), never a result: code holds the interval, the thresholds and
@@ -167,6 +188,8 @@ class RollProposal(BaseModel):
     subject: SubjectRef | None = None
     #: An elapsed-time or completion attestation (OD-15c-2).
     attestation: LifecycleAttestation | None = None
+    #: The selections of a ``creature_attack`` (CRD Issue 15c).
+    creature_attack: CreatureAttackSelection | None = None
 
 
 class AdjudicationProposalOutput(BaseModel):

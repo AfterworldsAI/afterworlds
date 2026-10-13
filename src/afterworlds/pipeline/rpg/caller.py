@@ -33,6 +33,44 @@ _SUBJECT_SCHEMA: dict[str, Any] = {
     "additionalProperties": False,
 }
 _LIGHT = ["bright", "dim", "darkness", "magical_darkness", "heavily_obscured"]
+_CREATURE_ATTACK_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "attacker": _SUBJECT_SCHEMA,
+        "entry": {"type": "string"},
+        "target": _SUBJECT_SCHEMA,
+        "range": {
+            "type": "string",
+            "enum": [
+                "within_reach",
+                "within_normal_range",
+                "beyond_normal_within_long_range",
+                "beyond_long_range",
+            ],
+        },
+        "cover": {
+            "type": "string",
+            "enum": ["none", "half", "three_quarters", "total"],
+        },
+        "attacker_light": {"type": "string", "enum": _LIGHT},
+        "target_light": {"type": "string", "enum": _LIGHT},
+        "hostile_within_5_feet": {"oneOf": [{"type": "boolean"}, {"type": "null"}]},
+        "target_within_5_feet": {"oneOf": [{"type": "boolean"}, {"type": "null"}]},
+        "ally_within_5_feet_of_target": {
+            "oneOf": [{"type": "boolean"}, {"type": "null"}]
+        },
+    },
+    "required": [
+        "attacker",
+        "entry",
+        "target",
+        "range",
+        "cover",
+        "attacker_light",
+        "target_light",
+    ],
+    "additionalProperties": False,
+}
 _WEAPON_ATTACK_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
@@ -220,6 +258,14 @@ PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC: dict[str, Any] = {
                                 "For begin_turn and end_turn: the character or"
                                 " creature whose turn begins or ends. Null"
                                 " otherwise."
+                            ),
+                        },
+                        "creature_attack": {
+                            "oneOf": [_CREATURE_ATTACK_SCHEMA, {"type": "null"}],
+                            "description": (
+                                "For creature_attack: the attacking creature, one"
+                                " of its attack entries from the scene, the target"
+                                " and the contextual facts you select."
                             ),
                         },
                         "attestation": {

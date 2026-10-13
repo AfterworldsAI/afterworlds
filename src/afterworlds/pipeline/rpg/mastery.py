@@ -21,6 +21,7 @@ from uuid import uuid4
 
 from afterworlds.models.dnd5e_state import (
     ActiveEffect,
+    ConditionInstance,
     EffectEnd,
     GrantSource,
     SubjectReference,
@@ -136,22 +137,36 @@ def attack_effects(
 def expiring(
     subject: TurnSubject, kind: str, of: SubjectReference, instance: int
 ) -> list[SheetEffect]:
-    """The effects that end *subject*'s turn-bounded mastery effects at this
-    edge: a ``start`` boundary at the next ``begin`` of *of*; an ``end``
+    """The effects that end *subject*'s turn-bounded effects and conditions at
+    this edge: a ``start`` boundary at the next ``begin`` of *of*; an ``end``
     boundary at the end of a turn of *of* after the one it began in."""
     out = []
-    for effect in subject.stored.state.active_effects or ():
-        turn = effect.ends.turn if effect.ends is not None else None
+    state = subject.stored.state
+    held: list[ActiveEffect | ConditionInstance] = [
+        *(state.active_effects or ()),
+        *(state.conditions or ()),
+    ]
+    for item in held:
+        turn = item.ends.turn if item.ends is not None else None
         if turn is None or turn.of != of:
             continue
-        if (
-            kind == "begin"
-            and turn.boundary == "start"
-            or (
-                kind == "end"
-                and turn.boundary == "end"
-                and (turn.created_in_turn is None or instance > turn.created_in_turn)
+        due = (kind == "begin" and turn.boundary == "start") or (
+            kind == "end"
+            and turn.boundary == "end"
+            and (turn.created_in_turn is None or instance > turn.created_in_turn)
+        )
+        if not due:
+            continue
+        if isinstance(item, ActiveEffect):
+            out.append(_end(subject, item))
+        else:
+            out.append(
+                SheetEffect(
+                    target=item.condition.value,
+                    operation="clear_condition",
+                    value_json=json.dumps({"instance_id": item.instance_id}),
+                    subject_kind=_kind(subject),
+                    subject_id=subject.subject_id,
+                )
             )
-        ):
-            out.append(_end(subject, effect))
     return out

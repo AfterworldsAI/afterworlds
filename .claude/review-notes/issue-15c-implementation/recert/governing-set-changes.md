@@ -14,3 +14,4 @@ Same release and projection (`44f212d5-…`); no authority changed. These are ad
 - **`weapon_attack`:** `+ play.combat/rounds_and_turns` and the save procedure (Topple's save) → `9857b379…0c30`.
 - **`begin_turn` / `end_turn`:** `+ equipment.weapons.{sap,slow,vex}` (the effects an edge ends) → `2fa22217…756f`.
 - **`death_saving_throw`:** shares the turn procedure → `e4b8645e…053a`.
+| `creature_attack` | new: the weapon-attack procedure, the save procedure and `play.combat/{long_range,melee,ranged,reach}` | `b2491c1e…5d4f` |

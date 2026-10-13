@@ -61,6 +61,7 @@ __all__ = [
     "load_turn_character",
     "load_turn_creature",
     "require_unchanged",
+    "with_effects",
     "with_possible",
 ]
 
@@ -138,15 +139,16 @@ def advanced(
     out = dict(subjects)
     for key, group in grouped.items():
         if key == ("character", str(actor.subject_id)):
-            actor = _with_effects(actor, group)
+            actor = with_effects(actor, group)
         elif key in out:
-            out[key] = _with_effects(out[key], group)
+            out[key] = with_effects(out[key], group)
         else:
             raise ValueError(f"an effect names {key}, which this turn did not read")
     return actor, out
 
 
-def _with_effects[T: TurnSubject](subject: T, effects: list[SheetEffect]) -> T:
+def with_effects[T: TurnSubject](subject: T, effects: list[SheetEffect]) -> T:
+    """*subject* after *effects*, in memory; revision and binding as read."""
     stored: StoredCharacter | StoredCreature = subject.stored
     state = apply_effects(stored.state, tuple(effects))
     stored = replace(stored, state=state)  # type: ignore[arg-type]

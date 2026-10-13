@@ -60,6 +60,8 @@ One proposal per required roll:
     failure.
   - `saving_throw` — a saving throw some effect forces.
   - `weapon_attack` — an attack with a weapon (and its mastery).
+  - `creature_attack` — a creature in the scene attacks with one of its
+    attack entries (listed in the scene). Fill `creature_attack`.
   - `begin_turn` — a character's or creature's turn begins, when no turn is
     active. Name it in `subject`. At most one per response. If it is dying,
     the engine makes its death save; never name `death_saving_throw` yourself.
@@ -91,6 +93,11 @@ One proposal per required roll:
   the engine reads its DC from the rules. Null otherwise.
 - `tool_activity` — for `tool_check` only: the tool's printed activity (for
   example `pick_a_lock`). The engine reads its ability and DC. Null otherwise.
+- `creature_attack` — for `creature_attack` only: `attacker` and `target`
+  (`{kind, subject_id}`), the `entry` name exactly as the scene lists it, and
+  the same contextual facts as a weapon attack, plus
+  `ally_within_5_feet_of_target` when the creature has a trait like Pack
+  Tactics. Null otherwise.
 - `subject` — for `begin_turn`, `end_turn`, `stabilize`, `stable_recovery`
   and `knockout_recovery`: `{kind, subject_id}`, the character or creature the
   operation concerns. Null otherwise.

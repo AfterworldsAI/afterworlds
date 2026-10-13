@@ -44,7 +44,13 @@ from afterworlds.models.rpg import (
     TurnEdge,
     WriterAdjudicationView,
 )
-from afterworlds.pipeline.rpg import attacks, checks, lifecycle, mastery
+from afterworlds.pipeline.rpg import (
+    attacks,
+    checks,
+    creature_attacks,
+    lifecycle,
+    mastery,
+)
 from afterworlds.pipeline.rpg.capability import (
     AdjudicationRefusal,
     Operation,
@@ -282,6 +288,9 @@ class D20RulesSystemAdapter:
             ):
                 lifecycle.prepare(subject)
             return
+        if proposal.operation == Operation.CREATURE_ATTACK.value:
+            creature_attacks.prepare(proposal, character, subjects or {})
+            return
         if proposal.operation == Operation.STABILIZE.value:
             lifecycle.prepare_first_aid(proposal, character, subjects or {})
             return
@@ -307,6 +316,8 @@ class D20RulesSystemAdapter:
         them present. Checks change no state."""
         if proposal.operation == Operation.WEAPON_ATTACK.value:
             return attacks.possible_conditions(proposal, subjects)
+        if proposal.operation == Operation.CREATURE_ATTACK.value:
+            return creature_attacks.possible_conditions(proposal, _character, subjects)
         if proposal.operation in (Operation.STABILIZE.value, *_ATTESTATIONS):
             # Ending a knockout's or a regained creature's Unconscious leaves
             # it Prone.
@@ -345,7 +356,7 @@ class D20RulesSystemAdapter:
     def lifecycle_changes(self, proposal: RollProposal) -> set[tuple[str, str]]:
         """Subjects whose hit points, death state or recovery instances
         *proposal* could change, whatever its dice give."""
-        sel = proposal.weapon_attack
+        sel = proposal.weapon_attack or proposal.creature_attack
         if sel is not None:
             return {(sel.target.kind, str(sel.target.subject_id))}
         if proposal.operation in (*_EDGES, *_LIFECYCLE) and proposal.subject:
@@ -373,6 +384,12 @@ class D20RulesSystemAdapter:
         """Subjects *proposal*'s spatial facts are about."""
         if proposal.operation == Operation.WEAPON_ATTACK.value:
             return attacks.spatial_subjects(proposal, character)
+        sel = proposal.creature_attack
+        if sel is not None:
+            return {
+                (sel.attacker.kind, str(sel.attacker.subject_id)),
+                (sel.target.kind, str(sel.target.subject_id)),
+            }
         return set()
 
     def _assemble_modifiers(
@@ -494,6 +511,29 @@ class D20RulesSystemAdapter:
                 gm_cheating,
                 subjects or {},
                 coordination,
+            )
+        if proposal.operation == Operation.CREATURE_ATTACK.value:
+            struck = creature_attacks.roll(
+                creature_attacks.prepare(proposal, character, subjects or {}),
+                dice_service,
+                coordination,
+            )
+            return ResolvedAdjudicationRecord(
+                check_label=proposal.check_label,
+                visibility=proposal.visibility,
+                expression=struck.prepared.expression,
+                raw_rolls=struck.raw_rolls,
+                modifiers_json=struck.provenance_json(),
+                total=struck.total,
+                dc=struck.prepared.target_ac,
+                outcome=(
+                    "critical_success"
+                    if struck.critical
+                    else "success" if struck.hit else "failure"
+                ),
+                sheet_effects=struck.effects,
+                source=source,
+                gm_cheating_at_roll=gm_cheating,
             )
         if proposal.operation == Operation.STABILIZE.value:
             aid = lifecycle.roll_first_aid(
@@ -808,9 +848,9 @@ class D20RulesSystemAdapter:
             )
         # A weapon attack's comparison target is the target's Armor Class: the
         # target's state, not the actor's, so the Writer gets the outcome only.
-        target_state = (
-            json.loads(record.modifiers_json).get("operation")
-            == Operation.WEAPON_ATTACK.value
+        target_state = json.loads(record.modifiers_json).get("operation") in (
+            Operation.WEAPON_ATTACK.value,
+            Operation.CREATURE_ATTACK.value,
         )
         dc = None if target_state else record.dc
         summary_parts = [f"{record.check_label}: rolled {record.total}"]

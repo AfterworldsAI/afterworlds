@@ -88,6 +88,7 @@ class Operation(StrEnum):
     BEGIN_TURN = "begin_turn"
     END_TURN = "end_turn"
     STABLE_RECOVERY = "stable_recovery"
+    CREATURE_ATTACK = "creature_attack"
     KNOCKOUT_RECOVERY = "knockout_recovery"
 
 
@@ -212,6 +213,14 @@ _RECOVERY_PROCEDURE: tuple[tuple[str, str], ...] = (
     (_DAMAGE, "falling_unconscious"),
     ("glossary.short_rest", "short_rest"),
     ("glossary.short_rest", "interruptions"),
+)
+#: A creature's printed attack: the attack-roll procedure it shares with
+#: weapon attacks, plus range and the creature-specific rules it reads.
+_CREATURE_ATTACK_PROCEDURE: tuple[tuple[str, str], ...] = (
+    ("play.combat", "long_range"),
+    ("play.combat", "melee"),
+    ("play.combat", "ranged"),
+    ("play.combat", "reach"),
 )
 #: Actor-turn edges (contract G1): the turn structure they mark.
 _TURN_PROCEDURE: tuple[tuple[str, str], ...] = (
@@ -419,12 +428,31 @@ MANIFEST: dict[Operation, Capability] = {
         effects="its turn instance ends (an appended edge)",
         fingerprint="2fa222179f05d4c504dabf0b453165edcac05dbb99db33a6d932c8828c0e756f",  # noqa: E501  # pragma: allowlist secret
     ),
+    Operation.CREATURE_ATTACK: Capability(
+        Operation.CREATURE_ATTACK,
+        CapabilityStatus.EXECUTABLE,
+        inputs=(
+            "a continuing creature of the story and one of its template's printed "
+            "attack entries; a target character or creature; the GameMaster's "
+            "approved contextual facts (range band, cover, light, a hostile or "
+            "an ally within 5 feet)"
+        ),
+        effects=(
+            "hit, miss or Critical Hit against the target's AC; each damage term "
+            "with responses and zero-HP consequences; a typed hit effect "
+            "(condition, size limit, escape DC, turn-bounded duration, or a save "
+            "against one). Not yet: usage limits and Recharge, speed changes, "
+            "forced movement, conditional damage, legendary actions"
+        ),
+        fingerprint="b2491c1ebef0f3770fd5cb5acd24ad2ddd4325a4ff512927beff016ce1b95d4f",  # noqa: E501  # pragma: allowlist secret
+    ),
 }
 
 #: Explicit exclusions (unsupported capability, never coverage).
 EXCLUSIONS: tuple[str, ...] = (
     "contests and opposed checks",
-    "monster stat-block actions",
+    "monster stat-block actions other than printed attacks (save effects, "
+    "Multiattack, legendary and usage-limited actions)",
     "general spell and feature execution",
     "general healing, rests and resurrection",
     "initiative order management and general encounter state",
@@ -472,6 +500,11 @@ def _governing(
         Operation.END_TURN: _TURN_PROCEDURE,
         Operation.DEATH_SAVING_THROW: _DEATH_SAVE_PROCEDURE,
         Operation.STABILIZE: _FIRST_AID_PROCEDURE,
+        Operation.CREATURE_ATTACK: (
+            *_CREATURE_ATTACK_PROCEDURE,
+            *_WEAPON_ATTACK_PROCEDURE,
+            *SAVE_PROCEDURE,
+        ),
         Operation.STABLE_RECOVERY: _RECOVERY_PROCEDURE,
         Operation.KNOCKOUT_RECOVERY: _RECOVERY_PROCEDURE,
     }.get(operation, ())
