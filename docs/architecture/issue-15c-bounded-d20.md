@@ -28,6 +28,23 @@
   - Origin and Fighting Style feat eligibility through a category choice: no typed category (missing authority). Raw candidate C6 is under review.
   - Ability increases whose result depends on an unrecorded acquisition order (missing state).
 
+**Action accounting (C7 remediation), a behaviour change.** Attacks, first aid, and creature attacks and effects now spend the acting subject's own active turn (`pipeline/rpg/economy.py`). An operation proposed without that subject's active turn refuses before any die.
+
+What a turn can spend, each from typed authority:
+- the turn's one action;
+- the Attack action's one attack roll;
+- one Bonus Action;
+- the Light extra attack, as a Bonus Action or, with Nick, as part of the Attack action;
+- Loading's one piece per activation;
+- once-per-turn features (Cleave, Multiattack).
+
+Spending is consumed on the coordination document before any die. It is logged as `use` events and lasts until the subject's next explicit `begin_turn`.
+
+**Boundaries:**
+- **Extra Attack** is prose-bound in the accepted authority, so a further Attack-action attack refuses as `missing_authority`. Executing it needs a reviewed source candidate.
+- **Reactions** are not executed, because their triggers are not validated.
+- **Limited uses** (Recharge, X/Day) are counted before any die. A second use that would depend on a random recharge is held: it refuses.
+
 ## What is built
 
 | Concern | Where |

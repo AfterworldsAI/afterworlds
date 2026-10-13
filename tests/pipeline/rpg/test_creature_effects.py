@@ -129,3 +129,93 @@ def test_recharge_is_rolled_when_the_creatures_turn_begins(
     assert roll["recharged"] is recharged
     counters = [e for e in record.sheet_effects if e.target == "usage_counter"]
     assert bool(counters) is recharged
+
+
+# ---------------------------------------------------------------------------
+# Limited uses are counted before any die (codex-c7-limited-use addendum)
+# ---------------------------------------------------------------------------
+
+
+def _turns_of(creature: TurnCreature, *proposals: RollProposal) -> MagicMock:
+    from afterworlds.models.enums import DiceHandling
+    from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
+    from tests.pipeline.rpg.test_adjudication_service import (
+        _STORY_ID,
+        _TURN_ID,
+        _FakeProvider,
+        _make_assembled,
+        _make_session,
+    )
+    from tests.pipeline.rpg.test_turn_sequencing import actor_turn
+
+    wizard = _medium_wizard()
+    dice = MagicMock()
+    with pytest.raises(AdjudicationRefusal) as caught:
+        RpgAdjudicationPassService(
+            adapter=D20RulesSystemAdapter(),
+            subject_loader=lambda _story, ref: (
+                creature if ref.kind == "creature" else wizard
+            ),
+            coordination_loader=actor_turn(creature),
+            bounded_loader=lambda _story, _ref: [],
+        ).adjudicate(
+            _make_assembled(),
+            _make_session(DiceHandling.AI_ROLLS),
+            wizard,
+            dice,
+            provider=_FakeProvider(
+                [p.model_dump(mode="json", exclude_none=True) for p in proposals]
+            ),
+            story_id=_STORY_ID,
+            originating_turn_id=_TURN_ID,
+        )
+    assert caught.value.kind is RefusalKind.INVALID_SELECTION
+    assert "use(s) left" in caught.value.detail
+    dice.roll.assert_not_called()
+    return dice
+
+
+def _edge(creature: TurnCreature, operation: str) -> RollProposal:
+    return RollProposal(
+        check_label=operation,
+        subsystem_tag="turn",
+        visibility=RollVisibility.SHOWN,
+        operation=operation,
+        subject=_ref(creature),
+    )
+
+
+def test_a_ready_recharge_entry_used_twice_refuses_before_any_die() -> None:
+    # The second breath would turn on a random recharge at the fresh begin:
+    # that branch is held, so the composition refuses before any die.
+    dragon, wizard = _wyrmling(), _medium_wizard()
+    _turns_of(
+        dragon,
+        _breath(dragon, wizard),
+        _edge(dragon, "end_turn"),
+        _edge(dragon, "begin_turn"),
+        _breath(dragon, wizard),
+    )
+
+
+def test_crossing_a_daily_quota_refuses_before_any_die() -> None:
+    vrock = dataclasses.replace(
+        _creature("monsters.vrock.vrock", hp=104),
+    )
+    state = vrock.stored.state.model_copy(update={"usage_counters": ()})
+    vrock = dataclasses.replace(
+        vrock, stored=dataclasses.replace(vrock.stored, state=state)
+    )
+    wizard = _medium_wizard()
+    screech = RollProposal(
+        check_label="Stunning Screech",
+        subsystem_tag="screech",
+        visibility=RollVisibility.SHOWN,
+        operation="creature_save_effect",
+        creature_save_effect=CreatureSaveEffectSelection(
+            source=_ref(vrock), entry="Stunning Screech", targets=(_ref(wizard),)
+        ),
+    )
+    _turns_of(
+        vrock, screech, _edge(vrock, "end_turn"), _edge(vrock, "begin_turn"), screech
+    )

@@ -115,6 +115,12 @@ def render(
             {
                 "kind": active.subject.kind,
                 "subject_id": str(active.subject.subject_id),
+                # What this turn has already spent (actions, once-per-turn uses).
+                "spent": (
+                    [u.key for u in coordination.uses]
+                    if coordination is not None
+                    else []
+                ),
             }
             if active is not None
             else None

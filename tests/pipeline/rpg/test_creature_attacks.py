@@ -333,9 +333,12 @@ def test_a_multiattack_is_one_printed_alternative_taking_one_use() -> None:
     bear = _creature("animals.brown_bear", hp=34)
     result, _ = _multiattack_turn(bear, ["Bite", "Claw"])
     first, second = result.proposals
-    assert first.turn_use == "animals.brown_bear/Multiattack"
-    assert first.turn_use_by.subject_id == bear.subject_id
-    assert second.turn_use is None
+    assert [u.key for u in first.turn_uses] == [
+        "glossary.action/action",
+        "animals.brown_bear/Multiattack",
+    ]
+    assert {u.by.subject_id for u in first.turn_uses} == {bear.subject_id}
+    assert second.turn_uses == ()
 
 
 @pytest.mark.parametrize(

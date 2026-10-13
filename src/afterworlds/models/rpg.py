@@ -108,6 +108,10 @@ class WeaponAttackSelection(BaseModel):
     #: GameMaster's fact that the second creature is within 5 feet of the
     #: first (OD-15c-1).
     cleave: bool = False
+    #: The Light property's extra attack, after an Attack action attack with
+    #: another Light weapon this turn: as a Bonus Action (``light``) or, with
+    #: the weapon's Nick mastery, as part of the Attack action (``nick``).
+    extra: Literal["light", "nick"] | None = None
     cleave_within_5_feet: bool | None = None
 
 
@@ -288,6 +292,16 @@ class SheetEffect(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class TurnUseRef(BaseModel):
+    """One action instance or once-per-turn slot a record spent, by whom
+    (CRD Issue 15c, :mod:`afterworlds.pipeline.rpg.economy`)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    by: SubjectRef
+    key: str = Field(min_length=1)
+
+
 class TurnEdge(BaseModel):
     """One explicit actor-turn edge (CRD Issue 15c, contract G1)."""
 
@@ -330,9 +344,7 @@ class ResolvedAdjudicationRecord(BaseModel):
     turn_edge: TurnEdge | None = None
     #: A once-per-turn use this record takes (``record/component``) for the
     #: acting character in the active turn; replayed and committed like edges.
-    turn_use: str | None = None
-    #: Who takes ``turn_use`` (the acting character when ``None``).
-    turn_use_by: SubjectRef | None = None
+    turn_uses: tuple[TurnUseRef, ...] = ()
 
 
 # ---------------------------------------------------------------------------

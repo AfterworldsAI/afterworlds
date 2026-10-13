@@ -52,17 +52,42 @@ def _attack(target: TurnCreature, label: str) -> dict[str, Any]:
     }
 
 
+def _light_dagger(target: TurnCreature) -> dict[str, Any]:
+    """The Light property's extra attack, with the dagger after the club."""
+    proposal = _attack(target, "Dagger")
+    proposal["weapon_attack"].update(
+        weapon_item_id=str(DAGGER.item_id), extra="light", ability="strength"
+    )
+    return proposal
+
+
 def _thrown_dagger(target: TurnCreature) -> dict[str, Any]:
     # A ranged attack: whether the attacker is within 5 feet is not given.
-    proposal = _attack(target, "Thrown dagger")
+    proposal = _light_dagger(target)
     proposal["weapon_attack"].update(
-        weapon_item_id=str(DAGGER.item_id),
         range="within_normal_range",
         thrown=True,
         hostile_within_5_feet=False,
         ability="dexterity",
     )
     return proposal
+
+
+def actor_turn(actor: Any) -> Any:
+    """A coordination reader whose active turn is *actor*'s."""
+    from afterworlds.models.dnd5e_state import (
+        ActiveTurn,
+        SubjectReference,
+        TurnCoordination,
+    )
+    from afterworlds.services.dnd5e_state.coordination import StoredCoordination
+
+    kind = "creature" if isinstance(actor, TurnCreature) else "character"
+    me = SubjectReference(kind=kind, subject_id=actor.subject_id)
+    document = TurnCoordination(
+        active=ActiveTurn(subject=me, instance=1), next_instance=2
+    )
+    return lambda _story: StoredCoordination(_STORY_ID, 1, document)
 
 
 def _dice() -> MagicMock:
@@ -83,17 +108,19 @@ def _run(
     adapter: D20RulesSystemAdapter | None = None,
     second: dict[str, Any] | None = None,
 ) -> Any:
+    attacker = _attacker(CLUB, DAGGER)
     service = RpgAdjudicationPassService(
         adapter=adapter or D20RulesSystemAdapter(),
         subject_loader=lambda _story, _ref: target,
+        coordination_loader=actor_turn(attacker),
     )
     return service.adjudicate(
         _make_assembled(),
         _make_session(DiceHandling.AI_ROLLS),
-        _attacker(CLUB, DAGGER),
+        attacker,
         dice,
         provider=_FakeProvider(
-            [_attack(target, "First"), second or _attack(target, "Second")]
+            [_attack(target, "First"), second or _light_dagger(target)]
         ),
         story_id=_STORY_ID,
         originating_turn_id=_TURN_ID,

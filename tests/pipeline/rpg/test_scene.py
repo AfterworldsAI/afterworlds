@@ -46,6 +46,7 @@ def test_the_scene_lists_every_nameable_id_and_no_target_number() -> None:
     assert scene["active_turn"] == {
         "kind": "creature",
         "subject_id": str(wolf.subject_id),
+        "spent": [],
     }
     # No AC, DC, modifier or rolled interval.
     assert '"interval"' not in text and "armor" not in text.lower()

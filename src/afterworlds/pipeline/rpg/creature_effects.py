@@ -75,7 +75,9 @@ __all__ = [
     "PreparedSaveEffect",
     "RolledSaveEffect",
     "possible_conditions",
+    "limited_entries",
     "prepare",
+    "remaining",
     "recharge",
     "roll",
     "spend",
@@ -332,7 +334,6 @@ def _fact(source: TurnCreature, entry: str) -> CreatureSaveEffectFact:
             rider.forced_movement,
             rider.linked,
             rider.rider_save,
-            rider.duration,
             rider.escape_dc,
         )
     ):
@@ -346,6 +347,10 @@ def _fact(source: TurnCreature, entry: str) -> CreatureSaveEffectFact:
         and (rider.condition.effect is not ConditionEffectKind.APPLIES)
     ):
         raise _refuse(RefusalKind.UNSUPPORTED_CAPABILITY, f"{where}: effect untyped")
+    if rider is not None:
+        from afterworlds.pipeline.rpg.creature_attacks import _rider_turn
+
+        _rider_turn(rider.duration)  # a turn-bounded end, or a refusal
     return fact
 
 
@@ -512,7 +517,11 @@ def roll(
                         operation="apply_condition",
                         value_json=json.dumps(
                             _condition_value(
-                                prepared.source, target, kind, None, coordination
+                                prepared.source,
+                                target,
+                                kind,
+                                rider.duration,
+                                coordination,
                             )
                         ),
                         subject_kind=subject_key(target)[0],  # type: ignore[arg-type]
@@ -555,3 +564,27 @@ def possible_conditions(
         if target is not None:
             out[(ref.kind, str(ref.subject_id))] = damage_kinds(target) | imposed
     return out
+
+
+def remaining(creature: TurnCreature, entry: str) -> int | None:
+    """The uses *entry* has left (``None``: no limit), without refusing."""
+    usage = _usage(creature, entry)
+    if usage is None:
+        return None
+    spent = _expended(creature, entry)
+    if usage.kind is UsageKind.RECHARGE:
+        return 0 if spent else 1
+    if usage.kind is UsageKind.PER_DAY and usage.uses is not None:
+        return max(0, usage.uses - spent)
+    return None  # other kinds refuse in usable()
+
+
+def limited_entries(proposal: RollProposal) -> list[tuple[tuple[str, str], str]]:
+    """The creature entries *proposal* would spend a use of."""
+    attack = proposal.creature_attack
+    if attack is not None:
+        return [((attack.attacker.kind, str(attack.attacker.subject_id)), attack.entry)]
+    area = proposal.creature_save_effect
+    if area is not None:
+        return [((area.source.kind, str(area.source.subject_id)), area.entry)]
+    return []

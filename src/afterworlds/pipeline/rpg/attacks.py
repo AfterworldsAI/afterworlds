@@ -61,6 +61,7 @@ from afterworlds.ingestion.mechanical.representation import (
     DamageType,
     DiceExpression,
     FormulaTerm,
+    LightExtraAttackFact,
     MasteryDamage,
     MasteryDamageType,
     MasteryEffectFact,
@@ -580,9 +581,8 @@ class _Mastery:
 #: Masteries whose use waits on a classification: Nick and the Light extra
 #: attack need to know which attack is the Attack action's (action economy,
 #: surfaced for Codex); Cleave's extra attack is its own operation.
-_HELD_MASTERIES = {
-    WeaponMastery.NICK: "which attack is the Attack action's (action economy)",
-}
+#: Nick is not a selected property: it is the ``extra="nick"`` attack.
+_HELD_MASTERIES: dict[WeaponMastery, str] = {}
 
 
 def _mastery(
@@ -632,6 +632,12 @@ def _mastery(
     ):
         raise _refuse(
             RefusalKind.INVALID_SELECTION, "Cleave follows a melee attack's hit"
+        )
+    if name is WeaponMastery.NICK:
+        raise _refuse(
+            RefusalKind.INVALID_SELECTION,
+            "Nick is used as the Light property's extra attack (extra='nick'), not "
+            "selected on an attack",
         )
     if name in _HELD_MASTERIES:
         raise _refuse(
@@ -1136,6 +1142,21 @@ def prepare(
     )
     damage_modifier = modifier if rule.adds_attack_ability_modifier else 0
     mastery_used = _mastery(sel, actor, target, weapon, modifier, level)
+    if sel.extra is not None:
+        if sel.cleave or sel.mastery:
+            raise _refuse(
+                RefusalKind.INVALID_SELECTION,
+                "Light's extra attack is neither Cleave's nor a mastery selection",
+            )
+        light = [
+            f
+            for f in facts_of(index, "equipment.weapons.light", "light")
+            if isinstance(f, LightExtraAttackFact)
+        ]
+        if len(light) != 1:
+            raise _refuse(RefusalKind.MISSING_AUTHORITY, "Light is not typed")
+        if light[0].ability_modifier_damage is ModifierDamage.ONLY_IF_NEGATIVE:
+            damage_modifier = min(0, damage_modifier)
     if sel.cleave:
         cleave = _cleave_rule(sel, actor, weapon, ranged)
         if cleave.ability_modifier_damage is ModifierDamage.ONLY_IF_NEGATIVE:

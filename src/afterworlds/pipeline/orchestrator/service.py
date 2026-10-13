@@ -3689,18 +3689,13 @@ class OrchestratorService:
         document = read.document
         edges = []
         begun = False
-        actor = SubjectReference(kind="character", subject_id=actor_id)
+        del actor_id  # every use names its subject
         for record in adj_result.proposals:
-            if record.turn_use is not None:
-                by = record.turn_use_by
+            for use in record.turn_uses:
                 document, used = coordination.use_event(
                     document,
-                    (
-                        actor
-                        if by is None
-                        else SubjectReference(kind=by.kind, subject_id=by.subject_id)
-                    ),
-                    record.turn_use,
+                    SubjectReference(kind=use.by.kind, subject_id=use.by.subject_id),
+                    use.key,
                 )
                 edges.append(used)
             if record.turn_edge is None:

@@ -74,8 +74,6 @@ _EDGES = (Operation.BEGIN_TURN.value, Operation.END_TURN.value)
 _ATTESTATIONS = (Operation.STABLE_RECOVERY.value, Operation.KNOCKOUT_RECOVERY.value)
 #: Operations whose validity turns on a subject's zero-HP lifecycle state.
 _LIFECYCLE = (Operation.STABILIZE.value, *_ATTESTATIONS)
-#: Cleave's once-per-turn use (``turn_use``).
-_CLEAVE = "equipment.weapons.cleave/cleave"
 
 
 def _edge_subject(
@@ -626,12 +624,6 @@ class D20RulesSystemAdapter:
                 sheet_effects=attack.effects,
                 source=source,
                 gm_cheating_at_roll=gm_cheating,
-                turn_use=(
-                    _CLEAVE
-                    if proposal.weapon_attack is not None
-                    and proposal.weapon_attack.cleave
-                    else None
-                ),
             )
         rolled = checks.roll(checks.prepare(proposal, character), dice_service)
         outcomes: dict[str, _Outcome] = {

@@ -242,13 +242,13 @@ def test_a_completed_short_rest_ends_the_knockout_once() -> None:
 # ---------------------------------------------------------------------------
 
 
-def _turn_of(subject: TurnCreature, *proposals: RollProposal) -> AdjudicationRefusal:
+def _turn_of(
+    subject: TurnCreature, *proposals: RollProposal, reason: str = "later turn"
+) -> AdjudicationRefusal:
     from unittest.mock import MagicMock
 
-    from afterworlds.models.dnd5e_state import TurnCoordination
     from afterworlds.models.enums import DiceHandling
     from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
-    from afterworlds.services.dnd5e_state.coordination import StoredCoordination
     from tests.pipeline.rpg.test_adjudication_service import (
         _STORY_ID,
         _TURN_ID,
@@ -256,20 +256,20 @@ def _turn_of(subject: TurnCreature, *proposals: RollProposal) -> AdjudicationRef
         _make_assembled,
         _make_session,
     )
+    from tests.pipeline.rpg.test_turn_sequencing import actor_turn
 
     dice = MagicMock()
+    actor = _attacker(CLUB)
     with pytest.raises(AdjudicationRefusal) as caught:
         RpgAdjudicationPassService(
             adapter=D20RulesSystemAdapter(),
             subject_loader=lambda _story, _ref: subject,
-            coordination_loader=lambda _story: StoredCoordination(
-                _STORY_ID, 1, TurnCoordination()
-            ),
+            coordination_loader=actor_turn(actor),
             bounded_loader=lambda _story, _ref: [],
         ).adjudicate(
             _make_assembled(),
             _make_session(DiceHandling.AI_ROLLS),
-            _attacker(CLUB),
+            actor,
             dice,
             provider=_FakeProvider(
                 [p.model_dump(mode="json", exclude_none=True) for p in proposals]
@@ -279,7 +279,7 @@ def _turn_of(subject: TurnCreature, *proposals: RollProposal) -> AdjudicationRef
         )
     dice.roll.assert_not_called()
     assert caught.value.kind is RefusalKind.INVALID_SELECTION
-    assert "later turn" in caught.value.detail
+    assert reason in caught.value.detail
     return caught.value
 
 
@@ -305,7 +305,9 @@ def test_a_death_save_then_first_aid_on_the_same_subject_refuses() -> None:
         operation="begin_turn",
         subject=SubjectRef(kind="creature", subject_id=wolf.subject_id),
     )
-    _turn_of(wolf, begin, _op(wolf, "stabilize"))
+    # The dying subject's turn begins (its death save), so first aid, the
+    # acting character's action, is not on its turn: refused before any die.
+    _turn_of(wolf, begin, _op(wolf, "stabilize"), reason="still active")
 
 
 def test_first_aid_then_the_knockouts_short_rest_refuses() -> None:
@@ -319,4 +321,5 @@ def test_first_aid_then_the_knockouts_short_rest_refuses() -> None:
 
 def test_an_attack_then_first_aid_on_its_target_refuses() -> None:
     wolf = _creature(hp=2, treatment=CHARACTER)
-    _turn_of(wolf, _proposal(wolf, CLUB), _op(wolf, "stabilize"))
+    # Both need the turn's one action, which refuses first, before any die.
+    _turn_of(wolf, _proposal(wolf, CLUB), _op(wolf, "stabilize"), reason="already used")

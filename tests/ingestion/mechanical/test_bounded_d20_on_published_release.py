@@ -431,6 +431,15 @@ def _attack(target: str, weapon: str, kind: str = "creature") -> dict[str, Any]:
     }
 
 
+def _begin_actor(client: TestClient, story_id: str) -> dict[str, Any]:
+    """The acting character's turn begins: its attacks spend its actions."""
+    with client.app.state.session_factory() as s:
+        state = get_rpg_session_state_by_story(s, UUID(story_id))
+        assert state is not None
+        sheet = str(state.character_sheet_id)
+    return _edge_roll("begin_turn", sheet, kind="character")
+
+
 def _creature_row(client: TestClient, creature_id: str) -> Any:
     (row,) = _rows(
         client,
@@ -445,10 +454,10 @@ def test_a_weapon_attack_commits_the_targets_damage_with_the_delivered_turn(
 ) -> None:
     story = _rpg_story(client)
     wolf, club = _wolf_and_club(client, story)
-    gm.append([_attack(wolf, club)])
+    gm.append([_begin_actor(client, story), _attack(wolf, club)])
     body = _turn(client, story, "I swing my club at the wolf.")
     assert body["disposition"] == "delivered", body
-    (row,) = _audit(client, story)
+    (row,) = [r for r in _audit(client, story) if r.check_label == "Club attack"]
     provenance = json.loads(row.modifiers_json)
     assert (provenance["operation"], row.dc) == ("weapon_attack", 12)
     assert provenance["certificate"]["projection_uuid"] == str(
@@ -488,12 +497,13 @@ def test_a_hits_subject_addressed_effects_are_audited_and_committed(
     monkeypatch.setattr(SystemRandomDiceService, "roll", roll)
     story = _rpg_story(client)
     wolf, club = _wolf_and_club(client, story)
-    gm.append([_attack(wolf, club)])
+    gm.append([_begin_actor(client, story), _attack(wolf, club)])
     body = _turn(client, story, "I swing my club at the wolf.")
     assert body["disposition"] == "delivered", body
     (row,) = _rows(
         client,
-        "SELECT sheet_effects_json FROM rpg_roll_audit WHERE story_id = :s",
+        "SELECT sheet_effects_json FROM rpg_roll_audit WHERE story_id = :s"
+        " AND check_label = 'Club attack'",
         s=story,
     )
     (effect,) = json.loads(row.sheet_effects_json)
@@ -512,7 +522,7 @@ def test_a_target_from_another_story_refuses_and_leaves_nothing(
     other = _rpg_story(client)
     wolf, _ = _wolf_and_club(client, other)
     _, club = _wolf_and_club(client, story)
-    gm.append([_attack(wolf, club)])
+    gm.append([_begin_actor(client, story), _attack(wolf, club)])
     body = _turn(client, story, "I swing at the wolf from the other tale.")
     assert body["disposition"] != "delivered", body
     assert _audit(client, story) == []
@@ -548,11 +558,16 @@ def test_actor_turn_edges_commit_with_the_delivered_turn(
 ) -> None:
     story = _rpg_story(client)
     wolf, club = _wolf_and_club(client, story)
-    gm.append([_edge_roll("begin_turn", wolf), _attack(wolf, club)])
-    assert _turn(client, story, "The wolf's turn; I strike.")["disposition"] == (
-        "delivered"
-    )
-    assert [tuple(r) for r in _edges(client, story)] == [(1, "begin", wolf, 1)]
+    begin = _begin_actor(client, story)
+    me = begin["subject"]["subject_id"]
+    gm.append([begin, _attack(wolf, club)])
+    assert _turn(client, story, "My turn; I strike.")["disposition"] == "delivered"
+    # The edge and the action the attack spent, each a logged event.
+    assert [tuple(r) for r in _edges(client, story)] == [
+        (1, "begin", me, 1),
+        (2, "use", me, 1),
+        (3, "use", me, 1),
+    ]
     (coordination,) = _rows(
         client,
         "SELECT revision, document FROM rpg_turn_coordination WHERE story_id = :s",
@@ -562,15 +577,21 @@ def test_actor_turn_edges_commit_with_the_delivered_turn(
     if not isinstance(document, dict):
         document = json.loads(document)
     assert coordination.revision == 1
-    assert document["active"]["subject"]["subject_id"] == wolf
+    assert document["active"]["subject"]["subject_id"] == me
+    assert [u["key"] for u in document["uses"]] == [
+        "glossary.action/action",
+        "glossary.attack/attack_roll#1:equipment.weapons.club",
+    ]
 
-    # Beginning another turn while the wolf's is active refuses, leaving the
-    # coordination, the edge log and the turn count as they were.
-    gm.append([_edge_roll("begin_turn", wolf)])
-    body = _turn(client, story, "The wolf goes again.")
-    assert body["disposition"] != "delivered", body
-    assert len(_edges(client, story)) == 1 and _turns(client) == 1
+    # Beginning another turn while mine is active refuses, leaving the
+    # coordination, the edge log and the turn count as they were; so does a
+    # second Attack action attack in a later delivery of the same turn.
+    for refused in (_edge_roll("begin_turn", wolf), _attack(wolf, club)):
+        gm.append([refused])
+        body = _turn(client, story, "Again.")
+        assert body["disposition"] != "delivered", body
+        assert len(_edges(client, story)) == 3 and _turns(client) == 1
 
-    gm.append([_edge_roll("end_turn", wolf)])
-    assert _turn(client, story, "The wolf's turn ends.")["disposition"] == ("delivered")
-    assert [tuple(r) for r in _edges(client, story)][-1] == (2, "end", wolf, 1)
+    gm.append([_edge_roll("end_turn", me, kind="character")])
+    assert _turn(client, story, "My turn ends.")["disposition"] == "delivered"
+    assert [tuple(r) for r in _edges(client, story)][-1] == (4, "end", me, 1)

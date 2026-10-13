@@ -146,16 +146,110 @@ def test_more_weapon_kinds_than_the_level_allows_refuses() -> None:
     _refused(RefusalKind.INVALID_SELECTION, greedy, wolf, _proposal(wolf, MACE))
 
 
-def test_nick_waits_on_the_action_economy_classification() -> None:
+def test_nick_is_the_light_extra_attack_not_a_selection() -> None:
     wolf = _creature(hp=40)
     fighter = _fighter("dagger", items=(DAGGER,))
     refusal = _refused(
-        RefusalKind.UNSUPPORTED_CAPABILITY,
+        RefusalKind.INVALID_SELECTION,
         fighter,
         wolf,
         _proposal(wolf, DAGGER, mastery=True, ability="strength"),
     )
-    assert "nick" in refusal.detail
+    assert "extra='nick'" in refusal.detail
+
+
+def _actor_turn_service(
+    fighter: TurnCharacter, creatures: list[TurnCreature], *proposals: RollProposal
+) -> Any:
+    from afterworlds.models.enums import DiceHandling
+    from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
+    from tests.pipeline.rpg.test_adjudication_service import (
+        _STORY_ID,
+        _TURN_ID,
+        _FakeProvider,
+        _make_assembled,
+        _make_session,
+    )
+    from tests.pipeline.rpg.test_turn_sequencing import actor_turn
+
+    by_id = {str(c.subject_id): c for c in creatures}
+    dice = MagicMock()
+
+    def roll(expression: str) -> DiceResult:
+        face = 15 if "d20" in expression else 3
+        return DiceResult(expression=expression, raw_rolls=(face,), chosen=face)
+
+    dice.roll.side_effect = roll
+    result = RpgAdjudicationPassService(
+        adapter=D20RulesSystemAdapter(),
+        subject_loader=lambda _story, ref: by_id[str(ref.subject_id)],
+        coordination_loader=actor_turn(fighter),
+        bounded_loader=lambda _story, _ref: [],
+    ).adjudicate(
+        _make_assembled(),
+        _make_session(DiceHandling.AI_ROLLS),
+        fighter,
+        dice,
+        provider=_FakeProvider(
+            [p.model_dump(mode="json", exclude_none=True) for p in proposals]
+        ),
+        story_id=_STORY_ID,
+        originating_turn_id=_TURN_ID,
+    )
+    return result, dice
+
+
+@pytest.mark.parametrize(
+    ("extra", "spends"),
+    [
+        ("light", "play.actions/one_bonus_action"),
+        ("nick", "equipment.weapons.nick/nick"),
+    ],
+)
+def test_the_light_extra_attack_spends_a_bonus_action_or_nick(
+    extra: str, spends: str
+) -> None:
+    wolf = _creature(hp=60)
+    fighter = _fighter("dagger", items=(CLUB, DAGGER))
+    result, _ = _actor_turn_service(
+        fighter,
+        [wolf],
+        _proposal(wolf, CLUB),
+        _proposal(wolf, DAGGER, extra=extra, ability="strength"),
+    )
+    first, second = result.proposals
+    assert [u.key for u in first.turn_uses] == [
+        "glossary.action/action",
+        "glossary.attack/attack_roll#1:equipment.weapons.club",
+    ]
+    assert [u.key for u in second.turn_uses] == [
+        "equipment.weapons.light/light",
+        spends,
+    ]
+    damage = json.loads(second.modifiers_json)["damage"]
+    strength = json.loads(second.modifiers_json)["breakdown"]["strength_modifier"]
+    assert damage["rolled"] == 3 + min(0, strength)  # no positive modifier
+
+
+@pytest.mark.parametrize(
+    ("second", "kind"),
+    [
+        # A further Attack action attack: Extra Attack is prose-bound.
+        ({}, RefusalKind.MISSING_AUTHORITY),
+        # Light's extra attack with the same weapon.
+        ({"extra": "light"}, RefusalKind.INVALID_SELECTION),
+    ],
+)
+def test_attacks_beyond_the_turns_actions_refuse_before_any_die(
+    second: dict[str, Any], kind: RefusalKind
+) -> None:
+    wolf = _creature(hp=60)
+    fighter = _fighter("dagger", items=(CLUB, DAGGER))
+    with pytest.raises(AdjudicationRefusal) as caught:
+        _actor_turn_service(
+            fighter, [wolf], _proposal(wolf, CLUB), _proposal(wolf, CLUB, **second)
+        )
+    assert caught.value.kind is kind
 
 
 # ---------------------------------------------------------------------------
@@ -351,18 +445,37 @@ def test_a_later_operations_spatial_facts_about_a_pushed_target_refuse() -> None
     push = _proposal(wolf, GREATCLUB, mastery=True, push_ft=10).model_dump(
         mode="json", exclude_none=True
     )
-    follow = _proposal(wolf, GREATCLUB).model_dump(mode="json", exclude_none=True)
+    from tests.pipeline.rpg.test_creature_attacks import _bite
+    from tests.pipeline.rpg.test_turn_sequencing import actor_turn
+
+    # The fighter's turn ends and the pushed wolf's begins; its bite states
+    # spatial facts about itself that predate the push.
+    def edge(operation: str, subject: Any) -> dict[str, Any]:
+        kind = "creature" if isinstance(subject, TurnCreature) else "character"
+        return {
+            "check_label": operation,
+            "subsystem_tag": "turn",
+            "visibility": "shown",
+            "operation": operation,
+            "subject": {"kind": kind, "subject_id": str(subject.subject_id)},
+        }
+
+    follow = _bite(wolf, fighter).model_dump(mode="json", exclude_none=True)
     dice = MagicMock()
     with pytest.raises(AdjudicationRefusal) as caught:
         RpgAdjudicationPassService(
             adapter=D20RulesSystemAdapter(),
             subject_loader=lambda _story, _ref: wolf,
+            coordination_loader=actor_turn(fighter),
+            bounded_loader=lambda _story, _ref: [],
         ).adjudicate(
             _make_assembled(),
             _make_session(DiceHandling.AI_ROLLS),
             fighter,
             dice,
-            provider=_FakeProvider([push, follow]),
+            provider=_FakeProvider(
+                [push, edge("end_turn", fighter), edge("begin_turn", wolf), follow]
+            ),
             story_id=_STORY_ID,
             originating_turn_id=_TURN_ID,
         )
@@ -438,7 +551,7 @@ def test_cleave_follows_a_hit_once_with_no_positive_ability_damage() -> None:
     result, _ = _cleave_turn(fighter, first, second, [15, 15])
     trigger, extra = result.proposals
     assert _mastery(trigger)["result"] == "may_cleave"
-    assert extra.turn_use == "equipment.weapons.cleave/cleave"
+    assert [u.key for u in extra.turn_uses] == ["equipment.weapons.cleave/cleave"]
     provenance = json.loads(extra.modifiers_json)
     strength = provenance["breakdown"]["strength_modifier"]
     # The die, plus the ability modifier only if it is negative.
@@ -450,7 +563,7 @@ def test_cleave_after_a_miss_is_not_triggered_and_rolls_nothing() -> None:
     first, second = _creature(hp=40), _creature(hp=40)
     result, dice = _cleave_turn(fighter, first, second, [2])
     assert json.loads(result.proposals[1].modifiers_json)["cleave"] == "not_triggered"
-    assert result.proposals[1].turn_use is None
+    assert result.proposals[1].turn_uses == ()
     assert dice.roll.call_count == 1
 
 
@@ -471,7 +584,14 @@ def test_cleave_is_once_in_the_attackers_turn(case: str) -> None:
             _cleave_turn(fighter, first, second, [15, 15], active=False)
         else:
             _cleave_turn(fighter, first, second, [15, 15, 15, 15], *again)
-    assert caught.value.kind is RefusalKind.INVALID_SELECTION
+    # Not the fighter's turn: the action is not theirs to spend. Twice: the
+    # second trigger is a further Attack action attack, which needs Extra
+    # Attack (prose-bound), before Cleave's own once-per-turn limit.
+    assert caught.value.kind is (
+        RefusalKind.INVALID_SELECTION
+        if case == "no_turn"
+        else RefusalKind.MISSING_AUTHORITY
+    )
 
 
 def test_cleave_needs_the_second_creature_within_5_feet_of_the_first() -> None:

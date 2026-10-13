@@ -80,6 +80,13 @@ One proposal per required roll:
     Give the knockout's condition instance in `attestation`.
 
   You decide whose turn begins and when; the engine keeps no turn order.
+  Attacks, first aid, and creature attacks and effects are actions of the
+  acting subject's own active turn: begin it first. The engine counts what
+  each turn spends (its one action, one Bonus Action and once-per-turn
+  features; shown in the scene) and refuses anything beyond it. The Attack
+  action is one attack roll: a further attack needs a feature the engine does
+  not execute yet (Extra Attack), so don't propose one. Reactions are not
+  executed.
 - `check_identity` — for `fixed_dc_check`, the rule whose printed check applies:
   - `glossary.climbing/difficult_climb` — climbing a slippery or handhold-poor
     surface (Strength (Athletics)).
@@ -139,6 +146,10 @@ One proposal per required roll:
     apply on their own.
   - `push_ft` — for Push: 5 or 10, how far you push the target. Don't state
     facts about a pushed creature for a later attack in the same response.
+  - `extra` — `light` for the Light property's extra attack (a different
+    Light weapon after an Attack action attack with a Light weapon this turn,
+    as a Bonus Action), or `nick` to make it as part of the Attack action with
+    a Nick weapon. Null otherwise.
   - `cleave` and `cleave_within_5_feet` — Cleave's extra attack: propose it
     right after the attack that selects Cleave (same weapon, another
     creature), with whether the second creature is within 5 feet of the
