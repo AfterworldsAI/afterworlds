@@ -1,0 +1,61 @@
+{
+ "accepted_proposal_identity": "20716b7dcadd5e1216ff3594c5aa654cb41c2961fe49048b0c853c1eed381838",
+ "candidate": {
+  "c6_sha256_preserved": "eb014b30e685543c435930913d00fe8762963c95b0fdcc9ce470c019bbfb554a",
+  "c6r2_sha256": "699718ff9bac8298c08fc6da706309819b864b604685c88f462669d68e8923f4"
+ },
+ "delta": {
+  "claims_added": 4,
+  "expected_rules_added": 4,
+  "fact_keys": [
+   "feats.alert/category:73df36a2051b0917",
+   "feats.magic_initiate/category:73df36a2051b0917",
+   "feats.savage_attacker/category:73df36a2051b0917",
+   "feats.skilled/category:73df36a2051b0917"
+  ],
+  "facts_added": 4
+ },
+ "deterministic_twice": true,
+ "label": "SIMULATION - review-only native preview; not an Owner acceptance",
+ "native": {
+  "own_gate_passed": true,
+  "payload_hash": "0fb1f03721782fa858e13875f65f39ac6797eee2d2bb46e6e3bcc8e177b42c9f",
+  "preview_reconstruction_clean": true,
+  "preview_refused_against_successor": true,
+  "projection": "d7f7a09c-616d-5605-8c5f-6364f7af9718",
+  "successor_reconstruction_clean": true,
+  "successor_refused_against_preview": true,
+  "validate_candidate_findings": []
+ },
+ "oracle_identity": "268979f0e5b44e02dcbd079e2d91653ea7af90192b2dcf7d21a46b08b1620add",
+ "pins_after": true,
+ "preservation": {
+  "acceptance.batches": true,
+  "acceptance.records": true,
+  "acceptance.review_unit_records": true,
+  "acceptance.schema_anchors": true,
+  "artifact_kind": true,
+  "lifts": true,
+  "reference_resolutions": true,
+  "release_binding": true,
+  "representation.components": true,
+  "representation.prose_bindings": true,
+  "representation.provenance": true,
+  "representation.records": true,
+  "representation.references": true,
+  "representation.relationships": true,
+  "representation_schema": true,
+  "resolution_records": true,
+  "semantic_policy_hash": true,
+  "semantic_policy_version": true,
+  "spans": true
+ },
+ "preview_sha256": "5b86d880d85e91d9f7c0bf5104e50b08248af6986b5b325279d8dd87969900e3",
+ "prior_successor_sha256": "23e5d8e0fac60e3f5417b3a41e40e6f475366dd385856f38c42104f4dd264f69",
+ "proposal_identity": "77407b7e1bd374be18cdf89461025cffb3b74ada116d8eac1ee99781dcb275e2",
+ "rendered_proposal_sha256": "1e634d0cdc2059e846cb699ad33387accab497c41d0b57b751aadf5697629162",
+ "schema": [
+  "5d-representation-schema-19",
+  "3734ccf7d6be7f25e0a0d7c0395121c5525afcb87144f5cf9d6895e03c1cd18f"
+ ]
+}

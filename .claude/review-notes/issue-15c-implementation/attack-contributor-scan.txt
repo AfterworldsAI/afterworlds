@@ -1,0 +1,64 @@
+classes.md:234	Level 1: Rage	| _Rage Damage._ When you make an attack using Strength—with either a weapon or an Unarmed Strike—and deal damage to the target, you gain a bonus to the damage th
+classes.md:234	Level 1: Rage	| - Make an attack roll against an enemy.
+classes.md:258	Level 1: Unarmored Defense	| While you aren't wearing any armor, your base Armor Class equals 10 plus your Dexterity and Constitution modifiers. You can use a Shield and still gain this ben
+classes.md:272	Level 2: Reckless Attack	| You can throw aside all concern for defense to attack with increased ferocity. When you make your first attack roll on your turn, you can decide to attack reckl
+classes.md:306	Level 9: Brutal Strike	| If you use Reckless Attack, you can forgo any Advantage on one Strength-based attack roll of your choice on your turn. The chosen attack roll mustn't have Disad
+classes.md:319	Level 13: Improved Brutal Strike	| _Sundering Blow._ Before the start of your next turn, the next attack roll made by another creature against the target gains a +5 bonus to the roll. An attack r
+classes.md:333	Level 17: Improved Brutal Strike	| The extra damage of your Brutal Strike increases to 2d10. In addition, you can use two different Brutal Strike effects whenever you use your Brutal Strike featu
+classes.md:355	Level 3: Frenzy	| If you use Reckless Attack while your Rage is active, you deal extra damage to the first target you hit on your turn with a Strength-based attack. To determine 
+classes.md:363	Level 10: Retaliation	| When you take damage from a creature that is within 5 feet of you, you can take a Reaction to make one melee attack against that creature, using a weapon or an 
+classes.md:1698	Level 3: Cutting Words	| You learn to use your wit to supernaturally distract, confuse, and otherwise sap the confidence and competence of others. When a creature that you can see withi
+classes.md:1708	Level 14: Peerless Skill	| When you make an ability check or attack roll and fail, you can expend one use of Bardic Inspiration; roll the Bardic Inspiration die, and add the number rolled
+classes.md:2204	Level 7: Blessed Strikes	| _Divine Strike._ Once on each of your turns when you hit a creature with an attack roll using a weapon, you can cause the target to take an extra 1d8 Necrotic o
+classes.md:2216	Level 14: Improved Blessed Strikes	| _Divine Strike._ The extra damage of your Divine Strike increases to 2d8.
+classes.md:3531	Level 7: Elemental Fury	| _Primal Strike._ Once on each of your turns when you hit a creature with an attack roll using a weapon or a Beast form's attack in Wild Shape, you can cause the
+classes.md:3539	Level 15: Improved Elemental Fury	| _Primal Strike._ The extra damage of your Primal Strike increases to 2d8.
+classes.md:4773	Level 13: Studied Attacks	| You study your opponents and learn from each attack you make. If you make an attack roll against a creature and miss, you have Advantage on your next attack rol
+classes.md:4791	Level 3: Improved Critical	| Your attack rolls with weapons and Unarmed Strikes can score a Critical Hit on a roll of 19 or 20 on the d20.
+classes.md:4795	Level 3: Remarkable Athlete	| In addition, immediately after you score a Critical Hit, you can move up to half your Speed without provoking Opportunity Attacks.
+classes.md:4809	Level 15: Superior Critical	| Your attack rolls with weapons and Unarmed Strikes can now score a Critical Hit on a roll of 18–20 on the d20.
+classes.md:5055	Level 1: Martial Arts	| Your practice of martial arts gives you mastery of combat styles that use your Unarmed Strike and Monk weapons, which are the following:
+classes.md:5055	Level 1: Martial Arts	| _Bonus Unarmed Strike._ You can make an Unarmed Strike as a Bonus Action.
+classes.md:5055	Level 1: Martial Arts	| _Martial Arts Die._ You can roll 1d6 in place of the normal damage of your Unarmed Strike or Monk weapons. This die changes as you gain Monk levels, as shown in
+classes.md:5055	Level 1: Martial Arts	| _Dexterous Attacks._ You can use your Dexterity modifier instead of your Strength modifier for the attack and damage rolls of your Unarmed Strikes and Monk weap
+classes.md:5070	Level 1: Unarmored Defense	| While you aren't wearing armor or wielding a Shield, your base Armor Class equals 10 plus your Dexterity and Wisdom modifiers.
+classes.md:5074	Level 2: Monk's Focus	| **_Flurry of Blows._** You can expend 1 Focus Point to make two Unarmed Strikes as a Bonus Action.
+classes.md:5101	Level 3: Deflect Attacks	| When an attack roll hits you and its damage includes Bludgeoning, Piercing, or Slashing damage, you can take a Reaction to reduce the attack's total damage agai
+classes.md:5123	Level 5: Stunning Strike	| Once per turn when you hit a creature with a Monk weapon or an Unarmed Strike, you can expend 1 Focus Point to attempt a stunning strike. The target must make a
+classes.md:5127	Level 6: Empowered Strikes	| Whenever you deal damage with your Unarmed Strike, it can deal your choice of Force damage or its normal damage type.
+classes.md:5141	Level 10: Heightened Focus	| **_Flurry of Blows._** You can expend 1 Focus Point to use Flurry of Blows and make three Unarmed Strikes with it instead of two.
+classes.md:5209	Level 17: Quivering Palm	| You gain the ability to set up lethal vibrations in someone's body. When you hit a creature with an Unarmed Strike, you can expend 4 Focus Points to start these
+classes.md:5637	Level 11: Radiant Strikes	| Your strikes now carry supernatural power. When you hit a target with an attack roll using a Melee weapon or an Unarmed Strike, the target takes an extra 1d8 Ra
+classes.md:5968	Level 3: Sacred Weapon	| When you take the Attack action, you can expend one use of your Channel Divinity to imbue one Melee weapon that you are holding with positive energy. For 10 min
+classes.md:6402	Level 17: Precise Hunter	| You have Advantage on attack rolls against the creature currently marked by your _Hunter's Mark_.
+classes.md:6742	Level 3: Hunter's Prey	| _Colossus Slayer._ Your tenacity can wear down even the most resilient foes. When you hit a creature with a weapon, the weapon deals an extra 1d8 damage to the 
+classes.md:6750	Level 7: Defensive Tactics	| _Multiattack Defense._ When a creature hits you with an attack roll, that creature has Disadvantage on all other attack rolls against you this turn.
+classes.md:6758	Level 11: Superior Hunter's Prey	| Once per turn when you deal damage to a creature marked by your _Hunter's Mark_, you can also deal that spell's extra damage to a different creature that you ca
+classes.md:6964	Level 1: Sneak Attack	| You know how to strike subtly and exploit a foe's distraction. Once per turn, you can deal an extra 1d6 damage to one creature you hit with an attack roll if yo
+classes.md:6964	Level 1: Sneak Attack	| You don't need Advantage on the attack roll if at least one of your allies is within 5 feet of the target, the ally doesn't have the Incapacitated condition, an
+classes.md:6988	Level 3: Steady Aim	| As a Bonus Action, you give yourself Advantage on your next attack roll on the current turn. You can use this feature only if you haven't moved during this turn
+classes.md:7010	Level 5: Uncanny Dodge	| When an attacker that you can see hits you with an attack roll, you can take a Reaction to halve the attack's damage against you (round down).
+classes.md:7040	Level 18: Elusive	| You're so evasive that attackers rarely gain the upper hand against you. No attack roll can have Advantage against you unless you have the Incapacitated conditi
+classes.md:7552	Level 1: Innate Sorcery	| • You have Advantage on the attack rolls of Sorcerer spells you cast.
+classes.md:7692	Seeking Spell	| If you make an attack roll for a spell and miss, you can spend 1 Sorcery Point to reroll the d20, and you must use the new roll.
+classes.md:8568	Level 3: Draconic Resilience	| Parts of you are also covered by dragon-like scales. While you aren't wearing armor, your base Armor Class equals 10 plus your Dexterity and Charisma modifiers.
+classes.md:8607	Level 6: Elemental Affinity	| You have Resistance to that damage type, and when you cast a spell that deals damage of that type, you can add your Charisma modifier to one damage roll of that
+classes.md:8973	Agonizing Blast	| Choose one of your known Warlock cantrips that deals damage. You can add your Charisma modifier to that spell's damage rolls.
+classes.md:9007	Eldritch Smite	| Once per turn when you hit a creature with your pact weapon, you can expend a Pact Magic spell slot to deal an extra 1d8 Force damage to the target,
+classes.md:9078	Lifedrinker	| Once per turn when you hit a creature with your pact weapon, you can deal an extra 1d6 Necrotic, Psychic, or Radiant damage (your choice) to the creature, and y
+classes.md:9114	Pact of the Blade	| Whenever you attack with the bonded weapon, you can use your Charisma modifier for the attack and damage rolls instead of using Strength or Dexterity; and you c
+classes.md:9138	Repelling Blast	| _Prerequisite: Level 2+ Warlock, a Warlock Cantrip That Deals Damage via an Attack Roll_
+classes.md:9138	Repelling Blast	| Choose one of your known Warlock cantrips that requires an attack roll. When you hit a Large or smaller creature with that cantrip, you can push the creature up
+classes.md:9727	Level 14: Hurl Through Hell	| Once per turn when you hit a creature with an attack roll, you can try to instantly transport the target through the Lower Planes. The target must succeed on a 
+classes.md:11468	Level 3: Potent Cantrip	| Your damaging cantrips affect even creatures that avoid the brunt of the effect. When you cast a cantrip at a creature and you miss with the attack roll or the 
+classes.md:11476	Level 10: Empowered Evocation	| Whenever you cast a Wizard spell from the Evocation school, you can add your Intelligence modifier to one damage roll of that spell.
+feats.md:69	Grappler	| _Punch and Grab._ When you hit a creature with an Unarmed Strike as part of the Attack action on your turn, you can use both the Damage and the Grapple option. 
+feats.md:69	Grappler	| _Attack Advantage._ You have Advantage on attack rolls against a creature Grappled by you.
+feats.md:85	Archery	| You gain a +2 bonus to attack rolls you make with Ranged weapons.
+feats.md:91	Defense	| While you're wearing Light, Medium, or Heavy armor, you gain a +1 bonus to Armor Class.
+feats.md:111	Boon of Combat Prowess	| _Peerless Aim._ When you miss with an attack roll, you can hit instead. Once you use this benefit, you can't use it again until the start of your next turn.
+feats.md:141	Boon of Irresistible Offense	| _Overwhelming Strike._ When you roll a 20 on the d20 for an attack roll, you can deal extra damage to the target equal to the ability score increased by this fe
+character-origins.md:235	Gnome	| **Rock Gnome.** You know the _Mending_ and _Prestidigitation_ cantrips. In addition, you can spend 10 minutes casting _Prestidigitation_ to create a Tiny clockw
+character-origins.md:253	Goliath	| **Fire's Burn (Fire Giant).** When you hit a target with an attack roll and deal damage to it, you can also deal 1d10 Fire damage to that target.
+character-origins.md:253	Goliath	| **Frost's Chill (Frost Giant).** When you hit a target with an attack roll and deal damage to it, you can also deal 1d6 Cold damage to that target and reduce it
+character-origins.md:253	Goliath	| **Hill's Tumble (Hill Giant).** When you hit a Large or smaller creature with an attack roll and deal damage to it, you can give that target the Prone condition
