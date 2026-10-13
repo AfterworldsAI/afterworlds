@@ -73,7 +73,7 @@ Two shape-gate fixes were needed so an optional sequence is admitted: `_admit` a
 - the Sling (`equipment.md:239-241`);
 - the Musket and the Pistol (`:429-439`).
 
-The separate "Bullets, Sling" row (`:1239`) takes the Sling. The source never literally tags the Musket or the Pistol as a firearm. This replaces the raw README's "only gunpowder weapons" wording, as Codex asked; the raw candidate is untouched. I2 remains for exact Owner semantic acceptance.
+The separate "Bullets, Sling" row (`:1239`) takes the Sling. The source never literally tags the Musket or the Pistol as a firearm. This replaces the raw README's broader, unsupported wording about which weapons are firearms, as Codex asked; the raw candidate is untouched. I2 remains for exact Owner semantic acceptance.
 
 ## Not done (held)
 
