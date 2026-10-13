@@ -27,6 +27,7 @@ from __future__ import annotations
 import json
 from collections import Counter
 from dataclasses import dataclass, field
+from itertools import product
 from uuid import uuid4
 
 from afterworlds.ingestion.mechanical.representation import (
@@ -42,6 +43,8 @@ from afterworlds.ingestion.mechanical.representation import (
     DamageType,
     EntrySection,
     EntrySubject,
+    MultiattackAlternative,
+    MultiattackReplacement,
     NaturalRollOutcomeFact,
     RecurrenceBoundary,
     Rider,
@@ -916,12 +919,77 @@ def multiattack_key(attacker: TurnCreature) -> str:
     return f"{attacker.stored.state.template_record_key}/Multiattack"
 
 
+def _fits(
+    alternative: MultiattackAlternative,
+    entries: Counter[str],
+    cuts: tuple[int, ...] = (),
+) -> bool:
+    """Whether *entries* make *alternative* exactly, with ``cuts[i]`` of
+    part *i*'s required attacks replaced (not made)."""
+    remaining = Counter(entries)
+    order = sorted(
+        range(len(alternative.parts)), key=lambda i: alternative.parts[i].attack is None
+    )
+    for i in order:
+        part = alternative.parts[i]
+        names = {part.attack} if part.attack else set(part.any_of)
+        want = (part.count or 0) - (cuts[i] if cuts else 0)
+        took = 0
+        for name in sorted(names):
+            step = min(want - took, remaining[name])
+            remaining[name] -= step
+            took += step
+        if took < want and not part.optional:
+            return False
+    return not +remaining
+
+
+def _replaced(
+    alternative: MultiattackAlternative,
+    replacement: MultiattackReplacement,
+    entries: Counter[str],
+    attack_entries: set[str],
+) -> bool:
+    """Whether *entries* make *alternative* with *replacement* used: each
+    use of an attack option stands in for ``replaces`` (one if unprinted) of
+    the alternative's required attacks (only ``replaces_attack``'s if
+    printed); once, or any number of times for "any of these attacks". A
+    spell or a non-attack option is not executable here."""
+    options = {
+        o.entry
+        for o in replacement.with_one_of
+        if o.spell is None and o.entry in attack_entries
+    }
+    used = sum(entries[o] for o in options)
+    if not used or (used > 1 and not replacement.replaces_any):
+        return False
+    base = Counter({k: v for k, v in entries.items() if k not in options})
+    need = used * (replacement.replaces or 1)
+    eligible = [
+        (
+            0
+            if part.optional
+            or (
+                replacement.replaces_attack is not None
+                and replacement.replaces_attack != part.attack
+            )
+            else part.count or 0
+        )
+        for part in alternative.parts
+    ]
+    return any(
+        sum(cuts) == need and _fits(alternative, base, cuts)
+        for cuts in product(*(range(n + 1) for n in eligible))
+    )
+
+
 def check_multiattack(attacker: TurnCreature, entries: list[str]) -> None:
     """Refuse unless *entries* (one Multiattack's attacks, in order) are one
     printed alternative of the attacker's Multiattack: every required part's
-    count, optional parts up to theirs, and nothing else. Alternatives with a
+    count, optional parts up to theirs, and nothing else, or that with a
+    printed replacement by another attack entry. Alternatives with a
     condition, a count formula, a spell use or an "if available" part, and
-    replacements, are not executable here."""
+    replacements by a spell or a non-attack entry, are not executable here."""
     assert attacker.index is not None
     template = template_of(attacker)
     facts = [
@@ -933,26 +1001,22 @@ def check_multiattack(attacker: TurnCreature, entries: list[str]) -> None:
         raise _refuse(
             RefusalKind.INVALID_SELECTION, f"{template} prints no single Multiattack"
         )
+    attack_entries = {
+        f.entry
+        for f in facts_of(attacker.index, template)
+        if isinstance(f, CreatureAttackFact)
+    }
+    made = Counter(entries)
     for alternative in facts[0].alternatives:
         if alternative.condition is not None or any(
             p.count_formula is not None or p.uses_one_of or p.if_available
             for p in alternative.parts
         ):
             continue
-        remaining = Counter(entries)
-        fits = True
-        ordered = sorted(alternative.parts, key=lambda p: p.attack is None)
-        for part in ordered:
-            names = {part.attack} if part.attack else set(part.any_of)
-            want = part.count or 0
-            took = 0
-            for name in sorted(names):
-                step = min(want - took, remaining[name])
-                remaining[name] -= step
-                took += step
-            if took < want and not part.optional:
-                fits = False
-        if fits and not +remaining:
+        if _fits(alternative, made) or any(
+            _replaced(alternative, r, made, attack_entries)
+            for r in facts[0].replacements
+        ):
             return
     raise _refuse(
         RefusalKind.INVALID_SELECTION,

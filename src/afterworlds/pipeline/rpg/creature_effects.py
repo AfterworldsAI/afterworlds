@@ -287,6 +287,16 @@ def _fact(source: TurnCreature, entry: str) -> CreatureSaveEffectFact:
         )
     fact = found[0]
     where = f"{template}/{entry}"
+    from afterworlds.pipeline.rpg.creature_clauses import clauses
+
+    printed = clauses(source, entry)
+    if printed:
+        # No save effect's clause is executed here (C5: none is positive).
+        family = printed[0].FAMILY.value  # type: ignore[attr-defined]
+        raise _refuse(
+            RefusalKind.UNSUPPORTED_CAPABILITY,
+            f"{where} prints a {family} clause, which is not executable here",
+        )
     if fact.section is EntrySection.LEGENDARY_ACTION:
         raise _refuse(
             RefusalKind.UNSUPPORTED_CAPABILITY, "legendary actions are not executable"

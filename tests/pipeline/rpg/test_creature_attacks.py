@@ -294,7 +294,7 @@ def test_a_two_term_critical_at_0_hit_points_counts_two_failures() -> None:
 
 
 def _multiattack_turn(
-    bear: TurnCreature, entries: list[str], *, active: bool = True
+    bear: TurnCreature, entries: list[str], *, active: bool = True, **facts: Any
 ) -> tuple[Any, Any]:
     from unittest.mock import MagicMock
 
@@ -322,7 +322,7 @@ def _multiattack_turn(
         next_instance=2,
     )
     proposals = [
-        _bite(bear, wizard, entry=e, multiattack=True).model_dump(
+        _bite(bear, wizard, entry=e, multiattack=True, **facts).model_dump(
             mode="json", exclude_none=True
         )
         for e in entries

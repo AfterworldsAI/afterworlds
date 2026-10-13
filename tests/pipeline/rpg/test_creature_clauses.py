@@ -279,3 +279,62 @@ def test_a_follow_up_the_hit_does_not_allow_refuses_before_any_die(
     with pytest.raises(AdjudicationRefusal) as caught:
         _allosaurus_turn([18, 18], first, _json("Bite", follows_up=True))
     assert caught.value.kind is RefusalKind.INVALID_SELECTION
+
+
+# ---------------------------------------------------------------------------
+# Multiattack replacements
+# ---------------------------------------------------------------------------
+
+
+def test_the_dragon_turtle_may_replace_a_bite_with_its_tail() -> None:
+    from tests.pipeline.rpg.test_creature_attacks import _multiattack_turn
+
+    turtle = _creature("monsters.dragon_turtle.dragon_turtle", hp=341)
+    result, _ = _multiattack_turn(
+        turtle, ["Bite", "Tail", "Bite"], target_within_5_feet=False
+    )
+    assert [_provenance(r)["entry"] for r in result.proposals] == [
+        "Bite",
+        "Tail",
+        "Bite",
+    ]
+    assert [u.key for u in result.proposals[0].turn_uses] == [
+        "glossary.action/action",
+        "monsters.dragon_turtle.dragon_turtle/Multiattack",
+    ]
+
+
+@pytest.mark.parametrize(
+    "entries",
+    [
+        ["Tail", "Tail", "Bite"],  # one replacement, once
+        ["Bite", "Bite", "Bite", "Tail"],  # replaces, does not add
+        ["Tail"],
+    ],
+)
+def test_a_replacement_beyond_the_printed_one_refuses(entries: list[str]) -> None:
+    from afterworlds.pipeline.rpg.creature_attacks import check_multiattack
+
+    turtle = _creature("monsters.dragon_turtle.dragon_turtle", hp=341)
+    with pytest.raises(AdjudicationRefusal):
+        check_multiattack(turtle, entries)
+
+
+def test_a_replacement_is_certified_by_its_own_part() -> None:
+    """The roc's Talons replacement composes, but Talons itself (a grapple)
+    is not executed here: the Multiattack refuses before any die."""
+    from tests.pipeline.rpg.test_creature_attacks import _multiattack_turn
+
+    roc = _creature("monsters.roc.roc", hp=248)
+    with pytest.raises(AdjudicationRefusal) as caught:
+        _multiattack_turn(roc, ["Beak", "Talons"])
+    assert caught.value.kind is RefusalKind.UNSUPPORTED_CAPABILITY
+
+
+def test_a_replacement_by_a_save_effect_is_not_an_attack_sequence() -> None:
+    from afterworlds.pipeline.rpg.creature_attacks import check_multiattack
+
+    dragon = _creature("monsters.brass_dragons.young_brass_dragon", hp=110)
+    check_multiattack(dragon, ["Rend", "Rend", "Rend"])
+    with pytest.raises(AdjudicationRefusal):
+        check_multiattack(dragon, ["Rend"])  # Sleep Breath is not executed
