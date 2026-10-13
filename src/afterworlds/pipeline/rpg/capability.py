@@ -499,6 +499,7 @@ EXCLUSIONS: tuple[str, ...] = (
     "general healing, rests and resurrection",
     "initiative order management and general encounter state",
     "player-rolled dice (CRD Issue 15b/19b)",
+    "ammunition recovery after a fight (the source rule is kept, not executed)",
 )
 
 
