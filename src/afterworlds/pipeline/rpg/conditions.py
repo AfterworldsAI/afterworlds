@@ -25,7 +25,7 @@ from afterworlds.pipeline.rpg.capability import AdjudicationRefusal, RefusalKind
 from afterworlds.services.dnd5e_state.authority import AuthorityIndex
 from afterworlds.services.dnd5e_state.turn import TurnSubject
 
-__all__ = ["Effective", "POSSIBLE", "cannot_act", "effective", "established"]
+__all__ = ["Effective", "cannot_act", "effective", "established"]
 
 
 @dataclass(frozen=True)
@@ -82,25 +82,19 @@ def effective(subject: TurnSubject, index: AuthorityIndex) -> tuple[Effective, .
     return tuple(out)
 
 
-#: The instance-id prefix the preflight gives a condition an earlier
-#: operation of the turn only *might* apply (``turn.with_possible``).
-POSSIBLE = "possible:"
-
-
 def established(subject: TurnSubject) -> tuple[Effective, ...]:
     """The conditions *subject* actually has: :func:`effective` without the
-    preflight's speculative instances (and what they would imply). A rule
-    that needs a condition as a positive prerequisite reads this, so a
+    instances the preflight projected (``subject.speculative``, carried with
+    the subject, never read from an id's text) or what they would imply. A
+    rule that needs a condition as a positive prerequisite reads this, so a
     condition an earlier operation might apply never establishes it."""
     from dataclasses import replace
 
     assert subject.index is not None
     state = subject.stored.state
     recorded = state.conditions
-    if recorded is not None and any(
-        c.instance_id.startswith(POSSIBLE) for c in recorded
-    ):
-        kept = tuple(c for c in recorded if not c.instance_id.startswith(POSSIBLE))
+    if recorded is not None and subject.speculative:
+        kept = tuple(c for c in recorded if c.instance_id not in subject.speculative)
         new = state.model_copy(update={"conditions": kept})
         stored = replace(subject.stored, state=new)  # type: ignore[arg-type]
         subject = replace(subject, stored=stored)  # type: ignore[arg-type]

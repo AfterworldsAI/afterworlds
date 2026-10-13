@@ -179,7 +179,9 @@ def _trample(beast: Any, target: Any) -> RollProposal:
     )
 
 
-@pytest.mark.parametrize("template", ["animals.elephant", "animals.mammoth"])
+@pytest.mark.parametrize(
+    "template", ["animals.elephant", "animals.mammoth", "monsters.gorgon.gorgon"]
+)
 def test_a_trample_cannot_rest_on_a_prone_the_gore_only_might_apply(
     template: str,
 ) -> None:
@@ -276,3 +278,88 @@ def test_each_enemy_is_the_gamemasters_named_cohort() -> None:
             {("creature", str(lion.subject_id)): lion},
         )
     assert caught.value.kind is RefusalKind.INVALID_SELECTION
+
+
+@pytest.mark.parametrize(
+    "instance_id", ["real-prone", "possible:prone", "possible:imported"]
+)
+def test_a_stored_prone_establishes_trample_whatever_its_id(instance_id: str) -> None:
+    """A recorded Prone is established state, whatever valid id it has (no
+    id prefix is reserved): serialized, re-read and state-validated, it lets
+    a standalone Trample execute."""
+    from afterworlds.models.dnd5e_state import ConditionInstance, Dnd5eCharacterState
+    from afterworlds.models.enums import ConditionVisibility
+    from afterworlds.services.dnd5e_state.validation import validate_character
+    from tests.pipeline.rpg.test_weapon_attacks import _dice
+
+    beast = _changed(_creature("animals.elephant", hp=100), usage_counters=())
+    wizard = _medium_wizard()
+    prone = ConditionInstance(
+        instance_id=instance_id,
+        condition="prone",  # type: ignore[arg-type]
+        visibility=ConditionVisibility.VISIBLE,
+    )
+    state = Dnd5eCharacterState.model_validate_json(
+        wizard.stored.state.model_copy(
+            update={"conditions": (prone,)}
+        ).model_dump_json()
+    )
+    assert wizard.index is not None
+    assert validate_character(wizard.index, state) == ()
+    target = dataclasses.replace(
+        wizard, stored=dataclasses.replace(wizard.stored, state=state)
+    )
+    subjects = {("creature", str(beast.subject_id)): beast}
+    adapter = D20RulesSystemAdapter()
+    adapter.require_supported(_trample(beast, target), target, subjects)
+    record = adapter.resolve_roll(
+        _trample(beast, target), target, None, _dice((5,), (3,)), False, subjects
+    )
+    assert record is not None
+
+
+def test_an_implied_speculative_prone_does_not_establish_trample() -> None:
+    """A goblin's hit might leave the target Unconscious, which implies
+    Prone; that implication is speculative too: the elephant's Trample later
+    in the turn refuses before any die."""
+    goblin = _creature("monsters.goblins.goblin_warrior", hp=10)
+    beast = _changed(_creature("animals.elephant", hp=100), usage_counters=())
+    target = _medium_wizard()
+    by_id = {str(c.subject_id): c for c in (goblin, beast)}
+
+    def edge(operation: str, subject: Any) -> dict[str, Any]:
+        return {
+            "check_label": operation,
+            "subsystem_tag": "turn",
+            "visibility": "shown",
+            "operation": operation,
+            "subject": {"kind": "creature", "subject_id": str(subject.subject_id)},
+        }
+
+    proposals = [
+        _bite(goblin, target, entry="Scimitar").model_dump(
+            mode="json", exclude_none=True
+        ),
+        edge("end_turn", goblin),
+        edge("begin_turn", beast),
+        _trample(beast, target).model_dump(mode="json", exclude_none=True),
+    ]
+    dice = MagicMock()
+    with pytest.raises(AdjudicationRefusal) as caught:
+        RpgAdjudicationPassService(
+            adapter=D20RulesSystemAdapter(),
+            subject_loader=lambda _story, ref: by_id[str(ref.subject_id)],
+            coordination_loader=actor_turn(goblin),
+            bounded_loader=lambda _story, _ref: [],
+            aura_loader=lambda _story: [],
+        ).adjudicate(
+            _make_assembled(),
+            _make_session(DiceHandling.AI_ROLLS),
+            target,
+            dice,
+            provider=_FakeProvider(proposals),
+            story_id=_STORY_ID,
+            originating_turn_id=_TURN_ID,
+        )
+    assert "prone condition" in caught.value.detail
+    dice.roll.assert_not_called()

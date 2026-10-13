@@ -16,7 +16,7 @@ import json
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass, replace
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Session, sessionmaker
@@ -83,6 +83,9 @@ class TurnCharacter:
     #: The exact effective authority the character's binding names (CRD Issue
     #: 15c): the only authority adjudication reads for this character.
     index: AuthorityIndex | None = None
+    #: Instance ids of conditions the preflight projected (an earlier
+    #: operation might apply them): never established state.
+    speculative: frozenset[str] = frozenset()
 
     @property
     def sheet_id(self) -> UUID:
@@ -107,6 +110,7 @@ class TurnCreature:
     readiness: tuple[StateFailure, ...]
     items: tuple[ItemInstance, ...] = ()
     index: AuthorityIndex | None = None
+    speculative: frozenset[str] = frozenset()
 
     @property
     def subject_id(self) -> UUID:
@@ -199,13 +203,20 @@ def with_possible(
     """*actor* and *subjects* with every condition in *possible* present, for
     the preflight: a condition the subject already has is not added twice."""
     present = {key: _conditions_of(actor, subjects, key) for key in possible}
+    # Fresh ids, recorded on each subject as speculative: provenance is
+    # carried, never read from an id's text (a stored id may be anything).
+    ids = {
+        (key, kind): f"possible:{uuid4()}"
+        for key, kinds in possible.items()
+        for kind in kinds
+    }
     effects = tuple(
         SheetEffect(
             target=kind.value,
             operation="apply_condition",
             value_json=json.dumps(
                 {
-                    "instance_id": f"possible:{kind.value}",
+                    "instance_id": ids[(key, kind)],
                     "condition": kind.value,
                     "visibility": ConditionVisibility.VISIBLE.value,
                     **({"level": 1} if kind is ConditionKind.EXHAUSTION else {}),
@@ -218,7 +229,18 @@ def with_possible(
         for kind in sorted(kinds)
         if (have := present[key]) is not None and kind not in have
     )
-    return advanced(actor, subjects, effects)
+    actor, out = advanced(actor, subjects, effects)
+    added: dict[tuple[str, str], set[str]] = {}
+    for effect in effects:
+        key = (str(effect.subject_kind), str(effect.subject_id))
+        added.setdefault(key, set()).add(json.loads(effect.value_json)["instance_id"])
+    actor_key = ("character", str(actor.subject_id))
+    if actor_key in added:
+        actor = replace(actor, speculative=actor.speculative | added.pop(actor_key))
+    for key, new in added.items():
+        if key in out:
+            out[key] = replace(out[key], speculative=out[key].speculative | new)
+    return actor, out
 
 
 def _conditions_of(
