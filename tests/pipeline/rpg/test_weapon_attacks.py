@@ -712,3 +712,103 @@ def test_a_charmed_attacker_cannot_attack_its_charmer() -> None:
 def test_damage_to_a_petrified_target_refuses() -> None:
     wolf = _afflicted(_creature(), "petrified")
     _refused(RefusalKind.UNSUPPORTED_CAPABILITY, _attacker(CLUB), wolf, _proposal(wolf))
+
+
+# ---------------------------------------------------------------------------
+# Ammunition through the service turn: the action budget, before any die
+# ---------------------------------------------------------------------------
+
+
+def _service_turn(
+    attacker: TurnCharacter,
+    target: TurnCreature,
+    proposals: list[RollProposal],
+    *,
+    active: bool = True,
+    dice: MagicMock | None = None,
+) -> tuple[Any, MagicMock]:
+    from afterworlds.models.dnd5e_state import (
+        ActiveTurn,
+        SubjectReference,
+        TurnCoordination,
+    )
+    from afterworlds.models.enums import DiceHandling
+    from afterworlds.models.rpg import DiceResult
+    from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
+    from afterworlds.services.dnd5e_state.coordination import StoredCoordination
+    from tests.pipeline.rpg.test_adjudication_service import (
+        _STORY_ID,
+        _TURN_ID,
+        _FakeProvider,
+        _make_assembled,
+        _make_session,
+    )
+
+    me = SubjectReference(kind="character", subject_id=attacker.subject_id)
+    document = TurnCoordination(
+        active=ActiveTurn(subject=me, instance=1) if active else None,
+        next_instance=2,
+    )
+
+    def roll(expression: str) -> DiceResult:
+        face = 15 if "d20" in expression else 3
+        return DiceResult(expression=expression, raw_rolls=(face,), chosen=face)
+
+    dice = dice or MagicMock()
+    dice.roll.side_effect = roll
+    result = RpgAdjudicationPassService(
+        adapter=D20RulesSystemAdapter(),
+        subject_loader=lambda _story, _ref: target,
+        coordination_loader=lambda _story: StoredCoordination(_STORY_ID, 1, document),
+    ).adjudicate(
+        _make_assembled(),
+        _make_session(DiceHandling.AI_ROLLS),
+        attacker,
+        dice,
+        provider=_FakeProvider(
+            [p.model_dump(mode="json", exclude_none=True) for p in proposals]
+        ),
+        story_id=_STORY_ID,
+        originating_turn_id=_TURN_ID,
+    )
+    return result, dice
+
+
+def _crossbow_shot() -> tuple[TurnCharacter, TurnCreature, RollProposal]:
+    crossbow = _wielded("equipment.weapons.hand_crossbow")
+    bolts = item("equipment.adventuring_gear.bolts", quantity=5)
+    wolf = _creature(hp=40)
+    shot = _proposal(
+        wolf,
+        crossbow,
+        range="within_normal_range",
+        hostiles_within_5_feet=(),
+        ammunition_item_id=bolts.item_id,
+    )
+    return _attacker(crossbow, bolts), wolf, shot
+
+
+def test_a_loading_shot_spends_its_action_loading_and_one_bolt() -> None:
+    attacker, wolf, shot = _crossbow_shot()
+    result, _ = _service_turn(attacker, wolf, [shot])
+    (record,) = result.proposals
+    keys = [u.key for u in record.turn_uses]
+    assert keys[0] == "glossary.action/action"
+    assert any(k.startswith("equipment.weapons.loading/loading:action:") for k in keys)
+    spent = [e for e in record.sheet_effects if e.target == "item_quantity"]
+    assert len(spent) == 1
+
+
+@pytest.mark.parametrize("case", ["not_my_turn", "second_shot"])
+def test_a_shot_beyond_the_action_budget_refuses_before_any_die(case: str) -> None:
+    """Outside the attacker's turn there is no action to spend; a second
+    shot in the one Attack action needs Extra Attack (prose-bound). Either
+    way nothing is rolled and no bolt is spent."""
+    attacker, wolf, shot = _crossbow_shot()
+    dice = MagicMock()
+    with pytest.raises(AdjudicationRefusal):
+        if case == "not_my_turn":
+            _service_turn(attacker, wolf, [shot], active=False, dice=dice)
+        else:
+            _service_turn(attacker, wolf, [shot, shot], dice=dice)
+    dice.roll.assert_not_called()
