@@ -59,7 +59,17 @@ class AdjudicationPassError(Exception):
     """
 
 
+class PreflightGapError(AdjudicationPassError):
+    """A refusal raised after a die of the turn was rolled (CRD Issue 15c).
+
+    The preflight checks every operation before any die, so this marks a
+    defect in it. It is never an ordinary refusal: the turn fails closed with
+    the defect named, and nothing is committed.
+    """
+
+
 __all__ = [
     "AdjudicationPassError",
+    "PreflightGapError",
     "AdjudicationPassResult",
 ]

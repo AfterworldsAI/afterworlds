@@ -30,8 +30,10 @@ import json
 from dataclasses import dataclass
 
 from afterworlds.ingestion.mechanical.representation import (
+    ConditionKind,
     DamageAtZeroHitPointsFact,
     DamageModificationFact,
+    DamageResponseFact,
     DamageResponseKind,
     DamageType,
     HitPointBoundFact,
@@ -45,11 +47,18 @@ from afterworlds.models.dnd5e_state import DeathState
 from afterworlds.models.enums import ConditionVisibility
 from afterworlds.models.rpg import SheetEffect
 from afterworlds.pipeline.rpg.capability import AdjudicationRefusal, RefusalKind
+from afterworlds.pipeline.rpg.conditions import effective
 from afterworlds.pipeline.rpg.defense import damage_responses, facts_of
 from afterworlds.services.dnd5e_state.authority import AuthorityIndex
 from afterworlds.services.dnd5e_state.turn import TurnCreature, TurnSubject
 
-__all__ = ["DAMAGE_PROCEDURE", "DamageTaken", "preflight", "take_damage"]
+__all__ = [
+    "DAMAGE_PROCEDURE",
+    "DamageTaken",
+    "possible_conditions",
+    "preflight",
+    "take_damage",
+]
 
 _RULES = "play.damage_and_healing"
 #: Procedure components this module implements (certified with the operation).
@@ -176,6 +185,14 @@ def preflight(target: TurnSubject, damage_type: DamageType) -> None:
         )
     _as_character(target)
     _modified(index, 1, damage_responses(target, damage_type))
+    for eff in effective(target, index):
+        for fact in facts_of(index, f"glossary.{eff.condition.value}"):
+            if isinstance(fact, DamageResponseFact):
+                raise _refuse(
+                    RefusalKind.UNSUPPORTED_CAPABILITY,
+                    f"the target's {eff.condition.value} condition changes the "
+                    "damage it takes and is not executable here",
+                )
     for component, family in (
         ("lost_first", TemporaryHitPointAbsorptionFact),
         ("hit_points", HitPointBoundFact),
@@ -184,6 +201,16 @@ def preflight(target: TurnSubject, damage_type: DamageType) -> None:
         ("stable", StableStateFact),
     ):
         _one(index, component, family)
+
+
+def possible_conditions(target: TurnSubject) -> frozenset[ConditionKind]:
+    """Every condition damage could apply to *target*: Unconscious on falling
+    to 0 Hit Points, unless it is treated as a monster (which dies)."""
+    if isinstance(target, TurnCreature):
+        treatment = target.stored.state.zero_hit_point_treatment
+        if treatment is not None and not treatment.as_character:
+            return frozenset()
+    return frozenset({ConditionKind.UNCONSCIOUS})
 
 
 def take_damage(

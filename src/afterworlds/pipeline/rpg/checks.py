@@ -69,6 +69,7 @@ from afterworlds.pipeline.rpg.capability import (
     RefusalKind,
     certify,
 )
+from afterworlds.pipeline.rpg.conditions import effective
 from afterworlds.pipeline.rpg.dice import DiceService
 from afterworlds.pipeline.rpg.grants import (
     ability_score,
@@ -530,7 +531,7 @@ def _refuse_contributors(
 
 
 def _advantage(
-    state: Dnd5eCharacterState,
+    character: TurnCharacter,
     index: AuthorityIndex,
     ability: AbilityScore,
     skill: Skill | None,
@@ -538,7 +539,8 @@ def _advantage(
 ) -> tuple[tuple[str, ...], tuple[str, ...]]:
     advantage: list[str] = []
     disadvantage: list[str] = []
-    for instance in state.conditions or ():
+    # Recorded and implied conditions (Unconscious gives Incapacitated).
+    for instance in effective(character, index):
         if instance.condition is ConditionKind.EXHAUSTION:
             raise _refuse(
                 RefusalKind.UNSUPPORTED_CAPABILITY,
@@ -640,7 +642,9 @@ def prepare(proposal: RollProposal, character: TurnCharacter) -> PreparedCheck:
         INITIATIVE_CONTRIBUTORS if operation is Operation.INITIATIVE else frozenset()
     )
     _refuse_contributors(character, state, index, ability, extra)
-    advantage, disadvantage = _advantage(state, index, ability, skill, spec.contexts)
+    advantage, disadvantage = _advantage(
+        character, index, ability, skill, spec.contexts
+    )
 
     score, _ = ability_score(index, state, ability)
     ability_modifier = (score - 10) // 2

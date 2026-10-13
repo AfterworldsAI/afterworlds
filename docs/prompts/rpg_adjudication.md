@@ -85,6 +85,9 @@ One proposal per required roll:
       `magical_darkness` or `heavily_obscured`.
     - `hostile_within_5_feet` — for a ranged attack: whether an enemy that can
       see the attacker and isn't Incapacitated is within 5 feet of it.
+    - `target_within_5_feet` — whether the attacker is within 5 feet of the
+      target. Give it when the target is Prone, Paralyzed or Unconscious and
+      the attack is not a melee attack with a 5-foot reach; otherwise null.
   - `two_handed` (a Versatile weapon used in two hands), `thrown`, and, for a
     Finesse weapon, `ability` (`strength` or `dexterity`).
 

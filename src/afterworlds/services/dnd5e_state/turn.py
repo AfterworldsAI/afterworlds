@@ -12,14 +12,18 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from uuid import UUID
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Session, sessionmaker
 
+from afterworlds.ingestion.mechanical.representation import ConditionKind
+from afterworlds.models.enums import ConditionVisibility
+from afterworlds.models.rpg import SheetEffect
 from afterworlds.models.rules_package import RulesPackageBinding
 from afterworlds.persistence.orm.dnd5e_state import (
     Dnd5eCharacterStateORM,
@@ -28,6 +32,7 @@ from afterworlds.persistence.orm.dnd5e_state import (
 from afterworlds.persistence.orm.rules_authority import SharedRuleChangeORM
 from afterworlds.services.dnd5e_state import adoption, leases, shared_changes
 from afterworlds.services.dnd5e_state.authority import AuthorityIndex, authority_index
+from afterworlds.services.dnd5e_state.effects import apply_effects
 from afterworlds.services.dnd5e_state.errors import (
     StaleRevisionError,
     StateFailure,
@@ -51,10 +56,12 @@ __all__ = [
     "TurnCharacter",
     "TurnCreature",
     "TurnSubject",
+    "advanced",
     "after_events",
     "load_turn_character",
     "load_turn_creature",
     "require_unchanged",
+    "with_possible",
 ]
 
 _log = logging.getLogger(__name__)
@@ -107,6 +114,85 @@ class TurnCreature:
 #: One subject of a turn: the acting character, or another character or
 #: creature an operation targets.
 TurnSubject = TurnCharacter | TurnCreature
+
+
+def advanced(
+    actor: TurnCharacter,
+    subjects: dict[tuple[str, str], TurnSubject],
+    effects: tuple[SheetEffect, ...],
+) -> tuple[TurnCharacter, dict[tuple[str, str], TurnSubject]]:
+    """The turn's view of *actor* and *subjects* after *effects*, in memory.
+
+    Each keeps the revision and binding it was read at, so the commit-time
+    recheck is unchanged; only later operations of the same turn read the
+    advanced state. An effect without a subject is the actor's.
+    """
+    grouped: dict[tuple[str, str], list[SheetEffect]] = {}
+    for effect in effects:
+        key = (
+            ("character", str(actor.subject_id))
+            if effect.subject_id is None
+            else (str(effect.subject_kind), str(effect.subject_id))
+        )
+        grouped.setdefault(key, []).append(effect)
+    out = dict(subjects)
+    for key, group in grouped.items():
+        if key == ("character", str(actor.subject_id)):
+            actor = _with_effects(actor, group)
+        elif key in out:
+            out[key] = _with_effects(out[key], group)
+        else:
+            raise ValueError(f"an effect names {key}, which this turn did not read")
+    return actor, out
+
+
+def _with_effects[T: TurnSubject](subject: T, effects: list[SheetEffect]) -> T:
+    stored: StoredCharacter | StoredCreature = subject.stored
+    state = apply_effects(stored.state, tuple(effects))
+    stored = replace(stored, state=state)  # type: ignore[arg-type]
+    return replace(subject, stored=stored)  # type: ignore[arg-type]
+
+
+def with_possible(
+    actor: TurnCharacter,
+    subjects: dict[tuple[str, str], TurnSubject],
+    possible: dict[tuple[str, str], set[ConditionKind]],
+) -> tuple[TurnCharacter, dict[tuple[str, str], TurnSubject]]:
+    """*actor* and *subjects* with every condition in *possible* present, for
+    the preflight: a condition the subject already has is not added twice."""
+    present = {key: _conditions_of(actor, subjects, key) for key in possible}
+    effects = tuple(
+        SheetEffect(
+            target=kind.value,
+            operation="apply_condition",
+            value_json=json.dumps(
+                {
+                    "instance_id": f"possible:{kind.value}",
+                    "condition": kind.value,
+                    "visibility": ConditionVisibility.VISIBLE.value,
+                    **({"level": 1} if kind is ConditionKind.EXHAUSTION else {}),
+                }
+            ),
+            subject_kind=key[0],  # type: ignore[arg-type]
+            subject_id=key[1],  # type: ignore[arg-type]
+        )
+        for key, kinds in possible.items()
+        for kind in sorted(kinds)
+        if (have := present[key]) is not None and kind not in have
+    )
+    return advanced(actor, subjects, effects)
+
+
+def _conditions_of(
+    actor: TurnCharacter,
+    subjects: dict[tuple[str, str], TurnSubject],
+    key: tuple[str, str],
+) -> set[ConditionKind] | None:
+    """The subject's recorded conditions, or ``None`` when it records none
+    (its operations refuse that as missing state)."""
+    subject = actor if key == ("character", str(actor.subject_id)) else subjects[key]
+    conditions = subject.stored.state.conditions
+    return None if conditions is None else {c.condition for c in conditions}
 
 
 def load_turn_creature(

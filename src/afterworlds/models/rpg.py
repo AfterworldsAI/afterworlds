@@ -84,6 +84,10 @@ class WeaponAttackSelection(BaseModel):
     #: For a ranged attack: whether a hostile creature that can see the
     #: attacker and isn't Incapacitated is within 5 feet of it.
     hostile_within_5_feet: bool | None = None
+    #: Whether the attacker is within 5 feet of the target, for a rule that
+    #: turns on it (Prone, and Paralyzed's or Unconscious's automatic
+    #: Critical Hit). A melee attack with a 5-foot reach implies it.
+    target_within_5_feet: bool | None = None
     #: A Versatile weapon used in two hands; a Thrown weapon thrown; a
     #: Finesse weapon's chosen ability.
     two_handed: bool = False

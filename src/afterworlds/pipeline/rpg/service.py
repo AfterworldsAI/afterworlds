@@ -39,6 +39,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 from afterworlds.entitlement.enums import PipelinePassId
+from afterworlds.ingestion.mechanical.representation import ConditionKind
 from afterworlds.models.context import AssembledContext
 from afterworlds.models.enums import DiceHandling, RollVisibility
 from afterworlds.models.rpg import (
@@ -75,7 +76,9 @@ from afterworlds.pipeline.rpg.config import (
 from afterworlds.pipeline.rpg.models import (
     AdjudicationPassError,
     AdjudicationPassResult,
+    PreflightGapError,
 )
+from afterworlds.services.dnd5e_state.turn import advanced, with_possible
 
 if TYPE_CHECKING:
     from afterworlds.models.rules_package import ActiveRuleSlice
@@ -356,30 +359,54 @@ class RpgAdjudicationPassService:
         subjects = self._load_subjects(story_id, sheet, proposals)
 
         # CRD Issue 2b: check every proposal before any has an effect, so a
-        # later unsupported check cannot follow an earlier roll.
+        # later unsupported check cannot follow an earlier roll. CRD Issue
+        # 15c: each is checked with every condition the turn's earlier
+        # operations could apply already present. Refusal paths only grow
+        # with a subject's conditions, so passing that state covers whichever
+        # outcome the dice give.
+        possible: dict[tuple[str, str], set[ConditionKind]] = {}
         for proposal in proposals:
+            view, view_subjects = with_possible(sheet, subjects, possible)
             try:
-                self._adapter.require_supported(proposal, sheet, subjects)
+                self._adapter.require_supported(proposal, view, view_subjects)
             except AdjudicationRefusal:
                 raise
             except Exception as exc:
                 raise AdjudicationPassError(
                     f"Unsupported proposal {proposal.check_label!r}: {exc}"
                 ) from exc
+            for key, kinds in self._adapter.possible_conditions(
+                proposal, view, view_subjects
+            ).items():
+                possible.setdefault(key, set()).update(kinds)
 
         records: list[ResolvedAdjudicationRecord] = []
         views: list[WriterAdjudicationView] = []
+        # Each operation reads the state the turn's earlier operations left
+        # (CRD Issue 15c): two hits on one target compound. The snapshots the
+        # turn read stay in the result, unadvanced: the orchestrator rechecks
+        # their revisions and applies every effect to them in order.
+        current, current_subjects = sheet, dict(subjects)
         for proposal in proposals:
             try:
                 record = self._adapter.resolve_roll(
                     proposal,
-                    sheet,
+                    current,
                     rule_slice,
                     dice_service,
                     session_state.gm_cheating,
-                    subjects,
+                    current_subjects,
                 )
-            except AdjudicationRefusal:
+            except AdjudicationRefusal as exc:
+                if records:
+                    # Dice were rolled; discarding them would let a retry
+                    # reroll (Architecture Invariant 10). The preflight should
+                    # have refused this before any die: a defect, not a
+                    # refusal.
+                    raise PreflightGapError(
+                        f"{proposal.check_label!r} refused after earlier dice "
+                        f"were rolled, which the preflight missed: {exc}"
+                    ) from exc
                 raise
             except Exception as exc:
                 raise AdjudicationPassError(
@@ -388,6 +415,9 @@ class RpgAdjudicationPassService:
                 ) from exc
             records.append(record)
             views.append(self._adapter.to_writer_view(record))
+            current, current_subjects = advanced(
+                current, current_subjects, record.sheet_effects
+            )
 
         return AdjudicationPassResult(
             proposals=tuple(records),

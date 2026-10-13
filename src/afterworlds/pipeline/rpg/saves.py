@@ -42,6 +42,7 @@ from afterworlds.ingestion.mechanical.representation import (
     RollContext,
 )
 from afterworlds.pipeline.rpg.capability import AdjudicationRefusal, RefusalKind
+from afterworlds.pipeline.rpg.conditions import effective
 from afterworlds.pipeline.rpg.dice import DiceService
 from afterworlds.pipeline.rpg.grants import ability_score, save_proficiency
 from afterworlds.services.dnd5e_state.authority import AuthorityIndex
@@ -210,10 +211,8 @@ def _conditions(
     advantage: list[str] = []
     disadvantage: list[str] = []
     failure: list[str] = []
-    conditions = subject.stored.state.conditions
-    if conditions is None:
-        raise _refuse(RefusalKind.MISSING_STATE, "the saver records no conditions")
-    for instance in conditions:
+    # Recorded and implied conditions (Unconscious gives Incapacitated).
+    for instance in effective(subject, index):
         if instance.condition is ConditionKind.EXHAUSTION:
             raise _refuse(
                 RefusalKind.UNSUPPORTED_CAPABILITY,

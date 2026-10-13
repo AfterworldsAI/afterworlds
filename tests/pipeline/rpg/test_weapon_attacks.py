@@ -17,14 +17,16 @@ from uuid import uuid4
 import pytest
 
 from afterworlds.models.dnd5e_state import (
+    ConditionInstance,
     CreatureState,
     DeathState,
     FeatSelection,
     GrantSource,
     HitPoints,
+    SubjectReference,
     ZeroHitPointTreatment,
 )
-from afterworlds.models.enums import RollVisibility
+from afterworlds.models.enums import ConditionVisibility, RollVisibility
 from afterworlds.models.rpg import (
     DiceResult,
     RollProposal,
@@ -384,3 +386,101 @@ def test_the_writer_never_sees_the_targets_armor_class() -> None:
     view = D20RulesSystemAdapter().to_writer_view(record)
     assert view.dc is None and "12" not in view.player_facing_summary
     assert view.outcome == "success"
+
+
+# ---------------------------------------------------------------------------
+# Conditions: every component is applied or reviewed; implied conditions
+# (Unconscious gives Incapacitated and Prone) bind too
+# ---------------------------------------------------------------------------
+
+
+def _condition(kind: str, referent: Any = None) -> ConditionInstance:
+    return ConditionInstance(
+        instance_id=f"c-{kind}",
+        condition=kind,  # type: ignore[arg-type]
+        visibility=ConditionVisibility.VISIBLE,
+        referent=referent,
+    )
+
+
+def _afflicted(creature: TurnCreature, *kinds: str) -> TurnCreature:
+    state = creature.stored.state.model_copy(
+        update={"conditions": tuple(_condition(k) for k in kinds)}
+    )
+    return dataclasses.replace(
+        creature, stored=dataclasses.replace(creature.stored, state=state)
+    )
+
+
+def test_a_hit_on_an_unconscious_target_from_within_5_feet_is_critical() -> None:
+    wolf = _afflicted(_creature(hp=40), "unconscious")
+    dice = _dice((12, 3), (3, 1))
+    record = _run(_attacker(CLUB), wolf, _proposal(wolf), dice)
+    provenance = json.loads(record.modifiers_json)
+    assert record.outcome == "critical_success"
+    assert dice.calls == ["2d20kh1", "2d4"]
+    assert provenance["automatic_critical"] == [
+        "glossary.unconscious/automatic_critical_hits"
+    ]
+    # Unconscious's own Advantage, and implied Prone's from within 5 feet.
+    assert set(provenance["advantage_sources"]) == {
+        "glossary.unconscious/attacks_affected",
+        "glossary.prone/attacks_against_affected",
+    }
+
+
+def test_a_prone_target_beyond_5_feet_imposes_disadvantage() -> None:
+    wolf = _afflicted(_creature(), "prone")
+    proposal = _proposal(
+        wolf,
+        DAGGER,
+        range="within_normal_range",
+        thrown=True,
+        hostile_within_5_feet=False,
+        ability="dexterity",
+        target_within_5_feet=False,
+    )
+    record = _run(_attacker(DAGGER), wolf, proposal, _dice((15, 2), (3,)))
+    assert json.loads(record.modifiers_json)["disadvantage_sources"] == [
+        "glossary.prone/attacks_against_affected"
+    ]
+
+
+def test_a_rule_that_turns_on_5_feet_refuses_without_the_fact() -> None:
+    wolf = _afflicted(_creature(), "prone")
+    proposal = _proposal(
+        wolf,
+        DAGGER,
+        range="within_normal_range",
+        thrown=True,
+        hostile_within_5_feet=False,
+        ability="dexterity",
+    )
+    _refused(RefusalKind.MISSING_STATE, _attacker(DAGGER), wolf, proposal)
+
+
+def test_a_5_foot_melee_attack_is_within_5_feet() -> None:
+    wolf = _creature()
+    proposal = _proposal(wolf, target_within_5_feet=False)
+    _refused(RefusalKind.INVALID_SELECTION, _attacker(CLUB), wolf, proposal)
+
+
+def test_an_incapacitated_attacker_cannot_attack() -> None:
+    wolf = _creature()
+    stunned = _attacker(CLUB, conditions=(_condition("stunned"),))
+    refusal = _refused(RefusalKind.INVALID_SELECTION, stunned, wolf, _proposal(wolf))
+    assert "glossary.incapacitated/inactive" in refusal.detail
+
+
+def test_a_charmed_attacker_cannot_attack_its_charmer() -> None:
+    wolf = _creature()
+    charmer = SubjectReference(kind="creature", subject_id=wolf.subject_id)
+    charmed = _attacker(CLUB, conditions=(_condition("charmed", charmer),))
+    _refused(RefusalKind.INVALID_SELECTION, charmed, wolf, _proposal(wolf))
+    unknown = _attacker(CLUB, conditions=(_condition("charmed"),))
+    _refused(RefusalKind.MISSING_STATE, unknown, wolf, _proposal(wolf))
+
+
+def test_damage_to_a_petrified_target_refuses() -> None:
+    wolf = _afflicted(_creature(), "petrified")
+    _refused(RefusalKind.UNSUPPORTED_CAPABILITY, _attacker(CLUB), wolf, _proposal(wolf))

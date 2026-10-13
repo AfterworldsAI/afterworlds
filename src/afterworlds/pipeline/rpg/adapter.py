@@ -33,6 +33,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Literal
 from uuid import UUID, uuid4
 
+from afterworlds.ingestion.mechanical.representation import ConditionKind
 from afterworlds.models.enums import RollVisibility
 from afterworlds.models.rpg import (
     PendingRollRequest,
@@ -231,6 +232,19 @@ class D20RulesSystemAdapter:
             attacks.prepare(proposal, character, subjects or {})
             return
         checks.prepare(proposal, character)
+
+    def possible_conditions(
+        self,
+        proposal: RollProposal,
+        _character: TurnCharacter,
+        subjects: dict[tuple[str, str], TurnSubject],
+    ) -> dict[tuple[str, str], frozenset[ConditionKind]]:
+        """Every condition *proposal* could apply, by subject, whatever its
+        dice give: the preflight checks the turn's later operations with
+        them present. Checks change no state."""
+        if proposal.operation == Operation.WEAPON_ATTACK.value:
+            return attacks.possible_conditions(proposal, subjects)
+        return {}
 
     def _assemble_modifiers(
         self,

@@ -1085,6 +1085,16 @@ def test_invisible_has_advantage_on_initiative_from_its_typed_fact() -> None:
     assert sources == ["glossary.invisible/surprise"]
 
 
+def test_an_implied_condition_binds_initiative() -> None:
+    """Stunned gives Incapacitated, whose typed fact imposes Disadvantage on
+    Initiative; the implied condition is read, not only the recorded one."""
+    character = srd_character(_state(conditions=(_condition(ConditionKind.STUNNED),)))
+    record, dice = _resolve(character, 5, 15, proposal=_op("initiative"))
+    dice.roll.assert_called_once_with("2d20kl1")
+    sources = json.loads(record.modifiers_json)["disadvantage_sources"]
+    assert sources == ["glossary.incapacitated/surprised"]
+
+
 def test_an_initiative_contributor_refuses() -> None:
     """Alert adds the Proficiency Bonus to Initiative; not executed here."""
     state = _state(

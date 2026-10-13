@@ -54,6 +54,7 @@ _WEAPON_ATTACK_SCHEMA: dict[str, Any] = {
         "attacker_light": {"type": "string", "enum": _LIGHT},
         "target_light": {"type": "string", "enum": _LIGHT},
         "hostile_within_5_feet": {"oneOf": [{"type": "boolean"}, {"type": "null"}]},
+        "target_within_5_feet": {"oneOf": [{"type": "boolean"}, {"type": "null"}]},
         "two_handed": {"type": "boolean"},
         "thrown": {"type": "boolean"},
         "ability": {
