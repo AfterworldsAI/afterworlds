@@ -162,3 +162,55 @@ def test_trample_needs_a_target_that_has_the_prone_condition(template: str) -> N
     D20RulesSystemAdapter().require_supported(
         trample(prone), prone, {("creature", str(beast.subject_id)): beast}
     )
+
+
+def _trample(beast: Any, target: Any) -> RollProposal:
+    return RollProposal(
+        check_label="Trample",
+        subsystem_tag="save",
+        visibility=RollVisibility.SHOWN,
+        operation="creature_save_effect",
+        creature_save_effect=CreatureSaveEffectSelection(
+            source=_ref(beast),
+            entry="Trample",
+            targets=(_ref(target),),
+            auras_in_range=(),
+        ),
+    )
+
+
+@pytest.mark.parametrize("template", ["animals.elephant", "animals.mammoth"])
+def test_a_trample_cannot_rest_on_a_prone_the_gore_only_might_apply(
+    template: str,
+) -> None:
+    """Gore (whose hit may knock the target Prone) then Trample against a
+    standing target: the Prone is speculative, so the independent Trample
+    refuses before any die rather than after a missed Gore."""
+    beast = _changed(_creature(template, hp=100), usage_counters=())
+    target = _medium_wizard()
+    gore = _bite(beast, target, entry="Gore", moved_straight_toward_target=True)
+    dice = MagicMock()
+    with pytest.raises(AdjudicationRefusal) as caught:
+        RpgAdjudicationPassService(
+            adapter=D20RulesSystemAdapter(),
+            subject_loader=lambda _story, _ref: beast,
+            coordination_loader=actor_turn(beast),
+            bounded_loader=lambda _story, _ref: [],
+            aura_loader=lambda _story: [],
+        ).adjudicate(
+            _make_assembled(),
+            _make_session(DiceHandling.AI_ROLLS),
+            target,
+            dice,
+            provider=_FakeProvider(
+                [
+                    p.model_dump(mode="json", exclude_none=True)
+                    for p in (gore, _trample(beast, target))
+                ]
+            ),
+            story_id=_STORY_ID,
+            originating_turn_id=_TURN_ID,
+        )
+    assert caught.value.kind is RefusalKind.INVALID_SELECTION
+    assert "prone condition" in caught.value.detail
+    dice.roll.assert_not_called()

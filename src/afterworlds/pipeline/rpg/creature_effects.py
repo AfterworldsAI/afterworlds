@@ -52,7 +52,7 @@ from afterworlds.pipeline.rpg.capability import (
     certify,
     governing_fingerprint,
 )
-from afterworlds.pipeline.rpg.conditions import effective
+from afterworlds.pipeline.rpg.conditions import established
 from afterworlds.pipeline.rpg.damage import (
     DamageTaken,
     fixed_part,
@@ -473,10 +473,11 @@ def prepare(
         # The target's immunity to each condition a failure imposes, read
         # before any die (it can refuse for an unvalidated recorded one).
         # "a creature that has the Prone condition" (Trample): read from the
-        # target's recorded and implied conditions.
+        # target's established conditions. A condition an earlier operation
+        # of this turn only might apply (the Gore's Prone) does not establish
+        # it: such an independent composition refuses before any die.
         if t.has_conditions:
-            assert target.index is not None
-            held = {e.condition for e in effective(target, target.index)}
+            held = {e.condition for e in established(target)}
             missing = [c for c in t.has_conditions if c not in held]
             if missing:
                 raise _refuse(

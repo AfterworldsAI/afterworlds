@@ -25,7 +25,7 @@ from afterworlds.pipeline.rpg.capability import AdjudicationRefusal, RefusalKind
 from afterworlds.services.dnd5e_state.authority import AuthorityIndex
 from afterworlds.services.dnd5e_state.turn import TurnSubject
 
-__all__ = ["Effective", "cannot_act", "effective"]
+__all__ = ["Effective", "POSSIBLE", "cannot_act", "effective", "established"]
 
 
 @dataclass(frozen=True)
@@ -80,6 +80,32 @@ def effective(subject: TurnSubject, index: AuthorityIndex) -> tuple[Effective, .
                         )
                     )
     return tuple(out)
+
+
+#: The instance-id prefix the preflight gives a condition an earlier
+#: operation of the turn only *might* apply (``turn.with_possible``).
+POSSIBLE = "possible:"
+
+
+def established(subject: TurnSubject) -> tuple[Effective, ...]:
+    """The conditions *subject* actually has: :func:`effective` without the
+    preflight's speculative instances (and what they would imply). A rule
+    that needs a condition as a positive prerequisite reads this, so a
+    condition an earlier operation might apply never establishes it."""
+    from dataclasses import replace
+
+    assert subject.index is not None
+    state = subject.stored.state
+    recorded = state.conditions
+    if recorded is not None and any(
+        c.instance_id.startswith(POSSIBLE) for c in recorded
+    ):
+        kept = tuple(c for c in recorded if not c.instance_id.startswith(POSSIBLE))
+        new = state.model_copy(update={"conditions": kept})
+        stored = replace(subject.stored, state=new)  # type: ignore[arg-type]
+        subject = replace(subject, stored=stored)  # type: ignore[arg-type]
+    assert subject.index is not None
+    return effective(subject, subject.index)
 
 
 def cannot_act(subject: TurnSubject) -> str | None:
