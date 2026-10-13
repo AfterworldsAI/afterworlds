@@ -4,6 +4,7 @@ selections, and refuses every other entry before any die."""
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import json
 from pathlib import Path
@@ -67,35 +68,65 @@ def test_the_roster_is_generated_from_the_accepted_capability() -> None:
 # Every admitted shape, through the adapter's own preflight
 # ---------------------------------------------------------------------------
 
-#: C5-positive shapes code does not execute, each a named boundary surfaced
-#: for Codex (status.md), not coverage: the refusal must say why. None remain
-#: (Bloodied and the linked grapple executed per Codex's classification).
-BOUNDARIES: dict[str, str] = {}
+#: Admitted entries code does not execute, each a named boundary surfaced
+#: for Codex (status.md), not coverage: the refusal must say why.
+BOUNDARIES: dict[str, str] = {
+    # "unless the target is Undead (or an Elf)": no accepted authority types
+    # a target's creature type or species tag, so the exclusion cannot be
+    # evaluated (authority boundary, not decided in code).
+    "monsters.ghast.ghast#2:Claw": "excludes creature types",
+    "monsters.ghoul.ghoul#2:Claw": "excludes creature types",
+}
 
 
 def _scenario(key: str, creature: Any, target: Any) -> Any:
-    """A target in the state an entry's own targeting requires."""
-    if key == "monsters.glabrezu.glabrezu#4:Pummel":
-        import dataclasses
+    """A target in the state the entry's own typed targeting requires: the
+    conditions it must have, and those it must have from the source."""
+    import dataclasses
 
-        from afterworlds.models.dnd5e_state import (
-            ConditionInstance,
-            SubjectReference,
-        )
-        from afterworlds.models.enums import ConditionVisibility
+    from afterworlds.ingestion.mechanical.representation import (
+        ConditionKind,
+        CreatureSaveEffectFact,
+    )
+    from afterworlds.models.dnd5e_state import ConditionInstance, SubjectReference
+    from afterworlds.models.enums import ConditionVisibility
+    from afterworlds.pipeline.rpg.defense import facts_of
 
-        grappled = ConditionInstance(
-            instance_id="g",
-            condition="grappled",  # type: ignore[arg-type]
+    template, entry = key.split("#")[0], key.split(":", 1)[1]
+    fact = next(
+        (
+            f
+            for f in facts_of(creature.index, template)
+            if isinstance(f, CreatureSaveEffectFact) and f.entry == entry
+        ),
+        None,
+    )
+    if fact is None:
+        return target
+    source = SubjectReference(kind="creature", subject_id=creature.subject_id)
+    conditions = [
+        ConditionInstance(
+            instance_id=f"has-{kind.value}",
+            condition=kind,
             visibility=ConditionVisibility.VISIBLE,
-            escape_dc=15,
-            referent=SubjectReference(kind="creature", subject_id=creature.subject_id),
         )
-        state = target.stored.state.model_copy(update={"conditions": (grappled,)})
-        return dataclasses.replace(
-            target, stored=dataclasses.replace(target.stored, state=state)
+        for kind in fact.targets.has_conditions
+    ] + [
+        ConditionInstance(
+            instance_id=f"from-{kind.value}",
+            condition=kind,
+            visibility=ConditionVisibility.VISIBLE,
+            referent=source,
+            escape_dc=15 if kind is ConditionKind.GRAPPLED else None,
         )
-    return target
+        for kind in fact.targets.related_to_source
+    ]
+    if not conditions:
+        return target
+    state = target.stored.state.model_copy(update={"conditions": tuple(conditions)})
+    return dataclasses.replace(
+        target, stored=dataclasses.replace(target.stored, state=state)
+    )
 
 
 def _results() -> dict[str, tuple[bool, bool, str | None]]:
@@ -120,7 +151,7 @@ def _results() -> dict[str, tuple[bool, bool, str | None]]:
         _ref,
         _subjects,
     )
-    from tests.pipeline.rpg.test_weapon_attacks import _creature
+    from tests.pipeline.rpg.test_weapon_attacks import _creature, _dice
 
     adapter, wizard = D20RulesSystemAdapter(), _medium_wizard()
 
@@ -141,6 +172,9 @@ def _results() -> dict[str, tuple[bool, bool, str | None]]:
             pass
         proposal = _bite(creature, wizard, entry=entry, **facts)
         adapter.require_supported(proposal, wizard, _subjects(creature))
+        adapter.resolve_roll(
+            proposal, wizard, None, _dice((15, 15), (1,)), False, _subjects(creature)
+        )
 
     def save(key: str, creature: Any, entry: str) -> None:
         target = _scenario(key, creature, wizard)
@@ -157,6 +191,9 @@ def _results() -> dict[str, tuple[bool, bool, str | None]]:
             ),
         )
         adapter.require_supported(proposal, target, _subjects(creature))
+        adapter.resolve_roll(
+            proposal, target, None, _dice((15, 15), (1,)), False, _subjects(creature)
+        )
 
     out: dict[str, tuple[bool, bool, str | None]] = {}
     for key, entry in json.loads(CAPABILITY.read_bytes())["entries"].items():
@@ -165,6 +202,14 @@ def _results() -> dict[str, tuple[bool, bool, str | None]]:
         if kind not in ("attack", "save_effect", "multiattack"):
             continue
         creature = _creature(template, hp=150)
+        # A limited entry's counter is recorded (none expended yet).
+        creature = dataclasses.replace(
+            creature,
+            stored=dataclasses.replace(
+                creature.stored,
+                state=creature.stored.state.model_copy(update={"usage_counters": ()}),
+            ),
+        )
         why: str | None
         if kind != "multiattack":
             try:
@@ -221,15 +266,20 @@ def _results() -> dict[str, tuple[bool, bool, str | None]]:
 
 
 def test_every_admitted_shape_executes_and_every_other_entry_refuses() -> None:
-    """C5-positive shapes execute (or are a named boundary); entries outside
-    the roster refuse before any die; nothing else is claimed."""
+    """Every admitted attack and save-effect entry (C5-positive, or every
+    blocker settled) prepares and resolves in a valid scenario, except the
+    named BOUNDARIES; every C5-positive Multiattack selection composes and
+    its parts resolve; every entry outside the roster refuses before any
+    die."""
     results = _results()
-    failing = {k: why for k, (positive, _, why) in results.items() if positive and why}
+    failing = {
+        k: why
+        for k, (positive, admitted_, why) in results.items()
+        if why and (admitted_ if " | " not in k else positive)
+    }
     assert set(failing) == set(BOUNDARIES), sorted(set(failing) ^ set(BOUNDARIES))
     for key, why in failing.items():
         assert BOUNDARIES[key] in why, (key, why)
-    for key, (positive, admitted_, why) in results.items():
-        if not positive and not admitted_:
+    for key, (_positive, admitted_, why) in results.items():
+        if " | " not in key and not admitted_:
             assert why is not None, key  # outside the roster: refused
-    # Nothing beyond C5 executes unless the roster admits it.
-    assert all(admitted_ for _, admitted_, why in results.values() if why is None)

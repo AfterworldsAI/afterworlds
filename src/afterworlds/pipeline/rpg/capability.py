@@ -458,16 +458,20 @@ MANIFEST: dict[Operation, Capability] = {
         CapabilityStatus.EXECUTABLE,
         inputs=(
             "a continuing creature of the story and one of its template's printed "
-            "attack entries; a target character or creature; the GameMaster's "
-            "approved contextual facts (range band, cover, light, a hostile or "
-            "an ally within 5 feet)"
+            "attack entries admitted by the code-owned roster (roster.py); a "
+            "target character or creature; the GameMaster's approved contextual "
+            "facts (range band, cover, light, named enemies or allies within 5 "
+            "feet, a charge, a follow-up attack, a Multiattack composition)"
         ),
         effects=(
             "hit, miss or Critical Hit against the target's AC; each damage term "
             "with responses and zero-HP consequences; a typed hit effect "
             "(condition, size limit, escape DC, turn-bounded duration, or a save "
-            "against one). Not yet: usage limits and Recharge, speed changes, "
-            "forced movement, conditional damage, legendary actions"
+            "against one, a Grappled-linked condition); every typed same-entry "
+            "clause (creature_clauses.py); damage under Advantage or Bloodied; "
+            "usage limits and Recharge; Multiattack with replacements. Not "
+            "executed (refused): speed changes, forced movement, legendary "
+            "actions, a target's creature type"
         ),
         fingerprint="a3dcf934db3c58aa4e7f1fe900558e819e91fef6b5d5d5df550829bece09fa8b",  # noqa: E501  # pragma: allowlist secret
     ),
@@ -482,9 +486,11 @@ MANIFEST: dict[Operation, Capability] = {
         ),
         effects=(
             "damage rolled once: full on a failure, halved on a success when "
-            "printed; a typed condition on a failure; the use spent. Not yet: "
-            "type, sight, environment or trigger predicates, formula DCs, "
-            "failure effects beyond a condition"
+            "printed; a typed condition on a failure; the use spent; targets "
+            "that must have a condition (from the source, or at all) and the "
+            "GameMaster's enemies. Not executed (refused): creature-type, "
+            "sight, environment or trigger predicates, formula DCs, failure "
+            "effects beyond a condition"
         ),
         fingerprint="e09799e62b4e25f16f1c23523c725ba4269c253bf80d48f73741a2b36541e41b",  # noqa: E501  # pragma: allowlist secret
     ),

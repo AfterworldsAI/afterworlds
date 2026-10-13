@@ -52,6 +52,7 @@ from afterworlds.pipeline.rpg.capability import (
     certify,
     governing_fingerprint,
 )
+from afterworlds.pipeline.rpg.conditions import effective
 from afterworlds.pipeline.rpg.damage import (
     DamageTaken,
     fixed_part,
@@ -295,11 +296,24 @@ def _fact(source: TurnCreature, entry: str) -> CreatureSaveEffectFact:
     from afterworlds.pipeline.rpg import roster
 
     roster.require(template, entry)
+    from afterworlds.ingestion.mechanical.representation import (
+        ClauseDamageQualificationFact,
+        TargetTag,
+    )
     from afterworlds.pipeline.rpg.creature_clauses import clauses
 
-    printed = clauses(source, entry)
+    # The one clause read here: underwater not granting Fire Resistance,
+    # which nothing grants (underwater Resistance is not executed). Every
+    # other clause refuses.
+    printed = [
+        c
+        for c in clauses(source, entry)
+        if not (
+            isinstance(c, ClauseDamageQualificationFact)
+            and not c.underwater_fire_resistance_applies
+        )
+    ]
     if printed:
-        # No save effect's clause is executed here (C5: none is positive).
         family = printed[0].FAMILY.value  # type: ignore[attr-defined]
         raise _refuse(
             RefusalKind.UNSUPPORTED_CAPABILITY,
@@ -315,8 +329,12 @@ def _fact(source: TurnCreature, entry: str) -> CreatureSaveEffectFact:
     unexecuted = [
         name
         for name, value in (
-            ("creature types", t.types or t.excludes_types),
-            ("conditions on targets", t.has_conditions),
+            # "each enemy": the GameMaster identifies who is an enemy
+            # (bystanders). A creature type or species is typed nowhere.
+            (
+                "creature types",
+                any(tag is not TargetTag.ENEMY for tag in t.types) or t.excludes_types,
+            ),
             ("sight", t.requires_source_sees_target or t.requires_source_sees_point),
             ("the target's sight", t.requires_target_sees_source),
             ("the environment", t.source_environment),
@@ -454,6 +472,18 @@ def prepare(
             preflight(target, term.damage_type)
         # The target's immunity to each condition a failure imposes, read
         # before any die (it can refuse for an unvalidated recorded one).
+        # "a creature that has the Prone condition" (Trample): read from the
+        # target's recorded and implied conditions.
+        if t.has_conditions:
+            assert target.index is not None
+            held = {e.condition for e in effective(target, target.index)}
+            missing = [c for c in t.has_conditions if c not in held]
+            if missing:
+                raise _refuse(
+                    RefusalKind.INVALID_SELECTION,
+                    f"{sel.entry} targets a creature with the {missing[0].value} "
+                    "condition",
+                )
         rider = fact.failure_effect
         if rider is not None and (
             rider.maximum_size is None

@@ -129,3 +129,36 @@ def test_a_save_effects_condition_immunity_is_read_before_any_die() -> None:
     refusal, dice = _turn(lion, target, proposal)
     assert refusal.kind is RefusalKind.UNSUPPORTED_CAPABILITY
     dice.roll.assert_not_called()
+
+
+@pytest.mark.parametrize("template", ["animals.elephant", "animals.mammoth"])
+def test_trample_needs_a_target_that_has_the_prone_condition(template: str) -> None:
+    """Trample's typed target clause: a creature with the Prone condition.
+    A standing target refuses before any die; a Prone one is trampled."""
+    from tests.pipeline.rpg.test_creature_roster import _scenario
+
+    beast = _changed(_creature(template, hp=100), usage_counters=())
+    key = f"{template}#2:Trample"
+
+    def trample(target: Any) -> RollProposal:
+        return RollProposal(
+            check_label="Trample",
+            subsystem_tag="save",
+            visibility=RollVisibility.SHOWN,
+            operation="creature_save_effect",
+            creature_save_effect=CreatureSaveEffectSelection(
+                source=_ref(beast),
+                entry="Trample",
+                targets=(_ref(target),),
+                auras_in_range=(),
+            ),
+        )
+
+    standing = _medium_wizard()
+    refusal, dice = _turn(beast, standing, trample(standing))
+    assert refusal.kind is RefusalKind.INVALID_SELECTION
+    dice.roll.assert_not_called()
+    prone = _scenario(key, beast, _medium_wizard())
+    D20RulesSystemAdapter().require_supported(
+        trample(prone), prone, {("creature", str(beast.subject_id)): beast}
+    )
