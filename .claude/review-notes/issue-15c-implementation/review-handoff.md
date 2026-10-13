@@ -6,7 +6,68 @@
 - Nothing was migrated, published, activated or launched in any shared runtime.
 - `D:\AI\Claude\afterworlds-runtime` was never touched. #129 stays frozen; #132 and #137 are unchanged.
 
-## Update: scope revision and candidate C2
+## Update: native schema-19 preview, Owner acceptance HELD
+
+`../issue-15c-native/OWNER-ACCEPTANCE-PACKET.md` gives the exact identities: schema `3734ccf7…d18f`, preview `cd9d1d27…20d3`, oracle `000c4c10…6e76`, projection `44f212d5-32dd-5469-8f05-f0d236492347`.
+- It supersedes the earlier `aa9fe91e…` preview. Only the schema descriptor changed (a class-name leak in rule text, fixed). Content equality is shown indirectly; the packet has the old→new table and its evidence.
+- All replacement acceptances are SIMULATED. Nothing was accepted, recorded, committed, pushed, published or activated.
+- Read alongside `../issue-15c-native/correspondence.md`.
+- **Open:** Owner acceptance. Landing needs the native successor recording and the schema-18 test fixtures and pins updated, then full gates, CI and Codex review.
+
+## Earlier update: raw candidate C5, ready for Codex review
+
+`candidate-c5/README.md` applies `codex-c4-review.md` (all five findings), `codex-c5-grant-family-addendum.md`, `codex-c5-provisional-linkage.md` and `codex-c5-provisional-roster.md`.
+
+| Part | SHA-256 |
+| --- | --- |
+| C5-A | `866f2c13…87c9` |
+| C5-B | `187c041b…f3f6` |
+| C5-C | `bb3761b9…6ad4` |
+| Capability | `6037ea70…efe6` |
+
+**State:**
+- Uncommitted and unstaged.
+- C1 through C4 are byte-preserved.
+- No native work, no acceptance, no full-suite rerun.
+- Production code and tests are untouched.
+
+## Earlier update: raw candidate C4
+
+`candidate-c4/README.md` applies:
+- `codex-c3-review.md` (all five families);
+- `codex-grant-trust-review.md` (the grant/selection source facts);
+- every finding in `codex-c4-provisional-findings.md`, which reviewed the earlier C4 snapshots.
+
+| Part | SHA-256 |
+| --- | --- |
+| C4-A | `901083ec…5e62` |
+| C4-B | `f679b06c…5c08` |
+| C4-C | `2c34a6f0…fb5f` |
+| Capability | `2d884ffb…3a8e` |
+
+**State:**
+- Uncommitted and unstaged.
+- C1, C2 and C3 are byte-preserved.
+- No native work, no acceptance, no full-suite rerun.
+- Production code and tests are untouched.
+
+## Earlier update: raw candidate C3
+
+`candidate-c3/README.md` corrects the eight findings and the qualification residue in `codex-c2-review.md`.
+
+| Part | SHA-256 |
+| --- | --- |
+| C3-A | `aaa5a20f…9ff9` |
+| C3-B | `bb086082…5524` |
+| C3-C | `36be82a0…422b` |
+
+**State:**
+- Uncommitted and unstaged.
+- C1 and C2 are byte-preserved.
+- No native work, no acceptance, no full-suite rerun.
+- Production code and tests are untouched in this pass.
+
+## Earlier update: scope revision and candidate C2
 
 #191 was updated (body `8225e1b6…57a2`) to add creature attacks, bounded Multiattack, and the tool and omitted-source repairs. The semantic packet under review is now **C2** (`candidate-c2/README.md`). C1, item 1 below, is superseded and preserved. The implementation on `eb60d9f` is unchanged; its operations that depend on C2 remain held.
 
@@ -52,8 +113,8 @@ All of it was run on `eb60d9f` unless noted.
 
 **Full suite:**
 - Full `pytest -q` with the configured coverage on `eb60d9f`: **no result.**
-  - The serial run hit the 2-hour background-task limit and was stopped before it finished.
-  - The block-buffered log shows only early progress (about 6%).
+  - Codex's bounded diagnosis found an external kill after about 85 minutes, shortly after Claude's session ended. The previously stated two-hour-limit cause is not supported; the exact mechanism is unproven.
+  - The partial buffered log reaches 7%, without a pytest verdict, exit marker or coverage result. See `codex-bounded-test-diagnosis.md`.
   - It is not reported as passed or failed, and it was not rerun for the candidate-only C2 work.
 - Exact-head CI (eight shards, collection census, combined coverage) has not run. It needs a push, which waits for review.
 

@@ -1,0 +1,21 @@
+{
+ "lift_id": "5d-lift-schema-18-to-19",
+ "from": [
+  "5d-representation-schema-18",
+  "276c3d0ca0bf4c2f98aa8e7d2db6cd321d7fb55dee6d8c60fdd4a58e51fa8701"
+ ],
+ "to": [
+  "5d-representation-schema-19",
+  "3734ccf7d6be7f25e0a0d7c0395121c5525afcb87144f5cf9d6895e03c1cd18f"
+ ],
+ "verified_collections": [
+  "components",
+  "prose_bindings",
+  "provenance",
+  "records",
+  "references",
+  "relationships"
+ ],
+ "g1_sha256": "2ccbaeba6de75d9787fbdd407e42dc2425fa20d4d26bcc298b681b550bd11258",
+ "predecessor_sha256": "def7caa1625458a40c1f635db153268082cf52d5e25c28f57fd29518e44de58c"
+}

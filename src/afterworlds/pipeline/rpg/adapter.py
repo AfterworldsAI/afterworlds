@@ -329,7 +329,13 @@ class D20RulesSystemAdapter:
             )
 
         rolled = checks.roll(checks.prepare(proposal, character), dice_service)
-        outcome: _Outcome = "success" if rolled.outcome == "success" else "failure"
+        outcomes: dict[str, _Outcome] = {
+            "success": "success",
+            "failure": "failure",
+            # Initiative: a total with no comparison (#191 AC5).
+            "undetermined": "undetermined",
+        }
+        outcome = outcomes[rolled.outcome]
 
         return ResolvedAdjudicationRecord(
             check_label=proposal.check_label,

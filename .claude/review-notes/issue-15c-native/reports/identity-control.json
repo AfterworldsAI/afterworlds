@@ -1,0 +1,457 @@
+{
+ "g1_sha256": "2ccbaeba6de75d9787fbdd407e42dc2425fa20d4d26bcc298b681b550bd11258",
+ "oracle_identity": "3e7b27dbb291eb11ca7489719442308397b091d745beb3e48a517bf38685c05a",
+ "groups": [
+  {
+   "group": [
+    "combat-damage-breaking"
+   ],
+   "excision": {
+    "records": {
+     "removed": 5,
+     "kept_shared": 0
+    },
+    "components": {
+     "removed": 82,
+     "kept_shared": 0
+    },
+    "prose_bindings": {
+     "removed": 115,
+     "kept_shared": 0
+    },
+    "relationships": {
+     "removed": 0,
+     "kept_shared": 0
+    },
+    "references": {
+     "removed": 68,
+     "kept_shared": 0
+    },
+    "provenance": {
+     "removed": 267,
+     "kept_shared": 0
+    },
+    "spans": {
+     "removed": 163,
+     "kept_shared": 0
+    },
+    "review_units": {
+     "removed": 5,
+     "kept_shared": 0
+    }
+   },
+   "oracle_identity_equal": true,
+   "payload_keys_differing": []
+  },
+  {
+   "group": [
+    "checks-actions-rests"
+   ],
+   "excision": {
+    "records": {
+     "removed": 9,
+     "kept_shared": 0
+    },
+    "components": {
+     "removed": 69,
+     "kept_shared": 0
+    },
+    "prose_bindings": {
+     "removed": 93,
+     "kept_shared": 0
+    },
+    "relationships": {
+     "removed": 2,
+     "kept_shared": 0
+    },
+    "references": {
+     "removed": 43,
+     "kept_shared": 0
+    },
+    "provenance": {
+     "removed": 206,
+     "kept_shared": 0
+    },
+    "spans": {
+     "removed": 125,
+     "kept_shared": 0
+    },
+    "review_units": {
+     "removed": 7,
+     "kept_shared": 0
+    }
+   },
+   "oracle_identity_equal": true,
+   "payload_keys_differing": []
+  },
+  {
+   "group": [
+    "core-play-completion"
+   ],
+   "excision": {
+    "records": {
+     "removed": 8,
+     "kept_shared": 0
+    },
+    "components": {
+     "removed": 36,
+     "kept_shared": 0
+    },
+    "prose_bindings": {
+     "removed": 57,
+     "kept_shared": 0
+    },
+    "relationships": {
+     "removed": 1,
+     "kept_shared": 0
+    },
+    "references": {
+     "removed": 30,
+     "kept_shared": 0
+    },
+    "provenance": {
+     "removed": 111,
+     "kept_shared": 0
+    },
+    "spans": {
+     "removed": 71,
+     "kept_shared": 0
+    },
+    "review_units": {
+     "removed": 7,
+     "kept_shared": 0
+    }
+   },
+   "oracle_identity_equal": true,
+   "payload_keys_differing": []
+  },
+  {
+   "group": [
+    "character-origins-feats"
+   ],
+   "excision": {
+    "records": {
+     "removed": 33,
+     "kept_shared": 0
+    },
+    "components": {
+     "removed": 149,
+     "kept_shared": 0
+    },
+    "prose_bindings": {
+     "removed": 169,
+     "kept_shared": 0
+    },
+    "relationships": {
+     "removed": 30,
+     "kept_shared": 0
+    },
+    "references": {
+     "removed": 174,
+     "kept_shared": 0
+    },
+    "provenance": {
+     "removed": 379,
+     "kept_shared": 0
+    },
+    "spans": {
+     "removed": 172,
+     "kept_shared": 0
+    },
+    "review_units": {
+     "removed": 33,
+     "kept_shared": 0
+    }
+   },
+   "oracle_identity_equal": true,
+   "payload_keys_differing": []
+  },
+  {
+   "group": [
+    "spellcasting"
+   ],
+   "excision": {
+    "records": {
+     "removed": 19,
+     "kept_shared": 0
+    },
+    "components": {
+     "removed": 55,
+     "kept_shared": 0
+    },
+    "prose_bindings": {
+     "removed": 70,
+     "kept_shared": 0
+    },
+    "relationships": {
+     "removed": 9,
+     "kept_shared": 0
+    },
+    "references": {
+     "removed": 39,
+     "kept_shared": 0
+    },
+    "provenance": {
+     "removed": 124,
+     "kept_shared": 0
+    },
+    "spans": {
+     "removed": 72,
+     "kept_shared": 0
+    },
+    "review_units": {
+     "removed": 19,
+     "kept_shared": 0
+    }
+   },
+   "oracle_identity_equal": true,
+   "payload_keys_differing": []
+  },
+  {
+   "group": [
+    "classes"
+   ],
+   "excision": {
+    "records": {
+     "removed": 268,
+     "kept_shared": 0
+    },
+    "components": {
+     "removed": 512,
+     "kept_shared": 0
+    },
+    "prose_bindings": {
+     "removed": 1028,
+     "kept_shared": 0
+    },
+    "relationships": {
+     "removed": 256,
+     "kept_shared": 0
+    },
+    "references": {
+     "removed": 1691,
+     "kept_shared": 0
+    },
+    "provenance": {
+     "removed": 4443,
+     "kept_shared": 0
+    },
+    "spans": {
+     "removed": 1028,
+     "kept_shared": 0
+    },
+    "review_units": {
+     "removed": 36,
+     "kept_shared": 0
+    }
+   },
+   "oracle_identity_equal": true,
+   "payload_keys_differing": []
+  },
+  {
+   "group": [
+    "spell-descriptions"
+   ],
+   "excision": {
+    "records": {
+     "removed": 344,
+     "kept_shared": 0
+    },
+    "components": {
+     "removed": 824,
+     "kept_shared": 0
+    },
+    "prose_bindings": {
+     "removed": 2050,
+     "kept_shared": 0
+    },
+    "relationships": {
+     "removed": 1222,
+     "kept_shared": 0
+    },
+    "references": {
+     "removed": 1171,
+     "kept_shared": 0
+    },
+    "provenance": {
+     "removed": 5575,
+     "kept_shared": 0
+    },
+    "spans": {
+     "removed": 2050,
+     "kept_shared": 0
+    },
+    "review_units": {
+     "removed": 340,
+     "kept_shared": 0
+    }
+   },
+   "oracle_identity_equal": true,
+   "payload_keys_differing": []
+  },
+  {
+   "group": [
+    "magic-items"
+   ],
+   "excision": {
+    "records": {
+     "removed": 273,
+     "kept_shared": 0
+    },
+    "components": {
+     "removed": 306,
+     "kept_shared": 0
+    },
+    "prose_bindings": {
+     "removed": 2196,
+     "kept_shared": 0
+    },
+    "relationships": {
+     "removed": 263,
+     "kept_shared": 0
+    },
+    "references": {
+     "removed": 1279,
+     "kept_shared": 0
+    },
+    "provenance": {
+     "removed": 3904,
+     "kept_shared": 0
+    },
+    "spans": {
+     "removed": 1339,
+     "kept_shared": 0
+    },
+    "review_units": {
+     "removed": 271,
+     "kept_shared": 0
+    }
+   },
+   "oracle_identity_equal": true,
+   "payload_keys_differing": []
+  },
+  {
+   "group": [
+    "monsters"
+   ],
+   "excision": {
+    "records": {
+     "removed": 415,
+     "kept_shared": 0
+    },
+    "components": {
+     "removed": 948,
+     "kept_shared": 0
+    },
+    "prose_bindings": {
+     "removed": 7046,
+     "kept_shared": 0
+    },
+    "relationships": {
+     "removed": 236,
+     "kept_shared": 0
+    },
+    "references": {
+     "removed": 2351,
+     "kept_shared": 0
+    },
+    "provenance": {
+     "removed": 9736,
+     "kept_shared": 0
+    },
+    "spans": {
+     "removed": 3139,
+     "kept_shared": 0
+    },
+    "review_units": {
+     "removed": 414,
+     "kept_shared": 0
+    }
+   },
+   "oracle_identity_equal": true,
+   "payload_keys_differing": []
+  },
+  {
+   "group": [
+    "animals"
+   ],
+   "excision": {
+    "records": {
+     "removed": 96,
+     "kept_shared": 0
+    },
+    "components": {
+     "removed": 254,
+     "kept_shared": 0
+    },
+    "prose_bindings": {
+     "removed": 1969,
+     "kept_shared": 0
+    },
+    "relationships": {
+     "removed": 95,
+     "kept_shared": 0
+    },
+    "references": {
+     "removed": 358,
+     "kept_shared": 0
+    },
+    "provenance": {
+     "removed": 2424,
+     "kept_shared": 0
+    },
+    "spans": {
+     "removed": 836,
+     "kept_shared": 0
+    },
+    "review_units": {
+     "removed": 96,
+     "kept_shared": 0
+    }
+   },
+   "oracle_identity_equal": true,
+   "payload_keys_differing": []
+  },
+  {
+   "group": [
+    "equipment"
+   ],
+   "excision": {
+    "records": {
+     "removed": 159,
+     "kept_shared": 0
+    },
+    "components": {
+     "removed": 252,
+     "kept_shared": 0
+    },
+    "prose_bindings": {
+     "removed": 825,
+     "kept_shared": 0
+    },
+    "relationships": {
+     "removed": 145,
+     "kept_shared": 0
+    },
+    "references": {
+     "removed": 374,
+     "kept_shared": 0
+    },
+    "provenance": {
+     "removed": 1727,
+     "kept_shared": 0
+    },
+    "spans": {
+     "removed": 471,
+     "kept_shared": 0
+    },
+    "review_units": {
+     "removed": 14,
+     "kept_shared": 0
+    }
+   },
+   "oracle_identity_equal": true,
+   "payload_keys_differing": []
+  }
+ ]
+}

@@ -1,0 +1,15 @@
+{
+ "entry_identity_duplicates": [],
+ "redundancy_violations": [],
+ "absent_and_null_both_occur": [
+  "entry.attack.hit_effect.duration: present 37 of 66, null 23",
+  "entry.attack.hit_effect.escape_dc: present 38 of 66, null 32",
+  "entry.attack.hit_effect.maximum_size: present 38 of 66, null 13",
+  "entry.save.failure_effect.duration: present 29 of 40, null 8",
+  "entry.save.failure_effect.escape_dc: present 33 of 40, null 26",
+  "entry.save.failure_effect.maximum_size: present 33 of 40, null 31",
+  "entry.save.targets.maximum_size: present 184 of 187, null 169",
+  "entry.usage.in_lair: present 57 of 200, null 3",
+  "predicate.bound_effect: present 29 of 92, null 1"
+ ]
+}

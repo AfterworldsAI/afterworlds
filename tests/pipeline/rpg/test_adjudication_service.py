@@ -263,7 +263,7 @@ def test_an_unsupported_proposal_refuses_before_any_earlier_one_rolls(
         "operation": "weapon_attack",
         "check_identity": None,
     }
-    _refusal(RefusalKind.MISSING_AUTHORITY, [supported, held], dice_handling)
+    _refusal(RefusalKind.UNSUPPORTED_CAPABILITY, [supported, held], dice_handling)
 
 
 def test_a_label_only_proposal_refuses_rather_than_rolling() -> None:

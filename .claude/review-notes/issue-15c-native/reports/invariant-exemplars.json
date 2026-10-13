@@ -1,0 +1,182 @@
+{
+ "explicit_rows": 17,
+ "failures": [],
+ "label": "FOCUSED DIAGNOSTICS ONLY",
+ "rows": {
+  "clause_roll_modifier.effects-or-ability-based.exactly-one": {
+   "control_admitted": true,
+   "refused": [
+    true,
+    true
+   ],
+   "violation": [
+    "none of effects+ability_based",
+    "ability_based and effects both"
+   ]
+  },
+  "clause_timed_condition.duration.exactly-one": {
+   "control_admitted": true,
+   "refused": [
+    true,
+    true
+   ],
+   "violation": [
+    "none of duration_turn+duration_span",
+    "duration_turn and duration_span both"
+   ]
+  },
+  "creature_attack.bonus.exactly-one-unless-automatic-hit": {
+   "control_admitted": true,
+   "refused": [
+    true,
+    true
+   ],
+   "violation": [
+    "none of attack_bonus+attack_bonus_formula",
+    "attack_bonus and attack_bonus_formula both"
+   ]
+  },
+  "creature_defense_parameterized.armor-class.exactly-one": {
+   "control_admitted": true,
+   "refused": [
+    true,
+    true
+   ],
+   "violation": [
+    "none of armor_class+armor_class_formula",
+    "armor_class and armor_class_formula both"
+   ]
+  },
+  "creature_save_effect.dc.exactly-one": {
+   "control_admitted": true,
+   "refused": [
+    true,
+    true
+   ],
+   "violation": [
+    "none of dc+dc_formula",
+    "dc and dc_formula both"
+   ]
+  },
+  "damage_term.type.exactly-one": {
+   "control_admitted": true,
+   "refused": [
+    true,
+    true
+   ],
+   "violation": [
+    "none of damage_type+damage_type_by_choice",
+    "damage_type and damage_type_by_choice both"
+   ]
+  },
+  "forced_move.distance.exactly-one": {
+   "control_admitted": true,
+   "refused": [
+    true
+   ],
+   "violation": [
+    "none of distance_ft+distance_ft_up_to"
+   ]
+  },
+  "multiattack_part.count.exactly-one": {
+   "control_admitted": true,
+   "refused": [
+    true,
+    true
+   ],
+   "violation": [
+    "none of count+count_formula",
+    "count and count_formula both"
+   ]
+  },
+  "multiattack_part.selection.exactly-one": {
+   "control_admitted": true,
+   "refused": [
+    true,
+    true
+   ],
+   "violation": [
+    "none of attack+any_of+uses_one_of",
+    "attack and uses_one_of both"
+   ]
+  },
+  "multiattack_replacement.replaces.exactly-one": {
+   "control_admitted": true,
+   "refused": [
+    true,
+    true
+   ],
+   "violation": [
+    "none of replaces+replaces_attack+replaces_any",
+    "replaces and replaces_attack both"
+   ]
+  },
+  "multiclass_skill_proficiency_choice.from.at-most-one": {
+   "control_admitted": true,
+   "refused": [
+    true
+   ],
+   "violation": [
+    "from_skills and from_reference both"
+   ]
+  },
+  "parameterized_hit_points.basis.exactly-one": {
+   "control_admitted": true,
+   "refused": [
+    true,
+    true
+   ],
+   "violation": [
+    "none of per_spell_level+per_spell_level_above+by_size+half_of+base",
+    "by_size and per_spell_level both"
+   ]
+  },
+  "save_targets.origin.at-most-one": {
+   "control_admitted": true,
+   "refused": [
+    true
+   ],
+   "violation": [
+    "origin and origin_point_within_ft both"
+   ]
+  },
+  "skill_proficiency_choice.from.at-most-one": {
+   "control_admitted": true,
+   "refused": [
+    true
+   ],
+   "violation": [
+    "from_skills and from_reference both"
+   ]
+  },
+  "tool_selector.exactly-one": {
+   "control_admitted": true,
+   "refused": [
+    true,
+    true
+   ],
+   "violation": [
+    "none of tool_variants_of+tool_category+any_tool_entry",
+    "any_tool_entry and tool_variants_of both"
+   ]
+  },
+  "weapon_property.ammunition.ammunition-only": {
+   "control_admitted": true,
+   "refused": [
+    true
+   ],
+   "violation": [
+    "ammunition+ammunition_range_normal_feet+ammunition_range_long_feet kept with weapon_property=finesse"
+   ]
+  },
+  "weapon_property.unless.two-handed-only": {
+   "control_admitted": true,
+   "refused": [
+    true
+   ],
+   "violation": [
+    "unless kept with weapon_property=ammunition"
+   ]
+  }
+ }
+}

@@ -57,6 +57,13 @@ class RollProposal(BaseModel):
     #: value. The labels above are display text only.
     operation: str | None = None
     check_identity: str | None = None
+    #: Closed-vocabulary selections an operation may need, validated in code:
+    #: the ability and skill of a difficulty check, the Typical DC identity
+    #: the GameMaster selects, and the tool activity of a tool check.
+    ability: str | None = None
+    skill: str | None = None
+    difficulty: str | None = None
+    tool_activity: str | None = None
 
 
 class AdjudicationProposalOutput(BaseModel):

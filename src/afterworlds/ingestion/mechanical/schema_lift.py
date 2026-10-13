@@ -113,6 +113,8 @@ __all__ = [
     "SCHEMA_17_VERSION",
     "SCHEMA_18_HASH",
     "SCHEMA_18_VERSION",
+    "SCHEMA_19_HASH",
+    "SCHEMA_19_VERSION",
     "SchemaLiftRecord",
     "UnknownSchemaLiftError",
     "lift_for",
@@ -162,6 +164,8 @@ SCHEMA_17_VERSION = "5d-representation-schema-17"
 SCHEMA_17_HASH = "4881e51fb2fa73e52f7ff951ad7d00b863188c1a22133fb0e2873c7d32d10ada"
 SCHEMA_18_VERSION = "5d-representation-schema-18"
 SCHEMA_18_HASH = "276c3d0ca0bf4c2f98aa8e7d2db6cd321d7fb55dee6d8c60fdd4a58e51fa8701"  # noqa: E501  # pragma: allowlist secret
+SCHEMA_19_VERSION = "5d-representation-schema-19"
+SCHEMA_19_HASH = "3734ccf7d6be7f25e0a0d7c0395121c5525afcb87144f5cf9d6895e03c1cd18f"  # noqa: E501  # pragma: allowlist secret
 
 
 class SchemaLiftError(ValueError):
@@ -764,6 +768,34 @@ SCHEMA_LIFTS: dict[tuple[str, str], SchemaLift] = {
             "proves element by element rather than asserting. A schema-17 "
             "declaration carrying either family or vocabulary member is "
             "refused by the introduction manifest, never flattened. "
+            "The policy contract does not move with it."
+        ),
+    ),
+    (SCHEMA_18_VERSION, SCHEMA_18_HASH): SchemaLift(
+        lift_id="5d-lift-schema-18-to-19",
+        from_version=SCHEMA_18_VERSION,
+        from_hash=SCHEMA_18_HASH,
+        to_version=SCHEMA_19_VERSION,
+        to_hash=SCHEMA_19_HASH,
+        rationale=(
+            "Schema 19 admits the CRD Issue 15c bounded-d20 source contract the "
+            "independent raw review cleared (candidate C5): creature attack, "
+            "save-effect, Multiattack, usage, contributor and clause-piece "
+            "families; rule, weapon, tool and stat-block notation families; "
+            "the contributing-grant families; the closed vocabularies minted "
+            "with them; and four omit-when-empty WeaponPropertyFact fields "
+            "(ammunition, its normal and long range, and the two-handed "
+            "exception). Each family states what the source prints and stops "
+            "there: applicability, execution and certification are capability, "
+            "never this union. "
+            "Nothing accepted moves. No accepted component states a fact of "
+            "any new family, no accepted field changes meaning, and the four "
+            "new fields are omitted when unset, so every accepted payload -- "
+            "and its fact key and provenance coordinate -- is byte-identical "
+            "under both contracts, which verify_lift proves element by element "
+            "rather than asserting. A schema-18 declaration carrying any new "
+            "family, vocabulary member or field is refused by the introduction "
+            "manifest and the field registry, never flattened. "
             "The policy contract does not move with it."
         ),
     ),

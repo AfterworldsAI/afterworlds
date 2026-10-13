@@ -1,0 +1,18 @@
+{
+ "by_owning_batch": {
+  "animals": 253,
+  "character-origins-feats": 39,
+  "checks-actions-rests": 7,
+  "classes": 72,
+  "combat-damage-breaking": 14,
+  "core-play-completion": 1,
+  "equipment": 96,
+  "magic-items": 4,
+  "monsters": 741,
+  "spell-descriptions": 13,
+  "spellcasting": 2
+ },
+ "problems": [],
+ "rule": "a target component takes new facts only if exactly one affected proposal states it and every accepted provenance claim on it (and on its prose bindings, facts and references) is one that proposal states",
+ "targets": 1242
+}

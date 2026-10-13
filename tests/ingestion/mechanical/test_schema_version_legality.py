@@ -207,6 +207,7 @@ from afterworlds.ingestion.mechanical.representation import (
     WeaponCategoryFact,
     WeaponMastery,
     WeaponMasteryFact,
+    fact_from_payload,
     introduction_manifest,
     post_schema_3_violations,
     representation_schema_hash,
@@ -242,7 +243,9 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_16_VERSION,
     SCHEMA_17_HASH,
     SCHEMA_17_VERSION,
+    SCHEMA_18_HASH,
     SCHEMA_18_VERSION,
+    SCHEMA_19_VERSION,
     SchemaLiftError,
     accepted_schema_contracts,
     lift_accepted_inputs,
@@ -863,6 +866,23 @@ SCHEMA_18_ONLY = [
     ),
 ]
 
+#: Real accepted facts from the recorded CRD Issue 15c successor that together
+#: exercise every value schema 19 added: each of its 126 families and each
+#: member of the vocabularies minted with them. Three ``EntrySubject`` members
+#: C5 states only on unminted prose entries are carried by a real
+#: ``check_requirement_removal`` fact with just that field replaced. Generated
+#: by ``.claude/review-notes/issue-15c-recording/schema19_exemplars.py``.
+SCHEMA_19_ONLY = [
+    pytest.param(fact_from_payload(payload), id=f"family-{payload['family']}-{index}")
+    for index, payload in enumerate(
+        json.loads(
+            (pathlib.Path(__file__).parent / "data/schema_19_exemplars.json").read_text(
+                encoding="utf-8"
+            )
+        )
+    )
+]
+
 
 # ---------------------------------------------------------------------------
 # The contract, driven from the manifest rather than from a hand-written list
@@ -891,6 +911,7 @@ def test_every_manifest_row_has_an_exemplar_here() -> None:
         *SCHEMA_16_ONLY,
         *SCHEMA_17_ONLY,
         *SCHEMA_18_ONLY,
+        *SCHEMA_19_ONLY,
     ):
         (obj,) = param.values
         exercised |= _groups_exercised_by(obj)
@@ -1158,6 +1179,28 @@ def test_schema_18_admits_what_it_introduced(obj: object) -> None:
 def test_schema_18_still_admits_every_earlier_introduction(obj: object) -> None:
     """A mint admits its predecessors' introductions; it does not replace them."""
     assert post_schema_3_violations(obj, SCHEMA_18_VERSION) == []
+
+
+@pytest.mark.parametrize("obj", SCHEMA_19_ONLY)
+def test_schema_18_refuses_every_schema_19_only_type_or_value(
+    obj: object,
+) -> None:
+    """Schema 18 cannot state the bounded-d20 source contract (CRD Issue 15c)."""
+    assert post_schema_3_violations(obj, SCHEMA_18_VERSION), obj
+
+
+@pytest.mark.parametrize("obj", SCHEMA_19_ONLY)
+def test_schema_19_admits_what_it_introduced(obj: object) -> None:
+    """And the other direction, so the rule is not "refuse everything newer"."""
+    assert post_schema_3_violations(obj, SCHEMA_19_VERSION) == []
+
+
+@pytest.mark.parametrize(
+    "obj", [*SCHEMA_18_ONLY, *SCHEMA_17_ONLY, *SCHEMA_16_ONLY, *SCHEMA_15_ONLY]
+)
+def test_schema_19_still_admits_every_earlier_introduction(obj: object) -> None:
+    """A mint admits its predecessors' introductions; it does not replace them."""
+    assert post_schema_3_violations(obj, SCHEMA_19_VERSION) == []
 
 
 def test_schema_16_leaves_every_pre_existing_relationship_kind_readable() -> None:
@@ -1647,7 +1690,7 @@ def test_the_recognized_contracts_are_exactly_the_live_pair_and_the_registry() -
         # schema 9 at schema 10, schema 10 at schema 11 and schema 11 at schema
         # 12, schema 12 at schema 13, schema 13 at schema 14, schema 14 at
         # schema 15, schema 15 at schema 16, schema 16 at schema 17 and schema
-        # 17 at schema 18. The
+        # 17 at schema 18, and schema 18 at schema 19. The
         # rule is the registry, not a list of versions somebody kept up to date.
         (SCHEMA_5_VERSION, SCHEMA_5_HASH),
         (SCHEMA_6_VERSION, SCHEMA_6_HASH),
@@ -1662,6 +1705,7 @@ def test_the_recognized_contracts_are_exactly_the_live_pair_and_the_registry() -
         (SCHEMA_15_VERSION, SCHEMA_15_HASH),
         (SCHEMA_16_VERSION, SCHEMA_16_HASH),
         (SCHEMA_17_VERSION, SCHEMA_17_HASH),
+        (SCHEMA_18_VERSION, SCHEMA_18_HASH),
     }
 
 

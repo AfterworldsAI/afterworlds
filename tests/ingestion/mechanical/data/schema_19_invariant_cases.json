@@ -1,0 +1,1746 @@
+[
+ {
+  "bad": [
+   {
+    "advantage_when": null,
+    "attack_bonus": null,
+    "attack_bonus_formula": null,
+    "automatic_hit": null,
+    "entry": "Tentacle",
+    "family": "creature_attack",
+    "hit_damage": [
+     {
+      "addends": [],
+      "average": 12,
+      "constant": null,
+      "damage_type": "bludgeoning",
+      "damage_type_by_choice": null,
+      "dice": {
+       "count": 2,
+       "die": "d6",
+       "modifier": 5
+      }
+     }
+    ],
+    "hit_damage_by_size": null,
+    "hit_effect": null,
+    "kind": "melee",
+    "long_range_ft": null,
+    "normal_range_ft": null,
+    "reach_ft": 15,
+    "section": "action",
+    "size_input": null
+   },
+   {
+    "advantage_when": null,
+    "attack_bonus": 9,
+    "attack_bonus_formula": {
+     "formula_ref": "spells.attack_rolls/spell_attack_modifier",
+     "of": "caster"
+    },
+    "automatic_hit": null,
+    "entry": "Tentacle",
+    "family": "creature_attack",
+    "hit_damage": [
+     {
+      "addends": [],
+      "average": 12,
+      "constant": null,
+      "damage_type": "bludgeoning",
+      "damage_type_by_choice": null,
+      "dice": {
+       "count": 2,
+       "die": "d6",
+       "modifier": 5
+      }
+     }
+    ],
+    "hit_damage_by_size": null,
+    "hit_effect": null,
+    "kind": "melee",
+    "long_range_ft": null,
+    "normal_range_ft": null,
+    "reach_ft": 15,
+    "section": "action",
+    "size_input": null
+   }
+  ],
+  "bad_replace": [],
+  "good": {
+   "advantage_when": null,
+   "attack_bonus": 9,
+   "attack_bonus_formula": null,
+   "automatic_hit": null,
+   "entry": "Tentacle",
+   "family": "creature_attack",
+   "hit_damage": [
+    {
+     "addends": [],
+     "average": 12,
+     "constant": null,
+     "damage_type": "bludgeoning",
+     "damage_type_by_choice": null,
+     "dice": {
+      "count": 2,
+      "die": "d6",
+      "modifier": 5
+     }
+    }
+   ],
+   "hit_damage_by_size": null,
+   "hit_effect": null,
+   "kind": "melee",
+   "long_range_ft": null,
+   "normal_range_ft": null,
+   "reach_ft": 15,
+   "section": "action",
+   "size_input": null
+  },
+  "id": "creature_attack.bonus.exactly-one-unless-automatic-hit"
+ },
+ {
+  "bad": [
+   {
+    "dc": null,
+    "dc_formula": null,
+    "entry": "Mucus Cloud",
+    "failure_damage": [],
+    "failure_effect": null,
+    "family": "creature_save_effect",
+    "reuse_limit": null,
+    "save": "constitution",
+    "section": "trait",
+    "success": null,
+    "targets": {
+     "area": {
+      "height_ft": null,
+      "radius": false,
+      "shape": "emanation",
+      "size_ft": 5,
+      "width_ft": null
+     },
+     "at_hit_points": null,
+     "automatic_failure_types": [],
+     "automatic_success_types": [],
+     "count": null,
+     "each": true,
+     "excludes": null,
+     "excludes_types": [],
+     "has_conditions": [],
+     "in_source_space": null,
+     "living": false,
+     "maximum_size": null,
+     "origin": "source",
+     "origin_point_within_ft": null,
+     "related_to_source": [],
+     "requires_source_sees_point": null,
+     "requires_source_sees_target": null,
+     "requires_target_sees_source": null,
+     "source_environment": null,
+     "stated_by": null,
+     "swallow_capacity": null,
+     "trigger": null,
+     "types": [],
+     "willing_or_conditions": [],
+     "within_ft": null
+    }
+   },
+   {
+    "dc": 14,
+    "dc_formula": {
+     "formula_ref": "spells.saving_throws/spell_save_dc",
+     "of": "caster"
+    },
+    "entry": "Mucus Cloud",
+    "failure_damage": [],
+    "failure_effect": null,
+    "family": "creature_save_effect",
+    "reuse_limit": null,
+    "save": "constitution",
+    "section": "trait",
+    "success": null,
+    "targets": {
+     "area": {
+      "height_ft": null,
+      "radius": false,
+      "shape": "emanation",
+      "size_ft": 5,
+      "width_ft": null
+     },
+     "at_hit_points": null,
+     "automatic_failure_types": [],
+     "automatic_success_types": [],
+     "count": null,
+     "each": true,
+     "excludes": null,
+     "excludes_types": [],
+     "has_conditions": [],
+     "in_source_space": null,
+     "living": false,
+     "maximum_size": null,
+     "origin": "source",
+     "origin_point_within_ft": null,
+     "related_to_source": [],
+     "requires_source_sees_point": null,
+     "requires_source_sees_target": null,
+     "requires_target_sees_source": null,
+     "source_environment": null,
+     "stated_by": null,
+     "swallow_capacity": null,
+     "trigger": null,
+     "types": [],
+     "willing_or_conditions": [],
+     "within_ft": null
+    }
+   }
+  ],
+  "bad_replace": [],
+  "good": {
+   "dc": 14,
+   "dc_formula": null,
+   "entry": "Mucus Cloud",
+   "failure_damage": [],
+   "failure_effect": null,
+   "family": "creature_save_effect",
+   "reuse_limit": null,
+   "save": "constitution",
+   "section": "trait",
+   "success": null,
+   "targets": {
+    "area": {
+     "height_ft": null,
+     "radius": false,
+     "shape": "emanation",
+     "size_ft": 5,
+     "width_ft": null
+    },
+    "at_hit_points": null,
+    "automatic_failure_types": [],
+    "automatic_success_types": [],
+    "count": null,
+    "each": true,
+    "excludes": null,
+    "excludes_types": [],
+    "has_conditions": [],
+    "in_source_space": null,
+    "living": false,
+    "maximum_size": null,
+    "origin": "source",
+    "origin_point_within_ft": null,
+    "related_to_source": [],
+    "requires_source_sees_point": null,
+    "requires_source_sees_target": null,
+    "requires_target_sees_source": null,
+    "source_environment": null,
+    "stated_by": null,
+    "swallow_capacity": null,
+    "trigger": null,
+    "types": [],
+    "willing_or_conditions": [],
+    "within_ft": null
+   }
+  },
+  "id": "creature_save_effect.dc.exactly-one"
+ },
+ {
+  "bad": [
+   {
+    "armor_class": null,
+    "armor_class_formula": null,
+    "family": "creature_defense_parameterized",
+    "hit_points": {
+     "base": null,
+     "by_size": {
+      "huge": 40,
+      "large": 20,
+      "medium_or_smaller": 10
+     },
+     "half_of": null,
+     "per_spell_level": null,
+     "per_spell_level_above": null
+    }
+   },
+   {
+    "armor_class": 15,
+    "armor_class_formula": {
+     "base": 10,
+     "per_spell_level": 1
+    },
+    "family": "creature_defense_parameterized",
+    "hit_points": {
+     "base": null,
+     "by_size": {
+      "huge": 40,
+      "large": 20,
+      "medium_or_smaller": 10
+     },
+     "half_of": null,
+     "per_spell_level": null,
+     "per_spell_level_above": null
+    }
+   }
+  ],
+  "bad_replace": [],
+  "good": {
+   "armor_class": 15,
+   "armor_class_formula": null,
+   "family": "creature_defense_parameterized",
+   "hit_points": {
+    "base": null,
+    "by_size": {
+     "huge": 40,
+     "large": 20,
+     "medium_or_smaller": 10
+    },
+    "half_of": null,
+    "per_spell_level": null,
+    "per_spell_level_above": null
+   }
+  },
+  "id": "creature_defense_parameterized.armor-class.exactly-one"
+ },
+ {
+  "bad": [
+   {
+    "bound_effect": null,
+    "branch": "hit",
+    "duration_of_effects": [],
+    "duration_span": null,
+    "duration_turn": null,
+    "effect_id": "E1",
+    "effects": [
+     {
+      "condition": "poisoned",
+      "effect": "applies"
+     }
+    ],
+    "ends_early_when": [],
+    "ends_effects": [],
+    "entry": "Beard",
+    "family": "clause_timed_condition",
+    "lasts_while_effect": null,
+    "part": "hit",
+    "piece": 1,
+    "replaces_condition": null,
+    "section": "action",
+    "under_predicates": []
+   },
+   {
+    "bound_effect": null,
+    "branch": "hit",
+    "duration_of_effects": [],
+    "duration_span": {
+     "amount": 1,
+     "or_until": null,
+     "unit": "minute"
+    },
+    "duration_turn": {
+     "turn": "next",
+     "turn_of": "source",
+     "until": "start_of_turn"
+    },
+    "effect_id": "E1",
+    "effects": [
+     {
+      "condition": "poisoned",
+      "effect": "applies"
+     }
+    ],
+    "ends_early_when": [],
+    "ends_effects": [],
+    "entry": "Beard",
+    "family": "clause_timed_condition",
+    "lasts_while_effect": null,
+    "part": "hit",
+    "piece": 1,
+    "replaces_condition": null,
+    "section": "action",
+    "under_predicates": []
+   }
+  ],
+  "bad_replace": [],
+  "good": {
+   "bound_effect": null,
+   "branch": "hit",
+   "duration_of_effects": [],
+   "duration_span": null,
+   "duration_turn": {
+    "turn": "next",
+    "turn_of": "source",
+    "until": "start_of_turn"
+   },
+   "effect_id": "E1",
+   "effects": [
+    {
+     "condition": "poisoned",
+     "effect": "applies"
+    }
+   ],
+   "ends_early_when": [],
+   "ends_effects": [],
+   "entry": "Beard",
+   "family": "clause_timed_condition",
+   "lasts_while_effect": null,
+   "part": "hit",
+   "piece": 1,
+   "replaces_condition": null,
+   "section": "action",
+   "under_predicates": []
+  },
+  "id": "clause_timed_condition.duration.exactly-one"
+ },
+ {
+  "bad": [
+   {
+    "ability_based": null,
+    "bound_effect": null,
+    "branch": "failure",
+    "duration_of_effects": [],
+    "effect_id": "E1",
+    "effects": [],
+    "ends_effects": [],
+    "entry": "Weakening Breath",
+    "family": "clause_roll_modifier",
+    "lasts_while_effect": null,
+    "part": "failure",
+    "piece": 0,
+    "purpose": null,
+    "section": "action",
+    "subject": "target",
+    "under_predicates": []
+   },
+   {
+    "ability_based": {
+     "ability": "strength",
+     "state": "disadvantage"
+    },
+    "bound_effect": null,
+    "branch": "failure",
+    "duration_of_effects": [],
+    "effect_id": "E1",
+    "effects": [
+     {
+      "roll": {
+       "ability": null,
+       "actor": "subject",
+       "context": "ability_check"
+      },
+      "state": "disadvantage"
+     }
+    ],
+    "ends_effects": [],
+    "entry": "Weakening Breath",
+    "family": "clause_roll_modifier",
+    "lasts_while_effect": null,
+    "part": "failure",
+    "piece": 0,
+    "purpose": null,
+    "section": "action",
+    "subject": "target",
+    "under_predicates": []
+   }
+  ],
+  "bad_replace": [],
+  "good": {
+   "ability_based": {
+    "ability": "strength",
+    "state": "disadvantage"
+   },
+   "bound_effect": null,
+   "branch": "failure",
+   "duration_of_effects": [],
+   "effect_id": "E1",
+   "effects": [],
+   "ends_effects": [],
+   "entry": "Weakening Breath",
+   "family": "clause_roll_modifier",
+   "lasts_while_effect": null,
+   "part": "failure",
+   "piece": 0,
+   "purpose": null,
+   "section": "action",
+   "subject": "target",
+   "under_predicates": []
+  },
+  "id": "clause_roll_modifier.effects-or-ability-based.exactly-one"
+ },
+ {
+  "bad": [
+   {
+    "context": "level_1_character",
+    "count": 2,
+    "eligibility": null,
+    "family": "skill_proficiency_choice",
+    "from_reference": {
+     "component_key": "core_traits",
+     "record_key": "classes.barbarian"
+    },
+    "from_skills": [
+     "animal_handling",
+     "athletics",
+     "intimidation",
+     "nature",
+     "perception",
+     "survival"
+    ],
+    "gain_levels": null,
+    "or_tools": null,
+    "repeatable": null
+   }
+  ],
+  "bad_replace": [],
+  "good": {
+   "context": "level_1_character",
+   "count": 2,
+   "eligibility": null,
+   "family": "skill_proficiency_choice",
+   "from_reference": null,
+   "from_skills": [
+    "animal_handling",
+    "athletics",
+    "intimidation",
+    "nature",
+    "perception",
+    "survival"
+   ],
+   "gain_levels": null,
+   "or_tools": null,
+   "repeatable": null
+  },
+  "id": "skill_proficiency_choice.from.at-most-one"
+ },
+ {
+  "bad": [
+   {
+    "count": 1,
+    "family": "multiclass_skill_proficiency_choice",
+    "from_reference": {
+     "component_key": "core_traits",
+     "record_key": "classes.ranger"
+    },
+    "from_skills": [
+     "acrobatics",
+     "animal_handling",
+     "arcana",
+     "athletics",
+     "deception",
+     "history",
+     "insight",
+     "intimidation",
+     "investigation",
+     "medicine",
+     "nature",
+     "perception",
+     "performance",
+     "persuasion",
+     "religion",
+     "sleight_of_hand",
+     "stealth",
+     "survival"
+    ]
+   }
+  ],
+  "bad_replace": [],
+  "good": {
+   "count": 1,
+   "family": "multiclass_skill_proficiency_choice",
+   "from_reference": null,
+   "from_skills": [
+    "acrobatics",
+    "animal_handling",
+    "arcana",
+    "athletics",
+    "deception",
+    "history",
+    "insight",
+    "intimidation",
+    "investigation",
+    "medicine",
+    "nature",
+    "perception",
+    "performance",
+    "persuasion",
+    "religion",
+    "sleight_of_hand",
+    "stealth",
+    "survival"
+   ]
+  },
+  "id": "multiclass_skill_proficiency_choice.from.at-most-one"
+ },
+ {
+  "bad": [
+   {
+    "advantage_when": null,
+    "attack_bonus": 9,
+    "attack_bonus_formula": null,
+    "automatic_hit": null,
+    "entry": "Tentacle",
+    "family": "creature_attack",
+    "hit_damage": [
+     {
+      "addends": [],
+      "average": 12,
+      "constant": null,
+      "damage_type": null,
+      "damage_type_by_choice": null,
+      "dice": {
+       "count": 2,
+       "die": "d6",
+       "modifier": 5
+      }
+     }
+    ],
+    "hit_damage_by_size": null,
+    "hit_effect": null,
+    "kind": "melee",
+    "long_range_ft": null,
+    "normal_range_ft": null,
+    "reach_ft": 15,
+    "section": "action",
+    "size_input": null
+   },
+   {
+    "advantage_when": null,
+    "attack_bonus": 9,
+    "attack_bonus_formula": null,
+    "automatic_hit": null,
+    "entry": "Tentacle",
+    "family": "creature_attack",
+    "hit_damage": [
+     {
+      "addends": [],
+      "average": 12,
+      "constant": null,
+      "damage_type": "bludgeoning",
+      "damage_type_by_choice": {
+       "celestial": "radiant",
+       "chosen_by": null,
+       "chosen_for": null,
+       "chosen_from": null,
+       "fey": "psychic",
+       "fiend": "necrotic",
+       "when": null
+      },
+      "dice": {
+       "count": 2,
+       "die": "d6",
+       "modifier": 5
+      }
+     }
+    ],
+    "hit_damage_by_size": null,
+    "hit_effect": null,
+    "kind": "melee",
+    "long_range_ft": null,
+    "normal_range_ft": null,
+    "reach_ft": 15,
+    "section": "action",
+    "size_input": null
+   }
+  ],
+  "bad_replace": [],
+  "good": {
+   "advantage_when": null,
+   "attack_bonus": 9,
+   "attack_bonus_formula": null,
+   "automatic_hit": null,
+   "entry": "Tentacle",
+   "family": "creature_attack",
+   "hit_damage": [
+    {
+     "addends": [],
+     "average": 12,
+     "constant": null,
+     "damage_type": "bludgeoning",
+     "damage_type_by_choice": null,
+     "dice": {
+      "count": 2,
+      "die": "d6",
+      "modifier": 5
+     }
+    }
+   ],
+   "hit_damage_by_size": null,
+   "hit_effect": null,
+   "kind": "melee",
+   "long_range_ft": null,
+   "normal_range_ft": null,
+   "reach_ft": 15,
+   "section": "action",
+   "size_input": null
+  },
+  "id": "damage_term.type.exactly-one"
+ },
+ {
+  "bad": [
+   {
+    "alternatives": [
+     {
+      "condition": null,
+      "parts": [
+       {
+        "any_of": [],
+        "attack": "Tentacle",
+        "count": null,
+        "count_formula": null,
+        "if_available": null,
+        "optional": null,
+        "uses_one_of": []
+       },
+       {
+        "any_of": [],
+        "attack": null,
+        "count": 1,
+        "count_formula": null,
+        "if_available": true,
+        "optional": false,
+        "uses_one_of": [
+         {
+          "entry": "Consume Memories",
+          "spell": null,
+          "spell_level": null
+         },
+         {
+          "entry": "Dominate Mind",
+          "spell": null,
+          "spell_level": null
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "entry": "Multiattack",
+    "family": "creature_multiattack",
+    "replacements": [],
+    "section": "action"
+   },
+   {
+    "alternatives": [
+     {
+      "condition": null,
+      "parts": [
+       {
+        "any_of": [],
+        "attack": "Tentacle",
+        "count": 2,
+        "count_formula": "per_head",
+        "if_available": null,
+        "optional": null,
+        "uses_one_of": []
+       },
+       {
+        "any_of": [],
+        "attack": null,
+        "count": 1,
+        "count_formula": null,
+        "if_available": true,
+        "optional": false,
+        "uses_one_of": [
+         {
+          "entry": "Consume Memories",
+          "spell": null,
+          "spell_level": null
+         },
+         {
+          "entry": "Dominate Mind",
+          "spell": null,
+          "spell_level": null
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "entry": "Multiattack",
+    "family": "creature_multiattack",
+    "replacements": [],
+    "section": "action"
+   }
+  ],
+  "bad_replace": [],
+  "good": {
+   "alternatives": [
+    {
+     "condition": null,
+     "parts": [
+      {
+       "any_of": [],
+       "attack": "Tentacle",
+       "count": 2,
+       "count_formula": null,
+       "if_available": null,
+       "optional": null,
+       "uses_one_of": []
+      },
+      {
+       "any_of": [],
+       "attack": null,
+       "count": 1,
+       "count_formula": null,
+       "if_available": true,
+       "optional": false,
+       "uses_one_of": [
+        {
+         "entry": "Consume Memories",
+         "spell": null,
+         "spell_level": null
+        },
+        {
+         "entry": "Dominate Mind",
+         "spell": null,
+         "spell_level": null
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "entry": "Multiattack",
+   "family": "creature_multiattack",
+   "replacements": [],
+   "section": "action"
+  },
+  "id": "multiattack_part.count.exactly-one"
+ },
+ {
+  "bad": [
+   {
+    "alternatives": [
+     {
+      "condition": null,
+      "parts": [
+       {
+        "any_of": [],
+        "attack": null,
+        "count": 2,
+        "count_formula": null,
+        "if_available": null,
+        "optional": null,
+        "uses_one_of": []
+       },
+       {
+        "any_of": [],
+        "attack": null,
+        "count": 1,
+        "count_formula": null,
+        "if_available": true,
+        "optional": false,
+        "uses_one_of": [
+         {
+          "entry": "Consume Memories",
+          "spell": null,
+          "spell_level": null
+         },
+         {
+          "entry": "Dominate Mind",
+          "spell": null,
+          "spell_level": null
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "entry": "Multiattack",
+    "family": "creature_multiattack",
+    "replacements": [],
+    "section": "action"
+   },
+   {
+    "alternatives": [
+     {
+      "condition": null,
+      "parts": [
+       {
+        "any_of": [],
+        "attack": "Tentacle",
+        "count": 2,
+        "count_formula": null,
+        "if_available": null,
+        "optional": null,
+        "uses_one_of": [
+         {
+          "entry": "Consume Memories",
+          "spell": null,
+          "spell_level": null
+         },
+         {
+          "entry": "Dominate Mind",
+          "spell": null,
+          "spell_level": null
+         }
+        ]
+       },
+       {
+        "any_of": [],
+        "attack": null,
+        "count": 1,
+        "count_formula": null,
+        "if_available": true,
+        "optional": false,
+        "uses_one_of": [
+         {
+          "entry": "Consume Memories",
+          "spell": null,
+          "spell_level": null
+         },
+         {
+          "entry": "Dominate Mind",
+          "spell": null,
+          "spell_level": null
+         }
+        ]
+       }
+      ]
+     }
+    ],
+    "entry": "Multiattack",
+    "family": "creature_multiattack",
+    "replacements": [],
+    "section": "action"
+   }
+  ],
+  "bad_replace": [],
+  "good": {
+   "alternatives": [
+    {
+     "condition": null,
+     "parts": [
+      {
+       "any_of": [],
+       "attack": "Tentacle",
+       "count": 2,
+       "count_formula": null,
+       "if_available": null,
+       "optional": null,
+       "uses_one_of": []
+      },
+      {
+       "any_of": [],
+       "attack": null,
+       "count": 1,
+       "count_formula": null,
+       "if_available": true,
+       "optional": false,
+       "uses_one_of": [
+        {
+         "entry": "Consume Memories",
+         "spell": null,
+         "spell_level": null
+        },
+        {
+         "entry": "Dominate Mind",
+         "spell": null,
+         "spell_level": null
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "entry": "Multiattack",
+   "family": "creature_multiattack",
+   "replacements": [],
+   "section": "action"
+  },
+  "id": "multiattack_part.selection.exactly-one"
+ },
+ {
+  "bad": [
+   {
+    "alternatives": [
+     {
+      "condition": null,
+      "parts": [
+       {
+        "any_of": [],
+        "attack": "Rend",
+        "count": 3,
+        "count_formula": null,
+        "if_available": null,
+        "optional": null,
+        "uses_one_of": []
+       }
+      ]
+     }
+    ],
+    "entry": "Multiattack",
+    "family": "creature_multiattack",
+    "replacements": [
+     {
+      "if_available": false,
+      "replaces": null,
+      "replaces_any": null,
+      "replaces_attack": null,
+      "with_one_of": [
+       {
+        "entry": "Spellcasting",
+        "spell": "spells.acid_arrow",
+        "spell_level": 3
+       }
+      ]
+     }
+    ],
+    "section": "action"
+   },
+   {
+    "alternatives": [
+     {
+      "condition": null,
+      "parts": [
+       {
+        "any_of": [],
+        "attack": "Rend",
+        "count": 3,
+        "count_formula": null,
+        "if_available": null,
+        "optional": null,
+        "uses_one_of": []
+       }
+      ]
+     }
+    ],
+    "entry": "Multiattack",
+    "family": "creature_multiattack",
+    "replacements": [
+     {
+      "if_available": false,
+      "replaces": 1,
+      "replaces_any": null,
+      "replaces_attack": "Claw",
+      "with_one_of": [
+       {
+        "entry": "Spellcasting",
+        "spell": "spells.acid_arrow",
+        "spell_level": 3
+       }
+      ]
+     }
+    ],
+    "section": "action"
+   }
+  ],
+  "bad_replace": [],
+  "good": {
+   "alternatives": [
+    {
+     "condition": null,
+     "parts": [
+      {
+       "any_of": [],
+       "attack": "Rend",
+       "count": 3,
+       "count_formula": null,
+       "if_available": null,
+       "optional": null,
+       "uses_one_of": []
+      }
+     ]
+    }
+   ],
+   "entry": "Multiattack",
+   "family": "creature_multiattack",
+   "replacements": [
+    {
+     "if_available": false,
+     "replaces": 1,
+     "replaces_any": null,
+     "replaces_attack": null,
+     "with_one_of": [
+      {
+       "entry": "Spellcasting",
+       "spell": "spells.acid_arrow",
+       "spell_level": 3
+      }
+     ]
+    }
+   ],
+   "section": "action"
+  },
+  "id": "multiattack_replacement.replaces.exactly-one"
+ },
+ {
+  "bad": [
+   {
+    "dc": 14,
+    "dc_formula": null,
+    "entry": "Mucus Cloud",
+    "failure_damage": [],
+    "failure_effect": null,
+    "family": "creature_save_effect",
+    "reuse_limit": null,
+    "save": "constitution",
+    "section": "trait",
+    "success": null,
+    "targets": {
+     "area": {
+      "height_ft": null,
+      "radius": false,
+      "shape": "emanation",
+      "size_ft": 5,
+      "width_ft": null
+     },
+     "at_hit_points": null,
+     "automatic_failure_types": [],
+     "automatic_success_types": [],
+     "count": null,
+     "each": true,
+     "excludes": null,
+     "excludes_types": [],
+     "has_conditions": [],
+     "in_source_space": null,
+     "living": false,
+     "maximum_size": null,
+     "origin": "source",
+     "origin_point_within_ft": 90,
+     "related_to_source": [],
+     "requires_source_sees_point": null,
+     "requires_source_sees_target": null,
+     "requires_target_sees_source": null,
+     "source_environment": null,
+     "stated_by": null,
+     "swallow_capacity": null,
+     "trigger": null,
+     "types": [],
+     "willing_or_conditions": [],
+     "within_ft": null
+    }
+   }
+  ],
+  "bad_replace": [],
+  "good": {
+   "dc": 14,
+   "dc_formula": null,
+   "entry": "Mucus Cloud",
+   "failure_damage": [],
+   "failure_effect": null,
+   "family": "creature_save_effect",
+   "reuse_limit": null,
+   "save": "constitution",
+   "section": "trait",
+   "success": null,
+   "targets": {
+    "area": {
+     "height_ft": null,
+     "radius": false,
+     "shape": "emanation",
+     "size_ft": 5,
+     "width_ft": null
+    },
+    "at_hit_points": null,
+    "automatic_failure_types": [],
+    "automatic_success_types": [],
+    "count": null,
+    "each": true,
+    "excludes": null,
+    "excludes_types": [],
+    "has_conditions": [],
+    "in_source_space": null,
+    "living": false,
+    "maximum_size": null,
+    "origin": "source",
+    "origin_point_within_ft": null,
+    "related_to_source": [],
+    "requires_source_sees_point": null,
+    "requires_source_sees_target": null,
+    "requires_target_sees_source": null,
+    "source_environment": null,
+    "stated_by": null,
+    "swallow_capacity": null,
+    "trigger": null,
+    "types": [],
+    "willing_or_conditions": [],
+    "within_ft": null
+   }
+  },
+  "id": "save_targets.origin.at-most-one"
+ },
+ {
+  "bad": [
+   {
+    "context": null,
+    "count": 3,
+    "eligibility": null,
+    "family": "skill_proficiency_choice",
+    "from_reference": null,
+    "from_skills": [
+     "acrobatics",
+     "animal_handling",
+     "arcana",
+     "athletics",
+     "deception",
+     "history",
+     "insight",
+     "intimidation",
+     "investigation",
+     "medicine",
+     "nature",
+     "perception",
+     "performance",
+     "persuasion",
+     "religion",
+     "sleight_of_hand",
+     "stealth",
+     "survival"
+    ],
+    "gain_levels": null,
+    "or_tools": {
+     "any_tool_entry": false,
+     "tool_category": null,
+     "tool_variants_of": null
+    },
+    "repeatable": true
+   },
+   {
+    "context": null,
+    "count": 3,
+    "eligibility": null,
+    "family": "skill_proficiency_choice",
+    "from_reference": null,
+    "from_skills": [
+     "acrobatics",
+     "animal_handling",
+     "arcana",
+     "athletics",
+     "deception",
+     "history",
+     "insight",
+     "intimidation",
+     "investigation",
+     "medicine",
+     "nature",
+     "perception",
+     "performance",
+     "persuasion",
+     "religion",
+     "sleight_of_hand",
+     "stealth",
+     "survival"
+    ],
+    "gain_levels": null,
+    "or_tools": {
+     "any_tool_entry": true,
+     "tool_category": null,
+     "tool_variants_of": {
+      "component_key": "musical_instrument",
+      "record_key": "equipment.tools.musical_instrument"
+     }
+    },
+    "repeatable": true
+   }
+  ],
+  "bad_replace": [],
+  "good": {
+   "context": null,
+   "count": 3,
+   "eligibility": null,
+   "family": "skill_proficiency_choice",
+   "from_reference": null,
+   "from_skills": [
+    "acrobatics",
+    "animal_handling",
+    "arcana",
+    "athletics",
+    "deception",
+    "history",
+    "insight",
+    "intimidation",
+    "investigation",
+    "medicine",
+    "nature",
+    "perception",
+    "performance",
+    "persuasion",
+    "religion",
+    "sleight_of_hand",
+    "stealth",
+    "survival"
+   ],
+   "gain_levels": null,
+   "or_tools": {
+    "any_tool_entry": true,
+    "tool_category": null,
+    "tool_variants_of": null
+   },
+   "repeatable": true
+  },
+  "id": "tool_selector.exactly-one"
+ },
+ {
+  "bad": [
+   {
+    "dc": 13,
+    "dc_formula": null,
+    "entry": "Whirlwind",
+    "failure_damage": [
+     {
+      "addends": [],
+      "average": 24,
+      "constant": null,
+      "damage_type": "thunder",
+      "damage_type_by_choice": null,
+      "dice": {
+       "count": 4,
+       "die": "d10",
+       "modifier": 2
+      }
+     }
+    ],
+    "failure_effect": {
+     "applies_to": "target",
+     "condition": {
+      "condition": "prone",
+      "effect": "applies"
+     },
+     "conditional_damage": null,
+     "duration": null,
+     "escape_dc": null,
+     "forced_movement": {
+      "direction": "straight_away",
+      "distance_ft": null,
+      "distance_ft_up_to": null
+     },
+     "linked": null,
+     "maximum_size": null,
+     "rider_save": null,
+     "speed": null
+    },
+    "family": "creature_save_effect",
+    "reuse_limit": null,
+    "save": "strength",
+    "section": "action",
+    "success": "half_damage_only",
+    "targets": {
+     "area": null,
+     "at_hit_points": null,
+     "automatic_failure_types": [],
+     "automatic_success_types": [],
+     "count": 1,
+     "each": null,
+     "excludes": null,
+     "excludes_types": [],
+     "has_conditions": [],
+     "in_source_space": true,
+     "living": false,
+     "maximum_size": "medium",
+     "origin": null,
+     "origin_point_within_ft": null,
+     "related_to_source": [],
+     "requires_source_sees_point": null,
+     "requires_source_sees_target": null,
+     "requires_target_sees_source": null,
+     "source_environment": null,
+     "stated_by": null,
+     "swallow_capacity": null,
+     "trigger": null,
+     "types": [],
+     "willing_or_conditions": [],
+     "within_ft": null
+    }
+   }
+  ],
+  "bad_replace": [],
+  "good": {
+   "dc": 13,
+   "dc_formula": null,
+   "entry": "Whirlwind",
+   "failure_damage": [
+    {
+     "addends": [],
+     "average": 24,
+     "constant": null,
+     "damage_type": "thunder",
+     "damage_type_by_choice": null,
+     "dice": {
+      "count": 4,
+      "die": "d10",
+      "modifier": 2
+     }
+    }
+   ],
+   "failure_effect": {
+    "applies_to": "target",
+    "condition": {
+     "condition": "prone",
+     "effect": "applies"
+    },
+    "conditional_damage": null,
+    "duration": null,
+    "escape_dc": null,
+    "forced_movement": {
+     "direction": "straight_away",
+     "distance_ft": null,
+     "distance_ft_up_to": 20
+    },
+    "linked": null,
+    "maximum_size": null,
+    "rider_save": null,
+    "speed": null
+   },
+   "family": "creature_save_effect",
+   "reuse_limit": null,
+   "save": "strength",
+   "section": "action",
+   "success": "half_damage_only",
+   "targets": {
+    "area": null,
+    "at_hit_points": null,
+    "automatic_failure_types": [],
+    "automatic_success_types": [],
+    "count": 1,
+    "each": null,
+    "excludes": null,
+    "excludes_types": [],
+    "has_conditions": [],
+    "in_source_space": true,
+    "living": false,
+    "maximum_size": "medium",
+    "origin": null,
+    "origin_point_within_ft": null,
+    "related_to_source": [],
+    "requires_source_sees_point": null,
+    "requires_source_sees_target": null,
+    "requires_target_sees_source": null,
+    "source_environment": null,
+    "stated_by": null,
+    "swallow_capacity": null,
+    "trigger": null,
+    "types": [],
+    "willing_or_conditions": [],
+    "within_ft": null
+   }
+  },
+  "id": "forced_move.distance.exactly-one"
+ },
+ {
+  "bad": [
+   {
+    "armor_class": 15,
+    "armor_class_formula": null,
+    "family": "creature_defense_parameterized",
+    "hit_points": {
+     "base": null,
+     "by_size": null,
+     "half_of": null,
+     "per_spell_level": null,
+     "per_spell_level_above": null
+    }
+   },
+   {
+    "armor_class": 15,
+    "armor_class_formula": null,
+    "family": "creature_defense_parameterized",
+    "hit_points": {
+     "base": null,
+     "by_size": {
+      "huge": 40,
+      "large": 20,
+      "medium_or_smaller": 10
+     },
+     "half_of": null,
+     "per_spell_level": 10,
+     "per_spell_level_above": null
+    }
+   }
+  ],
+  "bad_replace": [],
+  "good": {
+   "armor_class": 15,
+   "armor_class_formula": null,
+   "family": "creature_defense_parameterized",
+   "hit_points": {
+    "base": null,
+    "by_size": {
+     "huge": 40,
+     "large": 20,
+     "medium_or_smaller": 10
+    },
+    "half_of": null,
+    "per_spell_level": null,
+    "per_spell_level_above": null
+   }
+  },
+  "id": "parameterized_hit_points.basis.exactly-one"
+ },
+ {
+  "bad": [
+   {
+    "ammunition": "bolt",
+    "ammunition_range_long_feet": 320,
+    "ammunition_range_normal_feet": 80,
+    "family": "weapon_property",
+    "thrown_range_long_feet": null,
+    "thrown_range_normal_feet": null,
+    "versatile_damage": null,
+    "weapon_property": "finesse"
+   }
+  ],
+  "bad_replace": [],
+  "good": {
+   "ammunition": "bolt",
+   "ammunition_range_long_feet": 320,
+   "ammunition_range_normal_feet": 80,
+   "family": "weapon_property",
+   "thrown_range_long_feet": null,
+   "thrown_range_normal_feet": null,
+   "versatile_damage": null,
+   "weapon_property": "ammunition"
+  },
+  "id": "weapon_property.ammunition.ammunition-only"
+ },
+ {
+  "bad": [
+   {
+    "family": "weapon_property",
+    "thrown_range_long_feet": null,
+    "thrown_range_normal_feet": null,
+    "unless": "mounted",
+    "versatile_damage": null,
+    "weapon_property": "ammunition"
+   }
+  ],
+  "bad_replace": [],
+  "good": {
+   "family": "weapon_property",
+   "thrown_range_long_feet": null,
+   "thrown_range_normal_feet": null,
+   "unless": "mounted",
+   "versatile_damage": null,
+   "weapon_property": "two_handed"
+  },
+  "id": "weapon_property.unless.two-handed-only"
+ },
+ {
+  "bad": [
+   {
+    "advantage_when": null,
+    "attack_bonus": 9,
+    "attack_bonus_formula": null,
+    "automatic_hit": null,
+    "entry": "Tentacle",
+    "family": "creature_attack",
+    "hit_damage": [
+     {
+      "addends": [],
+      "average": 12,
+      "constant": null,
+      "damage_type": "bludgeoning",
+      "damage_type_by_choice": null,
+      "dice": {
+       "count": 0,
+       "die": "d6",
+       "modifier": 5
+      }
+     }
+    ],
+    "hit_damage_by_size": null,
+    "hit_effect": null,
+    "kind": "melee",
+    "long_range_ft": null,
+    "normal_range_ft": null,
+    "reach_ft": 15,
+    "section": "action",
+    "size_input": null
+   }
+  ],
+  "bad_replace": [],
+  "good": {
+   "advantage_when": null,
+   "attack_bonus": 9,
+   "attack_bonus_formula": null,
+   "automatic_hit": null,
+   "entry": "Tentacle",
+   "family": "creature_attack",
+   "hit_damage": [
+    {
+     "addends": [],
+     "average": 12,
+     "constant": null,
+     "damage_type": "bludgeoning",
+     "damage_type_by_choice": null,
+     "dice": {
+      "count": 2,
+      "die": "d6",
+      "modifier": 5
+     }
+    }
+   ],
+   "hit_damage_by_size": null,
+   "hit_effect": null,
+   "kind": "melee",
+   "long_range_ft": null,
+   "normal_range_ft": null,
+   "reach_ft": 15,
+   "section": "action",
+   "size_input": null
+  },
+  "id": "nested-value-object.accepted-rules"
+ },
+ {
+  "bad": [
+   {
+    "bound_effect": null,
+    "branch": "hit",
+    "duration_of_effects": [],
+    "effect_id": "E2",
+    "effects": [
+     {
+      "condition": "blinded",
+      "effect": "applies"
+     },
+     {
+      "condition": "restrained",
+      "effect": "applies"
+     }
+    ],
+    "ends_effects": [],
+    "entry": "Smother",
+    "family": "clause_condition",
+    "lasts_while_effect": "E1",
+    "part": "hit",
+    "piece": -1,
+    "replaces_condition": null,
+    "section": "action",
+    "under_predicates": [
+     3
+    ]
+   }
+  ],
+  "bad_replace": [],
+  "good": {
+   "bound_effect": null,
+   "branch": "hit",
+   "duration_of_effects": [],
+   "effect_id": "E2",
+   "effects": [
+    {
+     "condition": "blinded",
+     "effect": "applies"
+    },
+    {
+     "condition": "restrained",
+     "effect": "applies"
+    }
+   ],
+   "ends_effects": [],
+   "entry": "Smother",
+   "family": "clause_condition",
+   "lasts_while_effect": "E1",
+   "part": "hit",
+   "piece": 4,
+   "replaces_condition": null,
+   "section": "action",
+   "under_predicates": [
+    3
+   ]
+  },
+  "id": "integer-field.domain.0"
+ },
+ {
+  "bad": [
+   {
+    "advantage_when": null,
+    "attack_bonus": 9,
+    "attack_bonus_formula": null,
+    "automatic_hit": null,
+    "entry": "Tentacle",
+    "family": "creature_attack",
+    "hit_damage": [
+     {
+      "addends": [],
+      "average": 12,
+      "constant": null,
+      "damage_type": "bludgeoning",
+      "damage_type_by_choice": null,
+      "dice": {
+       "count": 2,
+       "die": "d6",
+       "modifier": 5
+      }
+     }
+    ],
+    "hit_damage_by_size": null,
+    "hit_effect": null,
+    "kind": "melee",
+    "long_range_ft": null,
+    "normal_range_ft": null,
+    "reach_ft": 0,
+    "section": "action",
+    "size_input": null
+   }
+  ],
+  "bad_replace": [],
+  "good": {
+   "advantage_when": null,
+   "attack_bonus": 9,
+   "attack_bonus_formula": null,
+   "automatic_hit": null,
+   "entry": "Tentacle",
+   "family": "creature_attack",
+   "hit_damage": [
+    {
+     "addends": [],
+     "average": 12,
+     "constant": null,
+     "damage_type": "bludgeoning",
+     "damage_type_by_choice": null,
+     "dice": {
+      "count": 2,
+      "die": "d6",
+      "modifier": 5
+     }
+    }
+   ],
+   "hit_damage_by_size": null,
+   "hit_effect": null,
+   "kind": "melee",
+   "long_range_ft": null,
+   "normal_range_ft": null,
+   "reach_ft": 15,
+   "section": "action",
+   "size_input": null
+  },
+  "id": "integer-field.domain.1"
+ },
+ {
+  "bad": [],
+  "bad_replace": [
+   {
+    "attack_bonus": true
+   }
+  ],
+  "good": {
+   "advantage_when": null,
+   "attack_bonus": 9,
+   "attack_bonus_formula": null,
+   "automatic_hit": null,
+   "entry": "Tentacle",
+   "family": "creature_attack",
+   "hit_damage": [
+    {
+     "addends": [],
+     "average": 12,
+     "constant": null,
+     "damage_type": "bludgeoning",
+     "damage_type_by_choice": null,
+     "dice": {
+      "count": 2,
+      "die": "d6",
+      "modifier": 5
+     }
+    }
+   ],
+   "hit_damage_by_size": null,
+   "hit_effect": null,
+   "kind": "melee",
+   "long_range_ft": null,
+   "normal_range_ft": null,
+   "reach_ft": 15,
+   "section": "action",
+   "size_input": null
+  },
+  "id": "integer-field.domain.signed"
+ }
+]

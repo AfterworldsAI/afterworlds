@@ -11,7 +11,25 @@ from __future__ import annotations
 
 from typing import Any
 
-from afterworlds.pipeline.rpg.capability import FIXED_DC_CHECKS, Operation
+from afterworlds.ingestion.mechanical.representation import (
+    AbilityScore,
+    Difficulty,
+    Skill,
+    ToolActivity,
+)
+from afterworlds.pipeline.rpg.capability import (
+    FIXED_DC_CHECKS,
+    TOOL_COMPONENTS,
+    Operation,
+)
+
+
+def _selection(values: list[str], description: str) -> dict[str, Any]:
+    return {
+        "oneOf": [{"type": "string", "enum": values}, {"type": "null"}],
+        "description": description,
+    }
+
 
 PRODUCE_ADJUDICATION_PROPOSALS_TOOL_NAME: str = "produce_adjudication_proposals"
 
@@ -102,17 +120,38 @@ PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC: dict[str, Any] = {
                             "oneOf": [
                                 {
                                     "type": "string",
-                                    "enum": ["/".join(i) for i in FIXED_DC_CHECKS],
+                                    "enum": [
+                                        "/".join(i)
+                                        for i in (*FIXED_DC_CHECKS, *TOOL_COMPONENTS)
+                                    ],
                                 },
                                 {"type": "null"},
                             ],
                             "description": (
                                 "For fixed_dc_check: the source rule whose"
-                                " printed check applies. The engine reads the"
-                                " ability, skill and DC from it. Null"
-                                " otherwise."
+                                " printed check applies. For tool_check: the"
+                                " tool. The engine reads the ability and DC"
+                                " from the source. Null otherwise."
                             ),
                         },
+                        "ability": _selection(
+                            [a.value for a in AbilityScore],
+                            "For difficulty_check: the ability the check uses.",
+                        ),
+                        "skill": _selection(
+                            [k.value for k in Skill],
+                            "For difficulty_check: the skill that applies, if any;"
+                            " it must be one the ability governs.",
+                        ),
+                        "difficulty": _selection(
+                            [d.value for d in Difficulty],
+                            "For difficulty_check: the Typical DC you select. The"
+                            " engine reads the DC from the rules.",
+                        ),
+                        "tool_activity": _selection(
+                            [t.value for t in ToolActivity],
+                            "For tool_check: the tool's printed activity.",
+                        ),
                         "visibility": {
                             "type": "string",
                             "enum": ["shown", "hidden", "player"],

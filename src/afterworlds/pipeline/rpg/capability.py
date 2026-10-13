@@ -42,14 +42,15 @@ __all__ = [
     "CapabilityStatus",
     "Certificate",
     "FIXED_DC_CHECKS",
+    "TOOL_COMPONENTS",
     "Operation",
     "RefusalKind",
     "certify",
     "governing_fingerprint",
 ]
 
-MANIFEST_VERSION = "15c-manifest-1"
-ADAPTER_VERSION = "15c-d20-1"
+MANIFEST_VERSION = "15c-manifest-2"
+ADAPTER_VERSION = "15c-d20-2"
 
 
 class RefusalKind(StrEnum):
@@ -88,8 +89,9 @@ class Operation(StrEnum):
 
 class CapabilityStatus(StrEnum):
     EXECUTABLE = "executable"
-    #: Needs semantic authority that awaits independent review and Owner
-    #: acceptance (CRD Issue 15c candidate C1); refused as missing authority.
+    #: Its accepted authority exists (native C5), but this adapter version does
+    #: not execute it yet; ``held_by`` names what it waits on. Refused as
+    #: unsupported capability, never counted as coverage.
     HELD = "held"
 
 
@@ -116,12 +118,45 @@ FIXED_DC_CHECKS: tuple[tuple[str, str], ...] = (
     ("glossary.swimming", "rough_water"),
 )
 
-#: The release this adapter version was certified against: accepted G1
-#: (oracle SHA-256 ``2ccbaeba…1258``) as published.
+#: Every tool component of the accepted Tools catalogue (native C5): each has a
+#: ``tool_entry`` and one ``tool_activity`` per printed Utilize activity, either
+#: directly (one activity) or one option per activity.
+TOOL_COMPONENTS: tuple[tuple[str, str], ...] = (
+    *(
+        ("equipment.tools", c)
+        for c in (
+            "brewers_supplies", "carpenters_tools", "cartographers_tools",
+            "cobblers_tools", "cooks_utensils", "disguise_kit", "forgery_kit",
+            "glassblowers_tools", "masons_tools", "navigators_tools",
+            "painters_supplies", "potters_tools",
+        )
+    ),
+    *(
+        (f"equipment.tools.{c}", c)
+        for c in (
+            "alchemists_supplies", "calligraphers_supplies", "gaming_set",
+            "herbalism_kit", "jewelers_tools", "leatherworkers_tools",
+            "musical_instrument", "poisoners_kit", "smiths_tools",
+            "thieves_tools", "tinkers_tools", "weavers_tools",
+            "woodcarvers_tools",
+        )
+    ),
+)  # fmt: skip
+
+#: Per-operation procedure and tables beyond the shared check procedure.
+_DIFFICULTY_TABLE = (("play.d20_tests", "typical_dcs"),)
+_TOOL_PROCEDURE = (("play.proficiency", "tool_proficiency"), *TOOL_COMPONENTS)
+_INITIATIVE_PROCEDURE = (("play.combat", "initiative_roll"),)
+
+#: The release this adapter version was certified against: the accepted CRD
+#: Issue 15c native C5 successor (oracle SHA-256 ``23e5d8e0…4f69``) as
+#: published. Recertified from G1 (projection ``efab27a9-…``) by reviewing
+#: every governing component: none changed, so the check fingerprint is G1's
+#: (``.claude/review-notes/issue-15c-implementation/recert/``).
 CERTIFIED_RELEASE: tuple[UUID, str, UUID] = (
     UUID("1299484e-c72d-509b-bd8d-d0169ee1f8d2"),
     "5.2.1-corpus.8781d4e0-a3b",
-    UUID("efab27a9-5d44-52ba-ad74-47940d5fd717"),
+    UUID("44f212d5-32dd-5469-8f05-f0d236492347"),
 )
 
 #: Procedure components the check executor implements (ADR-005d D3/ADR-015 D7:
@@ -155,7 +190,10 @@ CONDITION_RECORDS: tuple[str, ...] = tuple(
     )
 )  # fmt: skip
 
-_HELD_C1A = "candidate C1-A (rules, weapon rows, tools)"
+_HELD_COMBAT_STATE = (
+    "the combat-state input contract (target, position and actor-turn inputs) "
+    "held under Codex's boundary classification"
+)
 
 MANIFEST: dict[Operation, Capability] = {
     Operation.FIXED_DC_CHECK: Capability(
@@ -172,52 +210,66 @@ MANIFEST: dict[Operation, Capability] = {
     ),
     Operation.DIFFICULTY_CHECK: Capability(
         Operation.DIFFICULTY_CHECK,
-        CapabilityStatus.HELD,
-        inputs="ability or skill; a GameMaster-selected Typical DC identity",
-        effects="success or failure",
-        held_by=_HELD_C1A,
+        CapabilityStatus.EXECUTABLE,
+        inputs=(
+            "an ability, optionally a skill it governs, and a GameMaster-selected "
+            "difficulty identity of the typed Typical DCs table; the same "
+            "character inputs as a fixed-DC check"
+        ),
+        effects="success or failure against the band's DC; no state mutation",
+        fingerprint="fe3555814a3fd87e7fa2145fe0a803f158738079e0ef46c35ec56f452150ab96",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.SAVING_THROW: Capability(
         Operation.SAVING_THROW,
         CapabilityStatus.HELD,
         inputs="ability; a DC from the causing effect",
         effects="success or failure and the causing effect's consequence",
-        held_by=_HELD_C1A + " (no admitted save identity states its own effect)",
+        held_by=(
+            "a typed DC source: a creature save effect or a mastery, each a "
+            "multi-subject operation; " + _HELD_COMBAT_STATE
+        ),
     ),
     Operation.TOOL_CHECK: Capability(
         Operation.TOOL_CHECK,
-        CapabilityStatus.HELD,
-        inputs="a record-backed tool; its ability; a Utilize DC or difficulty",
-        effects="success or failure",
-        held_by=_HELD_C1A,
+        CapabilityStatus.EXECUTABLE,
+        inputs=(
+            "a tool component and one of its typed activity identities; the "
+            "tool held; validated tool proficiency (Gaming Set and Musical "
+            "Instrument refuse: 2b records no variant)"
+        ),
+        effects="success or failure against the activity's printed DC",
+        fingerprint="aac3b1c4aa0c4637a923ef28cc76772cdfac4a251ce231af833391394589ac94",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.INITIATIVE: Capability(
         Operation.INITIATIVE,
-        CapabilityStatus.HELD,
-        inputs="Dexterity check; Advantage/Disadvantage",
-        effects="an initiative total; `undetermined` outcome; no order management",
-        held_by=_HELD_C1A,
+        CapabilityStatus.EXECUTABLE,
+        inputs=(
+            "the typed Initiative roll (a Dexterity check); Advantage/"
+            "Disadvantage from typed condition facts, including Initiative's own"
+        ),
+        effects="an Initiative total with outcome `undetermined`; no order",
+        fingerprint="1d2c49236f64495029f8b644bd35153925ff8c10fdf1bccfa88d7e7ae87f159d",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.WEAPON_ATTACK: Capability(
         Operation.WEAPON_ATTACK,
         CapabilityStatus.HELD,
         inputs="one of the 38 weapons, held; target; mastery eligibility",
         effects="damage, masteries, zero-HP consequences across subjects",
-        held_by=_HELD_C1A + "; C1-B (creature targets); C1-C (character targets)",
+        held_by=_HELD_COMBAT_STATE,
     ),
     Operation.DEATH_SAVING_THROW: Capability(
         Operation.DEATH_SAVING_THROW,
         CapabilityStatus.HELD,
         inputs="a dying subject at the start of its turn",
         effects="death-save counters, Stable, death, recovery",
-        held_by=_HELD_C1A + " and explicit actor-turn authority",
+        held_by=_HELD_COMBAT_STATE,
     ),
     Operation.STABILIZE: Capability(
         Operation.STABILIZE,
         CapabilityStatus.HELD,
         inputs="Help; Wisdom (Medicine) DC 10 on a subject at 0 HP",
         effects="Stable",
-        held_by=_HELD_C1A,
+        held_by="the zero-HP lifecycle, implemented with the multi-subject path",
     ),
 }
 
@@ -258,9 +310,16 @@ class Certificate:
         }
 
 
-def _governing(index: AuthorityIndex) -> Iterable[tuple[str, str]]:
+def _governing(
+    index: AuthorityIndex, operation: Operation = Operation.FIXED_DC_CHECK
+) -> Iterable[tuple[str, str]]:
     yield from FIXED_DC_CHECKS
     yield from _CHECK_PROCEDURE
+    yield from {
+        Operation.DIFFICULTY_CHECK: _DIFFICULTY_TABLE,
+        Operation.TOOL_CHECK: _TOOL_PROCEDURE,
+        Operation.INITIATIVE: _INITIATIVE_PROCEDURE,
+    }.get(operation, ())
     for record_key in CONDITION_RECORDS:
         record = index.record(record_key)
         if record is None:
@@ -272,10 +331,12 @@ def _governing(index: AuthorityIndex) -> Iterable[tuple[str, str]]:
             yield record_key, c.semantic_key
 
 
-def governing_fingerprint(index: AuthorityIndex) -> str:
-    """Fingerprint of every component governing the executable check."""
+def governing_fingerprint(
+    index: AuthorityIndex, operation: Operation = Operation.FIXED_DC_CHECK
+) -> str:
+    """Fingerprint of every component governing *operation*."""
     entries = []
-    for record_key, component_key in _governing(index):
+    for record_key, component_key in _governing(index, operation):
         component = index.component(record_key, component_key)
         if component is None:
             raise AdjudicationRefusal(
@@ -293,9 +354,9 @@ def certify(operation: Operation, index: AuthorityIndex) -> Certificate:
     capability = MANIFEST[operation]
     if capability.status is CapabilityStatus.HELD:
         raise AdjudicationRefusal(
-            RefusalKind.MISSING_AUTHORITY,
-            f"{operation.value} needs accepted authority not yet available: "
-            f"{capability.held_by}",
+            RefusalKind.UNSUPPORTED_CAPABILITY,
+            f"{operation.value} is not executable in adapter {ADAPTER_VERSION}; "
+            f"it waits on {capability.held_by}",
         )
     binding = index.binding
     release = (
@@ -310,7 +371,7 @@ def certify(operation: Operation, index: AuthorityIndex) -> Certificate:
             f"projection {CERTIFIED_RELEASE[2]}, not {binding.release_version} "
             f"projection {binding.mechanical_projection_uuid}",
         )
-    fingerprint = governing_fingerprint(index)
+    fingerprint = governing_fingerprint(index, operation)
     if fingerprint != capability.fingerprint:
         raise AdjudicationRefusal(
             RefusalKind.INCOMPATIBLE_CERTIFICATION,
