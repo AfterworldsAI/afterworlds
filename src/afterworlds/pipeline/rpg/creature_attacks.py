@@ -314,6 +314,41 @@ def _rider_turn(duration: TurnBoundary | None) -> str | None:
     return "start" if duration.until is RecurrenceBoundary.START_OF_TURN else "end"
 
 
+def _preflight_reads(
+    fact: CreatureAttackFact,
+    hit_clauses: creature_clauses.HitClauses,
+    holds: bool,
+    attacker: TurnCreature,
+    target: TurnSubject,
+) -> None:
+    """Every refusal-capable read the hit could make, made now, before any
+    die (CRD Issue 15c): the target's immunity to each condition the hit can
+    apply (where its size limit and predicate let it), and the Hit Points a
+    Bloodied predicate reads. Their outcome is evaluated again on the hit,
+    from the state the operation actually reads."""
+    rider = fact.hit_effect
+    kinds: list[ConditionKind] = []
+    if hit_clauses.prone and holds:
+        kinds.append(ConditionKind.PRONE)
+    if rider is not None:
+        fits = rider.maximum_size is None or (
+            _size(target) in _SIZES_UP_TO(rider.maximum_size)
+        )
+        if fits and rider.condition is not None:
+            kinds.append(rider.condition.condition)
+            if rider.linked is not None:
+                kinds.append(rider.linked.condition.condition)
+        if rider.rider_save is not None:
+            kinds.append(rider.rider_save.on_failure.condition)
+        extra = rider.conditional_damage
+        if extra is not None and extra.when.source_bloodied:
+            bloodied(attacker)
+        if extra is not None and extra.when.target_bloodied:
+            bloodied(target)
+    for kind in kinds:
+        condition_immune(target, kind)
+
+
 def _grapple_link(rider: Rider) -> bool:
     """The one executed linked shape: a condition lasting until the grapple
     this same hit applies ends (Purple Worm, Remorhaz)."""
@@ -587,6 +622,7 @@ def prepare(
         ac_breakdown["cover"] = bonuses[0].bonus
     hit_clauses = creature_clauses.plan(attacker, fact)
     holds = _predicate(sel, hit_clauses, target, f"{template_of(attacker)}/{sel.entry}")
+    _preflight_reads(fact, hit_clauses, holds, attacker, target)
     terms = [*fact.hit_damage]
     if hit_clauses.advantage_damage is not None:
         terms.append(hit_clauses.advantage_damage[1])

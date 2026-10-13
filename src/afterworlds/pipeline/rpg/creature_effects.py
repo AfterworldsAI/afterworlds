@@ -452,6 +452,15 @@ def prepare(
         for term in fact.failure_damage:
             assert term.damage_type is not None
             preflight(target, term.damage_type)
+        # The target's immunity to each condition a failure imposes, read
+        # before any die (it can refuse for an unvalidated recorded one).
+        rider = fact.failure_effect
+        if rider is not None and (
+            rider.maximum_size is None
+            or _size(target) in _SIZES_UP_TO(rider.maximum_size)
+        ):
+            for kind in _imposed(fact):
+                condition_immune(target, kind)
         assert fact.dc is not None
         saves.append(
             prepare_save(

@@ -47,6 +47,7 @@ from afterworlds.models.dnd5e_state import SubjectReference, TurnCoordination
 from afterworlds.models.enums import DiceHandling, RollVisibility
 from afterworlds.models.rpg import (
     AdjudicationProposalOutput,
+    DiceResult,
     PendingRollRequest,
     ResolvedAdjudicationRecord,
     RollProposal,
@@ -188,6 +189,19 @@ def _spend(
         except EdgeRefused as exc:
             raise AdjudicationRefusal(RefusalKind.INVALID_SELECTION, str(exc)) from exc
     return document
+
+
+class _CountingDice:
+    """The turn's dice, counting what one operation drew: a refusal after its
+    own first die is a preflight gap, not an ordinary refusal."""
+
+    def __init__(self, inner: DiceService) -> None:
+        self._inner = inner
+        self.rolled = 0
+
+    def roll(self, expression: str) -> DiceResult:
+        self.rolled += 1
+        return self._inner.roll(expression)
 
 
 def _ammunition_supply(proposals: list[RollProposal], actor: TurnCharacter) -> None:
@@ -623,18 +637,19 @@ class RpgAdjudicationPassService:
                 records.append(record)
                 views.append(self._adapter.to_writer_view(record))
                 continue
+            counted = _CountingDice(dice_service)
             try:
                 record = self._adapter.resolve_roll(
                     proposal,
                     current,
                     rule_slice,
-                    dice_service,
+                    counted,
                     session_state.gm_cheating,
                     current_subjects,
                     document,
                 )
             except AdjudicationRefusal as exc:
-                if records:
+                if records or counted.rolled:
                     # Dice were rolled; discarding them would let a retry
                     # reroll (Architecture Invariant 10). The preflight should
                     # have refused this before any die: a defect, not a
