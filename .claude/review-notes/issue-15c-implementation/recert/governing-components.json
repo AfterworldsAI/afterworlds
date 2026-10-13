@@ -354,6 +354,16 @@
   "creature_attack": {
    "components": [
     [
+     "glossary.action",
+     "action",
+     "bbc8efdf4ccc6b847576cfd97a4fe684f647b9591b0bc65aa5f5ac673407a01b"
+    ],
+    [
+     "glossary.attack",
+     "attack_roll",
+     "5685fbbae9ea269818ce14b99cfe115a44637cdab97cf7b752c13495757bb544"
+    ],
+    [
      "glossary.blinded",
      "attacks_affected",
      "ab84f51a2c61491c9d68c0a71f65e8b587f1187728f2574e6a01dfb3390708fa"
@@ -627,6 +637,11 @@
      "glossary.vulnerability",
      "doubling",
      "155a2615866985f8a9ae05dddc8ef2e2bb49e41df3761eab02e25fd2adcfdfd8"
+    ],
+    [
+     "play.actions",
+     "one_bonus_action",
+     "82b693c9d02cb0a40c0e6512cc57f964de23c92cd7397184823a9b76f481a749"
     ],
     [
      "play.combat",
@@ -854,10 +869,20 @@
      "64f4f80eb88b0691cfd9ca7b26cc8d0ff8916497a0a37a078946ffc1ef408abd"
     ]
    ],
-   "fingerprint": "15f2ae57ee762f73d9856904c7218ff3df4ecf8e2a39126621ce2216db6015a9"
+   "fingerprint": "da0e61c8852afc9938b9d01fe49858d6847a69bf43ca4fa25eed25010e9587da"
   },
   "creature_save_effect": {
    "components": [
+    [
+     "glossary.action",
+     "action",
+     "bbc8efdf4ccc6b847576cfd97a4fe684f647b9591b0bc65aa5f5ac673407a01b"
+    ],
+    [
+     "glossary.attack",
+     "attack_roll",
+     "5685fbbae9ea269818ce14b99cfe115a44637cdab97cf7b752c13495757bb544"
+    ],
     [
      "glossary.blinded",
      "attacks_affected",
@@ -1134,6 +1159,11 @@
      "155a2615866985f8a9ae05dddc8ef2e2bb49e41df3761eab02e25fd2adcfdfd8"
     ],
     [
+     "play.actions",
+     "one_bonus_action",
+     "82b693c9d02cb0a40c0e6512cc57f964de23c92cd7397184823a9b76f481a749"
+    ],
+    [
      "play.combat",
      "close_combat",
      "b90238364f0a63621a4d583a36d2bba1bd8c97f188678ad6e9f6788c65a2e6e1"
@@ -1354,7 +1384,7 @@
      "64f4f80eb88b0691cfd9ca7b26cc8d0ff8916497a0a37a078946ffc1ef408abd"
     ]
    ],
-   "fingerprint": "9f979ba2777e9ac36d4878f5f03fdfde294851abaad39abf189afce362a05782"
+   "fingerprint": "835d1566b95587ec13cec855c5541bdc37b94d5f3586e4e4cf71ffe08397ad0d"
   },
   "death_saving_throw": {
    "components": [
@@ -3429,6 +3459,16 @@
   "stabilize": {
    "components": [
     [
+     "glossary.action",
+     "action",
+     "bbc8efdf4ccc6b847576cfd97a4fe684f647b9591b0bc65aa5f5ac673407a01b"
+    ],
+    [
+     "glossary.attack",
+     "attack_roll",
+     "5685fbbae9ea269818ce14b99cfe115a44637cdab97cf7b752c13495757bb544"
+    ],
+    [
      "glossary.blinded",
      "attacks_affected",
      "ab84f51a2c61491c9d68c0a71f65e8b587f1187728f2574e6a01dfb3390708fa"
@@ -3689,6 +3729,11 @@
      "92b7765c9422fb5aaa6a5f8064c69cb23409cafcc82a17b2f0d5a3130c871dc0"
     ],
     [
+     "play.actions",
+     "one_bonus_action",
+     "82b693c9d02cb0a40c0e6512cc57f964de23c92cd7397184823a9b76f481a749"
+    ],
+    [
      "play.d20_tests",
      "add_modifiers",
      "cc24d82c7489b73637654b5858e2fb58e54aac8fd66b4b54a6ad6d16d93b1c1d"
@@ -3784,7 +3829,7 @@
      "64f4f80eb88b0691cfd9ca7b26cc8d0ff8916497a0a37a078946ffc1ef408abd"
     ]
    ],
-   "fingerprint": "f5a5ba6e7628ea766aa147ffce347439c013ea626346f97480d4198a89c91302"
+   "fingerprint": "883d7298958b7f109afff97c78ac567e4e1d862e234a038bd2c2bbd2e707d8b4"
   },
   "stable_recovery": {
    "components": [
@@ -5034,6 +5079,16 @@
      "3de0689cab73109eba4e5cd1ac9ceed361b73cb462f867135eb7293f8c5fab18"
     ],
     [
+     "glossary.action",
+     "action",
+     "bbc8efdf4ccc6b847576cfd97a4fe684f647b9591b0bc65aa5f5ac673407a01b"
+    ],
+    [
+     "glossary.attack",
+     "attack_roll",
+     "5685fbbae9ea269818ce14b99cfe115a44637cdab97cf7b752c13495757bb544"
+    ],
+    [
      "glossary.blinded",
      "attacks_affected",
      "ab84f51a2c61491c9d68c0a71f65e8b587f1187728f2574e6a01dfb3390708fa"
@@ -5309,6 +5364,11 @@
      "155a2615866985f8a9ae05dddc8ef2e2bb49e41df3761eab02e25fd2adcfdfd8"
     ],
     [
+     "play.actions",
+     "one_bonus_action",
+     "82b693c9d02cb0a40c0e6512cc57f964de23c92cd7397184823a9b76f481a749"
+    ],
+    [
      "play.combat",
      "close_combat",
      "b90238364f0a63621a4d583a36d2bba1bd8c97f188678ad6e9f6788c65a2e6e1"
@@ -5514,7 +5574,7 @@
      "64f4f80eb88b0691cfd9ca7b26cc8d0ff8916497a0a37a078946ffc1ef408abd"
     ]
    ],
-   "fingerprint": "693cb02204268a396bbca3e7f47c91b18b6774a067f5b1db02add9c340df8271"
+   "fingerprint": "463322bfdc89cfe8209c66db593911cff50c2f27d2939af727ff6e215a58d7ed"
   }
  }
 }

@@ -223,6 +223,13 @@ _CREATURE_ATTACK_PROCEDURE: tuple[tuple[str, str], ...] = (
     ("play.combat", "ranged"),
     ("play.combat", "reach"),
 )
+#: Action accounting (pipeline/rpg/economy.py): the turn's one action, the
+#: Attack action's attack roll and the one Bonus Action an operation spends.
+_ECONOMY_PROCEDURE: tuple[tuple[str, str], ...] = (
+    ("glossary.action", "action"),
+    ("glossary.attack", "attack_roll"),
+    ("play.actions", "one_bonus_action"),
+)
 #: Actor-turn edges (contract G1): the turn structure they mark.
 _TURN_PROCEDURE: tuple[tuple[str, str], ...] = (
     ("play.combat", "rounds_and_turns"),
@@ -355,7 +362,7 @@ MANIFEST: dict[Operation, Capability] = {
             "yet: masteries, ammunition, the Light extra attack, sight that needs "
             "a sense's range"
         ),
-        fingerprint="693cb02204268a396bbca3e7f47c91b18b6774a067f5b1db02add9c340df8271",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="463322bfdc89cfe8209c66db593911cff50c2f27d2939af727ff6e215a58d7ed",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.DEATH_SAVING_THROW: Capability(
         Operation.DEATH_SAVING_THROW,
@@ -384,7 +391,7 @@ MANIFEST: dict[Operation, Capability] = {
             "on a success, a dying subject becomes Stable with a rolled recovery "
             "interval, or a knockout's Unconscious ends, leaving it Prone"
         ),
-        fingerprint="f5a5ba6e7628ea766aa147ffce347439c013ea626346f97480d4198a89c91302",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="883d7298958b7f109afff97c78ac567e4e1d862e234a038bd2c2bbd2e707d8b4",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.STABLE_RECOVERY: Capability(
         Operation.STABLE_RECOVERY,
@@ -445,7 +452,7 @@ MANIFEST: dict[Operation, Capability] = {
             "against one). Not yet: usage limits and Recharge, speed changes, "
             "forced movement, conditional damage, legendary actions"
         ),
-        fingerprint="15f2ae57ee762f73d9856904c7218ff3df4ecf8e2a39126621ce2216db6015a9",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="da0e61c8852afc9938b9d01fe49858d6847a69bf43ca4fa25eed25010e9587da",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.CREATURE_SAVE_EFFECT: Capability(
         Operation.CREATURE_SAVE_EFFECT,
@@ -462,7 +469,7 @@ MANIFEST: dict[Operation, Capability] = {
             "type, sight, environment or trigger predicates, formula DCs, "
             "failure effects beyond a condition"
         ),
-        fingerprint="9f979ba2777e9ac36d4878f5f03fdfde294851abaad39abf189afce362a05782",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="835d1566b95587ec13cec855c5541bdc37b94d5f3586e4e4cf71ffe08397ad0d",  # noqa: E501  # pragma: allowlist secret
     ),
 }
 
@@ -514,22 +521,28 @@ def _governing(
         Operation.DIFFICULTY_CHECK: _DIFFICULTY_TABLE,
         Operation.TOOL_CHECK: _TOOL_PROCEDURE,
         Operation.INITIATIVE: _INITIATIVE_PROCEDURE,
-        Operation.WEAPON_ATTACK: (*_WEAPON_ATTACK_PROCEDURE, *SAVE_PROCEDURE),
+        Operation.WEAPON_ATTACK: (
+            *_WEAPON_ATTACK_PROCEDURE,
+            *SAVE_PROCEDURE,
+            *_ECONOMY_PROCEDURE,
+        ),
         Operation.BEGIN_TURN: _TURN_PROCEDURE,
         Operation.END_TURN: _TURN_PROCEDURE,
         Operation.DEATH_SAVING_THROW: _DEATH_SAVE_PROCEDURE,
-        Operation.STABILIZE: _FIRST_AID_PROCEDURE,
+        Operation.STABILIZE: (*_FIRST_AID_PROCEDURE, *_ECONOMY_PROCEDURE),
         Operation.CREATURE_SAVE_EFFECT: (
             *SAVE_PROCEDURE,
             (_DAMAGE, "half_damage"),
             (_DAMAGE, "damage_rolls"),
             (_DAMAGE, "multiple_targets"),
             *_WEAPON_ATTACK_PROCEDURE,
+            *_ECONOMY_PROCEDURE,
         ),
         Operation.CREATURE_ATTACK: (
             *_CREATURE_ATTACK_PROCEDURE,
             *_WEAPON_ATTACK_PROCEDURE,
             *SAVE_PROCEDURE,
+            *_ECONOMY_PROCEDURE,
         ),
         Operation.STABLE_RECOVERY: _RECOVERY_PROCEDURE,
         Operation.KNOCKOUT_RECOVERY: _RECOVERY_PROCEDURE,
