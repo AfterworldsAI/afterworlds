@@ -84,6 +84,7 @@ from afterworlds.pipeline.rpg.checks import proficiency_bonus
 from afterworlds.pipeline.rpg.conditions import effective
 from afterworlds.pipeline.rpg.damage import (
     DamageTaken,
+    knockout_rule,
     preflight,
     take_damage,
 )
@@ -765,6 +766,13 @@ def prepare(
             RefusalKind.MISSING_AUTHORITY, f"{weapon.record} states no damage dice"
         )
     preflight(target, weapon.damage.damage_type)
+    if sel.knock_out:
+        knockout = knockout_rule(target)
+        if ranged or knockout.attack is not RangeClass.MELEE:
+            raise _refuse(
+                RefusalKind.INVALID_SELECTION,
+                "only a melee attack can knock a creature out",
+            )
     rule = _one(
         facts_of(index, "play.damage_and_healing", "damage_rolls"),
         DamageRollRuleFact,
@@ -828,7 +836,11 @@ def roll(
         damage_roll.chosen + d.modifier + prepared.damage_modifier,
     )
     taken = take_damage(
-        prepared.target, amount, prepared.damage_type, critical=critical
+        prepared.target,
+        amount,
+        prepared.damage_type,
+        critical=critical,
+        knock_out=prepared.selection.knock_out,
     )
     return RolledAttack(
         prepared,
@@ -850,7 +862,10 @@ def possible_conditions(
         return {}
     key = (sel.target.kind, str(sel.target.subject_id))
     target = subjects.get(key)
-    return {} if target is None else {key: damage_conditions(target)}
+    if target is None:
+        return {}
+    knocked = {ConditionKind.UNCONSCIOUS} if sel.knock_out else set()
+    return {key: damage_conditions(target) | knocked}
 
 
 def subject_key(subject: TurnSubject) -> tuple[str, str]:

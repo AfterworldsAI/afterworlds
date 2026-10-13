@@ -294,7 +294,7 @@ def test_a_hidden_check_is_audited_but_filtered_from_the_player(
 @pytest.mark.parametrize(
     ("roll", "kind"),
     [
-        (_roll(operation="stabilize", identity=None), "unsupported_capability"),
+        (_roll(operation="saving_throw", identity=None), "unsupported_capability"),
         (_roll(identity="glossary.hide/hide_check"), "invalid_selection"),
         ({"check_label": "Stealth", "subsystem_tag": "stealth", "visibility": "shown"},
          "unsupported_capability"),

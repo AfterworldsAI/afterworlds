@@ -414,6 +414,44 @@ def _initiative_spec(index: AuthorityIndex) -> _Spec:
     )
 
 
+#: The components whose typed check is first aid: stabilizing a dying
+#: creature, and ending a knockout early. The executor in
+#: :mod:`.lifecycle` selects the one the target's state calls for.
+FIRST_AID: tuple[tuple[str, str], ...] = (
+    ("play.damage_and_healing", "stabilizing"),
+    ("play.damage_and_healing", "knocking_out"),
+)
+
+
+def _first_aid_spec(proposal: RollProposal, index: AuthorityIndex) -> _Spec:
+    record, _, component = (proposal.check_identity or "").partition("/")
+    if (record, component) not in FIRST_AID:
+        raise _refuse(
+            RefusalKind.INVALID_SELECTION,
+            f"{proposal.check_identity!r} is not a first-aid check",
+        )
+    where = f"{record}/{component}"
+    found = index.component(record, component)
+    checks = [
+        f.fact
+        for f in (found.facts if found else ())
+        if isinstance(f.fact, AbilityCheckFact)
+    ]
+    if len(checks) != 1:
+        _fixed_check(None, where)
+    fact = _fixed_check(checks[0], where)
+    assert fact.ability is not None
+    return _Spec(
+        identity=where,
+        ability=AbilityScore(fact.ability),
+        skill=Skill(fact.skill) if fact.skill is not None else None,
+        dc=fact.dc_value,
+        dc_source=where,
+        proficiency="skill",
+        contexts=_CHECK_CONTEXTS,
+    )
+
+
 def _state(character: TurnCharacter) -> Dnd5eCharacterState:
     state = character.stored.state
     missing = [
@@ -608,6 +646,8 @@ def _spec(
         return _tool_spec(proposal, index, character)
     if operation is Operation.INITIATIVE:
         return _initiative_spec(index)
+    if operation is Operation.STABILIZE:
+        return _first_aid_spec(proposal, index)
     raise _refuse(
         RefusalKind.UNSUPPORTED_CAPABILITY,
         f"{operation.value} is not a check operation",

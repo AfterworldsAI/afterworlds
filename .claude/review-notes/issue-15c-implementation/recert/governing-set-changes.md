@@ -1,0 +1,11 @@
+# CRD Issue 15c — governing-set changes within the recorded successor
+
+Same release and projection (`44f212d5-…`); no authority changed. These are adapter changes to *which* components an operation is governed by. Each new fingerprint is `governing_fingerprint` over the recorded successor, recomputed by code and never hand-edited.
+
+| Operation | Change | Fingerprint |
+| --- | --- | --- |
+| `weapon_attack` | `+ play.damage_and_healing/knocking_out` (the knockout alternative) | `de7021f5…768d` → `7edaa48a…4c17` |
+| `death_saving_throw` | new: rounds and turns, saving throw, death saving throw(s), falling unconscious, stable (+ check procedure and condition records, as for every operation) | `1bdb8493…a20a` |
+| `begin_turn`, `end_turn` | new: `play.combat/rounds_and_turns` | `c40c89c6…20e1` |
+| `stabilize` | new: check DC, Help assistance, stabilizing, knocking out, stable, death saving throws, falling unconscious | `1107b3f8…955a` |
+| `stable_recovery`, `knockout_recovery` | new: stable, knocking out, death saving throws, falling unconscious, Short Rest (duration and interruptions) | `5835069a…5e06` |

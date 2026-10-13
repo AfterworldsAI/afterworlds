@@ -62,6 +62,7 @@ _DISADV_RE = re.compile(r"\bdisadvantage\b", re.IGNORECASE)
 
 
 _EDGES = (Operation.BEGIN_TURN.value, Operation.END_TURN.value)
+_ATTESTATIONS = (Operation.STABLE_RECOVERY.value, Operation.KNOCKOUT_RECOVERY.value)
 
 
 def _edge_subject(
@@ -276,6 +277,12 @@ class D20RulesSystemAdapter:
             ):
                 lifecycle.prepare(subject)
             return
+        if proposal.operation == Operation.STABILIZE.value:
+            lifecycle.prepare_first_aid(proposal, character, subjects or {})
+            return
+        if proposal.operation in _ATTESTATIONS:
+            lifecycle.attest(proposal, character, subjects or {})
+            return
         if proposal.operation == Operation.DEATH_SAVING_THROW.value:
             raise AdjudicationRefusal(
                 RefusalKind.INVALID_SELECTION,
@@ -295,6 +302,14 @@ class D20RulesSystemAdapter:
         them present. Checks change no state."""
         if proposal.operation == Operation.WEAPON_ATTACK.value:
             return attacks.possible_conditions(proposal, subjects)
+        if proposal.operation in (Operation.STABILIZE.value, *_ATTESTATIONS):
+            # Ending a knockout's or a regained creature's Unconscious leaves
+            # it Prone.
+            ref = proposal.subject
+            if ref is not None:
+                return {
+                    (ref.kind, str(ref.subject_id)): frozenset({ConditionKind.PRONE})
+                }
         if proposal.operation == Operation.BEGIN_TURN.value:
             subject = _edge_subject(proposal, _character, subjects)
             if lifecycle.dying(subject):
@@ -415,6 +430,38 @@ class D20RulesSystemAdapter:
         if proposal.operation in _EDGES:
             return self._resolve_edge(
                 proposal, character, dice_service, gm_cheating, subjects or {}
+            )
+        if proposal.operation == Operation.STABILIZE.value:
+            aid = lifecycle.roll_first_aid(
+                lifecycle.prepare_first_aid(proposal, character, subjects or {}),
+                dice_service,
+            )
+            return ResolvedAdjudicationRecord(
+                check_label=proposal.check_label,
+                visibility=proposal.visibility,
+                expression=aid.prepared.check.expression,
+                raw_rolls=aid.rolled.raw_rolls,
+                modifiers_json=aid.provenance_json(),
+                total=aid.rolled.total,
+                dc=aid.prepared.check.dc,
+                outcome="success" if aid.rolled.outcome == "success" else "failure",
+                sheet_effects=aid.effects,
+                source=source,
+                gm_cheating_at_roll=gm_cheating,
+            )
+        if proposal.operation in _ATTESTATIONS:
+            attested = lifecycle.attest(proposal, character, subjects or {})
+            return ResolvedAdjudicationRecord(
+                check_label=proposal.check_label,
+                visibility=proposal.visibility,
+                expression="",
+                raw_rolls=(),
+                modifiers_json=attested.provenance_json(proposal),
+                total=0,
+                outcome="undetermined",
+                sheet_effects=attested.effects,
+                source=source,
+                gm_cheating_at_roll=gm_cheating,
             )
         if proposal.operation == Operation.WEAPON_ATTACK.value:
             attack = attacks.roll(
@@ -668,7 +715,7 @@ class D20RulesSystemAdapter:
                 outcome=None,
             )
 
-        if record.turn_edge is not None and not record.raw_rolls:
+        if not record.expression:  # an edge or attestation: no roll, no number
             return WriterAdjudicationView(
                 check_label=record.check_label,
                 visibility=record.visibility,

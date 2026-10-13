@@ -87,6 +87,8 @@ class Operation(StrEnum):
     STABILIZE = "stabilize"
     BEGIN_TURN = "begin_turn"
     END_TURN = "end_turn"
+    STABLE_RECOVERY = "stable_recovery"
+    KNOCKOUT_RECOVERY = "knockout_recovery"
 
 
 class CapabilityStatus(StrEnum):
@@ -175,11 +177,31 @@ _WEAPON_ATTACK_PROCEDURE: tuple[tuple[str, str], ...] = (
     (_DAMAGE, "damage_at_0_hit_points"),
     (_DAMAGE, "stable"),
     (_DAMAGE, "order_of_application"),
+    (_DAMAGE, "knocking_out"),
     ("glossary.resistance", "halving"),
     ("glossary.vulnerability", "doubling"),
     ("glossary.immunity", "no_effect"),
 )
 _WEAPON_ATTACK_RECORD_PREFIXES = ("equipment.weapons", "equipment.armor")
+#: First aid (the Help action): stabilizing a dying creature, or ending a
+#: knockout's Unconscious; and the recovery attestations (OD-15c-2).
+_FIRST_AID_PROCEDURE: tuple[tuple[str, str], ...] = (
+    ("play.d20_tests", "check_dc"),
+    ("glossary.help", "assistance"),
+    (_DAMAGE, "stabilizing"),
+    (_DAMAGE, "knocking_out"),
+    (_DAMAGE, "stable"),
+    (_DAMAGE, "death_saving_throws"),
+    (_DAMAGE, "falling_unconscious"),
+)
+_RECOVERY_PROCEDURE: tuple[tuple[str, str], ...] = (
+    (_DAMAGE, "stable"),
+    (_DAMAGE, "knocking_out"),
+    (_DAMAGE, "death_saving_throws"),
+    (_DAMAGE, "falling_unconscious"),
+    ("glossary.short_rest", "short_rest"),
+    ("glossary.short_rest", "interruptions"),
+)
 #: Actor-turn edges (contract G1): the turn structure they mark.
 _TURN_PROCEDURE: tuple[tuple[str, str], ...] = (("play.combat", "rounds_and_turns"),)
 #: The death save a dying subject makes when its turn begins, and what its
@@ -236,11 +258,6 @@ CONDITION_RECORDS: tuple[str, ...] = tuple(
     )
 )  # fmt: skip
 
-_HELD_COMBAT_STATE = (
-    "the combat-state input contract (target, position and actor-turn inputs) "
-    "held under Codex's boundary classification"
-)
-
 MANIFEST: dict[Operation, Capability] = {
     Operation.FIXED_DC_CHECK: Capability(
         Operation.FIXED_DC_CHECK,
@@ -271,8 +288,8 @@ MANIFEST: dict[Operation, Capability] = {
         inputs="ability; a DC from the causing effect",
         effects="success or failure and the causing effect's consequence",
         held_by=(
-            "a typed DC source: a creature save effect or a mastery, each a "
-            "multi-subject operation; " + _HELD_COMBAT_STATE
+            "a causing operation: a save is made by the mastery or creature "
+            "effect that forces it (pipeline/rpg/saves.py), never named alone"
         ),
     ),
     Operation.TOOL_CHECK: Capability(
@@ -311,7 +328,7 @@ MANIFEST: dict[Operation, Capability] = {
             "yet: masteries, ammunition, the Light extra attack, sight that needs "
             "a sense's range"
         ),
-        fingerprint="de7021f5c1d7bd3eac63d22a208df1399bc879d686bf136d09ec062f311b768d",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="7edaa48a05d2da0e57d6a3e8a60129f139412513b8113a09855dee3b48e64c17",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.DEATH_SAVING_THROW: Capability(
         Operation.DEATH_SAVING_THROW,
@@ -330,10 +347,40 @@ MANIFEST: dict[Operation, Capability] = {
     ),
     Operation.STABILIZE: Capability(
         Operation.STABILIZE,
-        CapabilityStatus.HELD,
-        inputs="Help; Wisdom (Medicine) DC 10 on a subject at 0 HP",
-        effects="Stable",
-        held_by="the zero-HP lifecycle, implemented with the multi-subject path",
+        CapabilityStatus.EXECUTABLE,
+        inputs=(
+            "the Help action's first aid: the acting character's typed Wisdom "
+            "(Medicine) check against a dying subject (stabilizing) or a "
+            "knocked-out one (knocking_out); the same character inputs as a check"
+        ),
+        effects=(
+            "on a success, a dying subject becomes Stable with a rolled recovery "
+            "interval, or a knockout's Unconscious ends, leaving it Prone"
+        ),
+        fingerprint="1107b3f8bfa6b399524378f84f8d916f06098dd250e138ff5cd2cac2c1f2955a",  # noqa: E501  # pragma: allowlist secret
+    ),
+    Operation.STABLE_RECOVERY: Capability(
+        Operation.STABLE_RECOVERY,
+        CapabilityStatus.EXECUTABLE,
+        inputs=(
+            "the GameMaster's attestation of the total hours elapsed since a "
+            "named Stable recovery instance began (OD-15c-2)"
+        ),
+        effects=(
+            "once the rolled interval has elapsed: 1 Hit Point regained, "
+            "Unconscious ended, Prone; the instance consumed"
+        ),
+        fingerprint="5835069a1e2e4922c94d61c1d79717ff6aa0aea5f0c5c8c40077c9370a1f5e06",  # noqa: E501  # pragma: allowlist secret
+    ),
+    Operation.KNOCKOUT_RECOVERY: Capability(
+        Operation.KNOCKOUT_RECOVERY,
+        CapabilityStatus.EXECUTABLE,
+        inputs=(
+            "the GameMaster's attestation that the Short Rest a named knockout "
+            "began was completed (OD-15c-2)"
+        ),
+        effects="the knockout's Unconscious ends, leaving the creature Prone",
+        fingerprint="5835069a1e2e4922c94d61c1d79717ff6aa0aea5f0c5c8c40077c9370a1f5e06",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.BEGIN_TURN: Capability(
         Operation.BEGIN_TURN,
@@ -407,6 +454,9 @@ def _governing(
         Operation.BEGIN_TURN: _TURN_PROCEDURE,
         Operation.END_TURN: _TURN_PROCEDURE,
         Operation.DEATH_SAVING_THROW: _DEATH_SAVE_PROCEDURE,
+        Operation.STABILIZE: _FIRST_AID_PROCEDURE,
+        Operation.STABLE_RECOVERY: _RECOVERY_PROCEDURE,
+        Operation.KNOCKOUT_RECOVERY: _RECOVERY_PROCEDURE,
     }.get(operation, ())
     if operation is Operation.WEAPON_ATTACK:
         for record_key in sorted(index.records):

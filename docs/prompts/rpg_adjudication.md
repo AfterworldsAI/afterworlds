@@ -58,7 +58,14 @@ One proposal per required roll:
     active. Name it in `subject`. At most one per response. If it is dying,
     the engine makes its death save; never name `death_saving_throw` yourself.
   - `end_turn` — the active turn ends. Name its subject in `subject`.
-  - `stabilize` — the Help action to stabilize a creature at 0 Hit Points.
+  - `stabilize` — the Help action's first aid, by the acting character, on
+    the creature named in `subject`: one that is dying, or one that was
+    knocked out.
+  - `stable_recovery` — time has passed for a Stable creature. Give the
+    recovery instance and the total hours since it began in `attestation`.
+    The engine decides whether it recovers.
+  - `knockout_recovery` — a knocked-out creature completed its Short Rest.
+    Give the knockout's condition instance in `attestation`.
 
   You decide whose turn begins and when; the engine keeps no turn order.
 - `check_identity` — for `fixed_dc_check`, the rule whose printed check applies:
@@ -78,8 +85,13 @@ One proposal per required roll:
   the engine reads its DC from the rules. Null otherwise.
 - `tool_activity` — for `tool_check` only: the tool's printed activity (for
   example `pick_a_lock`). The engine reads its ability and DC. Null otherwise.
-- `subject` — for `begin_turn` and `end_turn` only: `{kind, subject_id}`, the
-  character or creature whose turn it is. Null otherwise.
+- `subject` — for `begin_turn`, `end_turn`, `stabilize`, `stable_recovery`
+  and `knockout_recovery`: `{kind, subject_id}`, the character or creature the
+  operation concerns. Null otherwise.
+- `attestation` — for `stable_recovery` and `knockout_recovery` only: the
+  `instance_id` named in the creature's state and, for `stable_recovery`,
+  `elapsed_hours` (1–4; 4 means four or more), the total since it began. You
+  attest time; you never choose the result.
 - `weapon_attack` — for `weapon_attack` only: an object holding:
   - `weapon_item_id` — the id of a weapon the attacker holds;
   - `target` — `{kind, subject_id}`, a character or creature in the scene;
@@ -97,6 +109,8 @@ One proposal per required roll:
       the attack is not a melee attack with a 5-foot reach; otherwise null.
   - `two_handed` (a Versatile weapon used in two hands), `thrown`, and, for a
     Finesse weapon, `ability` (`strength` or `dexterity`).
+  - `knock_out` — for a melee attack: if it would reduce the target to 0 Hit
+    Points, knock it out instead.
 
   These facts describe this one attack only. Choose them honestly from the
   scene; they never set a number. Null for every other operation.

@@ -25,7 +25,7 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from afterworlds.models.enums import ConditionVisibility, RollVisibility
 
@@ -93,6 +93,27 @@ class WeaponAttackSelection(BaseModel):
     two_handed: bool = False
     thrown: bool = False
     ability: str | None = None
+    #: A melee attack that would reduce the target to 0 Hit Points knocks it
+    #: out instead (``knocking_out``, optional for the attacker).
+    knock_out: bool = False
+
+
+class LifecycleAttestation(BaseModel):
+    """The GameMaster's attestation about one recovery instance (CRD Issue
+    15c, OD-15c-2), never a result: code holds the interval, the thresholds and
+    the consequence, and consumes each instance once.
+
+    ``instance_id`` names a Stable recovery instance (``stable_recovery``) or
+    a knockout's Unconscious condition instance (``knockout_recovery``).
+    ``elapsed_hours`` is the *total* time since that instance began (4: four
+    or more), for
+    ``stable_recovery`` only; a repeated attestation adds nothing.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    instance_id: str = Field(min_length=1)
+    elapsed_hours: Literal[1, 2, 3, 4] | None = None
 
 
 class RollProposal(BaseModel):
@@ -128,8 +149,11 @@ class RollProposal(BaseModel):
     #: The selections of a ``weapon_attack`` (CRD Issue 15c).
     weapon_attack: WeaponAttackSelection | None = None
     #: The one subject an operation names: whose turn ``begin_turn`` or
-    #: ``end_turn`` marks (CRD Issue 15c).
+    #: ``end_turn`` marks, whom ``stabilize`` aids, or whose recovery an
+    #: attestation concerns (CRD Issue 15c).
     subject: SubjectRef | None = None
+    #: An elapsed-time or completion attestation (OD-15c-2).
+    attestation: LifecycleAttestation | None = None
 
 
 class AdjudicationProposalOutput(BaseModel):

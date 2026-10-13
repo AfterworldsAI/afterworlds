@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from uuid import uuid4
 
 from afterworlds.ingestion.mechanical.representation import (
     ConditionKind,
@@ -37,6 +38,8 @@ from afterworlds.ingestion.mechanical.representation import (
     DamageResponseKind,
     DamageType,
     HitPointBoundFact,
+    KnockoutAlternativeFact,
+    KnockoutTrigger,
     MassiveDamageFact,
     StableStateFact,
     TemporaryHitPointAbsorptionFact,
@@ -55,6 +58,7 @@ from afterworlds.services.dnd5e_state.turn import TurnCreature, TurnSubject
 __all__ = [
     "DAMAGE_PROCEDURE",
     "DamageTaken",
+    "knockout_rule",
     "possible_conditions",
     "preflight",
     "take_damage",
@@ -213,8 +217,25 @@ def possible_conditions(target: TurnSubject) -> frozenset[ConditionKind]:
     return frozenset({ConditionKind.UNCONSCIOUS})
 
 
+def knockout_rule(target: TurnSubject) -> KnockoutAlternativeFact:
+    """The typed knockout alternative (``knocking_out``), or a refusal."""
+    assert target.index is not None
+    rule = _one(target.index, "knocking_out", KnockoutAlternativeFact)
+    if (
+        rule.trigger is not KnockoutTrigger.WOULD_REDUCE_TO_ZERO_HIT_POINTS
+        or rule.condition is not ConditionKind.UNCONSCIOUS
+    ):
+        raise _refuse(RefusalKind.MISSING_AUTHORITY, "the knockout is not typed")
+    return rule
+
+
 def take_damage(
-    target: TurnSubject, amount: int, damage_type: DamageType, *, critical: bool
+    target: TurnSubject,
+    amount: int,
+    damage_type: DamageType,
+    *,
+    critical: bool,
+    knock_out: bool = False,
 ) -> DamageTaken:
     """The effects on *target* of *amount* damage of *damage_type*, or a
     typed refusal. Pure: nothing is written."""
@@ -295,6 +316,31 @@ def take_damage(
         effects.append(effect("current_hp", "set", new_current))
         return DamageTaken(
             amount, taken, tuple(r.value for r in responses), "damaged", tuple(effects)
+        )
+
+    if knock_out:
+        # The attacker reduces it to the typed Hit Points instead, Unconscious;
+        # it starts a Short Rest (its recovery instance is this condition).
+        knockout = knockout_rule(target)
+        effects.append(effect("current_hp", "set", knockout.set_hit_points))
+        effects.append(
+            effect(
+                "unconscious",
+                "apply_condition",
+                {
+                    "instance_id": str(uuid4()),
+                    "condition": ConditionKind.UNCONSCIOUS.value,
+                    "visibility": ConditionVisibility.VISIBLE.value,
+                    "source": {"record_key": _RULES, "component_key": "knocking_out"},
+                },
+            )
+        )
+        return DamageTaken(
+            amount,
+            taken,
+            tuple(r.value for r in responses),
+            "knocked_out",
+            tuple(effects),
         )
 
     # Reaching 0 Hit Points: overflow before the bound.

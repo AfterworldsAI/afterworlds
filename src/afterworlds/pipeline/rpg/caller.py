@@ -56,6 +56,7 @@ _WEAPON_ATTACK_SCHEMA: dict[str, Any] = {
         "hostile_within_5_feet": {"oneOf": [{"type": "boolean"}, {"type": "null"}]},
         "target_within_5_feet": {"oneOf": [{"type": "boolean"}, {"type": "null"}]},
         "two_handed": {"type": "boolean"},
+        "knock_out": {"type": "boolean"},
         "thrown": {"type": "boolean"},
         "ability": {
             "oneOf": [
@@ -214,6 +215,35 @@ PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC: dict[str, Any] = {
                             "description": (
                                 "For begin_turn and end_turn: the character or"
                                 " creature whose turn begins or ends. Null"
+                                " otherwise."
+                            ),
+                        },
+                        "attestation": {
+                            "oneOf": [
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "instance_id": {"type": "string"},
+                                        "elapsed_hours": {
+                                            "oneOf": [
+                                                {
+                                                    "type": "integer",
+                                                    "enum": [1, 2, 3, 4],
+                                                },
+                                                {"type": "null"},
+                                            ]
+                                        },
+                                    },
+                                    "required": ["instance_id"],
+                                    "additionalProperties": False,
+                                },
+                                {"type": "null"},
+                            ],
+                            "description": (
+                                "For stable_recovery: the recovery instance and the"
+                                " total hours since it began (4 means four or more)."
+                                " For knockout_recovery: the knockout's condition"
+                                " instance, whose Short Rest was completed. Null"
                                 " otherwise."
                             ),
                         },
