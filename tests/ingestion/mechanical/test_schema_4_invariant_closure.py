@@ -1025,6 +1025,61 @@ CASES["ammunition_supply.for_weapons.non-empty-distinct-sorted"] = (
     ),
 )
 
+#: Schema 21 (CRD Issue 15c C8): Find Steed's printed choice, and the
+#: Find Familiar source choice, each made illegal by one field.
+CASES["creature_type.type.exactly-one-of-type-or-choice"] = (
+    fact_from_payload(
+        {"family": "creature_type", "type": "beast", "type_choice": ["fey", "fiend"]}
+    ),
+    fact_from_payload(
+        {
+            "family": "creature_type",
+            "type": None,
+            "type_choice": ["celestial", "fey", "fiend"],
+        }
+    ),
+)
+_FAMILIAR_FORMS = [
+    {"record_key": "animals.bat", "component_key": "bat"},
+    {"record_key": "animals.cat", "component_key": "cat"},
+]
+CASES["summoned_creature_type.type_choice.at-least-two-distinct-sorted"] = (
+    fact_from_payload(
+        {
+            "family": "summoned_creature_type",
+            "type_choice": ["fiend", "celestial"],
+            "instead_of": "beast",
+            "forms": _FAMILIAR_FORMS,
+        }
+    ),
+    fact_from_payload(
+        {
+            "family": "summoned_creature_type",
+            "type_choice": ["celestial", "fiend"],
+            "instead_of": "beast",
+            "forms": _FAMILIAR_FORMS,
+        }
+    ),
+)
+CASES["summoned_creature_type.forms.non-empty-distinct-sorted"] = (
+    fact_from_payload(
+        {
+            "family": "summoned_creature_type",
+            "type_choice": ["celestial", "fiend"],
+            "instead_of": "beast",
+            "forms": _FAMILIAR_FORMS[::-1],
+        }
+    ),
+    fact_from_payload(
+        {
+            "family": "summoned_creature_type",
+            "type_choice": ["celestial", "fiend"],
+            "instead_of": "beast",
+            "forms": _FAMILIAR_FORMS,
+        }
+    ),
+)
+
 for _case in _SCHEMA_19_CASES:
     CASES[_case["id"]] = (
         _schema_19_refused(_case)[0],

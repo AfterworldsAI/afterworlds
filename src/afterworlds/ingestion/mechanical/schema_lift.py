@@ -117,6 +117,8 @@ __all__ = [
     "SCHEMA_19_VERSION",
     "SCHEMA_20_HASH",
     "SCHEMA_20_VERSION",
+    "SCHEMA_21_HASH",
+    "SCHEMA_21_VERSION",
     "SchemaLiftRecord",
     "UnknownSchemaLiftError",
     "lift_for",
@@ -170,6 +172,8 @@ SCHEMA_19_VERSION = "5d-representation-schema-19"
 SCHEMA_19_HASH = "3734ccf7d6be7f25e0a0d7c0395121c5525afcb87144f5cf9d6895e03c1cd18f"  # noqa: E501  # pragma: allowlist secret
 SCHEMA_20_VERSION = "5d-representation-schema-20"
 SCHEMA_20_HASH = "759dcc1f9de2cac9254be108ca8a83433ca30854061276a9c349a370e1c6e77a"  # noqa: E501  # pragma: allowlist secret
+SCHEMA_21_VERSION = "5d-representation-schema-21"
+SCHEMA_21_HASH = "4499b3964aac338e10c7b6d1f67a5eb37570878600e0c5f04bd4464d58f1df55"  # noqa: E501  # pragma: allowlist secret
 
 
 class SchemaLiftError(ValueError):
@@ -822,6 +826,28 @@ SCHEMA_LIFTS: dict[tuple[str, str], SchemaLift] = {
             "than asserting. A schema-19 declaration carrying the new family "
             "is refused by the introduction manifest, never flattened. "
             "The policy contract does not move with it."
+        ),
+    ),
+    (SCHEMA_20_VERSION, SCHEMA_20_HASH): SchemaLift(
+        lift_id="5d-lift-schema-20-to-21",
+        from_version=SCHEMA_20_VERSION,
+        from_hash=SCHEMA_20_HASH,
+        to_version=SCHEMA_21_VERSION,
+        to_hash=SCHEMA_21_HASH,
+        rationale=(
+            "Schema 21 admits two families, creature_type and "
+            "summoned_creature_type (CRD Issue 15c C8): a creature or "
+            "species' printed creature type, and a source's type choice for "
+            "the named forms it brings, with the one vocabulary minted with "
+            "them, the fourteen creature types. It adds no field to any "
+            "accepted family and no component key. "
+            "Nothing accepted moves. No accepted component states a fact of "
+            "either new family, so every accepted payload -- and its fact key "
+            "and provenance coordinate -- is byte-identical under both "
+            "contracts, which verify_lift proves element by element rather "
+            "than asserting. A schema-20 declaration carrying a new family or "
+            "type member is refused by the introduction manifest, never "
+            "flattened. The policy contract does not move with it."
         ),
     ),
 }

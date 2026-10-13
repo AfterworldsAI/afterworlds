@@ -689,6 +689,33 @@ EXEMPLARS.setdefault(
     ),
 )
 
+#: Schema 21 (CRD Issue 15c C8): Find Steed's steed (spells.md:2323) and the
+#: Find Familiar source choice (spells.md:2290), as raw candidate C8 states them.
+EXEMPLARS.setdefault(
+    FactFamily.CREATURE_TYPE,
+    fact_from_payload(
+        {
+            "family": "creature_type",
+            "type": None,
+            "type_choice": ["celestial", "fey", "fiend"],
+        }
+    ),
+)
+EXEMPLARS.setdefault(
+    FactFamily.SUMMONED_CREATURE_TYPE,
+    fact_from_payload(
+        {
+            "family": "summoned_creature_type",
+            "type_choice": ["celestial", "fey", "fiend"],
+            "instead_of": "beast",
+            "forms": [
+                {"record_key": "animals.bat", "component_key": "bat"},
+                {"record_key": "animals.cat", "component_key": "cat"},
+            ],
+        }
+    ),
+)
+
 FAMILY_IDS = [f.value for f in EXEMPLARS]
 
 

@@ -43,6 +43,8 @@ from afterworlds.ingestion.mechanical.representation import (
     AmmunitionKind,
     AmmunitionSupplyFact,
     ComponentDraft,
+    CreatureSizeFact,
+    CreatureTypeFact,
     FactFamily,
     ProseBindingDraft,
     ProvenanceRole,
@@ -52,6 +54,7 @@ from afterworlds.ingestion.mechanical.representation import (
     RelationshipDraft,
     RelationshipKind,
     RepresentationDraft,
+    SummonedCreatureTypeFact,
     UnknownFactFamilyError,
     WeaponProperty,
     WeaponPropertyFact,
@@ -1069,6 +1072,69 @@ def _validate_ammunition_supplies(draft: RepresentationDraft) -> list[str]:
     return findings
 
 
+def _validate_summoned_creature_types(draft: RepresentationDraft) -> list[str]:
+    """Each ``summoned_creature_type`` form is a creature profile of this
+    draft whose own ``creature_type`` is the fact's ``instead_of``.
+
+    Schema 21 (CRD Issue 15c C8). A creature profile is a component of a
+    ``creature`` record carrying ``creature_size``. Relational, on the
+    ``ammunition_supply`` terms: only structurally admitted facts are read,
+    and a form whose own facts are refused is not judged against them (its
+    refusal stays the finding).
+    """
+    kinds = {r.semantic_key: r.kind for r in draft.records}
+    sized: set[tuple[str, str]] = set()
+    types: dict[tuple[str, str], list[CreatureTypeFact]] = {}
+    sources: list[tuple[str, SummonedCreatureTypeFact]] = []
+    refused: set[tuple[str, str]] = set()
+    components = {(c.record_key, c.semantic_key) for c in draft.components}
+    for component in draft.components:
+        key = (component.record_key, component.semantic_key)
+        facts = (*component.facts, *(f for o in component.options for f in o.facts))
+        for fact in facts:
+            if type(fact) in (
+                CreatureSizeFact,
+                CreatureTypeFact,
+                SummonedCreatureTypeFact,
+            ) and (fact_invariant_violations(fact)):
+                refused.add(key)
+                continue
+            if type(fact) is CreatureSizeFact:
+                sized.add(key)
+            elif type(fact) is CreatureTypeFact:
+                types.setdefault(key, []).append(fact)
+            elif type(fact) is SummonedCreatureTypeFact:
+                sources.append((f"component {key[0]}/{key[1]}", fact))
+
+    findings: list[str] = []
+    for tag, source in sources:
+        for ref in source.forms:
+            target = (ref.record_key, ref.component_key)
+            where = f"{tag}: summoned_creature_type names {target[0]}/{target[1]}"
+            if target in refused:
+                continue  # its own refusal is the finding
+            if target not in components:
+                findings.append(f"{where}, which is not a component of this draft")
+            elif kinds.get(target[0]) is not RecordKind.CREATURE or (
+                target not in sized
+            ):
+                findings.append(f"{where}, which is not a creature profile")
+            elif [t.type for t in types.get(target, [])] != [source.instead_of]:
+                stated = sorted(
+                    (
+                        t.type.value
+                        if t.type
+                        else f"choice {[c.value for c in t.type_choice]}"
+                    )
+                    for t in types.get(target, [])
+                )
+                findings.append(
+                    f"{where}, whose creature_type is {stated}, not exactly "
+                    f"{source.instead_of.value}"
+                )
+    return findings
+
+
 def validate_representation(
     draft: RepresentationDraft,
     ledger: ClassificationLedger,
@@ -1098,4 +1164,5 @@ def validate_representation(
     findings.extend(_validate_provenance(draft, ledger, corpus))
     findings.extend(_validate_duplicated_fact_authority(draft, ledger))
     findings.extend(_validate_ammunition_supplies(draft))
+    findings.extend(_validate_summoned_creature_types(draft))
     return tuple(findings)

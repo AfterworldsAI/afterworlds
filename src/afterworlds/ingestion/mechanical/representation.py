@@ -3004,6 +3004,31 @@ class AmmunitionKind(StrEnum):
     NEEDLE = "needle"
 
 
+class CreatureTypeKind(StrEnum):
+    """Schema 21: the fourteen Creature Types, ``rules-glossary.md``:515.
+
+    Declared here, inside the schema hash, rather than imported from the
+    state vocabulary; ``test_creature_type_facts`` pins it equal to
+    ``afterworlds.models.dnd5e_vocabulary.CreatureType``. Not ``TargetTag``,
+    which is predicate vocabulary mixing types, a species tag and "enemy".
+    """
+
+    ABERRATION = "aberration"
+    BEAST = "beast"
+    CELESTIAL = "celestial"
+    CONSTRUCT = "construct"
+    DRAGON = "dragon"
+    ELEMENTAL = "elemental"
+    FEY = "fey"
+    FIEND = "fiend"
+    GIANT = "giant"
+    HUMANOID = "humanoid"
+    MONSTROSITY = "monstrosity"
+    OOZE = "ooze"
+    PLANT = "plant"
+    UNDEAD = "undead"
+
+
 class TwoHandedException(StrEnum):
     """The Lance's *"unless mounted"*."""
 
@@ -3437,6 +3462,11 @@ class FactFamily(StrEnum):
     SHIELD_TRAINING_REQUIREMENT = "shield_training_requirement"
     #: Schema 20, CRD Issue 15c C7. What one Ammunition table row supplies.
     AMMUNITION_SUPPLY = "ammunition_supply"
+    #: Schema 21, CRD Issue 15c C8. A creature or species' printed type.
+    CREATURE_TYPE = "creature_type"
+    #: Schema 21, CRD Issue 15c C8. A source's type choice for the creatures
+    #: it brings, instead of their named forms' own type.
+    SUMMONED_CREATURE_TYPE = "summoned_creature_type"
 
 
 # ---------------------------------------------------------------------------
@@ -6895,6 +6925,44 @@ class AmmunitionSupplyFact:
     for_weapons: tuple[ComponentReference, ...] | None
 
 
+@dataclass(frozen=True, kw_only=True)
+class CreatureTypeFact:
+    """Schema 21: a creature or species' printed creature type.
+
+    One ``type``, or -- with ``type`` ``None`` -- the types a creator chooses
+    among (*"Celestial, Fey, or Fiend (Your Choice)"*), at least two, distinct
+    and sorted; exactly one of the two is stated. The type only: descriptive
+    tags stay prose, and their absence states nothing (for example, about
+    being an elf).
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CREATURE_TYPE
+
+    type: CreatureTypeKind | None
+    type_choice: tuple[CreatureTypeKind, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class SummonedCreatureTypeFact:
+    """Schema 21: a source gives the creature it brings a type chosen among
+    ``type_choice`` instead of its form's own type ``instead_of``, for the
+    named ``forms`` only (Find Familiar: *"though it is a Celestial, Fey, or
+    Fiend (your choice) instead of a Beast"*).
+
+    Target authority for an existing creature whose source is this one; not
+    casting, creation, lifecycle or an attack grant. ``type_choice`` is at
+    least two, distinct and sorted; ``forms`` non-empty, distinct and sorted.
+    That each form is a creature profile whose own type is ``instead_of`` is
+    relational and checked by the representation validator.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.SUMMONED_CREATURE_TYPE
+
+    type_choice: tuple[CreatureTypeKind, ...]
+    instead_of: CreatureTypeKind
+    forms: tuple[ComponentReference, ...]
+
+
 @dataclass(frozen=True)
 class EffectTerminationFact:
     """The effect this component is about stops.
@@ -8059,6 +8127,8 @@ MechanicalFact = (
     | ArmorTrainingPenaltyFact
     | ShieldTrainingRequirementFact
     | AmmunitionSupplyFact
+    | CreatureTypeFact
+    | SummonedCreatureTypeFact
 )
 
 _FACT_TYPES: dict[FactFamily, type] = {
@@ -12713,6 +12783,33 @@ def _rule_ammunition_supply(fact: AmmunitionSupplyFact) -> list[str]:
     return []
 
 
+def _choice_violations(choice: tuple[CreatureTypeKind, ...]) -> list[str]:
+    values = [t.value for t in choice]
+    if len(values) < 2 or values != sorted(set(values)):
+        return ["type_choice is at least two types, distinct and sorted"]
+    return []
+
+
+def _rule_creature_type(fact: CreatureTypeFact) -> list[str]:
+    if fact.type is not None:
+        if fact.type_choice:
+            return ["a creature type states exactly one of type / type_choice"]
+        return []
+    if not fact.type_choice:
+        return ["a creature type states exactly one of type / type_choice"]
+    return _choice_violations(fact.type_choice)
+
+
+def _rule_summoned_creature_type(fact: SummonedCreatureTypeFact) -> list[str]:
+    findings = _choice_violations(fact.type_choice)
+    if fact.instead_of in fact.type_choice:
+        findings.append("type_choice may not offer the instead_of type it replaces")
+    keys = [(f.record_key, f.component_key) for f in fact.forms]
+    if not keys or keys != sorted(set(keys)):
+        findings.append("forms is non-empty, distinct and sorted")
+    return findings
+
+
 _SCHEMA_19_FAMILY_RULES: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.CREATURE_ATTACK: _rule_attack_bonus,
     FactFamily.CREATURE_SAVE_EFFECT: _rule_save_dc,
@@ -12723,6 +12820,9 @@ _SCHEMA_19_FAMILY_RULES: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.MULTICLASS_SKILL_PROFICIENCY_CHOICE: _rule_skill_choice,
     # Schema 20 (CRD Issue 15c C7), checked by the same declared machinery.
     FactFamily.AMMUNITION_SUPPLY: _rule_ammunition_supply,
+    # Schema 21 (CRD Issue 15c C8), likewise.
+    FactFamily.CREATURE_TYPE: _rule_creature_type,
+    FactFamily.SUMMONED_CREATURE_TYPE: _rule_summoned_creature_type,
 }
 
 _SCHEMA_19_SHAPE_RULES: dict[type, Callable[[Any], list[str]]] = {
@@ -12795,6 +12895,24 @@ _FACT_BUILDERS.update(
 )
 _FACT_INVARIANTS.update(
     {cast(FactFamily, cls.FAMILY): _check_declared for cls in _SCHEMA_20_FACT_CLASSES}
+)
+
+#: The families schema 21 admitted (CRD Issue 15c C8), on the same terms.
+_SCHEMA_21_FACT_CLASSES: tuple[type[Any], ...] = (
+    CreatureTypeFact,
+    SummonedCreatureTypeFact,
+)
+_FACT_TYPES.update(
+    {cast(FactFamily, cls.FAMILY): cls for cls in _SCHEMA_21_FACT_CLASSES}
+)
+_FACT_BUILDERS.update(
+    {
+        cast(FactFamily, cls.FAMILY): _build_declared(cls)
+        for cls in _SCHEMA_21_FACT_CLASSES
+    }
+)
+_FACT_INVARIANTS.update(
+    {cast(FactFamily, cls.FAMILY): _check_declared for cls in _SCHEMA_21_FACT_CLASSES}
 )
 
 #: Every family must declare a builder and an invariant checker. A family added
@@ -13031,7 +13149,13 @@ assert (
 #: shared kind, the weapons it names. No vocabulary, no field on any
 #: accepted family and no component key, so every accepted fact key and
 #: provenance coordinate has the same canonical form under 19 and 20.
-REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-20"
+#:
+#: Version ``21`` admits two fact families, :class:`CreatureTypeFact` and
+#: :class:`SummonedCreatureTypeFact`, and the one vocabulary minted with
+#: them, :class:`CreatureTypeKind` (CRD Issue 15c C8). No field on any
+#: accepted family and no component key, so every accepted fact key and
+#: provenance coordinate has the same canonical form under 20 and 21.
+REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-21"
 
 
 class UnsupportedRepresentationShapeError(TypeError):
@@ -13646,6 +13770,16 @@ def _introductions() -> tuple[_Introduction, ...]:
         _Introduction("fact_family", "FactFamily", family.value, SCHEMA_20)
         for family in _SCHEMA_20_FAMILIES
     )
+    # Schema 21 adds two families and the one vocabulary minted with them.
+    rows.extend(
+        _Introduction("fact_family", "FactFamily", family.value, SCHEMA_21)
+        for family in _SCHEMA_21_FAMILIES
+    )
+    for vocabulary, members in _SCHEMA_21_VOCABULARY_MEMBERS.items():
+        rows.extend(
+            _Introduction("vocabulary_member", vocabulary, member, SCHEMA_21)
+            for member in members
+        )
     rows.extend(
         _Introduction("nullable_field", _OPTIONAL_SINCE_WIRE_NAMES[owner], key, arrived)
         for owner, keys in _OPTIONAL_SINCE.items()
@@ -13712,6 +13846,7 @@ def _vocabulary_shape(owner: str) -> list[str] | None:
         or _SCHEMA_17_VOCABULARY_MEMBERS.get(owner)
         or _SCHEMA_18_VOCABULARY_MEMBERS.get(owner)
         or _SCHEMA_19_VOCABULARY_MEMBERS.get(owner)
+        or _SCHEMA_21_VOCABULARY_MEMBERS.get(owner)
     )
     return None if members is None else sorted(members)
 
@@ -13813,6 +13948,7 @@ def _collect_post_schema_3(
             (_SCHEMA_17_MEMBER_INDEX, SCHEMA_17),
             (_SCHEMA_18_MEMBER_INDEX, SCHEMA_18),
             (_SCHEMA_19_MEMBER_INDEX, SCHEMA_19),
+            (_SCHEMA_21_MEMBER_INDEX, SCHEMA_21),
         ):
             if (
                 type(value).__name__,
@@ -14537,6 +14673,24 @@ _SCHEMA_20_FAMILIES: tuple[FactFamily, ...] = tuple(
     cast(FactFamily, cls.FAMILY) for cls in _SCHEMA_20_FACT_CLASSES
 )
 
+SCHEMA_21 = "5d-representation-schema-21"
+
+#: The families schema 21 admitted, CRD Issue 15c C8.
+_SCHEMA_21_FAMILIES: tuple[FactFamily, ...] = tuple(
+    cast(FactFamily, cls.FAMILY) for cls in _SCHEMA_21_FACT_CLASSES
+)
+
+#: The vocabulary minted with them, wholly new.
+_SCHEMA_21_VOCABULARY_MEMBERS: dict[str, tuple[str, ...]] = {
+    CreatureTypeKind.__name__: tuple(sorted(m.value for m in CreatureTypeKind))
+}
+
+_SCHEMA_21_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
+    (vocabulary, member)
+    for vocabulary, members in _SCHEMA_21_VOCABULARY_MEMBERS.items()
+    for member in members
+)
+
 #: The seven families schema 11 admitted, for batch ``speed-1``. One per
 #: distinct rule the Rules Glossary Speed entry and Playing the Game > Combat >
 #: Movement and Position print between them, named by member for the same
@@ -14618,6 +14772,7 @@ _FAMILY_INTRODUCTIONS: tuple[tuple[tuple[FactFamily, ...], str], ...] = (
     (_SCHEMA_18_FAMILIES, SCHEMA_18),
     (_SCHEMA_19_FAMILIES, SCHEMA_19),
     (_SCHEMA_20_FAMILIES, SCHEMA_20),
+    (_SCHEMA_21_FAMILIES, SCHEMA_21),
 )
 
 #: Fields a later schema made **required** on a family an earlier schema already
@@ -14887,6 +15042,28 @@ _VERSION_STATES: dict[str, frozenset[str]] = {
             SCHEMA_18,
             SCHEMA_19,
             SCHEMA_20,
+        }
+    ),
+    SCHEMA_21: frozenset(
+        {
+            "5d-representation-schema-4",
+            SCHEMA_5,
+            SCHEMA_6,
+            SCHEMA_7,
+            SCHEMA_8,
+            SCHEMA_9,
+            SCHEMA_10,
+            SCHEMA_11,
+            SCHEMA_12,
+            SCHEMA_13,
+            SCHEMA_14,
+            SCHEMA_15,
+            SCHEMA_16,
+            SCHEMA_17,
+            SCHEMA_18,
+            SCHEMA_19,
+            SCHEMA_20,
+            SCHEMA_21,
         }
     ),
 }
@@ -17146,6 +17323,26 @@ _SCHEMA_19_INVARIANTS: tuple[_Invariant, ...] = (
         field="for_weapons",
         rule="when stated, non-empty, distinct and sorted by record and component "
         "key, so one narrowing has one fact key",
+    ),
+    # Schema 21 (CRD Issue 15c C8).
+    _Invariant(
+        id="creature_type.type.exactly-one-of-type-or-choice",
+        locus="fact:creature_type",
+        field="type|type_choice",
+        rule="exactly one of: type stated and type_choice empty; type null and "
+        "type_choice at least two types, distinct and sorted",
+    ),
+    _Invariant(
+        id="summoned_creature_type.type_choice.at-least-two-distinct-sorted",
+        locus="fact:summoned_creature_type",
+        field="type_choice|instead_of",
+        rule="at least two types, distinct and sorted, none of them instead_of",
+    ),
+    _Invariant(
+        id="summoned_creature_type.forms.non-empty-distinct-sorted",
+        locus="fact:summoned_creature_type",
+        field="forms",
+        rule="non-empty, distinct and sorted by record and component key",
     ),
 )
 
