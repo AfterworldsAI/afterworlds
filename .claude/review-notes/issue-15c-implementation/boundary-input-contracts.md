@@ -2,11 +2,10 @@
 
 This note supersedes `boundary-input-matrix.md` §2–§4; §1's operation table stays as context. It states, for every trust-relevant input the held operations need, what supplies it and where its authority comes from. Where no existing accepted contract supplies an input, it isolates the exact Owner Decision instead of deciding it in code.
 
-Nothing here is implemented. The dependent operations stay held and refuse as `unsupported_capability`, naming what they wait on:
-- weapon attacks and masteries;
-- creature attacks, Multiattack and save effects;
-- the death-save turn trigger;
-- Stable recovery.
+**Status (updated).** OD-15c-1 and OD-15c-2 were approved on 12 October 2026 (`owner-context-decisions-2026-10-12.md`).
+- Weapon attacks are implemented under §B.
+- §G states the timing and transition contract for the coordination state, masteries, death saves, Stable recovery and knockout expiry.
+- Anything not yet implemented still refuses as `unsupported_capability`, naming what it waits on.
 
 ## A. Corrections accepted from the classification
 
@@ -98,3 +97,51 @@ The 2b `EffectEnd.expires_marker`, `RestAnchors` and `applied_marker` values are
 
 - **Gaming Set and Musical Instrument.** Proficiency is per kind (`tool_variants`, separate proficiency), but a 2b `ToolGrant` and an item instance record no kind. Their tool checks refuse as missing state. A minimal fix would be an optional `variant` on `ToolGrant` and on the item instance (a state-contract change, for classification).
 - **Origin and Fighting Style feats.** Their category is prose-bound in the accepted authority. Eligibility through a category or "any feat you qualify for" choice therefore refuses as missing authority. Skilled has no certifiable path today: no SRD background grants it, and its Origin category is untyped. A typed category for these feats would need a separately reviewed source candidate.
+
+## G. Timing and transition contract (OD-15c-2; actor edges per the classification)
+
+Each input below names the authority it comes from. Code owns dice, thresholds, consequences, revision checks and once-only consumption.
+
+**G1. Actor-turn edges.** The input is GameMaster-selected `begin_turn(subject)` and `end_turn(subject)`: the explicit actor-edge input that `codex-input-contract-classification.md` ("Actor edges") classifies as in scope.
+- **State.** One story-scoped coordination row with a `revision`. It holds:
+  - the active turn (subject and turn instance number), or none;
+  - the next turn instance number;
+  - per-turn uses, keyed by turn instance.
+
+  An append-only edge log records every applied edge: the delivered Turn id, a per-story sequence, the kind, the subject, the turn instance, and the coordination revision it applied at.
+
+  The row holds no HP, conditions, effects or pending state. Timed conditions and effects stay on the subject's own authoritative instances (G2).
+- **Legal transitions:**
+  - `begin_turn(S)` needs no active turn, and opens instance *n+1*.
+  - `end_turn(S)` needs S's turn to be the active one.
+  - The subject must be a character or creature of the story, loaded with its own exact binding.
+  - A delivered Turn applies at most one `begin_turn`, so one response cannot cycle begin/end/begin to reset a budget. It may apply `end_turn(A)` followed by `begin_turn(B)`.
+  - Each edge commits once, in the delivered-turn transaction, by compare-and-swap on the coordination revision. A replayed or concurrent edge refuses.
+- **No round or scheduling rule.** Code does not decide whose turn is next.
+- **Residue, surfaced for Codex.** Under the approved input, the GameMaster may begin the same participant's turn in two successive delivered Turns.
+  - Code cannot tell this from a legitimate sequence without a scheduling rule, and that rule was rejected.
+  - Each such edge is an audited GameMaster input.
+  - Unique ids and the state machine stop duplicated, replayed and intra-response edges, not this one.
+- **What edges drive,** each from its typed source fact:
+  - `TurnBoundary` expiry (G2);
+  - per-turn use limits, which only a new turn instance resets;
+  - the death save. `begin_turn(S)` rolls it, with code-rolled dice, in the same operation when S is dying (not Stable, not dead) at the hit points `DeathSavingThrowFact.timing` states.
+
+**G2. Turn-bounded expiry.** A condition or effect that a 15c operation applies with a `TurnBoundary` duration records three things on its own instance:
+- the boundary: start or end;
+- whose turn it is, as a `SubjectReference` resolved from `turn_of` at application;
+- the turn instance it was created in.
+
+The first matching edge of that subject's turn after creation (`next`), or of the creating turn itself (`this`), removes it, as subject-addressed effects in the edge's transaction. Edges are never inferred from narrative-turn counts, and rounds are never converted to hours.
+
+**G3. Stable recovery** (`StableStateFact.recovery`, OD-15c-2).
+- **On becoming Stable,** whether by three successes or a successful Stabilize, code rolls the source dice (1d4) and records a recovery instance on the subject's death state: an instance id, the rolled interval and its unit.
+- **Attestation.** The GameMaster attests the *total* elapsed time since that instance began, naming the instance id. Totals are not summed, so repeating an attestation adds nothing.
+- **Recovery.** When an attestation reaches the interval, code applies the source result (regain 1 HP) and ends the instance, once, by instance id and current revision.
+- **Ending the instance.** Damage, healing or death ends the instance. An attestation naming an ended or a different instance refuses.
+- The GameMaster never selects the outcome.
+
+**G4. Knockout expiry** (`KnockoutAlternativeFact`, OD-15c-2).
+- The instance is the knockout's Unconscious condition instance.
+- **Short Rest.** The GameMaster attests that a qualifying Short Rest was completed since that instance began, naming its condition instance id. Code ends the condition once; a removed instance refuses.
+- **Early endings.** Regaining HP and first aid are source events and need no attestation.

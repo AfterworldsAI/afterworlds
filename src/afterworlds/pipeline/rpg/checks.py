@@ -437,7 +437,7 @@ def _state(character: TurnCharacter) -> Dnd5eCharacterState:
     return state
 
 
-def _proficiency_bonus(index: AuthorityIndex, level: int) -> int:
+def proficiency_bonus(index: AuthorityIndex, level: int) -> int:
     component = index.component(*_PB_COMPONENT)
     bands = [
         f.fact
@@ -662,7 +662,7 @@ def prepare(proposal: RollProposal, character: TurnCharacter) -> PreparedCheck:
                 f"{spec.proficiency} proficiency's application to ability checks "
                 "is absent",
             )
-        proficiency = _proficiency_bonus(index, level) * multiplier
+        proficiency = proficiency_bonus(index, level) * multiplier
     breakdown = {f"{ability.value}_modifier": ability_modifier}
     if proficiency:
         key = "expertise" if expertise else "proficiency_bonus"

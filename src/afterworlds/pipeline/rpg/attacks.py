@@ -78,7 +78,7 @@ from afterworlds.pipeline.rpg.capability import (
     certify,
     governing_fingerprint,
 )
-from afterworlds.pipeline.rpg.checks import _proficiency_bonus
+from afterworlds.pipeline.rpg.checks import proficiency_bonus
 from afterworlds.pipeline.rpg.damage import DamageTaken, preflight, take_damage
 from afterworlds.pipeline.rpg.defense import armor_class, facts_of, untrained_armor
 from afterworlds.pipeline.rpg.dice import DiceService
@@ -533,7 +533,7 @@ def prepare(
             raise _refuse(
                 RefusalKind.MISSING_AUTHORITY, "no typed weapon proficiency rule"
             )
-        breakdown["proficiency_bonus"] = _proficiency_bonus(index, level)
+        breakdown["proficiency_bonus"] = proficiency_bonus(index, level)
 
     # Advantage and Disadvantage.
     advantage, disadvantage = _condition_sources(actor, RollActor.SUBJECT, ability)
