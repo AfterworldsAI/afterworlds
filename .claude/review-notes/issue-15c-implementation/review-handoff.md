@@ -1,12 +1,78 @@
 # CRD Issue 15c — handoff for Codex independent review
 
 - **Branch:** `codex/issue-15c-bounded-d20`.
-- **Commits:** local `eb60d9f` … `3f0ba29` and later, on baseline `e83018c`. See `status.md` "Current".
+- **Commits:** local `eb60d9f` … `246e6ae` and later, on baseline `e83018c`. See `status.md` "Latest".
 - **Not pushed. No PR opened. Nothing merged.**
 - Nothing was migrated, published, activated or launched in any shared runtime.
 - `D:\AI\Claude\afterworlds-runtime` was never touched. #129 stays frozen; #132 and #137 are unchanged.
 
-## Update: successor recorded, implementation continuing
+## Current (13 October 2026): C7 accepted, recorded locally, ammunition executing
+
+**C7 is Owner-accepted**: the exact consolidated packet `4912928f…eb2c` (`../issue-15c-c7-native/owner-acceptance-2026-10-13.md`). The Owner also authorized integration and recording (`owner-c7-integration-2026-10-13.md`). The earlier "C7 integration blocked" note is superseded.
+
+**Integrated.** The reviewed preview commits are now on this branch:
+
+| Preview commit | Branch commit |
+| --- | --- |
+| `221a8e7` | `db60370` |
+| `2d9f694` | `df9c601` |
+| `ed23cb7` | `02fb067` |
+| `3166f22` | `ddda49b` |
+
+**Recorded (`952ae53`):** `src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json`, SHA-256 `2853f30a832ca581c9d4169b82d0c360f3d6a2d78f0ad8980de9997eef51f373`.
+- **Identities equal the packet.** The recorded file differs from the accepted preview in its receipt evidence only (next bullet).
+
+  | Item | Value |
+  | --- | --- |
+  | Oracle | `cb04163b…5ef6e` |
+  | Projection | `8446ab6b-be75-5999-8a9b-74fa133c030a` |
+  | Payload | `cffcdbfa…eb65a` |
+  | Proposals | `1e7b63d3…` (character-origins-feats), `b8c65454…` (equipment) |
+  | Schema | `5d-representation-schema-20` / `759dcc1f…` |
+- **Evidence and identity checks** (`../issue-15c-c7-recording/`: `record_successor.py`, `owner-acceptance.json`, `recorded-followup.json`):
+  - **What differs from the preview:** only `reviewer`, `accepted_at` and `rule`, on the two batches' 643 records and 47 review units. Rows are matched by identity.
+  - **Untouched rows:** they keep their order. Canonical evidence order reads `accepted_at`, so the touched rows' position follows the real recording time.
+  - **Unchanged:** the C5 successor `23e5d8e0…`, G1 and the predecessor.
+  - **Checks that passed:**
+    - native validation found nothing;
+    - persist, reconstruct and re-identify is clean;
+    - the read-only gate passes in a private store copy.
+  - **Verify mode:** a write-once rerun rebuilt the file byte for byte, at the same recording time `2026-10-13T09:56:00Z`.
+- **Reproducibility.** The pinned preview `d661cc3b…` lives git-ignored in worktree `agent-afb6123d0b7851456`. `build_c7_preview.py --twice` regenerates it byte for byte, so the recording stays reproducible if that worktree goes away.
+- **Selection and packaging:**
+  - C5 is superseded by digest.
+  - Packaging ships the C7 successor.
+  - The oracle, packaging, succession, committed-authority and publication tests follow it.
+  - `.secrets.baseline` covers the new and changed review files.
+
+**Recertified (`0da06c9`).**
+- `CERTIFIED_RELEASE` moves to projection `8446ab6b`; versions are now adapter `15c-d20-3` and manifest `15c-manifest-3`.
+- Component evidence was diffed against C5: only `weapon_attack` changed (`463322bf` → `a5fe16ae`), by adding the five typed supplies it now reads. No other governing component moved.
+
+**Ammunition executing (`0da06c9`, `246e6ae`).**
+- **Selection:** a held ammunition item is named and checked against its typed supply, the weapon, and the quantity.
+- **Expenditure:** one per attack, hit or miss, applied by CAS on the read revision in the Turn's transaction. The last one removes the holding.
+- **Preflight:** counts every shot of the turn against the quantity read.
+- **Constraints kept:** Loading, free-hand loading and action accounting are unchanged.
+- **Flat damage:** the Blowgun's flat damage now executes.
+- **Feat categories:** Origin-category eligibility certifies (Skilled under an ASI).
+- **Evidence:**
+  - all nine weapons fire, hit or miss;
+  - incompatible ammunition refuses, including sling versus firearm bullets;
+  - CAS, stale-revision, overspend and removal behave;
+  - Loading and action-budget refusals roll no dice;
+  - end-to-end, a shot expends one, the last arrow is removed, and a failure after expenditure rolls everything back.
+
+**In progress:** Codex's Bloodied and linked Grappled→Restrained classification (`codex-bloodied-linked-conditions-classification.md`). Those ten C5-positive shapes stay visibly refused until then.
+
+**Still required:**
+- Codex review of the roster, traits, clauses and Multiattack implementation;
+- Architecture Notes reconciliation;
+- the stable final head, full gates via the independent supervisor, and CI.
+
+There is no push, PR or merge, and nothing is published or activated.
+
+## Earlier update: C5 successor recorded, implementation continuing
 
 - **Owner acceptance.** The Owner accepted the exact native C5 packet on 12 October 2026.
 - **Recorded successor.** `srd-5-2-1-corpus-8781d4e0-a3b-15c.json` (`23e5d8e0…`), whose identities equal the packet. G1 is superseded by digest.
