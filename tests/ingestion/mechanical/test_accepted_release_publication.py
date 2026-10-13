@@ -114,12 +114,12 @@ NOW = "2026-10-09T00:00:00Z"
 PACKAGE = "1299484e-c72d-509b-bd8d-d0169ee1f8d2"
 RELEASE = "5.2.1-corpus.8781d4e0-a3b"
 #: The effective projection the accepted authority derives: the CRD Issue 15c
-#: C7 successor recorded 2026-10-13 (the native C5 successor's ``44f212d5-…``,
-#: G1's ``efab27a9-…`` and the restart's ``1f0db408-…`` were its
-#: predecessors', superseded by digest).
-PROJECTION = "8446ab6b-be75-5999-8a9b-74fa133c030a"
-ORACLE_FILE = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json"
-ORACLE_SHA256 = "2853f30a832ca581c9d4169b82d0c360f3d6a2d78f0ad8980de9997eef51f373"  # noqa: E501  # pragma: allowlist secret
+#: C8 successor recorded 2026-10-13 (C7's ``8446ab6b-…``, the native C5
+#: successor's ``44f212d5-…``, G1's ``efab27a9-…`` and the restart's
+#: ``1f0db408-…`` were its predecessors', superseded by digest).
+PROJECTION = "e4f8f4fb-de6c-53c9-98f1-fa7a0159fe42"
+ORACLE_FILE = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json"
+ORACLE_SHA256 = "ead7fa9d4fde484098f71221ca5ef82dfb2c82229d8fca80ab5feeb4e4d62d0d"  # noqa: E501  # pragma: allowlist secret
 ACCEPTED_RECORDS = 1847
 
 #: One real accepted record, read back with its exact provenance.

@@ -1,0 +1,18 @@
+{
+  "exit": 0,
+  "args": [
+    "scripts/run_focused_tests.py",
+    "--check",
+    "src/afterworlds/ingestion/mechanical/oracle.py",
+    "tests/ingestion/mechanical/test_oracle_succession.py",
+    "tests/ingestion/mechanical/test_oracle.py",
+    "tests/ingestion/mechanical/test_accepted_inputs.py",
+    "tests/ingestion/mechanical/test_committed_accepted_authority.py",
+    "tests/ingestion/mechanical/test_accepted_release_publication.py",
+    "tests/ingestion/mechanical/test_packaging.py"
+  ],
+  "started_utc": "2026-10-13T18:09:02.8771052Z",
+  "name": "recording-focused",
+  "pid": 56092,
+  "ended_utc": "2026-10-13T18:40:34.8004864Z"
+}

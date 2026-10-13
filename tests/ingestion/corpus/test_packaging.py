@@ -3,7 +3,7 @@
 Builds the real project's wheel **and** sdist and proves three things about what
 they carry:
 
-* the current accepted authority, ``srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json``, ships
+* the current accepted authority, ``srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json``, ships
   byte-identically and resolves through ``committed_inputs_for`` from an
   *installed* distribution (not the source checkout or the CWD);
 * the products retired under Step 5 of the Recorded Owner Decision of
@@ -32,10 +32,11 @@ import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 _ORACLES_REL = "afterworlds/ingestion/mechanical/oracles"
-#: The CRD Issue 15c C7 successor; the release's original artifact, its CRD
-#: Issue 2b G1 successor and the native C5 successor are superseded by digest.
-_CURRENT = "srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json"
-_CURRENT_SHA256 = "2853f30a832ca581c9d4169b82d0c360f3d6a2d78f0ad8980de9997eef51f373"  # noqa: E501  # pragma: allowlist secret
+#: The CRD Issue 15c C8 successor; the release's original artifact, its CRD
+#: Issue 2b G1 successor, the native C5 successor and the C7 successor are
+#: superseded by digest.
+_CURRENT = "srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json"
+_CURRENT_SHA256 = "ead7fa9d4fde484098f71221ca5ef82dfb2c82229d8fca80ab5feeb4e4d62d0d"  # noqa: E501  # pragma: allowlist secret
 _CURRENT_PKG = "1299484e-c72d-509b-bd8d-d0169ee1f8d2"
 _CURRENT_REL = "5.2.1-corpus.8781d4e0-a3b"
 _RETIRED_PKG = "4458fa10-4a66-5e0e-9ecc-ea37530ad2b4"
@@ -48,6 +49,7 @@ _NOT_SHIPPED = (
     "srd-5-2-1-corpus-8781d4e0-a3b.json",
     "srd-5-2-1-corpus-8781d4e0-a3b-g1.json",
     "srd-5-2-1-corpus-8781d4e0-a3b-15c.json",
+    "srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json",
 )
 
 _PROBE = f"""

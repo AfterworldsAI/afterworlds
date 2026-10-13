@@ -12,9 +12,12 @@ recursive-include src/afterworlds/ingestion/mechanical/oracles *.json
 # successor srd-5-2-1-corpus-8781d4e0-a3b-g1.json, which is in turn superseded by
 # digest by the CRD Issue 15c native C5 successor
 # srd-5-2-1-corpus-8781d4e0-a3b-15c.json, itself superseded by digest by the CRD
-# Issue 15c C7 successor srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json, which ships.
+# Issue 15c C7 successor srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json, in turn
+# superseded by digest by the CRD Issue 15c C8 successor
+# srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json, which ships.
 exclude src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-3fe24ff6-4e3.json
 exclude src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-574662e9-0ef.json
 exclude src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b.json
 exclude src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-g1.json
 exclude src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c.json
+exclude src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json

@@ -71,18 +71,20 @@ def test_superseding_the_only_claimant_resolves_nothing(
     assert _resolve_committed_inputs(PACKAGE_UUID, RELEASE_VERSION, tmp_path) is None
 
 
-def test_only_the_release_predecessor_g1_and_c5_are_superseded_by_digest() -> None:
+def test_only_the_release_predecessor_g1_c5_and_c7_are_superseded_by_digest() -> None:
     """The original artifact, its CRD Issue 2b G1 successor and the CRD Issue
-    15c native C5 successor, each kept byte for byte; the CRD Issue 15c C7
-    successor is the one claimant."""
+    15c native C5 and C7 successors, each kept byte for byte; the CRD Issue
+    15c C8 successor is the one claimant."""
     directory = oracle.COMMITTED_ORACLE_DIR
     prior = directory / "srd-5-2-1-corpus-8781d4e0-a3b.json"
     g1 = directory / "srd-5-2-1-corpus-8781d4e0-a3b-g1.json"
     c5 = directory / "srd-5-2-1-corpus-8781d4e0-a3b-15c.json"
+    c7 = directory / "srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json"
     assert {
         _digest(prior),
         _digest(g1),
         _digest(c5),
+        _digest(c7),
     } == oracle.SUPERSEDED_ORACLE_SHA256
     assert _digest(g1) == (
         "2ccbaeba6de75d9787fbdd407e42dc2425fa20d4d26bcc298b681b550bd11258"  # noqa: E501  # pragma: allowlist secret
@@ -90,8 +92,11 @@ def test_only_the_release_predecessor_g1_and_c5_are_superseded_by_digest() -> No
     assert _digest(c5) == (
         "23e5d8e0fac60e3f5417b3a41e40e6f475366dd385856f38c42104f4dd264f69"  # noqa: E501  # pragma: allowlist secret
     )
-    assert _digest(directory / "srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json") == (
+    assert _digest(c7) == (
         "2853f30a832ca581c9d4169b82d0c360f3d6a2d78f0ad8980de9997eef51f373"  # noqa: E501  # pragma: allowlist secret
+    )
+    assert _digest(directory / "srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json") == (
+        "ead7fa9d4fde484098f71221ca5ef82dfb2c82229d8fca80ab5feeb4e4d62d0d"  # noqa: E501  # pragma: allowlist secret
     )
 
 
@@ -132,16 +137,35 @@ _ACCEPTED_C7_PROPOSALS = {
 }
 
 
-def test_the_committed_release_resolves_to_the_recorded_c7_successor() -> None:
-    """The C7 successor: C5's eleven accepted proposals, two of them replaced
-    by C7's, at the accepted oracle identity."""
+#: The five proposals the Owner accepted with exact C8
+#: (``.claude/review-notes/issue-15c-c8-native/owner-acceptance-2026-10-13.md``).
+_ACCEPTED_C8_PROPOSALS = {
+    "animals": "db3f0d2dd9c997f4f2edc1f8fd361244becf7720ab80834c7e2828d971e92014",  # noqa: E501  # pragma: allowlist secret
+    "character-origins-feats": (
+        "301572d46bc655125bc45ad8d08b53d044c0d28014c2ea0340bedd08d2a20f5f"  # noqa: E501  # pragma: allowlist secret
+    ),
+    "magic-items": "d88713097ad106b5e645b35cf1e0f1bffaa6408a8cd7af2faa4da68331f6996b",  # noqa: E501  # pragma: allowlist secret
+    "monsters": "bec1bedc4097a7b42c6acbf64c6131688caa2c86cc85616006b2de1a85c886be",  # noqa: E501  # pragma: allowlist secret
+    "spell-descriptions": (
+        "1c01d1e4f603acebf8baa14b909b7b07406e0e3f0c27330a305363f923d527c7"  # noqa: E501  # pragma: allowlist secret
+    ),
+}
+
+
+def test_the_committed_release_resolves_to_the_recorded_c8_successor() -> None:
+    """The C8 successor: C5's eleven accepted proposals, two replaced by C7's
+    and five (one of them C7's) by C8's, at the accepted oracle identity."""
     inputs = oracle.committed_inputs_for(
         "1299484e-c72d-509b-bd8d-d0169ee1f8d2", "5.2.1-corpus.8781d4e0-a3b"
     )
     assert inputs is not None
     identities = {b.batch_id: b.proposal_identity for b in inputs.batches}
-    expected = {**_ACCEPTED_15C_PROPOSALS, **_ACCEPTED_C7_PROPOSALS}
+    expected = {
+        **_ACCEPTED_15C_PROPOSALS,
+        **_ACCEPTED_C7_PROPOSALS,
+        **_ACCEPTED_C8_PROPOSALS,
+    }
     assert {k: identities[k] for k in expected} == expected
     assert oracle.oracle_identity(inputs.oracle) == (
-        "cb04163ba0374e95ce0fcdaae939b00793e71f84ed3222593c4babfc9065ef6e"  # noqa: E501  # pragma: allowlist secret
+        "70646cd987dcf75adc7b57b6271e38c6ca8cc9b508584dac89c5acefafa3e8d9"  # noqa: E501  # pragma: allowlist secret
     )
