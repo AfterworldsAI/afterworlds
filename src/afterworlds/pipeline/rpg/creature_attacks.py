@@ -55,7 +55,7 @@ from afterworlds.ingestion.mechanical.representation import (
 from afterworlds.models.dnd5e_state import TurnCoordination
 from afterworlds.models.enums import ConditionVisibility
 from afterworlds.models.rpg import CreatureAttackSelection, RollProposal, SheetEffect
-from afterworlds.pipeline.rpg import creature_effects
+from afterworlds.pipeline.rpg import bystanders, creature_effects
 from afterworlds.pipeline.rpg.attacks import (
     _SIGHT_LIGHT,
     _SIZES_UP_TO,
@@ -249,6 +249,8 @@ def _standing_traits(
     target: TurnSubject,
     sel: CreatureAttackSelection,
     out: _Modifiers,
+    actor: TurnCharacter,
+    subjects: dict[tuple[str, str], TurnSubject],
 ) -> None:
     """Standing traits that change this attack roll: the attacker's own
     (subject ``self``), settled by the GameMaster's facts, or refused."""
@@ -289,13 +291,15 @@ def _standing_traits(
                 )
             )
         ):
-            if sel.ally_within_5_feet_of_target is None:
-                raise _refuse(
-                    RefusalKind.MISSING_STATE,
-                    f"{where} turns on whether an ally of the attacker that isn't "
-                    "Incapacitated is within 5 feet of the target",
+            applies = bool(
+                bystanders.allies(
+                    sel.allies_within_5_feet_of_target,
+                    attacker,
+                    target,
+                    actor,
+                    subjects,
                 )
-            applies = sel.ally_within_5_feet_of_target
+            )
         else:
             raise _refuse(
                 RefusalKind.UNSUPPORTED_CAPABILITY,
@@ -310,7 +314,6 @@ def _standing_traits(
                     if e.state is AdvantageState.ADVANTAGE
                     else out.disadvantage
                 ).append(where)
-    del target
 
 
 def _rider_turn(duration: TurnBoundary | None) -> str | None:
@@ -505,17 +508,15 @@ def prepare(
             ):
                 raise _refuse(RefusalKind.MISSING_AUTHORITY, "no typed long-range rule")
             mods.disadvantage.append("play.combat/long_range")
-        if sel.hostile_within_5_feet is None:
-            raise _refuse(
-                RefusalKind.MISSING_STATE,
-                "a ranged attack needs whether a hostile creature is within 5 feet",
-            )
-        if sel.hostile_within_5_feet:
+        close = bystanders.enemies(
+            sel.hostiles_within_5_feet, attacker, actor, subjects
+        )
+        if close:
             mods.disadvantage.append("play.combat/close_combat")
 
     _conditions(attacker, RollActor.SUBJECT, target, within_5_feet, mods)
     _conditions(target, RollActor.AGAINST_SUBJECT, attacker, within_5_feet, mods)
-    _standing_traits(attacker, target, sel, mods)
+    _standing_traits(attacker, target, sel, mods, actor, subjects)
 
     ac = armor_class(target)
     ac_breakdown = dict(ac.breakdown)

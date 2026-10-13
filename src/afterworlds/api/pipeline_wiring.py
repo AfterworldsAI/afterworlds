@@ -391,6 +391,30 @@ def _make_rpg_bounded_loader(
     return _load
 
 
+def _make_rpg_aura_loader(
+    session_factory: sessionmaker[Session],
+) -> Callable[[UUID], list[TurnCharacter]]:
+    """Reads every character of a story, so a save another character's aura
+    could change is found (CRD Issue 15c, bystanders)."""
+
+    def _load(story_id: UUID) -> list[TurnCharacter]:
+        session = session_factory()
+        try:
+            now = _utc_now()
+            sheets = session.execute(
+                sa.select(Dnd5eCharacterStateORM.sheet_id).where(
+                    Dnd5eCharacterStateORM.story_id == str(story_id)
+                )
+            ).all()
+            found = [load_turn_character(session, UUID(s), now=now) for (s,) in sheets]
+            session.commit()
+            return found
+        finally:
+            session.close()
+
+    return _load
+
+
 def _make_rpg_scene_loader(
     session_factory: sessionmaker[Session],
 ) -> Callable[[UUID, TurnCharacter], str]:
@@ -614,6 +638,7 @@ def build_orchestrator(session_factory: sessionmaker[Session]) -> OrchestratorSe
             coordination_loader=_make_rpg_coordination_loader(session_factory),
             bounded_loader=_make_rpg_bounded_loader(session_factory),
             scene_loader=_make_rpg_scene_loader(session_factory),
+            aura_loader=_make_rpg_aura_loader(session_factory),
         ),
         rpg_dice_service=SystemRandomDiceService(),
         rpg_session_sheet_resolver=_make_rpg_session_sheet_resolver(session_factory),

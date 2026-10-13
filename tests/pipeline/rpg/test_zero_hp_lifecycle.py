@@ -140,7 +140,7 @@ def test_only_a_melee_attack_knocks_out() -> None:
         DAGGER,
         range="within_normal_range",
         thrown=True,
-        hostile_within_5_feet=False,
+        hostiles_within_5_feet=(),
         ability="dexterity",
         knock_out=True,
     )

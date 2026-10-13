@@ -45,6 +45,13 @@ Spending is consumed on the coordination document before any die. It is logged a
 - **Reactions** are not executed, because their triggers are not validated.
 - **Limited uses** (Recharge, X/Day) are counted before any die. A second use that would depend on a random recharge is held: it refuses.
 
+**Bystanders (C7 remediation).** Every rule that turns on another creature now names that creature (`pipeline/rpg/bystanders.py`). The named subject is read under its own binding and rechecked at commit:
+- **Close combat:** an enemy within 5 feet that isn't Incapacitated and sees the attacker by ordinary sight. A Blinded enemy refuses.
+- **Pack Tactics:** an ally within 5 feet of the target that isn't Incapacitated.
+- **Save-affecting auras held by others:** holders are discovered by reading the whole story. The GameMaster states which cover a saver; a covering aura refuses, since aura execution is out of scope.
+
+**Residue for Codex:** which named creature is an *enemy* or an *ally* is the GameMaster's identification. No accepted state records allegiance, and code does not derive it.
+
 ## What is built
 
 | Concern | Where |

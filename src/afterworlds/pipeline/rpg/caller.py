@@ -32,6 +32,10 @@ _SUBJECT_SCHEMA: dict[str, Any] = {
     "required": ["kind", "subject_id"],
     "additionalProperties": False,
 }
+#: Identified subjects the GameMaster names (null: not stated).
+_SUBJECT_LIST: dict[str, Any] = {
+    "oneOf": [{"type": "array", "items": _SUBJECT_SCHEMA}, {"type": "null"}]
+}
 _LIGHT = ["bright", "dim", "darkness", "magical_darkness", "heavily_obscured"]
 _CREATURE_ATTACK_SCHEMA: dict[str, Any] = {
     "type": "object",
@@ -54,11 +58,10 @@ _CREATURE_ATTACK_SCHEMA: dict[str, Any] = {
         },
         "attacker_light": {"type": "string", "enum": _LIGHT},
         "target_light": {"type": "string", "enum": _LIGHT},
-        "hostile_within_5_feet": {"oneOf": [{"type": "boolean"}, {"type": "null"}]},
+        "hostiles_within_5_feet": _SUBJECT_LIST,
+        "auras_in_range": _SUBJECT_LIST,
         "target_within_5_feet": {"oneOf": [{"type": "boolean"}, {"type": "null"}]},
-        "ally_within_5_feet_of_target": {
-            "oneOf": [{"type": "boolean"}, {"type": "null"}]
-        },
+        "allies_within_5_feet_of_target": _SUBJECT_LIST,
         "multiattack": {"type": "boolean"},
     },
     "required": [
@@ -92,7 +95,8 @@ _WEAPON_ATTACK_SCHEMA: dict[str, Any] = {
         },
         "attacker_light": {"type": "string", "enum": _LIGHT},
         "target_light": {"type": "string", "enum": _LIGHT},
-        "hostile_within_5_feet": {"oneOf": [{"type": "boolean"}, {"type": "null"}]},
+        "hostiles_within_5_feet": _SUBJECT_LIST,
+        "auras_in_range": _SUBJECT_LIST,
         "target_within_5_feet": {"oneOf": [{"type": "boolean"}, {"type": "null"}]},
         "two_handed": {"type": "boolean"},
         "knock_out": {"type": "boolean"},
@@ -304,6 +308,7 @@ PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC: dict[str, Any] = {
                                             "items": _SUBJECT_SCHEMA,
                                             "minItems": 1,
                                         },
+                                        "auras_in_range": _SUBJECT_LIST,
                                     },
                                     "required": ["source", "entry", "targets"],
                                     "additionalProperties": False,

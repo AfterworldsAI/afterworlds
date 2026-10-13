@@ -74,7 +74,7 @@ def _thrown_dagger(target: TurnCreature) -> dict[str, Any]:
     proposal["weapon_attack"].update(
         range="within_normal_range",
         thrown=True,
-        hostile_within_5_feet=False,
+        hostiles_within_5_feet=[],
         ability="dexterity",
     )
     return proposal

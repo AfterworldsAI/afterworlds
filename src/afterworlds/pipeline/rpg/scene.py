@@ -22,6 +22,7 @@ from afterworlds.ingestion.mechanical.representation import (
     CreatureSaveEffectFact,
 )
 from afterworlds.models.dnd5e_state import TurnCoordination
+from afterworlds.pipeline.rpg import bystanders
 from afterworlds.pipeline.rpg.defense import facts_of
 from afterworlds.services.dnd5e_state.turn import (
     TurnCharacter,
@@ -55,6 +56,8 @@ def _subject(subject: TurnSubject, acting: bool) -> dict[str, object]:
     else:
         out["name"] = subject.stored.character_name
         out["acting"] = acting
+        # It can change other creatures' saves (an aura, Improve Fate).
+        out["save_aura"] = bool(bystanders.aura_holders([subject]))
         out["weapons"] = [
             {"item_id": str(i.item_id), "record": i.record_key, "equipped": i.equipped}
             for i in subject.items

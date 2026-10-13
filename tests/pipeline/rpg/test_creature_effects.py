@@ -219,3 +219,70 @@ def test_crossing_a_daily_quota_refuses_before_any_die() -> None:
     _turns_of(
         vrock, screech, _edge(vrock, "end_turn"), _edge(vrock, "begin_turn"), screech
     )
+
+
+# ---------------------------------------------------------------------------
+# Another creature's aura can change a save: holders are found and named
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("named", "kind"),
+    [
+        (None, RefusalKind.MISSING_STATE),  # holders exist, none stated
+        ("paladin", RefusalKind.UNSUPPORTED_CAPABILITY),  # in range: unexecuted
+        ((), None),  # stated out of range: the save proceeds
+    ],
+)
+def test_a_save_another_creatures_aura_could_change(named: Any, kind: Any) -> None:
+    from afterworlds.models.enums import DiceHandling
+    from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
+    from tests.pipeline.rpg.test_adjudication_service import (
+        _STORY_ID,
+        _TURN_ID,
+        _FakeProvider,
+        _make_assembled,
+        _make_session,
+    )
+    from tests.pipeline.rpg.test_turn_sequencing import actor_turn
+    from tests.rpg_characters import srd_character
+    from tests.services.dnd5e_state.builders import complete_character, real_index
+
+    dragon, wizard = _wyrmling(), _medium_wizard()
+    paladin = srd_character(complete_character(real_index(), "classes.paladin", 6))
+    in_range = (_ref(paladin),) if named == "paladin" else named
+    breath = _breath(dragon, wizard)
+    assert breath.creature_save_effect is not None
+    breath = breath.model_copy(
+        update={
+            "creature_save_effect": breath.creature_save_effect.model_copy(
+                update={"auras_in_range": in_range}
+            )
+        }
+    )
+    service = RpgAdjudicationPassService(
+        adapter=D20RulesSystemAdapter(),
+        subject_loader=lambda _story, _ref: dragon,
+        coordination_loader=actor_turn(dragon),
+        aura_loader=lambda _story: [paladin, wizard],
+    )
+
+    def run() -> Any:
+        return service.adjudicate(
+            _make_assembled(),
+            _make_session(DiceHandling.AI_ROLLS),
+            wizard,
+            _dice([2]),
+            provider=_FakeProvider([breath.model_dump(mode="json", exclude_none=True)]),
+            story_id=_STORY_ID,
+            originating_turn_id=_TURN_ID,
+        )
+
+    if kind is None:
+        result = run()
+        # The holder was read with the turn, so its revision is rechecked.
+        assert any(s.subject_id == paladin.subject_id for s in result.subjects)
+        return
+    with pytest.raises(AdjudicationRefusal) as caught:
+        run()
+    assert caught.value.kind is kind

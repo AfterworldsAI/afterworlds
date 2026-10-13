@@ -284,22 +284,62 @@ def test_a_versatile_weapon_in_two_hands_uses_its_typed_die() -> None:
     assert dice.calls == ["1d20", "1d8"]
 
 
-def test_a_thrown_dagger_in_close_combat_has_disadvantage() -> None:
-    wolf = _creature()
+@pytest.mark.parametrize(
+    ("enemy_state", "disadvantaged"), [("", True), ("unconscious", False)]
+)
+def test_a_thrown_dagger_beside_a_named_enemy_has_disadvantage(
+    enemy_state: str, disadvantaged: bool
+) -> None:
+    """Close combat names its enemy, read and checked: an Incapacitated
+    enemy imposes nothing (``play.combat/close_combat``)."""
+    wolf, enemy = _creature(), _creature()
+    if enemy_state:
+        state = enemy.stored.state.model_copy(
+            update={"conditions": (_condition(enemy_state),)}
+        )
+        enemy = dataclasses.replace(
+            enemy, stored=dataclasses.replace(enemy.stored, state=state)
+        )
     proposal = _proposal(
         wolf,
         DAGGER,
         range="within_normal_range",
         thrown=True,
         ability="dexterity",
-        hostile_within_5_feet=True,
+        hostiles_within_5_feet=(
+            SubjectRef(kind="creature", subject_id=enemy.subject_id),
+        ),
     )
     dice = _dice((4, 17), (2,))
-    record = _run(_attacker(DAGGER), wolf, proposal, dice)
-    assert dice.calls[0] == "2d20kl1"
-    assert json.loads(record.modifiers_json)["disadvantage_sources"] == [
-        "play.combat/close_combat"
-    ]
+    record = D20RulesSystemAdapter().resolve_roll(
+        proposal,
+        _attacker(DAGGER),
+        None,
+        dice,
+        False,
+        {**_subjects(wolf), **_subjects(enemy)},
+    )
+    assert (dice.calls[0] == "2d20kl1") is disadvantaged
+    sources = json.loads(record.modifiers_json)["disadvantage_sources"]
+    assert (sources == ["play.combat/close_combat"]) is disadvantaged
+
+
+def test_an_unnamed_or_unread_enemy_refuses() -> None:
+    wolf = _creature()
+    facts = {"range": "within_normal_range", "thrown": True, "ability": "dexterity"}
+    _refused(
+        RefusalKind.MISSING_STATE,
+        _attacker(DAGGER),
+        wolf,
+        _proposal(wolf, DAGGER, hostiles_within_5_feet=None, **facts),
+    )
+    ghost = SubjectRef(kind="creature", subject_id=uuid4())
+    _refused(
+        RefusalKind.MISSING_STATE,
+        _attacker(DAGGER),
+        wolf,
+        _proposal(wolf, DAGGER, hostiles_within_5_feet=(ghost,), **facts),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -368,7 +408,7 @@ def test_loading_a_one_handed_ammunition_weapon_needs_a_free_hand() -> None:
     crossbow = _wielded("equipment.weapons.hand_crossbow")
     facts = {
         "range": "within_normal_range",
-        "hostile_within_5_feet": False,
+        "hostiles_within_5_feet": (),
     }
     full = HandFacts(
         held=(
@@ -396,7 +436,7 @@ def test_loading_a_one_handed_ammunition_weapon_needs_a_free_hand() -> None:
 def test_an_ammunition_weapon_refuses_without_a_typed_ammunition_item() -> None:
     wolf = _creature()
     proposal = _proposal(
-        wolf, LONGBOW, range="within_normal_range", hostile_within_5_feet=False
+        wolf, LONGBOW, range="within_normal_range", hostiles_within_5_feet=()
     )
     refusal = _refused(
         RefusalKind.MISSING_AUTHORITY, _attacker(LONGBOW), wolf, proposal
@@ -516,7 +556,7 @@ def test_a_prone_target_beyond_5_feet_imposes_disadvantage() -> None:
         DAGGER,
         range="within_normal_range",
         thrown=True,
-        hostile_within_5_feet=False,
+        hostiles_within_5_feet=(),
         ability="dexterity",
         target_within_5_feet=False,
     )
@@ -533,7 +573,7 @@ def test_a_rule_that_turns_on_5_feet_refuses_without_the_fact() -> None:
         DAGGER,
         range="within_normal_range",
         thrown=True,
-        hostile_within_5_feet=False,
+        hostiles_within_5_feet=(),
         ability="dexterity",
     )
     _refused(RefusalKind.MISSING_STATE, _attacker(DAGGER), wolf, proposal)

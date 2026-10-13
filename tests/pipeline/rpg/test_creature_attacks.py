@@ -31,7 +31,7 @@ def _bite(wolf: TurnCreature, target: Any, **facts: Any) -> RollProposal:
         "cover": "none",
         "attacker_light": "bright",
         "target_light": "bright",
-        "ally_within_5_feet_of_target": False,
+        "allies_within_5_feet_of_target": (),
         **facts,
     }
     return RollProposal(
@@ -103,30 +103,51 @@ def test_the_bites_prone_has_a_size_limit() -> None:
     assert all(e.operation != "apply_condition" for e in record.sheet_effects)
 
 
-def test_pack_tactics_turns_on_the_gamemasters_ally_fact() -> None:
-    wolf, wizard = _creature(), _medium_wizard()
+def test_pack_tactics_needs_a_named_ally_that_can_act() -> None:
+    wolf, ally, wizard = _creature(), _creature(), _medium_wizard()
     _refused(
         RefusalKind.MISSING_STATE,
-        _bite(wolf, wizard, ally_within_5_feet_of_target=None),
+        _bite(wolf, wizard, allies_within_5_feet_of_target=None),
         wizard,
-        _subjects(wolf),
+        _subjects(wolf, ally),
     )
     record = _resolve(
-        _bite(wolf, wizard, ally_within_5_feet_of_target=True),
+        _bite(wolf, wizard, allies_within_5_feet_of_target=(_ref(ally),)),
         wizard,
-        _subjects(wolf),
+        _subjects(wolf, ally),
         _dice((5, 18), (3,)),
     )
     assert json.loads(record.modifiers_json)["advantage_sources"] == [
         "animals.wolf/Pack Tactics"
     ]
+    from afterworlds.models.dnd5e_state import ConditionInstance
+    from afterworlds.models.enums import ConditionVisibility
+
+    stunned = ConditionInstance(
+        instance_id="s",
+        condition="stunned",  # type: ignore[arg-type]
+        visibility=ConditionVisibility.VISIBLE,
+    )
+    state = ally.stored.state.model_copy(update={"conditions": (stunned,)})
+    import dataclasses
+
+    dazed = dataclasses.replace(
+        ally, stored=dataclasses.replace(ally.stored, state=state)
+    )
+    record = _resolve(
+        _bite(wolf, wizard, allies_within_5_feet_of_target=(_ref(dazed),)),
+        wizard,
+        _subjects(wolf, dazed),
+        _dice((5, 18), (3,)),
+    )
+    assert json.loads(record.modifiers_json)["advantage_sources"] == []
 
 
 @pytest.mark.parametrize(
     "facts",
     [
         {"entry": "Claw"},  # the Wolf prints no Claw
-        {"range": "within_normal_range", "hostile_within_5_feet": False},
+        {"range": "within_normal_range", "hostiles_within_5_feet": ()},
         {"cover": "total"},
     ],
 )

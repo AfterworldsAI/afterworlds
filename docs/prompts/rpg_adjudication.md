@@ -107,14 +107,16 @@ One proposal per required roll:
 - `creature_attack` — for `creature_attack` only: `attacker` and `target`
   (`{kind, subject_id}`), the `entry` name exactly as the scene lists it, and
   the same contextual facts as a weapon attack, plus
-  `ally_within_5_feet_of_target` when the creature has a trait like Pack
-  Tactics. For a Multiattack, propose each of its attacks as consecutive
+  `allies_within_5_feet_of_target` (the attacker's allies, from the scene,
+  within 5 feet of the target; an empty list if none) when the creature has a
+  trait like Pack Tactics. For a Multiattack, propose each of its attacks as consecutive
   `creature_attack`s by that creature with `multiattack: true`; together they
   must be one of its printed Multiattack options, on its own turn, once per
   turn. Null otherwise.
 - `creature_save_effect` — for `creature_save_effect` only: `source`
   (`{kind, subject_id}`), the `entry` name as the scene lists it, and
-  `targets`, every creature in its area. Null otherwise.
+  `targets`, every creature in its area, and `auras_in_range` as for a
+  weapon attack. Null otherwise.
 - `subject` — for `begin_turn`, `end_turn`, `stabilize`, `stable_recovery`
   and `knockout_recovery`: `{kind, subject_id}`, the character or creature the
   operation concerns. Null otherwise.
@@ -132,8 +134,12 @@ One proposal per required roll:
     - `cover` — `none`, `half`, `three_quarters` or `total`.
     - `attacker_light` and `target_light` — `bright`, `dim`, `darkness`,
       `magical_darkness` or `heavily_obscured`.
-    - `hostile_within_5_feet` — for a ranged attack: whether an enemy that can
-      see the attacker and isn't Incapacitated is within 5 feet of it.
+    - `hostiles_within_5_feet` — for a ranged attack: the enemies (from the
+      scene) within 5 feet of the attacker; an empty list if none. The engine
+      checks each can see the attacker and isn't Incapacitated.
+    - `auras_in_range` — when the attack can force a save (Topple, a hit
+      effect's save): which creatures marked `save_aura` in the scene have the
+      saver within their aura; an empty list if none.
     - `target_within_5_feet` — whether the attacker is within 5 feet of the
       target. Give it when the target is Prone, Paralyzed or Unconscious and
       the attack is not a melee attack with a 5-foot reach; otherwise null.

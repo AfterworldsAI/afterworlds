@@ -101,9 +101,13 @@ class WeaponAttackSelection(BaseModel):
     cover: CoverDegree
     attacker_light: LightLevel
     target_light: LightLevel
-    #: For a ranged attack: whether a hostile creature that can see the
-    #: attacker and isn't Incapacitated is within 5 feet of it.
-    hostile_within_5_feet: bool | None = None
+    #: For a ranged attack: the enemies the GameMaster identifies within 5
+    #: feet of the attacker (an empty list: none). Code checks each can see
+    #: the attacker and isn't Incapacitated (``play.combat/close_combat``).
+    hostiles_within_5_feet: tuple[SubjectRef, ...] | None = None
+    #: The story's save-affecting aura holders whose aura covers a creature
+    #: this attack forces to save (an empty list: none in range).
+    auras_in_range: tuple[SubjectRef, ...] | None = None
     #: Whether the attacker is within 5 feet of the target, for a rule that
     #: turns on it (Prone, and Paralyzed's or Unconscious's automatic
     #: Critical Hit). A melee attack with a 5-foot reach implies it.
@@ -151,11 +155,12 @@ class CreatureAttackSelection(BaseModel):
     cover: CoverDegree
     attacker_light: LightLevel
     target_light: LightLevel
-    hostile_within_5_feet: bool | None = None
+    hostiles_within_5_feet: tuple[SubjectRef, ...] | None = None
     target_within_5_feet: bool | None = None
-    #: For a trait like Pack Tactics: whether an ally of the attacker that
-    #: isn't Incapacitated is within 5 feet of the target.
-    ally_within_5_feet_of_target: bool | None = None
+    #: For a trait like Pack Tactics: the attacker's allies the GameMaster
+    #: identifies within 5 feet of the target (an empty list: none).
+    allies_within_5_feet_of_target: tuple[SubjectRef, ...] | None = None
+    auras_in_range: tuple[SubjectRef, ...] | None = None
     #: Part of the attacker's Multiattack: consecutive ``creature_attack``
     #: proposals by one creature marked so form one Multiattack action, which
     #: must match one of its printed alternatives.
@@ -172,6 +177,7 @@ class CreatureSaveEffectSelection(BaseModel):
     source: SubjectRef
     entry: str = Field(min_length=1)
     targets: tuple[SubjectRef, ...] = Field(min_length=1)
+    auras_in_range: tuple[SubjectRef, ...] | None = None
 
 
 class LifecycleAttestation(BaseModel):

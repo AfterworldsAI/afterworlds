@@ -426,6 +426,37 @@ class D20RulesSystemAdapter:
             return {(ref.kind, str(ref.subject_id))}
         return set()
 
+    def savers(
+        self,
+        proposal: RollProposal,
+        character: TurnCharacter,
+        subjects: dict[tuple[str, str], TurnSubject],
+    ) -> list[tuple[str, str]]:
+        """The subjects *proposal* could force to save: Topple's target, a
+        creature hit effect's save target, a save effect's targets."""
+        area = proposal.creature_save_effect
+        if area is not None:
+            return [(r.kind, str(r.subject_id)) for r in area.targets]
+        attack = proposal.creature_attack
+        if attack is not None:
+            creature = subjects.get(
+                (attack.attacker.kind, str(attack.attacker.subject_id))
+            )
+            if isinstance(creature, TurnCreature):
+                try:
+                    rider = creature_attacks._attack_fact(
+                        creature, attack.entry
+                    ).hit_effect
+                except AdjudicationRefusal:
+                    return []
+                if rider is not None and rider.rider_save is not None:
+                    return [(attack.target.kind, str(attack.target.subject_id))]
+            return []
+        weapon = proposal.weapon_attack
+        if weapon is not None and weapon.mastery and attacks.topples(character, weapon):
+            return [(weapon.target.kind, str(weapon.target.subject_id))]
+        return []
+
     def moved_subjects(self, proposal: RollProposal) -> set[tuple[str, str]]:
         """Subjects *proposal* could move (Push)."""
         if proposal.operation == Operation.WEAPON_ATTACK.value:

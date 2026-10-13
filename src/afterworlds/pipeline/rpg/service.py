@@ -66,7 +66,12 @@ from afterworlds.pipeline.provider._models import (
     ProviderToolCallPart,
     ProviderToolDefinition,
 )
-from afterworlds.pipeline.rpg import creature_attacks, creature_effects, economy
+from afterworlds.pipeline.rpg import (
+    bystanders,
+    creature_attacks,
+    creature_effects,
+    economy,
+)
 from afterworlds.pipeline.rpg.adapter import PlayerRollValueError
 from afterworlds.pipeline.rpg.caller import (
     PRODUCE_ADJUDICATION_PROPOSALS_TOOL_NAME,
@@ -287,6 +292,7 @@ class RpgAdjudicationPassService:
         coordination_loader: Callable[[UUID], StoredCoordination] | None = None,
         bounded_loader: Callable[[UUID, SubjectRef], list[TurnSubject]] | None = None,
         scene_loader: Callable[[UUID, TurnCharacter], str] | None = None,
+        aura_loader: Callable[[UUID], list[TurnCharacter]] | None = None,
     ) -> None:
         self._adapter = adapter
         self._config = config or AdjudicationConfig.from_env()
@@ -296,6 +302,7 @@ class RpgAdjudicationPassService:
         self._coordination_loader = coordination_loader
         self._bounded_loader = bounded_loader
         self._scene_loader = scene_loader
+        self._aura_loader = aura_loader
         self._system_prompt: str = load_adjudication_prompt()
 
     def is_adjudicable(self, character: TurnCharacter) -> bool:
@@ -497,6 +504,7 @@ class RpgAdjudicationPassService:
         if coordination is not None:
             _ledger(coordination.document, proposals, sheet, subjects, openers)
         self._limited_uses(proposals, subjects)
+        self._auras(story_id, sheet, proposals, subjects)
         # One subject's hand facts agree across the turn's operations: none
         # changes grip, so a difference is a contradiction.
         hands = {
@@ -663,18 +671,19 @@ class RpgAdjudicationPassService:
         refs: dict[tuple[str, str], SubjectRef] = {}
         for proposal in proposals:
             named = [proposal.subject]
-            if proposal.weapon_attack is not None:
-                named.append(proposal.weapon_attack.target)
-            if proposal.creature_attack is not None:
+            weapon, creature = proposal.weapon_attack, proposal.creature_attack
+            area = proposal.creature_save_effect
+            if weapon is not None:
+                named += [weapon.target, *(weapon.hostiles_within_5_feet or ())]
+            if creature is not None:
                 named += [
-                    proposal.creature_attack.attacker,
-                    proposal.creature_attack.target,
+                    creature.attacker,
+                    creature.target,
+                    *(creature.hostiles_within_5_feet or ()),
+                    *(creature.allies_within_5_feet_of_target or ()),
                 ]
-            if proposal.creature_save_effect is not None:
-                named += [
-                    proposal.creature_save_effect.source,
-                    *proposal.creature_save_effect.targets,
-                ]
+            if area is not None:
+                named += [area.source, *area.targets]
             for ref in named:
                 if ref is not None:
                     refs[(ref.kind, str(ref.subject_id))] = ref
@@ -762,6 +771,40 @@ class RpgAdjudicationPassService:
                     RefusalKind.INVALID_SELECTION,
                     f"{entry} is used {count} times this turn; {left} use(s) left",
                 )
+
+    def _auras(
+        self,
+        story_id: UUID,
+        sheet: TurnCharacter,
+        proposals: list[RollProposal],
+        subjects: dict[tuple[str, str], TurnSubject],
+    ) -> None:
+        """Refuse, before any die, a save another creature's aura could
+        change (:mod:`.bystanders`). Holders are found in the whole story and
+        read like any other subject, so their revisions are rechecked."""
+        forcing = [(p, self._adapter.savers(p, sheet, subjects)) for p in proposals]
+        if not any(savers for _, savers in forcing):
+            return
+        if self._aura_loader is None:
+            raise AdjudicationRefusal(
+                RefusalKind.MISSING_STATE,
+                "no reader of the story's aura holders is wired",
+            )
+        holders = bystanders.aura_holders(self._aura_loader(story_id))
+        for holder in holders:
+            if holder.sheet_id != sheet.sheet_id:
+                subjects.setdefault(("character", str(holder.sheet_id)), holder)
+        for proposal, savers in forcing:
+            selection = (
+                proposal.weapon_attack
+                or proposal.creature_attack
+                or proposal.creature_save_effect
+            )
+            bystanders.check_auras(
+                holders,
+                savers,
+                selection.auras_in_range if selection is not None else None,
+            )
 
     def _load_bounded(
         self,

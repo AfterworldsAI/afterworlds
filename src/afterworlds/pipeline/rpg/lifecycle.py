@@ -25,10 +25,7 @@ import json
 from dataclasses import dataclass, field
 from uuid import uuid4
 
-from afterworlds.ingestion.mechanical.models import ComponentHandling
 from afterworlds.ingestion.mechanical.representation import (
-    ActionCost,
-    ActionRestrictionFact,
     ConditionEffectFact,
     ConditionEffectKind,
     ConditionKind,
@@ -53,7 +50,7 @@ from afterworlds.pipeline.rpg.capability import (
     RefusalKind,
     certify,
 )
-from afterworlds.pipeline.rpg.conditions import effective
+from afterworlds.pipeline.rpg.conditions import cannot_act
 from afterworlds.pipeline.rpg.defense import facts_of
 from afterworlds.pipeline.rpg.dice import DiceService
 from afterworlds.pipeline.rpg.saves import condition_modifiers, refuse_contributors
@@ -412,27 +409,6 @@ def _named(
     return subject
 
 
-def _cannot_act(subject: TurnSubject) -> str | None:
-    """The condition component that keeps *subject* from taking actions."""
-    assert subject.index is not None
-    for eff in effective(subject, subject.index):
-        record = subject.index.record(f"glossary.{eff.condition.value}")
-        if record is None:
-            continue
-        for component in record.components:
-            if (
-                component.handling is ComponentHandling.STRUCTURED
-                and component.applies_when is None
-                and any(
-                    isinstance(f.fact, ActionRestrictionFact)
-                    and f.fact.cost is ActionCost.ACTION
-                    for f in component.facts
-                )
-            ):
-                return f"{record.semantic_key}/{component.semantic_key}"
-    return None
-
-
 @dataclass(frozen=True)
 class PreparedFirstAid:
     subject: TurnSubject
@@ -451,7 +427,7 @@ def prepare_first_aid(
     subject = _named(proposal, actor, subjects)
     if subject is actor:
         raise _refuse(RefusalKind.INVALID_SELECTION, "first aid is given to another")
-    blocked = _cannot_act(actor)
+    blocked = cannot_act(actor)
     if blocked:
         raise _refuse(
             RefusalKind.INVALID_SELECTION, f"the helper cannot act ({blocked})"

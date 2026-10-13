@@ -93,6 +93,7 @@ from afterworlds.models.dnd5e_state import (
 )
 from afterworlds.models.enums import ConditionVisibility
 from afterworlds.models.rpg import RollProposal, SheetEffect, WeaponAttackSelection
+from afterworlds.pipeline.rpg import bystanders
 from afterworlds.pipeline.rpg.capability import (
     AdjudicationRefusal,
     Certificate,
@@ -1081,12 +1082,8 @@ def prepare(
             )
         if sel.range == "beyond_normal_within_long_range":
             disadvantage.append("equipment.weapons.range/range")
-        if sel.hostile_within_5_feet is None:
-            raise _refuse(
-                RefusalKind.MISSING_STATE,
-                "a ranged attack needs whether a hostile creature is within 5 feet",
-            )
-        if sel.hostile_within_5_feet:
+        close = bystanders.enemies(sel.hostiles_within_5_feet, actor, actor, subjects)
+        if close:
             disadvantage.append("play.combat/close_combat")
 
     # The target's AC, with cover.
@@ -1290,3 +1287,15 @@ def spatial_subjects(
 def subject_key(subject: TurnSubject) -> tuple[str, str]:
     kind = "creature" if isinstance(subject, TurnCreature) else "character"
     return kind, str(subject.subject_id)
+
+
+def topples(actor: TurnCharacter, sel: WeaponAttackSelection) -> bool:
+    """Whether the selected weapon's printed mastery is Topple (a save)."""
+    assert actor.index is not None
+    item = next((i for i in actor.items if i.item_id == sel.weapon_item_id), None)
+    if item is None:
+        return False
+    return any(
+        isinstance(f, WeaponMasteryFact) and f.mastery is WeaponMastery.TOPPLE
+        for f in facts_of(actor.index, item.record_key)
+    )
