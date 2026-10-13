@@ -214,3 +214,65 @@ def test_a_trample_cannot_rest_on_a_prone_the_gore_only_might_apply(
     assert caught.value.kind is RefusalKind.INVALID_SELECTION
     assert "prone condition" in caught.value.detail
     dice.roll.assert_not_called()
+
+
+def _roar(sphinx: Any, targets: tuple[Any, ...], enemies: Any) -> RollProposal:
+    return RollProposal(
+        check_label="Roar",
+        subsystem_tag="save",
+        visibility=RollVisibility.SHOWN,
+        operation="creature_save_effect",
+        creature_save_effect=CreatureSaveEffectSelection(
+            source=_ref(sphinx),
+            entry="Mind-Rending Roar",
+            targets=tuple(_ref(t) for t in targets),
+            auras_in_range=(),
+            enemies_in_area=(
+                None if enemies is None else tuple(_ref(e) for e in enemies)
+            ),
+        ),
+    )
+
+
+def test_each_enemy_is_the_gamemasters_named_cohort() -> None:
+    """The Sphinx's roar affects each enemy in its area: the targets are
+    exactly the named enemies, read and never the source."""
+    sphinx = _changed(
+        _creature("monsters.sphinxes.sphinx_of_lore", hp=170), usage_counters=()
+    )
+    wizard, wolf = _medium_wizard(), _creature()
+    subjects = {
+        ("creature", str(sphinx.subject_id)): sphinx,
+        ("creature", str(wolf.subject_id)): wolf,
+    }
+    adapter = D20RulesSystemAdapter()
+    adapter.require_supported(_roar(sphinx, (wizard,), (wizard,)), wizard, subjects)
+    for proposal, kind in (
+        (_roar(sphinx, (wizard,), None), RefusalKind.MISSING_STATE),  # no cohort
+        (_roar(sphinx, (wizard,), ()), RefusalKind.INVALID_SELECTION),  # not an enemy
+        (_roar(sphinx, (wizard,), (wizard, wolf)), RefusalKind.INVALID_SELECTION),
+        (_roar(sphinx, (wizard,), (wizard, sphinx)), RefusalKind.INVALID_SELECTION),
+    ):
+        with pytest.raises(AdjudicationRefusal) as caught:
+            adapter.require_supported(proposal, wizard, subjects)
+        assert caught.value.kind is kind, caught.value
+    lion = _creature("animals.lion", hp=60)
+    with pytest.raises(AdjudicationRefusal) as caught:
+        adapter.require_supported(
+            RollProposal(
+                check_label="Roar",
+                subsystem_tag="save",
+                visibility=RollVisibility.SHOWN,
+                operation="creature_save_effect",
+                creature_save_effect=CreatureSaveEffectSelection(
+                    source=_ref(lion),
+                    entry="Roar",
+                    targets=(_ref(wizard),),
+                    auras_in_range=(),
+                    enemies_in_area=(_ref(wizard),),  # Roar has no enemy cohort
+                ),
+            ),
+            wizard,
+            {("creature", str(lion.subject_id)): lion},
+        )
+    assert caught.value.kind is RefusalKind.INVALID_SELECTION

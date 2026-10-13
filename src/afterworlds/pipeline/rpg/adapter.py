@@ -486,7 +486,11 @@ class D20RulesSystemAdapter:
         if area is not None:
             return {(area.source.kind, str(area.source.subject_id))} | {
                 (r.kind, str(r.subject_id))
-                for r in (*area.targets, *(area.auras_in_range or ()))
+                for r in (
+                    *area.targets,
+                    *(area.auras_in_range or ()),
+                    *(area.enemies_in_area or ()),
+                )
             }
         return set()
 

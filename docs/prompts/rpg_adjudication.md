@@ -122,7 +122,11 @@ One proposal per required roll:
 - `creature_save_effect` — for `creature_save_effect` only: `source`
   (`{kind, subject_id}`), the `entry` name as the scene lists it, and
   `targets`, every creature in its area, and `auras_in_range` as for a
-  weapon attack. Null otherwise.
+  weapon attack. For an entry the scene lists under `enemy_only_effects`
+  (it affects each enemy in its area), name in `enemies_in_area` the
+  creatures in the area that are the source's enemies (an empty list if
+  none); `targets` must be exactly those. Leave `enemies_in_area` null for
+  any other entry. Null otherwise.
 - `subject` — for `begin_turn`, `end_turn`, `stabilize`, `stable_recovery`
   and `knockout_recovery`: `{kind, subject_id}`, the character or creature the
   operation concerns. Null otherwise.

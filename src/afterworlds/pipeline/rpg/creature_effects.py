@@ -24,6 +24,7 @@ triggers, exclusions) refuse before any die.
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from afterworlds.ingestion.mechanical.representation import (
@@ -42,7 +43,11 @@ from afterworlds.models.dnd5e_state import (
     TurnCoordination,
     UsageCounter,
 )
-from afterworlds.models.rpg import RollProposal, SheetEffect
+from afterworlds.models.rpg import (
+    CreatureSaveEffectSelection,
+    RollProposal,
+    SheetEffect,
+)
 from afterworlds.pipeline.rpg.attacks import _SIZES_UP_TO, _size, subject_key
 from afterworlds.pipeline.rpg.capability import (
     AdjudicationRefusal,
@@ -386,6 +391,57 @@ def _fact(source: TurnCreature, entry: str) -> CreatureSaveEffectFact:
     return fact
 
 
+def enemy_only(fact: CreatureSaveEffectFact) -> bool:
+    """Whether the entry affects "each enemy" in its area."""
+    from afterworlds.ingestion.mechanical.representation import TargetTag
+
+    return TargetTag.ENEMY in fact.targets.types
+
+
+def _enemy_cohort(
+    sel: CreatureSaveEffectSelection,
+    fact: CreatureSaveEffectFact,
+    source: TurnCreature,
+    keys: Sequence[tuple[str, str]],
+    actor: TurnCharacter,
+    subjects: dict[tuple[str, str], TurnSubject],
+) -> None:
+    """An "each enemy" entry's targets are exactly the creatures in its area
+    the GameMaster names as the source's enemies, each read under its own
+    binding and none the source; any other entry names no enemy cohort."""
+    if not enemy_only(fact):
+        if sel.enemies_in_area is not None:
+            raise _refuse(
+                RefusalKind.INVALID_SELECTION,
+                f"{sel.entry} affects no enemy cohort; name its targets only",
+            )
+        return
+    if sel.enemies_in_area is None:
+        raise _refuse(
+            RefusalKind.MISSING_STATE,
+            f"{sel.entry} affects each enemy in its area: name the enemies in it "
+            "(an empty list if none)",
+        )
+    enemies = [(r.kind, str(r.subject_id)) for r in sel.enemies_in_area]
+    if len(set(enemies)) != len(enemies):
+        raise _refuse(RefusalKind.INVALID_SELECTION, "an enemy is named twice")
+    for key in enemies:
+        if key == ("creature", str(source.subject_id)):
+            raise _refuse(
+                RefusalKind.INVALID_SELECTION, "a creature is not its own enemy"
+            )
+        found = (
+            actor if key == ("character", str(actor.subject_id)) else subjects.get(key)
+        )
+        if found is None or found.index is None:
+            raise _refuse(RefusalKind.MISSING_STATE, f"{key[0]} {key[1]} was not read")
+    if set(keys) != set(enemies):
+        raise _refuse(
+            RefusalKind.INVALID_SELECTION,
+            f"{sel.entry} affects exactly the enemies named in its area",
+        )
+
+
 def _imposed(fact: CreatureSaveEffectFact) -> frozenset[ConditionKind]:
     rider = fact.failure_effect
     if rider is None or rider.condition is None:
@@ -420,6 +476,7 @@ def prepare(
     keys = [(r.kind, str(r.subject_id)) for r in sel.targets]
     if len(set(keys)) != len(keys):
         raise _refuse(RefusalKind.INVALID_SELECTION, "a target is named twice")
+    _enemy_cohort(sel, fact, source, keys, actor, subjects)
     t = fact.targets
     if t.count is not None and len(keys) > t.count:
         raise _refuse(

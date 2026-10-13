@@ -316,6 +316,7 @@ PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC: dict[str, Any] = {
                                             "minItems": 1,
                                         },
                                         "auras_in_range": _SUBJECT_LIST,
+                                        "enemies_in_area": _SUBJECT_LIST,
                                     },
                                     "required": ["source", "entry", "targets"],
                                     "additionalProperties": False,
@@ -325,7 +326,9 @@ PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC: dict[str, Any] = {
                             "description": (
                                 "For creature_save_effect: the creature, one of its"
                                 " save-effect entries from the scene, and every"
-                                " creature in its area."
+                                " creature in its area (for an entry the scene"
+                                " lists under enemy_only_effects: its enemies in"
+                                " the area, also named in enemies_in_area)."
                             ),
                         },
                         "attestation": {

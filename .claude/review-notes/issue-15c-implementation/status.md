@@ -5,7 +5,21 @@
 - **Scope:** #191 as updated (body SHA-256 `8225e1b6…57a2`). It adds creature attacks, bounded Multiattack and their saves/effects, the tool-addressing and omitted-source repair, and individual conditional-creature assessment. The G1 oracle `2ccbaeba…1258` is unchanged.
 - **Process:** Opus 5.5 at medium effort, with the separate Opus 5.5 Advisor consulted on the approach, the candidate scope and completion.
 
-## Latest (14 October 2026): raw candidate C8 (target creature types) ready for Codex raw review
+## Latest (14 October 2026): Codex creature correction review (P1, P2)
+
+From `codex-creature-correction-review.md`, adopted by the parent as ordinary implementation:
+- **P1, `78e0efa`.** A speculative condition never establishes a positive prerequisite.
+  - Trample's "has the Prone condition" now reads `conditions.established()`, which excludes the preflight's `possible:` instances and what they imply.
+  - Gore followed by Trample against a standing target refuses before any die. An initially Prone target still executes.
+- **P2, this commit.** The Sphinx roars' "each enemy" is a typed, audited cohort.
+  - `CreatureSaveEffectSelection.enemies_in_area` holds the GameMaster's bystander identification, read under each subject's binding, never the source. It is also a spatial dependency.
+  - An "each enemy" entry's targets must be exactly the named enemies. Any other entry refuses a cohort.
+  - The scene lists `enemy_only_effects`; the caller schema and prompt are reconciled.
+  - **Controls:** a missing cohort, a non-enemy target, an enemy that is not targeted, the source named as an enemy, and a cohort on a non-enemy entry all refuse.
+
+Ghast and Ghoul stay held behind raw candidate C8.
+
+## Earlier (14 October 2026): raw candidate C8 (target creature types) ready for Codex raw review
 
 **Scope.** Codex's `codex-creature-type-boundary-classification.md` was adopted. Ghast and Ghoul Claw stay promised, held and incomplete; `BOUNDARIES` is an interim disclosure only.
 

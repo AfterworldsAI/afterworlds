@@ -23,7 +23,7 @@ from afterworlds.ingestion.mechanical.representation import (
     CreatureSaveEffectFact,
 )
 from afterworlds.models.dnd5e_state import TurnCoordination
-from afterworlds.pipeline.rpg import bystanders, creature_clauses
+from afterworlds.pipeline.rpg import bystanders, creature_clauses, creature_effects
 from afterworlds.pipeline.rpg.capability import AdjudicationRefusal
 from afterworlds.pipeline.rpg.defense import facts_of
 from afterworlds.services.dnd5e_state.turn import (
@@ -50,6 +50,14 @@ def _subject(subject: TurnSubject, acting: bool) -> dict[str, object]:
             out["save_effect_entries"] = sorted(
                 f.entry for f in facts if isinstance(f, CreatureSaveEffectFact)
             )
+            enemy_only = sorted(
+                f.entry
+                for f in facts
+                if isinstance(f, CreatureSaveEffectFact)
+                and creature_effects.enemy_only(f)
+            )
+            if enemy_only:
+                out["enemy_only_effects"] = enemy_only
             # Entries whose hit asks for a charge, or allows a follow-up.
             charges: dict[str, int] = {}
             follow_ups: dict[str, str] = {}

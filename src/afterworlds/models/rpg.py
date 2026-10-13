@@ -189,6 +189,11 @@ class CreatureSaveEffectSelection(BaseModel):
     entry: str = Field(min_length=1)
     targets: tuple[SubjectRef, ...] = Field(min_length=1)
     auras_in_range: tuple[SubjectRef, ...] | None = None
+    #: For an entry affecting "each enemy" in its area (a Sphinx's roars):
+    #: the creatures in the area the GameMaster identifies as the source's
+    #: enemies (bystander identification; no allegiance is derived). The
+    #: targets must be exactly these. Null for any other entry.
+    enemies_in_area: tuple[SubjectRef, ...] | None = None
 
 
 class LifecycleAttestation(BaseModel):

@@ -129,6 +129,18 @@ def _scenario(key: str, creature: Any, target: Any) -> Any:
     )
 
 
+def _enemy_only(creature: Any, entry: str) -> bool:
+    from afterworlds.ingestion.mechanical.representation import CreatureSaveEffectFact
+    from afterworlds.pipeline.rpg.creature_effects import enemy_only
+    from afterworlds.pipeline.rpg.defense import facts_of
+
+    template = creature.stored.state.template_record_key
+    return any(
+        isinstance(f, CreatureSaveEffectFact) and f.entry == entry and enemy_only(f)
+        for f in facts_of(creature.index, template)
+    )
+
+
 def _results() -> dict[str, tuple[bool, bool, str | None]]:
     """For each C5 attack/save entry and Multiattack selection: (C5
     executable, admitted, refusal or None)."""
@@ -188,6 +200,10 @@ def _results() -> dict[str, tuple[bool, bool, str | None]]:
                 entry=entry,
                 targets=(_ref(target),),
                 auras_in_range=(),
+                # "each enemy": the target is named as the source's enemy.
+                enemies_in_area=(
+                    (_ref(target),) if _enemy_only(creature, entry) else None
+                ),
             ),
         )
         adapter.require_supported(proposal, target, _subjects(creature))
