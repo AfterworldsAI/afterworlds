@@ -45,7 +45,11 @@ from afterworlds.ingestion.mechanical.representation import (
 )
 from afterworlds.models.dnd5e_state import Dnd5eCharacterState
 from afterworlds.models.dnd5e_vocabulary import ArmorCategory
-from afterworlds.pipeline.rpg.capability import AdjudicationRefusal, RefusalKind
+from afterworlds.pipeline.rpg.capability import (
+    AdjudicationRefusal,
+    RefusalKind,
+    certify_template,
+)
 from afterworlds.pipeline.rpg.grants import ability_score, armor_training
 from afterworlds.pipeline.rpg.mastery import other_effects
 from afterworlds.services.dnd5e_state.authority import AuthorityIndex
@@ -229,11 +233,20 @@ def _character_ac(character: TurnCharacter, index: AuthorityIndex) -> ArmorClass
     return ArmorClass(sum(breakdown.values()), source, breakdown)
 
 
+def template(creature: TurnCreature) -> str:
+    """*creature*'s template, certified under its own binding: every read of
+    creature template authority goes through here (CRD Issue 15c)."""
+    index = creature.index
+    if index is None:
+        raise _refuse(RefusalKind.MISSING_AUTHORITY, "the creature's authority")
+    key = creature.stored.state.template_record_key
+    certify_template(index, key)
+    return key
+
+
 def _template(creature: TurnCreature, index: AuthorityIndex) -> str:
-    template = creature.stored.state.template_record_key
-    if index.record(template) is None:
-        raise _refuse(RefusalKind.MISSING_AUTHORITY, f"template {template} is absent")
-    return template
+    del index
+    return template(creature)
 
 
 def _creature_ac(creature: TurnCreature, index: AuthorityIndex) -> ArmorClass:
@@ -344,3 +357,16 @@ def condition_immune(target: TurnSubject, condition: ConditionKind) -> bool:
             "against its source here",
         )
     return False
+
+
+def template_digests(*subjects: TurnSubject) -> dict[str, str]:
+    """The certified template digest of every creature among *subjects*,
+    keyed ``creature:<id>``, for the operation's certificate provenance."""
+    out: dict[str, str] = {}
+    for subject in subjects:
+        if isinstance(subject, TurnCreature):
+            assert subject.index is not None
+            out[f"creature:{subject.subject_id}"] = certify_template(
+                subject.index, template(subject)
+            )
+    return out

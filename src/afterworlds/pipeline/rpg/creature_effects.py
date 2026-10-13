@@ -53,7 +53,12 @@ from afterworlds.pipeline.rpg.capability import (
     governing_fingerprint,
 )
 from afterworlds.pipeline.rpg.damage import DamageTaken, preflight, take_damage
-from afterworlds.pipeline.rpg.defense import condition_immune, facts_of
+from afterworlds.pipeline.rpg.defense import (
+    condition_immune,
+    facts_of,
+    template_digests,
+)
+from afterworlds.pipeline.rpg.defense import template as template_of
 from afterworlds.pipeline.rpg.dice import DiceService
 from afterworlds.pipeline.rpg.mastery import other_effects, reference
 from afterworlds.pipeline.rpg.saves import PreparedSave, RolledSave
@@ -89,7 +94,7 @@ def _refuse(kind: RefusalKind, detail: str) -> AdjudicationRefusal:
 
 def _usage(creature: TurnCreature, entry: str) -> CreatureEntryUsageFact | None:
     assert creature.index is not None
-    template = creature.stored.state.template_record_key
+    template = template_of(creature)
     found = [
         f
         for f in facts_of(creature.index, template)
@@ -182,7 +187,7 @@ def recharge(
     """At the start of *creature*'s turn: a d6 for each spent Recharge entry,
     recharging it on its printed minimum or more."""
     assert creature.index is not None
-    template = creature.stored.state.template_record_key
+    template = template_of(creature)
     effects: list[SheetEffect] = []
     rolls: list[dict[str, object]] = []
     if creature.stored.state.usage_counters is None:
@@ -225,6 +230,8 @@ class PreparedSaveEffect:
     usage: CreatureEntryUsageFact | None
     certificate: Certificate
     half: DamageModificationFact | None = None
+    #: Each creature subject's certified template digest.
+    templates: dict[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -248,6 +255,7 @@ class RolledSaveEffect:
                 "damage_rolls": list(self.damage_rolls),
                 "targets": list(self.results),
                 "certificate": p.certificate.as_json(),
+                "templates": p.templates,
             },
             sort_keys=True,
         )
@@ -264,7 +272,7 @@ def _subject(
 
 def _fact(source: TurnCreature, entry: str) -> CreatureSaveEffectFact:
     assert source.index is not None
-    template = source.stored.state.template_record_key
+    template = template_of(source)
     found = [
         f
         for f in facts_of(source.index, template)
@@ -429,7 +437,14 @@ def prepare(
             raise _refuse(RefusalKind.MISSING_AUTHORITY, "no typed half damage rule")
         half = found[0]
     return PreparedSaveEffect(
-        source, fact, tuple(targets), tuple(saves), usage, certificate, half
+        source,
+        fact,
+        tuple(targets),
+        tuple(saves),
+        usage,
+        certificate,
+        half,
+        template_digests(source, *targets),
     )
 
 

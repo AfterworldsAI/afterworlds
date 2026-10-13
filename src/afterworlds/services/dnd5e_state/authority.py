@@ -117,6 +117,10 @@ class AuthorityIndex:
     binding: RulesPackageBinding
     records: Mapping[str, EffectiveRecord]
     members: Mapping[str, frozenset[str]] = field(default_factory=dict)
+    #: Record keys an applied override touched (supplied, replaced or
+    #: suppressed any part of): a suppression leaves no ``supplied_by`` marker,
+    #: so per-subject certification reads this (CRD Issue 15c).
+    overridden: frozenset[str] = frozenset()
 
     @classmethod
     def from_authority(cls, authority: EffectiveAuthority) -> AuthorityIndex:
@@ -124,6 +128,9 @@ class AuthorityIndex:
             binding=authority.binding,
             records={r.semantic_key: r for r in authority.records},
             members={k: frozenset(v) for k, v in authority.members},
+            overridden=frozenset(
+                o.target.record_key for o in authority.applied_overrides if o.applied
+            ),
         )
 
     def record(self, key: str) -> EffectiveRecord | None:

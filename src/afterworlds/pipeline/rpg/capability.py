@@ -307,7 +307,7 @@ MANIFEST: dict[Operation, Capability] = {
             "character inputs as a fixed-DC check"
         ),
         effects="success or failure against the band's DC; no state mutation",
-        fingerprint="fe3555814a3fd87e7fa2145fe0a803f158738079e0ef46c35ec56f452150ab96",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="cf5cceb71bccab4669486638edaf556e192693413b39357539af1794ffa2c234",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.SAVING_THROW: Capability(
         Operation.SAVING_THROW,
@@ -328,7 +328,7 @@ MANIFEST: dict[Operation, Capability] = {
             "Instrument refuse: 2b records no variant)"
         ),
         effects="success or failure against the activity's printed DC",
-        fingerprint="aac3b1c4aa0c4637a923ef28cc76772cdfac4a251ce231af833391394589ac94",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="929069d89f6eb1e3c7aac49cede11b5fdd2b7d6ab502f9eb92c1e21e4df1e088",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.INITIATIVE: Capability(
         Operation.INITIATIVE,
@@ -338,7 +338,7 @@ MANIFEST: dict[Operation, Capability] = {
             "Disadvantage from typed condition facts, including Initiative's own"
         ),
         effects="an Initiative total with outcome `undetermined`; no order",
-        fingerprint="1d2c49236f64495029f8b644bd35153925ff8c10fdf1bccfa88d7e7ae87f159d",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="2128e4ed48b6cd8c78ead7fd34db1dcad5b8195442fb31706ffed5c69436f9be",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.WEAPON_ATTACK: Capability(
         Operation.WEAPON_ATTACK,
@@ -355,7 +355,7 @@ MANIFEST: dict[Operation, Capability] = {
             "yet: masteries, ammunition, the Light extra attack, sight that needs "
             "a sense's range"
         ),
-        fingerprint="9857b379c813d2d50633bbab6bc0693c0fb5cafcd84836f21912dc5a8f840c30",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="693cb02204268a396bbca3e7f47c91b18b6774a067f5b1db02add9c340df8271",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.DEATH_SAVING_THROW: Capability(
         Operation.DEATH_SAVING_THROW,
@@ -370,7 +370,7 @@ MANIFEST: dict[Operation, Capability] = {
             "Stable with a rolled recovery interval; three failures death; a "
             "natural 20 regains 1 Hit Point, ending Unconscious and leaving Prone"
         ),
-        fingerprint="e4b8645eb5074c87ada15c0969574c439cd09623bd8f81c59808f10591c3053a",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="a50a0bee9828fedc5f8e6c84c9f130d7e0abdc5743d7bc1dfff6420ea4750d61",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.STABILIZE: Capability(
         Operation.STABILIZE,
@@ -384,7 +384,7 @@ MANIFEST: dict[Operation, Capability] = {
             "on a success, a dying subject becomes Stable with a rolled recovery "
             "interval, or a knockout's Unconscious ends, leaving it Prone"
         ),
-        fingerprint="1107b3f8bfa6b399524378f84f8d916f06098dd250e138ff5cd2cac2c1f2955a",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="f5a5ba6e7628ea766aa147ffce347439c013ea626346f97480d4198a89c91302",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.STABLE_RECOVERY: Capability(
         Operation.STABLE_RECOVERY,
@@ -397,7 +397,7 @@ MANIFEST: dict[Operation, Capability] = {
             "once the rolled interval has elapsed: 1 Hit Point regained, "
             "Unconscious ended, Prone; the instance consumed"
         ),
-        fingerprint="5835069a1e2e4922c94d61c1d79717ff6aa0aea5f0c5c8c40077c9370a1f5e06",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="9a74de52d3437d0207127f21872ef0efa21aa734acb20f89e2463356a2a5f43f",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.KNOCKOUT_RECOVERY: Capability(
         Operation.KNOCKOUT_RECOVERY,
@@ -407,7 +407,7 @@ MANIFEST: dict[Operation, Capability] = {
             "began was completed (OD-15c-2)"
         ),
         effects="the knockout's Unconscious ends, leaving the creature Prone",
-        fingerprint="5835069a1e2e4922c94d61c1d79717ff6aa0aea5f0c5c8c40077c9370a1f5e06",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="9a74de52d3437d0207127f21872ef0efa21aa734acb20f89e2463356a2a5f43f",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.BEGIN_TURN: Capability(
         Operation.BEGIN_TURN,
@@ -420,14 +420,14 @@ MANIFEST: dict[Operation, Capability] = {
             "the subject's turn instance begins (an appended edge); a dying "
             "subject makes its death save"
         ),
-        fingerprint="2fa222179f05d4c504dabf0b453165edcac05dbb99db33a6d932c8828c0e756f",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="87e613c653e85610544f83b5aedc90eb2476480fd833a7ff50a4f1c252544665",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.END_TURN: Capability(
         Operation.END_TURN,
         CapabilityStatus.EXECUTABLE,
         inputs="the subject whose turn is active",
         effects="its turn instance ends (an appended edge)",
-        fingerprint="2fa222179f05d4c504dabf0b453165edcac05dbb99db33a6d932c8828c0e756f",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="87e613c653e85610544f83b5aedc90eb2476480fd833a7ff50a4f1c252544665",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.CREATURE_ATTACK: Capability(
         Operation.CREATURE_ATTACK,
@@ -445,7 +445,7 @@ MANIFEST: dict[Operation, Capability] = {
             "against one). Not yet: usage limits and Recharge, speed changes, "
             "forced movement, conditional damage, legendary actions"
         ),
-        fingerprint="b2491c1ebef0f3770fd5cb5acd24ad2ddd4325a4ff512927beff016ce1b95d4f",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="15f2ae57ee762f73d9856904c7218ff3df4ecf8e2a39126621ce2216db6015a9",  # noqa: E501  # pragma: allowlist secret
     ),
     Operation.CREATURE_SAVE_EFFECT: Capability(
         Operation.CREATURE_SAVE_EFFECT,
@@ -462,7 +462,7 @@ MANIFEST: dict[Operation, Capability] = {
             "type, sight, environment or trigger predicates, formula DCs, "
             "failure effects beyond a condition"
         ),
-        fingerprint="e14932c0f6f2046d6c5b8743bcc9c53871e2ee630d27e5571b66c6dbc771b04d",  # noqa: E501  # pragma: allowlist secret
+        fingerprint="9f979ba2777e9ac36d4878f5f03fdfde294851abaad39abf189afce362a05782",  # noqa: E501  # pragma: allowlist secret
     ),
 }
 
@@ -507,7 +507,8 @@ class Certificate:
 def _governing(
     index: AuthorityIndex, operation: Operation = Operation.FIXED_DC_CHECK
 ) -> Iterable[tuple[str, str]]:
-    yield from FIXED_DC_CHECKS
+    if operation is Operation.FIXED_DC_CHECK:
+        yield from FIXED_DC_CHECKS
     yield from _CHECK_PROCEDURE
     yield from {
         Operation.DIFFICULTY_CHECK: _DIFFICULTY_TABLE,
@@ -547,6 +548,38 @@ def _governing(
             )
         for c in record.components:
             yield record_key, c.semantic_key
+
+
+def certify_template(index: AuthorityIndex, template: str) -> str:
+    """The digest of a creature template's exact effective components under
+    *index*, for the certificate; refuses a template an override touched.
+
+    A template is subject-specific authority, so it is not in an operation's
+    pinned shared-procedure fingerprint: each creature an operation reads is
+    certified against its own binding. The adapter was certified against the
+    accepted source templates; an override that supplied, replaced or
+    suppressed any part of one is not that authority.
+    """
+    record = index.record(template)
+    if record is None:
+        raise AdjudicationRefusal(
+            RefusalKind.MISSING_AUTHORITY, f"template {template} is absent"
+        )
+    if template in index.overridden or any(
+        c.supplied_by_override_id is not None
+        or any(f.supplied_by_override_id is not None for f in c.facts)
+        for c in record.components
+    ):
+        raise AdjudicationRefusal(
+            RefusalKind.INCOMPATIBLE_CERTIFICATION,
+            f"an override changed {template}; this adapter is certified against "
+            "the accepted creature templates only",
+        )
+    entries = sorted(
+        [template, c.semantic_key, component_schema_id(c)] for c in record.components
+    )
+    encoded = json.dumps(entries, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
 def governing_fingerprint(

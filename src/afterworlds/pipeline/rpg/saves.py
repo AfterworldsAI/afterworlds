@@ -47,6 +47,7 @@ from afterworlds.pipeline.rpg.capability import (
     RefusalKind,
 )
 from afterworlds.pipeline.rpg.conditions import effective
+from afterworlds.pipeline.rpg.defense import template as template_of
 from afterworlds.pipeline.rpg.dice import DiceService
 from afterworlds.pipeline.rpg.grants import ability_score, save_proficiency
 from afterworlds.pipeline.rpg.mastery import other_effects
@@ -308,7 +309,7 @@ def refuse_contributors(
     if unexecuted:
         raise unsupported(f"active effect {unexecuted[0].source.record_key}")
     if isinstance(subject, TurnCreature):
-        template = subject.stored.state.template_record_key
+        template = template_of(subject)
         for fact in facts_of(index, template):
             if isinstance(fact, CreatureSaveOverrideFact):
                 raise unsupported(f"{template}/{fact.entry} (a save override)")
@@ -411,8 +412,7 @@ def _creature(
 ) -> tuple[int, dict[str, int]]:
     from afterworlds.pipeline.rpg.defense import facts_of
 
-    state = creature.stored.state
-    template = state.template_record_key
+    template = template_of(creature)
     if index.record(template) is None:
         raise _refuse(RefusalKind.MISSING_AUTHORITY, f"template {template} is absent")
     refuse_contributors(creature, index, ability, frozenset())

@@ -73,7 +73,13 @@ from afterworlds.pipeline.rpg.capability import (
     governing_fingerprint,
 )
 from afterworlds.pipeline.rpg.damage import DamageTaken, preflight, take_damage
-from afterworlds.pipeline.rpg.defense import armor_class, condition_immune, facts_of
+from afterworlds.pipeline.rpg.defense import (
+    armor_class,
+    condition_immune,
+    facts_of,
+    template_digests,
+)
+from afterworlds.pipeline.rpg.defense import template as template_of
 from afterworlds.pipeline.rpg.dice import DiceService
 from afterworlds.pipeline.rpg.mastery import other_effects, reference
 from afterworlds.pipeline.rpg.saves import PreparedSave, RolledSave
@@ -116,6 +122,8 @@ class PreparedCreatureAttack:
     rider_save: PreparedSave | None = None
     ac_breakdown: dict[str, int] = field(default_factory=dict)
     usage: CreatureEntryUsageFact | None = None
+    #: Each creature subject's certified template digest.
+    templates: dict[str, str] = field(default_factory=dict)
 
     @property
     def expression(self) -> str:
@@ -182,6 +190,7 @@ class RolledCreatureAttack:
                 "damage": [d.provenance() for d in self.damage],
                 "rider": self.rider,
                 "certificate": p.certificate.as_json(),
+                "templates": p.templates,
             },
             sort_keys=True,
         )
@@ -189,7 +198,7 @@ class RolledCreatureAttack:
 
 def _attack_fact(attacker: TurnCreature, entry: str) -> CreatureAttackFact:
     assert attacker.index is not None
-    template = attacker.stored.state.template_record_key
+    template = template_of(attacker)
     found = [
         f
         for f in facts_of(attacker.index, template)
@@ -244,7 +253,7 @@ def _standing_traits(
     """Standing traits that change this attack roll: the attacker's own
     (subject ``self``), settled by the GameMaster's facts, or refused."""
     assert attacker.index is not None
-    template = attacker.stored.state.template_record_key
+    template = template_of(attacker)
     for fact in facts_of(attacker.index, template):
         if not isinstance(fact, CreatureRollModifierFact):
             continue
@@ -539,6 +548,7 @@ def prepare(
         disadvantage_sources=tuple(mods.disadvantage),
         automatic_critical=tuple(mods.automatic_critical),
         certificate=certificate,
+        templates=template_digests(attacker, target),
         rider_save=rider_save,
         ac_breakdown=ac_breakdown,
         usage=creature_effects.usable(attacker, fact.entry),
@@ -773,7 +783,7 @@ def check_multiattack(attacker: TurnCreature, entries: list[str]) -> None:
     condition, a count formula, a spell use or an "if available" part, and
     replacements, are not executable here."""
     assert attacker.index is not None
-    template = attacker.stored.state.template_record_key
+    template = template_of(attacker)
     facts = [
         f
         for f in facts_of(attacker.index, template)

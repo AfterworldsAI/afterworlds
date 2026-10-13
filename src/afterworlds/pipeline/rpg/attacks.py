@@ -113,8 +113,10 @@ from afterworlds.pipeline.rpg.defense import (
     armor_class,
     condition_immune,
     facts_of,
+    template_digests,
     untrained_armor,
 )
+from afterworlds.pipeline.rpg.defense import template as template_of
 from afterworlds.pipeline.rpg.dice import DiceService
 from afterworlds.pipeline.rpg.grants import (
     ability_score,
@@ -269,6 +271,8 @@ class PreparedAttack:
     ac_breakdown: dict[str, int] = field(default_factory=dict)
     #: Rules that make any hit a Critical Hit (Paralyzed, Unconscious).
     automatic_critical: tuple[str, ...] = ()
+    #: Each creature subject's certified template digest.
+    templates: dict[str, str] = field(default_factory=dict)
     #: The attacker's mastery effects this roll spends (Sap, Vex).
     spent: tuple[SheetEffect, ...] = ()
     #: The weapon's mastery property this attack uses, if any.
@@ -338,6 +342,7 @@ class RolledAttack:
                 "damage": self.damage.provenance() if self.damage else None,
                 "mastery": self.mastery_result,
                 "certificate": p.certificate.as_json(),
+                "templates": p.templates,
             },
             sort_keys=True,
         )
@@ -740,7 +745,7 @@ def _size(subject: TurnSubject) -> CreatureSize | None:
         assert subject.index is not None
         sizes = [
             s
-            for f in facts_of(subject.index, subject.stored.state.template_record_key)
+            for f in facts_of(subject.index, template_of(subject))
             if isinstance(f, CreatureSizeFact)
             for s in f.sizes
         ]
@@ -1150,6 +1155,7 @@ def prepare(
         advantage_sources=tuple(advantage),
         disadvantage_sources=tuple(disadvantage),
         certificate=certificate,
+        templates=template_digests(target),
         breakdown=breakdown,
         ac_breakdown=ac_breakdown,
         automatic_critical=tuple(mods.automatic_critical),
