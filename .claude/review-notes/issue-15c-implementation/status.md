@@ -5,7 +5,70 @@
 - **Scope:** #191 as updated (body SHA-256 `8225e1b6…57a2`). It adds creature attacks, bounded Multiattack and their saves/effects, the tool-addressing and omitted-source repair, and individual conditional-creature assessment. The G1 oracle `2ccbaeba…1258` is unchanged.
 - **Process:** Opus 5.5 at medium effort, with the separate Opus 5.5 Advisor consulted on the approach, the candidate scope and completion.
 
-## Latest (12–13 October 2026, continuation; relay pipe stale, so this is the durable report)
+## Latest (13 October 2026; relay pipe stale, so this is the durable report)
+
+Nothing is pushed and there is no PR. No C7 acceptance, recording or execution has occurred.
+
+**Main branch `codex/issue-15c-bounded-d20`, newest first:**
+
+| Commit | Change |
+| --- | --- |
+| `bd5ef82` | Code-owned creature roster (C5 packet Decision 4) |
+| `6526674` | Multiattack replacements |
+| `b082262` | Creature clauses execute or refuse |
+| `1ecbb87` | Fix to a test that was already red |
+| `4b3ff07` | Bystanders |
+| `c17aadc` | Public labels |
+| `5513bd5` | Hand/grip facts |
+| `56d9dec`, `bf401a7` | Action accounting |
+| `545c6f4` | Use events, no-write recheck and holdings recheck |
+| `fcab52d` | Template certification and fixed-DC scoping |
+
+- **`1ecbb87`:** `test_no_refused_candidate_is_selectable` was red since the C5 recording, which never named its eleven identities. It now passes.
+- **`b082262`:** previously, 107 entries that execute ignored their same-entry `Clause*` facts. Now every clause is executed or refused before any die.
+  - The ten C5-positive shapes execute:
+    - size/charge predicate, where the charge is the OD-15c-1 `moved_straight_toward_target`;
+    - Prone;
+    - Allosaurus follow-up Bite (`follows_up`, adjacent, `not_triggered` on a miss, no action of its own; adjacency instead of a use key);
+    - Chimera Advantage damage;
+    - Gibbering Mouther kills a target it reduces to 0;
+    - returning weapons and underwater Fire Resistance, which have no effect here.
+  - Save effects refuse any clause; no C5-positive save effect prints one.
+- **`6526674`:** a replacement by another attack entry is admitted, and each part is certified by its own preparation.
+  - Dragon Turtle Bite/Tail/Bite runs through the service turn.
+  - Roc Talons refuses by its own part. Spell and save-effect options stay refused.
+- **`bd5ef82`, the silent-drop family.**
+  - **The defect:** typed facts cannot show untyped entry mechanics. Examples: the Balor's no-Reactions, burning, maximum-HP loss, armor degradation, lycanthrope form, Sunlight/Light Sensitivity, Aura of Authority. Entries with such mechanics executed and dropped them.
+  - **The roster:** `roster.EXECUTABLE` admits:
+    - entries C5 marks executable;
+    - entries whose every C5 blocker has since been settled. Settled means Pack Tactics (bystanders), Recharge at turn start, area/range selections (OD-15c-1) and turn-bounded ends (OD-15c-2), each executed. The test lists them as `SETTLED`.
+  - **The pin:** it is pinned to `capability.json` `6037ea70`.
+  - **Effect:** every other attack or save-effect entry refuses before any die.
+  - **For Codex:** this is a new mechanism, implementing an accepted decision. Please review the settled-blocker table.
+
+**Remaining C5-positive coverage gaps (in progress):** C5 marks these executable; they refuse today.
+
+| Family | Items |
+| --- | --- |
+| Flat damage printed as `average` only | 17 |
+| Rider conditional damage (swarms, goblins) | 9 |
+| Berserker and Sahuagin Frenzy circumstances | 2 |
+| Steam Mephit Blurred Form | 1 |
+| Purple Worm and Remorhaz linked conditions | 2 |
+| Dryad and Erinyes Multiattack fit | 2 |
+| Glabrezu Pummel's target condition | 1 |
+| Pirate Captain: positive Multiattack whose Rapier is non-positive in C5 | 1 |
+
+Three more positive Multiattack selections fail only through these parts.
+
+**C7 preview (`codex/issue-15c-c7-preview`, worktree `agent-afb6123d0b7851456`):**
+- Commits `221a8e7`, `2d9f694`, `02f9bc8` (the census fix), `ed23cb7` and `3166f22` (the `codex-c7-native-review` correction).
+- **Validator correction:** the relational rule now reads only structurally admitted facts. Three malformed-structure regressions run through `validate_representation`. The schema pins and preview identities are unchanged, so the evidence is reused.
+- **`OWNER-PACKET.md` (`4912928f…eb2c`):** one consolidated acceptance including I2.
+- **Verification:** the implementing session reran the builder independently; the report was byte-identical.
+- **Next gate:** Codex confirmation, then the Owner.
+
+## Earlier (12–13 October 2026, continuation; relay pipe stale, so this is the durable report)
 
 **Local commits since `86c0436` (not pushed, no PR):**
 
