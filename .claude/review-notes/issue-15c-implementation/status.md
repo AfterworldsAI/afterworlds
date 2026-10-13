@@ -5,7 +5,41 @@
 - **Scope:** #191 as updated (body SHA-256 `8225e1b6…57a2`). It adds creature attacks, bounded Multiattack and their saves/effects, the tool-addressing and omitted-source repair, and individual conditional-creature assessment. The G1 oracle `2ccbaeba…1258` is unchanged.
 - **Process:** Opus 5.5 at medium effort, with the separate Opus 5.5 Advisor consulted on the approach, the candidate scope and completion.
 
-## Latest (13–14 October 2026, overnight): Codex execution remediation
+## Latest (14 October 2026): raw candidate C8 (target creature types) ready for Codex raw review
+
+**Scope.** Codex's `codex-creature-type-boundary-classification.md` was adopted. Ghast and Ghoul Claw stay promised, held and incomplete; `BOUNDARIES` is an interim disclosure only.
+
+**Candidate.** `candidate-c8/`; nothing is accepted, minted or recorded, and `src` is unchanged.
+- **`c8.json`** (`81991739…20cd6`): 345 `creature_type` facts.
+  - 336 creature templates: every `creature_size` profile.
+    - 328 direct;
+    - 7 swarms (I1);
+    - Find Steed's `type_choice`.
+  - 9 species: "Humanoid", on their existing prose-bound `creature_type` component.
+- **Proposed schema-21 delta:** documented in `schema-21-delta.md`, not applied.
+- **Forms:**
+  - 12 kept (I2);
+  - Incubus/Succubus Form uses the other stat block;
+  - Vampire held.
+- **Held:**
+  - Ghoul against non-Undead creatures. A creature's elf status is unrepresented, and an absent tag is not evidence.
+  - Vampires.
+  - Stored type departures.
+  - Form-changing spells.
+- **Affected batches:** monsters 235, animals 95, character-origins-feats 9, spell-descriptions 4, magic-items 2. The other 19 batches are untouched.
+- **Validation** (`validation.json`):
+  - every quote equals its cited line;
+  - one fact per record;
+  - closed vocabulary;
+  - claim spans and one batch per row;
+  - interpretation evidence on its cited lines;
+  - deterministic across two runs.
+
+**Next gate:** Codex raw review. After that, a SIMULATED native preview and pinned packet in an isolated worktree, then the Owner's exact acceptance. No type-dependent execution before then.
+
+**Delivery:** `codex-delivery-correction-review.md` clears the four delivery findings at `4a39f27`. The six creature-shape and before-dice repairs await independent implementation review.
+
+## Earlier (13–14 October 2026, overnight): Codex execution remediation
 
 **Codex reviews:**
 - `codex-c7-recording-final-review.md`: the C7 recording is CLEARED.
