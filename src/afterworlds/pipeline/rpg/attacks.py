@@ -927,9 +927,14 @@ def prepare(
     weapon = _weapon(index, item)
     props = weapon.properties
     if WeaponProperty.AMMUNITION in props:
+        # Expending ammunition needs the held item that is the printed type
+        # (``ammunition_of_the_printed_type``); the ammunition gear records
+        # state no typed kind, so none can be identified from authority.
         raise _refuse(
-            RefusalKind.UNSUPPORTED_CAPABILITY,
-            f"{weapon.record}: ammunition expenditure is not executed yet",
+            RefusalKind.MISSING_AUTHORITY,
+            f"{weapon.record}: no ammunition item states its typed kind "
+            f"({props[WeaponProperty.AMMUNITION].ammunition}), so none can be "
+            "expended",
         )
     shield_held = any(
         i.equipped and i.record_key == "equipment.armor.shield" for i in actor.items

@@ -328,12 +328,15 @@ def test_a_two_handed_weapon_with_a_shield_refuses() -> None:
     )
 
 
-def test_an_ammunition_weapon_refuses_until_expenditure_is_executed() -> None:
+def test_an_ammunition_weapon_refuses_without_a_typed_ammunition_item() -> None:
     wolf = _creature()
     proposal = _proposal(
         wolf, LONGBOW, range="within_normal_range", hostile_within_5_feet=False
     )
-    _refused(RefusalKind.UNSUPPORTED_CAPABILITY, _attacker(LONGBOW), wolf, proposal)
+    refusal = _refused(
+        RefusalKind.MISSING_AUTHORITY, _attacker(LONGBOW), wolf, proposal
+    )
+    assert "arrow" in refusal.detail
 
 
 def test_an_attack_contributor_refuses() -> None:
