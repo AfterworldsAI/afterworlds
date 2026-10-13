@@ -1081,17 +1081,27 @@ def _validate_summoned_creature_types(draft: RepresentationDraft) -> list[str]:
     ``ammunition_supply`` terms: only structurally admitted facts are read,
     and a form whose own facts are refused is not judged against them (its
     refusal stays the finding).
+
+    The reference names a component, not an option or a condition, so only
+    the component's unconditional profile can satisfy it: a size or type
+    held in an option arm, under the component's ``applies_when`` or under
+    the fact's own qualifier is conditional authority, and the form refuses
+    rather than being read as fixed.
     """
     kinds = {r.semantic_key: r.kind for r in draft.records}
     sized: set[tuple[str, str]] = set()
     types: dict[tuple[str, str], list[CreatureTypeFact]] = {}
     sources: list[tuple[str, SummonedCreatureTypeFact]] = []
     refused: set[tuple[str, str]] = set()
+    conditional: set[tuple[str, str]] = set()
     components = {(c.record_key, c.semantic_key) for c in draft.components}
     for component in draft.components:
         key = (component.record_key, component.semantic_key)
-        facts = (*component.facts, *(f for o in component.options for f in o.facts))
-        for fact in facts:
+        scoped = (
+            *((f, "") for f in component.facts),
+            *((f, o.semantic_key) for o in component.options for f in o.facts),
+        )
+        for fact, option_key in scoped:
             if type(fact) in (
                 CreatureSizeFact,
                 CreatureTypeFact,
@@ -1099,12 +1109,18 @@ def _validate_summoned_creature_types(draft: RepresentationDraft) -> list[str]:
             ) and (fact_invariant_violations(fact)):
                 refused.add(key)
                 continue
-            if type(fact) is CreatureSizeFact:
+            if type(fact) is SummonedCreatureTypeFact:
+                sources.append((f"component {key[0]}/{key[1]}", fact))
+            elif type(fact) in (CreatureSizeFact, CreatureTypeFact) and (
+                option_key
+                or component.applies_when is not None
+                or component.qualifier_for(fact, option_key) is not None
+            ):
+                conditional.add(key)
+            elif type(fact) is CreatureSizeFact:
                 sized.add(key)
             elif type(fact) is CreatureTypeFact:
                 types.setdefault(key, []).append(fact)
-            elif type(fact) is SummonedCreatureTypeFact:
-                sources.append((f"component {key[0]}/{key[1]}", fact))
 
     findings: list[str] = []
     for tag, source in sources:
@@ -1115,6 +1131,12 @@ def _validate_summoned_creature_types(draft: RepresentationDraft) -> list[str]:
                 continue  # its own refusal is the finding
             if target not in components:
                 findings.append(f"{where}, which is not a component of this draft")
+            elif target in conditional:
+                findings.append(
+                    f"{where}, whose creature_size or creature_type is held in an "
+                    "option or under a condition, so the component states no fixed "
+                    "profile"
+                )
             elif kinds.get(target[0]) is not RecordKind.CREATURE or (
                 target not in sized
             ):

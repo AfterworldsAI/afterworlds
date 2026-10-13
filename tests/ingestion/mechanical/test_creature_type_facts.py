@@ -8,25 +8,32 @@ C8's Find Familiar fact and the animal profiles it names.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any
 
 import pytest
 
 from afterworlds.ingestion.mechanical.representation import (
+    Applicability,
+    ApplicabilityKind,
     ComponentDraft,
     ComponentHandling,
+    ComponentOption,
     ComponentReference,
     CreatureSize,
     CreatureSizeFact,
     CreatureTypeFact,
     CreatureTypeKind,
+    FactQualifier,
     MalformedFactPayloadError,
+    Phase,
     RecordDraft,
     RecordKind,
     RepresentationDraft,
     SummonedCreatureTypeFact,
     fact_from_payload,
     fact_invariant_violations,
+    fact_key,
 )
 from afterworlds.ingestion.mechanical.validation import (
     _validate_summoned_creature_types,
@@ -235,6 +242,50 @@ def test_a_form_whose_own_type_is_not_instead_of_is_refused(
         _draft(_familiar(), _beast("bat"), cat)
     )
     assert "animals.cat/cat" in finding and "not exactly beast" in finding
+
+
+_WHILE_ACTIVE = Applicability(kind=ApplicabilityKind.PHASE, phase=Phase.WHILE_ACTIVE)
+_TINY = CreatureSizeFact(sizes=(CreatureSize.TINY,))
+_IS_BEAST = CreatureTypeFact(type=T.BEAST, type_choice=())
+
+
+def _conditional_cat(case: str) -> ComponentDraft:
+    if case == "option-arms":
+        return ComponentDraft(
+            record_key="animals.cat",
+            semantic_key="cat",
+            handling=ComponentHandling.STRUCTURED,
+            options=(
+                ComponentOption(semantic_key="a", facts=(_TINY, _IS_BEAST)),
+                ComponentOption(
+                    semantic_key="b",
+                    facts=(CreatureSizeFact(sizes=(CreatureSize.SMALL,)),),
+                ),
+            ),
+        )
+    if case == "component-applies-when":
+        return replace(_beast("cat"), applies_when=_WHILE_ACTIVE)
+    qualified = _TINY if case == "qualified-size" else _IS_BEAST
+    return replace(
+        _beast("cat"),
+        fact_qualifiers=(
+            FactQualifier(fact_key=fact_key(qualified), applies_when=_WHILE_ACTIVE),
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    "case",
+    ["option-arms", "component-applies-when", "qualified-type", "qualified-size"],
+)
+def test_conditional_profile_authority_is_not_a_fixed_form(case: str) -> None:
+    """codex-c8-schema-code-review P2: a component reference selects no option
+    or condition, so a size or type held conditionally never establishes the
+    fixed ``instead_of`` form."""
+    (finding,) = _validate_summoned_creature_types(
+        _draft(_familiar(), _beast("bat"), _conditional_cat(case))
+    )
+    assert "animals.cat/cat" in finding and "no fixed profile" in finding
 
 
 def test_refused_structure_is_never_read_relationally() -> None:
