@@ -5,6 +5,37 @@
 - **Scope:** #191 as updated (body SHA-256 `8225e1b6…57a2`). It adds creature attacks, bounded Multiattack and their saves/effects, the tool-addressing and omitted-source repair, and individual conditional-creature assessment. The G1 oracle `2ccbaeba…1258` is unchanged.
 - **Process:** Opus 5.5 at medium effort, with the separate Opus 5.5 Advisor consulted on the approach, the candidate scope and completion.
 
+## Latest (12–13 October 2026, continuation; relay pipe stale, so this is the durable report)
+
+**Local commits since `86c0436` (not pushed, no PR):**
+
+| Commit | Change |
+| --- | --- |
+| `2904640` | Saving-throw helper and timing contract §G |
+| `b58a168` | Fix: turn-state sequencing and condition coverage |
+| `729d58a` | Actor-turn edges, coordination row, migration 0041, death save |
+| `5e3a7a4` | Knockout, first aid, OD-15c-2 attestations |
+| `9e9eb71` | Masteries; fixes a latent hit-audit UUID serialization defect |
+| `199cc92` | Cleave and per-turn uses |
+| `57976b7` | Ammunition refusal reason |
+| `0822771` | Lifecycle preflight |
+| `46f8b50` | Production reachability: the GameMaster previously saw no ids; now it gets a GameMaster-only scene block |
+| `0c873cc` | Creature attacks |
+| `da179a5` | Fix: one hit's damage terms judged as one damage |
+
+**Raw candidate C7** (`candidate-c7/`, `c7.json` `bf2a269c…fa77`) consolidates C6-r2 with ammunition identity under the Owner's ammunition directive.
+- It proposes schema-20 `ammunition_supply`.
+- Interpretations I1–I3 are flagged; I2 (firearm ↔ Musket/Pistol) is the weakest and comes with an Owner alternative.
+- It raises three residues: Loading/action economy, free hand, depletion.
+- **Next gate:** Codex raw review.
+
+**Still open:**
+- Implementation: Multiattack, creature save effects, usage/Recharge, ammunition plumbing (refusing until acceptance).
+- For classification: action economy (Nick/Light/Loading), bystander contributors, cross-Turn edge manufacture.
+- The self-derived fingerprints in `recert/governing-set-changes.md` need independent recert review.
+
+**Full gates:** wait for the stable head after C7 acceptance, recording and execution.
+
 ## Current (13 October 2026)
 
 **Commits** (local only, not pushed):
