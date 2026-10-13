@@ -8,7 +8,7 @@
 - **Not shared authority:** it is not published or activated. Shared migration, publication and activation remain separately gated.
 - **Recording evidence:** `.claude/review-notes/issue-15c-c7-recording/`. For C5, see `issue-15c-recording/`.
 
-**Status (13 October 2026): implementation complete for the admitted roster, pending Codex review and final gates.** Every operation below is certified against the C7 successor: adapter `15c-d20-3`, manifest `15c-manifest-3`, and component evidence in `.claude/review-notes/issue-15c-implementation/recert/`.
+**Status (14 October 2026): implemented for the admitted roster except the Ghast/Ghoul Claw rider saves, whose Undead/Elf target exclusion is held pending independent boundary review (no accepted authority types a target's creature type or species); Codex review and final gates pending.** Every operation below is certified against the C7 successor: adapter `15c-d20-3`, manifest `15c-manifest-3`, and component evidence in `.claude/review-notes/issue-15c-implementation/recert/`.
 
 - **Checks:**
   - source-fixed-DC checks;
@@ -119,9 +119,9 @@ Anything that could contribute to the roll but is not executed here refuses the 
   - **What is admitted:** entries the reviewed C5 capability marks executable, and entries whose every C5 blocker has since been settled by an approved contract and is executed. Those blockers are Pack Tactics, Recharge at turn start, area and range selections, and turn-bounded ends.
   - **Pinning:** `test_creature_roster` regenerates the roster and pins it to `capability.json` (`6037ea70…`). It also runs every C5 entry and Multiattack selection through the adapter preflight.
   - **Positions:**
-    - Every C5-positive shape executes.
+    - Every admitted entry prepares and resolves in a scenario built from its own typed targeting.
     - Every entry outside the roster refuses.
-    - No named boundary remains.
+    - Held: the Ghast and Ghoul Claw target-type exclusion, pending boundary review.
   - **For Codex:** this is a new mechanism implementing an accepted decision. Please review the settled-blocker table.
 - **Bloodied is adapter procedure** (Codex classification, `codex-bloodied-linked-conditions-classification.md`).
   - **The predicate:** `2 * current <= maximum - reduction`, over recorded Hit Points, with temporary HP excluded, read from the turn's advanced state.
@@ -131,6 +131,10 @@ Anything that could contribute to the roll but is not executed here refuses the 
   - **The field:** `ConditionInstance.lasts_while_instance` ties a condition to the Grappled instance the same hit applied.
   - **Validation:** the state validator refuses a dangling or malformed link, and `clear_condition` removes the dependants of what it removes.
   - **Bounds:** this is not a general condition engine. Grapple escape and other dependency graphs remain unexecuted.
+- **Discovery and spatial dependencies (Codex delivery review).**
+  - **Discovery scans:** the aura and turn-bounded-effect scans' absences rest on a story snapshot of every subject's revision, taken before the scans and required unchanged at commit (`turn.require_story_unchanged`).
+  - **Spatial facts:** spatial facts about named bystanders and aura holders are invalidated by movement earlier in the turn.
+- **Before any die.** Every refusal-capable read an operation could make happens in preflight. A refusal after an operation's own first die is a `PreflightGapError`.
 - **Ammunition holdings.**
   - **Mechanism:** expenditure is an `item_quantity` sheet effect, applied to holdings by CAS at commit (`holdings.spend_item`) and never to state.
   - **Reconstructable:** the delivered-turn audit row records it (Invariant 11).

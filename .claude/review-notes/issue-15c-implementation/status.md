@@ -5,7 +5,36 @@
 - **Scope:** #191 as updated (body SHA-256 `8225e1b6…57a2`). It adds creature attacks, bounded Multiattack and their saves/effects, the tool-addressing and omitted-source repair, and individual conditional-creature assessment. The G1 oracle `2ccbaeba…1258` is unchanged.
 - **Process:** Opus 5.5 at medium effort, with the separate Opus 5.5 Advisor consulted on the approach, the candidate scope and completion.
 
-## Latest (13 October 2026, end of session): admitted roster executing; awaiting Codex review and final gates
+## Latest (13–14 October 2026, overnight): Codex execution remediation
+
+**Codex reviews:**
+- `codex-c7-recording-final-review.md`: the C7 recording is CLEARED.
+- `codex-creature-execution-final-review.md` and `codex-delivery-execution-final-review.md`: six findings in four families, now addressed.
+
+| Family | Fix | Evidence |
+| --- | --- | --- |
+| Before-dice completeness | `a7160eb`: condition immunity (direct, linked, rider-save, clause Prone) and Bloodied HP are read in `prepare`, and in save-effect `prepare` for each target. A refusal after an operation's own first die is a `PreflightGapError`. | `test_before_dice.py`: Wolf, Purple Worm and Allosaurus with recorded immunity, a Swarm without HP, and the Lion's Roar, each with zero dice; a too-large target's immunity is not consulted. |
+| Positive roster coverage | `ed18d22`: Trample (has Prone), the Sphinx roars (the GameMaster's enemies) and Dragon Turtle Steam Breath (underwater clause) execute. | `test_creature_roster` now requires every admitted entry to prepare and resolve in a scenario built from its own typed targeting. |
+| Mechanical dependency closure | `f15c175`: spatial subjects include named bystanders and, for save-forcing operations, every aura holder. `4a39f27`: a story snapshot taken before the discovery scans, required unchanged at commit. | Push → Pack Tactics and Push → close combat refuse with zero dice. End to end, an unnamed subject changing, or a subject being added, fails the turn; the negative control without the guard delivered (2 failed). |
+| Physical/source identity | `2570029`: Light/Nick compare item instances (two Daggers qualify; the same Dagger refuses); free-hand loading follows the weapon's classification, not the declared grip. | `test_masteries.py`, `test_weapon_attacks.py` (Hand Crossbow, Pistol, Sling, Blowgun) |
+
+**Held, under independent boundary review** (`codex-creature-type-boundary-classification.md`, pending): the Ghast and Ghoul Claw rider saves exclude Undead (and Elf) targets, and no accepted authority types a target's creature type or species.
+- **Disposition:** only that target-tag-dependent execution refuses.
+- **Not claimed:** this is not an accepted exclusion, and the roster is not claimed complete.
+
+**pip-audit:** the CI command passes unchanged (`codex-dependency-gate-disposition.md`); the earlier "needs disposition" note is superseded.
+
+**Interrupted:** a disposable full end-to-end file run was stopped at the coordinator's direction. It gives no full-file verdict. The final full pytest via the supervisor remains required.
+
+**Focused diagnostics** (not acceptance):
+
+| Run | Result |
+| --- | --- |
+| RPG suite | 430 passed |
+| New end-to-end tests | discovery ×2 and holdings, each passed individually |
+| `test_actor_turn_edges_commit_with_the_delivered_turn` | passed |
+
+## Earlier (13 October 2026, end of session): admitted roster executing; awaiting Codex review and final gates
 
 These commits follow the C7 recording report below; all are local, none pushed.
 

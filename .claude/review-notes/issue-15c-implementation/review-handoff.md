@@ -63,6 +63,8 @@
   - Loading and action-budget refusals roll no dice;
   - end-to-end, a shot expends one, the last arrow is removed, and a failure after expenditure rolls everything back.
 
+**Overnight (Codex execution remediation):** see `status.md` "Latest": commits `2570029`, `a7160eb`, `f15c175`, `4a39f27`, `ed18d22`. Ghast/Ghoul Claw target-tag execution is held pending independent boundary review.
+
 **Completed since:** Codex's Bloodied and linked Grappled→Restrained classification is implemented (`10ddbfd`, `ae011bb`). No C5-positive boundary remains. See `status.md` "Latest" and `sibling-audit-creature-silent-drops.md`. pip-audit reports five pre-existing `chromadb` advisories with no fix versions; they need a disposition.
 
 **Still required:**
