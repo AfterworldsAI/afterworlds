@@ -10,7 +10,9 @@
 | `page-77-extract.txt` (pypdf text of PDF page index 76) | `ed129b55cb0dccf9446dff29e89475c23fc626fa58034a1907432d11e87e80fa` |
 | `validation.json` (28 checks, all true) | `22bd4d12d0ac43e27226c82e42efc7abe980840460db32f302aff7cc8ed80b66` |
 
-**Reproduce.** Run from the repository root, with the worktree venv plus `pypdf`, which is a review-tool dependency, not a project one. Two runs produce byte-identical output.
+**Historical C8 evidence.** `validation.json` is the accepted report, produced while C8 was the selected authority (PR #194 at `5d05f473`). `validate_s1.py` reads whichever authority `committed_inputs_for` selects, but it labels that authority C8 and rewrites `validation.json`. On a branch where C9 is recorded, running it unchanged would mix C9 data with C8 labels and overwrite the accepted report. Reproduce it on a checkout of `5d05f473`, or run only `derive_s1.py` here, which does not read the corpus. The current C9 compatibility of the accepted S1 is a separate in-memory proof, `../../issue-15b-c9-recording/s1-on-c9/` (`s1-on-c9.json`).
+
+**Reproduce (at `5d05f473`).** Run from the repository root, with the worktree venv plus `pypdf`, which is a review-tool dependency, not a project one. Two runs produce byte-identical output.
 
 ```
 PYTHONIOENCODING=utf-8 venv/Scripts/python.exe .claude/review-notes/issue-15b-contest-authority/supplement-s1/derive_s1.py [--pdf PATH]

@@ -1,0 +1,102 @@
+{
+ "all_ok": true,
+ "certified_release": [
+  "1299484e-c72d-509b-bd8d-d0169ee1f8d2",
+  "5.2.1-corpus.8781d4e0-a3b",
+  "3703faf5-8b51-5c3f-b28c-b378b005f7bf"
+ ],
+ "checks": {
+  "accepted_c8_report_preserved": {
+   "ok": true
+  },
+  "all_14_operations_unaffected_and_certified": {
+   "detail": {
+    "begin_turn": {
+     "certifies_under_s1": true,
+     "fingerprint_unchanged_and_pinned": true
+    },
+    "creature_attack": {
+     "certifies_under_s1": true,
+     "fingerprint_unchanged_and_pinned": true
+    },
+    "creature_save_effect": {
+     "certifies_under_s1": true,
+     "fingerprint_unchanged_and_pinned": true
+    },
+    "creature_species": {
+     "certifies_under_s1": true,
+     "fingerprint_unchanged_and_pinned": true
+    },
+    "death_saving_throw": {
+     "certifies_under_s1": true,
+     "fingerprint_unchanged_and_pinned": true
+    },
+    "difficulty_check": {
+     "certifies_under_s1": true,
+     "fingerprint_unchanged_and_pinned": true
+    },
+    "end_turn": {
+     "certifies_under_s1": true,
+     "fingerprint_unchanged_and_pinned": true
+    },
+    "fixed_dc_check": {
+     "certifies_under_s1": true,
+     "fingerprint_unchanged_and_pinned": true
+    },
+    "initiative": {
+     "certifies_under_s1": true,
+     "fingerprint_unchanged_and_pinned": true
+    },
+    "knockout_recovery": {
+     "certifies_under_s1": true,
+     "fingerprint_unchanged_and_pinned": true
+    },
+    "stabilize": {
+     "certifies_under_s1": true,
+     "fingerprint_unchanged_and_pinned": true
+    },
+    "stable_recovery": {
+     "certifies_under_s1": true,
+     "fingerprint_unchanged_and_pinned": true
+    },
+    "tool_check": {
+     "certifies_under_s1": true,
+     "fingerprint_unchanged_and_pinned": true
+    },
+    "weapon_attack": {
+     "certifies_under_s1": true,
+     "fingerprint_unchanged_and_pinned": true
+    }
+   },
+   "ok": true
+  },
+  "base_has_no_contest_component": {
+   "ok": true
+  },
+  "binding_is_c9_certified_release": {
+   "ok": true
+  },
+  "contest_component_schema_id_unchanged": {
+   "ok": true
+  },
+  "overridden_records": {
+   "ok": true
+  },
+  "override_id": {
+   "ok": true
+  },
+  "override_set_identity": {
+   "detail": "ffcb9a48-901a-5fe7-9e80-9054b05a9097",
+   "ok": true
+  },
+  "s1_exact": {
+   "ok": true
+  },
+  "selected_is_c9": {
+   "ok": true
+  }
+ },
+ "s1_sha256": "c232a7863d3a31144ebb7fcdd2f7af6591b68b4f3cb096bf65ad6e6d3372c64a",
+ "simulated": "S1 applied in memory to the production-selected C9 inputs; no store, publication or activation",
+ "supplement_only_override_set_uuid": "ffcb9a48-901a-5fe7-9e80-9054b05a9097"
+}

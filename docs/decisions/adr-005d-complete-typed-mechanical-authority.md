@@ -1187,6 +1187,39 @@ declares either.
 > - **G1** is kept byte for byte and skipped by digest. The record is
 >   `.claude/review-notes/issue-15c-recording/`.
 
+> **Amendment — representation schema 22 (CRD Issue 15b C9, Owner acceptance 14 October 2026).**
+> Schema 22 (`5d-representation-schema-22`, hash `b073cd4f…414f`) adds one declarative family and
+> its one nested value shape, and nothing else:
+>
+> - `creature_skills`: a creature profile's complete printed Skills entry, as a sorted tuple of
+>   distinct `CreatureSkillBonus` (`skill`, `ability`, `bonus`). Empty is a positive statement
+>   that the stat block prints no Skills entry; a missing fact is missing authority.
+> - `CreatureSkillBonus.ability` is the skill's usual ability (`SKILL_ABILITY`), the one pairing
+>   the printed total is for. The total is never decomposed. Nothing is stated about the same
+>   skill used with another ability; a consumer refuses that pairing before any die.
+> - Relational rule: at most one such fact, and only on a creature profile.
+>
+> No accepted family, field or vocabulary changes meaning. The registered lift
+> `5d-lift-schema-21-to-22` proves every previously accepted payload byte-identical under 22.
+> Decision 4 still holds: admitting the family makes nothing executable.
+>
+> **Recording.** The Owner accepted PR #194 and the native C9 packet
+> (`.claude/review-notes/issue-15b-c9-recording/owner-acceptance-2026-10-14.md`): raw C9 r2
+> (`a3d40545…`), the four replacement proposals, oracle identity `924321df…ab0c` and projection
+> `3703faf5-8b51-5c3f-b28c-b378b005f7bf`. It was recorded natively as the same-release successor
+> `srd-5-2-1-corpus-8781d4e0-a3b-15b-c9.json` (SHA-256 `01729b53…ec7b`, 2026-10-14), adding the
+> fact to 336 profiles.
+> - **Evidence changed:** only the four batches' acceptance evidence differs from the reviewed
+>   simulated preview, which is preserved.
+> - **Preserved:** the other twenty batches' rows equal C8's.
+> - **C8** is kept byte for byte and skipped by digest. The record is
+>   `.claude/review-notes/issue-15b-c9-recording/`.
+> - **Design history:** `.claude/review-notes/issue-15b-contest-authority/candidate-c9/schema-22-delta.md`.
+>
+> Schemas 20 and 21 (CRD Issue 15c C7 and C8) have no amendment note here. Their accepted
+> contracts and recordings are in `.claude/review-notes/issue-15c-c7-recording/`,
+> `issue-15c-c8-recording/` and `docs/architecture/issue-15c-bounded-d20.md`.
+
 ### Decision 5 — Exact completeness, not aggregate thresholds
 
 Publication is proven through the complete reviewed source inventory and accepted expected rules,

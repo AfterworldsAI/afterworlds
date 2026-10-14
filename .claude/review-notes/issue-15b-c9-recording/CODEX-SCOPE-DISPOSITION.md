@@ -1,0 +1,7 @@
+# Codex scope disposition — metadata-registration siblings
+
+The recurring-family gate controls scope; it does not expand this C9 authority PR. Keep the deterministic registration fix in tests/ingestion/conftest.py, which covers fresh/durable source-release helpers and the inherited mechanical session setup. The two-node reproduction and all original setup errors are within that root.
+
+The probes also found latent registration gaps in tests/entitlement/conftest.py, tests/pipeline/provider/conftest.py and tests/test_quarantine_5c_5d.py. These are not dependencies requiring implementation in this authority PR. Remove the new Story/Node imports/comment blocks from those three files, preserving any unrelated changes. Record their dispositions as out of scope/deferred in the sibling note, and already-safe representative state/persistence fixtures. Do not turn the family audit into a repository-wide fixture cleanup or ask the Owner for a new product decision.
+
+This is a scope boundary, not a request for an alternative implementation style. No billing/provider/quarantine production behavior changed, and no such work was requested. Complete the in-scope fixture fix, separate S1 compatibility proof, accepted schema linkage and checksum audit, then reuse unaffected completed checks. Review items remain bounded and decided. Do not edit a file during an active validation that uses it. Native recording/proposal/schema source stays unchanged. PR #129 remains frozen.

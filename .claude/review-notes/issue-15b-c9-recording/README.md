@@ -38,6 +38,16 @@ The private inputs (`proposals/*-C8-PROPOSAL.json`, `rel/afterworlds.db`, `rel/l
 - **`CERTIFIED_RELEASE`** moves to `3703faf5-…`. Adapter `15c-d20-4` and manifest `15c-manifest-4` stay: neither adapter code nor any manifest entry changed, the versions are recorded but never compared, and a certificate's projection distinguishes C8 from C9.
 - **Tests** (`tests/pipeline/rpg/test_certification.py`): all 14 certify on the production-selected index; the superseded C8 file, loaded and identified natively, refuses each with `incompatible_certification` although its fingerprints match; a changed template's digest differs and an untouched one's does not.
 
+## Review closure (Codex review of the completed candidate)
+
+- **Keyword-only fixture.** The Goblin assertion constructed `CreatureSkillBonus` positionally (its declaration is `kw_only`). It failed once in the first combined run and was corrected to named arguments. The affected nodes then passed 118.
+- **Setup-error family.** Fixture `create_all` depended on which modules were collected first; fixed in `tests/ingestion/conftest.py`. Reproduction, affected nodes, the reused publication proof and the sibling dispositions are in `setup-fix/README.md`.
+- **S1 on C9.** The accepted S1 `validation.json` (C8, 28 checks) is preserved as history; its README now says to reproduce it at `5d05f473`. The current in-memory compatibility proof is `s1-on-c9/`:
+  - checks: production-selected C9, exact S1, the C9 certified binding, the empty and supplement override-set identities, the unchanged contest component schema id, and all 14 fingerprints unchanged and pinned and certifying under S1;
+  - result: `all_ok`, exit 0, 38 s; `s1-on-c9.json` `74f35a4e…`.
+- **Schema 22 authority.** ADR-005d gains "Amendment — representation schema 22". `schema-22-delta.md` opens with its accepted status; its pre-acceptance text is preserved.
+- **Checksum baseline.** 291 audited entries are marked `is_secret: false` (`secret-baseline-audit.md`). Codex's negative-control receipts are in `secret-negative-control/`.
+
 ## Boundary
 
 Recording installs local repository authority only. S1 is not recorded and stays a release-bound authored override applied only to isolated in-memory fixtures. No contest operation, lifecycle, #129 code, migration, Phase 3 or 19b work. PR #129 stays frozen at `d8233a43`; its explicit resume gate is not released. No publication, activation, merge, shared-runtime operation or app launch.
