@@ -1,0 +1,82 @@
+{
+ "mode": "record",
+ "recorded_at": "2026-10-14T18:54:11Z",
+ "successor": "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15b-c9.json",
+ "successor_sha256": "01729b532a0ff46047608d9e46d539851ba2c9a32aaa9e0468ae0babb902ec7b",
+ "successor_bytes": 44914191,
+ "prior_successor_sha256_after": "ead7fa9d4fde484098f71221ca5ef82dfb2c82229d8fca80ab5feeb4e4d62d0d",
+ "reviewed_preview_sha256": "3ad7bdcb7aa926e38eca6c4019f7c77119427076a1639b2aa1f81cbfd25f59a3",
+ "packet_report_sha256": "d61ed1b435e539da7127373d387d2124167581b9df9b5fcc9afb146049e096d4",
+ "proposal_identities": {
+  "spell-descriptions": "2f296a37e843fc408a0b8cdab542d651364345c04d74cf36154a3e2479d3897b",
+  "magic-items": "b5412d4bde82e7153f119783da126ac1251fcaa106cbe094f2416bd3400f9bc6",
+  "monsters": "6445a5b1433ec73f9972c78f7d4f9edfd1bf204debc588ce55272effae3824ab",
+  "animals": "3c6fa54203a5412d1d93b524d52ddb4fe80eb8627152c7761e14ac211c7305f3"
+ },
+ "schema": [
+  "5d-representation-schema-22",
+  "b073cd4f429631826efd628ed164a5ad680050c7e957e74680777922affb414f"
+ ],
+ "lifts": [
+  "5d-lift-schema-15-to-16",
+  "5d-lift-schema-16-to-17",
+  "5d-lift-schema-17-to-18",
+  "5d-lift-schema-18-to-19",
+  "5d-lift-schema-19-to-20",
+  "5d-lift-schema-20-to-21",
+  "5d-lift-schema-21-to-22"
+ ],
+ "oracle_identity": "924321dff5ab1821de3a4cdf464e3db1aa28859238458ddd6a58663ddf15ab0c",
+ "projection": "3703faf5-8b51-5c3f-b28c-b378b005f7bf",
+ "payload_hash": "c7a52d551823917a8def153396262a816eb51c60a5c6b5a58cdb8d009902b82f",
+ "g1_sha256_after": "2ccbaeba6de75d9787fbdd407e42dc2425fa20d4d26bcc298b681b550bd11258",
+ "predecessor_sha256_after": "def7caa1625458a40c1f635db153268082cf52d5e25c28f57fd29518e44de58c",
+ "comparison_with_reviewed_preview": {
+  "outside_acceptance_differences": [],
+  "acceptance_equal_after_blanking_evidence": true,
+  "other_acceptance_collections_equal": [
+   "lifts",
+   "reference_resolution_records",
+   "schema_anchors"
+  ],
+  "non_evidence_differences": [],
+  "untouched_rows_in_same_order": {
+   "batches": true,
+   "records": true,
+   "review_unit_records": true
+  },
+  "evidence_changed": {
+   "batches.rule": 4,
+   "records.reviewer": 7364,
+   "records.accepted_at": 7364,
+   "review_unit_records.reviewer": 1121,
+   "review_unit_records.accepted_at": 1121
+  },
+  "evidence_changed_outside_touched": []
+ },
+ "untouched_rows_equal_c8_successor": {
+  "untouched_batches": 20,
+  "batches": true,
+  "records": true,
+  "review_unit_records": true,
+  "schema_anchors": true
+ },
+ "native": {
+  "validate_candidate_findings": [],
+  "validate_candidate_finding_count": 0,
+  "verify_reconstruction": [],
+  "reconstructed_payload_identical": true,
+  "reidentified_projection": "3703faf5-8b51-5c3f-b28c-b378b005f7bf",
+  "projection": "3703faf5-8b51-5c3f-b28c-b378b005f7bf",
+  "payload_hash": "c7a52d551823917a8def153396262a816eb51c60a5c6b5a58cdb8d009902b82f",
+  "gate_passed": true,
+  "gate_failures": []
+ },
+ "carried_from_packet": [
+  "malformed_variants_refused",
+  "successor_refused_against_preview",
+  "preview_refused_against_successor",
+  "preservation",
+  "sequencing"
+ ]
+}

@@ -608,9 +608,9 @@ def test_the_schema_hash_is_a_declared_contract_not_a_file_digest() -> None:
 #: stays its historical anchor in ``schema_lift``.
 #:
 #: Restamped at schema 22 the same way: the creature_skills family and its
-#: CreatureSkillBonus value shape of raw candidate C9 (CRD Issue 15b, preview
-#: only). Schema 21 (``SCHEMA_21_HASH``) stays its historical anchor in
-#: ``schema_lift``.
+#: CreatureSkillBonus value shape of the Owner-accepted CRD Issue 15b C9
+#: successor (2026-10-14). Schema 21 (``SCHEMA_21_HASH``) stays its historical
+#: anchor in ``schema_lift``.
 EXPECTED_SCHEMA_HASH = "b073cd4f429631826efd628ed164a5ad680050c7e957e74680777922affb414f"  # noqa: E501  # pragma: allowlist secret
 
 
