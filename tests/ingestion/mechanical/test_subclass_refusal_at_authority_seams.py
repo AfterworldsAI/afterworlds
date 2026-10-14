@@ -26,6 +26,7 @@ import json
 import pathlib
 from dataclasses import dataclass, fields, is_dataclass, replace
 from enum import StrEnum
+from functools import cache
 from typing import Any, cast
 
 import pytest
@@ -120,6 +121,7 @@ from afterworlds.ingestion.mechanical.representation import (
     canonical_bytes,
     declared_meaning_violations,
     exact_type_violations,
+    fact_from_payload,
     fact_invariant_violations,
     fact_key,
     fact_payload,
@@ -1004,6 +1006,361 @@ NESTED_TUPLE_FIELDS = [
 ]
 
 
+#: Every nested tuple field the accepted CRD Issue 15c schemas (19-21) added
+#: below the round-10 boundary, by ``Class.field``: written out, not derived,
+#: so the inventory assertion compares the declarations against an audited
+#: list. Each is witnessed by a real container -- see
+#: :func:`_source_backed_container` -- not by its name.
+SOURCE_BACKED_TUPLE_FIELDS: tuple[str, ...] = (
+    "AbilityIncreaseChoiceFact.abilities",
+    "AbilityIncreaseChoiceFact.patterns",
+    "AbilityIncreaseRuleFact.patterns",
+    "AbilityMinimum.any_of",
+    "AmmunitionPerActivationFact.per",
+    "AmmunitionSupplyFact.for_weapons",
+    "ArmorTraining.armor",
+    "ArmorTrainingGrantFact.armor",
+    "ArmorTrainingPenaltyFact.abilities",
+    "ArmorTrainingPenaltyFact.applies_to",
+    "AttackAbilityOptionFact.abilities",
+    "ClauseAreaOriginPointFact.duration_of_effects",
+    "ClauseAreaOriginPointFact.ends_effects",
+    "ClauseAreaOriginPointFact.under_predicates",
+    "ClauseAuraFact.duration_of_effects",
+    "ClauseAuraFact.ends_effects",
+    "ClauseAuraFact.under_predicates",
+    "ClauseBranchFact.duration_of_effects",
+    "ClauseBranchFact.ends_effects",
+    "ClauseBranchFact.under_predicates",
+    "ClauseChoiceTypedDamageFact.duration_of_effects",
+    "ClauseChoiceTypedDamageFact.ends_effects",
+    "ClauseChoiceTypedDamageFact.under_predicates",
+    "ClauseConditionEndsEarlyFact.duration_of_effects",
+    "ClauseConditionEndsEarlyFact.ends_early_when",
+    "ClauseConditionEndsEarlyFact.ends_effects",
+    "ClauseConditionEndsEarlyFact.under_predicates",
+    "ClauseConditionEndsFact.duration_of_effects",
+    "ClauseConditionEndsFact.ends_effects",
+    "ClauseConditionEndsFact.under_predicates",
+    "ClauseConditionFact.duration_of_effects",
+    "ClauseConditionFact.effects",
+    "ClauseConditionFact.ends_effects",
+    "ClauseConditionFact.under_predicates",
+    "ClauseConditionUntilRepeatFact.duration_of_effects",
+    "ClauseConditionUntilRepeatFact.effects",
+    "ClauseConditionUntilRepeatFact.ends_effects",
+    "ClauseConditionUntilRepeatFact.under_predicates",
+    "ClauseConditionalDamageFact.duration_of_effects",
+    "ClauseConditionalDamageFact.ends_effects",
+    "ClauseConditionalDamageFact.unconditional_hit_damage_indices",
+    "ClauseConditionalDamageFact.under_predicates",
+    "ClauseD20TestPenaltyDieFact.contexts",
+    "ClauseD20TestPenaltyDieFact.duration_of_effects",
+    "ClauseD20TestPenaltyDieFact.ends_effects",
+    "ClauseD20TestPenaltyDieFact.under_predicates",
+    "ClauseDamageBranchFact.duration_of_effects",
+    "ClauseDamageBranchFact.ends_effects",
+    "ClauseDamageBranchFact.terms",
+    "ClauseDamageBranchFact.under_predicates",
+    "ClauseDamageQualificationFact.duration_of_effects",
+    "ClauseDamageQualificationFact.ends_effects",
+    "ClauseDamageQualificationFact.under_predicates",
+    "ClauseDamageRollPenaltyFact.duration_of_effects",
+    "ClauseDamageRollPenaltyFact.ends_effects",
+    "ClauseDamageRollPenaltyFact.under_predicates",
+    "ClauseEffectEndsFact.duration_of_effects",
+    "ClauseEffectEndsFact.ends_early_when",
+    "ClauseEffectEndsFact.ends_effects",
+    "ClauseEffectEndsFact.under_predicates",
+    "ClauseEffectLastsFact.duration_of_effects",
+    "ClauseEffectLastsFact.ends_effects",
+    "ClauseEffectLastsFact.under_predicates",
+    "ClauseFollowUpAttackFact.duration_of_effects",
+    "ClauseFollowUpAttackFact.ends_effects",
+    "ClauseFollowUpAttackFact.under_predicates",
+    "ClauseForcedMovementFact.duration_of_effects",
+    "ClauseForcedMovementFact.ends_effects",
+    "ClauseForcedMovementFact.under_predicates",
+    "ClauseGrappleFact.duration_of_effects",
+    "ClauseGrappleFact.ends_effects",
+    "ClauseGrappleFact.under_predicates",
+    "ClauseHitPointRegainProhibitionFact.duration_of_effects",
+    "ClauseHitPointRegainProhibitionFact.ends_effects",
+    "ClauseHitPointRegainProhibitionFact.under_predicates",
+    "ClauseHitPointsSetFact.duration_of_effects",
+    "ClauseHitPointsSetFact.ends_effects",
+    "ClauseHitPointsSetFact.under_predicates",
+    "ClauseLinkedConditionFact.duration_of_effects",
+    "ClauseLinkedConditionFact.effects",
+    "ClauseLinkedConditionFact.ends_effects",
+    "ClauseLinkedConditionFact.under_predicates",
+    "ClauseNamedEffectFact.duration_of_effects",
+    "ClauseNamedEffectFact.ends_effects",
+    "ClauseNamedEffectFact.under_predicates",
+    "ClauseNestedSaveFact.duration_of_effects",
+    "ClauseNestedSaveFact.ends_effects",
+    "ClauseNestedSaveFact.under_predicates",
+    "ClauseNestedSaveTriggerFact.duration_of_effects",
+    "ClauseNestedSaveTriggerFact.ends_effects",
+    "ClauseNestedSaveTriggerFact.under_predicates",
+    "ClauseNextRollModifierFact.duration_of_effects",
+    "ClauseNextRollModifierFact.ends_effects",
+    "ClauseNextRollModifierFact.under_predicates",
+    "ClausePenaltyDieApplicationFact.duration_of_effects",
+    "ClausePenaltyDieApplicationFact.ends_effects",
+    "ClausePenaltyDieApplicationFact.under_predicates",
+    "ClausePeriodicDamageFact.duration_of_effects",
+    "ClausePeriodicDamageFact.ends_effects",
+    "ClausePeriodicDamageFact.under_predicates",
+    "ClausePeriodicHitPointLossFact.duration_of_effects",
+    "ClausePeriodicHitPointLossFact.ends_effects",
+    "ClausePeriodicHitPointLossFact.under_predicates",
+    "ClausePredicateFact.duration_of_effects",
+    "ClausePredicateFact.ends_effects",
+    "ClausePredicateFact.under_predicates",
+    "ClauseRepeatSaveFact.duration_of_effects",
+    "ClauseRepeatSaveFact.ends_effects",
+    "ClauseRepeatSaveFact.under_predicates",
+    "ClauseRepeatSaveLimitFact.duration_of_effects",
+    "ClauseRepeatSaveLimitFact.ends_effects",
+    "ClauseRepeatSaveLimitFact.under_predicates",
+    "ClauseRescueCheckFact.duration_of_effects",
+    "ClauseRescueCheckFact.ends_effects",
+    "ClauseRescueCheckFact.under_predicates",
+    "ClauseReturningWeaponFact.duration_of_effects",
+    "ClauseReturningWeaponFact.ends_effects",
+    "ClauseReturningWeaponFact.under_predicates",
+    "ClauseRollModifierFact.duration_of_effects",
+    "ClauseRollModifierFact.effects",
+    "ClauseRollModifierFact.ends_effects",
+    "ClauseRollModifierFact.under_predicates",
+    "ClauseSaveSuccessFact.duration_of_effects",
+    "ClauseSaveSuccessFact.ends_effects",
+    "ClauseSaveSuccessFact.under_predicates",
+    "ClauseSaveTimingFact.duration_of_effects",
+    "ClauseSaveTimingFact.ends_effects",
+    "ClauseSaveTimingFact.under_predicates",
+    "ClauseSelfSavePredicateFact.duration_of_effects",
+    "ClauseSelfSavePredicateFact.ends_effects",
+    "ClauseSelfSavePredicateFact.under_predicates",
+    "ClauseSourceMovementFact.duration_of_effects",
+    "ClauseSourceMovementFact.ends_effects",
+    "ClauseSourceMovementFact.under_predicates",
+    "ClauseTargetingRestrictionFact.duration_of_effects",
+    "ClauseTargetingRestrictionFact.ends_effects",
+    "ClauseTargetingRestrictionFact.under_predicates",
+    "ClauseTemporaryImmunityFact.duration_of_effects",
+    "ClauseTemporaryImmunityFact.ends_effects",
+    "ClauseTemporaryImmunityFact.under_predicates",
+    "ClauseTimedAcModifierFact.duration_of_effects",
+    "ClauseTimedAcModifierFact.ends_effects",
+    "ClauseTimedAcModifierFact.under_predicates",
+    "ClauseTimedConditionFact.duration_of_effects",
+    "ClauseTimedConditionFact.effects",
+    "ClauseTimedConditionFact.ends_early_when",
+    "ClauseTimedConditionFact.ends_effects",
+    "ClauseTimedConditionFact.under_predicates",
+    "ClauseTimedSpeedChangeFact.duration_of_effects",
+    "ClauseTimedSpeedChangeFact.ends_effects",
+    "ClauseTimedSpeedChangeFact.under_predicates",
+    "ClauseTriggerFact.duration_of_effects",
+    "ClauseTriggerFact.ends_effects",
+    "ClauseTriggerFact.under_predicates",
+    "ClauseZeroHitPointOutcomeFact.duration_of_effects",
+    "ClauseZeroHitPointOutcomeFact.ends_effects",
+    "ClauseZeroHitPointOutcomeFact.under_predicates",
+    "CreatureAttackFact.hit_damage",
+    "CreatureAttackNotationFact.sections",
+    "CreatureConditionGrantFact.conditions",
+    "CreatureEntryUsageFact.forms",
+    "CreatureMultiattackFact.alternatives",
+    "CreatureMultiattackFact.replacements",
+    "CreatureRollModifierFact.effects",
+    "CreatureSaveEffectFact.failure_damage",
+    "CreatureSizeFact.sizes",
+    "CreatureTypeFact.type_choice",
+    "DamageNotationOptionFact.options",
+    "DamageTerm.addends",
+    "DamageTypeSelection.vocabulary",
+    "DeathSavingThrowFact.reset_on",
+    "ExpertiseChoiceFact.from_skills",
+    "IcyTerrain.difficult_terrain_of",
+    "KnockoutAlternativeFact.ends_early_on",
+    "LegendaryActionRuleFact.not_while_has_conditions",
+    "MasteryDc.plus",
+    "MasteryEffectFact.on_failure",
+    "MultiattackAlternative.parts",
+    "MultiattackPart.any_of",
+    "MultiattackPart.uses_one_of",
+    "MultiattackReplacement.with_one_of",
+    "MulticlassProficiencyGrantFact.saving_throws",
+    "MulticlassProficiencyGrantFact.tool_grant",
+    "MulticlassSkillProficiencyChoiceFact.from_skills",
+    "QualifiedWeaponCategory.with_any_property",
+    "ReachExtensionFact.applies_to",
+    "RiderSave.target_excludes",
+    "SaveTargets.automatic_failure_types",
+    "SaveTargets.automatic_success_types",
+    "SaveTargets.excludes_types",
+    "SaveTargets.has_conditions",
+    "SaveTargets.related_to_source",
+    "SaveTargets.types",
+    "SaveTargets.willing_or_conditions",
+    "SavingThrowProficiencyGrantFact.abilities",
+    "SizedDamage.huge",
+    "SizedDamage.large",
+    "SizedDamage.medium_or_smaller",
+    "SkillProficiencyChoiceFact.from_skills",
+    "SkillProficiencyGrantFact.skills",
+    "SpellAttackModifierFormulaFact.sum",
+    "SpellSaveDcFormulaFact.plus",
+    "SummonedCreatureTypeFact.forms",
+    "SummonedCreatureTypeFact.type_choice",
+    "ToolChoice.options",
+    "ToolProficiencyChoiceFact.options",
+    "ToolProficiencyGrantFact.tools",
+    "ToolVariantsFact.variants",
+    "UsageLimitRuleFact.also_regain",
+    "UsageLimitRuleFact.regain",
+    "WeaponCategories.categories",
+    "WeaponMasteryChoiceFact.categories",
+    "WeaponMasteryChoiceFact.count_by_level",
+    "WeaponProficiencyGrantFact.categories",
+    "WeaponProficiencyGrantFact.qualified",
+)
+
+#: The one optional tuple field among them, refused by its own declared type.
+_OPTIONAL_TUPLE_TYPES = {
+    "AmmunitionSupplyFact.for_weapons": "tuple[ComponentReference, ...] | None",
+}
+
+#: Real accepted facts read from the recorded C8 successor: (record,
+#: component). First, instances of the seven nested value types no
+#: first-family exemplar holds:
+#: The Grappler feat's ability minimum; the Half-Dragon's chosen damage type;
+#: the Wererat's Multiattack replacement; the Rogue's Finesse-or-Light martial
+#: weapons; the Ghoul's Claw rider save; Animate Objects' sized damage; the
+#: Bard multiclass musical-instrument choice.
+_ACCEPTED_SOURCES = (
+    ("feats.grappler", "category"),
+    ("monsters.half_dragon.half_dragon", "half_dragon"),
+    ("monsters.wererat.wererat", "actions"),
+    ("classes.rogue", "core_traits"),
+    ("monsters.ghoul.ghoul", "actions"),
+    ("spells.animate_objects.animated_object", "actions"),
+    ("classes.bard.as_a_multiclass_character", "as_a_multiclass_character"),
+    # Accepted facts holding elements in a tuple every exemplar leaves empty
+    # (clause links, save-target predicates, Multiattack uses, usage regain,
+    # an increase pattern, a multiclass tool grant). Where no accepted fact
+    # fills a field, its real empty instance is the witness.
+    ("monsters.rakshasa.rakshasa", "actions"),
+    ("monsters.phase_spider.phase_spider", "actions"),
+    ("monsters.sea_hag.sea_hag", "actions"),
+    ("feats.boon_of_spell_recall", "ability_score_increase"),
+    ("monsters.homunculus.homunculus", "actions"),
+    ("monsters.otyugh.otyugh", "actions"),
+    ("monsters.pit_fiend.pit_fiend", "actions"),
+    ("animals.swarm_of_ravens", "actions"),
+    ("monsters.doppelganger.doppelganger", "actions"),
+    ("monsters.roc.roc", "actions"),
+    ("monsters.ghost.ghost", "actions"),
+    ("monsters.vampires.vampire_spawn", "actions"),
+    ("monsters.sprite.sprite", "actions"),
+    ("monsters.vrock.vrock", "actions"),
+    ("monsters.parts_of_a_stat_block", "limited_usage"),
+    ("classes.rogue.as_a_multiclass_character", "as_a_multiclass_character"),
+)
+_ACCEPTED_ORACLE = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json"
+
+
+@cache
+def _source_facts() -> tuple[object, ...]:
+    """The facts a witness may be built from: every first-family exemplar
+    (``test_fact_families``), then the accepted facts above."""
+    from tests.ingestion.mechanical.test_fact_families import EXEMPLARS
+
+    wanted = set(_ACCEPTED_SOURCES)
+    components = json.loads(_ACCEPTED_ORACLE.read_bytes())["representation"][
+        "components"
+    ]
+    accepted = [
+        fact_from_payload(payload)
+        for c in components
+        if (c["record_key"], c["semantic_key"]) in wanted
+        for payload in (*c["facts"], *(f for o in c["options"] for f in o["facts"]))
+    ]
+    return (*EXEMPLARS.values(), *accepted)
+
+
+def _path_to(
+    value: object, owner: str, name: str, filled: bool
+) -> list[tuple[str, int | None]] | None:
+    """Steps from *value* to an *owner* instance whose *name* holds an exact
+    tuple (a non-empty one if *filled*), or ``None``."""
+    if not is_dataclass(value) or isinstance(value, type):
+        return None
+    if type(value).__name__ == owner:
+        held = getattr(value, name, None)
+        if type(held) is tuple and (held or not filled):
+            return []
+    for f in fields(value):
+        child = getattr(value, f.name)
+        if type(child) is tuple:
+            for i, item in enumerate(child):
+                found = _path_to(item, owner, name, filled)
+                if found is not None:
+                    return [(f.name, i), *found]
+        else:
+            found = _path_to(child, owner, name, filled)
+            if found is not None:
+                return [(f.name, None), *found]
+    return None
+
+
+def _rebuild(
+    value: Any, path: list[tuple[str, int | None]], name: str, container: Any
+) -> Any:
+    if not path:
+        return replace(value, **{name: container(getattr(value, name))})
+    (step, index), rest = path[0], path[1:]
+    child = getattr(value, step)
+    if index is None:
+        return replace(value, **{step: _rebuild(child, rest, name, container)})
+    items = list(child)
+    items[index] = _rebuild(items[index], rest, name, container)
+    return replace(value, **{step: tuple(items)})
+
+
+def _source_backed_container(key: str, container: Any) -> RepresentationDraft:
+    """The bounded fixture holding a real fact whose ``key`` tuple is held in
+    *container*, preferring one with elements; fails if no source-backed fact
+    reaches that field. The container is refused before its content is
+    read, so an empty real field witnesses the refusal as well."""
+    owner, name = key.split(".")
+    for filled in (True, False):
+        for fact in _source_facts():
+            path = _path_to(fact, owner, name, filled)
+            if path is not None:
+                return _with_fact(_rebuild(fact, path, name, container))
+    raise AssertionError(f"no source-backed fact reaches {key}")
+
+
+#: Every audited nested tuple field: the original witnesses and the accepted
+#: schemas' fields, each with the declared type its refusal names.
+TUPLE_WITNESSES = [
+    *(pytest.param(*case.values, "tuple", id=case.id) for case in NESTED_TUPLE_FIELDS),
+    *(
+        pytest.param(
+            lambda c, key=key: _source_backed_container(key, c),
+            key.split(".")[1],
+            _OPTIONAL_TUPLE_TYPES.get(key, "tuple"),
+            id=key,
+        )
+        for key in SOURCE_BACKED_TUPLE_FIELDS
+    ),
+]
+
+
 def test_the_audited_inventory_is_the_whole_declared_surface() -> None:
     """The audit is bounded by the declarations, not by the review comment.
 
@@ -1025,7 +1382,8 @@ def test_the_audited_inventory_is_the_whole_declared_surface() -> None:
         if str(field.type).lower().startswith("tuple")
     }
     top_level = {f"RepresentationDraft.{name}" for name in _DRAFT_ELEMENT_TYPES}
-    audited = {case.id for case in NESTED_TUPLE_FIELDS}
+    audited = {case.id for case in TUPLE_WITNESSES}
+    assert len(audited) == len(TUPLE_WITNESSES), "a field is witnessed twice"
 
     assert top_level <= declared, "the six collections round 10 closed"
     assert declared - top_level == audited, (
@@ -1034,9 +1392,9 @@ def test_the_audited_inventory_is_the_whole_declared_surface() -> None:
     )
 
 
-@pytest.mark.parametrize(("tamper", "field"), NESTED_TUPLE_FIELDS)
+@pytest.mark.parametrize(("tamper", "field", "declared"), TUPLE_WITNESSES)
 def test_every_nested_tuple_field_refuses_a_subclass_carrying_hidden_state(
-    tamper, field: str
+    tamper, field: str, declared: str
 ) -> None:  # type: ignore[no-untyped-def]
     """The reported defect, one witness per audited field.
 
@@ -1045,13 +1403,13 @@ def test_every_nested_tuple_field_refuses_a_subclass_carrying_hidden_state(
     """
     findings = held_structure_violations(tamper(SmuggledTuple))
     assert any(
-        f"{field} must be tuple, got SmuggledTuple" in f for f in findings
+        f"{field} must be {declared}, got SmuggledTuple" in f for f in findings
     ), findings
 
 
-@pytest.mark.parametrize(("tamper", "field"), NESTED_TUPLE_FIELDS)
+@pytest.mark.parametrize(("tamper", "field", "declared"), TUPLE_WITNESSES)
 def test_every_nested_tuple_field_refuses_before_observing_the_container(
-    tamper, field: str
+    tamper, field: str, declared: str
 ) -> None:  # type: ignore[no-untyped-def]
     """The ordering requirement, proved by a container that raises if observed.
 
@@ -1061,7 +1419,7 @@ def test_every_nested_tuple_field_refuses_before_observing_the_container(
     """
     findings = held_structure_violations(tamper(HostileTuple))
     assert any(
-        f"{field} must be tuple, got HostileTuple" in f for f in findings
+        f"{field} must be {declared}, got HostileTuple" in f for f in findings
     ), findings
 
 
@@ -1082,9 +1440,9 @@ def test_the_two_faced_container_is_refused_rather_than_read() -> None:
     assert list(findings) == ["alternatives must be tuple, got TwoFacedTuple"]
 
 
-@pytest.mark.parametrize(("tamper", "field"), NESTED_TUPLE_FIELDS)
+@pytest.mark.parametrize(("tamper", "field", "declared"), TUPLE_WITNESSES)
 def test_exact_tuples_with_valid_elements_still_pass(
-    tamper, field: str
+    tamper, field: str, declared: str
 ) -> None:  # type: ignore[no-untyped-def]
     """The over-refusal control: the same shapes, held in an ordinary tuple.
 
@@ -1094,7 +1452,7 @@ def test_exact_tuples_with_valid_elements_still_pass(
     semantic findings, which are not this round's subject.
     """
     findings = held_structure_violations(tamper(tuple))
-    assert not [f for f in findings if "must be tuple" in f], findings
+    assert not [f for f in findings if f"must be {declared}" in f], findings
 
 
 def test_the_bounded_fixture_and_committed_artifact_report_nothing() -> None:
