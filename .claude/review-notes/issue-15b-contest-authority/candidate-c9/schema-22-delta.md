@@ -7,7 +7,7 @@ on accepted C8 at schema 21.
 
 | Element | Shape | Manifested invariant |
 | --- | --- | --- |
-| `CreatureSkillBonus` (new value shape) | `skill: Skill`, `bonus: int` | none beyond types. `Skill` is the existing closed vocabulary, so no member is added |
+| `CreatureSkillBonus` (new value shape) | `skill: Skill`, `ability: AbilityScore`, `bonus: int` | `ability` is the skill's usual ability (`SKILL_ABILITY`), the one pairing the printed total is for. Both vocabularies already exist, so no member is added |
 | `CreatureSkillsFact`, family `creature_skills` | `skills: tuple[CreatureSkillBonus, ...]` | entries are distinct by skill and sorted by `skill` value. **Empty is legal**: it states that the stat block prints no Skills entry (interpretation S1) |
 
 **The relational rule** lives in `validation.validate_representation`, on the C8 `summoned_creature_type`
@@ -37,8 +37,9 @@ only; nothing reads prose at play time.
 
 | A creature's check | Bonus |
 | --- | --- |
-| Skill listed in its `creature_skills` | the printed `bonus`, complete. Ability modifier, PB and Expertise are never added (interpretation S3) |
-| Skill not listed; the fact is present | the governing ability's modifier: the printed modifier where the accepted `creature_ability_score` fact records one, otherwise the score's modifier by the certified `play.six_abilities/ability_modifiers` rule |
+| Skill listed in its `creature_skills`, used with its usual ability | the printed `bonus`, complete. Ability modifier, PB and Expertise are never added (interpretation S3, qualified in r2) |
+| Skill listed, used with another ability (for example Strength (Acrobatics)) | **refusal before any die**, unless separately supported authority exists. This is a bounded adapter exclusion: the source permits the pairing (`playing-the-game.md`:239), but the printed total is not decomposable (Assassin, `monsters-A-Z.md`:532) |
+| Skill not listed; the fact is present | not proficient. The chosen ability's modifier under any pairing: the printed modifier where the accepted `creature_ability_score` fact records one, otherwise the score's modifier by the certified `play.six_abilities/ability_modifiers` rule |
 | No skill (a plain ability check) | the ability's modifier, as above |
 | The profile carries no `creature_skills` fact | refusal, `MISSING_AUTHORITY`, before any die |
 
@@ -68,7 +69,11 @@ C8 handled the same sequencing this way: schema 21 was a preview commit (`e4221d
 together with the recorded successor (`183a664e`) and recertification. C9 follows that sequence. The
 schema code lands with the recorded C9 successor, after Owner acceptance of the exact native packet.
 
-## Native stage: cost and inputs (not started)
+## Native stage
+
+**Status: now built.** Packet: preview branch `codex/issue-15b-c9-schema-preview` @ `002de94d`, `.claude/review-notes/issue-15b-c9-native/README.md` (preview oracle `3ad7bdcb…`, projection `3703faf5…`, report `c9-packet.json` `d61ed1b4…`). Its builder, `issue-15b-c9-native/build_c9_preview.py`, reads private, pinned copies of the inputs below; Codex authorized that read-only reuse on 2026-10-14. The original plan follows.
+
+### Plan as written for r1
 
 After raw review clears C9, the native SIMULATED preview has this scope:
 - rebuild four proposals at schema 22: monsters (235 facts), animals (95), spell-descriptions (4) and
