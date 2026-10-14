@@ -96,6 +96,7 @@ from afterworlds.ingestion.mechanical.representation import (  # noqa: E402
     REPRESENTATION_SCHEMA_VERSION,
     AbilityScore,
     ComponentHandling,
+    CreatureSize,
     CreatureSizeFact,
     CreatureSkillBonus,
     CreatureSkillsFact,
@@ -104,6 +105,8 @@ from afterworlds.ingestion.mechanical.representation import (  # noqa: E402
     ProvenanceTargetKind,
     Skill,
     fact_from_payload,
+    fact_invariant_violations,
+    fact_key,
     fact_payload,
     fact_target_key,
     representation_schema_hash,
@@ -405,6 +408,29 @@ def chain(
     return state
 
 
+def aligned_components(raw: set[Any], assembled: tuple[Any, ...]) -> set[Any]:
+    """*raw* components with their facts in the assembled counterpart's order.
+
+    Only fact order moves, and only when the counterpart holds exactly the same
+    facts (compared by ``fact_key`` as a multiset) and every other field is
+    equal; a component that differs in any content keeps its raw form, so the
+    delta comparison still fails on it. Options and every nested order stay
+    exactly as stated.
+    """
+    by_key = {(c.record_key, c.semantic_key): c for c in assembled}
+    out = set()
+    for comp in raw:
+        twin = by_key.get((comp.record_key, comp.semantic_key))
+        if (
+            twin is not None
+            and sorted(map(fact_key, comp.facts)) == sorted(map(fact_key, twin.facts))
+            and dataclasses.replace(comp, facts=twin.facts) == twin
+        ):
+            comp = twin
+        out.add(comp)
+    return out
+
+
 def preserved(
     base: AcceptedInputs, data: bytes, built: dict[str, Any], preview: AcceptedInputs
 ) -> dict[str, Any]:
@@ -499,6 +525,11 @@ def preserved(
         new = set().union(
             *(getattr(v[1].proposed_representation, f) for v in built.values())
         )
+        if f == "components":
+            # Raw proposal components carry construction order; the oracle's
+            # carry the assembly's canonical fact order. Compare like with like.
+            old = aligned_components(old, gr.components)
+            new = aligned_components(new, pr.components)
         out[f"representation.{f}.delta_is_the_proposal_delta"] = (
             before - after == old - new
         ) and (after - before == new - old)
@@ -795,6 +826,225 @@ CONSTRUCTED: dict[str, str] = {
 }
 
 
+#: The verifier revision whose native and sequencing results are carried
+#: (Codex supervised run, 2026-10-14, 714 s, exit 1 on the components delta
+#: only), and its report, preserved unchanged at 308b65ad.
+VERIFIED = {
+    "verifier_commit": "31810c084f839e4bee65437befc329ff903c4c55",
+    "builder_sha256": "c4a9a8bfca11153d5ee45b632d362ed28657339e9c46530509eb4cbb6b930d75",  # noqa: E501  # pragma: allowlist secret
+    "report": "reports/c9-verification.json",
+    "report_sha256": "b9f66c9219755322a96e7d2fbbe2c7fc1bf0a5e77fa1b3f1aa848f9a255b34c4",  # noqa: E501  # pragma: allowlist secret
+}
+#: Source-segment digests of everything the carried results depend on, taken
+#: from the builder at 31810c08: producer, pins, malformed variants, native
+#: and sequencing proofs. --finish-report refuses if any moved.
+CARRIED_CODE: dict[str, str] = {
+    "PINS": "2593fd9ba0a2b934bcce5f66bb612730b12145a645d6c44c128f46f193d73948",  # noqa: E501  # pragma: allowlist secret
+    "ACCEPTED": "efffba0a2b9f53da399900928d6f827c96b0700ef9113e8b078bcc70128dfa91",  # noqa: E501  # pragma: allowlist secret
+    "CONSTRUCTED": "6dfea556ff7473b6a31a48bc52b2f8bf5e588c10615eb1fdf937195736b08fa3",  # noqa: E501  # pragma: allowlist secret
+    "private_inputs": "699b8b2ba2234f03f344b988e731c27b1cb5da14af74eb894dca6e8a46b69561",  # noqa: E501  # pragma: allowlist secret
+    "rows": "0a6ed29eae0ef6c519c7f865f0b2cd591e18acc28005a09a26a3d39b458499ae",  # noqa: E501  # pragma: allowlist secret
+    "build_one": "27552cefb9d727b33193fb460c595c7b8580bbe2505613ac57c1c0159f4560f1",  # noqa: E501  # pragma: allowlist secret
+    "build": "473c122473504b04e9128083bda98b28f282d0f638d906b9885a9b1fab5f2b40",  # noqa: E501  # pragma: allowlist secret
+    "chain": "d1a7077d51af0ce6fd4bb5960344385a1ad84af164d929ecee1983ec3ac1c79b",  # noqa: E501  # pragma: allowlist secret
+    "_skills_at": "2f77811f8c8519778d541e288136ce9ccd64984b58288bce8a7e3ca8e1ca1fbb",  # noqa: E501  # pragma: allowlist secret
+    "_replace_skills": "88a15accc6bf5024418bd0fcacc09a4272bc673130c2370f6b8942303601d7bf",  # noqa: E501  # pragma: allowlist secret
+    "_onto_non_profile": "1d235e75d7fc553a11ffa03ce762982e2c549c44839c517dfa6eb29153515872",  # noqa: E501  # pragma: allowlist secret
+    "_bonus": "eddd11cb648bd764ae0838b7b72eee7d66efc901e3d0e7b1724368f2b4f7f37b",  # noqa: E501  # pragma: allowlist secret
+    "MALFORMED": "6e652eeeee7e73c16e3e037a3e8c4b0695878ff5ae1b288bb662e0d73cfce56a",  # noqa: E501  # pragma: allowlist secret
+    "native": "12067cdabc0a94ef28b677ee249252d14bdc9f1b8db3f022d9956953689daaf6",  # noqa: E501  # pragma: allowlist secret
+    "sequencing": "fc71406c49ec0d5df00bd271f6ea4151ad1f194f9136cdebaede1f4d2b21e1d0",  # noqa: E501  # pragma: allowlist secret
+}
+
+
+def segment_digests(names: list[str]) -> dict[str, str]:
+    """SHA-256 of each named top-level definition's source in this file."""
+    import ast
+
+    src = Path(__file__).read_text("utf-8").replace("\r\n", "\n")
+    out = {}
+    for node in ast.parse(src).body:
+        target = node.targets[0] if isinstance(node, ast.Assign) else None
+        name = getattr(node, "name", None) or (
+            target.id if isinstance(target, ast.Name) else None
+        )
+        if name is None and isinstance(node, ast.AnnAssign):
+            name = getattr(node.target, "id", None)
+        if name in names:
+            seg = ast.get_source_segment(src, node) or ""
+            out[name] = sha(seg.encode("utf-8"))
+    return out
+
+
+def alignment_controls(
+    built: dict[str, Any], preview: AcceptedInputs
+) -> dict[str, Any]:
+    """The counterexample and negative controls for ``aligned_components``."""
+    raw = next(
+        c
+        for c in built["monsters"][1].proposed_representation.components
+        if (c.record_key, c.semantic_key) == GOBLIN
+    )
+    pr = preview.oracle.representation.components
+    (asm,) = [c for c in pr if (c.record_key, c.semantic_key) == GOBLIN]
+    out: dict[str, Any] = {
+        "goblin_raw_fact_order": [type(f).__name__ for f in raw.facts],
+        "goblin_assembled_fact_order": [type(f).__name__ for f in asm.facts],
+        "goblin_raw_equals_assembled": raw == asm,
+        "goblin_same_fact_multiset": sorted(map(fact_key, raw.facts))
+        == sorted(map(fact_key, asm.facts)),
+        "goblin_aligned_equals_assembled": aligned_components({raw}, pr) == {asm},
+    }
+    size_at = next(i for i, f in enumerate(raw.facts) if type(f) is CreatureSizeFact)
+    other = next(
+        x for x in CreatureSize if x not in raw.facts[size_at].sizes  # type: ignore[attr-defined]
+    )
+    changed_fact = dataclasses.replace(
+        raw,
+        facts=(
+            *raw.facts[:size_at],
+            CreatureSizeFact(sizes=(other,)),
+            *raw.facts[size_at + 1 :],
+        ),
+    )
+    changed_field = dataclasses.replace(raw, handling=ComponentHandling.STRUCTURED)
+    out["negative_non_skill_fact_change_not_aligned"] = aligned_components(
+        {changed_fact}, pr
+    ) == {changed_fact}
+    out["negative_field_change_not_aligned"] = aligned_components(
+        {changed_field}, pr
+    ) == {changed_field}
+    # The delta proof itself fails when one built component carries a real
+    # change: swap the perturbed Goblin into the built monsters proposal.
+    p = built["monsters"][1]
+    bad_rep = dataclasses.replace(
+        p.proposed_representation,
+        components=tuple(
+            changed_fact if c is raw else c
+            for c in p.proposed_representation.components
+        ),
+    )
+    bad = dict(built)
+    bad["monsters"] = (
+        built["monsters"][0],
+        dataclasses.replace(p, proposed_representation=bad_rep),
+        built["monsters"][2],
+    )
+    return out, bad
+
+
+def invariant_findings(candidate_rep: Any) -> dict[str, list[str]]:
+    """Each fact-invariant variant's own invariant finding, read directly (the
+    native report shows the first matching validation finding, which for these
+    is the review-unit rule mismatch)."""
+    out = {}
+    for name in (
+        "unsorted_skills",
+        "duplicate_skill",
+        "atypical_pairing_strength_acrobatics",
+    ):
+        key, editor, fn, _ = MALFORMED[name]
+        edited = editor(candidate_rep, key, fn)
+        (comp,) = [
+            c for c in edited.components if (c.record_key, c.semantic_key) == key
+        ]
+        out[name] = list(fact_invariant_violations(comp.facts[_skills_at(comp)]))
+    return out
+
+
+def finish_report(args: Any) -> None:
+    """Carry the 31810c08 native and sequencing results, recompute only the
+    corrected preservation proof, and complete the packet report."""
+    t0 = time.monotonic()
+    current = segment_digests(list(CARRIED_CODE))
+    assert current == CARRIED_CODE, {
+        k: (v, current.get(k)) for k, v in CARRIED_CODE.items() if current.get(k) != v
+    }
+    old_bytes = (HERE / VERIFIED["report"]).read_bytes()
+    assert sha(old_bytes) == VERIFIED["report_sha256"], "carried report changed"
+    old = json.loads(old_bytes)
+    assert old["builder_sha256"] == VERIFIED["builder_sha256"]
+    for path, digest in PINS.items():
+        assert sha(path.read_bytes()) == digest, path
+    assert {p.relative_to(REPO).as_posix(): d for p, d in PINS.items()} == old["pins"]
+    paths = private_inputs(args.inputs)
+    base = load_accepted_inputs(SUCCESSOR)
+    built = build(base, paths)
+    rendered = {b: render(v[1]).encode("utf-8") for b, v in built.items()}
+    on_disk = {n: (PREVIEW.parent / n).read_bytes() for n in CONSTRUCTED}
+    assert {n: sha(b) for n, b in on_disk.items()} == CONSTRUCTED, "constructed"
+    assert all(on_disk[f"{b}-C9-PROPOSAL.json"] == t for b, t in rendered.items())
+    data = on_disk[PREVIEW.name]
+    back = load_accepted_inputs(PREVIEW)
+    assert serialize_accepted_inputs(back) == data
+    assert old["preview_sha256"] == sha(data)
+    pres = preserved(base, data, built, back)
+    controls, bad = alignment_controls(built, back)
+    controls["negative_delta_with_real_change_fails"] = (
+        preserved(base, data, bad, back)[
+            "representation.components.delta_is_the_proposal_delta"
+        ]
+        is False
+    )
+    direct = invariant_findings(candidate_from_accepted_inputs(back).representation)
+    report = {
+        "label": "SIMULATION - review-only native preview; not an Owner acceptance",
+        "builder_sha256": sha(Path(__file__).read_bytes()),
+        "mode": "finish-report: preservation recomputed; native and sequencing carried",
+        "construction": CONSTRUCTION,
+        "constructed_sha256": CONSTRUCTED,
+        "carried_from": {**VERIFIED, "code_segments_unchanged": CARRIED_CODE},
+        "carried_native": old["native"],
+        "carried_sequencing": old["sequencing"],
+        "carried_successor_lift": old["successor_lift"],
+        "carried_run": old["run"],
+        "superseded_preservation_from_carried_report": old["preservation"],
+        "preservation": pres,
+        "alignment_controls": controls,
+        "invariant_findings_direct": direct,
+        "preview_sha256": sha(data),
+        "oracle_identity": old["oracle_identity"],
+        "schema": old["schema"],
+        "lifts": old["lifts"],
+        "batches": old["batches"],
+        "pins": old["pins"],
+        "private_inputs": old["private_inputs"],
+        "seconds": round(time.monotonic() - t0),
+    }
+    (HERE / "reports/c9-packet.json").write_text(
+        json.dumps(report, indent=1, sort_keys=True) + "\n", "utf-8", newline="\n"
+    )
+    nat, seq = old["native"], old["sequencing"]
+    print(json.dumps({"controls": controls, "direct": direct}, indent=1))
+    assert all(v is True for v in pres.values() if isinstance(v, bool)), {
+        k: v for k, v in pres.items() if v is not True and isinstance(v, bool)
+    }
+    assert pres["components.changed"] == 336 and pres["provenance.added"] == 336
+    assert pres["provenance.removed"] == 0 and not pres["components.handling_changes"]
+    assert pres["review_units.expected_rules_added"] == 336
+    assert controls["goblin_raw_equals_assembled"] is False
+    assert all(
+        controls[k]
+        for k in (
+            "goblin_same_fact_multiset",
+            "goblin_aligned_equals_assembled",
+            "negative_non_skill_fact_change_not_aligned",
+            "negative_field_change_not_aligned",
+            "negative_delta_with_real_change_fails",
+        )
+    ), controls
+    assert all(direct.values()), direct
+    assert not nat["validate_candidate_findings"]
+    assert all(nat["malformed_variants_refused"].values())
+    assert nat["own_gate_passed"] and nat["successor_refused_against_preview"]
+    assert nat["preview_refused_against_successor"]
+    assert nat["preview_reconstruction_clean"]
+    assert nat["successor_lifted_reconstruction_clean"]
+    assert seq["production_selection_is_still_c8"]
+    assert old["successor_lift"]["representation_unchanged"]
+    print("PACKET PROOFS PASSED", report["seconds"], "s")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--inputs", type=Path, required=True)
@@ -808,7 +1058,16 @@ def main() -> None:
         "render identically, then run the preservation, native and sequencing "
         "proofs",
     )
+    parser.add_argument(
+        "--finish-report",
+        action="store_true",
+        help="carry the 31810c08 native/sequencing results under code-identity "
+        "guards and recompute only the corrected preservation proof",
+    )
     args = parser.parse_args()
+    if args.finish_report:
+        finish_report(args)
+        return
     started = datetime.datetime.now(datetime.UTC)
     t0 = time.monotonic()
     for path, digest in PINS.items():
