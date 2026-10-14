@@ -1,4 +1,4 @@
-CRD Issue 15b needs the accepted creature-skill authority before its contest lifecycle can resume. This PR records C9, lands schema 22 with it, and recertifies the existing 15c operations together. It is stacked on accepted, unmerged #194.
+CRD Issue 15b needs the accepted creature-skill authority before its contest lifecycle can resume. This PR records C9, lands schema 22 with it, and recertifies the existing 15c operations together. It includes #194's already accepted foundation and targets main so the repository's existing required CI runs. #194 remains unmerged; its accepted policy/artifacts are reused.
 
 C9 adds the reviewed printed Skills facts to 336 profiles. The recorded file's SHA-256 is `01729b532a0ff46047608d9e46d539851ba2c9a32aaa9e0468ae0babb902ec7b`; its semantic identity and projection equal the accepted native packet. Only acceptance evidence differs from the simulated preview. C8 bytes and the 20 untouched batches' receipts are preserved. Packaging selects C9 and retains C8 as source history.
 

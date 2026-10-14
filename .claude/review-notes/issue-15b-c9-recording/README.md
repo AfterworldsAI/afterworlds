@@ -1,5 +1,8 @@
 # CRD Issue 15b — C9 successor recording and 15c recertification
 
+
+> **Delivery update (14 October 2026):** PR #195 targets main because the unchanged CI workflow only triggers for that base and has no manual dispatch. It includes #194's already accepted foundation; #194 remains unmerged. The candidate descends from its accepted head. Earlier stack/pre-rebase preparation notes are historical. #129 remains explicitly frozen.
+
 The Owner accepted PR #194 and the native C9 packet, including the combat Action cost (`owner-acceptance-2026-10-14.md`, a byte copy of Codex's receipt, `30b50a3e…`; `owner-acceptance.json`). PR #194's accepted head `5d05f473` passed all 11 CI jobs in run `38555377777` (`pr-194-accepted-head-ci.json`, `ci-38555377777-completed.json`).
 
 ## Recording
