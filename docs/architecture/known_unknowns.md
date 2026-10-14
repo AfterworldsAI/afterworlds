@@ -349,6 +349,18 @@ Contract 3 family groups after that batch:
   sequencing, added by batch-driven accounting as the corpus surfaces them, due no later than
   full-corpus closure.
 
+  *Status line, 14 October 2026 (CRD Issue 15b, proposed; the history above is unchanged):* the accepted
+  SRD 5.2.1 corpus still states no contest, and no C8 fact uses `DcKind.CONTESTED`. Generic
+  two-participant contests are proposed to come from an authored supplement, not from this union:
+  - the Owner adopted the SRD 5.1 procedure
+    ([Owner Decision 2026-10-14](../decisions/owner-decision-2026-10-14-contest-supplement.md));
+  - candidate S1 carries it as a `package_patch` override;
+  - ADR-015b Group 17 is the proposed contract.
+
+  The representation group stays *untouched*. One question remains open and is surfaced, not decided:
+  what a contest costs in a combat turn (action, Bonus Action or none). The adopted procedure does not
+  state it, so the proposed contract records no action use for a contest.
+
 Known residue from that batch, recorded rather than typed on single instances: an imposed sensory state
 (Blinded's *"You can't see"* and Deafened's parallel — every other blinding effect in the corpus instead
 says *"has the Blinded condition"*), Exhaustion's cumulative level accrual, death threshold, and
