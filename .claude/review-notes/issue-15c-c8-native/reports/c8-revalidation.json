@@ -1,0 +1,148 @@
+{
+ "afterworlds_file": "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\src\\afterworlds\\__init__.py",
+ "builder_sha256": "bf4e57b0362e3fa6c51c56fc9d78bffc6e0b818f329e710197e1bd3a8af3aa09",
+ "builder_sha256_matches_report": true,
+ "conditional_variants_refused": {
+  "component_applies_when": [
+   "component spells.find_familiar/effect: summoned_creature_type names animals.cat/cat, whose creature_size or creature_type is held in an option or under a condition, so the component states no fixed profile"
+  ],
+  "option_arms": [
+   "component spells.find_familiar/effect: summoned_creature_type names animals.cat/cat, whose creature_size or creature_type is held in an option or under a condition, so the component states no fixed profile"
+  ],
+  "qualified_size": [
+   "component spells.find_familiar/effect: summoned_creature_type names animals.cat/cat, whose creature_size or creature_type is held in an option or under a condition, so the component states no fixed profile"
+  ],
+  "qualified_type": [
+   "component spells.find_familiar/effect: summoned_creature_type names animals.cat/cat, whose creature_size or creature_type is held in an option or under a condition, so the component states no fixed profile"
+  ]
+ },
+ "familiar_forms": {
+  "animals.bat": {
+   "applies_when_none": true,
+   "no_options": true,
+   "one_direct_size": true,
+   "one_direct_type_is_instead_of": true,
+   "size_and_type_unqualified": true
+  },
+  "animals.cat": {
+   "applies_when_none": true,
+   "no_options": true,
+   "one_direct_size": true,
+   "one_direct_type_is_instead_of": true,
+   "size_and_type_unqualified": true
+  },
+  "animals.frog": {
+   "applies_when_none": true,
+   "no_options": true,
+   "one_direct_size": true,
+   "one_direct_type_is_instead_of": true,
+   "size_and_type_unqualified": true
+  },
+  "animals.hawk": {
+   "applies_when_none": true,
+   "no_options": true,
+   "one_direct_size": true,
+   "one_direct_type_is_instead_of": true,
+   "size_and_type_unqualified": true
+  },
+  "animals.lizard": {
+   "applies_when_none": true,
+   "no_options": true,
+   "one_direct_size": true,
+   "one_direct_type_is_instead_of": true,
+   "size_and_type_unqualified": true
+  },
+  "animals.octopus": {
+   "applies_when_none": true,
+   "no_options": true,
+   "one_direct_size": true,
+   "one_direct_type_is_instead_of": true,
+   "size_and_type_unqualified": true
+  },
+  "animals.owl": {
+   "applies_when_none": true,
+   "no_options": true,
+   "one_direct_size": true,
+   "one_direct_type_is_instead_of": true,
+   "size_and_type_unqualified": true
+  },
+  "animals.rat": {
+   "applies_when_none": true,
+   "no_options": true,
+   "one_direct_size": true,
+   "one_direct_type_is_instead_of": true,
+   "size_and_type_unqualified": true
+  },
+  "animals.raven": {
+   "applies_when_none": true,
+   "no_options": true,
+   "one_direct_size": true,
+   "one_direct_type_is_instead_of": true,
+   "size_and_type_unqualified": true
+  },
+  "animals.spider": {
+   "applies_when_none": true,
+   "no_options": true,
+   "one_direct_size": true,
+   "one_direct_type_is_instead_of": true,
+   "size_and_type_unqualified": true
+  },
+  "animals.weasel": {
+   "applies_when_none": true,
+   "no_options": true,
+   "one_direct_size": true,
+   "one_direct_type_is_instead_of": true,
+   "size_and_type_unqualified": true
+  }
+ },
+ "familiar_forms_direct_unconditional": true,
+ "identities_match_report": true,
+ "label": "SIMULATION - revalidation of the captured C8 native preview",
+ "native": {
+  "malformed_variants_refused": {
+   "familiar_duplicate_choice": [
+    "component spells.find_familiar/effect: type_choice is at least two types, distinct and sorted",
+    "component spells.find_familiar/effect: type_choice is at least two types, distinct and sorted"
+   ],
+   "familiar_form_whose_type_is_not_beast": [
+    "component spells.find_familiar/effect: summoned_creature_type names animals.cat/cat, whose creature_type is ['fey'], not exactly beast"
+   ],
+   "familiar_non_profile_form": [
+    "component spells.find_familiar/effect: summoned_creature_type names spells.find_familiar/effect, which is not a creature profile"
+   ],
+   "familiar_unknown_form": [
+    "component spells.find_familiar/effect: summoned_creature_type names animals.no_such_beast/no_such_beast, which is not a component of this draft"
+   ],
+   "steed_single_choice": [
+    "component spells.find_steed.otherworldly_steed/otherworldly_steed: type_choice is at least two types, distinct and sorted",
+    "component spells.find_steed.otherworldly_steed/otherworldly_steed: type_choice is at least two types, distinct and sorted"
+   ]
+  },
+  "own_gate_failures": [],
+  "own_gate_passed": true,
+  "payload_hash": "e615d0106996466b8ab72dacd481934b7982e4c421a661eb2cc0e3fcdfad5d87",
+  "preview_reconstruction_clean": true,
+  "preview_refused_against_successor": true,
+  "projection": "e4f8f4fb-de6c-53c9-98f1-fa7a0159fe42",
+  "successor_lifted_payload_hash": "99380ddf694fbd934f05f46ebeef62faa0355648cd91d8f5a97a0ae61da2b122",
+  "successor_lifted_projection": "7ea06d93-74cc-5e33-9d2f-38892fe3d106",
+  "successor_lifted_reconstruction_clean": true,
+  "successor_refused_against_preview": true,
+  "validate_candidate_findings": [],
+  "validate_candidate_seconds": 18
+ },
+ "oracle_identity_matches_report": true,
+ "pins": true,
+ "preview_sha256_matches_report": true,
+ "proposals_match_report": {
+  "animals": true,
+  "character-origins-feats": true,
+  "magic-items": true,
+  "monsters": true,
+  "spell-descriptions": true
+ },
+ "schema_unchanged": true,
+ "script_sha256": "c4e7c8b5cb39740e556159c86bd0f858f13d28b4785d38cbca9370015031b745",
+ "seconds": 697,
+ "validation_py_sha256": "3b32df131007deb4efcba401e3b2cc012015f8703a32df670422c377a25d499c"
+}

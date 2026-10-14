@@ -1,0 +1,327 @@
+{
+  "head": "41f892cc9d1e2ce235fc4334b4b63a3fd2d71650",
+  "import": "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\src\\afterworlds\\__init__.py",
+  "cases": [
+    {
+      "label": "giant-ape/Boulder-Toss/medium/immunity-False",
+      "status": "AdjudicationRefusal",
+      "detail": "[unsupported_capability] animals.giant_ape/Boulder Toss prints mechanics not executed here",
+      "dice": []
+    },
+    {
+      "label": "giant-ape/Boulder-Toss/medium/immunity-True",
+      "status": "AdjudicationRefusal",
+      "detail": "[unsupported_capability] animals.giant_ape/Boulder Toss prints mechanics not executed here",
+      "dice": []
+    },
+    {
+      "label": "giant-ape/Boulder-Toss/gargantuan/immunity-False",
+      "status": "AdjudicationRefusal",
+      "detail": "[unsupported_capability] animals.giant_ape/Boulder Toss prints mechanics not executed here",
+      "dice": []
+    },
+    {
+      "label": "giant-ape/Boulder-Toss/gargantuan/immunity-True",
+      "status": "AdjudicationRefusal",
+      "detail": "[unsupported_capability] animals.giant_ape/Boulder Toss prints mechanics not executed here",
+      "dice": []
+    },
+    {
+      "label": "animals.elephant/already-prone/gore-miss-then-trample",
+      "status": "completed",
+      "records": [
+        {
+          "outcome": "failure",
+          "provenance": {
+            "ac_breakdown": {
+              "base": 10,
+              "dexterity_modifier": 2
+            },
+            "advantage_sources": [
+              "glossary.prone/attacks_against_affected"
+            ],
+            "attacker": {
+              "kind": "creature",
+              "subject_id": "5d6e6e86-efb6-46bc-8bac-bf6f0c771d16"
+            },
+            "automatic_critical": [],
+            "certificate": {
+              "adapter_version": "15c-d20-3",
+              "fingerprint": "a3dcf934db3c58aa4e7f1fe900558e819e91fef6b5d5d5df550829bece09fa8b",
+              "manifest_version": "15c-manifest-3",
+              "operation": "creature_attack",
+              "override_set_uuid": "521a6242-e6bc-5e76-9564-323c4c0deacb",
+              "package_uuid": "1299484e-c72d-509b-bd8d-d0169ee1f8d2",
+              "projection_uuid": "8446ab6b-be75-5999-8a9b-74fa133c030a",
+              "release_version": "5.2.1-corpus.8781d4e0-a3b"
+            },
+            "clauses": null,
+            "contextual_facts": {
+              "allies_within_5_feet_of_target": [],
+              "attacker_light": "bright",
+              "auras_in_range": null,
+              "cover": "none",
+              "follows_up": false,
+              "hostiles_within_5_feet": null,
+              "moved_straight_toward_target": true,
+              "multiattack": false,
+              "range": "within_reach",
+              "target_light": "bright",
+              "target_within_5_feet": null
+            },
+            "critical": false,
+            "damage": [],
+            "damage_rolls": [],
+            "disadvantage_sources": [],
+            "entry": "Gore",
+            "hit": false,
+            "operation": "creature_attack",
+            "rider": null,
+            "target": {
+              "kind": "character",
+              "subject_id": "dbc58c8f-0cc6-4573-8324-493ea2c40582"
+            },
+            "target_ac": 12,
+            "templates": {
+              "creature:5d6e6e86-efb6-46bc-8bac-bf6f0c771d16": "37be92d6ab932817525cb1db08488ec6443a8deb28ddfb80c07a7abea6bbf4b0"
+            },
+            "visible_total": 8
+          },
+          "effects": []
+        },
+        {
+          "outcome": "undetermined",
+          "provenance": {
+            "certificate": {
+              "adapter_version": "15c-d20-3",
+              "fingerprint": "e09799e62b4e25f16f1c23523c725ba4269c253bf80d48f73741a2b36541e41b",
+              "manifest_version": "15c-manifest-3",
+              "operation": "creature_save_effect",
+              "override_set_uuid": "521a6242-e6bc-5e76-9564-323c4c0deacb",
+              "package_uuid": "1299484e-c72d-509b-bd8d-d0169ee1f8d2",
+              "projection_uuid": "8446ab6b-be75-5999-8a9b-74fa133c030a",
+              "release_version": "5.2.1-corpus.8781d4e0-a3b"
+            },
+            "damage_rolls": [
+              8
+            ],
+            "dc": 16,
+            "entry": "Trample",
+            "operation": "creature_save_effect",
+            "save": "dexterity",
+            "source": {
+              "kind": "creature",
+              "subject_id": "5d6e6e86-efb6-46bc-8bac-bf6f0c771d16"
+            },
+            "targets": [
+              {
+                "damage": {
+                  "outcome": "damaged",
+                  "responses": [],
+                  "rolled": 14,
+                  "taken": 14
+                },
+                "save": {
+                  "ability": "dexterity",
+                  "advantage_sources": [],
+                  "automatic_failure": [],
+                  "breakdown": {
+                    "dexterity_modifier": 2
+                  },
+                  "dc": 16,
+                  "dc_source": "animals.elephant/Trample",
+                  "disadvantage_sources": [],
+                  "modifier": 2,
+                  "outcome": "failure",
+                  "raw_rolls": [
+                    1
+                  ],
+                  "subject_id": "dbc58c8f-0cc6-4573-8324-493ea2c40582",
+                  "subject_kind": "character",
+                  "total": 3
+                },
+                "subject": {
+                  "kind": "character",
+                  "subject_id": "dbc58c8f-0cc6-4573-8324-493ea2c40582"
+                }
+              }
+            ],
+            "templates": {
+              "creature:5d6e6e86-efb6-46bc-8bac-bf6f0c771d16": "37be92d6ab932817525cb1db08488ec6443a8deb28ddfb80c07a7abea6bbf4b0"
+            }
+          },
+          "effects": [
+            {
+              "target": "current_hp",
+              "operation": "set",
+              "value_json": "186",
+              "schema_version": 1,
+              "subject_kind": "character",
+              "subject_id": "dbc58c8f-0cc6-4573-8324-493ea2c40582"
+            }
+          ]
+        }
+      ],
+      "dice": [
+        "2d20kh1",
+        "2d10",
+        "1d20"
+      ]
+    },
+    {
+      "label": "animals.mammoth/already-prone/gore-miss-then-trample",
+      "status": "AdjudicationRefusal",
+      "detail": "[missing_state] glossary.prone/attacks_against_affected turns on whether the attacker is within 5 feet of the target",
+      "dice": []
+    },
+    {
+      "label": "monsters.gorgon.gorgon/already-prone/gore-miss-then-trample",
+      "status": "completed",
+      "records": [
+        {
+          "outcome": "failure",
+          "provenance": {
+            "ac_breakdown": {
+              "base": 10,
+              "dexterity_modifier": 2
+            },
+            "advantage_sources": [
+              "glossary.prone/attacks_against_affected"
+            ],
+            "attacker": {
+              "kind": "creature",
+              "subject_id": "9ada4e75-fbaa-4235-81b6-c1000c2908f0"
+            },
+            "automatic_critical": [],
+            "certificate": {
+              "adapter_version": "15c-d20-3",
+              "fingerprint": "a3dcf934db3c58aa4e7f1fe900558e819e91fef6b5d5d5df550829bece09fa8b",
+              "manifest_version": "15c-manifest-3",
+              "operation": "creature_attack",
+              "override_set_uuid": "521a6242-e6bc-5e76-9564-323c4c0deacb",
+              "package_uuid": "1299484e-c72d-509b-bd8d-d0169ee1f8d2",
+              "projection_uuid": "8446ab6b-be75-5999-8a9b-74fa133c030a",
+              "release_version": "5.2.1-corpus.8781d4e0-a3b"
+            },
+            "clauses": null,
+            "contextual_facts": {
+              "allies_within_5_feet_of_target": [],
+              "attacker_light": "bright",
+              "auras_in_range": null,
+              "cover": "none",
+              "follows_up": false,
+              "hostiles_within_5_feet": null,
+              "moved_straight_toward_target": true,
+              "multiattack": false,
+              "range": "within_reach",
+              "target_light": "bright",
+              "target_within_5_feet": null
+            },
+            "critical": false,
+            "damage": [],
+            "damage_rolls": [],
+            "disadvantage_sources": [],
+            "entry": "Gore",
+            "hit": false,
+            "operation": "creature_attack",
+            "rider": null,
+            "target": {
+              "kind": "character",
+              "subject_id": "9176e655-b964-40cf-b02a-a2ef43807cac"
+            },
+            "target_ac": 12,
+            "templates": {
+              "creature:9ada4e75-fbaa-4235-81b6-c1000c2908f0": "9018035b7c0d65d55dc0c92168425db94abf1a7898a9db7816b16aebaac57298"
+            },
+            "visible_total": 8
+          },
+          "effects": []
+        },
+        {
+          "outcome": "undetermined",
+          "provenance": {
+            "certificate": {
+              "adapter_version": "15c-d20-3",
+              "fingerprint": "e09799e62b4e25f16f1c23523c725ba4269c253bf80d48f73741a2b36541e41b",
+              "manifest_version": "15c-manifest-3",
+              "operation": "creature_save_effect",
+              "override_set_uuid": "521a6242-e6bc-5e76-9564-323c4c0deacb",
+              "package_uuid": "1299484e-c72d-509b-bd8d-d0169ee1f8d2",
+              "projection_uuid": "8446ab6b-be75-5999-8a9b-74fa133c030a",
+              "release_version": "5.2.1-corpus.8781d4e0-a3b"
+            },
+            "damage_rolls": [
+              8
+            ],
+            "dc": 16,
+            "entry": "Trample",
+            "operation": "creature_save_effect",
+            "save": "dexterity",
+            "source": {
+              "kind": "creature",
+              "subject_id": "9ada4e75-fbaa-4235-81b6-c1000c2908f0"
+            },
+            "targets": [
+              {
+                "damage": {
+                  "outcome": "damaged",
+                  "responses": [],
+                  "rolled": 13,
+                  "taken": 13
+                },
+                "save": {
+                  "ability": "dexterity",
+                  "advantage_sources": [],
+                  "automatic_failure": [],
+                  "breakdown": {
+                    "dexterity_modifier": 2
+                  },
+                  "dc": 16,
+                  "dc_source": "monsters.gorgon.gorgon/Trample",
+                  "disadvantage_sources": [],
+                  "modifier": 2,
+                  "outcome": "failure",
+                  "raw_rolls": [
+                    1
+                  ],
+                  "subject_id": "9176e655-b964-40cf-b02a-a2ef43807cac",
+                  "subject_kind": "character",
+                  "total": 3
+                },
+                "subject": {
+                  "kind": "character",
+                  "subject_id": "9176e655-b964-40cf-b02a-a2ef43807cac"
+                }
+              }
+            ],
+            "templates": {
+              "creature:9ada4e75-fbaa-4235-81b6-c1000c2908f0": "9018035b7c0d65d55dc0c92168425db94abf1a7898a9db7816b16aebaac57298"
+            }
+          },
+          "effects": [
+            {
+              "target": "current_hp",
+              "operation": "set",
+              "value_json": "187",
+              "schema_version": 1,
+              "subject_kind": "character",
+              "subject_id": "9176e655-b964-40cf-b02a-a2ef43807cac"
+            }
+          ]
+        }
+      ],
+      "dice": [
+        "2d20kh1",
+        "2d10",
+        "1d20"
+      ]
+    },
+    {
+      "label": "gladiator/Shield-Bash/earlier-sight-boundary",
+      "status": "AdjudicationRefusal",
+      "detail": "[unsupported_capability] monsters.gladiator.gladiator/Shield Bash prints mechanics not executed here",
+      "dice": []
+    }
+  ],
+  "related_source_probe": "AdjudicationRefusal: [invalid_selection] Pummel targets a creature grappled by its source"
+}

@@ -1,0 +1,391 @@
+{
+ "attack_roll_lines": {
+  "by_file": {
+   "animals.md": 100,
+   "magic-items.md": 1,
+   "monsters-A-Z.md": 323,
+   "spells.md": 5
+  },
+  "in_assessed_creatures": 6,
+  "parsed_attacks": 429,
+  "total": 429
+ },
+ "creatures": {
+  "dependency_kinds": {
+   "missing_runtime_input": 21,
+   "missing_state": 852,
+   "unsupported_mechanic": 398
+  },
+  "entry_classification": {
+   "conditional": 527,
+   "deferred": 161,
+   "no_roster_effect": 137,
+   "supported": 552
+  },
+  "entry_kinds": {
+   "attack": 429,
+   "contributor": 200,
+   "entry_reference": 34,
+   "multiattack": 181,
+   "named_mechanic": 31,
+   "no_roster_effect": 137,
+   "observer_check": 3,
+   "reaction": 21,
+   "save_effect": 187,
+   "separate_action": 15,
+   "spellcasting": 109,
+   "usage_header": 30
+  },
+  "executable_once_accepted": {
+   "attack": 282,
+   "multiattack": 121,
+   "save_effect": 1
+  },
+  "matched": 336,
+  "multiattack_selections": {
+   "base_executable_beside_unavailable_option": 38,
+   "executable": 123,
+   "total": 249
+  },
+  "records": 336,
+  "unreviewed_entries": []
+ },
+ "hashes": {
+  "c5a.json": "866f2c132b974ec2c895c269c09fc5de554b881be5a94699faa8c1188b9687c9",
+  "c5b.json": "187c041b8de8edcffe16e2c606b11c071b90b438dc3be2c68cb8a1a3a97df3f6",
+  "c5c.json": "bb3761b955f06d94665e86eb817f38da16198069fea9c5919fb98d87db476ad4",
+  "capability.json": "6037ea70246c24e478d97c5f7938f3d695802bf6b19284c0c883864af9e3efe6"
+ },
+ "invariants": {
+  "formula_references": 2,
+  "logical_entry_conservation": {
+   "content_lines": 1512,
+   "entries": 1377,
+   "normalization": "an &emsp; prefix and <br> removed; physical lines joined with one space",
+   "problems": [],
+   "profile_region_strays": []
+  },
+  "parameterized_entries_without_formula": 0,
+  "scope_vocabulary_leaks": 0,
+  "source_to_field_fidelity": {
+   "failures": [],
+   "grant_facts_checked": 83,
+   "turn_owner_pieces_checked": 42,
+   "typed_pieces_by_family": {
+    "ability_disadvantage": 4,
+    "area_origin_point": 2,
+    "aura": 2,
+    "branch": 44,
+    "choice_typed_damage": 3,
+    "condition": 49,
+    "condition_ends": 1,
+    "condition_ends_early": 2,
+    "condition_until_repeat": 8,
+    "conditional_damage": 2,
+    "d20_test_penalty_die": 2,
+    "damage_branch": 4,
+    "damage_qualification": 3,
+    "damage_roll_penalty": 4,
+    "effect_ends": 4,
+    "effect_lasts": 4,
+    "escape_disadvantage": 1,
+    "follow_up_attack": 1,
+    "forced_movement": 7,
+    "grapple": 25,
+    "hit_point_regain_prohibition": 5,
+    "hit_points_set": 1,
+    "linked_condition": 5,
+    "named_effect": 11,
+    "nested_save": 11,
+    "nested_save_trigger": 9,
+    "next_roll_modifier": 3,
+    "penalty_die_application": 2,
+    "periodic_damage": 12,
+    "periodic_hit_point_loss": 2,
+    "predicate": 92,
+    "repeat_save": 18,
+    "repeat_save_limit": 13,
+    "rescue_check": 1,
+    "returning_weapon": 4,
+    "roll_disadvantage": 1,
+    "save_success": 2,
+    "save_timing": 1,
+    "self_save_predicate": 2,
+    "source_movement": 1,
+    "targeting_restriction": 2,
+    "temporary_immunity": 15,
+    "timed_ac_modifier": 2,
+    "timed_condition": 23,
+    "timed_speed_change": 12,
+    "trigger": 6,
+    "zero_hit_point_outcome": 5
+   }
+  },
+  "target_residue": 13,
+  "unaccounted_numbers": 0
+ },
+ "reuse_validation": {
+  "by_family": {
+   "ability_check": 34,
+   "advantage": 80,
+   "condition_effect": 188,
+   "creature_defense": 331,
+   "damage": 38,
+   "speed_modification": 1
+  },
+  "failures": 0,
+  "reused_payloads": 672
+ },
+ "tools": [
+  {
+   "grain": "record",
+   "identity": "equipment.tools.alchemists_supplies/alchemists_supplies",
+   "options": [
+    "Identify a substance",
+    "start a fire"
+   ],
+   "tool": "Alchemist's Supplies"
+  },
+  {
+   "grain": "component",
+   "identity": "equipment.tools/brewers_supplies",
+   "options": [
+    "Detect poisoned drink",
+    "identify alcohol"
+   ],
+   "tool": "Brewer's Supplies"
+  },
+  {
+   "grain": "record",
+   "identity": "equipment.tools.calligraphers_supplies/calligraphers_supplies",
+   "options": [
+    "Write text with impressive flourishes that guard against forgery"
+   ],
+   "tool": "Calligrapher's Supplies"
+  },
+  {
+   "grain": "component",
+   "identity": "equipment.tools/carpenters_tools",
+   "options": [
+    "Seal or pry open a door or container"
+   ],
+   "tool": "Carpenter's Tools"
+  },
+  {
+   "grain": "component",
+   "identity": "equipment.tools/cartographers_tools",
+   "options": [
+    "Draft a map of a small area"
+   ],
+   "tool": "Cartographer's Tools"
+  },
+  {
+   "grain": "component",
+   "identity": "equipment.tools/cobblers_tools",
+   "options": [
+    "Modify footwear to give Advantage on the wearer's next Dexterity (Acrobatics) check"
+   ],
+   "tool": "Cobbler's Tools"
+  },
+  {
+   "grain": "component",
+   "identity": "equipment.tools/cooks_utensils",
+   "options": [
+    "Improve food's flavor",
+    "detect spoiled or poisoned food"
+   ],
+   "tool": "Cook's Utensils"
+  },
+  {
+   "grain": "component",
+   "identity": "equipment.tools/glassblowers_tools",
+   "options": [
+    "Discern what a glass object held in the past 24 hours"
+   ],
+   "tool": "Glassblower's Tools"
+  },
+  {
+   "grain": "record",
+   "identity": "equipment.tools.jewelers_tools/jewelers_tools",
+   "options": [
+    "Discern a gem's value"
+   ],
+   "tool": "Jeweler's Tools"
+  },
+  {
+   "grain": "record",
+   "identity": "equipment.tools.leatherworkers_tools/leatherworkers_tools",
+   "options": [
+    "Add a design to a leather item"
+   ],
+   "tool": "Leatherworker's Tools"
+  },
+  {
+   "grain": "component",
+   "identity": "equipment.tools/masons_tools",
+   "options": [
+    "Chisel a symbol or hole in stone"
+   ],
+   "tool": "Mason's Tools"
+  },
+  {
+   "grain": "component",
+   "identity": "equipment.tools/painters_supplies",
+   "options": [
+    "Paint a recognizable image of something you've seen"
+   ],
+   "tool": "Painter's Supplies"
+  },
+  {
+   "grain": "component",
+   "identity": "equipment.tools/potters_tools",
+   "options": [
+    "Discern what a ceramic object held in the past 24 hours"
+   ],
+   "tool": "Potter's Tools"
+  },
+  {
+   "grain": "record",
+   "identity": "equipment.tools.smiths_tools/smiths_tools",
+   "options": [
+    "Pry open a door or container"
+   ],
+   "tool": "Smith's Tools"
+  },
+  {
+   "grain": "record",
+   "identity": "equipment.tools.tinkers_tools/tinkers_tools",
+   "options": [
+    "Assemble a Tiny item composed of scrap, which falls apart in 1 minute"
+   ],
+   "tool": "Tinker's Tools"
+  },
+  {
+   "grain": "record",
+   "identity": "equipment.tools.weavers_tools/weavers_tools",
+   "options": [
+    "Mend a tear in clothing",
+    "sew a Tiny design"
+   ],
+   "tool": "Weaver's Tools"
+  },
+  {
+   "grain": "record",
+   "identity": "equipment.tools.woodcarvers_tools/woodcarvers_tools",
+   "options": [
+    "Carve a pattern in wood"
+   ],
+   "tool": "Woodcarver's Tools"
+  },
+  {
+   "grain": "component",
+   "identity": "equipment.tools/disguise_kit",
+   "options": [
+    "Apply makeup"
+   ],
+   "tool": "Disguise Kit"
+  },
+  {
+   "grain": "component",
+   "identity": "equipment.tools/forgery_kit",
+   "options": [
+    "Mimic 10 or fewer words of someone else's handwriting",
+    "duplicate a wax seal"
+   ],
+   "tool": "Forgery Kit"
+  },
+  {
+   "grain": "record",
+   "identity": "equipment.tools.gaming_set/gaming_set",
+   "options": [
+    "Discern whether someone is cheating",
+    "win the game"
+   ],
+   "tool": "Gaming Set"
+  },
+  {
+   "grain": "record",
+   "identity": "equipment.tools.herbalism_kit/herbalism_kit",
+   "options": [
+    "Identify a plant"
+   ],
+   "tool": "Herbalism Kit"
+  },
+  {
+   "grain": "record",
+   "identity": "equipment.tools.musical_instrument/musical_instrument",
+   "options": [
+    "Play a known tune",
+    "improvise a song"
+   ],
+   "tool": "Musical Instrument"
+  },
+  {
+   "grain": "component",
+   "identity": "equipment.tools/navigators_tools",
+   "options": [
+    "Plot a course",
+    "determine position by stargazing"
+   ],
+   "tool": "Navigator's Tools"
+  },
+  {
+   "grain": "record",
+   "identity": "equipment.tools.poisoners_kit/poisoners_kit",
+   "options": [
+    "Detect a poisoned object"
+   ],
+   "tool": "Poisoner's Kit"
+  },
+  {
+   "grain": "record",
+   "identity": "equipment.tools.thieves_tools/thieves_tools",
+   "options": [
+    "Pick a lock",
+    "disarm a trap"
+   ],
+   "tool": "Thieves' Tools"
+  }
+ ],
+ "transition": {
+  "batch_count": 11,
+  "batches": {
+   "animals": [
+    "c5b.json"
+   ],
+   "character-origins-feats": [
+    "c5a.json"
+   ],
+   "checks-actions-rests": [
+    "c5a.json",
+    "c5c.json"
+   ],
+   "classes": [
+    "c5a.json"
+   ],
+   "combat-damage-breaking": [
+    "c5a.json"
+   ],
+   "core-play-completion": [
+    "c5a.json"
+   ],
+   "equipment": [
+    "c5a.json",
+    "c5c.json"
+   ],
+   "magic-items": [
+    "c5b.json"
+   ],
+   "monsters": [
+    "c5a.json",
+    "c5b.json"
+   ],
+   "spell-descriptions": [
+    "c5b.json"
+   ],
+   "spellcasting": [
+    "c5a.json"
+   ]
+  }
+ }
+}

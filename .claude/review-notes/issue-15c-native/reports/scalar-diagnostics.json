@@ -1,0 +1,1229 @@
+{
+ "failures": [],
+ "fields": {
+  "AbilityIncreaseChoiceFact.maximum_score": {
+   "domain": 1,
+   "family": "ability_increase_choice",
+   "path": [
+    "maximum_score"
+   ]
+  },
+  "AbilityIncreaseRuleFact.maximum_score": {
+   "domain": 1,
+   "family": "ability_increase_rule",
+   "path": [
+    "maximum_score"
+   ]
+  },
+  "AbilityMinimum.score": {
+   "domain": 1,
+   "family": "feat_prerequisite",
+   "path": [
+    "minimum_ability_score",
+    "score"
+   ]
+  },
+  "AbilityScoreRequirementFact.minimum": {
+   "domain": 1,
+   "family": "ability_score_requirement",
+   "path": [
+    "minimum"
+   ]
+  },
+  "AmmunitionExpenditureFact.per_attack": {
+   "domain": 1,
+   "family": "ammunition_expenditure",
+   "path": [
+    "per_attack"
+   ]
+  },
+  "AmmunitionPerActivationFact.maximum": {
+   "domain": 1,
+   "family": "ammunition_per_activation",
+   "path": [
+    "maximum"
+   ]
+  },
+  "AmmunitionRecovery.minutes": {
+   "domain": 1,
+   "family": "ammunition_expenditure",
+   "path": [
+    "recovery",
+    "minutes"
+   ]
+  },
+  "ArmorClassFormulaFact.base": {
+   "domain": 0,
+   "family": "armor_class_formula",
+   "path": [
+    "base"
+   ]
+  },
+  "ArmorClassFormulaFact.dexterity_maximum": {
+   "domain": 0,
+   "family": "armor_class_formula",
+   "path": [
+    "dexterity_maximum"
+   ]
+  },
+  "ArmorClassFormulaFact.strength_minimum": {
+   "domain": 1,
+   "family": "armor_class_formula",
+   "path": [
+    "strength_minimum"
+   ]
+  },
+  "BaseArmorClassExclusivityFact.maximum": {
+   "domain": 1,
+   "family": "base_armor_class_exclusivity",
+   "path": [
+    "maximum"
+   ]
+  },
+  "BaseArmorClassFact.base": {
+   "domain": 0,
+   "family": "base_armor_class",
+   "path": [
+    "base"
+   ]
+  },
+  "CheckSpec.dc": {
+   "domain": 1,
+   "family": "creature_observer_check",
+   "path": [
+    "check",
+    "dc"
+   ]
+  },
+  "ClauseAreaOriginPointFact.piece": {
+   "domain": 0,
+   "family": "clause_area_origin_point",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseAreaOriginPointFact.within_ft": {
+   "domain": 1,
+   "family": "clause_area_origin_point",
+   "path": [
+    "within_ft"
+   ]
+  },
+  "ClauseAuraFact.emanation_ft": {
+   "domain": 1,
+   "family": "clause_aura",
+   "path": [
+    "emanation_ft"
+   ]
+  },
+  "ClauseAuraFact.piece": {
+   "domain": 0,
+   "family": "clause_aura",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseBranchFact.piece": {
+   "domain": 0,
+   "family": "clause_branch",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseChoiceTypedDamageFact.average": {
+   "domain": 0,
+   "family": "clause_choice_typed_damage",
+   "path": [
+    "average"
+   ]
+  },
+  "ClauseChoiceTypedDamageFact.piece": {
+   "domain": 0,
+   "family": "clause_choice_typed_damage",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseConditionEndsEarlyFact.piece": {
+   "domain": 0,
+   "family": "clause_condition_ends_early",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseConditionEndsFact.piece": {
+   "domain": 0,
+   "family": "clause_condition_ends",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseConditionFact.piece": {
+   "domain": 0,
+   "family": "clause_condition",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseConditionUntilRepeatFact.piece": {
+   "domain": 0,
+   "family": "clause_condition_until_repeat",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseConditionalDamageFact.piece": {
+   "domain": 0,
+   "family": "clause_conditional_damage",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseConditionalDamageFact.replaces_hit_damage_index": {
+   "domain": 0,
+   "family": "clause_conditional_damage",
+   "path": [
+    "replaces_hit_damage_index"
+   ]
+  },
+  "ClauseD20TestPenaltyDieFact.count": {
+   "domain": 1,
+   "family": "clause_d20_test_penalty_die",
+   "path": [
+    "count"
+   ]
+  },
+  "ClauseD20TestPenaltyDieFact.piece": {
+   "domain": 0,
+   "family": "clause_d20_test_penalty_die",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseDamageBranchFact.piece": {
+   "domain": 0,
+   "family": "clause_damage_branch",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseDamageQualificationFact.piece": {
+   "domain": 0,
+   "family": "clause_damage_qualification",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseDamageRollPenaltyFact.average": {
+   "domain": 0,
+   "family": "clause_damage_roll_penalty",
+   "path": [
+    "average"
+   ]
+  },
+  "ClauseDamageRollPenaltyFact.piece": {
+   "domain": 0,
+   "family": "clause_damage_roll_penalty",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseEffectEndsFact.piece": {
+   "domain": 0,
+   "family": "clause_effect_ends",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseEffectLastsFact.piece": {
+   "domain": 0,
+   "family": "clause_effect_lasts",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseFollowUpAttackFact.count": {
+   "domain": 1,
+   "family": "clause_follow_up_attack",
+   "path": [
+    "count"
+   ]
+  },
+  "ClauseFollowUpAttackFact.piece": {
+   "domain": 0,
+   "family": "clause_follow_up_attack",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseForcedMovementFact.distance_ft": {
+   "domain": 1,
+   "family": "clause_forced_movement",
+   "path": [
+    "distance_ft"
+   ]
+  },
+  "ClauseForcedMovementFact.distance_ft_up_to": {
+   "domain": 1,
+   "family": "clause_forced_movement",
+   "path": [
+    "distance_ft_up_to"
+   ]
+  },
+  "ClauseForcedMovementFact.piece": {
+   "domain": 0,
+   "family": "clause_forced_movement",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseGrappleFact.escape_dc": {
+   "domain": 1,
+   "family": "clause_grapple",
+   "path": [
+    "escape_dc"
+   ]
+  },
+  "ClauseGrappleFact.piece": {
+   "domain": 0,
+   "family": "clause_grapple",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseHitPointRegainProhibitionFact.piece": {
+   "domain": 0,
+   "family": "clause_hit_point_regain_prohibition",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseHitPointsSetFact.piece": {
+   "domain": 0,
+   "family": "clause_hit_points_set",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseHitPointsSetFact.to": {
+   "domain": 0,
+   "family": "clause_hit_points_set",
+   "path": [
+    "to"
+   ]
+  },
+  "ClauseLinkedConditionFact.piece": {
+   "domain": 0,
+   "family": "clause_linked_condition",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseNamedEffectFact.piece": {
+   "domain": 0,
+   "family": "clause_named_effect",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseNestedSaveFact.dc": {
+   "domain": 1,
+   "family": "clause_nested_save",
+   "path": [
+    "dc"
+   ]
+  },
+  "ClauseNestedSaveFact.piece": {
+   "domain": 0,
+   "family": "clause_nested_save",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseNestedSaveTriggerFact.piece": {
+   "domain": 0,
+   "family": "clause_nested_save_trigger",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseNextRollModifierFact.piece": {
+   "domain": 0,
+   "family": "clause_next_roll_modifier",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseNextRollModifierFact.uses": {
+   "domain": 1,
+   "family": "clause_next_roll_modifier",
+   "path": [
+    "uses"
+   ]
+  },
+  "ClausePenaltyDieApplicationFact.piece": {
+   "domain": 0,
+   "family": "clause_penalty_die_application",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClausePeriodicDamageFact.piece": {
+   "domain": 0,
+   "family": "clause_periodic_damage",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClausePeriodicHitPointLossFact.average": {
+   "domain": 0,
+   "family": "clause_periodic_hit_point_loss",
+   "path": [
+    "average"
+   ]
+  },
+  "ClausePeriodicHitPointLossFact.piece": {
+   "domain": 0,
+   "family": "clause_periodic_hit_point_loss",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClausePredicateFact.piece": {
+   "domain": 0,
+   "family": "clause_predicate",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClausePredicateFact.source_moved_straight_toward_target_ft_min": {
+   "domain": 1,
+   "family": "clause_predicate",
+   "path": [
+    "source_moved_straight_toward_target_ft_min"
+   ]
+  },
+  "ClausePredicateFact.target_hit_points_at_most": {
+   "domain": 0,
+   "family": "clause_predicate",
+   "path": [
+    "target_hit_points_at_most"
+   ]
+  },
+  "ClauseRepeatSaveFact.piece": {
+   "domain": 0,
+   "family": "clause_repeat_save",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseRepeatSaveLimitFact.automatic_success_after_minutes": {
+   "domain": 1,
+   "family": "clause_repeat_save_limit",
+   "path": [
+    "automatic_success_after_minutes"
+   ]
+  },
+  "ClauseRepeatSaveLimitFact.piece": {
+   "domain": 0,
+   "family": "clause_repeat_save_limit",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseRescueCheckFact.actor_within_ft": {
+   "domain": 1,
+   "family": "clause_rescue_check",
+   "path": [
+    "actor_within_ft"
+   ]
+  },
+  "ClauseRescueCheckFact.piece": {
+   "domain": 0,
+   "family": "clause_rescue_check",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseReturningWeaponFact.or_hovers_within_ft": {
+   "domain": 1,
+   "family": "clause_returning_weapon",
+   "path": [
+    "or_hovers_within_ft"
+   ]
+  },
+  "ClauseReturningWeaponFact.piece": {
+   "domain": 0,
+   "family": "clause_returning_weapon",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseRollModifierFact.piece": {
+   "domain": 0,
+   "family": "clause_roll_modifier",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseSaveSuccessFact.piece": {
+   "domain": 0,
+   "family": "clause_save_success",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseSaveTimingFact.piece": {
+   "domain": 0,
+   "family": "clause_save_timing",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseSelfSavePredicateFact.piece": {
+   "domain": 0,
+   "family": "clause_self_save_predicate",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseSourceMovementFact.piece": {
+   "domain": 0,
+   "family": "clause_source_movement",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseTargetingRestrictionFact.piece": {
+   "domain": 0,
+   "family": "clause_targeting_restriction",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseTemporaryImmunityFact.hours": {
+   "domain": 1,
+   "family": "clause_temporary_immunity",
+   "path": [
+    "hours"
+   ]
+  },
+  "ClauseTemporaryImmunityFact.piece": {
+   "domain": 0,
+   "family": "clause_temporary_immunity",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseTimedAcModifierFact.modifier": {
+   "domain": "signed",
+   "family": "clause_timed_ac_modifier",
+   "path": [
+    "modifier"
+   ]
+  },
+  "ClauseTimedAcModifierFact.piece": {
+   "domain": 0,
+   "family": "clause_timed_ac_modifier",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseTimedConditionFact.piece": {
+   "domain": 0,
+   "family": "clause_timed_condition",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseTimedSpeedChangeFact.feet": {
+   "domain": 0,
+   "family": "clause_timed_speed_change",
+   "path": [
+    "feet"
+   ]
+  },
+  "ClauseTimedSpeedChangeFact.piece": {
+   "domain": 0,
+   "family": "clause_timed_speed_change",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseTriggerFact.piece": {
+   "domain": 0,
+   "family": "clause_trigger",
+   "path": [
+    "piece"
+   ]
+  },
+  "ClauseZeroHitPointOutcomeFact.piece": {
+   "domain": 0,
+   "family": "clause_zero_hit_point_outcome",
+   "path": [
+    "piece"
+   ]
+  },
+  "ConditionalDamage.replaces_hit_damage_index": {
+   "domain": 0,
+   "family": "creature_attack",
+   "path": [
+    "hit_effect",
+    "conditional_damage",
+    "replaces_hit_damage_index"
+   ]
+  },
+  "ContributorPredicate.ally_within_ft_of_target": {
+   "domain": 1,
+   "family": "creature_roll_modifier",
+   "path": [
+    "applies_when",
+    "ally_within_ft_of_target"
+   ]
+  },
+  "CreatureAttackFact.attack_bonus": {
+   "domain": "signed",
+   "family": "creature_attack",
+   "path": [
+    "attack_bonus"
+   ]
+  },
+  "CreatureAttackFact.long_range_ft": {
+   "domain": 1,
+   "family": "creature_attack",
+   "path": [
+    "long_range_ft"
+   ]
+  },
+  "CreatureAttackFact.normal_range_ft": {
+   "domain": 1,
+   "family": "creature_attack",
+   "path": [
+    "normal_range_ft"
+   ]
+  },
+  "CreatureAttackFact.reach_ft": {
+   "domain": 1,
+   "family": "creature_attack",
+   "path": [
+    "reach_ft"
+   ]
+  },
+  "CreatureAttackNotationFact.targets": {
+   "domain": 1,
+   "family": "creature_attack_notation",
+   "path": [
+    "targets"
+   ]
+  },
+  "CreatureDefenseParameterizedFact.armor_class": {
+   "domain": 0,
+   "family": "creature_defense_parameterized",
+   "path": [
+    "armor_class"
+   ]
+  },
+  "CreatureEntryUsageFact.in_lair": {
+   "domain": 1,
+   "family": "creature_entry_usage",
+   "path": [
+    "in_lair"
+   ]
+  },
+  "CreatureEntryUsageFact.minimum_d6": {
+   "domain": 1,
+   "family": "creature_entry_usage",
+   "path": [
+    "minimum_d6"
+   ]
+  },
+  "CreatureEntryUsageFact.uses": {
+   "domain": 1,
+   "family": "creature_entry_usage",
+   "path": [
+    "uses"
+   ]
+  },
+  "CreatureSaveEffectFact.dc": {
+   "domain": 1,
+   "family": "creature_save_effect",
+   "path": [
+    "dc"
+   ]
+  },
+  "CriticalDamageFact.damage_dice_multiplier": {
+   "domain": 1,
+   "family": "critical_damage",
+   "path": [
+    "damage_dice_multiplier"
+   ]
+  },
+  "DamageAtZeroHitPointsFact.critical_hit_failures": {
+   "domain": 1,
+   "family": "damage_at_zero_hit_points",
+   "path": [
+    "critical_hit_failures"
+   ]
+  },
+  "DamageAtZeroHitPointsFact.failures": {
+   "domain": 1,
+   "family": "damage_at_zero_hit_points",
+   "path": [
+    "failures"
+   ]
+  },
+  "DamagePlusDc.base": {
+   "domain": 0,
+   "family": "zero_hit_point_save",
+   "path": [
+    "dc",
+    "base"
+   ]
+  },
+  "DamageRollRuleFact.minimum_damage": {
+   "domain": 0,
+   "family": "damage_roll_rule",
+   "path": [
+    "minimum_damage"
+   ]
+  },
+  "DamageTerm.average": {
+   "domain": 0,
+   "family": "creature_attack",
+   "path": [
+    "hit_damage",
+    0,
+    "average"
+   ]
+  },
+  "DamageTerm.constant": {
+   "domain": 0,
+   "family": "creature_attack",
+   "path": [
+    "hit_damage_by_size",
+    "medium_or_smaller",
+    0,
+    "constant"
+   ]
+  },
+  "DamageWhen.source_moved_straight_toward_target_ft_min": {
+   "domain": 1,
+   "family": "creature_attack",
+   "path": [
+    "hit_effect",
+    "conditional_damage",
+    "when",
+    "source_moved_straight_toward_target_ft_min"
+   ]
+  },
+  "DeathSaveNaturalRollFact.face": {
+   "domain": 1,
+   "family": "death_save_natural_roll",
+   "path": [
+    "face"
+   ]
+  },
+  "DeathSaveNaturalRollFact.failures": {
+   "domain": 1,
+   "family": "death_save_natural_roll",
+   "path": [
+    "failures"
+   ]
+  },
+  "DeathSaveNaturalRollFact.regain_hit_points": {
+   "domain": 1,
+   "family": "death_save_natural_roll",
+   "path": [
+    "regain_hit_points"
+   ]
+  },
+  "DeathSaveTiming.at_hit_points": {
+   "domain": 0,
+   "family": "death_saving_throw",
+   "path": [
+    "timing",
+    "at_hit_points"
+   ]
+  },
+  "DeathSavingThrowFact.failures_to_die": {
+   "domain": 1,
+   "family": "death_saving_throw",
+   "path": [
+    "failures_to_die"
+   ]
+  },
+  "DeathSavingThrowFact.success_minimum": {
+   "domain": 1,
+   "family": "death_saving_throw",
+   "path": [
+    "success_minimum"
+   ]
+  },
+  "DeathSavingThrowFact.successes_to_stable": {
+   "domain": 1,
+   "family": "death_saving_throw",
+   "path": [
+    "successes_to_stable"
+   ]
+  },
+  "DifficultyBandFact.dc": {
+   "domain": 1,
+   "family": "difficulty_band",
+   "path": [
+    "dc"
+   ]
+  },
+  "ElapsedSpan.amount": {
+   "domain": 1,
+   "family": "clause_timed_condition",
+   "path": [
+    "duration_span",
+    "amount"
+   ]
+  },
+  "EndingEvent.by_creature_within_ft": {
+   "domain": 1,
+   "family": "clause_effect_ends",
+   "path": [
+    "ends_early_when",
+    1,
+    "by_creature_within_ft"
+   ]
+  },
+  "EntryOption.spell_level": {
+   "domain": 1,
+   "family": "creature_multiattack",
+   "path": [
+    "replacements",
+    0,
+    "with_one_of",
+    0,
+    "spell_level"
+   ]
+  },
+  "ExpertiseChoiceFact.count_per_gain": {
+   "domain": 1,
+   "family": "expertise_choice",
+   "path": [
+    "count_per_gain"
+   ]
+  },
+  "ExpertiseRuleFact.proficiency_bonus_multiplier": {
+   "domain": 1,
+   "family": "expertise_rule",
+   "path": [
+    "proficiency_bonus_multiplier"
+   ]
+  },
+  "FeatChoiceFact.count": {
+   "domain": 1,
+   "family": "feat_choice",
+   "path": [
+    "count"
+   ]
+  },
+  "FeatChoiceFact.count_per_gain": {
+   "domain": 1,
+   "family": "feat_choice",
+   "path": [
+    "count_per_gain"
+   ]
+  },
+  "FeatPrerequisiteFact.minimum_character_level": {
+   "domain": 1,
+   "family": "feat_prerequisite",
+   "path": [
+    "minimum_character_level"
+   ]
+  },
+  "ForcedMove.distance_ft_up_to": {
+   "domain": 1,
+   "family": "creature_save_effect",
+   "path": [
+    "failure_effect",
+    "forced_movement",
+    "distance_ft_up_to"
+   ]
+  },
+  "GrappleAppendages.of": {
+   "domain": 1,
+   "family": "clause_grapple",
+   "path": [
+    "appendages",
+    "of"
+   ]
+  },
+  "HandsRequiredFact.hands": {
+   "domain": 1,
+   "family": "hands_required",
+   "path": [
+    "hands"
+   ]
+  },
+  "HitPointBoundFact.minimum_current": {
+   "domain": 0,
+   "family": "hit_point_bound",
+   "path": [
+    "minimum_current"
+   ]
+  },
+  "KnockoutAlternativeFact.set_hit_points": {
+   "domain": 0,
+   "family": "knockout_alternative",
+   "path": [
+    "set_hit_points"
+   ]
+  },
+  "LevelCount.count": {
+   "domain": 1,
+   "family": "weapon_mastery_choice",
+   "path": [
+    "count_by_level",
+    0,
+    "count"
+   ]
+  },
+  "LevelCount.level": {
+   "domain": 1,
+   "family": "weapon_mastery_choice",
+   "path": [
+    "count_by_level",
+    0,
+    "level"
+   ]
+  },
+  "LeveledArmorClass.base": {
+   "domain": 0,
+   "family": "creature_defense_parameterized",
+   "path": [
+    "armor_class_formula",
+    "base"
+   ]
+  },
+  "LeveledArmorClass.per_spell_level": {
+   "domain": 0,
+   "family": "creature_defense_parameterized",
+   "path": [
+    "armor_class_formula",
+    "per_spell_level"
+   ]
+  },
+  "MasteryDc.base": {
+   "domain": 0,
+   "family": "mastery_effect",
+   "path": [
+    "dc",
+    "base"
+   ]
+  },
+  "MasteryEffectFact.distance_ft_up_to": {
+   "domain": 1,
+   "family": "mastery_effect",
+   "path": [
+    "distance_ft_up_to"
+   ]
+  },
+  "MasteryEffectFact.maximum_reduction_ft": {
+   "domain": 1,
+   "family": "mastery_effect",
+   "path": [
+    "maximum_reduction_ft"
+   ]
+  },
+  "MasteryEffectFact.second_target_within_ft": {
+   "domain": 1,
+   "family": "mastery_effect",
+   "path": [
+    "second_target_within_ft"
+   ]
+  },
+  "MasteryEffectFact.speed_reduction_ft": {
+   "domain": 1,
+   "family": "mastery_effect",
+   "path": [
+    "speed_reduction_ft"
+   ]
+  },
+  "MultiattackPart.count": {
+   "domain": 1,
+   "family": "creature_multiattack",
+   "path": [
+    "alternatives",
+    0,
+    "parts",
+    0,
+    "count"
+   ]
+  },
+  "MultiattackReplacement.replaces": {
+   "domain": 1,
+   "family": "creature_multiattack",
+   "path": [
+    "replacements",
+    0,
+    "replaces"
+   ]
+  },
+  "MulticlassSkillProficiencyChoiceFact.count": {
+   "domain": 0,
+   "family": "multiclass_skill_proficiency_choice",
+   "path": [
+    "count"
+   ]
+  },
+  "NaturalRollOutcomeFact.face": {
+   "domain": 1,
+   "family": "natural_roll_outcome",
+   "path": [
+    "face"
+   ]
+  },
+  "ParameterizedHitPoints.base": {
+   "domain": 1,
+   "family": "creature_defense_parameterized",
+   "path": [
+    "hit_points",
+    "base"
+   ]
+  },
+  "ParameterizedHitPoints.per_spell_level": {
+   "domain": 1,
+   "family": "creature_defense_parameterized",
+   "path": [
+    "hit_points",
+    "per_spell_level"
+   ]
+  },
+  "PerLevelAbove.amount": {
+   "domain": 1,
+   "family": "creature_defense_parameterized",
+   "path": [
+    "hit_points",
+    "per_spell_level_above",
+    "amount"
+   ]
+  },
+  "PerLevelAbove.level": {
+   "domain": 1,
+   "family": "creature_defense_parameterized",
+   "path": [
+    "hit_points",
+    "per_spell_level_above",
+    "level"
+   ]
+  },
+  "ReachExtensionFact.feet": {
+   "domain": 1,
+   "family": "reach_extension",
+   "path": [
+    "feet"
+   ]
+  },
+  "RestDurationFact.hours": {
+   "domain": 1,
+   "family": "rest_duration",
+   "path": [
+    "hours"
+   ]
+  },
+  "Rider.escape_dc": {
+   "domain": 1,
+   "family": "creature_attack",
+   "path": [
+    "hit_effect",
+    "escape_dc"
+   ]
+  },
+  "RiderSave.dc": {
+   "domain": 1,
+   "family": "creature_attack",
+   "path": [
+    "hit_effect",
+    "rider_save",
+    "dc"
+   ]
+  },
+  "SaveArea.height_ft": {
+   "domain": 1,
+   "family": "creature_save_effect",
+   "path": [
+    "targets",
+    "area",
+    "height_ft"
+   ]
+  },
+  "SaveArea.size_ft": {
+   "domain": 1,
+   "family": "creature_save_effect",
+   "path": [
+    "targets",
+    "area",
+    "size_ft"
+   ]
+  },
+  "SaveArea.width_ft": {
+   "domain": 1,
+   "family": "creature_save_effect",
+   "path": [
+    "targets",
+    "area",
+    "width_ft"
+   ]
+  },
+  "SaveTargets.at_hit_points": {
+   "domain": 0,
+   "family": "creature_save_effect",
+   "path": [
+    "targets",
+    "at_hit_points"
+   ]
+  },
+  "SaveTargets.count": {
+   "domain": 1,
+   "family": "creature_save_effect",
+   "path": [
+    "targets",
+    "count"
+   ]
+  },
+  "SaveTargets.origin_point_within_ft": {
+   "domain": 1,
+   "family": "creature_save_effect",
+   "path": [
+    "targets",
+    "origin_point_within_ft"
+   ]
+  },
+  "SaveTargets.swallow_capacity": {
+   "domain": 1,
+   "family": "creature_save_effect",
+   "path": [
+    "targets",
+    "swallow_capacity"
+   ]
+  },
+  "SaveTargets.within_ft": {
+   "domain": 1,
+   "family": "creature_save_effect",
+   "path": [
+    "targets",
+    "within_ft"
+   ]
+  },
+  "ShieldBonusFact.bonus": {
+   "domain": 0,
+   "family": "shield_bonus",
+   "path": [
+    "bonus"
+   ]
+  },
+  "SizeKeyedHitPoints.huge": {
+   "domain": 1,
+   "family": "creature_defense_parameterized",
+   "path": [
+    "hit_points",
+    "by_size",
+    "huge"
+   ]
+  },
+  "SizeKeyedHitPoints.large": {
+   "domain": 1,
+   "family": "creature_defense_parameterized",
+   "path": [
+    "hit_points",
+    "by_size",
+    "large"
+   ]
+  },
+  "SizeKeyedHitPoints.medium_or_smaller": {
+   "domain": 1,
+   "family": "creature_defense_parameterized",
+   "path": [
+    "hit_points",
+    "by_size",
+    "medium_or_smaller"
+   ]
+  },
+  "SkillProficiencyChoiceFact.count": {
+   "domain": 1,
+   "family": "skill_proficiency_choice",
+   "path": [
+    "count"
+   ]
+  },
+  "SpellSaveDcFormulaFact.base": {
+   "domain": 0,
+   "family": "spell_save_dc_formula",
+   "path": [
+    "base"
+   ]
+  },
+  "StabilizationFact.target_at_hit_points": {
+   "domain": 0,
+   "family": "stabilization",
+   "path": [
+    "target_at_hit_points"
+   ]
+  },
+  "StableRecovery.regain_hit_points": {
+   "domain": 1,
+   "family": "stable_state",
+   "path": [
+    "recovery",
+    "regain_hit_points"
+   ]
+  },
+  "SubclassEligibility.minimum_class_level": {
+   "domain": 1,
+   "family": "skill_proficiency_choice",
+   "path": [
+    "eligibility",
+    "minimum_class_level"
+   ]
+  },
+  "ToolChoice.count": {
+   "domain": 1,
+   "family": "multiclass_proficiency_grant",
+   "path": [
+    "tool_choice",
+    "count"
+   ]
+  },
+  "ToolProficiencyChoiceFact.count": {
+   "domain": 1,
+   "family": "tool_proficiency_choice",
+   "path": [
+    "count"
+   ]
+  },
+  "VersatileDamageFact.hands": {
+   "domain": 1,
+   "family": "versatile_damage",
+   "path": [
+    "hands"
+   ]
+  },
+  "WeaponMasteryChoiceFact.kinds_of_weapons": {
+   "domain": 1,
+   "family": "weapon_mastery_choice",
+   "path": [
+    "kinds_of_weapons"
+   ]
+  },
+  "ZeroHitPointOnSuccess.set_hit_points": {
+   "domain": 0,
+   "family": "zero_hit_point_save",
+   "path": [
+    "on_success",
+    "set_hit_points"
+   ]
+  }
+ },
+ "integer_fields_exercised": 164,
+ "label": "FOCUSED DIAGNOSTICS ONLY",
+ "nested_value_objects": {
+  "signed dice modifier admitted": true,
+  "zero denominator refused": true,
+  "zero dice refused": true
+ }
+}

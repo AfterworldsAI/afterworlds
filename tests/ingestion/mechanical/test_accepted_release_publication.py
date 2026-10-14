@@ -113,12 +113,13 @@ from afterworlds.services.rules_authority.targets import (
 NOW = "2026-10-09T00:00:00Z"
 PACKAGE = "1299484e-c72d-509b-bd8d-d0169ee1f8d2"
 RELEASE = "5.2.1-corpus.8781d4e0-a3b"
-#: The effective projection the accepted authority derives: the CRD Issue 2b G1
-#: successor recorded 2026-10-11 (the restart's ``1f0db408-…`` was its
-#: predecessor's, superseded by digest).
-PROJECTION = "efab27a9-5d44-52ba-ad74-47940d5fd717"
-ORACLE_FILE = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-8781d4e0-a3b-g1.json"
-ORACLE_SHA256 = "2ccbaeba6de75d9787fbdd407e42dc2425fa20d4d26bcc298b681b550bd11258"
+#: The effective projection the accepted authority derives: the CRD Issue 15c
+#: C8 successor recorded 2026-10-13 (C7's ``8446ab6b-…``, the native C5
+#: successor's ``44f212d5-…``, G1's ``efab27a9-…`` and the restart's
+#: ``1f0db408-…`` were its predecessors', superseded by digest).
+PROJECTION = "e4f8f4fb-de6c-53c9-98f1-fa7a0159fe42"
+ORACLE_FILE = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json"
+ORACLE_SHA256 = "ead7fa9d4fde484098f71221ca5ef82dfb2c82229d8fca80ab5feeb4e4d62d0d"  # noqa: E501  # pragma: allowlist secret
 ACCEPTED_RECORDS = 1847
 
 #: One real accepted record, read back with its exact provenance.

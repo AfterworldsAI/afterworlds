@@ -1,0 +1,17 @@
+{
+  "label": "Codex independent read-only mapping-to-serialized-preview inspection; not acceptance or full-suite evidence",
+  "afterworlds_file": "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\src\\afterworlds\\__init__.py",
+  "preview_sha256": "aa9fe91e948bff66de330d45ca533eaada3579d111a6ad06da97864e3d180593",
+  "schema": {
+    "hash": "85896c8271a9aa4891af92f1c699a5eb9adc69562581135817e312b5d1ddbe0f",
+    "version": "5d-representation-schema-19"
+  },
+  "mapped_items": 5504,
+  "expected_native_placements": 5515,
+  "actual_native_added_placements": 5515,
+  "prior_facts_lost": 0,
+  "missing": 0,
+  "extra": 0,
+  "fixed_reviewed_relocations_used": true,
+  "preview_equals_reviewed_mapping_after_disclosed_normalizations": true
+}

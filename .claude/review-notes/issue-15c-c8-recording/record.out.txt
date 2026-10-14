@@ -1,0 +1,49 @@
+pin True src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json
+pin True src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-g1.json
+pin True src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b.json
+pin True .claude/review-notes/issue-15c-implementation/candidate-c8/c8.json
+pin True .claude/review-notes/issue-15c-implementation/candidate-c8/correspondence.json
+pin True .claude/review-notes/issue-15c-c8-native/owner-acceptance-2026-10-13.md
+pin True .claude/review-notes/issue-15c-implementation/codex-c8-owner-decision-packet.md
+pin True .claude/review-notes/issue-15c-c8-native/OWNER-PACKET.md
+pin True .claude/review-notes/issue-15c-c8-native/PLANNING-ADDENDUM-target-domain.md
+pin True .claude/review-notes/issue-15c-implementation/codex-c8-native-final-review.md
+pin True .claude/review-notes/issue-15c-c8-native/reports/c8-revalidation.json
+pin True .claude/worktrees/agent-aa5b1ea6bf4ee4f39/.claude/review-notes/issue-15c-c8-native/preview/srd-5-2-1-corpus-8781d4e0-a3b-c8-PREVIEW.json
+pin True .claude/worktrees/agent-aa5b1ea6bf4ee4f39/.claude/review-notes/issue-15c-c8-native/preview/spell-descriptions-C8-PROPOSAL.json
+pin True .claude/worktrees/agent-aa5b1ea6bf4ee4f39/.claude/review-notes/issue-15c-c8-native/preview/magic-items-C8-PROPOSAL.json
+pin True .claude/worktrees/agent-aa5b1ea6bf4ee4f39/.claude/review-notes/issue-15c-c8-native/preview/monsters-C8-PROPOSAL.json
+pin True .claude/worktrees/agent-aa5b1ea6bf4ee4f39/.claude/review-notes/issue-15c-c8-native/preview/animals-C8-PROPOSAL.json
+pin True .claude/worktrees/agent-aa5b1ea6bf4ee4f39/.claude/review-notes/issue-15c-c8-native/preview/character-origins-feats-C8-PROPOSAL.json
+mode record recording time 2026-10-13T17:50:52Z
+{
+ "outside_acceptance_differences": [],
+ "acceptance_equal_after_blanking_evidence": true,
+ "non_evidence_differences": [],
+ "untouched_rows_in_same_order": {
+  "batches": true,
+  "records": true,
+  "review_unit_records": true
+ },
+ "evidence_changed": {
+  "batches.rule": 5,
+  "records.accepted_at": 7536,
+  "records.reviewer": 7536,
+  "review_unit_records.accepted_at": 1154,
+  "review_unit_records.reviewer": 1154
+ },
+ "evidence_changed_outside_touched": []
+}
+wrote src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json
+{
+ "validate_candidate_findings": [],
+ "validate_candidate_finding_count": 0,
+ "verify_reconstruction": [],
+ "reconstructed_payload_identical": true,
+ "reidentified_projection": "e4f8f4fb-de6c-53c9-98f1-fa7a0159fe42",
+ "projection": "e4f8f4fb-de6c-53c9-98f1-fa7a0159fe42",
+ "payload_hash": "e615d0106996466b8ab72dacd481934b7982e4c421a661eb2cc0e3fcdfad5d87",
+ "gate_passed": true,
+ "gate_failures": []
+}
+successor sha256 ead7fa9d4fde484098f71221ca5ef82dfb2c82229d8fca80ab5feeb4e4d62d0d

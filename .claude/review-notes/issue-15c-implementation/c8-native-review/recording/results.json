@@ -1,0 +1,118 @@
+{
+  "reviewed_at_utc": "2026-10-13T18:02:14.681846+00:00",
+  "status": "recording_slice_clear",
+  "recorded_sha256": "ead7fa9d4fde484098f71221ca5ef82dfb2c82229d8fca80ab5feeb4e4d62d0d",
+  "recorded_bytes": 44637018,
+  "recorded_at": "2026-10-13T17:50:52Z",
+  "outside_acceptance_identical": true,
+  "acceptance_other_collections_identical": true,
+  "changed_evidence": {
+    "batches": {
+      "rule": 5
+    },
+    "records": {
+      "accepted_at": 7536,
+      "reviewer": 7536
+    },
+    "review_unit_records": {
+      "accepted_at": 1154,
+      "reviewer": 1154
+    }
+  },
+  "untouched_ordered_rows": {
+    "batches": 19,
+    "records": 2959,
+    "review_unit_records": 322
+  },
+  "unchanged_schema_anchors": 24,
+  "real_owner_receipts_exact": true,
+  "simulation_residue": false,
+  "proposal_identities": {
+    "animals": "db3f0d2dd9c997f4f2edc1f8fd361244becf7720ab80834c7e2828d971e92014",
+    "character-origins-feats": "301572d46bc655125bc45ad8d08b53d044c0d28014c2ea0340bedd08d2a20f5f",
+    "magic-items": "d88713097ad106b5e645b35cf1e0f1bffaa6408a8cd7af2faa4da68331f6996b",
+    "monsters": "bec1bedc4097a7b42c6acbf64c6131688caa2c86cc85616006b2de1a85c886be",
+    "spell-descriptions": "1c01d1e4f603acebf8baa14b909b7b07406e0e3f0c27330a305363f923d527c7"
+  },
+  "pure_native": {
+    "afterworlds_file": "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\src\\afterworlds\\__init__.py",
+    "code_revision": "bf3fb2d17279114b0981da13ee76fd9f1ddc88bc",
+    "serialization_identical": true,
+    "oracle_identity": "70646cd987dcf75adc7b57b6271e38c6ca8cc9b508584dac89c5acefafa3e8d9",
+    "projection": "e4f8f4fb-de6c-53c9-98f1-fa7a0159fe42",
+    "payload_hash": "e615d0106996466b8ab72dacd481934b7982e4c421a661eb2cc0e3fcdfad5d87"
+  },
+  "observer": {
+    "ended_utc": "2026-10-13T17:57:07.7928621Z",
+    "actual_python_exit": 0,
+    "recorded_report_exists": true,
+    "recorded_report_sha256": "c43748bd9366cc5f1a99bc26b54d2ff4c61721f5d163f38d56b3eb6acb752338",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stdout_sha256": "51f7808c82ef1ae22fa7ed3379d8e4cddea7e34f5b9d5d95632910ec8f453327",
+    "warning": "The original cmd record.exit.txt may reflect early errorlevel expansion; use this actual OS Python exit plus full recording proofs."
+  },
+  "predecessor_pins": {
+    "srd-5-2-1-corpus-8781d4e0-a3b-15c.json": "23e5d8e0fac60e3f5417b3a41e40e6f475366dd385856f38c42104f4dd264f69",
+    "srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json": "2853f30a832ca581c9d4169b82d0c360f3d6a2d78f0ad8980de9997eef51f373",
+    "srd-5-2-1-corpus-8781d4e0-a3b-g1.json": "2ccbaeba6de75d9787fbdd407e42dc2425fa20d4d26bcc298b681b550bd11258",
+    "srd-5-2-1-corpus-8781d4e0-a3b.json": "def7caa1625458a40c1f635db153268082cf52d5e25c28f57fd29518e44de58c"
+  },
+  "input_sha256": {
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-c8-recording\\recorded-followup.json": "c43748bd9366cc5f1a99bc26b54d2ff4c61721f5d163f38d56b3eb6acb752338",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\src\\afterworlds\\ingestion\\mechanical\\oracles\\srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json": "ead7fa9d4fde484098f71221ca5ef82dfb2c82229d8fca80ab5feeb4e4d62d0d",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\.claude\\review-notes\\issue-15c-c8-native\\preview\\srd-5-2-1-corpus-8781d4e0-a3b-c8-PREVIEW.json": "a2d96264dd18605680358393270e1f9f4fc27da144fda09da06e31cbd5250016",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-c8-recording\\owner-acceptance.json": "a33d8c94229facd348e33091abf0d22e44a94a3da1e879dc0317e6cd9f3af2da",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-c8-native\\owner-acceptance-2026-10-13.md": "0fffe6c014f6e98b4559320477c921c2732d376e4811b8d4d070ad65c11bdee2",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-implementation\\codex-c8-owner-decision-packet.md": "7a29c7cd27d3e0434da090fa59f30bf0df94c9c4fd04a604846d22ad013bcdc6",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-c8-native\\OWNER-PACKET.md": "b9c6cbec31f386d8962d44edb5c8615e59596e5c5c32f73b83ff4ce65d8c59a7",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-c8-native\\PLANNING-ADDENDUM-target-domain.md": "cb76230c7b98344ccf60bebacddaf1408d779ae0e8eb7ae5cbb1240af9a4fa8a",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-implementation\\codex-c8-native-final-review.md": "bedbcfabff0471e4b82e3a3324ba88f1224510af67661f66e00d82bcdb2beb85",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-c8-native\\reports\\c8-revalidation.json": "77b22fd668c8b773aa1d25c322cbbb40b369cf54c68966872e0ba373e228f584",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-implementation\\owner-whole-pr-review-2026-10-13.md": "a9d2f56e39ae1a7f94875bdbd5d073f4e6f398cac0efa8bae67851dc86595909",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-c8-recording\\record_successor.py": "5a319a198f5f869da4967f4abb7743f69dd90bd8b800f3ce743fc3791f6454d4",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-implementation\\c8-native-review\\original-c8-preview.json": "ebc0023ff34d6e16af50c278f7934c5094a2a7477f4f9a30c865aecba67321e6",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-implementation\\candidate-c8\\c8.json": "7e7d5b43ccd7bd877e0764643e57df1270419dd758a6ae5fcf52422081e42628",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-implementation\\candidate-c8\\correspondence.json": "43589153ee7befe4e46052f0e7fe7db053b5a9a22c3ff8a6b4468e41c9e0ce24",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-implementation\\candidate-c8\\inventory.json": "3f05591efa78656132db3a179f174b560ca3e8f3d3ebfd525e56b400e87ce55d",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-implementation\\candidate-c8\\schema-21-delta.md": "1c33046c692692f48e63766e61fa6f2b7785b9118f50db241503f5868223b1b5",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-implementation\\codex-c8-raw-correction-review.md": "9e80f93aef59e99f5385c335f2176ca78d02061b89482a6c236f59bb91ba48aa",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\docs\\sources\\community\\dnd-5e-srd-markdown\\animals.md": "c42082103eb868c5b8b2f6c0cbdcc8146545c149cfc7af32524f9938eed658f9",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\docs\\sources\\community\\dnd-5e-srd-markdown\\character-origins.md": "76c92948e8e86011f3bab326d81faac5eaff9515016039cb33c3bf89e34163af",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\docs\\sources\\community\\dnd-5e-srd-markdown\\classes.md": "2012dfa34600116f1e0d8383012e8cc597404bfad4d2e985145746bc4980e5bb",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\docs\\sources\\community\\dnd-5e-srd-markdown\\magic-items.md": "3b5ca6f44a15f9cfda7be876c94de7c63cfcbe633c3680db8c076843d6c5283e",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\docs\\sources\\community\\dnd-5e-srd-markdown\\monsters-A-Z.md": "e6581e2a330cd900dacbc321d9cb9533362f3b81e3f4adef342baf1b1a4864c2",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\docs\\sources\\community\\dnd-5e-srd-markdown\\monsters.md": "784a7e14a1f667b5c187b1fee5ef09bf88316f7174e81b2f74d54742bab813d3",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\docs\\sources\\community\\dnd-5e-srd-markdown\\rules-glossary.md": "3fa8904be1e84bfafda24bf673c5e30ad899bd4135809a4c4dfd1d738f0d5ead",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\docs\\sources\\community\\dnd-5e-srd-markdown\\spells.md": "767d50542d8f26a9fff4a0c101ab48df4845a055d70734fee6e9e37d2e821aeb",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\src\\afterworlds\\ingestion\\mechanical\\oracles\\srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json": "2853f30a832ca581c9d4169b82d0c360f3d6a2d78f0ad8980de9997eef51f373",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-native\\preview\\proposals\\animals-PROPOSAL.json": "7186c42a3c731b805a3adce43ca5d2af91a46833e70295872193a1c71dc68631",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\worktrees\\agent-afb6123d0b7851456\\.claude\\review-notes\\issue-15c-c7-native\\preview\\character-origins-feats-C7-PROPOSAL.json": "587068868bbcbc05cb881f3ae4b2e68cb2c47c257192671470bdf792c17f178e",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-native\\preview\\proposals\\magic-items-PROPOSAL.json": "28a7f4d5ceeaa8a2a19bb4d09313dc97cdc9b9263a2b37230f4ac882eb3c0e31",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-native\\preview\\proposals\\monsters-PROPOSAL.json": "9f30cf57619ceca946444a331644b90c1f7af6720962cb936abc0faa20b1474f",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-native\\preview\\proposals\\spell-descriptions-PROPOSAL.json": "e8830765f3e8a728b810627bd4f58de86d37ed3ba9c447756ade368cf027957d",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\src\\afterworlds\\ingestion\\mechanical\\oracles\\srd-5-2-1-corpus-8781d4e0-a3b-15c.json": "23e5d8e0fac60e3f5417b3a41e40e6f475366dd385856f38c42104f4dd264f69",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\src\\afterworlds\\ingestion\\mechanical\\oracles\\srd-5-2-1-corpus-8781d4e0-a3b-g1.json": "2ccbaeba6de75d9787fbdd407e42dc2425fa20d4d26bcc298b681b550bd11258",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\src\\afterworlds\\ingestion\\mechanical\\oracles\\srd-5-2-1-corpus-8781d4e0-a3b.json": "def7caa1625458a40c1f635db153268082cf52d5e25c28f57fd29518e44de58c",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\.claude\\review-notes\\issue-15c-c8-native\\preview\\animals-C8-PROPOSAL.json": "6c2cd65751bdbefbb48ac042c0a201af087f8aca0cd9229a0e53bf48d95b8bbf",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\.claude\\review-notes\\issue-15c-c8-native\\preview\\character-origins-feats-C8-PROPOSAL.json": "9705cf1d223db4395311f23215bd12e451a1115a65b1ee6b3aa8bcd88674f1fe",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\.claude\\review-notes\\issue-15c-c8-native\\preview\\magic-items-C8-PROPOSAL.json": "f6a8b41281de0023a493803c934bf906ed8ee5909a544a9800743f0e9c63a2cd",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\.claude\\review-notes\\issue-15c-c8-native\\preview\\monsters-C8-PROPOSAL.json": "c12dad2846359cd35823c48c36e7dbca6fc6553a37c65ac5764a571173289984",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\.claude\\review-notes\\issue-15c-c8-native\\preview\\spell-descriptions-C8-PROPOSAL.json": "68c7526213cf976963e9408b0063140c70af38ef7a671c23c4144e00dfcc4377",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-preparation\\c8-recording-exit-observer\\result.json": "9b974af6bf0c2fb23b6ce6834234f418de6b1f7b0fcbf1bc29a5ff418b8a21a5",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-preparation\\c8-recording-exit-observer\\launch.json": "ed2e02a76a0fda6429362ed51763a8bff5822e690755c93029adb9227f0d6ca3",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-preparation\\c8-recording-exit-observer\\exit.txt": "5feceb66ffc86f38d952786c6d696c79c2dbc239dd4e91b46729d73a27fb57e9",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-c8-recording\\record.err.txt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-c8-recording\\record.out.txt": "51f7808c82ef1ae22fa7ed3379d8e4cddea7e34f5b9d5d95632910ec8f453327",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\review-notes\\issue-15c-preparation\\watch-c8-recording-exit.ps1": "f8b90f9881ebfe08807757ca98ea58b931c24daa7d00435b2757192957de5805",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\src\\afterworlds\\ingestion\\mechanical\\oracle.py": "9cddc78d0b6e99cf7695ba23661ac41fa50b5549bbcfb5ab89ed975c49dcb69d",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\src\\afterworlds\\ingestion\\mechanical\\projection.py": "56a9b0cfe17d5757aa74698a8acc68db2fc9acaa4ce7ea33273c399f27486df4",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\src\\afterworlds\\ingestion\\mechanical\\representation.py": "7f0abd45113548f32f35ee6d58cf986a8cea59877b63995cfedd96ac2a0f052c",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\src\\afterworlds\\ingestion\\mechanical\\validation.py": "3b32df131007deb4efcba401e3b2cc012015f8703a32df670422c377a25d499c",
+    "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\src\\afterworlds\\ingestion\\mechanical\\schema_lift.py": "46df4ccb1e4418c955358f195c798ddf9dd4a6b53709492fd6cfb0a87e44d00f"
+  },
+  "limitations": [
+    "Native private-store/gate result inspected and reused, not rerun",
+    "Current main selection/packaging changes not yet reviewed at a coherent final commit",
+    "Whole PR implementation and required full/CI gates remain separate"
+  ]
+}

@@ -1,0 +1,123 @@
+{
+  "label": "Codex final independent native preview inspection; NO semantic acceptance, execution certification or full-suite result",
+  "afterworlds_file": "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\src\\afterworlds\\__init__.py",
+  "preview_sha256": "cd9d1d27428a1525955f83091125489e96bbc7bd0977bb9f3ce83933883a20d3",
+  "schema": {
+    "hash": "3734ccf7d6be7f25e0a0d7c0395121c5525afcb87144f5cf9d6895e03c1cd18f",
+    "version": "5d-representation-schema-19"
+  },
+  "oracle_identity": "000c4c108daf609c26eb9ae9f1197a26eef6fb80a3cb5c788f9e89ba20ad6e76",
+  "projection_uuid": "44f212d5-32dd-5469-8f05-f0d236492347",
+  "payload_hash": "ed8e21dc89ce519d6301e2bbf486405576069fe4348f0c8948bed4dbcb3e5188",
+  "mapped_items": 5504,
+  "actual_added_placements": 5515,
+  "missing": 0,
+  "extra": 0,
+  "prior_facts_lost": 0,
+  "checks": {
+    "schema_hash_matches_current_build": true,
+    "native_data_matches_reviewed_mapping": true,
+    "report_preview_hash_matches": true,
+    "private_verification_all_pass": true,
+    "all_rendered_proposals_linked": true,
+    "all_preservation_checks_pass": true
+  },
+  "preservation": {
+    "batches": true,
+    "records": true,
+    "review_unit_records": true,
+    "schema_anchors": true,
+    "spans": true,
+    "reference_resolutions": true,
+    "release_binding": true,
+    "semantic_policy_hash": true,
+    "semantic_policy_version": true,
+    "representation_records": true,
+    "representation_prose_bindings": true,
+    "representation_references": true,
+    "representation_relationships": true,
+    "reference_resolution_records": true,
+    "prior_provenance_all_retained": true
+  },
+  "proposals": [
+    {
+      "batch": "animals",
+      "identity": "efa248a979c21d293701253cda86b561b876bec332667437769abebbb06221c9",
+      "rendered_sha256": "7186c42a3c731b805a3adce43ca5d2af91a46833e70295872193a1c71dc68631",
+      "matches_assembly_step": true,
+      "matches_rendered_sha": true
+    },
+    {
+      "batch": "character-origins-feats",
+      "identity": "20716b7dcadd5e1216ff3594c5aa654cb41c2961fe49048b0c853c1eed381838",
+      "rendered_sha256": "a8928f18d65538d21993e7f94090272bdc7e279c412134ebb8ffc996ada48b89",
+      "matches_assembly_step": true,
+      "matches_rendered_sha": true
+    },
+    {
+      "batch": "checks-actions-rests",
+      "identity": "f459a65ded7f0f5eab59c6e57a357e8015efff973976aa17a89fb42c9422096d",
+      "rendered_sha256": "b9be25d90ee4fb998b298059eed9158808660a90775451e82548ace8a4ba7fe6",
+      "matches_assembly_step": true,
+      "matches_rendered_sha": true
+    },
+    {
+      "batch": "classes",
+      "identity": "536c569f4226be24496edd8c1c1f27e59a6f873c7fcd53188aad9abc3a821e83",
+      "rendered_sha256": "f072c480f6331d98003de46020f679b3b6ca6b633ee95e9a9aeb1c7ab6957945",
+      "matches_assembly_step": true,
+      "matches_rendered_sha": true
+    },
+    {
+      "batch": "combat-damage-breaking",
+      "identity": "75ce69ce7e2e5da48743dcb24c066540b90bdf9a116ba84e78959759be5cea7d",
+      "rendered_sha256": "b079df28332cb88ec6276a441c39709d5dfa0422ae8810a6aca3c695baee0ebd",
+      "matches_assembly_step": true,
+      "matches_rendered_sha": true
+    },
+    {
+      "batch": "core-play-completion",
+      "identity": "a9330308d5905b1ab6c296d34b149c2bf95332b91e5a7c75e94c6c50a33becb6",
+      "rendered_sha256": "dc94ebd7f782a1a5532f2cc3868e1ea226467de186ea49f69714f6b7e453f6f8",
+      "matches_assembly_step": true,
+      "matches_rendered_sha": true
+    },
+    {
+      "batch": "equipment",
+      "identity": "b01f54b917653f83b7dbeebd6ad54757bdf183f71235d76e9198815f21789c4b",
+      "rendered_sha256": "7f8dadcd28c072cc22965dc36e7e1d7debb99aec3139c9f8b72178be06aff4b6",
+      "matches_assembly_step": true,
+      "matches_rendered_sha": true
+    },
+    {
+      "batch": "magic-items",
+      "identity": "bc4979d74a841065af99502e0cf20d157ab4bedd1fd7a9724a2130ffa092e712",
+      "rendered_sha256": "28a7f4d5ceeaa8a2a19bb4d09313dc97cdc9b9263a2b37230f4ac882eb3c0e31",
+      "matches_assembly_step": true,
+      "matches_rendered_sha": true
+    },
+    {
+      "batch": "monsters",
+      "identity": "ff24d9daf6dd81a760778865a011a5da236b56514a32753c2a8034f5f3eec617",
+      "rendered_sha256": "9f30cf57619ceca946444a331644b90c1f7af6720962cb936abc0faa20b1474f",
+      "matches_assembly_step": true,
+      "matches_rendered_sha": true
+    },
+    {
+      "batch": "spell-descriptions",
+      "identity": "dce22fbd6f89a61cbd7ab5efa0be75f81eec87840ae91731e8162c8fabfbbdc9",
+      "rendered_sha256": "e8830765f3e8a728b810627bd4f58de86d37ed3ba9c447756ade368cf027957d",
+      "matches_assembly_step": true,
+      "matches_rendered_sha": true
+    },
+    {
+      "batch": "spellcasting",
+      "identity": "1033979c0b9308aed91f413826477c0318c054ae6af074b0a17b1fd3fe05363f",
+      "rendered_sha256": "60a851733d07e9da2f5e0b7e403edb41b6743739f7af1219e41bdcac0d3cb7db",
+      "matches_assembly_step": true,
+      "matches_rendered_sha": true
+    }
+  ],
+  "private_verification_checks": 36,
+  "known_landing_test_failure": "test_the_declaration_is_identity_bearing_in_the_oracle: historical schema-18 fixture expected to equal current schema19; 1 failed, 56 passed; NOT a passing file"
+}

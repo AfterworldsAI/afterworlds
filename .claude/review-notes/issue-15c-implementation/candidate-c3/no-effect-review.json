@@ -1,0 +1,360 @@
+{
+ "digest": "d057cdbaf76a37efdd77b44c62580642f06370a8b39ef74023874dfd01691a00",
+ "instances": [
+  {
+   "name": "Abduct",
+   "reviewed": "movement or position only",
+   "text": "the X needn't spend extra movement to move a creature it is grappling."
+  },
+  {
+   "name": "Aberrant Ground",
+   "reviewed": "movement or position only",
+   "text": "the ground in a 10-foot emanation originating from the X is difficult terrain."
+  },
+  {
+   "name": "Agile",
+   "reviewed": "movement or position only",
+   "text": "the X doesn't provoke an opportunity attack when it moves out of an enemy's reach."
+  },
+  {
+   "name": "Air Form",
+   "reviewed": "movement or position only",
+   "text": "the X can enter a creature's space and stop there. it can move through a space as narrow as 1 inch without expending extra movement to do so."
+  },
+  {
+   "name": "Air Form",
+   "reviewed": "movement or position only",
+   "text": "the X can enter an enemy's space and stop there. it can move through a space as narrow as 1 inch without expending extra movement to do so."
+  },
+  {
+   "name": "Amorphous",
+   "reviewed": "movement or position only",
+   "text": "the X can move through a space as narrow as 1 inch without expending extra movement to do so."
+  },
+  {
+   "name": "Amphibious",
+   "reviewed": "breathing, carrying, light or bookkeeping only",
+   "text": "the X can breathe air and water."
+  },
+  {
+   "name": "Aquatic Charge",
+   "reviewed": "movement or position only",
+   "text": "the X swims up to its swim speed straight toward an enemy it can see."
+  },
+  {
+   "name": "Beast of Burden",
+   "reviewed": "breathing, carrying, light or bookkeeping only",
+   "text": "the X counts as one size larger for the purpose of determining its carrying capacity."
+  },
+  {
+   "name": "Bubble Dash",
+   "reviewed": "movement or position only",
+   "text": "while underwater, the X moves up to half its swim speed without provoking opportunity attacks."
+  },
+  {
+   "name": "Bubble Dash",
+   "reviewed": "movement or position only",
+   "text": "while underwater, the X moves up to its swim speed without provoking opportunity attacks."
+  },
+  {
+   "name": "Charge",
+   "reviewed": "movement or position only",
+   "text": "the X moves up to half its speed straight toward an enemy it can see."
+  },
+  {
+   "name": "Charge",
+   "reviewed": "movement or position only",
+   "text": "the X moves up to its speed or burrow speed straight toward an enemy it can sense."
+  },
+  {
+   "name": "Compression",
+   "reviewed": "movement or position only",
+   "text": "the X can move through a space as narrow as 1 inch without expending extra movement to do so."
+  },
+  {
+   "name": "Cunning Action",
+   "reviewed": "standard actions outside the roster (their results are recorded state)",
+   "text": "the X takes the dash, disengage, or hide action."
+  },
+  {
+   "name": "Deathless Agility",
+   "reviewed": "standard actions outside the roster (their results are recorded state)",
+   "text": "the X takes the dash or disengage action."
+  },
+  {
+   "name": "Divine Awareness",
+   "reviewed": "senses, communication or knowledge only",
+   "text": "the X knows if it hears a lie."
+  },
+  {
+   "name": "Earth Glide",
+   "reviewed": "movement or position only",
+   "text": "the X can burrow through nonmagical, unworked X and stone. while doing so, the X doesn't disturb the material it moves through."
+  },
+  {
+   "name": "Earth Glide",
+   "reviewed": "movement or position only",
+   "text": "the X can burrow through nonmagical, unworked earth and stone. while doing so, the X doesn't disturb the material it moves through."
+  },
+  {
+   "name": "Ephemeral",
+   "reviewed": "breathing, carrying, light or bookkeeping only",
+   "text": "the X can't wear or carry anything."
+  },
+  {
+   "name": "Ethereal Jaunt",
+   "reviewed": "movement or position only",
+   "text": "the X teleports from the material plane to the ethereal plane or vice versa."
+  },
+  {
+   "name": "Ethereal Sight",
+   "reviewed": "senses, communication or knowledge only",
+   "text": "the X can see 60 feet into the ethereal plane when it is on the material plane."
+  },
+  {
+   "name": "Ethereal Sight",
+   "reviewed": "senses, communication or knowledge only",
+   "text": "the X can see 60 feet into the ethereal plane while on the material plane and vice versa."
+  },
+  {
+   "name": "Ethereal Stride",
+   "reviewed": "movement or position only",
+   "text": "the X and up to three willing creatures within 5 feet of it teleport to the ethereal plane from the material plane or vice versa."
+  },
+  {
+   "name": "Fey Step",
+   "reviewed": "movement or position only",
+   "text": "the X teleports, along with its rider, to an unoccupied space of your choice up to 60 feet away from itself."
+  },
+  {
+   "name": "Flyby",
+   "reviewed": "movement or position only",
+   "text": "the X doesn't provoke an opportunity attack when it flies out of an enemy's reach."
+  },
+  {
+   "name": "Forbiddance",
+   "reviewed": "breathing, carrying, light or bookkeeping only",
+   "text": "the X can't enter a residence without an invitation from an occupant."
+  },
+  {
+   "name": "Hasten",
+   "reviewed": "standard actions outside the roster (their results are recorded state)",
+   "text": "the X takes the dash and disengage actions."
+  },
+  {
+   "name": "Hold Breath",
+   "reviewed": "breathing, carrying, light or bookkeeping only",
+   "text": "the X can hold its breath for 1 hour."
+  },
+  {
+   "name": "Hold Breath",
+   "reviewed": "breathing, carrying, light or bookkeeping only",
+   "text": "the X can hold its breath for 10 minutes."
+  },
+  {
+   "name": "Hold Breath",
+   "reviewed": "breathing, carrying, light or bookkeeping only",
+   "text": "the X can hold its breath for 30 minutes."
+  },
+  {
+   "name": "Ice Walk",
+   "reviewed": "movement or position only",
+   "text": "the X can move across and climb icy surfaces without needing to make an ability check. additionally, difficult terrain composed of ice or snow doesn't cost it extra movement."
+  },
+  {
+   "name": "Ignited Illumination",
+   "reviewed": "breathing, carrying, light or bookkeeping only",
+   "text": "the X sets itself ablaze or extinguishes its flames. while ablaze, the X sheds bright light in a 10-foot radius and dim light for an additional 10 feet."
+  },
+  {
+   "name": "Illumination",
+   "reviewed": "breathing, carrying, light or bookkeeping only",
+   "text": "the X sheds bright light in a 10-foot radius and dim light for an additional 10 feet."
+  },
+  {
+   "name": "Illumination",
+   "reviewed": "breathing, carrying, light or bookkeeping only",
+   "text": "the X sheds bright light in a 20-foot radius and dim light for an additional 20 feet."
+  },
+  {
+   "name": "Illumination",
+   "reviewed": "breathing, carrying, light or bookkeeping only",
+   "text": "the X sheds bright light in a 30-foot radius and dim light for an additional 30 feet."
+  },
+  {
+   "name": "Immutable Form",
+   "reviewed": "breathing, carrying, light or bookkeeping only",
+   "text": "the X can't shape-shift."
+  },
+  {
+   "name": "Iron Scent",
+   "reviewed": "senses, communication or knowledge only",
+   "text": "the X X can pinpoint the location of ferrous metal within 30 feet of itself."
+  },
+  {
+   "name": "Jumper",
+   "reviewed": "movement or position only",
+   "text": "the X's jump distance is determined using its dexterity rather than its strength."
+  },
+  {
+   "name": "Leap",
+   "reviewed": "movement or position only",
+   "text": "the X jumps up to 30 feet by spending 10 feet of movement."
+  },
+  {
+   "name": "Leap",
+   "reviewed": "movement or position only",
+   "text": "the X-X jumps up to 30 feet by spending 10 feet of movement."
+  },
+  {
+   "name": "Limited Amphibiousness",
+   "reviewed": "breathing, carrying, light or bookkeeping only",
+   "text": "the X can breathe air and water, but it must be submerged at least once every 4 hours to avoid suffocating outside water."
+  },
+  {
+   "name": "Nimble Escape",
+   "reviewed": "standard actions outside the roster (their results are recorded state)",
+   "text": "the X takes the disengage or hide action."
+  },
+  {
+   "name": "Probing Telepathy",
+   "reviewed": "senses, communication or knowledge only",
+   "text": "if a creature the X can see communicates telepathically with the X, the X learns the creature's greatest desires."
+  },
+  {
+   "name": "Prowl",
+   "reviewed": "movement or position only",
+   "text": "the X moves up to its speed without provoking opportunity attacks. at the end of this movement, the X can take the hide action."
+  },
+  {
+   "name": "Reel",
+   "reviewed": "movement or position only",
+   "text": "the X pulls each creature grappled by it up to 30 feet straight toward it."
+  },
+  {
+   "name": "Reel",
+   "reviewed": "movement or position only",
+   "text": "the X pulls one creature within 30 feet of itself that is restrained by its web strand up to 25 feet straight toward itself."
+  },
+  {
+   "name": "Running Leap",
+   "reviewed": "movement or position only",
+   "text": "with a 10-foot running start, the X can long jump up to 25 feet."
+  },
+  {
+   "name": "Sense Magic",
+   "reviewed": "senses, communication or knowledge only",
+   "text": "the X senses magic within 120 feet of itself. this trait otherwise works like the _detect magic_ spell but isn't itself magical."
+  },
+  {
+   "name": "Shadow Stealth",
+   "reviewed": "standard actions outside the roster (their results are recorded state)",
+   "text": "while in dim light or darkness, the X takes the hide action."
+  },
+  {
+   "name": "Shark Telepathy",
+   "reviewed": "senses, communication or knowledge only",
+   "text": "the X can magically control sharks within 120 feet of itself, using a special telepathy."
+  },
+  {
+   "name": "Shielded Mind",
+   "reviewed": "senses, communication or knowledge only",
+   "text": "the X's thoughts can't be read by any means, and other creatures can communicate with it telepathically only if it allows them."
+  },
+  {
+   "name": "Speak with Beasts and Plants",
+   "reviewed": "senses, communication or knowledge only",
+   "text": "the X can communicate with beasts and plants as if they shared a language."
+  },
+  {
+   "name": "Spider Climb",
+   "reviewed": "movement or position only",
+   "text": "if the X has a climb speed, the X can climb difficult surfaces, including along ceilings, without needing to make an ability check."
+  },
+  {
+   "name": "Spider Climb",
+   "reviewed": "movement or position only",
+   "text": "the X can climb difficult surfaces, including along ceilings, without needing to make an ability check."
+  },
+  {
+   "name": "Standing Leap",
+   "reviewed": "movement or position only",
+   "text": "the X's long jump is up to 10 feet and its high jump is up to 5 feet with or without a running start."
+  },
+  {
+   "name": "Standing Leap",
+   "reviewed": "movement or position only",
+   "text": "the X's long jump is up to 20 feet and its high jump is up to 10 feet with or without a running start."
+  },
+  {
+   "name": "Telepathic Bond",
+   "reviewed": "senses, communication or knowledge only",
+   "text": "while the X is on the same plane of existence as its master, the two of them can communicate telepathically with each other."
+  },
+  {
+   "name": "Teleport",
+   "reviewed": "movement or position only",
+   "text": "the X teleports itself or a willing demon within 10 feet of itself up to 60 feet to an unoccupied space the X can see."
+  },
+  {
+   "name": "Teleport",
+   "reviewed": "movement or position only",
+   "text": "the X teleports up to 120 feet to an unoccupied space it can see."
+  },
+  {
+   "name": "Teleport",
+   "reviewed": "movement or position only",
+   "text": "the X teleports up to 40 feet to an unoccupied space it can see."
+  },
+  {
+   "name": "Treasure Sense",
+   "reviewed": "senses, communication or knowledge only",
+   "text": "the X can pinpoint the location of precious metals and stones within 60 feet of itself."
+  },
+  {
+   "name": "Tree Stride",
+   "reviewed": "movement or position only",
+   "text": "if within 5 feet of a large or bigger tree, the X teleports to an unoccupied space within 5 feet of a second large or bigger tree that is within 60 feet of the previous tree."
+  },
+  {
+   "name": "Tunneler",
+   "reviewed": "movement or position only",
+   "text": "the X can burrow through solid rock at half its burrow speed and leaves a 10-foot-diameter tunnel in its wake."
+  },
+  {
+   "name": "Vampire Weakness",
+   "reviewed": "a list header; each listed weakness is its own entry, classified individually",
+   "text": "the X has these weaknesses:"
+  },
+  {
+   "name": "Vampiric Connection",
+   "reviewed": "senses, communication or knowledge only",
+   "text": "while the X and its X master are on the same plane of existence, the X can communicate with the X telepathically, and the X can perceive through the X's senses."
+  },
+  {
+   "name": "Water Breathing",
+   "reviewed": "breathing, carrying, light or bookkeeping only",
+   "text": "the X can breathe only underwater."
+  },
+  {
+   "name": "Water Breathing",
+   "reviewed": "breathing, carrying, light or bookkeeping only",
+   "text": "the X can breathe only underwater. it can hold its breath for 1 hour outside water."
+  },
+  {
+   "name": "Water Form",
+   "reviewed": "movement or position only",
+   "text": "the X can enter an enemy's space and stop there. it can move through a space as narrow as 1 inch without expending extra movement to do so."
+  },
+  {
+   "name": "Web Walker",
+   "reviewed": "movement or position only",
+   "text": "the X ignores movement restrictions caused by webs, and it knows the location of any other creature in contact with the same web."
+  },
+  {
+   "name": "Web Walker",
+   "reviewed": "movement or position only",
+   "text": "the X ignores movement restrictions caused by webs, and the X knows the location of any other creature in contact with the same web."
+  }
+ ]
+}

@@ -21,6 +21,7 @@ from afterworlds.pipeline.rpg.adapter import (
     PlayerRollValueError,
     UnsupportedCheckError,
 )
+from afterworlds.pipeline.rpg.capability import AdjudicationRefusal, RefusalKind
 from afterworlds.services.dnd5e_state.turn import TurnCharacter
 from tests.rpg_characters import turn_character
 
@@ -126,19 +127,30 @@ def test_hidden_roll_serialized_ledger_does_not_leak_skill() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_shown_roll_preserves_check_label() -> None:
+def test_a_shown_roll_takes_a_code_derived_public_label() -> None:
+    """The GameMaster's check_label is backend-only (CRD Issue 15c)."""
     adapter = D20RulesSystemAdapter()
     record = _make_record(
         check_label="Athletics check", visibility=RollVisibility.SHOWN
+    ).model_copy(
+        update={
+            "modifiers_json": json.dumps(
+                {
+                    "operation": "difficulty_check",
+                    "ability": "strength",
+                    "skill": "athletics",
+                }
+            )
+        }
     )
     view = adapter.to_writer_view(record)
-    assert view.check_label == "Athletics check"
+    assert view.check_label == "Strength (Athletics) check"
     assert view.total == 14
     assert view.dc == 12
     assert view.outcome == "success"
 
 
-def test_player_roll_preserves_all_fields() -> None:
+def test_player_roll_keeps_its_numbers_under_a_public_label() -> None:
     adapter = D20RulesSystemAdapter()
     record = _make_record(
         check_label="Persuasion check",
@@ -148,11 +160,29 @@ def test_player_roll_preserves_all_fields() -> None:
         outcome="success",
     )
     view = adapter.to_writer_view(record)
-    assert view.check_label == "Persuasion check"
+    assert view.check_label == "Check"
     assert view.total == 18
     assert view.dc == 15
     assert view.outcome == "success"
     assert "18" in view.player_facing_summary
+
+
+def test_a_secret_in_the_gamemasters_label_never_reaches_the_writer() -> None:
+    """The GameMaster saw a hidden condition in the scene and wrote it into
+    a shown roll's label; the Writer view carries none of it."""
+    adapter = D20RulesSystemAdapter()
+    secret = "Strike the secretly Poisoned wolf (instance c-poisoned)"
+    for operation, extra in (
+        ("weapon_attack", {"weapon": "equipment.weapons.club"}),
+        ("creature_attack", {"entry": "Bite"}),
+        ("begin_turn", {}),
+    ):
+        record = _make_record(check_label=secret).model_copy(
+            update={"modifiers_json": json.dumps({"operation": operation, **extra})}
+        )
+        view = adapter.to_writer_view(record)
+        public = f"{view.check_label} {view.player_facing_summary}"
+        assert "Poisoned" not in public and "c-poisoned" not in public, public
 
 
 # ---------------------------------------------------------------------------
@@ -161,50 +191,14 @@ def test_player_roll_preserves_all_fields() -> None:
 
 
 def test_verify_dc_returns_none_regardless_of_subsystem_tag() -> None:
-    """_verify_dc must never parse a DC from model-authored subsystem_tag."""
+    """The legacy consume path's _verify_dc never parses a model-authored DC."""
     adapter = D20RulesSystemAdapter()
     assert adapter._verify_dc(None) is None  # noqa: SLF001
 
 
-def test_verify_dc_returns_none_for_dc_tag() -> None:
-    """Even a subsystem_tag like 'skill_check dc 15' must return None."""
-    adapter = D20RulesSystemAdapter()
-    assert adapter._verify_dc(None) is None  # noqa: SLF001
-
-
-def test_verify_dc_outcome_is_undetermined_when_dc_absent() -> None:
-    """When _verify_dc returns None, resolve_roll produces outcome='undetermined'."""
-    adapter = D20RulesSystemAdapter()
-    sheet = _make_sheet()
-    proposal = _make_proposal("dexterity", RollVisibility.SHOWN).model_copy(
-        update={"difficulty_reference_note": "dc 5"}
-    )
-    dice_svc = MagicMock()
-    dice_svc.roll.return_value = MagicMock(chosen=12, raw_rolls=(12,))
-    record = adapter.resolve_roll(proposal, sheet, None, dice_svc, False)
-    assert record.dc is None
-    assert record.outcome == "undetermined"
-
-
 # ---------------------------------------------------------------------------
-# CRD Issue 2b: proficiency-aware checks are refused, never ability-only
+# CRD Issue 15c: backend rolls need a roster operation; labels never suffice
 # ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    "label",
-    ["stealth", "Sleight of Hand", "perception", "dexterity_save", "strength_save"],
-)
-def test_a_proficiency_aware_check_is_refused_not_rolled_ability_only(
-    label: str,
-) -> None:
-    adapter = D20RulesSystemAdapter()
-    dice_svc = MagicMock()
-    with pytest.raises(UnsupportedCheckError, match="proficiency-aware"):
-        adapter.resolve_roll(
-            _make_proposal(label), _make_sheet(), None, dice_svc, False
-        )
-    dice_svc.roll.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -213,23 +207,17 @@ def test_a_proficiency_aware_check_is_refused_not_rolled_ability_only(
         ("saving_throw", "Dexterity Saving Throw", "dexterity"),
         ("weapon_attack", "Longsword Attack", "dexterity"),
         ("skill_check", "Stealth Check", "dexterity"),
-        ("ability_check", "Stealth Check", "dexterity"),
-        ("ability_check", "Dexterity Saving Throw", "dexterity"),
-        ("ability_check", "Initiative", "dexterity"),
-        ("ability_check", "Strength Check", "dexterity"),
-        ("ability_check", "Dexterity Check", "stealth"),
-        ("ability_check proficient", "Dexterity Check", "dexterity"),
-        ("", "Dexterity Check", "dexterity"),
+        ("ability_check", "Dexterity Check", "dexterity"),
+        ("ability_check advantage", "Dexterity Check", "dexterity"),
+        ("", "Dexterity Check", None),
     ],
 )
-@pytest.mark.parametrize(
-    "visibility",
-    [RollVisibility.SHOWN, RollVisibility.HIDDEN, RollVisibility.PLAYER],
-)
-def test_a_mixed_or_proficiency_aware_shape_is_refused_on_every_entry_path(
-    tag: str, check: str, label: str, visibility: RollVisibility
+@pytest.mark.parametrize("visibility", [RollVisibility.SHOWN, RollVisibility.HIDDEN])
+def test_a_label_only_backend_proposal_is_refused_not_rolled(
+    tag: str, check: str, label: str | None, visibility: RollVisibility
 ) -> None:
-    """Codex review: an ability label never downgrades another check kind."""
+    """Labels and tags are display text: without a roster operation nothing
+    rolls, on every backend entry path (CRD Issue 15c AC3)."""
     adapter = D20RulesSystemAdapter()
     proposal = RollProposal(
         check_label=check,
@@ -238,36 +226,40 @@ def test_a_mixed_or_proficiency_aware_shape_is_refused_on_every_entry_path(
         visibility=visibility,
     )
     dice_svc = MagicMock()
-    with pytest.raises(UnsupportedCheckError, match="not a supported pure"):
-        adapter.require_supported(proposal, _make_sheet())
-    with pytest.raises(UnsupportedCheckError):
-        if visibility is RollVisibility.PLAYER:
-            adapter.prepare_player_roll_announce(
-                proposal, _make_sheet(), None, uuid4(), uuid4(), uuid4()
-            )
-        else:
-            adapter.resolve_roll(proposal, _make_sheet(), None, dice_svc, False)
+    for call in (
+        lambda: adapter.require_supported(proposal, _make_sheet()),
+        lambda: adapter.resolve_roll(proposal, _make_sheet(), None, dice_svc, False),
+    ):
+        with pytest.raises(AdjudicationRefusal) as caught:
+            call()
+        assert caught.value.kind is RefusalKind.UNSUPPORTED_CAPABILITY
     dice_svc.roll.assert_not_called()
 
 
+def test_a_player_proposal_is_refused_by_require_supported() -> None:
+    adapter = D20RulesSystemAdapter()
+    with pytest.raises(AdjudicationRefusal) as caught:
+        adapter.require_supported(
+            _make_proposal("stealth", RollVisibility.PLAYER), _make_sheet()
+        )
+    assert caught.value.kind is RefusalKind.PLAYER_ROLL_UNSUPPORTED
+
+
+# ---------------------------------------------------------------------------
+# Legacy announce path (retired by CRD Issue 15b; unreachable in production)
+# ---------------------------------------------------------------------------
+
+
 @pytest.mark.parametrize(
-    "label", ["thieves_tools", "longsword_attack", "strength_saving_throw", None]
+    "label", ["stealth", "dexterity_save", "thieves_tools", "longsword_attack"]
 )
-def test_an_unrecognized_check_is_refused_not_rolled_ability_only(
-    label: str | None,
+def test_the_legacy_announce_still_refuses_proficiency_aware_checks(
+    label: str,
 ) -> None:
     adapter = D20RulesSystemAdapter()
     with pytest.raises(UnsupportedCheckError):
-        adapter.resolve_roll(
-            _make_proposal(label), _make_sheet(), None, MagicMock(), False
-        )
-
-
-def test_an_announced_player_roll_is_refused_the_same_way() -> None:
-    adapter = D20RulesSystemAdapter()
-    with pytest.raises(UnsupportedCheckError):
         adapter.prepare_player_roll_announce(
-            _make_proposal("stealth", RollVisibility.PLAYER),
+            _make_proposal(label, RollVisibility.PLAYER),
             _make_sheet(),
             None,
             uuid4(),
@@ -276,35 +268,17 @@ def test_an_announced_player_roll_is_refused_the_same_way() -> None:
         )
 
 
-@pytest.mark.parametrize(
-    ("label", "check"),
-    [
-        ("dexterity", "Dexterity Check"),
-        ("Dexterity", "dexterity"),
-        ("dexterity_check", "Dexterity ability check"),
-    ],
-)
-def test_a_pure_ability_check_uses_the_base_score(label: str, check: str) -> None:
-    adapter = D20RulesSystemAdapter()
-    dice_svc = MagicMock()
-    dice_svc.roll.return_value = MagicMock(chosen=10, raw_rolls=(10,))
-    record = adapter.resolve_roll(
-        _make_proposal(label, check_label=check),
-        _make_sheet(dex=16),
-        None,
-        dice_svc,
-        False,
-    )
-    assert record.total == 13  # 10 + Dex 16 (+3)
-    assert json.loads(record.modifiers_json)["breakdown"] == {"dexterity_modifier": 3}
-
-
-def test_an_adjusted_ability_is_refused_because_its_total_is_15c() -> None:
+def test_the_legacy_announce_refuses_an_adjusted_ability() -> None:
     adapter = D20RulesSystemAdapter()
     sheet = turn_character(adjusted=(AbilityScore.DEXTERITY,))
     with pytest.raises(UnsupportedCheckError, match="sourced adjustments"):
-        adapter.resolve_roll(
-            _make_proposal("dexterity"), sheet, None, MagicMock(), False
+        adapter.prepare_player_roll_announce(
+            _make_proposal("dexterity", RollVisibility.PLAYER),
+            sheet,
+            None,
+            uuid4(),
+            uuid4(),
+            uuid4(),
         )
 
 
@@ -312,84 +286,6 @@ def test_readiness_is_the_adjudicable_gate() -> None:
     adapter = D20RulesSystemAdapter()
     assert adapter.is_adjudicable(turn_character())
     assert not adapter.is_adjudicable(turn_character(ready=False))
-
-
-# ---------------------------------------------------------------------------
-# Advantage/disadvantage parsing: word-boundary fix (Round 5 Fix 1)
-# ---------------------------------------------------------------------------
-
-
-def _make_adv_proposal(subsystem_tag: str) -> RollProposal:
-    return RollProposal(
-        check_label="Dexterity check",
-        subsystem_tag=subsystem_tag,
-        skill_or_attribute_label="dexterity",
-        visibility=RollVisibility.SHOWN,
-    )
-
-
-def test_advantage_tag_selects_2d20kh1() -> None:
-    adapter = D20RulesSystemAdapter()
-    sheet = _make_sheet()
-    dice_svc = MagicMock()
-    dice_svc.roll.return_value = MagicMock(chosen=15, raw_rolls=(15, 10))
-    adapter.resolve_roll(
-        _make_adv_proposal("ability_check advantage"), sheet, None, dice_svc, False
-    )
-    dice_svc.roll.assert_called_once_with("2d20kh1")
-
-
-def test_disadvantage_tag_selects_2d20kl1() -> None:
-    adapter = D20RulesSystemAdapter()
-    sheet = _make_sheet()
-    dice_svc = MagicMock()
-    dice_svc.roll.return_value = MagicMock(chosen=8, raw_rolls=(8, 15))
-    adapter.resolve_roll(
-        _make_adv_proposal("ability_check disadvantage"), sheet, None, dice_svc, False
-    )
-    dice_svc.roll.assert_called_once_with("2d20kl1")
-
-
-def test_disadvantage_containing_advantage_substring_selects_2d20kl1() -> None:
-    """'ability_check disadvantage' must not trigger advantage (substring trap)."""
-    adapter = D20RulesSystemAdapter()
-    sheet = _make_sheet()
-    dice_svc = MagicMock()
-    dice_svc.roll.return_value = MagicMock(chosen=5, raw_rolls=(5, 12))
-    adapter.resolve_roll(
-        _make_adv_proposal("ability_check disadvantage"),
-        sheet,
-        None,
-        dice_svc,
-        False,
-    )
-    dice_svc.roll.assert_called_once_with("2d20kl1")
-
-
-def test_plain_tag_selects_1d20() -> None:
-    adapter = D20RulesSystemAdapter()
-    sheet = _make_sheet()
-    dice_svc = MagicMock()
-    dice_svc.roll.return_value = MagicMock(chosen=12, raw_rolls=(12,))
-    adapter.resolve_roll(
-        _make_adv_proposal("ability_check"), sheet, None, dice_svc, False
-    )
-    dice_svc.roll.assert_called_once_with("1d20")
-
-
-def test_both_advantage_and_disadvantage_cancel_to_1d20() -> None:
-    adapter = D20RulesSystemAdapter()
-    sheet = _make_sheet()
-    dice_svc = MagicMock()
-    dice_svc.roll.return_value = MagicMock(chosen=12, raw_rolls=(12,))
-    adapter.resolve_roll(
-        _make_adv_proposal("ability_check advantage disadvantage"),
-        sheet,
-        None,
-        dice_svc,
-        False,
-    )
-    dice_svc.roll.assert_called_once_with("1d20")
 
 
 # ---------------------------------------------------------------------------

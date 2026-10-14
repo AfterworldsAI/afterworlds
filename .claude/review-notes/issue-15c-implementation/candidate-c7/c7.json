@@ -1,0 +1,294 @@
+{
+ "anchored_successor_sha256": "23e5d8e0fac60e3f5417b3a41e40e6f475366dd385856f38c42104f4dd264f69",
+ "candidate_id": "15c-C7-consolidated",
+ "consolidates": {
+  "C6-r2": {
+   "candidate": "15c-C6-r2-feat-category",
+   "sha256": "699718ff9bac8298c08fc6da706309819b864b604685c88f462669d68e8923f4"
+  }
+ },
+ "facts": [
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "origin",
+    "family": "feat_prerequisite",
+    "minimum_ability_score": null,
+    "minimum_character_level": null,
+    "requires_feature": null
+   },
+   "part": "C6-r2",
+   "record_key": "feats.alert",
+   "source": {
+    "file": "feats.md",
+    "line": 23,
+    "quote": "_Origin Feat_"
+   }
+  },
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "origin",
+    "family": "feat_prerequisite",
+    "minimum_ability_score": null,
+    "minimum_character_level": null,
+    "requires_feature": null
+   },
+   "part": "C6-r2",
+   "record_key": "feats.magic_initiate",
+   "source": {
+    "file": "feats.md",
+    "line": 33,
+    "quote": "_Origin Feat_"
+   }
+  },
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "origin",
+    "family": "feat_prerequisite",
+    "minimum_ability_score": null,
+    "minimum_character_level": null,
+    "requires_feature": null
+   },
+   "part": "C6-r2",
+   "record_key": "feats.savage_attacker",
+   "source": {
+    "file": "feats.md",
+    "line": 47,
+    "quote": "_Origin Feat_"
+   }
+  },
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "origin",
+    "family": "feat_prerequisite",
+    "minimum_ability_score": null,
+    "minimum_character_level": null,
+    "requires_feature": null
+   },
+   "part": "C6-r2",
+   "record_key": "feats.skilled",
+   "source": {
+    "file": "feats.md",
+    "line": 53,
+    "quote": "_Origin Feat_"
+   }
+  },
+  {
+   "component_key": "arrows",
+   "fact": {
+    "family": "ammunition_supply",
+    "for_weapons": null,
+    "kind": "arrow"
+   },
+   "interpretations": [
+    "I3"
+   ],
+   "part": "C7-ammunition",
+   "record_key": "equipment.adventuring_gear.arrows",
+   "source": {
+    "file": "equipment.md",
+    "line": 1218,
+    "quote": "<td>Arrows</td>"
+   },
+   "weapon_evidence": [
+    {
+     "line": 233,
+     "record_key": "equipment.weapons.shortbow"
+    },
+    {
+     "line": 423,
+     "record_key": "equipment.weapons.longbow"
+    }
+   ]
+  },
+  {
+   "component_key": "bolts",
+   "fact": {
+    "family": "ammunition_supply",
+    "for_weapons": null,
+    "kind": "bolt"
+   },
+   "interpretations": [
+    "I3"
+   ],
+   "part": "C7-ammunition",
+   "record_key": "equipment.adventuring_gear.bolts",
+   "source": {
+    "file": "equipment.md",
+    "line": 1225,
+    "quote": "<td>Bolts</td>"
+   },
+   "weapon_evidence": [
+    {
+     "line": 225,
+     "record_key": "equipment.weapons.light_crossbow"
+    },
+    {
+     "line": 407,
+     "record_key": "equipment.weapons.hand_crossbow"
+    },
+    {
+     "line": 415,
+     "record_key": "equipment.weapons.heavy_crossbow"
+    }
+   ]
+  },
+  {
+   "component_key": "needles",
+   "fact": {
+    "family": "ammunition_supply",
+    "for_weapons": null,
+    "kind": "needle"
+   },
+   "interpretations": [
+    "I3"
+   ],
+   "part": "C7-ammunition",
+   "record_key": "equipment.adventuring_gear.needles",
+   "source": {
+    "file": "equipment.md",
+    "line": 1246,
+    "quote": "<td>Needles</td>"
+   },
+   "weapon_evidence": [
+    {
+     "line": 399,
+     "record_key": "equipment.weapons.blowgun"
+    }
+   ]
+  },
+  {
+   "component_key": "bullets_sling",
+   "fact": {
+    "family": "ammunition_supply",
+    "for_weapons": [
+     {
+      "component_key": "sling",
+      "record_key": "equipment.weapons.sling"
+     }
+    ],
+    "kind": "bullet"
+   },
+   "interpretations": [
+    "I1"
+   ],
+   "part": "C7-ammunition",
+   "record_key": "equipment.adventuring_gear.bullets_sling",
+   "source": {
+    "file": "equipment.md",
+    "line": 1239,
+    "quote": "<td>Bullets, Sling</td>"
+   },
+   "weapon_evidence": [
+    {
+     "line": 241,
+     "record_key": "equipment.weapons.sling"
+    }
+   ]
+  },
+  {
+   "component_key": "bullets_firearm",
+   "fact": {
+    "family": "ammunition_supply",
+    "for_weapons": [
+     {
+      "component_key": "musket",
+      "record_key": "equipment.weapons.musket"
+     },
+     {
+      "component_key": "pistol",
+      "record_key": "equipment.weapons.pistol"
+     }
+    ],
+    "kind": "bullet"
+   },
+   "interpretations": [
+    "I2"
+   ],
+   "part": "C7-ammunition",
+   "record_key": "equipment.adventuring_gear.bullets_firearm",
+   "source": {
+    "file": "equipment.md",
+    "line": 1232,
+    "quote": "<td>Bullets, Firearm</td>"
+   },
+   "weapon_evidence": [
+    {
+     "line": 431,
+     "record_key": "equipment.weapons.musket"
+    },
+    {
+     "line": 439,
+     "record_key": "equipment.weapons.pistol"
+    }
+   ]
+  }
+ ],
+ "interpretations": {
+  "I1": {
+   "basis": "the table row names the Sling; the source states no other link",
+   "claim": "Sling bullets are the bullets for the Sling.",
+   "evidence": [
+    {
+     "file": "equipment.md",
+     "line": 1239,
+     "quote": "Bullets, Sling"
+    },
+    {
+     "file": "equipment.md",
+     "line": 241,
+     "quote": "Ammunition (Range 30/120; Bullet)"
+    }
+   ]
+  },
+  "I2": {
+   "alternative_if_rejected": "the firearm row carries kind bullet with no weapon link; the Musket and Pistol then have no compatible ammunition item and stay missing_authority; the Sling is unaffected",
+   "basis": "the source never labels the Musket or Pistol a firearm; the only support is character-creation.md's reference to firearms described in Equipment, whose only gunpowder weapons are those two",
+   "claim": "Firearm bullets are the bullets for the Musket and the Pistol.",
+   "evidence": [
+    {
+     "file": "equipment.md",
+     "line": 1232,
+     "quote": "Bullets, Firearm"
+    },
+    {
+     "file": "character-creation.md",
+     "line": 849,
+     "quote": "the firearms described in \"Equipment\""
+    }
+   ]
+  },
+  "I3": {
+   "basis": "the Ammunition section names the table rows as the types",
+   "claim": "An unqualified table row is the ammunition its singular weapon-side kind names (Arrows - Arrow, Bolts - Bolt, Needles - Needle).",
+   "evidence": [
+    {
+     "file": "equipment.md",
+     "line": 778,
+     "quote": "A weapon's description specifies the type of ammunition used by the weapon"
+    }
+   ]
+  }
+ },
+ "proposed_family": {
+  "admitted_on": "the five Ammunition table rows' gear components only",
+  "family": "ammunition_supply",
+  "fields": {
+   "for_weapons": "tuple[ComponentReference, ...] | None: the weapons the row narrows to, when it narrows a shared weapon-side kind; None means every weapon whose row names kind",
+   "kind": "AmmunitionKind (existing schema-19 vocabulary)"
+  },
+  "not_represented": [
+   "amount per purchase, storage, weight and cost (not needed)",
+   "ammunition recovery after a fight (stays the represented AmmunitionExpenditureFact.recovery; not executed)"
+  ],
+  "value_object": "AmmunitionSupplyFact"
+ },
+ "schema": {
+  "C6-r2 facts": "5d-representation-schema-19 (unchanged)",
+  "ammunition facts": "proposed schema 20: one new family, below"
+ },
+ "status": "RAW CANDIDATE ONLY - not accepted, minted, recorded or published"
+}

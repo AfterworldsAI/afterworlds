@@ -88,7 +88,11 @@ from afterworlds.pipeline.branching.models import (
 from afterworlds.pipeline.rpg.models import AdjudicationPassError
 from afterworlds.pipeline.rpg.pending import PendingRollDuplicateError
 from afterworlds.pipeline.writing.models import WritingOocExtractionUsageError
-from afterworlds.services.dnd5e_state.errors import StaleRevisionError
+from afterworlds.services.dnd5e_state.errors import (
+    BindingRefusedError,
+    StaleRevisionError,
+)
+from afterworlds.services.rules_authority.outcomes import AuthorityOutcome
 
 if TYPE_CHECKING:
     from afterworlds.models.rpg import PendingRollRequest, RpgVisibleState, SheetEffect
@@ -683,15 +687,13 @@ class OrchestratorService:
                     "RPG adjudication wired without session/sheet resolver",
                 )
             try:
-                pre_session_state, pre_sheet = self._rpg_session_sheet_resolver(
-                    story_id
-                )
+                pre_session_state, pre_sheet = self._resolve_rpg_turn(story_id)
             except Exception as exc:  # noqa: BLE001
                 return self._pipeline_error(
                     intent_result,
                     latency,
                     turn_start,
-                    f"RPG session/sheet resolution failed: {exc}",
+                    _rpg_resolution_failure(exc),
                 )
             # The resolver enforces the character's exact recorded binding
             # (CRD Issue 2b): a stale, unpublished, quarantined or invalid
@@ -1299,27 +1301,28 @@ class OrchestratorService:
                 )
             # Use pre-resolved values from early phase (P2-2) when available to
             # avoid a second resolver call for the same story within the same turn.
-            if _pre_session_state is not None and _pre_sheet is not None:
+            _sh: TurnCharacter | None
+            if _pre_session_state is not None:
                 _ss: RpgSessionState = _pre_session_state
-                _sh: TurnCharacter = _pre_sheet
+                _sh = _pre_sheet
             else:
                 try:
-                    _ss, _sh = self._rpg_session_sheet_resolver(story_id)
+                    _ss, _sh = self._resolve_rpg_turn(story_id)
                 except Exception as exc:  # noqa: BLE001
                     return self._pipeline_error(
                         intent_result,
                         latency,
                         turn_start,
-                        f"RPG session/sheet resolution failed: {exc}",
+                        _rpg_resolution_failure(exc),
                         input_safety_result=input_safety,
                         planner_result=planner_result,
                     )
             session_state = _ss
-            sheet = _sh
             rpg_session_id = session_state.session_id
-            rpg_character_id = sheet.sheet_id
-            rpg_sheet = sheet
             rpg_play_status = session_state.play_status
+            if _sh is not None:
+                rpg_character_id = _sh.sheet_id
+                rpg_sheet = _sh
             # Gate: skip adjudication for setup turns. play_status SETUP covers
             # character creation and world-setup turns that flow through
             # _run_narrative (OOC turns are already short-circuited upstream).
@@ -1327,20 +1330,32 @@ class OrchestratorService:
             # binding fails the turn typed, naming what is missing (CRD Issue
             # 2b): skipping mechanics silently would degrade the turn.
             _adj_svc = self._rpg_adjudication_service
+            if session_state.play_status is RpgPlayStatus.IN_PLAY and _sh is None:
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    "[missing_state] an in-play RPG story has no recorded"
+                    " character state",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                )
+            sheet = _sh
             if (
                 session_state.play_status is RpgPlayStatus.IN_PLAY
+                and sheet is not None
                 and not _adj_svc.is_adjudicable(sheet)
             ):
                 return self._pipeline_error(
                     intent_result,
                     latency,
                     turn_start,
-                    "rpg character state is not ready for its rules binding: "
-                    + "; ".join(str(f) for f in sheet.readiness[:8]),
+                    "[missing_state] rpg character state is not ready for its"
+                    " rules binding: " + "; ".join(str(f) for f in sheet.readiness[:8]),
                     input_safety_result=input_safety,
                     planner_result=planner_result,
                 )
-            if session_state.play_status is RpgPlayStatus.IN_PLAY:
+            if session_state.play_status is RpgPlayStatus.IN_PLAY and sheet is not None:
                 # Use local to narrow from DiceService | None for the lambda capture.
                 _dice_svc = self._rpg_dice_service
                 try:
@@ -2143,6 +2158,16 @@ class OrchestratorService:
         ):
             try:
                 self._rpg_turn_hold.recheck(session, rpg_sheet)
+                # CRD Issue 15c: every other subject the turn read, too.
+                for subject in adj_result.subjects:
+                    self._rpg_turn_hold.recheck(session, subject)
+                # And the story its discovery scans' absences rest on.
+                if adj_result.discovery is not None:
+                    from afterworlds.services.dnd5e_state.turn import (
+                        require_story_unchanged,
+                    )
+
+                    require_story_unchanged(session, *adj_result.discovery)
             except StaleRevisionError as exc:
                 return self._pipeline_error(
                     intent_result,
@@ -2204,15 +2229,51 @@ class OrchestratorService:
         # when adjudication produced proposals; skipped otherwise.
         rpg_visible_state: RpgVisibleState | None = None
         if adj_result is not None and rpg_sheet is not None:
-            all_effects = tuple(
+            from afterworlds.services.dnd5e_state.turn import ITEM_QUANTITY
+
+            every_effect = tuple(
                 effect
                 for record in adj_result.proposals
                 for effect in record.sheet_effects
             )
+            item_effects = tuple(e for e in every_effect if e.target == ITEM_QUANTITY)
+            all_effects = tuple(e for e in every_effect if e.target != ITEM_QUANTITY)
+            if item_effects:
+                try:
+                    self._apply_item_effects(
+                        session, item_effects, rpg_sheet, adj_result.subjects
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    return self._pipeline_error(
+                        intent_result,
+                        latency,
+                        turn_start,
+                        f"item expenditure failed: {exc}",
+                        input_safety_result=input_safety,
+                        planner_result=planner_result,
+                        writer_result=writer_result,
+                        rpg_adjudication_result=adj_result,
+                        branching_pass_result=branching_pass_result,
+                    )
             if all_effects:
                 try:
-                    rpg_sheet = self._apply_rpg_sheet_effects(
-                        session, all_effects, rpg_sheet
+                    # The actor's effects, however addressed, apply in order.
+                    def _own(e: SheetEffect) -> bool:
+                        return e.subject_id is None or (
+                            e.subject_kind == "character"
+                            and e.subject_id == rpg_sheet.sheet_id  # type: ignore[union-attr]
+                        )
+
+                    own = tuple(e for e in all_effects if _own(e))
+                    if own:
+                        rpg_sheet = self._apply_rpg_sheet_effects(
+                            session, own, rpg_sheet
+                        )
+                    self._apply_subject_effects(
+                        session,
+                        tuple(e for e in all_effects if not _own(e)),
+                        rpg_sheet,
+                        adj_result.subjects,
                     )
                 except Exception as exc:  # noqa: BLE001
                     return self._pipeline_error(
@@ -2226,6 +2287,22 @@ class OrchestratorService:
                         rpg_adjudication_result=adj_result,
                         branching_pass_result=branching_pass_result,
                     )
+            try:
+                self._commit_turn_edges(
+                    session, adj_result, writer_result.turn_id, rpg_sheet.sheet_id
+                )
+            except Exception as exc:  # noqa: BLE001
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"actor-turn edges could not commit: {exc}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                    writer_result=writer_result,
+                    rpg_adjudication_result=adj_result,
+                    branching_pass_result=branching_pass_result,
+                )
             if self._rpg_visible_state_service is not None:
                 try:
                     rpg_visible_state = self._rpg_visible_state_service.build(
@@ -3518,7 +3595,7 @@ class OrchestratorService:
                     source=record.source,
                     gm_cheating_at_roll=record.gm_cheating_at_roll,
                     sheet_effects_json=json.dumps(
-                        [e.model_dump() for e in record.sheet_effects]
+                        [e.model_dump(mode="json") for e in record.sheet_effects]
                     ),
                     created_at=now_str,
                 )
@@ -3556,6 +3633,26 @@ class OrchestratorService:
                     created_at=now_str,
                 )
             )
+
+    def _resolve_rpg_turn(
+        self, story_id: UUID
+    ) -> tuple[RpgSessionState, TurnCharacter | None]:
+        """The RPG session state, and the bound character when in play.
+
+        CRD Issue 15c wires adjudication in production, so a setup turn must
+        not require recorded character state that setup has not created yet:
+        the session-only resolver decides play status first, and the
+        binding-enforcing sheet resolver runs only for an in-play story. With
+        no session-only resolver wired, the sheet resolver decides both.
+        """
+        assert self._rpg_session_sheet_resolver is not None  # noqa: S101
+        if self._rpg_session_resolver is not None:
+            state = self._rpg_session_resolver(story_id)
+            if state is None:
+                raise ValueError(f"no RpgSessionState for story {story_id}")
+            if state.play_status is not RpgPlayStatus.IN_PLAY:
+                return state, None
+        return self._rpg_session_sheet_resolver(story_id)
 
     # ------------------------------------------------------------------
     # RPG sheet-effect application (Fork B→B1)
@@ -3598,6 +3695,134 @@ class OrchestratorService:
         if refreshed is None:
             raise ValueError(f"character {stored.sheet_id} vanished during the turn")
         return replace(character, stored=refreshed)
+
+    @staticmethod
+    def _commit_turn_edges(
+        session: Session,
+        adj_result: AdjudicationPassResult,
+        turn_id: UUID,
+        actor_id: UUID,
+    ) -> None:
+        """Replay the records' actor-turn edges onto the coordination the turn
+        read and commit them with the Turn (CRD Issue 15c, contract G1). A
+        concurrent change raises, so the outer transaction rolls back."""
+        from datetime import UTC, datetime
+
+        from afterworlds.models.dnd5e_state import SubjectReference
+        from afterworlds.services.dnd5e_state import coordination
+
+        read = adj_result.coordination
+        if read is None:
+            return
+        document = read.document
+        edges = []
+        begun = False
+        del actor_id  # every use names its subject
+        for record in adj_result.proposals:
+            for use in record.turn_uses:
+                document, used = coordination.use_event(
+                    document,
+                    SubjectReference(kind=use.by.kind, subject_id=use.by.subject_id),
+                    use.key,
+                )
+                edges.append(used)
+            if record.turn_edge is None:
+                continue
+            ref = record.turn_edge.subject
+            document, edge = coordination.apply_edge(
+                document,
+                record.turn_edge.kind,
+                SubjectReference(kind=ref.kind, subject_id=ref.subject_id),
+                begun_this_turn=begun,
+            )
+            begun = begun or edge.kind == "begin"
+            edges.append(edge)
+        coordination.commit(
+            session,
+            read,
+            document,
+            tuple(edges),
+            turn_id=turn_id,
+            now=datetime.now(tz=UTC).isoformat(),
+        )
+
+    @staticmethod
+    def _apply_item_effects(
+        session: Session,
+        effects: tuple[SheetEffect, ...],
+        actor: TurnCharacter,
+        subjects: tuple[object, ...],
+    ) -> None:
+        """Expend held items (ammunition) the turn's records spent (CRD Issue
+        15c), each by compare-and-swap against the revision the turn read it
+        at; the last one removes the holding. Raises on an item the turn did
+        not read or a moved revision, so the outer transaction rolls back."""
+        from afterworlds.services.dnd5e_state.holdings import spend_item
+
+        read = {
+            str(i.item_id): i
+            for holder in (actor, *subjects)
+            for i in getattr(holder, "items", ())
+        }
+        spend: dict[str, int] = {}
+        for effect in effects:
+            value = json.loads(effect.value_json)
+            spend[value["item_id"]] = spend.get(value["item_id"], 0) + int(
+                value["spend"]
+            )
+        for item_id, count in spend.items():
+            item = read.get(item_id)
+            if item is None:
+                raise ValueError(f"item {item_id} was not read by this turn")
+            spend_item(
+                session, item.item_id, expected_revision=item.revision, count=count
+            )
+
+    def _apply_subject_effects(
+        self,
+        session: Session,
+        effects: tuple[SheetEffect, ...],
+        actor: TurnCharacter,
+        subjects: tuple[object, ...],
+    ) -> None:
+        """Apply subject-addressed effects (CRD Issue 15c), each subject by
+        compare-and-swap against the revision and exact binding the turn read
+        it at. An effect for a subject the turn did not read fails closed, so
+        the outer transaction rolls back Turn, audit rows and every mutation.
+        """
+        from datetime import UTC, datetime
+
+        from afterworlds.services.dnd5e_state import service, store
+        from afterworlds.services.dnd5e_state.effects import apply_effects
+        from afterworlds.services.dnd5e_state.turn import TurnCreature
+
+        read: dict[tuple[str, str], object] = {
+            ("character", str(actor.sheet_id)): actor
+        }
+        for subject in subjects:
+            kind = "creature" if isinstance(subject, TurnCreature) else "character"
+            read[(kind, str(subject.subject_id))] = subject  # type: ignore[attr-defined]
+        grouped: dict[tuple[str, str], list[SheetEffect]] = {}
+        for effect in effects:
+            key = (str(effect.subject_kind), str(effect.subject_id))
+            if key not in read:
+                raise ValueError(f"an effect names {key}, which this turn did not read")
+            grouped.setdefault(key, []).append(effect)
+        now = datetime.now(tz=UTC).isoformat()
+        for (kind, _), group in grouped.items():
+            subject = read[(kind, _)]
+            stored = subject.stored  # type: ignore[attr-defined]
+            new_state = apply_effects(stored.state, tuple(group))
+            service.check_references(session, stored.story_id, new_state)
+            store.save_state(
+                session,
+                kind,
+                stored.subject_id,
+                new_state,
+                expected_revision=stored.revision,
+                expected_binding=stored.binding,
+                now=now,
+            )
 
     # ------------------------------------------------------------------
     # Helpers
@@ -4188,6 +4413,22 @@ def _extract_classifier_usage(
         cache_creation_token_count=result.cache_creation_token_count,
         latency_ms=result.latency_ms,
     )
+
+
+def _rpg_resolution_failure(exc: Exception) -> str:
+    """The typed, visible message for a failed RPG session/sheet resolution.
+
+    CRD Issue 15c (AC5): a stale binding is distinguishable from missing or
+    unpublished authority; any other failure is reported as it is.
+    """
+    if isinstance(exc, BindingRefusedError):
+        kind = (
+            "stale_binding"
+            if exc.outcome is AuthorityOutcome.STALE
+            else "missing_authority"
+        )
+        return f"[{kind}] RPG session/sheet resolution failed: {exc}"
+    return f"RPG session/sheet resolution failed: {exc}"
 
 
 def _serialize_adj_views(adj_result: AdjudicationPassResult) -> str:

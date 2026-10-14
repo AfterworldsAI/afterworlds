@@ -1,0 +1,54 @@
+{
+ "mode": "record",
+ "recorded_at": "2026-10-13T17:50:52Z",
+ "successor": "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json",
+ "successor_sha256": "ead7fa9d4fde484098f71221ca5ef82dfb2c82229d8fca80ab5feeb4e4d62d0d",
+ "successor_bytes": 44637018,
+ "prior_successor_sha256_after": "2853f30a832ca581c9d4169b82d0c360f3d6a2d78f0ad8980de9997eef51f373",
+ "reviewed_preview_sha256": "a2d96264dd18605680358393270e1f9f4fc27da144fda09da06e31cbd5250016",
+ "proposal_identities": {
+  "animals": "db3f0d2dd9c997f4f2edc1f8fd361244becf7720ab80834c7e2828d971e92014",
+  "character-origins-feats": "301572d46bc655125bc45ad8d08b53d044c0d28014c2ea0340bedd08d2a20f5f",
+  "magic-items": "d88713097ad106b5e645b35cf1e0f1bffaa6408a8cd7af2faa4da68331f6996b",
+  "monsters": "bec1bedc4097a7b42c6acbf64c6131688caa2c86cc85616006b2de1a85c886be",
+  "spell-descriptions": "1c01d1e4f603acebf8baa14b909b7b07406e0e3f0c27330a305363f923d527c7"
+ },
+ "schema": [
+  "5d-representation-schema-21",
+  "4499b3964aac338e10c7b6d1f67a5eb37570878600e0c5f04bd4464d58f1df55"
+ ],
+ "oracle_identity": "70646cd987dcf75adc7b57b6271e38c6ca8cc9b508584dac89c5acefafa3e8d9",
+ "projection": "e4f8f4fb-de6c-53c9-98f1-fa7a0159fe42",
+ "payload_hash": "e615d0106996466b8ab72dacd481934b7982e4c421a661eb2cc0e3fcdfad5d87",
+ "g1_sha256_after": "2ccbaeba6de75d9787fbdd407e42dc2425fa20d4d26bcc298b681b550bd11258",
+ "predecessor_sha256_after": "def7caa1625458a40c1f635db153268082cf52d5e25c28f57fd29518e44de58c",
+ "comparison_with_reviewed_preview": {
+  "outside_acceptance_differences": [],
+  "acceptance_equal_after_blanking_evidence": true,
+  "non_evidence_differences": [],
+  "untouched_rows_in_same_order": {
+   "batches": true,
+   "records": true,
+   "review_unit_records": true
+  },
+  "evidence_changed": {
+   "batches.rule": 5,
+   "records.accepted_at": 7536,
+   "records.reviewer": 7536,
+   "review_unit_records.accepted_at": 1154,
+   "review_unit_records.reviewer": 1154
+  },
+  "evidence_changed_outside_touched": []
+ },
+ "native": {
+  "validate_candidate_findings": [],
+  "validate_candidate_finding_count": 0,
+  "verify_reconstruction": [],
+  "reconstructed_payload_identical": true,
+  "reidentified_projection": "e4f8f4fb-de6c-53c9-98f1-fa7a0159fe42",
+  "projection": "e4f8f4fb-de6c-53c9-98f1-fa7a0159fe42",
+  "payload_hash": "e615d0106996466b8ab72dacd481934b7982e4c421a661eb2cc0e3fcdfad5d87",
+  "gate_passed": true,
+  "gate_failures": []
+ }
+}

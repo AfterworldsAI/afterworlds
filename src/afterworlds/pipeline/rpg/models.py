@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict
 
 from afterworlds.models.rpg import (
     PendingRollRequest,
@@ -27,9 +29,25 @@ class AdjudicationPassResult(BaseModel):
     adjudication pass did not call the provider (e.g., consume-only turns).
     """
 
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     proposals: tuple[ResolvedAdjudicationRecord, ...]
     writer_views: tuple[WriterAdjudicationView, ...]
     pending_roll_request: PendingRollRequest | None = None
+    #: CRD Issue 15c: the subjects besides the acting character that this
+    #: turn's operations read (``TurnCharacter``/``TurnCreature``), each with
+    #: the revision and binding it was read at. The orchestrator rechecks
+    #: every one at commit and applies their effects atomically with the Turn.
+    subjects: tuple[Any, ...] = ()
+    #: CRD Issue 15c: the actor-turn coordination the turn read, when it has
+    #: an edge (``StoredCoordination``). The orchestrator replays the records'
+    #: edges onto it and commits by compare-and-swap with the Turn.
+    coordination: Any = None
+    #: CRD Issue 15c: ``(story_id, snapshot)`` of every character and creature
+    #: with its revision, taken before the turn's discovery scans (aura
+    #: holders, turn-bounded effects), whose absences it consumed. The
+    #: orchestrator requires the story unchanged at commit.
+    discovery: Any = None
 
     provider: str | None = None
     model_identifier: str | None = None
@@ -50,7 +68,17 @@ class AdjudicationPassError(Exception):
     """
 
 
+class PreflightGapError(AdjudicationPassError):
+    """A refusal raised after a die of the turn was rolled (CRD Issue 15c).
+
+    The preflight checks every operation before any die, so this marks a
+    defect in it. It is never an ordinary refusal: the turn fails closed with
+    the defect named, and nothing is committed.
+    """
+
+
 __all__ = [
     "AdjudicationPassError",
+    "PreflightGapError",
     "AdjudicationPassResult",
 ]

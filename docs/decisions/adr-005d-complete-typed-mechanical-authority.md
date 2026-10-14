@@ -1148,6 +1148,45 @@ declares either.
 > (`oracle.SUPERSEDED_ORACLE_SHA256`) so the release keeps exactly one claimant. The record is
 > `.claude/review-notes/issue-2b-g1-recording/`.
 
+> **Amendment — representation schema 19 (CRD Issue 15c, Owner acceptance 12 October 2026).**
+> Schema 19 (`5d-representation-schema-19`, hash `3734ccf7…d18f`) admits the independently
+> reviewed native C5 bounded-d20 source contract. It adds:
+>
+> - **126 declarative fact families.** These cover:
+>   - creature attacks, saves, Multiattack, entry usage and references, observer checks,
+>     conditional defenses and sizes;
+>   - typed clause pieces with their entry addresses;
+>   - rule, weapon, tool and notation facts;
+>   - the contributing grants (skill, save, weapon, armor, tool, feat, ability increase, Expertise
+>     and Weapon Mastery).
+> - **The 135 vocabularies minted with them.**
+> - **Four omit-when-empty `WeaponPropertyFact` fields:** ammunition, its normal and long range,
+>   and the Lance's `unless`.
+>
+> The schema-19 nested value objects are closed declared structures, like the shared ones. No
+> accepted family, field or vocabulary changes meaning. The registered lift
+> `5d-lift-schema-18-to-19` proves every previously accepted payload byte-identical under 19.
+>
+> **`tool_activity` is an identity, not a rule.** It keeps each of the 34 reviewed tool activities
+> selectable. A tool with several activities is a native choice, with one option per activity;
+> a tool with one activity states it directly.
+>
+> **Decision 4 still holds.** Each family states what the source prints. Execution, applicability
+> and certification are code-owned capability. A use with no certified capability refuses, so
+> admitting a family does not make it executable.
+>
+> **Recording.** The Owner accepted the exact native packet
+> (`.claude/review-notes/issue-15c-native/OWNER-ACCEPTANCE-PACKET.md`): the source contract, the
+> schema and lift, eleven replacement proposals, oracle identity `000c4c10…6e76` and projection
+> `44f212d5-32dd-5469-8f05-f0d236492347`. It was recorded natively as the same-release successor
+> `srd-5-2-1-corpus-8781d4e0-a3b-15c.json` (SHA-256 `23e5d8e0…4f69`, 2026-10-12).
+> - **Evidence changed:** only the eleven batches' acceptance evidence differs from the reviewed
+>   simulated preview, which is preserved.
+> - **Preserved:** the other thirteen batches, every resolution, span and prior provenance are
+>   byte-identical to G1.
+> - **G1** is kept byte for byte and skipped by digest. The record is
+>   `.claude/review-notes/issue-15c-recording/`.
+
 ### Decision 5 — Exact completeness, not aggregate thresholds
 
 Publication is proven through the complete reviewed source inventory and accepted expected rules,

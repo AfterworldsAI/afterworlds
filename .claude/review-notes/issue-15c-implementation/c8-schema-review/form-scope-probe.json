@@ -1,0 +1,23 @@
+{
+  "import": "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\src\\afterworlds\\__init__.py",
+  "schema_hash": "4499b3964aac338e10c7b6d1f67a5eb37570878600e0c5f04bd4464d58f1df55",
+  "cases": {
+    "fixed_beast_positive": {
+      "draft_type_findings": [],
+      "component_findings": [],
+      "relational_findings": []
+    },
+    "wrong_fixed_type_negative": {
+      "draft_type_findings": [],
+      "component_findings": [],
+      "relational_findings": [
+        "component spells.find_familiar/effect: summoned_creature_type names animals.bat/bat, whose creature_type is ['fey'], not exactly beast"
+      ]
+    },
+    "choice_missing_type_in_one_arm": {
+      "draft_type_findings": [],
+      "component_findings": [],
+      "relational_findings": []
+    }
+  }
+}

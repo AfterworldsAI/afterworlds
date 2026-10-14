@@ -1,0 +1,6117 @@
+{
+ "anchored_oracle_sha256": "2ccbaeba6de75d9787fbdd407e42dc2425fa20d4d26bcc298b681b550bd11258",
+ "candidate_id": "15c-C4-A",
+ "facts": [
+  {
+   "component_key": "club",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.club",
+   "source": {
+    "file": "equipment.md",
+    "line": 132,
+    "quote": "<td>Club</td>"
+   }
+  },
+  {
+   "component_key": "club",
+   "fact": {
+    "damage_type": "bludgeoning",
+    "dice": {
+     "count": 1,
+     "die": "d4",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.club",
+   "source": {
+    "file": "equipment.md",
+    "line": 132,
+    "quote": "<td>Club</td>"
+   }
+  },
+  {
+   "component_key": "club",
+   "fact": {
+    "family": "weapon_property",
+    "property": "light"
+   },
+   "record_key": "equipment.weapons.club",
+   "source": {
+    "file": "equipment.md",
+    "line": 132,
+    "quote": "<td>Club</td>"
+   }
+  },
+  {
+   "component_key": "dagger",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.dagger",
+   "source": {
+    "file": "equipment.md",
+    "line": 140,
+    "quote": "<td>Dagger</td>"
+   }
+  },
+  {
+   "component_key": "dagger",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d4",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.dagger",
+   "source": {
+    "file": "equipment.md",
+    "line": 140,
+    "quote": "<td>Dagger</td>"
+   }
+  },
+  {
+   "component_key": "dagger",
+   "fact": {
+    "family": "weapon_property",
+    "property": "finesse"
+   },
+   "record_key": "equipment.weapons.dagger",
+   "source": {
+    "file": "equipment.md",
+    "line": 140,
+    "quote": "<td>Dagger</td>"
+   }
+  },
+  {
+   "component_key": "dagger",
+   "fact": {
+    "family": "weapon_property",
+    "property": "light"
+   },
+   "record_key": "equipment.weapons.dagger",
+   "source": {
+    "file": "equipment.md",
+    "line": 140,
+    "quote": "<td>Dagger</td>"
+   }
+  },
+  {
+   "component_key": "dagger",
+   "fact": {
+    "family": "weapon_property",
+    "long_range_ft": 60,
+    "normal_range_ft": 20,
+    "property": "thrown"
+   },
+   "record_key": "equipment.weapons.dagger",
+   "source": {
+    "file": "equipment.md",
+    "line": 140,
+    "quote": "<td>Dagger</td>"
+   }
+  },
+  {
+   "component_key": "greatclub",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.greatclub",
+   "source": {
+    "file": "equipment.md",
+    "line": 148,
+    "quote": "<td>Greatclub</td>"
+   }
+  },
+  {
+   "component_key": "greatclub",
+   "fact": {
+    "damage_type": "bludgeoning",
+    "dice": {
+     "count": 1,
+     "die": "d8",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.greatclub",
+   "source": {
+    "file": "equipment.md",
+    "line": 148,
+    "quote": "<td>Greatclub</td>"
+   }
+  },
+  {
+   "component_key": "greatclub",
+   "fact": {
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.greatclub",
+   "source": {
+    "file": "equipment.md",
+    "line": 148,
+    "quote": "<td>Greatclub</td>"
+   }
+  },
+  {
+   "component_key": "handaxe",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.handaxe",
+   "source": {
+    "file": "equipment.md",
+    "line": 156,
+    "quote": "<td>Handaxe</td>"
+   }
+  },
+  {
+   "component_key": "handaxe",
+   "fact": {
+    "damage_type": "slashing",
+    "dice": {
+     "count": 1,
+     "die": "d6",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.handaxe",
+   "source": {
+    "file": "equipment.md",
+    "line": 156,
+    "quote": "<td>Handaxe</td>"
+   }
+  },
+  {
+   "component_key": "handaxe",
+   "fact": {
+    "family": "weapon_property",
+    "property": "light"
+   },
+   "record_key": "equipment.weapons.handaxe",
+   "source": {
+    "file": "equipment.md",
+    "line": 156,
+    "quote": "<td>Handaxe</td>"
+   }
+  },
+  {
+   "component_key": "handaxe",
+   "fact": {
+    "family": "weapon_property",
+    "long_range_ft": 60,
+    "normal_range_ft": 20,
+    "property": "thrown"
+   },
+   "record_key": "equipment.weapons.handaxe",
+   "source": {
+    "file": "equipment.md",
+    "line": 156,
+    "quote": "<td>Handaxe</td>"
+   }
+  },
+  {
+   "component_key": "javelin",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.javelin",
+   "source": {
+    "file": "equipment.md",
+    "line": 164,
+    "quote": "<td>Javelin</td>"
+   }
+  },
+  {
+   "component_key": "javelin",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d6",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.javelin",
+   "source": {
+    "file": "equipment.md",
+    "line": 164,
+    "quote": "<td>Javelin</td>"
+   }
+  },
+  {
+   "component_key": "javelin",
+   "fact": {
+    "family": "weapon_property",
+    "long_range_ft": 120,
+    "normal_range_ft": 30,
+    "property": "thrown"
+   },
+   "record_key": "equipment.weapons.javelin",
+   "source": {
+    "file": "equipment.md",
+    "line": 164,
+    "quote": "<td>Javelin</td>"
+   }
+  },
+  {
+   "component_key": "light_hammer",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.light_hammer",
+   "source": {
+    "file": "equipment.md",
+    "line": 172,
+    "quote": "<td>Light Hammer</td>"
+   }
+  },
+  {
+   "component_key": "light_hammer",
+   "fact": {
+    "damage_type": "bludgeoning",
+    "dice": {
+     "count": 1,
+     "die": "d4",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.light_hammer",
+   "source": {
+    "file": "equipment.md",
+    "line": 172,
+    "quote": "<td>Light Hammer</td>"
+   }
+  },
+  {
+   "component_key": "light_hammer",
+   "fact": {
+    "family": "weapon_property",
+    "property": "light"
+   },
+   "record_key": "equipment.weapons.light_hammer",
+   "source": {
+    "file": "equipment.md",
+    "line": 172,
+    "quote": "<td>Light Hammer</td>"
+   }
+  },
+  {
+   "component_key": "light_hammer",
+   "fact": {
+    "family": "weapon_property",
+    "long_range_ft": 60,
+    "normal_range_ft": 20,
+    "property": "thrown"
+   },
+   "record_key": "equipment.weapons.light_hammer",
+   "source": {
+    "file": "equipment.md",
+    "line": 172,
+    "quote": "<td>Light Hammer</td>"
+   }
+  },
+  {
+   "component_key": "mace",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.mace",
+   "source": {
+    "file": "equipment.md",
+    "line": 180,
+    "quote": "<td>Mace</td>"
+   }
+  },
+  {
+   "component_key": "mace",
+   "fact": {
+    "damage_type": "bludgeoning",
+    "dice": {
+     "count": 1,
+     "die": "d6",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.mace",
+   "source": {
+    "file": "equipment.md",
+    "line": 180,
+    "quote": "<td>Mace</td>"
+   }
+  },
+  {
+   "component_key": "quarterstaff",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.quarterstaff",
+   "source": {
+    "file": "equipment.md",
+    "line": 188,
+    "quote": "<td>Quarterstaff</td>"
+   }
+  },
+  {
+   "component_key": "quarterstaff",
+   "fact": {
+    "damage_type": "bludgeoning",
+    "dice": {
+     "count": 1,
+     "die": "d6",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.quarterstaff",
+   "source": {
+    "file": "equipment.md",
+    "line": 188,
+    "quote": "<td>Quarterstaff</td>"
+   }
+  },
+  {
+   "component_key": "quarterstaff",
+   "fact": {
+    "family": "weapon_property",
+    "property": "versatile",
+    "two_handed_dice": {
+     "count": 1,
+     "die": "d8"
+    }
+   },
+   "record_key": "equipment.weapons.quarterstaff",
+   "source": {
+    "file": "equipment.md",
+    "line": 188,
+    "quote": "<td>Quarterstaff</td>"
+   }
+  },
+  {
+   "component_key": "sickle",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.sickle",
+   "source": {
+    "file": "equipment.md",
+    "line": 196,
+    "quote": "<td>Sickle</td>"
+   }
+  },
+  {
+   "component_key": "sickle",
+   "fact": {
+    "damage_type": "slashing",
+    "dice": {
+     "count": 1,
+     "die": "d4",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.sickle",
+   "source": {
+    "file": "equipment.md",
+    "line": 196,
+    "quote": "<td>Sickle</td>"
+   }
+  },
+  {
+   "component_key": "sickle",
+   "fact": {
+    "family": "weapon_property",
+    "property": "light"
+   },
+   "record_key": "equipment.weapons.sickle",
+   "source": {
+    "file": "equipment.md",
+    "line": 196,
+    "quote": "<td>Sickle</td>"
+   }
+  },
+  {
+   "component_key": "spear",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.spear",
+   "source": {
+    "file": "equipment.md",
+    "line": 204,
+    "quote": "<td>Spear</td>"
+   }
+  },
+  {
+   "component_key": "spear",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d6",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.spear",
+   "source": {
+    "file": "equipment.md",
+    "line": 204,
+    "quote": "<td>Spear</td>"
+   }
+  },
+  {
+   "component_key": "spear",
+   "fact": {
+    "family": "weapon_property",
+    "long_range_ft": 60,
+    "normal_range_ft": 20,
+    "property": "thrown"
+   },
+   "record_key": "equipment.weapons.spear",
+   "source": {
+    "file": "equipment.md",
+    "line": 204,
+    "quote": "<td>Spear</td>"
+   }
+  },
+  {
+   "component_key": "spear",
+   "fact": {
+    "family": "weapon_property",
+    "property": "versatile",
+    "two_handed_dice": {
+     "count": 1,
+     "die": "d8"
+    }
+   },
+   "record_key": "equipment.weapons.spear",
+   "source": {
+    "file": "equipment.md",
+    "line": 204,
+    "quote": "<td>Spear</td>"
+   }
+  },
+  {
+   "component_key": "dart",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "ranged"
+   },
+   "record_key": "equipment.weapons.dart",
+   "source": {
+    "file": "equipment.md",
+    "line": 215,
+    "quote": "<td>Dart</td>"
+   }
+  },
+  {
+   "component_key": "dart",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d4",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.dart",
+   "source": {
+    "file": "equipment.md",
+    "line": 215,
+    "quote": "<td>Dart</td>"
+   }
+  },
+  {
+   "component_key": "dart",
+   "fact": {
+    "family": "weapon_property",
+    "property": "finesse"
+   },
+   "record_key": "equipment.weapons.dart",
+   "source": {
+    "file": "equipment.md",
+    "line": 215,
+    "quote": "<td>Dart</td>"
+   }
+  },
+  {
+   "component_key": "dart",
+   "fact": {
+    "family": "weapon_property",
+    "long_range_ft": 60,
+    "normal_range_ft": 20,
+    "property": "thrown"
+   },
+   "record_key": "equipment.weapons.dart",
+   "source": {
+    "file": "equipment.md",
+    "line": 215,
+    "quote": "<td>Dart</td>"
+   }
+  },
+  {
+   "component_key": "light_crossbow",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "ranged"
+   },
+   "record_key": "equipment.weapons.light_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 223,
+    "quote": "<td>Light Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "light_crossbow",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d8",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.light_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 223,
+    "quote": "<td>Light Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "light_crossbow",
+   "fact": {
+    "ammunition": "bolt",
+    "family": "weapon_property",
+    "long_range_ft": 320,
+    "normal_range_ft": 80,
+    "property": "ammunition"
+   },
+   "record_key": "equipment.weapons.light_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 223,
+    "quote": "<td>Light Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "light_crossbow",
+   "fact": {
+    "family": "weapon_property",
+    "property": "loading"
+   },
+   "record_key": "equipment.weapons.light_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 223,
+    "quote": "<td>Light Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "light_crossbow",
+   "fact": {
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.light_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 223,
+    "quote": "<td>Light Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "shortbow",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "ranged"
+   },
+   "record_key": "equipment.weapons.shortbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 231,
+    "quote": "<td>Shortbow</td>"
+   }
+  },
+  {
+   "component_key": "shortbow",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d6",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.shortbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 231,
+    "quote": "<td>Shortbow</td>"
+   }
+  },
+  {
+   "component_key": "shortbow",
+   "fact": {
+    "ammunition": "arrow",
+    "family": "weapon_property",
+    "long_range_ft": 320,
+    "normal_range_ft": 80,
+    "property": "ammunition"
+   },
+   "record_key": "equipment.weapons.shortbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 231,
+    "quote": "<td>Shortbow</td>"
+   }
+  },
+  {
+   "component_key": "shortbow",
+   "fact": {
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.shortbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 231,
+    "quote": "<td>Shortbow</td>"
+   }
+  },
+  {
+   "component_key": "sling",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "ranged"
+   },
+   "record_key": "equipment.weapons.sling",
+   "source": {
+    "file": "equipment.md",
+    "line": 239,
+    "quote": "<td>Sling</td>"
+   }
+  },
+  {
+   "component_key": "sling",
+   "fact": {
+    "damage_type": "bludgeoning",
+    "dice": {
+     "count": 1,
+     "die": "d4",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.sling",
+   "source": {
+    "file": "equipment.md",
+    "line": 239,
+    "quote": "<td>Sling</td>"
+   }
+  },
+  {
+   "component_key": "sling",
+   "fact": {
+    "ammunition": "bullet",
+    "family": "weapon_property",
+    "long_range_ft": 120,
+    "normal_range_ft": 30,
+    "property": "ammunition"
+   },
+   "record_key": "equipment.weapons.sling",
+   "source": {
+    "file": "equipment.md",
+    "line": 239,
+    "quote": "<td>Sling</td>"
+   }
+  },
+  {
+   "component_key": "battleaxe",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.battleaxe",
+   "source": {
+    "file": "equipment.md",
+    "line": 250,
+    "quote": "<td>Battleaxe</td>"
+   }
+  },
+  {
+   "component_key": "battleaxe",
+   "fact": {
+    "damage_type": "slashing",
+    "dice": {
+     "count": 1,
+     "die": "d8",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.battleaxe",
+   "source": {
+    "file": "equipment.md",
+    "line": 250,
+    "quote": "<td>Battleaxe</td>"
+   }
+  },
+  {
+   "component_key": "battleaxe",
+   "fact": {
+    "family": "weapon_property",
+    "property": "versatile",
+    "two_handed_dice": {
+     "count": 1,
+     "die": "d10"
+    }
+   },
+   "record_key": "equipment.weapons.battleaxe",
+   "source": {
+    "file": "equipment.md",
+    "line": 250,
+    "quote": "<td>Battleaxe</td>"
+   }
+  },
+  {
+   "component_key": "flail",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.flail",
+   "source": {
+    "file": "equipment.md",
+    "line": 258,
+    "quote": "<td>Flail</td>"
+   }
+  },
+  {
+   "component_key": "flail",
+   "fact": {
+    "damage_type": "bludgeoning",
+    "dice": {
+     "count": 1,
+     "die": "d8",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.flail",
+   "source": {
+    "file": "equipment.md",
+    "line": 258,
+    "quote": "<td>Flail</td>"
+   }
+  },
+  {
+   "component_key": "glaive",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.glaive",
+   "source": {
+    "file": "equipment.md",
+    "line": 266,
+    "quote": "<td>Glaive</td>"
+   }
+  },
+  {
+   "component_key": "glaive",
+   "fact": {
+    "damage_type": "slashing",
+    "dice": {
+     "count": 1,
+     "die": "d10",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.glaive",
+   "source": {
+    "file": "equipment.md",
+    "line": 266,
+    "quote": "<td>Glaive</td>"
+   }
+  },
+  {
+   "component_key": "glaive",
+   "fact": {
+    "family": "weapon_property",
+    "property": "heavy"
+   },
+   "record_key": "equipment.weapons.glaive",
+   "source": {
+    "file": "equipment.md",
+    "line": 266,
+    "quote": "<td>Glaive</td>"
+   }
+  },
+  {
+   "component_key": "glaive",
+   "fact": {
+    "family": "weapon_property",
+    "property": "reach"
+   },
+   "record_key": "equipment.weapons.glaive",
+   "source": {
+    "file": "equipment.md",
+    "line": 266,
+    "quote": "<td>Glaive</td>"
+   }
+  },
+  {
+   "component_key": "glaive",
+   "fact": {
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.glaive",
+   "source": {
+    "file": "equipment.md",
+    "line": 266,
+    "quote": "<td>Glaive</td>"
+   }
+  },
+  {
+   "component_key": "greataxe",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.greataxe",
+   "source": {
+    "file": "equipment.md",
+    "line": 274,
+    "quote": "<td>Greataxe</td>"
+   }
+  },
+  {
+   "component_key": "greataxe",
+   "fact": {
+    "damage_type": "slashing",
+    "dice": {
+     "count": 1,
+     "die": "d12",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.greataxe",
+   "source": {
+    "file": "equipment.md",
+    "line": 274,
+    "quote": "<td>Greataxe</td>"
+   }
+  },
+  {
+   "component_key": "greataxe",
+   "fact": {
+    "family": "weapon_property",
+    "property": "heavy"
+   },
+   "record_key": "equipment.weapons.greataxe",
+   "source": {
+    "file": "equipment.md",
+    "line": 274,
+    "quote": "<td>Greataxe</td>"
+   }
+  },
+  {
+   "component_key": "greataxe",
+   "fact": {
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.greataxe",
+   "source": {
+    "file": "equipment.md",
+    "line": 274,
+    "quote": "<td>Greataxe</td>"
+   }
+  },
+  {
+   "component_key": "greatsword",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.greatsword",
+   "source": {
+    "file": "equipment.md",
+    "line": 282,
+    "quote": "<td>Greatsword</td>"
+   }
+  },
+  {
+   "component_key": "greatsword",
+   "fact": {
+    "damage_type": "slashing",
+    "dice": {
+     "count": 2,
+     "die": "d6",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.greatsword",
+   "source": {
+    "file": "equipment.md",
+    "line": 282,
+    "quote": "<td>Greatsword</td>"
+   }
+  },
+  {
+   "component_key": "greatsword",
+   "fact": {
+    "family": "weapon_property",
+    "property": "heavy"
+   },
+   "record_key": "equipment.weapons.greatsword",
+   "source": {
+    "file": "equipment.md",
+    "line": 282,
+    "quote": "<td>Greatsword</td>"
+   }
+  },
+  {
+   "component_key": "greatsword",
+   "fact": {
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.greatsword",
+   "source": {
+    "file": "equipment.md",
+    "line": 282,
+    "quote": "<td>Greatsword</td>"
+   }
+  },
+  {
+   "component_key": "halberd",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.halberd",
+   "source": {
+    "file": "equipment.md",
+    "line": 290,
+    "quote": "<td>Halberd</td>"
+   }
+  },
+  {
+   "component_key": "halberd",
+   "fact": {
+    "damage_type": "slashing",
+    "dice": {
+     "count": 1,
+     "die": "d10",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.halberd",
+   "source": {
+    "file": "equipment.md",
+    "line": 290,
+    "quote": "<td>Halberd</td>"
+   }
+  },
+  {
+   "component_key": "halberd",
+   "fact": {
+    "family": "weapon_property",
+    "property": "heavy"
+   },
+   "record_key": "equipment.weapons.halberd",
+   "source": {
+    "file": "equipment.md",
+    "line": 290,
+    "quote": "<td>Halberd</td>"
+   }
+  },
+  {
+   "component_key": "halberd",
+   "fact": {
+    "family": "weapon_property",
+    "property": "reach"
+   },
+   "record_key": "equipment.weapons.halberd",
+   "source": {
+    "file": "equipment.md",
+    "line": 290,
+    "quote": "<td>Halberd</td>"
+   }
+  },
+  {
+   "component_key": "halberd",
+   "fact": {
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.halberd",
+   "source": {
+    "file": "equipment.md",
+    "line": 290,
+    "quote": "<td>Halberd</td>"
+   }
+  },
+  {
+   "component_key": "lance",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.lance",
+   "source": {
+    "file": "equipment.md",
+    "line": 298,
+    "quote": "<td>Lance</td>"
+   }
+  },
+  {
+   "component_key": "lance",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d10",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.lance",
+   "source": {
+    "file": "equipment.md",
+    "line": 298,
+    "quote": "<td>Lance</td>"
+   }
+  },
+  {
+   "component_key": "lance",
+   "fact": {
+    "family": "weapon_property",
+    "property": "heavy"
+   },
+   "record_key": "equipment.weapons.lance",
+   "source": {
+    "file": "equipment.md",
+    "line": 298,
+    "quote": "<td>Lance</td>"
+   }
+  },
+  {
+   "component_key": "lance",
+   "fact": {
+    "family": "weapon_property",
+    "property": "reach"
+   },
+   "record_key": "equipment.weapons.lance",
+   "source": {
+    "file": "equipment.md",
+    "line": 298,
+    "quote": "<td>Lance</td>"
+   }
+  },
+  {
+   "component_key": "lance",
+   "fact": {
+    "except_when": "mounted",
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.lance",
+   "source": {
+    "file": "equipment.md",
+    "line": 298,
+    "quote": "<td>Lance</td>"
+   }
+  },
+  {
+   "component_key": "longsword",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.longsword",
+   "source": {
+    "file": "equipment.md",
+    "line": 306,
+    "quote": "<td>Longsword</td>"
+   }
+  },
+  {
+   "component_key": "longsword",
+   "fact": {
+    "damage_type": "slashing",
+    "dice": {
+     "count": 1,
+     "die": "d8",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.longsword",
+   "source": {
+    "file": "equipment.md",
+    "line": 306,
+    "quote": "<td>Longsword</td>"
+   }
+  },
+  {
+   "component_key": "longsword",
+   "fact": {
+    "family": "weapon_property",
+    "property": "versatile",
+    "two_handed_dice": {
+     "count": 1,
+     "die": "d10"
+    }
+   },
+   "record_key": "equipment.weapons.longsword",
+   "source": {
+    "file": "equipment.md",
+    "line": 306,
+    "quote": "<td>Longsword</td>"
+   }
+  },
+  {
+   "component_key": "maul",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.maul",
+   "source": {
+    "file": "equipment.md",
+    "line": 314,
+    "quote": "<td>Maul</td>"
+   }
+  },
+  {
+   "component_key": "maul",
+   "fact": {
+    "damage_type": "bludgeoning",
+    "dice": {
+     "count": 2,
+     "die": "d6",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.maul",
+   "source": {
+    "file": "equipment.md",
+    "line": 314,
+    "quote": "<td>Maul</td>"
+   }
+  },
+  {
+   "component_key": "maul",
+   "fact": {
+    "family": "weapon_property",
+    "property": "heavy"
+   },
+   "record_key": "equipment.weapons.maul",
+   "source": {
+    "file": "equipment.md",
+    "line": 314,
+    "quote": "<td>Maul</td>"
+   }
+  },
+  {
+   "component_key": "maul",
+   "fact": {
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.maul",
+   "source": {
+    "file": "equipment.md",
+    "line": 314,
+    "quote": "<td>Maul</td>"
+   }
+  },
+  {
+   "component_key": "morningstar",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.morningstar",
+   "source": {
+    "file": "equipment.md",
+    "line": 322,
+    "quote": "<td>Morningstar</td>"
+   }
+  },
+  {
+   "component_key": "morningstar",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d8",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.morningstar",
+   "source": {
+    "file": "equipment.md",
+    "line": 322,
+    "quote": "<td>Morningstar</td>"
+   }
+  },
+  {
+   "component_key": "pike",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.pike",
+   "source": {
+    "file": "equipment.md",
+    "line": 330,
+    "quote": "<td>Pike</td>"
+   }
+  },
+  {
+   "component_key": "pike",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d10",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.pike",
+   "source": {
+    "file": "equipment.md",
+    "line": 330,
+    "quote": "<td>Pike</td>"
+   }
+  },
+  {
+   "component_key": "pike",
+   "fact": {
+    "family": "weapon_property",
+    "property": "heavy"
+   },
+   "record_key": "equipment.weapons.pike",
+   "source": {
+    "file": "equipment.md",
+    "line": 330,
+    "quote": "<td>Pike</td>"
+   }
+  },
+  {
+   "component_key": "pike",
+   "fact": {
+    "family": "weapon_property",
+    "property": "reach"
+   },
+   "record_key": "equipment.weapons.pike",
+   "source": {
+    "file": "equipment.md",
+    "line": 330,
+    "quote": "<td>Pike</td>"
+   }
+  },
+  {
+   "component_key": "pike",
+   "fact": {
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.pike",
+   "source": {
+    "file": "equipment.md",
+    "line": 330,
+    "quote": "<td>Pike</td>"
+   }
+  },
+  {
+   "component_key": "rapier",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.rapier",
+   "source": {
+    "file": "equipment.md",
+    "line": 338,
+    "quote": "<td>Rapier</td>"
+   }
+  },
+  {
+   "component_key": "rapier",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d8",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.rapier",
+   "source": {
+    "file": "equipment.md",
+    "line": 338,
+    "quote": "<td>Rapier</td>"
+   }
+  },
+  {
+   "component_key": "rapier",
+   "fact": {
+    "family": "weapon_property",
+    "property": "finesse"
+   },
+   "record_key": "equipment.weapons.rapier",
+   "source": {
+    "file": "equipment.md",
+    "line": 338,
+    "quote": "<td>Rapier</td>"
+   }
+  },
+  {
+   "component_key": "scimitar",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.scimitar",
+   "source": {
+    "file": "equipment.md",
+    "line": 346,
+    "quote": "<td>Scimitar</td>"
+   }
+  },
+  {
+   "component_key": "scimitar",
+   "fact": {
+    "damage_type": "slashing",
+    "dice": {
+     "count": 1,
+     "die": "d6",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.scimitar",
+   "source": {
+    "file": "equipment.md",
+    "line": 346,
+    "quote": "<td>Scimitar</td>"
+   }
+  },
+  {
+   "component_key": "scimitar",
+   "fact": {
+    "family": "weapon_property",
+    "property": "finesse"
+   },
+   "record_key": "equipment.weapons.scimitar",
+   "source": {
+    "file": "equipment.md",
+    "line": 346,
+    "quote": "<td>Scimitar</td>"
+   }
+  },
+  {
+   "component_key": "scimitar",
+   "fact": {
+    "family": "weapon_property",
+    "property": "light"
+   },
+   "record_key": "equipment.weapons.scimitar",
+   "source": {
+    "file": "equipment.md",
+    "line": 346,
+    "quote": "<td>Scimitar</td>"
+   }
+  },
+  {
+   "component_key": "shortsword",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.shortsword",
+   "source": {
+    "file": "equipment.md",
+    "line": 354,
+    "quote": "<td>Shortsword</td>"
+   }
+  },
+  {
+   "component_key": "shortsword",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d6",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.shortsword",
+   "source": {
+    "file": "equipment.md",
+    "line": 354,
+    "quote": "<td>Shortsword</td>"
+   }
+  },
+  {
+   "component_key": "shortsword",
+   "fact": {
+    "family": "weapon_property",
+    "property": "finesse"
+   },
+   "record_key": "equipment.weapons.shortsword",
+   "source": {
+    "file": "equipment.md",
+    "line": 354,
+    "quote": "<td>Shortsword</td>"
+   }
+  },
+  {
+   "component_key": "shortsword",
+   "fact": {
+    "family": "weapon_property",
+    "property": "light"
+   },
+   "record_key": "equipment.weapons.shortsword",
+   "source": {
+    "file": "equipment.md",
+    "line": 354,
+    "quote": "<td>Shortsword</td>"
+   }
+  },
+  {
+   "component_key": "trident",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.trident",
+   "source": {
+    "file": "equipment.md",
+    "line": 362,
+    "quote": "<td>Trident</td>"
+   }
+  },
+  {
+   "component_key": "trident",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d8",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.trident",
+   "source": {
+    "file": "equipment.md",
+    "line": 362,
+    "quote": "<td>Trident</td>"
+   }
+  },
+  {
+   "component_key": "trident",
+   "fact": {
+    "family": "weapon_property",
+    "long_range_ft": 60,
+    "normal_range_ft": 20,
+    "property": "thrown"
+   },
+   "record_key": "equipment.weapons.trident",
+   "source": {
+    "file": "equipment.md",
+    "line": 362,
+    "quote": "<td>Trident</td>"
+   }
+  },
+  {
+   "component_key": "trident",
+   "fact": {
+    "family": "weapon_property",
+    "property": "versatile",
+    "two_handed_dice": {
+     "count": 1,
+     "die": "d10"
+    }
+   },
+   "record_key": "equipment.weapons.trident",
+   "source": {
+    "file": "equipment.md",
+    "line": 362,
+    "quote": "<td>Trident</td>"
+   }
+  },
+  {
+   "component_key": "warhammer",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.warhammer",
+   "source": {
+    "file": "equipment.md",
+    "line": 370,
+    "quote": "<td>Warhammer</td>"
+   }
+  },
+  {
+   "component_key": "warhammer",
+   "fact": {
+    "damage_type": "bludgeoning",
+    "dice": {
+     "count": 1,
+     "die": "d8",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.warhammer",
+   "source": {
+    "file": "equipment.md",
+    "line": 370,
+    "quote": "<td>Warhammer</td>"
+   }
+  },
+  {
+   "component_key": "warhammer",
+   "fact": {
+    "family": "weapon_property",
+    "property": "versatile",
+    "two_handed_dice": {
+     "count": 1,
+     "die": "d10"
+    }
+   },
+   "record_key": "equipment.weapons.warhammer",
+   "source": {
+    "file": "equipment.md",
+    "line": 370,
+    "quote": "<td>Warhammer</td>"
+   }
+  },
+  {
+   "component_key": "war_pick",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.war_pick",
+   "source": {
+    "file": "equipment.md",
+    "line": 378,
+    "quote": "<td>War Pick</td>"
+   }
+  },
+  {
+   "component_key": "war_pick",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d8",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.war_pick",
+   "source": {
+    "file": "equipment.md",
+    "line": 378,
+    "quote": "<td>War Pick</td>"
+   }
+  },
+  {
+   "component_key": "war_pick",
+   "fact": {
+    "family": "weapon_property",
+    "property": "versatile",
+    "two_handed_dice": {
+     "count": 1,
+     "die": "d10"
+    }
+   },
+   "record_key": "equipment.weapons.war_pick",
+   "source": {
+    "file": "equipment.md",
+    "line": 378,
+    "quote": "<td>War Pick</td>"
+   }
+  },
+  {
+   "component_key": "whip",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "melee"
+   },
+   "record_key": "equipment.weapons.whip",
+   "source": {
+    "file": "equipment.md",
+    "line": 386,
+    "quote": "<td>Whip</td>"
+   }
+  },
+  {
+   "component_key": "whip",
+   "fact": {
+    "damage_type": "slashing",
+    "dice": {
+     "count": 1,
+     "die": "d4",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.whip",
+   "source": {
+    "file": "equipment.md",
+    "line": 386,
+    "quote": "<td>Whip</td>"
+   }
+  },
+  {
+   "component_key": "whip",
+   "fact": {
+    "family": "weapon_property",
+    "property": "finesse"
+   },
+   "record_key": "equipment.weapons.whip",
+   "source": {
+    "file": "equipment.md",
+    "line": 386,
+    "quote": "<td>Whip</td>"
+   }
+  },
+  {
+   "component_key": "whip",
+   "fact": {
+    "family": "weapon_property",
+    "property": "reach"
+   },
+   "record_key": "equipment.weapons.whip",
+   "source": {
+    "file": "equipment.md",
+    "line": 386,
+    "quote": "<td>Whip</td>"
+   }
+  },
+  {
+   "component_key": "blowgun",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "ranged"
+   },
+   "record_key": "equipment.weapons.blowgun",
+   "source": {
+    "file": "equipment.md",
+    "line": 397,
+    "quote": "<td>Blowgun</td>"
+   }
+  },
+  {
+   "component_key": "blowgun",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": null,
+    "family": "damage",
+    "flat_amount": 1,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.blowgun",
+   "source": {
+    "file": "equipment.md",
+    "line": 397,
+    "quote": "<td>Blowgun</td>"
+   }
+  },
+  {
+   "component_key": "blowgun",
+   "fact": {
+    "ammunition": "needle",
+    "family": "weapon_property",
+    "long_range_ft": 100,
+    "normal_range_ft": 25,
+    "property": "ammunition"
+   },
+   "record_key": "equipment.weapons.blowgun",
+   "source": {
+    "file": "equipment.md",
+    "line": 397,
+    "quote": "<td>Blowgun</td>"
+   }
+  },
+  {
+   "component_key": "blowgun",
+   "fact": {
+    "family": "weapon_property",
+    "property": "loading"
+   },
+   "record_key": "equipment.weapons.blowgun",
+   "source": {
+    "file": "equipment.md",
+    "line": 397,
+    "quote": "<td>Blowgun</td>"
+   }
+  },
+  {
+   "component_key": "hand_crossbow",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "ranged"
+   },
+   "record_key": "equipment.weapons.hand_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 405,
+    "quote": "<td>Hand Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "hand_crossbow",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d6",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.hand_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 405,
+    "quote": "<td>Hand Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "hand_crossbow",
+   "fact": {
+    "ammunition": "bolt",
+    "family": "weapon_property",
+    "long_range_ft": 120,
+    "normal_range_ft": 30,
+    "property": "ammunition"
+   },
+   "record_key": "equipment.weapons.hand_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 405,
+    "quote": "<td>Hand Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "hand_crossbow",
+   "fact": {
+    "family": "weapon_property",
+    "property": "light"
+   },
+   "record_key": "equipment.weapons.hand_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 405,
+    "quote": "<td>Hand Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "hand_crossbow",
+   "fact": {
+    "family": "weapon_property",
+    "property": "loading"
+   },
+   "record_key": "equipment.weapons.hand_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 405,
+    "quote": "<td>Hand Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "heavy_crossbow",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "ranged"
+   },
+   "record_key": "equipment.weapons.heavy_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 413,
+    "quote": "<td>Heavy Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "heavy_crossbow",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d10",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.heavy_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 413,
+    "quote": "<td>Heavy Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "heavy_crossbow",
+   "fact": {
+    "ammunition": "bolt",
+    "family": "weapon_property",
+    "long_range_ft": 400,
+    "normal_range_ft": 100,
+    "property": "ammunition"
+   },
+   "record_key": "equipment.weapons.heavy_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 413,
+    "quote": "<td>Heavy Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "heavy_crossbow",
+   "fact": {
+    "family": "weapon_property",
+    "property": "heavy"
+   },
+   "record_key": "equipment.weapons.heavy_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 413,
+    "quote": "<td>Heavy Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "heavy_crossbow",
+   "fact": {
+    "family": "weapon_property",
+    "property": "loading"
+   },
+   "record_key": "equipment.weapons.heavy_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 413,
+    "quote": "<td>Heavy Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "heavy_crossbow",
+   "fact": {
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.heavy_crossbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 413,
+    "quote": "<td>Heavy Crossbow</td>"
+   }
+  },
+  {
+   "component_key": "longbow",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "ranged"
+   },
+   "record_key": "equipment.weapons.longbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 421,
+    "quote": "<td>Longbow</td>"
+   }
+  },
+  {
+   "component_key": "longbow",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d8",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.longbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 421,
+    "quote": "<td>Longbow</td>"
+   }
+  },
+  {
+   "component_key": "longbow",
+   "fact": {
+    "ammunition": "arrow",
+    "family": "weapon_property",
+    "long_range_ft": 600,
+    "normal_range_ft": 150,
+    "property": "ammunition"
+   },
+   "record_key": "equipment.weapons.longbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 421,
+    "quote": "<td>Longbow</td>"
+   }
+  },
+  {
+   "component_key": "longbow",
+   "fact": {
+    "family": "weapon_property",
+    "property": "heavy"
+   },
+   "record_key": "equipment.weapons.longbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 421,
+    "quote": "<td>Longbow</td>"
+   }
+  },
+  {
+   "component_key": "longbow",
+   "fact": {
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.longbow",
+   "source": {
+    "file": "equipment.md",
+    "line": 421,
+    "quote": "<td>Longbow</td>"
+   }
+  },
+  {
+   "component_key": "musket",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "ranged"
+   },
+   "record_key": "equipment.weapons.musket",
+   "source": {
+    "file": "equipment.md",
+    "line": 429,
+    "quote": "<td>Musket</td>"
+   }
+  },
+  {
+   "component_key": "musket",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d12",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.musket",
+   "source": {
+    "file": "equipment.md",
+    "line": 429,
+    "quote": "<td>Musket</td>"
+   }
+  },
+  {
+   "component_key": "musket",
+   "fact": {
+    "ammunition": "bullet",
+    "family": "weapon_property",
+    "long_range_ft": 120,
+    "normal_range_ft": 40,
+    "property": "ammunition"
+   },
+   "record_key": "equipment.weapons.musket",
+   "source": {
+    "file": "equipment.md",
+    "line": 429,
+    "quote": "<td>Musket</td>"
+   }
+  },
+  {
+   "component_key": "musket",
+   "fact": {
+    "family": "weapon_property",
+    "property": "loading"
+   },
+   "record_key": "equipment.weapons.musket",
+   "source": {
+    "file": "equipment.md",
+    "line": 429,
+    "quote": "<td>Musket</td>"
+   }
+  },
+  {
+   "component_key": "musket",
+   "fact": {
+    "family": "weapon_property",
+    "property": "two_handed"
+   },
+   "record_key": "equipment.weapons.musket",
+   "source": {
+    "file": "equipment.md",
+    "line": 429,
+    "quote": "<td>Musket</td>"
+   }
+  },
+  {
+   "component_key": "pistol",
+   "fact": {
+    "family": "weapon_range_class",
+    "range_class": "ranged"
+   },
+   "record_key": "equipment.weapons.pistol",
+   "source": {
+    "file": "equipment.md",
+    "line": 437,
+    "quote": "<td>Pistol</td>"
+   }
+  },
+  {
+   "component_key": "pistol",
+   "fact": {
+    "damage_type": "piercing",
+    "dice": {
+     "count": 1,
+     "die": "d10",
+     "modifier": 0
+    },
+    "family": "damage",
+    "flat_amount": null,
+    "stated_average": null
+   },
+   "record_key": "equipment.weapons.pistol",
+   "source": {
+    "file": "equipment.md",
+    "line": 437,
+    "quote": "<td>Pistol</td>"
+   }
+  },
+  {
+   "component_key": "pistol",
+   "fact": {
+    "ammunition": "bullet",
+    "family": "weapon_property",
+    "long_range_ft": 90,
+    "normal_range_ft": 30,
+    "property": "ammunition"
+   },
+   "record_key": "equipment.weapons.pistol",
+   "source": {
+    "file": "equipment.md",
+    "line": 437,
+    "quote": "<td>Pistol</td>"
+   }
+  },
+  {
+   "component_key": "pistol",
+   "fact": {
+    "family": "weapon_property",
+    "property": "loading"
+   },
+   "record_key": "equipment.weapons.pistol",
+   "source": {
+    "file": "equipment.md",
+    "line": 437,
+    "quote": "<td>Pistol</td>"
+   }
+  },
+  {
+   "component_key": "typical_dcs",
+   "fact": {
+    "applies_to": "ability_check",
+    "dc": 5,
+    "difficulty": "very_easy",
+    "family": "difficulty_band"
+   },
+   "record_key": "play.d20_tests",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 258,
+    "quote": "<td>Very easy</td>"
+   }
+  },
+  {
+   "component_key": "typical_dcs",
+   "fact": {
+    "applies_to": "ability_check",
+    "dc": 10,
+    "difficulty": "easy",
+    "family": "difficulty_band"
+   },
+   "record_key": "play.d20_tests",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 264,
+    "quote": "<td>Easy</td>"
+   }
+  },
+  {
+   "component_key": "typical_dcs",
+   "fact": {
+    "applies_to": "ability_check",
+    "dc": 15,
+    "difficulty": "medium",
+    "family": "difficulty_band"
+   },
+   "record_key": "play.d20_tests",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 270,
+    "quote": "<td>Medium</td>"
+   }
+  },
+  {
+   "component_key": "typical_dcs",
+   "fact": {
+    "applies_to": "ability_check",
+    "dc": 20,
+    "difficulty": "hard",
+    "family": "difficulty_band"
+   },
+   "record_key": "play.d20_tests",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 276,
+    "quote": "<td>Hard</td>"
+   }
+  },
+  {
+   "component_key": "typical_dcs",
+   "fact": {
+    "applies_to": "ability_check",
+    "dc": 25,
+    "difficulty": "very_hard",
+    "family": "difficulty_band"
+   },
+   "record_key": "play.d20_tests",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 260,
+    "quote": "<td>Very hard</td>"
+   }
+  },
+  {
+   "component_key": "typical_dcs",
+   "fact": {
+    "applies_to": "ability_check",
+    "dc": 30,
+    "difficulty": "nearly_impossible",
+    "family": "difficulty_band"
+   },
+   "record_key": "play.d20_tests",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 266,
+    "quote": "<td>Nearly impossible</td>"
+   }
+  },
+  {
+   "component_key": "attack_ability_modifier",
+   "fact": {
+    "ability": "strength",
+    "family": "attack_roll_ability",
+    "range_class": "melee"
+   },
+   "record_key": "play.d20_tests",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 358,
+    "quote": "Melee attack with a weapon or an Unarmed Strike"
+   }
+  },
+  {
+   "component_key": "attack_ability_modifier",
+   "fact": {
+    "ability": "dexterity",
+    "family": "attack_roll_ability",
+    "range_class": "ranged"
+   },
+   "record_key": "play.d20_tests",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 362,
+    "quote": "Ranged attack with a weapon"
+   }
+  },
+  {
+   "component_key": "natural_20",
+   "fact": {
+    "context": "attack_roll",
+    "critical_hit": true,
+    "face": 20,
+    "family": "natural_roll_outcome",
+    "outcome": "hit"
+   },
+   "record_key": "play.d20_tests",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 391,
+    "quote": "the attack hits regardless of any modifiers"
+   }
+  },
+  {
+   "component_key": "natural_1",
+   "fact": {
+    "context": "attack_roll",
+    "critical_hit": false,
+    "face": 1,
+    "family": "natural_roll_outcome",
+    "outcome": "miss"
+   },
+   "record_key": "play.d20_tests",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 393,
+    "quote": "the attack misses regardless of any modifiers"
+   }
+  },
+  {
+   "component_key": "initiative_roll",
+   "fact": {
+    "ability": "dexterity",
+    "context": "ability_check",
+    "family": "initiative_roll"
+   },
+   "record_key": "play.combat",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 891,
+    "quote": "they make a Dexterity check"
+   }
+  },
+  {
+   "component_key": "damage_rolls",
+   "fact": {
+    "adds_attack_ability_modifier": true,
+    "family": "damage_roll_rule",
+    "fixed_amount_adds_modifier": false,
+    "minimum_damage": 0
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1156,
+    "quote": "you add your ability modifier—the same modifier used for the attack roll"
+   }
+  },
+  {
+   "component_key": "critical_hits",
+   "fact": {
+    "applies_to": "every damage die of the attack",
+    "damage_dice_multiplier": 2,
+    "family": "critical_damage",
+    "modifiers": "added once"
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1160,
+    "quote": "Roll the attack's damage dice twice"
+   }
+  },
+  {
+   "component_key": "temporary_hit_points",
+   "fact": {
+    "absorbed_first": true,
+    "family": "temporary_hit_point_absorption",
+    "overflow_to_hit_points": true
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1253,
+    "quote": "those points are lost first, and any leftover damage carries over"
+   }
+  },
+  {
+   "component_key": "hit_points",
+   "fact": {
+    "family": "hit_point_bound",
+    "minimum_current": 0
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1142,
+    "quote": "which is the lowest Hit Points can go"
+   }
+  },
+  {
+   "component_key": "monster_death",
+   "fact": {
+    "exception_scope": "individual monster",
+    "family": "zero_hit_point_outcome",
+    "gamemaster_exception": "treat_as_character",
+    "outcome": "dies",
+    "subject": "monster"
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1215,
+    "quote": "A monster dies the instant it drops to 0 Hit Points"
+   }
+  },
+  {
+   "component_key": "hit_point_maximum_of_0",
+   "fact": {
+    "family": "zero_hit_point_outcome",
+    "outcome": "dies",
+    "subject": "any",
+    "trigger": "hit_point_maximum_zero"
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1217,
+    "quote": "A creature dies if its Hit Point maximum reaches 0"
+   }
+  },
+  {
+   "component_key": "massive_damage",
+   "fact": {
+    "dies_when_remainder_at_least": "hit_point_maximum",
+    "family": "massive_damage",
+    "subject": "character"
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1219,
+    "quote": "the character dies if the remainder equals or exceeds their Hit Point maximum"
+   }
+  },
+  {
+   "component_key": "falling_unconscious",
+   "fact": {
+    "family": "zero_hit_point_outcome",
+    "outcome": "unconscious_and_dying",
+    "subject": "character",
+    "until": "regains_hit_points"
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1227,
+    "quote": "you now face making Death Saving Throws"
+   }
+  },
+  {
+   "component_key": "death_saving_throws",
+   "fact": {
+    "ability": null,
+    "die": "d20",
+    "failures_to_die": 3,
+    "family": "death_saving_throw",
+    "reset_on": [
+     "regains_hit_points",
+     "becomes_stable"
+    ],
+    "success_minimum": 10,
+    "successes_to_stable": 3,
+    "timing": {
+     "at_hit_points": 0,
+     "turn_of": "subject",
+     "when": "start_of_turn"
+    }
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1233,
+    "quote": "Roll 1d20. If the roll is 10 or higher, you succeed."
+   }
+  },
+  {
+   "component_key": "death_saving_throws",
+   "fact": {
+    "face": 1,
+    "failures": 2,
+    "family": "death_save_natural_roll"
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1237,
+    "quote": "When you roll a 1 on the d20 for a Death Saving Throw, you suffer two failures"
+   }
+  },
+  {
+   "component_key": "death_saving_throws",
+   "fact": {
+    "face": 20,
+    "family": "death_save_natural_roll",
+    "regain_hit_points": 1
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1237,
+    "quote": "If you roll a 20 on the d20, you regain 1 Hit Point"
+   }
+  },
+  {
+   "component_key": "damage_at_0_hit_points",
+   "fact": {
+    "critical_hit_failures": 2,
+    "dies_when_damage_at_least": "hit_point_maximum",
+    "failures": 1,
+    "family": "damage_at_zero_hit_points"
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1239,
+    "quote": "If the damage is from a Critical Hit, you suffer two failures instead"
+   }
+  },
+  {
+   "component_key": "stabilizing",
+   "fact": {
+    "action": "help",
+    "family": "stabilization",
+    "on_success": "stable",
+    "target_at_hit_points": 0
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1243,
+    "quote": "You can take the Help action to try to stabilize a creature with 0 Hit Points"
+   }
+  },
+  {
+   "component_key": "stable",
+   "fact": {
+    "damage_ends_stable": true,
+    "family": "stable_state",
+    "makes_death_saves": false,
+    "recovery": {
+     "dice": {
+      "count": 1,
+      "die": "d4"
+     },
+     "regain_hit_points": 1,
+     "unit": "hour",
+     "unless": "healed"
+    },
+    "remains_unconscious": true
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1245,
+    "quote": "A Stable creature that isn't healed regains 1 Hit Point after 1d4 hours"
+   }
+  },
+  {
+   "component_key": "knocking_out",
+   "fact": {
+    "attack": "melee",
+    "condition": "unconscious",
+    "ends_after": "short_rest",
+    "ends_early_on": [
+     "regains_hit_points",
+     "first_aid_success"
+    ],
+    "family": "knockout_alternative",
+    "optional": true,
+    "set_hit_points": 1,
+    "starts": "short_rest",
+    "trigger": "would_reduce_to_0_hit_points"
+   },
+   "record_key": "play.damage_and_healing",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 1203,
+    "quote": "you can instead reduce the creature to 1 Hit Point"
+   }
+  },
+  {
+   "component_key": "short_rest",
+   "fact": {
+    "family": "rest_duration",
+    "hours": 1,
+    "rest": "short_rest"
+   },
+   "record_key": "glossary.short_rest",
+   "source": {
+    "file": "rules-glossary.md",
+    "line": 1279,
+    "quote": "A Short Rest is a 1-hour period"
+   }
+  },
+  {
+   "component_key": "finesse",
+   "fact": {
+    "abilities": [
+     "strength",
+     "dexterity"
+    ],
+    "family": "attack_ability_option",
+    "same_for_damage": true
+   },
+   "record_key": "equipment.weapons.finesse",
+   "source": {
+    "file": "equipment.md",
+    "line": 72,
+    "quote": "use your choice of your Strength or Dexterity"
+   }
+  },
+  {
+   "component_key": "heavy",
+   "fact": {
+    "ability": "strength",
+    "family": "ability_score_requirement",
+    "minimum": 13,
+    "range_class": "melee",
+    "unmet": "attack_disadvantage"
+   },
+   "record_key": "equipment.weapons.heavy",
+   "source": {
+    "file": "equipment.md",
+    "line": 74,
+    "quote": "your Strength score isn't at least 13"
+   }
+  },
+  {
+   "component_key": "heavy",
+   "fact": {
+    "ability": "dexterity",
+    "family": "ability_score_requirement",
+    "minimum": 13,
+    "range_class": "ranged",
+    "unmet": "attack_disadvantage"
+   },
+   "record_key": "equipment.weapons.heavy",
+   "source": {
+    "file": "equipment.md",
+    "line": 74,
+    "quote": "your Dexterity score isn't at least 13"
+   }
+  },
+  {
+   "component_key": "light",
+   "fact": {
+    "ability_modifier_damage": "only_if_negative",
+    "cost": "bonus_action",
+    "family": "light_extra_attack",
+    "first_attack": "with_a_light_weapon",
+    "limit": "once_per_turn",
+    "optional": true,
+    "requires": "different_light_weapon",
+    "trigger": "attack_action_on_own_turn",
+    "when": "later_on_the_same_turn"
+   },
+   "record_key": "equipment.weapons.light",
+   "source": {
+    "file": "equipment.md",
+    "line": 76,
+    "quote": "you can make one extra attack as a Bonus Action"
+   }
+  },
+  {
+   "component_key": "loading",
+   "fact": {
+    "family": "ammunition_per_activation",
+    "maximum": 1,
+    "per": [
+     "action",
+     "bonus_action",
+     "reaction"
+    ]
+   },
+   "record_key": "equipment.weapons.loading",
+   "source": {
+    "file": "equipment.md",
+    "line": 78,
+    "quote": "You can fire only one piece of ammunition"
+   }
+  },
+  {
+   "component_key": "range",
+   "fact": {
+    "beyond_long": "cannot_attack",
+    "beyond_normal": "attack_disadvantage",
+    "family": "range_band_rule"
+   },
+   "record_key": "equipment.weapons.range",
+   "source": {
+    "file": "equipment.md",
+    "line": 80,
+    "quote": "you have Disadvantage on the attack roll"
+   }
+  },
+  {
+   "component_key": "reach",
+   "fact": {
+    "applies_to": [
+     "attacks_with_it",
+     "opportunity_attack_reach"
+    ],
+    "family": "reach_extension",
+    "feet": 5
+   },
+   "record_key": "equipment.weapons.reach",
+   "source": {
+    "file": "equipment.md",
+    "line": 82,
+    "quote": "adds 5 feet to your reach"
+   }
+  },
+  {
+   "component_key": "thrown",
+   "fact": {
+    "attack": "ranged",
+    "draw_as_part_of_attack": true,
+    "family": "thrown_attack",
+    "melee_weapon_ability": "as_melee_attack"
+   },
+   "record_key": "equipment.weapons.thrown",
+   "source": {
+    "file": "equipment.md",
+    "line": 84,
+    "quote": "you can throw the weapon to make a ranged attack"
+   }
+  },
+  {
+   "component_key": "two_handed",
+   "fact": {
+    "family": "hands_required",
+    "hands": 2,
+    "when": "attacking"
+   },
+   "record_key": "equipment.weapons.two_handed",
+   "source": {
+    "file": "equipment.md",
+    "line": 86,
+    "quote": "requires two hands"
+   }
+  },
+  {
+   "component_key": "versatile",
+   "fact": {
+    "attack": "melee",
+    "family": "versatile_damage",
+    "hands": 2
+   },
+   "record_key": "equipment.weapons.versatile",
+   "source": {
+    "file": "equipment.md",
+    "line": 88,
+    "quote": "when used with two hands to make a melee attack"
+   }
+  },
+  {
+   "component_key": "ammunition",
+   "fact": {
+    "drawing_is_part_of_the_attack": true,
+    "family": "ammunition_expenditure",
+    "loading_requires_free_hand": {
+     "when": "the weapon is one-handed"
+    },
+    "per_attack": 1,
+    "recovery": {
+     "after": "fight",
+     "fraction": {
+      "denominator": 2,
+      "numerator": 1
+     },
+     "minutes": 1,
+     "remainder": "lost",
+     "rounding": "down"
+    },
+    "requires": "ammunition_of_the_printed_type"
+   },
+   "record_key": "equipment.weapons.ammunition",
+   "source": {
+    "file": "equipment.md",
+    "line": 70,
+    "quote": "Each attack expends one piece of ammunition"
+   }
+  },
+  {
+   "component_key": "cleave",
+   "fact": {
+    "ability_modifier_damage": "only_if_negative",
+    "family": "mastery_effect",
+    "limit": "once_per_turn",
+    "mastery": "cleave",
+    "optional": true,
+    "second_target_within_ft": 5,
+    "second_target_within_reach": true,
+    "trigger": "hit_melee_attack_roll"
+   },
+   "record_key": "equipment.weapons.cleave",
+   "source": {
+    "file": "equipment.md",
+    "line": 98,
+    "quote": "against a second creature within 5 feet of the first"
+   }
+  },
+  {
+   "component_key": "graze",
+   "fact": {
+    "damage": "attack_ability_modifier",
+    "damage_type": "weapon",
+    "family": "mastery_effect",
+    "increase": "only_by_increasing_the_ability_modifier",
+    "mastery": "graze",
+    "optional": true,
+    "trigger": "miss_creature"
+   },
+   "record_key": "equipment.weapons.graze",
+   "source": {
+    "file": "equipment.md",
+    "line": 100,
+    "quote": "equal to the ability modifier you used to make the attack roll"
+   }
+  },
+  {
+   "component_key": "nick",
+   "fact": {
+    "cost": "attack_action",
+    "family": "mastery_effect",
+    "limit": "once_per_turn",
+    "mastery": "nick",
+    "optional": true,
+    "trigger": "light_extra_attack"
+   },
+   "record_key": "equipment.weapons.nick",
+   "source": {
+    "file": "equipment.md",
+    "line": 102,
+    "quote": "as part of the Attack action instead of as a Bonus Action"
+   }
+  },
+  {
+   "component_key": "push",
+   "fact": {
+    "direction": "straight_away",
+    "distance_ft_up_to": 10,
+    "family": "mastery_effect",
+    "mastery": "push",
+    "maximum_size": "large",
+    "optional": true,
+    "trigger": "hit_creature"
+   },
+   "record_key": "equipment.weapons.push",
+   "source": {
+    "file": "equipment.md",
+    "line": 104,
+    "quote": "push the creature up to 10 feet straight away"
+   }
+  },
+  {
+   "component_key": "sap",
+   "fact": {
+    "applies_to": "hit_creature",
+    "duration": {
+     "turn": "next",
+     "turn_of": "source",
+     "until": "start_of_turn"
+    },
+    "effect": {
+     "family": "advantage",
+     "roll": {
+      "ability": null,
+      "actor": "subject",
+      "context": "attack_roll"
+     },
+     "state": "disadvantage",
+     "use_limit": "next_qualifying_roll"
+    },
+    "family": "mastery_effect",
+    "mastery": "sap",
+    "optional": false,
+    "trigger": "hit_creature"
+   },
+   "record_key": "equipment.weapons.sap",
+   "source": {
+    "file": "equipment.md",
+    "line": 106,
+    "quote": "Disadvantage on its next attack roll before the start of your next turn"
+   }
+  },
+  {
+   "component_key": "slow",
+   "fact": {
+    "applies_to": "hit_creature",
+    "duration": {
+     "turn": "next",
+     "turn_of": "source",
+     "until": "start_of_turn"
+    },
+    "family": "mastery_effect",
+    "mastery": "slow",
+    "maximum_reduction_ft": 10,
+    "optional": true,
+    "speed_reduction_ft": 10,
+    "trigger": "hit_and_damage"
+   },
+   "record_key": "equipment.weapons.slow",
+   "source": {
+    "file": "equipment.md",
+    "line": 108,
+    "quote": "reduce its Speed by 10 feet until the start of your next turn"
+   }
+  },
+  {
+   "component_key": "topple",
+   "fact": {
+    "applies_to": "hit_creature",
+    "dc": {
+     "base": 8,
+     "plus": [
+      "attack_ability_modifier",
+      "proficiency_bonus"
+     ]
+    },
+    "family": "mastery_effect",
+    "mastery": "topple",
+    "on_failure": [
+     {
+      "condition": "prone",
+      "effect": "applies",
+      "family": "condition_effect"
+     }
+    ],
+    "optional": true,
+    "save": "constitution",
+    "trigger": "hit_creature"
+   },
+   "record_key": "equipment.weapons.topple",
+   "source": {
+    "file": "equipment.md",
+    "line": 110,
+    "quote": "DC 8 plus the ability modifier used to make the attack roll"
+   }
+  },
+  {
+   "component_key": "vex",
+   "fact": {
+    "against": "the_hit_creature",
+    "applies_to": "wielder",
+    "duration": {
+     "turn": "next",
+     "turn_of": "source",
+     "until": "end_of_turn"
+    },
+    "effect": {
+     "family": "advantage",
+     "roll": {
+      "ability": null,
+      "actor": "subject",
+      "context": "attack_roll"
+     },
+     "state": "advantage",
+     "use_limit": "next_qualifying_roll"
+    },
+    "family": "mastery_effect",
+    "mastery": "vex",
+    "optional": false,
+    "trigger": "hit_and_damage"
+   },
+   "record_key": "equipment.weapons.vex",
+   "source": {
+    "file": "equipment.md",
+    "line": 112,
+    "quote": "Advantage on your next attack roll against that creature"
+   }
+  },
+  {
+   "component_key": "alchemists_supplies",
+   "fact": {
+    "ability": "intelligence",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.alchemists_supplies",
+   "source": {
+    "file": "equipment.md",
+    "line": 626,
+    "quote": "**Alchemist's Supplies (50 GP)**"
+   }
+  },
+  {
+   "component_key": "alchemists_supplies",
+   "fact": {
+    "ability": "intelligence",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "identify_a_substance",
+    "text": "Identify a substance"
+   },
+   "record_key": "equipment.tools.alchemists_supplies",
+   "source": {
+    "file": "equipment.md",
+    "line": 629,
+    "quote": "Identify a substance (DC 15)"
+   }
+  },
+  {
+   "component_key": "alchemists_supplies",
+   "fact": {
+    "ability": "intelligence",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "start_a_fire",
+    "text": "start a fire"
+   },
+   "record_key": "equipment.tools.alchemists_supplies",
+   "source": {
+    "file": "equipment.md",
+    "line": 629,
+    "quote": "start a fire (DC 15)"
+   }
+  },
+  {
+   "component_key": "brewers_supplies",
+   "fact": {
+    "ability": "intelligence",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 632,
+    "quote": "**Brewer's Supplies (20 GP)**"
+   }
+  },
+  {
+   "component_key": "brewers_supplies",
+   "fact": {
+    "ability": "intelligence",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "detect_poisoned_drink",
+    "text": "Detect poisoned drink"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 635,
+    "quote": "Detect poisoned drink (DC 15)"
+   }
+  },
+  {
+   "component_key": "brewers_supplies",
+   "fact": {
+    "ability": "intelligence",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "identify_alcohol",
+    "text": "identify alcohol"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 635,
+    "quote": "identify alcohol (DC 10)"
+   }
+  },
+  {
+   "component_key": "calligraphers_supplies",
+   "fact": {
+    "ability": "dexterity",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.calligraphers_supplies",
+   "source": {
+    "file": "equipment.md",
+    "line": 638,
+    "quote": "**Calligrapher's Supplies (10 GP)**"
+   }
+  },
+  {
+   "component_key": "calligraphers_supplies",
+   "fact": {
+    "ability": "dexterity",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "write_text_with_impressive_flourishes_that_guard_against_forgery",
+    "text": "Write text with impressive flourishes that guard against forgery"
+   },
+   "record_key": "equipment.tools.calligraphers_supplies",
+   "source": {
+    "file": "equipment.md",
+    "line": 641,
+    "quote": "Write text with impressive flourishes that guard against forgery (DC 15)"
+   }
+  },
+  {
+   "component_key": "carpenters_tools",
+   "fact": {
+    "ability": "strength",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 644,
+    "quote": "**Carpenter's Tools (8 GP)**"
+   }
+  },
+  {
+   "component_key": "carpenters_tools",
+   "fact": {
+    "ability": "strength",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 20,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "seal_or_pry_open_a_door_or_container",
+    "text": "Seal or pry open a door or container"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 647,
+    "quote": "Seal or pry open a door or container (DC 20)"
+   }
+  },
+  {
+   "component_key": "cartographers_tools",
+   "fact": {
+    "ability": "wisdom",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 650,
+    "quote": "**Cartographer's Tools (15 GP)**"
+   }
+  },
+  {
+   "component_key": "cartographers_tools",
+   "fact": {
+    "ability": "wisdom",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "draft_a_map_of_a_small_area",
+    "text": "Draft a map of a small area"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 653,
+    "quote": "Draft a map of a small area (DC 15)"
+   }
+  },
+  {
+   "component_key": "cobblers_tools",
+   "fact": {
+    "ability": "dexterity",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 656,
+    "quote": "**Cobbler's Tools (5 GP)**"
+   }
+  },
+  {
+   "component_key": "cobblers_tools",
+   "fact": {
+    "ability": "dexterity",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check"
+   },
+   "option": {
+    "effect_on_success": {
+     "applies_to": "wearer_of_the_modified_footwear",
+     "effect": {
+      "family": "advantage",
+      "roll": {
+       "ability": "dexterity",
+       "actor": "subject",
+       "context": "ability_check",
+       "skill": "acrobatics"
+      },
+      "state": "advantage",
+      "use_limit": "next_qualifying_roll"
+     }
+    },
+    "semantic_key": "modify_footwear_to_give_advantage_on_the_wearers_next_dexterity_acrobatics_check",
+    "text": "Modify footwear to give Advantage on the wearer's next Dexterity (Acrobatics) check"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 659,
+    "quote": "Modify footwear to give Advantage on the wearer's next Dexterity (Acrobatics) check (DC 10)"
+   }
+  },
+  {
+   "component_key": "cooks_utensils",
+   "fact": {
+    "ability": "wisdom",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 662,
+    "quote": "**Cook's Utensils (1 GP)**"
+   }
+  },
+  {
+   "component_key": "cooks_utensils",
+   "fact": {
+    "ability": "wisdom",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "improve_foods_flavor",
+    "text": "Improve food's flavor"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 665,
+    "quote": "Improve food's flavor (DC 10)"
+   }
+  },
+  {
+   "component_key": "cooks_utensils",
+   "fact": {
+    "ability": "wisdom",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "detect_spoiled_or_poisoned_food",
+    "text": "detect spoiled or poisoned food"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 665,
+    "quote": "detect spoiled or poisoned food (DC 15)"
+   }
+  },
+  {
+   "component_key": "glassblowers_tools",
+   "fact": {
+    "ability": "intelligence",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 668,
+    "quote": "**Glassblower's Tools (30 GP)**"
+   }
+  },
+  {
+   "component_key": "glassblowers_tools",
+   "fact": {
+    "ability": "intelligence",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "discern_what_a_glass_object_held_in_the_past_24_hours",
+    "text": "Discern what a glass object held in the past 24 hours"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 671,
+    "quote": "Discern what a glass object held in the past 24 hours (DC 15)"
+   }
+  },
+  {
+   "component_key": "jewelers_tools",
+   "fact": {
+    "ability": "intelligence",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.jewelers_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 674,
+    "quote": "**Jeweler's Tools (25 GP)**"
+   }
+  },
+  {
+   "component_key": "jewelers_tools",
+   "fact": {
+    "ability": "intelligence",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "discern_a_gems_value",
+    "text": "Discern a gem's value"
+   },
+   "record_key": "equipment.tools.jewelers_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 677,
+    "quote": "Discern a gem's value (DC 15)"
+   }
+  },
+  {
+   "component_key": "leatherworkers_tools",
+   "fact": {
+    "ability": "dexterity",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.leatherworkers_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 680,
+    "quote": "**Leatherworker's Tools (5 GP)**"
+   }
+  },
+  {
+   "component_key": "leatherworkers_tools",
+   "fact": {
+    "ability": "dexterity",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "add_a_design_to_a_leather_item",
+    "text": "Add a design to a leather item"
+   },
+   "record_key": "equipment.tools.leatherworkers_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 683,
+    "quote": "Add a design to a leather item (DC 10)"
+   }
+  },
+  {
+   "component_key": "masons_tools",
+   "fact": {
+    "ability": "strength",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 686,
+    "quote": "**Mason's Tools (10 GP)**"
+   }
+  },
+  {
+   "component_key": "masons_tools",
+   "fact": {
+    "ability": "strength",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "chisel_a_symbol_or_hole_in_stone",
+    "text": "Chisel a symbol or hole in stone"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 689,
+    "quote": "Chisel a symbol or hole in stone (DC 10)"
+   }
+  },
+  {
+   "component_key": "painters_supplies",
+   "fact": {
+    "ability": "wisdom",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 692,
+    "quote": "**Painter's Supplies (10 GP)**"
+   }
+  },
+  {
+   "component_key": "painters_supplies",
+   "fact": {
+    "ability": "wisdom",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "paint_a_recognizable_image_of_something_youve_seen",
+    "text": "Paint a recognizable image of something you've seen"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 695,
+    "quote": "Paint a recognizable image of something you've seen (DC 10)"
+   }
+  },
+  {
+   "component_key": "potters_tools",
+   "fact": {
+    "ability": "intelligence",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 698,
+    "quote": "**Potter's Tools (10 GP)**"
+   }
+  },
+  {
+   "component_key": "potters_tools",
+   "fact": {
+    "ability": "intelligence",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "discern_what_a_ceramic_object_held_in_the_past_24_hours",
+    "text": "Discern what a ceramic object held in the past 24 hours"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 701,
+    "quote": "Discern what a ceramic object held in the past 24 hours (DC 15)"
+   }
+  },
+  {
+   "component_key": "smiths_tools",
+   "fact": {
+    "ability": "strength",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.smiths_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 704,
+    "quote": "**Smith's Tools (20 GP)**"
+   }
+  },
+  {
+   "component_key": "smiths_tools",
+   "fact": {
+    "ability": "strength",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 20,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "pry_open_a_door_or_container",
+    "text": "Pry open a door or container"
+   },
+   "record_key": "equipment.tools.smiths_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 707,
+    "quote": "Pry open a door or container (DC 20)"
+   }
+  },
+  {
+   "component_key": "tinkers_tools",
+   "fact": {
+    "ability": "dexterity",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.tinkers_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 710,
+    "quote": "**Tinker's Tools (50 GP)**"
+   }
+  },
+  {
+   "component_key": "tinkers_tools",
+   "fact": {
+    "ability": "dexterity",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 20,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "assemble_a_tiny_item_composed_of_scrap_which_falls_apart_in_1_minute",
+    "text": "Assemble a Tiny item composed of scrap, which falls apart in 1 minute"
+   },
+   "record_key": "equipment.tools.tinkers_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 712,
+    "quote": "Assemble a Tiny item composed of scrap, which falls apart in 1 minute (DC 20)"
+   }
+  },
+  {
+   "component_key": "weavers_tools",
+   "fact": {
+    "ability": "dexterity",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.weavers_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 715,
+    "quote": "**Weaver's Tools (1 GP)**"
+   }
+  },
+  {
+   "component_key": "weavers_tools",
+   "fact": {
+    "ability": "dexterity",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "mend_a_tear_in_clothing",
+    "text": "Mend a tear in clothing"
+   },
+   "record_key": "equipment.tools.weavers_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 717,
+    "quote": "Mend a tear in clothing (DC 10)"
+   }
+  },
+  {
+   "component_key": "weavers_tools",
+   "fact": {
+    "ability": "dexterity",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "sew_a_tiny_design",
+    "text": "sew a Tiny design"
+   },
+   "record_key": "equipment.tools.weavers_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 717,
+    "quote": "sew a Tiny design (DC 10)"
+   }
+  },
+  {
+   "component_key": "woodcarvers_tools",
+   "fact": {
+    "ability": "dexterity",
+    "category": "artisans_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.woodcarvers_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 720,
+    "quote": "**Woodcarver's Tools (1 GP)**"
+   }
+  },
+  {
+   "component_key": "woodcarvers_tools",
+   "fact": {
+    "ability": "dexterity",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "carve_a_pattern_in_wood",
+    "text": "Carve a pattern in wood"
+   },
+   "record_key": "equipment.tools.woodcarvers_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 722,
+    "quote": "Carve a pattern in wood (DC 10)"
+   }
+  },
+  {
+   "component_key": "disguise_kit",
+   "fact": {
+    "ability": "charisma",
+    "category": "other_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 727,
+    "quote": "**Disguise Kit (25 GP)**"
+   }
+  },
+  {
+   "component_key": "disguise_kit",
+   "fact": {
+    "ability": "charisma",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "apply_makeup",
+    "text": "Apply makeup"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 729,
+    "quote": "Apply makeup (DC 10)"
+   }
+  },
+  {
+   "component_key": "forgery_kit",
+   "fact": {
+    "ability": "dexterity",
+    "category": "other_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 732,
+    "quote": "**Forgery Kit (15 GP)**"
+   }
+  },
+  {
+   "component_key": "forgery_kit",
+   "fact": {
+    "ability": "dexterity",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "mimic_10_or_fewer_words_of_someone_elses_handwriting",
+    "text": "Mimic 10 or fewer words of someone else's handwriting"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 734,
+    "quote": "Mimic 10 or fewer words of someone else's handwriting (DC 15)"
+   }
+  },
+  {
+   "component_key": "forgery_kit",
+   "fact": {
+    "ability": "dexterity",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 20,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "duplicate_a_wax_seal",
+    "text": "duplicate a wax seal"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 734,
+    "quote": "duplicate a wax seal (DC 20)"
+   }
+  },
+  {
+   "component_key": "gaming_set",
+   "fact": {
+    "ability": "wisdom",
+    "category": "other_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.gaming_set",
+   "source": {
+    "file": "equipment.md",
+    "line": 736,
+    "quote": "**Gaming Set (Varies)**"
+   }
+  },
+  {
+   "component_key": "gaming_set",
+   "fact": {
+    "ability": "wisdom",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "discern_whether_someone_is_cheating",
+    "text": "Discern whether someone is cheating"
+   },
+   "record_key": "equipment.tools.gaming_set",
+   "source": {
+    "file": "equipment.md",
+    "line": 738,
+    "quote": "Discern whether someone is cheating (DC 10)"
+   }
+  },
+  {
+   "component_key": "gaming_set",
+   "fact": {
+    "ability": "wisdom",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 20,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "win_the_game",
+    "text": "win the game"
+   },
+   "record_key": "equipment.tools.gaming_set",
+   "source": {
+    "file": "equipment.md",
+    "line": 738,
+    "quote": "win the game (DC 20)"
+   }
+  },
+  {
+   "component_key": "gaming_set",
+   "fact": {
+    "family": "tool_variants",
+    "separate_proficiency": true,
+    "variants": [
+     "dice",
+     "dragonchess",
+     "playing_cards",
+     "three_dragon_ante"
+    ]
+   },
+   "record_key": "equipment.tools.gaming_set",
+   "source": {
+    "file": "equipment.md",
+    "line": 739,
+    "quote": "**Variants:** Dice (1 SP), dragonchess (1 GP), playing cards (5 SP), three-dragon ante (1 GP)",
+    "variants_rule": {
+     "file": "equipment.md",
+     "line": 614,
+     "quote": "Each requires a separate proficiency"
+    }
+   }
+  },
+  {
+   "component_key": "herbalism_kit",
+   "fact": {
+    "ability": "intelligence",
+    "category": "other_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.herbalism_kit",
+   "source": {
+    "file": "equipment.md",
+    "line": 741,
+    "quote": "**Herbalism Kit (5 GP)**"
+   }
+  },
+  {
+   "component_key": "herbalism_kit",
+   "fact": {
+    "ability": "intelligence",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "identify_a_plant",
+    "text": "Identify a plant"
+   },
+   "record_key": "equipment.tools.herbalism_kit",
+   "source": {
+    "file": "equipment.md",
+    "line": 743,
+    "quote": "Identify a plant (DC 10)"
+   }
+  },
+  {
+   "component_key": "musical_instrument",
+   "fact": {
+    "ability": "charisma",
+    "category": "other_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.musical_instrument",
+   "source": {
+    "file": "equipment.md",
+    "line": 746,
+    "quote": "**Musical Instrument (Varies)**"
+   }
+  },
+  {
+   "component_key": "musical_instrument",
+   "fact": {
+    "ability": "charisma",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "play_a_known_tune",
+    "text": "Play a known tune"
+   },
+   "record_key": "equipment.tools.musical_instrument",
+   "source": {
+    "file": "equipment.md",
+    "line": 748,
+    "quote": "Play a known tune (DC 10)"
+   }
+  },
+  {
+   "component_key": "musical_instrument",
+   "fact": {
+    "ability": "charisma",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "improvise_a_song",
+    "text": "improvise a song"
+   },
+   "record_key": "equipment.tools.musical_instrument",
+   "source": {
+    "file": "equipment.md",
+    "line": 748,
+    "quote": "improvise a song (DC 15)"
+   }
+  },
+  {
+   "component_key": "musical_instrument",
+   "fact": {
+    "family": "tool_variants",
+    "separate_proficiency": true,
+    "variants": [
+     "bagpipes",
+     "drum",
+     "dulcimer",
+     "flute",
+     "horn",
+     "lute",
+     "lyre",
+     "pan_flute",
+     "shawm",
+     "viol"
+    ]
+   },
+   "record_key": "equipment.tools.musical_instrument",
+   "source": {
+    "file": "equipment.md",
+    "line": 749,
+    "quote": "**Variants:** Bagpipes (30 GP, 6 lb.), drum (6 GP, 3 lb.), dulcimer (25 GP, 10 lb.), flute (2 GP, 1 lb.), horn (3 GP, 2 lb.), lute (35 GP, 2 lb.), lyre (30 GP, 2 lb.), pan flute (12 GP, 2 lb.), shawm (2 GP, 1 lb.), viol (30 GP, 1 lb.)",
+    "variants_rule": {
+     "file": "equipment.md",
+     "line": 614,
+     "quote": "Each requires a separate proficiency"
+    }
+   }
+  },
+  {
+   "component_key": "navigators_tools",
+   "fact": {
+    "ability": "wisdom",
+    "category": "other_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 751,
+    "quote": "**Navigator's Tools (25 GP)**"
+   }
+  },
+  {
+   "component_key": "navigators_tools",
+   "fact": {
+    "ability": "wisdom",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "plot_a_course",
+    "text": "Plot a course"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 753,
+    "quote": "Plot a course (DC 10)"
+   }
+  },
+  {
+   "component_key": "navigators_tools",
+   "fact": {
+    "ability": "wisdom",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "determine_position_by_stargazing",
+    "text": "determine position by stargazing"
+   },
+   "record_key": "equipment.tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 753,
+    "quote": "determine position by stargazing (DC 15)"
+   }
+  },
+  {
+   "component_key": "poisoners_kit",
+   "fact": {
+    "ability": "intelligence",
+    "category": "other_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.poisoners_kit",
+   "source": {
+    "file": "equipment.md",
+    "line": 755,
+    "quote": "**Poisoner's Kit (50 GP)**"
+   }
+  },
+  {
+   "component_key": "poisoners_kit",
+   "fact": {
+    "ability": "intelligence",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 10,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "detect_a_poisoned_object",
+    "text": "Detect a poisoned object"
+   },
+   "record_key": "equipment.tools.poisoners_kit",
+   "source": {
+    "file": "equipment.md",
+    "line": 757,
+    "quote": "Detect a poisoned object (DC 10)"
+   }
+  },
+  {
+   "component_key": "thieves_tools",
+   "fact": {
+    "ability": "dexterity",
+    "category": "other_tools",
+    "family": "tool_entry"
+   },
+   "record_key": "equipment.tools.thieves_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 760,
+    "quote": "**Thieves' Tools (25 GP)**"
+   }
+  },
+  {
+   "component_key": "thieves_tools",
+   "fact": {
+    "ability": "dexterity",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "pick_a_lock",
+    "text": "Pick a lock"
+   },
+   "record_key": "equipment.tools.thieves_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 762,
+    "quote": "Pick a lock (DC 15)"
+   }
+  },
+  {
+   "component_key": "thieves_tools",
+   "fact": {
+    "ability": "dexterity",
+    "context": "ability_check",
+    "dc_kind": "fixed",
+    "dc_value": 15,
+    "family": "ability_check"
+   },
+   "option": {
+    "semantic_key": "disarm_a_trap",
+    "text": "disarm a trap"
+   },
+   "record_key": "equipment.tools.thieves_tools",
+   "source": {
+    "file": "equipment.md",
+    "line": 762,
+    "quote": "disarm a trap (DC 15)"
+   }
+  },
+  {
+   "component_key": "attack_notation",
+   "fact": {
+    "family": "creature_attack_notation",
+    "sections": [
+     "hit",
+     "miss",
+     "hit_or_miss"
+    ],
+    "targets": 1
+   },
+   "record_key": "monsters.parts_of_a_stat_block",
+   "source": {
+    "file": "monsters.md",
+    "line": 379,
+    "quote": "An attack is against one target unless its entry says"
+   }
+  },
+  {
+   "component_key": "saving_throw_effect_notation",
+   "fact": {
+    "family": "creature_save_notation",
+    "half_damage_only_ignores_other_effects": true,
+    "half_damage_rounding": "down"
+   },
+   "record_key": "monsters.parts_of_a_stat_block",
+   "source": {
+    "file": "monsters.md",
+    "line": 391,
+    "quote": "\"Half damage only\" on a successful save means the target takes half as much damage"
+   }
+  },
+  {
+   "component_key": "damage_notation",
+   "fact": {
+    "exclusive": true,
+    "family": "damage_notation_option",
+    "options": [
+     "average",
+     "dice"
+    ],
+    "selected_by": "gamemaster"
+   },
+   "record_key": "monsters.parts_of_a_stat_block",
+   "source": {
+    "file": "monsters.md",
+    "line": 395,
+    "quote": "You decide whether to use the number or the die expression"
+   }
+  },
+  {
+   "component_key": "multiattack",
+   "fact": {
+    "action": "attack",
+    "composition": "per_entry",
+    "family": "multiattack_rule"
+   },
+   "record_key": "monsters.parts_of_a_stat_block",
+   "source": {
+    "file": "monsters.md",
+    "line": 399,
+    "quote": "Some creatures can make more than one attack when they take the Attack action"
+   }
+  },
+  {
+   "component_key": "limited_usage",
+   "fact": {
+    "family": "usage_limit_rule",
+    "kind": "per_day",
+    "regain": "long_rest"
+   },
+   "record_key": "monsters.parts_of_a_stat_block",
+   "source": {
+    "file": "monsters.md",
+    "line": 429,
+    "quote": "**X/Day.** This notation means"
+   }
+  },
+  {
+   "component_key": "limited_usage",
+   "fact": {
+    "also_regain": [
+     "short_rest",
+     "long_rest"
+    ],
+    "die": "d6",
+    "family": "usage_limit_rule",
+    "kind": "recharge",
+    "roll_at": "start_of_turn",
+    "turn_of": "subject"
+   },
+   "record_key": "monsters.parts_of_a_stat_block",
+   "source": {
+    "file": "monsters.md",
+    "line": 431,
+    "quote": "**Recharge X–Y.** This notation means"
+   }
+  },
+  {
+   "component_key": "limited_usage",
+   "fact": {
+    "family": "usage_limit_rule",
+    "kind": "recharge_after_rest",
+    "regain": [
+     "short_rest",
+     "long_rest"
+    ]
+   },
+   "record_key": "monsters.parts_of_a_stat_block",
+   "source": {
+    "file": "monsters.md",
+    "line": 433,
+    "quote": "**Recharge after a Short or Long Rest.**"
+   }
+  },
+  {
+   "component_key": "legendary_actions",
+   "fact": {
+    "blocked_by": [
+     "incapacitated"
+    ],
+    "family": "legendary_action_rule",
+    "one_at_a_time": true,
+    "regain": "start_of_own_turn",
+    "timing": "after_another_creatures_turn"
+   },
+   "record_key": "monsters.parts_of_a_stat_block",
+   "source": {
+    "file": "monsters.md",
+    "line": 423,
+    "quote": "it regains all expended uses at the start of each of its turns"
+   }
+  },
+  {
+   "component_key": "spell_attack_modifier",
+   "fact": {
+    "family": "spell_attack_modifier_formula",
+    "sum": [
+     "spellcasting_ability_modifier",
+     "proficiency_bonus"
+    ]
+   },
+   "record_key": "spells.attack_rolls",
+   "source": {
+    "file": "spells.md",
+    "line": 250,
+    "quote": "**Spell attack modifier** = your spellcasting ability modifier + your Proficiency Bonus"
+   }
+  },
+  {
+   "component_key": "spell_save_dc",
+   "fact": {
+    "base": 8,
+    "family": "spell_save_dc_formula",
+    "plus": [
+     "spellcasting_ability_modifier",
+     "proficiency_bonus"
+    ]
+   },
+   "record_key": "spells.saving_throws",
+   "source": {
+    "file": "spells.md",
+    "line": 244,
+    "quote": "**Spell save DC** = 8 + your spellcasting ability modifier + your Proficiency Bonus"
+   }
+  },
+  {
+   "component_key": "spellcasting_ability",
+   "fact": {
+    "ability": "charisma",
+    "family": "spellcasting_ability"
+   },
+   "record_key": "classes.bard.spellcasting",
+   "source": {
+    "file": "classes.md",
+    "line": 844,
+    "quote": "Charisma is your spellcasting ability for your Bard spells."
+   }
+  },
+  {
+   "component_key": "spellcasting_ability",
+   "fact": {
+    "ability": "wisdom",
+    "family": "spellcasting_ability"
+   },
+   "record_key": "classes.cleric.spellcasting",
+   "source": {
+    "file": "classes.md",
+    "line": 2166,
+    "quote": "Wisdom is your spellcasting ability for your Cleric spells."
+   }
+  },
+  {
+   "component_key": "spellcasting_ability",
+   "fact": {
+    "ability": "wisdom",
+    "family": "spellcasting_ability"
+   },
+   "record_key": "classes.druid.spellcasting",
+   "source": {
+    "file": "classes.md",
+    "line": 3436,
+    "quote": "Wisdom is your spellcasting ability for your Druid spells."
+   }
+  },
+  {
+   "component_key": "spellcasting_ability",
+   "fact": {
+    "ability": "charisma",
+    "family": "spellcasting_ability"
+   },
+   "record_key": "classes.paladin.spellcasting",
+   "source": {
+    "file": "classes.md",
+    "line": 5566,
+    "quote": "Charisma is your spellcasting ability for your Paladin spells."
+   }
+  },
+  {
+   "component_key": "spellcasting_ability",
+   "fact": {
+    "ability": "wisdom",
+    "family": "spellcasting_ability"
+   },
+   "record_key": "classes.ranger.spellcasting",
+   "source": {
+    "file": "classes.md",
+    "line": 6335,
+    "quote": "Wisdom is your spellcasting ability for your Ranger spells."
+   }
+  },
+  {
+   "component_key": "spellcasting_ability",
+   "fact": {
+    "ability": "charisma",
+    "family": "spellcasting_ability"
+   },
+   "record_key": "classes.sorcerer.spellcasting",
+   "source": {
+    "file": "classes.md",
+    "line": 7548,
+    "quote": "Charisma is your spellcasting ability for your Sorcerer spells."
+   }
+  },
+  {
+   "component_key": "spellcasting_ability",
+   "fact": {
+    "ability": "charisma",
+    "family": "spellcasting_ability"
+   },
+   "record_key": "classes.warlock.pact_magic",
+   "source": {
+    "file": "classes.md",
+    "line": 8929,
+    "quote": "Charisma is the spellcasting ability for your Warlock spells."
+   }
+  },
+  {
+   "component_key": "spellcasting_ability",
+   "fact": {
+    "ability": "intelligence",
+    "family": "spellcasting_ability"
+   },
+   "record_key": "classes.wizard.spellcasting",
+   "source": {
+    "file": "classes.md",
+    "line": 10168,
+    "quote": "Intelligence is your spellcasting ability for your Wizard spells."
+   }
+  },
+  {
+   "component_key": "core_traits",
+   "fact": {
+    "count": 2,
+    "family": "skill_proficiency_choice",
+    "from": [
+     "animal_handling",
+     "athletics",
+     "intimidation",
+     "nature",
+     "perception",
+     "survival"
+    ]
+   },
+   "record_key": "classes.barbarian",
+   "source": {
+    "file": "classes.md",
+    "line": 23,
+    "quote": "Choose 2: Animal Handling, Athletics, Intimidation, Nature, Perception, or Survival"
+   }
+  },
+  {
+   "component_key": "core_traits",
+   "fact": {
+    "count": 3,
+    "family": "skill_proficiency_choice",
+    "from": [
+     "acrobatics",
+     "animal_handling",
+     "arcana",
+     "athletics",
+     "deception",
+     "history",
+     "insight",
+     "intimidation",
+     "investigation",
+     "medicine",
+     "nature",
+     "perception",
+     "performance",
+     "persuasion",
+     "religion",
+     "sleight_of_hand",
+     "stealth",
+     "survival"
+    ]
+   },
+   "record_key": "classes.bard",
+   "source": {
+    "file": "classes.md",
+    "line": 393,
+    "quote": "Choose any 3 skills (see Playing the Game)"
+   }
+  },
+  {
+   "component_key": "core_traits",
+   "fact": {
+    "count": 2,
+    "family": "skill_proficiency_choice",
+    "from": [
+     "history",
+     "insight",
+     "medicine",
+     "persuasion",
+     "religion"
+    ]
+   },
+   "record_key": "classes.cleric",
+   "source": {
+    "file": "classes.md",
+    "line": 1732,
+    "quote": "Choose 2: History, Insight, Medicine, Persuasion, or Religion"
+   }
+  },
+  {
+   "component_key": "core_traits",
+   "fact": {
+    "count": 2,
+    "family": "skill_proficiency_choice",
+    "from": [
+     "animal_handling",
+     "arcana",
+     "insight",
+     "medicine",
+     "nature",
+     "perception",
+     "religion",
+     "survival"
+    ]
+   },
+   "record_key": "classes.druid",
+   "source": {
+    "file": "classes.md",
+    "line": 2998,
+    "quote": "Choose 2: Animal Handling, Arcana, Insight, Medicine, Nature, Perception, Religion, or Survival"
+   }
+  },
+  {
+   "component_key": "core_traits",
+   "fact": {
+    "count": 2,
+    "family": "skill_proficiency_choice",
+    "from": [
+     "acrobatics",
+     "animal_handling",
+     "athletics",
+     "history",
+     "insight",
+     "intimidation",
+     "persuasion",
+     "perception",
+     "survival"
+    ]
+   },
+   "record_key": "classes.fighter",
+   "source": {
+    "file": "classes.md",
+    "line": 4524,
+    "quote": "Choose 2: Acrobatics, Animal Handling, Athletics, History, Insight, Intimidation, Persuasion, Perception, or Survival"
+   }
+  },
+  {
+   "component_key": "core_traits",
+   "fact": {
+    "count": 2,
+    "family": "skill_proficiency_choice",
+    "from": [
+     "acrobatics",
+     "athletics",
+     "history",
+     "insight",
+     "religion",
+     "stealth"
+    ]
+   },
+   "record_key": "classes.monk",
+   "source": {
+    "file": "classes.md",
+    "line": 4841,
+    "quote": "Choose 2: Acrobatics, Athletics, History, Insight, Religion, or Stealth"
+   }
+  },
+  {
+   "component_key": "core_traits",
+   "fact": {
+    "count": 2,
+    "family": "skill_proficiency_choice",
+    "from": [
+     "athletics",
+     "insight",
+     "intimidation",
+     "medicine",
+     "persuasion",
+     "religion"
+    ]
+   },
+   "record_key": "classes.paladin",
+   "source": {
+    "file": "classes.md",
+    "line": 5235,
+    "quote": "Choose 2: Athletics, Insight, Intimidation, Medicine, Persuasion, or Religion"
+   }
+  },
+  {
+   "component_key": "core_traits",
+   "fact": {
+    "count": 3,
+    "family": "skill_proficiency_choice",
+    "from": [
+     "animal_handling",
+     "athletics",
+     "insight",
+     "investigation",
+     "nature",
+     "perception",
+     "stealth",
+     "survival"
+    ]
+   },
+   "record_key": "classes.ranger",
+   "source": {
+    "file": "classes.md",
+    "line": 6014,
+    "quote": "Choose 3: Animal Handling, Athletics, Insight, Investigation, Nature, Perception, Stealth, or Survival"
+   }
+  },
+  {
+   "component_key": "core_traits",
+   "fact": {
+    "count": 4,
+    "family": "skill_proficiency_choice",
+    "from": [
+     "acrobatics",
+     "athletics",
+     "deception",
+     "insight",
+     "intimidation",
+     "investigation",
+     "perception",
+     "persuasion",
+     "sleight_of_hand",
+     "stealth"
+    ]
+   },
+   "record_key": "classes.rogue",
+   "source": {
+    "file": "classes.md",
+    "line": 6786,
+    "quote": "Choose 4: Acrobatics, Athletics, Deception, Insight, Intimidation, Investigation, Perception, Persuasion, Sleight of Hand, or Stealth"
+   }
+  },
+  {
+   "component_key": "core_traits",
+   "fact": {
+    "count": 2,
+    "family": "skill_proficiency_choice",
+    "from": [
+     "arcana",
+     "deception",
+     "insight",
+     "intimidation",
+     "persuasion",
+     "religion"
+    ]
+   },
+   "record_key": "classes.sorcerer",
+   "source": {
+    "file": "classes.md",
+    "line": 7116,
+    "quote": "Choose 2: Arcana, Deception, Insight, Intimidation, Persuasion, or Religion"
+   }
+  },
+  {
+   "component_key": "core_traits",
+   "fact": {
+    "count": 2,
+    "family": "skill_proficiency_choice",
+    "from": [
+     "arcana",
+     "deception",
+     "history",
+     "intimidation",
+     "investigation",
+     "nature",
+     "religion"
+    ]
+   },
+   "record_key": "classes.warlock",
+   "source": {
+    "file": "classes.md",
+    "line": 8645,
+    "quote": "Choose 2: Arcana, Deception, History, Intimidation, Investigation, Nature, or Religion"
+   }
+  },
+  {
+   "component_key": "core_traits",
+   "fact": {
+    "count": 2,
+    "family": "skill_proficiency_choice",
+    "from": [
+     "arcana",
+     "history",
+     "insight",
+     "investigation",
+     "medicine",
+     "nature",
+     "religion"
+    ]
+   },
+   "record_key": "classes.wizard",
+   "source": {
+    "file": "classes.md",
+    "line": 9753,
+    "quote": "Choose 2: Arcana, History, Insight, Investigation, Medicine, Nature, or Religion"
+   }
+  },
+  {
+   "component_key": "ability_scores",
+   "fact": {
+    "abilities": [
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "family": "ability_increase_choice",
+    "rule": "character_origins.backgrounds/ability_scores"
+   },
+   "record_key": "character_origins.acolyte",
+   "source": {
+    "file": "character-origins.md",
+    "line": 35,
+    "quote": "**Ability Scores:** Intelligence, Wisdom, Charisma"
+   }
+  },
+  {
+   "component_key": "skill_proficiencies",
+   "fact": {
+    "family": "skill_proficiency_grant",
+    "skills": [
+     "insight",
+     "religion"
+    ]
+   },
+   "record_key": "character_origins.acolyte",
+   "source": {
+    "file": "character-origins.md",
+    "line": 37,
+    "quote": "**Skill Proficiencies:** Insight and Religion"
+   }
+  },
+  {
+   "component_key": "ability_scores",
+   "fact": {
+    "abilities": [
+     "dexterity",
+     "constitution",
+     "intelligence"
+    ],
+    "family": "ability_increase_choice",
+    "rule": "character_origins.backgrounds/ability_scores"
+   },
+   "record_key": "character_origins.criminal",
+   "source": {
+    "file": "character-origins.md",
+    "line": 43,
+    "quote": "**Ability Scores:** Dexterity, Constitution, Intelligence"
+   }
+  },
+  {
+   "component_key": "skill_proficiencies",
+   "fact": {
+    "family": "skill_proficiency_grant",
+    "skills": [
+     "sleight_of_hand",
+     "stealth"
+    ]
+   },
+   "record_key": "character_origins.criminal",
+   "source": {
+    "file": "character-origins.md",
+    "line": 45,
+    "quote": "**Skill Proficiencies:** Sleight of Hand and Stealth"
+   }
+  },
+  {
+   "component_key": "ability_scores",
+   "fact": {
+    "abilities": [
+     "constitution",
+     "intelligence",
+     "wisdom"
+    ],
+    "family": "ability_increase_choice",
+    "rule": "character_origins.backgrounds/ability_scores"
+   },
+   "record_key": "character_origins.sage",
+   "source": {
+    "file": "character-origins.md",
+    "line": 51,
+    "quote": "**Ability Scores:** Constitution, Intelligence, Wisdom"
+   }
+  },
+  {
+   "component_key": "skill_proficiencies",
+   "fact": {
+    "family": "skill_proficiency_grant",
+    "skills": [
+     "arcana",
+     "history"
+    ]
+   },
+   "record_key": "character_origins.sage",
+   "source": {
+    "file": "character-origins.md",
+    "line": 53,
+    "quote": "**Skill Proficiencies:** Arcana and History"
+   }
+  },
+  {
+   "component_key": "ability_scores",
+   "fact": {
+    "abilities": [
+     "strength",
+     "dexterity",
+     "constitution"
+    ],
+    "family": "ability_increase_choice",
+    "rule": "character_origins.backgrounds/ability_scores"
+   },
+   "record_key": "character_origins.soldier",
+   "source": {
+    "file": "character-origins.md",
+    "line": 59,
+    "quote": "**Ability Scores:** Strength, Dexterity, Constitution"
+   }
+  },
+  {
+   "component_key": "skill_proficiencies",
+   "fact": {
+    "family": "skill_proficiency_grant",
+    "skills": [
+     "athletics",
+     "intimidation"
+    ]
+   },
+   "record_key": "character_origins.soldier",
+   "source": {
+    "file": "character-origins.md",
+    "line": 61,
+    "quote": "**Skill Proficiencies:** Athletics and Intimidation"
+   }
+  },
+  {
+   "component_key": "ability_scores",
+   "fact": {
+    "distinct_abilities": true,
+    "family": "ability_increase_rule",
+    "maximum_score": 20,
+    "patterns": [
+     [
+      2,
+      1
+     ],
+     [
+      1,
+      1,
+      1
+     ]
+    ]
+   },
+   "record_key": "character_origins.backgrounds",
+   "source": {
+    "file": "character-origins.md",
+    "line": 13,
+    "quote": "Increase one by 2 and another one by 1, or increase all three by 1. None of these increases can raise a score above 20."
+   }
+  },
+  {
+   "component_key": "ability_score_improvement",
+   "fact": {
+    "abilities": "any",
+    "distinct_abilities": true,
+    "family": "ability_increase_choice",
+    "maximum_score": 20,
+    "patterns": [
+     [
+      2
+     ],
+     [
+      1,
+      1
+     ]
+    ],
+    "repeatable": true
+   },
+   "record_key": "feats.ability_score_improvement",
+   "source": {
+    "file": "feats.md",
+    "line": 65,
+    "quote": "Increase one ability score of your choice by 2, or increase two ability scores of your choice by 1. This feat can't increase an ability score above 20."
+   }
+  },
+  {
+   "component_key": "ability_score_increase",
+   "fact": {
+    "abilities": [
+     "strength",
+     "dexterity"
+    ],
+    "family": "ability_increase_choice",
+    "maximum_score": 20,
+    "patterns": [
+     [
+      1
+     ]
+    ]
+   },
+   "record_key": "feats.grappler",
+   "source": {
+    "file": "feats.md",
+    "line": 75,
+    "quote": "_Ability Score Increase._ Increase your Strength or Dexterity score by 1, to a maximum of 20."
+   }
+  },
+  {
+   "component_key": "ability_score_increase",
+   "fact": {
+    "abilities": "any",
+    "family": "ability_increase_choice",
+    "maximum_score": 30,
+    "patterns": [
+     [
+      1
+     ]
+    ]
+   },
+   "record_key": "feats.boon_of_combat_prowess",
+   "source": {
+    "file": "feats.md",
+    "line": 117,
+    "quote": "_Ability Score Increase._ Increase one ability score of your choice by 1, to a maximum of 30."
+   }
+  },
+  {
+   "component_key": "ability_score_increase",
+   "fact": {
+    "abilities": "any",
+    "family": "ability_increase_choice",
+    "maximum_score": 30,
+    "patterns": [
+     [
+      1
+     ]
+    ]
+   },
+   "record_key": "feats.boon_of_dimensional_travel",
+   "source": {
+    "file": "feats.md",
+    "line": 127,
+    "quote": "_Ability Score Increase._ Increase one ability score of your choice by 1, to a maximum of 30."
+   }
+  },
+  {
+   "component_key": "ability_score_increase",
+   "fact": {
+    "abilities": "any",
+    "family": "ability_increase_choice",
+    "maximum_score": 30,
+    "patterns": [
+     [
+      1
+     ]
+    ]
+   },
+   "record_key": "feats.boon_of_fate",
+   "source": {
+    "file": "feats.md",
+    "line": 137,
+    "quote": "_Ability Score Increase._ Increase one ability score of your choice by 1, to a maximum of 30."
+   }
+  },
+  {
+   "component_key": "ability_score_increase",
+   "fact": {
+    "abilities": [
+     "strength",
+     "dexterity"
+    ],
+    "family": "ability_increase_choice",
+    "maximum_score": 30,
+    "patterns": [
+     [
+      1
+     ]
+    ]
+   },
+   "record_key": "feats.boon_of_irresistible_offense",
+   "source": {
+    "file": "feats.md",
+    "line": 147,
+    "quote": "_Ability Score Increase._ Increase your Strength or Dexterity score by 1, to a maximum of 30."
+   }
+  },
+  {
+   "component_key": "ability_score_increase",
+   "fact": {
+    "abilities": [
+     "intelligence",
+     "wisdom",
+     "charisma"
+    ],
+    "family": "ability_increase_choice",
+    "maximum_score": 30,
+    "patterns": [
+     [
+      1
+     ]
+    ]
+   },
+   "record_key": "feats.boon_of_spell_recall",
+   "source": {
+    "file": "feats.md",
+    "line": 159,
+    "quote": "_Ability Score Increase._ Increase your Intelligence, Wisdom, or Charisma score by 1, to a maximum of 30."
+   }
+  },
+  {
+   "component_key": "ability_score_increase",
+   "fact": {
+    "abilities": "any",
+    "family": "ability_increase_choice",
+    "maximum_score": 30,
+    "patterns": [
+     [
+      1
+     ]
+    ]
+   },
+   "record_key": "feats.boon_of_the_night_spirit",
+   "source": {
+    "file": "feats.md",
+    "line": 169,
+    "quote": "_Ability Score Increase._ Increase one ability score of your choice by 1, to a maximum of 30."
+   }
+  },
+  {
+   "component_key": "ability_score_increase",
+   "fact": {
+    "abilities": "any",
+    "family": "ability_increase_choice",
+    "maximum_score": 30,
+    "patterns": [
+     [
+      1
+     ]
+    ]
+   },
+   "record_key": "feats.boon_of_truesight",
+   "source": {
+    "file": "feats.md",
+    "line": 181,
+    "quote": "_Ability Score Increase._ Increase one ability score of your choice by 1, to a maximum of 30."
+   }
+  },
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "general",
+    "family": "feat_prerequisite",
+    "minimum_character_level": 4
+   },
+   "record_key": "feats.ability_score_improvement",
+   "source": {
+    "file": "feats.md",
+    "line": 63,
+    "quote": "_General Feat (Prerequisite: Level 4+)_"
+   }
+  },
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "general",
+    "family": "feat_prerequisite",
+    "minimum_ability_score": {
+     "any_of": [
+      "strength",
+      "dexterity"
+     ],
+     "score": 13
+    },
+    "minimum_character_level": 4
+   },
+   "record_key": "feats.grappler",
+   "source": {
+    "file": "feats.md",
+    "line": 71,
+    "quote": "_General Feat (Prerequisite: Level 4+, Strength or Dexterity 13+)_"
+   }
+  },
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "epic_boon",
+    "family": "feat_prerequisite",
+    "minimum_character_level": 19
+   },
+   "record_key": "feats.boon_of_combat_prowess",
+   "source": {
+    "file": "feats.md",
+    "line": 113,
+    "quote": "_Epic Boon Feat (Prerequisite: Level 19+)_"
+   }
+  },
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "epic_boon",
+    "family": "feat_prerequisite",
+    "minimum_character_level": 19
+   },
+   "record_key": "feats.boon_of_dimensional_travel",
+   "source": {
+    "file": "feats.md",
+    "line": 123,
+    "quote": "_Epic Boon Feat (Prerequisite: Level 19+)_"
+   }
+  },
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "epic_boon",
+    "family": "feat_prerequisite",
+    "minimum_character_level": 19
+   },
+   "record_key": "feats.boon_of_fate",
+   "source": {
+    "file": "feats.md",
+    "line": 133,
+    "quote": "_Epic Boon Feat (Prerequisite: Level 19+)_"
+   }
+  },
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "epic_boon",
+    "family": "feat_prerequisite",
+    "minimum_character_level": 19
+   },
+   "record_key": "feats.boon_of_irresistible_offense",
+   "source": {
+    "file": "feats.md",
+    "line": 143,
+    "quote": "_Epic Boon Feat (Prerequisite: Level 19+)_"
+   }
+  },
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "epic_boon",
+    "family": "feat_prerequisite",
+    "minimum_character_level": 19,
+    "requires_feature": "spellcasting"
+   },
+   "record_key": "feats.boon_of_spell_recall",
+   "source": {
+    "file": "feats.md",
+    "line": 155,
+    "quote": "_Epic Boon Feat (Prerequisite: Level 19+, Spellcasting Feature)_"
+   }
+  },
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "epic_boon",
+    "family": "feat_prerequisite",
+    "minimum_character_level": 19
+   },
+   "record_key": "feats.boon_of_the_night_spirit",
+   "source": {
+    "file": "feats.md",
+    "line": 165,
+    "quote": "_Epic Boon Feat (Prerequisite: Level 19+)_"
+   }
+  },
+  {
+   "component_key": "category",
+   "fact": {
+    "category": "epic_boon",
+    "family": "feat_prerequisite",
+    "minimum_character_level": 19
+   },
+   "record_key": "feats.boon_of_truesight",
+   "source": {
+    "file": "feats.md",
+    "line": 177,
+    "quote": "_Epic Boon Feat (Prerequisite: Level 19+)_"
+   }
+  },
+  {
+   "component_key": "skilled",
+   "fact": {
+    "count": 3,
+    "family": "skill_proficiency_choice",
+    "from": [
+     "acrobatics",
+     "animal_handling",
+     "arcana",
+     "athletics",
+     "deception",
+     "history",
+     "insight",
+     "intimidation",
+     "investigation",
+     "medicine",
+     "nature",
+     "perception",
+     "performance",
+     "persuasion",
+     "religion",
+     "sleight_of_hand",
+     "stealth",
+     "survival"
+    ],
+    "or_tools": true,
+    "repeatable": true
+   },
+   "record_key": "feats.skilled",
+   "source": {
+    "file": "feats.md",
+    "line": 55,
+    "quote": "You gain proficiency in any combination of three skills or tools of your choice."
+   }
+  },
+  {
+   "component_key": "keen_senses",
+   "fact": {
+    "count": 1,
+    "family": "skill_proficiency_choice",
+    "from": [
+     "insight",
+     "perception",
+     "survival"
+    ]
+   },
+   "record_key": "character_origins.elf",
+   "source": {
+    "file": "character-origins.md",
+    "line": 231,
+    "quote": "You have proficiency in the Insight, Perception, or Survival skill."
+   }
+  },
+  {
+   "component_key": "skillful",
+   "fact": {
+    "count": 1,
+    "family": "skill_proficiency_choice",
+    "from": [
+     "acrobatics",
+     "animal_handling",
+     "arcana",
+     "athletics",
+     "deception",
+     "history",
+     "insight",
+     "intimidation",
+     "investigation",
+     "medicine",
+     "nature",
+     "perception",
+     "performance",
+     "persuasion",
+     "religion",
+     "sleight_of_hand",
+     "stealth",
+     "survival"
+    ]
+   },
+   "record_key": "character_origins.human",
+   "source": {
+    "file": "character-origins.md",
+    "line": 305,
+    "quote": "You gain proficiency in one skill of your choice."
+   }
+  },
+  {
+   "component_key": "ability_score_improvement",
+   "fact": {
+    "count_per_gain": 1,
+    "family": "feat_choice",
+    "gain_levels": {
+     "entitlement_key": "classes.barbarian.ability_score_improvement",
+     "family": "progression_entry"
+    },
+    "named_feat": "feats.ability_score_improvement",
+    "or_any_feat_whose_prerequisites_are_met": true
+   },
+   "record_key": "classes.barbarian.ability_score_improvement",
+   "source": {
+    "file": "classes.md",
+    "line": 288,
+    "quote": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify."
+   }
+  },
+  {
+   "component_key": "ability_score_improvement",
+   "fact": {
+    "count_per_gain": 1,
+    "family": "feat_choice",
+    "gain_levels": {
+     "entitlement_key": "classes.bard.ability_score_improvement",
+     "family": "progression_entry"
+    },
+    "named_feat": "feats.ability_score_improvement",
+    "or_any_feat_whose_prerequisites_are_met": true
+   },
+   "record_key": "classes.bard.ability_score_improvement",
+   "source": {
+    "file": "classes.md",
+    "line": 866,
+    "quote": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify."
+   }
+  },
+  {
+   "component_key": "ability_score_improvement",
+   "fact": {
+    "count_per_gain": 1,
+    "family": "feat_choice",
+    "gain_levels": {
+     "entitlement_key": "classes.cleric.ability_score_improvement",
+     "family": "progression_entry"
+    },
+    "named_feat": "feats.ability_score_improvement",
+    "or_any_feat_whose_prerequisites_are_met": true
+   },
+   "record_key": "classes.cleric.ability_score_improvement",
+   "source": {
+    "file": "classes.md",
+    "line": 2198,
+    "quote": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify."
+   }
+  },
+  {
+   "component_key": "ability_score_improvement",
+   "fact": {
+    "count_per_gain": 1,
+    "family": "feat_choice",
+    "gain_levels": {
+     "entitlement_key": "classes.druid.ability_score_improvement",
+     "family": "progression_entry"
+    },
+    "named_feat": "feats.ability_score_improvement",
+    "or_any_feat_whose_prerequisites_are_met": true
+   },
+   "record_key": "classes.druid.ability_score_improvement",
+   "source": {
+    "file": "classes.md",
+    "line": 3523,
+    "quote": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify."
+   }
+  },
+  {
+   "component_key": "ability_score_improvement",
+   "fact": {
+    "count_per_gain": 1,
+    "family": "feat_choice",
+    "gain_levels": {
+     "entitlement_key": "classes.fighter.ability_score_improvement",
+     "family": "progression_entry"
+    },
+    "named_feat": "feats.ability_score_improvement",
+    "or_any_feat_whose_prerequisites_are_met": true
+   },
+   "record_key": "classes.fighter.ability_score_improvement",
+   "source": {
+    "file": "classes.md",
+    "line": 4749,
+    "quote": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify."
+   }
+  },
+  {
+   "component_key": "ability_score_improvement",
+   "fact": {
+    "count_per_gain": 1,
+    "family": "feat_choice",
+    "gain_levels": {
+     "entitlement_key": "classes.monk.ability_score_improvement",
+     "family": "progression_entry"
+    },
+    "named_feat": "feats.ability_score_improvement",
+    "or_any_feat_whose_prerequisites_are_met": true
+   },
+   "record_key": "classes.monk.ability_score_improvement",
+   "source": {
+    "file": "classes.md",
+    "line": 5113,
+    "quote": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify."
+   }
+  },
+  {
+   "component_key": "ability_score_improvement",
+   "fact": {
+    "count_per_gain": 1,
+    "family": "feat_choice",
+    "gain_levels": {
+     "entitlement_key": "classes.paladin.ability_score_improvement",
+     "family": "progression_entry"
+    },
+    "named_feat": "feats.ability_score_improvement",
+    "or_any_feat_whose_prerequisites_are_met": true
+   },
+   "record_key": "classes.paladin.ability_score_improvement",
+   "source": {
+    "file": "classes.md",
+    "line": 5609,
+    "quote": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify."
+   }
+  },
+  {
+   "component_key": "ability_score_improvement",
+   "fact": {
+    "count_per_gain": 1,
+    "family": "feat_choice",
+    "gain_levels": {
+     "entitlement_key": "classes.ranger.ability_score_improvement",
+     "family": "progression_entry"
+    },
+    "named_feat": "feats.ability_score_improvement",
+    "or_any_feat_whose_prerequisites_are_met": true
+   },
+   "record_key": "classes.ranger.ability_score_improvement",
+   "source": {
+    "file": "classes.md",
+    "line": 6372,
+    "quote": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify."
+   }
+  },
+  {
+   "component_key": "ability_score_improvement",
+   "fact": {
+    "count_per_gain": 1,
+    "family": "feat_choice",
+    "gain_levels": {
+     "entitlement_key": "classes.rogue.ability_score_improvement",
+     "family": "progression_entry"
+    },
+    "named_feat": "feats.ability_score_improvement",
+    "or_any_feat_whose_prerequisites_are_met": true
+   },
+   "record_key": "classes.rogue.ability_score_improvement",
+   "source": {
+    "file": "classes.md",
+    "line": 6994,
+    "quote": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify."
+   }
+  },
+  {
+   "component_key": "ability_score_improvement",
+   "fact": {
+    "count_per_gain": 1,
+    "family": "feat_choice",
+    "gain_levels": {
+     "entitlement_key": "classes.sorcerer.ability_score_improvement",
+     "family": "progression_entry"
+    },
+    "named_feat": "feats.ability_score_improvement",
+    "or_any_feat_whose_prerequisites_are_met": true
+   },
+   "record_key": "classes.sorcerer.ability_score_improvement",
+   "source": {
+    "file": "classes.md",
+    "line": 7627,
+    "quote": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify."
+   }
+  },
+  {
+   "component_key": "ability_score_improvement",
+   "fact": {
+    "count_per_gain": 1,
+    "family": "feat_choice",
+    "gain_levels": {
+     "entitlement_key": "classes.warlock.ability_score_improvement",
+     "family": "progression_entry"
+    },
+    "named_feat": "feats.ability_score_improvement",
+    "or_any_feat_whose_prerequisites_are_met": true
+   },
+   "record_key": "classes.warlock.ability_score_improvement",
+   "source": {
+    "file": "classes.md",
+    "line": 8943,
+    "quote": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify."
+   }
+  },
+  {
+   "component_key": "ability_score_improvement",
+   "fact": {
+    "count_per_gain": 1,
+    "family": "feat_choice",
+    "gain_levels": {
+     "entitlement_key": "classes.wizard.ability_score_improvement",
+     "family": "progression_entry"
+    },
+    "named_feat": "feats.ability_score_improvement",
+    "or_any_feat_whose_prerequisites_are_met": true
+   },
+   "record_key": "classes.wizard.ability_score_improvement",
+   "source": {
+    "file": "classes.md",
+    "line": 10202,
+    "quote": "You gain the Ability Score Improvement feat (see \"Feats\") or another feat of your choice for which you qualify."
+   }
+  },
+  {
+   "component_key": "epic_boon",
+   "fact": {
+    "category": "epic_boon",
+    "count_per_gain": 1,
+    "family": "feat_choice",
+    "gain_levels": {
+     "entitlement_key": "classes.barbarian.epic_boon",
+     "family": "progression_entry"
+    },
+    "or_any_feat_whose_prerequisites_are_met": true
+   },
+   "record_key": "classes.barbarian.epic_boon",
+   "source": {
+    "file": "classes.md",
+    "line": 343,
+    "quote": "You gain an Epic Boon feat (see \"Feats\") or another feat of your choice for which you qualify."
+   }
+  },
+  {
+   "component_key": "epic_boon",
+   "fact": {
+    "category": "epic_boon",
+    "count_per_gain": 1,
+    "family": "feat_choice",
+    "gain_levels": {
+     "entitlement_key": "classes.bard.epic_boon",
+     "family": "progression_entry"
+    },
+    "or_any_feat_whose_prerequisites_are_met": true
+   },
+   "record_key": "classes.bard.epic_boon",
+   "source": {
+    "file": "classes.md",
+    "line": 888,
+    "quote": "You gain an Epic Boon feat (see \"Feats\") or another feat of your choice for which you qualify."
+   }
+  },
+  {
+   "component_key": "epic_boon",
+   "fact": {
+    "category": "epic_boon",
+    "count_per_gain": 1,
+    "family": "feat_choice",
+    "gain_levels": {
+     "entitlement_key": "classes.cleric.epic_boon",
+     "family": "progression_entry"
+    },
+    "or_any_feat_whose_prerequisites_are_met": true
+   },
+   "record_key": "classes.cleric.epic_boon",
+   "source": {
+    "file": "classes.md",
+    "line": 2226,
+    "quote": "You gain an Epic Boon feat (see \"Feats\") or another feat of your choice for which you qualify."
+   }
+  },
+  {
+   "component_key": "epic_boon",
+   "fact": {
+    "category": "epic_boon",
+    "count_per_gain": 1,
+    "family": "feat_choice",
+    "gain_levels": {
+     "entitlement_key": "classes.druid.epic_boon",
+     "family": "progression_entry"
+    },
+    "or_any_feat_whose_prerequisites_are_met": true
+   },
+   "record_key": "classes.druid.epic_boon",
+   "source": {
+    "file": "classes.md",
+    "line": 3553,
+    "quote": "You gain an Epic Boon feat (see \"Feats\") or another feat of your choice for which you qualify."
+   }
+  },
+  {
+   "component_key": "epic_boon",
+   "fact": {
+    "category": "epic_boon",
+    "count_per_gain": 1,
+    "family": "feat_choice",
+    "gain_levels": {
+     "entitlement_key": "classes.fighter.epic_boon",
+     "family": "progression_entry"
+    },
+    "or_any_feat_whose_prerequisites_are_met": true
+   },
+   "record_key": "classes.fighter.epic_boon",
+   "source": {
+    "file": "classes.md",
+    "line": 4779,
+    "quote": "You gain an Epic Boon feat (see \"Feats\") or another feat of your choice for which you qualify."
+   }
+  },
+  {
+   "component_key": "epic_boon",
+   "fact": {
+    "category": "epic_boon",
+    "count_per_gain": 1,
+    "family": "feat_choice",
+    "gain_levels": {
+     "entitlement_key": "classes.monk.epic_boon",
+     "family": "progression_entry"
+    },
+    "or_any_feat_whose_prerequisites_are_met": true
+   },
+   "record_key": "classes.monk.epic_boon",
+   "source": {
+    "file": "classes.md",
+    "line": 5177,
+    "quote": "You gain an Epic Boon feat (see \"Feats\") or another feat of your choice for which you qualify."
+   }
+  },
+  {
+   "component_key": "epic_boon",
+   "fact": {
+    "category": "epic_boon",
+    "count_per_gain": 1,
+    "family": "feat_choice",
+    "gain_levels": {
+     "entitlement_key": "classes.paladin.epic_boon",
+     "family": "progression_entry"
+    },
+    "or_any_feat_whose_prerequisites_are_met": true
+   },
+   "record_key": "classes.paladin.epic_boon",
+   "source": {
+    "file": "classes.md",
+    "line": 5651,
+    "quote": "You gain an Epic Boon feat (see \"Feats\") or another feat of your choice for which you qualify."
+   }
+  },
+  {
+   "component_key": "epic_boon",
+   "fact": {
+    "category": "epic_boon",
+    "count_per_gain": 1,
+    "family": "feat_choice",
+    "gain_levels": {
+     "entitlement_key": "classes.ranger.epic_boon",
+     "family": "progression_entry"
+    },
+    "or_any_feat_whose_prerequisites_are_met": true
+   },
+   "record_key": "classes.ranger.epic_boon",
+   "source": {
+    "file": "classes.md",
+    "line": 6412,
+    "quote": "You gain an Epic Boon feat (see \"Feats\") or another feat of your choice for which you qualify."
+   }
+  },
+  {
+   "component_key": "epic_boon",
+   "fact": {
+    "category": "epic_boon",
+    "count_per_gain": 1,
+    "family": "feat_choice",
+    "gain_levels": {
+     "entitlement_key": "classes.rogue.epic_boon",
+     "family": "progression_entry"
+    },
+    "or_any_feat_whose_prerequisites_are_met": true
+   },
+   "record_key": "classes.rogue.epic_boon",
+   "source": {
+    "file": "classes.md",
+    "line": 7046,
+    "quote": "You gain an Epic Boon feat (see \"Feats\") or another feat of your choice for which you qualify."
+   }
+  },
+  {
+   "component_key": "epic_boon",
+   "fact": {
+    "category": "epic_boon",
+    "count_per_gain": 1,
+    "family": "feat_choice",
+    "gain_levels": {
+     "entitlement_key": "classes.sorcerer.epic_boon",
+     "family": "progression_entry"
+    },
+    "or_any_feat_whose_prerequisites_are_met": true
+   },
+   "record_key": "classes.sorcerer.epic_boon",
+   "source": {
+    "file": "classes.md",
+    "line": 7641,
+    "quote": "You gain an Epic Boon feat (see \"Feats\") or another feat of your choice for which you qualify."
+   }
+  },
+  {
+   "component_key": "epic_boon",
+   "fact": {
+    "category": "epic_boon",
+    "count_per_gain": 1,
+    "family": "feat_choice",
+    "gain_levels": {
+     "entitlement_key": "classes.warlock.epic_boon",
+     "family": "progression_entry"
+    },
+    "or_any_feat_whose_prerequisites_are_met": true
+   },
+   "record_key": "classes.warlock.epic_boon",
+   "source": {
+    "file": "classes.md",
+    "line": 8963,
+    "quote": "You gain an Epic Boon feat (see \"Feats\") or another feat of your choice for which you qualify."
+   }
+  },
+  {
+   "component_key": "epic_boon",
+   "fact": {
+    "category": "epic_boon",
+    "count_per_gain": 1,
+    "family": "feat_choice",
+    "gain_levels": {
+     "entitlement_key": "classes.wizard.epic_boon",
+     "family": "progression_entry"
+    },
+    "or_any_feat_whose_prerequisites_are_met": true
+   },
+   "record_key": "classes.wizard.epic_boon",
+   "source": {
+    "file": "classes.md",
+    "line": 10216,
+    "quote": "You gain an Epic Boon feat (see \"Feats\") or another feat of your choice for which you qualify."
+   }
+  },
+  {
+   "component_key": "primal_knowledge",
+   "fact": {
+    "count": 1,
+    "family": "skill_proficiency_choice",
+    "from": "classes.barbarian/core_traits"
+   },
+   "record_key": "classes.barbarian.primal_knowledge",
+   "source": {
+    "file": "classes.md",
+    "line": 282,
+    "quote": "You gain proficiency in another skill of your choice from the skill list available to Barbarians at level 1."
+   }
+  },
+  {
+   "component_key": "bonus_proficiencies",
+   "fact": {
+    "count": 3,
+    "family": "skill_proficiency_choice",
+    "from": [
+     "acrobatics",
+     "animal_handling",
+     "arcana",
+     "athletics",
+     "deception",
+     "history",
+     "insight",
+     "intimidation",
+     "investigation",
+     "medicine",
+     "nature",
+     "perception",
+     "performance",
+     "persuasion",
+     "religion",
+     "sleight_of_hand",
+     "stealth",
+     "survival"
+    ]
+   },
+   "record_key": "classes.bard.college_of_lore.bonus_proficiencies",
+   "source": {
+    "file": "classes.md",
+    "line": 1696,
+    "quote": "You gain proficiency with three skills of your choice."
+   }
+  },
+  {
+   "component_key": "as_a_multiclass_character",
+   "fact": {
+    "count": 0,
+    "family": "multiclass_skill_proficiency_choice"
+   },
+   "record_key": "classes.barbarian.as_a_multiclass_character",
+   "source": {
+    "file": "classes.md",
+    "line": 50,
+    "quote": "Gain the following traits from the Core Barbarian Traits table: Hit Point Die, proficiency with Martial weapons, and training with Shields."
+   }
+  },
+  {
+   "component_key": "as_a_multiclass_character",
+   "fact": {
+    "count": 1,
+    "family": "multiclass_skill_proficiency_choice",
+    "from": [
+     "acrobatics",
+     "animal_handling",
+     "arcana",
+     "athletics",
+     "deception",
+     "history",
+     "insight",
+     "intimidation",
+     "investigation",
+     "medicine",
+     "nature",
+     "perception",
+     "performance",
+     "persuasion",
+     "religion",
+     "sleight_of_hand",
+     "stealth",
+     "survival"
+    ]
+   },
+   "record_key": "classes.bard.as_a_multiclass_character",
+   "source": {
+    "file": "classes.md",
+    "line": 424,
+    "quote": "Gain the following traits from the Core Bard Traits table: Hit Point Die, proficiency in one skill of your choice, proficiency with one Musical Instrument of your choice, and training with Light armor."
+   }
+  },
+  {
+   "component_key": "as_a_multiclass_character",
+   "fact": {
+    "count": 0,
+    "family": "multiclass_skill_proficiency_choice"
+   },
+   "record_key": "classes.cleric.as_a_multiclass_character",
+   "source": {
+    "file": "classes.md",
+    "line": 1758,
+    "quote": "Gain the following traits from the Core Cleric Traits table: Hit Point Die and training with Light and Medium armor and Shields."
+   }
+  },
+  {
+   "component_key": "as_a_multiclass_character",
+   "fact": {
+    "count": 0,
+    "family": "multiclass_skill_proficiency_choice"
+   },
+   "record_key": "classes.druid.as_a_multiclass_character",
+   "source": {
+    "file": "classes.md",
+    "line": 3028,
+    "quote": "Gain the following traits from the Core Druid Traits table: Hit Point Die and training with Light armor and Shields."
+   }
+  },
+  {
+   "component_key": "as_a_multiclass_character",
+   "fact": {
+    "count": 0,
+    "family": "multiclass_skill_proficiency_choice"
+   },
+   "record_key": "classes.fighter.as_a_multiclass_character",
+   "source": {
+    "file": "classes.md",
+    "line": 4550,
+    "quote": "Gain the following traits from the Core Fighter Traits table: Hit Point Die, proficiency with Martial weapons, and training with Light and Medium armor and Shields."
+   }
+  },
+  {
+   "component_key": "as_a_multiclass_character",
+   "fact": {
+    "count": 0,
+    "family": "multiclass_skill_proficiency_choice"
+   },
+   "record_key": "classes.monk.as_a_multiclass_character",
+   "source": {
+    "file": "classes.md",
+    "line": 4871,
+    "quote": "Gain the Hit Point Die trait from the Core Monk Traits table."
+   }
+  },
+  {
+   "component_key": "as_a_multiclass_character",
+   "fact": {
+    "count": 0,
+    "family": "multiclass_skill_proficiency_choice"
+   },
+   "record_key": "classes.paladin.as_a_multiclass_character",
+   "source": {
+    "file": "classes.md",
+    "line": 5262,
+    "quote": "Gain the following traits from the Core Paladin Traits table: Hit Point Die, proficiency with Martial weapons, and training with Light and Medium armor and Shields."
+   }
+  },
+  {
+   "component_key": "as_a_multiclass_character",
+   "fact": {
+    "count": 1,
+    "family": "multiclass_skill_proficiency_choice",
+    "from": "classes.ranger/core_traits"
+   },
+   "record_key": "classes.ranger.as_a_multiclass_character",
+   "source": {
+    "file": "classes.md",
+    "line": 6040,
+    "quote": "Gain the following traits from the Core Ranger Traits table: Hit Point Die, proficiency with Martial weapons, proficiency in one skill of your choice from the Ranger's skill list, and training with Light and Medium armor and Shields."
+   }
+  },
+  {
+   "component_key": "as_a_multiclass_character",
+   "fact": {
+    "count": 1,
+    "family": "multiclass_skill_proficiency_choice",
+    "from": "classes.rogue/core_traits"
+   },
+   "record_key": "classes.rogue.as_a_multiclass_character",
+   "source": {
+    "file": "classes.md",
+    "line": 6816,
+    "quote": "Gain the following traits from the Core Rogue Traits table: Hit Point Die, proficiency in one skill of your choice from the Rogue's skill list, proficiency with Thieves' Tools, and training with Light armor."
+   }
+  },
+  {
+   "component_key": "as_a_multiclass_character",
+   "fact": {
+    "count": 0,
+    "family": "multiclass_skill_proficiency_choice"
+   },
+   "record_key": "classes.sorcerer.as_a_multiclass_character",
+   "source": {
+    "file": "classes.md",
+    "line": 7142,
+    "quote": "Gain the Hit Point Die from the Core Sorcerer Traits table."
+   }
+  },
+  {
+   "component_key": "as_a_multiclass_character",
+   "fact": {
+    "count": 0,
+    "family": "multiclass_skill_proficiency_choice"
+   },
+   "record_key": "classes.warlock.as_a_multiclass_character",
+   "source": {
+    "file": "classes.md",
+    "line": 8671,
+    "quote": "Gain the following traits from the Core Warlock Traits table: Hit Point Die and training with Light armor."
+   }
+  },
+  {
+   "component_key": "as_a_multiclass_character",
+   "fact": {
+    "count": 0,
+    "family": "multiclass_skill_proficiency_choice"
+   },
+   "record_key": "classes.wizard.as_a_multiclass_character",
+   "source": {
+    "file": "classes.md",
+    "line": 9779,
+    "quote": "Gain the Hit Point Die from the Core Wizard Traits table."
+   }
+  },
+  {
+   "component_key": "feat",
+   "fact": {
+    "family": "feat_grant",
+    "feat": "feats.magic_initiate",
+    "qualifier": "Cleric"
+   },
+   "record_key": "character_origins.acolyte",
+   "source": {
+    "file": "character-origins.md",
+    "line": 36,
+    "quote": "**Feat:** Magic Initiate (Cleric) (see \"Feats\")"
+   }
+  },
+  {
+   "component_key": "feat",
+   "fact": {
+    "family": "feat_grant",
+    "feat": "feats.alert"
+   },
+   "record_key": "character_origins.criminal",
+   "source": {
+    "file": "character-origins.md",
+    "line": 44,
+    "quote": "**Feat:** Alert (see \"Feats\")"
+   }
+  },
+  {
+   "component_key": "feat",
+   "fact": {
+    "family": "feat_grant",
+    "feat": "feats.magic_initiate",
+    "qualifier": "Wizard"
+   },
+   "record_key": "character_origins.sage",
+   "source": {
+    "file": "character-origins.md",
+    "line": 52,
+    "quote": "**Feat:** Magic Initiate (Wizard) (see \"Feats\")"
+   }
+  },
+  {
+   "component_key": "feat",
+   "fact": {
+    "family": "feat_grant",
+    "feat": "feats.savage_attacker"
+   },
+   "record_key": "character_origins.soldier",
+   "source": {
+    "file": "character-origins.md",
+    "line": 60,
+    "quote": "**Feat:** Savage Attacker (see \"Feats\")"
+   }
+  },
+  {
+   "component_key": "versatile",
+   "fact": {
+    "category": "origin",
+    "count": 1,
+    "family": "feat_choice"
+   },
+   "record_key": "character_origins.human",
+   "source": {
+    "file": "character-origins.md",
+    "line": 307,
+    "quote": "You gain an Origin feat of your choice (see \"Feats\")."
+   }
+  },
+  {
+   "component_key": "gaining_expertise",
+   "fact": {
+    "family": "expertise_rule",
+    "no_duplicate": true,
+    "proficiency_bonus_multiplier": 2,
+    "requires_skill_proficiency": true
+   },
+   "record_key": "glossary.expertise",
+   "source": {
+    "file": "rules-glossary.md",
+    "line": 794,
+    "quote": "If you gain Expertise, you gain it in one skill in which you have proficiency."
+   }
+  },
+  {
+   "component_key": "expertise",
+   "fact": {
+    "count_per_gain": 2,
+    "family": "expertise_choice",
+    "from_proficient_skills": true,
+    "gain_levels": {
+     "entitlement_key": "classes.bard.expertise",
+     "family": "progression_entry"
+    }
+   },
+   "record_key": "classes.bard.expertise",
+   "source": {
+    "file": "classes.md",
+    "line": 850,
+    "quote": "You gain Expertise (see \"Rules Glossary\") in two of your skill proficiencies"
+   }
+  },
+  {
+   "component_key": "expertise",
+   "fact": {
+    "count_per_gain": 2,
+    "family": "expertise_choice",
+    "from_proficient_skills": true,
+    "gain_levels": {
+     "entitlement_key": "classes.rogue.expertise",
+     "family": "progression_entry"
+    }
+   },
+   "record_key": "classes.rogue.expertise",
+   "source": {
+    "file": "classes.md",
+    "line": 6960,
+    "quote": "You gain Expertise in two of your skill proficiencies of your choice."
+   }
+  },
+  {
+   "component_key": "expertise",
+   "fact": {
+    "count_per_gain": 1,
+    "family": "expertise_choice",
+    "from_proficient_skills": true,
+    "gain_levels": {
+     "entitlement_key": "classes.ranger.deft_explorer",
+     "family": "progression_entry"
+    }
+   },
+   "record_key": "classes.ranger.deft_explorer",
+   "source": {
+    "file": "classes.md",
+    "line": 6356,
+    "quote": "Choose one of your skill proficiencies with which you lack Expertise."
+   }
+  },
+  {
+   "component_key": "expertise",
+   "fact": {
+    "count_per_gain": 2,
+    "family": "expertise_choice",
+    "from_proficient_skills": true,
+    "gain_levels": {
+     "entitlement_key": "classes.ranger.expertise",
+     "family": "progression_entry"
+    }
+   },
+   "record_key": "classes.ranger.expertise",
+   "source": {
+    "file": "classes.md",
+    "line": 6384,
+    "quote": "Choose two of your skill proficiencies with which you lack Expertise."
+   }
+  },
+  {
+   "component_key": "scholar",
+   "fact": {
+    "count_per_gain": 1,
+    "family": "expertise_choice",
+    "from": [
+     "arcana",
+     "history",
+     "investigation",
+     "medicine",
+     "nature",
+     "religion"
+    ],
+    "from_proficient_skills": true,
+    "gain_levels": {
+     "entitlement_key": "classes.wizard.scholar",
+     "family": "progression_entry"
+    }
+   },
+   "record_key": "classes.wizard.scholar",
+   "source": {
+    "file": "classes.md",
+    "line": 10184,
+    "quote": "Choose one of the following skills in which you have proficiency: Arcana, History, Investigation, Medicine, Nature, or Religion."
+   }
+  }
+ ],
+ "proposed_schema": "5d-representation-schema-19 (proposed; not minted)",
+ "status": "CANDIDATE ONLY - not accepted, recorded, minted, published or activated",
+ "supersedes": "15c-C3 (unaccepted)"
+}

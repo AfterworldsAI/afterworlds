@@ -1,0 +1,801 @@
+{
+ "batches": {
+  "animals": {
+   "added": 1031,
+   "expected": 1031,
+   "extra": 0,
+   "missing": 0
+  },
+  "character-origins-feats": {
+   "added": 39,
+   "expected": 39,
+   "extra": 0,
+   "missing": 0
+  },
+  "checks-actions-rests": {
+   "added": 13,
+   "expected": 13,
+   "extra": 0,
+   "missing": 0
+  },
+  "classes": {
+   "added": 124,
+   "expected": 124,
+   "extra": 0,
+   "missing": 0
+  },
+  "combat-damage-breaking": {
+   "added": 16,
+   "expected": 16,
+   "extra": 0,
+   "missing": 0
+  },
+  "core-play-completion": {
+   "added": 1,
+   "expected": 1,
+   "extra": 0,
+   "missing": 0
+  },
+  "equipment": {
+   "added": 286,
+   "expected": 286,
+   "extra": 0,
+   "missing": 0
+  },
+  "magic-items": {
+   "added": 27,
+   "expected": 27,
+   "extra": 0,
+   "missing": 0
+  },
+  "monsters": {
+   "added": 3912,
+   "expected": 3912,
+   "extra": 0,
+   "missing": 0
+  },
+  "spell-descriptions": {
+   "added": 64,
+   "expected": 64,
+   "extra": 0,
+   "missing": 0
+  },
+  "spellcasting": {
+   "added": 2,
+   "expected": 2,
+   "extra": 0,
+   "missing": 0
+  }
+ },
+ "dropped_possessors_by_retained_turn_of": {
+  "source": 25
+ },
+ "each_activity_on_its_own_tool_only": true,
+ "identity_reconciled": true,
+ "label": "FOCUSED DIAGNOSTICS ONLY",
+ "mapped_items": 5504,
+ "negative_controls": {
+  "distinct identities admitted": true,
+  "identical-numeric pair without identities refused": true,
+  "same activity identity on two options refused": true,
+  "single option refused": true
+ },
+ "proposal_report": {
+  "batches": {
+   "animals": {
+    "claims_added": 4379,
+    "components_given_facts": 218,
+    "expected_rules_added": 488,
+    "facts_added": 1031,
+    "replayed_identity": "9241c2b876b8cee294948463d6fde415b0741e32b91fbb4301dc50e8d75f8e69"
+   },
+   "character-origins-feats": {
+    "claims_added": 39,
+    "components_given_facts": 39,
+    "expected_rules_added": 39,
+    "facts_added": 39,
+    "replayed_identity": "6120f64771725581d478b9bdcd29a13588ee3dd9f9776c42d2628c2ad6bf3702"
+   },
+   "checks-actions-rests": {
+    "claims_added": 13,
+    "components_given_facts": 7,
+    "expected_rules_added": 7,
+    "facts_added": 13,
+    "replayed_identity": "d96c50a32e269ae17bac1b312b643ba468ed2065e89fcfef7030ce59a55a113a"
+   },
+   "classes": {
+    "claims_added": 124,
+    "components_given_facts": 72,
+    "expected_rules_added": 124,
+    "facts_added": 124,
+    "replayed_identity": "ab357393ce9c3d3bcbc06e7f18ff9c6cadb13c852fdb8dce09fb0ec43737df54"
+   },
+   "combat-damage-breaking": {
+    "claims_added": 16,
+    "components_given_facts": 14,
+    "expected_rules_added": 15,
+    "facts_added": 16,
+    "replayed_identity": "b11159c1f9663a28b64e1351f7c1a954cb42de2fd1e79e8818bff965f942df51"
+   },
+   "core-play-completion": {
+    "claims_added": 1,
+    "components_given_facts": 1,
+    "expected_rules_added": 1,
+    "facts_added": 1,
+    "replayed_identity": "96afa186fb7be74d70bd6864327efc7ad7f91ecd97dc02a7b376382233615bd2"
+   },
+   "equipment": {
+    "claims_added": 286,
+    "components_given_facts": 95,
+    "expected_rules_added": 221,
+    "facts_added": 275,
+    "replayed_identity": "8a8a737b0d1e47410de86bbeca44b66522b46511e078727d20760678943b5345"
+   },
+   "magic-items": {
+    "claims_added": 127,
+    "components_given_facts": 3,
+    "expected_rules_added": 10,
+    "facts_added": 27,
+    "replayed_identity": "54a402acd35a15887b94f286a30804a87dd32e92e91d2b075bbb2367324eed5a"
+   },
+   "monsters": {
+    "claims_added": 14276,
+    "components_given_facts": 641,
+    "expected_rules_added": 2147,
+    "facts_added": 3912,
+    "replayed_identity": "bc559c6ec6bd1e84a000c5656682067b24a9cd868d98440ac19ec1e61ed2c48a"
+   },
+   "spell-descriptions": {
+    "claims_added": 252,
+    "components_given_facts": 11,
+    "expected_rules_added": 30,
+    "facts_added": 64,
+    "replayed_identity": "93c816fba0698f551123cac5124f161e7b1ef2c7780b8d5bd35ab42dd4205d83"
+   },
+   "spellcasting": {
+    "claims_added": 2,
+    "components_given_facts": 2,
+    "expected_rules_added": 2,
+    "facts_added": 2,
+    "replayed_identity": "4783913aeda24baed59b4d5c61487f6cfb64a25563d6203ab8d6ff8c3873fb8e"
+   }
+  },
+  "unresolved_claims": []
+ },
+ "relocations": [
+  {
+   "batch": "combat-damage-breaking",
+   "c5_component": [
+    "play.damage_and_healing",
+    "temporary_hit_points"
+   ],
+   "family": "temporary_hit_point_absorption",
+   "native_component": [
+    "play.damage_and_healing",
+    "lost_first"
+   ],
+   "quote": "those points are lost first, and any leftover damage carries over"
+  },
+  {
+   "batch": "equipment",
+   "c5_component": [
+    "equipment.armor",
+    "armor_training"
+   ],
+   "family": "shield_training_requirement",
+   "native_component": [
+    "equipment.armor.shield",
+    "shield"
+   ],
+   "quote": "You gain the Armor Class benefit of a Shield only if you have training with it"
+  }
+ ],
+ "tool_activities": [
+  {
+   "activities": [
+    {
+     "c5_option": "detect_poisoned_drink",
+     "facts": [
+      "ability_check intelligence DC 15",
+      "tool_activity"
+     ],
+     "native_address": "option detect_poisoned_drink"
+    },
+    {
+     "c5_option": "identify_alcohol",
+     "facts": [
+      "ability_check intelligence DC 10",
+      "tool_activity"
+     ],
+     "native_address": "option identify_alcohol"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 2
+    }
+   },
+   "component": "brewers_supplies",
+   "record": "equipment.tools",
+   "shape": "choice"
+  },
+  {
+   "activities": [
+    {
+     "c5_option": "seal_or_pry_open_a_door_or_container",
+     "facts": [
+      "ability_check strength DC 20",
+      "tool_activity"
+     ],
+     "native_address": "component (direct)"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 1
+    }
+   },
+   "component": "carpenters_tools",
+   "record": "equipment.tools",
+   "shape": "direct (single activity)"
+  },
+  {
+   "activities": [
+    {
+     "c5_option": "draft_a_map_of_a_small_area",
+     "facts": [
+      "ability_check wisdom DC 15",
+      "tool_activity"
+     ],
+     "native_address": "component (direct)"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 1
+    }
+   },
+   "component": "cartographers_tools",
+   "record": "equipment.tools",
+   "shape": "direct (single activity)"
+  },
+  {
+   "activities": [
+    {
+     "c5_option": "modify_footwear_to_give_advantage_on_the_wearers_next_dexterity_acrobatics_check",
+     "facts": [
+      "ability_check dexterity DC 10",
+      "tool_activity"
+     ],
+     "native_address": "component (direct)"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 1
+    }
+   },
+   "component": "cobblers_tools",
+   "record": "equipment.tools",
+   "shape": "direct (single activity)"
+  },
+  {
+   "activities": [
+    {
+     "c5_option": "detect_spoiled_or_poisoned_food",
+     "facts": [
+      "ability_check wisdom DC 15",
+      "tool_activity"
+     ],
+     "native_address": "option detect_spoiled_or_poisoned_food"
+    },
+    {
+     "c5_option": "improve_foods_flavor",
+     "facts": [
+      "ability_check wisdom DC 10",
+      "tool_activity"
+     ],
+     "native_address": "option improve_foods_flavor"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 2
+    }
+   },
+   "component": "cooks_utensils",
+   "record": "equipment.tools",
+   "shape": "choice"
+  },
+  {
+   "activities": [
+    {
+     "c5_option": "apply_makeup",
+     "facts": [
+      "ability_check charisma DC 10",
+      "tool_activity"
+     ],
+     "native_address": "component (direct)"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 1
+    }
+   },
+   "component": "disguise_kit",
+   "record": "equipment.tools",
+   "shape": "direct (single activity)"
+  },
+  {
+   "activities": [
+    {
+     "c5_option": "duplicate_a_wax_seal",
+     "facts": [
+      "ability_check dexterity DC 20",
+      "tool_activity"
+     ],
+     "native_address": "option duplicate_a_wax_seal"
+    },
+    {
+     "c5_option": "mimic_10_or_fewer_words_of_someone_elses_handwriting",
+     "facts": [
+      "ability_check dexterity DC 15",
+      "tool_activity"
+     ],
+     "native_address": "option mimic_10_or_fewer_words_of_someone_elses_handwriting"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 2
+    }
+   },
+   "component": "forgery_kit",
+   "record": "equipment.tools",
+   "shape": "choice"
+  },
+  {
+   "activities": [
+    {
+     "c5_option": "discern_what_a_glass_object_held_in_the_past_24_hours",
+     "facts": [
+      "ability_check intelligence DC 15",
+      "tool_activity"
+     ],
+     "native_address": "component (direct)"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 1
+    }
+   },
+   "component": "glassblowers_tools",
+   "record": "equipment.tools",
+   "shape": "direct (single activity)"
+  },
+  {
+   "activities": [
+    {
+     "c5_option": "chisel_a_symbol_or_hole_in_stone",
+     "facts": [
+      "ability_check strength DC 10",
+      "tool_activity"
+     ],
+     "native_address": "component (direct)"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 1
+    }
+   },
+   "component": "masons_tools",
+   "record": "equipment.tools",
+   "shape": "direct (single activity)"
+  },
+  {
+   "activities": [
+    {
+     "c5_option": "determine_position_by_stargazing",
+     "facts": [
+      "ability_check wisdom DC 15",
+      "tool_activity"
+     ],
+     "native_address": "option determine_position_by_stargazing"
+    },
+    {
+     "c5_option": "plot_a_course",
+     "facts": [
+      "ability_check wisdom DC 10",
+      "tool_activity"
+     ],
+     "native_address": "option plot_a_course"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 2
+    }
+   },
+   "component": "navigators_tools",
+   "record": "equipment.tools",
+   "shape": "choice"
+  },
+  {
+   "activities": [
+    {
+     "c5_option": "paint_a_recognizable_image_of_something_youve_seen",
+     "facts": [
+      "ability_check wisdom DC 10",
+      "tool_activity"
+     ],
+     "native_address": "component (direct)"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 1
+    }
+   },
+   "component": "painters_supplies",
+   "record": "equipment.tools",
+   "shape": "direct (single activity)"
+  },
+  {
+   "activities": [
+    {
+     "c5_option": "discern_what_a_ceramic_object_held_in_the_past_24_hours",
+     "facts": [
+      "ability_check intelligence DC 15",
+      "tool_activity"
+     ],
+     "native_address": "component (direct)"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 1
+    }
+   },
+   "component": "potters_tools",
+   "record": "equipment.tools",
+   "shape": "direct (single activity)"
+  },
+  {
+   "activities": [
+    {
+     "c5_option": "identify_a_substance",
+     "facts": [
+      "ability_check intelligence DC 15",
+      "tool_activity"
+     ],
+     "native_address": "option identify_a_substance"
+    },
+    {
+     "c5_option": "start_a_fire",
+     "facts": [
+      "ability_check intelligence DC 15",
+      "tool_activity"
+     ],
+     "native_address": "option start_a_fire"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 2
+    }
+   },
+   "component": "alchemists_supplies",
+   "record": "equipment.tools.alchemists_supplies",
+   "shape": "choice"
+  },
+  {
+   "activities": [
+    {
+     "c5_option": "write_text_with_impressive_flourishes_that_guard_against_forgery",
+     "facts": [
+      "ability_check dexterity DC 15",
+      "tool_activity"
+     ],
+     "native_address": "component (direct)"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 1
+    }
+   },
+   "component": "calligraphers_supplies",
+   "record": "equipment.tools.calligraphers_supplies",
+   "shape": "direct (single activity)"
+  },
+  {
+   "activities": [
+    {
+     "c5_option": "discern_whether_someone_is_cheating",
+     "facts": [
+      "ability_check wisdom DC 10",
+      "tool_activity"
+     ],
+     "native_address": "option discern_whether_someone_is_cheating"
+    },
+    {
+     "c5_option": "win_the_game",
+     "facts": [
+      "ability_check wisdom DC 20",
+      "tool_activity"
+     ],
+     "native_address": "option win_the_game"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 2
+    },
+    "tool_variants": {
+     "c5": 1,
+     "native": 2
+    }
+   },
+   "component": "gaming_set",
+   "record": "equipment.tools.gaming_set",
+   "shape": "choice"
+  },
+  {
+   "activities": [
+    {
+     "c5_option": "identify_a_plant",
+     "facts": [
+      "ability_check intelligence DC 10",
+      "tool_activity"
+     ],
+     "native_address": "component (direct)"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 1
+    }
+   },
+   "component": "herbalism_kit",
+   "record": "equipment.tools.herbalism_kit",
+   "shape": "direct (single activity)"
+  },
+  {
+   "activities": [
+    {
+     "c5_option": "discern_a_gems_value",
+     "facts": [
+      "ability_check intelligence DC 15",
+      "tool_activity"
+     ],
+     "native_address": "component (direct)"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 1
+    }
+   },
+   "component": "jewelers_tools",
+   "record": "equipment.tools.jewelers_tools",
+   "shape": "direct (single activity)"
+  },
+  {
+   "activities": [
+    {
+     "c5_option": "add_a_design_to_a_leather_item",
+     "facts": [
+      "ability_check dexterity DC 10",
+      "tool_activity"
+     ],
+     "native_address": "component (direct)"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 1
+    }
+   },
+   "component": "leatherworkers_tools",
+   "record": "equipment.tools.leatherworkers_tools",
+   "shape": "direct (single activity)"
+  },
+  {
+   "activities": [
+    {
+     "c5_option": "improvise_a_song",
+     "facts": [
+      "ability_check charisma DC 15",
+      "tool_activity"
+     ],
+     "native_address": "option improvise_a_song"
+    },
+    {
+     "c5_option": "play_a_known_tune",
+     "facts": [
+      "ability_check charisma DC 10",
+      "tool_activity"
+     ],
+     "native_address": "option play_a_known_tune"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 2
+    },
+    "tool_variants": {
+     "c5": 1,
+     "native": 2
+    }
+   },
+   "component": "musical_instrument",
+   "record": "equipment.tools.musical_instrument",
+   "shape": "choice"
+  },
+  {
+   "activities": [
+    {
+     "c5_option": "detect_a_poisoned_object",
+     "facts": [
+      "ability_check intelligence DC 10",
+      "tool_activity"
+     ],
+     "native_address": "component (direct)"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 1
+    }
+   },
+   "component": "poisoners_kit",
+   "record": "equipment.tools.poisoners_kit",
+   "shape": "direct (single activity)"
+  },
+  {
+   "activities": [
+    {
+     "c5_option": "pry_open_a_door_or_container",
+     "facts": [
+      "ability_check strength DC 20",
+      "tool_activity"
+     ],
+     "native_address": "component (direct)"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 1
+    }
+   },
+   "component": "smiths_tools",
+   "record": "equipment.tools.smiths_tools",
+   "shape": "direct (single activity)"
+  },
+  {
+   "activities": [
+    {
+     "c5_option": "disarm_a_trap",
+     "facts": [
+      "ability_check dexterity DC 15",
+      "tool_activity"
+     ],
+     "native_address": "option disarm_a_trap"
+    },
+    {
+     "c5_option": "pick_a_lock",
+     "facts": [
+      "ability_check dexterity DC 15",
+      "tool_activity"
+     ],
+     "native_address": "option pick_a_lock"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 2
+    }
+   },
+   "component": "thieves_tools",
+   "record": "equipment.tools.thieves_tools",
+   "shape": "choice"
+  },
+  {
+   "activities": [
+    {
+     "c5_option": "assemble_a_tiny_item_composed_of_scrap_which_falls_apart_in_1_minute",
+     "facts": [
+      "ability_check dexterity DC 20",
+      "tool_activity"
+     ],
+     "native_address": "component (direct)"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 1
+    }
+   },
+   "component": "tinkers_tools",
+   "record": "equipment.tools.tinkers_tools",
+   "shape": "direct (single activity)"
+  },
+  {
+   "activities": [
+    {
+     "c5_option": "mend_a_tear_in_clothing",
+     "facts": [
+      "ability_check dexterity DC 10",
+      "tool_activity"
+     ],
+     "native_address": "option mend_a_tear_in_clothing"
+    },
+    {
+     "c5_option": "sew_a_tiny_design",
+     "facts": [
+      "ability_check dexterity DC 10",
+      "tool_activity"
+     ],
+     "native_address": "option sew_a_tiny_design"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 2
+    }
+   },
+   "component": "weavers_tools",
+   "record": "equipment.tools.weavers_tools",
+   "shape": "choice"
+  },
+  {
+   "activities": [
+    {
+     "c5_option": "carve_a_pattern_in_wood",
+     "facts": [
+      "ability_check dexterity DC 10",
+      "tool_activity"
+     ],
+     "native_address": "component (direct)"
+    }
+   ],
+   "common_facts": {
+    "tool_entry": {
+     "c5": 1,
+     "native": 1
+    }
+   },
+   "component": "woodcarvers_tools",
+   "record": "equipment.tools.woodcarvers_tools",
+   "shape": "direct (single activity)"
+  }
+ ],
+ "tool_activity_vocabulary_equals_c5_keys": true
+}

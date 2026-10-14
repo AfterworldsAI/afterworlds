@@ -1,0 +1,26 @@
+{
+  "pid": 52252,
+  "started_utc": "2026-10-13T18:46:38.6722240Z",
+  "args": [
+    "scripts/run_focused_tests.py",
+    "--check",
+    "src/afterworlds/pipeline/rpg/creature_types.py",
+    "--check",
+    "src/afterworlds/pipeline/rpg/creature_attacks.py",
+    "--check",
+    "src/afterworlds/pipeline/rpg/capability.py",
+    "--check",
+    "src/afterworlds/pipeline/rpg/adapter.py",
+    "--check",
+    "src/afterworlds/services/dnd5e_state/validation.py",
+    "--check",
+    "src/afterworlds/services/dnd5e_state/effects.py",
+    "tests/pipeline/rpg/test_creature_types.py",
+    "tests/pipeline/rpg/test_creature_attacks.py",
+    "tests/pipeline/rpg/test_creature_roster.py",
+    "tests/pipeline/rpg/test_bounded_checks.py"
+  ],
+  "name": "rpg-types-1",
+  "ended_utc": "2026-10-13T18:47:17.4060039Z",
+  "exit": 1
+}

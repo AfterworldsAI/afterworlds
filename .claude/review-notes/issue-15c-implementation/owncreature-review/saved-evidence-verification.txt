@@ -1,0 +1,1 @@
+Saved evidence verified: 45 primary service probes; 8 supplemental service probes and one direct related-source preparation probe. Three speculative Trample sequences reproduce PreflightGapError. The supplemental Mammoth initially-Prone sequence lacks its reach fact and is not counted as positive proof; standalone Mammoth Trample succeeds in the primary results.

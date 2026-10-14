@@ -1,0 +1,50 @@
+{
+  "python": "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\venv\\Scripts\\python.exe",
+  "hashes": {
+    "srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json": "2853f30a832ca581c9d4169b82d0c360f3d6a2d78f0ad8980de9997eef51f373",
+    "c8.json": "8199173955d5543665b03c2adbbff52554d6d50b4e6fba055909a9fb83720cd6",
+    "correspondence.json": "5cd590097fc59d29bf6e441e83a7830e973220b9da9861e4b296e6448bb292b0",
+    "inventory.json": "c49b6a58b102e7d3e4079c735e003a4712455cc89cf048f1cb5bda181a0e6320",
+    "validation.json": "d6d9b42ea5f74a48fd69c55c53e8447b6d6d4d1b8467a83777f1dd601c8628a0",
+    "derive_c8.py": "b202daddfc2499b3dd6287c2e3783a9ece37fe79a205f24d823dac6a6c25445c",
+    "validate_c8.py": "28cb1ac1710ad93777db53d955a0f76e09dc8b3882cfdaf0fbb59e435f6cac4a",
+    "schema-21-delta.md": "3aabf74ced97715faee268a8579c0e28c5ec4c11da14db9f8dc838f9f285ced6",
+    "README.md": "a825723b5580b62239b3683da53c0663eb685d2dc3ca513448abd5d7d75594e3"
+  },
+  "pins_match": true,
+  "records": 345,
+  "complete_membership": true,
+  "membership_counts": {
+    "creature": 336,
+    "species": 9
+  },
+  "handling_counts": {
+    "mixed": 336
+  },
+  "batch_counts": {
+    "animals": 95,
+    "character-origins-feats": 9,
+    "magic-items": 2,
+    "monsters": 235,
+    "spell-descriptions": 4
+  },
+  "total_prior_batches": 24,
+  "correspondence_errors": [],
+  "forms": {
+    "monsters.doppelganger.doppelganger": "**_Shape-Shift._** The doppelganger shape-shifts into a Medium or Small Humanoid, or it returns to its true form. Its game statistics, other than its size, are the same in each form. Any equipment it is wearing or carrying isn't transformed.",
+    "monsters.imp.imp": "**_Shape-Shift._** The imp shape-shifts to resemble a rat (Speed 20 ft.), a raven (20 ft., Fly 60 ft.), or a spider (20 ft., Climb 20 ft.), or it returns to its true form. Its game statistics are the same in each form, except for its Speed. Any equipment it is wearing or carrying isn't transformed.",
+    "monsters.incubus.incubus": "**_Succubus Form._** When the incubus finishes a Long Rest, it can shape-shift into a **Succubus**, using that stat block instead of this one. Any equipment it is wearing or carrying isn't transformed.",
+    "monsters.mimic.mimic": "**_Shape-Shift._** The mimic shape-shifts to resemble a Medium or Small object while retaining its game statistics, or it returns to its true blob form. Any equipment it is wearing or carrying isn't transformed.",
+    "monsters.night_hag.night_hag": "**_Shape-Shift._** The hag shape-shifts into a Small or Medium Humanoid, or it returns to its true form. Other than its size, its game statistics are the same in each form. Any equipment it is wearing or carrying isn't transformed.",
+    "monsters.oni.oni": "**_Shape-Shift._** The oni shape-shifts into a Small or Medium Humanoid or a Large Giant, or it returns to its true form. Other than its size, its game statistics are the same in each form. Any equipment it is wearing or carrying isn't transformed.",
+    "monsters.quasit.quasit": "**_Shape-Shift._** The quasit shape-shifts to resemble a bat (Speed 10 ft., Fly 40 ft.), a centipede (40 ft., Climb 40 ft.), or a toad (40 ft., Swim 40 ft.), or it returns to its true form. Its game statistics are the same in each form, except for its Speed. Any equipment it is wearing or carrying isn't transformed.",
+    "monsters.succubus.succubus": "**_Shape-Shift._** The succubus shape-shifts into a Medium or Small Humanoid, or it returns to its true form. Its game statistics are the same in each form, except its Fly Speed is available only in its true form. Any equipment it is wearing or carrying isn't transformed.",
+    "monsters.succubus.succubus#form": "**_Incubus Form._** When the succubus finishes a Long Rest, it can shape-shift into an **Incubus**, using that stat block instead of this one.",
+    "monsters.vampires.vampire": "**_Shape-Shift._** If the vampire isn't in sunlight or running water, it shape-shifts into a Tiny bat (Speed 5 ft., Fly Speed 30 ft.) or a Medium cloud of mist (Speed 5 ft., Fly Speed 20 ft. [hover]), or it returns to its vampire form. Anything it is wearing transforms with it. <br>",
+    "monsters.werebear.werebear": "**_Shape-Shift._** The werebear shape-shifts into a Large bear-humanoid hybrid form or a Large bear, or it returns to its true humanoid form. Its game statistics, other than its size, are the same in each form. Any equipment it is wearing or carrying isn't transformed.",
+    "monsters.wereboar.wereboar": "**_Shape-Shift._** The wereboar shape-shifts into a Medium boar-humanoid hybrid or a Small boar, or it returns to its true humanoid form. Its game statistics, other than its size, are the same in each form. Any equipment it is wearing or carrying isn't transformed.",
+    "monsters.wererat.wererat": "**_Shape-Shift._** The wererat shape-shifts into a Medium rat-humanoid hybrid or a Small rat, or it returns to its true humanoid form. Its game statistics, other than its size, are the same in each form. Any equipment it is wearing or carrying isn't transformed.",
+    "monsters.weretiger.weretiger": "**_Shape-Shift._** The weretiger shape-shifts into a Large tiger-humanoid hybrid or a Large tiger, or it returns to its true humanoid form. Its game statistics, other than its size, are the same in each form. Any equipment it is wearing or carrying isn't transformed.",
+    "monsters.werewolf.werewolf": "**_Shape-Shift._** The werewolf shape-shifts into a Large wolf-humanoid hybrid or a Medium wolf, or it returns to its true humanoid form. Its game statistics, other than its size, are the same in each form. Any equipment it is wearing or carrying isn't transformed."
+  }
+}

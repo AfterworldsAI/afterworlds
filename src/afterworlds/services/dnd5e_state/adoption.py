@@ -201,7 +201,11 @@ def _held_item_failures(
     out = []
     for item in items_held_by(session, Holder(HolderKind(kind), subject_id)):
         failure = item_identity_failure(
-            index, item.record_key, item.component_key, item.applied_poison_record_key
+            index,
+            item.record_key,
+            item.component_key,
+            item.applied_poison_record_key,
+            item.tool_variant,
         )
         if failure is not None:
             out.append(

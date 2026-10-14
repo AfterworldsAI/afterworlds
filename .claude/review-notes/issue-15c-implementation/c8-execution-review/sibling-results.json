@@ -1,0 +1,313 @@
+{
+  "revision": "555be9aed30e48bd05a469c73092177bb676e400",
+  "authority_sha256": "ead7fa9d4fde484098f71221ca5ef82dfb2c82229d8fca80ab5feeb4e4d62d0d",
+  "results": [
+    {
+      "result": "accepted",
+      "operations": 1,
+      "effects": [
+        {
+          "target": "current_hp",
+          "operation": "set",
+          "value_json": "0",
+          "schema_version": 1,
+          "subject_kind": "creature",
+          "subject_id": "a54e0669-9a6b-433f-8d4a-197ed1f4af9e"
+        },
+        {
+          "target": "death_state",
+          "operation": "set",
+          "value_json": "{\"successes\": 0, \"failures\": 0, \"stable\": false, \"dead\": true, \"stable_recovery\": null}",
+          "schema_version": 1,
+          "subject_kind": "creature",
+          "subject_id": "a54e0669-9a6b-433f-8d4a-197ed1f4af9e"
+        }
+      ],
+      "case": "weapon Club drops Familiar to zero through shared damage",
+      "dice_calls": [
+        "1d20",
+        "1d4"
+      ]
+    },
+    {
+      "result": "accepted",
+      "operations": 1,
+      "effects": [
+        {
+          "target": "usage_counter",
+          "operation": "set",
+          "value_json": "{\"counter_id\":\"monsters.black_dragons.black_dragon_wyrmling/Acid Breath\",\"source\":{\"record_key\":\"monsters.black_dragons.black_dragon_wyrmling\",\"component_key\":null,\"choice_id\":null},\"item_id\":null,\"entitlement_key\":null,\"maximum\":1,\"expended\":1}",
+          "schema_version": 1,
+          "subject_kind": "creature",
+          "subject_id": "1fe1f930-c4de-465a-a5e5-1231fb33f869"
+        },
+        {
+          "target": "current_hp",
+          "operation": "set",
+          "value_json": "0",
+          "schema_version": 1,
+          "subject_kind": "creature",
+          "subject_id": "a54e0669-9a6b-433f-8d4a-197ed1f4af9e"
+        },
+        {
+          "target": "death_state",
+          "operation": "set",
+          "value_json": "{\"successes\": 0, \"failures\": 0, \"stable\": false, \"dead\": true, \"stable_recovery\": null}",
+          "schema_version": 1,
+          "subject_kind": "creature",
+          "subject_id": "a54e0669-9a6b-433f-8d4a-197ed1f4af9e"
+        }
+      ],
+      "case": "direct Acid Breath save drops Familiar to zero through shared damage",
+      "dice_calls": [
+        "5d8",
+        "1d20"
+      ]
+    },
+    {
+      "result": "accepted",
+      "operations": 1,
+      "effects": [
+        {
+          "target": "death_state",
+          "operation": "set",
+          "value_json": "{\"successes\": 0, \"failures\": 0, \"stable\": true, \"dead\": false, \"stable_recovery\": {\"instance_id\": \"2ba9f5d8-bf2c-4c88-8da4-9437752acde0\", \"interval\": 2, \"unit\": \"hour\"}}",
+          "schema_version": 1,
+          "subject_kind": "creature",
+          "subject_id": "a9678ade-5801-4a26-be76-b72640bde23f"
+        }
+      ],
+      "case": "first aid stabilizes a gone Familiar at zero",
+      "dice_calls": [
+        "1d20",
+        "1d4"
+      ]
+    },
+    {
+      "result": "accepted",
+      "operations": 2,
+      "effects": [
+        {
+          "target": "current_hp",
+          "operation": "set",
+          "value_json": "1",
+          "schema_version": 1,
+          "subject_kind": "creature",
+          "subject_id": "a9678ade-5801-4a26-be76-b72640bde23f"
+        },
+        {
+          "target": "death_state",
+          "operation": "set",
+          "value_json": "{\"successes\": 0, \"failures\": 0, \"stable\": false, \"dead\": false, \"stable_recovery\": null}",
+          "schema_version": 1,
+          "subject_kind": "creature",
+          "subject_id": "a9678ade-5801-4a26-be76-b72640bde23f"
+        },
+        {
+          "target": "unconscious",
+          "operation": "clear_condition",
+          "value_json": "{\"instance_id\": \"fell\"}",
+          "schema_version": 1,
+          "subject_kind": "creature",
+          "subject_id": "a9678ade-5801-4a26-be76-b72640bde23f"
+        },
+        {
+          "target": "prone",
+          "operation": "apply_condition",
+          "value_json": "{\"instance_id\": \"053b9f57-ee3c-45fb-bddc-0577c4fd371e\", \"condition\": \"prone\", \"visibility\": \"visible\", \"source\": {\"record_key\": \"glossary.unconscious\", \"component_key\": \"remains_prone\"}}",
+          "schema_version": 1,
+          "subject_kind": "creature",
+          "subject_id": "a9678ade-5801-4a26-be76-b72640bde23f"
+        }
+      ],
+      "case": "actor-turn death save naturally recovers a gone Familiar",
+      "dice_calls": [
+        "1d20"
+      ]
+    },
+    {
+      "result": "accepted",
+      "operations": 1,
+      "effects": [
+        {
+          "target": "current_hp",
+          "operation": "set",
+          "value_json": "1",
+          "schema_version": 1,
+          "subject_kind": "creature",
+          "subject_id": "ef064761-a94b-4997-8fa0-3d187c4f7178"
+        },
+        {
+          "target": "death_state",
+          "operation": "set",
+          "value_json": "{\"successes\": 0, \"failures\": 0, \"stable\": false, \"dead\": false, \"stable_recovery\": null}",
+          "schema_version": 1,
+          "subject_kind": "creature",
+          "subject_id": "ef064761-a94b-4997-8fa0-3d187c4f7178"
+        },
+        {
+          "target": "unconscious",
+          "operation": "clear_condition",
+          "value_json": "{\"instance_id\": \"fell\"}",
+          "schema_version": 1,
+          "subject_kind": "creature",
+          "subject_id": "ef064761-a94b-4997-8fa0-3d187c4f7178"
+        },
+        {
+          "target": "prone",
+          "operation": "apply_condition",
+          "value_json": "{\"instance_id\": \"a9b05f9c-ad38-4268-82ea-ca8f440af8c9\", \"condition\": \"prone\", \"visibility\": \"visible\", \"source\": {\"record_key\": \"glossary.unconscious\", \"component_key\": \"remains_prone\"}}",
+          "schema_version": 1,
+          "subject_kind": "creature",
+          "subject_id": "ef064761-a94b-4997-8fa0-3d187c4f7178"
+        }
+      ],
+      "case": "elapsed stable recovery restores HP on a gone Familiar",
+      "dice_calls": []
+    }
+  ],
+  "frozen_modules": {
+    "src/afterworlds/__init__.py": "77429ebbf4b6d553aa42ea8265d75a9b1c780302a40427e95567a4242a1e8816",
+    "src/afterworlds/models/__init__.py": "a8405b8b8bddf908b4ee8b51892d64270b29dc1cd214d809a7dd64fd1b83280a",
+    "src/afterworlds/models/character_sheet.py": "f8ad6e0b1051b8f0587ec029d8ebac902ac9d8469da385a5e277b46b8eca6f9d",
+    "src/afterworlds/models/context.py": "a335d2f59fe2de7125fa60f982e2ba9326b4b1a7cc100a48230c5cb95c65779c",
+    "src/afterworlds/models/intent_classification.py": "6caf208d03d030d626467cac5e4a09e48501ba527fdbde17e944483c40a3cccd",
+    "src/afterworlds/models/enums.py": "ca25bebdbe11cca1663efaa3ee907a317ee7a86762f1dd632b67785ccddc836f",
+    "src/afterworlds/models/rules_package.py": "0ab3895857041893e5f6f3fb9c13b88b5be0e4c293c242951a893ccbea7ea5b4",
+    "src/afterworlds/models/story_bible.py": "58d2ab3376c959087cdf588c651577404777736281745f39545003751b341b03",
+    "src/afterworlds/models/turn.py": "d329004fa5dbc70275c95d3afd02ecd6325b1e03ac5e96aa39de9ee83d7bfc9f",
+    "src/afterworlds/models/node.py": "e252f996d0e1c7c11addd3bd76ea7b8f3835aaae0bc74cd0b503d67948154973",
+    "src/afterworlds/models/rpg.py": "bb8dec7f1f78b236dddb7f1470b5e9e59b5137b10dddac29ed1504802fbff702",
+    "src/afterworlds/models/session.py": "015624490eef125c0f00b91a0e61d098c34c8751a8b65166b581bac00283de54",
+    "src/afterworlds/models/state.py": "4b282198b60d020ebf472e873941c2fee994166c6da336a18c8592035f90e518",
+    "src/afterworlds/models/story.py": "b49b69f7ca9ce9e4ceb3246d00def4a86fd3d3873e4783e11a9d309e9e5fd8ac",
+    "src/afterworlds/pipeline/__init__.py": "1fc0d0208a88130fec6c77312fcda8cc08c72d7b9e778110da2aad602eff736c",
+    "src/afterworlds/pipeline/rpg/__init__.py": "3db6427423da3662339ca82e7872d6646e683e0ca54a3ad8b0a9e81c5e93b9e9",
+    "src/afterworlds/pipeline/rpg/adapter.py": "319f02f83bdc51024eaa25bfa74faf91ab1581bee50fd286a8c8354692235c0f",
+    "src/afterworlds/ingestion/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/afterworlds/ingestion/mechanical/__init__.py": "e8a3bc9cdf3dfddf60b4020573b7eedc4b984fcaeae997891eba0cd41c4a06aa",
+    "src/afterworlds/ingestion/mechanical/representation.py": "7f0abd45113548f32f35ee6d58cf986a8cea59877b63995cfedd96ac2a0f052c",
+    "src/afterworlds/ingestion/corpus/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/afterworlds/ingestion/corpus/hashing.py": "f2941dfb5a4ae56486745ad0de8d49824679500c42dd920c77f119e53e758b3a",
+    "src/afterworlds/ingestion/mechanical/models.py": "b583376a790f5df7cbfd7ccbd761333bda29284170f8f312e075680cd3869bba",
+    "src/afterworlds/models/dnd5e_state.py": "f4aca2de5e73dc7c46588e1ce48873a978e947108da92ae6ca535ab1f3088ad7",
+    "src/afterworlds/models/dnd5e_vocabulary.py": "63abf3bc1539bfdb27552db6439c1f35ac5ab368013c4ed75596ab7797047967",
+    "src/afterworlds/pipeline/rpg/attacks.py": "81420de7764af068142dc5bd4219cbebe19dafe6d45281fc8d050c8ffac4ffd1",
+    "src/afterworlds/pipeline/rpg/bystanders.py": "050bcd93d661ad9ce79f0705b413713c02492878f0d2022ff283e363d814147e",
+    "src/afterworlds/pipeline/rpg/capability.py": "7eee530b392601a66a129029fa2a4954d7182f333cf2e0234dc16f4e26a161c9",
+    "src/afterworlds/pipeline/rpg/models.py": "db23d372dcd845d405ae91d413bf790ca0a9bb5e34889b6a1f2a063749a6b4ee",
+    "src/afterworlds/services/__init__.py": "bbc97ca7b41cafb7c7f9c4292aba889e4689af14c4415bb10ccd527768dda6ab",
+    "src/afterworlds/services/dnd5e_state/__init__.py": "9519e9fc4c8121083e667c41c8b26f42731bbe5b39c8362dffa0694553fd7fde",
+    "src/afterworlds/services/dnd5e_state/authority.py": "8e170eaf9bd4fd3f1bd4a5a69e16ee61b94dfd5f3670244dbf966c31720aed61",
+    "src/afterworlds/services/dnd5e_state/errors.py": "1fda30ed69c6ff98c93eb0653745c9c82f8767c0dfd8f7596838e168af342f53",
+    "src/afterworlds/services/rules_authority/__init__.py": "5cf9e564ca442bec24c5030a07eb5f94c32dd3206f4f48987f80f6a0ac4b04dc",
+    "src/afterworlds/services/rules_authority/application.py": "f52ac7bb7ad649953c331448f0d6d676e5f7c2d9174c8d21e2be1150a7798cc3",
+    "src/afterworlds/ingestion/mechanical/projection.py": "56a9b0cfe17d5757aa74698a8acc68db2fc9acaa4ce7ea33273c399f27486df4",
+    "src/afterworlds/ingestion/mechanical/accounting.py": "1b0a4746f9751aa2d1688b0e284e7f8f0267ef061c8ef5b94c2ca01c617b44e8",
+    "src/afterworlds/ingestion/mechanical/canonical.py": "fe8dc896c43afd747a1aef02295f24486670aa3c3c47e703bcd2e200b05cdd6e",
+    "src/afterworlds/ingestion/mechanical/policy.py": "13847364905dc4fafcaa7e5ce2c5a55a006a42c0cebffcbf59b7a4baa43c18f8",
+    "src/afterworlds/ingestion/corpus/policy.py": "a58a3e03b28289d5a4c6869d7e3171676924e5090f305afe8b4e79eb1a37198f",
+    "src/afterworlds/ingestion/corpus/models.py": "42c8225840714d3d273879834aa82a8feef7e0a34d7661af8c3a702b4d584c9c",
+    "src/afterworlds/ingestion/mechanical/bound_corpus.py": "917098bef5a9140c4bb5dc339e3d89fda73f29a3a8719a902f0eaa27fc1154d5",
+    "src/afterworlds/ingestion/corpus/operational.py": "b3237fc39991b0cb6812a5a30417d3beb3e0718b8e66b7e972a2ca8587cbfe70",
+    "src/afterworlds/persistence/__init__.py": "cfde058d8e0205b53206b193f72dc850608ec4419d6116475393ea38eac674cc",
+    "src/afterworlds/persistence/orm/__init__.py": "d35250c318442baafbda504b6d3895cb4acb672b49c3e6c6d4ed67095417c4ef",
+    "src/afterworlds/persistence/orm/corpus.py": "2b6c45b34b7c3379bee30c8a1ff5426ccedee3d2f11269e372a4a7c21540f02f",
+    "src/afterworlds/persistence/orm/base.py": "f82f2dc9dcb2e0c6873082c360c223743c0bc747e06b73ba03ed991f7a4d909d",
+    "src/afterworlds/persistence/orm/rules_package.py": "8a3e64f772a4268913535813838af507b414c6f47d40189c6c0c182a544ae785",
+    "src/afterworlds/quarantine.py": "c9a03d8576b50134df0f7e32495c75e801fbfd32e95834b3a70be5d37919ce20",
+    "src/afterworlds/ingestion/mechanical/validation.py": "3b32df131007deb4efcba401e3b2cc012015f8703a32df670422c377a25d499c",
+    "src/afterworlds/ingestion/mechanical/raw_state.py": "d8e9ef12d5b12ed3286c9b5e929bba65917bc6dfa6f1c298ade6222ca130f814",
+    "src/afterworlds/persistence/orm/mechanical.py": "08e2d3d7f56a0bb0c574e56112eef3c8fb06155d42f5732b06705bd96969d3a4",
+    "src/afterworlds/services/rules_authority/override_set.py": "d660a8a47542bd5b173ffb9b182892209f56e92dca8a4c756951b207d743f24a",
+    "src/afterworlds/persistence/orm/rules_authority.py": "026b847158318e88cbb844f45da051ab0d1e107142add3c4190174c15ca18b10",
+    "src/afterworlds/services/rules_authority/patches.py": "a54cc6b02d8cd138c29ea3f768495dfdda2ed623224a2e8d050d332ed4bfcfef",
+    "src/afterworlds/services/rules_authority/targets.py": "222468cae65263ae744b433545af163be8d70ffcc1e119c8aa800f4e8274dcaa",
+    "src/afterworlds/services/rules_authority/binding.py": "62110895c752b47360b215c459f1aca8046ecb39a4c200a27d29f9d055fc1d21",
+    "src/afterworlds/ingestion/mechanical/publication.py": "8bfd7ed4ae9adf45b20bfe03695dd5380931c8badbb10caad7a2ffedb76a8655",
+    "src/afterworlds/ingestion/mechanical/gate.py": "01e7476f4d91784a47fb7c30f8988ccdacdbb64d6bf3ebebf2449f74128384f7",
+    "src/afterworlds/ingestion/mechanical/oracle.py": "ef44f007fd0303d83c851ef1862608607edbf9fae79220f047447f1b8d04acc5",
+    "src/afterworlds/ingestion/mechanical/reference_resolution.py": "d5160a78d372ed763c577d72c0510d7a287f5ba99ac29784632e31f72ace6ec1",
+    "src/afterworlds/ingestion/mechanical/schema_lift.py": "46df4ccb1e4418c955358f195c798ddf9dd4a6b53709492fd6cfb0a87e44d00f",
+    "src/afterworlds/ingestion/mechanical/persistence.py": "b2add44326b007f6ffdd02ba0e9e409a2767b871fa9c22c2cb0155e3e6720d98",
+    "src/afterworlds/ingestion/mechanical/report.py": "a3ff94765c2fae2e4770f390c3a1ae033d24528c0ded68f5a0b04e9f33b9b80f",
+    "src/afterworlds/services/rules_authority/outcomes.py": "bb842e4393b4ef34e1efb58e6405d7aab7b438a5633c8a3e0ef915fb16d21100",
+    "src/afterworlds/services/rules_authority/retention.py": "171e0b48d8def76fb2cf85936a5a2e9c80eda97349e435d93d6b2ffac9934c82",
+    "src/afterworlds/persistence/database.py": "a0fdd5e72f0c6d24e72987fe5cd621345aaf40193bcbb7a68d8ad77229c94b44",
+    "src/afterworlds/services/rules_authority/service.py": "775d681fda8716fb278f1cd29947b9de7b0acb0427a27a55fb5335fbd8126333",
+    "src/afterworlds/services/rules_authority/views.py": "f45c8e1f1d36d49770405ffd6aca19e22a4647c933027a279a7495bf63140c63",
+    "src/afterworlds/pipeline/rpg/conditions.py": "d4103afca88b65195a7dda12bc61ee6ae8e1247fa56575052b4e43619b8bbd03",
+    "src/afterworlds/services/dnd5e_state/turn.py": "62c07289af79017a40646df27ffb3da6e62b4aa2a89c846166d573ab53fd71f9",
+    "src/afterworlds/persistence/orm/dnd5e_state.py": "ebe9b4a157419990ba1ea6142fead721b4fc3276bcaedfc482cba725d8ec3b5c",
+    "src/afterworlds/services/dnd5e_state/adoption.py": "9db856ecf74ac849b2cd4d39007abff38dac40b024109fa1ef225d26262f2c8e",
+    "src/afterworlds/services/dnd5e_state/store.py": "9d9ef82498ece463cd9bf4296435b2addd3c182888fa046239ef152a5b08d261",
+    "src/afterworlds/persistence/orm/character_sheet.py": "aa6317b981cca1ef42b2f7df0f34b9081d6028a3241a3542c1531945a83b73a6",
+    "src/afterworlds/services/dnd5e_state/holdings.py": "7fce56801b360d5e8df468e98c9e962dbe77e8a260e9a2b5df484517f5bd39c9",
+    "src/afterworlds/services/dnd5e_state/shared_changes.py": "1e34ddf349450ebe05a0bfd53b570fa72923259a85396f799f55304fe093582a",
+    "src/afterworlds/persistence/orm/rpg.py": "cc6f772ffd78178a2d8e109803cad0c49da05859b162ee749e989627920db002",
+    "src/afterworlds/services/dnd5e_state/validation.py": "d604a7e811117cb1ad4c2530cf085c4eaaca3c401798e0a254cf6bba70e9c64d",
+    "src/afterworlds/services/dnd5e_state/leases.py": "932ff9754cf9034c439ff64e52019400dd86b697282c629b3c351ec28de612f3",
+    "src/afterworlds/services/dnd5e_state/effects.py": "0f69d2d65b01c394f0d59a7734c9191a9c86811de4e7016ccb42202a0ce1349a",
+    "src/afterworlds/services/dnd5e_state/service.py": "3a4a8dad0c2cea365d0967045eddd563b14a378fbebb08485495cfa38c309ae9",
+    "src/afterworlds/persistence/orm/story_bible.py": "3eb3c923a3df4858f776cea5d2ff4a459ae028e193dd71e090605c52ea9b228c",
+    "src/afterworlds/pipeline/rpg/checks.py": "1233d5c3faba01a78e9cce95ad5a683add61404fc74d1c83db6d13abd0d6efc5",
+    "src/afterworlds/pipeline/rpg/dice.py": "13217b9c4b1b30ab6c5e6c2720dbb14d917cf414d8c5ffecaf0e2db43bbf4030",
+    "src/afterworlds/pipeline/rpg/grants.py": "d860f3b8b9360994cc6a3206f7da2a967110bf966cc88c1ee8ec3976a718780f",
+    "src/afterworlds/pipeline/rpg/mastery.py": "b7c53fe251245452179ebd4ffa032342e2859d75cd0af68cd84ade786915ab50",
+    "src/afterworlds/pipeline/rpg/damage.py": "339bddd9efc0137a2974b3636e139b4dcdbebedb8b4a62f2317c8ceef239939f",
+    "src/afterworlds/pipeline/rpg/defense.py": "73aff23c583a03630b0575507c268d4f178d07f696b6843faa35167cb6d4ca7c",
+    "src/afterworlds/pipeline/rpg/hands.py": "74da351abc2753ca6f241615ac1dec73e768fe3caf0d8cb41fac78978c214a0e",
+    "src/afterworlds/pipeline/rpg/saves.py": "fa4e4732830e09dba94fb1951474cc93f0540fd65543a400caf2e5b79674341b",
+    "src/afterworlds/pipeline/rpg/creature_attacks.py": "e084ca4aa8869c80ba2a6f31a8220adffb3b9422e972dde95ce903ca8ff6f6c8",
+    "src/afterworlds/pipeline/rpg/creature_clauses.py": "40120b94b63bc9cb0b639014f32a2b359e86d92828efac88cd36f08bc1087a4f",
+    "src/afterworlds/pipeline/rpg/creature_effects.py": "4b5c1c430cf9fb2733ce77a2c7b0ba050b886ba1de9c2a76e1d1dd05875ae8cb",
+    "src/afterworlds/pipeline/rpg/creature_types.py": "5c4690d9ddf43abab03c7a370044ac3da8dc35c65527e0b744c1738699d289bf",
+    "src/afterworlds/pipeline/rpg/roster.py": "4fa41567b7fab2d9b60087efac596608239148bbc85f10dc563566cbef4551ec",
+    "src/afterworlds/pipeline/rpg/lifecycle.py": "d8eccc9a9d814cb134a9e870b9b06ef7fbb1a8e49ba7c9cd673cfae33eeeba0d",
+    "src/afterworlds/pipeline/rpg/service.py": "19410903645809b6f1f900997b7586a2f1c36ece1c34bb2669acc93ef5d3da82",
+    "src/afterworlds/entitlement/__init__.py": "fc5d21d6269b212133f946d9c4368b77dc5b4b7c6b18829e76e175fe954202f0",
+    "src/afterworlds/entitlement/enums.py": "8fa5b9fc962379dfd75b645eee89efb201eb7b30bce91a364fd0f5e9564426f8",
+    "src/afterworlds/pipeline/_refusal.py": "4951a82893a76e3a4b5223bc199c44cd9309539f312510d9a75d86304ff28313",
+    "src/afterworlds/pipeline/_stable_prefix_renderer.py": "4ee7451ec9458d2b84ea7b8d2e8b7ea5b664e80032c785caddabf6196e477723",
+    "src/afterworlds/pipeline/provider/__init__.py": "b3736897bab737328b0903ff925de2adc5145286be589884c881562777257077",
+    "src/afterworlds/pipeline/provider/_catalog.py": "78d161ebf82721281c0bcc985a6721597db5ac4ca364280b757556c7fbf7cbee",
+    "src/afterworlds/pipeline/provider/_errors.py": "5823e5d27c542075f1e7dece5ec5bbf4b0db267dc96c5f1b6e3b3c3efbd0dcc5",
+    "src/afterworlds/pipeline/provider/_models.py": "9e2de2c8e746426ef82776fcfb8e52f4013cf64f2da020d0c0621422dd6c71d7",
+    "src/afterworlds/pipeline/provider/_protocol.py": "b7657218ee0b8b28555f008f1e9bd1ef6dbfc59dc6f5434ead7346a5a09dea9e",
+    "src/afterworlds/pipeline/provider/_readiness.py": "bc9c6544fd98dd9bdb1912bef7d0c2ab260c4458e5893e63135041b0600bcaf0",
+    "src/afterworlds/pipeline/provider/credentials/__init__.py": "14d2ccfbb600ac213f3f4aeb77348561fcbe3c104b2e5e39cc09089d799974e8",
+    "src/afterworlds/pipeline/provider/credentials/_metadata.py": "c26d8d36bf2bc7f60aabd12cfb1d09b87f5a68b0af98250c77d15f145e967e0a",
+    "src/afterworlds/pipeline/provider/credentials/_store.py": "9365635513834319e3475769452ada8efec5e87e4c02578f05f82a2e01828385",
+    "src/afterworlds/pipeline/provider/credentials/_validator.py": "17741b86084ed38230ed5b329bdb3352d8ea9ba3bcdb7e961d74c2f194e481f8",
+    "src/afterworlds/pipeline/provider/_registry.py": "2acacedb29ec7b660f743f3e6beb6a3e4c597bc8b263a29f6f02fb490c445e44",
+    "src/afterworlds/pipeline/provider/_routing.py": "60da86853c648c4625731ab3ae65412989c98cc3ef937d24032df66f27080ff0",
+    "src/afterworlds/pipeline/writer/__init__.py": "d4bab5d37fab70218430aef0f701fa1b5b76bb66b3c5aff52de3ff42e5f1d06e",
+    "src/afterworlds/pipeline/writer/models.py": "2d58d1160a68bf1416dc6572d6caa399a15d9b028c115de0d3f1ff8ef58c3306",
+    "src/afterworlds/pipeline/provider/adapters/__init__.py": "ddcebce2d65f94e9fe1ea0f7dfaf32dcb1c5ad755045d7df791ba7c6c41cb0a3",
+    "src/afterworlds/pipeline/provider/adapters/_anthropic.py": "d7664951d9913405244bdc05c51a24ab2771fc34fc377299737a58a9e22a88de",
+    "src/afterworlds/pipeline/provider/adapters/_fallback.py": "cadc7f77ed4d1fe7298b657dc378560fc64244ffefebac3dbad19199476cf9ea",
+    "src/afterworlds/pipeline/provider/adapters/_openrouter.py": "b11ebec608123226e6040e1682c5f237ce7801ce2632e802e4ed9bdee8903dfb",
+    "src/afterworlds/pipeline/provider/adapters/_scoped.py": "3db474fac63357cc41c89c3f83e026e2acd2571a0f8eb73f7af4c8b023f3104f",
+    "src/afterworlds/pipeline/provider/_resolver.py": "5b2b35d096e5a2bcdb34aa43e2c68ce0b50d4c4952f98dc9acf8826b59d82736",
+    "src/afterworlds/pipeline/provider/normalization.py": "bd06c30c12e47a784aab3f712bd22f366ebffbf88028c63899d2ca3eab85094d",
+    "src/afterworlds/pipeline/rpg/economy.py": "eccc6825b8f6a047f9e26e1e576378ca10ba0aa4d27fbec49d3cb7156085e4bb",
+    "src/afterworlds/pipeline/rpg/caller.py": "899bc4238f755096690bac59c310c30c3fbd34ff9f03b4c5df16192caea8a5e6",
+    "src/afterworlds/pipeline/rpg/config.py": "3b2a36981d20b9d787094bd9951dfcb5bee070a05c14d91305dcf1add551c4d6",
+    "src/afterworlds/services/dnd5e_state/coordination.py": "1aa2e9464f58e6bb8909757db72424e00c0221f466f96ed897d794bfc4adbb4d",
+    "tests/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tests/pipeline/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tests/pipeline/rpg/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tests/pipeline/rpg/test_adjudication_service.py": "5c1e68dd36313001b2904112e690aab51c118edef74a8897fe0e447c2625bc79",
+    "tests/rpg_characters.py": "457746fee4d18b9f790ca6eb00bf7ae73d462e53393853523384f8616eaf5030",
+    "tests/pipeline/rpg/test_creature_types.py": "c695ce389732126ad35dede0347864d15429e7d57fc515b062cb900cf64e8cd1",
+    "tests/pipeline/rpg/test_creature_attacks.py": "fab5e2e5ab665342c3450b786a35d4deca0197566d5cb07f50f03c6b461a9abe",
+    "tests/pipeline/rpg/test_weapon_attacks.py": "95015e10846f95456f1d60848ffc2a440cba36e625fecc57f31f785bbbc4325e",
+    "tests/services/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tests/services/dnd5e_state/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "tests/services/dnd5e_state/builders.py": "0482703347b1cd7ea2d2b138f9fdbd3ae5912d9af2aabedeba38e1440806c4ae",
+    "tests/pipeline/rpg/test_turn_sequencing.py": "c7dc9b38bcce5f5d418f6e6b49e7fe63c9a31f543893197468f8561e830d0138",
+    "tests/pipeline/rpg/test_creature_effects.py": "5967533d062c20e3d4a93dd9458fb39fdd93343bb30f61a1bee549f0bb313226",
+    "tests/pipeline/rpg/test_actor_turns.py": "9142ab1c69cf9850579baa2713e0b91d8f6d2edfcabadd6af9e37e58363c948a",
+    "tests/pipeline/rpg/test_zero_hp_lifecycle.py": "d0c96754e313bd1689b1aec0d60e231e3f5fdcbaa532c37595b55983cf637b7c"
+  }
+}

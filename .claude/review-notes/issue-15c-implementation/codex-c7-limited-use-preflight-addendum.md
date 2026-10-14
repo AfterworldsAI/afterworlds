@@ -1,0 +1,9 @@
+# CRD Issue 15c — limited-use preflight sibling
+
+Static review of the stopped `00b822471d9658ad34d79de929736558883f342b` implementation. Ordinary P1 correction within the existing preflight/resource-consumption family; no new semantic candidate or Owner policy choice.
+
+`creature_effects.usable` checks the currently expended Recharge/X-per-day counter before execution; `spend` deterministically increments it. `service.py:491-535` preflights each proposal with possible conditions but does not thread these deterministic usage expenditures. Resolution then advances each source subject's counters after a proposal. Thus two proposals for the same initially ready one-use Recharge entry can both pass preflight; the first spends it, and the second refuses after the first dice. The service raises `PreflightGapError`, failing the turn after rolls rather than refusing the invalid composition before dice. The Black Dragon Wyrmling Acid Breath setup in `test_creature_effects.py` provides a real accepted one-use example; existing tests cover only already-spent single-entry refusal and begin-turn Recharge.
+
+Include deterministic limited-use consumption in the preflight read/state/resource accounting alongside ammunition and action costs. Cover duplicate use of an initially ready Recharge entry and crossing a per-day quota, asserting no die or partial mutation. If a later operation's eligibility depends on a random Recharge result, keep that unresolved branch explicitly held or use an already-authorized bounded linked-resolution contract; do not assume a successful recharge. Source consumption is not conditional on a successful attack/save.
+
+This is a recurrence-triggered sibling of the accepted preflight family, not a request for another general resource/rest engine. Existing daily-reset exclusions, source qualifications, exact bindings and atomic delivery remain.

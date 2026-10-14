@@ -1,0 +1,29 @@
+{
+ "base_type_facts": 345,
+ "source_type_choices": 1,
+ "total_facts": 346,
+ "touched_batches": {
+  "animals": {
+   "components": 95,
+   "facts": 95
+  },
+  "character-origins-feats": {
+   "components": 9,
+   "facts": 9
+  },
+  "magic-items": {
+   "components": 2,
+   "facts": 2
+  },
+  "monsters": {
+   "components": 235,
+   "facts": 235
+  },
+  "spell-descriptions": {
+   "components": 5,
+   "facts": 5
+  }
+ },
+ "untouched_batch_count": 19,
+ "why": "Ghast and Ghoul Claw can target any creature or character; each admitted target needs its source type to decide the Undead exclusion"
+}

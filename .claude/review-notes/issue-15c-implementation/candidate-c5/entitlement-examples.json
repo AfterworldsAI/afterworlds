@@ -1,0 +1,57 @@
+{
+ "note": "source-rule assertions over the candidate's facts; not runtime entitlement validation, which stays held until native semantic acceptance",
+ "source_rule_assertions": [
+  {
+   "asserted_against": "the candidate's own typed facts",
+   "source_rule_assertion": "Barbarian as a multiclass entry grants Martial weapons and Shields"
+  },
+  {
+   "asserted_against": "the candidate's own typed facts",
+   "source_rule_assertion": "Barbarian as a multiclass entry grants no saving throws or Simple weapons"
+  },
+  {
+   "asserted_against": "the candidate's own typed facts",
+   "source_rule_assertion": "Monk (level 1) is proficient with Martial weapons only if they have the Light property"
+  },
+  {
+   "asserted_against": "the candidate's own typed facts",
+   "source_rule_assertion": "Monk (level 1) Martial proficiency with a Heavy-only weapon is not granted"
+  },
+  {
+   "asserted_against": "the candidate's own typed facts",
+   "source_rule_assertion": "Wizard has no Expertise grant (only Scholar's one listed skill)"
+  },
+  {
+   "asserted_against": "the candidate's own typed facts",
+   "source_rule_assertion": "Barbarian Weapon Mastery counts only Melee weapons"
+  },
+  {
+   "asserted_against": "the candidate's own typed facts",
+   "source_rule_assertion": "Barbarian Weapon Mastery is 2 kinds at level 3 and 4 at level 10"
+  },
+  {
+   "asserted_against": "the candidate's own typed facts",
+   "source_rule_assertion": "Paladin Weapon Mastery requires proficiency with the weapon"
+  },
+  {
+   "asserted_against": "the candidate's own typed facts",
+   "source_rule_assertion": "Soldier chooses exactly one kind of Gaming Set"
+  },
+  {
+   "asserted_against": "the candidate's own typed facts",
+   "source_rule_assertion": "All six saving throws only through Disciplined Survivor (level 14)"
+  },
+  {
+   "asserted_against": "the candidate's own typed facts",
+   "source_rule_assertion": "College of Lore's three skills need the College of Lore subclass at Bard level 3"
+  },
+  {
+   "asserted_against": "the candidate's own typed facts",
+   "source_rule_assertion": "Grappler's +1 needs level 4 and Strength or Dexterity 13"
+  }
+ ],
+ "vocabulary_resolution": {
+  "fields_checked": 89,
+  "unresolved": []
+ }
+}

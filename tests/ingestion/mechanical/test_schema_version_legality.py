@@ -207,6 +207,7 @@ from afterworlds.ingestion.mechanical.representation import (
     WeaponCategoryFact,
     WeaponMastery,
     WeaponMasteryFact,
+    fact_from_payload,
     introduction_manifest,
     post_schema_3_violations,
     representation_schema_hash,
@@ -242,7 +243,13 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_16_VERSION,
     SCHEMA_17_HASH,
     SCHEMA_17_VERSION,
+    SCHEMA_18_HASH,
     SCHEMA_18_VERSION,
+    SCHEMA_19_HASH,
+    SCHEMA_19_VERSION,
+    SCHEMA_20_HASH,
+    SCHEMA_20_VERSION,
+    SCHEMA_21_VERSION,
     SchemaLiftError,
     accepted_schema_contracts,
     lift_accepted_inputs,
@@ -863,6 +870,73 @@ SCHEMA_18_ONLY = [
     ),
 ]
 
+#: Real accepted facts from the recorded CRD Issue 15c successor that together
+#: exercise every value schema 19 added: each of its 126 families and each
+#: member of the vocabularies minted with them. Three ``EntrySubject`` members
+#: C5 states only on unminted prose entries are carried by a real
+#: ``check_requirement_removal`` fact with just that field replaced. Generated
+#: by ``.claude/review-notes/issue-15c-recording/schema19_exemplars.py``.
+SCHEMA_19_ONLY = [
+    pytest.param(fact_from_payload(payload), id=f"family-{payload['family']}-{index}")
+    for index, payload in enumerate(
+        json.loads(
+            (pathlib.Path(__file__).parent / "data/schema_19_exemplars.json").read_text(
+                encoding="utf-8"
+            )
+        )
+    )
+]
+
+
+#: Schema 20 (CRD Issue 15c C7): one family and no vocabulary. Raw
+#: candidate C7's narrowed and unnarrowed rows (equipment.md:1232, :1218).
+SCHEMA_20_ONLY = [
+    pytest.param(fact_from_payload(p), id=f"ammunition-supply-{i}")
+    for i, p in enumerate(
+        (
+            {
+                "family": "ammunition_supply",
+                "kind": "bullet",
+                "for_weapons": [
+                    {
+                        "record_key": "equipment.weapons.musket",
+                        "component_key": "musket",
+                    },
+                    {
+                        "record_key": "equipment.weapons.pistol",
+                        "component_key": "pistol",
+                    },
+                ],
+            },
+            {"family": "ammunition_supply", "kind": "arrow", "for_weapons": None},
+        )
+    )
+]
+
+
+#: Schema 21 (CRD Issue 15c C8): two families and one vocabulary. Raw
+#: candidate C8's Allosaurus (animals.md:5), Find Steed's steed
+#: (spells.md:2323) and the Find Familiar source choice (spells.md:2290).
+SCHEMA_21_ONLY = [
+    pytest.param(fact_from_payload(p), id=f"creature-type-{i}")
+    for i, p in enumerate(
+        (
+            {"family": "creature_type", "type": "beast", "type_choice": []},
+            {
+                "family": "creature_type",
+                "type": None,
+                "type_choice": ["celestial", "fey", "fiend"],
+            },
+            {
+                "family": "summoned_creature_type",
+                "type_choice": ["celestial", "fey", "fiend"],
+                "instead_of": "beast",
+                "forms": [{"record_key": "animals.bat", "component_key": "bat"}],
+            },
+        )
+    )
+]
+
 
 # ---------------------------------------------------------------------------
 # The contract, driven from the manifest rather than from a hand-written list
@@ -891,6 +965,9 @@ def test_every_manifest_row_has_an_exemplar_here() -> None:
         *SCHEMA_16_ONLY,
         *SCHEMA_17_ONLY,
         *SCHEMA_18_ONLY,
+        *SCHEMA_19_ONLY,
+        *SCHEMA_20_ONLY,
+        *SCHEMA_21_ONLY,
     ):
         (obj,) = param.values
         exercised |= _groups_exercised_by(obj)
@@ -1158,6 +1235,50 @@ def test_schema_18_admits_what_it_introduced(obj: object) -> None:
 def test_schema_18_still_admits_every_earlier_introduction(obj: object) -> None:
     """A mint admits its predecessors' introductions; it does not replace them."""
     assert post_schema_3_violations(obj, SCHEMA_18_VERSION) == []
+
+
+@pytest.mark.parametrize("obj", SCHEMA_19_ONLY)
+def test_schema_18_refuses_every_schema_19_only_type_or_value(
+    obj: object,
+) -> None:
+    """Schema 18 cannot state the bounded-d20 source contract (CRD Issue 15c)."""
+    assert post_schema_3_violations(obj, SCHEMA_18_VERSION), obj
+
+
+@pytest.mark.parametrize("obj", SCHEMA_19_ONLY)
+def test_schema_19_admits_what_it_introduced(obj: object) -> None:
+    """And the other direction, so the rule is not "refuse everything newer"."""
+    assert post_schema_3_violations(obj, SCHEMA_19_VERSION) == []
+
+
+@pytest.mark.parametrize(
+    "obj", [*SCHEMA_18_ONLY, *SCHEMA_17_ONLY, *SCHEMA_16_ONLY, *SCHEMA_15_ONLY]
+)
+def test_schema_19_still_admits_every_earlier_introduction(obj: object) -> None:
+    """A mint admits its predecessors' introductions; it does not replace them."""
+    assert post_schema_3_violations(obj, SCHEMA_19_VERSION) == []
+
+
+@pytest.mark.parametrize("obj", SCHEMA_20_ONLY)
+def test_schema_19_refuses_every_schema_20_only_family(obj: object) -> None:
+    """Schema 19 cannot state an ammunition supply (CRD Issue 15c C7)."""
+    assert post_schema_3_violations(obj, SCHEMA_19_VERSION), obj
+
+
+@pytest.mark.parametrize("obj", [*SCHEMA_20_ONLY, *SCHEMA_19_ONLY, *SCHEMA_18_ONLY])
+def test_schema_20_admits_what_it_and_its_predecessors_introduced(obj: object) -> None:
+    assert post_schema_3_violations(obj, SCHEMA_20_VERSION) == []
+
+
+@pytest.mark.parametrize("obj", SCHEMA_21_ONLY)
+def test_schema_20_refuses_every_schema_21_only_family(obj: object) -> None:
+    """Schema 20 cannot state a creature type (CRD Issue 15c C8)."""
+    assert post_schema_3_violations(obj, SCHEMA_20_VERSION), obj
+
+
+@pytest.mark.parametrize("obj", [*SCHEMA_21_ONLY, *SCHEMA_20_ONLY, *SCHEMA_19_ONLY])
+def test_schema_21_admits_what_it_and_its_predecessors_introduced(obj: object) -> None:
+    assert post_schema_3_violations(obj, SCHEMA_21_VERSION) == []
 
 
 def test_schema_16_leaves_every_pre_existing_relationship_kind_readable() -> None:
@@ -1647,7 +1768,9 @@ def test_the_recognized_contracts_are_exactly_the_live_pair_and_the_registry() -
         # schema 9 at schema 10, schema 10 at schema 11 and schema 11 at schema
         # 12, schema 12 at schema 13, schema 13 at schema 14, schema 14 at
         # schema 15, schema 15 at schema 16, schema 16 at schema 17 and schema
-        # 17 at schema 18. The
+        # 17 at schema 18, schema 18 at schema 19, schema 19 at schema 20,
+        # and schema 20 at schema 21.
+        # The
         # rule is the registry, not a list of versions somebody kept up to date.
         (SCHEMA_5_VERSION, SCHEMA_5_HASH),
         (SCHEMA_6_VERSION, SCHEMA_6_HASH),
@@ -1662,6 +1785,9 @@ def test_the_recognized_contracts_are_exactly_the_live_pair_and_the_registry() -
         (SCHEMA_15_VERSION, SCHEMA_15_HASH),
         (SCHEMA_16_VERSION, SCHEMA_16_HASH),
         (SCHEMA_17_VERSION, SCHEMA_17_HASH),
+        (SCHEMA_18_VERSION, SCHEMA_18_HASH),
+        (SCHEMA_19_VERSION, SCHEMA_19_HASH),
+        (SCHEMA_20_VERSION, SCHEMA_20_HASH),
     }
 
 

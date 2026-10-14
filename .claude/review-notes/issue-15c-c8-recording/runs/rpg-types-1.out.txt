@@ -1,0 +1,48 @@
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+.....F..............F................................................... [ 57%]
+....................................................F                    [100%]
+================================== FAILURES ===================================
+_ test_an_undead_target_takes_the_damage_without_the_rider[monsters.ghast.ghast] _
+tests\pipeline\rpg\test_creature_types.py:148: in test_an_undead_target_takes_the_damage_without_the_rider
+    assert calls == ["1d20", "1d4"]  # no save rolled
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   AssertionError: assert ['1d20', '2d6'] == ['1d20', '1d4']
+E     
+E     At index 1 diff: '2d6' != '1d4'
+E     Use -v to get more diff
+____ test_a_character_whose_recorded_type_contradicts_its_species_refuses _____
+tests\pipeline\rpg\test_creature_types.py:297: in test_a_character_whose_recorded_type_contradicts_its_species_refuses
+    _refuses(RefusalKind.INVALID_SELECTION, wizard)
+tests\pipeline\rpg\test_creature_types.py:186: in _refuses
+    return _refused(kind, _claw(ghoul, target), wizard, subjects).detail
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\pipeline\rpg\test_creature_attacks.py:67: in _refused
+    assert caught.value.kind is kind, caught.value
+E   AssertionError: AdjudicationRefusal('[missing_state] the target was not read for this turn')
+E   assert <RefusalKind.MISSING_STATE: 'missing_state'> is <RefusalKind.INVALID_SELECTION: 'invalid_selection'>
+E    +  where <RefusalKind.MISSING_STATE: 'missing_state'> = AdjudicationRefusal('[missing_state] the target was not read for this turn').kind
+E    +    where AdjudicationRefusal('[missing_state] the target was not read for this turn') = <ExceptionInfo AdjudicationRefusal('[missing_state] the target was not read for this turn') tblen=3>.value
+_________ test_the_prompt_contract_lists_exactly_the_manifest_roster __________
+tests\pipeline\rpg\test_bounded_checks.py:1240: in test_the_prompt_contract_lists_exactly_the_manifest_roster
+    assert f"`{operation.value}`" in prompt, operation
+E   AssertionError: creature_species
+E   assert '`creature_species`' in '# RPG Adjudication Pass Prompt Contract v4\n\n*Canonical source for the RPG_ADJUDICATION pipeline pass system prompt....l required\n\n```json\n{\n  "rolls": [],\n  "reasoning_note": "Player is asking the innkeeper about rumors."\n}\n```\n'
+============================== warnings summary ===============================
+tests/pipeline/rpg/test_creature_types.py::test_a_ghast_claw_paralyzes_an_elf_character
+tests/pipeline/rpg/test_creature_types.py::test_a_ghoul_claw_paralyzes_a_non_elf_character
+tests/pipeline/rpg/test_creature_types.py::test_a_ghoul_claw_spares_an_elf_character
+tests/pipeline/rpg/test_creature_attacks.py::test_a_wolf_bite_damages_and_knocks_a_medium_character_prone
+tests/pipeline/rpg/test_creature_attacks.py::test_pack_tactics_needs_a_named_ally_that_can_act
+tests/pipeline/rpg/test_creature_attacks.py::test_a_multiattack_is_one_printed_alternative_taking_one_use
+tests/pipeline/rpg/test_creature_roster.py::test_every_admitted_shape_executes_and_every_other_entry_refuses
+  D:\AI\Claude\scratch\AW docs\issue2b-implementation\afterworlds\venv\Lib\site-packages\pydantic\main.py:520: UserWarning: Pydantic serializer warnings:
+    PydanticSerializationUnexpectedValue(Expected `enum` - serialized value may not be as expected [field_name='size', input_value='medium', input_type=str])
+    return self.__pydantic_serializer__.to_python(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/pipeline/rpg/test_creature_types.py::test_an_undead_target_takes_the_damage_without_the_rider[monsters.ghast.ghast]
+FAILED tests/pipeline/rpg/test_creature_types.py::test_a_character_whose_recorded_type_contradicts_its_species_refuses
+FAILED tests/pipeline/rpg/test_bounded_checks.py::test_the_prompt_contract_lists_exactly_the_manifest_roster
+3 failed, 122 passed, 7 warnings in 37.19s
+Focused diagnostics FAILED (exit 1). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence

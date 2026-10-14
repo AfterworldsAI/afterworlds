@@ -1,0 +1,302 @@
+{
+ "anchored_oracle_sha256": "2ccbaeba6de75d9787fbdd407e42dc2425fa20d4d26bcc298b681b550bd11258",
+ "candidate_id": "15c-C3-C",
+ "facts": [
+  {
+   "component_key": "padded_armor",
+   "fact": {
+    "adds_dexterity_modifier": true,
+    "base": 11,
+    "category": "light",
+    "dexterity_maximum": null,
+    "family": "armor_class_formula",
+    "stealth_disadvantage": true,
+    "strength_minimum": null
+   },
+   "record_key": "equipment.armor.padded_armor",
+   "source": {
+    "file": "equipment.md",
+    "line": 477,
+    "quote": "<td>Padded Armor</td>"
+   }
+  },
+  {
+   "component_key": "leather_armor",
+   "fact": {
+    "adds_dexterity_modifier": true,
+    "base": 11,
+    "category": "light",
+    "dexterity_maximum": null,
+    "family": "armor_class_formula",
+    "stealth_disadvantage": false,
+    "strength_minimum": null
+   },
+   "record_key": "equipment.armor.leather_armor",
+   "source": {
+    "file": "equipment.md",
+    "line": 485,
+    "quote": "<td>Leather Armor</td>"
+   }
+  },
+  {
+   "component_key": "studded_leather_armor",
+   "fact": {
+    "adds_dexterity_modifier": true,
+    "base": 12,
+    "category": "light",
+    "dexterity_maximum": null,
+    "family": "armor_class_formula",
+    "stealth_disadvantage": false,
+    "strength_minimum": null
+   },
+   "record_key": "equipment.armor.studded_leather_armor",
+   "source": {
+    "file": "equipment.md",
+    "line": 493,
+    "quote": "<td>Studded Leather Armor</td>"
+   }
+  },
+  {
+   "component_key": "hide_armor",
+   "fact": {
+    "adds_dexterity_modifier": true,
+    "base": 12,
+    "category": "medium",
+    "dexterity_maximum": 2,
+    "family": "armor_class_formula",
+    "stealth_disadvantage": false,
+    "strength_minimum": null
+   },
+   "record_key": "equipment.armor.hide_armor",
+   "source": {
+    "file": "equipment.md",
+    "line": 504,
+    "quote": "<td>Hide Armor</td>"
+   }
+  },
+  {
+   "component_key": "chain_shirt",
+   "fact": {
+    "adds_dexterity_modifier": true,
+    "base": 13,
+    "category": "medium",
+    "dexterity_maximum": 2,
+    "family": "armor_class_formula",
+    "stealth_disadvantage": false,
+    "strength_minimum": null
+   },
+   "record_key": "equipment.armor.chain_shirt",
+   "source": {
+    "file": "equipment.md",
+    "line": 512,
+    "quote": "<td>Chain Shirt</td>"
+   }
+  },
+  {
+   "component_key": "scale_mail",
+   "fact": {
+    "adds_dexterity_modifier": true,
+    "base": 14,
+    "category": "medium",
+    "dexterity_maximum": 2,
+    "family": "armor_class_formula",
+    "stealth_disadvantage": true,
+    "strength_minimum": null
+   },
+   "record_key": "equipment.armor.scale_mail",
+   "source": {
+    "file": "equipment.md",
+    "line": 520,
+    "quote": "<td>Scale Mail</td>"
+   }
+  },
+  {
+   "component_key": "breastplate",
+   "fact": {
+    "adds_dexterity_modifier": true,
+    "base": 14,
+    "category": "medium",
+    "dexterity_maximum": 2,
+    "family": "armor_class_formula",
+    "stealth_disadvantage": false,
+    "strength_minimum": null
+   },
+   "record_key": "equipment.armor.breastplate",
+   "source": {
+    "file": "equipment.md",
+    "line": 528,
+    "quote": "<td>Breastplate</td>"
+   }
+  },
+  {
+   "component_key": "half_plate_armor",
+   "fact": {
+    "adds_dexterity_modifier": true,
+    "base": 15,
+    "category": "medium",
+    "dexterity_maximum": 2,
+    "family": "armor_class_formula",
+    "stealth_disadvantage": true,
+    "strength_minimum": null
+   },
+   "record_key": "equipment.armor.half_plate_armor",
+   "source": {
+    "file": "equipment.md",
+    "line": 536,
+    "quote": "<td>Half Plate Armor</td>"
+   }
+  },
+  {
+   "component_key": "ring_mail",
+   "fact": {
+    "adds_dexterity_modifier": false,
+    "base": 14,
+    "category": "heavy",
+    "dexterity_maximum": null,
+    "family": "armor_class_formula",
+    "stealth_disadvantage": true,
+    "strength_minimum": null
+   },
+   "record_key": "equipment.armor.ring_mail",
+   "source": {
+    "file": "equipment.md",
+    "line": 547,
+    "quote": "<td>Ring Mail</td>"
+   }
+  },
+  {
+   "component_key": "chain_mail",
+   "fact": {
+    "adds_dexterity_modifier": false,
+    "base": 16,
+    "category": "heavy",
+    "dexterity_maximum": null,
+    "family": "armor_class_formula",
+    "stealth_disadvantage": true,
+    "strength_minimum": 13
+   },
+   "record_key": "equipment.armor.chain_mail",
+   "source": {
+    "file": "equipment.md",
+    "line": 555,
+    "quote": "<td>Chain Mail</td>"
+   }
+  },
+  {
+   "component_key": "splint_armor",
+   "fact": {
+    "adds_dexterity_modifier": false,
+    "base": 17,
+    "category": "heavy",
+    "dexterity_maximum": null,
+    "family": "armor_class_formula",
+    "stealth_disadvantage": true,
+    "strength_minimum": 15
+   },
+   "record_key": "equipment.armor.splint_armor",
+   "source": {
+    "file": "equipment.md",
+    "line": 563,
+    "quote": "<td>Splint Armor</td>"
+   }
+  },
+  {
+   "component_key": "plate_armor",
+   "fact": {
+    "adds_dexterity_modifier": false,
+    "base": 18,
+    "category": "heavy",
+    "dexterity_maximum": null,
+    "family": "armor_class_formula",
+    "stealth_disadvantage": true,
+    "strength_minimum": 15
+   },
+   "record_key": "equipment.armor.plate_armor",
+   "source": {
+    "file": "equipment.md",
+    "line": 571,
+    "quote": "<td>Plate Armor</td>"
+   }
+  },
+  {
+   "component_key": "shield",
+   "fact": {
+    "bonus": 2,
+    "family": "shield_bonus"
+   },
+   "record_key": "equipment.armor.shield",
+   "source": {
+    "file": "equipment.md",
+    "line": 582,
+    "quote": "<td>Shield</td>"
+   }
+  },
+  {
+   "component_key": "base_ac",
+   "fact": {
+    "adds_dexterity_modifier": true,
+    "base": 10,
+    "family": "base_armor_class"
+   },
+   "record_key": "play.d20_tests",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 383,
+    "quote": "**Base AC** = 10 + the creature's Dexterity modifier"
+   }
+  },
+  {
+   "component_key": "only_one_base_ac",
+   "fact": {
+    "family": "base_armor_class_exclusivity",
+    "maximum": 1
+   },
+   "record_key": "play.d20_tests",
+   "source": {
+    "file": "playing-the-game.md",
+    "line": 387,
+    "quote": "only one base calculation can be in effect"
+   }
+  },
+  {
+   "component_key": "light_medium_or_heavy_armor",
+   "fact": {
+    "abilities": [
+     "strength",
+     "dexterity"
+    ],
+    "also": "cannot cast spells (outside the roster)",
+    "applies_to": [
+     "light",
+     "medium",
+     "heavy"
+    ],
+    "applies_when": "the wearer lacks training with the worn armor's category",
+    "d20_tests": "disadvantage",
+    "family": "armor_training_penalty"
+   },
+   "record_key": "equipment.armor",
+   "source": {
+    "file": "equipment.md",
+    "line": 596,
+    "quote": "you have Disadvantage on any D20 Test that involves Strength or Dexterity"
+   }
+  },
+  {
+   "component_key": "armor_training",
+   "fact": {
+    "family": "shield_training_requirement",
+    "untrained": "no_armor_class_benefit"
+   },
+   "record_key": "equipment.armor",
+   "source": {
+    "file": "equipment.md",
+    "line": 598,
+    "quote": "You gain the Armor Class benefit of a Shield only if you have training with it"
+   }
+  }
+ ],
+ "proposed_schema": "5d-representation-schema-19 (proposed; not minted)",
+ "status": "CANDIDATE ONLY - not accepted, recorded, minted, published or activated",
+ "supersedes": "15c-C2 (unaccepted)"
+}

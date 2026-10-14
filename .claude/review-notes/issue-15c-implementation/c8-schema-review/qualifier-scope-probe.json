@@ -1,0 +1,21 @@
+{
+  "import": "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\src\\afterworlds\\__init__.py",
+  "condition": "Applicability(kind=<ApplicabilityKind.PHASE: 'phase'>, negated=False, quantity=None, comparison=None, value=None, any_of=(), trigger=None, phase=<Phase.WHILE_ACTIVE: 'while_active'>, outcome=None, damage_outcome=None, unit=None, condition=None, effect_state=None, obscurement=None, cover=None, any_of_terms=(), band=None, casting_time=None)",
+  "cases": {
+    "conditional_component": {
+      "draft_type_findings": [],
+      "component_findings": [],
+      "relational_findings": []
+    },
+    "conditional_type_fact": {
+      "draft_type_findings": [],
+      "component_findings": [],
+      "relational_findings": []
+    },
+    "conditional_size_fact": {
+      "draft_type_findings": [],
+      "component_findings": [],
+      "relational_findings": []
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "started_utc": "2026-10-13T20:32:53.2265840Z",
+  "name": "changed-path-5",
+  "pid": 28336,
+  "exit": 0,
+  "ended_utc": "2026-10-13T20:35:36.5999880Z",
+  "args": [
+    "scripts/run_focused_tests.py",
+    "--check",
+    "src/afterworlds/pipeline/rpg/creature_types.py",
+    "tests/persistence/test_alembic.py",
+    "tests/persistence/test_crud_character_sheet.py",
+    "tests/persistence/test_crud_node.py",
+    "tests/persistence/test_crud_session.py",
+    "tests/persistence/test_crud_state.py",
+    "tests/persistence/test_crud_story.py",
+    "tests/persistence/test_migration_0038_dnd5e_state.py",
+    "tests/persistence/test_migration_0039_story_bible_indexes.py",
+    "tests/persistence/test_migration_0040_history_story_id.py",
+    "tests/persistence/test_migration_0041_rpg_turn_coordination.py",
+    "tests/persistence/test_migration_0042_item_tool_variant.py",
+    "tests/persistence/test_pending_roll_db.py",
+    "tests/persistence/test_physical_transaction.py",
+    "tests/persistence/test_pragmas.py",
+    "tests/persistence/test_retrieval_markers_db.py",
+    "tests/persistence/test_rpg_roll_audit_db.py",
+    "tests/persistence/test_rules_authority_migration.py",
+    "tests/persistence/test_transcript_ordering.py",
+    "tests/test_quarantine_5c_5d.py",
+    "tests/pipeline/rpg/test_creature_types.py"
+  ]
+}

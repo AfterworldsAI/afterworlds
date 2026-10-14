@@ -2075,6 +2075,1075 @@ class WeaponMastery(StrEnum):
     VEX = "vex"
 
 
+# ---------------------------------------------------------------------------
+# Schema 19 vocabularies -- CRD Issue 15c bounded d20 source contract
+# ---------------------------------------------------------------------------
+#
+# Every member below is a value the independently reviewed raw candidate C5
+# states (``.claude/review-notes/issue-15c-implementation/candidate-c5``). Where
+# C5 printed a phrase rather than a token, the member is the phrase's closed
+# reading and the correspondence is disclosed in the native preview's
+# ``correspondence.md``; no member is a reading C5 does not state.
+
+
+class TurnWhich(StrEnum):
+    """Which turn a turn boundary names: *"its next turn"*, *"this turn"*."""
+
+    NEXT = "next"
+    THIS = "this"
+
+
+class TurnOwner(StrEnum):
+    """Whose turn a boundary or trigger belongs to, relative to the entry.
+
+    ``source`` is the creature or effect the entry belongs to, ``target`` the
+    creature it affects, ``subject`` the creature a rule is about, and
+    ``caster`` the creature that cast the spell a stat block belongs to.
+    """
+
+    SOURCE = "source"
+    TARGET = "target"
+    SUBJECT = "subject"
+    CASTER = "caster"
+
+
+class EntrySection(StrEnum):
+    """The stat-block section an entry is printed under."""
+
+    TRAIT = "trait"
+    ACTION = "action"
+    BONUS_ACTION = "bonus_action"
+    REACTION = "reaction"
+    LEGENDARY_ACTION = "legendary_action"
+
+
+class EntrySubject(StrEnum):
+    """Whom a standing trait applies to, relative to the creature printing it."""
+
+    SELF = "self"
+    OTHERS = "others"
+    SELF_AND_ALLIES = "self_and_allies"
+    RIDER = "rider"
+    AMULET_WEARER = "amulet_wearer"
+    CASTER = "caster"
+
+
+class CreatureAttackRange(StrEnum):
+    """A creature attack's printed kind: *"Melee Attack Roll"*, *"Ranged
+    Attack Roll"*, *"Melee or Ranged Attack Roll"*."""
+
+    MELEE = "melee"
+    RANGED = "ranged"
+    MELEE_OR_RANGED = "melee_or_ranged"
+
+
+class AttackAdvantageWhen(StrEnum):
+    """The printed parenthetical on an attack bonus, *"(with Advantage if
+    ...)"*. "Grappled by the <creature>" always names the attacking creature
+    itself, so it is one member."""
+
+    TARGET_MISSING_HIT_POINTS = "target_missing_hit_points"
+    TARGET_GRAPPLED_BY_SOURCE = "target_grappled_by_source"
+    FIRST_ROUND_OF_EACH_COMBAT = "first_round_of_each_combat"
+
+
+class SizeInput(StrEnum):
+    """Which input chooses a size-keyed damage row."""
+
+    RECORDED_SIZE = "recorded_size"
+
+
+class FormulaInput(StrEnum):
+    """A runtime value a parameterized damage term adds."""
+
+    SPELL_LEVEL = "spell_level"
+    CASTER_SPELLCASTING_ABILITY_MODIFIER = "caster_spellcasting_ability_modifier"
+
+
+class FormulaSubject(StrEnum):
+    """Whose values a referenced formula is computed for."""
+
+    CASTER = "caster"
+
+
+class FormulaTerm(StrEnum):
+    """A named term a printed formula sums."""
+
+    SPELLCASTING_ABILITY_MODIFIER = "spellcasting_ability_modifier"
+    PROFICIENCY_BONUS = "proficiency_bonus"
+    ATTACK_ABILITY_MODIFIER = "attack_ability_modifier"
+
+
+class RiderSubject(StrEnum):
+    """Whom a hit or failure rider affects."""
+
+    TARGET = "target"
+
+
+class DamageMode(StrEnum):
+    """Whether a conditional damage term is added to, or replaces, the hit's."""
+
+    ADDITIONAL = "additional"
+    INSTEAD = "instead"
+
+
+class ForcedDirection(StrEnum):
+    """The printed direction of a push or pull."""
+
+    STRAIGHT_AWAY = "straight_away"
+    STRAIGHT_TOWARD_SOURCE = "straight_toward_source"
+
+
+class LinkEnd(StrEnum):
+    """What ends a condition linked to another effect: *"until the grapple
+    ends"*."""
+
+    GRAPPLE_ENDS = "grapple_ends"
+
+
+class TargetTag(StrEnum):
+    """A creature tag a save's target clause or exclusion names: a creature
+    type, a species, a tag (Demon) or *"enemy"*."""
+
+    BEAST = "beast"
+    CELESTIAL = "celestial"
+    DEMON = "demon"
+    ELF = "elf"
+    ENEMY = "enemy"
+    FIEND = "fiend"
+    GIANT = "giant"
+    HUMANOID = "humanoid"
+    UNDEAD = "undead"
+
+
+class SaveSuccess(StrEnum):
+    """A printed success line: *"Half damage."* or *"Half damage only."*"""
+
+    HALF_DAMAGE = "half_damage"
+    HALF_DAMAGE_ONLY = "half_damage_only"
+
+
+class ReuseLimitKind(StrEnum):
+    """*"The <creature> can't take this action again until the start of its
+    next turn."*"""
+
+    ONCE_UNTIL_START_OF_OWN_TURN = "once_until_start_of_own_turn"
+
+
+class AreaShape(StrEnum):
+    """The area shapes C5's save targets print."""
+
+    CONE = "cone"
+    CYLINDER = "cylinder"
+    EMANATION = "emanation"
+    LINE = "line"
+    SPHERE = "sphere"
+
+
+class TargetExclusion(StrEnum):
+    """*"that isn't currently affected by this <effect>"*."""
+
+    CURRENTLY_AFFECTED_BY_THIS_EFFECT = "currently_affected_by_this_effect"
+
+
+class AreaOriginAnchor(StrEnum):
+    """*"originating from the <creature>"*."""
+
+    SOURCE = "source"
+
+
+class SourceEnvironment(StrEnum):
+    """The source's environment a target clause requires."""
+
+    UNDERWATER = "underwater"
+
+
+class TargetsStatedBy(StrEnum):
+    """A save whose participants are stated by its framing sentence."""
+
+    FRAME = "frame"
+
+
+class MultiattackCondition(StrEnum):
+    """A printed condition on one Multiattack alternative."""
+
+    USED_HASTEN_THIS_TURN = "used_hasten_this_turn"
+
+
+class CountFormula(StrEnum):
+    """A Multiattack count stated by a formula, not a number."""
+
+    HALF_SPELL_LEVEL_ROUNDED_DOWN = "half_spell_level_rounded_down"
+    HALF_SUMMONER_PROFICIENCY_BONUS_ROUNDED_UP = (
+        "half_summoner_proficiency_bonus_rounded_up"
+    )
+    PER_HEAD = "per_head"
+
+
+class UsageKind(StrEnum):
+    """A stat-block entry's printed usage parenthetical."""
+
+    RECHARGE = "recharge"
+    PER_DAY = "per_day"
+    LEGENDARY_ACTION_USES = "legendary_action_uses"
+    FORM_ONLY = "form_only"
+    REQUIRES_ENTRY = "requires_entry"
+
+
+class CreatureForm(StrEnum):
+    """A form a *"(<Form> Form Only)"* parenthetical names."""
+
+    BAT = "bat"
+    BEAR = "bear"
+    BOAR = "boar"
+    CELESTIAL = "celestial"
+    CENTIPEDE = "centipede"
+    FEY = "fey"
+    FIEND = "fiend"
+    HUMANOID = "humanoid"
+    HYBRID = "hybrid"
+    OBJECT = "object"
+    RAT = "rat"
+    SPIDER = "spider"
+    TIGER = "tiger"
+    VAMPIRE = "vampire"
+    WOLF = "wolf"
+
+
+class ObserverKind(StrEnum):
+    """Who makes a check another creature's entry sets, as printed."""
+
+    ANOTHER_CREATURE = "another_creature"
+    A_CREATURE_THAT_HEARS_THE_SOUNDS = "a_creature_that_hears_the_sounds"
+    A_HEARER = "a_hearer"
+
+
+class ObserverPurpose(StrEnum):
+    """What an observer check is made for, as printed."""
+
+    TO_DISCERN_THE_SOUNDS_ARE_IMITATIONS = "to_discern_the_sounds_are_imitations"
+    TO_NOTICE_THE_SUBJECT = "to_notice_the_subject"
+
+
+class ContributorStated(StrEnum):
+    """A trait's applicability stated as a sentence rather than a state."""
+
+    FORCING_EFFECT_IS_A_SPELL_OR_MAGICAL = "forcing_effect_is_a_spell_or_magical"
+    SUBJECT_IN_SUNLIGHT = "subject_in_sunlight"
+
+
+class ContributorPurpose(StrEnum):
+    """The purpose a check about the subject must have (Inscrutable)."""
+
+    TO_ASCERTAIN_INTENTIONS_OR_SINCERITY = "to_ascertain_intentions_or_sincerity"
+
+
+class SaveOverrideChooser(StrEnum):
+    """Who chooses to apply a printed save override."""
+
+    GAMEMASTER = "gamemaster"
+
+
+class SaveOverrideOutcome(StrEnum):
+    """The outcome a save override may substitute."""
+
+    SUCCESS = "success"
+
+
+class SaveOverrideTrigger(StrEnum):
+    """When a save override may be used."""
+
+    FAILED_SAVING_THROW = "failed_saving_throw"
+
+
+class SaveOverrideUsage(StrEnum):
+    """Which usage limit governs a save override."""
+
+    PER_ENTRY_LIMIT = "per_entry_limit"
+
+
+class SaveDamageScope(StrEnum):
+    """The effects a save-damage override applies to (Evasion)."""
+
+    HALF_DAMAGE_EFFECTS = "half_damage_effects"
+
+
+class SaveDamageResult(StrEnum):
+    """The damage a save-damage override substitutes."""
+
+    NO_DAMAGE = "no_damage"
+    HALF_DAMAGE = "half_damage"
+
+
+class SurfaceKind(StrEnum):
+    """The surfaces a climb-check removal covers."""
+
+    DIFFICULT_SURFACES_INCLUDING_CEILINGS = "difficult_surfaces_including_ceilings"
+    ICY_SURFACES = "icy_surfaces"
+
+
+class TerrainKind(StrEnum):
+    """Terrain a trait says is not Difficult Terrain for its subject."""
+
+    ICE = "ice"
+    SNOW = "snow"
+
+
+class ZeroHitPointTrigger(StrEnum):
+    """*"If damage reduces the <creature> to 0 Hit Points"*."""
+
+    DAMAGE_REDUCES_SUBJECT_TO_ZERO_HIT_POINTS = (
+        "damage_reduces_subject_to_zero_hit_points"
+    )
+
+
+class DcAddend(StrEnum):
+    """A runtime amount a printed DC adds: *"DC 5 plus the damage taken"*."""
+
+    DAMAGE_TAKEN = "damage_taken"
+
+
+class ClausePart(StrEnum):
+    """Which part of an entry a clause was printed in."""
+
+    HIT = "hit"
+    FAILURE = "failure"
+    SUCCESS = "success"
+    FAILURE_OR_SUCCESS = "failure_or_success"
+    TARGETS = "targets"
+    FRAME = "frame"
+    OUTCOMES = "outcomes"
+
+
+class ClauseBranch(StrEnum):
+    """The printed branch a clause piece belongs to: its part, or the
+    branch label (*"_Second Failure:_"*) it follows."""
+
+    HIT = "hit"
+    FAILURE = "failure"
+    SUCCESS = "success"
+    FAILURE_OR_SUCCESS = "failure_or_success"
+    TARGETS = "targets"
+    FRAME = "frame"
+    OUTCOMES = "outcomes"
+    FIRST_FAILURE = "first_failure"
+    SECOND_FAILURE = "second_failure"
+    SUBSEQUENT_FAILURES = "subsequent_failures"
+    FAILURE_BY_5_OR_MORE = "failure_by_5_or_more"
+    HIT_OR_MISS = "hit_or_miss"
+
+
+class EndingEventKind(StrEnum):
+    """An event a clause says ends an effect early."""
+
+    TARGET_TAKES_DAMAGE = "target_takes_damage"
+    ENDS_TURN_OUT_OF_LINE_OF_SIGHT = "ends_turn_out_of_line_of_sight"
+    WOKEN_BY_AN_ACTION = "woken_by_an_action"
+
+
+class PredicateWhile(StrEnum):
+    """A named effect a *"While <X>"* / *"Until the <X> ends"* predicate
+    depends on, other than a condition."""
+
+    CURSE = "curse"
+    GRAPPLE = "grapple"
+    INFERNAL_WOUND = "infernal_wound"
+    SONG = "song"
+
+
+class PredicateRefersTo(StrEnum):
+    """*"Until **this** poison ends"*: the effect this entry inflicted."""
+
+    THIS_POISON = "this_poison"
+
+
+class RepeatSaveAt(StrEnum):
+    """When a repeated save is made."""
+
+    END_OF_EACH_OF_ITS_TURNS = "end_of_each_of_its_turns"
+    END_OF_ITS_NEXT_TURN = "end_of_its_next_turn"
+
+
+class SaveEndsOn(StrEnum):
+    """The repeated save's result that ends the effect."""
+
+    SUCCESS = "success"
+
+
+class ImmunityScope(StrEnum):
+    """*"immune to **this** <creature>'s <entry>"*."""
+
+    THIS_SOURCE_ENTRY = "this_source_entry"
+
+
+class NamedEffect(StrEnum):
+    """An effect a clause names without a condition: *"is cursed"*."""
+
+    CURSED = "cursed"
+
+
+class SpanEnd(StrEnum):
+    """An alternative end of an elapsed duration."""
+
+    SOURCE_DIES = "source_dies"
+
+
+class TimedSpeedChange(StrEnum):
+    """A timed Speed change: decreases by N, is halved, is set to N."""
+
+    DECREASE = "decrease"
+    HALVE = "halve"
+    SET_TO = "set_to"
+
+
+class NextRollActor(StrEnum):
+    """Whose next attack roll a next-roll modifier names."""
+
+    TARGET = "target"
+    SOURCE = "source"
+    ANY = "any"
+
+
+class PenaltyTarget(StrEnum):
+    """What a penalty die is subtracted from."""
+
+    D20_TEST = "d20_test"
+
+
+class ReturningWeaponKind(StrEnum):
+    """The weapon a *"magically returns"* clause names."""
+
+    SPEAR = "spear"
+    SWORD = "sword"
+
+
+class RescueCost(StrEnum):
+    """What a rescuer spends: *"As an action"*."""
+
+    ACTION = "action"
+
+
+class RescueEnds(StrEnum):
+    """What a successful rescue ends."""
+
+    GRAPPLE = "grapple"
+
+
+class SourceMovementLimit(StrEnum):
+    """*"then moves up to its Speed"*."""
+
+    SPEED = "speed"
+
+
+class TriggerOn(StrEnum):
+    """The event a framing sentence triggers on."""
+
+    SOURCE_DIES = "source_dies"
+
+
+class ClauseZeroHitPointResult(StrEnum):
+    """What a clause says a creature at 0 Hit Points becomes."""
+
+    DEAD = "dead"
+    STABLE = "stable"
+
+
+class ClauseZeroHitPointCause(StrEnum):
+    """*"if reduced to 0 Hit Points by this attack"*."""
+
+    REDUCED_TO_ZERO_BY_THIS_ATTACK = "reduced_to_0_by_this_attack"
+
+
+class AreaCenter(StrEnum):
+    """*"centered on that point"*: the point the framing sentence chose."""
+
+    THE_FRAME_POINT = "the_frame_point"
+
+
+class AuraTargets(StrEnum):
+    """*"in the aura"*."""
+
+    THE_AURA = "the_aura"
+
+
+class TargetingExclusion(StrEnum):
+    """*"can't be targeted by the <creature>'s Tail"*: whom it excludes."""
+
+    THE_CREATURE_GRAPPLED_BY_THIS_ATTACK = "the_creature_grappled_by_this_attack"
+
+
+class EffectLastsScope(StrEnum):
+    """*"This effect lasts ..."*: the effects stated before it."""
+
+    SENTENCE_EFFECTS_ABOVE = "sentence_effects_above"
+
+
+class EscapePurpose(StrEnum):
+    """*"Ability checks made to escape this grapple"*."""
+
+    ESCAPE_THIS_GRAPPLE = "escape_this_grapple"
+
+
+class AppendageUse(StrEnum):
+    """How many of a creature's appendages a grapple occupies."""
+
+    ONE = "one"
+    BOTH = "both"
+    ALL = "all"
+
+
+class Appendage(StrEnum):
+    """The appendage a grapple is made with, as printed."""
+
+    CLAWS = "claws"
+    CHAINS = "chains"
+    FRONT_CLAWS = "front_claws"
+    HANDS = "hands"
+    PINCERS = "pincers"
+    TALONS = "talons"
+    TENTACLES = "tentacles"
+
+
+class RelationKind(StrEnum):
+    """A printed relation to the subject: *"its <qualification> master"*."""
+
+    MASTER_OF_THE_SUBJECT = "master_of_the_subject"
+
+
+class RelationQualifier(StrEnum):
+    """The qualification a related creature must have: *"vampire"*."""
+
+    VAMPIRE = "vampire"
+
+
+class ChoiceAnchor(StrEnum):
+    """The printed choice a damage type is read from."""
+
+    DRACONIC_ORIGIN = "draconic_origin"
+
+
+class Chooser(StrEnum):
+    """Who makes a printed choice."""
+
+    GAMEMASTER = "gamemaster"
+    CASTER = "caster"
+
+
+class ChoiceSource(StrEnum):
+    """The set a printed damage-type choice is made from."""
+
+    THIS_CREATURES_RESISTANCES = "this_creatures_resistances"
+
+
+class ChoiceTime(StrEnum):
+    """When a printed choice is made."""
+
+    CASTING = "casting"
+
+
+class ConditionalDefenseKind(StrEnum):
+    """Which defensive list a qualified entry was printed in."""
+
+    CONDITION_IMMUNITY = "condition_immunity"
+    RESISTANCE = "resistance"
+    VULNERABILITY = "vulnerability"
+
+
+class DefenseAttack(StrEnum):
+    """*"from a weapon"*."""
+
+    WEAPON = "weapon"
+
+
+class ParameterizedHitPointsBasis(StrEnum):
+    """*"Half the HP maximum of its summoner"*."""
+
+    SUMMONER_HIT_POINT_MAXIMUM = "summoner_hit_point_maximum"
+
+
+# Rules, grants and equipment (C5-A, C5-C) ----------------------------------
+
+
+class GrantContext(StrEnum):
+    """*"As a Level 1 Character: Gain all the traits in the Core <Class>
+    Traits table."*"""
+
+    LEVEL_1_CHARACTER = "level_1_character"
+
+
+class ArmorCategory(StrEnum):
+    """The printed armor categories."""
+
+    LIGHT = "light"
+    MEDIUM = "medium"
+    HEAVY = "heavy"
+
+
+class ToolCategory(StrEnum):
+    """The Tools section's two groups."""
+
+    ARTISANS_TOOLS = "artisans_tools"
+    OTHER_TOOLS = "other_tools"
+
+
+class ToolVariant(StrEnum):
+    """A kind of Gaming Set or Musical Instrument, each its own proficiency."""
+
+    DICE = "dice"
+    DRAGONCHESS = "dragonchess"
+    PLAYING_CARDS = "playing_cards"
+    THREE_DRAGON_ANTE = "three_dragon_ante"
+    BAGPIPES = "bagpipes"
+    DRUM = "drum"
+    DULCIMER = "dulcimer"
+    FLUTE = "flute"
+    HORN = "horn"
+    LUTE = "lute"
+    LYRE = "lyre"
+    PAN_FLUTE = "pan_flute"
+    SHAWM = "shawm"
+    VIOL = "viol"
+
+
+class ToolActivity(StrEnum):
+    """A tool's printed activity: the reviewed C5 activity option keys, each
+    the selectable identity of one *"Utilize"* activity. An identity only; its
+    text stays governed prose."""
+
+    ADD_A_DESIGN_TO_A_LEATHER_ITEM = "add_a_design_to_a_leather_item"
+    APPLY_MAKEUP = "apply_makeup"
+    ASSEMBLE_A_TINY_ITEM_COMPOSED_OF_SCRAP_WHICH_FALLS_APART_IN_1_MINUTE = (
+        "assemble_a_tiny_item_composed_of_scrap_which_falls_apart_in_1_minute"
+    )
+    CARVE_A_PATTERN_IN_WOOD = "carve_a_pattern_in_wood"
+    CHISEL_A_SYMBOL_OR_HOLE_IN_STONE = "chisel_a_symbol_or_hole_in_stone"
+    DETECT_A_POISONED_OBJECT = "detect_a_poisoned_object"
+    DETECT_POISONED_DRINK = "detect_poisoned_drink"
+    DETECT_SPOILED_OR_POISONED_FOOD = "detect_spoiled_or_poisoned_food"
+    DETERMINE_POSITION_BY_STARGAZING = "determine_position_by_stargazing"
+    DISARM_A_TRAP = "disarm_a_trap"
+    DISCERN_A_GEMS_VALUE = "discern_a_gems_value"
+    DISCERN_WHAT_A_CERAMIC_OBJECT_HELD_IN_THE_PAST_24_HOURS = (
+        "discern_what_a_ceramic_object_held_in_the_past_24_hours"
+    )
+    DISCERN_WHAT_A_GLASS_OBJECT_HELD_IN_THE_PAST_24_HOURS = (
+        "discern_what_a_glass_object_held_in_the_past_24_hours"
+    )
+    DISCERN_WHETHER_SOMEONE_IS_CHEATING = "discern_whether_someone_is_cheating"
+    DRAFT_A_MAP_OF_A_SMALL_AREA = "draft_a_map_of_a_small_area"
+    DUPLICATE_A_WAX_SEAL = "duplicate_a_wax_seal"
+    IDENTIFY_A_PLANT = "identify_a_plant"
+    IDENTIFY_A_SUBSTANCE = "identify_a_substance"
+    IDENTIFY_ALCOHOL = "identify_alcohol"
+    IMPROVE_FOODS_FLAVOR = "improve_foods_flavor"
+    IMPROVISE_A_SONG = "improvise_a_song"
+    MEND_A_TEAR_IN_CLOTHING = "mend_a_tear_in_clothing"
+    MIMIC_10_OR_FEWER_WORDS_OF_SOMEONE_ELSES_HANDWRITING = (
+        "mimic_10_or_fewer_words_of_someone_elses_handwriting"
+    )
+    MODIFY_FOOTWEAR_TO_GIVE_ADVANTAGE_ON_THE_WEARERS_NEXT_DEXTERITY_ACROBATICS_CHECK = "modify_footwear_to_give_advantage_on_the_wearers_next_dexterity_acrobatics_check"  # noqa: E501
+    PAINT_A_RECOGNIZABLE_IMAGE_OF_SOMETHING_YOUVE_SEEN = (
+        "paint_a_recognizable_image_of_something_youve_seen"
+    )
+    PICK_A_LOCK = "pick_a_lock"
+    PLAY_A_KNOWN_TUNE = "play_a_known_tune"
+    PLOT_A_COURSE = "plot_a_course"
+    PRY_OPEN_A_DOOR_OR_CONTAINER = "pry_open_a_door_or_container"
+    SEAL_OR_PRY_OPEN_A_DOOR_OR_CONTAINER = "seal_or_pry_open_a_door_or_container"
+    SEW_A_TINY_DESIGN = "sew_a_tiny_design"
+    START_A_FIRE = "start_a_fire"
+    WIN_THE_GAME = "win_the_game"
+    WRITE_TEXT_WITH_IMPRESSIVE_FLOURISHES_THAT_GUARD_AGAINST_FORGERY = (
+        "write_text_with_impressive_flourishes_that_guard_against_forgery"
+    )
+
+
+class FeatCategory(StrEnum):
+    """A feat's printed category."""
+
+    GENERAL = "general"
+    EPIC_BOON = "epic_boon"
+    ORIGIN = "origin"
+
+
+class RequiredFeature(StrEnum):
+    """A feature a feat prerequisite names."""
+
+    SPELLCASTING = "spellcasting"
+
+
+class FeatQualifier(StrEnum):
+    """The parenthetical on a granted feat: *"Magic Initiate (Cleric)"*."""
+
+    CLERIC = "cleric"
+    WIZARD = "wizard"
+
+
+class RestKind(StrEnum):
+    """The two rests."""
+
+    SHORT_REST = "short_rest"
+    LONG_REST = "long_rest"
+
+
+class SwapScope(StrEnum):
+    """How many mastery choices a Long Rest lets the character change."""
+
+    ONE = "one"
+    ANY = "any"
+
+
+class RangeClass(StrEnum):
+    """Melee or ranged, as a rule distinguishes them."""
+
+    MELEE = "melee"
+    RANGED = "ranged"
+
+
+class Difficulty(StrEnum):
+    """The printed Typical Difficulty Classes."""
+
+    VERY_EASY = "very_easy"
+    EASY = "easy"
+    MEDIUM = "medium"
+    HARD = "hard"
+    VERY_HARD = "very_hard"
+    NEARLY_IMPOSSIBLE = "nearly_impossible"
+
+
+class NaturalOutcome(StrEnum):
+    """What a natural 1 or 20 on an attack roll does."""
+
+    HIT = "hit"
+    MISS = "miss"
+
+
+class CriticalDamageScope(StrEnum):
+    """*"Roll all of the attack's damage dice twice"*."""
+
+    EVERY_DAMAGE_DIE_OF_THE_ATTACK = "every_damage_die_of_the_attack"
+
+
+class ModifierApplication(StrEnum):
+    """*"add any relevant modifiers as normal"* -- once."""
+
+    ADDED_ONCE = "added_once"
+
+
+class ZeroHitPointSubject(StrEnum):
+    """Whom a zero-HP rule is about."""
+
+    MONSTER = "monster"
+    CHARACTER = "character"
+    ANY = "any"
+
+
+class ZeroHitPointResult(StrEnum):
+    """What a zero-HP rule says happens."""
+
+    DIES = "dies"
+    UNCONSCIOUS_AND_DYING = "unconscious_and_dying"
+
+
+class GamemasterException(StrEnum):
+    """The exception a GameMaster may make to a zero-HP rule."""
+
+    TREAT_AS_CHARACTER = "treat_as_character"
+
+
+class ExceptionScope(StrEnum):
+    """How widely that exception is made: per individual monster."""
+
+    INDIVIDUAL_MONSTER = "individual_monster"
+
+
+class ZeroHitPointRuleTrigger(StrEnum):
+    """*"If your Hit Point maximum drops to 0"*."""
+
+    HIT_POINT_MAXIMUM_ZERO = "hit_point_maximum_zero"
+
+
+class LifecycleEvent(StrEnum):
+    """An event a zero-HP rule names."""
+
+    REGAINS_HIT_POINTS = "regains_hit_points"
+    BECOMES_STABLE = "becomes_stable"
+    FIRST_AID_SUCCESS = "first_aid_success"
+
+
+class DeathThreshold(StrEnum):
+    """The amount a death determination compares damage against."""
+
+    HIT_POINT_MAXIMUM = "hit_point_maximum"
+
+
+class StabilizeAction(StrEnum):
+    """The action that stabilizes a dying creature."""
+
+    HELP = "help"
+
+
+class StabilizeOutcome(StrEnum):
+    """What a successful stabilization makes the creature."""
+
+    STABLE = "stable"
+
+
+class RecoveryUnless(StrEnum):
+    """*"A Stable creature that isn't healed"*."""
+
+    HEALED = "healed"
+
+
+class KnockoutTrigger(StrEnum):
+    """*"When you would reduce a creature to 0 Hit Points"*."""
+
+    WOULD_REDUCE_TO_ZERO_HIT_POINTS = "would_reduce_to_0_hit_points"
+
+
+class UnmetEffect(StrEnum):
+    """What an unmet weapon requirement imposes."""
+
+    ATTACK_DISADVANTAGE = "attack_disadvantage"
+
+
+class LightTrigger(StrEnum):
+    """*"When you take the Attack action on your turn"*."""
+
+    ATTACK_ACTION_ON_OWN_TURN = "attack_action_on_own_turn"
+
+
+class LightFirstAttack(StrEnum):
+    """*"and attack with a Light weapon"*."""
+
+    WITH_A_LIGHT_WEAPON = "with_a_light_weapon"
+
+
+class LightRequirement(StrEnum):
+    """*"with a different Light weapon"*."""
+
+    DIFFERENT_LIGHT_WEAPON = "different_light_weapon"
+
+
+class LightTiming(StrEnum):
+    """*"later on the same turn"*."""
+
+    LATER_ON_THE_SAME_TURN = "later_on_the_same_turn"
+
+
+class ModifierDamage(StrEnum):
+    """*"you don't add your ability modifier to the extra attack's damage
+    unless that modifier is negative"*."""
+
+    ONLY_IF_NEGATIVE = "only_if_negative"
+
+
+class UseFrequency(StrEnum):
+    """*"once per turn"*."""
+
+    ONCE_PER_TURN = "once_per_turn"
+
+
+class RangeOutcome(StrEnum):
+    """What attacking beyond a range band does."""
+
+    ATTACK_DISADVANTAGE = "attack_disadvantage"
+    CANNOT_ATTACK = "cannot_attack"
+
+
+class ReachScope(StrEnum):
+    """What a Reach weapon's extra 5 feet applies to."""
+
+    ATTACKS_WITH_IT = "attacks_with_it"
+    OPPORTUNITY_ATTACK_REACH = "opportunity_attack_reach"
+
+
+class ThrownAbility(StrEnum):
+    """*"use the same ability modifier ... that you would use for a melee
+    attack"*."""
+
+    AS_MELEE_ATTACK = "as_melee_attack"
+
+
+class HandsWhen(StrEnum):
+    """*"requires two hands when you attack with it"*."""
+
+    ATTACKING = "attacking"
+
+
+class AmmunitionRequirement(StrEnum):
+    """*"ammunition of the type specified"*."""
+
+    AMMUNITION_OF_THE_PRINTED_TYPE = "ammunition_of_the_printed_type"
+
+
+class FreeHandWhen(StrEnum):
+    """*"a free hand to load a one-handed weapon"*."""
+
+    WEAPON_IS_ONE_HANDED = "weapon_is_one_handed"
+
+
+class RecoveryAfter(StrEnum):
+    """*"after a fight"*."""
+
+    FIGHT = "fight"
+
+
+class RecoveryRemainder(StrEnum):
+    """*"the rest is lost"*."""
+
+    LOST = "lost"
+
+
+class AmmunitionKind(StrEnum):
+    """The ammunition an Ammunition weapon's row names."""
+
+    ARROW = "arrow"
+    BOLT = "bolt"
+    BULLET = "bullet"
+    NEEDLE = "needle"
+
+
+class CreatureTypeKind(StrEnum):
+    """Schema 21: the fourteen Creature Types, ``rules-glossary.md``:515.
+
+    Declared here, inside the schema hash, rather than imported from the
+    state vocabulary; ``test_creature_type_facts`` pins it equal to
+    ``afterworlds.models.dnd5e_vocabulary.CreatureType``. Not ``TargetTag``,
+    which is predicate vocabulary mixing types, a species tag and "enemy".
+    """
+
+    ABERRATION = "aberration"
+    BEAST = "beast"
+    CELESTIAL = "celestial"
+    CONSTRUCT = "construct"
+    DRAGON = "dragon"
+    ELEMENTAL = "elemental"
+    FEY = "fey"
+    FIEND = "fiend"
+    GIANT = "giant"
+    HUMANOID = "humanoid"
+    MONSTROSITY = "monstrosity"
+    OOZE = "ooze"
+    PLANT = "plant"
+    UNDEAD = "undead"
+
+
+class TwoHandedException(StrEnum):
+    """The Lance's *"unless mounted"*."""
+
+    MOUNTED = "mounted"
+
+
+class MasteryTrigger(StrEnum):
+    """When a mastery property applies."""
+
+    HIT_CREATURE = "hit_creature"
+    HIT_AND_DAMAGE = "hit_and_damage"
+    HIT_MELEE_ATTACK_ROLL = "hit_melee_attack_roll"
+    MISS_CREATURE = "miss_creature"
+    LIGHT_EXTRA_ATTACK = "light_extra_attack"
+
+
+class MasteryAppliesTo(StrEnum):
+    """Whom a mastery effect applies to."""
+
+    HIT_CREATURE = "hit_creature"
+    WIELDER = "wielder"
+
+
+class MasteryAgainst(StrEnum):
+    """Vex: Advantage against *"that creature"*."""
+
+    THE_HIT_CREATURE = "the_hit_creature"
+
+
+class MasteryCost(StrEnum):
+    """Nick: the extra attack is made *"as part of the Attack action"*."""
+
+    ATTACK_ACTION = "attack_action"
+
+
+class MasteryDamage(StrEnum):
+    """Graze: damage equal to the ability modifier."""
+
+    ATTACK_ABILITY_MODIFIER = "attack_ability_modifier"
+
+
+class MasteryDamageType(StrEnum):
+    """Graze: *"of the same type dealt by the weapon"*."""
+
+    WEAPON = "weapon"
+
+
+class MasteryIncrease(StrEnum):
+    """Graze: *"can be increased only by increasing the ability modifier"*."""
+
+    ONLY_BY_INCREASING_THE_ABILITY_MODIFIER = "only_by_increasing_the_ability_modifier"
+
+
+class AttackSection(StrEnum):
+    """The outcome sections a creature attack prints."""
+
+    HIT = "hit"
+    MISS = "miss"
+    HIT_OR_MISS = "hit_or_miss"
+
+
+class DamageNotation(StrEnum):
+    """The two printed damage notations."""
+
+    AVERAGE = "average"
+    DICE = "dice"
+
+
+class MultiattackAction(StrEnum):
+    """The action a Multiattack is taken as."""
+
+    ATTACK = "attack"
+
+
+class MultiattackComposition(StrEnum):
+    """*"each Multiattack entry states ..."*."""
+
+    PER_ENTRY = "per_entry"
+
+
+class UsageRuleKind(StrEnum):
+    """The limited-usage notations Parts of a Stat Block explains."""
+
+    PER_DAY = "per_day"
+    RECHARGE = "recharge"
+    RECHARGE_AFTER_REST = "recharge_after_rest"
+
+
+class LegendaryTiming(StrEnum):
+    """*"immediately after another creature's turn"*."""
+
+    AFTER_ANOTHER_CREATURES_TURN = "after_another_creatures_turn"
+
+
+class LegendaryRegain(StrEnum):
+    """*"regains all expended uses at the start of each of its turns"*."""
+
+    START_OF_OWN_TURN = "start_of_own_turn"
+
+
+class TrainingCondition(StrEnum):
+    """*"If you wear armor with which you lack training"*."""
+
+    WEARER_LACKS_TRAINING_WITH_WORN_ARMOR_CATEGORY = (
+        "wearer_lacks_training_with_worn_armor_category"
+    )
+
+
+class UntrainedShield(StrEnum):
+    """*"you gain the Armor Class benefit of a Shield only if you have
+    training"*."""
+
+    NO_ARMOR_CLASS_BENEFIT = "no_armor_class_benefit"
+
+
 class ScalingBasis(StrEnum):
     """What a stated change scales with."""
 
@@ -2260,6 +3329,144 @@ class FactFamily(StrEnum):
     #: proficiency, attack or mastery effect is computed (CRD Issue 15c).
     WEAPON_CATEGORY = "weapon_category"
     WEAPON_MASTERY = "weapon_mastery"
+    #: Schema 19, CRD Issue 15c. The reviewed bounded-d20 source contract:
+    #: creature attacks, saves, Multiattack and their clause pieces; the rules,
+    #: weapon, tool and convention facts; and the contributing grants. Each
+    #: states what the source prints; execution, applicability and
+    #: certification are capability, never this union.
+    CREATURE_ATTACK = "creature_attack"
+    CREATURE_SAVE_EFFECT = "creature_save_effect"
+    CREATURE_MULTIATTACK = "creature_multiattack"
+    CREATURE_ENTRY_USAGE = "creature_entry_usage"
+    CREATURE_ENTRY_REFERENCE = "creature_entry_reference"
+    CREATURE_OBSERVER_CHECK = "creature_observer_check"
+    CREATURE_CONDITION_GRANT = "creature_condition_grant"
+    CREATURE_SAVE_OVERRIDE = "creature_save_override"
+    CREATURE_SAVE_DAMAGE_OVERRIDE = "creature_save_damage_override"
+    CREATURE_ROLL_MODIFIER = "creature_roll_modifier"
+    CREATURE_HIT_POINT_REGAIN_PROHIBITION = "creature_hit_point_regain_prohibition"
+    CHECK_REQUIREMENT_REMOVAL = "check_requirement_removal"
+    ZERO_HIT_POINT_SAVE = "zero_hit_point_save"
+    CREATURE_SIZE = "creature_size"
+    CREATURE_CONDITIONAL_DEFENSE = "creature_conditional_defense"
+    CREATURE_DEFENSE_PARAMETERIZED = "creature_defense_parameterized"
+    CLAUSE_BRANCH = "clause_branch"
+    CLAUSE_PREDICATE = "clause_predicate"
+    CLAUSE_GRAPPLE = "clause_grapple"
+    CLAUSE_CONDITION = "clause_condition"
+    CLAUSE_TIMED_CONDITION = "clause_timed_condition"
+    CLAUSE_LINKED_CONDITION = "clause_linked_condition"
+    CLAUSE_CONDITION_UNTIL_REPEAT = "clause_condition_until_repeat"
+    CLAUSE_CONDITION_ENDS = "clause_condition_ends"
+    CLAUSE_CONDITION_ENDS_EARLY = "clause_condition_ends_early"
+    CLAUSE_EFFECT_ENDS = "clause_effect_ends"
+    CLAUSE_EFFECT_LASTS = "clause_effect_lasts"
+    CLAUSE_REPEAT_SAVE = "clause_repeat_save"
+    CLAUSE_REPEAT_SAVE_LIMIT = "clause_repeat_save_limit"
+    CLAUSE_TEMPORARY_IMMUNITY = "clause_temporary_immunity"
+    CLAUSE_NESTED_SAVE = "clause_nested_save"
+    CLAUSE_NESTED_SAVE_TRIGGER = "clause_nested_save_trigger"
+    CLAUSE_TIMED_SPEED_CHANGE = "clause_timed_speed_change"
+    CLAUSE_TIMED_AC_MODIFIER = "clause_timed_ac_modifier"
+    CLAUSE_NEXT_ROLL_MODIFIER = "clause_next_roll_modifier"
+    CLAUSE_D20_TEST_PENALTY_DIE = "clause_d20_test_penalty_die"
+    CLAUSE_PENALTY_DIE_APPLICATION = "clause_penalty_die_application"
+    CLAUSE_ROLL_MODIFIER = "clause_roll_modifier"
+    CLAUSE_DAMAGE_ROLL_PENALTY = "clause_damage_roll_penalty"
+    CLAUSE_DAMAGE_BRANCH = "clause_damage_branch"
+    CLAUSE_CHOICE_TYPED_DAMAGE = "clause_choice_typed_damage"
+    CLAUSE_CONDITIONAL_DAMAGE = "clause_conditional_damage"
+    CLAUSE_PERIODIC_DAMAGE = "clause_periodic_damage"
+    CLAUSE_PERIODIC_HIT_POINT_LOSS = "clause_periodic_hit_point_loss"
+    CLAUSE_HIT_POINT_REGAIN_PROHIBITION = "clause_hit_point_regain_prohibition"
+    CLAUSE_HIT_POINTS_SET = "clause_hit_points_set"
+    CLAUSE_ZERO_HIT_POINT_OUTCOME = "clause_zero_hit_point_outcome"
+    CLAUSE_NAMED_EFFECT = "clause_named_effect"
+    CLAUSE_FORCED_MOVEMENT = "clause_forced_movement"
+    CLAUSE_FOLLOW_UP_ATTACK = "clause_follow_up_attack"
+    CLAUSE_TARGETING_RESTRICTION = "clause_targeting_restriction"
+    CLAUSE_DAMAGE_QUALIFICATION = "clause_damage_qualification"
+    CLAUSE_RETURNING_WEAPON = "clause_returning_weapon"
+    CLAUSE_SAVE_SUCCESS = "clause_save_success"
+    CLAUSE_SAVE_TIMING = "clause_save_timing"
+    CLAUSE_SELF_SAVE_PREDICATE = "clause_self_save_predicate"
+    CLAUSE_SOURCE_MOVEMENT = "clause_source_movement"
+    CLAUSE_TRIGGER = "clause_trigger"
+    CLAUSE_RESCUE_CHECK = "clause_rescue_check"
+    CLAUSE_AREA_ORIGIN_POINT = "clause_area_origin_point"
+    CLAUSE_AURA = "clause_aura"
+    WEAPON_RANGE_CLASS = "weapon_range_class"
+    ATTACK_ROLL_ABILITY = "attack_roll_ability"
+    NATURAL_ROLL_OUTCOME = "natural_roll_outcome"
+    INITIATIVE_ROLL = "initiative_roll"
+    DAMAGE_ROLL_RULE = "damage_roll_rule"
+    CRITICAL_DAMAGE = "critical_damage"
+    TEMPORARY_HIT_POINT_ABSORPTION = "temporary_hit_point_absorption"
+    HIT_POINT_BOUND = "hit_point_bound"
+    ZERO_HIT_POINT_OUTCOME = "zero_hit_point_outcome"
+    MASSIVE_DAMAGE = "massive_damage"
+    DEATH_SAVING_THROW = "death_saving_throw"
+    DEATH_SAVE_NATURAL_ROLL = "death_save_natural_roll"
+    DAMAGE_AT_ZERO_HIT_POINTS = "damage_at_zero_hit_points"
+    STABILIZATION = "stabilization"
+    STABLE_STATE = "stable_state"
+    KNOCKOUT_ALTERNATIVE = "knockout_alternative"
+    REST_DURATION = "rest_duration"
+    ATTACK_ABILITY_OPTION = "attack_ability_option"
+    ABILITY_SCORE_REQUIREMENT = "ability_score_requirement"
+    LIGHT_EXTRA_ATTACK = "light_extra_attack"
+    AMMUNITION_PER_ACTIVATION = "ammunition_per_activation"
+    RANGE_BAND_RULE = "range_band_rule"
+    REACH_EXTENSION = "reach_extension"
+    THROWN_ATTACK = "thrown_attack"
+    HANDS_REQUIRED = "hands_required"
+    VERSATILE_DAMAGE = "versatile_damage"
+    AMMUNITION_EXPENDITURE = "ammunition_expenditure"
+    MASTERY_EFFECT = "mastery_effect"
+    TOOL_ENTRY = "tool_entry"
+    TOOL_VARIANTS = "tool_variants"
+    TOOL_ACTIVITY = "tool_activity"
+    CREATURE_ATTACK_NOTATION = "creature_attack_notation"
+    CREATURE_SAVE_NOTATION = "creature_save_notation"
+    DAMAGE_NOTATION_OPTION = "damage_notation_option"
+    MULTIATTACK_RULE = "multiattack_rule"
+    USAGE_LIMIT_RULE = "usage_limit_rule"
+    LEGENDARY_ACTION_RULE = "legendary_action_rule"
+    SPELL_ATTACK_MODIFIER_FORMULA = "spell_attack_modifier_formula"
+    SPELL_SAVE_DC_FORMULA = "spell_save_dc_formula"
+    SPELLCASTING_ABILITY = "spellcasting_ability"
+    DIFFICULTY_BAND = "difficulty_band"
+    SKILL_PROFICIENCY_CHOICE = "skill_proficiency_choice"
+    MULTICLASS_SKILL_PROFICIENCY_CHOICE = "multiclass_skill_proficiency_choice"
+    SKILL_PROFICIENCY_GRANT = "skill_proficiency_grant"
+    SAVING_THROW_PROFICIENCY_GRANT = "saving_throw_proficiency_grant"
+    WEAPON_PROFICIENCY_GRANT = "weapon_proficiency_grant"
+    ARMOR_TRAINING_GRANT = "armor_training_grant"
+    TOOL_PROFICIENCY_GRANT = "tool_proficiency_grant"
+    TOOL_PROFICIENCY_CHOICE = "tool_proficiency_choice"
+    MULTICLASS_PROFICIENCY_GRANT = "multiclass_proficiency_grant"
+    WEAPON_AND_ARMOR_GRANT = "weapon_and_armor_grant"
+    WEAPON_MASTERY_CHOICE = "weapon_mastery_choice"
+    FEAT_PREREQUISITE = "feat_prerequisite"
+    FEAT_CHOICE = "feat_choice"
+    FEAT_GRANT = "feat_grant"
+    ABILITY_INCREASE_CHOICE = "ability_increase_choice"
+    ABILITY_INCREASE_RULE = "ability_increase_rule"
+    EXPERTISE_RULE = "expertise_rule"
+    EXPERTISE_CHOICE = "expertise_choice"
+    ARMOR_CLASS_FORMULA = "armor_class_formula"
+    SHIELD_BONUS = "shield_bonus"
+    BASE_ARMOR_CLASS = "base_armor_class"
+    BASE_ARMOR_CLASS_EXCLUSIVITY = "base_armor_class_exclusivity"
+    ARMOR_TRAINING_PENALTY = "armor_training_penalty"
+    SHIELD_TRAINING_REQUIREMENT = "shield_training_requirement"
+    #: Schema 20, CRD Issue 15c C7. What one Ammunition table row supplies.
+    AMMUNITION_SUPPLY = "ammunition_supply"
+    #: Schema 21, CRD Issue 15c C8. A creature or species' printed type.
+    CREATURE_TYPE = "creature_type"
+    #: Schema 21, CRD Issue 15c C8. A source's type choice for the creatures
+    #: it brings, instead of their named forms' own type.
+    SUMMONED_CREATURE_TYPE = "summoned_creature_type"
 
 
 # ---------------------------------------------------------------------------
@@ -3551,6 +4758,15 @@ class WeaponPropertyFact:
     versatile_damage: DiceExpression | None = None
     thrown_range_normal_feet: int | None = None
     thrown_range_long_feet: int | None = None
+    #: Schema 19, omitted when unset. The ammunition an Ammunition weapon's
+    #: row names, and its normal and long range, stated together and only
+    #: for :attr:`WeaponProperty.AMMUNITION`.
+    ammunition: AmmunitionKind | None = None
+    ammunition_range_normal_feet: int | None = None
+    ammunition_range_long_feet: int | None = None
+    #: Schema 19, omitted when unset. The Lance's *"unless mounted"*, only
+    #: for :attr:`WeaponProperty.TWO_HANDED`.
+    unless: TwoHandedException | None = None
 
 
 @dataclass(frozen=True)
@@ -3578,6 +4794,2173 @@ class WeaponMasteryFact:
     FAMILY: ClassVar[FactFamily] = FactFamily.WEAPON_MASTERY
 
     mastery: WeaponMastery
+
+
+# ---------------------------------------------------------------------------
+# Schema 19 value objects -- CRD Issue 15c
+# ---------------------------------------------------------------------------
+#
+# Each is a closed, typed object: every field is declared, nothing is a free
+# mapping, and a payload's key set must equal the field set exactly. A field
+# typed with an accepted fact class (``ConditionEffectFact``,
+# ``AdvantageFact``, ``SpeedModificationFact``) nests that accepted shape and
+# is built by its accepted builder, so a nested condition or roll modifier is
+# never a second spelling of an accepted family.
+
+
+@dataclass(frozen=True, kw_only=True)
+class TurnBoundary:
+    """*"until the start of the <creature>'s next turn"*: an edge of a named
+    participant's turn."""
+
+    until: RecurrenceBoundary
+    turn: TurnWhich
+    turn_of: TurnOwner
+
+
+@dataclass(frozen=True, kw_only=True)
+class ElapsedSpan:
+    """*"for 1 hour"*, *"for 24 hours or until the <creature> dies"*."""
+
+    amount: int
+    unit: TimeUnit
+    or_until: SpanEnd | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class EndingEvent:
+    """An event that ends an effect early; a waking action names how near the
+    creature taking it must be."""
+
+    event: EndingEventKind
+    by_creature_within_ft: int | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class FormulaRef:
+    """A value printed as a formula another component states, computed for a
+    named participant: *"Bonus equals your spell attack modifier"*.
+    ``formula_ref`` addresses that component as ``record_key/component_key``."""
+
+    formula_ref: str
+    of: FormulaSubject
+
+
+@dataclass(frozen=True, kw_only=True)
+class FormulaAddend:
+    """A runtime value a parameterized damage term adds."""
+
+    input: FormulaInput
+
+
+@dataclass(frozen=True, kw_only=True)
+class DamageTypeChoice:
+    """A damage type the source leaves to a choice, keyed by a form
+    (celestial/fey/fiend) or stated as a choice rule."""
+
+    chosen_for: ChoiceAnchor | None
+    chosen_by: Chooser | None
+    chosen_from: ChoiceSource | None
+    when: ChoiceTime | None
+    celestial: DamageType | None
+    fey: DamageType | None
+    fiend: DamageType | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class DamageTerm:
+    """One printed damage term: an average and dice, or a formula's dice,
+    constant and runtime addends, of a stated or chosen type."""
+
+    average: int | None
+    dice: DiceExpression | None
+    constant: int | None
+    addends: tuple[FormulaAddend, ...]
+    damage_type: DamageType | None
+    damage_type_by_choice: DamageTypeChoice | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class SizedDamage:
+    """Hit damage printed per size: *"(Medium or smaller) ... (Large) ...
+    (Huge)"*."""
+
+    medium_or_smaller: tuple[DamageTerm, ...]
+    large: tuple[DamageTerm, ...]
+    huge: tuple[DamageTerm, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class DamageWhen:
+    """The predicate a conditional damage term is stated under."""
+
+    source_bloodied: bool | None
+    target_bloodied: bool | None
+    attack_roll_had_advantage: bool | None
+    target_grappled_by_source: bool | None
+    source_moved_straight_toward_target_ft_min: int | None
+    target_maximum_size: CreatureSize | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ConditionalDamage:
+    """Damage added to, or replacing ``hit_damage[replaces_hit_damage_index]``
+    of, a hit when ``when`` holds."""
+
+    mode: DamageMode
+    term: DamageTerm
+    when: DamageWhen
+    replaces_hit_damage_index: int | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ForcedMove:
+    """A push or pull: exactly ``distance_ft``, or up to
+    ``distance_ft_up_to``."""
+
+    direction: ForcedDirection
+    distance_ft: int | None
+    distance_ft_up_to: int | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class LinkedCondition:
+    """A condition lasting while another effect lasts: *"and it has the
+    Restrained condition until the grapple ends"*."""
+
+    condition: ConditionEffectFact
+    until: LinkEnd
+
+
+@dataclass(frozen=True, kw_only=True)
+class RiderSave:
+    """A save a hit forces, with its failure condition and exclusions."""
+
+    save: AbilityScore
+    dc: int
+    on_failure: ConditionEffectFact
+    duration: TurnBoundary | None
+    target_excludes: tuple[TargetTag, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class Rider:
+    """What a hit or a failed save applies besides damage."""
+
+    applies_to: RiderSubject | None
+    condition: ConditionEffectFact | None
+    speed: SpeedModificationFact | None
+    duration: TurnBoundary | None
+    escape_dc: int | None
+    maximum_size: CreatureSize | None
+    conditional_damage: ConditionalDamage | None
+    forced_movement: ForcedMove | None
+    linked: LinkedCondition | None
+    rider_save: RiderSave | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class SaveArea:
+    """An area of effect a save is made in."""
+
+    shape: AreaShape
+    size_ft: int
+    radius: bool
+    width_ft: int | None
+    height_ft: int | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class TurnTrigger:
+    """*"that starts its turn ..."*."""
+
+    turn_of: TurnOwner
+    when: RecurrenceBoundary
+
+
+@dataclass(frozen=True, kw_only=True)
+class SaveTargets:
+    """Who must make a save: the printed participant predicates."""
+
+    count: int | None
+    each: bool | None
+    living: bool | None
+    maximum_size: CreatureSize | None
+    types: tuple[TargetTag, ...]
+    has_conditions: tuple[ConditionKind, ...]
+    area: SaveArea | None
+    origin: AreaOriginAnchor | None
+    origin_point_within_ft: int | None
+    within_ft: int | None
+    in_source_space: bool | None
+    related_to_source: tuple[ConditionKind, ...]
+    requires_source_sees_target: bool | None
+    requires_source_sees_point: bool | None
+    requires_target_sees_source: bool | None
+    source_environment: SourceEnvironment | None
+    swallow_capacity: int | None
+    trigger: TurnTrigger | None
+    excludes: TargetExclusion | None
+    excludes_types: tuple[TargetTag, ...]
+    automatic_failure_types: tuple[TargetTag, ...]
+    automatic_success_types: tuple[TargetTag, ...]
+    willing_or_conditions: tuple[ConditionKind, ...]
+    at_hit_points: int | None
+    stated_by: TargetsStatedBy | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class EntryOption:
+    """A sibling entry a Multiattack names, optionally used to cast one spell
+    (``spell`` a ``spells.*`` record key) at a printed level."""
+
+    entry: str
+    spell: str | None
+    spell_level: int | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class MultiattackPart:
+    """One printed part of a Multiattack alternative."""
+
+    count: int | None
+    count_formula: CountFormula | None
+    attack: str | None
+    any_of: tuple[str, ...]
+    uses_one_of: tuple[EntryOption, ...]
+    optional: bool | None
+    if_available: bool | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class MultiattackAlternative:
+    """One selectable composition."""
+
+    condition: MultiattackCondition | None
+    parts: tuple[MultiattackPart, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class MultiattackReplacement:
+    """*"It can replace one/any attack with ..."*."""
+
+    replaces: int | None
+    replaces_attack: str | None
+    replaces_any: bool | None
+    with_one_of: tuple[EntryOption, ...]
+    if_available: bool | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class CheckSpec:
+    """A fixed-DC ability check with its skill."""
+
+    ability: AbilityScore
+    skill: Skill
+    dc: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class ObserverCondition:
+    """*"if the creature hasn't witnessed the cube move or otherwise act"*."""
+
+    checker_has_not_witnessed_subject_move_or_act: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class ContributorPredicate:
+    """When a standing trait's effects apply."""
+
+    stated: ContributorStated | None
+    subject_not: ConditionKind | None
+    subject_bloodied: bool | None
+    ally_not: ConditionKind | None
+    ally_within_ft_of_target: int | None
+    target_missing_hit_points: bool | None
+    attack: RangeClass | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class SaveOverride:
+    """Legendary Resistance: on a failed save, choose to succeed instead."""
+
+    chooser: SaveOverrideChooser
+    may_choose: SaveOverrideOutcome
+    on: SaveOverrideTrigger
+    usage: SaveOverrideUsage
+
+
+@dataclass(frozen=True, kw_only=True)
+class SaveDamageOverride:
+    """Evasion: the damage a save takes on success and on failure."""
+
+    save: AbilityScore
+    on: SaveDamageScope
+    success: SaveDamageResult
+    failure: SaveDamageResult
+
+
+@dataclass(frozen=True, kw_only=True)
+class IcyTerrain:
+    """Ice Walk: ice and snow aren't Difficult Terrain for the subject."""
+
+    difficult_terrain_of: tuple[TerrainKind, ...]
+    extra_movement: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class SpeedPredicate:
+    """*"If the swarm has a Climb Speed"*."""
+
+    subject_has_speed: MovementMode
+
+
+@dataclass(frozen=True, kw_only=True)
+class DamagePlusDc:
+    """*"DC 5 plus the damage taken"*."""
+
+    base: int
+    plus: DcAddend
+
+
+@dataclass(frozen=True, kw_only=True)
+class ZeroHitPointUnless:
+    """*"unless the damage is Radiant or from a Critical Hit"*."""
+
+    damage_type: DamageType
+    critical_hit: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class ZeroHitPointOnSuccess:
+    """*"the zombie drops to 1 Hit Point instead"* -- instead of 0."""
+
+    set_hit_points: int
+    instead_of_zero_hit_points: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class RelationQualification:
+    """*"its vampire master"*: a relation and the qualification the related
+    creature must have. Validating either is runtime state."""
+
+    relation: RelationKind
+    qualification: RelationQualifier
+
+
+@dataclass(frozen=True, kw_only=True)
+class DamageTypeSelection:
+    """*"the one damage type chosen for Draconic Origin"*."""
+
+    vocabulary: tuple[DamageType, ...]
+    chosen_by: Chooser
+    chosen_for: ChoiceAnchor
+
+
+@dataclass(frozen=True, kw_only=True)
+class LeveledArmorClass:
+    """*"AC 10 + 1 per spell level"*."""
+
+    base: int
+    per_spell_level: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class PerLevelAbove:
+    """*"10 for each spell level above 4"*."""
+
+    amount: int
+    level: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class SizeKeyedHitPoints:
+    """*"HP 10 (Medium or smaller), 20 (Large), 40 (Huge)"*."""
+
+    medium_or_smaller: int
+    large: int
+    huge: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class ParameterizedHitPoints:
+    """A summon's printed Hit Points formula."""
+
+    base: int | None
+    per_spell_level: int | None
+    per_spell_level_above: PerLevelAbove | None
+    by_size: SizeKeyedHitPoints | None
+    half_of: ParameterizedHitPointsBasis | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ProgressionReference:
+    """The accepted ``progression_entry`` facts that give a grant's levels."""
+
+    entitlement_key: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class ComponentReference:
+    """An accepted component, by record and component key."""
+
+    record_key: str
+    component_key: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class ToolSelector:
+    """A tool choice's option set: one tool's variants, one category, or any
+    tool."""
+
+    tool_variants_of: ComponentReference | None
+    tool_category: ToolCategory | None
+    any_tool_entry: bool | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ToolChoice:
+    """*"proficiency with one Musical Instrument of your choice"*."""
+
+    count: int
+    options: tuple[ToolSelector, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class SubclassEligibility:
+    """The subclass and class level a subclass feature's grant requires."""
+
+    class_key: str
+    subclass_key: str
+    minimum_class_level: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class QualifiedWeaponCategory:
+    """*"Martial weapons that have the Finesse or Light property"*."""
+
+    category: WeaponCategory
+    with_any_property: tuple[WeaponProperty, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class WeaponCategories:
+    """Weapon proficiency by category."""
+
+    categories: tuple[WeaponCategory, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class ArmorTraining:
+    """Armor training by category, and Shields."""
+
+    armor: tuple[ArmorCategory, ...]
+    shields: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class AbilityMinimum:
+    """*"Strength or Dexterity 13+"*."""
+
+    any_of: tuple[AbilityScore, ...]
+    score: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class LevelCount:
+    """One row of a Features-table count column."""
+
+    level: int
+    count: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class RestSwap:
+    """*"Whenever you finish a Long Rest, you can change ..."*."""
+
+    after: RestKind
+    change: SwapScope
+
+
+@dataclass(frozen=True, kw_only=True)
+class DeathSaveTiming:
+    """*"Whenever you start your turn with 0 Hit Points"*."""
+
+    at_hit_points: int
+    turn_of: TurnOwner
+    when: RecurrenceBoundary
+
+
+@dataclass(frozen=True, kw_only=True)
+class StableRecovery:
+    """*"A Stable creature that isn't healed regains 1 Hit Point after 1d4
+    hours"*."""
+
+    dice: DiceExpression
+    regain_hit_points: int
+    unit: TimeUnit
+    unless: RecoveryUnless
+
+
+@dataclass(frozen=True, kw_only=True)
+class FreeHandRule:
+    """*"you need a free hand to load a one-handed weapon"*."""
+
+    when: FreeHandWhen
+
+
+@dataclass(frozen=True, kw_only=True)
+class AmmunitionRecovery:
+    """*"recover half the ammunition (round down) ... after a fight by taking
+    a minute"*."""
+
+    after: RecoveryAfter
+    minutes: int
+    fraction: Rational
+    rounding: RoundingRule
+    remainder: RecoveryRemainder
+
+
+@dataclass(frozen=True, kw_only=True)
+class MasteryDc:
+    """Topple's *"DC 8 plus the ability modifier ... and your Proficiency
+    Bonus"*."""
+
+    base: int
+    plus: tuple[FormulaTerm, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class NextRoll:
+    """Whose next attack roll, and against whom."""
+
+    actor: NextRollActor
+    context: RollContext
+    against: NextRollActor | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class RepeatOnce:
+    """*"until the end of its next turn, at which point it repeats the save"*."""
+
+    at: RepeatSaveAt
+    turn_of: TurnOwner
+    once: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class RepeatCondition:
+    """*"if it is still Restrained"*."""
+
+    has_condition: ConditionKind
+
+
+@dataclass(frozen=True, kw_only=True)
+class ReflectionPredicate:
+    """*"If the basilisk sees its reflection in the Cone"*."""
+
+    source_sees_own_reflection_in: AreaShape
+
+
+@dataclass(frozen=True, kw_only=True)
+class AbilityBasedD20Tests:
+    """*"Disadvantage on Strength-based D20 Tests"*: every D20 Test made with
+    one ability. The accepted roll shape names an ability only for an ability
+    check or a saving throw, so the D20 Test umbrella keyed by an ability is
+    its own closed value rather than a loosened accepted rule."""
+
+    state: AdvantageState
+    ability: AbilityScore
+
+
+@dataclass(frozen=True, kw_only=True)
+class GrappleAppendages:
+    """*"from one of two claws"*, *"from both talons"*, *"from all four
+    tentacles"*; ``of`` is the printed number, when printed."""
+
+    use: AppendageUse
+    of: int | None
+    appendage: Appendage
+
+
+# ---------------------------------------------------------------------------
+# Schema 19 families -- creature entries (C5-B)
+# ---------------------------------------------------------------------------
+#
+# Each fact names the stat-block entry it states by its printed name (any
+# usage parenthetical removed) and section, which is unique within its
+# component; the entry's complete text stays governed prose on the component.
+
+
+@dataclass(frozen=True, kw_only=True)
+class CreatureAttackFact:
+    """One printed creature attack: *"Melee Attack Roll: +4, reach 5 ft.
+    Hit: 6 (1d8 + 2) Piercing damage ..."*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CREATURE_ATTACK
+
+    entry: str
+    section: EntrySection
+    kind: CreatureAttackRange
+    attack_bonus: int | None
+    attack_bonus_formula: FormulaRef | None
+    automatic_hit: bool | None
+    reach_ft: int | None
+    normal_range_ft: int | None
+    long_range_ft: int | None
+    advantage_when: AttackAdvantageWhen | None
+    hit_damage: tuple[DamageTerm, ...]
+    hit_damage_by_size: SizedDamage | None
+    size_input: SizeInput | None
+    hit_effect: Rider | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class CreatureSaveEffectFact:
+    """One printed creature save effect: *"Dexterity Saving Throw: DC 13,
+    each creature in a 15-foot Cone. Failure: ... Success: Half damage."*"""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CREATURE_SAVE_EFFECT
+
+    entry: str
+    section: EntrySection
+    save: AbilityScore
+    dc: int | None
+    dc_formula: FormulaRef | None
+    targets: SaveTargets
+    failure_damage: tuple[DamageTerm, ...]
+    failure_effect: Rider | None
+    success: SaveSuccess | None
+    reuse_limit: ReuseLimitKind | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class CreatureMultiattackFact:
+    """A creature's Multiattack: its selectable alternatives and
+    replacements."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CREATURE_MULTIATTACK
+
+    entry: str
+    section: EntrySection
+    alternatives: tuple[MultiattackAlternative, ...]
+    replacements: tuple[MultiattackReplacement, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class CreatureEntryUsageFact:
+    """An entry's printed usage: Recharge, X/Day, Legendary Action Uses, a
+    form restriction or a required entry."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CREATURE_ENTRY_USAGE
+
+    entry: str
+    section: EntrySection
+    kind: UsageKind
+    uses: int | None
+    in_lair: int | None
+    minimum_d6: int | None
+    forms: tuple[CreatureForm, ...]
+    recharge_after_long_rest: bool | None
+    requires_entry: str | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class CreatureEntryReferenceFact:
+    """An entry that uses another entry of the same stat block by name."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CREATURE_ENTRY_REFERENCE
+
+    entry: str
+    section: EntrySection
+    references: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class CreatureObserverCheckFact:
+    """A check another creature makes about this one (Mimicry, Transparent)."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CREATURE_OBSERVER_CHECK
+
+    entry: str
+    section: EntrySection
+    check: CheckSpec
+    made_by: ObserverKind
+    purpose: ObserverPurpose
+    only_if: ObserverCondition | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class CreatureConditionGrantFact:
+    """A trait that gives its subject standing conditions."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CREATURE_CONDITION_GRANT
+
+    entry: str
+    section: EntrySection
+    subject: EntrySubject
+    conditions: tuple[ConditionKind, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class CreatureSaveOverrideFact:
+    """Legendary Resistance."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CREATURE_SAVE_OVERRIDE
+
+    entry: str
+    section: EntrySection
+    subject: EntrySubject
+    save_override: SaveOverride
+
+
+@dataclass(frozen=True, kw_only=True)
+class CreatureSaveDamageOverrideFact:
+    """Evasion."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CREATURE_SAVE_DAMAGE_OVERRIDE
+
+    entry: str
+    section: EntrySection
+    subject: EntrySubject
+    applies_when: ContributorPredicate | None
+    save_damage_override: SaveDamageOverride
+
+
+@dataclass(frozen=True, kw_only=True)
+class CreatureRollModifierFact:
+    """A standing trait's Advantage or Disadvantage, with its predicate and,
+    for a check about the subject, the skill and purpose it is limited to."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CREATURE_ROLL_MODIFIER
+
+    entry: str
+    section: EntrySection
+    subject: EntrySubject
+    applies_when: ContributorPredicate | None
+    effects: tuple[AdvantageFact, ...]
+    skill: Skill | None
+    purpose: ContributorPurpose | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class CreatureHitPointRegainProhibitionFact:
+    """Swarm: *"can't regain Hit Points or gain Temporary Hit Points"* --
+    unconditional in the source."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CREATURE_HIT_POINT_REGAIN_PROHIBITION
+
+    entry: str
+    section: EntrySection
+    subject: EntrySubject
+    hit_points: bool
+    temporary_hit_points: bool | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class CheckRequirementRemovalFact:
+    """Spider Climb / Ice Walk: no ability check to climb the named surfaces
+    (``check`` addresses the requirement's component)."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CHECK_REQUIREMENT_REMOVAL
+
+    entry: str
+    section: EntrySection
+    subject: EntrySubject
+    check: str
+    surfaces: SurfaceKind
+    also: IcyTerrain | None
+    applies_when: SpeedPredicate | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ZeroHitPointSaveFact:
+    """Undead Fortitude: a damage-triggered save that substitutes 1 Hit
+    Point."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.ZERO_HIT_POINT_SAVE
+
+    entry: str
+    section: EntrySection
+    subject: EntrySubject
+    trigger: ZeroHitPointTrigger
+    save: AbilityScore
+    dc: DamagePlusDc
+    unless: ZeroHitPointUnless
+    on_success: ZeroHitPointOnSuccess
+
+
+@dataclass(frozen=True, kw_only=True)
+class CreatureSizeFact:
+    """The sizes a stat block's size line prints (*"Medium or Small"*)."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CREATURE_SIZE
+
+    sizes: tuple[CreatureSize, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class CreatureConditionalDefenseFact:
+    """A qualified entry in a defensive list: *"Charmed (except from its
+    vampire master)"*, *"Piercing from a weapon wielded by a creature under
+    Bless"*, *"the damage type chosen for Draconic Origin"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CREATURE_CONDITIONAL_DEFENSE
+
+    kind: ConditionalDefenseKind
+    condition: ConditionKind | None
+    damage_type: DamageType | None
+    while_active_effect: str | None
+    unless_source_is: RelationQualification | None
+    attack: DefenseAttack | None
+    attacker_active_effect: str | None
+    selection: DamageTypeSelection | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class CreatureDefenseParameterizedFact:
+    """A summon's AC and Hit Points, fixed or by printed formula."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CREATURE_DEFENSE_PARAMETERIZED
+
+    armor_class: int | None
+    armor_class_formula: LeveledArmorClass | None
+    hit_points: ParameterizedHitPoints
+
+
+# Clause pieces -------------------------------------------------------------
+
+
+@dataclass(frozen=True, kw_only=True)
+class _ClauseLocus:
+    """Where a clause piece sits, and its explicit source-local links.
+
+    ``piece`` is the piece's index in its clause; ``under_predicates`` are the
+    indices of the leading predicates that scope it. ``effect_id`` names an
+    effect this piece creates (``E1``...), entry-local; ``bound_effect``,
+    ``lasts_while_effect``, ``ends_effects`` and ``duration_of_effects`` name
+    such effects of the same entry. None is a runtime identifier.
+    """
+
+    entry: str
+    section: EntrySection
+    part: ClausePart
+    piece: int
+    branch: ClauseBranch
+    effect_id: str | None
+    bound_effect: str | None
+    lasts_while_effect: str | None
+    ends_effects: tuple[str, ...]
+    duration_of_effects: tuple[str, ...]
+    under_predicates: tuple[int, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseBranchFact(_ClauseLocus):
+    """A printed branch label (*"_Second Failure:_"*)."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_BRANCH
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClausePredicateFact(_ClauseLocus):
+    """A leading predicate scoping the rest of its sentence."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_PREDICATE
+
+    target_maximum_size: CreatureSize | None
+    source_moved_straight_toward_target_ft_min: int | None
+    attack_roll_had_advantage: bool | None
+    target_is_creature: bool | None
+    target_type: TargetTag | None
+    target_reduced_to_0_hit_points_by_this: bool | None
+    target_hit_points_at_most: int | None
+    otherwise: bool | None
+    while_condition: ConditionKind | None
+    while_state: PredicateWhile | None
+    refers_to: PredicateRefersTo | None
+    duration: TurnBoundary | None
+    at: RepeatSaveAt | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseGrappleFact(_ClauseLocus):
+    """*"it has the Grappled condition (escape DC 14) from one of two
+    claws"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_GRAPPLE
+
+    condition: ConditionKind
+    escape_dc: int
+    appendages: GrappleAppendages | None
+    instead_of_damage: bool | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseConditionFact(_ClauseLocus):
+    """Conditions a piece applies, without a duration of its own."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_CONDITION
+
+    effects: tuple[ConditionEffectFact, ...]
+    replaces_condition: ConditionKind | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseTimedConditionFact(_ClauseLocus):
+    """Conditions with a turn-edge or elapsed duration and ending events."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_TIMED_CONDITION
+
+    effects: tuple[ConditionEffectFact, ...]
+    duration_turn: TurnBoundary | None
+    duration_span: ElapsedSpan | None
+    ends_early_when: tuple[EndingEvent, ...]
+    replaces_condition: ConditionKind | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseLinkedConditionFact(_ClauseLocus):
+    """Conditions lasting while a named effect lasts."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_LINKED_CONDITION
+
+    effects: tuple[ConditionEffectFact, ...]
+    while_state: PredicateWhile
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseConditionUntilRepeatFact(_ClauseLocus):
+    """*"until the end of its next turn, at which point it repeats the
+    save"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_CONDITION_UNTIL_REPEAT
+
+    effects: tuple[ConditionEffectFact, ...]
+    duration: TurnBoundary
+    repeat_save: RepeatOnce
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseConditionEndsFact(_ClauseLocus):
+    """*"The Poisoned condition ends."*"""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_CONDITION_ENDS
+
+    condition: ConditionKind
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseConditionEndsEarlyFact(_ClauseLocus):
+    """*"which ends early if the target takes any damage"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_CONDITION_ENDS_EARLY
+
+    ends_early_when: tuple[EndingEvent, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseEffectEndsFact(_ClauseLocus):
+    """*"This effect ends for the target if ..."*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_EFFECT_ENDS
+
+    ends_early_when: tuple[EndingEvent, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseEffectLastsFact(_ClauseLocus):
+    """*"This effect lasts until the end of its next turn."*"""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_EFFECT_LASTS
+
+    duration: TurnBoundary
+    scope: EffectLastsScope
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseRepeatSaveFact(_ClauseLocus):
+    """A repeated save and what its success ends."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_REPEAT_SAVE
+
+    at: RepeatSaveAt | None
+    turn_of: TurnOwner | None
+    ends_on: SaveEndsOn | None
+    only_if: RepeatCondition | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseRepeatSaveLimitFact(_ClauseLocus):
+    """*"After 1 minute, it succeeds automatically."*"""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_REPEAT_SAVE_LIMIT
+
+    automatic_success_after_minutes: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseTemporaryImmunityFact(_ClauseLocus):
+    """*"The target is immune to this <creature>'s <entry> for 24 hours."*"""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_TEMPORARY_IMMUNITY
+
+    to: ImmunityScope
+    immune_to_entry: str
+    hours: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseNestedSaveFact(_ClauseLocus):
+    """*"_Constitution Saving Throw:_ DC 12."* inside a rider."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_NESTED_SAVE
+
+    ability: AbilityScore
+    dc: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseNestedSaveTriggerFact(_ClauseLocus):
+    """*"it is subjected to the following effect"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_NESTED_SAVE_TRIGGER
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseTimedSpeedChangeFact(_ClauseLocus):
+    """*"its Speed decreases by 10 feet until the end of its next turn"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_TIMED_SPEED_CHANGE
+
+    change: TimedSpeedChange
+    feet: int | None
+    duration: TurnBoundary | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseTimedAcModifierFact(_ClauseLocus):
+    """*"takes a -2 penalty to AC until the end of its next turn"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_TIMED_AC_MODIFIER
+
+    modifier: int
+    duration: TurnBoundary
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseNextRollModifierFact(_ClauseLocus):
+    """Advantage or Disadvantage on one next attack roll, until it expires."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_NEXT_ROLL_MODIFIER
+
+    roll: NextRoll
+    state: AdvantageState
+    uses: int
+    expires: TurnBoundary
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseD20TestPenaltyDieFact(_ClauseLocus):
+    """*"rolls 1d6 whenever it makes an ability check or attack roll"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_D20_TEST_PENALTY_DIE
+
+    contexts: tuple[RollContext, ...]
+    count: int
+    die: DieSize
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClausePenaltyDieApplicationFact(_ClauseLocus):
+    """*"and subtracts the number rolled from the D20 Test"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_PENALTY_DIE_APPLICATION
+
+    subtracts_from: PenaltyTarget
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseRollModifierFact(_ClauseLocus):
+    """Advantage or Disadvantage a clause imposes on its subject's rolls
+    (``ability_disadvantage``, ``roll_disadvantage`` and
+    ``escape_disadvantage`` pieces)."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_ROLL_MODIFIER
+
+    subject: RiderSubject
+    effects: tuple[AdvantageFact, ...]
+    ability_based: AbilityBasedD20Tests | None
+    purpose: EscapePurpose | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseDamageRollPenaltyFact(_ClauseLocus):
+    """*"subtracts 3 (1d6) from its damage rolls"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_DAMAGE_ROLL_PENALTY
+
+    average: int
+    dice: DiceExpression
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseDamageBranchFact(_ClauseLocus):
+    """Damage a branch deals (*"Otherwise, the target takes ..."*)."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_DAMAGE_BRANCH
+
+    terms: tuple[DamageTerm, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseChoiceTypedDamageFact(_ClauseLocus):
+    """Damage of a chosen type."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_CHOICE_TYPED_DAMAGE
+
+    average: int | None
+    dice: DiceExpression
+    damage_type: DamageTypeChoice
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseConditionalDamageFact(_ClauseLocus):
+    """Replacement damage under a predicate, beside unconditional terms that
+    joined the attack's ``hit_damage``."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_CONDITIONAL_DAMAGE
+
+    mode: DamageMode
+    term: DamageTerm
+    when: DamageWhen
+    replaces_hit_damage_index: int | None
+    unconditional_hit_damage_indices: tuple[int, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClausePeriodicDamageFact(_ClauseLocus):
+    """*"takes 7 (2d6) Thunder damage at the start of each of the stalker's
+    turns"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_PERIODIC_DAMAGE
+
+    at: RecurrenceBoundary
+    term: DamageTerm
+    turn_of: TurnOwner
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClausePeriodicHitPointLossFact(_ClauseLocus):
+    """*"loses 5 (1d10) Hit Points at the start of each of its turns"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_PERIODIC_HIT_POINT_LOSS
+
+    at: RecurrenceBoundary
+    average: int
+    dice: DiceExpression
+    turn_of: TurnOwner
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseHitPointRegainProhibitionFact(_ClauseLocus):
+    """*"the target can't regain Hit Points"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_HIT_POINT_REGAIN_PROHIBITION
+
+    hit_points: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseHitPointsSetFact(_ClauseLocus):
+    """*"it drops to 0 Hit Points"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_HIT_POINTS_SET
+
+    to: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseZeroHitPointOutcomeFact(_ClauseLocus):
+    """*"the target becomes Stable"*, *"dies if reduced to 0 Hit Points by
+    this attack"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_ZERO_HIT_POINT_OUTCOME
+
+    becomes: ClauseZeroHitPointResult
+    when: ClauseZeroHitPointCause | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseNamedEffectFact(_ClauseLocus):
+    """*"the target is cursed for 1 hour"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_NAMED_EFFECT
+
+    name: NamedEffect
+    duration: ElapsedSpan | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseForcedMovementFact(_ClauseLocus):
+    """A push or pull a clause states."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_FORCED_MOVEMENT
+
+    direction: ForcedDirection
+    distance_ft: int | None
+    distance_ft_up_to: int | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseFollowUpAttackFact(_ClauseLocus):
+    """*"the allosaurus can make one Bite attack against it"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_FOLLOW_UP_ATTACK
+
+    attack: str
+    count: int
+    optional: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseTargetingRestrictionFact(_ClauseLocus):
+    """*"can't be targeted by the crocodile's Tail"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_TARGETING_RESTRICTION
+
+    source_attack: str
+    excludes: TargetingExclusion
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseDamageQualificationFact(_ClauseLocus):
+    """*"Being underwater doesn't grant Resistance to this Fire damage."*"""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_DAMAGE_QUALIFICATION
+
+    underwater_fire_resistance_applies: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseReturningWeaponFact(_ClauseLocus):
+    """*"The spear magically returns to the <creature>'s hand"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_RETURNING_WEAPON
+
+    weapon: ReturningWeaponKind
+    or_hovers_within_ft: int | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseSaveSuccessFact(_ClauseLocus):
+    """*"Half damage"* inside a framed save's success branch."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_SAVE_SUCCESS
+
+    half_damage: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseSaveTimingFact(_ClauseLocus):
+    """*"at the end of the aboleth's turn"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_SAVE_TIMING
+
+    at: RecurrenceBoundary
+    turn: TurnWhich
+    turn_of: TurnOwner
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseSelfSavePredicateFact(_ClauseLocus):
+    """*"If the basilisk sees its reflection in the Cone, the basilisk must
+    make this save."*"""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_SELF_SAVE_PREDICATE
+
+    when: ReflectionPredicate
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseSourceMovementFact(_ClauseLocus):
+    """*"The kraken then moves up to its Speed."*"""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_SOURCE_MOVEMENT
+
+    up_to: SourceMovementLimit
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseTriggerFact(_ClauseLocus):
+    """*"The mephit explodes when it dies."*"""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_TRIGGER
+
+    on: TriggerOn
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseRescueCheckFact(_ClauseLocus):
+    """*"As an action, a creature within 5 feet ... can pull a creature out of
+    it by succeeding on a DC 14 Strength (Athletics) check."*"""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_RESCUE_CHECK
+
+    actor_within_ft: int
+    uses: RescueCost
+    check: CheckSpec
+    ends: RescueEnds
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseAreaOriginPointFact(_ClauseLocus):
+    """*"at a point it can see within 90 feet"* / *"centered on that
+    point"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_AREA_ORIGIN_POINT
+
+    within_ft: int | None
+    requires_source_sees_point: bool | None
+    centered_on: AreaCenter | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ClauseAuraFact(_ClauseLocus):
+    """*"emanates an aura in a 20-foot Emanation while it doesn't have the
+    Incapacitated condition"* / *"in the aura"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CLAUSE_AURA
+
+    emanation_ft: int | None
+    suspended_while_source_has: ConditionKind | None
+    targets_within: AuraTargets | None
+
+
+# ---------------------------------------------------------------------------
+# Schema 19 families -- rules, weapons, tools and conventions (C5-A, C5-C)
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True, kw_only=True)
+class WeaponRangeClassFact:
+    """A weapon's printed Melee or Ranged group."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.WEAPON_RANGE_CLASS
+
+    range_class: RangeClass
+
+
+@dataclass(frozen=True, kw_only=True)
+class AttackRollAbilityFact:
+    """*"Strength for a melee attack, Dexterity for a ranged attack"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.ATTACK_ROLL_ABILITY
+
+    ability: AbilityScore
+    range_class: RangeClass
+
+
+@dataclass(frozen=True, kw_only=True)
+class NaturalRollOutcomeFact:
+    """A natural 1 or 20 on an attack roll."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.NATURAL_ROLL_OUTCOME
+
+    context: RollContext
+    face: int
+    outcome: NaturalOutcome
+    critical_hit: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class InitiativeRollFact:
+    """*"Initiative ... a Dexterity check"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.INITIATIVE_ROLL
+
+    ability: AbilityScore
+    context: RollContext
+
+
+@dataclass(frozen=True, kw_only=True)
+class DamageRollRuleFact:
+    """How a damage roll adds the attack's ability modifier, and its floor."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.DAMAGE_ROLL_RULE
+
+    adds_attack_ability_modifier: bool
+    fixed_amount_adds_modifier: bool
+    minimum_damage: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class CriticalDamageFact:
+    """*"Roll all of the attack's damage dice twice ... add any relevant
+    modifiers as normal"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CRITICAL_DAMAGE
+
+    applies_to: CriticalDamageScope
+    damage_dice_multiplier: int
+    modifiers: ModifierApplication
+
+
+@dataclass(frozen=True, kw_only=True)
+class TemporaryHitPointAbsorptionFact:
+    """Temporary Hit Points are lost first; leftover damage carries over."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.TEMPORARY_HIT_POINT_ABSORPTION
+
+    absorbed_first: bool
+    overflow_to_hit_points: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class HitPointBoundFact:
+    """*"Hit Points can't go below 0"* -- a bound on current Hit Points."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.HIT_POINT_BOUND
+
+    minimum_current: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class ZeroHitPointOutcomeFact:
+    """A zero-HP rule: who, what happens, and the GameMaster's exception."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.ZERO_HIT_POINT_OUTCOME
+
+    subject: ZeroHitPointSubject
+    outcome: ZeroHitPointResult
+    gamemaster_exception: GamemasterException | None
+    exception_scope: ExceptionScope | None
+    trigger: ZeroHitPointRuleTrigger | None
+    until: LifecycleEvent | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class MassiveDamageFact:
+    """Instant death when remaining damage equals or exceeds the maximum."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.MASSIVE_DAMAGE
+
+    subject: ZeroHitPointSubject
+    dies_when_remainder_at_least: DeathThreshold
+
+
+@dataclass(frozen=True, kw_only=True)
+class DeathSavingThrowFact:
+    """The Death Saving Throw: its die, thresholds, resets and timing."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.DEATH_SAVING_THROW
+
+    ability: AbilityScore | None
+    die: DieSize
+    failures_to_die: int
+    success_minimum: int
+    successes_to_stable: int
+    reset_on: tuple[LifecycleEvent, ...]
+    timing: DeathSaveTiming
+
+
+@dataclass(frozen=True, kw_only=True)
+class DeathSaveNaturalRollFact:
+    """A natural 1 (two failures) or 20 (regain 1 Hit Point)."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.DEATH_SAVE_NATURAL_ROLL
+
+    face: int
+    failures: int | None
+    regain_hit_points: int | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class DamageAtZeroHitPointsFact:
+    """Damage at 0 Hit Points: failures, critical failures, death threshold."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.DAMAGE_AT_ZERO_HIT_POINTS
+
+    failures: int
+    critical_hit_failures: int
+    dies_when_damage_at_least: DeathThreshold
+
+
+@dataclass(frozen=True, kw_only=True)
+class StabilizationFact:
+    """Stabilizing with the Help action."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.STABILIZATION
+
+    action: StabilizeAction
+    on_success: StabilizeOutcome
+    target_at_hit_points: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class StableStateFact:
+    """What being Stable means, and its prescribed recovery."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.STABLE_STATE
+
+    makes_death_saves: bool
+    remains_unconscious: bool
+    damage_ends_stable: bool
+    recovery: StableRecovery
+
+
+@dataclass(frozen=True, kw_only=True)
+class KnockoutAlternativeFact:
+    """Knocking a creature out instead of reducing it to 0 Hit Points."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.KNOCKOUT_ALTERNATIVE
+
+    attack: RangeClass
+    trigger: KnockoutTrigger
+    optional: bool
+    set_hit_points: int
+    condition: ConditionKind
+    starts: RestKind
+    ends_after: RestKind
+    ends_early_on: tuple[LifecycleEvent, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class RestDurationFact:
+    """How long a rest lasts."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.REST_DURATION
+
+    rest: RestKind
+    hours: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class AttackAbilityOptionFact:
+    """Finesse: Strength or Dexterity, the same for damage."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.ATTACK_ABILITY_OPTION
+
+    abilities: tuple[AbilityScore, ...]
+    same_for_damage: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class AbilityScoreRequirementFact:
+    """Heavy: a minimum score, and what being below it imposes."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.ABILITY_SCORE_REQUIREMENT
+
+    ability: AbilityScore
+    minimum: int
+    range_class: RangeClass
+    unmet: UnmetEffect
+
+
+@dataclass(frozen=True, kw_only=True)
+class LightExtraAttackFact:
+    """Light: the extra attack with a different Light weapon."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.LIGHT_EXTRA_ATTACK
+
+    trigger: LightTrigger
+    first_attack: LightFirstAttack
+    requires: LightRequirement
+    cost: ActionCost
+    when: LightTiming
+    ability_modifier_damage: ModifierDamage
+    limit: UseFrequency
+    optional: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class AmmunitionPerActivationFact:
+    """Loading: one piece per action, Bonus Action or Reaction."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.AMMUNITION_PER_ACTIVATION
+
+    maximum: int
+    per: tuple[ActionCost, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class RangeBandRuleFact:
+    """Range: Disadvantage beyond normal, no attack beyond long."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.RANGE_BAND_RULE
+
+    beyond_normal: RangeOutcome
+    beyond_long: RangeOutcome
+
+
+@dataclass(frozen=True, kw_only=True)
+class ReachExtensionFact:
+    """Reach: 5 more feet for attacks with it and Opportunity Attacks."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.REACH_EXTENSION
+
+    feet: int
+    applies_to: tuple[ReachScope, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class ThrownAttackFact:
+    """Thrown: a ranged attack, drawn as part of it, with the melee ability."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.THROWN_ATTACK
+
+    attack: RangeClass
+    draw_as_part_of_attack: bool
+    melee_weapon_ability: ThrownAbility
+
+
+@dataclass(frozen=True, kw_only=True)
+class HandsRequiredFact:
+    """Two-Handed: two hands when attacking."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.HANDS_REQUIRED
+
+    hands: int
+    when: HandsWhen
+
+
+@dataclass(frozen=True, kw_only=True)
+class VersatileDamageFact:
+    """Versatile: the two-handed melee damage."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.VERSATILE_DAMAGE
+
+    attack: RangeClass
+    hands: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class AmmunitionExpenditureFact:
+    """Ammunition: one piece per attack, drawing, loading and recovery."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.AMMUNITION_EXPENDITURE
+
+    per_attack: int
+    requires: AmmunitionRequirement
+    drawing_is_part_of_the_attack: bool
+    loading_requires_free_hand: FreeHandRule
+    recovery: AmmunitionRecovery
+
+
+@dataclass(frozen=True, kw_only=True)
+class MasteryEffectFact:
+    """One mastery property's effect, as its Mastery Properties entry prints
+    it. Only the fields its property states are set."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.MASTERY_EFFECT
+
+    mastery: WeaponMastery
+    trigger: MasteryTrigger
+    optional: bool
+    applies_to: MasteryAppliesTo | None
+    against: MasteryAgainst | None
+    cost: MasteryCost | None
+    damage: MasteryDamage | None
+    damage_type: MasteryDamageType | None
+    increase: MasteryIncrease | None
+    ability_modifier_damage: ModifierDamage | None
+    limit: UseFrequency | None
+    second_target_within_ft: int | None
+    second_target_within_reach: bool | None
+    direction: ForcedDirection | None
+    distance_ft_up_to: int | None
+    maximum_size: CreatureSize | None
+    speed_reduction_ft: int | None
+    maximum_reduction_ft: int | None
+    duration: TurnBoundary | None
+    effect: AdvantageFact | None
+    save: AbilityScore | None
+    dc: MasteryDc | None
+    on_failure: tuple[ConditionEffectFact, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class ToolEntryFact:
+    """A tool's printed ability and Tools-section group."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.TOOL_ENTRY
+
+    ability: AbilityScore
+    category: ToolCategory
+
+
+@dataclass(frozen=True, kw_only=True)
+class ToolVariantsFact:
+    """Gaming Set / Musical Instrument: its kinds, each a separate
+    proficiency."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.TOOL_VARIANTS
+
+    variants: tuple[ToolVariant, ...]
+    separate_proficiency: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class ToolActivityFact:
+    """Which printed activity of a tool a component, or one option of its
+    choice, is: the source activity's selectable identity."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.TOOL_ACTIVITY
+
+    activity: ToolActivity
+
+
+@dataclass(frozen=True, kw_only=True)
+class CreatureAttackNotationFact:
+    """How a stat-block attack is read: one target, its outcome sections."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CREATURE_ATTACK_NOTATION
+
+    targets: int
+    sections: tuple[AttackSection, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class CreatureSaveNotationFact:
+    """How a stat-block save effect is read."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CREATURE_SAVE_NOTATION
+
+    half_damage_rounding: RoundingRule
+    half_damage_only_ignores_other_effects: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class DamageNotationOptionFact:
+    """Average or dice, the GameMaster's choice."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.DAMAGE_NOTATION_OPTION
+
+    options: tuple[DamageNotation, ...]
+    exclusive: bool
+    selected_by: Chooser
+
+
+@dataclass(frozen=True, kw_only=True)
+class MultiattackRuleFact:
+    """Multiattack is taken as the Attack action, composed per entry."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.MULTIATTACK_RULE
+
+    action: MultiattackAction
+    composition: MultiattackComposition
+
+
+@dataclass(frozen=True, kw_only=True)
+class UsageLimitRuleFact:
+    """One limited-usage notation and how uses come back."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.USAGE_LIMIT_RULE
+
+    kind: UsageRuleKind
+    regain: tuple[RestKind, ...]
+    also_regain: tuple[RestKind, ...]
+    die: DieSize | None
+    roll_at: RecurrenceBoundary | None
+    turn_of: TurnOwner | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class LegendaryActionRuleFact:
+    """Legendary actions: timing, one at a time, regain, conditions."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.LEGENDARY_ACTION_RULE
+
+    timing: LegendaryTiming
+    one_at_a_time: bool
+    regain: LegendaryRegain
+    not_while_has_conditions: tuple[ConditionKind, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class SpellAttackModifierFormulaFact:
+    """*"spellcasting ability modifier + Proficiency Bonus"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.SPELL_ATTACK_MODIFIER_FORMULA
+
+    sum: tuple[FormulaTerm, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class SpellSaveDcFormulaFact:
+    """*"8 + spellcasting ability modifier + Proficiency Bonus"*."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.SPELL_SAVE_DC_FORMULA
+
+    base: int
+    plus: tuple[FormulaTerm, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class SpellcastingAbilityFact:
+    """A class's spellcasting ability."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.SPELLCASTING_ABILITY
+
+    ability: AbilityScore
+
+
+@dataclass(frozen=True, kw_only=True)
+class DifficultyBandFact:
+    """One Typical Difficulty Class row."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.DIFFICULTY_BAND
+
+    applies_to: RollContext
+    difficulty: Difficulty
+    dc: int
+
+
+# Grants ---------------------------------------------------------------------
+
+
+@dataclass(frozen=True, kw_only=True)
+class SkillProficiencyChoiceFact:
+    """A choice of skill proficiencies: from a list, or from another
+    component's list (``from_reference``)."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.SKILL_PROFICIENCY_CHOICE
+
+    count: int
+    from_skills: tuple[Skill, ...]
+    from_reference: ComponentReference | None
+    context: GrantContext | None
+    eligibility: SubclassEligibility | None
+    gain_levels: ProgressionReference | None
+    or_tools: ToolSelector | None
+    repeatable: bool | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class MulticlassSkillProficiencyChoiceFact:
+    """The skill a multiclass entry grants, if any."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.MULTICLASS_SKILL_PROFICIENCY_CHOICE
+
+    count: int
+    from_skills: tuple[Skill, ...]
+    from_reference: ComponentReference | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class SkillProficiencyGrantFact:
+    """A background's fixed skills."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.SKILL_PROFICIENCY_GRANT
+
+    skills: tuple[Skill, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class SavingThrowProficiencyGrantFact:
+    """Saving-throw proficiencies a class or feature grants."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.SAVING_THROW_PROFICIENCY_GRANT
+
+    abilities: tuple[AbilityScore, ...]
+    context: GrantContext | None
+    gain_levels: ProgressionReference | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class WeaponProficiencyGrantFact:
+    """A class's weapon proficiencies, by category or qualified category."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.WEAPON_PROFICIENCY_GRANT
+
+    categories: tuple[WeaponCategory, ...]
+    qualified: tuple[QualifiedWeaponCategory, ...]
+    context: GrantContext | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ArmorTrainingGrantFact:
+    """A class's armor training."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.ARMOR_TRAINING_GRANT
+
+    armor: tuple[ArmorCategory, ...]
+    shields: bool
+    context: GrantContext | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ToolProficiencyGrantFact:
+    """Fixed tool proficiencies."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.TOOL_PROFICIENCY_GRANT
+
+    tools: tuple[ComponentReference, ...]
+    context: GrantContext | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class ToolProficiencyChoiceFact:
+    """A choice of tool proficiencies."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.TOOL_PROFICIENCY_CHOICE
+
+    count: int
+    options: tuple[ToolSelector, ...]
+    context: GrantContext | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class MulticlassProficiencyGrantFact:
+    """What a multiclass entry grants besides a skill -- and that it grants
+    no saving throws."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.MULTICLASS_PROFICIENCY_GRANT
+
+    saving_throws: tuple[AbilityScore, ...]
+    weapons: WeaponCategories
+    armor_training: ArmorTraining
+    tool_choice: ToolChoice | None
+    tool_grant: tuple[ComponentReference, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class WeaponAndArmorGrantFact:
+    """A chosen class option's weapon proficiency and armor training."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.WEAPON_AND_ARMOR_GRANT
+
+    weapons: WeaponCategories
+    armor_training: ArmorTraining
+    chosen_option_of: str
+    gain_levels: ProgressionReference
+
+
+@dataclass(frozen=True, kw_only=True)
+class WeaponMasteryChoiceFact:
+    """Weapon Mastery: how many kinds, which are eligible, counts by level and
+    the Long Rest swap."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.WEAPON_MASTERY_CHOICE
+
+    kinds_of_weapons: int
+    categories: tuple[WeaponCategory, ...]
+    melee_only: bool | None
+    requires_weapon_proficiency: bool | None
+    count_by_level: tuple[LevelCount, ...]
+    rest_swap: RestSwap
+    gain_levels: ProgressionReference
+
+
+@dataclass(frozen=True, kw_only=True)
+class FeatPrerequisiteFact:
+    """A feat's category and prerequisites."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.FEAT_PREREQUISITE
+
+    category: FeatCategory
+    minimum_character_level: int | None
+    minimum_ability_score: AbilityMinimum | None
+    requires_feature: RequiredFeature | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class FeatChoiceFact:
+    """A feat a feature or species entitles: a named feat or any qualifying
+    one, of a category."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.FEAT_CHOICE
+
+    count: int | None
+    count_per_gain: int | None
+    category: FeatCategory | None
+    named_feat: str | None
+    or_any_feat_whose_prerequisites_are_met: bool | None
+    gain_levels: ProgressionReference | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class FeatGrantFact:
+    """A background's fixed feat (``feat`` a ``feats.*`` record key)."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.FEAT_GRANT
+
+    feat: str
+    qualifier: FeatQualifier | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class AbilityIncreaseChoiceFact:
+    """An ability-score increase: which abilities, which patterns, the cap."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.ABILITY_INCREASE_CHOICE
+
+    abilities: tuple[AbilityScore, ...]
+    any_ability: bool | None
+    patterns: tuple[tuple[int, ...], ...]
+    distinct_abilities: bool | None
+    maximum_score: int | None
+    repeatable: bool | None
+    rule: ComponentReference | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class AbilityIncreaseRuleFact:
+    """The background ability-score rule."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.ABILITY_INCREASE_RULE
+
+    patterns: tuple[tuple[int, ...], ...]
+    distinct_abilities: bool
+    maximum_score: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class ExpertiseRuleFact:
+    """Expertise: requires proficiency, no duplicates, doubled bonus."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.EXPERTISE_RULE
+
+    requires_skill_proficiency: bool
+    no_duplicate: bool
+    proficiency_bonus_multiplier: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class ExpertiseChoiceFact:
+    """Expertise a feature grants per gain."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.EXPERTISE_CHOICE
+
+    count_per_gain: int
+    from_proficient_skills: bool
+    from_skills: tuple[Skill, ...]
+    gain_levels: ProgressionReference
+
+
+# Armor and AC (C5-C) ----------------------------------------------------------
+
+
+@dataclass(frozen=True, kw_only=True)
+class ArmorClassFormulaFact:
+    """An armor row's AC formula, Strength requirement and Stealth effect."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.ARMOR_CLASS_FORMULA
+
+    category: ArmorCategory
+    base: int
+    adds_dexterity_modifier: bool
+    dexterity_maximum: int | None
+    strength_minimum: int | None
+    stealth_disadvantage: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class ShieldBonusFact:
+    """A Shield's AC bonus."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.SHIELD_BONUS
+
+    bonus: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class BaseArmorClassFact:
+    """Base AC without armor."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.BASE_ARMOR_CLASS
+
+    base: int
+    adds_dexterity_modifier: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class BaseArmorClassExclusivityFact:
+    """Only one base AC calculation at a time."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.BASE_ARMOR_CLASS_EXCLUSIVITY
+
+    maximum: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class ArmorTrainingPenaltyFact:
+    """Wearing armor without training."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.ARMOR_TRAINING_PENALTY
+
+    applies_to: tuple[ArmorCategory, ...]
+    applies_when: TrainingCondition
+    d20_tests: AdvantageState
+    abilities: tuple[AbilityScore, ...]
+    cannot_cast_spells: bool
+
+
+@dataclass(frozen=True, kw_only=True)
+class ShieldTrainingRequirementFact:
+    """A Shield gives no AC benefit without training."""
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.SHIELD_TRAINING_REQUIREMENT
+
+    untrained: UntrainedShield
+
+
+@dataclass(frozen=True, kw_only=True)
+class AmmunitionSupplyFact:
+    """Schema 20: the ammunition one Ammunition table row supplies.
+
+    ``kind`` is the weapon-side :class:`AmmunitionKind` the row is.
+    ``for_weapons`` narrows a kind several weapon rows share to the weapons
+    the row names (*"Bullets, Sling"*); ``None`` means every weapon whose
+    Ammunition property names ``kind``. When stated it is non-empty, distinct
+    and sorted, so one meaning has one fact key. Whether each reference is
+    an accepted Ammunition weapon of ``kind`` is relational and checked by
+    the representation validator. Amount, storage, weight and cost are not
+    represented.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.AMMUNITION_SUPPLY
+
+    kind: AmmunitionKind
+    for_weapons: tuple[ComponentReference, ...] | None
+
+
+@dataclass(frozen=True, kw_only=True)
+class CreatureTypeFact:
+    """Schema 21: a creature or species' printed creature type.
+
+    One ``type``, or -- with ``type`` ``None`` -- the types a creator chooses
+    among (*"Celestial, Fey, or Fiend (Your Choice)"*), at least two, distinct
+    and sorted; exactly one of the two is stated. The type only: descriptive
+    tags stay prose, and their absence states nothing (for example, about
+    being an elf).
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CREATURE_TYPE
+
+    type: CreatureTypeKind | None
+    type_choice: tuple[CreatureTypeKind, ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class SummonedCreatureTypeFact:
+    """Schema 21: a source gives the creature it brings a type chosen among
+    ``type_choice`` instead of its form's own type ``instead_of``, for the
+    named ``forms`` only (Find Familiar: *"though it is a Celestial, Fey, or
+    Fiend (your choice) instead of a Beast"*).
+
+    Target authority for an existing creature whose source is this one; not
+    casting, creation, lifecycle or an attack grant. ``type_choice`` is at
+    least two, distinct and sorted; ``forms`` non-empty, distinct and sorted.
+    That each form is a creature profile whose own type is ``instead_of`` is
+    relational and checked by the representation validator.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.SUMMONED_CREATURE_TYPE
+
+    type_choice: tuple[CreatureTypeKind, ...]
+    instead_of: CreatureTypeKind
+    forms: tuple[ComponentReference, ...]
 
 
 @dataclass(frozen=True)
@@ -4617,6 +8000,135 @@ MechanicalFact = (
     | ProficiencyBonusUseFact
     | WeaponCategoryFact
     | WeaponMasteryFact
+    | CreatureAttackFact
+    | CreatureSaveEffectFact
+    | CreatureMultiattackFact
+    | CreatureEntryUsageFact
+    | CreatureEntryReferenceFact
+    | CreatureObserverCheckFact
+    | CreatureConditionGrantFact
+    | CreatureSaveOverrideFact
+    | CreatureSaveDamageOverrideFact
+    | CreatureRollModifierFact
+    | CreatureHitPointRegainProhibitionFact
+    | CheckRequirementRemovalFact
+    | ZeroHitPointSaveFact
+    | CreatureSizeFact
+    | CreatureConditionalDefenseFact
+    | CreatureDefenseParameterizedFact
+    | ClauseBranchFact
+    | ClausePredicateFact
+    | ClauseGrappleFact
+    | ClauseConditionFact
+    | ClauseTimedConditionFact
+    | ClauseLinkedConditionFact
+    | ClauseConditionUntilRepeatFact
+    | ClauseConditionEndsFact
+    | ClauseConditionEndsEarlyFact
+    | ClauseEffectEndsFact
+    | ClauseEffectLastsFact
+    | ClauseRepeatSaveFact
+    | ClauseRepeatSaveLimitFact
+    | ClauseTemporaryImmunityFact
+    | ClauseNestedSaveFact
+    | ClauseNestedSaveTriggerFact
+    | ClauseTimedSpeedChangeFact
+    | ClauseTimedAcModifierFact
+    | ClauseNextRollModifierFact
+    | ClauseD20TestPenaltyDieFact
+    | ClausePenaltyDieApplicationFact
+    | ClauseRollModifierFact
+    | ClauseDamageRollPenaltyFact
+    | ClauseDamageBranchFact
+    | ClauseChoiceTypedDamageFact
+    | ClauseConditionalDamageFact
+    | ClausePeriodicDamageFact
+    | ClausePeriodicHitPointLossFact
+    | ClauseHitPointRegainProhibitionFact
+    | ClauseHitPointsSetFact
+    | ClauseZeroHitPointOutcomeFact
+    | ClauseNamedEffectFact
+    | ClauseForcedMovementFact
+    | ClauseFollowUpAttackFact
+    | ClauseTargetingRestrictionFact
+    | ClauseDamageQualificationFact
+    | ClauseReturningWeaponFact
+    | ClauseSaveSuccessFact
+    | ClauseSaveTimingFact
+    | ClauseSelfSavePredicateFact
+    | ClauseSourceMovementFact
+    | ClauseTriggerFact
+    | ClauseRescueCheckFact
+    | ClauseAreaOriginPointFact
+    | ClauseAuraFact
+    | WeaponRangeClassFact
+    | AttackRollAbilityFact
+    | NaturalRollOutcomeFact
+    | InitiativeRollFact
+    | DamageRollRuleFact
+    | CriticalDamageFact
+    | TemporaryHitPointAbsorptionFact
+    | HitPointBoundFact
+    | ZeroHitPointOutcomeFact
+    | MassiveDamageFact
+    | DeathSavingThrowFact
+    | DeathSaveNaturalRollFact
+    | DamageAtZeroHitPointsFact
+    | StabilizationFact
+    | StableStateFact
+    | KnockoutAlternativeFact
+    | RestDurationFact
+    | AttackAbilityOptionFact
+    | AbilityScoreRequirementFact
+    | LightExtraAttackFact
+    | AmmunitionPerActivationFact
+    | RangeBandRuleFact
+    | ReachExtensionFact
+    | ThrownAttackFact
+    | HandsRequiredFact
+    | VersatileDamageFact
+    | AmmunitionExpenditureFact
+    | MasteryEffectFact
+    | ToolEntryFact
+    | ToolVariantsFact
+    | ToolActivityFact
+    | CreatureAttackNotationFact
+    | CreatureSaveNotationFact
+    | DamageNotationOptionFact
+    | MultiattackRuleFact
+    | UsageLimitRuleFact
+    | LegendaryActionRuleFact
+    | SpellAttackModifierFormulaFact
+    | SpellSaveDcFormulaFact
+    | SpellcastingAbilityFact
+    | DifficultyBandFact
+    | SkillProficiencyChoiceFact
+    | MulticlassSkillProficiencyChoiceFact
+    | SkillProficiencyGrantFact
+    | SavingThrowProficiencyGrantFact
+    | WeaponProficiencyGrantFact
+    | ArmorTrainingGrantFact
+    | ToolProficiencyGrantFact
+    | ToolProficiencyChoiceFact
+    | MulticlassProficiencyGrantFact
+    | WeaponAndArmorGrantFact
+    | WeaponMasteryChoiceFact
+    | FeatPrerequisiteFact
+    | FeatChoiceFact
+    | FeatGrantFact
+    | AbilityIncreaseChoiceFact
+    | AbilityIncreaseRuleFact
+    | ExpertiseRuleFact
+    | ExpertiseChoiceFact
+    | ArmorClassFormulaFact
+    | ShieldBonusFact
+    | BaseArmorClassFact
+    | BaseArmorClassExclusivityFact
+    | ArmorTrainingPenaltyFact
+    | ShieldTrainingRequirementFact
+    | AmmunitionSupplyFact
+    | CreatureTypeFact
+    | SummonedCreatureTypeFact
 )
 
 _FACT_TYPES: dict[FactFamily, type] = {
@@ -5441,9 +8953,15 @@ def held_container_violations(value: object, tag: str) -> list[str]:
     """
     if type(value) not in _admitted_structures():
         return []
+    # An optional sequence (schema 20's ``for_weapons``) may be unset; when set
+    # it is held to the same exact-tuple rule.
+    optional = {
+        f.name for f in fields(cast(Any, type(value))) if str(f.type).endswith("| None")
+    }
     return [
         v
         for name in declared_tuple_fields(type(value))
+        if not (name in optional and getattr(value, name) is None)
         for v in exact_tuple_violations(getattr(value, name), f"{tag}: {name}")
     ]
 
@@ -6422,6 +9940,47 @@ def _check_weapon_property(fact: WeaponPropertyFact) -> list[str]:
     ):
         if value is not None and value < 1:
             findings.append(f"{name} {value} is not a distance")
+    return [*findings, *_check_weapon_property_19(fact)]
+
+
+def _check_weapon_property_19(fact: WeaponPropertyFact) -> list[str]:
+    """The schema-19 fields: ammunition and its range together, exactly for
+    the ammunition property; ``unless`` only for two-handed."""
+    findings = [
+        *_optional_enum_field(fact.ammunition, AmmunitionKind, "ammunition"),
+        *_optional_int_field(
+            fact.ammunition_range_normal_feet, "ammunition_range_normal_feet"
+        ),
+        *_optional_int_field(
+            fact.ammunition_range_long_feet, "ammunition_range_long_feet"
+        ),
+        *_optional_enum_field(fact.unless, TwoHandedException, "unless"),
+    ]
+    if findings:
+        return findings
+    ammunition = (
+        fact.ammunition,
+        fact.ammunition_range_normal_feet,
+        fact.ammunition_range_long_feet,
+    )
+    if fact.weapon_property is WeaponProperty.AMMUNITION:
+        if any(v is None for v in ammunition):
+            findings.append("ammunition property without its ammunition and range")
+    elif any(v is not None for v in ammunition):
+        findings.append(
+            f"{fact.weapon_property.value} property carries ammunition or its range"
+        )
+    for name, value in (
+        ("ammunition_range_normal_feet", fact.ammunition_range_normal_feet),
+        ("ammunition_range_long_feet", fact.ammunition_range_long_feet),
+    ):
+        if value is not None and value < 1:
+            findings.append(f"{name} {value} is not a distance")
+    if (
+        fact.unless is not None
+        and fact.weapon_property is not WeaponProperty.TWO_HANDED
+    ):
+        findings.append(f"{fact.weapon_property.value} property carries an exception")
     return findings
 
 
@@ -7974,6 +11533,32 @@ def _build_weapon_property(p: Mapping[str, Any]) -> WeaponPropertyFact:
         ),
         thrown_range_normal_feet=p["thrown_range_normal_feet"],
         thrown_range_long_feet=p["thrown_range_long_feet"],
+        ammunition=cast(
+            AmmunitionKind | None,
+            _declared_from_json(
+                AmmunitionKind | None, p.get("ammunition"), "ammunition"
+            ),
+        ),
+        ammunition_range_normal_feet=cast(
+            int | None,
+            _declared_from_json(
+                int | None,
+                p.get("ammunition_range_normal_feet"),
+                "ammunition_range_normal_feet",
+            ),
+        ),
+        ammunition_range_long_feet=cast(
+            int | None,
+            _declared_from_json(
+                int | None,
+                p.get("ammunition_range_long_feet"),
+                "ammunition_range_long_feet",
+            ),
+        ),
+        unless=cast(
+            TwoHandedException | None,
+            _declared_from_json(TwoHandedException | None, p.get("unless"), "unless"),
+        ),
     )
 
 
@@ -8580,6 +12165,756 @@ _FACT_BUILDERS: dict[FactFamily, Callable[[Mapping[str, Any]], MechanicalFact]] 
     FactFamily.MOVEMENT_COMPOSITION: _build_movement_composition,
 }
 
+# ---------------------------------------------------------------------------
+# Schema 19 -- builders, checks and declared invariants
+# ---------------------------------------------------------------------------
+#
+# The schema-19 families are built and checked from their declared fields:
+# every field is a typed dataclass field, a payload's key set must equal the
+# field set exactly, nothing is coerced, and a field typed with an accepted fact
+# class is built by that family's accepted builder (``fact_from_payload``) and
+# checked by its accepted check. Reflection over declared fields is safe here
+# for the reason ``_shape`` is: the grammar it walks is closed, and anything it
+# cannot describe raises instead of passing through.
+
+_SCHEMA_19_FACT_CLASSES: tuple[type[Any], ...] = (
+    CreatureAttackFact,
+    CreatureSaveEffectFact,
+    CreatureMultiattackFact,
+    CreatureEntryUsageFact,
+    CreatureEntryReferenceFact,
+    CreatureObserverCheckFact,
+    CreatureConditionGrantFact,
+    CreatureSaveOverrideFact,
+    CreatureSaveDamageOverrideFact,
+    CreatureRollModifierFact,
+    CreatureHitPointRegainProhibitionFact,
+    CheckRequirementRemovalFact,
+    ZeroHitPointSaveFact,
+    CreatureSizeFact,
+    CreatureConditionalDefenseFact,
+    CreatureDefenseParameterizedFact,
+    ClauseBranchFact,
+    ClausePredicateFact,
+    ClauseGrappleFact,
+    ClauseConditionFact,
+    ClauseTimedConditionFact,
+    ClauseLinkedConditionFact,
+    ClauseConditionUntilRepeatFact,
+    ClauseConditionEndsFact,
+    ClauseConditionEndsEarlyFact,
+    ClauseEffectEndsFact,
+    ClauseEffectLastsFact,
+    ClauseRepeatSaveFact,
+    ClauseRepeatSaveLimitFact,
+    ClauseTemporaryImmunityFact,
+    ClauseNestedSaveFact,
+    ClauseNestedSaveTriggerFact,
+    ClauseTimedSpeedChangeFact,
+    ClauseTimedAcModifierFact,
+    ClauseNextRollModifierFact,
+    ClauseD20TestPenaltyDieFact,
+    ClausePenaltyDieApplicationFact,
+    ClauseRollModifierFact,
+    ClauseDamageRollPenaltyFact,
+    ClauseDamageBranchFact,
+    ClauseChoiceTypedDamageFact,
+    ClauseConditionalDamageFact,
+    ClausePeriodicDamageFact,
+    ClausePeriodicHitPointLossFact,
+    ClauseHitPointRegainProhibitionFact,
+    ClauseHitPointsSetFact,
+    ClauseZeroHitPointOutcomeFact,
+    ClauseNamedEffectFact,
+    ClauseForcedMovementFact,
+    ClauseFollowUpAttackFact,
+    ClauseTargetingRestrictionFact,
+    ClauseDamageQualificationFact,
+    ClauseReturningWeaponFact,
+    ClauseSaveSuccessFact,
+    ClauseSaveTimingFact,
+    ClauseSelfSavePredicateFact,
+    ClauseSourceMovementFact,
+    ClauseTriggerFact,
+    ClauseRescueCheckFact,
+    ClauseAreaOriginPointFact,
+    ClauseAuraFact,
+    WeaponRangeClassFact,
+    AttackRollAbilityFact,
+    NaturalRollOutcomeFact,
+    InitiativeRollFact,
+    DamageRollRuleFact,
+    CriticalDamageFact,
+    TemporaryHitPointAbsorptionFact,
+    HitPointBoundFact,
+    ZeroHitPointOutcomeFact,
+    MassiveDamageFact,
+    DeathSavingThrowFact,
+    DeathSaveNaturalRollFact,
+    DamageAtZeroHitPointsFact,
+    StabilizationFact,
+    StableStateFact,
+    KnockoutAlternativeFact,
+    RestDurationFact,
+    AttackAbilityOptionFact,
+    AbilityScoreRequirementFact,
+    LightExtraAttackFact,
+    AmmunitionPerActivationFact,
+    RangeBandRuleFact,
+    ReachExtensionFact,
+    ThrownAttackFact,
+    HandsRequiredFact,
+    VersatileDamageFact,
+    AmmunitionExpenditureFact,
+    MasteryEffectFact,
+    ToolEntryFact,
+    ToolVariantsFact,
+    ToolActivityFact,
+    CreatureAttackNotationFact,
+    CreatureSaveNotationFact,
+    DamageNotationOptionFact,
+    MultiattackRuleFact,
+    UsageLimitRuleFact,
+    LegendaryActionRuleFact,
+    SpellAttackModifierFormulaFact,
+    SpellSaveDcFormulaFact,
+    SpellcastingAbilityFact,
+    DifficultyBandFact,
+    SkillProficiencyChoiceFact,
+    MulticlassSkillProficiencyChoiceFact,
+    SkillProficiencyGrantFact,
+    SavingThrowProficiencyGrantFact,
+    WeaponProficiencyGrantFact,
+    ArmorTrainingGrantFact,
+    ToolProficiencyGrantFact,
+    ToolProficiencyChoiceFact,
+    MulticlassProficiencyGrantFact,
+    WeaponAndArmorGrantFact,
+    WeaponMasteryChoiceFact,
+    FeatPrerequisiteFact,
+    FeatChoiceFact,
+    FeatGrantFact,
+    AbilityIncreaseChoiceFact,
+    AbilityIncreaseRuleFact,
+    ExpertiseRuleFact,
+    ExpertiseChoiceFact,
+    ArmorClassFormulaFact,
+    ShieldBonusFact,
+    BaseArmorClassFact,
+    BaseArmorClassExclusivityFact,
+    ArmorTrainingPenaltyFact,
+    ShieldTrainingRequirementFact,
+)
+
+
+def _declared_from_json(annotation: object, value: object, where: str) -> object:
+    """Build one declared field from its stored JSON value, exactly."""
+    origin, args = get_origin(annotation), get_args(annotation)
+    if origin in (Union, UnionType):
+        inner = next(a for a in args if a is not type(None))
+        return None if value is None else _declared_from_json(inner, value, where)
+    if origin in (tuple, list):
+        (item,) = (a for a in args if a is not Ellipsis)
+        if type(value) is not list:
+            raise MalformedFactPayloadError(
+                f"{where} must be an array, got {type(value).__name__}"
+            )
+        return tuple(
+            _declared_from_json(item, v, f"{where}[{i}]") for i, v in enumerate(value)
+        )
+    if annotation in (bool, int, str):
+        if type(value) is not annotation:
+            raise MalformedFactPayloadError(
+                f"{where} must be {_PRIMITIVE_SHAPES[cast(type, annotation)]}, got "
+                f"{type(value).__name__}"
+            )
+        return value
+    if isinstance(annotation, type) and issubclass(annotation, StrEnum):
+        _reject_at(where, _json_enum(value, annotation, where))
+        return annotation(cast(str, value))
+    if isinstance(annotation, type) and is_dataclass(annotation):
+        family = getattr(annotation, "FAMILY", None)
+        if isinstance(family, FactFamily):
+            # A nested accepted shape: its own accepted builder, under its own
+            # declared family, so it is never a second spelling of it.
+            if type(value) is not dict or "family" in value:
+                raise MalformedFactPayloadError(
+                    f"{where} must be an untagged {family.value} object"
+                )
+            return fact_from_payload({**value, "family": family.value})
+        p = _json_object(value, tuple(f.name for f in fields(annotation)), where)
+        hints = get_type_hints(annotation)
+        return annotation(
+            **{
+                f.name: _declared_from_json(
+                    hints[f.name], p[f.name], f"{where}.{f.name}"
+                )
+                for f in fields(annotation)
+            }
+        )
+    raise UnsupportedRepresentationShapeError(
+        f"{where}: {annotation!r} has no schema-19 builder"
+    )
+
+
+def _build_declared(cls: type[Any]) -> Callable[[Mapping[str, Any]], MechanicalFact]:
+    def build(p: Mapping[str, Any]) -> MechanicalFact:
+        hints = get_type_hints(cls)
+        family = cast(FactFamily, cls.FAMILY)
+        return cast(
+            MechanicalFact,
+            cls(
+                **{
+                    f.name: _declared_from_json(
+                        hints[f.name], p[f.name], f"{family.value}.{f.name}"
+                    )
+                    for f in fields(cls)
+                }
+            ),
+        )
+
+    return build
+
+
+#: The source-valid domain of every integer field schema 19 declares, by
+#: owner then field: the least value the field can state, or ``SIGNED`` for a
+#: printed bonus, modifier or delta. A sequence of integers takes its element
+#: domain from the same row. Completeness is asserted at import, so an integer
+#: field nobody gave a domain fails the build rather than admitting anything.
+SIGNED = "signed"
+_SCHEMA_19_INT_DOMAINS: dict[type, dict[str, int | str]] = {
+    ElapsedSpan: {"amount": 1},
+    EndingEvent: {"by_creature_within_ft": 1},
+    DamageTerm: {"average": 0, "constant": 0},
+    DamageWhen: {"source_moved_straight_toward_target_ft_min": 1},
+    ConditionalDamage: {"replaces_hit_damage_index": 0},
+    ForcedMove: {"distance_ft": 1, "distance_ft_up_to": 1},
+    RiderSave: {"dc": 1},
+    Rider: {"escape_dc": 1},
+    SaveArea: {"size_ft": 1, "width_ft": 1, "height_ft": 1},
+    SaveTargets: {
+        "count": 1,
+        "origin_point_within_ft": 1,
+        "within_ft": 1,
+        "swallow_capacity": 1,
+        "at_hit_points": 0,
+    },
+    EntryOption: {"spell_level": 1},
+    MultiattackPart: {"count": 1},
+    MultiattackReplacement: {"replaces": 1},
+    CheckSpec: {"dc": 1},
+    ContributorPredicate: {"ally_within_ft_of_target": 1},
+    DamagePlusDc: {"base": 0},
+    ZeroHitPointOnSuccess: {"set_hit_points": 0},
+    LeveledArmorClass: {"base": 0, "per_spell_level": 0},
+    PerLevelAbove: {"amount": 1, "level": 1},
+    SizeKeyedHitPoints: {"medium_or_smaller": 1, "large": 1, "huge": 1},
+    ParameterizedHitPoints: {"base": 1, "per_spell_level": 1},
+    ToolChoice: {"count": 1},
+    SubclassEligibility: {"minimum_class_level": 1},
+    AbilityMinimum: {"score": 1},
+    LevelCount: {"level": 1, "count": 1},
+    DeathSaveTiming: {"at_hit_points": 0},
+    StableRecovery: {"regain_hit_points": 1},
+    AmmunitionRecovery: {"minutes": 1},
+    MasteryDc: {"base": 0},
+    GrappleAppendages: {"of": 1},
+    CreatureAttackFact: {
+        "attack_bonus": SIGNED,
+        "reach_ft": 1,
+        "normal_range_ft": 1,
+        "long_range_ft": 1,
+    },
+    CreatureSaveEffectFact: {"dc": 1},
+    CreatureEntryUsageFact: {"uses": 1, "in_lair": 1, "minimum_d6": 1},
+    CreatureDefenseParameterizedFact: {"armor_class": 0},
+    _ClauseLocus: {"piece": 0, "under_predicates": 0},
+    ClausePredicateFact: {
+        "source_moved_straight_toward_target_ft_min": 1,
+        "target_hit_points_at_most": 0,
+    },
+    ClauseGrappleFact: {"escape_dc": 1},
+    ClauseRepeatSaveLimitFact: {"automatic_success_after_minutes": 1},
+    ClauseTemporaryImmunityFact: {"hours": 1},
+    ClauseNestedSaveFact: {"dc": 1},
+    ClauseTimedSpeedChangeFact: {"feet": 0},
+    ClauseTimedAcModifierFact: {"modifier": SIGNED},
+    ClauseNextRollModifierFact: {"uses": 1},
+    ClauseD20TestPenaltyDieFact: {"count": 1},
+    ClauseDamageRollPenaltyFact: {"average": 0},
+    ClauseChoiceTypedDamageFact: {"average": 0},
+    ClauseConditionalDamageFact: {
+        "replaces_hit_damage_index": 0,
+        "unconditional_hit_damage_indices": 0,
+    },
+    ClausePeriodicHitPointLossFact: {"average": 0},
+    ClauseHitPointsSetFact: {"to": 0},
+    ClauseFollowUpAttackFact: {"count": 1},
+    ClauseForcedMovementFact: {"distance_ft": 1, "distance_ft_up_to": 1},
+    ClauseReturningWeaponFact: {"or_hovers_within_ft": 1},
+    ClauseRescueCheckFact: {"actor_within_ft": 1},
+    ClauseAreaOriginPointFact: {"within_ft": 1},
+    ClauseAuraFact: {"emanation_ft": 1},
+    NaturalRollOutcomeFact: {"face": 1},
+    DamageRollRuleFact: {"minimum_damage": 0},
+    CriticalDamageFact: {"damage_dice_multiplier": 1},
+    HitPointBoundFact: {"minimum_current": 0},
+    DeathSavingThrowFact: {
+        "failures_to_die": 1,
+        "success_minimum": 1,
+        "successes_to_stable": 1,
+    },
+    DeathSaveNaturalRollFact: {"face": 1, "failures": 1, "regain_hit_points": 1},
+    DamageAtZeroHitPointsFact: {"failures": 1, "critical_hit_failures": 1},
+    StabilizationFact: {"target_at_hit_points": 0},
+    KnockoutAlternativeFact: {"set_hit_points": 0},
+    RestDurationFact: {"hours": 1},
+    AbilityScoreRequirementFact: {"minimum": 1},
+    AmmunitionPerActivationFact: {"maximum": 1},
+    ReachExtensionFact: {"feet": 1},
+    HandsRequiredFact: {"hands": 1},
+    VersatileDamageFact: {"hands": 1},
+    AmmunitionExpenditureFact: {"per_attack": 1},
+    MasteryEffectFact: {
+        "second_target_within_ft": 1,
+        "distance_ft_up_to": 1,
+        "speed_reduction_ft": 1,
+        "maximum_reduction_ft": 1,
+    },
+    CreatureAttackNotationFact: {"targets": 1},
+    SpellSaveDcFormulaFact: {"base": 0},
+    DifficultyBandFact: {"dc": 1},
+    SkillProficiencyChoiceFact: {"count": 1},
+    MulticlassSkillProficiencyChoiceFact: {"count": 0},
+    ToolProficiencyChoiceFact: {"count": 1},
+    WeaponMasteryChoiceFact: {"kinds_of_weapons": 1},
+    FeatPrerequisiteFact: {"minimum_character_level": 1},
+    FeatChoiceFact: {"count": 1, "count_per_gain": 1},
+    AbilityIncreaseChoiceFact: {"patterns": 1, "maximum_score": 1},
+    AbilityIncreaseRuleFact: {"patterns": 1, "maximum_score": 1},
+    ExpertiseRuleFact: {"proficiency_bonus_multiplier": 1},
+    ExpertiseChoiceFact: {"count_per_gain": 1},
+    ArmorClassFormulaFact: {"base": 0, "dexterity_maximum": 0, "strength_minimum": 1},
+    ShieldBonusFact: {"bonus": 0},
+    BaseArmorClassFact: {"base": 0},
+    BaseArmorClassExclusivityFact: {"maximum": 1},
+}
+
+
+def _int_leaves(annotation: object) -> bool:
+    """Whether *annotation* is an integer, optionally, or a sequence of them."""
+    origin, args = get_origin(annotation), get_args(annotation)
+    if origin in (Union, UnionType, tuple, list):
+        return any(_int_leaves(a) for a in args if a not in (type(None), Ellipsis))
+    return annotation is int
+
+
+def _domain_of(cls: type, field_name: str) -> int | str:
+    for owner in cls.__mro__:
+        domain = _SCHEMA_19_INT_DOMAINS.get(owner, {}).get(field_name)
+        if domain is not None:
+            return domain
+    raise AssertionError(f"{cls.__name__}.{field_name} has no declared integer domain")
+
+
+def _schema_19_declared_classes() -> list[type]:
+    seen: list[type] = []
+
+    def walk(cls: type) -> None:
+        if (
+            cls in seen
+            or cls in (DiceExpression, Rational)
+            or isinstance(getattr(cls, "FAMILY", None), FactFamily)
+            and cls not in _SCHEMA_19_FACT_CLASSES
+        ):
+            return
+        seen.append(cls)
+        hints = get_type_hints(cls)
+        for f in fields(cls):
+            for a in (hints[f.name], *get_args(hints[f.name])):
+                for b in (a, *get_args(a)):
+                    if isinstance(b, type) and is_dataclass(b):
+                        walk(b)
+
+    for cls in _SCHEMA_19_FACT_CLASSES:
+        walk(cls)
+    return seen
+
+
+def _domain_findings(value: object, domain: int | str, where: str) -> list[str]:
+    if domain == SIGNED or not _is_int(value):
+        return []
+    if cast(int, value) < cast(int, domain):
+        return [f"{where} {value} is below its least source-valid value {domain}"]
+    return []
+
+
+def _declared_typed_findings(
+    annotation: object, value: object, where: str, domain: int | str = SIGNED
+) -> list[str]:
+    """Check one declared field of a built object, exactly, then its rules.
+
+    An integer is checked against its declared source-valid ``domain``; a
+    nested accepted value object (``DiceExpression``, ``Rational``) is checked
+    by its accepted validator, so neither is admitted on type alone.
+    """
+    origin, args = get_origin(annotation), get_args(annotation)
+    if origin in (Union, UnionType):
+        inner = next(a for a in args if a is not type(None))
+        return (
+            []
+            if value is None
+            else _declared_typed_findings(inner, value, where, domain)
+        )
+    if origin in (tuple, list):
+        (item,) = (a for a in args if a is not Ellipsis)
+        if type(value) is not tuple:
+            return [f"{where} must be a tuple, got {type(value).__name__}"]
+        return [
+            finding
+            for i, v in enumerate(value)
+            for finding in _declared_typed_findings(item, v, f"{where}[{i}]", domain)
+        ]
+    if annotation is bool:
+        return _bool_field(value, where)
+    if annotation is int:
+        return _int_field(value, where) or _domain_findings(value, domain, where)
+    if annotation is DiceExpression:
+        return _check_dice(value, where)
+    if annotation is Rational:
+        return _check_rational(value, where)
+    if annotation is str:
+        return _str_field(value, where)
+    if isinstance(annotation, type) and issubclass(annotation, StrEnum):
+        return _enum_field(value, annotation, where)
+    if isinstance(annotation, type) and is_dataclass(annotation):
+        if type(value) is not annotation:
+            return [
+                f"{where} must be {annotation.__name__}, got {type(value).__name__}"
+            ]
+        family = getattr(annotation, "FAMILY", None)
+        if isinstance(family, FactFamily):
+            return [f"{where}: {x}" for x in _FACT_INVARIANTS[family](value)]
+        hints = get_type_hints(annotation)
+        findings = [
+            finding
+            for f in fields(annotation)
+            for finding in _declared_typed_findings(
+                hints[f.name],
+                getattr(value, f.name),
+                f"{where}.{f.name}",
+                (
+                    _domain_of(annotation, f.name)
+                    if _int_leaves(hints[f.name])
+                    else SIGNED
+                ),
+            )
+        ]
+        rule = _SCHEMA_19_SHAPE_RULES.get(annotation)
+        return findings or ([f"{where}: {x}" for x in rule(value)] if rule else [])
+    return [f"{where}: {annotation!r} has no schema-19 check"]
+
+
+def _check_declared(fact: Any) -> list[str]:
+    cls = type(fact)
+    hints = get_type_hints(cls)
+    findings = [
+        finding
+        for f in fields(cls)
+        for finding in _declared_typed_findings(
+            hints[f.name],
+            getattr(fact, f.name),
+            f.name,
+            _domain_of(cls, f.name) if _int_leaves(hints[f.name]) else SIGNED,
+        )
+    ]
+    if findings:
+        return findings
+    rule = _SCHEMA_19_FAMILY_RULES.get(cast(FactFamily, cls.FAMILY))
+    return rule(fact) if rule else []
+
+
+def _stated(value: object) -> bool:
+    """Stated means not None, not an empty tuple and not ``False`` -- by
+    identity, so an integer 0 is a stated value."""
+    return not (value is None or value is False or value == ())
+
+
+def _exactly_one(
+    names: tuple[str, ...], values: tuple[object, ...], what: str
+) -> list[str]:
+    stated = [n for n, v in zip(names, values, strict=True) if _stated(v)]
+    if len(stated) != 1:
+        return [f"{what} states exactly one of {list(names)}, got {stated}"]
+    return []
+
+
+def _at_most_one(
+    names: tuple[str, ...], values: tuple[object, ...], what: str
+) -> list[str]:
+    stated = [n for n, v in zip(names, values, strict=True) if _stated(v)]
+    if len(stated) > 1:
+        return [f"{what} states at most one of {list(names)}, got {stated}"]
+    return []
+
+
+def _rule_attack_bonus(fact: CreatureAttackFact) -> list[str]:
+    names = ("attack_bonus", "attack_bonus_formula")
+    values = (fact.attack_bonus, fact.attack_bonus_formula)
+    if fact.automatic_hit:
+        return _at_most_one(names, values, "an automatic-hit attack")
+    return _exactly_one(names, values, "an attack")
+
+
+def _rule_save_dc(fact: CreatureSaveEffectFact) -> list[str]:
+    return _exactly_one(
+        ("dc", "dc_formula"), (fact.dc, fact.dc_formula), "a save effect"
+    )
+
+
+def _rule_defense_parameterized(fact: CreatureDefenseParameterizedFact) -> list[str]:
+    return _exactly_one(
+        ("armor_class", "armor_class_formula"),
+        (fact.armor_class, fact.armor_class_formula),
+        "a parameterized defense",
+    )
+
+
+def _rule_timed_condition(fact: ClauseTimedConditionFact) -> list[str]:
+    return _exactly_one(
+        ("duration_turn", "duration_span"),
+        (fact.duration_turn, fact.duration_span),
+        "a timed condition",
+    )
+
+
+def _rule_clause_roll_modifier(fact: ClauseRollModifierFact) -> list[str]:
+    return _exactly_one(
+        ("effects", "ability_based"),
+        (fact.effects, fact.ability_based),
+        "a clause roll modifier",
+    )
+
+
+def _rule_skill_choice(
+    fact: SkillProficiencyChoiceFact | MulticlassSkillProficiencyChoiceFact,
+) -> list[str]:
+    return _at_most_one(
+        ("from_skills", "from_reference"),
+        (fact.from_skills, fact.from_reference),
+        "a skill choice",
+    )
+
+
+def _rule_damage_term(term: DamageTerm) -> list[str]:
+    return _exactly_one(
+        ("damage_type", "damage_type_by_choice"),
+        (term.damage_type, term.damage_type_by_choice),
+        "a damage term",
+    )
+
+
+def _rule_multiattack_part(part: MultiattackPart) -> list[str]:
+    return [
+        *_exactly_one(
+            ("count", "count_formula"),
+            (part.count, part.count_formula),
+            "a Multiattack part",
+        ),
+        *_exactly_one(
+            ("attack", "any_of", "uses_one_of"),
+            (part.attack, part.any_of, part.uses_one_of),
+            "a Multiattack part",
+        ),
+    ]
+
+
+def _rule_multiattack_replacement(r: MultiattackReplacement) -> list[str]:
+    return _exactly_one(
+        ("replaces", "replaces_attack", "replaces_any"),
+        (r.replaces, r.replaces_attack, r.replaces_any),
+        "a Multiattack replacement",
+    )
+
+
+def _rule_save_targets(t: SaveTargets) -> list[str]:
+    return _at_most_one(
+        ("origin", "origin_point_within_ft"),
+        (t.origin, t.origin_point_within_ft),
+        "a save's targets",
+    )
+
+
+def _rule_tool_selector(s: ToolSelector) -> list[str]:
+    return _exactly_one(
+        ("tool_variants_of", "tool_category", "any_tool_entry"),
+        (s.tool_variants_of, s.tool_category, s.any_tool_entry),
+        "a tool selector",
+    )
+
+
+def _rule_forced_move(m: ForcedMove) -> list[str]:
+    return _exactly_one(
+        ("distance_ft", "distance_ft_up_to"),
+        (m.distance_ft, m.distance_ft_up_to),
+        "a forced movement",
+    )
+
+
+def _rule_parameterized_hit_points(h: ParameterizedHitPoints) -> list[str]:
+    findings = _exactly_one(
+        ("per_spell_level", "per_spell_level_above", "by_size", "half_of"),
+        (h.per_spell_level, h.per_spell_level_above, h.by_size, h.half_of),
+        "parameterized Hit Points",
+    )
+    scaled = h.per_spell_level is not None or h.per_spell_level_above is not None
+    if not findings and scaled != (h.base is not None):
+        findings.append("parameterized Hit Points state a base exactly when they scale")
+    return findings
+
+
+def _rule_ammunition_supply(fact: AmmunitionSupplyFact) -> list[str]:
+    weapons = fact.for_weapons
+    if weapons is None:
+        return []
+    keys = [(w.record_key, w.component_key) for w in weapons]
+    if not keys or keys != sorted(set(keys)):
+        return ["for_weapons, when stated, is non-empty, distinct and sorted"]
+    return []
+
+
+def _choice_violations(choice: tuple[CreatureTypeKind, ...]) -> list[str]:
+    values = [t.value for t in choice]
+    if len(values) < 2 or values != sorted(set(values)):
+        return ["type_choice is at least two types, distinct and sorted"]
+    return []
+
+
+def _rule_creature_type(fact: CreatureTypeFact) -> list[str]:
+    if fact.type is not None:
+        if fact.type_choice:
+            return ["a creature type states exactly one of type / type_choice"]
+        return []
+    if not fact.type_choice:
+        return ["a creature type states exactly one of type / type_choice"]
+    return _choice_violations(fact.type_choice)
+
+
+def _rule_summoned_creature_type(fact: SummonedCreatureTypeFact) -> list[str]:
+    findings = _choice_violations(fact.type_choice)
+    if fact.instead_of in fact.type_choice:
+        findings.append("type_choice may not offer the instead_of type it replaces")
+    keys = [(f.record_key, f.component_key) for f in fact.forms]
+    if not keys or keys != sorted(set(keys)):
+        findings.append("forms is non-empty, distinct and sorted")
+    return findings
+
+
+_SCHEMA_19_FAMILY_RULES: dict[FactFamily, Callable[[Any], list[str]]] = {
+    FactFamily.CREATURE_ATTACK: _rule_attack_bonus,
+    FactFamily.CREATURE_SAVE_EFFECT: _rule_save_dc,
+    FactFamily.CREATURE_DEFENSE_PARAMETERIZED: _rule_defense_parameterized,
+    FactFamily.CLAUSE_TIMED_CONDITION: _rule_timed_condition,
+    FactFamily.CLAUSE_ROLL_MODIFIER: _rule_clause_roll_modifier,
+    FactFamily.SKILL_PROFICIENCY_CHOICE: _rule_skill_choice,
+    FactFamily.MULTICLASS_SKILL_PROFICIENCY_CHOICE: _rule_skill_choice,
+    # Schema 20 (CRD Issue 15c C7), checked by the same declared machinery.
+    FactFamily.AMMUNITION_SUPPLY: _rule_ammunition_supply,
+    # Schema 21 (CRD Issue 15c C8), likewise.
+    FactFamily.CREATURE_TYPE: _rule_creature_type,
+    FactFamily.SUMMONED_CREATURE_TYPE: _rule_summoned_creature_type,
+}
+
+_SCHEMA_19_SHAPE_RULES: dict[type, Callable[[Any], list[str]]] = {
+    DamageTerm: _rule_damage_term,
+    MultiattackPart: _rule_multiattack_part,
+    MultiattackReplacement: _rule_multiattack_replacement,
+    SaveTargets: _rule_save_targets,
+    ToolSelector: _rule_tool_selector,
+    ForcedMove: _rule_forced_move,
+    ParameterizedHitPoints: _rule_parameterized_hit_points,
+}
+
+
+def _int_domain_rows() -> tuple[_Invariant, ...]:
+    """The integer domains as manifest rows, one per bound, in wire loci only."""
+    by_bound: dict[str, list[str]] = {}
+    for cls in _schema_19_declared_classes():
+        family = getattr(cls, "FAMILY", None)
+        locus = (
+            f"fact:{family.value}"
+            if isinstance(family, FactFamily)
+            else _shape_locus(cls)
+        )
+        hints = get_type_hints(cls)
+        for f in fields(cls):
+            if _int_leaves(hints[f.name]):
+                by_bound.setdefault(str(_domain_of(cls, f.name)), []).append(
+                    f"{locus}.{f.name}"
+                )
+    rules = {
+        SIGNED: "a printed signed bonus, modifier or delta; any integer",
+        "0": "an integer, never below zero",
+        "1": "an integer of at least one",
+    }
+    return tuple(
+        _Invariant(
+            id=f"integer-field.domain.{bound}",
+            locus="fields:integer",
+            field="|".join(sorted(names)),
+            rule=rules[bound],
+        )
+        for bound, names in sorted(by_bound.items())
+    )
+
+
+_FACT_TYPES.update(
+    {cast(FactFamily, cls.FAMILY): cls for cls in _SCHEMA_19_FACT_CLASSES}
+)
+_FACT_BUILDERS.update(
+    {
+        cast(FactFamily, cls.FAMILY): _build_declared(cls)
+        for cls in _SCHEMA_19_FACT_CLASSES
+    }
+)
+_FACT_INVARIANTS.update(
+    {cast(FactFamily, cls.FAMILY): _check_declared for cls in _SCHEMA_19_FACT_CLASSES}
+)
+
+#: The families schema 20 admitted (CRD Issue 15c C7), built and checked by
+#: the schema-19 declared machinery but introduced, and manifested, as 20.
+_SCHEMA_20_FACT_CLASSES: tuple[type[Any], ...] = (AmmunitionSupplyFact,)
+_FACT_TYPES.update(
+    {cast(FactFamily, cls.FAMILY): cls for cls in _SCHEMA_20_FACT_CLASSES}
+)
+_FACT_BUILDERS.update(
+    {
+        cast(FactFamily, cls.FAMILY): _build_declared(cls)
+        for cls in _SCHEMA_20_FACT_CLASSES
+    }
+)
+_FACT_INVARIANTS.update(
+    {cast(FactFamily, cls.FAMILY): _check_declared for cls in _SCHEMA_20_FACT_CLASSES}
+)
+
+#: The families schema 21 admitted (CRD Issue 15c C8), on the same terms.
+_SCHEMA_21_FACT_CLASSES: tuple[type[Any], ...] = (
+    CreatureTypeFact,
+    SummonedCreatureTypeFact,
+)
+_FACT_TYPES.update(
+    {cast(FactFamily, cls.FAMILY): cls for cls in _SCHEMA_21_FACT_CLASSES}
+)
+_FACT_BUILDERS.update(
+    {
+        cast(FactFamily, cls.FAMILY): _build_declared(cls)
+        for cls in _SCHEMA_21_FACT_CLASSES
+    }
+)
+_FACT_INVARIANTS.update(
+    {cast(FactFamily, cls.FAMILY): _check_declared for cls in _SCHEMA_21_FACT_CLASSES}
+)
+
 #: Every family must declare a builder and an invariant checker. A family added
 #: to the union with neither is a family nothing validates and nothing can
 #: reconstruct — a silent hole rather than a visible omission, which is exactly
@@ -8798,7 +13133,29 @@ assert (
 #: field on any accepted family, no ownership form and no component key, so
 #: every accepted fact key and provenance coordinate has the same canonical
 #: form under 17 and 18.
-REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-18"
+#:
+#: Version ``19`` admits the CRD Issue 15c bounded-d20 source contract:
+#: 126 fact families and the 135 vocabularies minted with them
+#: (creature attacks, saves, Multiattack, usage, contributors and clause
+#: pieces; rule, weapon, tool and notation facts; contributing grants), and
+#: four omit-when-empty fields on :class:`WeaponPropertyFact`. No accepted
+#: component states any of them and no accepted field changes meaning, so
+#: every accepted fact key and provenance coordinate has the same canonical
+#: form under 18 and 19.
+#:
+#: Version ``20`` admits one fact family, :class:`AmmunitionSupplyFact`
+#: (CRD Issue 15c C7): what an Ammunition table row supplies, by the
+#: existing schema-19 :class:`AmmunitionKind` and, where a row narrows a
+#: shared kind, the weapons it names. No vocabulary, no field on any
+#: accepted family and no component key, so every accepted fact key and
+#: provenance coordinate has the same canonical form under 19 and 20.
+#:
+#: Version ``21`` admits two fact families, :class:`CreatureTypeFact` and
+#: :class:`SummonedCreatureTypeFact`, and the one vocabulary minted with
+#: them, :class:`CreatureTypeKind` (CRD Issue 15c C8). No field on any
+#: accepted family and no component key, so every accepted fact key and
+#: provenance coordinate has the same canonical form under 20 and 21.
+REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-21"
 
 
 class UnsupportedRepresentationShapeError(TypeError):
@@ -9397,6 +13754,32 @@ def _introductions() -> tuple[_Introduction, ...]:
             _Introduction("vocabulary_member", vocabulary, member, SCHEMA_18)
             for member in members
         )
+    # Schema 19 adds its families and the vocabularies minted with them; its
+    # four WeaponPropertyFact fields are gated by the field registry.
+    rows.extend(
+        _Introduction("fact_family", "FactFamily", family.value, SCHEMA_19)
+        for family in _SCHEMA_19_FAMILIES
+    )
+    for vocabulary, members in _SCHEMA_19_VOCABULARY_MEMBERS.items():
+        rows.extend(
+            _Introduction("vocabulary_member", vocabulary, member, SCHEMA_19)
+            for member in members
+        )
+    # Schema 20 adds one family and no vocabulary.
+    rows.extend(
+        _Introduction("fact_family", "FactFamily", family.value, SCHEMA_20)
+        for family in _SCHEMA_20_FAMILIES
+    )
+    # Schema 21 adds two families and the one vocabulary minted with them.
+    rows.extend(
+        _Introduction("fact_family", "FactFamily", family.value, SCHEMA_21)
+        for family in _SCHEMA_21_FAMILIES
+    )
+    for vocabulary, members in _SCHEMA_21_VOCABULARY_MEMBERS.items():
+        rows.extend(
+            _Introduction("vocabulary_member", vocabulary, member, SCHEMA_21)
+            for member in members
+        )
     rows.extend(
         _Introduction("nullable_field", _OPTIONAL_SINCE_WIRE_NAMES[owner], key, arrived)
         for owner, keys in _OPTIONAL_SINCE.items()
@@ -9462,6 +13845,8 @@ def _vocabulary_shape(owner: str) -> list[str] | None:
         or _SCHEMA_16_VOCABULARY_ALL.get(owner)
         or _SCHEMA_17_VOCABULARY_MEMBERS.get(owner)
         or _SCHEMA_18_VOCABULARY_MEMBERS.get(owner)
+        or _SCHEMA_19_VOCABULARY_MEMBERS.get(owner)
+        or _SCHEMA_21_VOCABULARY_MEMBERS.get(owner)
     )
     return None if members is None else sorted(members)
 
@@ -9562,6 +13947,8 @@ def _collect_post_schema_3(
             (_SCHEMA_16_MEMBER_INDEX, SCHEMA_16),
             (_SCHEMA_17_MEMBER_INDEX, SCHEMA_17),
             (_SCHEMA_18_MEMBER_INDEX, SCHEMA_18),
+            (_SCHEMA_19_MEMBER_INDEX, SCHEMA_19),
+            (_SCHEMA_21_MEMBER_INDEX, SCHEMA_21),
         ):
             if (
                 type(value).__name__,
@@ -10123,6 +14510,187 @@ _SCHEMA_18_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
     for member in members
 )
 
+SCHEMA_19 = "5d-representation-schema-19"
+
+#: The families schema 19 admitted, CRD Issue 15c.
+_SCHEMA_19_FAMILIES: tuple[FactFamily, ...] = tuple(
+    cast(FactFamily, cls.FAMILY) for cls in _SCHEMA_19_FACT_CLASSES
+)
+
+#: The vocabularies minted with them, each wholly new.
+_SCHEMA_19_VOCABULARIES: tuple[type[StrEnum], ...] = (
+    TurnWhich,
+    TurnOwner,
+    EntrySection,
+    EntrySubject,
+    CreatureAttackRange,
+    AttackAdvantageWhen,
+    SizeInput,
+    FormulaInput,
+    FormulaSubject,
+    FormulaTerm,
+    RiderSubject,
+    DamageMode,
+    ForcedDirection,
+    LinkEnd,
+    TargetTag,
+    SaveSuccess,
+    ReuseLimitKind,
+    AreaShape,
+    TargetExclusion,
+    AreaOriginAnchor,
+    SourceEnvironment,
+    TargetsStatedBy,
+    MultiattackCondition,
+    CountFormula,
+    UsageKind,
+    CreatureForm,
+    ObserverKind,
+    ObserverPurpose,
+    ContributorStated,
+    ContributorPurpose,
+    SaveOverrideChooser,
+    SaveOverrideOutcome,
+    SaveOverrideTrigger,
+    SaveOverrideUsage,
+    SaveDamageScope,
+    SaveDamageResult,
+    SurfaceKind,
+    TerrainKind,
+    ZeroHitPointTrigger,
+    DcAddend,
+    ClausePart,
+    ClauseBranch,
+    EndingEventKind,
+    PredicateWhile,
+    PredicateRefersTo,
+    RepeatSaveAt,
+    SaveEndsOn,
+    ImmunityScope,
+    NamedEffect,
+    SpanEnd,
+    TimedSpeedChange,
+    NextRollActor,
+    PenaltyTarget,
+    ReturningWeaponKind,
+    RescueCost,
+    RescueEnds,
+    SourceMovementLimit,
+    TriggerOn,
+    ClauseZeroHitPointResult,
+    ClauseZeroHitPointCause,
+    AreaCenter,
+    AuraTargets,
+    TargetingExclusion,
+    EffectLastsScope,
+    EscapePurpose,
+    AppendageUse,
+    Appendage,
+    RelationKind,
+    RelationQualifier,
+    ChoiceAnchor,
+    Chooser,
+    ChoiceSource,
+    ChoiceTime,
+    ConditionalDefenseKind,
+    DefenseAttack,
+    ParameterizedHitPointsBasis,
+    GrantContext,
+    ArmorCategory,
+    ToolCategory,
+    ToolVariant,
+    ToolActivity,
+    FeatCategory,
+    RequiredFeature,
+    FeatQualifier,
+    RestKind,
+    SwapScope,
+    RangeClass,
+    Difficulty,
+    NaturalOutcome,
+    CriticalDamageScope,
+    ModifierApplication,
+    ZeroHitPointSubject,
+    ZeroHitPointResult,
+    GamemasterException,
+    ExceptionScope,
+    ZeroHitPointRuleTrigger,
+    LifecycleEvent,
+    DeathThreshold,
+    StabilizeAction,
+    StabilizeOutcome,
+    RecoveryUnless,
+    KnockoutTrigger,
+    UnmetEffect,
+    LightTrigger,
+    LightFirstAttack,
+    LightRequirement,
+    LightTiming,
+    ModifierDamage,
+    UseFrequency,
+    RangeOutcome,
+    ReachScope,
+    ThrownAbility,
+    HandsWhen,
+    AmmunitionRequirement,
+    FreeHandWhen,
+    RecoveryAfter,
+    RecoveryRemainder,
+    AmmunitionKind,
+    TwoHandedException,
+    MasteryTrigger,
+    MasteryAppliesTo,
+    MasteryAgainst,
+    MasteryCost,
+    MasteryDamage,
+    MasteryDamageType,
+    MasteryIncrease,
+    AttackSection,
+    DamageNotation,
+    MultiattackAction,
+    MultiattackComposition,
+    UsageRuleKind,
+    LegendaryTiming,
+    LegendaryRegain,
+    TrainingCondition,
+    UntrainedShield,
+)
+_SCHEMA_19_VOCABULARY_MEMBERS: dict[str, tuple[str, ...]] = {
+    vocabulary.__name__: tuple(sorted(m.value for m in vocabulary))
+    for vocabulary in _SCHEMA_19_VOCABULARIES
+}
+
+_SCHEMA_19_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
+    (vocabulary, member)
+    for vocabulary, members in _SCHEMA_19_VOCABULARY_MEMBERS.items()
+    for member in members
+)
+
+SCHEMA_20 = "5d-representation-schema-20"
+
+#: The family schema 20 admitted, CRD Issue 15c C7.
+_SCHEMA_20_FAMILIES: tuple[FactFamily, ...] = tuple(
+    cast(FactFamily, cls.FAMILY) for cls in _SCHEMA_20_FACT_CLASSES
+)
+
+SCHEMA_21 = "5d-representation-schema-21"
+
+#: The families schema 21 admitted, CRD Issue 15c C8.
+_SCHEMA_21_FAMILIES: tuple[FactFamily, ...] = tuple(
+    cast(FactFamily, cls.FAMILY) for cls in _SCHEMA_21_FACT_CLASSES
+)
+
+#: The vocabulary minted with them, wholly new.
+_SCHEMA_21_VOCABULARY_MEMBERS: dict[str, tuple[str, ...]] = {
+    CreatureTypeKind.__name__: tuple(sorted(m.value for m in CreatureTypeKind))
+}
+
+_SCHEMA_21_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
+    (vocabulary, member)
+    for vocabulary, members in _SCHEMA_21_VOCABULARY_MEMBERS.items()
+    for member in members
+)
+
 #: The seven families schema 11 admitted, for batch ``speed-1``. One per
 #: distinct rule the Rules Glossary Speed entry and Playing the Game > Combat >
 #: Movement and Position print between them, named by member for the same
@@ -10202,6 +14770,9 @@ _FAMILY_INTRODUCTIONS: tuple[tuple[tuple[FactFamily, ...], str], ...] = (
     (_SCHEMA_14_FAMILIES, SCHEMA_14),
     (_SCHEMA_15_FAMILIES, SCHEMA_15),
     (_SCHEMA_18_FAMILIES, SCHEMA_18),
+    (_SCHEMA_19_FAMILIES, SCHEMA_19),
+    (_SCHEMA_20_FAMILIES, SCHEMA_20),
+    (_SCHEMA_21_FAMILIES, SCHEMA_21),
 )
 
 #: Fields a later schema made **required** on a family an earlier schema already
@@ -10432,7 +15003,90 @@ _VERSION_STATES: dict[str, frozenset[str]] = {
             SCHEMA_18,
         }
     ),
+    SCHEMA_19: frozenset(
+        {
+            "5d-representation-schema-4",
+            SCHEMA_5,
+            SCHEMA_6,
+            SCHEMA_7,
+            SCHEMA_8,
+            SCHEMA_9,
+            SCHEMA_10,
+            SCHEMA_11,
+            SCHEMA_12,
+            SCHEMA_13,
+            SCHEMA_14,
+            SCHEMA_15,
+            SCHEMA_16,
+            SCHEMA_17,
+            SCHEMA_18,
+            SCHEMA_19,
+        }
+    ),
+    SCHEMA_20: frozenset(
+        {
+            "5d-representation-schema-4",
+            SCHEMA_5,
+            SCHEMA_6,
+            SCHEMA_7,
+            SCHEMA_8,
+            SCHEMA_9,
+            SCHEMA_10,
+            SCHEMA_11,
+            SCHEMA_12,
+            SCHEMA_13,
+            SCHEMA_14,
+            SCHEMA_15,
+            SCHEMA_16,
+            SCHEMA_17,
+            SCHEMA_18,
+            SCHEMA_19,
+            SCHEMA_20,
+        }
+    ),
+    SCHEMA_21: frozenset(
+        {
+            "5d-representation-schema-4",
+            SCHEMA_5,
+            SCHEMA_6,
+            SCHEMA_7,
+            SCHEMA_8,
+            SCHEMA_9,
+            SCHEMA_10,
+            SCHEMA_11,
+            SCHEMA_12,
+            SCHEMA_13,
+            SCHEMA_14,
+            SCHEMA_15,
+            SCHEMA_16,
+            SCHEMA_17,
+            SCHEMA_18,
+            SCHEMA_19,
+            SCHEMA_20,
+            SCHEMA_21,
+        }
+    ),
 }
+
+_register_post_schema_3(
+    # Schema 19. WeaponPropertyFact's ammunition, ammunition range and
+    # two-handed exception, omitted when unset, so every accepted weapon
+    # property keeps its canonical payload and fact key.
+    *(
+        _PostSchema3Field(
+            owner="WeaponPropertyFact",
+            key=key,
+            introduced_in=SCHEMA_19,
+            is_empty=lambda v: v is None,
+        )
+        for key in (
+            "ammunition",
+            "ammunition_range_normal_feet",
+            "ammunition_range_long_feet",
+            "unless",
+        )
+    )
+)
 
 _register_post_schema_3(
     # Schema 17. A destination component and one reviewed alternative's label
@@ -11366,6 +16020,72 @@ _CLOSED_TYPES: frozenset[type] = frozenset(_FACT_TYPES.values()) | frozenset(
     }
 )
 
+#: Schema 19's nested value objects (CRD Issue 15c), closed like the shared
+#: ones above.
+_CLOSED_TYPES |= frozenset(
+    {
+        TurnBoundary,
+        ElapsedSpan,
+        EndingEvent,
+        FormulaRef,
+        FormulaAddend,
+        DamageTypeChoice,
+        DamageTerm,
+        SizedDamage,
+        DamageWhen,
+        ConditionalDamage,
+        ForcedMove,
+        LinkedCondition,
+        RiderSave,
+        Rider,
+        SaveArea,
+        TurnTrigger,
+        SaveTargets,
+        EntryOption,
+        MultiattackPart,
+        MultiattackAlternative,
+        MultiattackReplacement,
+        CheckSpec,
+        ObserverCondition,
+        ContributorPredicate,
+        SaveOverride,
+        SaveDamageOverride,
+        IcyTerrain,
+        SpeedPredicate,
+        DamagePlusDc,
+        ZeroHitPointUnless,
+        ZeroHitPointOnSuccess,
+        RelationQualification,
+        DamageTypeSelection,
+        LeveledArmorClass,
+        PerLevelAbove,
+        SizeKeyedHitPoints,
+        ParameterizedHitPoints,
+        ProgressionReference,
+        ComponentReference,
+        ToolSelector,
+        ToolChoice,
+        SubclassEligibility,
+        QualifiedWeaponCategory,
+        WeaponCategories,
+        ArmorTraining,
+        AbilityMinimum,
+        LevelCount,
+        RestSwap,
+        DeathSaveTiming,
+        StableRecovery,
+        FreeHandRule,
+        AmmunitionRecovery,
+        MasteryDc,
+        NextRoll,
+        RepeatOnce,
+        RepeatCondition,
+        ReflectionPredicate,
+        AbilityBasedD20Tests,
+        GrappleAppendages,
+    }
+)
+
 
 #: Applicability fields whose emptiness is an empty container rather than
 #: ``None``. Keyed by name rather than tested by ``isinstance`` so a tuple-valued
@@ -12240,6 +16960,9 @@ def _admit(value: object, declared: object, path: str) -> list[str]:
         # A closed union of declared classes — the fact union is the one that
         # matters. Exact membership, then the member's own fields if it has any.
         for option in options:
+            # An optional sequence (schema 20's ``for_weapons``): the tuple rule.
+            if get_origin(option) is tuple and type(value) is tuple:
+                return _admit(value, option, path)
             if type(value) is option:
                 return (
                     _admit_declared_object(value, path) if is_dataclass(option) else []
@@ -12477,6 +17200,153 @@ def _shape_locus(cls: type) -> str:
 #:   reconciliation. Those are not properties of a serialized value; they are
 #:   checked against the corpus and the rest of the draft, and this manifest
 #:   describes the grammar, not the world it is checked against.
+#: The schema-19 invariant manifest rows: exactly the rules the two tables
+#: above enforce, plus the weapon-property additions, each demonstrated in both
+#: directions by ``test_schema_4_invariant_closure``.
+_SCHEMA_19_INVARIANTS: tuple[_Invariant, ...] = (
+    _Invariant(
+        id="creature_attack.bonus.exactly-one-unless-automatic-hit",
+        locus="fact:creature_attack",
+        field="attack_bonus+attack_bonus_formula",
+        rule="exactly one of a printed bonus and a bonus formula; at most one for an "
+        "automatic hit",
+    ),
+    _Invariant(
+        id="creature_save_effect.dc.exactly-one",
+        locus="fact:creature_save_effect",
+        field="dc+dc_formula",
+        rule="exactly one of a printed DC and a DC formula",
+    ),
+    _Invariant(
+        id="creature_defense_parameterized.armor-class.exactly-one",
+        locus="fact:creature_defense_parameterized",
+        field="armor_class+armor_class_formula",
+        rule="exactly one of a fixed Armor Class and an Armor Class formula",
+    ),
+    _Invariant(
+        id="clause_timed_condition.duration.exactly-one",
+        locus="fact:clause_timed_condition",
+        field="duration_turn+duration_span",
+        rule="exactly one of a turn-edge duration and an elapsed duration",
+    ),
+    _Invariant(
+        id="clause_roll_modifier.effects-or-ability-based.exactly-one",
+        locus="fact:clause_roll_modifier",
+        field="effects+ability_based",
+        rule="exactly one of accepted roll modifiers and an ability-based D20 Test "
+        "modifier",
+    ),
+    _Invariant(
+        id="skill_proficiency_choice.from.at-most-one",
+        locus="fact:skill_proficiency_choice",
+        field="from_skills+from_reference",
+        rule="a printed skill list or a referenced list, never both",
+    ),
+    _Invariant(
+        id="multiclass_skill_proficiency_choice.from.at-most-one",
+        locus="fact:multiclass_skill_proficiency_choice",
+        field="from_skills+from_reference",
+        rule="a printed skill list or a referenced list, never both",
+    ),
+    _Invariant(
+        id="damage_term.type.exactly-one",
+        locus=_shape_locus(DamageTerm),
+        field="damage_type+damage_type_by_choice",
+        rule="exactly one of a printed damage type and a damage-type choice",
+    ),
+    _Invariant(
+        id="multiattack_part.count.exactly-one",
+        locus=_shape_locus(MultiattackPart),
+        field="count+count_formula",
+        rule="exactly one of a printed count and a count formula",
+    ),
+    _Invariant(
+        id="multiattack_part.selection.exactly-one",
+        locus=_shape_locus(MultiattackPart),
+        field="attack+any_of+uses_one_of",
+        rule="exactly one of a named attack, a choice of attacks and a choice of uses",
+    ),
+    _Invariant(
+        id="multiattack_replacement.replaces.exactly-one",
+        locus=_shape_locus(MultiattackReplacement),
+        field="replaces+replaces_attack+replaces_any",
+        rule="exactly one of a count, a named attack and any attack",
+    ),
+    _Invariant(
+        id="save_targets.origin.at-most-one",
+        locus=_shape_locus(SaveTargets),
+        field="origin+origin_point_within_ft",
+        rule="an area anchored on the source or at a chosen point, never both",
+    ),
+    _Invariant(
+        id="tool_selector.exactly-one",
+        locus=_shape_locus(ToolSelector),
+        field="tool_variants_of+tool_category+any_tool_entry",
+        rule="exactly one of a tool's variants, a tool category and any tool",
+    ),
+    _Invariant(
+        id="forced_move.distance.exactly-one",
+        locus=_shape_locus(ForcedMove),
+        field="distance_ft+distance_ft_up_to",
+        rule="exactly one of an exact distance and an up-to distance",
+    ),
+    _Invariant(
+        id="parameterized_hit_points.basis.exactly-one",
+        locus=_shape_locus(ParameterizedHitPoints),
+        field="per_spell_level+per_spell_level_above+by_size+half_of+base",
+        rule="exactly one basis, with a base exactly when the basis scales by level",
+    ),
+    _Invariant(
+        id="weapon_property.ammunition.ammunition-only",
+        locus="fact:weapon_property",
+        field="ammunition+ammunition_range_normal_feet+ammunition_range_long_feet",
+        rule="stated together, exactly for the ammunition property",
+    ),
+    _Invariant(
+        id="weapon_property.unless.two-handed-only",
+        locus="fact:weapon_property",
+        field="unless",
+        rule="stated only for the two-handed property",
+    ),
+    _Invariant(
+        id="nested-value-object.accepted-rules",
+        locus="fields:nested-value-objects",
+        field="dice|fraction",
+        rule="a nested dice expression or rational number is held to its accepted "
+        "rules (at least one die; a positive denominator, a non-negative numerator)",
+    ),
+    *_int_domain_rows(),
+    # Schema 20 (CRD Issue 15c C7).
+    _Invariant(
+        id="ammunition_supply.for_weapons.non-empty-distinct-sorted",
+        locus="fact:ammunition_supply",
+        field="for_weapons",
+        rule="when stated, non-empty, distinct and sorted by record and component "
+        "key, so one narrowing has one fact key",
+    ),
+    # Schema 21 (CRD Issue 15c C8).
+    _Invariant(
+        id="creature_type.type.exactly-one-of-type-or-choice",
+        locus="fact:creature_type",
+        field="type|type_choice",
+        rule="exactly one of: type stated and type_choice empty; type null and "
+        "type_choice at least two types, distinct and sorted",
+    ),
+    _Invariant(
+        id="summoned_creature_type.type_choice.at-least-two-distinct-sorted",
+        locus="fact:summoned_creature_type",
+        field="type_choice|instead_of",
+        rule="at least two types, distinct and sorted, none of them instead_of",
+    ),
+    _Invariant(
+        id="summoned_creature_type.forms.non-empty-distinct-sorted",
+        locus="fact:summoned_creature_type",
+        field="forms",
+        rule="non-empty, distinct and sorted by record and component key",
+    ),
+)
+
+
 _INVARIANTS: tuple[_Invariant, ...] = (
     # The shared numeric shape every rational-valued field delegates to.
     _Invariant(
@@ -12972,6 +17842,7 @@ _INVARIANTS: tuple[_Invariant, ...] = (
             "source does not state"
         ),
     ),
+    *_SCHEMA_19_INVARIANTS,
 )
 
 

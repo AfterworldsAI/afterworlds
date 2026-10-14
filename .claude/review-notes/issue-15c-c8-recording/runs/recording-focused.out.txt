@@ -1,0 +1,6 @@
+FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence
+........................................................................ [ 42%]
+........................................................................ [ 85%]
+........................                                                 [100%]
+168 passed in 1889.68s (0:31:29)
+Focused diagnostics PASSED (exit 0). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence

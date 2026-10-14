@@ -16,7 +16,7 @@ from pathlib import Path
 
 import pytest
 
-from afterworlds.ingestion.mechanical.representation import WeaponCategory
+from afterworlds.ingestion.mechanical.representation import ToolVariant, WeaponCategory
 from afterworlds.models.dnd5e_state import (
     GrantSource,
     SenseGrant,
@@ -85,6 +85,32 @@ def test_an_identity_outside_the_fields_domain_is_wrong_kind(
     assert [f.code for f in failures] == [FailureCode.WRONG_KIND]
 
 
+@pytest.mark.parametrize(
+    ("record", "component", "kind"),
+    [
+        ("equipment.tools.gaming_set", "gaming_set", "lute"),
+        ("equipment.tools.musical_instrument", "musical_instrument", "dice"),
+        ("equipment.tools.thieves_tools", "thieves_tools", "dice"),
+        ("equipment.tools.gaming_set", "gaming_set", "chess"),
+    ],
+    ids=["instrument-as-game", "game-as-instrument", "no-kinds", "not-a-kind"],
+)
+def test_a_tool_grants_kind_must_be_one_of_its_typed_variants(
+    record: str, component: str, kind: str
+) -> None:
+    """CRD Issue 15c: a Gaming Set or Musical Instrument grant records one of
+    the tool's typed kinds; any other recorded kind is an invalid identity
+    (checked from the raw value, so ``model_copy`` state fails closed)."""
+    index, state = _fighter()
+    grant = ToolGrant(
+        record_key=record, component_key=component, expertise=False, source=FIGHTER
+    ).model_copy(update={"variant": kind})
+    failures = validate_character(
+        index, state.model_copy(update={"tool_proficiencies": (grant,)})
+    )
+    assert [f.code for f in failures] == [FailureCode.INVALID_IDENTITY]
+
+
 def test_every_srd_weapon_category_tool_and_sense_stays_valid() -> None:
     index, state = _fighter()
     weapons = sorted(
@@ -111,6 +137,7 @@ def test_every_srd_weapon_category_tool_and_sense_stays_valid() -> None:
                     component_key="gaming_set",
                     expertise=False,
                     source=FIGHTER,
+                    variant=ToolVariant.DICE,
                 ),
                 ToolGrant(
                     record_key="equipment.tools.thieves_tools",

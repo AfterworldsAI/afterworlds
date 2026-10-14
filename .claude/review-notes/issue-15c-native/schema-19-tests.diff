@@ -1,0 +1,102 @@
+diff --git a/tests/ingestion/mechanical/test_representation_schema_identity.py b/tests/ingestion/mechanical/test_representation_schema_identity.py
+index f7f0f9b..0320a7b 100644
+--- a/tests/ingestion/mechanical/test_representation_schema_identity.py
++++ b/tests/ingestion/mechanical/test_representation_schema_identity.py
+@@ -21,7 +21,7 @@ import sys
+ from dataclasses import dataclass, field, fields, is_dataclass, replace
+ from enum import StrEnum
+ from pathlib import Path
+-from typing import Any, Optional, cast, get_args, get_type_hints
++from typing import Any, Optional, cast, get_args, get_origin, get_type_hints
+ 
+ import pytest
+ from sqlalchemy import update
+@@ -596,7 +596,11 @@ def test_the_schema_hash_is_a_declared_contract_not_a_file_digest() -> None:
+ #: Restamped at schema 18 the same way: the union gained
+ #: ``WeaponCategoryFact`` and ``WeaponMasteryFact`` with the ``WeaponCategory``
+ #: and ``WeaponMastery`` vocabularies (CRD Issue 2b G1 candidate).
+-EXPECTED_SCHEMA_HASH = "276c3d0ca0bf4c2f98aa8e7d2db6cd321d7fb55dee6d8c60fdd4a58e51fa8701"  # noqa: E501  # pragma: allowlist secret
++#:
++#: PROVISIONAL, restamped at schema 19 for the CRD Issue 15c native preview: the
++#: bounded-d20 source families and vocabularies. Not Owner-accepted; schema 18
++#: (``SCHEMA_18_HASH``) stays the historical anchor in ``schema_lift``.
++EXPECTED_SCHEMA_HASH = "3734ccf7d6be7f25e0a0d7c0395121c5525afcb87144f5cf9d6895e03c1cd18f"  # noqa: E501  # pragma: allowlist secret
+ 
+ 
+ def test_the_committed_union_still_hashes_to_its_recorded_value() -> None:
+@@ -656,7 +660,15 @@ def test_the_schema_hash_covers_declared_invariants_and_not_checker_code() -> No
+     assert "critical_hit_rule" in rendered
+     assert "threshold" in rendered
+     # ...and still says nothing about which values that schema-3-era field takes.
+-    assert "19" not in rendered and "ordinary" not in rendered
++    # Scoped to the family's own descriptor: schema 19's version string and
++    # unrelated printed numbers may contain "19" anywhere else in the contract.
++    (critical,) = [
++        json.dumps(family)
++        for family in representation_schema_payload()["facts"]  # type: ignore[union-attr]
++        if family["family"] == "critical_hit_rule"  # type: ignore[index]
++    ]
++    assert "19" not in critical and "ordinary" not in critical
++    assert "ordinary" not in rendered
+     assert not [
+         row
+         for row in representation_schema_payload()["invariants"]  # type: ignore[union-attr]
+@@ -1091,6 +1103,33 @@ def test_primitives_are_matched_by_exact_type_not_by_subclass() -> None:
+     assert representation._shape(_WireVocab) == {"kind": "enum", "values": ["x", "y"]}
+ 
+ 
++def _wire_type(hint: object) -> str:
++    """A declared type as the wire sees it: vocabularies by their admitted
++    values, value objects by name only as a stand-in for their own shape (each
++    is compared separately), scalars and containers structurally."""
++    if isinstance(hint, type) and issubclass(hint, StrEnum):
++        return repr(sorted(m.value for m in hint))
++    if isinstance(hint, type):
++        return hint.__name__
++    origin, args = get_origin(hint), get_args(hint)
++    inner = ", ".join(_wire_type(a) for a in args)
++    return f"{getattr(origin, '__name__', origin)}[{inner}]"
++
++
++#: Single-value vocabularies schema 19 states on different fields, each the
++#: printed word in its own context (CRD Issue 15c native preview, provisional):
++#: a save override's ``may_choose`` and a repeated save's ``ends_on`` are both
++#: *success*; a duration's ``or_until`` and a trigger's ``on`` are both *the
++#: source dies*; a conditional defense's ``attack`` and a mastery's
++#: ``damage_type`` are both *weapon*. Equal on the wire and correct; listed so
++#: any further collision still surfaces.
++_CONTEXT_DISTINGUISHED_VOCABULARIES = [
++    "SaveOverrideOutcome vs SaveEndsOn: ('success',)",
++    "SpanEnd vs TriggerOn: ('source_dies',)",
++    "DefenseAttack vs MasteryDamageType: ('weapon',)",
++]
++
++
+ def test_no_two_closed_shapes_currently_collide() -> None:
+     """S6: a change-detector, deliberately not an invariant.
+ 
+@@ -1118,7 +1157,14 @@ def test_no_two_closed_shapes_currently_collide() -> None:
+                         m.value for m in part
+                     )
+                 elif is_dataclass(part) and part.__name__ not in objects:
+-                    objects[part.__name__] = {f.name for f in fields(part)}
++                    # The complete wire shape: each field's name and declared
++                    # type, so equal field names over different types (sizes
++                    # keyed to damage terms vs to hit points) do not collide.
++                    part_hints = get_type_hints(part)
++                    objects[part.__name__] = {
++                        f"{f.name}: {_wire_type(part_hints[f.name])}"
++                        for f in fields(part)
++                    }
+                     collect(part)
+ 
+     for family in FactFamily:
+@@ -1135,7 +1181,7 @@ def test_no_two_closed_shapes_currently_collide() -> None:
+         return clashes
+ 
+     assert len(vocabularies) > 20 and len(objects) > 5, "the walk found too little"
+-    assert duplicates(vocabularies) == []
++    assert duplicates(vocabularies) == _CONTEXT_DISTINGUISHED_VOCABULARIES
+     assert duplicates(objects) == []
+     # Two *families* do share a field shape; they stay distinct because
+     # families are keyed by their discriminator. That pair is the concrete

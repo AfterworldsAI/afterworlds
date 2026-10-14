@@ -1,0 +1,105 @@
+{
+  "label": "Codex independent native proposal identity and placement inspection; not acceptance",
+  "preview_sha256": "aa9fe91e948bff66de330d45ca533eaada3579d111a6ad06da97864e3d180593",
+  "schema": [
+    "5d-representation-schema-19",
+    "85896c8271a9aa4891af92f1c699a5eb9adc69562581135817e312b5d1ddbe0f"
+  ],
+  "proposals": [
+    {
+      "batch": "animals",
+      "proposal_identity": "7bb7976e1db3bb5e834d5dca6a3145056c81949af6298022fb01f9e3e04d8ec5",
+      "rendered_sha256": "d031c7c1ebf5c6e31e4f64e0cb61de3a65b311d043f41998c05f942cb25fa91f",
+      "matches_preview_assembly_step": true
+    },
+    {
+      "batch": "character-origins-feats",
+      "proposal_identity": "338dc9940706261acedc80e990f3883b9208261a39e63eddca494a16c54aed4d",
+      "rendered_sha256": "b93c0259ef51408829e96c8f99d55846196a440cb93e92a7dae3a44381d14361",
+      "matches_preview_assembly_step": true
+    },
+    {
+      "batch": "checks-actions-rests",
+      "proposal_identity": "3ac491cfb53a2a66bd75a02be249d46a86297f23c82cde52a98d1300c1f4828b",
+      "rendered_sha256": "d7b96c7514877ace508750d49fbc62da663776703660cf7c97e94d78af28503e",
+      "matches_preview_assembly_step": true
+    },
+    {
+      "batch": "classes",
+      "proposal_identity": "307ff11eeb7f9ee64af02e72a526106855da4059a104bac22d14e739dd27f771",
+      "rendered_sha256": "d26992617c58a081ac14d3e35263f1e317ed71ce9040c65a1559be409a3e51ab",
+      "matches_preview_assembly_step": true
+    },
+    {
+      "batch": "combat-damage-breaking",
+      "proposal_identity": "ddbb7dabed2044fb1d34228e20eeb162782eb0f8b8b3715846b4d5a19a6085dc",
+      "rendered_sha256": "0c53f292c818a6d485122c96b3333092bf34247af15bb7ac3c4e2afc09217b78",
+      "matches_preview_assembly_step": true
+    },
+    {
+      "batch": "core-play-completion",
+      "proposal_identity": "0c455c5f3509846ada6d6791d1dca26e0451f49edf4cc74d42e036998f74c443",
+      "rendered_sha256": "bfb11f7b8a373ee0a472c8ed5cba354ab91574c4fda070a664243dc29dc25fbc",
+      "matches_preview_assembly_step": true
+    },
+    {
+      "batch": "equipment",
+      "proposal_identity": "0ecf8da2e79fcca2e446cdd1191ae5a73589adc3ae38d1a437eac0edf16460d9",
+      "rendered_sha256": "57953e289c66bd6291e53bc8044c7f9ffbfbce1928b55241669117588c0cd23d",
+      "matches_preview_assembly_step": true
+    },
+    {
+      "batch": "magic-items",
+      "proposal_identity": "57eb5f139abc21bde07589d0a424b3bcd42980720ccbd019ef2d0e35921ac250",
+      "rendered_sha256": "7e5c0634306aae36d3d4ce51e610e77acd490a46a7526254e5714423be32fe43",
+      "matches_preview_assembly_step": true
+    },
+    {
+      "batch": "monsters",
+      "proposal_identity": "b566da06e7b939e5581b0df8366cc8f73affcb12c1b0b405aa53cdb53baf8c9c",
+      "rendered_sha256": "b06bc8efdb3322f81054b6985135c68a063130046a9eeb37b7b88a55e2ffec44",
+      "matches_preview_assembly_step": true
+    },
+    {
+      "batch": "spell-descriptions",
+      "proposal_identity": "4173046364530c4f89e0373a23bf8a98db97250857a85014d4943d629f2672e9",
+      "rendered_sha256": "47f8241b4fea21c0d3e3809eb996a3125144f3953ba4b7efe4d66f24724ec6f1",
+      "matches_preview_assembly_step": true
+    },
+    {
+      "batch": "spellcasting",
+      "proposal_identity": "3459f537fb71bd0164e0a297d75cbeeaefda0b8209e3a0d4c125ef513b8f4a1d",
+      "rendered_sha256": "84d3131da477678ebe56a5f6df6fc5141deffb53104ed3095e56811d768f1b06",
+      "matches_preview_assembly_step": true
+    }
+  ],
+  "exact_two_reviewed_relocations": true,
+  "relocations": [
+    {
+      "batch": "combat-damage-breaking",
+      "c5_component": [
+        "play.damage_and_healing",
+        "temporary_hit_points"
+      ],
+      "family": "temporary_hit_point_absorption",
+      "native_component": [
+        "play.damage_and_healing",
+        "lost_first"
+      ],
+      "quote": "those points are lost first, and any leftover damage carries over"
+    },
+    {
+      "batch": "equipment",
+      "c5_component": [
+        "equipment.armor",
+        "armor_training"
+      ],
+      "family": "shield_training_requirement",
+      "native_component": [
+        "equipment.armor.shield",
+        "shield"
+      ],
+      "quote": "You gain the Armor Class benefit of a Shield only if you have training with it"
+    }
+  ]
+}

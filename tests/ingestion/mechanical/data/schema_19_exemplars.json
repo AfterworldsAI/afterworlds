@@ -1,0 +1,3998 @@
+[
+ {
+  "bound_effect": null,
+  "branch": "hit",
+  "duration_of_effects": [],
+  "effect_id": "E1",
+  "ends_effects": [],
+  "entry": "Bite",
+  "expires": {
+   "turn": "next",
+   "turn_of": "source",
+   "until": "start_of_turn"
+  },
+  "family": "clause_next_roll_modifier",
+  "lasts_while_effect": null,
+  "part": "hit",
+  "piece": 1,
+  "roll": {
+   "actor": "any",
+   "against": "target",
+   "context": "attack_roll"
+  },
+  "section": "action",
+  "state": "advantage",
+  "under_predicates": [],
+  "uses": 1
+ },
+ {
+  "family": "tool_variants",
+  "separate_proficiency": true,
+  "variants": [
+   "bagpipes",
+   "drum",
+   "dulcimer",
+   "flute",
+   "horn",
+   "lute",
+   "lyre",
+   "pan_flute",
+   "shawm",
+   "viol"
+  ]
+ },
+ {
+  "dc": null,
+  "dc_formula": {
+   "formula_ref": "spells.saving_throws/spell_save_dc",
+   "of": "caster"
+  },
+  "entry": "Breath Weapon",
+  "failure_damage": [
+   {
+    "addends": [],
+    "average": null,
+    "constant": 0,
+    "damage_type": null,
+    "damage_type_by_choice": {
+     "celestial": null,
+     "chosen_by": "caster",
+     "chosen_for": null,
+     "chosen_from": "this_creatures_resistances",
+     "fey": null,
+     "fiend": null,
+     "when": "casting"
+    },
+    "dice": {
+     "count": 2,
+     "die": "d6",
+     "modifier": 0
+    }
+   }
+  ],
+  "failure_effect": null,
+  "family": "creature_save_effect",
+  "reuse_limit": null,
+  "save": "dexterity",
+  "section": "action",
+  "success": "half_damage",
+  "targets": {
+   "area": {
+    "height_ft": null,
+    "radius": false,
+    "shape": "cone",
+    "size_ft": 30,
+    "width_ft": null
+   },
+   "at_hit_points": null,
+   "automatic_failure_types": [],
+   "automatic_success_types": [],
+   "count": null,
+   "each": true,
+   "excludes": null,
+   "excludes_types": [],
+   "has_conditions": [],
+   "in_source_space": null,
+   "living": false,
+   "maximum_size": null,
+   "origin": null,
+   "origin_point_within_ft": null,
+   "related_to_source": [],
+   "requires_source_sees_point": null,
+   "requires_source_sees_target": null,
+   "requires_target_sees_source": null,
+   "source_environment": null,
+   "stated_by": null,
+   "swallow_capacity": null,
+   "trigger": null,
+   "types": [],
+   "willing_or_conditions": [],
+   "within_ft": null
+  }
+ },
+ {
+  "entry": "Legendary Resistance",
+  "family": "creature_save_override",
+  "save_override": {
+   "chooser": "gamemaster",
+   "may_choose": "success",
+   "on": "failed_saving_throw",
+   "usage": "per_entry_limit"
+  },
+  "section": "trait",
+  "subject": "self"
+ },
+ {
+  "ability_modifier_damage": "only_if_negative",
+  "cost": "bonus_action",
+  "family": "light_extra_attack",
+  "first_attack": "with_a_light_weapon",
+  "limit": "once_per_turn",
+  "optional": true,
+  "requires": "different_light_weapon",
+  "trigger": "attack_action_on_own_turn",
+  "when": "later_on_the_same_turn"
+ },
+ {
+  "attack": "melee",
+  "condition": "unconscious",
+  "ends_after": "short_rest",
+  "ends_early_on": [
+   "regains_hit_points",
+   "first_aid_success"
+  ],
+  "family": "knockout_alternative",
+  "optional": true,
+  "set_hit_points": 1,
+  "starts": "short_rest",
+  "trigger": "would_reduce_to_0_hit_points"
+ },
+ {
+  "armor": [
+   "light",
+   "medium",
+   "heavy"
+  ],
+  "context": "level_1_character",
+  "family": "armor_training_grant",
+  "shields": true
+ },
+ {
+  "ability_modifier_damage": null,
+  "against": null,
+  "applies_to": "hit_creature",
+  "cost": null,
+  "damage": null,
+  "damage_type": null,
+  "dc": {
+   "base": 8,
+   "plus": [
+    "attack_ability_modifier",
+    "proficiency_bonus"
+   ]
+  },
+  "direction": null,
+  "distance_ft_up_to": null,
+  "duration": null,
+  "effect": null,
+  "family": "mastery_effect",
+  "increase": null,
+  "limit": null,
+  "mastery": "topple",
+  "maximum_reduction_ft": null,
+  "maximum_size": null,
+  "on_failure": [
+   {
+    "condition": "prone",
+    "effect": "applies"
+   }
+  ],
+  "optional": true,
+  "save": "constitution",
+  "second_target_within_ft": null,
+  "second_target_within_reach": null,
+  "speed_reduction_ft": null,
+  "trigger": "hit_creature"
+ },
+ {
+  "bound_effect": null,
+  "branch": "second_failure",
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_early_when": [
+   {
+    "by_creature_within_ft": null,
+    "event": "target_takes_damage"
+   },
+   {
+    "by_creature_within_ft": 5,
+    "event": "woken_by_an_action"
+   }
+  ],
+  "ends_effects": [
+   "E2"
+  ],
+  "entry": "Sleep Breath",
+  "family": "clause_effect_ends",
+  "lasts_while_effect": null,
+  "part": "failure",
+  "piece": 3,
+  "section": "action",
+  "under_predicates": []
+ },
+ {
+  "at": "end_of_its_next_turn",
+  "bound_effect": null,
+  "branch": "first_failure",
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [
+   "E1"
+  ],
+  "ends_on": "success",
+  "entry": "Petrifying Gaze",
+  "family": "clause_repeat_save",
+  "lasts_while_effect": null,
+  "only_if": {
+   "has_condition": "restrained"
+  },
+  "part": "outcomes",
+  "piece": 2,
+  "section": "bonus_action",
+  "turn_of": "target",
+  "under_predicates": []
+ },
+ {
+  "family": "tool_variants",
+  "separate_proficiency": true,
+  "variants": [
+   "dice",
+   "dragonchess",
+   "playing_cards",
+   "three_dragon_ante"
+  ]
+ },
+ {
+  "attack": null,
+  "attacker_active_effect": null,
+  "condition": "charmed",
+  "damage_type": null,
+  "family": "creature_conditional_defense",
+  "kind": "condition_immunity",
+  "selection": null,
+  "unless_source_is": {
+   "qualification": "vampire",
+   "relation": "master_of_the_subject"
+  },
+  "while_active_effect": null
+ },
+ {
+  "entry": "Hand Crossbow",
+  "family": "creature_entry_usage",
+  "forms": [
+   "humanoid",
+   "hybrid"
+  ],
+  "in_lair": null,
+  "kind": "form_only",
+  "minimum_d6": null,
+  "recharge_after_long_rest": false,
+  "requires_entry": null,
+  "section": "action",
+  "uses": null
+ },
+ {
+  "ability": "dexterity",
+  "family": "ability_score_requirement",
+  "minimum": 13,
+  "range_class": "ranged",
+  "unmet": "attack_disadvantage"
+ },
+ {
+  "dc": 10,
+  "dc_formula": null,
+  "entry": "Heart Sight",
+  "failure_damage": [],
+  "failure_effect": null,
+  "family": "creature_save_effect",
+  "reuse_limit": null,
+  "save": "charisma",
+  "section": "action",
+  "success": null,
+  "targets": {
+   "area": null,
+   "at_hit_points": null,
+   "automatic_failure_types": [
+    "celestial",
+    "fiend",
+    "undead"
+   ],
+   "automatic_success_types": [],
+   "count": 1,
+   "each": null,
+   "excludes": null,
+   "excludes_types": [],
+   "has_conditions": [],
+   "in_source_space": null,
+   "living": false,
+   "maximum_size": null,
+   "origin": null,
+   "origin_point_within_ft": null,
+   "related_to_source": [],
+   "requires_source_sees_point": null,
+   "requires_source_sees_target": true,
+   "requires_target_sees_source": null,
+   "source_environment": null,
+   "stated_by": null,
+   "swallow_capacity": null,
+   "trigger": null,
+   "types": [],
+   "willing_or_conditions": [],
+   "within_ft": 5
+  }
+ },
+ {
+  "also_regain": [
+   "short_rest",
+   "long_rest"
+  ],
+  "die": "d6",
+  "family": "usage_limit_rule",
+  "kind": "recharge",
+  "regain": [],
+  "roll_at": "start_of_turn",
+  "turn_of": "subject"
+ },
+ {
+  "bound_effect": null,
+  "branch": "frame",
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Death Throes",
+  "family": "clause_trigger",
+  "lasts_while_effect": null,
+  "on": "source_dies",
+  "part": "frame",
+  "piece": 0,
+  "section": "trait",
+  "under_predicates": []
+ },
+ {
+  "dc": 19,
+  "dc_formula": null,
+  "entry": "Cold Gale",
+  "failure_damage": [
+   {
+    "addends": [],
+    "average": 14,
+    "constant": null,
+    "damage_type": "cold",
+    "damage_type_by_choice": null,
+    "dice": {
+     "count": 4,
+     "die": "d6",
+     "modifier": 0
+    }
+   }
+  ],
+  "failure_effect": {
+   "applies_to": "target",
+   "condition": null,
+   "conditional_damage": null,
+   "duration": null,
+   "escape_dc": null,
+   "forced_movement": {
+    "direction": "straight_away",
+    "distance_ft": null,
+    "distance_ft_up_to": 30
+   },
+   "linked": null,
+   "maximum_size": null,
+   "rider_save": null,
+   "speed": null
+  },
+  "family": "creature_save_effect",
+  "reuse_limit": "once_until_start_of_own_turn",
+  "save": "dexterity",
+  "section": "legendary_action",
+  "success": "half_damage_only",
+  "targets": {
+   "area": {
+    "height_ft": null,
+    "radius": false,
+    "shape": "line",
+    "size_ft": 60,
+    "width_ft": 10
+   },
+   "at_hit_points": null,
+   "automatic_failure_types": [],
+   "automatic_success_types": [],
+   "count": null,
+   "each": true,
+   "excludes": null,
+   "excludes_types": [],
+   "has_conditions": [],
+   "in_source_space": null,
+   "living": false,
+   "maximum_size": null,
+   "origin": null,
+   "origin_point_within_ft": null,
+   "related_to_source": [],
+   "requires_source_sees_point": null,
+   "requires_source_sees_target": null,
+   "requires_target_sees_source": null,
+   "source_environment": null,
+   "stated_by": null,
+   "swallow_capacity": null,
+   "trigger": null,
+   "types": [],
+   "willing_or_conditions": [],
+   "within_ft": null
+  }
+ },
+ {
+  "drawing_is_part_of_the_attack": true,
+  "family": "ammunition_expenditure",
+  "loading_requires_free_hand": {
+   "when": "weapon_is_one_handed"
+  },
+  "per_attack": 1,
+  "recovery": {
+   "after": "fight",
+   "fraction": {
+    "denominator": 2,
+    "numerator": 1
+   },
+   "minutes": 1,
+   "remainder": "lost",
+   "rounding": "down"
+  },
+  "requires": "ammunition_of_the_printed_type"
+ },
+ {
+  "exception_scope": "individual_monster",
+  "family": "zero_hit_point_outcome",
+  "gamemaster_exception": "treat_as_character",
+  "outcome": "dies",
+  "subject": "monster",
+  "trigger": null,
+  "until": null
+ },
+ {
+  "family": "creature_attack_notation",
+  "sections": [
+   "hit",
+   "miss",
+   "hit_or_miss"
+  ],
+  "targets": 1
+ },
+ {
+  "appendages": {
+   "appendage": "tentacles",
+   "of": 2,
+   "use": "one"
+  },
+  "bound_effect": null,
+  "branch": "hit",
+  "condition": "grappled",
+  "duration_of_effects": [],
+  "effect_id": "E1",
+  "ends_effects": [],
+  "entry": "Tentacle",
+  "escape_dc": 13,
+  "family": "clause_grapple",
+  "instead_of_damage": null,
+  "lasts_while_effect": null,
+  "part": "hit",
+  "piece": 2,
+  "section": "action",
+  "under_predicates": [
+   1
+  ]
+ },
+ {
+  "action": "help",
+  "family": "stabilization",
+  "on_success": "stable",
+  "target_at_hit_points": 0
+ },
+ {
+  "bound_effect": null,
+  "branch": "targets",
+  "centered_on": "the_frame_point",
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Boulder Toss",
+  "family": "clause_area_origin_point",
+  "lasts_while_effect": null,
+  "part": "targets",
+  "piece": 0,
+  "requires_source_sees_point": null,
+  "section": "action",
+  "under_predicates": [],
+  "within_ft": null
+ },
+ {
+  "also": {
+   "difficult_terrain_of": [
+    "ice",
+    "snow"
+   ],
+   "extra_movement": false
+  },
+  "applies_when": null,
+  "check": "glossary.climbing/difficult_climb",
+  "entry": "Ice Walk",
+  "family": "check_requirement_removal",
+  "section": "trait",
+  "subject": "self",
+  "surfaces": "icy_surfaces"
+ },
+ {
+  "ability_modifier_damage": null,
+  "against": "the_hit_creature",
+  "applies_to": "wielder",
+  "cost": null,
+  "damage": null,
+  "damage_type": null,
+  "dc": null,
+  "direction": null,
+  "distance_ft_up_to": null,
+  "duration": {
+   "turn": "next",
+   "turn_of": "source",
+   "until": "end_of_turn"
+  },
+  "effect": {
+   "roll": {
+    "ability": null,
+    "actor": "subject",
+    "context": "attack_roll"
+   },
+   "state": "advantage",
+   "use_limit": "next_qualifying_roll"
+  },
+  "family": "mastery_effect",
+  "increase": null,
+  "limit": null,
+  "mastery": "vex",
+  "maximum_reduction_ft": null,
+  "maximum_size": null,
+  "on_failure": [],
+  "optional": false,
+  "save": null,
+  "second_target_within_ft": null,
+  "second_target_within_reach": null,
+  "speed_reduction_ft": null,
+  "trigger": "hit_and_damage"
+ },
+ {
+  "ability_modifier_damage": null,
+  "against": null,
+  "applies_to": null,
+  "cost": null,
+  "damage": "attack_ability_modifier",
+  "damage_type": "weapon",
+  "dc": null,
+  "direction": null,
+  "distance_ft_up_to": null,
+  "duration": null,
+  "effect": null,
+  "family": "mastery_effect",
+  "increase": "only_by_increasing_the_ability_modifier",
+  "limit": null,
+  "mastery": "graze",
+  "maximum_reduction_ft": null,
+  "maximum_size": null,
+  "on_failure": [],
+  "optional": true,
+  "save": null,
+  "second_target_within_ft": null,
+  "second_target_within_reach": null,
+  "speed_reduction_ft": null,
+  "trigger": "miss_creature"
+ },
+ {
+  "action": "attack",
+  "composition": "per_entry",
+  "family": "multiattack_rule"
+ },
+ {
+  "actor_within_ft": 5,
+  "bound_effect": null,
+  "branch": "failure",
+  "check": {
+   "ability": "strength",
+   "dc": 14,
+   "skill": "athletics"
+  },
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends": "grapple",
+  "ends_effects": [],
+  "entry": "Whelm",
+  "family": "clause_rescue_check",
+  "lasts_while_effect": null,
+  "part": "failure",
+  "piece": 8,
+  "section": "action",
+  "under_predicates": [],
+  "uses": "action"
+ },
+ {
+  "advantage_when": "target_grappled_by_source",
+  "attack_bonus": 4,
+  "attack_bonus_formula": null,
+  "automatic_hit": null,
+  "entry": "Light Hammer",
+  "family": "creature_attack",
+  "hit_damage": [
+   {
+    "addends": [],
+    "average": 9,
+    "constant": null,
+    "damage_type": "bludgeoning",
+    "damage_type_by_choice": null,
+    "dice": {
+     "count": 3,
+     "die": "d4",
+     "modifier": 2
+    }
+   }
+  ],
+  "hit_damage_by_size": null,
+  "hit_effect": null,
+  "kind": "melee_or_ranged",
+  "long_range_ft": 60,
+  "normal_range_ft": 20,
+  "reach_ft": 10,
+  "section": "action",
+  "size_input": null
+ },
+ {
+  "bound_effect": null,
+  "branch": "failure_or_success",
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Steam Breath",
+  "family": "clause_damage_qualification",
+  "lasts_while_effect": null,
+  "part": "failure_or_success",
+  "piece": 0,
+  "section": "action",
+  "under_predicates": [],
+  "underwater_fire_resistance_applies": false
+ },
+ {
+  "becomes": "dead",
+  "bound_effect": null,
+  "branch": "hit",
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Bite",
+  "family": "clause_zero_hit_point_outcome",
+  "lasts_while_effect": null,
+  "part": "hit",
+  "piece": 3,
+  "section": "action",
+  "under_predicates": [],
+  "when": "reduced_to_0_by_this_attack"
+ },
+ {
+  "applies_to": "every_damage_die_of_the_attack",
+  "damage_dice_multiplier": 2,
+  "family": "critical_damage",
+  "modifiers": "added_once"
+ },
+ {
+  "applies_to": [
+   "attacks_with_it",
+   "opportunity_attack_reach"
+  ],
+  "family": "reach_extension",
+  "feet": 5
+ },
+ {
+  "applies_when": null,
+  "effects": [
+   {
+    "roll": {
+     "ability": "wisdom",
+     "actor": "against_subject",
+     "context": "ability_check"
+    },
+    "state": "disadvantage"
+   }
+  ],
+  "entry": "Inscrutable",
+  "family": "creature_roll_modifier",
+  "purpose": "to_ascertain_intentions_or_sincerity",
+  "section": "trait",
+  "skill": "insight",
+  "subject": "others"
+ },
+ {
+  "applies_when": {
+   "ally_not": null,
+   "ally_within_ft_of_target": null,
+   "attack": null,
+   "stated": null,
+   "subject_bloodied": null,
+   "subject_not": "incapacitated",
+   "target_missing_hit_points": null
+  },
+  "entry": "Evasion",
+  "family": "creature_save_damage_override",
+  "save_damage_override": {
+   "failure": "half_damage",
+   "on": "half_damage_effects",
+   "save": "dexterity",
+   "success": "no_damage"
+  },
+  "section": "trait",
+  "subject": "self"
+ },
+ {
+  "category": "epic_boon",
+  "family": "feat_prerequisite",
+  "minimum_ability_score": null,
+  "minimum_character_level": 19,
+  "requires_feature": "spellcasting"
+ },
+ {
+  "check": {
+   "ability": "wisdom",
+   "dc": 10,
+   "skill": "insight"
+  },
+  "entry": "Mimicry",
+  "family": "creature_observer_check",
+  "made_by": "a_hearer",
+  "only_if": null,
+  "purpose": "to_discern_the_sounds_are_imitations",
+  "section": "trait"
+ },
+ {
+  "dc": {
+   "base": 5,
+   "plus": "damage_taken"
+  },
+  "entry": "Undead Fortitude",
+  "family": "zero_hit_point_save",
+  "on_success": {
+   "instead_of_zero_hit_points": true,
+   "set_hit_points": 1
+  },
+  "save": "constitution",
+  "section": "trait",
+  "subject": "self",
+  "trigger": "damage_reduces_subject_to_zero_hit_points",
+  "unless": {
+   "critical_hit": true,
+   "damage_type": "radiant"
+  }
+ },
+ {
+  "dies_when_remainder_at_least": "hit_point_maximum",
+  "family": "massive_damage",
+  "subject": "character"
+ },
+ {
+  "entry": "Burst of Ingenuity",
+  "family": "creature_entry_usage",
+  "forms": [],
+  "in_lair": null,
+  "kind": "per_day",
+  "minimum_d6": null,
+  "recharge_after_long_rest": null,
+  "requires_entry": null,
+  "section": "reaction",
+  "uses": 2
+ },
+ {
+  "family": "legendary_action_rule",
+  "not_while_has_conditions": [
+   "incapacitated"
+  ],
+  "one_at_a_time": true,
+  "regain": "start_of_own_turn",
+  "timing": "after_another_creatures_turn"
+ },
+ {
+  "ability": "charisma",
+  "category": "other_tools",
+  "family": "tool_entry"
+ },
+ {
+  "activity": "play_a_known_tune",
+  "family": "tool_activity"
+ },
+ {
+  "abilities": [
+   "strength",
+   "dexterity"
+  ],
+  "applies_to": [
+   "light",
+   "medium",
+   "heavy"
+  ],
+  "applies_when": "wearer_lacks_training_with_worn_armor_category",
+  "cannot_cast_spells": true,
+  "d20_tests": "disadvantage",
+  "family": "armor_training_penalty"
+ },
+ {
+  "context": "level_1_character",
+  "count": 1,
+  "family": "tool_proficiency_choice",
+  "options": [
+   {
+    "any_tool_entry": null,
+    "tool_category": "artisans_tools",
+    "tool_variants_of": null
+   },
+   {
+    "any_tool_entry": null,
+    "tool_category": null,
+    "tool_variants_of": {
+     "component_key": "musical_instrument",
+     "record_key": "equipment.tools.musical_instrument"
+    }
+   }
+  ]
+ },
+ {
+  "attack": null,
+  "attacker_active_effect": null,
+  "condition": null,
+  "damage_type": null,
+  "family": "creature_conditional_defense",
+  "kind": "resistance",
+  "selection": {
+   "chosen_by": "gamemaster",
+   "chosen_for": "draconic_origin",
+   "vocabulary": [
+    "acid",
+    "cold",
+    "fire",
+    "lightning",
+    "poison"
+   ]
+  },
+  "unless_source_is": null,
+  "while_active_effect": null
+ },
+ {
+  "armor_class": 20,
+  "armor_class_formula": null,
+  "family": "creature_defense_parameterized",
+  "hit_points": {
+   "base": null,
+   "by_size": null,
+   "half_of": "summoner_hit_point_maximum",
+   "per_spell_level": null,
+   "per_spell_level_above": null
+  }
+ },
+ {
+  "bound_effect": null,
+  "branch": "failure",
+  "duration": null,
+  "duration_of_effects": [],
+  "effect_id": "E1",
+  "ends_effects": [],
+  "entry": "Bite",
+  "family": "clause_named_effect",
+  "lasts_while_effect": null,
+  "name": "cursed",
+  "part": "hit",
+  "piece": 5,
+  "section": "action",
+  "under_predicates": []
+ },
+ {
+  "bound_effect": null,
+  "branch": "success",
+  "duration_of_effects": [],
+  "effect_id": "E2",
+  "ends_effects": [],
+  "entry": "Bite",
+  "family": "clause_temporary_immunity",
+  "hours": 24,
+  "immune_to_entry": "curse",
+  "lasts_while_effect": null,
+  "part": "hit",
+  "piece": 9,
+  "section": "action",
+  "to": "this_source_entry",
+  "under_predicates": []
+ },
+ {
+  "at": null,
+  "attack_roll_had_advantage": null,
+  "bound_effect": "E2",
+  "branch": "failure_by_5_or_more",
+  "duration": null,
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Bite",
+  "family": "clause_predicate",
+  "lasts_while_effect": null,
+  "otherwise": null,
+  "part": "hit",
+  "piece": 7,
+  "refers_to": null,
+  "section": "action",
+  "source_moved_straight_toward_target_ft_min": null,
+  "target_hit_points_at_most": null,
+  "target_is_creature": null,
+  "target_maximum_size": null,
+  "target_reduced_to_0_hit_points_by_this": null,
+  "target_type": null,
+  "under_predicates": [],
+  "while_condition": "poisoned",
+  "while_state": null
+ },
+ {
+  "bound_effect": null,
+  "branch": "subsequent_failures",
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Bite",
+  "family": "clause_branch",
+  "lasts_while_effect": null,
+  "part": "hit",
+  "piece": 9,
+  "section": "action",
+  "under_predicates": []
+ },
+ {
+  "ability": null,
+  "die": "d20",
+  "failures_to_die": 3,
+  "family": "death_saving_throw",
+  "reset_on": [
+   "regains_hit_points",
+   "becomes_stable"
+  ],
+  "success_minimum": 10,
+  "successes_to_stable": 3,
+  "timing": {
+   "at_hit_points": 0,
+   "turn_of": "subject",
+   "when": "start_of_turn"
+  }
+ },
+ {
+  "ability_based": null,
+  "bound_effect": null,
+  "branch": "hit",
+  "duration_of_effects": [],
+  "effect_id": "E2",
+  "effects": [
+   {
+    "roll": {
+     "ability": null,
+     "actor": "subject",
+     "context": "ability_check"
+    },
+    "state": "disadvantage"
+   }
+  ],
+  "ends_effects": [],
+  "entry": "Pseudopod",
+  "family": "clause_roll_modifier",
+  "lasts_while_effect": null,
+  "part": "hit",
+  "piece": 3,
+  "purpose": "escape_this_grapple",
+  "section": "action",
+  "subject": "target",
+  "under_predicates": []
+ },
+ {
+  "bound_effect": null,
+  "branch": "hit",
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Bite",
+  "family": "clause_conditional_damage",
+  "lasts_while_effect": null,
+  "mode": "instead",
+  "part": "hit",
+  "piece": 0,
+  "replaces_hit_damage_index": 0,
+  "section": "action",
+  "term": {
+   "addends": [],
+   "average": 12,
+   "constant": null,
+   "damage_type": "piercing",
+   "damage_type_by_choice": null,
+   "dice": {
+    "count": 2,
+    "die": "d8",
+    "modifier": 3
+   }
+  },
+  "unconditional_hit_damage_indices": [
+   1
+  ],
+  "under_predicates": [],
+  "when": {
+   "attack_roll_had_advantage": null,
+   "source_bloodied": null,
+   "source_moved_straight_toward_target_ft_min": null,
+   "target_bloodied": null,
+   "target_grappled_by_source": true,
+   "target_maximum_size": null
+  }
+ },
+ {
+  "bound_effect": null,
+  "branch": "hit",
+  "duration_of_effects": [],
+  "effect_id": "E3",
+  "ends_effects": [],
+  "entry": "Bite",
+  "excludes": "the_creature_grappled_by_this_attack",
+  "family": "clause_targeting_restriction",
+  "lasts_while_effect": "E1",
+  "part": "hit",
+  "piece": 5,
+  "section": "action",
+  "source_attack": "Tail",
+  "under_predicates": [
+   3
+  ]
+ },
+ {
+  "dc": 18,
+  "dc_formula": null,
+  "entry": "Baleful Command",
+  "failure_damage": [
+   {
+    "addends": [],
+    "average": 28,
+    "constant": null,
+    "damage_type": "psychic",
+    "damage_type_by_choice": null,
+    "dice": {
+     "count": 8,
+     "die": "d6",
+     "modifier": 0
+    }
+   }
+  ],
+  "failure_effect": null,
+  "family": "creature_save_effect",
+  "reuse_limit": null,
+  "save": "wisdom",
+  "section": "action",
+  "success": null,
+  "targets": {
+   "area": {
+    "height_ft": null,
+    "radius": false,
+    "shape": "emanation",
+    "size_ft": 30,
+    "width_ft": null
+   },
+   "at_hit_points": null,
+   "automatic_failure_types": [],
+   "automatic_success_types": [],
+   "count": null,
+   "each": true,
+   "excludes": null,
+   "excludes_types": [],
+   "has_conditions": [],
+   "in_source_space": null,
+   "living": false,
+   "maximum_size": null,
+   "origin": "source",
+   "origin_point_within_ft": null,
+   "related_to_source": [],
+   "requires_source_sees_point": null,
+   "requires_source_sees_target": null,
+   "requires_target_sees_source": null,
+   "source_environment": null,
+   "stated_by": null,
+   "swallow_capacity": null,
+   "trigger": null,
+   "types": [
+    "enemy"
+   ],
+   "willing_or_conditions": [],
+   "within_ft": null
+  }
+ },
+ {
+  "bound_effect": null,
+  "branch": "hit",
+  "change": "decrease",
+  "duration": null,
+  "duration_of_effects": [],
+  "effect_id": "E1",
+  "ends_effects": [],
+  "entry": "Ice Spear",
+  "family": "clause_timed_speed_change",
+  "feet": 10,
+  "lasts_while_effect": null,
+  "part": "hit",
+  "piece": 3,
+  "section": "action",
+  "under_predicates": [
+   1
+  ]
+ },
+ {
+  "bound_effect": null,
+  "branch": "hit_or_miss",
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Ice Spear",
+  "family": "clause_returning_weapon",
+  "lasts_while_effect": null,
+  "or_hovers_within_ft": null,
+  "part": "hit",
+  "piece": 6,
+  "section": "action",
+  "under_predicates": [],
+  "weapon": "spear"
+ },
+ {
+  "bound_effect": null,
+  "branch": "failure",
+  "duration": {
+   "turn": "next",
+   "turn_of": "target",
+   "until": "end_of_turn"
+  },
+  "duration_of_effects": [
+   "E1"
+  ],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Slowing Breath",
+  "family": "clause_effect_lasts",
+  "lasts_while_effect": null,
+  "part": "failure",
+  "piece": 3,
+  "scope": "sentence_effects_above",
+  "section": "action",
+  "under_predicates": []
+ },
+ {
+  "appendages": {
+   "appendage": "talons",
+   "of": null,
+   "use": "both"
+  },
+  "bound_effect": null,
+  "branch": "hit",
+  "condition": "grappled",
+  "duration_of_effects": [],
+  "effect_id": "E1",
+  "ends_effects": [],
+  "entry": "Talons",
+  "escape_dc": 19,
+  "family": "clause_grapple",
+  "instead_of_damage": null,
+  "lasts_while_effect": null,
+  "part": "hit",
+  "piece": 2,
+  "section": "action",
+  "under_predicates": [
+   1
+  ]
+ },
+ {
+  "bound_effect": null,
+  "branch": "hit",
+  "direction": "straight_toward_source",
+  "distance_ft": null,
+  "distance_ft_up_to": 25,
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Flame Whip",
+  "family": "clause_forced_movement",
+  "lasts_while_effect": null,
+  "part": "hit",
+  "piece": 2,
+  "section": "action",
+  "under_predicates": [
+   1
+  ]
+ },
+ {
+  "bound_effect": null,
+  "branch": "failure",
+  "duration_of_effects": [],
+  "effect_id": "E1",
+  "effects": [
+   {
+    "condition": "charmed",
+    "effect": "applies"
+   }
+  ],
+  "ends_effects": [],
+  "entry": "Luring Song",
+  "family": "clause_linked_condition",
+  "lasts_while_effect": null,
+  "part": "failure",
+  "piece": 0,
+  "section": "action",
+  "under_predicates": [],
+  "while_state": "song"
+ },
+ {
+  "alternatives": [
+   {
+    "condition": null,
+    "parts": [
+     {
+      "any_of": [],
+      "attack": "Bite",
+      "count": null,
+      "count_formula": "per_head",
+      "if_available": null,
+      "optional": null,
+      "uses_one_of": []
+     }
+    ]
+   }
+  ],
+  "entry": "Multiattack",
+  "family": "creature_multiattack",
+  "replacements": [],
+  "section": "action"
+ },
+ {
+  "advantage_when": null,
+  "attack_bonus": null,
+  "attack_bonus_formula": {
+   "formula_ref": "spells.attack_rolls/spell_attack_modifier",
+   "of": "caster"
+  },
+  "automatic_hit": false,
+  "entry": "Slam",
+  "family": "creature_attack",
+  "hit_damage": [],
+  "hit_damage_by_size": {
+   "huge": [
+    {
+     "addends": [
+      {
+       "input": "caster_spellcasting_ability_modifier"
+      }
+     ],
+     "average": null,
+     "constant": 3,
+     "damage_type": "force",
+     "damage_type_by_choice": null,
+     "dice": {
+      "count": 2,
+      "die": "d12",
+      "modifier": 0
+     }
+    }
+   ],
+   "large": [
+    {
+     "addends": [
+      {
+       "input": "caster_spellcasting_ability_modifier"
+      }
+     ],
+     "average": null,
+     "constant": 3,
+     "damage_type": "force",
+     "damage_type_by_choice": null,
+     "dice": {
+      "count": 2,
+      "die": "d6",
+      "modifier": 0
+     }
+    }
+   ],
+   "medium_or_smaller": [
+    {
+     "addends": [],
+     "average": null,
+     "constant": 3,
+     "damage_type": "force",
+     "damage_type_by_choice": null,
+     "dice": {
+      "count": 1,
+      "die": "d4",
+      "modifier": 0
+     }
+    }
+   ]
+  },
+  "hit_effect": null,
+  "kind": "melee",
+  "long_range_ft": null,
+  "normal_range_ft": null,
+  "reach_ft": 5,
+  "section": "action",
+  "size_input": "recorded_size"
+ },
+ {
+  "applies_to": "ability_check",
+  "dc": 10,
+  "difficulty": "easy",
+  "family": "difficulty_band"
+ },
+ {
+  "bound_effect": null,
+  "branch": "targets",
+  "duration_of_effects": [],
+  "effect_id": null,
+  "emanation_ft": null,
+  "ends_effects": [],
+  "entry": "Fear Aura",
+  "family": "clause_aura",
+  "lasts_while_effect": null,
+  "part": "targets",
+  "piece": 0,
+  "section": "trait",
+  "suspended_while_source_has": null,
+  "targets_within": "the_aura",
+  "under_predicates": []
+ },
+ {
+  "at": "end_of_turn",
+  "bound_effect": null,
+  "branch": "targets",
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Mucus Cloud",
+  "family": "clause_save_timing",
+  "lasts_while_effect": null,
+  "part": "targets",
+  "piece": 0,
+  "section": "trait",
+  "turn": "this",
+  "turn_of": "source",
+  "under_predicates": []
+ },
+ {
+  "bound_effect": null,
+  "branch": "failure",
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Giggling Magic",
+  "family": "clause_penalty_die_application",
+  "lasts_while_effect": null,
+  "part": "failure",
+  "piece": 3,
+  "section": "legendary_action",
+  "subtracts_from": "d20_test",
+  "under_predicates": [
+   1
+  ]
+ },
+ {
+  "attack": "ranged",
+  "draw_as_part_of_attack": true,
+  "family": "thrown_attack",
+  "melee_weapon_ability": "as_melee_attack"
+ },
+ {
+  "base": 8,
+  "family": "spell_save_dc_formula",
+  "plus": [
+   "spellcasting_ability_modifier",
+   "proficiency_bonus"
+  ]
+ },
+ {
+  "beyond_long": "cannot_attack",
+  "beyond_normal": "attack_disadvantage",
+  "family": "range_band_rule"
+ },
+ {
+  "family": "shield_training_requirement",
+  "untrained": "no_armor_class_benefit"
+ },
+ {
+  "bound_effect": null,
+  "branch": "failure",
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Toxic Ink",
+  "family": "clause_source_movement",
+  "lasts_while_effect": null,
+  "part": "failure",
+  "piece": 1,
+  "section": "legendary_action",
+  "under_predicates": [],
+  "up_to": "speed"
+ },
+ {
+  "bound_effect": null,
+  "branch": "failure",
+  "duration_of_effects": [],
+  "duration_span": {
+   "amount": 1,
+   "or_until": null,
+   "unit": "minute"
+  },
+  "duration_turn": null,
+  "effect_id": "E1",
+  "effects": [
+   {
+    "condition": "frightened",
+    "effect": "applies"
+   }
+  ],
+  "ends_early_when": [
+   {
+    "by_creature_within_ft": null,
+    "event": "target_takes_damage"
+   },
+   {
+    "by_creature_within_ft": null,
+    "event": "ends_turn_out_of_line_of_sight"
+   }
+  ],
+  "ends_effects": [],
+  "entry": "Horror Nimbus",
+  "family": "clause_timed_condition",
+  "lasts_while_effect": null,
+  "part": "failure",
+  "piece": 1,
+  "replaces_condition": null,
+  "section": "bonus_action",
+  "under_predicates": []
+ },
+ {
+  "category": "origin",
+  "count": 1,
+  "count_per_gain": null,
+  "family": "feat_choice",
+  "gain_levels": null,
+  "named_feat": null,
+  "or_any_feat_whose_prerequisites_are_met": null
+ },
+ {
+  "check": {
+   "ability": "wisdom",
+   "dc": 15,
+   "skill": "perception"
+  },
+  "entry": "Transparent",
+  "family": "creature_observer_check",
+  "made_by": "another_creature",
+  "only_if": {
+   "checker_has_not_witnessed_subject_move_or_act": true
+  },
+  "purpose": "to_notice_the_subject",
+  "section": "trait"
+ },
+ {
+  "damage_ends_stable": true,
+  "family": "stable_state",
+  "makes_death_saves": false,
+  "recovery": {
+   "dice": {
+    "count": 1,
+    "die": "d4",
+    "modifier": 0
+   },
+   "regain_hit_points": 1,
+   "unit": "hour",
+   "unless": "healed"
+  },
+  "remains_unconscious": true
+ },
+ {
+  "exclusive": true,
+  "family": "damage_notation_option",
+  "options": [
+   "average",
+   "dice"
+  ],
+  "selected_by": "gamemaster"
+ },
+ {
+  "family": "feat_grant",
+  "feat": "feats.magic_initiate",
+  "qualifier": "cleric"
+ },
+ {
+  "family": "hands_required",
+  "hands": 2,
+  "when": "attacking"
+ },
+ {
+  "activity": "improvise_a_song",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "mend_a_tear_in_clothing",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "sew_a_tiny_design",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "disarm_a_trap",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "pick_a_lock",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "mimic_10_or_fewer_words_of_someone_elses_handwriting",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "duplicate_a_wax_seal",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "identify_alcohol",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "detect_poisoned_drink",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "identify_a_substance",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "start_a_fire",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "improve_foods_flavor",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "detect_spoiled_or_poisoned_food",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "discern_whether_someone_is_cheating",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "win_the_game",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "plot_a_course",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "determine_position_by_stargazing",
+  "family": "tool_activity"
+ },
+ {
+  "abilities": [
+   "constitution",
+   "charisma"
+  ],
+  "context": "level_1_character",
+  "family": "saving_throw_proficiency_grant",
+  "gain_levels": null
+ },
+ {
+  "categories": [
+   "simple"
+  ],
+  "context": "level_1_character",
+  "family": "weapon_proficiency_grant",
+  "qualified": []
+ },
+ {
+  "context": "level_1_character",
+  "count": 2,
+  "eligibility": null,
+  "family": "skill_proficiency_choice",
+  "from_reference": null,
+  "from_skills": [
+   "arcana",
+   "deception",
+   "insight",
+   "intimidation",
+   "persuasion",
+   "religion"
+  ],
+  "gain_levels": null,
+  "or_tools": null,
+  "repeatable": null
+ },
+ {
+  "abilities": [
+   "constitution",
+   "intelligence",
+   "wisdom"
+  ],
+  "any_ability": null,
+  "distinct_abilities": null,
+  "family": "ability_increase_choice",
+  "maximum_score": null,
+  "patterns": [],
+  "repeatable": null,
+  "rule": {
+   "component_key": "ability_scores",
+   "record_key": "character_origins.backgrounds"
+  }
+ },
+ {
+  "context": "level_1_character",
+  "family": "tool_proficiency_grant",
+  "tools": [
+   {
+    "component_key": "thieves_tools",
+    "record_key": "equipment.tools.thieves_tools"
+   }
+  ]
+ },
+ {
+  "abilities": [
+   "strength",
+   "dexterity"
+  ],
+  "family": "attack_ability_option",
+  "same_for_damage": true
+ },
+ {
+  "activity": "apply_makeup",
+  "family": "tool_activity"
+ },
+ {
+  "family": "creature_size",
+  "sizes": [
+   "small"
+  ]
+ },
+ {
+  "attack": "weapon",
+  "attacker_active_effect": "spells.bless",
+  "condition": null,
+  "damage_type": "piercing",
+  "family": "creature_conditional_defense",
+  "kind": "vulnerability",
+  "selection": null,
+  "unless_source_is": null,
+  "while_active_effect": null
+ },
+ {
+  "ability": "charisma",
+  "family": "spellcasting_ability"
+ },
+ {
+  "ability": "constitution",
+  "bound_effect": null,
+  "branch": "hit",
+  "dc": 11,
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Bite",
+  "family": "clause_nested_save",
+  "lasts_while_effect": null,
+  "part": "hit",
+  "piece": 3,
+  "section": "action",
+  "under_predicates": []
+ },
+ {
+  "bound_effect": null,
+  "branch": "hit",
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Bite",
+  "family": "clause_nested_save_trigger",
+  "lasts_while_effect": null,
+  "part": "hit",
+  "piece": 2,
+  "section": "action",
+  "under_predicates": [
+   1
+  ]
+ },
+ {
+  "entry": "Bite",
+  "family": "creature_entry_usage",
+  "forms": [
+   "rat",
+   "hybrid"
+  ],
+  "in_lair": null,
+  "kind": "form_only",
+  "minimum_d6": null,
+  "recharge_after_long_rest": false,
+  "requires_entry": null,
+  "section": "action",
+  "uses": null
+ },
+ {
+  "bound_effect": null,
+  "branch": "first_failure",
+  "duration_of_effects": [],
+  "effect_id": "E1",
+  "effects": [
+   {
+    "condition": "restrained",
+    "effect": "applies"
+   }
+  ],
+  "ends_effects": [],
+  "entry": "Petrifying Bite",
+  "family": "clause_condition",
+  "lasts_while_effect": null,
+  "part": "hit",
+  "piece": 5,
+  "replaces_condition": null,
+  "section": "action",
+  "under_predicates": []
+ },
+ {
+  "bound_effect": null,
+  "branch": "failure_by_5_or_more",
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_early_when": [
+   {
+    "by_creature_within_ft": null,
+    "event": "target_takes_damage"
+   }
+  ],
+  "ends_effects": [
+   "E3"
+  ],
+  "entry": "Bite",
+  "family": "clause_condition_ends_early",
+  "lasts_while_effect": null,
+  "part": "hit",
+  "piece": 9,
+  "section": "action",
+  "under_predicates": [
+   7
+  ]
+ },
+ {
+  "entry": "Bite",
+  "family": "creature_entry_usage",
+  "forms": [
+   "wolf",
+   "hybrid"
+  ],
+  "in_lair": null,
+  "kind": "form_only",
+  "minimum_d6": null,
+  "recharge_after_long_rest": false,
+  "requires_entry": null,
+  "section": "action",
+  "uses": null
+ },
+ {
+  "advantage_when": null,
+  "attack_bonus": 5,
+  "attack_bonus_formula": null,
+  "automatic_hit": null,
+  "entry": "Tusk",
+  "family": "creature_attack",
+  "hit_damage": [
+   {
+    "addends": [],
+    "average": 10,
+    "constant": null,
+    "damage_type": "piercing",
+    "damage_type_by_choice": null,
+    "dice": {
+     "count": 2,
+     "die": "d6",
+     "modifier": 3
+    }
+   }
+  ],
+  "hit_damage_by_size": null,
+  "hit_effect": {
+   "applies_to": "target",
+   "condition": {
+    "condition": "prone",
+    "effect": "applies"
+   },
+   "conditional_damage": {
+    "mode": "additional",
+    "replaces_hit_damage_index": null,
+    "term": {
+     "addends": [],
+     "average": 7,
+     "constant": null,
+     "damage_type": "piercing",
+     "damage_type_by_choice": null,
+     "dice": {
+      "count": 2,
+      "die": "d6",
+      "modifier": 0
+     }
+    },
+    "when": {
+     "attack_roll_had_advantage": null,
+     "source_bloodied": null,
+     "source_moved_straight_toward_target_ft_min": 20,
+     "target_bloodied": null,
+     "target_grappled_by_source": null,
+     "target_maximum_size": "medium"
+    }
+   },
+   "duration": null,
+   "escape_dc": null,
+   "forced_movement": null,
+   "linked": null,
+   "maximum_size": null,
+   "rider_save": null,
+   "speed": null
+  },
+  "kind": "melee",
+  "long_range_ft": null,
+  "normal_range_ft": null,
+  "reach_ft": 5,
+  "section": "action",
+  "size_input": null
+ },
+ {
+  "entry": "Gore",
+  "family": "creature_entry_usage",
+  "forms": [
+   "boar",
+   "hybrid"
+  ],
+  "in_lair": null,
+  "kind": "form_only",
+  "minimum_d6": null,
+  "recharge_after_long_rest": false,
+  "requires_entry": null,
+  "section": "action",
+  "uses": null
+ },
+ {
+  "at": "start_of_turn",
+  "average": 5,
+  "bound_effect": null,
+  "branch": "failure",
+  "dice": {
+   "count": 1,
+   "die": "d10",
+   "modifier": 0
+  },
+  "duration_of_effects": [],
+  "effect_id": "E1",
+  "ends_effects": [],
+  "entry": "Infernal Glaive",
+  "family": "clause_periodic_hit_point_loss",
+  "lasts_while_effect": null,
+  "part": "hit",
+  "piece": 7,
+  "section": "action",
+  "turn_of": "target",
+  "under_predicates": [
+   6
+  ]
+ },
+ {
+  "at": null,
+  "attack_roll_had_advantage": null,
+  "bound_effect": "E1",
+  "branch": "hit",
+  "duration": null,
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Beard",
+  "family": "clause_predicate",
+  "lasts_while_effect": null,
+  "otherwise": null,
+  "part": "hit",
+  "piece": 2,
+  "refers_to": "this_poison",
+  "section": "action",
+  "source_moved_straight_toward_target_ft_min": null,
+  "target_hit_points_at_most": null,
+  "target_is_creature": null,
+  "target_maximum_size": null,
+  "target_reduced_to_0_hit_points_by_this": null,
+  "target_type": null,
+  "under_predicates": [],
+  "while_condition": "poisoned",
+  "while_state": null
+ },
+ {
+  "at": null,
+  "attack_roll_had_advantage": null,
+  "bound_effect": null,
+  "branch": "failure",
+  "duration": null,
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Infernal Glaive",
+  "family": "clause_predicate",
+  "lasts_while_effect": null,
+  "otherwise": null,
+  "part": "hit",
+  "piece": 6,
+  "refers_to": null,
+  "section": "action",
+  "source_moved_straight_toward_target_ft_min": null,
+  "target_hit_points_at_most": null,
+  "target_is_creature": null,
+  "target_maximum_size": null,
+  "target_reduced_to_0_hit_points_by_this": null,
+  "target_type": null,
+  "under_predicates": [],
+  "while_condition": null,
+  "while_state": "infernal_wound"
+ },
+ {
+  "bound_effect": null,
+  "branch": "hit",
+  "duration_of_effects": [],
+  "effect_id": "E2",
+  "ends_effects": [],
+  "entry": "Beard",
+  "family": "clause_hit_point_regain_prohibition",
+  "hit_points": true,
+  "lasts_while_effect": "E1",
+  "part": "hit",
+  "piece": 3,
+  "section": "action",
+  "under_predicates": [
+   2
+  ]
+ },
+ {
+  "entry": "Bite",
+  "family": "creature_entry_usage",
+  "forms": [
+   "tiger",
+   "hybrid"
+  ],
+  "in_lair": null,
+  "kind": "form_only",
+  "minimum_d6": null,
+  "recharge_after_long_rest": false,
+  "requires_entry": null,
+  "section": "action",
+  "uses": null
+ },
+ {
+  "entry": "Bite",
+  "family": "creature_entry_usage",
+  "forms": [
+   "bear",
+   "hybrid"
+  ],
+  "in_lair": null,
+  "kind": "form_only",
+  "minimum_d6": null,
+  "recharge_after_long_rest": false,
+  "requires_entry": null,
+  "section": "action",
+  "uses": null
+ },
+ {
+  "bound_effect": null,
+  "branch": "success",
+  "condition": "poisoned",
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Bite",
+  "family": "clause_condition_ends",
+  "lasts_while_effect": null,
+  "part": "hit",
+  "piece": 8,
+  "section": "action",
+  "under_predicates": []
+ },
+ {
+  "at": "end_of_each_of_its_turns",
+  "bound_effect": null,
+  "branch": "failure",
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [
+   "E1",
+   "E2",
+   "E3"
+  ],
+  "ends_on": "success",
+  "entry": "Bite",
+  "family": "clause_repeat_save",
+  "lasts_while_effect": null,
+  "only_if": null,
+  "part": "hit",
+  "piece": 9,
+  "section": "action",
+  "turn_of": "target",
+  "under_predicates": [
+   6
+  ]
+ },
+ {
+  "at": "start_of_turn",
+  "bound_effect": null,
+  "branch": "failure",
+  "duration_of_effects": [],
+  "effect_id": "E3",
+  "ends_effects": [],
+  "entry": "Bite",
+  "family": "clause_periodic_damage",
+  "lasts_while_effect": "E1",
+  "part": "hit",
+  "piece": 8,
+  "section": "action",
+  "term": {
+   "addends": [],
+   "average": 21,
+   "constant": null,
+   "damage_type": "poison",
+   "damage_type_by_choice": null,
+   "dice": {
+    "count": 6,
+    "die": "d6",
+    "modifier": 0
+   }
+  },
+  "turn_of": "target",
+  "under_predicates": [
+   6
+  ]
+ },
+ {
+  "automatic_success_after_minutes": 1,
+  "bound_effect": null,
+  "branch": "failure",
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [
+   "E1",
+   "E2",
+   "E3"
+  ],
+  "entry": "Bite",
+  "family": "clause_repeat_save_limit",
+  "lasts_while_effect": null,
+  "part": "hit",
+  "piece": 10,
+  "section": "action",
+  "under_predicates": []
+ },
+ {
+  "activity": "add_a_design_to_a_leather_item",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "carve_a_pattern_in_wood",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "modify_footwear_to_give_advantage_on_the_wearers_next_dexterity_acrobatics_check",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "write_text_with_impressive_flourishes_that_guard_against_forgery",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "assemble_a_tiny_item_composed_of_scrap_which_falls_apart_in_1_minute",
+  "family": "tool_activity"
+ },
+ {
+  "ability": "dexterity",
+  "context": "ability_check",
+  "family": "initiative_roll"
+ },
+ {
+  "ability": "dexterity",
+  "family": "attack_roll_ability",
+  "range_class": "ranged"
+ },
+ {
+  "activity": "discern_a_gems_value",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "discern_what_a_ceramic_object_held_in_the_past_24_hours",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "discern_what_a_glass_object_held_in_the_past_24_hours",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "detect_a_poisoned_object",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "identify_a_plant",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "chisel_a_symbol_or_hole_in_stone",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "pry_open_a_door_or_container",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "seal_or_pry_open_a_door_or_container",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "paint_a_recognizable_image_of_something_youve_seen",
+  "family": "tool_activity"
+ },
+ {
+  "activity": "draft_a_map_of_a_small_area",
+  "family": "tool_activity"
+ },
+ {
+  "face": 1,
+  "failures": 2,
+  "family": "death_save_natural_roll",
+  "regain_hit_points": null
+ },
+ {
+  "average": 3,
+  "bound_effect": null,
+  "branch": "failure",
+  "dice": {
+   "count": 1,
+   "die": "d6",
+   "modifier": 0
+  },
+  "duration_of_effects": [],
+  "effect_id": "E2",
+  "ends_effects": [],
+  "entry": "Weakening Breath",
+  "family": "clause_damage_roll_penalty",
+  "lasts_while_effect": null,
+  "part": "failure",
+  "piece": 1,
+  "section": "action",
+  "under_predicates": []
+ },
+ {
+  "dc": 17,
+  "dc_formula": null,
+  "entry": "Weakening Breath",
+  "failure_damage": [],
+  "failure_effect": null,
+  "family": "creature_save_effect",
+  "reuse_limit": null,
+  "save": "strength",
+  "section": "action",
+  "success": null,
+  "targets": {
+   "area": {
+    "height_ft": null,
+    "radius": false,
+    "shape": "cone",
+    "size_ft": 30,
+    "width_ft": null
+   },
+   "at_hit_points": null,
+   "automatic_failure_types": [],
+   "automatic_success_types": [],
+   "count": null,
+   "each": true,
+   "excludes": "currently_affected_by_this_effect",
+   "excludes_types": [],
+   "has_conditions": [],
+   "in_source_space": null,
+   "living": false,
+   "maximum_size": null,
+   "origin": null,
+   "origin_point_within_ft": null,
+   "related_to_source": [],
+   "requires_source_sees_point": null,
+   "requires_source_sees_target": null,
+   "requires_target_sees_source": null,
+   "source_environment": null,
+   "stated_by": null,
+   "swallow_capacity": null,
+   "trigger": null,
+   "types": [],
+   "willing_or_conditions": [],
+   "within_ft": null
+  }
+ },
+ {
+  "ability_modifier_damage": "only_if_negative",
+  "against": null,
+  "applies_to": null,
+  "cost": null,
+  "damage": null,
+  "damage_type": null,
+  "dc": null,
+  "direction": null,
+  "distance_ft_up_to": null,
+  "duration": null,
+  "effect": null,
+  "family": "mastery_effect",
+  "increase": null,
+  "limit": "once_per_turn",
+  "mastery": "cleave",
+  "maximum_reduction_ft": null,
+  "maximum_size": null,
+  "on_failure": [],
+  "optional": true,
+  "save": null,
+  "second_target_within_ft": 5,
+  "second_target_within_reach": true,
+  "speed_reduction_ft": null,
+  "trigger": "hit_melee_attack_roll"
+ },
+ {
+  "ability_modifier_damage": null,
+  "against": null,
+  "applies_to": null,
+  "cost": "attack_action",
+  "damage": null,
+  "damage_type": null,
+  "dc": null,
+  "direction": null,
+  "distance_ft_up_to": null,
+  "duration": null,
+  "effect": null,
+  "family": "mastery_effect",
+  "increase": null,
+  "limit": "once_per_turn",
+  "mastery": "nick",
+  "maximum_reduction_ft": null,
+  "maximum_size": null,
+  "on_failure": [],
+  "optional": true,
+  "save": null,
+  "second_target_within_ft": null,
+  "second_target_within_reach": null,
+  "speed_reduction_ft": null,
+  "trigger": "light_extra_attack"
+ },
+ {
+  "absorbed_first": true,
+  "family": "temporary_hit_point_absorption",
+  "overflow_to_hit_points": true
+ },
+ {
+  "adds_attack_ability_modifier": true,
+  "family": "damage_roll_rule",
+  "fixed_amount_adds_modifier": false,
+  "minimum_damage": 0
+ },
+ {
+  "adds_dexterity_modifier": false,
+  "base": 14,
+  "category": "heavy",
+  "dexterity_maximum": null,
+  "family": "armor_class_formula",
+  "stealth_disadvantage": true,
+  "strength_minimum": null
+ },
+ {
+  "adds_dexterity_modifier": true,
+  "base": 10,
+  "family": "base_armor_class"
+ },
+ {
+  "advantage_when": "first_round_of_each_combat",
+  "attack_bonus": 6,
+  "attack_bonus_formula": null,
+  "automatic_hit": null,
+  "entry": "Slam",
+  "family": "creature_attack",
+  "hit_damage": [
+   {
+    "addends": [],
+    "average": 11,
+    "constant": null,
+    "damage_type": "bludgeoning",
+    "damage_type_by_choice": null,
+    "dice": {
+     "count": 2,
+     "die": "d6",
+     "modifier": 4
+    }
+   }
+  ],
+  "hit_damage_by_size": null,
+  "hit_effect": null,
+  "kind": "melee",
+  "long_range_ft": null,
+  "normal_range_ft": null,
+  "reach_ft": 5,
+  "section": "action",
+  "size_input": null
+ },
+ {
+  "advantage_when": "target_missing_hit_points",
+  "attack_bonus": 5,
+  "attack_bonus_formula": null,
+  "automatic_hit": null,
+  "entry": "Bite",
+  "family": "creature_attack",
+  "hit_damage": [
+   {
+    "addends": [],
+    "average": 1,
+    "constant": null,
+    "damage_type": "piercing",
+    "damage_type_by_choice": null,
+    "dice": null
+   }
+  ],
+  "hit_damage_by_size": null,
+  "hit_effect": null,
+  "kind": "melee",
+  "long_range_ft": null,
+  "normal_range_ft": null,
+  "reach_ft": 5,
+  "section": "action",
+  "size_input": null
+ },
+ {
+  "dc": 18,
+  "dc_formula": null,
+  "entry": "Constrict",
+  "failure_damage": [
+   {
+    "addends": [],
+    "average": 28,
+    "constant": null,
+    "damage_type": "bludgeoning",
+    "damage_type_by_choice": null,
+    "dice": {
+     "count": 5,
+     "die": "d8",
+     "modifier": 6
+    }
+   }
+  ],
+  "failure_effect": {
+   "applies_to": "target",
+   "condition": {
+    "condition": "grappled",
+    "effect": "applies"
+   },
+   "conditional_damage": null,
+   "duration": null,
+   "escape_dc": 16,
+   "forced_movement": null,
+   "linked": {
+    "condition": {
+     "condition": "restrained",
+     "effect": "applies"
+    },
+    "until": "grapple_ends"
+   },
+   "maximum_size": null,
+   "rider_save": null,
+   "speed": null
+  },
+  "family": "creature_save_effect",
+  "reuse_limit": null,
+  "save": "strength",
+  "section": "action",
+  "success": null,
+  "targets": {
+   "area": null,
+   "at_hit_points": null,
+   "automatic_failure_types": [],
+   "automatic_success_types": [],
+   "count": 1,
+   "each": null,
+   "excludes": null,
+   "excludes_types": [],
+   "has_conditions": [],
+   "in_source_space": null,
+   "living": false,
+   "maximum_size": "large",
+   "origin": null,
+   "origin_point_within_ft": null,
+   "related_to_source": [],
+   "requires_source_sees_point": null,
+   "requires_source_sees_target": true,
+   "requires_target_sees_source": null,
+   "source_environment": null,
+   "stated_by": null,
+   "swallow_capacity": null,
+   "trigger": null,
+   "types": [],
+   "willing_or_conditions": [],
+   "within_ft": 5
+  }
+ },
+ {
+  "at": null,
+  "attack_roll_had_advantage": null,
+  "bound_effect": "E1",
+  "branch": "hit",
+  "duration": null,
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Cursed Touch",
+  "family": "clause_predicate",
+  "lasts_while_effect": null,
+  "otherwise": null,
+  "part": "hit",
+  "piece": 3,
+  "refers_to": null,
+  "section": "action",
+  "source_moved_straight_toward_target_ft_min": null,
+  "target_hit_points_at_most": null,
+  "target_is_creature": null,
+  "target_maximum_size": null,
+  "target_reduced_to_0_hit_points_by_this": null,
+  "target_type": null,
+  "under_predicates": [],
+  "while_condition": null,
+  "while_state": "curse"
+ },
+ {
+  "bound_effect": null,
+  "branch": "first_failure",
+  "duration": {
+   "turn": "next",
+   "turn_of": "target",
+   "until": "end_of_turn"
+  },
+  "duration_of_effects": [],
+  "effect_id": "E1",
+  "effects": [
+   {
+    "condition": "incapacitated",
+    "effect": "applies"
+   }
+  ],
+  "ends_effects": [],
+  "entry": "Paralyzing Breath",
+  "family": "clause_condition_until_repeat",
+  "lasts_while_effect": null,
+  "part": "outcomes",
+  "piece": 1,
+  "repeat_save": {
+   "at": "end_of_its_next_turn",
+   "once": true,
+   "turn_of": "target"
+  },
+  "section": "action",
+  "under_predicates": []
+ },
+ {
+  "bound_effect": null,
+  "branch": "failure",
+  "change": "halve",
+  "duration": null,
+  "duration_of_effects": [],
+  "effect_id": "E1",
+  "ends_effects": [],
+  "entry": "Slowing Breath",
+  "family": "clause_timed_speed_change",
+  "feet": null,
+  "lasts_while_effect": null,
+  "part": "failure",
+  "piece": 1,
+  "section": "action",
+  "under_predicates": []
+ },
+ {
+  "dc": 20,
+  "dc_formula": null,
+  "entry": "Holy Burst",
+  "failure_damage": [
+   {
+    "addends": [],
+    "average": 24,
+    "constant": null,
+    "damage_type": "radiant",
+    "damage_type_by_choice": null,
+    "dice": {
+     "count": 7,
+     "die": "d6",
+     "modifier": 0
+    }
+   }
+  ],
+  "failure_effect": null,
+  "family": "creature_save_effect",
+  "reuse_limit": null,
+  "save": "dexterity",
+  "section": "action",
+  "success": "half_damage",
+  "targets": {
+   "area": {
+    "height_ft": null,
+    "radius": true,
+    "shape": "sphere",
+    "size_ft": 20,
+    "width_ft": null
+   },
+   "at_hit_points": null,
+   "automatic_failure_types": [],
+   "automatic_success_types": [],
+   "count": null,
+   "each": true,
+   "excludes": null,
+   "excludes_types": [],
+   "has_conditions": [],
+   "in_source_space": null,
+   "living": false,
+   "maximum_size": null,
+   "origin": null,
+   "origin_point_within_ft": 120,
+   "related_to_source": [],
+   "requires_source_sees_point": true,
+   "requires_source_sees_target": null,
+   "requires_target_sees_source": null,
+   "source_environment": null,
+   "stated_by": null,
+   "swallow_capacity": null,
+   "trigger": null,
+   "types": [
+    "enemy"
+   ],
+   "willing_or_conditions": [],
+   "within_ft": null
+  }
+ },
+ {
+  "dc": 18,
+  "dc_formula": null,
+  "entry": "Lightning Storm",
+  "failure_damage": [
+   {
+    "addends": [],
+    "average": 55,
+    "constant": null,
+    "damage_type": "lightning",
+    "damage_type_by_choice": null,
+    "dice": {
+     "count": 10,
+     "die": "d10",
+     "modifier": 0
+    }
+   }
+  ],
+  "failure_effect": null,
+  "family": "creature_save_effect",
+  "reuse_limit": null,
+  "save": "dexterity",
+  "section": "action",
+  "success": "half_damage",
+  "targets": {
+   "area": {
+    "height_ft": 40,
+    "radius": true,
+    "shape": "cylinder",
+    "size_ft": 10,
+    "width_ft": null
+   },
+   "at_hit_points": null,
+   "automatic_failure_types": [],
+   "automatic_success_types": [],
+   "count": null,
+   "each": true,
+   "excludes": null,
+   "excludes_types": [],
+   "has_conditions": [],
+   "in_source_space": null,
+   "living": false,
+   "maximum_size": null,
+   "origin": null,
+   "origin_point_within_ft": 500,
+   "related_to_source": [],
+   "requires_source_sees_point": true,
+   "requires_source_sees_target": null,
+   "requires_target_sees_source": null,
+   "source_environment": null,
+   "stated_by": null,
+   "swallow_capacity": null,
+   "trigger": null,
+   "types": [],
+   "willing_or_conditions": [],
+   "within_ft": null
+  }
+ },
+ {
+  "bound_effect": null,
+  "branch": "failure",
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Slaying Bow",
+  "family": "clause_damage_branch",
+  "lasts_while_effect": null,
+  "part": "failure",
+  "piece": 2,
+  "section": "action",
+  "terms": [
+   {
+    "addends": [],
+    "average": 24,
+    "constant": null,
+    "damage_type": "piercing",
+    "damage_type_by_choice": null,
+    "dice": {
+     "count": 4,
+     "die": "d8",
+     "modifier": 6
+    }
+   },
+   {
+    "addends": [],
+    "average": 36,
+    "constant": null,
+    "damage_type": "radiant",
+    "damage_type_by_choice": null,
+    "dice": {
+     "count": 8,
+     "die": "d8",
+     "modifier": 0
+    }
+   }
+  ],
+  "under_predicates": []
+ },
+ {
+  "bound_effect": null,
+  "branch": "hit_or_miss",
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Flying Sword",
+  "family": "clause_returning_weapon",
+  "lasts_while_effect": null,
+  "or_hovers_within_ft": 5,
+  "part": "hit",
+  "piece": 2,
+  "section": "action",
+  "under_predicates": [],
+  "weapon": "sword"
+ },
+ {
+  "appendages": {
+   "appendage": "claws",
+   "of": 2,
+   "use": "one"
+  },
+  "bound_effect": null,
+  "branch": "hit",
+  "condition": "grappled",
+  "duration_of_effects": [],
+  "effect_id": "E1",
+  "ends_effects": [],
+  "entry": "Claw",
+  "escape_dc": 11,
+  "family": "clause_grapple",
+  "instead_of_damage": null,
+  "lasts_while_effect": null,
+  "part": "hit",
+  "piece": 2,
+  "section": "action",
+  "under_predicates": [
+   1
+  ]
+ },
+ {
+  "dc": 11,
+  "dc_formula": null,
+  "entry": "Luring Song",
+  "failure_damage": [],
+  "failure_effect": null,
+  "family": "creature_save_effect",
+  "reuse_limit": null,
+  "save": "wisdom",
+  "section": "action",
+  "success": null,
+  "targets": {
+   "area": {
+    "height_ft": null,
+    "radius": false,
+    "shape": "emanation",
+    "size_ft": 300,
+    "width_ft": null
+   },
+   "at_hit_points": null,
+   "automatic_failure_types": [],
+   "automatic_success_types": [],
+   "count": null,
+   "each": true,
+   "excludes": null,
+   "excludes_types": [],
+   "has_conditions": [],
+   "in_source_space": null,
+   "living": false,
+   "maximum_size": null,
+   "origin": "source",
+   "origin_point_within_ft": null,
+   "related_to_source": [],
+   "requires_source_sees_point": null,
+   "requires_source_sees_target": null,
+   "requires_target_sees_source": null,
+   "source_environment": null,
+   "stated_by": null,
+   "swallow_capacity": null,
+   "trigger": null,
+   "types": [
+    "humanoid",
+    "giant"
+   ],
+   "willing_or_conditions": [],
+   "within_ft": null
+  }
+ },
+ {
+  "appendages": {
+   "appendage": "tentacles",
+   "of": 4,
+   "use": "all"
+  },
+  "bound_effect": null,
+  "branch": "hit",
+  "condition": "grappled",
+  "duration_of_effects": [],
+  "effect_id": "E1",
+  "ends_effects": [],
+  "entry": "Tentacles",
+  "escape_dc": 12,
+  "family": "clause_grapple",
+  "instead_of_damage": null,
+  "lasts_while_effect": null,
+  "part": "hit",
+  "piece": 2,
+  "section": "action",
+  "under_predicates": [
+   1
+  ]
+ },
+ {
+  "advantage_when": null,
+  "attack_bonus": 4,
+  "attack_bonus_formula": null,
+  "automatic_hit": null,
+  "entry": "Claw",
+  "family": "creature_attack",
+  "hit_damage": [
+   {
+    "addends": [],
+    "average": 4,
+    "constant": null,
+    "damage_type": "slashing",
+    "damage_type_by_choice": null,
+    "dice": {
+     "count": 1,
+     "die": "d4",
+     "modifier": 2
+    }
+   }
+  ],
+  "hit_damage_by_size": null,
+  "hit_effect": {
+   "applies_to": "target",
+   "condition": null,
+   "conditional_damage": null,
+   "duration": null,
+   "escape_dc": null,
+   "forced_movement": null,
+   "linked": null,
+   "maximum_size": null,
+   "rider_save": {
+    "dc": 10,
+    "duration": {
+     "turn": "next",
+     "turn_of": "target",
+     "until": "end_of_turn"
+    },
+    "on_failure": {
+     "condition": "paralyzed",
+     "effect": "applies"
+    },
+    "save": "constitution",
+    "target_excludes": [
+     "undead",
+     "elf"
+    ]
+   },
+   "speed": null
+  },
+  "kind": "melee",
+  "long_range_ft": null,
+  "normal_range_ft": null,
+  "reach_ft": 5,
+  "section": "action",
+  "size_input": null
+ },
+ {
+  "bound_effect": null,
+  "branch": "success",
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Engulf",
+  "family": "clause_save_success",
+  "half_damage": true,
+  "lasts_while_effect": null,
+  "part": "success",
+  "piece": 0,
+  "section": "action",
+  "under_predicates": []
+ },
+ {
+  "bound_effect": null,
+  "branch": "failure",
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Death Glare",
+  "family": "clause_hit_points_set",
+  "lasts_while_effect": null,
+  "part": "failure",
+  "piece": 1,
+  "section": "action",
+  "to": 0,
+  "under_predicates": [
+   0
+  ]
+ },
+ {
+  "bound_effect": null,
+  "branch": "targets",
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Petrifying Gaze",
+  "family": "clause_self_save_predicate",
+  "lasts_while_effect": null,
+  "part": "targets",
+  "piece": 0,
+  "section": "action",
+  "under_predicates": [],
+  "when": {
+   "source_sees_own_reflection_in": "cone"
+  }
+ },
+ {
+  "attack": "Bite",
+  "bound_effect": null,
+  "branch": "hit",
+  "count": 1,
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Claws",
+  "family": "clause_follow_up_attack",
+  "lasts_while_effect": null,
+  "optional": true,
+  "part": "hit",
+  "piece": 3,
+  "section": "action",
+  "under_predicates": [
+   1
+  ]
+ },
+ {
+  "appendages": {
+   "appendage": "pincers",
+   "of": 2,
+   "use": "one"
+  },
+  "bound_effect": null,
+  "branch": "hit",
+  "condition": "grappled",
+  "duration_of_effects": [],
+  "effect_id": "E1",
+  "ends_effects": [],
+  "entry": "Pincer",
+  "escape_dc": 14,
+  "family": "clause_grapple",
+  "instead_of_damage": null,
+  "lasts_while_effect": null,
+  "part": "hit",
+  "piece": 2,
+  "section": "action",
+  "under_predicates": [
+   1
+  ]
+ },
+ {
+  "appendages": {
+   "appendage": "front_claws",
+   "of": null,
+   "use": "both"
+  },
+  "bound_effect": null,
+  "branch": "hit",
+  "condition": "grappled",
+  "duration_of_effects": [],
+  "effect_id": "E1",
+  "ends_effects": [],
+  "entry": "Rend",
+  "escape_dc": 14,
+  "family": "clause_grapple",
+  "instead_of_damage": null,
+  "lasts_while_effect": null,
+  "part": "hit",
+  "piece": 2,
+  "section": "action",
+  "under_predicates": [
+   1
+  ]
+ },
+ {
+  "dc": 15,
+  "dc_formula": null,
+  "entry": "Stunning Screech",
+  "failure_damage": [
+   {
+    "addends": [],
+    "average": 10,
+    "constant": null,
+    "damage_type": "thunder",
+    "damage_type_by_choice": null,
+    "dice": {
+     "count": 3,
+     "die": "d6",
+     "modifier": 0
+    }
+   }
+  ],
+  "failure_effect": {
+   "applies_to": "target",
+   "condition": {
+    "condition": "stunned",
+    "effect": "applies"
+   },
+   "conditional_damage": null,
+   "duration": {
+    "turn": "next",
+    "turn_of": "source",
+    "until": "end_of_turn"
+   },
+   "escape_dc": null,
+   "forced_movement": null,
+   "linked": null,
+   "maximum_size": null,
+   "rider_save": null,
+   "speed": null
+  },
+  "family": "creature_save_effect",
+  "reuse_limit": null,
+  "save": "constitution",
+  "section": "action",
+  "success": null,
+  "targets": {
+   "area": {
+    "height_ft": null,
+    "radius": false,
+    "shape": "emanation",
+    "size_ft": 20,
+    "width_ft": null
+   },
+   "at_hit_points": null,
+   "automatic_failure_types": [],
+   "automatic_success_types": [
+    "demon"
+   ],
+   "count": null,
+   "each": true,
+   "excludes": null,
+   "excludes_types": [],
+   "has_conditions": [],
+   "in_source_space": null,
+   "living": false,
+   "maximum_size": null,
+   "origin": "source",
+   "origin_point_within_ft": null,
+   "related_to_source": [],
+   "requires_source_sees_point": null,
+   "requires_source_sees_target": null,
+   "requires_target_sees_source": null,
+   "source_environment": null,
+   "stated_by": null,
+   "swallow_capacity": null,
+   "trigger": null,
+   "types": [],
+   "willing_or_conditions": [],
+   "within_ft": null
+  }
+ },
+ {
+  "appendages": {
+   "appendage": "chains",
+   "of": 2,
+   "use": "one"
+  },
+  "bound_effect": null,
+  "branch": "hit",
+  "condition": "grappled",
+  "duration_of_effects": [],
+  "effect_id": "E1",
+  "ends_effects": [],
+  "entry": "Chain",
+  "escape_dc": 14,
+  "family": "clause_grapple",
+  "instead_of_damage": null,
+  "lasts_while_effect": null,
+  "part": "hit",
+  "piece": 2,
+  "section": "action",
+  "under_predicates": [
+   1
+  ]
+ },
+ {
+  "average": 28,
+  "bound_effect": null,
+  "branch": "failure",
+  "damage_type": {
+   "celestial": null,
+   "chosen_by": null,
+   "chosen_for": "draconic_origin",
+   "chosen_from": null,
+   "fey": null,
+   "fiend": null,
+   "when": null
+  },
+  "dice": {
+   "count": 8,
+   "die": "d6",
+   "modifier": 0
+  },
+  "duration_of_effects": [],
+  "effect_id": null,
+  "ends_effects": [],
+  "entry": "Dragon's Breath",
+  "family": "clause_choice_typed_damage",
+  "lasts_while_effect": null,
+  "part": "failure",
+  "piece": 0,
+  "section": "action",
+  "under_predicates": []
+ },
+ {
+  "entry": "Entangling Rope",
+  "family": "creature_entry_usage",
+  "forms": [],
+  "in_lair": null,
+  "kind": "requires_entry",
+  "minimum_d6": null,
+  "recharge_after_long_rest": null,
+  "requires_entry": "Magic Rope",
+  "section": "action",
+  "uses": null
+ },
+ {
+  "appendages": {
+   "appendage": "hands",
+   "of": 2,
+   "use": "one"
+  },
+  "bound_effect": null,
+  "branch": "hit",
+  "condition": "grappled",
+  "duration_of_effects": [],
+  "effect_id": "E1",
+  "ends_effects": [],
+  "entry": "Grave Strike",
+  "escape_dc": 14,
+  "family": "clause_grapple",
+  "instead_of_damage": null,
+  "lasts_while_effect": null,
+  "part": "hit",
+  "piece": 2,
+  "section": "action",
+  "under_predicates": [
+   1
+  ]
+ },
+ {
+  "entry": "Bite",
+  "family": "creature_entry_usage",
+  "forms": [
+   "bat",
+   "vampire"
+  ],
+  "in_lair": null,
+  "kind": "form_only",
+  "minimum_d6": null,
+  "recharge_after_long_rest": false,
+  "requires_entry": null,
+  "section": "action",
+  "uses": null
+ },
+ {
+  "alternatives": [
+   {
+    "condition": null,
+    "parts": [
+     {
+      "any_of": [],
+      "attack": "Slam",
+      "count": 2,
+      "count_formula": null,
+      "if_available": null,
+      "optional": null,
+      "uses_one_of": []
+     }
+    ]
+   },
+   {
+    "condition": "used_hasten_this_turn",
+    "parts": [
+     {
+      "any_of": [],
+      "attack": "Slam",
+      "count": 3,
+      "count_formula": null,
+      "if_available": null,
+      "optional": null,
+      "uses_one_of": []
+     }
+    ]
+   }
+  ],
+  "entry": "Multiattack",
+  "family": "creature_multiattack",
+  "replacements": [],
+  "section": "action"
+ },
+ {
+  "alternatives": [
+   {
+    "condition": null,
+    "parts": [
+     {
+      "any_of": [],
+      "attack": "Reaping Scythe",
+      "count": null,
+      "count_formula": "half_summoner_proficiency_bonus_rounded_up",
+      "if_available": null,
+      "optional": null,
+      "uses_one_of": []
+     }
+    ]
+   }
+  ],
+  "entry": "Multiattack",
+  "family": "creature_multiattack",
+  "replacements": [],
+  "section": "action"
+ },
+ {
+  "advantage_when": null,
+  "attack_bonus": null,
+  "attack_bonus_formula": {
+   "formula_ref": "spells.attack_rolls/spell_attack_modifier",
+   "of": "caster"
+  },
+  "automatic_hit": false,
+  "entry": "Otherworldly Slam",
+  "family": "creature_attack",
+  "hit_damage": [
+   {
+    "addends": [
+     {
+      "input": "spell_level"
+     }
+    ],
+    "average": null,
+    "constant": 0,
+    "damage_type": null,
+    "damage_type_by_choice": {
+     "celestial": "radiant",
+     "chosen_by": null,
+     "chosen_for": null,
+     "chosen_from": null,
+     "fey": "psychic",
+     "fiend": "necrotic",
+     "when": null
+    },
+    "dice": {
+     "count": 1,
+     "die": "d8",
+     "modifier": 0
+    }
+   }
+  ],
+  "hit_damage_by_size": null,
+  "hit_effect": null,
+  "kind": "melee",
+  "long_range_ft": null,
+  "normal_range_ft": null,
+  "reach_ft": 5,
+  "section": "action",
+  "size_input": null
+ },
+ {
+  "alternatives": [
+   {
+    "condition": null,
+    "parts": [
+     {
+      "any_of": [
+       "Poison Jab",
+       "Web Bolt"
+      ],
+      "attack": null,
+      "count": null,
+      "count_formula": "half_spell_level_rounded_down",
+      "if_available": null,
+      "optional": null,
+      "uses_one_of": []
+     }
+    ]
+   }
+  ],
+  "entry": "Multiattack",
+  "family": "creature_multiattack",
+  "replacements": [],
+  "section": "action"
+ },
+ {
+  "entry": "Web Bolt",
+  "family": "creature_entry_usage",
+  "forms": [
+   "spider"
+  ],
+  "in_lair": null,
+  "kind": "form_only",
+  "minimum_d6": null,
+  "recharge_after_long_rest": false,
+  "requires_entry": null,
+  "section": "action",
+  "uses": null
+ },
+ {
+  "also": null,
+  "applies_when": null,
+  "check": "glossary.climbing/difficult_climb",
+  "entry": "Spider Climb",
+  "family": "check_requirement_removal",
+  "section": "trait",
+  "subject": "self",
+  "surfaces": "difficult_surfaces_including_ceilings"
+ },
+ {
+  "applies_when": {
+   "ally_not": null,
+   "ally_within_ft_of_target": null,
+   "attack": null,
+   "stated": "subject_in_sunlight",
+   "subject_bloodied": null,
+   "subject_not": null,
+   "target_missing_hit_points": null
+  },
+  "effects": [
+   {
+    "roll": {
+     "ability": null,
+     "actor": "subject",
+     "context": "ability_check"
+    },
+    "state": "disadvantage"
+   },
+   {
+    "roll": {
+     "ability": null,
+     "actor": "subject",
+     "context": "attack_roll"
+    },
+    "state": "disadvantage"
+   }
+  ],
+  "entry": "Sunlight Sensitivity",
+  "family": "creature_roll_modifier",
+  "purpose": null,
+  "section": "trait",
+  "skill": null,
+  "subject": "self"
+ },
+ {
+  "entry": "Misty Escape",
+  "family": "creature_entry_reference",
+  "references": "Shape-Shift",
+  "section": "trait"
+ },
+ {
+  "entry": "Swarm",
+  "family": "creature_hit_point_regain_prohibition",
+  "hit_points": true,
+  "section": "trait",
+  "subject": "self",
+  "temporary_hit_points": true
+ },
+ {
+  "also_regain": [],
+  "die": null,
+  "family": "usage_limit_rule",
+  "kind": "recharge_after_rest",
+  "regain": [
+   "short_rest",
+   "long_rest"
+  ],
+  "roll_at": null,
+  "turn_of": null
+ },
+ {
+  "ammunition": "arrow",
+  "ammunition_range_long_feet": 320,
+  "ammunition_range_normal_feet": 80,
+  "family": "weapon_property",
+  "thrown_range_long_feet": null,
+  "thrown_range_normal_feet": null,
+  "versatile_damage": null,
+  "weapon_property": "ammunition"
+ },
+ {
+  "family": "weapon_range_class",
+  "range_class": "ranged"
+ },
+ {
+  "ammunition": "bolt",
+  "ammunition_range_long_feet": 120,
+  "ammunition_range_normal_feet": 30,
+  "family": "weapon_property",
+  "thrown_range_long_feet": null,
+  "thrown_range_normal_feet": null,
+  "versatile_damage": null,
+  "weapon_property": "ammunition"
+ },
+ {
+  "ammunition": "bullet",
+  "ammunition_range_long_feet": 120,
+  "ammunition_range_normal_feet": 30,
+  "family": "weapon_property",
+  "thrown_range_long_feet": null,
+  "thrown_range_normal_feet": null,
+  "versatile_damage": null,
+  "weapon_property": "ammunition"
+ },
+ {
+  "ammunition": "needle",
+  "ammunition_range_long_feet": 100,
+  "ammunition_range_normal_feet": 25,
+  "family": "weapon_property",
+  "thrown_range_long_feet": null,
+  "thrown_range_normal_feet": null,
+  "versatile_damage": null,
+  "weapon_property": "ammunition"
+ },
+ {
+  "applies_to": "ability_check",
+  "dc": 20,
+  "difficulty": "hard",
+  "family": "difficulty_band"
+ },
+ {
+  "applies_to": "ability_check",
+  "dc": 25,
+  "difficulty": "very_hard",
+  "family": "difficulty_band"
+ },
+ {
+  "applies_to": "ability_check",
+  "dc": 30,
+  "difficulty": "nearly_impossible",
+  "family": "difficulty_band"
+ },
+ {
+  "applies_to": "ability_check",
+  "dc": 5,
+  "difficulty": "very_easy",
+  "family": "difficulty_band"
+ },
+ {
+  "applies_when": {
+   "ally_not": null,
+   "ally_within_ft_of_target": null,
+   "attack": null,
+   "stated": "forcing_effect_is_a_spell_or_magical",
+   "subject_bloodied": null,
+   "subject_not": null,
+   "target_missing_hit_points": null
+  },
+  "effects": [
+   {
+    "roll": {
+     "ability": null,
+     "actor": "subject",
+     "context": "saving_throw"
+    },
+    "state": "advantage"
+   }
+  ],
+  "entry": "Magic Resistance",
+  "family": "creature_roll_modifier",
+  "purpose": null,
+  "section": "trait",
+  "skill": null,
+  "subject": "self"
+ },
+ {
+  "armor_training": {
+   "armor": [
+    "heavy"
+   ],
+   "shields": false
+  },
+  "chosen_option_of": "classes.cleric.divine_order",
+  "family": "weapon_and_armor_grant",
+  "gain_levels": {
+   "entitlement_key": "classes.cleric.divine_order"
+  },
+  "weapons": {
+   "categories": [
+    "martial"
+   ]
+  }
+ },
+ {
+  "armor_training": {
+   "armor": [
+    "light",
+    "medium"
+   ],
+   "shields": true
+  },
+  "family": "multiclass_proficiency_grant",
+  "saving_throws": [],
+  "tool_choice": null,
+  "tool_grant": [],
+  "weapons": {
+   "categories": [
+    "martial"
+   ]
+  }
+ },
+ {
+  "count": 0,
+  "family": "multiclass_skill_proficiency_choice",
+  "from_reference": null,
+  "from_skills": []
+ },
+ {
+  "bound_effect": null,
+  "branch": "failure",
+  "contexts": [
+   "ability_check",
+   "attack_roll"
+  ],
+  "count": 1,
+  "die": "d6",
+  "duration_of_effects": [],
+  "effect_id": "E1",
+  "ends_effects": [],
+  "entry": "Giggling Magic",
+  "family": "clause_d20_test_penalty_die",
+  "lasts_while_effect": null,
+  "part": "failure",
+  "piece": 2,
+  "section": "legendary_action",
+  "under_predicates": [
+   1
+  ]
+ },
+ {
+  "entry": "Legendary Action Uses: 3 (4 in Lair). Immediately after another creature's turn, the dragon can expend a use to take one of the following actions. The dragon regains all expended uses at the start of each of its turns",
+  "family": "creature_entry_usage",
+  "forms": [],
+  "in_lair": 4,
+  "kind": "legendary_action_uses",
+  "minimum_d6": null,
+  "recharge_after_long_rest": null,
+  "requires_entry": null,
+  "section": "legendary_action",
+  "uses": 3
+ },
+ {
+  "attack": "melee",
+  "family": "versatile_damage",
+  "hands": 2
+ },
+ {
+  "bonus": 2,
+  "family": "shield_bonus"
+ },
+ {
+  "bound_effect": null,
+  "branch": "failure",
+  "change": "set_to",
+  "duration": {
+   "turn": "next",
+   "turn_of": "target",
+   "until": "end_of_turn"
+  },
+  "duration_of_effects": [],
+  "effect_id": "E1",
+  "ends_effects": [],
+  "entry": "Freezing Burst",
+  "family": "clause_timed_speed_change",
+  "feet": 0,
+  "lasts_while_effect": null,
+  "part": "failure",
+  "piece": 1,
+  "section": "legendary_action",
+  "under_predicates": []
+ },
+ {
+  "bound_effect": null,
+  "branch": "failure",
+  "duration": {
+   "turn": "next",
+   "turn_of": "target",
+   "until": "end_of_turn"
+  },
+  "duration_of_effects": [],
+  "effect_id": "E1",
+  "ends_effects": [],
+  "entry": "Noxious Miasma",
+  "family": "clause_timed_ac_modifier",
+  "lasts_while_effect": null,
+  "modifier": -2,
+  "part": "failure",
+  "piece": 1,
+  "section": "legendary_action",
+  "under_predicates": []
+ },
+ {
+  "dc": 23,
+  "dc_formula": null,
+  "entry": "Toxic Ink",
+  "failure_damage": [],
+  "failure_effect": null,
+  "family": "creature_save_effect",
+  "reuse_limit": "once_until_start_of_own_turn",
+  "save": "constitution",
+  "section": "legendary_action",
+  "success": null,
+  "targets": {
+   "area": {
+    "height_ft": null,
+    "radius": false,
+    "shape": "emanation",
+    "size_ft": 15,
+    "width_ft": null
+   },
+   "at_hit_points": null,
+   "automatic_failure_types": [],
+   "automatic_success_types": [],
+   "count": null,
+   "each": true,
+   "excludes": null,
+   "excludes_types": [],
+   "has_conditions": [],
+   "in_source_space": null,
+   "living": false,
+   "maximum_size": null,
+   "origin": "source",
+   "origin_point_within_ft": null,
+   "related_to_source": [],
+   "requires_source_sees_point": null,
+   "requires_source_sees_target": null,
+   "requires_target_sees_source": null,
+   "source_environment": "underwater",
+   "stated_by": null,
+   "swallow_capacity": null,
+   "trigger": null,
+   "types": [],
+   "willing_or_conditions": [],
+   "within_ft": null
+  }
+ },
+ {
+  "dc": 11,
+  "dc_formula": null,
+  "entry": "Vile Appearance",
+  "failure_damage": [],
+  "failure_effect": {
+   "applies_to": "target",
+   "condition": {
+    "condition": "frightened",
+    "effect": "applies"
+   },
+   "conditional_damage": null,
+   "duration": {
+    "turn": "next",
+    "turn_of": "target",
+    "until": "start_of_turn"
+   },
+   "escape_dc": null,
+   "forced_movement": null,
+   "linked": null,
+   "maximum_size": null,
+   "rider_save": null,
+   "speed": null
+  },
+  "family": "creature_save_effect",
+  "reuse_limit": null,
+  "save": "wisdom",
+  "section": "trait",
+  "success": null,
+  "targets": {
+   "area": null,
+   "at_hit_points": null,
+   "automatic_failure_types": [],
+   "automatic_success_types": [],
+   "count": null,
+   "each": true,
+   "excludes": null,
+   "excludes_types": [],
+   "has_conditions": [],
+   "in_source_space": null,
+   "living": false,
+   "maximum_size": null,
+   "origin": null,
+   "origin_point_within_ft": null,
+   "related_to_source": [],
+   "requires_source_sees_point": null,
+   "requires_source_sees_target": null,
+   "requires_target_sees_source": true,
+   "source_environment": null,
+   "stated_by": null,
+   "swallow_capacity": null,
+   "trigger": {
+    "turn_of": "target",
+    "when": "start_of_turn"
+   },
+   "types": [
+    "beast",
+    "humanoid"
+   ],
+   "willing_or_conditions": [],
+   "within_ft": 30
+  }
+ },
+ {
+  "categories": [
+   "simple",
+   "martial"
+  ],
+  "count_by_level": [
+   {
+    "count": 2,
+    "level": 1
+   },
+   {
+    "count": 2,
+    "level": 2
+   },
+   {
+    "count": 2,
+    "level": 3
+   },
+   {
+    "count": 3,
+    "level": 4
+   },
+   {
+    "count": 3,
+    "level": 5
+   },
+   {
+    "count": 3,
+    "level": 6
+   },
+   {
+    "count": 3,
+    "level": 7
+   },
+   {
+    "count": 3,
+    "level": 8
+   },
+   {
+    "count": 3,
+    "level": 9
+   },
+   {
+    "count": 4,
+    "level": 10
+   },
+   {
+    "count": 4,
+    "level": 11
+   },
+   {
+    "count": 4,
+    "level": 12
+   },
+   {
+    "count": 4,
+    "level": 13
+   },
+   {
+    "count": 4,
+    "level": 14
+   },
+   {
+    "count": 4,
+    "level": 15
+   },
+   {
+    "count": 4,
+    "level": 16
+   },
+   {
+    "count": 4,
+    "level": 17
+   },
+   {
+    "count": 4,
+    "level": 18
+   },
+   {
+    "count": 4,
+    "level": 19
+   },
+   {
+    "count": 4,
+    "level": 20
+   }
+  ],
+  "family": "weapon_mastery_choice",
+  "gain_levels": {
+   "entitlement_key": "classes.barbarian.weapon_mastery"
+  },
+  "kinds_of_weapons": 2,
+  "melee_only": true,
+  "requires_weapon_proficiency": null,
+  "rest_swap": {
+   "after": "long_rest",
+   "change": "one"
+  }
+ },
+ {
+  "category": "general",
+  "family": "feat_prerequisite",
+  "minimum_ability_score": null,
+  "minimum_character_level": 4,
+  "requires_feature": null
+ },
+ {
+  "family": "weapon_property",
+  "thrown_range_long_feet": null,
+  "thrown_range_normal_feet": null,
+  "unless": "mounted",
+  "versatile_damage": null,
+  "weapon_property": "two_handed"
+ },
+ {
+  "check": {
+   "ability": "wisdom",
+   "dc": 14,
+   "skill": "insight"
+  },
+  "entry": "Mimicry",
+  "family": "creature_observer_check",
+  "made_by": "a_creature_that_hears_the_sounds",
+  "only_if": null,
+  "purpose": "to_discern_the_sounds_are_imitations",
+  "section": "trait"
+ },
+ {
+  "exception_scope": null,
+  "family": "zero_hit_point_outcome",
+  "gamemaster_exception": null,
+  "outcome": "unconscious_and_dying",
+  "subject": "character",
+  "trigger": null,
+  "until": "regains_hit_points"
+ },
+ {
+  "conditions": [
+   "invisible"
+  ],
+  "entry": "Invisibility",
+  "family": "creature_condition_grant",
+  "section": "trait",
+  "subject": "self"
+ },
+ {
+  "context": "attack_roll",
+  "critical_hit": false,
+  "face": 1,
+  "family": "natural_roll_outcome",
+  "outcome": "miss"
+ },
+ {
+  "count_per_gain": 1,
+  "family": "expertise_choice",
+  "from_proficient_skills": true,
+  "from_skills": [
+   "arcana",
+   "history",
+   "investigation",
+   "medicine",
+   "nature",
+   "religion"
+  ],
+  "gain_levels": {
+   "entitlement_key": "classes.wizard.scholar"
+  }
+ },
+ {
+  "critical_hit_failures": 2,
+  "dies_when_damage_at_least": "hit_point_maximum",
+  "failures": 1,
+  "family": "damage_at_zero_hit_points"
+ },
+ {
+  "entry": "Fey Step",
+  "family": "creature_entry_usage",
+  "forms": [
+   "fey"
+  ],
+  "in_lair": null,
+  "kind": "form_only",
+  "minimum_d6": null,
+  "recharge_after_long_rest": true,
+  "requires_entry": null,
+  "section": "bonus_action",
+  "uses": null
+ },
+ {
+  "entry": "Venomous Spew",
+  "family": "creature_entry_usage",
+  "forms": [
+   "centipede"
+  ],
+  "in_lair": null,
+  "kind": "form_only",
+  "minimum_d6": null,
+  "recharge_after_long_rest": false,
+  "requires_entry": null,
+  "section": "bonus_action",
+  "uses": null
+ },
+ {
+  "distinct_abilities": true,
+  "family": "ability_increase_rule",
+  "maximum_score": 20,
+  "patterns": [
+   [
+    2,
+    1
+   ],
+   [
+    1,
+    1,
+    1
+   ]
+  ]
+ },
+ {
+  "entry": "Adhesive",
+  "family": "creature_entry_usage",
+  "forms": [
+   "object"
+  ],
+  "in_lair": null,
+  "kind": "form_only",
+  "minimum_d6": null,
+  "recharge_after_long_rest": false,
+  "requires_entry": null,
+  "section": "trait",
+  "uses": null
+ },
+ {
+  "exception_scope": null,
+  "family": "zero_hit_point_outcome",
+  "gamemaster_exception": null,
+  "outcome": "dies",
+  "subject": "any",
+  "trigger": "hit_point_maximum_zero",
+  "until": null
+ },
+ {
+  "family": "ammunition_per_activation",
+  "maximum": 1,
+  "per": [
+   "action",
+   "bonus_action",
+   "reaction"
+  ]
+ },
+ {
+  "family": "base_armor_class_exclusivity",
+  "maximum": 1
+ },
+ {
+  "family": "creature_save_notation",
+  "half_damage_only_ignores_other_effects": true,
+  "half_damage_rounding": "down"
+ },
+ {
+  "family": "expertise_rule",
+  "no_duplicate": true,
+  "proficiency_bonus_multiplier": 2,
+  "requires_skill_proficiency": true
+ },
+ {
+  "family": "feat_grant",
+  "feat": "feats.magic_initiate",
+  "qualifier": "wizard"
+ },
+ {
+  "family": "hit_point_bound",
+  "minimum_current": 0
+ },
+ {
+  "family": "rest_duration",
+  "hours": 1,
+  "rest": "short_rest"
+ },
+ {
+  "family": "skill_proficiency_grant",
+  "skills": [
+   "arcana",
+   "history"
+  ]
+ },
+ {
+  "family": "spell_attack_modifier_formula",
+  "sum": [
+   "spellcasting_ability_modifier",
+   "proficiency_bonus"
+  ]
+ },
+ {
+  "also": null,
+  "applies_when": null,
+  "check": "glossary.climbing/difficult_climb",
+  "entry": "Spider Climb",
+  "family": "check_requirement_removal",
+  "section": "trait",
+  "subject": "amulet_wearer",
+  "surfaces": "difficult_surfaces_including_ceilings"
+ },
+ {
+  "also": null,
+  "applies_when": null,
+  "check": "glossary.climbing/difficult_climb",
+  "entry": "Spider Climb",
+  "family": "check_requirement_removal",
+  "section": "trait",
+  "subject": "rider",
+  "surfaces": "difficult_surfaces_including_ceilings"
+ },
+ {
+  "also": null,
+  "applies_when": null,
+  "check": "glossary.climbing/difficult_climb",
+  "entry": "Spider Climb",
+  "family": "check_requirement_removal",
+  "section": "trait",
+  "subject": "self_and_allies",
+  "surfaces": "difficult_surfaces_including_ceilings"
+ }
+]

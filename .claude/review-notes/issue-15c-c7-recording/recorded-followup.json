@@ -1,0 +1,51 @@
+{
+ "mode": "record",
+ "recorded_at": "2026-10-13T09:56:00Z",
+ "successor": "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json",
+ "successor_sha256": "2853f30a832ca581c9d4169b82d0c360f3d6a2d78f0ad8980de9997eef51f373",
+ "successor_bytes": 44403012,
+ "prior_successor_sha256_after": "23e5d8e0fac60e3f5417b3a41e40e6f475366dd385856f38c42104f4dd264f69",
+ "reviewed_preview_sha256": "d661cc3be22aa6aca996a4e67cac4f8ebbd2dfa1908dd29a0c7ae2e38177ef6d",
+ "proposal_identities": {
+  "character-origins-feats": "1e7b63d3800154eee539297b0ae5d4f9efbfe21c1776986db133e3cc046bfd28",
+  "equipment": "b8c65454cae97f82cdb96c857aad84c70ba8c78e96fa24f1e95e89360e144a76"
+ },
+ "schema": [
+  "5d-representation-schema-20",
+  "759dcc1f9de2cac9254be108ca8a83433ca30854061276a9c349a370e1c6e77a"
+ ],
+ "oracle_identity": "cb04163ba0374e95ce0fcdaae939b00793e71f84ed3222593c4babfc9065ef6e",
+ "projection": "8446ab6b-be75-5999-8a9b-74fa133c030a",
+ "payload_hash": "cffcdbfa70a6e64351b852ff9b932aa32df81abdd45700ef6c0034aefdaeb65a",
+ "g1_sha256_after": "2ccbaeba6de75d9787fbdd407e42dc2425fa20d4d26bcc298b681b550bd11258",
+ "predecessor_sha256_after": "def7caa1625458a40c1f635db153268082cf52d5e25c28f57fd29518e44de58c",
+ "comparison_with_reviewed_preview": {
+  "outside_acceptance_differences": [],
+  "acceptance_equal_after_blanking_evidence": true,
+  "non_evidence_differences": [],
+  "untouched_rows_in_same_order": {
+   "batches": true,
+   "records": true,
+   "review_unit_records": true
+  },
+  "evidence_changed": {
+   "batches.rule": 2,
+   "records.reviewer": 643,
+   "records.accepted_at": 643,
+   "review_unit_records.reviewer": 47,
+   "review_unit_records.accepted_at": 47
+  },
+  "evidence_changed_outside_touched": []
+ },
+ "native": {
+  "validate_candidate_findings": [],
+  "validate_candidate_finding_count": 0,
+  "verify_reconstruction": [],
+  "reconstructed_payload_identical": true,
+  "reidentified_projection": "8446ab6b-be75-5999-8a9b-74fa133c030a",
+  "projection": "8446ab6b-be75-5999-8a9b-74fa133c030a",
+  "payload_hash": "cffcdbfa70a6e64351b852ff9b932aa32df81abdd45700ef6c0034aefdaeb65a",
+  "gate_passed": true,
+  "gate_failures": []
+ }
+}

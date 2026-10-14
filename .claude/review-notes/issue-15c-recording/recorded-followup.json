@@ -1,0 +1,53 @@
+{
+ "mode": "verify",
+ "recorded_at": "2026-10-12T22:49:29Z",
+ "successor": "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c.json",
+ "successor_sha256": "23e5d8e0fac60e3f5417b3a41e40e6f475366dd385856f38c42104f4dd264f69",
+ "successor_bytes": 44394949,
+ "reviewed_preview_sha256": "cd9d1d27428a1525955f83091125489e96bbc7bd0977bb9f3ce83933883a20d3",
+ "proposal_identities": {
+  "animals": "efa248a979c21d293701253cda86b561b876bec332667437769abebbb06221c9",
+  "character-origins-feats": "20716b7dcadd5e1216ff3594c5aa654cb41c2961fe49048b0c853c1eed381838",
+  "checks-actions-rests": "f459a65ded7f0f5eab59c6e57a357e8015efff973976aa17a89fb42c9422096d",
+  "classes": "536c569f4226be24496edd8c1c1f27e59a6f873c7fcd53188aad9abc3a821e83",
+  "combat-damage-breaking": "75ce69ce7e2e5da48743dcb24c066540b90bdf9a116ba84e78959759be5cea7d",
+  "core-play-completion": "a9330308d5905b1ab6c296d34b149c2bf95332b91e5a7c75e94c6c50a33becb6",
+  "equipment": "b01f54b917653f83b7dbeebd6ad54757bdf183f71235d76e9198815f21789c4b",
+  "magic-items": "bc4979d74a841065af99502e0cf20d157ab4bedd1fd7a9724a2130ffa092e712",
+  "monsters": "ff24d9daf6dd81a760778865a011a5da236b56514a32753c2a8034f5f3eec617",
+  "spell-descriptions": "dce22fbd6f89a61cbd7ab5efa0be75f81eec87840ae91731e8162c8fabfbbdc9",
+  "spellcasting": "1033979c0b9308aed91f413826477c0318c054ae6af074b0a17b1fd3fe05363f"
+ },
+ "schema": [
+  "5d-representation-schema-19",
+  "3734ccf7d6be7f25e0a0d7c0395121c5525afcb87144f5cf9d6895e03c1cd18f"
+ ],
+ "oracle_identity": "000c4c108daf609c26eb9ae9f1197a26eef6fb80a3cb5c788f9e89ba20ad6e76",
+ "projection": "44f212d5-32dd-5469-8f05-f0d236492347",
+ "payload_hash": "ed8e21dc89ce519d6301e2bbf486405576069fe4348f0c8948bed4dbcb3e5188",
+ "g1_sha256_after": "2ccbaeba6de75d9787fbdd407e42dc2425fa20d4d26bcc298b681b550bd11258",
+ "predecessor_sha256_after": "def7caa1625458a40c1f635db153268082cf52d5e25c28f57fd29518e44de58c",
+ "comparison_with_reviewed_preview": {
+  "outside_acceptance_differences": [],
+  "acceptance_equal_after_blanking_evidence": true,
+  "evidence_changed": {
+   "batches.rule": 11,
+   "records.accepted_at": 9466,
+   "records.reviewer": 9466,
+   "review_unit_records.accepted_at": 1242,
+   "review_unit_records.reviewer": 1242
+  },
+  "evidence_changed_outside_affected": []
+ },
+ "native": {
+  "validate_candidate_findings": [],
+  "validate_candidate_finding_count": 0,
+  "verify_reconstruction": [],
+  "reconstructed_payload_identical": true,
+  "reidentified_projection": "44f212d5-32dd-5469-8f05-f0d236492347",
+  "projection": "44f212d5-32dd-5469-8f05-f0d236492347",
+  "payload_hash": "ed8e21dc89ce519d6301e2bbf486405576069fe4348f0c8948bed4dbcb3e5188",
+  "gate_passed": true,
+  "gate_failures": []
+ }
+}

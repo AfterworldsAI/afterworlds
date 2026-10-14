@@ -78,6 +78,15 @@ class FakeProviderAdapter:
                     tool_name="report_contradictions", tool_input={"violations": []}
                 )
             ]
+        elif pass_id == "rpg_adjudication":
+            # CRD Issue 15c wires RPG adjudication: the canned turn is
+            # non-mechanical (no roll proposed), so the spine is unchanged.
+            content = [
+                ProviderToolCallPart(
+                    tool_name="produce_adjudication_proposals",
+                    tool_input={"rolls": []},
+                )
+            ]
         elif pass_id in ("input_safety", "output_safety"):
             content = [
                 ProviderToolCallPart(
@@ -85,8 +94,8 @@ class FakeProviderAdapter:
                 )
             ]
         else:
-            # Mode-specific passes (RPG adjudication, Branching writer, OOC
-            # extractors) are out of Issue 19's core-path wiring (see
+            # Mode-specific passes (Branching writer, OOC extractors) are out
+            # of Issue 19's core-path wiring (see
             # Architecture Notes) -- not exercised by the E2E spine.
             raise NotImplementedError(
                 f"FakeProviderAdapter has no canned response for pass_id={pass_id!r}"

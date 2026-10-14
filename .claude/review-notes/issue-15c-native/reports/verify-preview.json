@@ -1,0 +1,276 @@
+{
+ "anchor_order": {
+  "g1": [
+   "conditions-pilot",
+   "actions-pilot",
+   "reference-closure",
+   "movement-closure",
+   "combat-turn-1",
+   "damage-and-hit-points",
+   "combat-damage-breaking",
+   "checks-actions-rests",
+   "core-play-completion",
+   "core-play-dependencies",
+   "character-creation-foundations",
+   "character-origins-feats",
+   "spellcasting",
+   "rules-glossary-completion",
+   "classes",
+   "class-option-catalogues",
+   "spell-descriptions",
+   "gameplay-toolbox",
+   "magic-items",
+   "monsters",
+   "animals",
+   "framing-coverage",
+   "character-creation-catalogue",
+   "equipment"
+  ],
+  "preview": [
+   "conditions-pilot",
+   "actions-pilot",
+   "reference-closure",
+   "movement-closure",
+   "combat-turn-1",
+   "damage-and-hit-points",
+   "core-play-dependencies",
+   "character-creation-foundations",
+   "rules-glossary-completion",
+   "class-option-catalogues",
+   "gameplay-toolbox",
+   "framing-coverage",
+   "character-creation-catalogue",
+   "combat-damage-breaking",
+   "checks-actions-rests",
+   "core-play-completion",
+   "character-origins-feats",
+   "spellcasting",
+   "classes",
+   "spell-descriptions",
+   "magic-items",
+   "monsters",
+   "animals",
+   "equipment"
+  ]
+ },
+ "checks": [
+  {
+   "check": "pinned inputs (G1, predecessor, old release, C5, store) unchanged before",
+   "ok": true
+  },
+  {
+   "check": "g1: under schema 19 refused for its schema-18 declaration only",
+   "ok": true
+  },
+  {
+   "check": "preview: validate_candidate reports no findings",
+   "ok": true
+  },
+  {
+   "check": "g1: verify_reconstruction is empty",
+   "ok": true
+  },
+  {
+   "check": "g1: reconstructed canonical payload is identical",
+   "ok": true
+  },
+  {
+   "check": "g1: reconstruction re-identifies (uuid and payload hash)",
+   "ok": true
+  },
+  {
+   "check": "g1: under schema 19 its own gate refuses on schema only",
+   "ok": true
+  },
+  {
+   "check": "preview: verify_reconstruction is empty",
+   "ok": true
+  },
+  {
+   "check": "preview: reconstructed canonical payload is identical",
+   "ok": true
+  },
+  {
+   "check": "preview: reconstruction re-identifies (uuid and payload hash)",
+   "ok": true
+  },
+  {
+   "check": "preview: publication gate passes against its own (preview) oracle",
+   "ok": true
+  },
+  {
+   "check": "g1 projection is refused against the other oracle",
+   "ok": true
+  },
+  {
+   "check": "preview projection is refused against the other oracle",
+   "ok": true
+  },
+  {
+   "check": "isolated store unchanged after the private copies",
+   "ok": true
+  },
+  {
+   "check": "acceptance.batches: the 13 untouched batches' rows, in order, byte-identical",
+   "ok": true
+  },
+  {
+   "check": "acceptance.records: the 13 untouched batches' rows, in order, byte-identical",
+   "ok": true
+  },
+  {
+   "check": "acceptance.review_unit_records: the 13 untouched batches' rows, in order, byte-identical",
+   "ok": true
+  },
+  {
+   "check": "acceptance.schema_anchors: the 13 untouched batches' rows, in order, byte-identical",
+   "ok": true
+  },
+  {
+   "check": "affected batches: same ids and resolved scopes; rule SIMULATED",
+   "ok": true
+  },
+  {
+   "check": "affected acceptance records: SIMULATED reviewer and time only",
+   "ok": true
+  },
+  {
+   "check": "acceptance.lifts: G1 lifts kept, 18->19 appended",
+   "ok": true
+  },
+  {
+   "check": "reference_resolutions and their records byte-identical",
+   "ok": true
+  },
+  {
+   "check": "release_binding: byte-identical",
+   "ok": true
+  },
+  {
+   "check": "semantic_policy_hash: byte-identical",
+   "ok": true
+  },
+  {
+   "check": "semantic_policy_version: byte-identical",
+   "ok": true
+  },
+  {
+   "check": "artifact_kind: byte-identical",
+   "ok": true
+  },
+  {
+   "check": "spans: byte-identical",
+   "ok": true
+  },
+  {
+   "check": "review units outside the eleven batches byte-identical",
+   "ok": true
+  },
+  {
+   "check": "rendered preview proposals re-identify to the built identities",
+   "ok": true
+  },
+  {
+   "check": "representation.records: changed by exactly the replayed->new proposal delta",
+   "ok": true
+  },
+  {
+   "check": "representation.components: changed by exactly the replayed->new proposal delta",
+   "ok": true
+  },
+  {
+   "check": "representation.prose_bindings: changed by exactly the replayed->new proposal delta",
+   "ok": true
+  },
+  {
+   "check": "representation.relationships: changed by exactly the replayed->new proposal delta",
+   "ok": true
+  },
+  {
+   "check": "representation.references: changed by exactly the replayed->new proposal delta",
+   "ok": true
+  },
+  {
+   "check": "representation.provenance: changed by exactly the replayed->new proposal delta",
+   "ok": true
+  },
+  {
+   "check": "pinned inputs unchanged after",
+   "ok": true
+  }
+ ],
+ "g1_cross_gate_categories": [
+  "identity_mismatch",
+  "missing_authority",
+  "schema_mismatch",
+  "semantic_validation",
+  "unexpected_authority",
+  "unsatisfied_obligation"
+ ],
+ "g1_findings": {
+  "count": 2,
+  "first": [
+   "candidate declares representation schema '5d-representation-schema-18', build implements '5d-representation-schema-19'",
+   "candidate declares representation schema hash '276c3d0ca0bf4c2f98aa8e7d2db6cd321d7fb55dee6d8c60fdd4a58e51fa8701', committed union hashes to '3734ccf7d6be7f25e0a0d7c0395121c5525afcb87144f5cf9d6895e03c1cd18f'"
+  ]
+ },
+ "g1_own_gate_categories": [
+  "schema_mismatch",
+  "semantic_validation"
+ ],
+ "g1_own_gate_failures": [
+  "candidate declares representation schema '5d-representation-schema-18', build implements '5d-representation-schema-19'",
+  "candidate declares representation schema hash '276c3d0ca0bf4c2f98aa8e7d2db6cd321d7fb55dee6d8c60fdd4a58e51fa8701', committed union hashes to '3734ccf7d6be7f25e0a0d7c0395121c5525afcb87144f5cf9d6895e03c1cd18f'",
+  "candidate declares representation schema '5d-representation-schema-18', build implements '5d-representation-schema-19'",
+  "candidate declares representation schema hash '276c3d0ca0bf4c2f98aa8e7d2db6cd321d7fb55dee6d8c60fdd4a58e51fa8701', committed union hashes to '3734ccf7d6be7f25e0a0d7c0395121c5525afcb87144f5cf9d6895e03c1cd18f'"
+ ],
+ "g1_persisted_state_digest": "2f1c05f4e3f1ba9512dbd6049943b7cd88151d730a84ad301b38ca80104be9be",
+ "g1_projection": {
+  "payload_hash": "cb106a9a0dab71c9251b406e5a8211e8a09ada7c330970f2a3de3b2b94734a47",
+  "uuid": "efab27a9-5d44-52ba-ad74-47940d5fd717"
+ },
+ "label": "FOCUSED DIAGNOSTICS ONLY - SIMULATION, not acceptance",
+ "preview_cross_gate_categories": [
+  "identity_mismatch",
+  "missing_authority",
+  "schema_mismatch",
+  "unexpected_authority"
+ ],
+ "preview_findings": {
+  "count": 0,
+  "first": []
+ },
+ "preview_own_gate_categories": [],
+ "preview_persisted_state_digest": "b3a3ad3dc8bd3c8343ab64dabbd2fa11ba39bd6064ce4da92c5ebb62f269dee5",
+ "preview_projection": {
+  "payload_hash": "ed8e21dc89ce519d6301e2bbf486405576069fe4348f0c8948bed4dbcb3e5188",
+  "uuid": "44f212d5-32dd-5469-8f05-f0d236492347"
+ },
+ "preview_sha256": "cd9d1d27428a1525955f83091125489e96bbc7bd0977bb9f3ce83933883a20d3",
+ "representation_delta": {
+  "components": {
+   "added": 1103,
+   "removed": 1103
+  },
+  "prose_bindings": {
+   "added": 0,
+   "removed": 0
+  },
+  "provenance": {
+   "added": 19515,
+   "removed": 0
+  },
+  "records": {
+   "added": 0,
+   "removed": 0
+  },
+  "references": {
+   "added": 0,
+   "removed": 0
+  },
+  "relationships": {
+   "added": 0,
+   "removed": 0
+  }
+ }
+}

@@ -9,6 +9,7 @@ import pytest
 import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
 
+from afterworlds.ingestion.mechanical.representation import ToolVariant
 from afterworlds.models.dnd5e_state import (
     CreatureState,
     GrantSource,
@@ -251,6 +252,45 @@ def test_an_identity_that_is_not_an_item_is_refused_with_a_type(
                 )
 
 
+def test_a_held_gaming_set_or_instrument_records_one_of_its_typed_kinds(
+    table: Table, srd_content: Seeder
+) -> None:
+    """CRD Issue 15c: each kind is its own proficiency, so a held kind is
+    stored and read back typed; a kind the tool does not state refuses."""
+    _, sheet = _setup(table)
+    index = _bound(table, sheet, srd_content)
+    holder = Holder(HolderKind.CHARACTER, sheet)
+    gaming = ("equipment.tools.gaming_set", "gaming_set")
+    with table.factory() as s, s.begin():
+        cards = holdings.create_item(
+            s,
+            index,
+            holder,
+            gaming[0],
+            component_key=gaming[1],
+            tool_variant=ToolVariant.PLAYING_CARDS,
+            now=NOW,
+        )
+        for key, component, kind in (
+            (*gaming, ToolVariant.LUTE),  # an instrument, not a gaming set
+            ("equipment.tools.thieves_tools", "thieves_tools", ToolVariant.DICE),
+            (gaming[0], None, ToolVariant.DICE),  # the kind is the component's
+        ):
+            with pytest.raises(UnsupportedIdentityError):
+                holdings.create_item(
+                    s,
+                    index,
+                    holder,
+                    key,
+                    component_key=component,
+                    tool_variant=kind,
+                    now=NOW,
+                )
+    with table.factory() as s:
+        (held,) = holdings.items_held_by(s, holder)
+    assert held == cards and held.tool_variant is ToolVariant.PLAYING_CARDS
+
+
 def test_accepted_poisons_are_dosed_items_and_coat_a_weapon(
     table: Table, srd_content: Seeder
 ) -> None:
@@ -465,3 +505,42 @@ def test_transfer_moves_one_holder_by_cas_and_ends_attunement(
             sa.select(sa.func.count()).select_from(Dnd5eItemInstanceORM)
         ).scalar_one()
     assert rows == 1
+
+
+def test_spending_ammunition_is_cas_and_the_last_one_removes_the_holding(
+    table: Table, srd_content: Seeder
+) -> None:
+    """CRD Issue 15c C7: expenditure by CAS against the read revision; a
+    stale revision or overspend refuses; zero is no holding."""
+    _, sheet = _setup(table)
+    index = _bound(table, sheet, srd_content)
+    holder = Holder(HolderKind.CHARACTER, sheet)
+    with table.factory() as s, s.begin():
+        arrows = holdings.create_item(
+            s, index, holder, "equipment.adventuring_gear.needles", quantity=2, now=NOW
+        )
+    with table.factory() as s, s.begin(), pytest.raises(StateServiceError):
+        holdings.spend_item(
+            s, arrows.item_id, expected_revision=arrows.revision, count=3
+        )
+    with table.factory() as s, s.begin():
+        left = holdings.spend_item(
+            s, arrows.item_id, expected_revision=arrows.revision, count=1
+        )
+    assert left is not None and (left.quantity, left.revision) == (
+        1,
+        arrows.revision + 1,
+    )
+    with table.factory() as s, s.begin(), pytest.raises(StaleRevisionError):
+        holdings.spend_item(
+            s, arrows.item_id, expected_revision=arrows.revision, count=1
+        )
+    with table.factory() as s, s.begin():
+        assert (
+            holdings.spend_item(
+                s, arrows.item_id, expected_revision=left.revision, count=1
+            )
+            is None
+        )
+    with table.factory() as s:
+        assert holdings.items_held_by(s, holder) == ()

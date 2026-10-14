@@ -13,8 +13,35 @@ any of them.
 
 ## What is committed here
 
-**Current: `srd-5-2-1-corpus-8781d4e0-a3b-g1.json`** (SHA-256 `2ccbaeba…1258`)
-— the CRD Issue 2b G1 successor for the same official-order release
+**Current: `srd-5-2-1-corpus-8781d4e0-a3b-15c.json`** (SHA-256 `23e5d8e0…4f69`)
+— the CRD Issue 15c native C5 successor for the same official-order release
+(`1299484e-c72d-509b-bd8d-d0169ee1f8d2` / `5.2.1-corpus.8781d4e0-a3b`) at
+representation schema 19 (`3734ccf7…d18f`, registered lift
+`5d-lift-schema-18-to-19`). On 12 October 2026 the Owner accepted the exact native
+C5 packet (`.claude/review-notes/issue-15c-native/OWNER-ACCEPTANCE-PACKET.md`).
+That packet covers:
+- the bounded-d20 source contract;
+- schema 19;
+- eleven replacement proposals;
+- the resulting oracle identity `000c4c10…6e76` and projection
+  `44f212d5-32dd-5469-8f05-f0d236492347`.
+
+`.claude/review-notes/issue-15c-recording/record_successor.py` recorded it natively
+on 2026-10-12 UTC (22:49:29Z). The method: in G1's anchor order, each affected
+batch was excised by claim and its exact accepted proposal was accepted in its
+place.
+- **What changed relative to the reviewed simulated preview** (`cd9d1d27…`,
+  preserved): only the eleven batches' reviewer, time and rule.
+- **What is byte-identical to G1:** the other thirteen batches, every
+  resolution, every span and all prior provenance.
+- **Totals:** twenty-four batches, 1,847 records and 1,486 resolutions.
+
+The record is `.claude/review-notes/issue-15c-recording/recorded-followup.json`.
+
+**Superseded by digest: `srd-5-2-1-corpus-8781d4e0-a3b-g1.json`** (SHA-256
+`2ccbaeba…1258`, unchanged). It is named in `oracle.SUPERSEDED_ORACLE_SHA256`,
+kept as test and replay evidence, and excluded from the wheel and sdist. What
+follows describes it as it was accepted — the CRD Issue 2b G1 successor for the same official-order release
 (`1299484e-c72d-509b-bd8d-d0169ee1f8d2` / `5.2.1-corpus.8781d4e0-a3b`) at
 representation schema 18. The Owner accepted the exact G1 Equipment proposal
 `8a8a737b…5345` on 11 October 2026. That proposal makes the twelve previously

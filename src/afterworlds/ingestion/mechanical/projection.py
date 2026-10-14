@@ -108,6 +108,9 @@ __all__ = [
     "SCHEMA_16_VERSION",
     "SCHEMA_17_VERSION",
     "SCHEMA_18_VERSION",
+    "SCHEMA_19_VERSION",
+    "SCHEMA_20_VERSION",
+    "SCHEMA_21_VERSION",
     "UnsupportedSchemaVersionError",
     "validate_schema_binding",
 ]
@@ -638,6 +641,9 @@ SCHEMA_15_VERSION = "5d-representation-schema-15"
 SCHEMA_16_VERSION = "5d-representation-schema-16"
 SCHEMA_17_VERSION = "5d-representation-schema-17"
 SCHEMA_18_VERSION = "5d-representation-schema-18"
+SCHEMA_19_VERSION = "5d-representation-schema-19"
+SCHEMA_20_VERSION = "5d-representation-schema-20"
+SCHEMA_21_VERSION = "5d-representation-schema-21"
 
 
 class LegacySchemaPayloadError(ValueError):
@@ -923,6 +929,39 @@ _MERGED_COMPONENT_FIELDS: dict[str, frozenset[str]] = {
             "prose_retention_reason_code",
         }
     ),
+    # Schema 19 adds fact families and four omit-when-empty fact fields and
+    # no component key, so its row repeats schema 18's.
+    SCHEMA_19_VERSION: frozenset(
+        {
+            "applies_when",
+            "options",
+            "fact_qualifiers",
+            "recurs",
+            "prose_retention_reason_code",
+        }
+    ),
+    # Schema 20 adds one fact family and no component key, so its row
+    # repeats schema 19's.
+    SCHEMA_20_VERSION: frozenset(
+        {
+            "applies_when",
+            "options",
+            "fact_qualifiers",
+            "recurs",
+            "prose_retention_reason_code",
+        }
+    ),
+    # Schema 21 adds two fact families and no component key, so its row
+    # repeats schema 20's.
+    SCHEMA_21_VERSION: frozenset(
+        {
+            "applies_when",
+            "options",
+            "fact_qualifiers",
+            "recurs",
+            "prose_retention_reason_code",
+        }
+    ),
 }
 
 # Minting a new schema without giving it a row here would leave the current
@@ -973,6 +1012,9 @@ _RECORD_OWNED_REFERENCE_VERSIONS: frozenset[str] = frozenset(
         SCHEMA_16_VERSION,
         SCHEMA_17_VERSION,
         SCHEMA_18_VERSION,
+        SCHEMA_19_VERSION,
+        SCHEMA_20_VERSION,
+        SCHEMA_21_VERSION,
     }
 )
 
@@ -994,6 +1036,9 @@ _OPTION_SCOPED_PROSE_VERSIONS: frozenset[str] = frozenset(
         SCHEMA_16_VERSION,
         SCHEMA_17_VERSION,
         SCHEMA_18_VERSION,
+        SCHEMA_19_VERSION,
+        SCHEMA_20_VERSION,
+        SCHEMA_21_VERSION,
     }
 )
 
@@ -1011,6 +1056,9 @@ _RETENTION_REASON_PROSE_VERSIONS: frozenset[str] = frozenset(
         SCHEMA_16_VERSION,
         SCHEMA_17_VERSION,
         SCHEMA_18_VERSION,
+        SCHEMA_19_VERSION,
+        SCHEMA_20_VERSION,
+        SCHEMA_21_VERSION,
     }
 )
 
@@ -1018,7 +1066,13 @@ _RETENTION_REASON_PROSE_VERSIONS: frozenset[str] = frozenset(
 #: The versions whose references may name alternative destinations: a
 #: component grain, a label, a situation and a class route. Schema 17 on.
 _REFERENCE_ALTERNATIVE_VERSIONS: frozenset[str] = frozenset(
-    {SCHEMA_17_VERSION, SCHEMA_18_VERSION}
+    {
+        SCHEMA_17_VERSION,
+        SCHEMA_18_VERSION,
+        SCHEMA_19_VERSION,
+        SCHEMA_20_VERSION,
+        SCHEMA_21_VERSION,
+    }
 )
 
 

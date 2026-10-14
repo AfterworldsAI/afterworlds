@@ -11,6 +11,157 @@ from __future__ import annotations
 
 from typing import Any
 
+from afterworlds.ingestion.mechanical.representation import (
+    AbilityScore,
+    Difficulty,
+    Skill,
+    ToolActivity,
+    ToolVariant,
+)
+from afterworlds.pipeline.rpg.capability import (
+    FIXED_DC_CHECKS,
+    TOOL_COMPONENTS,
+    Operation,
+)
+
+_SUBJECT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "kind": {"type": "string", "enum": ["character", "creature"]},
+        "subject_id": {"type": "string", "format": "uuid"},
+    },
+    "required": ["kind", "subject_id"],
+    "additionalProperties": False,
+}
+#: Identified subjects the GameMaster names (null: not stated).
+_SUBJECT_LIST: dict[str, Any] = {
+    "oneOf": [{"type": "array", "items": _SUBJECT_SCHEMA}, {"type": "null"}]
+}
+_LIGHT = ["bright", "dim", "darkness", "magical_darkness", "heavily_obscured"]
+_CREATURE_ATTACK_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "attacker": _SUBJECT_SCHEMA,
+        "entry": {"type": "string"},
+        "target": _SUBJECT_SCHEMA,
+        "range": {
+            "type": "string",
+            "enum": [
+                "within_reach",
+                "within_normal_range",
+                "beyond_normal_within_long_range",
+                "beyond_long_range",
+            ],
+        },
+        "cover": {
+            "type": "string",
+            "enum": ["none", "half", "three_quarters", "total"],
+        },
+        "attacker_light": {"type": "string", "enum": _LIGHT},
+        "target_light": {"type": "string", "enum": _LIGHT},
+        "hostiles_within_5_feet": _SUBJECT_LIST,
+        "auras_in_range": _SUBJECT_LIST,
+        "target_within_5_feet": {"oneOf": [{"type": "boolean"}, {"type": "null"}]},
+        "allies_within_5_feet_of_target": _SUBJECT_LIST,
+        "multiattack": {"type": "boolean"},
+        "moved_straight_toward_target": {
+            "oneOf": [{"type": "boolean"}, {"type": "null"}]
+        },
+        "follows_up": {"type": "boolean"},
+    },
+    "required": [
+        "attacker",
+        "entry",
+        "target",
+        "range",
+        "cover",
+        "attacker_light",
+        "target_light",
+    ],
+    "additionalProperties": False,
+}
+_WEAPON_ATTACK_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "weapon_item_id": {"type": "string", "format": "uuid"},
+        "target": _SUBJECT_SCHEMA,
+        "range": {
+            "type": "string",
+            "enum": [
+                "within_reach",
+                "within_normal_range",
+                "beyond_normal_within_long_range",
+                "beyond_long_range",
+            ],
+        },
+        "cover": {
+            "type": "string",
+            "enum": ["none", "half", "three_quarters", "total"],
+        },
+        "attacker_light": {"type": "string", "enum": _LIGHT},
+        "target_light": {"type": "string", "enum": _LIGHT},
+        "hostiles_within_5_feet": _SUBJECT_LIST,
+        "auras_in_range": _SUBJECT_LIST,
+        "target_within_5_feet": {"oneOf": [{"type": "boolean"}, {"type": "null"}]},
+        "two_handed": {"type": "boolean"},
+        "ammunition_item_id": {
+            "oneOf": [{"type": "string", "format": "uuid"}, {"type": "null"}]
+        },
+        "knock_out": {"type": "boolean"},
+        "hands": {
+            "type": "object",
+            "properties": {
+                "held": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "item_id": {"type": "string", "format": "uuid"},
+                            "hands": {"type": "integer", "enum": [1, 2]},
+                        },
+                        "required": ["item_id", "hands"],
+                        "additionalProperties": False,
+                    },
+                },
+                "free_hands": {"type": "integer", "enum": [0, 1, 2]},
+            },
+            "required": ["held", "free_hands"],
+            "additionalProperties": False,
+        },
+        "mastery": {"type": "boolean"},
+        "cleave": {"type": "boolean"},
+        "extra": {
+            "oneOf": [{"type": "string", "enum": ["light", "nick"]}, {"type": "null"}]
+        },
+        "cleave_within_5_feet": {"oneOf": [{"type": "boolean"}, {"type": "null"}]},
+        "push_ft": {"oneOf": [{"type": "integer", "enum": [5, 10]}, {"type": "null"}]},
+        "thrown": {"type": "boolean"},
+        "ability": {
+            "oneOf": [
+                {"type": "string", "enum": [a.value for a in AbilityScore]},
+                {"type": "null"},
+            ]
+        },
+    },
+    "required": [
+        "weapon_item_id",
+        "target",
+        "range",
+        "cover",
+        "attacker_light",
+        "target_light",
+    ],
+    "additionalProperties": False,
+}
+
+
+def _selection(values: list[str], description: str) -> dict[str, Any]:
+    return {
+        "oneOf": [{"type": "string", "enum": values}, {"type": "null"}],
+        "description": description,
+    }
+
+
 PRODUCE_ADJUDICATION_PROPOSALS_TOOL_NAME: str = "produce_adjudication_proposals"
 
 PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC: dict[str, Any] = {
@@ -86,6 +237,151 @@ PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC: dict[str, Any] = {
                                 " absent."
                             ),
                         },
+                        "operation": {
+                            "type": "string",
+                            "enum": [o.value for o in Operation],
+                            "description": (
+                                "The roster operation this roll is. Required"
+                                " for every mechanical roll: the engine runs"
+                                " only a named, admitted operation and refuses"
+                                " anything else visibly."
+                            ),
+                        },
+                        "check_identity": {
+                            "oneOf": [
+                                {
+                                    "type": "string",
+                                    "enum": [
+                                        "/".join(i)
+                                        for i in (*FIXED_DC_CHECKS, *TOOL_COMPONENTS)
+                                    ],
+                                },
+                                {"type": "null"},
+                            ],
+                            "description": (
+                                "For fixed_dc_check: the source rule whose"
+                                " printed check applies. For tool_check: the"
+                                " tool. The engine reads the ability and DC"
+                                " from the source. Null otherwise."
+                            ),
+                        },
+                        "ability": _selection(
+                            [a.value for a in AbilityScore],
+                            "For difficulty_check: the ability the check uses.",
+                        ),
+                        "skill": _selection(
+                            [k.value for k in Skill],
+                            "For difficulty_check: the skill that applies, if any;"
+                            " it must be one the ability governs.",
+                        ),
+                        "difficulty": _selection(
+                            [d.value for d in Difficulty],
+                            "For difficulty_check: the Typical DC you select. The"
+                            " engine reads the DC from the rules.",
+                        ),
+                        "weapon_attack": {
+                            "oneOf": [_WEAPON_ATTACK_SCHEMA, {"type": "null"}],
+                            "description": (
+                                "For weapon_attack: the weapon (an item id the"
+                                " attacker holds), the target, and the"
+                                " contextual facts you select. The engine reads"
+                                " every number from the rules and the sheets."
+                            ),
+                        },
+                        "subject": {
+                            "oneOf": [_SUBJECT_SCHEMA, {"type": "null"}],
+                            "description": (
+                                "For begin_turn and end_turn: the character or"
+                                " creature whose turn begins or ends. For"
+                                " creature_species: the creature. Null"
+                                " otherwise."
+                            ),
+                        },
+                        "species": {
+                            "oneOf": [{"type": "string"}, {"type": "null"}],
+                            "description": (
+                                "For creature_species: one of the"
+                                " species_options the scene lists for that"
+                                " creature (a Humanoid whose stat block leaves"
+                                " its species open). Record it only when the"
+                                " story establishes it; it grants nothing but"
+                                " the identity. Null otherwise."
+                            ),
+                        },
+                        "creature_attack": {
+                            "oneOf": [_CREATURE_ATTACK_SCHEMA, {"type": "null"}],
+                            "description": (
+                                "For creature_attack: the attacking creature, one"
+                                " of its attack entries from the scene, the target"
+                                " and the contextual facts you select."
+                            ),
+                        },
+                        "creature_save_effect": {
+                            "oneOf": [
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "source": _SUBJECT_SCHEMA,
+                                        "entry": {"type": "string"},
+                                        "targets": {
+                                            "type": "array",
+                                            "items": _SUBJECT_SCHEMA,
+                                            "minItems": 1,
+                                        },
+                                        "auras_in_range": _SUBJECT_LIST,
+                                        "enemies_in_area": _SUBJECT_LIST,
+                                    },
+                                    "required": ["source", "entry", "targets"],
+                                    "additionalProperties": False,
+                                },
+                                {"type": "null"},
+                            ],
+                            "description": (
+                                "For creature_save_effect: the creature, one of its"
+                                " save-effect entries from the scene, and every"
+                                " creature in its area (for an entry the scene"
+                                " lists under enemy_only_effects: its enemies in"
+                                " the area, also named in enemies_in_area)."
+                            ),
+                        },
+                        "attestation": {
+                            "oneOf": [
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "instance_id": {"type": "string"},
+                                        "elapsed_hours": {
+                                            "oneOf": [
+                                                {
+                                                    "type": "integer",
+                                                    "enum": [1, 2, 3, 4],
+                                                },
+                                                {"type": "null"},
+                                            ]
+                                        },
+                                    },
+                                    "required": ["instance_id"],
+                                    "additionalProperties": False,
+                                },
+                                {"type": "null"},
+                            ],
+                            "description": (
+                                "For stable_recovery: the recovery instance and the"
+                                " total hours since it began (4 means four or more)."
+                                " For knockout_recovery: the knockout's condition"
+                                " instance, whose Short Rest was completed. Null"
+                                " otherwise."
+                            ),
+                        },
+                        "tool_activity": _selection(
+                            [t.value for t in ToolActivity],
+                            "For tool_check: the tool's printed activity.",
+                        ),
+                        "tool_variant": _selection(
+                            [v.value for v in ToolVariant],
+                            "For tool_check of a Gaming Set or Musical Instrument:"
+                            " the kind used, one the character holds.",
+                        ),
                         "visibility": {
                             "type": "string",
                             "enum": ["shown", "hidden", "player"],
@@ -99,7 +395,12 @@ PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC: dict[str, Any] = {
                             ),
                         },
                     },
-                    "required": ["check_label", "subsystem_tag", "visibility"],
+                    "required": [
+                        "check_label",
+                        "subsystem_tag",
+                        "operation",
+                        "visibility",
+                    ],
                 },
             },
             "reasoning_note": {

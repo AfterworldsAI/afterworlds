@@ -1,0 +1,181 @@
+#: How each Rules Glossary condition component bears on a weapon attack
+#: between its attacker and target, reviewed component by component:
+#:
+#: * ``rolls``: its typed Advantage/automatic-outcome facts, applied by whose
+#:   roll and which context they name;
+#: * ``no_action``: an attacker that can't take actions can't attack;
+#: * ``charmer``: a Charmed attacker can't attack its charmer;
+#: * ``auto_critical``: a hit from within 5 feet is a Critical Hit;
+#: * ``prone_against``: Advantage from within 5 feet, else Disadvantage
+#:   (prose-bound, executed by hand and governed by the component);
+#: * ``refuse_damage``: changes the damage in a way not executed here;
+#: * ``none``: reviewed as not bearing on the attack (movement, speech,
+#:   concentration; implied conditions are read through
+#:   :func:`.conditions.effective`; sight refuses separately).
+#:
+#: A component not listed refuses: a binding may never add one silently.
+_G = "glossary."
+_ATTACK_RULES: dict[tuple[str, str], str] = {
+    (_G + "blinded", "cant_see"): "rolls",
+    (_G + "blinded", "attacks_affected"): "rolls",
+    (_G + "charmed", "cant_harm_the_charmer"): "charmer",
+    (_G + "charmed", "social_advantage"): "none",
+    (_G + "deafened", "cant_hear"): "rolls",
+    (_G + "frightened", "ability_checks_and_attacks_affected"): "rolls",
+    (_G + "frightened", "cant_approach"): "none",
+    (_G + "grappled", "attacks_affected"): "rolls",
+    (_G + "grappled", "movable"): "none",
+    (_G + "grappled", "speed_0"): "none",
+    (_G + "incapacitated", "inactive"): "no_action",
+    (_G + "incapacitated", "no_concentration"): "none",
+    (_G + "incapacitated", "speechless"): "none",
+    (_G + "incapacitated", "surprised"): "rolls",
+    (_G + "invisible", "attacks_affected"): "rolls",
+    (_G + "invisible", "concealed"): "none",
+    (_G + "invisible", "surprise"): "rolls",
+    (_G + "paralyzed", "automatic_critical_hits"): "auto_critical",
+    (_G + "paralyzed", "attacks_affected"): "rolls",
+    (_G + "paralyzed", "incapacitated"): "none",
+    (_G + "paralyzed", "saving_throws_affected"): "rolls",
+    (_G + "paralyzed", "speed_0"): "none",
+    (_G + "petrified", "turned_to_inanimate_substance"): "none",
+    (_G + "petrified", "attacks_affected"): "rolls",
+    (_G + "petrified", "incapacitated"): "none",
+    (_G + "petrified", "poison_immunity"): "none",
+    (_G + "petrified", "resist_damage"): "refuse_damage",
+    (_G + "petrified", "saving_throws_affected"): "rolls",
+    (_G + "petrified", "speed_0"): "none",
+    (_G + "poisoned", "ability_checks_and_attacks_affected"): "rolls",
+    (_G + "prone", "attacks_against_affected"): "prone_against",
+    (_G + "prone", "own_attacks_affected"): "rolls",
+    (_G + "prone", "restricted_movement"): "none",
+    (_G + "restrained", "attacks_affected"): "rolls",
+    (_G + "restrained", "saving_throws_affected"): "rolls",
+    (_G + "restrained", "speed_0"): "none",
+    (_G + "stunned", "attacks_affected"): "rolls",
+    (_G + "stunned", "incapacitated"): "none",
+    (_G + "stunned", "saving_throws_affected"): "rolls",
+    (_G + "unconscious", "automatic_critical_hits"): "auto_critical",
+    (_G + "unconscious", "attacks_affected"): "rolls",
+    (_G + "unconscious", "inert"): "none",
+    (_G + "unconscious", "remains_prone"): "none",
+    (_G + "unconscious", "saving_throws_affected"): "rolls",
+    (_G + "unconscious", "speed_0"): "none",
+    (_G + "unconscious", "unaware"): "none",
+}
+
+
+@dataclass
+class _Modifiers:
+    advantage: list[str] = field(default_factory=list)
+    disadvantage: list[str] = field(default_factory=list)
+    automatic_critical: list[str] = field(default_factory=list)
+
+
+def _conditions(
+    subject: TurnSubject,
+    actor: RollActor,
+    other: TurnSubject,
+    within_5_feet: bool | None,
+    out: _Modifiers,
+) -> None:
+    """Apply *subject*'s conditions to an attack made by (``SUBJECT``) or
+    against (``AGAINST_SUBJECT``) it; *other* is the attack's other subject."""
+    index = subject.index
+    assert index is not None
+    attacking = actor is RollActor.SUBJECT
+    for eff in effective(subject, index):
+        if eff.condition is ConditionKind.EXHAUSTION:
+            raise _refuse(
+                RefusalKind.UNSUPPORTED_CAPABILITY,
+                "Exhaustion's D20 Test reduction is not executable here",
+            )
+        if eff.condition in _SIGHT_CONDITIONS:
+            raise _refuse(
+                RefusalKind.UNSUPPORTED_CAPABILITY,
+                f"{eff.condition.value}: sight that depends on a sense's "
+                "range is not executable here",
+            )
+        record = index.record(f"glossary.{eff.condition.value}")
+        assert record is not None  # effective() refuses an absent record
+        for component in record.components:
+            key = (record.semantic_key, component.semantic_key)
+            where = "/".join(key)
+            rule = _ATTACK_RULES.get(key)
+            if rule is None:
+                raise _refuse(
+                    RefusalKind.UNSUPPORTED_CAPABILITY,
+                    f"{where} has not been reviewed for weapon attacks",
+                )
+            if rule == "no_action" and attacking:
+                raise _refuse(
+                    RefusalKind.INVALID_SELECTION,
+                    f"the attacker is {eff.condition.value} and can't take "
+                    f"actions ({where})",
+                )
+            if rule == "charmer" and attacking:
+                referent = eff.instance.referent if eff.instance else None
+                if referent is None:
+                    raise _refuse(
+                        RefusalKind.MISSING_STATE,
+                        "the attacker is Charmed and its charmer is not recorded",
+                    )
+                if str(referent.subject_id) == str(other.subject_id):
+                    raise _refuse(
+                        RefusalKind.INVALID_SELECTION,
+                        f"a Charmed attacker can't attack its charmer ({where})",
+                    )
+            if rule in ("auto_critical", "prone_against") and not attacking:
+                if within_5_feet is None:
+                    raise _refuse(
+                        RefusalKind.MISSING_STATE,
+                        f"{where} turns on whether the attacker is within 5 feet "
+                        "of the target",
+                    )
+                if rule == "auto_critical":
+                    if not any(
+                        isinstance(ef.fact, CriticalHitRuleFact)
+                        and ef.fact.change is CriticalHitChange.AUTOMATIC_ON_HIT
+                        for ef in component.facts
+                    ):
+                        raise _refuse(
+                            RefusalKind.MISSING_AUTHORITY, f"{where} is not typed"
+                        )
+                    if within_5_feet:
+                        out.automatic_critical.append(where)
+                elif within_5_feet:
+                    out.advantage.append(where)
+                else:
+                    out.disadvantage.append(where)
+            if rule == "refuse_damage" and not attacking:
+                raise _refuse(
+                    RefusalKind.UNSUPPORTED_CAPABILITY,
+                    f"{where} changes the damage and is not executable here",
+                )
+            if rule != "rolls":
+                continue
+            for ef in component.facts:
+                fact = ef.fact
+                if not isinstance(fact, (AdvantageFact, AutomaticOutcomeFact)):
+                    continue
+                spec = fact.roll
+                contexts = (RollContext.ATTACK_ROLL, RollContext.D20_TEST)
+                if spec.actor is not actor or spec.context not in contexts:
+                    continue
+                contextual = (
+                    component.handling is not ComponentHandling.STRUCTURED
+                    or component.applies_when is not None
+                    or ef.qualifier is not None
+                )
+                if contextual or isinstance(fact, AutomaticOutcomeFact):
+                    raise _refuse(
+                        RefusalKind.UNSUPPORTED_CAPABILITY,
+                        f"{where} can affect this attack under circumstances that "
+                        "need judgement and is not executable here",
+                    )
+                if fact.state is AdvantageState.ADVANTAGE:
+                    out.advantage.append(where)
+                else:
+                    out.disadvantage.append(where)
+
+

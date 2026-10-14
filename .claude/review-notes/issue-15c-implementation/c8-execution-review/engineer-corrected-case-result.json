@@ -1,0 +1,6 @@
+{
+  "event_type": "user",
+  "tool_use_id": "toolu_01MBraMoYejiWedQVsXc2HAX",
+  "is_error": false,
+  "content": "1 passed, 5 warnings in 347.97s (0:05:47)\r\nFocused diagnostics PASSED (exit 0). FOCUSED DIAGNOSTICS ONLY - not acceptance or full-gate evidence"
+}

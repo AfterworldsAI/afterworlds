@@ -1,0 +1,79 @@
+{
+  "label": "Codex independent JSON preservation inspection; not acceptance or full-suite evidence",
+  "preview_sha256": "aa9fe91e948bff66de330d45ca533eaada3579d111a6ad06da97864e3d180593",
+  "schema": {
+    "hash": "85896c8271a9aa4891af92f1c699a5eb9adc69562581135817e312b5d1ddbe0f",
+    "version": "5d-representation-schema-19"
+  },
+  "affected_batches": 11,
+  "untouched_batches": 13,
+  "checks": {
+    "untouched_batches": {
+      "equal": true,
+      "rows": 13
+    },
+    "untouched_records": {
+      "equal": true,
+      "rows": 1029
+    },
+    "untouched_review_unit_records": {
+      "equal": true,
+      "rows": 234
+    },
+    "untouched_schema_anchors": {
+      "equal": true,
+      "rows": 13
+    },
+    "reference_resolutions": {
+      "equal": true
+    },
+    "release_binding": {
+      "equal": true
+    },
+    "semantic_policy_hash": {
+      "equal": true
+    },
+    "semantic_policy_version": {
+      "equal": true
+    },
+    "spans": {
+      "equal": true
+    },
+    "reference_resolution_records": {
+      "equal": true
+    },
+    "prior_lifts_prefix": {
+      "equal": true
+    },
+    "representation_records": {
+      "equal": true,
+      "rows": 1847
+    },
+    "representation_prose_bindings": {
+      "equal": true,
+      "rows": 16451
+    },
+    "representation_references": {
+      "equal": true,
+      "rows": 8104
+    },
+    "representation_relationships": {
+      "equal": true,
+      "rows": 2329
+    },
+    "all_prior_provenance_present": {
+      "equal": true,
+      "prior_rows": 30736,
+      "lost_rows": 0
+    },
+    "simulated_affected_receipts": {
+      "equal": true
+    },
+    "prior_components_preserved": {
+      "equal": true,
+      "prior_count": 3956,
+      "enriched_count": 1103,
+      "problems": []
+    }
+  }
+}

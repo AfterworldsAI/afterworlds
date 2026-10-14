@@ -12,23 +12,31 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass
-from uuid import UUID
+from dataclasses import dataclass, replace
+from uuid import UUID, uuid4
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Session, sessionmaker
 
+from afterworlds.ingestion.mechanical.representation import ConditionKind
+from afterworlds.models.enums import ConditionVisibility
+from afterworlds.models.rpg import SheetEffect
 from afterworlds.models.rules_package import RulesPackageBinding
 from afterworlds.persistence.orm.dnd5e_state import (
     Dnd5eCharacterStateORM,
+    Dnd5eCreatureORM,
 )
 from afterworlds.persistence.orm.rules_authority import SharedRuleChangeORM
 from afterworlds.services.dnd5e_state import adoption, leases, shared_changes
+from afterworlds.services.dnd5e_state.authority import AuthorityIndex, authority_index
+from afterworlds.services.dnd5e_state.effects import apply_effects
 from afterworlds.services.dnd5e_state.errors import (
     StaleRevisionError,
     StateFailure,
+    SubjectNotFoundError,
 )
 from afterworlds.services.dnd5e_state.holdings import (
     Holder,
@@ -36,15 +44,30 @@ from afterworlds.services.dnd5e_state.holdings import (
     ItemInstance,
     items_held_by,
 )
-from afterworlds.services.dnd5e_state.service import read_character, readiness
-from afterworlds.services.dnd5e_state.store import StoredCharacter
+from afterworlds.services.dnd5e_state.service import (
+    read_character,
+    read_creature,
+    readiness,
+)
+from afterworlds.services.dnd5e_state.store import StoredCharacter, StoredCreature
 
 __all__ = [
     "RpgTurnHold",
     "TurnCharacter",
+    "TurnCreature",
+    "TurnSubject",
+    "advanced",
     "after_events",
     "load_turn_character",
+    "load_turn_creature",
+    "require_holdings_unchanged",
+    "require_story_unchanged",
+    "story_revisions",
     "require_unchanged",
+    "ITEM_QUANTITY",
+    "spent_items",
+    "with_effects",
+    "with_possible",
 ]
 
 _log = logging.getLogger(__name__)
@@ -57,9 +80,19 @@ class TurnCharacter:
     readiness: tuple[StateFailure, ...]
     #: The item instances the character holds.
     items: tuple[ItemInstance, ...] = ()
+    #: The exact effective authority the character's binding names (CRD Issue
+    #: 15c): the only authority adjudication reads for this character.
+    index: AuthorityIndex | None = None
+    #: Instance ids of conditions the preflight projected (an earlier
+    #: operation might apply them): never established state.
+    speculative: frozenset[str] = frozenset()
 
     @property
     def sheet_id(self) -> UUID:
+        return self.stored.sheet_id
+
+    @property
+    def subject_id(self) -> UUID:
         return self.stored.sheet_id
 
     @property
@@ -67,25 +100,207 @@ class TurnCharacter:
         return not self.readiness
 
 
+@dataclass(frozen=True)
+class TurnCreature:
+    """A continuing creature a turn reads as an independent subject (CRD Issue
+    15c): its own state, revision and exact binding, held items and authority.
+    """
+
+    stored: StoredCreature
+    readiness: tuple[StateFailure, ...]
+    items: tuple[ItemInstance, ...] = ()
+    index: AuthorityIndex | None = None
+    speculative: frozenset[str] = frozenset()
+
+    @property
+    def subject_id(self) -> UUID:
+        return self.stored.creature_id
+
+    @property
+    def ready(self) -> bool:
+        return not self.readiness
+
+
+#: One subject of a turn: the acting character, or another character or
+#: creature an operation targets.
+TurnSubject = TurnCharacter | TurnCreature
+
+
+def advanced(
+    actor: TurnCharacter,
+    subjects: dict[tuple[str, str], TurnSubject],
+    effects: tuple[SheetEffect, ...],
+) -> tuple[TurnCharacter, dict[tuple[str, str], TurnSubject]]:
+    """The turn's view of *actor* and *subjects* after *effects*, in memory.
+
+    Each keeps the revision and binding it was read at, so the commit-time
+    recheck is unchanged; only later operations of the same turn read the
+    advanced state. An effect without a subject is the actor's.
+    """
+    grouped: dict[tuple[str, str], list[SheetEffect]] = {}
+    for effect in effects:
+        key = (
+            ("character", str(actor.subject_id))
+            if effect.subject_id is None
+            else (str(effect.subject_kind), str(effect.subject_id))
+        )
+        grouped.setdefault(key, []).append(effect)
+    out = dict(subjects)
+    for key, group in grouped.items():
+        if key == ("character", str(actor.subject_id)):
+            actor = with_effects(actor, group)
+        elif key in out:
+            out[key] = with_effects(out[key], group)
+        else:
+            raise ValueError(f"an effect names {key}, which this turn did not read")
+    return actor, out
+
+
+def with_effects[T: TurnSubject](subject: T, effects: list[SheetEffect]) -> T:
+    """*subject* after *effects*, in memory; revision and binding as read."""
+    stored: StoredCharacter | StoredCreature = subject.stored
+    state = apply_effects(
+        stored.state, tuple(e for e in effects if e.target != ITEM_QUANTITY)
+    )
+    stored = replace(stored, state=state)  # type: ignore[arg-type]
+    items = spent_items(
+        subject.items, [e for e in effects if e.target == ITEM_QUANTITY]
+    )
+    return replace(subject, stored=stored, items=items)  # type: ignore[arg-type]
+
+
+#: The effect target that expends a held item (ammunition): ``value_json`` is
+#: ``{"item_id": ..., "spend": n}``, applied to holdings, never to state.
+ITEM_QUANTITY = "item_quantity"
+
+
+def spent_items(
+    items: tuple[ItemInstance, ...], effects: list[SheetEffect]
+) -> tuple[ItemInstance, ...]:
+    """*items* after the expenditures in *effects*; an item spent to zero is
+    gone. Revisions stay as read: the commit applies them by CAS."""
+    spend: dict[str, int] = {}
+    for effect in effects:
+        value = json.loads(effect.value_json)
+        spend[value["item_id"]] = spend.get(value["item_id"], 0) + int(value["spend"])
+    out = []
+    for item in items:
+        left = item.quantity - spend.pop(str(item.item_id), 0)
+        if left < 0:
+            raise ValueError(f"item {item.item_id} is spent below zero")
+        if left:
+            out.append(replace(item, quantity=left))
+    if spend:
+        raise ValueError(f"items not held: {sorted(spend)}")
+    return tuple(out)
+
+
+def with_possible(
+    actor: TurnCharacter,
+    subjects: dict[tuple[str, str], TurnSubject],
+    possible: dict[tuple[str, str], set[ConditionKind]],
+) -> tuple[TurnCharacter, dict[tuple[str, str], TurnSubject]]:
+    """*actor* and *subjects* with every condition in *possible* present, for
+    the preflight: a condition the subject already has is not added twice."""
+    present = {key: _conditions_of(actor, subjects, key) for key in possible}
+    # Fresh ids, recorded on each subject as speculative: provenance is
+    # carried, never read from an id's text (a stored id may be anything).
+    ids = {
+        (key, kind): f"possible:{uuid4()}"
+        for key, kinds in possible.items()
+        for kind in kinds
+    }
+    effects = tuple(
+        SheetEffect(
+            target=kind.value,
+            operation="apply_condition",
+            value_json=json.dumps(
+                {
+                    "instance_id": ids[(key, kind)],
+                    "condition": kind.value,
+                    "visibility": ConditionVisibility.VISIBLE.value,
+                    **({"level": 1} if kind is ConditionKind.EXHAUSTION else {}),
+                }
+            ),
+            subject_kind=key[0],  # type: ignore[arg-type]
+            subject_id=key[1],  # type: ignore[arg-type]
+        )
+        for key, kinds in possible.items()
+        for kind in sorted(kinds)
+        if (have := present[key]) is not None and kind not in have
+    )
+    actor, out = advanced(actor, subjects, effects)
+    added: dict[tuple[str, str], set[str]] = {}
+    for effect in effects:
+        key = (str(effect.subject_kind), str(effect.subject_id))
+        added.setdefault(key, set()).add(json.loads(effect.value_json)["instance_id"])
+    actor_key = ("character", str(actor.subject_id))
+    if actor_key in added:
+        actor = replace(actor, speculative=actor.speculative | added.pop(actor_key))
+    for key, new in added.items():
+        if key in out:
+            out[key] = replace(out[key], speculative=out[key].speculative | new)
+    return actor, out
+
+
+def _conditions_of(
+    actor: TurnCharacter,
+    subjects: dict[tuple[str, str], TurnSubject],
+    key: tuple[str, str],
+) -> set[ConditionKind] | None:
+    """The subject's recorded conditions, or ``None`` when it records none
+    (its operations refuse that as missing state)."""
+    subject = actor if key == ("character", str(actor.subject_id)) else subjects[key]
+    conditions = subject.stored.state.conditions
+    return None if conditions is None else {c.condition for c in conditions}
+
+
+def load_turn_creature(
+    session: Session, story_id: UUID, creature_id: UUID, *, now: str
+) -> TurnCreature:
+    """A creature of *story_id*, read with its exact binding; refuses a
+    creature of another story or a non-current binding (typed)."""
+    stored = read_creature(session, creature_id)
+    if stored.story_id != story_id:
+        raise SubjectNotFoundError(f"creature {creature_id} is not in story {story_id}")
+    items = items_held_by(session, Holder(HolderKind.CREATURE, stored.creature_id))
+    ready = readiness(session, stored, now=now)
+    index = authority_index(session, stored.binding, now=now)
+    return TurnCreature(stored, ready, items, index)
+
+
 def load_turn_character(session: Session, sheet_id: UUID, *, now: str) -> TurnCharacter:
     """The character a turn reads; refuses a non-current binding (typed)."""
     stored = read_character(session, sheet_id)
     items = items_held_by(session, Holder(HolderKind.CHARACTER, stored.sheet_id))
-    return TurnCharacter(stored, readiness(session, stored, now=now), items)
+    ready = readiness(session, stored, now=now)
+    index = authority_index(session, stored.binding, now=now)
+    return TurnCharacter(stored, ready, items, index)
 
 
 def require_unchanged(
-    session: Session, sheet_id: UUID, revision: int, binding: RulesPackageBinding
+    session: Session,
+    sheet_id: UUID,
+    revision: int,
+    binding: RulesPackageBinding,
+    *,
+    kind: str = "character",
 ) -> None:
-    """Refuse a commit computed against a superseded revision or binding."""
+    """Refuse a commit computed against a superseded revision or binding, for
+    a character (by sheet id) or a creature (``kind="creature"``)."""
+    table: type[Dnd5eCharacterStateORM] | type[Dnd5eCreatureORM]
+    if kind == "creature":
+        table, key = Dnd5eCreatureORM, Dnd5eCreatureORM.creature_id
+    else:
+        table, key = Dnd5eCharacterStateORM, Dnd5eCharacterStateORM.sheet_id
     row = session.execute(
         sa.select(
-            Dnd5eCharacterStateORM.revision,
-            Dnd5eCharacterStateORM.package_uuid,
-            Dnd5eCharacterStateORM.release_version,
-            Dnd5eCharacterStateORM.projection_uuid,
-            Dnd5eCharacterStateORM.override_set_uuid,
-        ).where(Dnd5eCharacterStateORM.sheet_id == str(sheet_id))
+            table.revision,
+            table.package_uuid,
+            table.release_version,
+            table.projection_uuid,
+            table.override_set_uuid,
+        ).where(key == str(sheet_id))
     ).one_or_none()
     expected = (
         revision,
@@ -96,8 +311,58 @@ def require_unchanged(
     )
     if row is None or tuple(row) != expected:
         raise StaleRevisionError(
-            f"character {sheet_id} changed after this turn read it; its work "
+            f"{kind} {sheet_id} changed after this turn read it; its work "
             "cannot commit"
+        )
+
+
+def story_revisions(
+    session: Session, story_id: UUID
+) -> frozenset[tuple[str, str, int]]:
+    """Every character and creature of the story, with its revision: the
+    snapshot a discovery scan's absences rest on (an aura holder, a
+    turn-bounded effect). A subject that gained what the scan looked for moves
+    its revision; a new subject changes membership (CRD Issue 15c)."""
+    characters = session.execute(
+        sa.select(
+            Dnd5eCharacterStateORM.sheet_id, Dnd5eCharacterStateORM.revision
+        ).where(Dnd5eCharacterStateORM.story_id == str(story_id))
+    ).all()
+    creatures = session.execute(
+        sa.select(Dnd5eCreatureORM.creature_id, Dnd5eCreatureORM.revision).where(
+            Dnd5eCreatureORM.story_id == str(story_id)
+        )
+    ).all()
+    return frozenset(
+        {("character", str(i), int(r)) for i, r in characters}
+        | {("creature", str(i), int(r)) for i, r in creatures}
+    )
+
+
+def require_story_unchanged(
+    session: Session, story_id: UUID, snapshot: frozenset[tuple[str, str, int]]
+) -> None:
+    """Refuse a commit whose discovery scans read a story that has since
+    changed: any subject's revision or the set of subjects."""
+    if story_revisions(session, story_id) != snapshot:
+        raise StaleRevisionError(
+            f"story {story_id}'s characters or creatures changed after this turn "
+            "scanned them; its work cannot commit"
+        )
+
+
+def require_holdings_unchanged(
+    session: Session, holder: Holder, items: tuple[ItemInstance, ...]
+) -> None:
+    """Refuse a commit computed against holdings that changed after the turn
+    read them: an item gained, lost or transferred, or one whose revision
+    moved (equipped, attuned, charges, quantity). A subject's state revision
+    does not cover its holdings (CRD Issue 15c)."""
+    now = {(i.item_id, i.revision) for i in items_held_by(session, holder)}
+    if now != {(i.item_id, i.revision) for i in items}:
+        raise StaleRevisionError(
+            f"{holder.kind.value} {holder.holder_id}'s holdings changed after this "
+            "turn read them; its work cannot commit"
         )
 
 
@@ -149,15 +414,27 @@ class RpgTurnHold:
     def acquire(self, story_id: UUID) -> str:
         return leases.acquire(self._factory, story_id, now=self._clock())
 
-    def recheck(self, session: Session, character: TurnCharacter) -> None:
+    def recheck(self, session: Session, character: TurnSubject) -> None:
         """The commit-time recheck: refuse work computed against a superseded
         revision or binding (see :func:`require_unchanged`)."""
-        require_unchanged(
-            session,
-            character.sheet_id,
-            character.stored.revision,
-            character.stored.binding,
-        )
+        if isinstance(character, TurnCreature):
+            require_unchanged(
+                session,
+                character.subject_id,
+                character.stored.revision,
+                character.stored.binding,
+                kind="creature",
+            )
+            holder = Holder(HolderKind.CREATURE, character.subject_id)
+        else:
+            require_unchanged(
+                session,
+                character.sheet_id,
+                character.stored.revision,
+                character.stored.binding,
+            )
+            holder = Holder(HolderKind.CHARACTER, character.sheet_id)
+        require_holdings_unchanged(session, holder, character.items)
 
     def finish(self, story_id: UUID, lease_id: str) -> None:
         """Release the lease (idempotent), then process what it held back.

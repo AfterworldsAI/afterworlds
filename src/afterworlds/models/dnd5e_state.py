@@ -50,6 +50,7 @@ from afterworlds.ingestion.mechanical.representation import (
     MovementMode,
     Skill,
     TimeUnit,
+    ToolVariant,
     WeaponCategory,
 )
 from afterworlds.models.dnd5e_vocabulary import (
@@ -70,6 +71,7 @@ __all__ = [
     "AbilityAdjustment",
     "Dnd5eAbilityScores",
     "ActiveEffect",
+    "ActiveTurn",
     "ArmorTrainingGrant",
     "BaseArmorClass",
     "ChoiceRecord",
@@ -77,6 +79,7 @@ __all__ = [
     "ClassLevel",
     "ConditionInstance",
     "CreaturePresence",
+    "CreatureSpeciesSelection",
     "CreatureState",
     "DamageResponseGrant",
     "DeathState",
@@ -97,15 +100,20 @@ __all__ = [
     "SkillGrant",
     "SlotLevel",
     "SpeedGrant",
+    "StableRecovery",
     "SpellAccess",
     "SpellSlotPool",
     "SubjectReference",
     "SummonOrigin",
     "ToolGrant",
+    "TurnBoundEnd",
+    "TurnCoordination",
+    "TurnUse",
     "UsageCounter",
     "VOCABULARIES",
     "VocabularyChoice",
     "WeaponProficiencyGrant",
+    "ZeroHitPointTreatment",
 ]
 
 #: The state document's own contract version. Independent of the Rules
@@ -229,6 +237,17 @@ class SubjectReference(_Model):
     subject_id: UUID
 
 
+class TurnBoundEnd(_Model):
+    """An end at an actor-turn edge (CRD Issue 15c, contract G2): the start or
+    end of a named subject's next turn. ``created_in_turn`` is that subject's
+    turn instance active when the effect began, if any, so an end-of-next-turn
+    boundary passes over that turn's own end."""
+
+    boundary: Literal["start", "end"]
+    of: SubjectReference
+    created_in_turn: int | None = Field(default=None, ge=1)
+
+
 class EffectEnd(_Model):
     """How a recorded condition or effect lasts, as recorded. Never executed.
 
@@ -241,9 +260,13 @@ class EffectEnd(_Model):
     amount: int | None = Field(default=None, ge=1)
     unit: TimeUnit | None = None
     expires_marker: str | None = Field(default=None, min_length=1)
+    #: CRD Issue 15c: an end at an actor-turn edge (kind ``special``).
+    turn: TurnBoundEnd | None = None
 
     @model_validator(mode="after")
     def amount_only_when_timed(self) -> Self:
+        if self.turn is not None and self.kind is not DurationKind.SPECIAL:
+            raise ValueError("a turn-edge end is a special duration")
         timed = self.kind is DurationKind.TIMED
         if timed != (self.amount is not None) or timed != (self.unit is not None):
             raise ValueError(
@@ -340,12 +363,17 @@ class ArmorTrainingGrant(_Model):
 
 
 class ToolGrant(_Model):
-    """Proficiency with a tool: an accepted record, or (record, component)."""
+    """Proficiency with a tool: an accepted record, or (record, component).
+
+    ``variant`` is the kind of a Gaming Set or Musical Instrument, each kind
+    its own proficiency (CRD Issue 15c): one of that tool's typed variants.
+    """
 
     record_key: str = Field(min_length=1)
     component_key: str | None = Field(default=None, min_length=1)
     expertise: bool
     source: GrantSource
+    variant: ToolVariant | None = None
 
 
 class LanguageGrant(_Model):
@@ -440,11 +468,29 @@ class HitPointDicePool(_Model):
         return self
 
 
+class StableRecovery(_Model):
+    """A Stable subject's pending recovery (CRD Issue 15c, OD-15c-2): the
+    interval code rolled from ``StableStateFact.recovery`` when it became
+    Stable. An elapsed-time attestation names ``instance_id``; damage, healing
+    or death ends the instance."""
+
+    instance_id: str = Field(min_length=1)
+    interval: int = Field(ge=1)
+    unit: TimeUnit
+
+
 class DeathState(_Model):
     successes: int = Field(ge=0, le=3)
     failures: int = Field(ge=0, le=3)
     stable: bool
     dead: bool
+    stable_recovery: StableRecovery | None = None
+
+    @model_validator(mode="after")
+    def recovery_only_when_stable(self) -> Self:
+        if self.stable_recovery is not None and (not self.stable or self.dead):
+            raise ValueError("a recovery instance belongs to a living Stable subject")
+        return self
 
 
 class ConditionInstance(_Model):
@@ -471,6 +517,10 @@ class ConditionInstance(_Model):
     #: The item instance that applied it (a cursed or sentient item).
     item_id: UUID | None = None
     ends: EffectEnd | None = None
+    #: CRD Issue 15c: the Grappled instance this condition lasts while
+    #: (*"Restrained until the grapple ends"*), on the same subject from the
+    #: same source application; it ends when that instance ends.
+    lasts_while_instance: str | None = Field(default=None, min_length=1)
 
     @model_validator(mode="after")
     def level_only_for_exhaustion(self) -> Self:
@@ -727,6 +777,7 @@ class _SharedState(_Model):
     @model_validator(mode="after")
     def instance_ids_unique(self) -> Self:
         _unique("conditions", [c.instance_id for c in self.conditions or ()])
+        _linked_conditions_resolve(self.conditions or ())
         _unique("active_effects", [e.instance_id for e in self.active_effects or ()])
         _unique("usage_counters", [c.counter_id for c in self.usage_counters or ()])
         _unique("choices", [c.choice_id for c in self.choices or ()])
@@ -741,6 +792,27 @@ class _SharedState(_Model):
         for value in self.model_dump(mode="python").values():
             _collect_choice_ids(value, cited)
         return cited
+
+
+def _linked_conditions_resolve(conditions: tuple[ConditionInstance, ...]) -> None:
+    """Every link names a Grappled instance of the same subject, from the
+    same referent, that is not itself linked: a dangling or malformed link
+    must not survive as a permanent condition (CRD Issue 15c)."""
+    by_id = {c.instance_id: c for c in conditions}
+    for c in conditions:
+        if c.lasts_while_instance is None:
+            continue
+        held = by_id.get(c.lasts_while_instance)
+        if (
+            held is None
+            or held.condition is not ConditionKind.GRAPPLED
+            or held.lasts_while_instance is not None
+            or held.referent != c.referent
+        ):
+            raise ValueError(
+                f"condition {c.instance_id} lasts while {c.lasts_while_instance!r}, "
+                "which is not a Grappled instance of this subject from its referent"
+            )
 
 
 def _collect_choice_ids(value: object, out: list[str]) -> None:
@@ -829,6 +901,28 @@ class SummonOrigin(_Model):
     dismissed_marker: str | None = Field(default=None, min_length=1)
 
 
+class CreatureSpeciesSelection(_Model):
+    """The exact accepted species of one creature whose source leaves it open.
+
+    CRD Issue 15c, Owner decision of 2026-10-13 (bounded species input): a
+    Humanoid stat block is "people defined by their roles and professions
+    ... members of varied species" (``monsters.md``:55), so the individual's
+    species is a recorded fact, never inferred from a name or a missing tag.
+    It is recorded only through the code-validated ``creature_species``
+    operation, solely so a target predicate such as the Ghoul's Elf exception
+    can be decided. It grants no species traits, numbers or type change.
+
+    It holds under the template and binding it was recorded under; a
+    different template or binding invalidates it, and it must be recorded
+    again.
+    """
+
+    species_record_key: str = Field(min_length=1)
+    template_record_key: str = Field(min_length=1)
+    mechanical_projection_uuid: UUID
+    override_set_uuid: UUID
+
+
 class CreaturePresence(StrEnum):
     """Where a continuing creature is, for creatures whose source tracks it.
 
@@ -839,6 +933,64 @@ class CreaturePresence(StrEnum):
     PRESENT = "present"
     POCKET_DIMENSION = "pocket_dimension"
     GONE = "gone"
+
+
+class ActiveTurn(_Model):
+    """The turn in progress: whose it is, and its instance number."""
+
+    subject: SubjectReference
+    instance: int = Field(ge=1)
+
+
+class TurnUse(_Model):
+    """A once-per-turn use a subject took in a turn instance."""
+
+    instance: int = Field(ge=1)
+    subject: SubjectReference
+    key: str = Field(min_length=1)
+
+
+class TurnCoordination(_Model):
+    """A story's actor-turn coordination (CRD Issue 15c, contract G1).
+
+    Changed only by explicit GameMaster ``begin_turn``/``end_turn`` edges;
+    nothing schedules whose turn is next. Holds no hit points, conditions,
+    effects or pending state.
+    """
+
+    active: ActiveTurn | None = None
+    next_instance: int = Field(default=1, ge=1)
+    #: Once-per-turn uses taken in the active turn (Cleave); a new turn
+    #: clears them.
+    uses: tuple[TurnUse, ...] = ()
+
+
+class ZeroHitPointTreatment(_Model):
+    """How a continuing creature is treated when it drops to 0 Hit Points
+    (CRD Issue 15c; ``play.damage_and_healing`` falling unconscious / monster
+    death), recorded per subject.
+
+    ``subject`` is the source treatment that applies to it: ``character``
+    (unconscious and dying) or ``monster`` (dies). ``gamemaster_exception``
+    records the GameMaster's per-subject choice to treat a monster like a
+    character (``treat_as_character``), which the source admits for an
+    individual monster only. A template's location in a Monsters or Animals
+    section never decides it; an unrecorded treatment refuses an operation
+    that would reduce the creature to 0 Hit Points.
+    """
+
+    subject: Literal["character", "monster"]
+    gamemaster_exception: Literal["treat_as_character"] | None = None
+
+    @model_validator(mode="after")
+    def exception_only_for_a_monster(self) -> Self:
+        if self.gamemaster_exception is not None and self.subject != "monster":
+            raise ValueError("the treat-as-character exception applies to a monster")
+        return self
+
+    @property
+    def as_character(self) -> bool:
+        return self.subject == "character" or self.gamemaster_exception is not None
 
 
 class CreatureState(_SharedState):
@@ -856,3 +1008,8 @@ class CreatureState(_SharedState):
     creature_type: CreatureType | None = None
     speeds: tuple[SpeedGrant, ...] | None = None
     presence: CreaturePresence | None = None
+    #: CRD Issue 15c: the recorded zero-HP treatment (see the class above).
+    zero_hit_point_treatment: ZeroHitPointTreatment | None = None
+    #: CRD Issue 15c: a source-open Humanoid's recorded species (see the
+    #: class above). ``None``: not recorded, never "not an Elf".
+    species: CreatureSpeciesSelection | None = None

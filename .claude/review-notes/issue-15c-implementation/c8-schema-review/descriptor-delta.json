@@ -1,0 +1,364 @@
+{
+  "prior_import": "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\src\\afterworlds\\__init__.py",
+  "preview_import": "D:\\AI\\Claude\\scratch\\AW docs\\issue2b-implementation\\afterworlds\\.claude\\worktrees\\agent-aa5b1ea6bf4ee4f39\\src\\afterworlds\\__init__.py",
+  "prior_schema_hash": "759dcc1f9de2cac9254be108ca8a83433ca30854061276a9c349a370e1c6e77a",
+  "preview_schema_hash": "4499b3964aac338e10c7b6d1f67a5eb37570878600e0c5f04bd4464d58f1df55",
+  "old_fact_descriptors_unchanged": true,
+  "added_families": [
+    "creature_type",
+    "summoned_creature_type"
+  ],
+  "prior_introductions_unchanged": true,
+  "prior_invariants_unchanged": true,
+  "components_unchanged": true,
+  "references_unchanged": true,
+  "draft_vocabularies_unchanged": true,
+  "added_intrinsic_rows": [
+    {
+      "id": "creature_type.type.exactly-one-of-type-or-choice",
+      "locus": "fact:creature_type",
+      "field": "type|type_choice",
+      "rule": "exactly one of: type stated and type_choice empty; type null and type_choice at least two types, distinct and sorted"
+    },
+    {
+      "id": "summoned_creature_type.forms.non-empty-distinct-sorted",
+      "locus": "fact:summoned_creature_type",
+      "field": "forms",
+      "rule": "non-empty, distinct and sorted by record and component key"
+    },
+    {
+      "id": "summoned_creature_type.type_choice.at-least-two-distinct-sorted",
+      "locus": "fact:summoned_creature_type",
+      "field": "type_choice|instead_of",
+      "rule": "at least two types, distinct and sorted, none of them instead_of"
+    }
+  ],
+  "added_introduction_rows": [
+    {
+      "kind": "fact_family",
+      "vocabulary": null,
+      "name": "creature_type",
+      "introduced_in": "5d-representation-schema-21"
+    },
+    {
+      "kind": "fact_family",
+      "vocabulary": null,
+      "name": "summoned_creature_type",
+      "introduced_in": "5d-representation-schema-21"
+    },
+    {
+      "kind": "vocabulary_member",
+      "vocabulary": [
+        "aberration",
+        "beast",
+        "celestial",
+        "construct",
+        "dragon",
+        "elemental",
+        "fey",
+        "fiend",
+        "giant",
+        "humanoid",
+        "monstrosity",
+        "ooze",
+        "plant",
+        "undead"
+      ],
+      "name": "aberration",
+      "introduced_in": "5d-representation-schema-21"
+    },
+    {
+      "kind": "vocabulary_member",
+      "vocabulary": [
+        "aberration",
+        "beast",
+        "celestial",
+        "construct",
+        "dragon",
+        "elemental",
+        "fey",
+        "fiend",
+        "giant",
+        "humanoid",
+        "monstrosity",
+        "ooze",
+        "plant",
+        "undead"
+      ],
+      "name": "beast",
+      "introduced_in": "5d-representation-schema-21"
+    },
+    {
+      "kind": "vocabulary_member",
+      "vocabulary": [
+        "aberration",
+        "beast",
+        "celestial",
+        "construct",
+        "dragon",
+        "elemental",
+        "fey",
+        "fiend",
+        "giant",
+        "humanoid",
+        "monstrosity",
+        "ooze",
+        "plant",
+        "undead"
+      ],
+      "name": "celestial",
+      "introduced_in": "5d-representation-schema-21"
+    },
+    {
+      "kind": "vocabulary_member",
+      "vocabulary": [
+        "aberration",
+        "beast",
+        "celestial",
+        "construct",
+        "dragon",
+        "elemental",
+        "fey",
+        "fiend",
+        "giant",
+        "humanoid",
+        "monstrosity",
+        "ooze",
+        "plant",
+        "undead"
+      ],
+      "name": "construct",
+      "introduced_in": "5d-representation-schema-21"
+    },
+    {
+      "kind": "vocabulary_member",
+      "vocabulary": [
+        "aberration",
+        "beast",
+        "celestial",
+        "construct",
+        "dragon",
+        "elemental",
+        "fey",
+        "fiend",
+        "giant",
+        "humanoid",
+        "monstrosity",
+        "ooze",
+        "plant",
+        "undead"
+      ],
+      "name": "dragon",
+      "introduced_in": "5d-representation-schema-21"
+    },
+    {
+      "kind": "vocabulary_member",
+      "vocabulary": [
+        "aberration",
+        "beast",
+        "celestial",
+        "construct",
+        "dragon",
+        "elemental",
+        "fey",
+        "fiend",
+        "giant",
+        "humanoid",
+        "monstrosity",
+        "ooze",
+        "plant",
+        "undead"
+      ],
+      "name": "elemental",
+      "introduced_in": "5d-representation-schema-21"
+    },
+    {
+      "kind": "vocabulary_member",
+      "vocabulary": [
+        "aberration",
+        "beast",
+        "celestial",
+        "construct",
+        "dragon",
+        "elemental",
+        "fey",
+        "fiend",
+        "giant",
+        "humanoid",
+        "monstrosity",
+        "ooze",
+        "plant",
+        "undead"
+      ],
+      "name": "fey",
+      "introduced_in": "5d-representation-schema-21"
+    },
+    {
+      "kind": "vocabulary_member",
+      "vocabulary": [
+        "aberration",
+        "beast",
+        "celestial",
+        "construct",
+        "dragon",
+        "elemental",
+        "fey",
+        "fiend",
+        "giant",
+        "humanoid",
+        "monstrosity",
+        "ooze",
+        "plant",
+        "undead"
+      ],
+      "name": "fiend",
+      "introduced_in": "5d-representation-schema-21"
+    },
+    {
+      "kind": "vocabulary_member",
+      "vocabulary": [
+        "aberration",
+        "beast",
+        "celestial",
+        "construct",
+        "dragon",
+        "elemental",
+        "fey",
+        "fiend",
+        "giant",
+        "humanoid",
+        "monstrosity",
+        "ooze",
+        "plant",
+        "undead"
+      ],
+      "name": "giant",
+      "introduced_in": "5d-representation-schema-21"
+    },
+    {
+      "kind": "vocabulary_member",
+      "vocabulary": [
+        "aberration",
+        "beast",
+        "celestial",
+        "construct",
+        "dragon",
+        "elemental",
+        "fey",
+        "fiend",
+        "giant",
+        "humanoid",
+        "monstrosity",
+        "ooze",
+        "plant",
+        "undead"
+      ],
+      "name": "humanoid",
+      "introduced_in": "5d-representation-schema-21"
+    },
+    {
+      "kind": "vocabulary_member",
+      "vocabulary": [
+        "aberration",
+        "beast",
+        "celestial",
+        "construct",
+        "dragon",
+        "elemental",
+        "fey",
+        "fiend",
+        "giant",
+        "humanoid",
+        "monstrosity",
+        "ooze",
+        "plant",
+        "undead"
+      ],
+      "name": "monstrosity",
+      "introduced_in": "5d-representation-schema-21"
+    },
+    {
+      "kind": "vocabulary_member",
+      "vocabulary": [
+        "aberration",
+        "beast",
+        "celestial",
+        "construct",
+        "dragon",
+        "elemental",
+        "fey",
+        "fiend",
+        "giant",
+        "humanoid",
+        "monstrosity",
+        "ooze",
+        "plant",
+        "undead"
+      ],
+      "name": "ooze",
+      "introduced_in": "5d-representation-schema-21"
+    },
+    {
+      "kind": "vocabulary_member",
+      "vocabulary": [
+        "aberration",
+        "beast",
+        "celestial",
+        "construct",
+        "dragon",
+        "elemental",
+        "fey",
+        "fiend",
+        "giant",
+        "humanoid",
+        "monstrosity",
+        "ooze",
+        "plant",
+        "undead"
+      ],
+      "name": "plant",
+      "introduced_in": "5d-representation-schema-21"
+    },
+    {
+      "kind": "vocabulary_member",
+      "vocabulary": [
+        "aberration",
+        "beast",
+        "celestial",
+        "construct",
+        "dragon",
+        "elemental",
+        "fey",
+        "fiend",
+        "giant",
+        "humanoid",
+        "monstrosity",
+        "ooze",
+        "plant",
+        "undead"
+      ],
+      "name": "undead",
+      "introduced_in": "5d-representation-schema-21"
+    }
+  ],
+  "pins": {
+    ".gitignore": "f5b4b837f9af3ff425491ab1c273e5ce13778e89693930da563603caf54bc8b0",
+    "src/afterworlds/ingestion/mechanical/representation.py": "7f0abd45113548f32f35ee6d58cf986a8cea59877b63995cfedd96ac2a0f052c",
+    "src/afterworlds/ingestion/mechanical/projection.py": "56a9b0cfe17d5757aa74698a8acc68db2fc9acaa4ce7ea33273c399f27486df4",
+    "src/afterworlds/ingestion/mechanical/schema_lift.py": "46df4ccb1e4418c955358f195c798ddf9dd4a6b53709492fd6cfb0a87e44d00f",
+    "src/afterworlds/ingestion/mechanical/validation.py": "d770b26c293f6ee3b7792f8c09f9c10d28ed1402a423921959afc851b7e377a7",
+    "tests/ingestion/mechanical/test_creature_type_facts.py": "da26f9830c03e337117ec4d60ad4bbd00bb7fe186b2eaba28adc28310b036e52",
+    "tests/ingestion/mechanical/_schema_pins.py": "602b79f536b33541e7c7afb0c7ffd88587329e79bf4dc71c9a3585377ec1c7bc",
+    "tests/ingestion/mechanical/data/bounded_oracle.json": "82d19eb5be3fd4c2c7e203baf89263c441934b02ae887417aacf4b4f4c63f1ff"
+  },
+  "working_files_match_commit": {
+    ".gitignore": true,
+    "src/afterworlds/ingestion/mechanical/representation.py": true,
+    "src/afterworlds/ingestion/mechanical/projection.py": true,
+    "src/afterworlds/ingestion/mechanical/schema_lift.py": true,
+    "src/afterworlds/ingestion/mechanical/validation.py": true,
+    "tests/ingestion/mechanical/test_creature_type_facts.py": true,
+    "tests/ingestion/mechanical/_schema_pins.py": true,
+    "tests/ingestion/mechanical/data/bounded_oracle.json": true
+  }
+}

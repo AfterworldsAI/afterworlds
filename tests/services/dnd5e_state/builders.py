@@ -233,12 +233,13 @@ def complete_character(
         saving_throw_proficiencies=(
             SavingThrowGrant(
                 ability=AbilityScore.INTELLIGENCE,
-                source=GrantSource(record_key=class_key),
+                source=GrantSource(record_key=class_key, component_key="core_traits"),
             ),
         ),
         weapon_proficiencies=(
             WeaponProficiencyGrant(
-                category=WeaponCategory.SIMPLE, source=GrantSource(record_key=class_key)
+                category=WeaponCategory.SIMPLE,
+                source=GrantSource(record_key=class_key, component_key="core_traits"),
             ),
         ),
         armor_training=(),

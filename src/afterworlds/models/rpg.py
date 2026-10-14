@@ -25,13 +25,193 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from afterworlds.models.enums import ConditionVisibility, RollVisibility
 
 # ---------------------------------------------------------------------------
 # Roll proposal DTOs (model-emitted; no trust-relevant numbers)
 # ---------------------------------------------------------------------------
+
+
+class SubjectRef(BaseModel):
+    """A character or continuing creature of the story, by id (CRD Issue 15c).
+    Code checks that it belongs to the story before reading it."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    kind: Literal["character", "creature"]
+    subject_id: UUID
+
+
+#: Where an attack's target is relative to the attacker, as the GameMaster
+#: selects it from the options code generates for this attack (Owner decision
+#: OD-15c-1): within the weapon's reach (melee), within its normal range,
+#: beyond normal but within long range, or beyond long range.
+RangeBand = Literal[
+    "within_reach",
+    "within_normal_range",
+    "beyond_normal_within_long_range",
+    "beyond_long_range",
+]
+#: The degree of cover the target has against this attack (``play.combat``).
+CoverDegree = Literal["none", "half", "three_quarters", "total"]
+#: The light and obscurement at a subject's location, as it bears on seeing
+#: it (``rules-glossary.md`` Vision and Light). Code derives sight from these,
+#: the subjects' recorded conditions and source-qualified senses; it executes
+#: bright and dim light only and refuses the rest until sense ranges are
+#: supplied for the operation.
+LightLevel = Literal[
+    "bright", "dim", "darkness", "magical_darkness", "heavily_obscured"
+]
+
+
+class HeldItem(BaseModel):
+    """One item in a subject's hands, and how many hands hold it."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    item_id: UUID
+    hands: Literal[1, 2]
+
+
+class HandFacts(BaseModel):
+    """The GameMaster's hand/grip facts for the acting subject (Owner decision
+    2026-10-12): the actual held items in its hands and the hands left free.
+    Code validates them; they establish no ammunition, action or waiver."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    held: tuple[HeldItem, ...]
+    free_hands: Literal[0, 1, 2]
+
+
+class WeaponAttackSelection(BaseModel):
+    """The GameMaster's selections for one ``weapon_attack``: identities and
+    approved contextual facts only, never a number. Code validates each
+    against the weapon, the subjects and the source, and derives every value.
+    The facts are recorded with this attack's provenance; they are not a
+    reusable position record."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    weapon_item_id: UUID
+    target: SubjectRef
+    range: RangeBand
+    cover: CoverDegree
+    attacker_light: LightLevel
+    target_light: LightLevel
+    #: For a ranged attack: the enemies the GameMaster identifies within 5
+    #: feet of the attacker (an empty list: none). Code checks each can see
+    #: the attacker and isn't Incapacitated (``play.combat/close_combat``).
+    hostiles_within_5_feet: tuple[SubjectRef, ...] | None = None
+    #: The story's save-affecting aura holders whose aura covers a creature
+    #: this attack forces to save (an empty list: none in range).
+    auras_in_range: tuple[SubjectRef, ...] | None = None
+    #: Whether the attacker is within 5 feet of the target, for a rule that
+    #: turns on it (Prone, and Paralyzed's or Unconscious's automatic
+    #: Critical Hit). A melee attack with a 5-foot reach implies it.
+    target_within_5_feet: bool | None = None
+    #: A Versatile weapon used in two hands; a Thrown weapon thrown; a
+    #: Finesse weapon's chosen ability.
+    two_handed: bool = False
+    thrown: bool = False
+    ability: str | None = None
+    #: What the attacker holds in its hands, and how (required).
+    hands: HandFacts | None = None
+    #: For a weapon with the Ammunition property: the held ammunition item
+    #: fired (OD-15c-1 selection; code checks its typed kind, the weapons it
+    #: serves and the quantity, and expends one whether the attack hits).
+    ammunition_item_id: UUID | None = None
+    #: A melee attack that would reduce the target to 0 Hit Points knocks it
+    #: out instead (``knocking_out``, optional for the attacker).
+    knock_out: bool = False
+    #: Use the weapon's optional mastery property (Graze, Push, Slow, Topple),
+    #: which the wielder's Weapon Mastery feature must cover. Sap and Vex are
+    #: not optional and apply whenever it does.
+    mastery: bool = False
+    #: Push: how far the target is pushed straight away, up to the source's
+    #: distance (OD-15c-1).
+    push_ft: Literal[5, 10] | None = None
+    #: Cleave's extra attack, against a second creature, made with the same
+    #: weapon after the previous attack hit. ``cleave_within_5_feet`` is the
+    #: GameMaster's fact that the second creature is within 5 feet of the
+    #: first (OD-15c-1).
+    cleave: bool = False
+    #: The Light property's extra attack, after an Attack action attack with
+    #: another Light weapon this turn: as a Bonus Action (``light``) or, with
+    #: the weapon's Nick mastery, as part of the Attack action (``nick``).
+    extra: Literal["light", "nick"] | None = None
+    cleave_within_5_feet: bool | None = None
+
+
+class CreatureAttackSelection(BaseModel):
+    """The GameMaster's selections for one ``creature_attack``: the attacking
+    creature, one of its printed attack entries, the target, and the approved
+    contextual facts (OD-15c-1). Never a number."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    attacker: SubjectRef
+    entry: str = Field(min_length=1)
+    target: SubjectRef
+    range: RangeBand
+    cover: CoverDegree
+    attacker_light: LightLevel
+    target_light: LightLevel
+    hostiles_within_5_feet: tuple[SubjectRef, ...] | None = None
+    target_within_5_feet: bool | None = None
+    #: For a trait like Pack Tactics: the attacker's allies the GameMaster
+    #: identifies within 5 feet of the target (an empty list: none).
+    allies_within_5_feet_of_target: tuple[SubjectRef, ...] | None = None
+    auras_in_range: tuple[SubjectRef, ...] | None = None
+    #: Part of the attacker's Multiattack: consecutive ``creature_attack``
+    #: proposals by one creature marked so form one Multiattack action, which
+    #: must match one of its printed alternatives.
+    multiattack: bool = False
+    #: For an entry printing a charge (*"moved 20+ feet straight toward it
+    #: immediately before the hit"*): whether the attacker did (OD-15c-1).
+    moved_straight_toward_target: bool | None = None
+    #: The follow-up attack an entry's hit allows (*"can make one Bite
+    #: attack against it"*): it directly follows that attack, against its
+    #: target, and takes no action of its own.
+    follows_up: bool = False
+
+
+class CreatureSaveEffectSelection(BaseModel):
+    """The GameMaster's selections for one ``creature_save_effect``: the source
+    creature, one of its printed save-effect entries, and the creatures in
+    its area or otherwise subject to it (OD-15c-1). Never a number."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    source: SubjectRef
+    entry: str = Field(min_length=1)
+    targets: tuple[SubjectRef, ...] = Field(min_length=1)
+    auras_in_range: tuple[SubjectRef, ...] | None = None
+    #: For an entry affecting "each enemy" in its area (a Sphinx's roars):
+    #: the creatures in the area the GameMaster identifies as the source's
+    #: enemies (bystander identification; no allegiance is derived). The
+    #: targets must be exactly these. Null for any other entry.
+    enemies_in_area: tuple[SubjectRef, ...] | None = None
+
+
+class LifecycleAttestation(BaseModel):
+    """The GameMaster's attestation about one recovery instance (CRD Issue
+    15c, OD-15c-2), never a result: code holds the interval, the thresholds and
+    the consequence, and consumes each instance once.
+
+    ``instance_id`` names a Stable recovery instance (``stable_recovery``) or
+    a knockout's Unconscious condition instance (``knockout_recovery``).
+    ``elapsed_hours`` is the *total* time since that instance began (4: four
+    or more), for
+    ``stable_recovery`` only; a repeated attestation adds nothing.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    instance_id: str = Field(min_length=1)
+    elapsed_hours: Literal[1, 2, 3, 4] | None = None
 
 
 class RollProposal(BaseModel):
@@ -51,6 +231,37 @@ class RollProposal(BaseModel):
     visible_modifier_note: str | None = None
     difficulty_reference_note: str | None = None
     visibility: RollVisibility
+    #: CRD Issue 15c: the roster operation the GameMaster selects, and the
+    #: code-admitted identity it selects (``record_key/component_key``). These
+    #: are identities, never numbers; code validates both and derives every
+    #: value. The labels above are display text only.
+    operation: str | None = None
+    check_identity: str | None = None
+    #: Closed-vocabulary selections an operation may need, validated in code:
+    #: the ability and skill of a difficulty check, the Typical DC identity
+    #: the GameMaster selects, and the tool activity of a tool check, with
+    #: the kind of a Gaming Set or Musical Instrument used.
+    ability: str | None = None
+    skill: str | None = None
+    difficulty: str | None = None
+    tool_activity: str | None = None
+    tool_variant: str | None = None
+    #: The selections of a ``weapon_attack`` (CRD Issue 15c).
+    weapon_attack: WeaponAttackSelection | None = None
+    #: The one subject an operation names: whose turn ``begin_turn`` or
+    #: ``end_turn`` marks, whom ``stabilize`` aids, or whose recovery an
+    #: attestation concerns (CRD Issue 15c).
+    subject: SubjectRef | None = None
+    #: An elapsed-time or completion attestation (OD-15c-2).
+    attestation: LifecycleAttestation | None = None
+    #: The selections of a ``creature_attack`` (CRD Issue 15c).
+    creature_attack: CreatureAttackSelection | None = None
+    #: The selections of a ``creature_save_effect`` (CRD Issue 15c).
+    creature_save_effect: CreatureSaveEffectSelection | None = None
+    #: For ``creature_species`` (CRD Issue 15c, bounded species input): the
+    #: accepted species record the scene offers for ``subject``. An identity
+    #: from code-generated options, validated in code.
+    species: str | None = None
 
 
 class AdjudicationProposalOutput(BaseModel):
@@ -110,14 +321,44 @@ class SheetEffect(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     target: str
-    operation: Literal["delta", "set", "apply_condition", "clear_condition"]
+    operation: Literal[
+        "delta",
+        "set",
+        "apply_condition",
+        "clear_condition",
+        "apply_effect",
+        "end_effect",
+    ]
     value_json: str
     schema_version: Literal[1] = 1
+    #: CRD Issue 15c: the subject the effect applies to. ``None`` is the
+    #: turn's acting character (the earlier single-subject meaning).
+    subject_kind: Literal["character", "creature"] | None = None
+    subject_id: UUID | None = None
 
 
 # ---------------------------------------------------------------------------
 # Resolved adjudication record (INTERNAL — full mechanical/audit payload)
 # ---------------------------------------------------------------------------
+
+
+class TurnUseRef(BaseModel):
+    """One action instance or once-per-turn slot a record spent, by whom
+    (CRD Issue 15c, :mod:`afterworlds.pipeline.rpg.economy`)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    by: SubjectRef
+    key: str = Field(min_length=1)
+
+
+class TurnEdge(BaseModel):
+    """One explicit actor-turn edge (CRD Issue 15c, contract G1)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    kind: Literal["begin", "end"]
+    subject: SubjectRef
 
 
 class ResolvedAdjudicationRecord(BaseModel):
@@ -147,6 +388,13 @@ class ResolvedAdjudicationRecord(BaseModel):
     sheet_effects: tuple[SheetEffect, ...]
     source: Literal["ai", "hidden", "player"]
     gm_cheating_at_roll: bool
+    #: The actor-turn edge this record applies, if any (CRD Issue 15c). The
+    #: orchestrator replays every record's edge onto the coordination the
+    #: turn read and commits it with the Turn.
+    turn_edge: TurnEdge | None = None
+    #: A once-per-turn use this record takes (``record/component``) for the
+    #: acting character in the active turn; replayed and committed like edges.
+    turn_uses: tuple[TurnUseRef, ...] = ()
 
 
 # ---------------------------------------------------------------------------
