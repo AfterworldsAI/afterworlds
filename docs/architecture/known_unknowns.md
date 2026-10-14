@@ -357,9 +357,15 @@ Contract 3 family groups after that batch:
   - candidate S1 carries it as a `package_patch` override;
   - ADR-015b Group 17 is the proposed contract.
 
-  The representation group stays *untouched*. One question remains open and is surfaced, not decided:
-  what a contest costs in a combat turn (action, Bonus Action or none). The adopted procedure does not
-  state it, so the proposed contract records no action use for a contest.
+  The representation group stays *untouched*. The adopted procedure states no action cost, so the
+  comparison spends nothing. The initiating effort is accounted under SRD 5.2.1 and the 15c economy:
+  - in an active turn, the active initiator spends its one action;
+  - an off-turn initiator, or a free, Bonus Action or Reaction effort, refuses;
+  - with no active turn, nothing is recorded.
+
+  One product policy stays open, proposed and not decided. The source says efforts "typically" take an
+  action, and the proposal is that v1 never accepts a GameMaster-declared costless contest in an active
+  turn.
 
 Known residue from that batch, recorded rather than typed on single instances: an imposed sensory state
 (Blinded's *"You can't see"* and Deafened's parallel — every other blinding effect in the corpus instead
