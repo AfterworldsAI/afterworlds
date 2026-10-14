@@ -1,0 +1,18 @@
+........................................................................ [ 16%]
+........................................................................ [ 33%]
+........................................................................ [ 50%]
+........................................................................ [ 66%]
+........................................................................ [ 83%]
+........................................................................ [100%]
+============================== warnings summary ===============================
+tests/pipeline/rpg/test_bloodied.py: 14 warnings
+  D:\AI\Claude\issue-15b-resumption\afterworlds\venv\Lib\site-packages\pydantic\main.py:520: UserWarning: Pydantic serializer warnings:
+    PydanticSerializationUnexpectedValue(Expected `enum` - serialized value may not be as expected [field_name='size', input_value='medium', input_type=str])
+    return self.__pydantic_serializer__.to_python(
+
+tests/entitlement/test_replay.py::test_rebuild_raises_replay_error_for_unknown_event_type
+  D:\AI\Claude\issue-15b-resumption\afterworlds\venv\Lib\site-packages\sqlalchemy\engine\default.py:1192: DeprecationWarning: The default datetime adapter is deprecated as of Python 3.12; see the sqlite3 documentation for suggested replacement recipes
+    cursor.execute(statement, parameters)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+432 passed, 15 warnings in 37.28s

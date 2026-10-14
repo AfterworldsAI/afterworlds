@@ -20,6 +20,12 @@ from afterworlds.ingestion.mechanical.oracle import (
     _resolve_committed_inputs,
     accepted_inputs_payload,
 )
+from afterworlds.ingestion.mechanical.representation import (
+    AbilityScore,
+    CreatureSkillBonus,
+    CreatureSkillsFact,
+    Skill,
+)
 from tests.ingestion.mechanical.conftest import PACKAGE_UUID, RELEASE_VERSION
 from tests.ingestion.mechanical.test_proposal_boundary import _proposal
 
@@ -71,20 +77,22 @@ def test_superseding_the_only_claimant_resolves_nothing(
     assert _resolve_committed_inputs(PACKAGE_UUID, RELEASE_VERSION, tmp_path) is None
 
 
-def test_only_the_release_predecessor_g1_c5_and_c7_are_superseded_by_digest() -> None:
+def test_only_the_predecessor_g1_c5_c7_and_c8_are_superseded_by_digest() -> None:
     """The original artifact, its CRD Issue 2b G1 successor and the CRD Issue
-    15c native C5 and C7 successors, each kept byte for byte; the CRD Issue
-    15c C8 successor is the one claimant."""
+    15c native C5, C7 and C8 successors, each kept byte for byte; the CRD Issue
+    15b C9 successor is the one claimant."""
     directory = oracle.COMMITTED_ORACLE_DIR
     prior = directory / "srd-5-2-1-corpus-8781d4e0-a3b.json"
     g1 = directory / "srd-5-2-1-corpus-8781d4e0-a3b-g1.json"
     c5 = directory / "srd-5-2-1-corpus-8781d4e0-a3b-15c.json"
     c7 = directory / "srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json"
+    c8 = directory / "srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json"
     assert {
         _digest(prior),
         _digest(g1),
         _digest(c5),
         _digest(c7),
+        _digest(c8),
     } == oracle.SUPERSEDED_ORACLE_SHA256
     assert _digest(g1) == (
         "2ccbaeba6de75d9787fbdd407e42dc2425fa20d4d26bcc298b681b550bd11258"  # noqa: E501  # pragma: allowlist secret
@@ -95,8 +103,11 @@ def test_only_the_release_predecessor_g1_c5_and_c7_are_superseded_by_digest() ->
     assert _digest(c7) == (
         "2853f30a832ca581c9d4169b82d0c360f3d6a2d78f0ad8980de9997eef51f373"  # noqa: E501  # pragma: allowlist secret
     )
-    assert _digest(directory / "srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json") == (
+    assert _digest(c8) == (
         "ead7fa9d4fde484098f71221ca5ef82dfb2c82229d8fca80ab5feeb4e4d62d0d"  # noqa: E501  # pragma: allowlist secret
+    )
+    assert _digest(directory / "srd-5-2-1-corpus-8781d4e0-a3b-15b-c9.json") == (
+        "01729b532a0ff46047608d9e46d539851ba2c9a32aaa9e0468ae0babb902ec7b"  # noqa: E501  # pragma: allowlist secret
     )
 
 
@@ -152,9 +163,22 @@ _ACCEPTED_C8_PROPOSALS = {
 }
 
 
-def test_the_committed_release_resolves_to_the_recorded_c8_successor() -> None:
-    """The C8 successor: C5's eleven accepted proposals, two replaced by C7's
-    and five (one of them C7's) by C8's, at the accepted oracle identity."""
+#: The four proposals the Owner accepted with PR #194 and the native C9 packet
+#: (``.claude/review-notes/issue-15b-c9-recording/owner-acceptance-2026-10-14.md``).
+_ACCEPTED_C9_PROPOSALS = {
+    "animals": "3c6fa54203a5412d1d93b524d52ddb4fe80eb8627152c7761e14ac211c7305f3",  # noqa: E501  # pragma: allowlist secret
+    "magic-items": "b5412d4bde82e7153f119783da126ac1251fcaa106cbe094f2416bd3400f9bc6",  # noqa: E501  # pragma: allowlist secret
+    "monsters": "6445a5b1433ec73f9972c78f7d4f9edfd1bf204debc588ce55272effae3824ab",  # noqa: E501  # pragma: allowlist secret
+    "spell-descriptions": (
+        "2f296a37e843fc408a0b8cdab542d651364345c04d74cf36154a3e2479d3897b"  # noqa: E501  # pragma: allowlist secret
+    ),
+}
+
+
+def test_the_committed_release_resolves_to_the_recorded_c9_successor() -> None:
+    """The C9 successor: C5's eleven accepted proposals, two replaced by C7's,
+    five (one of them C7's) by C8's and four of C8's by C9's, at the accepted
+    oracle identity and schema 22."""
     inputs = oracle.committed_inputs_for(
         "1299484e-c72d-509b-bd8d-d0169ee1f8d2", "5.2.1-corpus.8781d4e0-a3b"
     )
@@ -164,8 +188,28 @@ def test_the_committed_release_resolves_to_the_recorded_c8_successor() -> None:
         **_ACCEPTED_15C_PROPOSALS,
         **_ACCEPTED_C7_PROPOSALS,
         **_ACCEPTED_C8_PROPOSALS,
+        **_ACCEPTED_C9_PROPOSALS,
     }
     assert {k: identities[k] for k in expected} == expected
     assert oracle.oracle_identity(inputs.oracle) == (
-        "70646cd987dcf75adc7b57b6271e38c6ca8cc9b508584dac89c5acefafa3e8d9"  # noqa: E501  # pragma: allowlist secret
+        "924321dff5ab1821de3a4cdf464e3db1aa28859238458ddd6a58663ddf15ab0c"  # noqa: E501  # pragma: allowlist secret
+    )
+    assert inputs.oracle.schema_version == "5d-representation-schema-22"
+    assert [lf.lift_id for lf in inputs.lifts][-1] == "5d-lift-schema-21-to-22"
+    # Each of the 336 creature profiles carries its printed Skills entry.
+    skills = {
+        (c.record_key, c.semantic_key): f
+        for c in inputs.oracle.representation.components
+        for f in c.facts
+        if isinstance(f, CreatureSkillsFact)
+    }
+    assert len(skills) == 336
+    assert skills[("monsters.goblins.goblin_warrior", "goblin_warrior")] == (
+        CreatureSkillsFact(
+            skills=(
+                CreatureSkillBonus(
+                    skill=Skill.STEALTH, ability=AbilityScore.DEXTERITY, bonus=6
+                ),
+            )
+        )
     )

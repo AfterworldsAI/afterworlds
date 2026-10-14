@@ -5,9 +5,10 @@
 | Step | Status |
 | --- | --- |
 | Policy and source adoption | **done** by the Owner (`docs/decisions/owner-decision-2026-10-14-contest-supplement.md`) |
-| Exact native semantic acceptance of S1 and the C9 packet | **not given** |
-| Acceptance of this PR | not given |
-| Recording, publication and activation | not done |
+| Exact native semantic acceptance of S1 and the C9 packet | **given** 2026-10-14, with this PR (`../issue-15b-c9-recording/owner-acceptance-2026-10-14.md`) |
+| Acceptance of this PR | **given** 2026-10-14 at `5d05f473`, including the combat Action cost; CI run `38555377777` green |
+| Recording | C9 recorded in the next 15b PR (`../issue-15b-c9-recording/`) |
+| Publication, S1 activation, #129 resume | not done; separately gated |
 
 **Out of scope here:**
 - PR #129 stays frozen at `d8233a43`.

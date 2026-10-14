@@ -367,6 +367,13 @@ Contract 3 family groups after that batch:
   action, and the proposal is that v1 never accepts a GameMaster-declared costless contest in an active
   turn.
 
+  *Status line, 14 October 2026, later (Owner acceptance with PR #194):* Group 17, S1 and C9 are
+  accepted, and so is that policy: in an active combat turn the initiator's contest costs its one
+  action and a costless contest refuses; the resisting check costs nothing; outside active combat no
+  per-turn use is recorded. C9 is recorded (`srd-5-2-1-corpus-8781d4e0-a3b-15b-c9.json`, schema 22)
+  and the 15c operations are recertified on it. Contests stay an authored supplement; the
+  representation group above stays *untouched*.
+
 Known residue from that batch, recorded rather than typed on single instances: an imposed sensory state
 (Blinded's *"You can't see"* and Deafened's parallel — every other blinding effect in the corpus instead
 says *"has the Blinded condition"*), Exhaustion's cumulative level accrual, death threshold, and

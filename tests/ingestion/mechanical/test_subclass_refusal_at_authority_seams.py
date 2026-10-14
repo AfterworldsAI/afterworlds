@@ -1178,6 +1178,7 @@ SOURCE_BACKED_TUPLE_FIELDS: tuple[str, ...] = (
     "CreatureRollModifierFact.effects",
     "CreatureSaveEffectFact.failure_damage",
     "CreatureSizeFact.sizes",
+    "CreatureSkillsFact.skills",
     "CreatureTypeFact.type_choice",
     "DamageNotationOptionFact.options",
     "DamageTerm.addends",
@@ -1270,7 +1271,7 @@ _ACCEPTED_SOURCES = (
     ("monsters.parts_of_a_stat_block", "limited_usage"),
     ("classes.rogue.as_a_multiclass_character", "as_a_multiclass_character"),
 )
-_ACCEPTED_ORACLE = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json"
+_ACCEPTED_ORACLE = COMMITTED_ORACLE_DIR / "srd-5-2-1-corpus-8781d4e0-a3b-15b-c9.json"
 
 
 @cache

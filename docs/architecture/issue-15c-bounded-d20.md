@@ -2,7 +2,9 @@
 
 **Governing issue:** #191, as updated with the Owner's context-input decisions of 12 October 2026 (body SHA-256 `8ad87786…727426f`).
 
-**Authority:** the Owner-accepted C8 successor `srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json`.
+**Current authority (14 October 2026, CRD Issue 15b):** the Owner-accepted C9 successor `srd-5-2-1-corpus-8781d4e0-a3b-15b-c9.json` (SHA-256 `01729b53…ec7b`, schema 22 `b073cd4f…`, projection `3703faf5-8b51-5c3f-b28c-b378b005f7bf`, oracle identity `924321df…`) supersedes C8 by digest. C9 adds only the 336 creature profiles' printed Skills entries (`creature_skills`). Every executable 15c operation is recertified on it: `CERTIFIED_RELEASE` moves to `3703faf5-…`; no governing set or fingerprint moved, because creature profiles are certified per subject, so adapter `15c-d20-4` and manifest `15c-manifest-4` stay. Evidence: `.claude/review-notes/issue-15b-c9-recording/` (recording and `recert/`). The C8 text below is history.
+
+**Authority (13 October 2026):** the Owner-accepted C8 successor `srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json`.
 - **Identity:** SHA-256 `ead7fa9d…0d0d`, schema 21 (`4499b396…`), recorded locally 13 October 2026, projection `e4f8f4fb-de6c-53c9-98f1-fa7a0159fe42`, oracle identity `70646cd9…`.
 - **Preserved and superseded:** it supersedes the C7 successor `…-15c-c7.json` (`2853f30a…f373`, projection `8446ab6b-…`) by digest, which superseded the native C5 successor (`23e5d8e0…4f69`, projection `44f212d5-…`). C7, C5, G1 and the original artifact are all kept byte for byte.
 - **Not shared authority:** it is not published or activated. Shared migration, publication and activation remain separately gated.
@@ -275,6 +277,8 @@ A bare or departing stored type, an unexecuted effect or a form refuses before a
   - **C9:** creature skills, schema 22.
 
   Neither candidate changes a 15c operation: every governing fingerprint is unchanged under S1 (S1 `validation.json`). Recording C9 will move the certified projection, so every 15c operation is recertified then, as C8 required.
+
+  *Accepted 14 October 2026 (Owner, with PR #194).* C9 is recorded and every 15c operation recertified on it (see *Current authority* at the top). The exclusion entry stays as 15c's history; the contest operation itself is future 15b work.
 
 ### Other reconciliations
 

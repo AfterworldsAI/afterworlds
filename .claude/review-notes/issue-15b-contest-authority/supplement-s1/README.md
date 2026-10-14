@@ -1,5 +1,7 @@
 # CRD Issue 15b — candidate S1: the SRD 5.1 contest supplement
 
+> **Accepted 2026-10-14.** The Owner accepted S1 (`c232a786…`) with PR #194 (`../../issue-15b-c9-recording/owner-acceptance-2026-10-14.md`). It stays a release-bound authored override applied only to isolated in-memory fixtures: not authored into any store, not published, not activated. Activation remains a separately authorized operational gate. The text below is the pre-acceptance record.
+
 **This is a candidate only.** It is not accepted, not authored into any store, not published and not activated. What the Owner accepted on 2026-10-14 is the policy and source choice ([Owner Decision](../../../../docs/decisions/owner-decision-2026-10-14-contest-supplement.md)). That acceptance does not cover this artifact. S1 needs independent review and exact semantic acceptance. After that, putting it into a package's override state is a separately authorized shared-runtime operation.
 
 | File | SHA-256 |
@@ -8,7 +10,9 @@
 | `page-77-extract.txt` (pypdf text of PDF page index 76) | `ed129b55cb0dccf9446dff29e89475c23fc626fa58034a1907432d11e87e80fa` |
 | `validation.json` (28 checks, all true) | `22bd4d12d0ac43e27226c82e42efc7abe980840460db32f302aff7cc8ed80b66` |
 
-**Reproduce.** Run from the repository root, with the worktree venv plus `pypdf`, which is a review-tool dependency, not a project one. Two runs produce byte-identical output.
+**Historical C8 evidence.** `validation.json` is the accepted report, produced while C8 was the selected authority (PR #194 at `5d05f473`). `validate_s1.py` reads whichever authority `committed_inputs_for` selects, but it labels that authority C8 and rewrites `validation.json`. On a branch where C9 is recorded, running it unchanged would mix C9 data with C8 labels and overwrite the accepted report. Reproduce it on a checkout of `5d05f473`, or run only `derive_s1.py` here, which does not read the corpus. The current C9 compatibility of the accepted S1 is a separate in-memory proof, `../../issue-15b-c9-recording/s1-on-c9/` (`s1-on-c9.json`).
+
+**Reproduce (at `5d05f473`).** Run from the repository root, with the worktree venv plus `pypdf`, which is a review-tool dependency, not a project one. Two runs produce byte-identical output.
 
 ```
 PYTHONIOENCODING=utf-8 venv/Scripts/python.exe .claude/review-notes/issue-15b-contest-authority/supplement-s1/derive_s1.py [--pdf PATH]

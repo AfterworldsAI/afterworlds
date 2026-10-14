@@ -30,6 +30,11 @@ from pathlib import Path
 import pytest
 from sqlalchemy import event
 
+# Story and Node: every story-scoped model's FK targets. Registered here so
+# Base.metadata.create_all does not depend on which other test modules were
+# collected first (an RPG import registers story-scoped tables alone).
+import afterworlds.persistence.orm.node  # noqa: F401
+import afterworlds.persistence.orm.story  # noqa: F401
 from afterworlds.ingestion.corpus.persistence import (
     FinalizeResult,
     finalize_source_release,

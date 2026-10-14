@@ -119,6 +119,8 @@ __all__ = [
     "SCHEMA_20_VERSION",
     "SCHEMA_21_HASH",
     "SCHEMA_21_VERSION",
+    "SCHEMA_22_HASH",
+    "SCHEMA_22_VERSION",
     "SchemaLiftRecord",
     "UnknownSchemaLiftError",
     "lift_for",
@@ -174,6 +176,8 @@ SCHEMA_20_VERSION = "5d-representation-schema-20"
 SCHEMA_20_HASH = "759dcc1f9de2cac9254be108ca8a83433ca30854061276a9c349a370e1c6e77a"  # noqa: E501  # pragma: allowlist secret
 SCHEMA_21_VERSION = "5d-representation-schema-21"
 SCHEMA_21_HASH = "4499b3964aac338e10c7b6d1f67a5eb37570878600e0c5f04bd4464d58f1df55"  # noqa: E501  # pragma: allowlist secret
+SCHEMA_22_VERSION = "5d-representation-schema-22"
+SCHEMA_22_HASH = "b073cd4f429631826efd628ed164a5ad680050c7e957e74680777922affb414f"  # noqa: E501  # pragma: allowlist secret
 
 
 class SchemaLiftError(ValueError):
@@ -848,6 +852,27 @@ SCHEMA_LIFTS: dict[tuple[str, str], SchemaLift] = {
             "than asserting. A schema-20 declaration carrying a new family or "
             "type member is refused by the introduction manifest, never "
             "flattened. The policy contract does not move with it."
+        ),
+    ),
+    (SCHEMA_21_VERSION, SCHEMA_21_HASH): SchemaLift(
+        lift_id="5d-lift-schema-21-to-22",
+        from_version=SCHEMA_21_VERSION,
+        from_hash=SCHEMA_21_HASH,
+        to_version=SCHEMA_22_VERSION,
+        to_hash=SCHEMA_22_HASH,
+        rationale=(
+            "Schema 22 admits one family, creature_skills (CRD Issue 15b C9): "
+            "a creature profile's complete printed Skills entry, as printed "
+            "totals never decomposed, with the one value shape it holds, a "
+            "skill and its bonus. It adds no field to any accepted family, no "
+            "component key and no vocabulary member. "
+            "Nothing accepted moves. No accepted component states a fact of "
+            "the new family, so every accepted payload -- and its fact key "
+            "and provenance coordinate -- is byte-identical under both "
+            "contracts, which verify_lift proves element by element rather "
+            "than asserting. A schema-21 declaration carrying the new family "
+            "is refused by the introduction manifest, never flattened. The "
+            "policy contract does not move with it."
         ),
     ),
 }

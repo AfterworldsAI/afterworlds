@@ -249,7 +249,9 @@ from afterworlds.ingestion.mechanical.schema_lift import (
     SCHEMA_19_VERSION,
     SCHEMA_20_HASH,
     SCHEMA_20_VERSION,
+    SCHEMA_21_HASH,
     SCHEMA_21_VERSION,
+    SCHEMA_22_VERSION,
     SchemaLiftError,
     accepted_schema_contracts,
     lift_accepted_inputs,
@@ -938,6 +940,22 @@ SCHEMA_21_ONLY = [
 ]
 
 
+#: Schema 22 (CRD Issue 15b C9): one family and one value shape. Raw
+#: candidate C9's Goblin Warrior Skills entry, and a positively empty one.
+SCHEMA_22_ONLY = [
+    pytest.param(fact_from_payload(p), id=f"creature-skills-{i}")
+    for i, p in enumerate(
+        (
+            {
+                "family": "creature_skills",
+                "skills": [{"skill": "stealth", "ability": "dexterity", "bonus": 6}],
+            },
+            {"family": "creature_skills", "skills": []},
+        )
+    )
+]
+
+
 # ---------------------------------------------------------------------------
 # The contract, driven from the manifest rather than from a hand-written list
 # ---------------------------------------------------------------------------
@@ -968,6 +986,7 @@ def test_every_manifest_row_has_an_exemplar_here() -> None:
         *SCHEMA_19_ONLY,
         *SCHEMA_20_ONLY,
         *SCHEMA_21_ONLY,
+        *SCHEMA_22_ONLY,
     ):
         (obj,) = param.values
         exercised |= _groups_exercised_by(obj)
@@ -1279,6 +1298,17 @@ def test_schema_20_refuses_every_schema_21_only_family(obj: object) -> None:
 @pytest.mark.parametrize("obj", [*SCHEMA_21_ONLY, *SCHEMA_20_ONLY, *SCHEMA_19_ONLY])
 def test_schema_21_admits_what_it_and_its_predecessors_introduced(obj: object) -> None:
     assert post_schema_3_violations(obj, SCHEMA_21_VERSION) == []
+
+
+@pytest.mark.parametrize("obj", SCHEMA_22_ONLY)
+def test_schema_21_refuses_every_schema_22_only_family(obj: object) -> None:
+    """Schema 21 cannot state a creature's Skills entry (CRD Issue 15b C9)."""
+    assert post_schema_3_violations(obj, SCHEMA_21_VERSION), obj
+
+
+@pytest.mark.parametrize("obj", [*SCHEMA_22_ONLY, *SCHEMA_21_ONLY, *SCHEMA_20_ONLY])
+def test_schema_22_admits_what_it_and_its_predecessors_introduced(obj: object) -> None:
+    assert post_schema_3_violations(obj, SCHEMA_22_VERSION) == []
 
 
 def test_schema_16_leaves_every_pre_existing_relationship_kind_readable() -> None:
@@ -1769,7 +1799,7 @@ def test_the_recognized_contracts_are_exactly_the_live_pair_and_the_registry() -
         # 12, schema 12 at schema 13, schema 13 at schema 14, schema 14 at
         # schema 15, schema 15 at schema 16, schema 16 at schema 17 and schema
         # 17 at schema 18, schema 18 at schema 19, schema 19 at schema 20,
-        # and schema 20 at schema 21.
+        # schema 20 at schema 21, and schema 21 at schema 22.
         # The
         # rule is the registry, not a list of versions somebody kept up to date.
         (SCHEMA_5_VERSION, SCHEMA_5_HASH),
@@ -1788,6 +1818,7 @@ def test_the_recognized_contracts_are_exactly_the_live_pair_and_the_registry() -
         (SCHEMA_18_VERSION, SCHEMA_18_HASH),
         (SCHEMA_19_VERSION, SCHEMA_19_HASH),
         (SCHEMA_20_VERSION, SCHEMA_20_HASH),
+        (SCHEMA_21_VERSION, SCHEMA_21_HASH),
     }
 
 

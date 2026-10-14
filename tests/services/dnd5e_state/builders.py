@@ -16,6 +16,7 @@ from functools import lru_cache
 from uuid import UUID
 
 from afterworlds.ingestion.mechanical.oracle import (
+    AcceptedInputs,
     candidate_from_accepted_inputs,
     committed_inputs_for,
 )
@@ -100,6 +101,12 @@ SAGE = "character_origins.sage"
 def real_index() -> AuthorityIndex:
     inputs = committed_inputs_for(PACKAGE, RELEASE)
     assert inputs is not None
+    return index_for(inputs)
+
+
+def index_for(inputs: AcceptedInputs) -> AuthorityIndex:
+    """The effective index of *inputs* under its own derived projection and
+    the empty override set."""
     candidate = candidate_from_accepted_inputs(inputs)
     projection = identify_projection(candidate).projection_uuid
     binding = RulesPackageBinding(

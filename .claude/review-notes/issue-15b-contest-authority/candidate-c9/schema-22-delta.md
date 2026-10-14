@@ -1,5 +1,11 @@
 # Schema 22 delta: `creature_skills` (CRD Issue 15b, candidate C9)
 
+> **Current status (14 October 2026): accepted and recorded.** The Owner accepted this schema with
+> PR #194 and the native C9 packet. Schema 22 is the accepted amendment in ADR-005d ("Amendment —
+> representation schema 22"). C9 is recorded as `srd-5-2-1-corpus-8781d4e0-a3b-15b-c9.json`
+> (`01729b53…`, `../../issue-15b-c9-recording/`). The hash `b073cd4f…414f`, the family and the
+> lift below are unchanged. The next line is the pre-acceptance status, kept as history.
+
 **Plan, with a local preview implementation for review. Nothing here is accepted or recorded.** Main stays
 on accepted C8 at schema 21.
 

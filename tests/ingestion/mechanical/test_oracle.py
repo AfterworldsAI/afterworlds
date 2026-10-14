@@ -95,6 +95,7 @@ def test_the_committed_oracle_directory_holds_one_artifact_per_release() -> None
     assert committed == [
         "srd-5-2-1-corpus-3fe24ff6-4e3.json",
         "srd-5-2-1-corpus-574662e9-0ef.json",
+        "srd-5-2-1-corpus-8781d4e0-a3b-15b-c9.json",
         "srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json",
         "srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json",
         "srd-5-2-1-corpus-8781d4e0-a3b-15c.json",
@@ -286,7 +287,7 @@ def test_a_superseded_release_is_refused_although_its_file_matches() -> None:
     )
     assert current is not None
     assert hashlib.sha256(serialize_accepted_inputs(current)).hexdigest() == (
-        "ead7fa9d4fde484098f71221ca5ef82dfb2c82229d8fca80ab5feeb4e4d62d0d"  # noqa: E501  # pragma: allowlist secret
+        "01729b532a0ff46047608d9e46d539851ba2c9a32aaa9e0468ae0babb902ec7b"  # noqa: E501  # pragma: allowlist secret
     )
 
 

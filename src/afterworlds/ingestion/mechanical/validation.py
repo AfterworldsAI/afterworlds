@@ -44,6 +44,7 @@ from afterworlds.ingestion.mechanical.representation import (
     AmmunitionSupplyFact,
     ComponentDraft,
     CreatureSizeFact,
+    CreatureSkillsFact,
     CreatureTypeFact,
     FactFamily,
     ProseBindingDraft,
@@ -1157,6 +1158,44 @@ def _validate_summoned_creature_types(draft: RepresentationDraft) -> list[str]:
     return findings
 
 
+def _validate_creature_skills(draft: RepresentationDraft) -> list[str]:
+    """A ``creature_skills`` fact sits only on a creature profile, at most once.
+
+    Schema 22 (CRD Issue 15b C9). A creature profile is a component of a
+    ``creature`` record carrying ``creature_size``, on the
+    ``summoned_creature_type`` terms. Only structurally admitted facts are
+    read: a refused ``creature_skills`` fact is not counted, and a component
+    whose ``creature_size`` is refused is not judged (each refusal stays the
+    finding).
+    """
+    kinds = {r.semantic_key: r.kind for r in draft.records}
+    findings: list[str] = []
+    for component in draft.components:
+        facts = (*component.facts, *(f for o in component.options for f in o.facts))
+        sizes = [f for f in facts if type(f) is CreatureSizeFact]
+        if any(fact_invariant_violations(f) for f in sizes):
+            continue  # its own refusal is the finding
+        skills = [
+            f
+            for f in facts
+            if type(f) is CreatureSkillsFact and not fact_invariant_violations(f)
+        ]
+        if not skills:
+            continue
+        where = f"component {component.record_key}/{component.semantic_key}"
+        if kinds.get(component.record_key) is not RecordKind.CREATURE or not sizes:
+            findings.append(
+                f"{where}: creature_skills sits only on a creature profile (a "
+                "creature record's component carrying creature_size)"
+            )
+        if len(skills) > 1:
+            findings.append(
+                f"{where}: states {len(skills)} creature_skills facts; a profile "
+                "has at most one"
+            )
+    return findings
+
+
 def validate_representation(
     draft: RepresentationDraft,
     ledger: ClassificationLedger,
@@ -1187,4 +1226,5 @@ def validate_representation(
     findings.extend(_validate_duplicated_fact_authority(draft, ledger))
     findings.extend(_validate_ammunition_supplies(draft))
     findings.extend(_validate_summoned_creature_types(draft))
+    findings.extend(_validate_creature_skills(draft))
     return tuple(findings)

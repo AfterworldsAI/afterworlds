@@ -224,12 +224,18 @@ SUPERSEDED_RELEASE_VERSIONS = frozenset(
 #: the Owner-accepted CRD Issue 15c C8 successor
 #: ``srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json`` (recorded 2026-10-13; see
 #: ``.claude/review-notes/issue-15c-c8-recording/``).
+#:
+#: ``ead7fa9d…``: ``srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json``, superseded by
+#: the Owner-accepted CRD Issue 15b C9 successor
+#: ``srd-5-2-1-corpus-8781d4e0-a3b-15b-c9.json`` (recorded 2026-10-14; see
+#: ``.claude/review-notes/issue-15b-c9-recording/``).
 SUPERSEDED_ORACLE_SHA256: frozenset[str] = frozenset(
     {
         "def7caa1625458a40c1f635db153268082cf52d5e25c28f57fd29518e44de58c",
         "2ccbaeba6de75d9787fbdd407e42dc2425fa20d4d26bcc298b681b550bd11258",  # noqa: E501  # pragma: allowlist secret
         "23e5d8e0fac60e3f5417b3a41e40e6f475366dd385856f38c42104f4dd264f69",  # noqa: E501  # pragma: allowlist secret
         "2853f30a832ca581c9d4169b82d0c360f3d6a2d78f0ad8980de9997eef51f373",  # noqa: E501  # pragma: allowlist secret
+        "ead7fa9d4fde484098f71221ca5ef82dfb2c82229d8fca80ab5feeb4e4d62d0d",  # noqa: E501  # pragma: allowlist secret
     }
 )
 

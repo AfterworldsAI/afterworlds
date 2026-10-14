@@ -1,0 +1,35 @@
+{
+  "owner": "Ravenlok (Owner)",
+  "exact_user_message": "I accept PR #194 and the native review packet, including the proposed combat Action cost. Check CI and prepare the next whole 15b PR. Preserve #129’s explicit resume gate; no merges or shared-runtime operations.",
+  "accepted_on": "2026-10-14",
+  "receipt": ".claude/review-notes/issue-15b-c9-recording/owner-acceptance-2026-10-14.md",
+  "receipt_source": "OWNER-ACCEPTANCE-PR194-NATIVE-2026-10-14.md, recorded by Codex from the Owner's direct message; copied byte for byte",
+  "receipt_sha256": "30b50a3ed2a07d4eb179159b95f00e460d1988c09065b2014386f4ab3fa31b80",
+  "accepted_pr": "https://github.com/AfterworldsAI/afterworlds/pull/194",
+  "accepted_pr_head": "5d05f4732c41a527dddd5e40dbd0ac045aaceb75",
+  "accepted_pr_ci": {
+    "run": "38555377777",
+    "jobs_success": 11,
+    "evidence": [
+      ".claude/review-notes/issue-15b-c9-recording/pr-194-accepted-head-ci.json",
+      ".claude/review-notes/issue-15b-c9-recording/ci-38555377777-completed.json"
+    ]
+  },
+  "supporting_preview_head": "002de94d04d26fbcfbbf3d5872696c13bc90f5ae",
+  "native_bundle": "C9-NATIVE-OWNER-REVIEW.zip",
+  "native_bundle_sha256": "acbee2ed44b3795614f2b0d5e08982b8cf9cac57bffa5d50cc5b306d5ca1c22d",
+  "packet_report": ".claude/review-notes/issue-15b-c9-native/reports/c9-packet.json",
+  "packet_report_sha256": "d61ed1b435e539da7127373d387d2124167581b9df9b5fcc9afb146049e096d4",
+  "s1_sha256": "c232a7863d3a31144ebb7fcdd2f7af6591b68b4f3cb096bf65ad6e6d3372c64a",
+  "c9_r2_sha256": "a3d40545d1a0ea1b4a1e24a1e3831b12b972f50ea26981b0edf1b578fd0648db",
+  "reviewed_preview_sha256": "3ad7bdcb7aa926e38eca6c4019f7c77119427076a1639b2aa1f81cbfd25f59a3",
+  "schema": ["5d-representation-schema-22", "b073cd4f429631826efd628ed164a5ad680050c7e957e74680777922affb414f"],
+  "lift": "5d-lift-schema-21-to-22",
+  "oracle_identity": "924321dff5ab1821de3a4cdf464e3db1aa28859238458ddd6a58663ddf15ab0c",
+  "projection": "3703faf5-8b51-5c3f-b28c-b378b005f7bf",
+  "projection_payload_hash": "c7a52d551823917a8def153396262a816eb51c60a5c6b5a58cdb8d009902b82f",
+  "prior_oracle": "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json",
+  "prior_oracle_sha256": "ead7fa9d4fde484098f71221ca5ef82dfb2c82229d8fca80ab5feeb4e4d62d0d",
+  "successor_oracle": "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15b-c9.json",
+  "boundary": "Recording installs local repository authority only; only acceptance evidence (reviewer, accepted_at, rule) differs from the reviewed preview on the four touched batches, so the recorded file has its own digest, reported separately. S1 is not recorded and stays a release-bound authored override applied only to isolated in-memory fixtures. Not publication or activation; no merge, shared-runtime migration or app launch. PR #129 stays frozen; its explicit resume gate is not released."
+}

@@ -279,16 +279,20 @@ _DEATH_SAVE_PROCEDURE: tuple[tuple[str, str], ...] = (
 )
 
 #: The release this adapter version was certified against: the accepted CRD
-#: Issue 15c C8 successor (oracle SHA-256 ``ead7fa9d…0d0d``), by the
-#: projection identity it derives; a store must publish it before it binds.
-#: Recertified from C7 (projection ``8446ab6b-…``), itself from the native C5
-#: successor (``44f212d5-…``), by reviewing every governing component; C8
-#: changed only the 346 components it typed
-#: (``.claude/review-notes/issue-15c-implementation/recert/``).
+#: Issue 15b C9 successor (oracle SHA-256 ``01729b53…ec7b``, schema 22), by
+#: the projection identity it derives; a store must publish it before it binds.
+#: Recertified from C8 (projection ``e4f8f4fb-…``), itself from C7
+#: (``8446ab6b-…``) and the native C5 successor (``44f212d5-…``), by reviewing
+#: every governing component. C9 typed only the 336 creature profiles' Skills
+#: entries, which no shared governing set contains (creature templates are
+#: certified per subject by :func:`certify_template`), so no fingerprint and
+#: no adapter code moved; the versions stay, and a certificate's projection
+#: distinguishes C8 from C9
+#: (``.claude/review-notes/issue-15b-c9-recording/recert/``).
 CERTIFIED_RELEASE: tuple[UUID, str, UUID] = (
     UUID("1299484e-c72d-509b-bd8d-d0169ee1f8d2"),
     "5.2.1-corpus.8781d4e0-a3b",
-    UUID("e4f8f4fb-de6c-53c9-98f1-fa7a0159fe42"),
+    UUID("3703faf5-8b51-5c3f-b28c-b378b005f7bf"),
 )
 
 #: Procedure components the check executor implements (ADR-005d D3/ADR-015 D7:
