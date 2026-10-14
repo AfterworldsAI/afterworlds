@@ -270,6 +270,12 @@ A bare or departing stored type, an unexecuted effect or a form refuses before a
 - **In-turn instructions.** 15c's in-turn instructions are in-memory and per turn: an operation, an admitted identity and the derived numbers. Nothing in them is persisted beyond the existing delivery-gated `rpg_roll_audit` row. Its `modifiers_json` carries the provenance: operation, identity, DC source, breakdown, Advantage sources and certificate.
 - **Planned shape for linked rolls.** When the held weapon work lands, linked attack → damage → mastery rolls resolve synchronously inside one delivered turn. Their instructions take ADR-015b's `RollInstructionSnapshot`/`RollTerm`/`RollPurpose` field shapes, so 15b can adopt them without migration. 15c introduces no persisted pending or sequence model.
 
+- **Forward reference: contests (14 October 2026, proposed, CRD Issue 15b).** 15c excluded "contests and opposed checks" (`capability.py` `EXCLUSIONS`). That entry describes 15c's completed scope and stays as history. The Owner has since made positive contest execution a v1 requirement, owned by 15b, under an adopted SRD 5.1 supplement. ADR-015b Group 17 (15b-37) proposes the contract. Its two authority candidates are under `.claude/review-notes/issue-15b-contest-authority/`:
+  - **S1:** the authored `play.d20_tests/contest` override.
+  - **C9:** creature skills, schema 22.
+
+  Neither candidate changes a 15c operation: every governing fingerprint is unchanged under S1 (S1 `validation.json`). Recording C9 will move the certified projection, so every 15c operation is recertified then, as C8 required.
+
 ### Other reconciliations
 
 - **ADR-015 Decision 7.** Gains a dated forward reference: under ADR-005c Decision 6 and #191, out-of-boundary mechanics refuse, and `undetermined` is reserved for admitted behavior.

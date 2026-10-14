@@ -14,6 +14,14 @@
 > 15b/19b's; PR #129 stays frozen. The seam is recorded in
 > [`issue-15c-bounded-d20.md`](../architecture/issue-15c-bounded-d20.md).
 
+> **Status note (2026-10-14, CRD Issue 15b contest amendment — proposed):** Group 17 (15b-37) below
+> proposes how #127 acceptance criterion 8 is executed. Its text is unchanged and stays positive
+> execution. The Owner adopted the SRD 5.1 contest procedure as an explicit supplement
+> ([Owner Decision 2026-10-14](owner-decision-2026-10-14-contest-supplement.md)). Group 17 and the two
+> authority candidates it depends on, S1 and C9, are proposals. They await independent review, exact
+> semantic acceptance and Owner acceptance of the whole PR. No contest executes until those land and
+> are recorded. PR #129 stays frozen.
+
 ---
 
 ## Central Invariant
@@ -272,6 +280,17 @@ mechanism.
 
 ### Group 12 — Migration
 
+> **Superseded in part by recorded Owner Decision 15b-36 (pre-release clean schema cutover).** That
+> decision is recorded in #127 and in the frozen ADR text of #129 (`d8233a43`). This main-branch body
+> predates it, and 15b-36 governs wherever the two differ:
+> - the eight legacy display/derivation columns of `pending_roll_requests` are dropped by direct
+>   `ALTER TABLE`, with no widening, rebuild-copy, active-row backfill or row-conversion pass;
+> - the migration asserts that the table is empty and aborts with an explicit message before any
+>   destructive change if a row exists.
+>
+> 15b-36 supersedes only the nullable-preservation choice below. It reopens nothing else, including
+> 15b-25 and the deterministic-conversion rule. This note does not change any migration.
+
 **Decision (15b-30):** Convert existing pending expressions (`1d20`, `2d20kh1`, `2d20kl1`) deterministically
 into the new structured shape. Unknown pending expressions fail visibly and are never coerced to a default
 roll. Backfilled rows carry `schema_version = 2` (the versioning rule under **Revised PendingRollRequest**
@@ -398,6 +417,267 @@ decisions from scope was the offered alternative, but it would silently cut acce
 `submit_decision` service method, `MECHANICAL_DECISION_INVALID`, and `SequenceInteractionKind.DECISION` —
 a materially smaller lifecycle than the one already accepted across 15b-19 through 15b-24 — so the
 additive fix is the correct, smaller change.
+
+### Group 17 — Generic two-participant contests (proposed amendment, 2026-10-14)
+
+**Decision (15b-37, proposed):** CRD Issue 15b executes generic two-participant ability-check contests
+in v1. It does so through the action-resolution lifecycle above and one new adapter operation. That
+operation is governed by the Owner-adopted SRD 5.1 contest supplement:
+
+- **The comparison.** Code compares the two participants' authoritative final check totals, and the
+  greater total wins.
+- **A tie.** Equal totals preserve the situation that existed before the contest.
+- **Specific SRD 5.2.1 mechanics** keep their own rules.
+
+#127 acceptance criterion 8 keeps its text and stays positive execution.
+
+**Forms that are distinct and not converted.** Each of these keeps its current rule and status. None
+satisfies criterion 8.
+
+| Form | Rule | Status |
+|---|---|---|
+| Generic contest (this Group) | both participants check at once; totals compared; tie preserves the prior situation | S1 supplement plus C9 creature skills; executable after acceptance |
+| A later check against a recorded total | Hide: the Stealth total becomes the DC to find the hider (`rules-glossary.md`:875; C8 `dc_kind: recorded_check_total`) | unchanged; not executed by 15c |
+| Passive comparison | Passive Perception (`glossary.passive_perception`, prose-bound, `gamemaster_latitude`) | unchanged; out of scope |
+| Fixed or formula DC | Influence's higher-of DC, escape DCs, Investigation against a spell save DC | unchanged (15c checks where admitted) |
+| Attack and save mechanics | Grapple and Shove are saving throws in SRD 5.2.1 | unchanged (15c operations) |
+
+**Authority.** Each item below names where the authority comes from:
+
+- **Comparison and tie: supplement S1.**
+  - S1 is one authored `package_patch` override. It APPENDs the prose-bound component
+    `play.d20_tests/contest`, which carries the exact SRD 5.1 excerpt, the three adopted points and the
+    CC-BY-4.0 attribution.
+  - It is authored against release `5.2.1-corpus.8781d4e0-a3b` under the deterministic override id
+    `b9134dea-52c3-546a-b13c-795fe16bfe90`. This is the existing authored-authority mechanism of
+    ADR-005d Decision 10, as amended 2026-08-08. It never claims SRD 5.2.1 provenance.
+  - The contest operation's governing set includes that component, so its certification fingerprint
+    binds the exact text and override (`component_schema_id` `802ea038…`).
+  - Under a binding whose effective authority lacks the component, a contest refuses as missing
+    authority. Under a binding that changes it, the contest refuses as incompatible certification.
+  - Each contest certificate records the binding's `override_set_uuid`.
+- **A character's check.** The accepted 15c check procedure applies, unchanged, to that character's own
+  state:
+  - the ability modifier;
+  - skill proficiency and Expertise;
+  - the Proficiency Bonus band;
+  - Advantage and Disadvantage from recorded conditions;
+  - every existing hold and contributor refusal, including worn armor.
+- **A creature's check: candidate C9, `creature_skills`, schema 22.**
+  - **A listed skill used with its usual ability** (the Skills table's pairing, which each C9 entry
+    records explicitly) uses its printed total as the complete bonus. Nothing is added to it.
+  - **A listed skill used with any other ability**, such as Strength (Acrobatics): the source permits
+    the pairing (`playing-the-game.md`:239), but the printed total is for the usual ability only.
+    - Example: the Assassin's Acrobatics +7 is Dexterity's; its Strength is +0.
+    - Decomposing the total is not established, so the check refuses before any die unless separately
+      supported authority exists.
+    - This is a bounded adapter exclusion, not a claim that the rules forbid the pairing.
+  - **An unlisted skill under a complete list** means no proficiency. Under any pairing it uses the
+    chosen ability's modifier.
+  - **A check with no skill** uses the ability's modifier.
+  - If the profile has no `creature_skills` fact, the check refuses as missing authority.
+  - Typed contributors (`creature_roll_modifier`, conditions) apply or refuse as they do for every
+    creature roll.
+- **What the GameMaster selects.** Selections are identities only, validated in code:
+  - two distinct participants of the story;
+  - each participant's ability;
+  - an optional skill for each, governed by that ability;
+  - display text for the stakes.
+
+  The GameMaster never selects dice, modifiers, totals, a winner or an effect.
+
+**Timing.**
+
+- Both checks belong to one contest inside one action-resolution sequence. Neither participant's
+  instruction depends on the other's result.
+- Both participants' instruction snapshots are frozen when the contest is created (stored-snapshot
+  authority).
+- A player-rolled participant's check is the sequence's single pending interaction.
+- The dice for a backend participant (shown AI or hidden) are generated in the same intermediate
+  transaction that accepts the player's result, never earlier. No opposing total therefore exists while
+  the player's roll is pending, and reloading reveals nothing.
+- If no participant is player-rolled, both checks are backend-generated inside the originating turn's
+  adjudication, as ordinary 15c rolls are.
+
+**Representation.** This introduces no new event kind and no new outcome value.
+
+- **Each participant's check** is an ordinary roll-kind step and event (`PLAYER_ROLL`, `AI_ROLL` or
+  `HIDDEN_ROLL`) with `purpose = CONTESTED` and `dc = None`. Its `outcome` is the existing
+  `"undetermined"`, because a contest roll has no target number.
+  - Neither roll is ever recorded as success or failure against the other's total.
+  - The second roll is never resolved with the first total as its DC. `>=` would award every tie to one
+    side, which the adopted rule forbids.
+- **Backend-only contest linkage** goes on each participant's `RollInstructionSnapshot`:
+  - the contest identity;
+  - the participant and counterpart subject references;
+  - the supplement certificate.
+
+  None of it enters `PlayerRollInstructionView`.
+- **The combined resolution** is computed by code exactly once, when the second total is accepted. It
+  is committed atomically with that completing roll event, as a typed, immutable contest resolution on
+  the event's payload, set only on a contest-completing roll event. It holds:
+  - the contest identity;
+  - both participants' subject, step and total;
+  - `result` = `win` or `tie`;
+  - the winner, or none on a tie;
+  - the certificate.
+
+  Recomputing it from the two immutable participant events must reproduce it; a mismatch is a typed
+  integrity failure at resume.
+- **A tie** is `result = tie` with no winner and no effect. The Writer is told that the situation is
+  unchanged.
+
+**Consequences.** A generic contest establishes a winner or a tie, and nothing else. It applies:
+
+- no sheet change;
+- no condition;
+- no damage, movement or attitude change;
+- no resource change.
+
+Its result is a narrative fact for the Writer. That is what structurally keeps a contest from standing
+in for Hide (Invisible), Influence (attitude), Grapple or Shove (saves and conditions). Those effects
+remain reachable only through their own operations. The GameMaster prompt contract must route such
+actions to those operations.
+
+**Action accounting.** Resolving the comparison and accounting for the initiating action are separate
+steps.
+
+- **The comparison** (S1) prescribes no action cost and spends nothing.
+- **The initiating effort** is the action the initiator takes. Its cost is governed by SRD 5.2.1 and by
+  the accepted 15c action-accounting contract (`pipeline/rpg/economy.py`, contract G1), not by the
+  supplement:
+  - "When you do something other than moving or communicating, you typically take an action"
+    (`playing-the-game.md`:612).
+  - An improvised action is one "not detailed elsewhere in the rules", for which the GameMaster says
+    "what kind of D20 Test you need to make" (`:675`).
+  - "You can take only one action at a time" (`:679`).
+  - A Bonus Action exists only where a feature states one (`:685`).
+  - A Reaction exists only where an ability or situation provides one (`:693`).
+
+**Where each turn situation leads.**
+
+| Turn situation | What happens |
+| --- | --- |
+| No turn is active (exploration or social play) | No per-turn use is recorded. This matches every admitted 15c check |
+| A turn is active and the initiator is the active subject | The contest takes the turn's one action, `glossary.action/action`, for the initiator, through the existing economy. It refuses before any die if that action is already used or the initiator cannot take actions |
+| A turn is active and the initiator is not the active subject | Initiating would need a Reaction or a Readied action. Reactions are not executable (`economy.py`), so the contest refuses before any die |
+| The initiating effort is offered as a Bonus Action, a Reaction or a free effort | No admitted typed authority grants that, so the contest refuses |
+| The resisting participant | Its check is part of the contest the initiator's action triggers. No source states a cost for it, so no use is recorded, as for saving throws in 15c. No Reaction is spent |
+
+Movement, Reactions and Ready are not built here. **One product policy remains, proposed and not
+decided.** In an active turn, the source's "typically" leaves the GameMaster latitude to treat an effort
+as part of movement or communication. The proposal: for v1, the contest operation always charges the
+initiator's action in an active turn, and refuses rather than accepting a GameMaster-declared costless
+contest.
+
+**A related observation, out of scope and not changed here.** Admitted 15c check operations (fixed-DC,
+difficulty, tool) record no action use in an active turn either (`economy.costs`). That is surfaced for
+review, not patched here.
+
+**Audit and visibility.**
+
+- **Final audit rows.** Each participant roll derives one final `rpg_roll_audit` row as Group 15
+  requires, with `dc` NULL and `outcome` `undetermined`. The contest resolution reaches the
+  delivered-result audit from the completing event alone. Its exact column or encoding extends the
+  Final Audit Projection table and its nullability sibling check, at Phase 2's mandatory ledger/audit
+  advisor checkpoint. It never reads sequence, session, adapter or sheet state.
+- **A hidden participant** is a `HIDDEN_ROLL`. Its total and modifiers, and whether hidden modifiers
+  exist, never reach a player DTO or the Writer. Leaving out the backend linkage is not enough on its
+  own, because public `purpose = CONTESTED`, progress counts, labels or Writer framing can still disclose
+  a counterpart. There are two different cases:
+  - **A known opponent whose roll is hidden.** The character perceives the opposition, for example
+    someone holding the door. The public projection may present the check as a contest and name the
+    perceived counterpart. Only the counterpart's numbers are hidden.
+  - **A counterpart whose existence is hidden.** The character does not perceive the opposition. The
+    public projection is then an ordinary check, labelled for the character's own effort:
+    - `purpose` is the ordinary skill or ability check purpose, never `CONTESTED`;
+    - the counterpart is not named, and progress counts the player's own steps only;
+    - the result is presented as the effort succeeding or not;
+    - the Writer receives the same filtered framing.
+
+    Nothing discloses the hidden linkage or whether hidden modifiers exist.
+
+  Backend events and the combined resolution keep full, immutable authority in both cases. This
+  carries the accepted privacy boundary (15b-17, ADR-015 Decision 5) through to contests. It is not a
+  new stealth or detection mechanic, and whether a counterpart is perceivable is a GameMaster-selected
+  identity validated like any other selection.
+- **A shown participant** is an `AI_ROLL`, visible as ordinary shown rolls are.
+
+**Preserved invariants.** All of the following still hold:
+
+- one pending interaction;
+- atomic event plus advancement;
+- rejection of stale, duplicate and concurrent submissions;
+- no provider or settlement call between narrations;
+- failed or refused final narration preserves both participant events and the resolution, without
+  rerolling, and an identical-facts retry is idempotent;
+- final audit, Turn and sequence completion commit together.
+
+**Proof that criterion 8 requires** (Phase 2 without HTTP; Phase 3 fake-provider E2E):
+
+- **Ordinary selections:** contests with different skills (Athletics against Athletics; Athletics
+  against Acrobatics) and plain ability contests.
+- **Outcomes:** both win directions, and equal totals preserving the prior situation.
+- **Opposition types:**
+  - a player against a shown AI participant;
+  - a player against a hidden participant;
+  - a character against a creature, with a listed skill, an unlisted skill and an empty list.
+- **Lifecycle:**
+  - reload between the two results;
+  - stale, duplicate and concurrent submissions;
+  - source or state drift refused through certification or stored snapshots;
+  - no provider or settlement call during deterministic advancement;
+  - failed resume followed by an identical-facts retry.
+- **Production reachability.**
+- **Combat accounting:**
+  - an active-turn initiator spends its action;
+  - a used action refuses;
+  - an off-turn initiator refuses;
+  - no use is recorded outside an active turn.
+- **Hidden-counterpart projection:** the player DTO, progress and Writer framing are indistinguishable
+  from an ordinary check.
+- **Refusals:**
+  - a missing supplement;
+  - a changed supplement;
+  - a missing creature-skill fact;
+  - a listed skill used with an atypical ability;
+  - an unexecuted contributor.
+
+Refusal and representation tests do not count as positive coverage. A two-actor engine fixture alone
+is not v1 delivery.
+
+**Gates, in order.**
+
+1. **Before dependent lifecycle implementation:**
+   - independent review and exact native semantic acceptance of S1 and of the C9 native packet;
+   - the explicit #129 resume-gate disposition.
+2. **The landing gate for the authority.** This follows acceptance and comes with or before the
+   dependent code that reads it:
+   - recording the C9 successor;
+   - landing schema 22 with it;
+   - recertifying every 15c operation against the new projection, as C8 did.
+
+   Dependent code is written and proven against that recorded authority. S1 is applied to isolated
+   fixtures in memory, as `supplement-s1/validate_s1.py` does.
+3. **A later operational gate, never performed by agents here:** activating S1 in each package's
+   override state, and any publication. This is separately authorized and is not a prerequisite for
+   writing or proving dependent code.
+
+**Ownership.**
+
+- **15b:** the contest lifecycle and the adapter operation.
+- **The Rules Package authority seams:** S1 and C9.
+- **15c:** its exclusion of contests described its completed scope and stays as history.
+- **19b:** consumes the API and owns no comparison or dice authority.
+
+**Rationale.**
+
+- The Owner made positive contest execution a v1 requirement. The accepted SRD 5.2.1 corpus states no
+  contest rule: `DcKind.CONTESTED` is used by no C8 fact. The adopted supplement is therefore explicit,
+  separately identified authority under the existing override mechanism, not an adapter fallback.
+- Creature checks need the printed Skills entry. In C8, 159 of the 429 printed entries equal the
+  modifier plus twice the Proficiency Bonus, and two fit no derivation. Recording the printed totals is
+  the only representation that neither invents nor double-adds a bonus.
 
 ---
 
@@ -844,6 +1124,10 @@ This is audit completeness and transaction correctness, not anti-cheat or fairne
 
 ## Revised PendingRollRequest
 
+> **Recorded Owner Decision 15b-36 governs this section's migration shape.** The eight legacy columns are
+> dropped under the empty-table cutover, with the fail-before-destruction guard; see the note under Group
+> 12. Where the text below preserves them as nullable, it is superseded.
+
 The shipped row's actual primary-key/column names differ from an earlier draft of this section, which a
 Codex review of this document (round 1) caught: the persisted row's identity column is `request_id`, not
 `pending_roll_request_id`; there is no `consumed_at` column (only `consumed_turn_id`); `source_proposal_ref`
@@ -985,6 +1269,8 @@ Exact names follow repository conventions; validation precedes atomic consumptio
   propagation of 15b-34 — see **Final Audit Projection** above). `RollEventPayload.total` and `.outcome`
   become non-null, `outcome` typed to the shipped bounded set (Phase 2; Round 6, required propagation of
   15b-34, correcting a P1 insert-failure risk against the existing non-null `rpg_roll_audit` columns).
+- *(Superseded by recorded Owner Decision 15b-36, which is the empty-table cutover with the
+  fail-before-destruction guard; see the Group 12 note. The bullet below is kept as history.)*
 - `PendingRollRequest` is revised per the Column Disposition table above (Phase 2, migration). The five
   currently-`NOT NULL` legacy columns (`check_label`, `player_facing_instruction`, `expected_value_shape`,
   `roll_expression`, `hidden_modifier_present`) widen to nullable via a SQLite rebuild-copy migration,
@@ -1018,7 +1304,7 @@ Exact names follow repository conventions; validation precedes atomic consumptio
 |---|---|
 | 2 / 2a | Character Sheet remains authoritative persistent mechanical state. |
 | 3 | Reuse repository, migration, transaction, and partial-unique-index patterns. |
-| 5a / 5b | Rules Package remains mechanical canon; ingestion is unchanged. |
+| 5a / 5b | Rules Package remains mechanical canon; ingestion is unchanged. Group 17 (proposed) adds the creature-skill candidate C9 (schema 22) and the authored contest supplement S1 through the existing acceptance and override mechanisms. |
 | 8 | Context Builder remains stable-prefix owner; intermediate operations build no model context. Resume uses a code-owned continuation frame and the ready bundle. |
 | 9 | Writer receives ordered existing `WriterAdjudicationView` records at the narration boundary. |
 | 10 / 11 | Extractor and Contradiction run only for final narrative output. |
@@ -1039,5 +1325,11 @@ Exact names follow repository conventions; validation precedes atomic consumptio
 - **Exact FastAPI route shapes** (open, CRD Issue 19): Phase 3 adds concrete RPG roll-lifecycle routes
   under existing Issue 19 conventions; this ADR does not resolve the broader route-shape unknown, only
   commits Phase 3 to following whatever conventions Issue 19 already established.
+
+- **Contests (representation "untouched" group) and contest action cost** (Group 17, proposed): the
+  accepted corpus still types no contest; the generic procedure comes from the authored supplement S1,
+  not from the representation union. The initiating effort's action is accounted under SRD 5.2.1 and
+  the 15c economy. One product policy is surfaced, not decided: never accepting a GameMaster-declared
+  costless contest in an active turn.
 
 No other listed Known Unknown is touched or resolved by this document.

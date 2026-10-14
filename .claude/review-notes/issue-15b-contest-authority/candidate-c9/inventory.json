@@ -1,0 +1,39 @@
+{
+ "candidate_id": "15b-C9-creature-skills",
+ "diagnostic_printed_total_vs_modifier_and_pb": {
+  "modifier + 2 x PB": 159,
+  "modifier + PB": 268,
+  "other (bonus - modifier - PB = +1)": 2
+ },
+ "empty_skill_lists": 120,
+ "printed_skills_lines": 216,
+ "skill_entries": 429,
+ "total_facts": 336,
+ "touched_batches": {
+  "animals": {
+   "components": 95,
+   "empty": 33,
+   "facts": 95,
+   "with_skills": 62
+  },
+  "magic-items": {
+   "components": 2,
+   "empty": 2,
+   "facts": 2
+  },
+  "monsters": {
+   "components": 235,
+   "empty": 81,
+   "facts": 235,
+   "with_skills": 154
+  },
+  "spell-descriptions": {
+   "components": 4,
+   "empty": 4,
+   "facts": 4
+  }
+ },
+ "untouched_batch_count": 20,
+ "why": "a generic contest participant may be any creature of the story making any ability check; each profile needs its complete printed Skills entry so a listed skill uses its printed total and an unlisted skill is known to be unlisted",
+ "with_printed_skills": 216
+}
