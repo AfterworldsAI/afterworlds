@@ -450,33 +450,83 @@ def _creature_row(client: TestClient, creature_id: str) -> Any:
     return row
 
 
+@pytest.mark.parametrize(
+    ("d20", "d4", "outcome", "taken", "revision", "current_hp"),
+    [
+        # A miss (2 - 1 + 2 = 3 against the Wolf's AC 12): no damage roll.
+        pytest.param(2, None, "failure", None, 1, 11, id="miss"),
+        # A hit (15 + 1 = 16): 1d4 rolls 4, Strength 8 takes 1, so 3 damage.
+        pytest.param(15, 4, "success", 3, 2, 8, id="damaging-hit"),
+        # A hit whose 1d4 rolls 1: 1 - 1 = 0 damage, so nothing changes and
+        # the target's state is not rewritten.
+        pytest.param(15, 1, "success", 0, 1, 11, id="zero-damage-hit"),
+    ],
+)
 def test_a_weapon_attack_commits_the_targets_damage_with_the_delivered_turn(
-    client: TestClient, gm: list[list[dict[str, Any]]]
+    client: TestClient,
+    gm: list[list[dict[str, Any]]],
+    monkeypatch: pytest.MonkeyPatch,
+    d20: int,
+    d4: int | None,
+    outcome: str,
+    taken: int | None,
+    revision: int,
+    current_hp: int,
 ) -> None:
+    """Every branch of a Club attack by the Strength 8 wizard, with the
+    backend dice fixed: a miss, a damaging hit, and a hit dealing 0."""
+    from afterworlds.models.rpg import DiceResult
+    from afterworlds.pipeline.rpg.dice import SystemRandomDiceService
+
+    rolled: list[str] = []
+
+    def roll(self: object, expression: str) -> DiceResult:
+        rolled.append(expression)
+        face = d20 if "d20" in expression else d4
+        assert face is not None, expression
+        return DiceResult(expression=expression, raw_rolls=(face,), chosen=face)
+
+    monkeypatch.setattr(SystemRandomDiceService, "roll", roll)
     story = _rpg_story(client)
     wolf, club = _wolf_and_club(client, story)
     gm.append([_begin_actor(client, story), _attack(wolf, club)])
     body = _turn(client, story, "I swing my club at the wolf.")
     assert body["disposition"] == "delivered", body
+    assert rolled == (["1d20"] if d4 is None else ["1d20", "1d4"])
     (row,) = [r for r in _audit(client, story) if r.check_label == "Club attack"]
     provenance = json.loads(row.modifiers_json)
-    assert (provenance["operation"], row.dc) == ("weapon_attack", 12)
+    assert (provenance["operation"], row.dc, row.outcome) == (
+        "weapon_attack",
+        12,
+        outcome,
+    )
     assert provenance["certificate"]["projection_uuid"] == str(
         real_index().binding.mechanical_projection_uuid
     )
+    (effects,) = _rows(
+        client,
+        "SELECT sheet_effects_json FROM rpg_roll_audit WHERE story_id = :s"
+        " AND check_label = 'Club attack'",
+        s=story,
+    )
+    effects = json.loads(effects.sheet_effects_json)
+    if taken is None:
+        assert provenance["damage"] is None  # a miss rolls no damage
+    else:
+        assert (provenance["damage"]["rolled"], provenance["damage"]["taken"]) == (
+            taken,
+            taken,
+        )
+    # Only damage taken changes the target: a 0-damage hit writes nothing.
+    assert [e["target"] for e in effects] == (["current_hp"] if taken else [])
     creature = _creature_row(client, wolf)
     document = (
         creature.document
         if isinstance(creature.document, dict)
         else json.loads(creature.document)
     )
-    if row.outcome == "failure":
-        assert creature.revision == 1
-        assert document["hit_points"]["current"] == 11
-    else:
-        damage = provenance["damage"]
-        assert creature.revision == 2
-        assert document["hit_points"]["current"] == max(0, 11 - damage["taken"])
+    assert creature.revision == revision
+    assert document["hit_points"]["current"] == current_hp
     assert "12" not in json.dumps(body.get("adjudication", ""))
     assert _turns(client) == 1
 
