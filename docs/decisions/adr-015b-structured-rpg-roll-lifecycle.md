@@ -20,7 +20,31 @@
 > ([Owner Decision 2026-10-14](owner-decision-2026-10-14-contest-supplement.md)). Group 17 and the two
 > authority candidates it depends on, S1 and C9, are proposals. They await independent review, exact
 > semantic acceptance and Owner acceptance of the whole PR. No contest executes until those land and
-> are recorded. PR #129 stays frozen.
+> are recorded. PR #129 stays frozen. *(Superseded by the acceptance note below; kept as history.)*
+
+> **Status note (2026-10-14, Owner acceptance):** the Owner accepted PR #194 (head `5d05f473`, CI
+> run `38555377777` green) and the native C9 review packet, including the proposed combat Action
+> cost: *"I accept PR #194 and the native review packet, including the proposed combat Action cost.
+> Check CI and prepare the next whole 15b PR. Preserve #129’s explicit resume gate; no merges or
+> shared-runtime operations."* Receipt:
+> `.claude/review-notes/issue-15b-c9-recording/owner-acceptance-2026-10-14.md`.
+> - **Accepted:** Group 17 (15b-37) as written below, S1 (`c232a786…`) and C9 r2 (`a3d40545…`), and
+>   the Action-cost policy recorded under *Action accounting*.
+> - **Authority landing gate (gate 2 below), done in the next 15b PR:** the C9 successor is recorded
+>   natively (`srd-5-2-1-corpus-8781d4e0-a3b-15b-c9.json`, `01729b53…`, projection `3703faf5-…`;
+>   only acceptance evidence differs from the reviewed preview), schema 22 lands with it, and every
+>   executable 15c operation is recertified on it.
+> - **Unchanged:** S1 stays an explicit release-bound authored override applied only to isolated
+>   in-memory fixtures; it is not SRD 5.2.1 corpus authority and is not activated in any store
+>   (gate 3). No contest operation or lifecycle exists yet.
+> - **PR #129 stays frozen at `d8233a43`.** Its explicit resume gate is not released by this
+>   acceptance: cross-layer contract acceptance and the required Rules Package, ingestion, adapter and
+>   15b amendment dispositions must be explicitly recorded and reviewed before dependent lifecycle
+>   changes.
+> - **Ordinary future 15b implementation, already decided:** Owner Decision 15b-36's empty-table
+>   cutover and fail-before-destruction guard (Group 12 pointer); the Finesse Strength/Dexterity
+>   pre-roll adjustment as the positive adjustment case; the stored yes/no knockout decision as the
+>   positive result-triggered decision; CRD Issue 19b consuming the settled 15b public API.
 
 ---
 
@@ -418,9 +442,9 @@ decisions from scope was the offered alternative, but it would silently cut acce
 a materially smaller lifecycle than the one already accepted across 15b-19 through 15b-24 — so the
 additive fix is the correct, smaller change.
 
-### Group 17 — Generic two-participant contests (proposed amendment, 2026-10-14)
+### Group 17 — Generic two-participant contests (accepted amendment, 2026-10-14)
 
-**Decision (15b-37, proposed):** CRD Issue 15b executes generic two-participant ability-check contests
+**Decision (15b-37, accepted 2026-10-14; see the acceptance status note):** CRD Issue 15b executes generic two-participant ability-check contests
 in v1. It does so through the action-resolution lifecycle above and one new adapter operation. That
 operation is governed by the Owner-adopted SRD 5.1 contest supplement:
 
@@ -570,6 +594,12 @@ as part of movement or communication. The proposal: for v1, the contest operatio
 initiator's action in an active turn, and refuses rather than accepting a GameMaster-declared costless
 contest.
 
+**Accepted 2026-10-14 (Owner, with PR #194).** During an active combat turn, the initiating
+participant's contest costs its one action, `glossary.action/action`, charged through the existing
+economy; a GameMaster-declared costless contest in an active turn refuses. The resisting check costs no
+additional action and spends no Reaction. Outside active combat no per-turn use is recorded. The
+off-turn, Bonus Action, Reaction and free-effort refusals in the table above remain binding.
+
 **A related observation, out of scope and not changed here.** Admitted 15c check operations (fixed-DC,
 difficulty, tool) record no action use in an active turn either (`economy.costs`). That is surfaced for
 review, not patched here.
@@ -662,6 +692,12 @@ is not v1 delivery.
 3. **A later operational gate, never performed by agents here:** activating S1 in each package's
    override state, and any publication. This is separately authorized and is not a prerequisite for
    writing or proving dependent code.
+
+*Gate status, 2026-10-14:* in gate 1, the exact acceptance of S1 and the C9 native packet is given
+(Owner, with PR #194); the explicit #129 resume-gate release is **not** given. Gate 2 is discharged by
+the next 15b PR: C9 recorded (`01729b53…`, projection `3703faf5-…`), schema 22 landed with it, and all
+14 executable 15c operations recertified with no governing fingerprint moved (C9 typed only creature
+profiles, which are certified per subject). Gate 3 is untouched.
 
 **Ownership.**
 

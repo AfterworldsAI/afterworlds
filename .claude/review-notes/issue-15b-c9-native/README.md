@@ -1,5 +1,11 @@
 # CRD Issue 15b — C9 native SIMULATED preview (review packet)
 
+> **Accepted and recorded (14 October 2026).** The Owner accepted PR #194 and this native packet
+> (`../issue-15b-c9-recording/owner-acceptance-2026-10-14.md`). The C9 successor is recorded natively
+> from the four exact proposals below (`../issue-15b-c9-recording/`), schema 22 lands with it and the
+> 15c operations are recertified. This packet, its preview and its reports stay as they were reviewed:
+> a simulation. The "Not done (held)" list at the end is the pre-acceptance state.
+
 **This is a simulation only.** It is not an Owner acceptance, recording, publication, activation or supersession. This is the local preview branch `codex/issue-15b-c9-schema-preview`, not the proposed PR. Schema 22 exists only here, and main stays on accepted C8 at schema 21. The preview oracle and the four rendered proposals live in the git-ignored `preview/`; their digests are pinned below and in the builder (`CONSTRUCTED`).
 
 | Item | Identity |

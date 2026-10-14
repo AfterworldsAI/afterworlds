@@ -58,3 +58,13 @@ Only the contest procedure is adopted. SRD 5.1 is not imported wholesale.
 
 The resulting contract is ADR-015b Group 17 (15b-37). That text is proposed and awaits Owner acceptance
 of the whole PR.
+
+## Acceptance (2026-10-14)
+
+The Owner accepted PR #194 at `5d05f473` and the native C9 review packet, including the combat Action
+cost (receipt `.claude/review-notes/issue-15b-c9-recording/owner-acceptance-2026-10-14.md`). Group 17
+(15b-37), S1 (`c232a786…`) and C9 r2 (`a3d40545…`) are accepted; the text above is kept as the
+pre-acceptance record. C9 is recorded natively as `srd-5-2-1-corpus-8781d4e0-a3b-15b-c9.json`
+(`01729b53…`). S1 is not recorded in the corpus and is not activated: it stays a release-bound authored
+override applied only to isolated in-memory fixtures until a separately authorized operational gate.
+PR #129's explicit resume gate is not released by this acceptance.

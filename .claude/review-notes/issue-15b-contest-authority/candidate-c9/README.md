@@ -7,6 +7,8 @@
 
 The printed totals are unchanged. r1 (`c9.json` `aa389aff…`, `validation.json` `993cf646…`) stays in history at `66f0deb4`.
 
+> **Accepted 2026-10-14 and recorded.** The Owner accepted C9 r2 with PR #194 and the native packet; the successor `srd-5-2-1-corpus-8781d4e0-a3b-15b-c9.json` (`01729b53…`) is recorded in the next 15b PR (`../../issue-15b-c9-recording/`). The text below is the pre-acceptance candidate record.
+
 **This is a raw candidate only.** Nothing here is accepted, minted, recorded or published, and no `src` code changes on this branch. **C8 stays the accepted authority**: `srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json`, `ead7fa9d…2d0d`. It is digest-checked and only read.
 
 **Why C9 is needed.** A generic contest participant may be any creature of the story, making any ability check (ADR-015b Group 17, proposed). C8 types no creature skill. Each profile's printed Skills entry is the only authority for its skill bonuses. Without a typed fact, two cases cannot be told apart:

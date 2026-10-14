@@ -1,5 +1,7 @@
 # CRD Issue 15b — candidate S1: the SRD 5.1 contest supplement
 
+> **Accepted 2026-10-14.** The Owner accepted S1 (`c232a786…`) with PR #194 (`../../issue-15b-c9-recording/owner-acceptance-2026-10-14.md`). It stays a release-bound authored override applied only to isolated in-memory fixtures: not authored into any store, not published, not activated. Activation remains a separately authorized operational gate. The text below is the pre-acceptance record.
+
 **This is a candidate only.** It is not accepted, not authored into any store, not published and not activated. What the Owner accepted on 2026-10-14 is the policy and source choice ([Owner Decision](../../../../docs/decisions/owner-decision-2026-10-14-contest-supplement.md)). That acceptance does not cover this artifact. S1 needs independent review and exact semantic acceptance. After that, putting it into a package's override state is a separately authorized shared-runtime operation.
 
 | File | SHA-256 |

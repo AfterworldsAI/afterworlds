@@ -13,7 +13,28 @@ any of them.
 
 ## What is committed here
 
-**Current: `srd-5-2-1-corpus-8781d4e0-a3b-15c.json`** (SHA-256 `23e5d8e0…4f69`)
+**Current: `srd-5-2-1-corpus-8781d4e0-a3b-15b-c9.json`** (SHA-256 `01729b53…ec7b`)
+— the CRD Issue 15b C9 successor for the same official-order release at
+representation schema 22 (`b073cd4f…414f`, registered lift
+`5d-lift-schema-21-to-22`), oracle identity `924321df…ab0c`, projection
+`3703faf5-8b51-5c3f-b28c-b378b005f7bf`. On 14 October 2026 the Owner accepted
+PR #194 and the native C9 packet. `.claude/review-notes/issue-15b-c9-recording/
+record_successor.py` recorded it natively on the C8 successor: the four touched
+batches (spell-descriptions, magic-items, monsters, animals) were excised and
+their exact accepted C9 proposals accepted in their place, adding one
+`creature_skills` fact to each of 336 creature profiles. Only those batches'
+reviewer, time and rule differ from the reviewed preview (`3ad7bdcb…`); the
+other twenty batches' rows equal C8's. Record:
+`.claude/review-notes/issue-15b-c9-recording/recorded-followup.json`.
+
+**Superseded by digest, in order:** `…-15c-c8.json` (`ead7fa9d…0d0d`, C8,
+recorded 2026-10-13, `issue-15c-c8-recording/`), `…-15c-c7.json`
+(`2853f30a…f373`, C7, recorded 2026-10-13, `issue-15c-c7-recording/`) and the
+C5 successor below. Each is named in `oracle.SUPERSEDED_ORACLE_SHA256`, kept
+byte for byte as test and replay evidence and excluded from the wheel and sdist.
+
+**Superseded by digest: `srd-5-2-1-corpus-8781d4e0-a3b-15c.json`** (SHA-256
+`23e5d8e0…4f69`). What follows describes it as it was accepted
 — the CRD Issue 15c native C5 successor for the same official-order release
 (`1299484e-c72d-509b-bd8d-d0169ee1f8d2` / `5.2.1-corpus.8781d4e0-a3b`) at
 representation schema 19 (`3734ccf7…d18f`, registered lift
