@@ -111,6 +111,7 @@ __all__ = [
     "SCHEMA_19_VERSION",
     "SCHEMA_20_VERSION",
     "SCHEMA_21_VERSION",
+    "SCHEMA_22_VERSION",
     "UnsupportedSchemaVersionError",
     "validate_schema_binding",
 ]
@@ -644,6 +645,7 @@ SCHEMA_18_VERSION = "5d-representation-schema-18"
 SCHEMA_19_VERSION = "5d-representation-schema-19"
 SCHEMA_20_VERSION = "5d-representation-schema-20"
 SCHEMA_21_VERSION = "5d-representation-schema-21"
+SCHEMA_22_VERSION = "5d-representation-schema-22"
 
 
 class LegacySchemaPayloadError(ValueError):
@@ -962,6 +964,17 @@ _MERGED_COMPONENT_FIELDS: dict[str, frozenset[str]] = {
             "prose_retention_reason_code",
         }
     ),
+    # Schema 22 adds one fact family and no component key, so its row
+    # repeats schema 21's.
+    SCHEMA_22_VERSION: frozenset(
+        {
+            "applies_when",
+            "options",
+            "fact_qualifiers",
+            "recurs",
+            "prose_retention_reason_code",
+        }
+    ),
 }
 
 # Minting a new schema without giving it a row here would leave the current
@@ -1015,6 +1028,7 @@ _RECORD_OWNED_REFERENCE_VERSIONS: frozenset[str] = frozenset(
         SCHEMA_19_VERSION,
         SCHEMA_20_VERSION,
         SCHEMA_21_VERSION,
+        SCHEMA_22_VERSION,
     }
 )
 
@@ -1039,6 +1053,7 @@ _OPTION_SCOPED_PROSE_VERSIONS: frozenset[str] = frozenset(
         SCHEMA_19_VERSION,
         SCHEMA_20_VERSION,
         SCHEMA_21_VERSION,
+        SCHEMA_22_VERSION,
     }
 )
 
@@ -1059,6 +1074,7 @@ _RETENTION_REASON_PROSE_VERSIONS: frozenset[str] = frozenset(
         SCHEMA_19_VERSION,
         SCHEMA_20_VERSION,
         SCHEMA_21_VERSION,
+        SCHEMA_22_VERSION,
     }
 )
 
@@ -1072,6 +1088,7 @@ _REFERENCE_ALTERNATIVE_VERSIONS: frozenset[str] = frozenset(
         SCHEMA_19_VERSION,
         SCHEMA_20_VERSION,
         SCHEMA_21_VERSION,
+        SCHEMA_22_VERSION,
     }
 )
 

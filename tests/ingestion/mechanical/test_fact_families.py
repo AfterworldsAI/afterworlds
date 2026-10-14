@@ -716,6 +716,18 @@ EXEMPLARS.setdefault(
     ),
 )
 
+#: Schema 22 (CRD Issue 15b C9): the Goblin Warrior's Skills entry, as raw
+#: candidate C9 states it.
+EXEMPLARS.setdefault(
+    FactFamily.CREATURE_SKILLS,
+    fact_from_payload(
+        {
+            "family": "creature_skills",
+            "skills": [{"skill": "stealth", "ability": "dexterity", "bonus": 6}],
+        }
+    ),
+)
+
 FAMILY_IDS = [f.value for f in EXEMPLARS]
 
 

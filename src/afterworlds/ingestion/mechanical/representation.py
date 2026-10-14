@@ -3467,6 +3467,8 @@ class FactFamily(StrEnum):
     #: Schema 21, CRD Issue 15c C8. A source's type choice for the creatures
     #: it brings, instead of their named forms' own type.
     SUMMONED_CREATURE_TYPE = "summoned_creature_type"
+    #: Schema 22, CRD Issue 15b C9. A creature profile's printed Skills entry.
+    CREATURE_SKILLS = "creature_skills"
 
 
 # ---------------------------------------------------------------------------
@@ -6963,6 +6965,42 @@ class SummonedCreatureTypeFact:
     forms: tuple[ComponentReference, ...]
 
 
+@dataclass(frozen=True, kw_only=True)
+class CreatureSkillBonus:
+    """Schema 22 (CRD Issue 15b C9): one item of a printed Skills entry
+    (*"Stealth +6"*).
+
+    ``bonus`` is the printed total for ``skill`` used with ``ability``, the
+    skill's usual ability (``SKILL_ABILITY``): the pairing the stat block
+    prints it for. It is never decomposed into an ability modifier,
+    Proficiency Bonus or Expertise, and it states nothing about the same
+    skill used with another ability (*"Strength (Acrobatics)"*,
+    ``playing-the-game.md``:239), which this fact does not establish.
+    """
+
+    skill: Skill
+    ability: AbilityScore
+    bonus: int
+
+
+@dataclass(frozen=True, kw_only=True)
+class CreatureSkillsFact:
+    """Schema 22 (CRD Issue 15b C9): a creature profile's complete printed
+    Skills entry.
+
+    ``skills`` is distinct by skill and sorted by its value. Empty is legal
+    and is a positive statement -- the stat block prints no Skills entry --
+    distinct from a missing fact, which states nothing. Printed totals only,
+    never decomposed into ability modifier, Proficiency Bonus or Expertise.
+    That the fact sits on a creature profile, once, is relational and
+    checked by the representation validator.
+    """
+
+    FAMILY: ClassVar[FactFamily] = FactFamily.CREATURE_SKILLS
+
+    skills: tuple[CreatureSkillBonus, ...]
+
+
 @dataclass(frozen=True)
 class EffectTerminationFact:
     """The effect this component is about stops.
@@ -8129,6 +8167,7 @@ MechanicalFact = (
     | AmmunitionSupplyFact
     | CreatureTypeFact
     | SummonedCreatureTypeFact
+    | CreatureSkillsFact
 )
 
 _FACT_TYPES: dict[FactFamily, type] = {
@@ -12498,6 +12537,8 @@ _SCHEMA_19_INT_DOMAINS: dict[type, dict[str, int | str]] = {
     ShieldBonusFact: {"bonus": 0},
     BaseArmorClassFact: {"base": 0},
     BaseArmorClassExclusivityFact: {"maximum": 1},
+    # Schema 22 (CRD Issue 15b C9): a printed skill total.
+    CreatureSkillBonus: {"bonus": SIGNED},
 }
 
 
@@ -12810,6 +12851,16 @@ def _rule_summoned_creature_type(fact: SummonedCreatureTypeFact) -> list[str]:
     return findings
 
 
+def _rule_creature_skills(fact: CreatureSkillsFact) -> list[str]:
+    findings = []
+    values = [s.skill.value for s in fact.skills]
+    if values != sorted(set(values)):
+        findings.append("skills is distinct by skill and sorted by skill")
+    if any(s.ability is not SKILL_ABILITY[s.skill] for s in fact.skills):
+        findings.append("each printed skill bonus is for the skill's usual ability")
+    return findings
+
+
 _SCHEMA_19_FAMILY_RULES: dict[FactFamily, Callable[[Any], list[str]]] = {
     FactFamily.CREATURE_ATTACK: _rule_attack_bonus,
     FactFamily.CREATURE_SAVE_EFFECT: _rule_save_dc,
@@ -12823,6 +12874,8 @@ _SCHEMA_19_FAMILY_RULES: dict[FactFamily, Callable[[Any], list[str]]] = {
     # Schema 21 (CRD Issue 15c C8), likewise.
     FactFamily.CREATURE_TYPE: _rule_creature_type,
     FactFamily.SUMMONED_CREATURE_TYPE: _rule_summoned_creature_type,
+    # Schema 22 (CRD Issue 15b C9), likewise.
+    FactFamily.CREATURE_SKILLS: _rule_creature_skills,
 }
 
 _SCHEMA_19_SHAPE_RULES: dict[type, Callable[[Any], list[str]]] = {
@@ -12913,6 +12966,21 @@ _FACT_BUILDERS.update(
 )
 _FACT_INVARIANTS.update(
     {cast(FactFamily, cls.FAMILY): _check_declared for cls in _SCHEMA_21_FACT_CLASSES}
+)
+
+#: The family schema 22 admitted (CRD Issue 15b C9), on the same terms.
+_SCHEMA_22_FACT_CLASSES: tuple[type[Any], ...] = (CreatureSkillsFact,)
+_FACT_TYPES.update(
+    {cast(FactFamily, cls.FAMILY): cls for cls in _SCHEMA_22_FACT_CLASSES}
+)
+_FACT_BUILDERS.update(
+    {
+        cast(FactFamily, cls.FAMILY): _build_declared(cls)
+        for cls in _SCHEMA_22_FACT_CLASSES
+    }
+)
+_FACT_INVARIANTS.update(
+    {cast(FactFamily, cls.FAMILY): _check_declared for cls in _SCHEMA_22_FACT_CLASSES}
 )
 
 #: Every family must declare a builder and an invariant checker. A family added
@@ -13155,7 +13223,13 @@ assert (
 #: them, :class:`CreatureTypeKind` (CRD Issue 15c C8). No field on any
 #: accepted family and no component key, so every accepted fact key and
 #: provenance coordinate has the same canonical form under 20 and 21.
-REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-21"
+#:
+#: Version ``22`` admits one fact family, :class:`CreatureSkillsFact`, and the
+#: one value shape it holds, :class:`CreatureSkillBonus` (CRD Issue 15b C9).
+#: No vocabulary member (``Skill`` is accepted), no field on any accepted
+#: family and no component key, so every accepted fact key and provenance
+#: coordinate has the same canonical form under 21 and 22.
+REPRESENTATION_SCHEMA_VERSION = "5d-representation-schema-22"
 
 
 class UnsupportedRepresentationShapeError(TypeError):
@@ -13780,6 +13854,12 @@ def _introductions() -> tuple[_Introduction, ...]:
             _Introduction("vocabulary_member", vocabulary, member, SCHEMA_21)
             for member in members
         )
+    # Schema 22 adds one family and no vocabulary; its one value shape is
+    # reachable only through that family.
+    rows.extend(
+        _Introduction("fact_family", "FactFamily", family.value, SCHEMA_22)
+        for family in _SCHEMA_22_FAMILIES
+    )
     rows.extend(
         _Introduction("nullable_field", _OPTIONAL_SINCE_WIRE_NAMES[owner], key, arrived)
         for owner, keys in _OPTIONAL_SINCE.items()
@@ -14691,6 +14771,13 @@ _SCHEMA_21_MEMBER_INDEX: frozenset[tuple[str, str]] = frozenset(
     for member in members
 )
 
+SCHEMA_22 = "5d-representation-schema-22"
+
+#: The family schema 22 admitted, CRD Issue 15b C9.
+_SCHEMA_22_FAMILIES: tuple[FactFamily, ...] = tuple(
+    cast(FactFamily, cls.FAMILY) for cls in _SCHEMA_22_FACT_CLASSES
+)
+
 #: The seven families schema 11 admitted, for batch ``speed-1``. One per
 #: distinct rule the Rules Glossary Speed entry and Playing the Game > Combat >
 #: Movement and Position print between them, named by member for the same
@@ -14773,6 +14860,7 @@ _FAMILY_INTRODUCTIONS: tuple[tuple[tuple[FactFamily, ...], str], ...] = (
     (_SCHEMA_19_FAMILIES, SCHEMA_19),
     (_SCHEMA_20_FAMILIES, SCHEMA_20),
     (_SCHEMA_21_FAMILIES, SCHEMA_21),
+    (_SCHEMA_22_FAMILIES, SCHEMA_22),
 )
 
 #: Fields a later schema made **required** on a family an earlier schema already
@@ -15064,6 +15152,29 @@ _VERSION_STATES: dict[str, frozenset[str]] = {
             SCHEMA_19,
             SCHEMA_20,
             SCHEMA_21,
+        }
+    ),
+    SCHEMA_22: frozenset(
+        {
+            "5d-representation-schema-4",
+            SCHEMA_5,
+            SCHEMA_6,
+            SCHEMA_7,
+            SCHEMA_8,
+            SCHEMA_9,
+            SCHEMA_10,
+            SCHEMA_11,
+            SCHEMA_12,
+            SCHEMA_13,
+            SCHEMA_14,
+            SCHEMA_15,
+            SCHEMA_16,
+            SCHEMA_17,
+            SCHEMA_18,
+            SCHEMA_19,
+            SCHEMA_20,
+            SCHEMA_21,
+            SCHEMA_22,
         }
     ),
 }
@@ -16085,6 +16196,9 @@ _CLOSED_TYPES |= frozenset(
         GrappleAppendages,
     }
 )
+
+#: Schema 22's one nested value object (CRD Issue 15b C9).
+_CLOSED_TYPES |= frozenset({CreatureSkillBonus})
 
 
 #: Applicability fields whose emptiness is an empty container rather than
@@ -17343,6 +17457,21 @@ _SCHEMA_19_INVARIANTS: tuple[_Invariant, ...] = (
         locus="fact:summoned_creature_type",
         field="forms",
         rule="non-empty, distinct and sorted by record and component key",
+    ),
+    # Schema 22 (CRD Issue 15b C9).
+    _Invariant(
+        id="creature_skills.skills.distinct-sorted-by-skill",
+        locus="fact:creature_skills",
+        field="skills",
+        rule="distinct by skill and sorted by skill value; empty states that the "
+        "stat block prints no skills entry",
+    ),
+    _Invariant(
+        id="creature_skills.skills.usual-ability",
+        locus="fact:creature_skills",
+        field="skills",
+        rule="each item's ability is its skill's usual ability (SKILL_ABILITY): the "
+        "printed total is for that pairing only",
     ),
 )
 

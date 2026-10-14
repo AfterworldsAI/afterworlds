@@ -87,6 +87,7 @@ from afterworlds.ingestion.mechanical.projection import (
     SCHEMA_19_VERSION,
     SCHEMA_20_VERSION,
     SCHEMA_21_VERSION,
+    SCHEMA_22_VERSION,
     LegacySchemaPayloadError,
     ProjectionCandidate,
     ReleaseBinding,
@@ -494,6 +495,7 @@ def test_each_merged_version_extends_the_one_before_it() -> None:
         SCHEMA_19_VERSION,
         SCHEMA_20_VERSION,
         SCHEMA_21_VERSION,
+        SCHEMA_22_VERSION,
     ]
     assert sorted(_MERGED_COMPONENT_FIELDS) == sorted(succession)
     for earlier, later in pairwise(succession):

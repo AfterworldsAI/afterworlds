@@ -606,7 +606,12 @@ def test_the_schema_hash_is_a_declared_contract_not_a_file_digest() -> None:
 #: summoned_creature_type families and the CreatureTypeKind vocabulary of
 #: raw candidate C8 (CRD Issue 15c, preview only). Schema 20 (``SCHEMA_20_HASH``)
 #: stays its historical anchor in ``schema_lift``.
-EXPECTED_SCHEMA_HASH = "4499b3964aac338e10c7b6d1f67a5eb37570878600e0c5f04bd4464d58f1df55"  # noqa: E501  # pragma: allowlist secret
+#:
+#: Restamped at schema 22 the same way: the creature_skills family and its
+#: CreatureSkillBonus value shape of raw candidate C9 (CRD Issue 15b, preview
+#: only). Schema 21 (``SCHEMA_21_HASH``) stays its historical anchor in
+#: ``schema_lift``.
+EXPECTED_SCHEMA_HASH = "b073cd4f429631826efd628ed164a5ad680050c7e957e74680777922affb414f"  # noqa: E501  # pragma: allowlist secret
 
 
 def test_the_committed_union_still_hashes_to_its_recorded_value() -> None:

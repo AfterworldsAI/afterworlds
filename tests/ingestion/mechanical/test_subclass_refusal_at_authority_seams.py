@@ -1178,6 +1178,7 @@ SOURCE_BACKED_TUPLE_FIELDS: tuple[str, ...] = (
     "CreatureRollModifierFact.effects",
     "CreatureSaveEffectFact.failure_damage",
     "CreatureSizeFact.sizes",
+    "CreatureSkillsFact.skills",
     "CreatureTypeFact.type_choice",
     "DamageNotationOptionFact.options",
     "DamageTerm.addends",

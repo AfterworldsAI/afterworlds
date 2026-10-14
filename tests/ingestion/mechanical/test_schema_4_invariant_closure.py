@@ -1080,6 +1080,45 @@ CASES["summoned_creature_type.forms.non-empty-distinct-sorted"] = (
     ),
 )
 
+#: Schema 22 (CRD Issue 15b C9): a Skills entry made illegal by its order.
+CASES["creature_skills.skills.distinct-sorted-by-skill"] = (
+    fact_from_payload(
+        {
+            "family": "creature_skills",
+            "skills": [
+                {"skill": "stealth", "ability": "dexterity", "bonus": 6},
+                {"skill": "perception", "ability": "wisdom", "bonus": 2},
+            ],
+        }
+    ),
+    fact_from_payload(
+        {
+            "family": "creature_skills",
+            "skills": [
+                {"skill": "perception", "ability": "wisdom", "bonus": 2},
+                {"skill": "stealth", "ability": "dexterity", "bonus": 6},
+            ],
+        }
+    ),
+)
+
+#: Schema 22: a printed total carried for a pairing the stat block does not
+#: print (Assassin Acrobatics +7 is Dexterity's, monsters-A-Z.md:532).
+CASES["creature_skills.skills.usual-ability"] = (
+    fact_from_payload(
+        {
+            "family": "creature_skills",
+            "skills": [{"skill": "acrobatics", "ability": "strength", "bonus": 7}],
+        }
+    ),
+    fact_from_payload(
+        {
+            "family": "creature_skills",
+            "skills": [{"skill": "acrobatics", "ability": "dexterity", "bonus": 7}],
+        }
+    ),
+)
+
 for _case in _SCHEMA_19_CASES:
     CASES[_case["id"]] = (
         _schema_19_refused(_case)[0],
