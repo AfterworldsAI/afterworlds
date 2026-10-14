@@ -141,8 +141,10 @@ PINS: dict[Path, str] = {
     C9: "a3d40545d1a0ea1b4a1e24a1e3831b12b972f50ea26981b0edf1b578fd0648db",  # noqa: E501  # pragma: allowlist secret
     CORRESPONDENCE: "285ee055374edbcf75383b00e755aca2daa2d5f0363f57b6af368a27efeaf1e4",  # noqa: E501  # pragma: allowlist secret
     INVENTORY: "daab6ac2acd13d3b273995baff64e4ba8e0242f9817e7edf62b4965ea8de3d9b",  # noqa: E501  # pragma: allowlist secret
-    HERE / "scripts/common.py": "20761dc0f9e13007cbb7270dae6fad7ba6d122899aa2e30ea03e0153369d9b07",  # noqa: E501  # pragma: allowlist secret
-    HERE / "scripts/excise.py": "80a177b3787ba563156bf7994759729c91af8fe699a429ce9ec2fbe29f0162a3",  # noqa: E501  # pragma: allowlist secret
+    HERE
+    / "scripts/common.py": "20761dc0f9e13007cbb7270dae6fad7ba6d122899aa2e30ea03e0153369d9b07",  # noqa: E501  # pragma: allowlist secret
+    HERE
+    / "scripts/excise.py": "80a177b3787ba563156bf7994759729c91af8fe699a429ce9ec2fbe29f0162a3",  # noqa: E501  # pragma: allowlist secret
 }
 for _rel, _digest in json.loads(C9.read_bytes())["pins"].items():
     PINS.setdefault(REPO / _rel, _digest)
@@ -167,9 +169,7 @@ ACCEPTED: dict[str, tuple[str, str]] = {
         "6c2cd65751bdbefbb48ac042c0a201af087f8aca0cd9229a0e53bf48d95b8bbf",  # pragma: allowlist secret  # noqa: E501
     ),
 }
-STORE_LEAVES_SHA256 = (
-    "700b502bfd8091350677eb2ff8fe9263839829dc73638e0180ec2207c0f542f7"  # pragma: allowlist secret  # noqa: E501
-)
+STORE_LEAVES_SHA256 = "700b502bfd8091350677eb2ff8fe9263839829dc73638e0180ec2207c0f542f7"  # pragma: allowlist secret  # noqa: E501
 PREVIEW = HERE / "preview/srd-5-2-1-corpus-8781d4e0-a3b-c9-PREVIEW.json"
 ORIGIN = (
     "CRD Issue 15b C9 native preview (review only): the accepted {batch} proposal "
@@ -367,13 +367,17 @@ def build(
         if cl.target_kind is ProvenanceTargetKind.FACT:
             claimed[(cl.target_key[0], cl.target_key[1])].add(cl.span_id)
     for f in facts:
-        (batch,) = {span_batch[s] for s in claimed[(f["record_key"], f["component_key"])]}
+        (batch,) = {
+            span_batch[s] for s in claimed[(f["record_key"], f["component_key"])]
+        }
         assert batch == f["batch"], f["record_key"]
         by_batch[batch].append(f)
     out = {}
     for batch, fs in by_batch.items():
         (anchor,) = [a for a in base.schema_anchors if a.batch_id == batch]
-        out[batch] = build_one(batch, paths[batch], anchor.proposal_identity, fs, leaves)
+        out[batch] = build_one(
+            batch, paths[batch], anchor.proposal_identity, fs, leaves
+        )
         assert out[batch][2]["facts_added"] == inventory[batch]["facts"], batch
     assert set(out) == set(inventory) == set(ACCEPTED)
     assert sum(v[2]["facts_added"] for v in out.values()) == len(facts) == 336
@@ -425,9 +429,9 @@ def preserved(
     )
     out["acceptance.batch_set_unchanged"] = sorted(g_anchor) == sorted(p_anchor)
     (lift,) = P["acceptance"]["lifts"][len(G["acceptance"]["lifts"]) :]
-    out["lifts.prefix_unchanged"] = P["acceptance"]["lifts"][:-1] == G["acceptance"][
-        "lifts"
-    ]
+    out["lifts.prefix_unchanged"] = (
+        P["acceptance"]["lifts"][:-1] == G["acceptance"]["lifts"]
+    )
     out["lifts.added_exactly_21_to_22"] = (
         lift["lift_id"] == "5d-lift-schema-21-to-22"
         and (lift["from_version"], lift["from_hash"])
@@ -504,9 +508,13 @@ def preserved(
     moved = {k for k in gc if gc[k] != pc.get(k)}
     out["components.same_keys"] = gc.keys() == pc.keys()
     out["components.changed"] = len(moved)
-    out["components.changed_only_by_one_appended_skills_fact"] = all(
-        pc[k].facts[:-1] == gc[k].facts
-        and type(pc[k].facts[-1]) is CreatureSkillsFact
+    # Assembled components are canonical, so the added fact need not be last:
+    # select it semantically and compare the rest in their canonical order.
+    out["components.changed_only_by_one_added_skills_fact"] = all(
+        [type(f) for f in pc[k].facts].count(CreatureSkillsFact) == 1
+        and CreatureSkillsFact not in [type(f) for f in gc[k].facts]
+        and [f for f in pc[k].facts if type(f) is not CreatureSkillsFact]
+        == list(gc[k].facts)
         and dataclasses.replace(pc[k], facts=gc[k].facts) == gc[k]
         for k in moved
     )
@@ -526,14 +534,28 @@ GOBLIN = ("monsters.goblins.goblin_warrior", "goblin_warrior")
 ASSASSIN = ("monsters.assassin.assassin", "assassin")
 
 
-def _replace_last(rep: Any, key: tuple[str, str], fn: Any) -> Any:
-    comps = []
+def _skills_at(comp: Any) -> int:
+    """The position of the component's one ``creature_skills`` fact. Assembled
+    components are canonical, so position is never assumed; absent or
+    duplicated is a defect in the verifier's input, not a variant."""
+    at = [i for i, f in enumerate(comp.facts) if type(f) is CreatureSkillsFact]
+    assert len(at) == 1, (comp.record_key, comp.semantic_key, len(at))
+    return at[0]
+
+
+def _replace_skills(rep: Any, key: tuple[str, str], fn: Any) -> Any:
+    """*rep* with component *key*'s skills fact replaced by ``fn(fact)``'s
+    facts, in its place; every other fact untouched."""
+    comps, hit = [], 0
     for comp in rep.components:
         if (comp.record_key, comp.semantic_key) == key:
+            i = _skills_at(comp)
             comp = dataclasses.replace(
-                comp, facts=(*comp.facts[:-1], *fn(comp.facts[-1]))
+                comp, facts=(*comp.facts[:i], *fn(comp.facts[i]), *comp.facts[i + 1 :])
             )
+            hit += 1
         comps.append(comp)
+    assert hit == 1, (key, hit)
     return dataclasses.replace(rep, components=tuple(comps))
 
 
@@ -549,10 +571,12 @@ def _onto_non_profile(rep: Any, key: tuple[str, str], fn: Any) -> Any:
         if x.record_key.startswith("equipment.weapons.")
         and x.handling is ComponentHandling.MIXED
     )
+    skills = profile.facts[_skills_at(profile)]
+    assert CreatureSkillsFact not in [type(f) for f in target.facts], target
     comps = []
     for comp in rep.components:
         if comp is target:
-            comp = dataclasses.replace(comp, facts=(*comp.facts, profile.facts[-1]))
+            comp = dataclasses.replace(comp, facts=(*comp.facts, skills))
         comps.append(comp)
     return dataclasses.replace(rep, components=tuple(comps))
 
@@ -565,19 +589,19 @@ def _bonus(skill: Skill, ability: AbilityScore, bonus: int) -> CreatureSkillBonu
 MALFORMED: dict[str, tuple[tuple[str, str], Any, Any, str]] = {
     "unsorted_skills": (
         ASSASSIN,
-        _replace_last,
+        _replace_skills,
         lambda f: (dataclasses.replace(f, skills=tuple(reversed(f.skills))),),
         "creature_skills",
     ),
     "duplicate_skill": (
         GOBLIN,
-        _replace_last,
+        _replace_skills,
         lambda f: (dataclasses.replace(f, skills=(*f.skills, *f.skills)),),
         "creature_skills",
     ),
     "atypical_pairing_strength_acrobatics": (
         ASSASSIN,
-        _replace_last,
+        _replace_skills,
         lambda f: (
             dataclasses.replace(
                 f,
@@ -595,7 +619,7 @@ MALFORMED: dict[str, tuple[tuple[str, str], Any, Any, str]] = {
     ),
     "two_facts_on_one_profile": (
         GOBLIN,
-        _replace_last,
+        _replace_skills,
         lambda f: (f, CreatureSkillsFact(skills=())),
         "at most one",
     ),
@@ -680,6 +704,7 @@ def native(
 
 def sequencing(preview: AcceptedInputs) -> dict[str, Any]:
     """Why schema 22 cannot land before a recorded C9 successor: evidence."""
+    from afterworlds.models.rules_package import RulesPackageBinding
     from afterworlds.pipeline.rpg.capability import (
         CERTIFIED_RELEASE,
         MANIFEST,
@@ -693,7 +718,6 @@ def sequencing(preview: AcceptedInputs) -> dict[str, Any]:
         EMPTY_OVERRIDE_SET_UUID,
         EffectiveOverrideSet,
     )
-    from afterworlds.models.rules_package import RulesPackageBinding
 
     package, release = str(CERTIFIED_RELEASE[0]), CERTIFIED_RELEASE[1]
     selected = committed_inputs_for(package, release)
@@ -748,11 +772,42 @@ def sequencing(preview: AcceptedInputs) -> dict[str, Any]:
     return out
 
 
+#: The construction this verifier completes: built twice with identical bytes
+#: at preview commit 2121a50e by builder b68ae789 (Codex supervised run,
+#: 2026-10-14: built 107 s, twice identical 201 s, preserved 230 s, then exit 1
+#: in the malformed-input verifier, a positional fact-selection defect).
+CONSTRUCTION = {
+    "preview_commit": "2121a50ebbf79434c16eac176890a42e0f027142",
+    "builder_sha256": "b68ae78960e4b7d1f2db3b7c61923b69e034457824f33d875019a839675596ee",  # noqa: E501  # pragma: allowlist secret
+    "supervised_stdout": ["built 107 s", "twice identical 201 s", "preserved 230 s"],
+    "supervised_exit": 1,
+    "failure": "AttributeError: 'CreatureTypeFact' object has no attribute "
+    "'skills' in _replace_last (malformed-input editor took facts[-1] of a "
+    "canonically assembled component)",
+}
+#: The bytes that construction wrote, pinned for --verify-existing.
+CONSTRUCTED: dict[str, str] = {
+    "srd-5-2-1-corpus-8781d4e0-a3b-c9-PREVIEW.json": "3ad7bdcb7aa926e38eca6c4019f7c77119427076a1639b2aa1f81cbfd25f59a3",  # noqa: E501  # pragma: allowlist secret
+    "animals-C9-PROPOSAL.json": "c3dbcc7184f9167b356ec39bee9afbdb0c8bf22822f54d7951878f311275bc37",  # noqa: E501  # pragma: allowlist secret
+    "magic-items-C9-PROPOSAL.json": "5255c82699780573c27905898720666d930abaf7d98f41e3524ea011a0e44168",  # noqa: E501  # pragma: allowlist secret
+    "monsters-C9-PROPOSAL.json": "5b726871e6aa5b64120a1c01d33cd20764b6937e4ecce99102bac7a6456000a0",  # noqa: E501  # pragma: allowlist secret
+    "spell-descriptions-C9-PROPOSAL.json": "48f1ba1291c2cba7aacc99e80a5552e49249467f9c6bf85c65cf2f64d4650848",  # noqa: E501  # pragma: allowlist secret
+}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--inputs", type=Path, required=True)
     parser.add_argument("--twice", action="store_true")
     parser.add_argument("--dry", action="store_true")
+    parser.add_argument(
+        "--verify-existing",
+        action="store_true",
+        help="do not chain or write the preview: read the pinned constructed "
+        "bytes, re-derive the proposals (no acceptance chain) and prove they "
+        "render identically, then run the preservation, native and sequencing "
+        "proofs",
+    )
     args = parser.parse_args()
     started = datetime.datetime.now(datetime.UTC)
     t0 = time.monotonic()
@@ -772,19 +827,36 @@ def main() -> None:
             )
         )
         return
-    preview = chain(base, built)
-    data = serialize_accepted_inputs(preview)
     rendered = {b: render(v[1]).encode("utf-8") for b, v in built.items()}
-    print("built", round(time.monotonic() - t0), "s", flush=True)
-    if args.twice:
+    reused: dict[str, Any] | None = None
+    if args.verify_existing:
+        on_disk = {n: (PREVIEW.parent / n).read_bytes() for n in CONSTRUCTED}
+        assert {n: sha(b) for n, b in on_disk.items()} == CONSTRUCTED, "constructed"
+        assert all(
+            on_disk[f"{b}-C9-PROPOSAL.json"] == text for b, text in rendered.items()
+        ), "re-derived proposals differ from the constructed ones"
+        data = on_disk[PREVIEW.name]
+        reused = {
+            "construction": CONSTRUCTION,
+            "constructed_sha256": CONSTRUCTED,
+            "proposals_rederived_identical": True,
+            "acceptance_chain_rerun": False,
+        }
+        print("verified existing construction", round(time.monotonic() - t0), "s")
+    else:
+        preview = chain(base, built)
+        data = serialize_accepted_inputs(preview)
+        print("built", round(time.monotonic() - t0), "s", flush=True)
+    if args.twice and not args.verify_existing:
         again = build(base, paths)
         assert serialize_accepted_inputs(chain(base, again)) == data, "determinism"
         assert {b: render(v[1]).encode("utf-8") for b, v in again.items()} == rendered
         print("twice identical", round(time.monotonic() - t0), "s", flush=True)
-    PREVIEW.parent.mkdir(parents=True, exist_ok=True)
-    PREVIEW.write_bytes(data)
-    for batch, text in rendered.items():
-        (PREVIEW.parent / f"{batch}-C9-PROPOSAL.json").write_bytes(text)
+    if not args.verify_existing:
+        PREVIEW.parent.mkdir(parents=True, exist_ok=True)
+        PREVIEW.write_bytes(data)
+        for batch, text in rendered.items():
+            (PREVIEW.parent / f"{batch}-C9-PROPOSAL.json").write_bytes(text)
     back = load_accepted_inputs(PREVIEW)
     assert serialize_accepted_inputs(back) == data
     for batch in rendered:
@@ -840,7 +912,8 @@ def main() -> None:
         "preservation": pres,
         "native": nat,
         "sequencing": seq,
-        "deterministic_twice": args.twice,
+        "deterministic_twice": args.twice or bool(reused),
+        "verified_existing": reused,
         "pins_after": all(sha(p.read_bytes()) == d for p, d in PINS.items()),
         "run": {
             "pid": os.getpid(),
@@ -850,7 +923,9 @@ def main() -> None:
         },
     }
     (HERE / "reports").mkdir(exist_ok=True)
-    (HERE / "reports/c9-preview.json").write_text(
+    (
+        HERE / "reports" / ("c9-verification.json" if reused else "c9-preview.json")
+    ).write_text(
         json.dumps(report, indent=1, sort_keys=True) + "\n", "utf-8", newline="\n"
     )
     print(
