@@ -29,7 +29,7 @@ REPO = Path.cwd()
 HERE = REPO / ".claude/review-notes/issue-15b-contest-authority/supplement-s1"
 C8_ORACLE = (
     REPO
-    / "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json"
+    / "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json"  # noqa: E501
 )
 
 _spec = importlib.util.spec_from_file_location("derive_s1", HERE / "derive_s1.py")
@@ -43,8 +43,13 @@ from afterworlds.ingestion.mechanical.oracle import (  # noqa: E402
     candidate_from_accepted_inputs,
     committed_inputs_for,
 )
-from afterworlds.ingestion.mechanical.projection import identify_projection  # noqa: E402
-from afterworlds.models.enums import OverrideOperationEnum, OverrideOriginEnum  # noqa: E402
+from afterworlds.ingestion.mechanical.projection import (  # noqa: E402
+    identify_projection,
+)  # noqa: E402
+from afterworlds.models.enums import (  # noqa: E402
+    OverrideOperationEnum,
+    OverrideOriginEnum,
+)  # noqa: E402
 from afterworlds.models.rules_package import RulesPackageBinding  # noqa: E402
 from afterworlds.pipeline.rpg.capability import (  # noqa: E402
     CERTIFIED_RELEASE,
@@ -85,7 +90,9 @@ def sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def entry_from(override: dict[str, object], **changes: object) -> EffectiveOverrideEntry:
+def entry_from(
+    override: dict[str, object], **changes: object
+) -> EffectiveOverrideEntry:
     target = MechanicalTarget(
         kind=MechanicalTargetKind(override["target"]["kind"]),  # type: ignore[index]
         record_key=override["target"]["record_key"],  # type: ignore[index]
@@ -129,13 +136,16 @@ def main() -> int:
         "--pdf", type=Path, default=derive.SCRATCH / "SRD_CC_v5.1-contest-source.pdf"
     )
     args = parser.parse_args()
-    assert Path(afterworlds.__file__).resolve().is_relative_to(REPO / "src"), (
-        "run with this checkout's src first"
-    )
+    assert (
+        Path(afterworlds.__file__).resolve().is_relative_to(REPO / "src")
+    ), "run with this checkout's src first"
     checks: dict[str, object] = {}
 
     def check(name: str, ok: bool, detail: object = None) -> None:
-        checks[name] = {"ok": bool(ok), **({"detail": detail} if detail is not None else {})}
+        checks[name] = {
+            "ok": bool(ok),
+            **({"detail": detail} if detail is not None else {}),
+        }
 
     s1_bytes = (HERE / "s1.json").read_bytes()
     s1 = json.loads(s1_bytes)
@@ -144,15 +154,23 @@ def main() -> int:
     # --- source -----------------------------------------------------------
     if args.pdf.exists():
         pdf = args.pdf.read_bytes()
-        check("pdf_pinned", sha(pdf) == derive.PDF_SHA256 and len(pdf) == derive.PDF_BYTES)
-        check("page_extract_reproduces", derive.page_text(args.pdf, derive.PAGE_INDEX) == raw)
+        check(
+            "pdf_pinned", sha(pdf) == derive.PDF_SHA256 and len(pdf) == derive.PDF_BYTES
+        )
+        check(
+            "page_extract_reproduces",
+            derive.page_text(args.pdf, derive.PAGE_INDEX) == raw,
+        )
         attribution = derive.attribution_from(
             derive.page_text(args.pdf, derive.LEGAL_PAGE_INDEX)
         )
         check("attribution_is_the_source_statement", attribution == s1["attribution"])
     else:
         check("pdf_pinned", False, "PDF not present: source re-extraction not run")
-    check("page_extract_pinned", sha(raw.encode("utf-8")) == s1["source"]["page_extract_sha256"])
+    check(
+        "page_extract_pinned",
+        sha(raw.encode("utf-8")) == s1["source"]["page_extract_sha256"],
+    )
     excerpt, applied = derive.excerpt_from(raw)
     check("excerpt_reproduces", excerpt == s1["excerpt"]["text"])
     check("corrections_listed_exactly", applied == s1["excerpt"]["corrections"])
@@ -161,42 +179,70 @@ def main() -> int:
         flat = flat.replace(wrong, right)
     sentences = re.split(r"(?<=[.,]) (?=[A-Z])", excerpt)
     missing = [s for s in sentences if s not in flat]
-    check("every_excerpt_sentence_in_source", not missing, {"sentences": len(sentences), "missing": missing})
+    check(
+        "every_excerpt_sentence_in_source",
+        not missing,
+        {"sentences": len(sentences), "missing": missing},
+    )
     check(
         "excerpt_bounds",
         flat.index(excerpt) == flat.index("Contests Sometimes") + len("Contests ")
         and flat[flat.index(excerpt) + len(excerpt) :].lstrip().startswith("Skills "),
     )
-    codepoints = sorted({f"U+{ord(c):04X}" for c in excerpt + s1["attribution"] if ord(c) > 0x7E})
+    codepoints = sorted(
+        {f"U+{ord(c):04X}" for c in excerpt + s1["attribution"] if ord(c) > 0x7E}
+    )
     check(
         "no_replacement_characters",
         "U+FFFD" not in codepoints,
         {"non_ascii_codepoints": codepoints},
     )
     receipt = derive.RECEIPT.read_bytes()
-    check("receipt_digest_recorded", sha(receipt) == s1["owner_policy"]["receipt_sha256"])
+    check(
+        "receipt_digest_recorded", sha(receipt) == s1["owner_policy"]["receipt_sha256"]
+    )
     check(
         "policy_points_verbatim_in_receipt",
         all(p in receipt.decode("utf-8") for p in s1["owner_policy"]["points"]),
     )
-    check("proposal_pinned", sha(derive.PROPOSAL.read_bytes()) == derive.PROPOSAL_SHA256)
+    check(
+        "proposal_pinned", sha(derive.PROPOSAL.read_bytes()) == derive.PROPOSAL_SHA256
+    )
     prose = s1["override"]["payload"]["component"]["authored_prose"]
-    check("prose_carries_excerpt_points_attribution", excerpt in prose and s1["attribution"] in prose and all(p in prose for p in s1["owner_policy"]["points"]))
+    check(
+        "prose_carries_excerpt_points_attribution",
+        excerpt in prose
+        and s1["attribution"] in prose
+        and all(p in prose for p in s1["owner_policy"]["points"]),
+    )
     check("prose_digest", sha(prose.encode("utf-8")) == s1["authored_prose_sha256"])
-    check("prose_reproduces", prose == derive.authored_prose(excerpt, s1["attribution"]))
+    check(
+        "prose_reproduces", prose == derive.authored_prose(excerpt, s1["attribution"])
+    )
 
     # --- override ---------------------------------------------------------
     override = s1["override"]
     entry = entry_from(override)
     check("payload_is_canonical_patch", entry.payload == override["payload"])
     check("deterministic_override_id", override["override_id"] == derive.OVERRIDE_ID)
-    check("authored_against_c8_release", (override["package_uuid"], override["release_version"]) == derive.RELEASE)
+    check(
+        "authored_against_c8_release",
+        (override["package_uuid"], override["release_version"]) == derive.RELEASE,
+    )
     refused = {}
     for name, body in {
-        "structured_with_prose": {**override["payload"]["component"], "handling": "structured"},
-        "prose_bound_without_prose": {**override["payload"]["component"], "authored_prose": None},
+        "structured_with_prose": {
+            **override["payload"]["component"],
+            "handling": "structured",
+        },
+        "prose_bound_without_prose": {
+            **override["payload"]["component"],
+            "authored_prose": None,
+        },
         "unkeyed_addition": {
-            k: v for k, v in override["payload"]["component"].items() if k != "semantic_key"
+            k: v
+            for k, v in override["payload"]["component"].items()
+            if k != "semantic_key"
         },
     }.items():
         try:
@@ -215,14 +261,27 @@ def main() -> int:
     assert inputs is not None
     candidate = candidate_from_accepted_inputs(inputs)
     projection = identify_projection(candidate).projection_uuid
-    check("c8_projection_is_certified", (UUID(PACKAGE), RELEASE, UUID(projection)) == CERTIFIED_RELEASE, projection)
+    check(
+        "c8_projection_is_certified",
+        (UUID(PACKAGE), RELEASE, UUID(projection)) == CERTIFIED_RELEASE,
+        projection,
+    )
     base = index_for(candidate, ())
     supplemented = index_for(candidate, (entry,))
     disabled = index_for(candidate, (replace(entry, is_enabled=False),))
     supplement_set = override_set_identity((entry,))
-    check("base_binding_is_empty_set", str(base.binding.override_set_uuid) == EMPTY_OVERRIDE_SET_UUID)
-    check("base_has_no_contest_component", base.component("play.d20_tests", "contest") is None)
-    check("disabled_has_no_contest_component", disabled.component("play.d20_tests", "contest") is None)
+    check(
+        "base_binding_is_empty_set",
+        str(base.binding.override_set_uuid) == EMPTY_OVERRIDE_SET_UUID,
+    )
+    check(
+        "base_has_no_contest_component",
+        base.component("play.d20_tests", "contest") is None,
+    )
+    check(
+        "disabled_has_no_contest_component",
+        disabled.component("play.d20_tests", "contest") is None,
+    )
     component = supplemented.component("play.d20_tests", "contest")
     ok = (
         component is not None
@@ -245,13 +304,19 @@ def main() -> int:
                     **override,
                     "payload": {
                         "patch": "append_component",
-                        "component": {**override["payload"]["component"], "authored_prose": prose + " "},
+                        "component": {
+                            **override["payload"]["component"],
+                            "authored_prose": prose + " ",
+                        },
                     },
                 }
             ),
         ),
     ).component("play.d20_tests", "contest")
-    check("text_change_moves_schema_id", altered is not None and component_schema_id(altered) != schema_id)
+    check(
+        "text_change_moves_schema_id",
+        altered is not None and component_schema_id(altered) != schema_id,
+    )
     base_ids = {
         (r, c.semantic_key): component_schema_id(c)
         for r, rec in base.records.items()
@@ -264,8 +329,16 @@ def main() -> int:
     }
     added = sorted(set(sup_ids) - set(base_ids))
     changed = sorted(k for k in base_ids if sup_ids.get(k) != base_ids[k])
-    check("only_the_contest_component_added", added == [("play.d20_tests", "contest")] and not changed, {"added": added, "changed": changed})
-    check("overridden_records", sorted(supplemented.overridden) == ["play.d20_tests"], sorted(supplemented.overridden))
+    check(
+        "only_the_contest_component_added",
+        added == [("play.d20_tests", "contest")] and not changed,
+        {"added": added, "changed": changed},
+    )
+    check(
+        "overridden_records",
+        sorted(supplemented.overridden) == ["play.d20_tests"],
+        sorted(supplemented.overridden),
+    )
 
     fingerprints = {}
     for operation, capability in MANIFEST.items():
@@ -280,7 +353,9 @@ def main() -> int:
                 certified = str(exc)
         fingerprints[operation.value] = {
             "unchanged": b == s,
-            "matches_manifest": (b == capability.fingerprint) if capability.fingerprint else None,
+            "matches_manifest": (
+                (b == capability.fingerprint) if capability.fingerprint else None
+            ),
             "certifies_under_supplement": certified,
         }
     check(
@@ -295,8 +370,11 @@ def main() -> int:
     )
 
     result = {
-        "candidate": {"s1.json": sha(s1_bytes), "page-77-extract.txt": sha(raw.encode("utf-8"))},
-        "simulated": "in-memory application to committed C8 inputs; no store, publication or activation",
+        "candidate": {
+            "s1.json": sha(s1_bytes),
+            "page-77-extract.txt": sha(raw.encode("utf-8")),
+        },
+        "simulated": "in-memory application to committed C8 inputs; no store, publication or activation",  # noqa: E501
         "c8_oracle_sha256": sha(C8_ORACLE.read_bytes()),
         "certified_release": [str(x) for x in CERTIFIED_RELEASE],
         "override_id": entry.override_id,

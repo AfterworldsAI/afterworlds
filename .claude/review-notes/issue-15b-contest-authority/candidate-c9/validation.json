@@ -1,13 +1,16 @@
 {
  "all_ok": true,
  "candidate": {
-  "c9.json": "aa389affaf571f1837bbeb4655b3581b253a52b05a882df1f1195f279cea2c9f",
+  "c9.json": "a3d40545d1a0ea1b4a1e24a1e3831b12b972f50ea26981b0edf1b578fd0648db",
   "correspondence.json": "285ee055374edbcf75383b00e755aca2daa2d5f0363f57b6af368a27efeaf1e4",
   "inventory.json": "daab6ac2acd13d3b273995baff64e4ba8e0242f9817e7edf62b4965ea8de3d9b"
  },
  "checks": {
   "absence_is_positive_within_extent": {
    "detail": [],
+   "ok": true
+  },
+  "assassin_acrobatics_is_dexterity_only": {
    "ok": true
   },
   "c8_unchanged": {
@@ -18,6 +21,10 @@
    "ok": true
   },
   "correspondence_aligned": {
+   "detail": [],
+   "ok": true
+  },
+  "every_bonus_carries_its_usual_ability": {
    "detail": [],
    "ok": true
   },
@@ -36,6 +43,10 @@
    "ok": true
   },
   "independent_reparse_matches": {
+   "detail": [],
+   "ok": true
+  },
+  "interpretation_quotes_on_cited_lines": {
    "detail": [],
    "ok": true
   },

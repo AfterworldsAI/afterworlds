@@ -26,7 +26,7 @@ from pathlib import Path
 REPO = Path.cwd()
 HERE = REPO / ".claude/review-notes/issue-15b-contest-authority/supplement-s1"
 SCRATCH = Path("D:/AI/Claude/scratch/AW docs/issue15b-resumption")
-PDF_SHA256 = "2504d2a0abb0a4d491a939be4f17910a2dde0312570ab8d208080225ccf0a1f0"  # pragma: allowlist secret
+PDF_SHA256 = "2504d2a0abb0a4d491a939be4f17910a2dde0312570ab8d208080225ccf0a1f0"  # noqa: E501  # pragma: allowlist secret
 PDF_BYTES = 3158713
 PDF_URL = "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf"
 PAGE_INDEX = 76  # printed page 77
@@ -34,7 +34,7 @@ LEGAL_PAGE_INDEX = 0
 RECEIPT = SCRATCH / "CONTEST-SUPPLEMENT-OWNER-ACCEPTANCE-2026-10-14.md"
 RECEIPT_SHA256 = None  # recorded, not pre-pinned: the receipt is Codex's file
 PROPOSAL = SCRATCH / "PROPOSED-OPPOSED-CHECK-CONTRACT.md"
-PROPOSAL_SHA256 = "6e708e77dcbe3fefcd3d0cef7aaf9fdff2c3ee783b9e3d3df3b8f01a3d338a20"  # pragma: allowlist secret
+PROPOSAL_SHA256 = "6e708e77dcbe3fefcd3d0cef7aaf9fdff2c3ee783b9e3d3df3b8f01a3d338a20"  # noqa: E501  # pragma: allowlist secret
 
 RELEASE = ("1299484e-c72d-509b-bd8d-d0169ee1f8d2", "5.2.1-corpus.8781d4e0-a3b")
 SUPPLEMENT_ID = "afterworlds.supplement.srd-5-1-contests"
@@ -116,7 +116,9 @@ def authored_prose(excerpt: str, attribution: str) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--pdf", type=Path, default=SCRATCH / "SRD_CC_v5.1-contest-source.pdf")
+    parser.add_argument(
+        "--pdf", type=Path, default=SCRATCH / "SRD_CC_v5.1-contest-source.pdf"
+    )
     args = parser.parse_args()
     pdf_bytes = args.pdf.read_bytes()
     assert len(pdf_bytes) == PDF_BYTES and sha(pdf_bytes) == PDF_SHA256, args.pdf

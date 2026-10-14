@@ -9,6 +9,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      }
@@ -46,10 +47,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "strength",
       "bonus": 5,
       "skill": "athletics"
      },
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      }
@@ -69,6 +72,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -106,6 +110,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      }
@@ -143,6 +148,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      }
@@ -162,6 +168,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 6,
       "skill": "perception"
      }
@@ -199,6 +206,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      }
@@ -236,10 +244,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -259,10 +269,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 2,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -282,6 +294,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 2,
       "skill": "stealth"
      }
@@ -301,6 +314,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 2,
       "skill": "stealth"
      }
@@ -320,6 +334,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      }
@@ -339,10 +354,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -380,6 +397,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 6,
       "skill": "perception"
      }
@@ -417,6 +435,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 2,
       "skill": "perception"
      }
@@ -454,10 +473,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 1,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 3,
       "skill": "stealth"
      }
@@ -477,14 +498,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "strength",
       "bonus": 9,
       "skill": "athletics"
      },
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      },
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "survival"
      }
@@ -504,6 +528,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      }
@@ -577,6 +602,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 2,
       "skill": "perception"
      }
@@ -596,6 +622,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 3,
       "skill": "stealth"
      }
@@ -615,6 +642,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -634,6 +662,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 6,
       "skill": "perception"
      }
@@ -653,6 +682,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      }
@@ -690,10 +720,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 2,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -713,6 +745,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      }
@@ -732,6 +765,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      }
@@ -769,10 +803,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -792,10 +828,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 6,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 6,
       "skill": "stealth"
      }
@@ -815,6 +853,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 2,
       "skill": "perception"
      }
@@ -870,6 +909,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      }
@@ -889,10 +929,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 7,
       "skill": "stealth"
      }
@@ -930,6 +972,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 2,
       "skill": "perception"
      }
@@ -949,6 +992,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      }
@@ -986,14 +1030,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "acrobatics"
      },
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -1013,10 +1060,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 7,
       "skill": "stealth"
      }
@@ -1036,6 +1085,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 2,
       "skill": "perception"
      }
@@ -1055,6 +1105,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 6,
       "skill": "perception"
      }
@@ -1074,6 +1125,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      }
@@ -1093,6 +1145,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 2,
       "skill": "perception"
      }
@@ -1112,6 +1165,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      }
@@ -1131,10 +1185,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -1154,10 +1210,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -1177,10 +1235,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -1236,6 +1296,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      }
@@ -1273,10 +1334,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 2,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 6,
       "skill": "stealth"
      }
@@ -1296,10 +1359,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -1319,10 +1384,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 7,
       "skill": "stealth"
      }
@@ -1360,10 +1427,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -1383,10 +1452,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -1424,6 +1495,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 1,
       "skill": "perception"
      }
@@ -1443,6 +1515,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 2,
       "skill": "perception"
      }
@@ -1462,6 +1535,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      }
@@ -1481,6 +1555,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 2,
       "skill": "perception"
      }
@@ -1536,10 +1611,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 7,
       "skill": "stealth"
      }
@@ -1577,10 +1654,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 2,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -1600,6 +1679,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -1691,6 +1771,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      }
@@ -1728,10 +1809,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 7,
       "skill": "stealth"
      }
@@ -1769,6 +1852,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      }
@@ -1806,6 +1890,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      }
@@ -1843,14 +1928,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "acrobatics"
      },
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -1870,10 +1958,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -1929,10 +2019,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "intelligence",
       "bonus": 12,
       "skill": "history"
      },
      {
+      "ability": "wisdom",
       "bonus": 10,
       "skill": "perception"
      }
@@ -2042,14 +2134,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 7,
       "skill": "acrobatics"
      },
      {
+      "ability": "wisdom",
       "bonus": 6,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 10,
       "skill": "stealth"
      }
@@ -2141,6 +2236,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 9,
       "skill": "perception"
      }
@@ -2178,10 +2274,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "strength",
       "bonus": 4,
       "skill": "athletics"
      },
      {
+      "ability": "charisma",
       "bonus": 4,
       "skill": "deception"
      }
@@ -2201,14 +2299,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "charisma",
       "bonus": 5,
       "skill": "deception"
      },
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "insight"
      },
      {
+      "ability": "wisdom",
       "bonus": 8,
       "skill": "perception"
      }
@@ -2264,10 +2365,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 6,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 7,
       "skill": "stealth"
      }
@@ -2305,10 +2408,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 11,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 7,
       "skill": "stealth"
      }
@@ -2328,10 +2433,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 16,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 9,
       "skill": "stealth"
      }
@@ -2351,10 +2458,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -2374,10 +2483,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 6,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -2415,10 +2526,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -2438,10 +2551,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 12,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -2461,10 +2576,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 17,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 7,
       "skill": "stealth"
      }
@@ -2484,10 +2601,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 2,
       "skill": "stealth"
      }
@@ -2507,10 +2626,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 9,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -2530,10 +2651,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "charisma",
       "bonus": 7,
       "skill": "deception"
      },
      {
+      "ability": "wisdom",
       "bonus": 6,
       "skill": "insight"
      }
@@ -2553,18 +2676,22 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "intelligence",
       "bonus": 7,
       "skill": "history"
      },
      {
+      "ability": "wisdom",
       "bonus": 11,
       "skill": "perception"
      },
      {
+      "ability": "charisma",
       "bonus": 8,
       "skill": "persuasion"
      },
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -2584,18 +2711,22 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "intelligence",
       "bonus": 9,
       "skill": "history"
      },
      {
+      "ability": "wisdom",
       "bonus": 14,
       "skill": "perception"
      },
      {
+      "ability": "charisma",
       "bonus": 12,
       "skill": "persuasion"
      },
      {
+      "ability": "dexterity",
       "bonus": 6,
       "skill": "stealth"
      }
@@ -2615,10 +2746,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 2,
       "skill": "stealth"
      }
@@ -2638,14 +2771,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 6,
       "skill": "perception"
      },
      {
+      "ability": "charisma",
       "bonus": 5,
       "skill": "persuasion"
      },
      {
+      "ability": "dexterity",
       "bonus": 3,
       "skill": "stealth"
      }
@@ -2665,14 +2801,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 7,
       "skill": "insight"
      },
      {
+      "ability": "wisdom",
       "bonus": 12,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -2692,14 +2831,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 10,
       "skill": "insight"
      },
      {
+      "ability": "wisdom",
       "bonus": 17,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 7,
       "skill": "stealth"
      }
@@ -2719,10 +2861,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 2,
       "skill": "stealth"
      }
@@ -2742,14 +2886,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "insight"
      },
      {
+      "ability": "wisdom",
       "bonus": 7,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 3,
       "skill": "stealth"
      }
@@ -2769,10 +2916,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 6,
       "skill": "stealth"
      },
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "survival"
      }
@@ -2792,10 +2941,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 6,
       "skill": "stealth"
      },
      {
+      "ability": "wisdom",
       "bonus": 2,
       "skill": "survival"
      }
@@ -2815,6 +2966,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 6,
       "skill": "perception"
      }
@@ -2834,10 +2986,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "strength",
       "bonus": 6,
       "skill": "athletics"
      },
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      }
@@ -2875,6 +3029,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 8,
       "skill": "perception"
      }
@@ -2894,6 +3049,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      }
@@ -2931,6 +3087,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -2950,10 +3107,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 7,
       "skill": "insight"
      },
      {
+      "ability": "wisdom",
       "bonus": 11,
       "skill": "perception"
      }
@@ -3009,14 +3168,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "charisma",
       "bonus": 9,
       "skill": "deception"
      },
      {
+      "ability": "wisdom",
       "bonus": 12,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 6,
       "skill": "stealth"
      }
@@ -3036,14 +3198,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "charisma",
       "bonus": 13,
       "skill": "deception"
      },
      {
+      "ability": "wisdom",
       "bonus": 17,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 8,
       "skill": "stealth"
      }
@@ -3063,10 +3228,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 3,
       "skill": "stealth"
      }
@@ -3086,14 +3253,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "charisma",
       "bonus": 5,
       "skill": "deception"
      },
      {
+      "ability": "wisdom",
       "bonus": 7,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -3149,10 +3319,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "charisma",
       "bonus": 2,
       "skill": "deception"
      },
      {
+      "ability": "intelligence",
       "bonus": 2,
       "skill": "religion"
      }
@@ -3172,14 +3344,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "charisma",
       "bonus": 3,
       "skill": "deception"
      },
      {
+      "ability": "charisma",
       "bonus": 3,
       "skill": "persuasion"
      },
      {
+      "ability": "intelligence",
       "bonus": 2,
       "skill": "religion"
      }
@@ -3199,6 +3374,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 3,
       "skill": "stealth"
      }
@@ -3218,10 +3394,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -3241,10 +3419,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 9,
       "skill": "insight"
      },
      {
+      "ability": "wisdom",
       "bonus": 9,
       "skill": "perception"
      }
@@ -3282,10 +3462,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "charisma",
       "bonus": 6,
       "skill": "deception"
      },
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "insight"
      }
@@ -3341,10 +3523,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 6,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 10,
       "skill": "stealth"
      }
@@ -3364,14 +3548,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "medicine"
      },
      {
+      "ability": "intelligence",
       "bonus": 3,
       "skill": "nature"
      },
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      }
@@ -3391,10 +3578,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -3450,10 +3639,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 6,
       "skill": "perception"
      },
      {
+      "ability": "charisma",
       "bonus": 8,
       "skill": "persuasion"
      }
@@ -3473,14 +3664,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      },
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "survival"
      }
@@ -3500,6 +3694,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      }
@@ -3537,10 +3732,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "strength",
       "bonus": 11,
       "skill": "athletics"
      },
      {
+      "ability": "wisdom",
       "bonus": 6,
       "skill": "perception"
      }
@@ -3578,10 +3775,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "strength",
       "bonus": 9,
       "skill": "athletics"
      },
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      }
@@ -3637,6 +3836,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -3746,10 +3946,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "charisma",
       "bonus": 7,
       "skill": "deception"
      },
      {
+      "ability": "wisdom",
       "bonus": 7,
       "skill": "perception"
      }
@@ -3769,10 +3971,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "strength",
       "bonus": 10,
       "skill": "athletics"
      },
      {
+      "ability": "charisma",
       "bonus": 5,
       "skill": "performance"
      }
@@ -3810,6 +4014,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 6,
       "skill": "stealth"
      }
@@ -3829,6 +4034,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 6,
       "skill": "stealth"
      }
@@ -3848,6 +4054,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 6,
       "skill": "stealth"
      }
@@ -3867,18 +4074,22 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 8,
       "skill": "insight"
      },
      {
+      "ability": "wisdom",
       "bonus": 14,
       "skill": "perception"
      },
      {
+      "ability": "charisma",
       "bonus": 13,
       "skill": "persuasion"
      },
      {
+      "ability": "dexterity",
       "bonus": 8,
       "skill": "stealth"
      }
@@ -3898,18 +4109,22 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 10,
       "skill": "insight"
      },
      {
+      "ability": "wisdom",
       "bonus": 17,
       "skill": "perception"
      },
      {
+      "ability": "charisma",
       "bonus": 16,
       "skill": "persuasion"
      },
      {
+      "ability": "dexterity",
       "bonus": 9,
       "skill": "stealth"
      }
@@ -3929,10 +4144,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -3952,18 +4169,22 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "insight"
      },
      {
+      "ability": "wisdom",
       "bonus": 9,
       "skill": "perception"
      },
      {
+      "ability": "charisma",
       "bonus": 9,
       "skill": "persuasion"
      },
      {
+      "ability": "dexterity",
       "bonus": 6,
       "skill": "stealth"
      }
@@ -3983,6 +4204,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 7,
       "skill": "perception"
      }
@@ -4002,6 +4224,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 2,
       "skill": "stealth"
      }
@@ -4021,18 +4244,22 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "charisma",
       "bonus": 9,
       "skill": "deception"
      },
      {
+      "ability": "wisdom",
       "bonus": 12,
       "skill": "perception"
      },
      {
+      "ability": "charisma",
       "bonus": 9,
       "skill": "persuasion"
      },
      {
+      "ability": "dexterity",
       "bonus": 6,
       "skill": "stealth"
      }
@@ -4052,18 +4279,22 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "charisma",
       "bonus": 13,
       "skill": "deception"
      },
      {
+      "ability": "wisdom",
       "bonus": 17,
       "skill": "perception"
      },
      {
+      "ability": "charisma",
       "bonus": 13,
       "skill": "persuasion"
      },
      {
+      "ability": "dexterity",
       "bonus": 8,
       "skill": "stealth"
      }
@@ -4083,10 +4314,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 3,
       "skill": "stealth"
      }
@@ -4106,14 +4339,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "charisma",
       "bonus": 5,
       "skill": "deception"
      },
      {
+      "ability": "wisdom",
       "bonus": 7,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -4133,18 +4369,22 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "intelligence",
       "bonus": 5,
       "skill": "arcana"
      },
      {
+      "ability": "charisma",
       "bonus": 4,
       "skill": "deception"
      },
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 3,
       "skill": "stealth"
      }
@@ -4164,6 +4404,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -4183,6 +4424,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      }
@@ -4202,14 +4444,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "strength",
       "bonus": 5,
       "skill": "athletics"
      },
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -4229,14 +4474,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "intelligence",
       "bonus": 11,
       "skill": "arcana"
      },
      {
+      "ability": "intelligence",
       "bonus": 11,
       "skill": "history"
      },
      {
+      "ability": "intelligence",
       "bonus": 11,
       "skill": "religion"
      }
@@ -4256,6 +4504,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 2,
       "skill": "perception"
      }
@@ -4275,10 +4524,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "strength",
       "bonus": 6,
       "skill": "athletics"
      },
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      }
@@ -4298,14 +4549,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "strength",
       "bonus": 7,
       "skill": "athletics"
      },
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -4343,6 +4597,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      }
@@ -4380,6 +4635,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 2,
       "skill": "perception"
      }
@@ -4399,6 +4655,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      }
@@ -4490,6 +4747,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 6,
       "skill": "perception"
      }
@@ -4509,14 +4767,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 7,
       "skill": "insight"
      },
      {
+      "ability": "wisdom",
       "bonus": 7,
       "skill": "perception"
      },
      {
+      "ability": "charisma",
       "bonus": 9,
       "skill": "persuasion"
      }
@@ -4536,14 +4797,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "charisma",
       "bonus": 4,
       "skill": "deception"
      },
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "insight"
      },
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -4563,22 +4827,27 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "charisma",
       "bonus": 9,
       "skill": "deception"
      },
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "insight"
      },
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      },
      {
+      "ability": "charisma",
       "bonus": 9,
       "skill": "persuasion"
      },
      {
+      "ability": "dexterity",
       "bonus": 7,
       "skill": "stealth"
      }
@@ -4598,10 +4867,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 8,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 10,
       "skill": "stealth"
      }
@@ -4675,10 +4946,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "intelligence",
       "bonus": 13,
       "skill": "history"
      },
      {
+      "ability": "wisdom",
       "bonus": 11,
       "skill": "perception"
      }
@@ -4698,14 +4971,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "charisma",
       "bonus": 7,
       "skill": "deception"
      },
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "insight"
      },
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -4743,18 +5019,22 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "intelligence",
       "bonus": 19,
       "skill": "arcana"
      },
      {
+      "ability": "intelligence",
       "bonus": 12,
       "skill": "history"
      },
      {
+      "ability": "wisdom",
       "bonus": 9,
       "skill": "insight"
      },
      {
+      "ability": "wisdom",
       "bonus": 9,
       "skill": "perception"
      }
@@ -4774,14 +5054,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "intelligence",
       "bonus": 13,
       "skill": "arcana"
      },
      {
+      "ability": "intelligence",
       "bonus": 9,
       "skill": "history"
      },
      {
+      "ability": "wisdom",
       "bonus": 6,
       "skill": "perception"
      }
@@ -4801,14 +5084,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "intelligence",
       "bonus": 6,
       "skill": "arcana"
      },
      {
+      "ability": "intelligence",
       "bonus": 6,
       "skill": "history"
      },
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      }
@@ -4864,6 +5150,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 8,
       "skill": "perception"
      }
@@ -4883,14 +5170,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "charisma",
       "bonus": 5,
       "skill": "deception"
      },
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 6,
       "skill": "stealth"
      }
@@ -4910,10 +5200,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 2,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -4933,10 +5225,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 2,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 3,
       "skill": "stealth"
      }
@@ -4956,6 +5250,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 3,
       "skill": "stealth"
      }
@@ -4975,6 +5270,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 2,
       "skill": "stealth"
      }
@@ -5030,6 +5326,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -5049,10 +5346,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 7,
       "skill": "perception"
      },
      {
+      "ability": "wisdom",
       "bonus": 7,
       "skill": "survival"
      }
@@ -5090,14 +5389,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "intelligence",
       "bonus": 5,
       "skill": "history"
      },
      {
+      "ability": "wisdom",
       "bonus": 9,
       "skill": "perception"
      },
      {
+      "ability": "intelligence",
       "bonus": 5,
       "skill": "religion"
      }
@@ -5135,18 +5437,22 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "charisma",
       "bonus": 6,
       "skill": "deception"
      },
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "insight"
      },
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -5184,14 +5490,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "charisma",
       "bonus": 5,
       "skill": "deception"
      },
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "insight"
      },
      {
+      "ability": "charisma",
       "bonus": 5,
       "skill": "persuasion"
      }
@@ -5247,14 +5556,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "intelligence",
       "bonus": 5,
       "skill": "arcana"
      },
      {
+      "ability": "charisma",
       "bonus": 8,
       "skill": "deception"
      },
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      }
@@ -5292,6 +5604,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      }
@@ -5311,6 +5624,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 6,
       "skill": "perception"
      }
@@ -5330,6 +5644,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 7,
       "skill": "stealth"
      }
@@ -5367,10 +5682,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 7,
       "skill": "acrobatics"
      },
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      }
@@ -5390,10 +5707,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 10,
       "skill": "perception"
      },
      {
+      "ability": "charisma",
       "bonus": 19,
       "skill": "persuasion"
      }
@@ -5413,6 +5732,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 11,
       "skill": "perception"
      }
@@ -5432,14 +5752,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 7,
       "skill": "medicine"
      },
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      },
      {
+      "ability": "intelligence",
       "bonus": 5,
       "skill": "religion"
      }
@@ -5459,10 +5782,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "medicine"
      },
      {
+      "ability": "intelligence",
       "bonus": 2,
       "skill": "religion"
      }
@@ -5482,10 +5807,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -5523,6 +5850,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -5542,14 +5870,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "charisma",
       "bonus": 10,
       "skill": "deception"
      },
      {
+      "ability": "wisdom",
       "bonus": 8,
       "skill": "insight"
      },
      {
+      "ability": "wisdom",
       "bonus": 8,
       "skill": "perception"
      }
@@ -5569,10 +5900,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 13,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 6,
       "skill": "stealth"
      }
@@ -5592,10 +5925,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 16,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 7,
       "skill": "stealth"
      }
@@ -5615,10 +5950,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 2,
       "skill": "stealth"
      }
@@ -5638,10 +5975,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 8,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -5679,6 +6018,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 8,
       "skill": "perception"
      }
@@ -5698,10 +6038,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 6,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -5739,6 +6081,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      }
@@ -5776,14 +6119,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 2,
       "skill": "perception"
      },
      {
+      "ability": "charisma",
       "bonus": 6,
       "skill": "performance"
      },
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -5803,18 +6149,22 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "intelligence",
       "bonus": 4,
       "skill": "nature"
      },
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 6,
       "skill": "stealth"
      },
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "survival"
      }
@@ -5852,6 +6202,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 6,
       "skill": "stealth"
      }
@@ -5871,6 +6222,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "dexterity",
       "bonus": 3,
       "skill": "stealth"
      }
@@ -5908,14 +6260,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "intelligence",
       "bonus": 8,
       "skill": "history"
      },
      {
+      "ability": "wisdom",
       "bonus": 11,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -5935,14 +6290,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "intelligence",
       "bonus": 11,
       "skill": "history"
      },
      {
+      "ability": "wisdom",
       "bonus": 16,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 7,
       "skill": "stealth"
      }
@@ -5962,10 +6320,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 2,
       "skill": "stealth"
      }
@@ -5985,14 +6345,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "intelligence",
       "bonus": 6,
       "skill": "history"
      },
      {
+      "ability": "wisdom",
       "bonus": 8,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -6066,6 +6429,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 14,
       "skill": "perception"
      }
@@ -6103,18 +6467,22 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "intelligence",
       "bonus": 12,
       "skill": "arcana"
      },
      {
+      "ability": "intelligence",
       "bonus": 12,
       "skill": "history"
      },
      {
+      "ability": "wisdom",
       "bonus": 8,
       "skill": "perception"
      },
      {
+      "ability": "intelligence",
       "bonus": 12,
       "skill": "religion"
      }
@@ -6134,14 +6502,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "intelligence",
       "bonus": 9,
       "skill": "arcana"
      },
      {
+      "ability": "wisdom",
       "bonus": 12,
       "skill": "perception"
      },
      {
+      "ability": "intelligence",
       "bonus": 15,
       "skill": "religion"
      }
@@ -6161,14 +6532,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "intelligence",
       "bonus": 4,
       "skill": "arcana"
      },
      {
+      "ability": "intelligence",
       "bonus": 4,
       "skill": "religion"
      },
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -6206,10 +6580,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 8,
       "skill": "stealth"
      }
@@ -6229,26 +6605,32 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "charisma",
       "bonus": 5,
       "skill": "deception"
      },
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "insight"
      },
      {
+      "ability": "intelligence",
       "bonus": 5,
       "skill": "investigation"
      },
      {
+      "ability": "wisdom",
       "bonus": 6,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "sleight_of_hand"
      },
      {
+      "ability": "dexterity",
       "bonus": 6,
       "skill": "stealth"
      }
@@ -6286,14 +6668,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "strength",
       "bonus": 12,
       "skill": "athletics"
      },
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -6331,18 +6716,22 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "intelligence",
       "bonus": 8,
       "skill": "arcana"
      },
      {
+      "ability": "strength",
       "bonus": 14,
       "skill": "athletics"
      },
      {
+      "ability": "intelligence",
       "bonus": 8,
       "skill": "history"
      },
      {
+      "ability": "wisdom",
       "bonus": 10,
       "skill": "perception"
      }
@@ -6362,22 +6751,27 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "charisma",
       "bonus": 9,
       "skill": "deception"
      },
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "insight"
      },
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      },
      {
+      "ability": "charisma",
       "bonus": 9,
       "skill": "persuasion"
      },
      {
+      "ability": "dexterity",
       "bonus": 7,
       "skill": "stealth"
      }
@@ -6397,6 +6791,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 9,
       "skill": "perception"
      }
@@ -6470,6 +6865,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      }
@@ -6525,10 +6921,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 7,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 9,
       "skill": "stealth"
      }
@@ -6548,14 +6946,17 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      },
      {
+      "ability": "charisma",
       "bonus": 4,
       "skill": "persuasion"
      },
      {
+      "ability": "dexterity",
       "bonus": 7,
       "skill": "stealth"
      }
@@ -6575,10 +6976,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 6,
       "skill": "stealth"
      }
@@ -6616,10 +7019,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "strength",
       "bonus": 5,
       "skill": "athletics"
      },
      {
+      "ability": "wisdom",
       "bonus": 2,
       "skill": "perception"
      }
@@ -6675,6 +7080,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 7,
       "skill": "perception"
      }
@@ -6694,6 +7100,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 2,
       "skill": "perception"
      }
@@ -6713,10 +7120,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -6736,10 +7145,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -6759,10 +7170,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -6782,10 +7195,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 11,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -6805,10 +7220,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 13,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 6,
       "skill": "stealth"
      }
@@ -6828,10 +7245,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 2,
       "skill": "stealth"
      }
@@ -6851,10 +7270,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 6,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 3,
       "skill": "stealth"
      }
@@ -6874,10 +7295,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 3,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 4,
       "skill": "stealth"
      }
@@ -6915,10 +7338,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 5,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 5,
       "skill": "stealth"
      }
@@ -6938,6 +7363,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      }
@@ -6975,6 +7401,7 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 4,
       "skill": "perception"
      }
@@ -6994,10 +7421,12 @@
     "family": "creature_skills",
     "skills": [
      {
+      "ability": "wisdom",
       "bonus": 6,
       "skill": "perception"
      },
      {
+      "ability": "dexterity",
       "bonus": 6,
       "skill": "stealth"
      }
@@ -7122,6 +7551,20 @@
  "form_source": "C8 correspondence `form`, accepted in the C8 successor",
  "held": [
   {
+   "case": "a listed skill used with an ability other than its usual one (for example Strength (Acrobatics))",
+   "evidence": [
+    {
+     "file": "playing-the-game.md",
+     "line": 239
+    },
+    {
+     "file": "monsters-A-Z.md",
+     "line": 532
+    }
+   ],
+   "why": "the source permits the pairing (playing-the-game.md:239), but a printed total is for the usual ability only and decomposing it is not established (S3). This is a bounded adapter exclusion, not a claim that the source forbids the pairing: such a check refuses before any die unless separately supported authority exists. An unlisted skill under a complete list is not proficient, so any pairing uses that ability's modifier."
+  },
+  {
    "case": "a Vampire in mist form",
    "evidence": [
     {
@@ -7168,19 +7611,31 @@
    "evidence": [
     {
      "file": "monsters.md",
-     "line": 7,
-     "quote": "skill proficiencies"
+     "line": 13,
+     "quote": "Additional details appear in some monsters, such as skill proficiencies"
     }
    ]
   },
   "S3": {
-   "basis": "the diagnostic below shows printed totals that exceed modifier + PB (for example doubled PB); decomposing them would invent a cause the stat block does not state",
-   "claim": "A printed skill bonus is the complete check bonus for that skill. It is recorded as printed and never decomposed into ability modifier, Proficiency Bonus or Expertise, and nothing is re-added.",
+   "basis": "the diagnostic below shows printed totals that exceed modifier + PB (for example doubled PB); decomposing them would invent a cause the stat block does not state, and reusing one for another ability would assume that cause",
+   "claim": "A printed skill bonus is the complete check bonus for that skill used with its usual ability (the Skills table's pairing, SKILL_ABILITY): the pairing the stat block prints it for. It is recorded as printed, with that ability, and never decomposed into ability modifier, Proficiency Bonus or Expertise; nothing is re-added. It states nothing about the same skill used with another ability.",
    "evidence": [
     {
      "file": "monsters.md",
      "line": 149,
      "quote": "A skill bonus is the sum of a monster's relevant ability modifier and its Proficiency Bonus. Other modifiers might apply."
+    },
+    {
+     "file": "playing-the-game.md",
+     "line": 239,
+     "quote": "a Strength (Acrobatics or Athletics) check",
+     "why": "the rules permit an atypical pairing"
+    },
+    {
+     "file": "monsters-A-Z.md",
+     "line": 532,
+     "quote": "**Skills** Acrobatics +7, Perception +6, Stealth +10<br>",
+     "why": "Assassin: +7 is Dexterity (+4) Acrobatics; its Strength modifier is +0 (:502-508), so +7 cannot be reused for Strength (Acrobatics)"
     }
    ]
   }

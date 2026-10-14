@@ -29,14 +29,15 @@ HERE = REPO / ".claude/review-notes/issue-15b-contest-authority/candidate-c9"
 SRC = REPO / "docs/sources/community/dnd-5e-srd-markdown"
 ORACLE = (
     REPO
-    / "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json"
+    / "src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json"  # noqa: E501
 )
 C8_CORRESPONDENCE = (
-    REPO / ".claude/review-notes/issue-15c-implementation/candidate-c8/correspondence.json"
+    REPO
+    / ".claude/review-notes/issue-15c-implementation/candidate-c8/correspondence.json"
 )
 PINS: dict[Path, str | None] = {
-    ORACLE: "ead7fa9d4fde484098f71221ca5ef82dfb2c82229d8fca80ab5feeb4e4d62d0d",  # pragma: allowlist secret
-    C8_CORRESPONDENCE: "43589153ee7befe4e46052f0e7fe7db053b5a9a22c3ff8a6b4468e41c9e0ce24",  # pragma: allowlist secret
+    ORACLE: "ead7fa9d4fde484098f71221ca5ef82dfb2c82229d8fca80ab5feeb4e4d62d0d",  # noqa: E501  # pragma: allowlist secret
+    C8_CORRESPONDENCE: "43589153ee7befe4e46052f0e7fe7db053b5a9a22c3ff8a6b4468e41c9e0ce24",  # noqa: E501  # pragma: allowlist secret
     SRC / "monsters-A-Z.md": None,
     SRC / "animals.md": None,
     SRC / "spells.md": None,
@@ -46,7 +47,9 @@ PINS: dict[Path, str | None] = {
 }
 TEMPLATE_FILES = ("monsters-A-Z.md", "animals.md", "spells.md", "magic-items.md")
 SKILLS_LINE = re.compile(r"^\*\*Skills\*\* (?P<list>.+?) ?<br>$")
-ENTRY = re.compile(r"^(?P<name>[A-Z][a-z]+(?: of [A-Z][a-z]+)?) (?P<sign>[+−-])(?P<n>\d+)$")
+ENTRY = re.compile(
+    r"^(?P<name>[A-Z][a-z]+(?: of [A-Z][a-z]+)?) (?P<sign>[+−-])(?P<n>\d+)$"
+)
 
 #: Forms, carried from C8's per-template classification. A Shape-Shift that
 #: keeps "game statistics ... the same in each form" keeps the Skills entry,
@@ -88,13 +91,23 @@ INTERPRETATIONS = {
     "S2": {
         "claim": "A Shape-Shift keeping game statistics the same in each form "
         "keeps the Skills entry; the bat form likewise. The mist form is held.",
-        "evidence": [{"file": "monsters.md", "line": 7, "quote": "skill proficiencies"}],
+        "evidence": [
+            {
+                "file": "monsters.md",
+                "line": 13,
+                "quote": "Additional details appear in some monsters, such as skill "
+                "proficiencies",
+            }
+        ],
         "basis": "the same classification C8 accepted for the creature type (I2)",
     },
     "S3": {
-        "claim": "A printed skill bonus is the complete check bonus for that "
-        "skill. It is recorded as printed and never decomposed into ability "
-        "modifier, Proficiency Bonus or Expertise, and nothing is re-added.",
+        "claim": "A printed skill bonus is the complete check bonus for that skill "
+        "used with its usual ability (the Skills table's pairing, SKILL_ABILITY): "
+        "the pairing the stat block prints it for. It is recorded as printed, "
+        "with that ability, and never decomposed into ability modifier, "
+        "Proficiency Bonus or Expertise; nothing is re-added. It states nothing "
+        "about the same skill used with another ability.",
         "evidence": [
             {
                 "file": "monsters.md",
@@ -102,15 +115,45 @@ INTERPRETATIONS = {
                 "quote": "A skill bonus is the sum of a monster's relevant "
                 "ability modifier and its Proficiency Bonus. Other modifiers "
                 "might apply.",
-            }
+            },
+            {
+                "file": "playing-the-game.md",
+                "line": 239,
+                "quote": "a Strength (Acrobatics or Athletics) check",
+                "why": "the rules permit an atypical pairing",
+            },
+            {
+                "file": "monsters-A-Z.md",
+                "line": 532,
+                "quote": "**Skills** Acrobatics +7, Perception +6, " "Stealth +10<br>",
+                "why": "Assassin: +7 is Dexterity (+4) Acrobatics; its Strength "
+                "modifier is +0 (:502-508), so +7 cannot be reused for Strength "
+                "(Acrobatics)",
+            },
         ],
-        "basis": "the diagnostic below shows printed totals that exceed "
-        "modifier + PB (for example doubled PB); decomposing them would invent "
-        "a cause the stat block does not state",
+        "basis": "the diagnostic below shows printed totals that exceed modifier + "
+        "PB (for example doubled PB); decomposing them would invent a cause the "
+        "stat block does not state, and reusing one for another ability would "
+        "assume that cause",
     },
 }
 
 HELD = [
+    {
+        "case": "a listed skill used with an ability other than its usual one "
+        "(for example Strength (Acrobatics))",
+        "why": "the source permits the pairing (playing-the-game.md:239), but a "
+        "printed total is for the usual ability only and decomposing it is not "
+        "established (S3). This is a bounded adapter exclusion, not a claim that "
+        "the source forbids the pairing: such a check refuses before any die "
+        "unless separately supported authority exists. An unlisted skill under a "
+        "complete list is not proficient, so any pairing uses that ability's "
+        "modifier.",
+        "evidence": [
+            {"file": "playing-the-game.md", "line": 239},
+            {"file": "monsters-A-Z.md", "line": 532},
+        ],
+    },
     {
         "case": "a Vampire in mist form",
         "why": "carried from C8: the mist paragraph states specific changes and "
@@ -153,7 +196,9 @@ def block_extent(src: list[str], header_line: int) -> tuple[int, int, int]:
         i += 1
     ac = i
     j = ac + 1
-    while j < len(src) and not src[j].startswith("#") and not src[j].startswith("**AC** "):
+    while (
+        j < len(src) and not src[j].startswith("#") and not src[j].startswith("**AC** ")
+    ):
         j += 1
     return ac + 1, j + 1, header_line
 
@@ -165,7 +210,13 @@ def parse_skills(text: str) -> list[dict[str, Any]]:
         assert m, raw
         skill = Skill(m.group("name").lower().replace(" ", "_"))
         sign = 1 if m.group("sign") == "+" else -1
-        out.append({"skill": skill.value, "bonus": sign * int(m.group("n"))})
+        out.append(
+            {
+                "skill": skill.value,
+                "ability": SKILL_ABILITY[skill].value,
+                "bonus": sign * int(m.group("n")),
+            }
+        )
     names = [e["skill"] for e in out]
     assert len(names) == len(set(names)), text
     return sorted(out, key=lambda e: e["skill"])
@@ -189,7 +240,9 @@ def main() -> None:
     )
     assert all(kinds[k[0]] == "creature" for k in sized)
     assert not any(
-        f["family"] == "creature_skills" for c in components.values() for f in c["facts"]
+        f["family"] == "creature_skills"
+        for c in components.values()
+        for f in c["facts"]
     )
     c8_rows = {
         (r["record_key"], r["component_key"]): r
@@ -215,7 +268,9 @@ def main() -> None:
         ]
         assert len(found) <= 1, (key, found)
         senses = [
-            (n + 1, src[n]) for n in range(ac - 1, end - 1) if src[n].startswith("**Senses**")
+            (n + 1, src[n])
+            for n in range(ac - 1, end - 1)
+            if src[n].startswith("**Senses**")
         ]
         assert len(senses) == 1, key
         if found:
@@ -244,7 +299,9 @@ def main() -> None:
         # score's modifier by the accepted ability-modifier rule.
         mods = {
             f["ability"]: (
-                f["modifier"] if f.get("modifier") is not None else (f["score"] - 10) // 2
+                f["modifier"]
+                if f.get("modifier") is not None
+                else (f["score"] - 10) // 2
             )
             for f in components[key]["facts"]
             if f["family"] == "creature_ability_score"
@@ -257,11 +314,15 @@ def main() -> None:
             extra = entry["bonus"] - mod
             p = int(pb.group(1))
             diagnostic[
-                "modifier + PB"
-                if extra == p
-                else "modifier + 2 x PB"
-                if extra == 2 * p
-                else f"other (bonus - modifier - PB = {extra - p:+d})"
+                (
+                    "modifier + PB"
+                    if extra == p
+                    else (
+                        "modifier + 2 x PB"
+                        if extra == 2 * p
+                        else f"other (bonus - modifier - PB = {extra - p:+d})"
+                    )
+                )
             ] += 1
         claim_spans = sorted(
             {
@@ -336,7 +397,9 @@ def main() -> None:
         "empty_skill_lists": sum(1 for r in corr if not r["skill_count"]),
         "printed_skills_lines": len(every),
         "skill_entries": sum(r["skill_count"] for r in corr),
-        "touched_batches": {b: dict(sorted(c.items())) for b, c in sorted(by_batch.items())},
+        "touched_batches": {
+            b: dict(sorted(c.items())) for b, c in sorted(by_batch.items())
+        },
         "untouched_batch_count": len(set(all_batches) - set(by_batch)),
         "diagnostic_printed_total_vs_modifier_and_pb": dict(sorted(diagnostic.items())),
         "why": "a generic contest participant may be any creature of the story "
@@ -353,7 +416,9 @@ def main() -> None:
             "family": "creature_skills",
             "plan": "schema-22-delta.md",
         },
-        "pins": {str(p.relative_to(REPO)).replace("\\", "/"): h for p, h in PINS.items()},
+        "pins": {
+            str(p.relative_to(REPO)).replace("\\", "/"): h for p, h in PINS.items()
+        },
         "interpretations": INTERPRETATIONS,
         "held": HELD,
         "form_source": FORM_SOURCE,
