@@ -1,0 +1,210 @@
+{
+ "all_ok": true,
+ "c8_oracle_sha256": "ead7fa9d4fde484098f71221ca5ef82dfb2c82229d8fca80ab5feeb4e4d62d0d",
+ "candidate": {
+  "page-77-extract.txt": "ed129b55cb0dccf9446dff29e89475c23fc626fa58034a1907432d11e87e80fa",
+  "s1.json": "c232a7863d3a31144ebb7fcdd2f7af6591b68b4f3cb096bf65ad6e6d3372c64a"
+ },
+ "certified_release": [
+  "1299484e-c72d-509b-bd8d-d0169ee1f8d2",
+  "5.2.1-corpus.8781d4e0-a3b",
+  "e4f8f4fb-de6c-53c9-98f1-fa7a0159fe42"
+ ],
+ "checks": {
+  "attribution_is_the_source_statement": {
+   "ok": true
+  },
+  "authored_against_c8_release": {
+   "ok": true
+  },
+  "base_binding_is_empty_set": {
+   "ok": true
+  },
+  "base_has_no_contest_component": {
+   "ok": true
+  },
+  "c8_projection_is_certified": {
+   "detail": "e4f8f4fb-de6c-53c9-98f1-fa7a0159fe42",
+   "ok": true
+  },
+  "corrections_listed_exactly": {
+   "ok": true
+  },
+  "deterministic_override_id": {
+   "ok": true
+  },
+  "disabled_has_no_contest_component": {
+   "ok": true
+  },
+  "every_15c_operation_unaffected": {
+   "detail": {
+    "begin_turn": {
+     "certifies_under_supplement": true,
+     "matches_manifest": true,
+     "unchanged": true
+    },
+    "creature_attack": {
+     "certifies_under_supplement": true,
+     "matches_manifest": true,
+     "unchanged": true
+    },
+    "creature_save_effect": {
+     "certifies_under_supplement": true,
+     "matches_manifest": true,
+     "unchanged": true
+    },
+    "creature_species": {
+     "certifies_under_supplement": true,
+     "matches_manifest": true,
+     "unchanged": true
+    },
+    "death_saving_throw": {
+     "certifies_under_supplement": true,
+     "matches_manifest": true,
+     "unchanged": true
+    },
+    "difficulty_check": {
+     "certifies_under_supplement": true,
+     "matches_manifest": true,
+     "unchanged": true
+    },
+    "end_turn": {
+     "certifies_under_supplement": true,
+     "matches_manifest": true,
+     "unchanged": true
+    },
+    "fixed_dc_check": {
+     "certifies_under_supplement": true,
+     "matches_manifest": true,
+     "unchanged": true
+    },
+    "initiative": {
+     "certifies_under_supplement": true,
+     "matches_manifest": true,
+     "unchanged": true
+    },
+    "knockout_recovery": {
+     "certifies_under_supplement": true,
+     "matches_manifest": true,
+     "unchanged": true
+    },
+    "saving_throw": {
+     "certifies_under_supplement": null,
+     "matches_manifest": null,
+     "unchanged": true
+    },
+    "stabilize": {
+     "certifies_under_supplement": true,
+     "matches_manifest": true,
+     "unchanged": true
+    },
+    "stable_recovery": {
+     "certifies_under_supplement": true,
+     "matches_manifest": true,
+     "unchanged": true
+    },
+    "tool_check": {
+     "certifies_under_supplement": true,
+     "matches_manifest": true,
+     "unchanged": true
+    },
+    "weapon_attack": {
+     "certifies_under_supplement": true,
+     "matches_manifest": true,
+     "unchanged": true
+    }
+   },
+   "ok": true
+  },
+  "every_excerpt_sentence_in_source": {
+   "detail": {
+    "missing": [],
+    "sentences": 12
+   },
+   "ok": true
+  },
+  "excerpt_bounds": {
+   "ok": true
+  },
+  "excerpt_reproduces": {
+   "ok": true
+  },
+  "malformed_variants_refused": {
+   "detail": {
+    "prose_bound_without_prose": true,
+    "structured_with_prose": true,
+    "unkeyed_addition": true
+   },
+   "ok": true
+  },
+  "no_replacement_characters": {
+   "detail": {
+    "non_ascii_codepoints": [
+     "U+2014",
+     "U+2019",
+     "U+201C",
+     "U+201D"
+    ]
+   },
+   "ok": true
+  },
+  "only_the_contest_component_added": {
+   "detail": {
+    "added": [
+     [
+      "play.d20_tests",
+      "contest"
+     ]
+    ],
+    "changed": []
+   },
+   "ok": true
+  },
+  "overridden_records": {
+   "detail": [
+    "play.d20_tests"
+   ],
+   "ok": true
+  },
+  "page_extract_pinned": {
+   "ok": true
+  },
+  "page_extract_reproduces": {
+   "ok": true
+  },
+  "payload_is_canonical_patch": {
+   "ok": true
+  },
+  "pdf_pinned": {
+   "ok": true
+  },
+  "policy_points_verbatim_in_receipt": {
+   "ok": true
+  },
+  "proposal_pinned": {
+   "ok": true
+  },
+  "prose_carries_excerpt_points_attribution": {
+   "ok": true
+  },
+  "prose_digest": {
+   "ok": true
+  },
+  "prose_reproduces": {
+   "ok": true
+  },
+  "receipt_digest_recorded": {
+   "ok": true
+  },
+  "supplement_component_effective": {
+   "ok": true
+  },
+  "text_change_moves_schema_id": {
+   "ok": true
+  }
+ },
+ "contest_component_schema_id": "802ea03805060bb6d590a1d5a2d7343d4e6c672e8fe4659b2b5aaaf7cbd54ccb",
+ "override_id": "b9134dea-52c3-546a-b13c-795fe16bfe90",
+ "simulated": "in-memory application to committed C8 inputs; no store, publication or activation",
+ "supplement_only_override_set_uuid": "ffcb9a48-901a-5fe7-9e80-9054b05a9097"
+}

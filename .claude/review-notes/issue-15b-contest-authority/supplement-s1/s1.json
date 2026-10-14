@@ -1,0 +1,73 @@
+{
+ "attribution": "This work includes material taken from the System Reference Document 5.1 (“SRD 5.1”) by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+ "authored_prose_sha256": "604a9f85a1b0c1768f134cf2af6aabd564a8f22309f16319044040b993ed42e0",
+ "candidate_id": "15b-S1-contest-supplement",
+ "excerpt": {
+  "corrections": [
+   {
+    "corrected": "efforts",
+    "extracted": "e fforts",
+    "offset": 627
+   },
+   {
+    "corrected": "the action",
+    "extracted": "th e action",
+    "offset": 882
+   },
+   {
+    "corrected": "off",
+    "extracted": "of f",
+    "offset": 1137
+   }
+  ],
+  "normalization": "every run of tab, CR, LF, NBSP or space -> one space",
+  "text": "Sometimes one character’s or monster’s efforts are directly opposed to another’s. This can occur when both of them are trying to do the same thing and only one can succeed, such as attempting to snatch up a magic ring that has fallen on the floor. This situation also applies when one of them is trying to prevent the other one from accomplishing a goal — for example, when a monster tries to force open a door that an adventurer is holding closed. In situations like these, the outcome is determined by a special form of ability check, called a contest. Both participants in a contest make ability checks appropriate to their efforts. They apply all appropriate bonuses and penalties, but instead of comparing the total to a DC, they compare the totals of their two checks. The participant with the higher check total wins the contest. That character or monster either succeeds at the action or prevents the other one from succeeding. If the contest results in a tie, the situation remains the same as it was before the contest. Thus, one contestant might win the contest by default. If two characters tie in a contest to snatch a ring off the floor, neither character grabs it. In a contest between a monster trying to open a door and an adventurer trying to keep the door closed, a tie means that the door remains shut."
+ },
+ "override": {
+  "is_enabled": true,
+  "operation": "append",
+  "origin": "package_patch",
+  "override_id": "b9134dea-52c3-546a-b13c-795fe16bfe90",
+  "package_uuid": "1299484e-c72d-509b-bd8d-d0169ee1f8d2",
+  "payload": {
+   "component": {
+    "authored_prose": "Afterworlds supplement afterworlds.supplement.srd-5-1-contests, version 1: generic two-participant ability-check contests. Adopted by the Owner on 14 October 2026 as an explicit supplement to this SRD 5.2.1 release; it is not SRD 5.2.1 content. Only the contest procedure below is adopted; System Reference Document 5.1 is not otherwise imported.\n\nSource: System Reference Document 5.1, \"Contests\", printed page 77:\nSometimes one character’s or monster’s efforts are directly opposed to another’s. This can occur when both of them are trying to do the same thing and only one can succeed, such as attempting to snatch up a magic ring that has fallen on the floor. This situation also applies when one of them is trying to prevent the other one from accomplishing a goal — for example, when a monster tries to force open a door that an adventurer is holding closed. In situations like these, the outcome is determined by a special form of ability check, called a contest. Both participants in a contest make ability checks appropriate to their efforts. They apply all appropriate bonuses and penalties, but instead of comparing the total to a DC, they compare the totals of their two checks. The participant with the higher check total wins the contest. That character or monster either succeeds at the action or prevents the other one from succeeding. If the contest results in a tie, the situation remains the same as it was before the contest. Thus, one contestant might win the contest by default. If two characters tie in a contest to snatch a ring off the floor, neither character grabs it. In a contest between a monster trying to open a door and an adventurer trying to keep the door closed, a tie means that the door remains shut.\n\nApplication in this package:\n1. Code compares the participants' authoritative final check totals; the greater total wins.\n2. Equal totals preserve the situation that existed before the contest. No automatic reroll or universal acting-side win is implied.\n3. Applicable specific SRD 5.2.1 mechanics remain unchanged unless separately overridden. Hide's recorded-result DC, Influence's formula DC and Grapple/Shove's saving throws are not silently converted into generic contests.\n\nThis work includes material taken from the System Reference Document 5.1 (“SRD 5.1”) by Wizards of the Coast LLC and available at https://dnd.wizards.com/resources/systems-reference-document. The SRD 5.1 is licensed under the Creative Commons Attribution 4.0 International License available at https://creativecommons.org/licenses/by/4.0/legalcode.",
+    "facts": [],
+    "handling": "prose_bound",
+    "semantic_key": "contest"
+   },
+   "patch": "append_component"
+  },
+  "precedence": 0,
+  "release_version": "5.2.1-corpus.8781d4e0-a3b",
+  "target": {
+   "kind": "record",
+   "record_key": "play.d20_tests"
+  }
+ },
+ "owner_policy": {
+  "points": [
+   "Code compares the participants' authoritative final check totals; the greater total wins.",
+   "Equal totals preserve the situation that existed before the contest. No automatic reroll or universal acting-side win is implied.",
+   "Applicable specific SRD 5.2.1 mechanics remain unchanged unless separately overridden. Hide's recorded-result DC, Influence's formula DC and Grapple/Shove's saving throws are not silently converted into generic contests."
+  ],
+  "proposal": "PROPOSED-OPPOSED-CHECK-CONTRACT.md",
+  "proposal_sha256": "6e708e77dcbe3fefcd3d0cef7aaf9fdff2c3ee783b9e3d3df3b8f01a3d338a20",
+  "receipt": "CONTEST-SUPPLEMENT-OWNER-ACCEPTANCE-2026-10-14.md",
+  "receipt_sha256": "fcc30b1ba6370bb02e35521130f437dee82ec55e0aacfc3b0e06cf2a5ed8af03"
+ },
+ "source": {
+  "bytes": 3158713,
+  "license": "CC-BY-4.0",
+  "page_extract_sha256": "ed129b55cb0dccf9446dff29e89475c23fc626fa58034a1907432d11e87e80fa",
+  "pdf_page_index": 76,
+  "printed_page": 77,
+  "section": "Contests",
+  "sha256": "2504d2a0abb0a4d491a939be4f17910a2dde0312570ab8d208080225ccf0a1f0",
+  "title": "System Reference Document 5.1 (Creative Commons edition)",
+  "url": "https://media.dndbeyond.com/compendium-images/srd/5.1/SRD_CC_v5.1.pdf"
+ },
+ "status": "CANDIDATE: not accepted, authored, published or activated",
+ "supplement_id": "afterworlds.supplement.srd-5-1-contests",
+ "supplement_version": 1
+}

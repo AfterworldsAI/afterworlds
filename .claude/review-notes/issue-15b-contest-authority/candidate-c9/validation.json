@@ -1,0 +1,80 @@
+{
+ "all_ok": true,
+ "candidate": {
+  "c9.json": "aa389affaf571f1837bbeb4655b3581b253a52b05a882df1f1195f279cea2c9f",
+  "correspondence.json": "285ee055374edbcf75383b00e755aca2daa2d5f0363f57b6af368a27efeaf1e4",
+  "inventory.json": "daab6ac2acd13d3b273995baff64e4ba8e0242f9817e7edf62b4965ea8de3d9b"
+ },
+ "checks": {
+  "absence_is_positive_within_extent": {
+   "detail": [],
+   "ok": true
+  },
+  "c8_unchanged": {
+   "ok": true
+  },
+  "claim_spans_in_one_accepted_batch": {
+   "detail": [],
+   "ok": true
+  },
+  "correspondence_aligned": {
+   "detail": [],
+   "ok": true
+  },
+  "extents_disjoint_on_skills_lines": {
+   "detail": [],
+   "ok": true
+  },
+  "fact_shape_closed_sorted_distinct": {
+   "detail": [],
+   "ok": true
+  },
+  "held_forms_carried_from_c8": {
+   "detail": [
+    "monsters.vampires.vampire"
+   ],
+   "ok": true
+  },
+  "independent_reparse_matches": {
+   "detail": [],
+   "ok": true
+  },
+  "inventory_counts": {
+   "detail": {
+    "empty_skill_lists": 120,
+    "skill_entries": 429,
+    "total_facts": 336,
+    "with_printed_skills": 216
+   },
+   "ok": true
+  },
+  "no_qualified_or_parameterized_entries": {
+   "detail": [],
+   "ok": true
+  },
+  "one_fact_per_profile": {
+   "detail": 336,
+   "ok": true
+  },
+  "pins_hold": {
+   "ok": true
+  },
+  "profiles_are_creature_records": {
+   "ok": true
+  },
+  "quotes_match_source_lines": {
+   "detail": [],
+   "ok": true
+  },
+  "schema_21_cannot_carry_family": {
+   "ok": true
+  },
+  "skills_lines_bijective": {
+   "detail": {
+    "cited": 216,
+    "printed": 216
+   },
+   "ok": true
+  }
+ }
+}
