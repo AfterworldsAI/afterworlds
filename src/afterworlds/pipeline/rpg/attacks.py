@@ -37,7 +37,6 @@ from __future__ import annotations
 import json
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from uuid import uuid4
 
 from afterworlds.ingestion.mechanical.models import ComponentHandling
 from afterworlds.ingestion.mechanical.representation import (
@@ -96,7 +95,7 @@ from afterworlds.models.dnd5e_state import (
     RecordChoice,
     TurnCoordination,
 )
-from afterworlds.models.enums import ConditionVisibility
+from afterworlds.models.enums import ConditionVisibility, RollPurpose
 from afterworlds.models.rpg import RollProposal, SheetEffect, WeaponAttackSelection
 from afterworlds.pipeline.rpg import bystanders
 from afterworlds.pipeline.rpg.capability import (
@@ -125,13 +124,21 @@ from afterworlds.pipeline.rpg.defense import (
     untrained_armor,
 )
 from afterworlds.pipeline.rpg.defense import template as template_of
-from afterworlds.pipeline.rpg.dice import DiceService
+from afterworlds.pipeline.rpg.dice import (
+    DecisionOption,
+    DecisionRequest,
+    DiceService,
+    RollRequest,
+    decide,
+    request,
+)
 from afterworlds.pipeline.rpg.grants import (
     ability_score,
     weapon_mastery,
     weapon_proficiency,
 )
 from afterworlds.pipeline.rpg.hands import check_weapon_grip
+from afterworlds.pipeline.rpg.ids import new_id
 from afterworlds.pipeline.rpg.mastery import (
     attack_effects,
     new_effect,
@@ -292,6 +299,13 @@ class PreparedAttack:
     flat_damage: int | None = None
     #: The ammunition fired: item, record, kind (CRD Issue 15c C7).
     ammunition: dict[str, object] | None = None
+    #: A Finesse weapon's admitted abilities (CRD Issue 15b: the pre-roll
+    #: Strength/Dexterity switch offers the others; the same one is used for
+    #: damage). Empty for any other weapon.
+    ability_options: tuple[AbilityScore, ...] = ()
+    #: Whether a hit that would reduce the target to 0 Hit Points may knock
+    #: it out instead (a melee attack under the typed ``knocking_out``).
+    knockout_available: bool = False
 
     @property
     def expression(self) -> str:
@@ -940,7 +954,7 @@ def _mastery_outcome(
                 operation="apply_condition",
                 value_json=json.dumps(
                     {
-                        "instance_id": str(uuid4()),
+                        "instance_id": new_id(),
                         "condition": ConditionKind.PRONE.value,
                         "visibility": ConditionVisibility.VISIBLE.value,
                         "source": {
@@ -1090,6 +1104,7 @@ def prepare(
         for f in facts_of(index, "equipment.weapons.finesse", "finesse")
         if isinstance(f, AttackAbilityOptionFact)
     ]
+    ability_options: tuple[AbilityScore, ...] = ()
     if WeaponProperty.FINESSE in props:
         if not options:
             raise _refuse(
@@ -1110,6 +1125,7 @@ def prepare(
                 RefusalKind.INVALID_SELECTION, f"Finesse does not admit {chosen.value}"
             )
         ability = chosen
+        ability_options = tuple(options[0].abilities)
     elif sel.ability is not None and AbilityScore(sel.ability) is not ability:
         raise _refuse(
             RefusalKind.INVALID_SELECTION, f"{weapon.record} uses {ability.value}"
@@ -1237,13 +1253,17 @@ def prepare(
             RefusalKind.MISSING_AUTHORITY, f"{weapon.record} states no damage dice"
         )
     preflight(target, weapon.damage.damage_type)
-    if sel.knock_out:
-        knockout = knockout_rule(target)
-        if ranged or knockout.attack is not RangeClass.MELEE:
-            raise _refuse(
-                RefusalKind.INVALID_SELECTION,
-                "only a melee attack can knock a creature out",
-            )
+    knockout = knockout_rule(target) if sel.knock_out or not ranged else None
+    if sel.knock_out and (
+        ranged or knockout is None or knockout.attack is not RangeClass.MELEE
+    ):
+        raise _refuse(
+            RefusalKind.INVALID_SELECTION,
+            "only a melee attack can knock a creature out",
+        )
+    knockout_available = (
+        not ranged and knockout is not None and knockout.attack is RangeClass.MELEE
+    )
     rule = _one(
         facts_of(index, "play.damage_and_healing", "damage_rolls"),
         DamageRollRuleFact,
@@ -1303,6 +1323,8 @@ def prepare(
         spent=(*spent, *((ammunition[0],) if ammunition else ())),
         mastery=mastery_used,
         ammunition=ammunition[1] if ammunition else None,
+        ability_options=ability_options,
+        knockout_available=knockout_available,
     )
 
 
@@ -1373,6 +1395,66 @@ def _ammunition(
     }
 
 
+def _title(record: str) -> str:
+    return record.rsplit(".", 1)[-1].replace("_", " ").capitalize()
+
+
+def _components(
+    breakdown: dict[str, int], source: str
+) -> tuple[tuple[str, int, str | None], ...]:
+    return tuple(
+        (key.replace("_", " ").capitalize(), value, source)
+        for key, value in breakdown.items()
+    )
+
+
+KNOCKOUT_SOURCE = "play.damage_and_healing/knocking_out"
+
+
+def _damage_or_knockout(
+    prepared: PreparedAttack,
+    dice: DiceService,
+    roller: tuple[str, str],
+    amount: int,
+    critical: bool,
+) -> DamageTaken:
+    """The hit's damage. When it would reduce the target to 0 Hit Points and
+    a knockout is available, knocking it out instead is the attacker's own
+    result-triggered decision (CRD Issue 15b): a decision source (an
+    action-resolution sequence) asks the Sojourner, with each option's
+    effects computed here. A direct call without one keeps the selection."""
+    target, kind = prepared.target, prepared.damage_type
+    if not prepared.knockout_available:
+        return take_damage(target, amount, kind, critical=critical)
+    plain = take_damage(target, amount, kind, critical=critical)
+    knocked = take_damage(target, amount, kind, critical=critical, knock_out=True)
+    if knocked.outcome != "knocked_out":
+        return plain  # the hit would not reduce the target to 0 Hit Points
+    name = _title(prepared.weapon)
+    choice = decide(
+        dice,
+        DecisionRequest(
+            decider=roller,
+            prompt=(
+                f"Your {name.lower()} would drop the target to 0 Hit Points. Knock "
+                "it out instead?"
+            ),
+            options=(
+                DecisionOption(
+                    "knock_out",
+                    "Knock it out (it is left at 1 Hit Point, Unconscious)",
+                    knocked.effects,
+                ),
+                DecisionOption("no_knock_out", "No, let the blow land", plain.effects),
+            ),
+            source_refs=(KNOCKOUT_SOURCE,),
+        ),
+    )
+    if choice is None:
+        return knocked if prepared.selection.knock_out else plain
+    return knocked if choice == "knock_out" else plain
+
+
 def roll(
     prepared: PreparedAttack,
     dice: DiceService,
@@ -1382,13 +1464,47 @@ def roll(
     """Roll the attack; on a hit, roll damage and derive its effects."""
     index = actor.index
     assert index is not None
-    attack = dice.roll(prepared.expression)
     natural = {
         f.face: f
         for f in facts_of(index, "play.d20_tests")
         if isinstance(f, NaturalRollOutcomeFact)
         and f.context is RollContext.ATTACK_ROLL
     }
+    roller = ("character", str(actor.subject_id))
+    weapon_name = _title(prepared.weapon)
+    attack = request(
+        dice,
+        prepared.expression,
+        RollRequest(
+            purpose=RollPurpose.ATTACK,
+            roller=roller,
+            label=f"{weapon_name} attack",
+            modifiers=_components(prepared.breakdown, prepared.weapon),
+            dc=prepared.target_ac,
+            naturals=tuple(
+                (
+                    face,
+                    (
+                        "critical_success"
+                        if f.outcome.value == "hit" and f.critical_hit
+                        else "success" if f.outcome.value == "hit" else "failure"
+                    ),
+                )
+                for face, f in sorted(natural.items())
+            ),
+            critical_on_success=bool(prepared.automatic_critical),
+            source_refs=(Operation.WEAPON_ATTACK.value, prepared.weapon),
+            options=tuple(
+                (
+                    f"finesse_{a.value}",
+                    "equipment.weapons.finesse/finesse",
+                    f"Use {a.value.capitalize()} instead (Finesse)",
+                )
+                for a in prepared.ability_options
+                if a is not prepared.ability
+            ),
+        ),
+    )
     face = natural.get(attack.chosen)
     total = attack.chosen + prepared.attack_modifier
     if face is not None:
@@ -1418,16 +1534,33 @@ def roll(
         base = prepared.flat_damage or 0
     else:
         count = d.count * (prepared.critical_multiplier if critical else 1)
-        damage_roll = dice.roll(f"{count}{d.die.value}")
+        damage_roll = request(
+            dice,
+            f"{count}{d.die.value}",
+            RollRequest(
+                purpose=RollPurpose.DAMAGE,
+                roller=roller,
+                label=f"{weapon_name} damage",
+                modifiers=(
+                    *((("Damage", d.modifier, prepared.weapon),) if d.modifier else ()),
+                    *(
+                        (
+                            (
+                                f"{prepared.ability.value.capitalize()} modifier",
+                                prepared.damage_modifier,
+                                "play.damage_and_healing/damage_rolls",
+                            ),
+                        )
+                        if prepared.damage_modifier
+                        else ()
+                    ),
+                ),
+                source_refs=(prepared.weapon, "play.damage_and_healing/damage_rolls"),
+            ),
+        )
         rolled, base = damage_roll.raw_rolls, damage_roll.chosen + d.modifier
     amount = max(prepared.minimum_damage, base + prepared.damage_modifier)
-    taken = take_damage(
-        prepared.target,
-        amount,
-        prepared.damage_type,
-        critical=critical,
-        knock_out=prepared.selection.knock_out,
-    )
+    taken = _damage_or_knockout(prepared, dice, roller, amount, critical)
     effects, result = _mastery_outcome(prepared, actor, dice, True, taken, coordination)
     return RolledAttack(
         prepared,

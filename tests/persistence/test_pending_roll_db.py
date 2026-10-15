@@ -1,7 +1,9 @@
-"""DB-level tests for pending_roll_requests — partial unique index and mark_consumed.
+"""DB-level tests for pending_roll_requests — the partial unique index.
 
-CRD Issue 15 remediation: partial unique index on (story_id) WHERE status='pending',
-and PendingRollRequestService.mark_consumed() atomicity/error normalization.
+CRD Issue 15 remediation: partial unique index on (story_id) WHERE status='pending'.
+The legacy ``PendingRollRequestService.mark_consumed`` path is retired (CRD Issue
+15b): a pending roll is consumed only by the action-resolution sequence's
+conditional update, proven in ``test_action_resolution_lifecycle.py``.
 """
 
 from __future__ import annotations
@@ -18,19 +20,8 @@ from afterworlds.models.turn import Turn
 from afterworlds.persistence.crud.character_sheet import create_rpg_base_sheet
 from afterworlds.persistence.crud.node import create_turn
 from afterworlds.persistence.crud.story import create_story
-from afterworlds.persistence.database import create_session_factory
 from afterworlds.persistence.orm.rpg import PendingRollRequestORM
-from afterworlds.pipeline.rpg.pending import (
-    PendingRollAlreadyConsumedError,
-    PendingRollRequestService,
-)
 from tests.persistence.conftest import make_base_sheet, make_story
-
-
-@pytest.fixture()
-def session_factory(engine):  # type: ignore[no-untyped-def]
-    return create_session_factory(engine)
-
 
 _NOW = datetime(2026, 1, 1, tzinfo=UTC)
 
@@ -72,14 +63,17 @@ def _make_orm_row(
         session_id=str(uuid4()),
         character_id=character_id,
         originating_turn_id=turn_id,
-        check_label="Stealth Check",
-        player_facing_instruction="Roll 1d20+3",
-        expected_value_shape="d20",
         visibility="player",
         source_proposal_ref="roll_0",
         status=status,
         created_at=_NOW.isoformat(),
-        roll_expression="1d20+3",
+        schema_version=2,
+        sequence_id=str(uuid4()),
+        step_id=str(uuid4()),
+        instruction_id=str(uuid4()),
+        instruction_revision=1,
+        instruction_schema_version=1,
+        instruction_snapshot_json="{}",
     )
 
 
@@ -115,74 +109,3 @@ def test_can_insert_multiple_consumed_rows_for_same_story(session) -> None:  # t
     session.add(_make_orm_row(story_id, char_id, turn_id, status="consumed"))
     session.flush()
     session.commit()
-
-
-# ---------------------------------------------------------------------------
-# PendingRollRequestService.mark_consumed — integration tests against real DB
-# ---------------------------------------------------------------------------
-
-
-def test_mark_consumed_success_via_db(session_factory, session) -> None:  # type: ignore[no-untyped-def]
-    """mark_consumed updates status to 'consumed' and sets consumed_turn_id."""
-    story_id, char_id, turn_id = _seed_prerequisites(session)
-    request_id = str(uuid4())
-    session.add(
-        _make_orm_row(
-            story_id, char_id, turn_id, status="pending", request_id=request_id
-        )
-    )
-    session.commit()
-
-    svc = PendingRollRequestService(session_factory=session_factory)
-    # Create a second turn to use as consumed_turn_id
-    consumed_turn = Turn(
-        user_input="roll result",
-        assistant_output="result processed",
-        timestamp=_NOW,
-        intent_classification=IntentType.IN_CHARACTER_ACTION,
-        node_id=None,
-    )
-    create_turn(session, consumed_turn)
-    session.commit()
-
-    from uuid import UUID
-
-    svc.mark_consumed(session, UUID(request_id), consumed_turn.turn_id)
-    session.commit()
-
-    row = session.get(PendingRollRequestORM, request_id)
-    assert row is not None
-    assert row.status == "consumed"
-    assert row.consumed_turn_id == str(consumed_turn.turn_id)
-
-
-def test_mark_consumed_second_attempt_raises_via_db(session_factory, session) -> None:  # type: ignore[no-untyped-def]
-    """mark_consumed on a consumed row raises PendingRollAlreadyConsumedError."""
-    story_id, char_id, turn_id = _seed_prerequisites(session)
-    request_id = str(uuid4())
-    session.add(
-        _make_orm_row(
-            story_id, char_id, turn_id, status="pending", request_id=request_id
-        )
-    )
-    session.commit()
-
-    svc = PendingRollRequestService(session_factory=session_factory)
-    consumed_turn = Turn(
-        user_input="roll result",
-        assistant_output="result processed",
-        timestamp=_NOW,
-        intent_classification=IntentType.IN_CHARACTER_ACTION,
-        node_id=None,
-    )
-    create_turn(session, consumed_turn)
-    session.commit()
-
-    from uuid import UUID
-
-    svc.mark_consumed(session, UUID(request_id), consumed_turn.turn_id)
-    session.commit()
-
-    # Second attempt: status is now 'consumed', rowcount will be 0.
-    with pytest.raises(PendingRollAlreadyConsumedError):
-        svc.mark_consumed(session, UUID(request_id), consumed_turn.turn_id)

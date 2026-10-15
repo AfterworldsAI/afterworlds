@@ -202,6 +202,12 @@ that reached readiness but was never resumed) is unresolved and falls under the 
 resolution window as rewind/cancel, since both are lifecycle-termination policy for the same persisted
 unit.
 
+**CRD Issue 15b Phase 2 consequence (2026-10-15, surfaced; not resolved):** an unresolved sequence counts as
+a blocking event for the story's binding, so a held shared rule change or adoption waits for its
+completion. Until this policy exists, an abandoned sequence holds them indefinitely. That includes a
+pending one and one ready for narration but never resumed. This is the same lifecycle-termination
+question. It needs no separate decision. No code path cancels, expires or supersedes a sequence.
+
 **What resolution requires:** Decide at minimum one of: (a) whether the Sojourner can explicitly cancel a
 pending roll or an active/ready sequence and what the mechanical/narrative consequence is; (b) whether a
 pending roll or an abandoned ready sequence expires after N turns or N minutes and what cleanup applies;

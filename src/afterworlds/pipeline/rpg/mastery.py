@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import json
 from typing import Literal
-from uuid import uuid4
 
 from afterworlds.models.dnd5e_state import (
     ActiveEffect,
@@ -29,6 +28,7 @@ from afterworlds.models.dnd5e_state import (
     TurnCoordination,
 )
 from afterworlds.models.rpg import SheetEffect
+from afterworlds.pipeline.rpg.ids import new_id
 from afterworlds.services.dnd5e_state.turn import TurnCreature, TurnSubject
 
 __all__ = [
@@ -75,7 +75,7 @@ def new_effect(
     of = reference(wielder)
     active = coordination.active if coordination is not None else None
     effect = ActiveEffect(
-        instance_id=str(uuid4()),
+        instance_id=new_id(),
         source=GrantSource(
             record_key=f"equipment.weapons.{mastery}", component_key=mastery
         ),

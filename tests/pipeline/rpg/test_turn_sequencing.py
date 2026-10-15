@@ -16,7 +16,7 @@ import pytest
 
 from afterworlds.models.dnd5e_state import ZeroHitPointTreatment
 from afterworlds.models.enums import DiceHandling, RollVisibility
-from afterworlds.models.rpg import DiceResult
+from afterworlds.models.rpg import DiceResult, RollProposal
 from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
 from afterworlds.pipeline.rpg.capability import AdjudicationRefusal
 from afterworlds.pipeline.rpg.models import PreflightGapError
@@ -164,12 +164,38 @@ def test_an_attack_after_one_that_could_knock_the_target_out_is_preflighted() ->
     dice.roll.assert_not_called()
 
 
+class _NoKnockout:
+    """Backend dice that also answer a knockout decision: let the blow land
+    (CRD Issue 15b: the knockout is the Sojourner's decision)."""
+
+    def __init__(self) -> None:
+        self.inner = _dice()
+
+    def roll(self, expression: str) -> DiceResult:
+        result: DiceResult = self.inner.roll(expression)
+        return result
+
+    def decide(self, _request: object) -> str:
+        return "no_knock_out"
+
+
 def test_a_refusal_after_dice_is_a_named_preflight_defect() -> None:
     # 2 damage takes it to exactly 0: Unconscious, not massive damage.
     wolf = _creature(hp=2, treatment=ZeroHitPointTreatment(subject="character"))
     adapter = D20RulesSystemAdapter()
     adapter.possible_conditions = lambda *_: {}  # type: ignore[method-assign]
-    dice = _dice()
+    attacker = _attacker(CLUB, DAGGER)
+    service = RpgAdjudicationPassService(
+        adapter=adapter,
+        subject_loader=lambda _story, _ref: wolf,
+        coordination_loader=actor_turn(attacker),
+    )
+    proposals = [
+        RollProposal.model_validate(p)
+        for p in (_attack(wolf, "First"), _thrown_dagger(wolf))
+    ]
+    prepared = service.prepare_turn(_STORY_ID, attacker, proposals, decisions=False)
+    dice = _NoKnockout()
     with pytest.raises(PreflightGapError):
-        _run(wolf, dice, adapter, second=_thrown_dagger(wolf))
-    dice.roll.assert_called()
+        service.resolve_turn(prepared, False, dice, [])
+    dice.inner.roll.assert_called()

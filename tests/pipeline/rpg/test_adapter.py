@@ -1,26 +1,20 @@
-"""Unit tests for D20RulesSystemAdapter — CRD Issue 15 remediation."""
+"""Unit tests for D20RulesSystemAdapter — CRD Issues 15, 15c and 15b.
+
+The legacy total-only announce/consume methods and their label-based
+assembler are retired (CRD Issue 15b, 15b-25); their validation successors
+are in ``test_roll_engine.py`` and the action-resolution sequence tests.
+"""
 
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
 from unittest.mock import MagicMock
-from uuid import uuid4
 
 import pytest
 
-from afterworlds.ingestion.mechanical.representation import AbilityScore
 from afterworlds.models.enums import RollVisibility
-from afterworlds.models.rpg import (
-    PendingRollRequest,
-    ResolvedAdjudicationRecord,
-    RollProposal,
-)
-from afterworlds.pipeline.rpg.adapter import (
-    D20RulesSystemAdapter,
-    PlayerRollValueError,
-    UnsupportedCheckError,
-)
+from afterworlds.models.rpg import ResolvedAdjudicationRecord, RollProposal
+from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
 from afterworlds.pipeline.rpg.capability import AdjudicationRefusal, RefusalKind
 from afterworlds.services.dnd5e_state.turn import TurnCharacter
 from tests.rpg_characters import turn_character
@@ -29,25 +23,9 @@ from tests.rpg_characters import turn_character
 # Shared helpers
 # ---------------------------------------------------------------------------
 
-_NOW = datetime(2026, 1, 1, tzinfo=UTC)
-
 
 def _make_sheet(*, dex: int = 16, wis: int = 13) -> TurnCharacter:
     return turn_character(dex=dex, wis=wis)
-
-
-def _make_proposal(
-    label: str | None = "dexterity",
-    visibility: RollVisibility = RollVisibility.SHOWN,
-    subsystem_tag: str = "ability_check",
-    check_label: str | None = None,
-) -> RollProposal:
-    return RollProposal(
-        check_label=check_label or f"{label or 'unknown'} check",
-        subsystem_tag=subsystem_tag,
-        skill_or_attribute_label=label,
-        visibility=visibility,
-    )
 
 
 def _make_record(
@@ -186,17 +164,6 @@ def test_a_secret_in_the_gamemasters_label_never_reaches_the_writer() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Trust boundary: _verify_dc always returns None (Fix 2)
-# ---------------------------------------------------------------------------
-
-
-def test_verify_dc_returns_none_regardless_of_subsystem_tag() -> None:
-    """The legacy consume path's _verify_dc never parses a model-authored DC."""
-    adapter = D20RulesSystemAdapter()
-    assert adapter._verify_dc(None) is None  # noqa: SLF001
-
-
-# ---------------------------------------------------------------------------
 # CRD Issue 15c: backend rolls need a roster operation; labels never suffice
 # ---------------------------------------------------------------------------
 
@@ -212,12 +179,12 @@ def test_verify_dc_returns_none_regardless_of_subsystem_tag() -> None:
         ("", "Dexterity Check", None),
     ],
 )
-@pytest.mark.parametrize("visibility", [RollVisibility.SHOWN, RollVisibility.HIDDEN])
-def test_a_label_only_backend_proposal_is_refused_not_rolled(
+@pytest.mark.parametrize("visibility", list(RollVisibility))
+def test_a_label_only_proposal_is_refused_not_rolled(
     tag: str, check: str, label: str | None, visibility: RollVisibility
 ) -> None:
     """Labels and tags are display text: without a roster operation nothing
-    rolls, on every backend entry path (CRD Issue 15c AC3)."""
+    rolls, whoever would roll it (CRD Issue 15c AC3; 15b)."""
     adapter = D20RulesSystemAdapter()
     proposal = RollProposal(
         check_label=check,
@@ -236,230 +203,7 @@ def test_a_label_only_backend_proposal_is_refused_not_rolled(
     dice_svc.roll.assert_not_called()
 
 
-def test_a_player_proposal_is_refused_by_require_supported() -> None:
-    adapter = D20RulesSystemAdapter()
-    with pytest.raises(AdjudicationRefusal) as caught:
-        adapter.require_supported(
-            _make_proposal("stealth", RollVisibility.PLAYER), _make_sheet()
-        )
-    assert caught.value.kind is RefusalKind.PLAYER_ROLL_UNSUPPORTED
-
-
-# ---------------------------------------------------------------------------
-# Legacy announce path (retired by CRD Issue 15b; unreachable in production)
-# ---------------------------------------------------------------------------
-
-
-@pytest.mark.parametrize(
-    "label", ["stealth", "dexterity_save", "thieves_tools", "longsword_attack"]
-)
-def test_the_legacy_announce_still_refuses_proficiency_aware_checks(
-    label: str,
-) -> None:
-    adapter = D20RulesSystemAdapter()
-    with pytest.raises(UnsupportedCheckError):
-        adapter.prepare_player_roll_announce(
-            _make_proposal(label, RollVisibility.PLAYER),
-            _make_sheet(),
-            None,
-            uuid4(),
-            uuid4(),
-            uuid4(),
-        )
-
-
-def test_the_legacy_announce_refuses_an_adjusted_ability() -> None:
-    adapter = D20RulesSystemAdapter()
-    sheet = turn_character(adjusted=(AbilityScore.DEXTERITY,))
-    with pytest.raises(UnsupportedCheckError, match="sourced adjustments"):
-        adapter.prepare_player_roll_announce(
-            _make_proposal("dexterity", RollVisibility.PLAYER),
-            sheet,
-            None,
-            uuid4(),
-            uuid4(),
-            uuid4(),
-        )
-
-
 def test_readiness_is_the_adjudicable_gate() -> None:
     adapter = D20RulesSystemAdapter()
     assert adapter.is_adjudicable(turn_character())
     assert not adapter.is_adjudicable(turn_character(ready=False))
-
-
-# ---------------------------------------------------------------------------
-# consume_player_roll validation: raw die range check (Round 5 Fix 2)
-# ---------------------------------------------------------------------------
-
-
-def _make_pending(
-    *,
-    expression: str = "1d20",
-    visible_mod: int | None = None,
-) -> PendingRollRequest:
-    return PendingRollRequest(
-        request_id=uuid4(),
-        story_id=uuid4(),
-        session_id=uuid4(),
-        character_id=uuid4(),
-        check_label="Stealth check",
-        player_facing_instruction=f"Roll {expression}",
-        expected_value_shape="integer",
-        visible_modifier_note=f"+{visible_mod}" if visible_mod else None,
-        visibility=RollVisibility.PLAYER,
-        source_proposal_ref="skill_check/Stealth check",
-        originating_turn_id=uuid4(),
-        created_at=_NOW,
-        roll_expression=expression,
-        visible_modifier_total=visible_mod,
-        visible_modifier_breakdown_json=None,
-    )
-
-
-def test_consume_valid_total_accepted() -> None:
-    """reported_total=15 with no modifier → raw_die=15 which is in [1,20]."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending()
-    record = adapter.consume_player_roll(pending, 15, None, False)
-    assert record.total == 15
-    assert record.raw_rolls == (15,)
-
-
-def test_consume_min_die_accepted() -> None:
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending()
-    record = adapter.consume_player_roll(pending, 1, None, False)
-    assert record.raw_rolls == (1,)
-
-
-def test_consume_max_die_accepted() -> None:
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending()
-    record = adapter.consume_player_roll(pending, 20, None, False)
-    assert record.raw_rolls == (20,)
-
-
-def test_consume_total_zero_raw_die_rejected() -> None:
-    """reported_total=0 → raw_die=0, outside [1,20]."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending()
-    with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 0, None, False)
-
-
-def test_consume_total_implies_raw_die_above_max_rejected() -> None:
-    """reported_total=21 with no modifier → raw_die=21, outside [1,20]."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending()
-    with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 21, None, False)
-
-
-def test_consume_with_modifier_valid() -> None:
-    """reported_total=18, visible_mod=5 → raw_die=13, in [1,20]."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(visible_mod=5)
-    record = adapter.consume_player_roll(pending, 18, None, False)
-    assert record.raw_rolls == (13,)
-
-
-def test_consume_with_modifier_raw_die_too_low_rejected() -> None:
-    """reported_total=5, visible_mod=7 → raw_die=-2, outside [1,20]."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(visible_mod=7)
-    with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 5, None, False)
-
-
-def test_consume_advantage_expression_accepted() -> None:
-    """2d20kh1 total=17, mod=0 → raw_die=17, in [1,20]."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="2d20kh1")
-    record = adapter.consume_player_roll(pending, 17, None, False)
-    assert record.raw_rolls == (17,)
-
-
-def test_consume_disadvantage_expression_accepted() -> None:
-    """2d20kl1 total=4, mod=0 → raw_die=4, in [1,20]."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="2d20kl1")
-    record = adapter.consume_player_roll(pending, 4, None, False)
-    assert record.raw_rolls == (4,)
-
-
-def test_consume_unsupported_expression_rejected() -> None:
-    """Unsupported multi-die-sum expression must fail-closed."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="3d6")
-    with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 10, None, False)
-
-
-# ---------------------------------------------------------------------------
-# consume_player_roll boundary cases with visible modifier (Round 6 spec)
-# ---------------------------------------------------------------------------
-
-
-def test_consume_1d20_mod5_max_boundary_accepted() -> None:
-    """1d20 + mod=5, total=25 → raw=20, accepted (exact max)."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="1d20", visible_mod=5)
-    record = adapter.consume_player_roll(pending, 25, None, False)
-    assert record.raw_rolls == (20,)
-
-
-def test_consume_1d20_mod5_min_boundary_accepted() -> None:
-    """1d20 + mod=5, total=6 → raw=1, accepted (exact min)."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="1d20", visible_mod=5)
-    record = adapter.consume_player_roll(pending, 6, None, False)
-    assert record.raw_rolls == (1,)
-
-
-def test_consume_1d20_mod5_one_over_max_rejected() -> None:
-    """1d20 + mod=5, total=26 → raw=21, rejected (one over max)."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="1d20", visible_mod=5)
-    with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 26, None, False)
-
-
-def test_consume_1d20_mod5_one_under_min_rejected() -> None:
-    """1d20 + mod=5, total=5 → raw=0, rejected (one under min)."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="1d20", visible_mod=5)
-    with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 5, None, False)
-
-
-def test_consume_kh1_mod5_max_boundary_accepted() -> None:
-    """2d20kh1 + mod=5, total=25 → raw=20, accepted (exact max)."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="2d20kh1", visible_mod=5)
-    record = adapter.consume_player_roll(pending, 25, None, False)
-    assert record.raw_rolls == (20,)
-
-
-def test_consume_kh1_mod5_one_over_max_rejected() -> None:
-    """2d20kh1 + mod=5, total=26 → raw=21, rejected (one over max)."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="2d20kh1", visible_mod=5)
-    with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 26, None, False)
-
-
-def test_consume_kl1_mod5_min_boundary_accepted() -> None:
-    """2d20kl1 + mod=5, total=6 → raw=1, accepted (exact min)."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="2d20kl1", visible_mod=5)
-    record = adapter.consume_player_roll(pending, 6, None, False)
-    assert record.raw_rolls == (1,)
-
-
-def test_consume_kl1_mod5_one_under_min_rejected() -> None:
-    """2d20kl1 + mod=5, total=5 → raw=0, rejected (one under min)."""
-    adapter = D20RulesSystemAdapter()
-    pending = _make_pending(expression="2d20kl1", visible_mod=5)
-    with pytest.raises(PlayerRollValueError):
-        adapter.consume_player_roll(pending, 5, None, False)

@@ -155,9 +155,10 @@ class OrchestrationResult(BaseModel):
     rpg_adjudication_result: AdjudicationPassResult | None = None
     rpg_visible_state: RpgVisibleState | None = None
 
-    # Set on BLOCKED_PENDING_ROLL: the player_facing_instruction from the
-    # PendingRollRequest that the Sojourner must resolve before proceeding.
-    # None on all other dispositions.
+    # Set on BLOCKED_PENDING_ROLL: the player-visible redirect of the story's
+    # unresolved action-resolution sequence (its pending roll, pending
+    # decision, or readiness for narration; CRD Issue 15b) the Sojourner must
+    # resolve before proceeding. None on all other dispositions.
     pending_roll_redirect_message: str | None = None
 
     # Set on INTERACTION_REJECTED: typed reason and human-readable message why
@@ -201,6 +202,16 @@ class OrchestrationResult(BaseModel):
     # result (e.g. REFUSED_BY_PROVIDER during classification itself).
     intent_classifier_usage: IntentClassifierUsage | None = None
 
+    # Additive CRD Issue 15b fields. ``planner_skipped`` marks the orchestrator-
+    # owned RPG resume: its action was planned on the announce turn and is
+    # narrated now without a Planner pass (ADR-015b 15b-21; no new
+    # disposition). ``action_sequence_error`` is the typed code of an
+    # action-resolution refusal (#127 Errors), e.g.
+    # ``ACTION_SEQUENCE_ALREADY_COMPLETED``, which the backend distinguishes
+    # here and the product layer maps (15b-32, Phase 3). Only on PIPELINE_ERROR.
+    planner_skipped: bool = False
+    action_sequence_error: str | None = None
+
     @model_validator(mode="after")
     def _enforce_disposition_invariants(self) -> OrchestrationResult:
         """Enforce the per-disposition required / forbidden field matrix.
@@ -235,6 +246,14 @@ class OrchestrationResult(BaseModel):
 
         d = self.disposition
         is_ooc = self.intent_classification.intent_type == IntentType.OOC
+        # No Planner ran: an OOC turn, or the CRD Issue 15b RPG resume.
+        no_planner = is_ooc or self.planner_skipped
+
+        if d is not PipelineDisposition.PIPELINE_ERROR:
+            self._forbid(
+                "action_sequence_error only on PIPELINE_ERROR",
+                self.action_sequence_error is not None,
+            )
 
         # rpg_visible_state and branching_visible_state are only valid on
         # successfully-delivered turns.
@@ -257,7 +276,13 @@ class OrchestrationResult(BaseModel):
                 "delivered_output non-empty", self._non_empty_str(self.delivered_output)
             )
             self._require("turn_id present", self.turn_id is not None)
-            self._require("planner_result present", self.planner_result is not None)
+            if self.planner_skipped:
+                self._forbid(
+                    "planner_result absent when the planner was skipped",
+                    self.planner_result is not None,
+                )
+            else:
+                self._require("planner_result present", self.planner_result is not None)
             self._require("writer_result present", self.writer_result is not None)
             self._require("extractor_result present", self.extractor_result is not None)
             self._require(
@@ -344,9 +369,9 @@ class OrchestrationResult(BaseModel):
                 "output safety verdict BLOCK",
                 self.output_safety_result.verdict is SafetyVerdict.BLOCK,
             )
-            if is_ooc:
+            if no_planner:
                 self._forbid(
-                    "planner_result absent on OOC output-block",
+                    "planner_result absent on OOC or resume output-block",
                     self.planner_result is not None,
                 )
             else:
@@ -384,7 +409,13 @@ class OrchestrationResult(BaseModel):
                 "contradiction verdict BLOCKED",
                 self.contradiction_result.verdict is ContradictionVerdict.BLOCKED,
             )
-            self._require("planner_result present", self.planner_result is not None)
+            if no_planner:
+                self._forbid(
+                    "planner_result absent on resume contradiction block",
+                    self.planner_result is not None,
+                )
+            else:
+                self._require("planner_result present", self.planner_result is not None)
             # extractor_result may be present (extraction completed under
             # SAVEPOINT) — the SAVEPOINT plus outer transaction rolls back
             # those writes when Contradiction blocks.

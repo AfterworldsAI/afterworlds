@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import exists, or_, select
 from sqlalchemy.orm import Session
 
 from afterworlds.models.enums import RpgTurnRetrievalCategory
@@ -99,10 +99,37 @@ def has_pending_roll_request_originating_from_turn(
     era-boundary table (ADR-018 D6) makes ``PendingRollRequest`` the sole
     signal for that shape. This reads only the persisted row; it never
     inspects prose or ``RpgSessionState.play_status``.
+
+    CRD Issue 15b: a turn that announces an action-resolution sequence is the
+    same procedural request output, whether its first interaction is a roll
+    (a pending row) or a result-triggered decision (no pending row). Every
+    such turn is a sequence's ``originating_turn_id``, so that counts too:
+    one still unresolved, or a completed one the Sojourner decided in. A
+    sequence its turn completed with no player input (a contest's ledger,
+    ADR-015b Group 17) asked for nothing: that turn is ordinary narration.
     """
-    return (
+    from afterworlds.persistence.orm.rpg import (
+        ActionResolutionEventORM,
+        ActionResolutionSequenceORM,
+    )
+
+    if (
         session.query(PendingRollRequestORM)
         .filter_by(originating_turn_id=str(turn_id))
+        .first()
+        is not None
+    ):
+        return True
+    decided = exists().where(
+        ActionResolutionEventORM.sequence_id == ActionResolutionSequenceORM.sequence_id,
+        ActionResolutionEventORM.kind == "mechanical_decision",
+    )
+    return (
+        session.query(ActionResolutionSequenceORM)
+        .filter(
+            ActionResolutionSequenceORM.originating_turn_id == str(turn_id),
+            or_(ActionResolutionSequenceORM.status != "completed", decided),
+        )
         .first()
         is not None
     )

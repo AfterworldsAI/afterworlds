@@ -28,7 +28,6 @@ import json
 from collections import Counter
 from dataclasses import dataclass, field
 from itertools import product
-from uuid import uuid4
 
 from afterworlds.ingestion.mechanical.representation import (
     AdvantageFact,
@@ -56,7 +55,7 @@ from afterworlds.ingestion.mechanical.representation import (
     TurnWhich,
 )
 from afterworlds.models.dnd5e_state import TurnCoordination
-from afterworlds.models.enums import ConditionVisibility
+from afterworlds.models.enums import ConditionVisibility, RollPurpose
 from afterworlds.models.rpg import CreatureAttackSelection, RollProposal, SheetEffect
 from afterworlds.pipeline.rpg import (
     bystanders,
@@ -97,7 +96,8 @@ from afterworlds.pipeline.rpg.defense import (
     template_digests,
 )
 from afterworlds.pipeline.rpg.defense import template as template_of
-from afterworlds.pipeline.rpg.dice import DiceService
+from afterworlds.pipeline.rpg.dice import DiceService, RollRequest, request
+from afterworlds.pipeline.rpg.ids import new_id
 from afterworlds.pipeline.rpg.mastery import other_effects, reference
 from afterworlds.pipeline.rpg.saves import PreparedSave, RolledSave
 from afterworlds.pipeline.rpg.saves import prepare as prepare_save
@@ -792,7 +792,7 @@ def _condition_value(
     turn-bounded end (contract G2)."""
     boundary = _rider_turn(duration)
     value: dict[str, object] = {
-        "instance_id": str(uuid4()),
+        "instance_id": new_id(),
         "condition": condition.value,
         "visibility": ConditionVisibility.VISIBLE.value,
         "source": {
@@ -924,13 +924,38 @@ def roll(
     effect on the target as the damage left it."""
     index = prepared.attacker.index
     assert index is not None
-    attack = dice.roll(prepared.expression)
     natural = {
         f.face: f
         for f in facts_of(index, "play.d20_tests")
         if isinstance(f, NaturalRollOutcomeFact)
         and f.context is RollContext.ATTACK_ROLL
     }
+    roller = ("creature", str(prepared.attacker.subject_id))
+    entry = prepared.fact.entry
+    attack = request(
+        dice,
+        prepared.expression,
+        RollRequest(
+            purpose=RollPurpose.ATTACK,
+            roller=roller,
+            label=f"{entry} attack",
+            modifiers=(("Attack bonus", prepared.attack_bonus, entry),),
+            dc=prepared.target_ac,
+            naturals=tuple(
+                (
+                    face,
+                    (
+                        "critical_success"
+                        if f.outcome.value == "hit" and f.critical_hit
+                        else "success" if f.outcome.value == "hit" else "failure"
+                    ),
+                )
+                for face, f in sorted(natural.items())
+            ),
+            critical_on_success=bool(prepared.automatic_critical),
+            source_refs=(Operation.CREATURE_ATTACK.value, entry),
+        ),
+    )
     face = natural.get(attack.chosen)
     total = attack.chosen + prepared.attack_bonus
     if face is not None:
@@ -987,7 +1012,27 @@ def roll(
         amount = fixed_part(term) or 0
         if term.dice is not None:
             count = term.dice.count * (multiplier if critical else 1)
-            drawn = dice.roll(f"{count}{term.dice.die.value}")
+            drawn = request(
+                dice,
+                f"{count}{term.dice.die.value}",
+                RollRequest(
+                    purpose=RollPurpose.DAMAGE,
+                    roller=roller,
+                    label=f"{entry} damage",
+                    modifiers=(
+                        (
+                            (
+                                "Damage",
+                                term.dice.modifier + (fixed_part(term) or 0),
+                                entry,
+                            ),
+                        )
+                        if term.dice.modifier or fixed_part(term)
+                        else ()
+                    ),
+                    source_refs=(entry,),
+                ),
+            )
             rolls.extend(drawn.raw_rolls)
             amount += drawn.chosen + term.dice.modifier
         assert term.damage_type is not None

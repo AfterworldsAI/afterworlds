@@ -323,3 +323,50 @@ def test_an_attack_then_first_aid_on_its_target_refuses() -> None:
     wolf = _creature(hp=2, treatment=CHARACTER)
     # Both need the turn's one action, which refuses first, before any die.
     _turn_of(wolf, _proposal(wolf, CLUB), _op(wolf, "stabilize"), reason="already used")
+
+
+# ---------------------------------------------------------------------------
+# CRD Issue 15b: the knockout is the Sojourner's stored decision
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("facts", "visibility", "detail"),
+    [
+        ({"knock_out": True}, RollVisibility.SHOWN, "never preselected"),
+        ({}, RollVisibility.HIDDEN, "without revealing the hit"),
+    ],
+    ids=["preselected", "hidden-melee"],
+)
+def test_a_sequence_never_takes_the_knockout_decision_from_the_sojourner(
+    facts: dict[str, Any], visibility: RollVisibility, detail: str
+) -> None:
+    """Where decisions can be offered (an action-resolution sequence), a
+    GameMaster knockout preselection and a hidden melee attack (whose decision
+    would reveal the hit) refuse before any die. Under unchanged wiring
+    (``decisions=False``) the 15c preselection still stands."""
+    from afterworlds.models.dnd5e_state import (
+        ActiveTurn,
+        SubjectReference,
+        TurnCoordination,
+    )
+    from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
+    from afterworlds.services.dnd5e_state.coordination import StoredCoordination
+    from tests.pipeline.rpg.test_adjudication_service import _STORY_ID
+
+    wolf, attacker = _creature(hp=2), _attacker(CLUB)
+    mine = SubjectReference(kind="character", subject_id=attacker.subject_id)
+    turn = TurnCoordination(
+        active=ActiveTurn(subject=mine, instance=1), next_instance=2
+    )
+    proposal = _proposal(wolf, **facts).model_copy(update={"visibility": visibility})
+    service = RpgAdjudicationPassService(
+        adapter=D20RulesSystemAdapter(),
+        subject_loader=lambda _s, _r: wolf,
+        coordination_loader=lambda _s: StoredCoordination(_STORY_ID, 1, turn),
+    )
+    with pytest.raises(AdjudicationRefusal) as caught:
+        service.prepare_turn(_STORY_ID, attacker, [proposal], decisions=True)
+    assert caught.value.kind is RefusalKind.INVALID_SELECTION
+    assert detail in caught.value.detail
+    service.prepare_turn(_STORY_ID, attacker, [proposal], decisions=False)

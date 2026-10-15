@@ -43,6 +43,7 @@ from afterworlds.models.dnd5e_state import (
     TurnCoordination,
     UsageCounter,
 )
+from afterworlds.models.enums import RollPurpose
 from afterworlds.models.rpg import (
     CreatureSaveEffectSelection,
     RollProposal,
@@ -71,7 +72,7 @@ from afterworlds.pipeline.rpg.defense import (
     template_digests,
 )
 from afterworlds.pipeline.rpg.defense import template as template_of
-from afterworlds.pipeline.rpg.dice import DiceService
+from afterworlds.pipeline.rpg.dice import DiceService, RollRequest, request
 from afterworlds.pipeline.rpg.mastery import other_effects, reference
 from afterworlds.pipeline.rpg.saves import PreparedSave, RolledSave
 from afterworlds.pipeline.rpg.saves import prepare as prepare_save
@@ -215,7 +216,17 @@ def recharge(
             continue
         if usage.minimum_d6 is None:
             raise _refuse(RefusalKind.MISSING_AUTHORITY, f"{template}: no Recharge X")
-        drawn = dice.roll("1d6")
+        drawn = request(
+            dice,
+            "1d6",
+            RollRequest(
+                purpose=RollPurpose.RECHARGE,
+                roller=("creature", str(creature.subject_id)),
+                label=f"{usage.entry} recharge",
+                dc=usage.minimum_d6,
+                source_refs=(f"{template}/{usage.entry}",),
+            ),
+        )
         recharged = drawn.chosen >= usage.minimum_d6
         rolls.append(
             {
@@ -598,7 +609,27 @@ def roll(
     for term in fact.failure_damage:
         amount = fixed_part(term) or 0
         if term.dice is not None:
-            drawn = dice.roll(f"{term.dice.count}{term.dice.die.value}")
+            drawn = request(
+                dice,
+                f"{term.dice.count}{term.dice.die.value}",
+                RollRequest(
+                    purpose=RollPurpose.DAMAGE,
+                    roller=("creature", str(prepared.source.subject_id)),
+                    label=f"{fact.entry} damage",
+                    modifiers=(
+                        (
+                            (
+                                "Damage",
+                                term.dice.modifier + (fixed_part(term) or 0),
+                                fact.entry,
+                            ),
+                        )
+                        if term.dice.modifier or fixed_part(term)
+                        else ()
+                    ),
+                    source_refs=(fact.entry,),
+                ),
+            )
             rolls.extend(drawn.raw_rolls)
             amount += drawn.chosen + term.dice.modifier
         assert term.damage_type is not None

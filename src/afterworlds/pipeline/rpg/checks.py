@@ -60,6 +60,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ToolVariantsFact,
 )
 from afterworlds.models.dnd5e_state import Dnd5eCharacterState
+from afterworlds.models.enums import RollPurpose
 from afterworlds.models.rpg import RollProposal
 from afterworlds.pipeline.rpg.capability import (
     FIXED_DC_CHECKS,
@@ -71,7 +72,7 @@ from afterworlds.pipeline.rpg.capability import (
     certify,
 )
 from afterworlds.pipeline.rpg.conditions import effective
-from afterworlds.pipeline.rpg.dice import DiceService
+from afterworlds.pipeline.rpg.dice import DiceService, RollRequest, request
 from afterworlds.pipeline.rpg.grants import (
     ability_score,
     skill_proficiency,
@@ -81,7 +82,14 @@ from afterworlds.pipeline.rpg.mastery import other_effects
 from afterworlds.services.dnd5e_state.authority import AuthorityIndex
 from afterworlds.services.dnd5e_state.turn import TurnCharacter
 
-__all__ = ["CHECK_OPERATIONS", "PreparedCheck", "RolledCheck", "prepare", "roll"]
+__all__ = [
+    "CHECK_OPERATIONS",
+    "PreparedCheck",
+    "RolledCheck",
+    "contest_check",
+    "prepare",
+    "roll",
+]
 
 
 _PB_COMPONENT = ("play.proficiency.proficiency_bonus", "proficiency_bonus_bands")
@@ -692,6 +700,51 @@ def prepare(proposal: RollProposal, character: TurnCharacter) -> PreparedCheck:
         )
     certificate = certify(operation, index)
     spec = _spec(operation, proposal, index, character)
+    return _prepared(operation, spec, character, index, certificate)
+
+
+def contest_check(
+    character: TurnCharacter,
+    ability: AbilityScore,
+    skill: Skill | None,
+    certificate: Certificate,
+) -> PreparedCheck:
+    """A character's check in a generic contest (ADR-015b Group 17): the
+    unchanged check procedure (ability modifier, skill proficiency and
+    Expertise, the Proficiency Bonus band, Advantage/Disadvantage from
+    recorded conditions, every contributor hold), with no target: the
+    contest compares the totals."""
+    index = character.index
+    if index is None:
+        raise _refuse(
+            RefusalKind.MISSING_AUTHORITY,
+            "the character's exact binding authority was not resolved",
+        )
+    if skill is not None and SKILL_ABILITY[skill] is not ability:
+        raise _refuse(
+            RefusalKind.INVALID_SELECTION,
+            f"{skill.value} is governed by {SKILL_ABILITY[skill].value}, not "
+            f"{ability.value}",
+        )
+    spec = _Spec(
+        identity=f"contest:{ability.value}" + (f"/{skill.value}" if skill else ""),
+        ability=ability,
+        skill=skill,
+        dc=None,
+        dc_source=None,
+        proficiency="skill",
+        contexts=_CHECK_CONTEXTS,
+    )
+    return _prepared(Operation.CONTEST, spec, character, index, certificate)
+
+
+def _prepared(
+    operation: Operation,
+    spec: _Spec,
+    character: TurnCharacter,
+    index: AuthorityIndex,
+    certificate: Certificate,
+) -> PreparedCheck:
     ability, skill = spec.ability, spec.skill
     state = _state(character)
     extra = (
@@ -745,6 +798,35 @@ def prepare(proposal: RollProposal, character: TurnCharacter) -> PreparedCheck:
     )
 
 
-def roll(prepared: PreparedCheck, dice: DiceService) -> RolledCheck:
-    result = dice.roll(prepared.expression)
+def describe(prepared: PreparedCheck, roller: tuple[str, str]) -> RollRequest:
+    """The check as a described roll (CRD Issue 15b)."""
+    skill = prepared.skill
+    label = _title(prepared.ability.value) + (
+        f" ({_title(skill.value)}) check" if skill else " check"
+    )
+    return RollRequest(
+        purpose=RollPurpose.SKILL_CHECK if skill else RollPurpose.ABILITY_CHECK,
+        roller=roller,
+        label=label,
+        modifiers=tuple(
+            (_title(key), value, prepared.certificate.operation.value)
+            for key, value in prepared.breakdown.items()
+        ),
+        dc=prepared.dc,
+        source_refs=tuple(
+            r for r in (prepared.identity, prepared.dc_source) if r is not None
+        ),
+    )
+
+
+def _title(key: str) -> str:
+    return key.replace("_", " ").capitalize()
+
+
+def roll(
+    prepared: PreparedCheck,
+    dice: DiceService,
+    roller: tuple[str, str],
+) -> RolledCheck:
+    result = request(dice, prepared.expression, describe(prepared, roller))
     return RolledCheck(prepared, result.raw_rolls, result.chosen)

@@ -22,6 +22,7 @@ import afterworlds.persistence.orm.character_sheet  # noqa: F401
 import afterworlds.persistence.orm.node  # noqa: F401
 import afterworlds.persistence.orm.rpg  # noqa: F401
 import afterworlds.persistence.orm.story  # noqa: F401
+from afterworlds.api.story_bootstrap import ensure_story_turn_anchor_node
 from afterworlds.ingestion.mechanical.representation import ConditionKind
 from afterworlds.models.character_sheet import RpgCharacterSheetBase
 from afterworlds.models.dnd5e_state import (
@@ -39,7 +40,7 @@ from afterworlds.persistence.crud.character_sheet import create_rpg_base_sheet
 from afterworlds.persistence.crud.node import create_turn
 from afterworlds.persistence.crud.story import create_story
 from afterworlds.persistence.database import create_session_factory
-from afterworlds.persistence.orm.rpg import PendingRollRequestORM
+from afterworlds.persistence.orm.rpg import ActionResolutionSequenceORM
 from tests.services.rules_authority.conftest import (  # noqa: F401 - fixture
     CREATURE_KEY,
     SPELL_KEY,
@@ -103,7 +104,11 @@ def new_character(session: Session, story_id: UUID, name: str = "Ilse") -> UUID:
     return base.sheet_id
 
 
-def add_pending_roll(session: Session, story_id: UUID, character_id: UUID) -> str:
+def add_unresolved_sequence(
+    session: Session, story_id: UUID, character_id: UUID
+) -> str:
+    """An unresolved action-resolution sequence of *story_id* (CRD Issue 15b):
+    the durable event a held rule change or adoption waits for."""
     turn = Turn(
         user_input="x",
         assistant_output="x",
@@ -112,32 +117,38 @@ def add_pending_roll(session: Session, story_id: UUID, character_id: UUID) -> st
         node_id=None,
     )
     create_turn(session, turn)
-    request_id = str(uuid4())
+    node_id = ensure_story_turn_anchor_node(session, story_id, StoryMode.RPG).node_id
+    sequence_id = str(uuid4())
     session.add(
-        PendingRollRequestORM(
-            request_id=request_id,
+        ActionResolutionSequenceORM(
+            sequence_id=sequence_id,
             story_id=str(story_id),
             session_id=str(uuid4()),
+            node_id=str(node_id),
             character_id=str(character_id),
             originating_turn_id=str(turn.turn_id),
-            check_label="Dexterity Check",
-            player_facing_instruction="Roll 1d20",
-            expected_value_shape="integer",
-            visibility="player",
-            source_proposal_ref="x",
-            status="pending",
+            status="active",
+            current_interaction_kind="roll",
+            plan_json="{}",
+            reads_json="{}",
+            records_json="[]",
+            unattached_json="[]",
+            resolved_steps_json="[]",
+            projected_state_json="{}",
+            provisional_effects_json="[]",
+            revision=1,
             created_at=NOW,
-            roll_expression="1d20",
+            updated_at=NOW,
         )
     )
     session.flush()
-    return request_id
+    return sequence_id
 
 
-def resolve_pending_roll(session: Session, request_id: str) -> None:
-    row = session.get(PendingRollRequestORM, request_id)
+def complete_sequence(session: Session, sequence_id: str) -> None:
+    row = session.get(ActionResolutionSequenceORM, sequence_id)
     assert row is not None
-    row.status = "consumed"
+    row.status = "completed"
     session.flush()
 
 

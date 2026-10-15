@@ -52,6 +52,7 @@ from afterworlds.models.enums import (
     EventKind,
     EventSignificance,
     IntentType,
+    RpgInteractionPhase,
     RpgPlayStatus,
     RpgSessionType,
     RpgSetupPhase,
@@ -67,7 +68,6 @@ from afterworlds.models.extractor import (
     UnresolvedThreadProposal,
 )
 from afterworlds.models.rpg import (
-    PendingRollRequest,
     RpgVisibleState,
     VisibleCharacterState,
 )
@@ -102,6 +102,8 @@ from afterworlds.pipeline.provider._routing import (
     SafetyWhitelistStatus,
     TurnProviderBinding,
 )
+from afterworlds.pipeline.rpg.models import ActionResolutionError
+from afterworlds.pipeline.rpg.sequence import UnresolvedSequence
 from afterworlds.pipeline.safety.models import (
     SafetyCategory,
     SafetyConcern,
@@ -1249,8 +1251,6 @@ class TestBranchingOocConfigPersistence:
 # RPG OOC state grounding (Round 5 Fix 3)
 # ---------------------------------------------------------------------------
 
-_NOW_RPG = datetime(2026, 1, 1, tzinfo=UTC)
-
 
 def _make_rpg_session_state(story_id: UUID) -> RpgSessionState:
     return RpgSessionState(
@@ -1290,18 +1290,59 @@ class _FakeVisibleStateService:
         )
 
 
-class _FakePendingRollService:
-    def __init__(self, pending: PendingRollRequest | None = None) -> None:
-        self._pending = pending
+class _FakeSequenceService:
+    """Fake ActionResolutionService (CRD Issue 15b).
 
-    def load_pending_for_story(self, story_id: UUID) -> PendingRollRequest | None:
-        return self._pending
+    Ordinary turns read only ``unresolved``; the write methods are spies so a
+    test can prove a path never mutates a sequence.
+    """
+
+    def __init__(
+        self,
+        unresolved: UnresolvedSequence | None = None,
+        *,
+        raise_exc: Exception | None = None,
+        start_exc: Exception | None = None,
+    ) -> None:
+        self._unresolved = unresolved
+        self._raise_exc = raise_exc
+        self._start_exc = start_exc
+        self.unresolved_calls: list[UUID] = []
+        self.mutations: list[str] = []
+
+    def unresolved(self, story_id: UUID) -> UnresolvedSequence | None:
+        self.unresolved_calls.append(story_id)
+        if self._raise_exc is not None:
+            raise self._raise_exc
+        return self._unresolved
+
+    def start(self, *args: object, **kwargs: object) -> None:
+        self.mutations.append("start")
+        if self._start_exc is not None:
+            raise self._start_exc
+
+    def complete(self, *args: object, **kwargs: object) -> None:
+        self.mutations.append("complete")
+
+    def prepare_delivery(self, *args: object, **kwargs: object) -> None:
+        self.mutations.append("prepare_delivery")
+
+
+def _make_unresolved(
+    phase: RpgInteractionPhase = RpgInteractionPhase.PENDING_ROLL,
+    redirect_message: str = "Roll a Stealth check (1d20+5) before you act.",
+) -> UnresolvedSequence:
+    return UnresolvedSequence(
+        sequence_id=uuid4(),
+        interaction_phase=phase,
+        redirect_message=redirect_message,
+    )
 
 
 def _make_rpg_ooc_orchestrator(
     session_factory,
     *,
-    pending: PendingRollRequest | None = None,
+    unresolved: UnresolvedSequence | None = None,
     wire_resolver: bool = True,
 ):
     """Build an OrchestratorService wired for RPG OOC state tests."""
@@ -1326,7 +1367,7 @@ def _make_rpg_ooc_orchestrator(
         mode_resolver=fixed_mode_resolver(StoryMode.RPG),
         rpg_session_sheet_resolver=resolver if wire_resolver else None,
         rpg_visible_state_service=_FakeVisibleStateService(),  # type: ignore[arg-type]
-        rpg_pending_roll_service=_FakePendingRollService(pending),  # type: ignore[arg-type]
+        rpg_sequence_service=_FakeSequenceService(unresolved),  # type: ignore[arg-type]
     )
     return orch, writer
 
@@ -1394,28 +1435,16 @@ class TestRpgOocStateGrounding:
         assert "level: 5" in content
         assert "hp: 25/28" in content
 
-    def test_rpg_ooc_with_pending_roll_includes_summary(
-        self, session_factory, seeded_story
+    @pytest.mark.parametrize("phase", list(RpgInteractionPhase))
+    def test_rpg_ooc_with_unresolved_sequence_includes_pending_interaction(
+        self, session_factory, seeded_story, phase: RpgInteractionPhase
     ) -> None:
-        """Pending roll check_label and instruction must appear in rpg_ooc_state."""
-        from afterworlds.models.enums import RollVisibility
-
+        """An unresolved sequence's phase and redirect text appear in rpg_ooc_state."""
         story_id, node_id = seeded_story
-        pending = PendingRollRequest(
-            request_id=uuid4(),
-            story_id=story_id,
-            session_id=uuid4(),
-            character_id=uuid4(),
-            check_label="Stealth check",
-            player_facing_instruction="Roll 1d20",
-            expected_value_shape="integer",
-            visibility=RollVisibility.PLAYER,
-            source_proposal_ref="skill_check/Stealth check",
-            originating_turn_id=uuid4(),
-            created_at=_NOW_RPG,
-            roll_expression="1d20",
+        unresolved = _make_unresolved(phase, "Roll 1d20 for your Stealth check.")
+        orch, writer = _make_rpg_ooc_orchestrator(
+            session_factory, unresolved=unresolved
         )
-        orch, writer = _make_rpg_ooc_orchestrator(session_factory, pending=pending)
         orch.orchestrate_turn(
             story_id,
             node_id,
@@ -1427,35 +1456,35 @@ class TestRpgOocStateGrounding:
         content = next(
             e.content for e in ledger.entries if e.pass_name == "rpg_ooc_state"
         )
-        assert "Stealth check" in content
-        assert "Roll 1d20" in content
+        assert "## Pending Interaction" in content
+        assert f"state: {phase.value}" in content
+        assert "instruction: Roll 1d20 for your Stealth check." in content
 
-    def test_rpg_ooc_pending_roll_not_consumed(
+    def test_rpg_ooc_without_unresolved_sequence_omits_pending_interaction(
         self, session_factory, seeded_story
     ) -> None:
-        """OOC path must not call mark_consumed — pending roll status is unchanged."""
-        from afterworlds.models.enums import RollVisibility
-
+        """No unresolved sequence → no Pending Interaction section."""
         story_id, node_id = seeded_story
-        pending = PendingRollRequest(
-            request_id=uuid4(),
-            story_id=story_id,
-            session_id=uuid4(),
-            character_id=uuid4(),
-            check_label="Perception check",
-            player_facing_instruction="Roll 1d20 +3",
-            expected_value_shape="integer",
-            visibility=RollVisibility.PLAYER,
-            source_proposal_ref="skill_check/Perception check",
-            originating_turn_id=uuid4(),
-            created_at=_NOW_RPG,
-            roll_expression="1d20",
-            visible_modifier_total=3,
+        orch, writer = _make_rpg_ooc_orchestrator(session_factory, unresolved=None)
+        orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "[OOC] What roll do I need?",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
         )
-        pending_svc = _FakePendingRollService(pending)
-        # Attach a mark_consumed spy — OOC must NOT call it.
-        consumed_calls: list[object] = []
-        pending_svc.mark_consumed = lambda *a, **kw: consumed_calls.append(a)  # type: ignore[attr-defined]
+        ledger = writer.calls[0][0].pass_forward_ledger
+        content = next(
+            e.content for e in ledger.entries if e.pass_name == "rpg_ooc_state"
+        )
+        assert "## Pending Interaction" not in content
+
+    def test_rpg_ooc_unresolved_sequence_not_mutated(
+        self, session_factory, seeded_story
+    ) -> None:
+        """OOC reads the unresolved sequence but never alters it (15b-31)."""
+        story_id, node_id = seeded_story
+        sequence_svc = _FakeSequenceService(_make_unresolved())
 
         writer = FakeWriterService()
         orch = OrchestratorService(
@@ -1475,16 +1504,18 @@ class TestRpgOocStateGrounding:
                 _make_rpg_sheet(sid),
             ),
             rpg_visible_state_service=_FakeVisibleStateService(),  # type: ignore[arg-type]
-            rpg_pending_roll_service=pending_svc,  # type: ignore[arg-type]
+            rpg_sequence_service=sequence_svc,  # type: ignore[arg-type]
         )
-        orch.orchestrate_turn(
+        result = orch.orchestrate_turn(
             story_id,
             node_id,
             "[OOC] What roll do I need?",
             _SOJOURNER,
             RuntimeAccessPath.HOSTED,
         )
-        assert consumed_calls == []
+        assert result.disposition is PipelineDisposition.OOC_HANDLED
+        assert sequence_svc.unresolved_calls == [story_id]
+        assert sequence_svc.mutations == []
 
     def test_non_rpg_ooc_has_no_rpg_state_in_ledger(
         self, session_factory, seeded_story
@@ -1576,43 +1607,6 @@ class TestRpgOocStateGrounding:
         )
         assert planner.calls == []
         assert extractor.calls == []
-
-    def test_rpg_ooc_pending_roll_visible_modifier_note_included(
-        self, session_factory, seeded_story
-    ) -> None:
-        """visible_modifier_note included in rpg_ooc_state when pending roll has one."""
-        from afterworlds.models.enums import RollVisibility
-
-        story_id, node_id = seeded_story
-        pending = PendingRollRequest(
-            request_id=uuid4(),
-            story_id=story_id,
-            session_id=uuid4(),
-            character_id=uuid4(),
-            check_label="Stealth check",
-            player_facing_instruction="Roll 1d20 +5",
-            expected_value_shape="integer",
-            visibility=RollVisibility.PLAYER,
-            source_proposal_ref="skill_check/Stealth check",
-            originating_turn_id=uuid4(),
-            created_at=_NOW_RPG,
-            roll_expression="1d20",
-            visible_modifier_note="+5",
-            visible_modifier_total=5,
-        )
-        orch, writer = _make_rpg_ooc_orchestrator(session_factory, pending=pending)
-        orch.orchestrate_turn(
-            story_id,
-            node_id,
-            "[OOC] What modifier applies?",
-            _SOJOURNER,
-            RuntimeAccessPath.HOSTED,
-        )
-        ledger = writer.calls[0][0].pass_forward_ledger
-        content = next(
-            e.content for e in ledger.entries if e.pass_name == "rpg_ooc_state"
-        )
-        assert "+5" in content
 
     def test_rpg_ooc_hidden_condition_excluded_from_state(
         self, session_factory, seeded_story
@@ -4452,29 +4446,6 @@ class TestSharedRendererTTLPlumbing:
 # ---------------------------------------------------------------------------
 
 
-def _make_pending_roll_request() -> PendingRollRequest:
-    from datetime import UTC, datetime
-    from uuid import uuid4
-
-    from afterworlds.models.enums import RollVisibility
-    from afterworlds.models.rpg import PendingRollRequest
-
-    return PendingRollRequest(
-        request_id=uuid4(),
-        story_id=uuid4(),
-        session_id=uuid4(),
-        character_id=uuid4(),
-        check_label="Stealth Check",
-        player_facing_instruction="Roll a Stealth Check and report the total!",
-        expected_value_shape="d20",
-        visibility=RollVisibility.PLAYER,
-        source_proposal_ref="roll_0",
-        originating_turn_id=uuid4(),
-        created_at=datetime.now(tz=UTC),
-        roll_expression="1d20+5",
-    )
-
-
 class TestBlockedPendingRollDisposition:
     def test_valid_blocked_pending_roll(self) -> None:
         intent = make_intent()
@@ -4547,36 +4518,17 @@ class TestBlockedPendingRollDisposition:
 
 
 # ---------------------------------------------------------------------------
-# Pending-roll orchestrator intercept (CRD Issue 15 Phase 6)
+# Unresolved-sequence in-character gate (CRD Issue 15b, 15b-31)
 # ---------------------------------------------------------------------------
-
-
-class _FakePendingRollService:
-    """Programmable fake for PendingRollRequestService."""
-
-    def __init__(self, pending: object = None) -> None:
-        self._pending = pending
-        self.consumed: list[tuple[object, object]] = []
-        self.checked: list[object] = []
-
-    def load_pending_for_story(self, story_id: object) -> object:
-        return self._pending
-
-    def mark_consumed(
-        self, session: object, request_id: object, consumed_turn_id: object
-    ) -> None:
-        self.consumed.append((request_id, consumed_turn_id))
-
-    def check_no_pending_for_story(self, session: object, story_id: object) -> None:
-        self.checked.append(story_id)
 
 
 def _make_orchestrator_with_pending(
     session_factory: object,
-    pending_roll_svc: object,
+    sequence_svc: object,
     *,
     mode_resolver: object | None = None,
     intent_type: IntentType = IntentType.IN_CHARACTER_ACTION,
+    planner: FakePlannerService | None = None,
 ) -> OrchestratorService:
     from afterworlds.models.enums import StoryMode
     from tests.pipeline.orchestrator.conftest import (  # noqa: E402
@@ -4594,17 +4546,16 @@ def _make_orchestrator_with_pending(
     # RPG turns that reach _narrative_persist need rpg_play_status resolved
     # (ADR-018 D6 turn-retrieval-marker classification, Codex #119 P2) even
     # when RPG adjudication itself is not wired for this fixture -- an
-    # IN_PLAY session/sheet resolver here keeps this CRD Issue 15
-    # pending-roll-intercept fixture realistic rather than relying on the
-    # since-removed "unresolved play_status defaults to ORDINARY_NARRATIVE"
-    # behavior.
+    # IN_PLAY session/sheet resolver here keeps this sequence-gate fixture
+    # realistic rather than relying on the since-removed "unresolved
+    # play_status defaults to ORDINARY_NARRATIVE" behavior.
     session_state, sheet = _make_rpg_session_and_sheet()
 
     return OrchestratorService(
         intent_classifier=FakeIntentClassifier(make_intent(intent_type)),
         context_builder=FakeContextBuilder(),
         safety_service=FakeSafetyService(),
-        planner_service=FakePlannerService(),
+        planner_service=planner or FakePlannerService(),
         writer_service=FakeWriterService(),
         extractor_service=FakeExtractorService(),
         contradiction_service=FakeContradictionService(),
@@ -4613,18 +4564,23 @@ def _make_orchestrator_with_pending(
         provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
         rpg_session_sheet_resolver=lambda _sid: (session_state, sheet),  # type: ignore[arg-type]
         mode_resolver=mode_resolver or fixed_mode_resolver(StoryMode.RPG),
-        rpg_pending_roll_service=pending_roll_svc,  # type: ignore[arg-type]
+        rpg_sequence_service=sequence_svc,  # type: ignore[arg-type]
     )
 
 
 class TestPendingRollIntercept:
-    def test_block_redirect_when_pending_exists_and_no_total(
-        self, session_factory, seeded_story
+    @pytest.mark.parametrize("phase", list(RpgInteractionPhase))
+    def test_block_redirect_when_unresolved_sequence_exists(
+        self, session_factory, seeded_story, phase: RpgInteractionPhase
     ) -> None:
+        """Any unresolved sequence blocks in-character input before Planner."""
         story_id, node_id = seeded_story
-        pending = _make_pending_roll_request()
-        pending_svc = _FakePendingRollService(pending=pending)
-        orch = _make_orchestrator_with_pending(session_factory, pending_svc)
+        unresolved = _make_unresolved(phase)
+        sequence_svc = _FakeSequenceService(unresolved)
+        planner = FakePlannerService()
+        orch = _make_orchestrator_with_pending(
+            session_factory, sequence_svc, planner=planner
+        )
 
         result = orch.orchestrate_turn(
             story_id,
@@ -4632,22 +4588,21 @@ class TestPendingRollIntercept:
             "I sneak past the guard.",
             _SOJOURNER,
             RuntimeAccessPath.HOSTED,
-            # player_reported_total NOT supplied
         )
 
         assert result.disposition is PipelineDisposition.BLOCKED_PENDING_ROLL
-        assert result.pending_roll_redirect_message == (
-            pending.player_facing_instruction
-        )
+        assert result.pending_roll_redirect_message == unresolved.redirect_message
         assert result.delivered_output is None
         assert result.turn_id is None
+        assert planner.calls == []
+        assert sequence_svc.mutations == []
 
-    def test_no_block_when_no_pending_exists(
+    def test_no_block_when_no_unresolved_sequence(
         self, session_factory, seeded_story
     ) -> None:
         story_id, node_id = seeded_story
-        pending_svc = _FakePendingRollService(pending=None)
-        orch = _make_orchestrator_with_pending(session_factory, pending_svc)
+        sequence_svc = _FakeSequenceService(None)
+        orch = _make_orchestrator_with_pending(session_factory, sequence_svc)
 
         result = orch.orchestrate_turn(
             story_id,
@@ -4657,16 +4612,40 @@ class TestPendingRollIntercept:
             RuntimeAccessPath.HOSTED,
         )
 
-        # No pending roll → normal narrative path → DELIVERED
+        # No unresolved sequence → normal narrative path → DELIVERED
         assert result.disposition is PipelineDisposition.DELIVERED
+        assert sequence_svc.unresolved_calls == [story_id]
+
+    def test_sequence_lookup_failure_is_pipeline_error(
+        self, session_factory, seeded_story
+    ) -> None:
+        """unresolved() raising fails the turn closed, before Planner."""
+        story_id, node_id = seeded_story
+        sequence_svc = _FakeSequenceService(raise_exc=RuntimeError("db down"))
+        planner = FakePlannerService()
+        orch = _make_orchestrator_with_pending(
+            session_factory, sequence_svc, planner=planner
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,
+            node_id,
+            "I sneak past the guard.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "action sequence lookup failed" in (result.pipeline_error_summary or "")
+        assert result.turn_id is None
+        assert planner.calls == []
 
     def test_ooc_skips_pending_roll_check(self, session_factory, seeded_story) -> None:
-        """OOC turns must not be blocked by a pending roll."""
+        """OOC turns are not blocked by an unresolved sequence and never alter it."""
         story_id, node_id = seeded_story
-        pending = _make_pending_roll_request()
-        pending_svc = _FakePendingRollService(pending=pending)
+        sequence_svc = _FakeSequenceService(_make_unresolved())
         orch = _make_orchestrator_with_pending(
-            session_factory, pending_svc, intent_type=IntentType.OOC
+            session_factory, sequence_svc, intent_type=IntentType.OOC
         )
 
         result = orch.orchestrate_turn(
@@ -4677,9 +4656,10 @@ class TestPendingRollIntercept:
             RuntimeAccessPath.HOSTED,
         )
 
-        # OOC short-circuit must proceed even with pending roll.
+        # OOC short-circuit must proceed even with an unresolved sequence.
         assert result.disposition is PipelineDisposition.OOC_HANDLED
         assert result.pending_roll_redirect_message is None
+        assert sequence_svc.mutations == []
 
 
 # ---------------------------------------------------------------------------
@@ -4840,121 +4820,21 @@ class TestRpgVisibleState:
 
 
 # ---------------------------------------------------------------------------
-# TestRpgAuditErrorMapping — CRD Issue 15 remediation Fix 3
+# TestRpgAuditErrorMapping — CRD Issue 15 remediation Fix 3, CRD Issue 15b
 # ---------------------------------------------------------------------------
 #
-# _narrative_persist must map any non-PendingRollDuplicateError exception from
-# _write_rpg_audit to PIPELINE_ERROR (the new except Exception branch).
+# _narrative_persist maps a typed ActionResolutionError from the sequence write
+# to a PIPELINE_ERROR carrying its code, and any other exception from the
+# audit/sequence write to PIPELINE_ERROR "rpg audit write failed".
 
 
-class _FailingOnConsumePendingRollService:
-    """Fake pending-roll service whose mark_consumed raises a given exception."""
+class _AdjServiceAnnouncingSequence:
+    """Fake adjudication service whose turn always pauses for the Sojourner.
 
-    def __init__(self, exc: Exception) -> None:
-        self._exc = exc
-
-    def load_pending_for_story(self, story_id: object) -> object:
-        return _make_pending_roll_request()
-
-    def mark_consumed(
-        self, session: object, request_id: object, consumed_turn_id: object
-    ) -> None:
-        raise self._exc
-
-    def check_no_pending_for_story(self, session: object, story_id: object) -> None:
-        pass
-
-
-def _make_orchestrator_for_audit_errors(
-    session_factory: object,
-    *,
-    pending_svc: object,
-) -> OrchestratorService:
-    from afterworlds.models.enums import StoryMode
-    from afterworlds.pipeline.rpg.dice import SystemRandomDiceService
-
-    session_state, sheet = _make_rpg_session_and_sheet()
-
-    return OrchestratorService(
-        intent_classifier=FakeIntentClassifier(make_intent()),
-        context_builder=FakeContextBuilder(),
-        safety_service=FakeSafetyService(),
-        planner_service=FakePlannerService(),
-        writer_service=FakeWriterService(),
-        extractor_service=FakeExtractorService(),
-        contradiction_service=FakeContradictionService(),
-        session_factory=session_factory,  # type: ignore[arg-type]
-        safety_policy=CapabilityProfileAwareSafetyPolicy(),
-        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
-        mode_resolver=fixed_mode_resolver(StoryMode.RPG),
-        rpg_adjudication_service=_FakeRpgAdjudicationService(),  # type: ignore[arg-type]
-        rpg_session_sheet_resolver=lambda _sid: (session_state, sheet),  # type: ignore[arg-type]
-        rpg_dice_service=SystemRandomDiceService(seed=42),  # type: ignore[arg-type]
-        rpg_pending_roll_service=pending_svc,  # type: ignore[arg-type]
-    )
-
-
-class TestRpgAuditErrorMapping:
-    def test_already_consumed_error_maps_to_pipeline_error(
-        self, session_factory: object, seeded_story: tuple[object, object]
-    ) -> None:
-        """PendingRollAlreadyConsumedError from mark_consumed → PIPELINE_ERROR."""
-        from afterworlds.pipeline.rpg.pending import PendingRollAlreadyConsumedError
-
-        story_id, node_id = seeded_story
-        failing_svc = _FailingOnConsumePendingRollService(
-            PendingRollAlreadyConsumedError("already consumed")
-        )
-        orch = _make_orchestrator_for_audit_errors(
-            session_factory, pending_svc=failing_svc
-        )
-
-        result = orch.orchestrate_turn(
-            story_id,  # type: ignore[arg-type]
-            node_id,  # type: ignore[arg-type]
-            "I attack the goblin.",
-            _SOJOURNER,
-            RuntimeAccessPath.HOSTED,
-            player_reported_total=15,
-        )
-
-        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
-        assert result.pipeline_error_summary is not None
-        assert "rpg audit write failed" in result.pipeline_error_summary
-
-    def test_general_audit_failure_maps_to_pipeline_error(
-        self, session_factory: object, seeded_story: tuple[object, object]
-    ) -> None:
-        """Any non-PendingRollDuplicateError from _write_rpg_audit → PIPELINE_ERROR."""
-        story_id, node_id = seeded_story
-        failing_svc = _FailingOnConsumePendingRollService(
-            RuntimeError("synthetic db failure")
-        )
-        orch = _make_orchestrator_for_audit_errors(
-            session_factory, pending_svc=failing_svc
-        )
-
-        result = orch.orchestrate_turn(
-            story_id,  # type: ignore[arg-type]
-            node_id,  # type: ignore[arg-type]
-            "I attack the goblin.",
-            _SOJOURNER,
-            RuntimeAccessPath.HOSTED,
-            player_reported_total=15,
-        )
-
-        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
-        assert result.pipeline_error_summary is not None
-        assert "rpg audit write failed" in result.pipeline_error_summary
-
-
-# ---------------------------------------------------------------------------
-# TestRpgPendingRollServiceGuard — CRD Issue 15 remediation Round 8 Fix 1
-# ---------------------------------------------------------------------------
-
-
-class _AdjServiceAnnouncingPending:
-    """Fake adjudication service that always announces a new pending roll."""
+    ``AdjudicationPassResult.sequence`` is opaque to the orchestrator (it only
+    hands it to the sequence service), so a sentinel stands in for a
+    ``SequenceStart``.
+    """
 
     def is_adjudicable(self, sheet: object) -> bool:
         return True
@@ -4965,14 +4845,16 @@ class _AdjServiceAnnouncingPending:
         return AdjudicationPassResult(
             proposals=(),
             writer_views=(),
-            pending_roll_request=_make_pending_roll_request(),
+            sequence=object(),
         )
 
 
-def _make_rpg_orch_announcing_pending_no_svc(
+def _make_orchestrator_for_audit_errors(
     session_factory: object,
+    *,
+    sequence_svc: object | None = None,
+    announce_sequence: bool = False,
 ) -> OrchestratorService:
-    """RPG orchestrator: adj announces a pending roll but no lifecycle service wired."""
     from afterworlds.models.enums import StoryMode
     from afterworlds.pipeline.rpg.dice import SystemRandomDiceService
 
@@ -4990,10 +4872,142 @@ def _make_rpg_orch_announcing_pending_no_svc(
         safety_policy=CapabilityProfileAwareSafetyPolicy(),
         provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
         mode_resolver=fixed_mode_resolver(StoryMode.RPG),
-        rpg_adjudication_service=_AdjServiceAnnouncingPending(),  # type: ignore[arg-type]
+        rpg_adjudication_service=(
+            _AdjServiceAnnouncingSequence()  # type: ignore[arg-type]
+            if announce_sequence
+            else _FakeRpgAdjudicationService()
+        ),
         rpg_session_sheet_resolver=lambda _sid: (session_state, sheet),  # type: ignore[arg-type]
         rpg_dice_service=SystemRandomDiceService(seed=42),  # type: ignore[arg-type]
-        # rpg_pending_roll_service intentionally absent
+        rpg_sequence_service=sequence_svc,  # type: ignore[arg-type]
+    )
+
+
+def _fail_audit_write(*args: object, **kwargs: object) -> None:
+    raise RuntimeError("synthetic db failure")
+
+
+class TestRpgAuditErrorMapping:
+    def test_sequence_write_conflict_maps_to_typed_pipeline_error(
+        self, session_factory: object, seeded_story: tuple[object, object]
+    ) -> None:
+        """ActionResolutionError from the sequence start → typed PIPELINE_ERROR."""
+        story_id, node_id = seeded_story
+        conflict = ActionResolutionError("sequence already exists")
+        sequence_svc = _FakeSequenceService(start_exc=conflict)
+        orch = _make_orchestrator_for_audit_errors(
+            session_factory, sequence_svc=sequence_svc, announce_sequence=True
+        )
+
+        result = orch.orchestrate_turn(
+            story_id,  # type: ignore[arg-type]
+            node_id,  # type: ignore[arg-type]
+            "I attack the goblin.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert sequence_svc.mutations == ["start"]
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert result.pipeline_error_summary is not None
+        assert "action sequence write failed" in result.pipeline_error_summary
+        assert result.action_sequence_error == conflict.code
+        assert result.rpg_adjudication_result is not None
+
+    def test_general_audit_failure_maps_to_pipeline_error(
+        self,
+        session_factory: object,
+        seeded_story: tuple[object, object],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Any untyped exception from _write_rpg_audit → PIPELINE_ERROR."""
+        story_id, node_id = seeded_story
+        orch = _make_orchestrator_for_audit_errors(session_factory)
+        monkeypatch.setattr(orch, "_write_rpg_audit", _fail_audit_write)
+
+        result = orch.orchestrate_turn(
+            story_id,  # type: ignore[arg-type]
+            node_id,  # type: ignore[arg-type]
+            "I attack the goblin.",
+            _SOJOURNER,
+            RuntimeAccessPath.HOSTED,
+        )
+
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert result.pipeline_error_summary is not None
+        assert "rpg audit write failed" in result.pipeline_error_summary
+
+    def test_a_contest_never_takes_the_one_row_record_audit(
+        self, session_factory: object
+    ) -> None:
+        """ADR-015b Group 17: a contest's participants are audited from the
+        event ledger. Should a contest record ever reach the record audit
+        path, it fails closed (typed) before writing anything."""
+        from unittest.mock import MagicMock
+
+        from afterworlds.models.enums import RollVisibility
+        from afterworlds.models.rpg import (
+            ContestParticipantResult,
+            ContestResolution,
+            ResolvedAdjudicationRecord,
+            SubjectRef,
+        )
+        from afterworlds.pipeline.rpg.models import (
+            ActionSequenceIntegrityError,
+            AdjudicationPassResult,
+        )
+
+        me = SubjectRef(kind="character", subject_id=uuid4())
+        ape = SubjectRef(kind="creature", subject_id=uuid4())
+        record = ResolvedAdjudicationRecord(
+            check_label="Arm wrestling",
+            visibility=RollVisibility.SHOWN,
+            expression="1d20",
+            raw_rolls=(15,),
+            modifiers_json="{}",
+            total=14,
+            dc=None,
+            outcome="undetermined",
+            sheet_effects=(),
+            source="ai",
+            gm_cheating_at_roll=False,
+            contest_resolution=ContestResolution(
+                contest_id=uuid4(),
+                participants=(
+                    ContestParticipantResult(subject=me, step_id=uuid4(), total=14),
+                    ContestParticipantResult(subject=ape, step_id=uuid4(), total=10),
+                ),
+                result="win",
+                winner=me,
+                certificate={},
+            ),
+        )
+        orch = _make_orchestrator_for_audit_errors(session_factory)
+        session = MagicMock()
+        with pytest.raises(ActionSequenceIntegrityError):
+            orch._write_rpg_audit(  # noqa: SLF001
+                session,
+                AdjudicationPassResult(proposals=(record,), writer_views=()),
+                uuid4(),
+                uuid4(),
+                uuid4(),
+                uuid4(),
+            )
+        session.add.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# TestRpgPendingRollServiceGuard — CRD Issue 15 remediation Round 8 Fix 1,
+# CRD Issue 15b (sequence service)
+# ---------------------------------------------------------------------------
+
+
+def _make_rpg_orch_announcing_pending_no_svc(
+    session_factory: object,
+) -> OrchestratorService:
+    """RPG orchestrator: adj starts a sequence but no sequence service is wired."""
+    return _make_orchestrator_for_audit_errors(
+        session_factory, sequence_svc=None, announce_sequence=True
     )
 
 
@@ -5001,7 +5015,7 @@ class TestRpgPendingRollServiceGuard:
     def test_pending_announce_without_service_is_pipeline_error(
         self, session_factory: object, seeded_story: tuple[object, object]
     ) -> None:
-        """Pending roll without service wired: PIPELINE_ERROR, no transaction opens."""
+        """Sequence without service wired: PIPELINE_ERROR, no transaction opens."""
         story_id, node_id = seeded_story
         orch = _make_rpg_orch_announcing_pending_no_svc(session_factory)
 
@@ -5015,7 +5029,10 @@ class TestRpgPendingRollServiceGuard:
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
         assert result.pipeline_error_summary is not None
-        assert "pending-roll service not wired" in result.pipeline_error_summary
+        assert (
+            "no action sequence service is wired to persist it"
+            in result.pipeline_error_summary
+        )
 
     def test_pending_announce_without_service_no_turn_written(
         self, session_factory: object, seeded_story: tuple[object, object]
@@ -5055,7 +5072,7 @@ class TestRpgPendingRollServiceGuard:
     def test_no_pending_request_path_unaffected_by_guard(
         self, session_factory: object, seeded_story: tuple[object, object]
     ) -> None:
-        """AI_ROLLS with no pending_roll_request is unaffected by the guard."""
+        """AI_ROLLS with no sequence is unaffected by the guard."""
         story_id, node_id = seeded_story
         # _FakeRpgAdjudicationService returns AdjudicationPassResult with no pending.
         orch = _make_orchestrator_with_adjudication(session_factory)
@@ -5202,16 +5219,15 @@ class TestRpgAdjResultPreservedDownstream:
         assert result.rpg_adjudication_result is not None
 
     def test_audit_write_failure_carries_adj_result(
-        self, session_factory: object, seeded_story: tuple[object, object]
+        self,
+        session_factory: object,
+        seeded_story: tuple[object, object],
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Audit write failure carries rpg_adjudication_result."""
         story_id, node_id = seeded_story
-        failing_svc = _FailingOnConsumePendingRollService(
-            RuntimeError("synthetic audit failure")
-        )
-        orch = _make_orchestrator_for_audit_errors(
-            session_factory, pending_svc=failing_svc
-        )
+        orch = _make_orchestrator_for_audit_errors(session_factory)
+        monkeypatch.setattr(orch, "_write_rpg_audit", _fail_audit_write)
 
         result = orch.orchestrate_turn(
             story_id,  # type: ignore[arg-type]
@@ -5219,10 +5235,10 @@ class TestRpgAdjResultPreservedDownstream:
             "I attack.",
             _SOJOURNER,
             RuntimeAccessPath.HOSTED,
-            player_reported_total=15,
         )
 
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert "rpg audit write failed" in (result.pipeline_error_summary or "")
         assert result.rpg_adjudication_result is not None
 
 
@@ -5485,257 +5501,33 @@ class TestBranchingCacheWarmed:
 
 
 # ---------------------------------------------------------------------------
-# P2-1: Pending-roll consume path takes precedence over OOC routing (Round 11)
+# CRD Issue 15b: resume without a sequence service fails closed
 # ---------------------------------------------------------------------------
 
 
-class TestPendingRollPrecedenceOverOoc:
-    """player_reported_total in RPG mode takes precedence over OOC short-circuit."""
-
-    def test_ooc_intent_with_total_bypasses_ooc_routes_to_narrative(
+class TestRpgResumeRequiresSequenceService:
+    def test_resume_without_sequence_service_is_pipeline_error(
         self, session_factory: object, seeded_story: tuple[object, object]
     ) -> None:
-        """OOC intent + player_reported_total → narrative consume path, NOT OOC."""
+        """Resuming a sequence with no sequence service wired → PIPELINE_ERROR."""
         story_id, node_id = seeded_story
-        pending = _make_pending_roll_request()
-        pending_svc = _FakePendingRollService(pending=pending)
-        orch = _make_orchestrator_for_consume_wiring(
-            session_factory, pending_svc, intent_type=IntentType.OOC
-        )
-        result = orch.orchestrate_turn(
-            story_id,  # type: ignore[arg-type]
-            node_id,  # type: ignore[arg-type]
-            "[OOC] I rolled 15 for my stealth check.",
-            _SOJOURNER,
-            RuntimeAccessPath.HOSTED,
-            player_reported_total=15,
-        )
-        # P2-1: when player_reported_total is set the consume path must take
-        # precedence — OOC_HANDLED would mean the fix is absent.
-        assert result.disposition is PipelineDisposition.DELIVERED
+        planner = FakePlannerService()
+        orch = _make_orchestrator_with_pending(session_factory, None, planner=planner)
 
-    def test_ooc_intent_without_total_still_routes_to_ooc(
-        self, session_factory: object, seeded_story: tuple[object, object]
-    ) -> None:
-        """OOC intent + no total + pending → OOC fires; pending roll not consumed."""
-        story_id, node_id = seeded_story
-        pending = _make_pending_roll_request()
-        pending_svc = _FakePendingRollService(pending=pending)
-        orch = _make_orchestrator_with_pending(
-            session_factory, pending_svc, intent_type=IntentType.OOC
-        )
-        result = orch.orchestrate_turn(
+        result = orch.orchestrate_rpg_resume(
             story_id,  # type: ignore[arg-type]
             node_id,  # type: ignore[arg-type]
-            "[OOC] What is my stealth modifier?",
-            _SOJOURNER,
-            RuntimeAccessPath.HOSTED,
+            uuid4(),
+            access_path=RuntimeAccessPath.HOSTED,
+            sojourner_id=_SOJOURNER,
         )
-        assert result.disposition is PipelineDisposition.OOC_HANDLED
 
-    def test_total_with_no_pending_roll_is_pipeline_error(
-        self, session_factory: object, seeded_story: tuple[object, object]
-    ) -> None:
-        """player_reported_total set but no pending roll for story → PIPELINE_ERROR."""
-        story_id, node_id = seeded_story
-        pending_svc = _FakePendingRollService(pending=None)
-        orch = _make_orchestrator_with_pending(session_factory, pending_svc)
-        result = orch.orchestrate_turn(
-            story_id,  # type: ignore[arg-type]
-            node_id,  # type: ignore[arg-type]
-            "I rolled a 15.",
-            _SOJOURNER,
-            RuntimeAccessPath.HOSTED,
-            player_reported_total=15,
-        )
         assert result.disposition is PipelineDisposition.PIPELINE_ERROR
-        assert "no pending roll" in (result.pipeline_error_summary or "").lower()
-
-    def test_total_without_pending_roll_service_is_pipeline_error(
-        self, session_factory: object, seeded_story: tuple[object, object]
-    ) -> None:
-        """player_reported_total set but service not wired → PIPELINE_ERROR."""
-        story_id, node_id = seeded_story
-        orch = _make_orchestrator_with_pending(
-            session_factory,
-            None,  # type: ignore[arg-type]
+        assert "no action sequence service is wired" in (
+            result.pipeline_error_summary or ""
         )
-        result = orch.orchestrate_turn(
-            story_id,  # type: ignore[arg-type]
-            node_id,  # type: ignore[arg-type]
-            "I rolled a 15.",
-            _SOJOURNER,
-            RuntimeAccessPath.HOSTED,
-            player_reported_total=15,
-        )
-        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
-        assert "not wired" in (result.pipeline_error_summary or "").lower()
-
-
-# ---------------------------------------------------------------------------
-# P2 Round 12: consume-path service wiring guard
-# ---------------------------------------------------------------------------
-
-
-def _make_orchestrator_for_consume_wiring(
-    session_factory: object,
-    pending_roll_svc: object,
-    *,
-    wire_adjudication: bool = True,
-    wire_session_resolver: bool = True,
-    wire_dice: bool = True,
-    intent_type: IntentType = IntentType.IN_CHARACTER_ACTION,
-) -> OrchestratorService:
-    from afterworlds.models.enums import StoryMode
-    from afterworlds.pipeline.rpg.dice import SystemRandomDiceService
-    from tests.pipeline.orchestrator.conftest import (  # noqa: E402
-        FakeContextBuilder,
-        FakeContradictionService,
-        FakeExtractorService,
-        FakeIntentClassifier,
-        FakePlannerService,
-        FakeSafetyService,
-        FakeWriterService,
-        fixed_mode_resolver,
-        make_intent,
-    )
-
-    session_state, sheet = _make_rpg_session_and_sheet()
-
-    return OrchestratorService(
-        intent_classifier=FakeIntentClassifier(make_intent(intent_type)),
-        context_builder=FakeContextBuilder(),
-        safety_service=FakeSafetyService(),
-        planner_service=FakePlannerService(),
-        writer_service=FakeWriterService(),
-        extractor_service=FakeExtractorService(),
-        contradiction_service=FakeContradictionService(),
-        session_factory=session_factory,  # type: ignore[arg-type]
-        safety_policy=CapabilityProfileAwareSafetyPolicy(),
-        provider_resolver=_make_fake_resolver(),  # type: ignore[arg-type]
-        mode_resolver=fixed_mode_resolver(StoryMode.RPG),
-        rpg_adjudication_service=(
-            _FakeRpgAdjudicationService() if wire_adjudication else None  # type: ignore[arg-type]
-        ),
-        rpg_session_sheet_resolver=(
-            (lambda _sid: (session_state, sheet)) if wire_session_resolver else None  # type: ignore[arg-type]
-        ),
-        rpg_dice_service=(
-            SystemRandomDiceService(seed=42) if wire_dice else None  # type: ignore[arg-type]
-        ),
-        rpg_pending_roll_service=pending_roll_svc,  # type: ignore[arg-type]
-    )
-
-
-class TestConsumePathServiceWiringGuard:
-    """Consume-path services must all be wired when player_reported_total is set."""
-
-    def test_consume_path_adjudication_missing_is_pipeline_error(
-        self, session_factory: object, seeded_story: tuple[object, object]
-    ) -> None:
-        """adj=None, pending+total → PIPELINE_ERROR 'not fully wired'."""
-        story_id, node_id = seeded_story
-        pending = _make_pending_roll_request()
-        pending_svc = _FakePendingRollService(pending=pending)
-        orch = _make_orchestrator_for_consume_wiring(
-            session_factory, pending_svc, wire_adjudication=False
-        )
-        result = orch.orchestrate_turn(
-            story_id,  # type: ignore[arg-type]
-            node_id,  # type: ignore[arg-type]
-            "I rolled a 15.",
-            _SOJOURNER,
-            RuntimeAccessPath.HOSTED,
-            player_reported_total=15,
-        )
-        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
-        assert "not fully wired" in (result.pipeline_error_summary or "")
-        assert pending_svc.consumed == []
-
-    def test_consume_path_session_resolver_missing_is_pipeline_error(
-        self, session_factory: object, seeded_story: tuple[object, object]
-    ) -> None:
-        """resolver=None, pending+total → PIPELINE_ERROR; intercepted before consume."""
-        story_id, node_id = seeded_story
-        pending = _make_pending_roll_request()
-        pending_svc = _FakePendingRollService(pending=pending)
-        orch = _make_orchestrator_for_consume_wiring(
-            session_factory, pending_svc, wire_session_resolver=False
-        )
-        result = orch.orchestrate_turn(
-            story_id,  # type: ignore[arg-type]
-            node_id,  # type: ignore[arg-type]
-            "I rolled a 15.",
-            _SOJOURNER,
-            RuntimeAccessPath.HOSTED,
-            player_reported_total=15,
-        )
-        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
-        assert "resolver" in (result.pipeline_error_summary or "")
-        assert pending_svc.consumed == []
-
-    def test_consume_path_dice_service_missing_is_pipeline_error(
-        self, session_factory: object, seeded_story: tuple[object, object]
-    ) -> None:
-        """dice=None, pending+total → PIPELINE_ERROR 'not fully wired'."""
-        story_id, node_id = seeded_story
-        pending = _make_pending_roll_request()
-        pending_svc = _FakePendingRollService(pending=pending)
-        orch = _make_orchestrator_for_consume_wiring(
-            session_factory, pending_svc, wire_dice=False
-        )
-        result = orch.orchestrate_turn(
-            story_id,  # type: ignore[arg-type]
-            node_id,  # type: ignore[arg-type]
-            "I rolled a 15.",
-            _SOJOURNER,
-            RuntimeAccessPath.HOSTED,
-            player_reported_total=15,
-        )
-        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
-        assert "not fully wired" in (result.pipeline_error_summary or "")
-        assert pending_svc.consumed == []
-
-    def test_consume_path_all_services_wired_delivers(
-        self, session_factory: object, seeded_story: tuple[object, object]
-    ) -> None:
-        """All wired + pending + total → DELIVERED; pending roll consumed."""
-        story_id, node_id = seeded_story
-        pending = _make_pending_roll_request()
-        pending_svc = _FakePendingRollService(pending=pending)
-        orch = _make_orchestrator_for_consume_wiring(session_factory, pending_svc)
-        result = orch.orchestrate_turn(
-            story_id,  # type: ignore[arg-type]
-            node_id,  # type: ignore[arg-type]
-            "I rolled a 15.",
-            _SOJOURNER,
-            RuntimeAccessPath.HOSTED,
-            player_reported_total=15,
-        )
-        assert result.disposition is PipelineDisposition.DELIVERED
-        assert pending_svc.consumed != []
-
-    def test_ooc_no_total_pending_still_routes_to_ooc(
-        self, session_factory: object, seeded_story: tuple[object, object]
-    ) -> None:
-        """OOC + no total + pending → OOC_HANDLED; wiring guard is not triggered."""
-        story_id, node_id = seeded_story
-        pending = _make_pending_roll_request()
-        pending_svc = _FakePendingRollService(pending=pending)
-        orch = _make_orchestrator_for_consume_wiring(
-            session_factory,
-            pending_svc,
-            wire_adjudication=False,
-            intent_type=IntentType.OOC,
-        )
-        result = orch.orchestrate_turn(
-            story_id,  # type: ignore[arg-type]
-            node_id,  # type: ignore[arg-type]
-            "[OOC] What is my stealth modifier?",
-            _SOJOURNER,
-            RuntimeAccessPath.HOSTED,
-        )
-        assert result.disposition is PipelineDisposition.OOC_HANDLED
+        assert result.turn_id is None
+        assert planner.calls == []
 
 
 # ---------------------------------------------------------------------------
@@ -5911,11 +5703,11 @@ class TestRuleSlicePreContext:
         """OOC is not an adjudicating intent → no early resolution → None."""
         story_id, node_id = seeded_story
         spy = _SpyContextBuilder()
-        # Wire pending-roll service so RPG OOC path can build state gracefully.
-        pending_svc = _FakePendingRollService(pending=None)
+        # Wire a sequence service so RPG OOC path can build state gracefully.
+        sequence_svc = _FakeSequenceService(None)
         orch = _make_orchestrator_with_pending(
             session_factory,
-            pending_svc,
+            sequence_svc,
             intent_type=IntentType.OOC,
         )
         # Replace the context_builder with our spy after construction so the

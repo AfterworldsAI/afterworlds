@@ -35,10 +35,10 @@ from tests.services.dnd5e_state.conftest import (
     CREATURE_KEY,
     NOW,
     Table,
-    add_pending_roll,
+    add_unresolved_sequence,
+    complete_sequence,
     new_character,
     new_story,
-    resolve_pending_roll,
     wizardish,
 )
 from tests.services.rules_authority.conftest import (
@@ -105,18 +105,18 @@ def test_a_requested_change_stays_out_of_current_override_rows(table: Table) -> 
         assert current_binding(s, table.package, now=NOW) == before
 
 
-def test_a_change_waits_for_a_pending_roll_then_activates_to_its_exact_target(
+def test_a_change_waits_for_an_unresolved_sequence_then_activates_to_its_exact_target(
     table: Table,
 ) -> None:
     story, sheet = _story_with_character(table)
     with table.factory() as s, s.begin():
-        roll = add_pending_roll(s, story, sheet)
+        roll = add_unresolved_sequence(s, story, sheet)
     change = _request(table, HOUSE_RULE)
     held = _activate(table, change)
     assert (held.status, held.blocking) == (ChangeStatus.HELD, 1)
     assert _override_rows(table) == 0
     with table.factory() as s, s.begin():
-        resolve_pending_roll(s, roll)
+        complete_sequence(s, roll)
     assert _activate(table, change).status is ChangeStatus.ACTIVE
     with table.factory() as s:
         row = s.get(SharedRuleChangeORM, change)
@@ -227,12 +227,12 @@ def test_adoption_rebinds_the_character_only_and_preserves_its_state(
         assert service.read_creature(s, creature).binding == before.binding
 
 
-def test_adoption_waits_for_a_pending_roll_and_accepts_its_normal_results(
+def test_adoption_waits_for_an_unresolved_sequence_and_accepts_its_normal_results(
     table: Table,
 ) -> None:
     story, sheet = _story_with_character(table)
     with table.factory() as s, s.begin():
-        roll = add_pending_roll(s, story, sheet)
+        roll = add_unresolved_sequence(s, story, sheet)
     change = _request(table, HOUSE_RULE)
     with table.factory() as s, s.begin():
         held = adoption.request_adoption(
@@ -241,7 +241,7 @@ def test_adoption_waits_for_a_pending_roll_and_accepts_its_normal_results(
     assert held.status is AdoptionStatus.HELD
     # The roll resolves and changes hit points: an ordinary new revision.
     with table.factory() as s, s.begin():
-        resolve_pending_roll(s, roll)
+        complete_sequence(s, roll)
         current = service.read_character(s, sheet)
         store.save_state(
             s,
@@ -286,14 +286,14 @@ def test_a_target_superseded_before_processing_is_refused_not_substituted(
 ) -> None:
     story, sheet = _story_with_character(table)
     with table.factory() as s, s.begin():
-        roll = add_pending_roll(s, story, sheet)
+        roll = add_unresolved_sequence(s, story, sheet)
     first = _request(table, HOUSE_RULE)
     with table.factory() as s, s.begin():
         held = adoption.request_adoption(
             s, "character", sheet, change_id=first, now=NOW
         )
     with table.factory() as s, s.begin():
-        resolve_pending_roll(s, roll)
+        complete_sequence(s, roll)
     assert _activate(table, first).status is ChangeStatus.ACTIVE
     # A newer house rule lands before the held adoption is processed.
     with table.factory() as s, s.begin():
@@ -315,7 +315,7 @@ def test_a_target_superseded_before_processing_is_refused_not_substituted(
 def test_withdrawing_a_change_refuses_the_adoption_waiting_on_it(table: Table) -> None:
     story, sheet = _story_with_character(table)
     with table.factory() as s, s.begin():
-        add_pending_roll(s, story, sheet)
+        add_unresolved_sequence(s, story, sheet)
     change = _request(table, HOUSE_RULE)
     with table.factory() as s, s.begin():
         held = adoption.request_adoption(
@@ -410,7 +410,7 @@ def test_adoption_processing_claims_the_write_lock_first(table: Table) -> None:
     """Advisor: no lease or activation can commit between check and rebind."""
     story, sheet = _story_with_character(table)
     with table.factory() as s, s.begin():
-        roll = add_pending_roll(s, story, sheet)
+        roll = add_unresolved_sequence(s, story, sheet)
     change = _request(table, HOUSE_RULE)
     with table.factory() as s, s.begin():
         held = adoption.request_adoption(
@@ -418,7 +418,7 @@ def test_adoption_processing_claims_the_write_lock_first(table: Table) -> None:
         )
     assert held.status is AdoptionStatus.HELD
     with table.factory() as s, s.begin():
-        resolve_pending_roll(s, roll)
+        complete_sequence(s, roll)
     assert _activate(table, change).status is ChangeStatus.ACTIVE
     statements: list[str] = []
 

@@ -12,7 +12,11 @@ choice schemas) from the authority rather than restating it.
 
 from __future__ import annotations
 
+import copy
+import hashlib
+import json
 from functools import lru_cache
+from pathlib import Path
 from uuid import UUID
 
 from afterworlds.ingestion.mechanical.oracle import (
@@ -61,7 +65,11 @@ from afterworlds.models.dnd5e_state import (
     WeaponProficiencyGrant,
 )
 from afterworlds.models.dnd5e_vocabulary import Alignment, CreatureType, Language
-from afterworlds.models.enums import ConditionVisibility
+from afterworlds.models.enums import (
+    ConditionVisibility,
+    OverrideOperationEnum,
+    OverrideOriginEnum,
+)
 from afterworlds.models.rules_package import RulesPackageBinding
 from afterworlds.services.dnd5e_state.authority import (
     AuthorityIndex,
@@ -71,7 +79,17 @@ from afterworlds.services.dnd5e_state.validation import KNOWN_COUNT_ENTITLEMENTS
 from afterworlds.services.rules_authority.application import apply_override_set
 from afterworlds.services.rules_authority.override_set import (
     EMPTY_OVERRIDE_SET_UUID,
+    EffectiveOverrideEntry,
     EffectiveOverrideSet,
+    override_set_identity,
+)
+from afterworlds.services.rules_authority.patches import (
+    patch_from_payload,
+    patch_payload,
+)
+from afterworlds.services.rules_authority.targets import (
+    MechanicalTarget,
+    MechanicalTargetKind,
 )
 
 PACKAGE = "1299484e-c72d-509b-bd8d-d0169ee1f8d2"
@@ -104,25 +122,90 @@ def real_index() -> AuthorityIndex:
     return index_for(inputs)
 
 
-def index_for(inputs: AcceptedInputs) -> AuthorityIndex:
+def index_for(
+    inputs: AcceptedInputs, entries: tuple[EffectiveOverrideEntry, ...] = ()
+) -> AuthorityIndex:
     """The effective index of *inputs* under its own derived projection and
-    the empty override set."""
+    the override set of *entries* (empty by default)."""
     candidate = candidate_from_accepted_inputs(inputs)
     projection = identify_projection(candidate).projection_uuid
     binding = RulesPackageBinding(
         package_uuid=UUID(PACKAGE),
         release_version=RELEASE,
         mechanical_projection_uuid=UUID(projection),
-        override_set_uuid=UUID(EMPTY_OVERRIDE_SET_UUID),
+        override_set_uuid=UUID(
+            override_set_identity(entries) if entries else EMPTY_OVERRIDE_SET_UUID
+        ),
     )
     leaves = {s.leaf_id: i for i, s in enumerate(candidate.classification.spans)}
     authority = apply_override_set(
         candidate,
-        EffectiveOverrideSet(PACKAGE, RELEASE, ()),
+        EffectiveOverrideSet(PACKAGE, RELEASE, entries),
         binding,
         leaf_order=leaves,
     )
     return AuthorityIndex.from_authority(authority)
+
+
+#: The Owner-accepted S1 contest supplement (ADR-015b Group 17), at its
+#: accepted digest. Read-only; applied only in memory, never to a store.
+S1_PATH = (
+    Path(__file__).parents[3]
+    / ".claude/review-notes/issue-15b-contest-authority/supplement-s1/s1.json"
+)
+S1_SHA256 = "c232a7863d3a31144ebb7fcdd2f7af6591b68b4f3cb096bf65ad6e6d3372c64a"  # noqa: E501  # pragma: allowlist secret
+
+
+def s1_entry(**payload_changes: object) -> EffectiveOverrideEntry:
+    """S1's override entry exactly as accepted; *payload_changes* alter the
+    authored component's text, to model a changed supplement."""
+    data = S1_PATH.read_bytes()
+    assert hashlib.sha256(data).hexdigest() == S1_SHA256, "S1 is not the accepted one"
+    override = json.loads(data)["override"]
+    if payload_changes:
+        override = copy.deepcopy(override)
+        override["payload"] = _changed(override["payload"], payload_changes)
+    target = MechanicalTarget(
+        kind=MechanicalTargetKind(override["target"]["kind"]),
+        record_key=override["target"]["record_key"],
+    )
+    operation = OverrideOperationEnum(override["operation"])
+    patch = patch_from_payload(override["payload"], operation=operation, target=target)
+    return EffectiveOverrideEntry(
+        override_id=str(override["override_id"]),
+        origin=OverrideOriginEnum(override["origin"]),
+        target=target,
+        operation=operation,
+        precedence=int(override["precedence"]),
+        apply_order=0,
+        is_enabled=bool(override["is_enabled"]),
+        payload=patch_payload(patch),
+    )
+
+
+def _changed(payload: object, changes: dict[str, object]) -> object:
+    """*payload* with every string value under a key in *changes* replaced."""
+    if isinstance(payload, dict):
+        return {
+            k: (
+                changes[k]
+                if k in changes and isinstance(v, str)
+                else _changed(v, changes)
+            )
+            for k, v in payload.items()
+        }
+    if isinstance(payload, list):
+        return [_changed(v, changes) for v in payload]
+    return payload
+
+
+@lru_cache(maxsize=1)
+def s1_index() -> AuthorityIndex:
+    """The certified C9 release with the accepted S1 supplement applied, in
+    memory (ADR-015b Group 17: S1 is never activated in a store here)."""
+    inputs = committed_inputs_for(PACKAGE, RELEASE)
+    assert inputs is not None
+    return index_for(inputs, (s1_entry(),))
 
 
 def choice(
