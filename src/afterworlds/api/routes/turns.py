@@ -5,12 +5,16 @@ access-path selection -> orchestrate -> settle sequence in a worker thread
 (so a slow/blocking turn on one story never serializes requests for other
 stories against the single asyncio event loop) -> release the lock in a
 ``finally`` on every path.
+
+POST .../rpg/sequences/{sequence_id}/resume (CRD Issue 15b) is the same flow
+with the orchestrator's RPG resume entry in place of ``orchestrate_turn``.
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
@@ -20,9 +24,11 @@ from afterworlds.api.access_path import select_access_path
 from afterworlds.api.deps import (
     get_byok_readiness_provider,
     get_orchestrator,
+    get_rpg_actions,
     get_session,
     get_sojourner_id,
     get_story_lock,
+    run_under_story_lock,
 )
 from afterworlds.api.dto import (
     ProviderRefusalSummaryDTO,
@@ -31,12 +37,14 @@ from afterworlds.api.dto import (
     TurnSubmissionRequest,
     TurnSubmissionResponse,
 )
-from afterworlds.api.errors import ApiErrorCode, ApiErrorResponse
+from afterworlds.api.errors import API_ERROR_RESPONSES, ApiErrorCode, ApiErrorResponse
+from afterworlds.api.rpg_actions import RpgActions, raise_for_action_sequence_error
 from afterworlds.api.story_bootstrap import (
     derive_writing_turn_request,
     ensure_story_turn_anchor_node,
 )
 from afterworlds.api.visible_state import build_visible_state
+from afterworlds.entitlement.enums import RuntimeAccessPath
 from afterworlds.entitlement.errors import (
     EntitlementConcurrencyError,
     EntitlementIdempotencyConflictError,
@@ -45,6 +53,7 @@ from afterworlds.entitlement.errors import (
 )
 from afterworlds.entitlement.policy import TurnCostPolicy
 from afterworlds.entitlement.service import EntitlementService
+from afterworlds.models.story import Story
 from afterworlds.persistence.crud.node import list_turns_by_story
 from afterworlds.persistence.crud.story import get_story
 from afterworlds.pipeline.orchestrator.models import (
@@ -75,6 +84,11 @@ SETTLEMENT_WARNING_ERRORS = (
 )
 
 
+#: Runs the orchestrator for one turn: (session, story, current canonical
+#: node, selected access path) -> result.
+_Orchestrate = Callable[[Session, Story, UUID, RuntimeAccessPath], OrchestrationResult]
+
+
 def _submit_turn_sync(
     session_factory: sessionmaker[Session],
     orchestrator: OrchestratorService,
@@ -83,9 +97,98 @@ def _submit_turn_sync(
     sojourner_id: UUID,
     user_input: str,
 ) -> TurnSubmissionResponse:
+    def orchestrate(
+        session: Session, story: Story, node_id: UUID, access_path: RuntimeAccessPath
+    ) -> OrchestrationResult:
+        # PR #126 review round 5 (owner decision): the server, never the
+        # client, derives Writing turn provenance -- TurnSubmissionRequest
+        # has no work_product_kind/canon_eligibility fields (extra="forbid"
+        # rejects them if a client sends them). See
+        # ``derive_writing_turn_request`` for the fail-closed derivation
+        # rule (routed through story_bootstrap.py, not imported directly
+        # here, per Binding Decision 2).
+        writing_turn_request = derive_writing_turn_request(
+            session, story.story_id, story.mode
+        )
+        return orchestrator.orchestrate_turn(
+            story.story_id,
+            node_id,
+            user_input,
+            sojourner_id,
+            access_path,
+            writing_turn_request=writing_turn_request,
+        )
+
+    return _run_turn_sync(
+        session_factory,
+        byok_readiness_provider,
+        story_id,
+        sojourner_id,
+        orchestrate,
+    )
+
+
+def _resume_sync(
+    session_factory: sessionmaker[Session],
+    orchestrator: OrchestratorService,
+    byok_readiness_provider: ByokCredentialReadinessProvider,
+    actions: RpgActions,
+    story_id: UUID,
+    sojourner_id: UUID,
+    sequence_id: UUID,
+) -> TurnSubmissionResponse:
+    def classify_settled(session: Session, story: Story) -> None:
+        # 15b-32 ordering: without a runnable access path, a sequence that is
+        # no longer the story's unresolved one still gets the owning
+        # service's typed classification (already completed, or not found),
+        # so a replay after the narration that exhausted access stays
+        # success-equivalent. The story's unresolved sequence keeps the block
+        # and its facts. The anchor is only read here (an uncommitted
+        # bootstrap is rolled back with this session).
+        anchor = ensure_story_turn_anchor_node(session, story.story_id, story.mode)
+        actions.refuse_settled_resume(story.story_id, sequence_id, anchor.node_id)
+
+    def orchestrate(
+        session: Session, story: Story, node_id: UUID, access_path: RuntimeAccessPath
+    ) -> OrchestrationResult:
+        # CRD Issue 15b (15b-21, 15b-23): the orchestrator's own resume entry,
+        # given the current canonical node exactly as an ordinary turn is.
+        # Its typed refusals (not found, not ready, another node, already
+        # completed) come back before any provider call and are translated
+        # into the error envelope; no Turn exists, so nothing is settled.
+        result = orchestrator.orchestrate_rpg_resume(
+            story.story_id,
+            node_id,
+            sequence_id,
+            access_path=access_path,
+            sojourner_id=sojourner_id,
+        )
+        if result.action_sequence_error is not None:
+            raise_for_action_sequence_error(result.action_sequence_error)
+        return result
+
+    return _run_turn_sync(
+        session_factory,
+        byok_readiness_provider,
+        story_id,
+        sojourner_id,
+        orchestrate,
+        before_access_block=classify_settled,
+    )
+
+
+def _run_turn_sync(
+    session_factory: sessionmaker[Session],
+    byok_readiness_provider: ByokCredentialReadinessProvider,
+    story_id: UUID,
+    sojourner_id: UUID,
+    orchestrate: _Orchestrate,
+    before_access_block: Callable[[Session, Story], None] | None = None,
+) -> TurnSubmissionResponse:
     """Runs entirely in one worker thread (Binding Decision 8): opens and
     closes its own session so a slow turn never pins the event loop or a
-    session across threads.
+    session across threads. Shared by ordinary turn submission and RPG
+    resume, so both use the one access-path and settlement flow.
     """
     session = session_factory()
     try:
@@ -120,6 +223,8 @@ def _submit_turn_sync(
 
         if selection.access_path is None:
             assert selection.blocked_error_code is not None
+            if before_access_block is not None:
+                before_access_block(session, story)
             raise ApiErrorResponse(
                 403,
                 selection.blocked_error_code,
@@ -150,25 +255,7 @@ def _submit_turn_sync(
             # PIPELINE_ERROR from this same request.
             session.commit()
 
-        # PR #126 review round 5 (owner decision): the server, never the
-        # client, derives Writing turn provenance -- TurnSubmissionRequest
-        # has no work_product_kind/canon_eligibility fields (extra="forbid"
-        # rejects them if a client sends them). See
-        # ``derive_writing_turn_request`` for the fail-closed derivation
-        # rule (routed through story_bootstrap.py, not imported directly
-        # here, per Binding Decision 2).
-        writing_turn_request = derive_writing_turn_request(
-            session, story.story_id, story.mode
-        )
-
-        result: OrchestrationResult = orchestrator.orchestrate_turn(
-            story.story_id,
-            anchor.node_id,
-            user_input,
-            sojourner_id,
-            selection.access_path,
-            writing_turn_request=writing_turn_request,
-        )
+        result = orchestrate(session, story, anchor.node_id, selection.access_path)
 
         settlement_warning: str | None = None
         if (
@@ -262,25 +349,60 @@ async def submit_turn(
     sojourner_id: UUID = Depends(get_sojourner_id),
     lock: asyncio.Lock = Depends(get_story_lock),
 ) -> TurnSubmissionResponse:
-    if lock.locked():
-        raise ApiErrorResponse(
-            409,
-            ApiErrorCode.TURN_IN_FLIGHT,
-            "A turn is already in flight for this story.",
-        )
-    await lock.acquire()
-    try:
-        return await asyncio.to_thread(
-            _submit_turn_sync,
-            request.app.state.session_factory,
-            orchestrator,
-            byok_readiness_provider,
-            story_id,
-            sojourner_id,
-            body.user_input,
-        )
-    finally:
-        lock.release()
+    return await run_under_story_lock(
+        lock,
+        _submit_turn_sync,
+        request.app.state.session_factory,
+        orchestrator,
+        byok_readiness_provider,
+        story_id,
+        sojourner_id,
+        body.user_input,
+    )
+
+
+@router.post(
+    "/{story_id}/rpg/sequences/{sequence_id}/resume",
+    response_model=TurnSubmissionResponse,
+    responses=API_ERROR_RESPONSES,
+)
+async def resume_rpg_sequence(
+    story_id: UUID,
+    sequence_id: UUID,
+    request: Request,
+    orchestrator: OrchestratorService = Depends(get_orchestrator),
+    byok_readiness_provider: ByokCredentialReadinessProvider = Depends(
+        get_byok_readiness_provider
+    ),
+    sojourner_id: UUID = Depends(get_sojourner_id),
+    lock: asyncio.Lock = Depends(get_story_lock),
+    actions: RpgActions = Depends(get_rpg_actions),
+) -> TurnSubmissionResponse:
+    """Narrate a ``ready_for_narration`` action sequence (CRD Issue 15b).
+
+    The client calls this as soon as an advancement returns
+    ``ready_for_narration``, and again from the same affordance after a
+    reload (15b-31). It is a turn: the ordinary access-path selection, the
+    orchestrator's resume entry and the ordinary settlement. With no runnable
+    access path, or after a failed, refused or blocked narration, the ready
+    sequence and its validated results stay as they were, and a retry
+    narrates the identical facts.
+
+    ``409 action_sequence_already_completed`` means this sequence was already
+    narrated: success-equivalent (15b-32). The client refetches the
+    transcript and the pending interaction instead of presenting an error.
+    """
+    return await run_under_story_lock(
+        lock,
+        _resume_sync,
+        request.app.state.session_factory,
+        orchestrator,
+        byok_readiness_provider,
+        actions,
+        story_id,
+        sojourner_id,
+        sequence_id,
+    )
 
 
 _MAX_PAGE_SIZE = 200

@@ -2,12 +2,15 @@ import { useEffect, useState } from "react";
 
 import { api, ApiRequestError } from "./api/client";
 import type {
+  PendingInteraction,
+  RollSubmission,
   StoryDetail,
   TranscriptTurn,
   TurnSubmissionResponse,
   VisibleState,
 } from "./api/client";
 import DispositionBanner from "./DispositionBanner";
+import RpgPendingInteraction from "./RpgPendingInteraction";
 import SetupForm from "./SetupForm";
 import Transcript from "./Transcript";
 import VisibleStatePanel from "./VisibleStatePanel";
@@ -40,6 +43,17 @@ export default function StoryView({ storyId }: { storyId: string }) {
   // structured fields are saved; it never asserts a backend fact the server
   // hasn't recorded (Frontend State Discipline).
   const [structuredSetupSaved, setStructuredSetupSaved] = useState(false);
+  // CRD Issue 15b: the RPG story's pending interaction, exactly as the
+  // backend reports it (never inferred locally), and the failure of one of
+  // its operations -- shown inline like turnError, never replacing the view.
+  const [pending, setPending] = useState<PendingInteraction | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  async function readPending(mode: string | undefined) {
+    return mode === "rpg"
+      ? ((await api.getPendingInteraction(storyId)) ?? null)
+      : null;
+  }
 
   async function refresh() {
     const [s, t, v] = await Promise.all([
@@ -47,9 +61,13 @@ export default function StoryView({ storyId }: { storyId: string }) {
       api.getLatestTranscript(storyId),
       api.getVisibleState(storyId),
     ]);
+    // A ready sequence found on load only shows its resume affordance: an
+    // automatic resume here could loop on a failing narration (15b-31).
+    const p = await readPending(s.mode);
     setStory(s);
     setTurns(t);
     setVisibleState(v);
+    setPending(p);
   }
 
   // Post-submit refresh only (no story re-fetch -- the turn didn't change
@@ -58,12 +76,14 @@ export default function StoryView({ storyId }: { storyId: string }) {
   async function refreshTranscriptAndVisibleState() {
     setRefreshError(null);
     try {
-      const [t, v] = await Promise.all([
+      const [t, v, p] = await Promise.all([
         api.getLatestTranscript(storyId),
         api.getVisibleState(storyId),
+        readPending(story?.mode),
       ]);
       setTurns(t);
       setVisibleState(v);
+      setPending(p);
     } catch (err) {
       setRefreshError(
         err instanceof Error
@@ -143,6 +163,67 @@ export default function StoryView({ storyId }: { storyId: string }) {
     // submission set them; the refresh-retry button re-runs this without
     // re-submitting the turn.
     await refreshTranscriptAndVisibleState();
+  }
+
+  function errorMessage(err: unknown, fallback: string) {
+    if (err instanceof ApiRequestError) return err.apiError.message;
+    return err instanceof Error ? err.message : fallback;
+  }
+
+  // A roll, adjustment or decision: no Turn, no provider call. When it
+  // leaves the action ready for narration, the narration is requested at
+  // once (15b-31). A refused operation changes nothing server-side; the
+  // pending interaction is re-read so a stale revision is rehydrated.
+  async function advance(operation: () => Promise<PendingInteraction>) {
+    if (inFlight) return;
+    setInFlight(true);
+    setActionError(null);
+    let result: PendingInteraction;
+    try {
+      result = await operation();
+    } catch (err) {
+      setActionError(errorMessage(err, "The action could not be applied."));
+      setInFlight(false);
+      await refreshTranscriptAndVisibleState();
+      return;
+    }
+    setPending(result);
+    if (result.interaction_phase === "ready_for_narration") {
+      await narrate(result.sequence_id);
+    }
+    setInFlight(false);
+  }
+
+  // The resume turn. An already-narrated sequence (a repeat, or a reply lost
+  // in transit) is success-equivalent: no error, only a refetch (15b-32). A
+  // failed narration is shown by its disposition; the ready affordance stays
+  // for a deliberate retry.
+  async function narrate(sequenceId: string) {
+    try {
+      const response = await api.resumeSequence(storyId, sequenceId);
+      setLastResponse(response);
+      setVisibleState(response.visible_state ?? null);
+    } catch (err) {
+      if (
+        err instanceof ApiRequestError &&
+        err.apiError.error_code === "action_sequence_already_completed"
+      ) {
+        // Success-equivalent: an earlier failed narration's banner no
+        // longer describes this action.
+        setLastResponse(null);
+      } else {
+        setActionError(errorMessage(err, "The action could not be narrated."));
+      }
+    }
+    await refreshTranscriptAndVisibleState();
+  }
+
+  async function resumeFromAffordance(sequenceId: string) {
+    if (inFlight) return;
+    setInFlight(true);
+    setActionError(null);
+    await narrate(sequenceId);
+    setInFlight(false);
   }
 
   if (loadError) {
@@ -240,6 +321,45 @@ export default function StoryView({ storyId }: { storyId: string }) {
         {turnError && (
           <p className="turn-error" role="alert">
             {turnError}
+          </p>
+        )}
+        {pending && (
+          <RpgPendingInteraction
+            interaction={pending}
+            disabled={inFlight}
+            onRoll={(body: RollSubmission) =>
+              advance(() => api.submitRoll(storyId, body))
+            }
+            onAdjust={(optionId) =>
+              advance(() =>
+                api.applyAdjustment(storyId, {
+                  pending_roll_request_id:
+                    pending.pending_roll?.pending_roll_request_id ?? "",
+                  expected_instruction_revision:
+                    pending.pending_roll?.instruction_revision ?? 0,
+                  option_id: optionId,
+                  schema_version: 1,
+                }),
+              )
+            }
+            onDecide={(optionId) =>
+              advance(() =>
+                api.submitDecision(storyId, {
+                  decision_request_id:
+                    pending.pending_decision?.decision_request_id ?? "",
+                  expected_decision_revision:
+                    pending.pending_decision?.decision_revision ?? 0,
+                  option_id: optionId,
+                  schema_version: 1,
+                }),
+              )
+            }
+            onResume={() => resumeFromAffordance(pending.sequence_id)}
+          />
+        )}
+        {actionError && (
+          <p className="action-error" role="alert">
+            {actionError}
           </p>
         )}
         {refreshError && (

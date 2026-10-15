@@ -83,6 +83,122 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stories/{story_id}/rpg/sequences/{sequence_id}/resume": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resume Rpg Sequence
+         * @description Narrate a ``ready_for_narration`` action sequence (CRD Issue 15b).
+         *
+         *     The client calls this as soon as an advancement returns
+         *     ``ready_for_narration``, and again from the same affordance after a
+         *     reload (15b-31). It is a turn: the ordinary access-path selection, the
+         *     orchestrator's resume entry and the ordinary settlement. With no runnable
+         *     access path, or after a failed, refused or blocked narration, the ready
+         *     sequence and its validated results stay as they were, and a retry
+         *     narrates the identical facts.
+         *
+         *     ``409 action_sequence_already_completed`` means this sequence was already
+         *     narrated: success-equivalent (15b-32). The client refetches the
+         *     transcript and the pending interaction instead of presenting an error.
+         */
+        post: operations["resume_rpg_sequence_api_stories__story_id__rpg_sequences__sequence_id__resume_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stories/{story_id}/rpg/pending-interaction": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Pending Interaction
+         * @description None, a pending roll, a pending decision, or ``ready_for_narration``.
+         *     Reloading returns the same affordance (15b-31).
+         */
+        get: operations["get_pending_interaction_api_stories__story_id__rpg_pending_interaction_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stories/{story_id}/rpg/rolls": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Roll
+         * @description Raw values by ``term_id`` (inline or physical) or a physical
+         *     aggregate for the pending roll (15b-14, 15b-15).
+         */
+        post: operations["submit_roll_api_stories__story_id__rpg_rolls_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stories/{story_id}/rpg/adjustments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Apply Adjustment
+         * @description One offered adjustment option of the pending roll; the revised roll
+         *     is returned in the same pending-roll phase (15b-9, 15b-13).
+         */
+        post: operations["apply_adjustment_api_stories__story_id__rpg_adjustments_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stories/{story_id}/rpg/decisions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Decision
+         * @description An option of the pending mechanical decision, judged against its
+         *     stored snapshot (15b-35).
+         */
+        post: operations["submit_decision_api_stories__story_id__rpg_decisions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stories/{story_id}/visible-state": {
         parameters: {
             query?: never;
@@ -139,6 +255,50 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * ActionResolutionAdvanceResult
+         * @description Exactly the payload matching ``interaction_phase``; neither when ready.
+         */
+        ActionResolutionAdvanceResult: {
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            /**
+             * Sequence Id
+             * Format: uuid
+             */
+            sequence_id: string;
+            interaction_phase: components["schemas"]["RpgInteractionPhase"];
+            pending_roll?: components["schemas"]["PlayerRollInstructionView"] | null;
+            pending_decision?: components["schemas"]["PendingMechanicalDecisionView"] | null;
+        };
+        /**
+         * ApiError
+         * @description The single API error envelope shape.
+         */
+        ApiError: {
+            error_code: components["schemas"]["ApiErrorCode"];
+            /** Message */
+            message: string;
+            /** Detail */
+            detail?: {
+                [key: string]: string;
+            } | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * ApiErrorCode
+         * @enum {string}
+         */
+        ApiErrorCode: "not_found" | "validation_failed" | "entitlement_blocked" | "byok_credentials_required" | "turn_in_flight" | "setup_required" | "setup_state_conflict" | "internal_error" | "pending_roll_not_found" | "pending_roll_not_player_visible" | "pending_roll_already_consumed" | "pending_roll_revision_mismatch" | "pending_roll_term_mismatch" | "pending_roll_invalid_value" | "pending_roll_invalid_aggregate" | "action_sequence_not_found" | "action_sequence_already_completed" | "action_sequence_state_conflict" | "action_adjustment_not_allowed" | "action_adjustment_ineligible" | "mechanical_decision_invalid" | "mechanical_decision_revision_mismatch" | "sequence_not_ready_for_narration";
         /**
          * BranchCountRange
          * @description Validated branch-count ranges by interaction style.
@@ -282,6 +442,12 @@ export interface components {
          * @enum {string}
          */
         DiceHandling: "player_rolls" | "ai_rolls";
+        /**
+         * DiceSelectionRule
+         * @description How dice within one RollTerm combine into a subtotal — CRD Issue 15b.
+         * @enum {string}
+         */
+        DiceSelectionRule: "sum_all" | "keep_highest" | "keep_lowest";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -348,6 +514,84 @@ export interface components {
          * @enum {string}
          */
         LengthPreference: "short_story" | "novella" | "novel";
+        /** MechanicalDecisionOption */
+        MechanicalDecisionOption: {
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            /** Option Id */
+            option_id: string;
+            /** Player Visible Label */
+            player_visible_label: string;
+        };
+        /** MechanicalDecisionSubmission */
+        MechanicalDecisionSubmission: {
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            /**
+             * Decision Request Id
+             * Format: uuid
+             */
+            decision_request_id: string;
+            /** Expected Decision Revision */
+            expected_decision_revision: number;
+            /** Option Id */
+            option_id: string;
+        };
+        /**
+         * PendingInteractionResponse
+         * @description The story's RPG pending interaction (CRD Issue 15b, 15b-31): ``None``
+         *     with no unresolved action sequence, else its player view -- a pending
+         *     roll (adjustment options ride on it), a pending decision, or
+         *     ``ready_for_narration``, whose affordance is the resume route. Player
+         *     views only (15b-17): no stored snapshot or backend reference.
+         */
+        PendingInteractionResponse: {
+            interaction?: components["schemas"]["ActionResolutionAdvanceResult"] | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** PendingMechanicalDecisionView */
+        PendingMechanicalDecisionView: {
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            /**
+             * Decision Request Id
+             * Format: uuid
+             */
+            decision_request_id: string;
+            /**
+             * Sequence Id
+             * Format: uuid
+             */
+            sequence_id: string;
+            /** Decision Revision */
+            decision_revision: number;
+            /**
+             * Interaction Phase
+             * @constant
+             */
+            interaction_phase: "pending_mechanical_decision";
+            /** Prompt */
+            prompt: string;
+            /** Options */
+            options: components["schemas"]["MechanicalDecisionOption"][];
+        };
         /** PersonaDTO */
         PersonaDTO: {
             /** Persona Id */
@@ -391,6 +635,33 @@ export interface components {
          */
         PersonaOrientation: "mentor" | "peer";
         /**
+         * PhysicalAggregateRollSubmission
+         * @description A physical report of the total only: the player's dice plus the
+         *     visible modifiers they were shown. No raw die is ever fabricated.
+         */
+        PhysicalAggregateRollSubmission: {
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            /**
+             * Source
+             * @constant
+             */
+            source: "physical_self_report";
+            /**
+             * Pending Roll Request Id
+             * Format: uuid
+             */
+            pending_roll_request_id: string;
+            /** Expected Instruction Revision */
+            expected_instruction_revision: number;
+            /** Reported Aggregate */
+            reported_aggregate: number;
+        };
+        /**
          * PipelineDisposition
          * @description Exhaustive terminal states of a Sojourn Turn (Issue 12c).
          *
@@ -401,6 +672,135 @@ export interface components {
          * @enum {string}
          */
         PipelineDisposition: "delivered" | "ooc_handled" | "blocked_input_safety" | "blocked_output_safety" | "blocked_contradiction" | "blocked_pending_roll" | "interaction_rejected" | "refused_by_provider" | "pipeline_error";
+        /**
+         * PlayerAdjustmentOptionView
+         * @description ``ability_id`` is deliberately absent: it is backend-only.
+         */
+        PlayerAdjustmentOptionView: {
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            /** Option Id */
+            option_id: string;
+            /** Player Visible Label */
+            player_visible_label: string;
+            /** Resource Preview */
+            resource_preview?: string | null;
+        };
+        /** PlayerModifierView */
+        PlayerModifierView: {
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            /**
+             * Modifier Id
+             * Format: uuid
+             */
+            modifier_id: string;
+            /** Label */
+            label: string;
+            /** Value */
+            value: number;
+        };
+        /**
+         * PlayerRollInstructionView
+         * @description The player-visible projection of a pending roll (15b-17).
+         */
+        PlayerRollInstructionView: {
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            /**
+             * Pending Roll Request Id
+             * Format: uuid
+             */
+            pending_roll_request_id: string;
+            /**
+             * Sequence Id
+             * Format: uuid
+             */
+            sequence_id: string;
+            /**
+             * Instruction Id
+             * Format: uuid
+             */
+            instruction_id: string;
+            /** Instruction Revision */
+            instruction_revision: number;
+            purpose: components["schemas"]["RollPurpose"];
+            /**
+             * Interaction Phase
+             * @constant
+             */
+            interaction_phase: "pending_roll";
+            progress: components["schemas"]["SequenceProgressView"];
+            /** Display Label */
+            display_label: string;
+            /** Display Expression */
+            display_expression: string;
+            /** Terms */
+            terms: components["schemas"]["PlayerRollTermView"][];
+            /** Visible Modifiers */
+            visible_modifiers: components["schemas"]["PlayerModifierView"][];
+            /** Visible Modifier Total */
+            visible_modifier_total: number;
+            /** Adjustment Options */
+            adjustment_options: components["schemas"]["PlayerAdjustmentOptionView"][];
+        };
+        /**
+         * PlayerRollTermResult
+         * @description Raw die faces as submitted. Exact integers only (``StrictInt``): a
+         *     string, float or boolean is refused at ingress, never coerced into a
+         *     legal face (#127 Validation 5, AC16).
+         */
+        PlayerRollTermResult: {
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            /**
+             * Term Id
+             * Format: uuid
+             */
+            term_id: string;
+            /** Values */
+            values: number[];
+        };
+        /** PlayerRollTermView */
+        PlayerRollTermView: {
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            /**
+             * Term Id
+             * Format: uuid
+             */
+            term_id: string;
+            /** Count */
+            count: number;
+            /** Sides */
+            sides: number;
+            selection_rule: components["schemas"]["DiceSelectionRule"];
+            /** Keep Count */
+            keep_count?: number | null;
+            contribution: components["schemas"]["RollContribution"];
+            /** Label */
+            label?: string | null;
+        };
         /**
          * ProviderRefusalSummaryDTO
          * @description Advisory only -- never authoritative policy (mirrors ProviderRefusal).
@@ -421,6 +821,77 @@ export interface components {
              */
             schema_version: 1;
         };
+        /**
+         * RawPlayerRollSubmission
+         * @description Raw values grouped by ``term_id``. No formula, modifier, target,
+         *     outcome or total is submitted; the backend derives them.
+         */
+        RawPlayerRollSubmission: {
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "inline_ui" | "physical_self_report";
+            /**
+             * Pending Roll Request Id
+             * Format: uuid
+             */
+            pending_roll_request_id: string;
+            /** Expected Instruction Revision */
+            expected_instruction_revision: number;
+            /** Term Results */
+            term_results: components["schemas"]["PlayerRollTermResult"][];
+        };
+        /**
+         * RollAdjustmentRequest
+         * @description Apply one parameterless adjustment option of the pending roll
+         *     (15b-9, 15b-10). Exact integers only, as for roll submissions.
+         */
+        RollAdjustmentRequest: {
+            /**
+             * Pending Roll Request Id
+             * Format: uuid
+             */
+            pending_roll_request_id: string;
+            /** Expected Instruction Revision */
+            expected_instruction_revision: number;
+            /** Option Id */
+            option_id: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * RollContribution
+         * @description Sign a RollTerm's subtotal contributes to the instruction total.
+         * @enum {string}
+         */
+        RollContribution: "add" | "subtract";
+        /**
+         * RollPurpose
+         * @description Bounded adapter-owned roll-purpose vocabulary — CRD Issue 15b (15b-6).
+         *
+         *     Never a free-form string: code sets the purpose of every instruction it
+         *     builds. ``RECHARGE`` (a creature entry's Recharge die) is the adapter's
+         *     representation of a supported 15c mechanic (15b-7 coverage inventory).
+         * @enum {string}
+         */
+        RollPurpose: "attack" | "saving_throw" | "ability_check" | "skill_check" | "damage" | "healing" | "duration" | "contested" | "recharge";
+        /**
+         * RpgInteractionPhase
+         * @description What kind of pending interaction a sequence exposes — CRD Issue 15b.
+         * @enum {string}
+         */
+        RpgInteractionPhase: "pending_roll" | "pending_mechanical_decision" | "ready_for_narration";
         /**
          * RpgSessionType
          * @description Pacing expectation set by the Sojourner at play configuration.
@@ -518,6 +989,28 @@ export interface components {
              * @constant
              */
             schema_version: 1;
+        };
+        /**
+         * SequenceProgressView
+         * @description ``step_index`` is 1-based and counts the player's own interactions
+         *     only; ``known_step_count`` is ``None`` when later steps depend on
+         *     unresolved outcomes.
+         */
+        SequenceProgressView: {
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+            /** Step Index */
+            step_index: number;
+            /** Known Step Count */
+            known_step_count?: number | null;
+            /** Step Label */
+            step_label?: string | null;
+            /** Sequence Label */
+            sequence_label?: string | null;
         };
         /** SetupResponse */
         SetupResponse: {
@@ -1163,6 +1656,309 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resume_rpg_sequence_api_stories__story_id__rpg_sequences__sequence_id__resume_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+                sequence_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TurnSubmissionResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    get_pending_interaction_api_stories__story_id__rpg_pending_interaction_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PendingInteractionResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    submit_roll_api_stories__story_id__rpg_rolls_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RawPlayerRollSubmission"] | components["schemas"]["PhysicalAggregateRollSubmission"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionResolutionAdvanceResult"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    apply_adjustment_api_stories__story_id__rpg_adjustments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RollAdjustmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionResolutionAdvanceResult"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    submit_decision_api_stories__story_id__rpg_decisions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MechanicalDecisionSubmission"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionResolutionAdvanceResult"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
                 };
             };
         };

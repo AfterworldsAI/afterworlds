@@ -330,16 +330,22 @@ def test_a_refused_mechanic_fails_the_turn_visibly_and_leaves_nothing(
     assert _turns(client) == 0
 
 
-def test_player_roll_configuration_refuses_before_any_pending_request(
+def test_player_roll_configuration_announces_a_pending_roll(
     client: TestClient, gm: list[list[dict[str, Any]]]
 ) -> None:
+    """CRD Issue 15b Phase 3 wires the action-resolution service into
+    ``create_app``: a player-rolled check is announced and waits for the
+    Sojourner's die, where 15c's unwired app refused it as
+    ``player_roll_unsupported``. Nothing is audited before the die."""
     story = _rpg_story(client, dice=DiceHandling.PLAYER_ROLLS)
     gm.append([_roll()])
     body = _turn(client, story, "I climb.")
-    assert body["disposition"] == "pipeline_error", body
-    assert "[player_roll_unsupported]" in body["pipeline_error_summary"]
-    assert _rows(client, "SELECT 1 FROM pending_roll_requests") == []
+    assert body["disposition"] == "delivered", body
+    assert len(_rows(client, "SELECT 1 FROM pending_roll_requests")) == 1
     assert _audit(client, story) == []
+    pending = client.get(f"/api/stories/{story}/rpg/pending-interaction")
+    assert pending.status_code == 200, pending.text
+    assert pending.json()["interaction"]["interaction_phase"] == "pending_roll"
 
 
 def test_a_non_mechanical_in_play_turn_is_delivered_unchanged(

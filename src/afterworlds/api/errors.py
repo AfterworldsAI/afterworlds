@@ -8,7 +8,7 @@ to the single top-level translator installed on the app in ``app.py``.
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -22,6 +22,25 @@ class ApiErrorCode(StrEnum):
     SETUP_REQUIRED = "setup_required"
     SETUP_STATE_CONFLICT = "setup_state_conflict"
     INTERNAL_ERROR = "internal_error"
+    # CRD Issue 15b action-resolution refusals (#127 Errors), translated
+    # one-to-one from the backend's typed codes by ``api/rpg_actions.py``.
+    PENDING_ROLL_NOT_FOUND = "pending_roll_not_found"
+    PENDING_ROLL_NOT_PLAYER_VISIBLE = "pending_roll_not_player_visible"
+    PENDING_ROLL_ALREADY_CONSUMED = "pending_roll_already_consumed"
+    PENDING_ROLL_REVISION_MISMATCH = "pending_roll_revision_mismatch"
+    PENDING_ROLL_TERM_MISMATCH = "pending_roll_term_mismatch"
+    PENDING_ROLL_INVALID_VALUE = "pending_roll_invalid_value"
+    PENDING_ROLL_INVALID_AGGREGATE = "pending_roll_invalid_aggregate"
+    ACTION_SEQUENCE_NOT_FOUND = "action_sequence_not_found"
+    # 15b-32: success-equivalent for the client, which refetches the
+    # transcript and pending interaction instead of presenting an error.
+    ACTION_SEQUENCE_ALREADY_COMPLETED = "action_sequence_already_completed"
+    ACTION_SEQUENCE_STATE_CONFLICT = "action_sequence_state_conflict"
+    ACTION_ADJUSTMENT_NOT_ALLOWED = "action_adjustment_not_allowed"
+    ACTION_ADJUSTMENT_INELIGIBLE = "action_adjustment_ineligible"
+    MECHANICAL_DECISION_INVALID = "mechanical_decision_invalid"
+    MECHANICAL_DECISION_REVISION_MISMATCH = "mechanical_decision_revision_mismatch"
+    SEQUENCE_NOT_READY_FOR_NARRATION = "sequence_not_ready_for_narration"
 
 
 class ApiError(BaseModel):
@@ -33,6 +52,14 @@ class ApiError(BaseModel):
     message: str
     detail: dict[str, str] | None = None
     schema_version: Literal[1] = 1
+
+
+#: ``responses=`` for routes whose typed errors are part of their generated
+#: contract (CRD Issue 15b): exception-handler shapes are otherwise absent
+#: from OpenAPI, so ``ApiError``/``ApiErrorCode`` reach the TypeScript types.
+API_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
+    status: {"model": ApiError} for status in (403, 404, 409, 422)
+}
 
 
 class ApiErrorResponse(Exception):

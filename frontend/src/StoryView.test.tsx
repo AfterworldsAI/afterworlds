@@ -101,6 +101,11 @@ const mocks = vi.hoisted(() => ({
   submitTurn: vi.fn(),
   submitSetup: vi.fn(),
   listPersonas: vi.fn(),
+  getPendingInteraction: vi.fn(),
+  submitRoll: vi.fn(),
+  applyAdjustment: vi.fn(),
+  submitDecision: vi.fn(),
+  resumeSequence: vi.fn(),
 }));
 
 vi.mock("./api/client", async () => {
@@ -116,6 +121,11 @@ vi.mock("./api/client", async () => {
       submitTurn: mocks.submitTurn,
       submitSetup: mocks.submitSetup,
       listPersonas: mocks.listPersonas,
+      getPendingInteraction: mocks.getPendingInteraction,
+      submitRoll: mocks.submitRoll,
+      applyAdjustment: mocks.applyAdjustment,
+      submitDecision: mocks.submitDecision,
+      resumeSequence: mocks.resumeSequence,
     },
   };
 });
