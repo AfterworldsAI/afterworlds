@@ -63,6 +63,8 @@ export default defineConfig({
       // scripted GameMaster -- see scripts/e2e_rpg_server.py.
       name: "rpg-dice",
       testMatch: "rpg-dice.spec.ts",
+      // The first action on a fresh server also warms its authority reads.
+      timeout: 120_000,
       use: { baseURL: "http://127.0.0.1:8001" },
     },
   ],
