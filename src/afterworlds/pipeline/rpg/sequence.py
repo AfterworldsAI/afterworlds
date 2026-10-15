@@ -826,12 +826,14 @@ class ActionResolutionService:
         revision the submission was validated against (and, for a roll, the
         conditional consume of the pending request). That takes SQLite's write
         lock, so a concurrent or stale submission fails here, before any die.
-        Only then is the sequence resolved again, and any backend (AI or
-        hidden) die it needs, such as a contest counterpart's, is drawn inside
-        this same transaction (ADR-015b Group 17); every read the preparation
-        rests on is rechecked in it, and its events and the advancement commit
-        with it. Any failure rolls everything back, those dice included: they
-        never become authority. No provider is called and nothing is
+        Every read the preparation rests on (subjects, holdings, discovery,
+        coordination) is then rechecked, so state that moved after the
+        preparation also refuses before any die. Only then is the sequence
+        resolved again, and any backend (AI or hidden) die it needs, such as a
+        contest counterpart's, is drawn inside this same transaction (ADR-015b
+        Group 17); its events and the advancement commit with it. Any failure
+        rolls everything back, those dice included: they never become
+        authority. No provider is called and nothing is
         settled."""
         from afterworlds.persistence.orm.rpg import (
             ActionResolutionSequenceORM,
@@ -881,10 +883,13 @@ class ActionResolutionService:
                     raise PendingRollAlreadyConsumedError(
                         f"pending roll {request_id} was consumed concurrently"
                     )
+            # Before any die: every read the preparation rests on is still
+            # current. State that moved after preparation refuses here, with
+            # no draw; holding the write lock, nothing moves after it.
+            _recheck(session, prepared)
             row = session.get(ActionResolutionSequenceORM, str(sequence_id))
             assert row is not None
             run = self._replay(session, row, plan, accept, prepared)
-            _recheck(session, run.prepared)
             if adjustment is not None:
                 request_id, before, option_id = adjustment
                 revised = run.pause.roll if run.pause is not None else None

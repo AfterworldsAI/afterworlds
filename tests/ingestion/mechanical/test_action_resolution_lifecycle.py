@@ -7,6 +7,7 @@ Contests run with the S1 supplement applied in memory only (``s1``).
 
 from __future__ import annotations
 
+import dataclasses
 import json
 from typing import Any
 from uuid import UUID, uuid4
@@ -15,6 +16,8 @@ import pytest
 import sqlalchemy as sa
 from pydantic import ValidationError
 
+from afterworlds.entitlement.enums import RuntimeAccessPath
+from afterworlds.models.dnd5e_state import DeathState, ZeroHitPointTreatment
 from afterworlds.models.enums import DiceHandling, RpgInteractionPhase
 from afterworlds.models.rpg import (
     MechanicalDecisionSubmission,
@@ -36,8 +39,10 @@ from afterworlds.pipeline.rpg.models import (
     PendingRollTermMismatchError,
 )
 from afterworlds.pipeline.rpg.sequence import ActionResolutionService
+from afterworlds.services.dnd5e_state import service as state_service
 from afterworlds.services.dnd5e_state.authority import AuthorityIndex
 from tests.ingestion.mechanical.sequence_stack import (
+    NOW,
     Stack,
     Story_,
     no_backend_dice,
@@ -252,7 +257,8 @@ def test_stale_and_duplicate_submissions_draw_nothing_and_change_nothing(
 def test_a_failed_accepting_write_discards_its_counterpart_die(
     stack: Stack, gm: GM, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A failure after the counterpart die is drawn rolls the whole write
+    """A failure writing the counterpart's event, after the Sojourner's
+    event was written and the counterpart die drawn, rolls the whole write
     back: no event, the pending roll still pending, the revision unmoved. The
     discarded die never becomes authority: the retry draws its own."""
     index = s1(monkeypatch)
@@ -261,26 +267,71 @@ def test_a_failed_accepting_write_discards_its_counterpart_die(
     pending = _announce(stack, gm, story, _contest(story, ape))
     before = _state(stack, story)
 
-    real_recheck = sequence_module._recheck  # noqa: SLF001
-    failures = ["once"]
+    real_append = sequence_module._append  # noqa: SLF001
+    written: list[str] = []
 
-    def failing(session: Any, prepared: Any) -> None:
-        if failures:
-            failures.pop()
-            raise ActionSequenceStateConflictError("injected write failure")
-        real_recheck(session, prepared)
+    def failing(session: Any, row: Any, kind: Any, *args: Any) -> Any:
+        if len(written) == 1:  # the counterpart's event, the second written
+            written.append("failed")
+            raise RuntimeError("injected event write failure")
+        written.append(kind.value)
+        return real_append(session, row, kind, *args)
 
-    monkeypatch.setattr(sequence_module, "_recheck", failing)
-    with pytest.raises(ActionSequenceStateConflictError, match="injected"):
+    monkeypatch.setattr(sequence_module, "_append", failing)
+    with pytest.raises(RuntimeError, match="injected"):
         stack.roll(pending, 12)
+    assert written == ["player_roll", "failed"]
     assert rolled == ["1d20"]  # drawn inside the failed write
     assert _state(stack, story) == before
+    monkeypatch.setattr(sequence_module, "_append", real_append)
 
     stack.roll(pending, 12)
     assert rolled == ["1d20", "1d20"]
     mine, theirs = _payloads(stack, story)
     assert theirs["total"] == 7  # the retry's 2 + 5, not the discarded 15 + 5
     assert theirs["contest_resolution"]["winner"]["subject_id"] == str(story.sheet_id)
+
+
+def test_state_moved_after_preparation_refuses_before_any_die(
+    stack: Stack, gm: GM, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The Ape's state changes between the dice-free preparation and the
+    accepting write (an ordinary state-service update). The recheck after the
+    claim refuses: no counterpart die, no event, nothing consumed."""
+    index = s1(monkeypatch)
+    rolled = _faces(monkeypatch, 15)
+    story, ape = _contest_story(stack, index)
+    pending = _announce(stack, gm, story, _contest(story, ape))
+    before = _state(stack, story)
+    real_read = ActionResolutionService._read  # noqa: SLF001
+
+    def moving(self: ActionResolutionService, *args: Any) -> Any:
+        prepared = real_read(self, *args)
+        _hurt(stack, ape)
+        return prepared
+
+    monkeypatch.setattr(ActionResolutionService, "_read", moving)
+    with pytest.raises(ActionSequenceStateConflictError, match="changed"):
+        stack.roll(pending, 12)
+    assert rolled == []
+    assert _state(stack, story) == before
+
+
+def _hurt(stack: Stack, creature: UUID) -> None:
+    """One point of damage through the state service: a new revision."""
+    with stack.factory() as s:
+        stored = state_service.read_creature(s, creature)
+        hp = stored.state.hit_points
+        state_service.update_creature(
+            s,
+            creature,
+            stored.state.model_copy(
+                update={"hit_points": hp.model_copy(update={"current": hp.current - 1})}
+            ),
+            expected_revision=stored.revision,
+            now=NOW,
+        )
+        s.commit()
 
 
 @pytest.mark.parametrize("target", ["record", "event"])
@@ -507,6 +558,13 @@ def test_a_knockout_choice_is_a_stored_decision_of_the_sojourner(
         submit("knock_out_twice")
     with pytest.raises(MechanicalDecisionRevisionMismatchError):
         submit(choice, decision.decision_revision + 1)
+    assert (
+        stack.rows(
+            "SELECT 1 FROM action_resolution_events WHERE kind ="
+            " 'mechanical_decision'"
+        )
+        == []
+    )
     with pytest.raises(ValidationError):  # an inexact revision never arrives
         MechanicalDecisionSubmission.model_validate_json(
             json.dumps(
@@ -542,6 +600,47 @@ def test_a_knockout_choice_is_a_stored_decision_of_the_sojourner(
     else:
         assert document["hit_points"]["current"] == 0
     assert len(stack.audit(story)) == 2  # a decision is never an audit row
+
+
+def test_a_stored_decision_is_validated_by_snapshot_then_state_guarded(
+    stack: Stack, gm: GM, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Membership is judged by the stored snapshot alone: an option it does
+    not list refuses as invalid whatever live state says. A listed option is
+    then a continuation of the sequence, guarded by live state: the wolf's
+    state moved since the decision was offered, so it refuses as a state
+    conflict, with no event and the decision still pending as stored."""
+    no_backend_dice(monkeypatch)
+    story = stack.story(DiceHandling.PLAYER_ROLLS)
+    wolf = stack.creature(story, hp=2)
+    gm.append([begin(story), club_attack(stack, story, wolf)])
+    stack.turn(story, "I club the wolf.")
+    view = stack.sequences.current(story.story_id)
+    assert view is not None and view.pending_roll is not None
+    damage = stack.roll(view.pending_roll, 15).pending_roll
+    assert damage is not None
+    paused = stack.roll(damage, 4)
+    decision = paused.pending_decision
+    assert decision is not None
+    _hurt(stack, wolf)  # 2 -> 1 HP, a new revision
+    before = _state(stack, story)
+
+    def submit(option: str) -> Any:
+        return stack.sequences.submit_decision(
+            MechanicalDecisionSubmission(
+                decision_request_id=decision.decision_request_id,
+                expected_decision_revision=decision.decision_revision,
+                option_id=option,
+            )
+        )
+
+    with pytest.raises(MechanicalDecisionInvalidError):
+        submit("surrender")
+    with pytest.raises(ActionSequenceStateConflictError, match="changed"):
+        submit("knock_out")
+    assert _state(stack, story) == before
+    assert stack.sequences.current(story.story_id) == paused
+    assert [e.kind for e in stack.events(story)] == ["player_roll", "player_roll"]
 
 
 def test_an_ai_rolled_hit_starts_a_decision_first_sequence(
@@ -657,3 +756,422 @@ def test_malformed_submissions_change_nothing_and_an_aggregate_is_accepted(
         "physical_self_report",
         False,
     )
+
+
+# ---------------------------------------------------------------------------
+# Duration: a bounded mechanic's interval die in the sequence
+# ---------------------------------------------------------------------------
+
+
+def test_stabilizing_draws_the_recovery_interval_in_the_accepting_write(
+    stack: Stack, gm: GM, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """First aid on a dying wolf (treated like a character): the Sojourner's
+    Medicine check is accepted, and the stable creature's recovery interval
+    (a DURATION die, the wolf's own) is drawn by the backend in the same
+    write. The delivered effect holds that interval."""
+    rolled = _faces(monkeypatch, 3)
+    story = stack.story(DiceHandling.PLAYER_ROLLS)
+    wolf = stack.creature(story, treatment=ZeroHitPointTreatment(subject="character"))
+    _dying(stack, wolf)
+    gm.append(
+        [
+            begin(story),
+            {
+                "check_label": "First aid",
+                "subsystem_tag": "lifecycle",
+                "visibility": "shown",
+                "operation": "stabilize",
+                "subject": {"kind": "creature", "subject_id": str(wolf)},
+            },
+        ]
+    )
+    stack.turn(story, "I bind the wolf's wounds.")
+    view = stack.sequences.current(story.story_id)
+    assert view is not None and view.pending_roll is not None
+    assert rolled == []
+    ready = stack.roll(view.pending_roll, 15)  # Medicine against DC 10
+    assert ready.interaction_phase is RpgInteractionPhase.READY_FOR_NARRATION
+    assert rolled == ["1d4"]
+    check, interval = _payloads(stack, story)
+    assert (check["kind"], interval["kind"]) == ("player_roll", "ai_roll")
+    assert interval["instruction_snapshot"]["purpose"] == "duration"
+    assert interval["total"] == 3
+    result = stack.resume(story)
+    assert result.disposition is PipelineDisposition.DELIVERED, result
+    (row,) = stack.rows(
+        "SELECT document FROM dnd5e_creatures WHERE creature_id = :c", c=str(wolf)
+    )
+    document = (
+        row.document if isinstance(row.document, dict) else json.loads(row.document)
+    )
+    recovery = document["death_state"]["stable_recovery"]
+    assert document["death_state"]["stable"] and recovery["interval"] == 3
+    assert [a.check_label for a in stack.audit(story)] == [
+        view.pending_roll.display_label,
+        "Recovery interval",
+    ]
+
+
+def _dying(stack: Stack, creature: UUID) -> None:
+    from afterworlds.models.dnd5e_state import ConditionInstance, GrantSource
+    from afterworlds.models.enums import ConditionVisibility
+
+    with stack.factory() as s:
+        stored = state_service.read_creature(s, creature)
+        state_service.update_creature(
+            s,
+            creature,
+            stored.state.model_copy(
+                update={
+                    "hit_points": stored.state.hit_points.model_copy(
+                        update={"current": 0}
+                    ),
+                    "death_state": DeathState(
+                        successes=0, failures=0, stable=False, dead=False
+                    ),
+                    "conditions": (
+                        ConditionInstance(
+                            instance_id="fell",
+                            condition="unconscious",  # type: ignore[arg-type]
+                            visibility=ConditionVisibility.VISIBLE,
+                            source=GrantSource(
+                                record_key="play.damage_and_healing",
+                                component_key="falling_unconscious",
+                            ),
+                        ),
+                    ),
+                }
+            ),
+            expected_revision=stored.revision,
+            now=NOW,
+        )
+        s.commit()
+
+
+# ---------------------------------------------------------------------------
+# Intermediate operations: gated turns, no provider, access or settlement
+# ---------------------------------------------------------------------------
+
+
+def _counts(stack: Stack) -> dict[str, int]:
+    """Every table's row count (settlement, usage, Turns, effects ...)."""
+    tables = [
+        r.name
+        for r in stack.rows(
+            "SELECT name FROM sqlite_master WHERE type = 'table'"
+            " AND name NOT LIKE 'sqlite_%'"
+        )
+    ]
+    return {t: stack.rows(f'SELECT COUNT(*) AS n FROM "{t}"')[0].n for t in tables}
+
+
+def test_intermediate_operations_touch_only_the_sequence_and_gate_turns(
+    stack: Stack, gm: GM, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Each pending phase blocks an ordinary in-character turn before any
+    provider call; and accepting a roll or a decision calls no provider and
+    writes nothing but the sequence's own tables: no Turn, effect, audit,
+    usage or settlement row."""
+    from tests.ingestion.mechanical.test_bounded_d20_on_published_release import (
+        REQUESTS,
+    )
+
+    no_backend_dice(monkeypatch)
+    story = stack.story(DiceHandling.PLAYER_ROLLS)
+    wolf = stack.creature(story, hp=2)
+    gm.append([begin(story), club_attack(stack, story, wolf)])
+    stack.turn(story, "I club the wolf.")
+    sequence_tables = {"action_resolution_events", "pending_roll_requests"}
+
+    def gated() -> None:
+        calls = len(REQUESTS)
+        blocked = stack.turn(story, "I keep swinging.")
+        assert blocked.disposition is PipelineDisposition.BLOCKED_PENDING_ROLL
+        assert blocked.pending_roll_redirect_message
+        assert blocked.turn_id is None
+        # Only the intent is classified (it decides whether the gate
+        # applies): no Planner, adjudication or Writer call.
+        assert {r.pass_id.value for r in REQUESTS[calls:]} == {"intent_classifier"}
+
+    def quiet(operation: Any) -> Any:
+        calls, before = len(REQUESTS), _counts(stack)
+        result = operation()
+        after = _counts(stack)
+        assert len(REQUESTS) == calls
+        changed = {t for t in before if before[t] != after[t]}
+        assert changed <= sequence_tables, changed
+        return result
+
+    view = stack.sequences.current(story.story_id)
+    assert view is not None and view.pending_roll is not None
+    gated()
+    damage = quiet(lambda: stack.roll(view.pending_roll, 15)).pending_roll
+    gated()
+    paused = quiet(lambda: stack.roll(damage, 4))
+    assert paused.pending_decision is not None
+    gated()
+    ready = quiet(
+        lambda: stack.sequences.submit_decision(
+            MechanicalDecisionSubmission(
+                decision_request_id=paused.pending_decision.decision_request_id,
+                expected_decision_revision=paused.pending_decision.decision_revision,
+                option_id="knock_out",
+            )
+        )
+    )
+    assert ready.interaction_phase is RpgInteractionPhase.READY_FOR_NARRATION
+    gated()
+    assert stack.hp(wolf) == (1, 2)  # projected only until narration
+    assert stack.resume(story).disposition is PipelineDisposition.DELIVERED
+    unblocked = stack.turn(story, "I look around.")
+    assert unblocked.disposition is PipelineDisposition.DELIVERED, unblocked
+
+
+# ---------------------------------------------------------------------------
+# Final narration: typed refusals, failures and identical-facts retry
+# ---------------------------------------------------------------------------
+
+
+def _ready_attack(stack: Stack, gm: GM) -> tuple[Story_, UUID]:
+    story = stack.story(DiceHandling.PLAYER_ROLLS)
+    wolf = stack.creature(story)
+    gm.append([begin(story), club_attack(stack, story, wolf)])
+    stack.turn(story, "I swing my club.")
+    view = stack.sequences.current(story.story_id)
+    assert view is not None and view.pending_roll is not None
+    damage = stack.roll(view.pending_roll, 15).pending_roll
+    assert damage is not None
+    stack.roll(damage, 4)
+    return story, wolf
+
+
+def _delivery_facts(stack: Stack, story: Story_) -> list[tuple[Any, ...]]:
+    return [
+        (
+            a.check_label,
+            a.total,
+            a.dc,
+            a.outcome,
+            a.raw_rolls_json,
+            a.step_id,
+            a.instruction_snapshot_json,
+            a.sheet_effects_json,
+        )
+        for a in stack.audit(story)
+    ]
+
+
+def test_resume_refuses_typed_before_any_provider_call(
+    stack: Stack, gm: GM, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from tests.ingestion.mechanical.test_bounded_d20_on_published_release import (
+        REQUESTS,
+    )
+
+    no_backend_dice(monkeypatch)
+    story = stack.story(DiceHandling.PLAYER_ROLLS)
+    wolf = stack.creature(story)
+    gm.append([begin(story), club_attack(stack, story, wolf)])
+    stack.turn(story, "I swing my club.")
+    sequence_id = UUID(stack.sequence(story)["sequence_id"])
+    calls, turns = len(REQUESTS), stack.turns()
+
+    def resume(sequence: UUID, node: UUID) -> Any:
+        return stack.orchestrator.orchestrate_rpg_resume(
+            story.story_id,
+            node,
+            sequence,
+            access_path=RuntimeAccessPath.HOSTED,
+            sojourner_id=stack.sojourner_id,
+        )
+
+    for sequence, node, code in (
+        (sequence_id, story.node_id, "SEQUENCE_NOT_READY_FOR_NARRATION"),
+        (uuid4(), story.node_id, "ACTION_SEQUENCE_NOT_FOUND"),
+    ):
+        result = resume(sequence, node)
+        assert result.disposition is PipelineDisposition.PIPELINE_ERROR
+        assert result.action_sequence_error == code
+    view = stack.sequences.current(story.story_id)
+    assert view is not None and view.pending_roll is not None
+    damage = stack.roll(view.pending_roll, 15).pending_roll
+    assert damage is not None
+    stack.roll(damage, 4)
+    other = stack.story(DiceHandling.PLAYER_ROLLS)  # another story's node
+    result = resume(sequence_id, other.node_id)
+    assert result.action_sequence_error == "ACTION_SEQUENCE_STATE_CONFLICT"
+    assert len(REQUESTS) == calls and stack.turns() == turns
+    assert stack.sequence(story)["status"] == "ready_for_narration"
+
+
+@pytest.mark.parametrize("failure", ["writer_error", "writer_refusal", "output_block"])
+def test_a_failed_narration_keeps_the_ledger_and_the_retry_delivers_it(
+    stack: Stack, gm: GM, monkeypatch: pytest.MonkeyPatch, failure: str
+) -> None:
+    """The narration fails (a Writer error, a provider refusal, or an output
+    audit block): the ready sequence, its events, the creature and every
+    audit table stay as they were (a refusal's own log row excepted, written
+    after the rollback). The retry delivers exactly the ledger's facts, once.
+
+    The turn binding is the production shape around the fake adapter: the
+    refusal router with the buffering refusal log proxy and its
+    pre/post-transaction hooks (the fake resolver binds the bare adapter)."""
+    from afterworlds.api.fake_pipeline import FakeProviderResolver
+    from afterworlds.pipeline.provider._resolver import RefusalLogProxy
+    from afterworlds.pipeline.provider.adapters._fallback import (
+        RefusalFallbackRouter,
+    )
+
+    real_resolve = FakeProviderResolver.resolve_for_turn
+    flushed: list[int] = []
+
+    def resolve(self: Any, access_path: Any, sojourner_id: Any) -> Any:
+        binding = real_resolve(self, access_path, sojourner_id)
+        proxy = RefusalLogProxy(stack.factory)
+
+        def flush() -> None:
+            flushed.append(len(proxy._buffer or []))  # noqa: SLF001
+            proxy.flush()
+
+        return dataclasses.replace(
+            binding,
+            adapter=RefusalFallbackRouter(binding.adapter, None, proxy),
+            pre_transaction_fn=proxy.start_buffering,
+            post_transaction_fn=flush,
+        )
+
+    monkeypatch.setattr(FakeProviderResolver, "resolve_for_turn", resolve)
+    from afterworlds.api.fake_pipeline import FakeProviderAdapter
+    from afterworlds.pipeline._refusal import PassIdentifier
+    from afterworlds.pipeline.safety.models import (
+        SafetyCategory,
+        SafetyConcern,
+        SafetyReport,
+        SafetyResult,
+        SafetyTarget,
+    )
+    from tests.pipeline.orchestrator.conftest import make_refusal
+
+    no_backend_dice(monkeypatch)
+    story, wolf = _ready_attack(stack, gm)
+    events = stack.events(story)
+    before = (_state(stack, story), stack.hp(wolf), stack.turns(), stack.audit(story))
+    refusals = len(stack.rows("SELECT 1 FROM provider_refusal_log"))
+    real_call = FakeProviderAdapter.call
+    once = [failure]
+
+    def call(self: Any, request: Any) -> Any:
+        if once and request.pass_id.value == "writer" and failure != "output_block":
+            once.pop()
+            if failure == "writer_refusal":
+                raise make_refusal(PassIdentifier.WRITER)
+            raise RuntimeError("injected writer failure")
+        return real_call(self, request)
+
+    monkeypatch.setattr(FakeProviderAdapter, "call", call)
+    orchestrator = stack.orchestrator
+    if failure == "output_block":
+        real_check = orchestrator._safety_service.check  # noqa: SLF001
+
+        def check(ctx: Any, text: str, target: Any, **kw: Any) -> Any:
+            if once and target is SafetyTarget.OUTPUT:
+                once.pop()
+                return SafetyResult(
+                    report=SafetyReport(
+                        concerns=[
+                            SafetyConcern(
+                                category=SafetyCategory.OTHER,
+                                description="injected",
+                                evidence_summary="injected",
+                            )
+                        ]
+                    ),
+                    target=SafetyTarget.OUTPUT,
+                )
+            return real_check(ctx, text, target, **kw)
+
+        monkeypatch.setattr(
+            orchestrator._safety_service, "check", check
+        )  # noqa: SLF001
+        monkeypatch.setattr(
+            orchestrator._safety_policy,  # noqa: SLF001
+            "should_run_output_audit",
+            lambda _ctx: True,
+        )
+
+    failed = stack.resume(story)
+    assert (
+        failed.disposition
+        is {
+            "writer_error": PipelineDisposition.PIPELINE_ERROR,
+            "writer_refusal": PipelineDisposition.REFUSED_BY_PROVIDER,
+            "output_block": PipelineDisposition.BLOCKED_OUTPUT_SAFETY,
+        }[failure]
+    ), failed
+    assert failed.turn_id is None
+    assert (
+        _state(stack, story),
+        stack.hp(wolf),
+        stack.turns(),
+        stack.audit(story),
+    ) == before
+    assert stack.events(story) == events
+    logged = len(stack.rows("SELECT 1 FROM provider_refusal_log")) - refusals
+    assert logged == (1 if failure == "writer_refusal" else 0)
+    # A refusal inside the delivery transaction was buffered, then written
+    # after the rollback, so it survives it.
+    assert flushed[-1] == (1 if failure == "writer_refusal" else 0)
+
+    retried = stack.resume(story)
+    assert retried.disposition is PipelineDisposition.DELIVERED, retried
+    assert stack.events(story) == events
+    assert stack.hp(wolf) == (2, 8)
+    facts = _delivery_facts(stack, story)
+    assert [f[:4] for f in facts] == [
+        ("Club attack", 16, 12, "success"),
+        ("Club damage", 3, None, "undetermined"),
+    ]
+    again = stack.resume(story)
+    assert again.action_sequence_error == "ACTION_SEQUENCE_ALREADY_COMPLETED"
+    assert _delivery_facts(stack, story) == facts
+
+
+def test_the_final_audit_is_projected_from_the_events_alone(
+    stack: Stack, gm: GM, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The sequence row's working copies (records, steps, projected state,
+    accumulated effects) carry no audit weight: corrupting them changes no
+    delivered audit fact or effect."""
+    no_backend_dice(monkeypatch)
+    story, wolf = _ready_attack(stack, gm)
+    with stack.factory() as s:
+        s.execute(
+            sa.text(
+                "UPDATE action_resolution_sequences SET records_json = '[]',"
+                " resolved_steps_json = '[]', projected_state_json = '{}',"
+                " provisional_effects_json = '[]' WHERE story_id = :s"
+            ),
+            {"s": str(story.story_id)},
+        )
+        s.commit()
+    result = stack.resume(story)
+    assert result.disposition is PipelineDisposition.DELIVERED, result
+    assert stack.hp(wolf) == (2, 8)
+    payloads = _payloads(stack, story)
+    audit = stack.audit(story)
+    assert [
+        (a.total, a.outcome, json.loads(a.instruction_snapshot_json)["step_id"])
+        for a in audit
+    ] == [
+        (p["total"], p["outcome"], p["instruction_snapshot"]["step_id"])
+        for p in payloads
+    ]
+    assert [a.step_id for a in audit] == [
+        e.step_id
+        for e in stack.rows(
+            "SELECT step_id FROM action_resolution_events WHERE story_id = :s"
+            " ORDER BY event_order",
+            s=str(story.story_id),
+        )
+    ]
