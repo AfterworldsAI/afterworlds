@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { api, ApiRequestError } from "./api/client";
 import type {
@@ -48,6 +48,30 @@ export default function StoryView({ storyId }: { storyId: string }) {
   // its operations -- shown inline like turnError, never replacing the view.
   const [pending, setPending] = useState<PendingInteraction | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  // CRD Issue 19b: after a refused or uncertain operation the shown
+  // interaction may be stale, so its controls stay disabled until a pending
+  // read succeeds -- never a replayed POST or an automatic re-roll.
+  const [pendingStale, setPendingStale] = useState(false);
+  // A ref, not inFlight state: two clicks in one tick both see the same
+  // render's inFlight, but only one operation may start.
+  const operating = useRef(false);
+  // Only the newest pending read or operation result is shown, so a slow
+  // read can't overwrite a later advancement.
+  const pendingEpoch = useRef(0);
+  const mounted = useRef(true);
+  const pendingRef = useRef<HTMLDivElement>(null);
+  const [focusRequest, setFocusRequest] = useState(0);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (focusRequest) pendingRef.current?.focus();
+  }, [focusRequest]);
 
   async function readPending(mode: string | undefined) {
     return mode === "rpg"
@@ -55,7 +79,14 @@ export default function StoryView({ storyId }: { storyId: string }) {
       : null;
   }
 
+  function showPending(epoch: number, interaction: PendingInteraction | null) {
+    if (epoch !== pendingEpoch.current) return;
+    setPending(interaction);
+    setPendingStale(false);
+  }
+
   async function refresh() {
+    const epoch = ++pendingEpoch.current;
     const [s, t, v] = await Promise.all([
       api.getStory(storyId),
       api.getLatestTranscript(storyId),
@@ -67,7 +98,7 @@ export default function StoryView({ storyId }: { storyId: string }) {
     setStory(s);
     setTurns(t);
     setVisibleState(v);
-    setPending(p);
+    showPending(epoch, p);
   }
 
   // Post-submit refresh only (no story re-fetch -- the turn didn't change
@@ -75,6 +106,7 @@ export default function StoryView({ storyId }: { storyId: string }) {
   // so a refresh failure can be recovered without re-submitting the turn.
   async function refreshTranscriptAndVisibleState() {
     setRefreshError(null);
+    const epoch = ++pendingEpoch.current;
     try {
       const [t, v, p] = await Promise.all([
         api.getLatestTranscript(storyId),
@@ -83,7 +115,7 @@ export default function StoryView({ storyId }: { storyId: string }) {
       ]);
       setTurns(t);
       setVisibleState(v);
-      setPending(p);
+      showPending(epoch, p);
     } catch (err) {
       setRefreshError(
         err instanceof Error
@@ -122,11 +154,12 @@ export default function StoryView({ storyId }: { storyId: string }) {
     setInFlight(true);
     setTurnError(null);
     setRefreshError(null);
+    let response: TurnSubmissionResponse;
     try {
       // Only the mutation itself is in this try/catch (round 10
       // remediation, PR #126 P2): a failure here means the turn was never
       // persisted, so the draft stays and turnError is the right signal.
-      const response = await api.submitTurn(storyId, userInput);
+      response = await api.submitTurn(storyId, userInput);
       setLastResponse(response);
       // The mutation response already carries server-refreshed visible state
       // (PR #126 P2 round 14, sibling of the round-10 mutation-success-vs-
@@ -163,6 +196,12 @@ export default function StoryView({ storyId }: { storyId: string }) {
     // submission set them; the refresh-retry button re-runs this without
     // re-submitting the turn.
     await refreshTranscriptAndVisibleState();
+    // CRD Issue 19b: the backend held an in-character action (or a choice)
+    // for the unresolved interaction -- take the Sojourner to it. The client
+    // classifies nothing; out-of-character input was never held.
+    if (response.disposition === "blocked_pending_roll") {
+      setFocusRequest((n) => n + 1);
+    }
   }
 
   function errorMessage(err: unknown, fallback: string) {
@@ -174,24 +213,34 @@ export default function StoryView({ storyId }: { storyId: string }) {
   // leaves the action ready for narration, the narration is requested at
   // once (15b-31). A refused operation changes nothing server-side; the
   // pending interaction is re-read so a stale revision is rehydrated.
+  // A failed or uncertain operation is never retried: the controls stay
+  // disabled until the re-read shows what the backend actually holds.
   async function advance(operation: () => Promise<PendingInteraction>) {
-    if (inFlight) return;
+    if (operating.current) return;
+    operating.current = true;
     setInFlight(true);
     setActionError(null);
-    let result: PendingInteraction;
     try {
-      result = await operation();
-    } catch (err) {
-      setActionError(errorMessage(err, "The action could not be applied."));
-      setInFlight(false);
-      await refreshTranscriptAndVisibleState();
-      return;
+      let result: PendingInteraction;
+      try {
+        result = await operation();
+      } catch (err) {
+        if (!mounted.current) return;
+        setActionError(errorMessage(err, "The action could not be applied."));
+        setPendingStale(true);
+        await refreshTranscriptAndVisibleState();
+        return;
+      }
+      // Left the story meanwhile: its reload shows the resume affordance.
+      if (!mounted.current) return;
+      showPending(++pendingEpoch.current, result);
+      if (result.interaction_phase === "ready_for_narration") {
+        await narrate(result.sequence_id);
+      }
+    } finally {
+      operating.current = false;
+      if (mounted.current) setInFlight(false);
     }
-    setPending(result);
-    if (result.interaction_phase === "ready_for_narration") {
-      await narrate(result.sequence_id);
-    }
-    setInFlight(false);
   }
 
   // The resume turn. An already-narrated sequence (a repeat, or a reply lost
@@ -215,15 +264,24 @@ export default function StoryView({ storyId }: { storyId: string }) {
         setActionError(errorMessage(err, "The action could not be narrated."));
       }
     }
+    // Whatever the resume did -- narrated, failed, or lost in transit -- the
+    // shown ready affordance is unconfirmed until the re-read lands: no
+    // further resume is offered from it before then.
+    setPendingStale(true);
     await refreshTranscriptAndVisibleState();
   }
 
   async function resumeFromAffordance(sequenceId: string) {
-    if (inFlight) return;
+    if (operating.current) return;
+    operating.current = true;
     setInFlight(true);
     setActionError(null);
-    await narrate(sequenceId);
-    setInFlight(false);
+    try {
+      await narrate(sequenceId);
+    } finally {
+      operating.current = false;
+      if (mounted.current) setInFlight(false);
+    }
   }
 
   if (loadError) {
@@ -324,38 +382,40 @@ export default function StoryView({ storyId }: { storyId: string }) {
           </p>
         )}
         {pending && (
-          <RpgPendingInteraction
-            interaction={pending}
-            disabled={inFlight}
-            onRoll={(body: RollSubmission) =>
-              advance(() => api.submitRoll(storyId, body))
-            }
-            onAdjust={(optionId) =>
-              advance(() =>
-                api.applyAdjustment(storyId, {
-                  pending_roll_request_id:
-                    pending.pending_roll?.pending_roll_request_id ?? "",
-                  expected_instruction_revision:
-                    pending.pending_roll?.instruction_revision ?? 0,
-                  option_id: optionId,
-                  schema_version: 1,
-                }),
-              )
-            }
-            onDecide={(optionId) =>
-              advance(() =>
-                api.submitDecision(storyId, {
-                  decision_request_id:
-                    pending.pending_decision?.decision_request_id ?? "",
-                  expected_decision_revision:
-                    pending.pending_decision?.decision_revision ?? 0,
-                  option_id: optionId,
-                  schema_version: 1,
-                }),
-              )
-            }
-            onResume={() => resumeFromAffordance(pending.sequence_id)}
-          />
+          <div ref={pendingRef} tabIndex={-1}>
+            <RpgPendingInteraction
+              interaction={pending}
+              disabled={inFlight || pendingStale}
+              onRoll={(body: RollSubmission) =>
+                advance(() => api.submitRoll(storyId, body))
+              }
+              onAdjust={(optionId) =>
+                advance(() =>
+                  api.applyAdjustment(storyId, {
+                    pending_roll_request_id:
+                      pending.pending_roll?.pending_roll_request_id ?? "",
+                    expected_instruction_revision:
+                      pending.pending_roll?.instruction_revision ?? 0,
+                    option_id: optionId,
+                    schema_version: 1,
+                  }),
+                )
+              }
+              onDecide={(optionId) =>
+                advance(() =>
+                  api.submitDecision(storyId, {
+                    decision_request_id:
+                      pending.pending_decision?.decision_request_id ?? "",
+                    expected_decision_revision:
+                      pending.pending_decision?.decision_revision ?? 0,
+                    option_id: optionId,
+                    schema_version: 1,
+                  }),
+                )
+              }
+              onResume={() => resumeFromAffordance(pending.sequence_id)}
+            />
+          </div>
         )}
         {actionError && (
           <p className="action-error" role="alert">

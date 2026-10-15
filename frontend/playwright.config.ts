@@ -1,6 +1,6 @@
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 
 import { defineConfig } from "@playwright/test";
 
@@ -50,23 +50,54 @@ export default defineConfig({
   workers: 1,
   reporter: "list",
   use: {
-    baseURL: "http://127.0.0.1:8000",
     trace: "retain-on-failure",
   },
-  webServer: {
-    command:
-      "python -m uvicorn afterworlds.main:app --host 127.0.0.1 --port 8000",
-    cwd: "..",
-    url: "http://127.0.0.1:8000/api/health",
-    reuseExistingServer: false,
-    timeout: 30_000,
-    env: {
-      PYTHONPATH: "src",
-      AFTERWORLDS_DATABASE_URL: databaseUrl,
-      AFTERWORLDS_RETRIEVAL_PERSIST_DIRECTORY: retrievalPersistDirectory,
-      AFTERWORLDS_FRONTEND_DIST: "./frontend/dist",
-      AFTERWORLDS_FAKE_PROVIDER: "1",
-      AFTERWORLDS_CI: "1",
+  projects: [
+    {
+      name: "spine",
+      testMatch: "spine.spec.ts",
+      use: { baseURL: "http://127.0.0.1:8000" },
     },
-  },
+    {
+      // CRD Issue 19b: RPG dice need a published rules authority and a
+      // scripted GameMaster -- see scripts/e2e_rpg_server.py.
+      name: "rpg-dice",
+      testMatch: "rpg-dice.spec.ts",
+      // The first action on a fresh server also warms its authority reads.
+      timeout: 120_000,
+      use: { baseURL: "http://127.0.0.1:8001" },
+    },
+  ],
+  webServer: [
+    {
+      command:
+        "python -m uvicorn afterworlds.main:app --host 127.0.0.1 --port 8000",
+      cwd: "..",
+      url: "http://127.0.0.1:8000/api/health",
+      reuseExistingServer: false,
+      timeout: 30_000,
+      env: {
+        PYTHONPATH: "src",
+        AFTERWORLDS_DATABASE_URL: databaseUrl,
+        AFTERWORLDS_RETRIEVAL_PERSIST_DIRECTORY: retrievalPersistDirectory,
+        AFTERWORLDS_FRONTEND_DIST: "./frontend/dist",
+        AFTERWORLDS_FAKE_PROVIDER: "1",
+        AFTERWORLDS_CI: "1",
+      },
+    },
+    {
+      // Builds its own published-release store in a fresh temp directory
+      // first (minutes, as the backend's g1_store fixture), then serves the
+      // built app on it with the fake provider.
+      command: "python scripts/e2e_rpg_server.py --port 8001",
+      cwd: "..",
+      url: "http://127.0.0.1:8001/api/health",
+      reuseExistingServer: false,
+      timeout: 900_000,
+      env: {
+        PYTHONPATH: `src${delimiter}.`,
+        AFTERWORLDS_CI: "1",
+      },
+    },
+  ],
 });

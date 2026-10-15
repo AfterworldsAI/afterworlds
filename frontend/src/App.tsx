@@ -25,7 +25,9 @@ export default function App() {
         )}
       </header>
       {storyId ? (
-        <StoryView storyId={storyId} />
+        // Keyed: another story is a fresh view, so no late response or
+        // pending candidate of the previous one can populate it.
+        <StoryView key={storyId} storyId={storyId} />
       ) : (
         <StoryList onSelect={selectStory} />
       )}
