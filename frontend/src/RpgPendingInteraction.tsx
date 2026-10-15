@@ -116,8 +116,13 @@ function PendingRollForm({
       return;
     }
     try {
-      const values = rollTerms(terms, source);
-      setCandidate(score(terms, values, roll.visible_modifier_total));
+      const next = score(
+        terms,
+        rollTerms(terms, source),
+        roll.visible_modifier_total,
+      );
+      // A second same-tick click never replaces the first candidate.
+      setCandidate((current) => current ?? next);
     } catch (err) {
       setDiceError(
         err instanceof DiceError

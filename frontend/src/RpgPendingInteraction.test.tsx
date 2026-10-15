@@ -755,3 +755,87 @@ describe("StoryView inline dice (CRD Issue 19b)", () => {
     expect(mocks.resumeSequence).not.toHaveBeenCalled();
   });
 });
+
+describe("StoryView inline dice refusals (CRD Issue 19b)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.resetAllMocks();
+    mocks.getStory.mockResolvedValue(story);
+    mocks.getLatestTranscript.mockResolvedValue([]);
+    mocks.getVisibleState.mockResolvedValue(null);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it.each([
+    [409, "turn_in_flight", "Another action for this story is in progress."],
+    [404, "pending_roll_not_found", "That roll is no longer pending."],
+    [422, "pending_roll_term_mismatch", "The submitted dice do not match."],
+    [422, "pending_roll_invalid_value", "A die value is not possible."],
+  ] as const)(
+    "shows %i %s inline, re-reads before re-enabling, and never resubmits by itself",
+    async (status, code, message) => {
+      const reread = deferred<PendingInteraction | null>();
+      mocks.getPendingInteraction
+        .mockResolvedValueOnce(pendingRoll())
+        .mockReturnValueOnce(reread.promise);
+      mocks.submitRoll.mockRejectedValue(
+        new ApiRequestError(status, {
+          error_code: code,
+          message,
+          detail: null,
+          schema_version: 1,
+        }),
+      );
+      browserDice(9);
+      render(<StoryView storyId={story.story_id} />);
+
+      fireEvent.click(await screen.findByRole("button", { name: "Roll dice" }));
+      fireEvent.click(
+        screen.getByRole("button", { name: "Submit digital roll" }),
+      );
+      await screen.findByText(message);
+      const submit = screen.getByRole("button", {
+        name: "Submit digital roll",
+      });
+      expect(submit).toBeDisabled(); // until the re-read lands
+      await act(async () => reread.resolve(pendingRoll()));
+      await waitFor(() => expect(submit).toBeEnabled());
+      expect(screen.getByLabelText("9")).toBeInTheDocument(); // same candidate
+      expect(mocks.submitRoll).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it("keeps the first candidate when Roll dice is clicked twice in one tick", async () => {
+    mocks.getPendingInteraction.mockResolvedValue(pendingRoll());
+    browserDice(5, 9);
+    render(<StoryView storyId={story.story_id} />);
+
+    const roll = await screen.findByRole("button", { name: "Roll dice" });
+    act(() => {
+      roll.click();
+      roll.click();
+    });
+    expect(screen.getByLabelText("5")).toBeInTheDocument();
+    expect(screen.queryByLabelText("9")).toBeNull();
+  });
+
+  it("offers no digital roll for terms the backend would never issue; physical entry remains", async () => {
+    const repeated = pendingRoll();
+    const term = repeated.pending_roll!.terms[0]!;
+    repeated.pending_roll!.terms = [term, { ...term }]; // a repeated term id
+    mocks.getPendingInteraction.mockResolvedValue(repeated);
+    const random = browserDice(3, 4);
+    render(<StoryView storyId={story.story_id} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Roll dice" }));
+    expect(
+      screen.getByText(/Digital dice are unavailable for this roll/),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "Roll preview" })).toBeNull();
+    expect(random).not.toHaveBeenCalled();
+    expect(screen.getAllByLabelText(/faces rolled/)).toHaveLength(2);
+  });
+});
