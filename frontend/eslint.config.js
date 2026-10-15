@@ -25,4 +25,32 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // CRD Issue 19b: dice-core stays pure -- no imports beyond itself, no
+    // browser or storage globals, no ambient randomness, no dynamic code.
+    files: ["src/dice-core/**/*.ts"],
+    ignores: ["src/dice-core/**/*.test.ts"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: ["*", "!./*"] }],
+      "no-restricted-globals": [
+        "error",
+        "window",
+        "document",
+        "self",
+        "globalThis",
+        "navigator",
+        "crypto",
+        "localStorage",
+        "sessionStorage",
+        "fetch",
+      ],
+      "no-restricted-properties": [
+        "error",
+        { object: "Math", property: "random" },
+      ],
+      "no-eval": "error",
+      "no-implied-eval": "error",
+      "no-new-func": "error",
+    },
+  },
 );
