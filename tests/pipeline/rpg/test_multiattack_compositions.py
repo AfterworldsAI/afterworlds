@@ -515,3 +515,77 @@ def test_an_invalid_multiattack_refuses_before_any_die(name: str, case: str) -> 
         assert f"not creature {creature.subject_id}'s turn" in detail
     else:
         assert "is not an executable alternative" in detail
+
+
+@pytest.mark.parametrize("name", ["repeated", "mixed", "mixed_linked"])
+def test_a_multiattack_in_a_sequence_is_ordered_linked_backend_steps(
+    name: str,
+) -> None:
+    """CRD Issue 15b: in an action-resolution sequence of a player-rolled
+    story, every die of a creature's Multiattack is a backend step (the
+    creature's, not the Sojourner's), described per part in order: each
+    part's attack die, then its damage dice. Replaying the accepted steps
+    reproduces the same instructions without drawing again."""
+    from uuid import uuid4
+
+    from afterworlds.models.enums import ResolvedStepKind, RollPurpose
+    from afterworlds.models.rpg import RollProposal
+    from afterworlds.pipeline.rpg.steps import SequenceDice
+
+    key, entries = REPRESENTATIVES[name]
+    creature = _creature_of(key)
+    wizard = _wizard()
+    me = SubjectReference(kind="creature", subject_id=creature.subject_id)
+    document = TurnCoordination(
+        active=ActiveTurn(subject=me, instance=1), next_instance=2
+    )
+    service = RpgAdjudicationPassService(
+        adapter=D20RulesSystemAdapter(),
+        subject_loader=lambda _story, _ref: creature,
+        coordination_loader=lambda _story: StoredCoordination(_STORY_ID, 1, document),
+    )
+    proposals = [
+        RollProposal.model_validate(_part(creature, wizard, e)) for e in entries
+    ]
+    drawn: list[str] = []
+
+    class Backend:
+        def roll(self, expression: str) -> DiceResult:
+            drawn.append(expression)
+            count = int(expression.split("d")[0])
+            face = 15 if "d20" in expression else 1
+            return DiceResult(
+                expression=expression, raw_rolls=(face,) * count, chosen=face * count
+            )
+
+    sequence_id = uuid4()
+    actor = ("character", str(wizard.subject_id))
+    dice = SequenceDice(Backend(), sequence_id, actor, player_rolls=True)
+    prepared = service.prepare_turn(_STORY_ID, wizard, proposals)
+    service.resolve_turn(prepared, False, dice, [])
+    steps = [s.roll for s in dice.new_steps]
+    assert all(s is not None and s.kind is ResolvedStepKind.AI_ROLL for s in steps)
+    snapshots = [s.snapshot for s in steps if s is not None]
+    assert len(drawn) == len(snapshots)
+    order = [(s.operation_index, s.die_index) for s in snapshots]
+    assert order == sorted(order) and len(set(order)) == len(order)
+    assert sorted({op for op, _ in order}) == list(range(len(entries)))
+    for op in range(len(entries)):
+        purposes = [s.purpose for s in snapshots if s.operation_index == op]
+        assert purposes[0] is RollPurpose.ATTACK
+        assert purposes[1:] and set(purposes[1:]) <= {RollPurpose.DAMAGE}
+    assert {s.roller.subject_id for s in snapshots} == {creature.subject_id}
+    assert len({s.step_id for s in snapshots}) == len(snapshots)
+
+    rolls: dict[int, list[Any]] = {}
+    for step in steps:
+        assert step is not None
+        rolls.setdefault(step.snapshot.operation_index, []).append(step)
+
+    class NoDice:
+        def roll(self, expression: str) -> DiceResult:
+            raise AssertionError(f"replay drew {expression}")
+
+    replay = SequenceDice(NoDice(), sequence_id, actor, True, rolls=rolls)
+    service.resolve_turn(prepared, False, replay, [])
+    assert replay.new_steps == []

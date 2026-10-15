@@ -159,3 +159,25 @@ numeric-label authority, which the handoff forbids.
 2. The remaining dice sites, decisions, adjustments and contests.
 3. The orchestrator and the migration.
 4. Legacy retirement and docs.
+
+## 8. Implementation deltas (recorded 15 October 2026)
+
+Engineering differences from §1–§7 as built. Each was reviewed through Codex's findings. None changes
+the advisor-checkpoint conclusions on context construction or ledger schema naming.
+
+- **§1 guards and the transaction.** The dice-free preparation runs before the write transaction,
+  because the readers record binding retention in their own sessions. The write transaction then runs,
+  in order: the revision claim; the conditional consume; the recheck of every prepared read; only then
+  any new backend die; events and advancement. See
+  `CODEX-PHASE2-READ-TRANSACTION-DISPOSITION.md`.
+- **§2 downgrade.** Downgrade no longer restores columns over existing data. It refuses before any DDL
+  while lifecycle data exists (`require_no_lifecycle_data`). `pending_roll_requests.sequence_id` has no
+  foreign key, because SQLite cannot drop a foreign-key column on downgrade.
+- **§3 contest resolution.** A sequenced contest has one resolution, stored on its completing event and
+  identified by the participants' actual step ids. The record reuses it. Delivery refuses a record copy
+  that disagrees with it.
+- **§6 legacy retirement.** `PLAYER_ROLL_UNSUPPORTED` is kept, not migrated away. It is the safe
+  unwired behaviour while product wiring constructs no sequence service (Phase 3).
+- **§5 hidden participants.** The acting character's own contest check is never hidden from them, in
+  either role. A nonparticipant's Writer view shows a participant's numbers only when that participant's
+  roll is shown.

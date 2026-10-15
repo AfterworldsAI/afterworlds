@@ -46,6 +46,50 @@
 >   pre-roll adjustment as the positive adjustment case; the stored yes/no knockout decision as the
 >   positive result-triggered decision; CRD Issue 19b consuming the settled 15b public API.
 
+> **Status note (2026-10-15, Phase 2 backend candidate on `codex/issue-15b-backend-integration`;
+> awaiting review and Owner acceptance, no new authority):** Phase 2 implements this ADR against
+> main `f6f39721`, reusing #129's shapes but not its numeric-label authority. #129 stays frozen. The
+> implementation reconciles the wording below as follows. Each item is either propagation the ADR
+> already requires or engineering detail. None is a new product decision.
+> - **Final Audit Projection** gains one nullable column, `contest_resolution_json`. Its source is the
+>   contest-completing roll event's nullable `payload.contest_resolution` (Group 17), so nullable feeds
+>   nullable. A contest whose dice are all backend dice writes the column from its record through the
+>   15c audit path. See the table below.
+> - **`RollPurpose.RECHARGE`** joins the purpose vocabulary. A creature's Recharge die is a supported
+>   15c mechanic, and 15b-7 requires every supported mechanic to be representable.
+> - **Accepting transaction (Groups 6 and 15).**
+>   - The turn is prepared again dice-free, through the adjudication service's own readers, before
+>     the write transaction. Those readers may record binding retention in their own sessions.
+>   - Inside one write transaction, in this order: the sequence-revision CAS (claim); for a roll, the
+>     conditional consume of the pending request; the recheck of every prepared read (subjects,
+>     holdings, discovery, coordination); only then any new backend die, such as a contest
+>     counterpart's or a Stable recovery interval; then the events and the advancement.
+>   - A stale or concurrent submission, or state that moved after preparation, refuses before any die.
+>   - Any later failure rolls back the dice with everything else.
+> - **Knockout (positive decision).**
+>   - Wherever decisions can be offered, a melee hit by the acting character that would drop a target
+>     from above 0 to 0 Hit Points always raises the stored `knock_out`/`no_knock_out` decision, under
+>     either dice handling. An AI-rolled hit can therefore start a decision-first sequence.
+>   - A GameMaster knockout preselection refuses. So does a hidden melee attack by the acting
+>     character, whose decision could not be offered without revealing the hit.
+> - **Unwired behaviour (Group 11; product wiring is Phase 3's).** `create_app()` and
+>   `api/pipeline_wiring.py` are unchanged.
+>   - With no action-resolution service, adjudication runs with `sequences=False`: 15c's
+>     `PLAYER_ROLL_UNSUPPORTED` refusal stands, the 15c knockout preselection stands, and no partial
+>     lifecycle is exposed.
+>   - The orchestrator's sequence gate, OOC pending-interaction text and `orchestrate_rpg_resume` act
+>     only when a service is given. Today only tests construct one.
+> - **Migration 0043** applies 15b-36: it guards that the table is empty before any destructive
+>   statement, then drops columns by direct `ALTER`.
+>   - `pending_roll_requests.sequence_id` carries no foreign key, because SQLite cannot drop a
+>     foreign-key column on downgrade.
+>   - Downgrade refuses before any DDL while any lifecycle data exists: pending rows, sequences,
+>     events, or linked audit rows.
+> - **Holds.** `blocking_events` counts unresolved sequences, so shared rule changes and adoption wait
+>   for completion. An abandoned sequence therefore holds them indefinitely. That is recorded under
+>   *Pending-roll rewind/cancel policy* in [`known_unknowns.md`](../architecture/known_unknowns.md)
+>   and is not decided here.
+
 ---
 
 ## Central Invariant
@@ -1099,6 +1143,7 @@ embedded `RollInstructionSnapshot` — never from `ActionResolutionSequence`, `R
 | `instruction_snapshot_json` | Serialized `payload.instruction_snapshot` in full. |
 | `submission_source` | `payload.submission_source`. |
 | `raw_values_complete` | `true` when `payload.raw_input_json` carries complete per-term raw values (inline UI, physical raw report, or `BACKEND_DICE_SERVICE` — the backend dice service always knows every die); `false` for aggregate-only physical reports. |
+| `contest_resolution_json` | Serialized `payload.contest_resolution` (Group 17; Phase 2 reconciliation). Non-null only on the contest-completing roll's row; nullable source, nullable destination. |
 
 **Aggregate-only physical-report projection:** when `RollEventPayload.raw_input_json` is null and
 `aggregate_input_json` carries the reported aggregate (15b-15), the payload records no per-die values —

@@ -155,9 +155,10 @@ class OrchestrationResult(BaseModel):
     rpg_adjudication_result: AdjudicationPassResult | None = None
     rpg_visible_state: RpgVisibleState | None = None
 
-    # Set on BLOCKED_PENDING_ROLL: the player_facing_instruction from the
-    # PendingRollRequest that the Sojourner must resolve before proceeding.
-    # None on all other dispositions.
+    # Set on BLOCKED_PENDING_ROLL: the player-visible redirect of the story's
+    # unresolved action-resolution sequence (its pending roll, pending
+    # decision, or readiness for narration; CRD Issue 15b) the Sojourner must
+    # resolve before proceeding. None on all other dispositions.
     pending_roll_redirect_message: str | None = None
 
     # Set on INTERACTION_REJECTED: typed reason and human-readable message why

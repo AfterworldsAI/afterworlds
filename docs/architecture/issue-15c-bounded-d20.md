@@ -269,6 +269,11 @@ A bare or departing stored type, an unexecuted effect or a form refuses before a
 - **What 15c discharges.** 15c discharges only the backend-roll part of ADR-015b supersession item 7. The adjudication and dice services are constructed in `create_app()`. No pending-roll service is wired.
 - **Player rolls.** Player-roll configuration refuses before any proposal is checked, so a pending request cannot exist.
 - **Legacy code left in place.** The legacy announce/consume methods, and the label-based assembler they use, are left for 15b to retire (ADR-015b Group 9). They are unreachable in production.
+  *Discharged by the CRD Issue 15b Phase 2 candidate (15 October 2026, awaiting review).*
+  - **Removed:** those methods, the assembler, `pipeline/rpg/pending.py` and the orchestrator's reported-total intercept.
+  - **Replaced by:** the persisted action-resolution sequence (`pipeline/rpg/sequence.py`, `steps.py`, migration 0043). Every adapter die is now a described request, and the linked rolls above take its `RollInstructionSnapshot` shapes.
+  - **Product wiring:** `create_app()` and `api/pipeline_wiring.py` are unchanged and construct no sequence service (Phase 3). The 15c turn behaviour above therefore holds in production, including `player_roll_unsupported` for a player-rolled story and the knockout preselection.
+  - **Status:** ADR-015b's 2026-10-15 status note.
 - **In-turn instructions.** 15c's in-turn instructions are in-memory and per turn: an operation, an admitted identity and the derived numbers. Nothing in them is persisted beyond the existing delivery-gated `rpg_roll_audit` row. Its `modifiers_json` carries the provenance: operation, identity, DC source, breakdown, Advantage sources and certificate.
 - **Planned shape for linked rolls.** When the held weapon work lands, linked attack → damage → mastery rolls resolve synchronously inside one delivered turn. Their instructions take ADR-015b's `RollInstructionSnapshot`/`RollTerm`/`RollPurpose` field shapes, so 15b can adopt them without migration. 15c introduces no persisted pending or sequence model.
 
