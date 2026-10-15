@@ -4,7 +4,8 @@
 `3f59983d` (tree `44bab0b0`, identical to the tested #196 head).
 **Authority:** #127 (full), ADR-015b including Group 17 and its status notes, the Owner's Phase 3
 authorization (`OWNER-PHASE3-RESUME-2026-10-15.md`), and CRD Issue 19's product conventions.
-**Frozen:** #129 stays at `d8233a43`. CRD Issue 19b's UI is not implemented here.
+**Frozen:** #129 stays at `d8233a43`. The full CRD Issue 19b UI remains deferred; the minimum
+15b-31/32 controls are described below.
 
 Raw evidence (per labelled run: `stdout.txt`, `stderr.txt`, `meta.json` with args, head, exit and
 timings) is under `D:\AI\Claude\scratch\AW docs\issue15b-resumption\phase3-product-evidence\runs\`
@@ -94,15 +95,17 @@ projection, contest arithmetic, service-level races, migration and append-only e
 - **Phase 3 of 3. No drift from ADR-015b or the surviving ADR-015 authority boundaries.** The
   orchestrator remains the sole pipeline owner; routes validate, lock, delegate and translate.
 - **Deviation, none.** Route-level story scoping uses the existing `current` read; the completed
-  classification uses the existing `prepare_delivery`. No backend file changed.
+  classification uses the existing `prepare_delivery`. No Phase 2 owning pipeline, persistence or
+  rules-policy implementation changed; eight API Python files changed.
 - **Observation, not changed.** A player's Writer view in a contest against a hidden counterpart
   carries `outcome = None` while its summary narrates the loss (Phase 2 projection).
 - **Known Unknown touched, not resolved:** *Pending-roll rewind/cancel policy*; abandoned
   sequences now hold rule changes in production (`known_unknowns.md`).
-- **Advisor consultations.** Before design: route-level scoping, one lock helper, typed seam,
-  generated `ApiError`, settlement and access proofs; followed. Before completion: run the migrated
-  node, cover DC/outcome, clear a stale banner on success-equivalent replay, finish gates and docs;
-  followed.
+- **Independent product-wiring consultation.** Read-only Claude session
+  `30b897c4-7385-4721-8176-13fe2a7094fd` inspected all eleven production files and found no concrete
+  blocking concern or split trigger. Codex checked its source applicability and integrated the
+  result. See [the consultation receipt](independent-product-wiring-review.md). Earlier engineer
+  self-review statements do not establish separate advisor invocations.
 - **Graphify.** Code-only graph built on a scratch copy (the wrapper targets the protected checkout;
   no LLM key for the one doc file).
 - **Playwright spine and pip-audit:** see the evidence index for actual results and limitations.
