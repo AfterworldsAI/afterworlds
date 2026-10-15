@@ -839,3 +839,77 @@ describe("StoryView inline dice refusals (CRD Issue 19b)", () => {
     expect(screen.getAllByLabelText(/faces rolled/)).toHaveLength(2);
   });
 });
+
+describe("StoryView uncertain narration (CRD Issue 19b)", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    vi.resetAllMocks();
+    mocks.getStory.mockResolvedValue(story);
+    mocks.getLatestTranscript.mockResolvedValue([]);
+    mocks.getVisibleState.mockResolvedValue(null);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  const narrateButton = () =>
+    screen.getByRole("button", { name: "Narrate the resolved action" });
+
+  it("offers no resume after a lost resume and a failed re-read until a read succeeds", async () => {
+    mocks.getPendingInteraction
+      .mockResolvedValueOnce(ready()) // load
+      .mockRejectedValueOnce(new TypeError("Failed to fetch pending"))
+      .mockResolvedValueOnce(ready()) // the explicit retry
+      .mockResolvedValueOnce(null); // after the deliberate resume
+    mocks.resumeSequence
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockResolvedValueOnce(turn("delivered"));
+    render(<StoryView storyId={story.story_id} />);
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Narrate the resolved action",
+      }),
+    );
+    await screen.findByText(/Failed to fetch pending/);
+    expect(narrateButton()).toBeDisabled();
+    expect(mocks.resumeSequence).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    await waitFor(() => expect(narrateButton()).toBeEnabled());
+    expect(mocks.resumeSequence).toHaveBeenCalledTimes(1); // never replayed
+
+    fireEvent.click(narrateButton());
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "Narrate the resolved action" }),
+      ).toBeNull(),
+    );
+    expect(mocks.resumeSequence).toHaveBeenCalledTimes(2);
+  });
+
+  it("holds the ready affordance after an automatic resume is lost and its re-read fails", async () => {
+    mocks.getPendingInteraction
+      .mockResolvedValueOnce(pendingRoll()) // load
+      .mockRejectedValueOnce(new TypeError("Failed to fetch pending"))
+      .mockResolvedValueOnce(ready()); // the explicit retry
+    mocks.submitRoll.mockResolvedValue(ready());
+    mocks.resumeSequence.mockRejectedValue(new TypeError("Failed to fetch"));
+    render(<StoryView storyId={story.story_id} />);
+
+    fireEvent.change(await screen.findByLabelText(/faces rolled/), {
+      target: { value: "15" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Submit physical roll" }),
+    );
+    await screen.findByText(/Failed to fetch pending/);
+    expect(narrateButton()).toBeDisabled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    await waitFor(() => expect(narrateButton()).toBeEnabled());
+    expect(mocks.submitRoll).toHaveBeenCalledTimes(1);
+    expect(mocks.resumeSequence).toHaveBeenCalledTimes(1);
+  });
+});

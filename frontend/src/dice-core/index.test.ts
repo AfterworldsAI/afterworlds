@@ -257,3 +257,38 @@ describe("text grammar", () => {
     expect(rollExpression("7", words())).toMatchObject({ total: 7 });
   });
 });
+
+describe("exact arithmetic at the safe-integer limit", () => {
+  const MAX = Number.MAX_SAFE_INTEGER;
+  const twos = () => 1; // every word 1: every die shows 2
+
+  it("keeps an exact total when an intermediate sum passes 2^53", () => {
+    // MAX + 2 - 2: a Number accumulator rounds to MAX - 1.
+    expect(rollExpression(`1d4-1d4+${MAX}`, twos).total).toBe(MAX);
+    expect(rollExpression(`-1d4+1d4-${MAX}`, twos).total).toBe(-MAX);
+    const pair = [
+      term({ term_id: "a", sides: 4 }),
+      term({ term_id: "b", sides: 4, contribution: "subtract" }),
+    ];
+    expect(score(pair, [[2], [2]], MAX).total).toBe(MAX);
+    expect(score(pair, [[2], [2]], -MAX).total).toBe(-MAX);
+  });
+
+  it("refuses a total outside the safe range instead of rounding it", () => {
+    expect(() => rollExpression(`1d4+${MAX}`, twos)).toThrow(DiceError);
+    expect(() => rollExpression(`-1d4-${MAX}`, twos)).toThrow(DiceError);
+    expect(() => score([term({ sides: 4 })], [[1]], MAX)).toThrow(DiceError);
+    expect(() =>
+      score([term({ sides: 4, contribution: "subtract" })], [[1]], -MAX),
+    ).toThrow(DiceError);
+    expect(score([term({ sides: 4 })], [[1]], MAX - 1).total).toBe(MAX);
+  });
+
+  it("sums text constants exactly and refuses an unsafe result or literal", () => {
+    expect(parseExpression(`${MAX}+1-1`).constant).toBe(MAX);
+    expect(parseExpression(`-${MAX}-1+1`).constant).toBe(-MAX);
+    expect(() => parseExpression(`${MAX}+1`)).toThrow(DiceError);
+    expect(() => parseExpression(`-${MAX}-1`)).toThrow(DiceError);
+    expect(() => parseExpression(`${MAX + 1}-1`)).toThrow(DiceError);
+  });
+});

@@ -264,6 +264,10 @@ export default function StoryView({ storyId }: { storyId: string }) {
         setActionError(errorMessage(err, "The action could not be narrated."));
       }
     }
+    // Whatever the resume did -- narrated, failed, or lost in transit -- the
+    // shown ready affordance is unconfirmed until the re-read lands: no
+    // further resume is offered from it before then.
+    setPendingStale(true);
     await refreshTranscriptAndVisibleState();
   }
 

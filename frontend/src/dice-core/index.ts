@@ -155,7 +155,9 @@ export function score(
   if (values.length !== terms.length || !Number.isSafeInteger(modifierTotal)) {
     throw new DiceError("Values do not match the terms.");
   }
-  let total = modifierTotal;
+  // Exact: a Number accumulator rounds once it passes 2^53, even when the
+  // final total would be safe again.
+  let total = BigInt(modifierTotal);
   const scored = terms.map((term, t) => {
     const faces = [...values[t]!];
     if (
@@ -167,7 +169,7 @@ export function score(
     const keep = new Set(keptIndexes(faces, term));
     const sum = faces.reduce((acc, v, i) => (keep.has(i) ? acc + v : acc), 0);
     const subtotal = term.contribution === "subtract" ? -sum : sum;
-    total += subtotal;
+    total += BigInt(subtotal);
     return {
       term_id: term.term_id,
       values: faces,
@@ -175,7 +177,16 @@ export function score(
       subtotal,
     };
   });
-  return { terms: scored, modifierTotal, total };
+  return { terms: scored, modifierTotal, total: safeNumber(total) };
+}
+
+const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);
+
+function safeNumber(exact: bigint): number {
+  if (exact > MAX_SAFE || exact < -MAX_SAFE) {
+    throw new DiceError("Total outside the safe integer range.");
+  }
+  return Number(exact);
 }
 
 export type FaceListResult =
@@ -221,7 +232,7 @@ export function parseExpression(text: string): TextExpression {
   if (text.length > TEXT_LIMITS.maxLength)
     throw new DiceError("Expression too long.");
   const terms: DiceTerm[] = [];
-  let constant = 0;
+  let constant = 0n;
   let dice = 0;
   let pos = text.length - text.trimStart().length;
   const end = text.trimEnd().length;
@@ -242,11 +253,11 @@ export function parseExpression(text: string): TextExpression {
     if (!m) throw new DiceError("Expected NdM or a whole number.");
     pos = ITEM.lastIndex;
     if (m[3] !== undefined) {
-      const value = Number(m[3]);
-      constant += sign === "-" ? -value : value;
-      if (!Number.isSafeInteger(value) || !Number.isSafeInteger(constant)) {
+      if (!Number.isSafeInteger(Number(m[3]))) {
         throw new DiceError("Number too large.");
       }
+      const value = BigInt(m[3]);
+      constant += sign === "-" ? -value : value;
     } else {
       const count = Number(m[1]);
       const sides = Number(m[2]);
@@ -272,7 +283,7 @@ export function parseExpression(text: string): TextExpression {
     }
     first = false;
   }
-  return { terms, constant };
+  return { terms, constant: safeNumber(constant) };
 }
 
 /** Rolls a text expression (the grammar above) to a preview scorecard. */
