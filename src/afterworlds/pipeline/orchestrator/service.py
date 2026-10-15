@@ -3715,6 +3715,15 @@ class OrchestratorService:
         from afterworlds.persistence.orm.rpg import RpgRollAuditORM
 
         now_str = datetime.now(tz=UTC).isoformat()
+        if any(r.contest_resolution is not None for r in adj_result.proposals):
+            # Group 17: a contest is audited per participant from its events
+            # (``record_completed``), never as one record row.
+            from afterworlds.pipeline.rpg.models import ActionSequenceIntegrityError
+
+            raise ActionSequenceIntegrityError(
+                "a contest reached the record audit path: its participants are "
+                "audited from the event ledger"
+            )
         for record in adj_result.proposals:
             session.add(
                 RpgRollAuditORM(
@@ -3736,11 +3745,6 @@ class OrchestratorService:
                         [e.model_dump(mode="json") for e in record.sheet_effects]
                     ),
                     created_at=now_str,
-                    contest_resolution_json=(
-                        record.contest_resolution.model_dump_json()
-                        if record.contest_resolution is not None
-                        else None
-                    ),
                 )
             )
 

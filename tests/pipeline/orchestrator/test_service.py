@@ -4937,6 +4937,64 @@ class TestRpgAuditErrorMapping:
         assert result.pipeline_error_summary is not None
         assert "rpg audit write failed" in result.pipeline_error_summary
 
+    def test_a_contest_never_takes_the_one_row_record_audit(
+        self, session_factory: object
+    ) -> None:
+        """ADR-015b Group 17: a contest's participants are audited from the
+        event ledger. Should a contest record ever reach the record audit
+        path, it fails closed (typed) before writing anything."""
+        from unittest.mock import MagicMock
+
+        from afterworlds.models.enums import RollVisibility
+        from afterworlds.models.rpg import (
+            ContestParticipantResult,
+            ContestResolution,
+            ResolvedAdjudicationRecord,
+            SubjectRef,
+        )
+        from afterworlds.pipeline.rpg.models import (
+            ActionSequenceIntegrityError,
+            AdjudicationPassResult,
+        )
+
+        me = SubjectRef(kind="character", subject_id=uuid4())
+        ape = SubjectRef(kind="creature", subject_id=uuid4())
+        record = ResolvedAdjudicationRecord(
+            check_label="Arm wrestling",
+            visibility=RollVisibility.SHOWN,
+            expression="1d20",
+            raw_rolls=(15,),
+            modifiers_json="{}",
+            total=14,
+            dc=None,
+            outcome="undetermined",
+            sheet_effects=(),
+            source="ai",
+            gm_cheating_at_roll=False,
+            contest_resolution=ContestResolution(
+                contest_id=uuid4(),
+                participants=(
+                    ContestParticipantResult(subject=me, step_id=uuid4(), total=14),
+                    ContestParticipantResult(subject=ape, step_id=uuid4(), total=10),
+                ),
+                result="win",
+                winner=me,
+                certificate={},
+            ),
+        )
+        orch = _make_orchestrator_for_audit_errors(session_factory)
+        session = MagicMock()
+        with pytest.raises(ActionSequenceIntegrityError):
+            orch._write_rpg_audit(  # noqa: SLF001
+                session,
+                AdjudicationPassResult(proposals=(record,), writer_views=()),
+                uuid4(),
+                uuid4(),
+                uuid4(),
+                uuid4(),
+            )
+        session.add.assert_not_called()
+
 
 # ---------------------------------------------------------------------------
 # TestRpgPendingRollServiceGuard — CRD Issue 15 remediation Round 8 Fix 1,

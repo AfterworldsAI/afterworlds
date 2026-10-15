@@ -74,7 +74,7 @@ Exact-head full CI is the whole-candidate gate once Codex publishes the PR.
 | Knockout decision and stored non-roll events (AC41–46) | lifecycle `test_a_knockout_choice…` (both options; the decision event's whole `decision_snapshot` equals the stored one, with its decision id, revision and string option, and is rebuilt from its row alone after the working copies are blanked and the wolf moved); finesse test (the adjustment event's resulting snapshot equals the stored revised instruction, string option, same row-only reconstruction); `test_action_resolution_models.py` (29; non-roll payload round trips, 7 cross-kind refusals, step agreement); `test_a_stored_decision_is_validated_by_snapshot_then_state_guarded`, `test_an_ai_rolled_hit_starts_a_decision_first_sequence`; `test_zero_hp_lifecycle::…never_takes_the_knockout…` |
 | Dice selection and provenance (AC2–3) | `test_sequence_engine.py` (22). `test_the_executor_keeps_and_sums_its_whole_pool` runs `SystemRandomDiceService.roll` with only its RNG seam scripted: 4d6kh3, 4d6kl3, 3d20kh2, 5d8kl2, 10d6, 3d12, with the whole raw pool kept and `chosen` summing every kept die. Plus kh3/kl3 with ties, mixed, repeated and subtracted terms, the aggregate range, naturals, term validation, a field-complete audit row, aggregate-only rows, backend pool integrity |
 | Duration | lifecycle `test_stabilizing_draws_the_recovery_interval_in_the_accepting_write` |
-| Projected state and linked order (AC6–7/23) | lifecycle `test_a_later_attack_resolves_against_the_earlier_hits_projected_state`. The Club's 3 damage is provisional, and the live wolf keeps 4 HP. The Dagger's Light extra attack then deals 2 against the projected 1 HP, so the knockout decision is offered; against the live 4 HP it would not be. The test reloads at every step, checks no Writer call happens between the announce and the last step and exactly one at delivery, and the sheet changes only at delivery. Also the spike; the lifecycle gate test |
+| Projected state and linked order (AC6–7/23) | lifecycle `test_a_later_attack_resolves_against_the_earlier_hits_projected_state`. The Club's 3 damage is provisional, and the live wolf keeps 4 HP. The Dagger's Light extra attack then deals 2 against the projected 1 HP, so the knockout decision is offered; against the live 4 HP it would not be. The test reloads at every step and counts Writer calls: 0 during the intermediate steps and 1 at delivery. The announce Turn's own Writer call narrates only the request (Group 7). The sheet changes only at delivery. Also the spike; the lifecycle gate test |
 | Intermediate transaction | lifecycle race, stale, duplicate, state-moved-after-preparation, failed-event-write rollback, malformed-input and quiet-intermediates tests (no provider, Turn, effect, audit, usage or settlement row); `test_action_resolution_models.py` (19) |
 | Final delivery | spike (delivery and typed already-completed); lifecycle typed resume refusals (not ready, not found, other node); a failed narration (Writer error, provider refusal, output block) keeps the ledger, buffers and then writes the refusal log, and the retry delivers identical facts once; event-only audit with corrupted working copies |
 | Legacy retirement | `affected-3` (285 orchestration, 160 retrieval, RPG and model suites); `test_pending_roll_db.py`; the retrieval marker tests, including a decision-first sequence |
@@ -92,7 +92,7 @@ Exact-head full CI is the whole-candidate gate once Codex publishes the PR.
 | 5. Two contest resolutions | patched: one resolution on the completing event, reused by the record; `_check_contests` compares both. Proven by tamper tests |
 | 6. Missing C9 Skills fact bypass | patched: every creature contest check requires the single Skills fact |
 | 7. Flaky hidden-AC assertion | patched: structural key check |
-| Consolidated residue P1, all-backend contest persistence (`CODEX-PHASE2-CONSOLIDATED-RESIDUE-DISPOSITION.md`) | patched: `CompletedSequence` from adjudication, `record_completed` in the originating Turn's transaction, the retrieval predicate (a completed in-turn ledger is not a procedural request), unwired contest refusal, and the guard. Proven by `lifecycle-6` and `affected-4` |
+| Consolidated residue P1, all-backend contest persistence (`CODEX-PHASE2-CONSOLIDATED-RESIDUE-DISPOSITION.md`) | patched: `CompletedSequence` from adjudication; `record_completed` in the originating Turn's transaction; the retrieval predicate, whose decision lookup is correlated per sequence (a completed in-turn ledger is not a procedural request); unwired contest refusal; the unwired guard; and `_write_rpg_audit` refusing a contest record before writing. Proven by `lifecycle-6`, `affected-4` and `final-batch-*`: the Writer refusal case, `test_a_completed_sequence_counts_only_if_the_sojourner_decided_in_it` and `test_a_contest_never_takes_the_one_row_record_audit` |
 | Consolidated residue, proof reachability (AC2–3, AC6–7/23, AC41–46) | added: executor, linked-dependency and stored non-roll event proofs (rows above) |
 | Read/accepting transaction (`CODEX-PHASE2-READ-TRANSACTION-DISPOSITION.md`) | patched: preparation outside the write; the recheck right after the claim, before any die. Proven by `test_state_moved_after_preparation_refuses_before_any_die`. The rollback seam is now the event write, not the recheck |
 
@@ -169,8 +169,12 @@ Exact-head full CI is the whole-candidate gate once Codex publishes the PR.
   migration tests (11) and `affected-units-final`.
 - **Static gates.** `black --check`, `ruff check` and `mypy` (strict, 271 files) are clean.
 - **detect-secrets.** No new or removed baseline entries. The tracked baseline is unchanged.
-- **pip-audit (`static-pip-audit-1`).** Exit 1. It finds chromadb 1.5.9 (no fix version) and pip
-  25.0.1 in the pinned interpreter's environment. No dependency file differs from main. This is a
-  pre-existing environment finding, not changed here. Dependency remediation is outside this issue.
+- **pip-audit (`static-pip-audit-1`).** Exit 1. It finds chromadb 1.5.9 (5 IDs, no fix version
+  published) and pip 25.0.1 in the pinned interpreter's environment.
+  - No dependency file differs from main. `pyproject.toml` bounds chromadb only as `>=0.5`.
+  - CI's pip-audit may therefore flag the same chromadb IDs on main too. That depends on the version
+    CI resolves, and these IDs have no fixed release.
+  - This is a pre-existing finding, not introduced or changed here. Dependency remediation is
+    outside this issue.
 - **Not run locally.** The whole local coverage suite was not run, per Codex's instruction. Exact-head
   full CI is the whole-candidate gate after publication.

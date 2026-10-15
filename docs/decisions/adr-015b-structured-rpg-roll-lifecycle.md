@@ -62,7 +62,8 @@
 >
 >   It has no pending interaction, no ready state and no resume, and its Turn is ordinary narration for
 >   retrieval. If adjudication cannot persist the ledger (no action-resolution service), a contest
->   refuses before any die (`unsupported_capability`). No one-record audit path exists for contests.
+>   refuses before any die (`unsupported_capability`). The record audit path refuses a contest
+>   record as a typed integrity failure before writing, so a contest is never audited as one row.
 > - **`RollPurpose.RECHARGE`** joins the purpose vocabulary. A creature's Recharge die is a supported
 >   15c mechanic, and 15b-7 requires every supported mechanic to be representable.
 > - **Accepting transaction (Groups 6 and 15).**

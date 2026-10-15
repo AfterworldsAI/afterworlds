@@ -1308,13 +1308,21 @@ def test_an_all_backend_contest_persists_both_participants_with_its_turn(
     assert marker is RpgTurnRetrievalCategory.ORDINARY_NARRATIVE
 
 
-@pytest.mark.parametrize("failure", ["writer_error", "output_block"])
+@pytest.mark.parametrize("failure", ["writer_error", "writer_refusal", "output_block"])
 def test_a_failed_all_backend_contest_turn_leaves_no_ledger(
     stack: Stack, gm: GM, monkeypatch: pytest.MonkeyPatch, failure: str
 ) -> None:
-    """The ledger commits with its Turn or not at all: a failed or blocked
-    delivery leaves no sequence, event, audit row or Turn."""
-    from afterworlds.api.fake_pipeline import FakeProviderAdapter
+    """The ledger commits with its Turn or not at all: a failed, refused or
+    blocked delivery leaves no sequence, event, audit row or Turn (a
+    refusal's own log row, buffered then written after the rollback,
+    excepted). The binding is the production shape around the fake adapter,
+    as in the narration-retry proof."""
+    from afterworlds.api.fake_pipeline import FakeProviderAdapter, FakeProviderResolver
+    from afterworlds.pipeline._refusal import PassIdentifier
+    from afterworlds.pipeline.provider._resolver import RefusalLogProxy
+    from afterworlds.pipeline.provider.adapters._fallback import (
+        RefusalFallbackRouter,
+    )
     from afterworlds.pipeline.safety.models import (
         SafetyCategory,
         SafetyConcern,
@@ -1322,6 +1330,7 @@ def test_a_failed_all_backend_contest_turn_leaves_no_ledger(
         SafetyResult,
         SafetyTarget,
     )
+    from tests.pipeline.orchestrator.conftest import make_refusal
 
     index = s1(monkeypatch)
     _faces(monkeypatch, 15, 5)
@@ -1332,11 +1341,28 @@ def test_a_failed_all_backend_contest_turn_leaves_no_ledger(
     )
     ape = stack.creature(story, "animals.ape", hp=19, name="Ape", binding=index.binding)
     turns = stack.turns()
+    refusals = len(stack.rows("SELECT 1 FROM provider_refusal_log"))
+    real_resolve = FakeProviderResolver.resolve_for_turn
+
+    def resolve(self: Any, access_path: Any, sojourner_id: Any) -> Any:
+        binding = real_resolve(self, access_path, sojourner_id)
+        proxy = RefusalLogProxy(stack.factory)
+        return dataclasses.replace(
+            binding,
+            adapter=RefusalFallbackRouter(binding.adapter, None, proxy),
+            pre_transaction_fn=proxy.start_buffering,
+            post_transaction_fn=proxy.flush,
+        )
+
+    monkeypatch.setattr(FakeProviderResolver, "resolve_for_turn", resolve)
     real_call = FakeProviderAdapter.call
 
     def call(self: Any, request: Any) -> Any:
-        if failure == "writer_error" and request.pass_id.value == "writer":
-            raise RuntimeError("injected writer failure")
+        if request.pass_id.value == "writer":
+            if failure == "writer_error":
+                raise RuntimeError("injected writer failure")
+            if failure == "writer_refusal":
+                raise make_refusal(PassIdentifier.WRITER)
         return real_call(self, request)
 
     monkeypatch.setattr(FakeProviderAdapter, "call", call)
@@ -1374,6 +1400,7 @@ def test_a_failed_all_backend_contest_turn_leaves_no_ledger(
         result.disposition
         is {
             "writer_error": PipelineDisposition.PIPELINE_ERROR,
+            "writer_refusal": PipelineDisposition.REFUSED_BY_PROVIDER,
             "output_block": PipelineDisposition.BLOCKED_OUTPUT_SAFETY,
         }[failure]
     ), result
@@ -1381,6 +1408,8 @@ def test_a_failed_all_backend_contest_turn_leaves_no_ledger(
     assert _ledger(stack, story) == []
     assert stack.events(story) == [] and stack.audit(story) == []
     assert stack.turns() == turns
+    logged = len(stack.rows("SELECT 1 FROM provider_refusal_log")) - refusals
+    assert logged == (1 if failure == "writer_refusal" else 0)
 
 
 # ---------------------------------------------------------------------------

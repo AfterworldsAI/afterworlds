@@ -237,6 +237,65 @@ class TestHasPendingRollRequestOriginatingFromTurn:
         assert session.query(PendingRollRequestORM).count() == 0
         assert has_pending_roll_request_originating_from_turn(session, turn_id)
 
+    def test_a_completed_sequence_counts_only_if_the_sojourner_decided_in_it(
+        self, session
+    ) -> None:  # type: ignore[no-untyped-def]
+        """CRD Issue 15b, one store: a completed sequence whose ledger holds a
+        mechanical decision announced a request at its originating turn; a
+        completed in-turn contest ledger (backend rolls only) did not. The
+        decision lookup is correlated to each sequence, not to any."""
+        from afterworlds.persistence.orm.rpg import (
+            ActionResolutionEventORM,
+            ActionResolutionSequenceORM,
+        )
+        from tests.services.dnd5e_state.conftest import add_unresolved_sequence
+
+        story = make_story(mode=StoryMode.RPG)
+        create_story(session, story)  # type: ignore[arg-type]
+        sheet = RpgCharacterSheetBase(
+            story_id=story.story_id,
+            character_name="Ilse",
+            created_at=_NOW,
+            updated_at=_NOW,
+        )
+        create_rpg_base_sheet(session, sheet)
+        made: dict[str, str] = {}
+        for kind in ("mechanical_decision", "ai_roll"):
+            # One unresolved sequence per story: each completes before the next.
+            sequence_id = add_unresolved_sequence(
+                session, story.story_id, sheet.sheet_id
+            )
+            made[kind] = sequence_id
+            row = session.get(ActionResolutionSequenceORM, sequence_id)
+            row.status = "completed"
+            session.add(
+                ActionResolutionEventORM(
+                    event_id=str(uuid4()),
+                    sequence_id=sequence_id,
+                    step_id=str(uuid4()),
+                    story_id=str(story.story_id),
+                    session_id=row.session_id,
+                    character_id=str(sheet.sheet_id),
+                    event_order=1,
+                    kind=kind,
+                    mechanical_provenance="{}",
+                    provisional_effects_json="[]",
+                    created_at=_NOW.isoformat(),
+                    payload_json="{}",
+                )
+            )
+            session.flush()
+        decided, in_turn = made["mechanical_decision"], made["ai_roll"]
+        session.commit()
+        turns = {
+            sid: session.get(ActionResolutionSequenceORM, sid).originating_turn_id
+            for sid in (decided, in_turn)
+        }
+        assert has_pending_roll_request_originating_from_turn(session, turns[decided])
+        assert not has_pending_roll_request_originating_from_turn(
+            session, turns[in_turn]
+        )
+
 
 class TestGatherEligibilityDbIntegrated:
     def test_post_boundary_markerless_rpg_turn_is_data_integrity_error(
