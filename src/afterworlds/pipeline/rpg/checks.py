@@ -60,6 +60,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ToolVariantsFact,
 )
 from afterworlds.models.dnd5e_state import Dnd5eCharacterState
+from afterworlds.models.enums import RollPurpose
 from afterworlds.models.rpg import RollProposal
 from afterworlds.pipeline.rpg.capability import (
     FIXED_DC_CHECKS,
@@ -71,7 +72,7 @@ from afterworlds.pipeline.rpg.capability import (
     certify,
 )
 from afterworlds.pipeline.rpg.conditions import effective
-from afterworlds.pipeline.rpg.dice import DiceService
+from afterworlds.pipeline.rpg.dice import DiceService, RollRequest, request
 from afterworlds.pipeline.rpg.grants import (
     ability_score,
     skill_proficiency,
@@ -745,6 +746,35 @@ def prepare(proposal: RollProposal, character: TurnCharacter) -> PreparedCheck:
     )
 
 
-def roll(prepared: PreparedCheck, dice: DiceService) -> RolledCheck:
-    result = dice.roll(prepared.expression)
+def describe(prepared: PreparedCheck, roller: tuple[str, str]) -> RollRequest:
+    """The check as a described roll (CRD Issue 15b)."""
+    skill = prepared.skill
+    label = _title(prepared.ability.value) + (
+        f" ({_title(skill.value)}) check" if skill else " check"
+    )
+    return RollRequest(
+        purpose=RollPurpose.SKILL_CHECK if skill else RollPurpose.ABILITY_CHECK,
+        roller=roller,
+        label=label,
+        modifiers=tuple(
+            (_title(key), value, prepared.certificate.operation.value)
+            for key, value in prepared.breakdown.items()
+        ),
+        dc=prepared.dc,
+        source_refs=tuple(
+            r for r in (prepared.identity, prepared.dc_source) if r is not None
+        ),
+    )
+
+
+def _title(key: str) -> str:
+    return key.replace("_", " ").capitalize()
+
+
+def roll(
+    prepared: PreparedCheck,
+    dice: DiceService,
+    roller: tuple[str, str],
+) -> RolledCheck:
+    result = request(dice, prepared.expression, describe(prepared, roller))
     return RolledCheck(prepared, result.raw_rolls, result.chosen)

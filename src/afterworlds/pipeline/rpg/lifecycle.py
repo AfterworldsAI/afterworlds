@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from uuid import uuid4
+from uuid import UUID
 
 from afterworlds.ingestion.mechanical.representation import (
     ConditionEffectFact,
@@ -40,7 +40,7 @@ from afterworlds.ingestion.mechanical.representation import (
     ZeroHitPointOutcomeFact,
 )
 from afterworlds.models.dnd5e_state import DeathState, StableRecovery
-from afterworlds.models.enums import ConditionVisibility
+from afterworlds.models.enums import ConditionVisibility, RollPurpose
 from afterworlds.models.rpg import RollProposal, SheetEffect
 from afterworlds.pipeline.rpg import checks, familiars
 from afterworlds.pipeline.rpg.capability import (
@@ -52,7 +52,8 @@ from afterworlds.pipeline.rpg.capability import (
 )
 from afterworlds.pipeline.rpg.conditions import cannot_act
 from afterworlds.pipeline.rpg.defense import facts_of
-from afterworlds.pipeline.rpg.dice import DiceService
+from afterworlds.pipeline.rpg.dice import DiceService, RollRequest, request
+from afterworlds.pipeline.rpg.ids import new_id
 from afterworlds.pipeline.rpg.saves import condition_modifiers, refuse_contributors
 from afterworlds.services.dnd5e_state.turn import (
     TurnCharacter,
@@ -265,7 +266,7 @@ def _end_unconscious(
                 "prone",
                 "apply_condition",
                 {
-                    "instance_id": str(uuid4()),
+                    "instance_id": new_id(),
                     "condition": ConditionKind.PRONE.value,
                     "visibility": ConditionVisibility.VISIBLE.value,
                     "source": {
@@ -331,14 +332,28 @@ def _becomes_stable(
         raise _refuse(RefusalKind.MISSING_AUTHORITY, "no typed counter reset")
     recovery = _one(subject, "stable", StableStateFact).recovery
     expr = recovery.dice
-    drawn = dice.roll(f"{expr.count}{expr.die.value}")
+    drawn = request(
+        dice,
+        f"{expr.count}{expr.die.value}",
+        RollRequest(
+            purpose=RollPurpose.DURATION,
+            roller=(_kind(subject), str(subject.subject_id)),
+            label="Recovery interval",
+            modifiers=(
+                (("Recovery modifier", expr.modifier, f"{_RULES}/stable"),)
+                if expr.modifier
+                else ()
+            ),
+            source_refs=(f"{_RULES}/stable",),
+        ),
+    )
     after = DeathState(
         successes=0,
         failures=0,
         stable=True,
         dead=False,
         stable_recovery=StableRecovery(
-            instance_id=str(uuid4()),
+            instance_id=new_id(),
             interval=drawn.chosen + expr.modifier,
             unit=recovery.unit,
         ),
@@ -350,9 +365,20 @@ def roll(prepared: PreparedDeathSave, dice: DiceService) -> RolledDeathSave:
     subject = prepared.subject
     death = subject.stored.state.death_state
     assert death is not None
-    result = dice.roll(prepared.expression)
-    face = result.chosen
     rule = prepared.rule
+    result = request(
+        dice,
+        prepared.expression,
+        RollRequest(
+            purpose=RollPurpose.SAVING_THROW,
+            roller=(_kind(subject), str(subject.subject_id)),
+            label="Death saving throw",
+            dc=rule.success_minimum,
+            naturals=((20, "critical_success"), (1, "critical_failure")),
+            source_refs=(f"{_RULES}/death_saving_throws",),
+        ),
+    )
+    face = result.chosen
     natural = prepared.naturals.get(face)
     if natural is not None and natural.regain_hit_points:
         effects = _regain(subject, natural.regain_hit_points)
@@ -416,6 +442,8 @@ class PreparedFirstAid:
     #: ``stabilizing`` (a dying subject) or ``knocking_out`` (a knockout).
     mode: str
     check: checks.PreparedCheck
+    #: The acting character giving first aid (it rolls the check).
+    helper: UUID
 
 
 def prepare_first_aid(
@@ -459,7 +487,7 @@ def prepare_first_aid(
             raise _refuse(
                 RefusalKind.MISSING_AUTHORITY, "first aid ending a knockout is untyped"
             )
-    return PreparedFirstAid(subject, mode, check)
+    return PreparedFirstAid(subject, mode, check, actor.subject_id)
 
 
 @dataclass(frozen=True)
@@ -485,7 +513,7 @@ class RolledFirstAid:
 
 
 def roll_first_aid(prepared: PreparedFirstAid, dice: DiceService) -> RolledFirstAid:
-    rolled = checks.roll(prepared.check, dice)
+    rolled = checks.roll(prepared.check, dice, ("character", str(prepared.helper)))
     subject = prepared.subject
     if rolled.outcome != "success":
         return RolledFirstAid(prepared, rolled, (), ())

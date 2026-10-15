@@ -62,6 +62,8 @@ class RefusalKind(StrEnum):
     STALE_BINDING = "stale_binding"
     INCOMPATIBLE_CERTIFICATION = "incompatible_certification"
     INVALID_SELECTION = "invalid_selection"
+    #: A player-rolled die where no action-resolution sequence can be
+    #: persisted (CRD Issue 15b's service is not wired).
     PLAYER_ROLL_UNSUPPORTED = "player_roll_unsupported"
 
 
@@ -543,7 +545,6 @@ EXCLUSIONS: tuple[str, ...] = (
     "general spell and feature execution",
     "general healing, rests and resurrection",
     "initiative order management and general encounter state",
-    "player-rolled dice (CRD Issue 15b/19b)",
     "ammunition recovery after a fight (the source rule is kept, not executed)",
 )
 

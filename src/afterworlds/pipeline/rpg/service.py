@@ -1,24 +1,23 @@
-"""RPG Adjudication pass service — CRD Issues 15 and 15c.
+"""RPG Adjudication pass service — CRD Issues 15, 15c and 15b.
 
 Responsibilities:
-  1. Normal path (no pending roll being consumed):
-       a. Render AssembledContext (the turn's one stable prefix) into a
-          ProviderCallRequest.
-       b. Call the LLM via forced tool use → AdjudicationProposalOutput. The
-          GameMaster's judgement is advisory: it names roster operations and
-          code-admitted identities, never numbers.
-       c. Refuse (typed, before anything else) proposals beyond
-          ADJUDICATION_MAX_ROLLS_PER_TURN and any proposal the story's dice
-          handling would hand to the player (CRD Issue 15b/19b's), so no
-          pending request is ever created here.
-       d. Validate and certify every proposal before any die is rolled.
-       e. Resolve each through D20RulesSystemAdapter + DiceService as a
-          backend shown/hidden roll → ResolvedAdjudicationRecord.
-       f. Return AdjudicationPassResult with resolved records + writer views.
-
-  2. Consume path (pending_roll_request + player_reported_total provided):
-       Legacy CRD Issue 15 path, retired by CRD Issue 15b (ADR-015b Group 9).
-       Unreachable from production: no pending-roll service is wired.
+  a. Render AssembledContext (the turn's one stable prefix) into a
+     ProviderCallRequest.
+  b. Call the LLM via forced tool use → AdjudicationProposalOutput. The
+     GameMaster's judgement is advisory: it names roster operations and
+     code-admitted identities, never numbers.
+  c. Refuse (typed, before anything else) proposals beyond
+     ADJUDICATION_MAX_ROLLS_PER_TURN.
+  d. Validate and certify every proposal before any die is rolled
+     (:meth:`RpgAdjudicationPassService.prepare_turn`).
+  e. Resolve each through D20RulesSystemAdapter
+     (:meth:`RpgAdjudicationPassService.resolve_turn`) with the turn's
+     :class:`~.steps.SequenceDice`. Who rolls each die follows the story's
+     dice handling (CRD Issue 15b): a player-rolled die of the acting
+     character, or a result-triggered decision, pauses the turn into an
+     action-resolution sequence; otherwise every die is a backend roll.
+  f. Return AdjudicationPassResult with resolved records + writer views, or
+     the sequence start of a paused turn.
 
 Architectural invariants enforced here:
   - Roll-authorship is structural: schema forbids result/DC/modifier fields on
@@ -36,9 +35,11 @@ from __future__ import annotations
 import json
 from collections import Counter
 from collections.abc import Callable
+from contextlib import AbstractContextManager, nullcontext
+from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
-from uuid import UUID
+from typing import TYPE_CHECKING, Any
+from uuid import UUID, uuid4
 
 from afterworlds.entitlement.enums import PipelinePassId
 from afterworlds.ingestion.mechanical.representation import ConditionKind
@@ -48,11 +49,11 @@ from afterworlds.models.enums import DiceHandling, RollVisibility
 from afterworlds.models.rpg import (
     AdjudicationProposalOutput,
     DiceResult,
-    PendingRollRequest,
     ResolvedAdjudicationRecord,
     RollProposal,
     SubjectRef,
     TurnUseRef,
+    WeaponAttackSelection,
     WriterAdjudicationView,
 )
 from afterworlds.pipeline._refusal import ProviderRefusalError
@@ -73,7 +74,6 @@ from afterworlds.pipeline.rpg import (
     creature_effects,
     economy,
 )
-from afterworlds.pipeline.rpg.adapter import PlayerRollValueError
 from afterworlds.pipeline.rpg.caller import (
     PRODUCE_ADJUDICATION_PROPOSALS_TOOL_NAME,
     PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC,
@@ -88,11 +88,17 @@ from afterworlds.pipeline.rpg.config import (
     ADJUDICATION_MAX_TOKENS,
     AdjudicationConfig,
 )
+from afterworlds.pipeline.rpg.dice import DecisionRequest, RollRequest
+from afterworlds.pipeline.rpg.dice import decide as dice_decide
+from afterworlds.pipeline.rpg.dice import request as dice_request
 from afterworlds.pipeline.rpg.models import (
+    ActionResolutionError,
     AdjudicationPassError,
     AdjudicationPassResult,
+    PlayerInputRequired,
     PreflightGapError,
 )
+from afterworlds.pipeline.rpg.steps import SequenceDice, SequenceStart
 from afterworlds.services.dnd5e_state.coordination import (
     EdgeRefused,
     StoredCoordination,
@@ -100,18 +106,18 @@ from afterworlds.services.dnd5e_state.coordination import (
     take_use,
 )
 from afterworlds.services.dnd5e_state.turn import (
+    TurnCharacter,
     TurnCreature,
+    TurnSubject,
     advanced,
     with_possible,
 )
 
 if TYPE_CHECKING:
-    from afterworlds.models.rules_package import ActiveRuleSlice
     from afterworlds.models.session import RpgSessionState
     from afterworlds.pipeline.provider._protocol import ProviderAdapter
     from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
     from afterworlds.pipeline.rpg.dice import DiceService
-    from afterworlds.services.dnd5e_state.turn import TurnCharacter, TurnSubject
 
 # ---------------------------------------------------------------------------
 # Prompt loading
@@ -206,6 +212,13 @@ class _CountingDice:
     def roll(self, expression: str) -> DiceResult:
         self.rolled += 1
         return self._inner.roll(expression)
+
+    def roll_described(self, expression: str, request: RollRequest) -> DiceResult:
+        self.rolled += 1
+        return dice_request(self._inner, expression, request)
+
+    def decide(self, request: DecisionRequest) -> str | None:
+        return dice_decide(self._inner, request)
 
 
 def _ammunition_supply(proposals: list[RollProposal], actor: TurnCharacter) -> None:
@@ -309,18 +322,14 @@ _ADJUDICATION_TOOL_DEF = ProviderToolDefinition(
 
 
 def _effective_visibility(
-    proposal_vis: RollVisibility,
-    dice_handling: DiceHandling,
-    has_pending: bool,
+    proposal_vis: RollVisibility, dice_handling: DiceHandling
 ) -> RollVisibility:
-    """Return the code-enforced visibility for a proposal.
+    """The code-enforced visibility of a proposal; the model's is advisory.
 
-    Model-emitted visibility is advisory; dice_handling mode is authoritative.
-    AI_ROLLS: PLAYER proposals are coerced to SHOWN (AI resolves all rolls).
-    PLAYER_ROLLS: all visible proposals (SHOWN or PLAYER) become PLAYER.
-      The caller's has_pending guard drops overflow visible proposals without
-      calling DiceService.  Returning PLAYER for overflow means "deferred",
-      not "create a second pending roll".  HIDDEN stays HIDDEN.
+    AI_ROLLS: a PLAYER proposal is coerced to SHOWN (the backend rolls).
+    PLAYER_ROLLS: a visible proposal (SHOWN or PLAYER) becomes PLAYER, whose
+    acting character's dice the Sojourner rolls (CRD Issue 15b); HIDDEN stays
+    HIDDEN and is always rolled by the backend.
     """
     if dice_handling is DiceHandling.AI_ROLLS:
         return (
@@ -328,11 +337,87 @@ def _effective_visibility(
             if proposal_vis is RollVisibility.PLAYER
             else proposal_vis
         )
-    # PLAYER_ROLLS: hidden is always code-resolved; all visible proposals → PLAYER.
-    # When has_pending=True the loop guard drops the overflow (no DiceService call).
     if proposal_vis is RollVisibility.HIDDEN:
         return RollVisibility.HIDDEN
     return RollVisibility.PLAYER
+
+
+def _decisions_offered(proposals: list[RollProposal]) -> None:
+    """Refuse, before any die, what would take a result-triggered decision
+    away from the Sojourner (CRD Issue 15b): knocking a target out instead of
+    reducing it to 0 Hit Points is the acting character's own decision when
+    its melee hit would do so, so the GameMaster never preselects it, and a
+    hidden melee attack, whose decision could not be offered without
+    revealing the hit, is refused."""
+    for proposal in proposals:
+        sel = proposal.weapon_attack
+        if sel is None:
+            continue
+        if sel.knock_out:
+            raise AdjudicationRefusal(
+                RefusalKind.INVALID_SELECTION,
+                "knocking a target out is the Sojourner's decision when a hit "
+                "would reduce it to 0 Hit Points; it is offered then, never "
+                "preselected",
+            )
+        if _melee(sel) and proposal.visibility is RollVisibility.HIDDEN:
+            raise AdjudicationRefusal(
+                RefusalKind.INVALID_SELECTION,
+                "a hidden melee attack by the acting character could not offer its "
+                "knockout decision without revealing the hit",
+            )
+
+
+def _melee(sel: WeaponAttackSelection) -> bool:
+    """A melee attack: made within reach and not thrown (a ranged weapon is
+    never within reach)."""
+    return sel.range == "within_reach" and not sel.thrown
+
+
+@dataclass
+class PreparedTurn:
+    """A turn's proposals with everything read and checked before any die
+    (:meth:`RpgAdjudicationPassService.prepare_turn`)."""
+
+    proposals: list[RollProposal]
+    sheet: TurnCharacter
+    subjects: dict[tuple[str, str], TurnSubject]
+    coordination: StoredCoordination | None
+    discovery: tuple[UUID, frozenset[tuple[str, str, int]]] | None
+    openers: dict[int, tuple[SubjectReference, str]]
+
+    def reads(self) -> dict[str, Any]:
+        """What the turn's work rests on, canonically: every subject's
+        revision, exact binding and holdings, the coordination and the
+        discovery snapshot. An action-resolution sequence requires it
+        unchanged at every advancement (CRD Issue 15b)."""
+
+        def subject(s: TurnSubject) -> dict[str, Any]:
+            return {
+                "revision": s.stored.revision,
+                "binding": s.stored.binding.model_dump(mode="json"),
+                "items": sorted([str(i.item_id), i.revision] for i in s.items),
+            }
+
+        coordination = self.coordination
+        return {
+            "actor": subject(self.sheet),
+            "subjects": {
+                f"{kind}:{sid}": subject(s)
+                for (kind, sid), s in sorted(self.subjects.items())
+            },
+            "coordination": (
+                None
+                if coordination is None
+                else {
+                    "revision": coordination.revision,
+                    "document": coordination.document.model_dump(mode="json"),
+                }
+            ),
+            "discovery": (
+                None if self.discovery is None else sorted(self.discovery[1])
+            ),
+        }
 
 
 # ---------------------------------------------------------------------------
@@ -392,108 +477,30 @@ class RpgAdjudicationPassService:
         provider: ProviderAdapter,
         story_id: UUID,
         originating_turn_id: UUID,
-        pending_roll: PendingRollRequest | None = None,
-        player_reported_total: int | None = None,
+        sequences: bool = False,
     ) -> AdjudicationPassResult:
         """Execute one adjudication pass and return a typed result.
 
-        Args:
-            built_context: AssembledContext from the Context Builder.  The
-                rules_package_slice on its stable_prefix is the active rule slice.
-            session_state: Current RpgSessionState (provides gm_cheating flag).
-            sheet: The active character (typed 2b state) for modifier assembly.
-            dice_service: Injected DiceService for roll randomness.
-            provider: ProviderAdapter for the LLM call (normal path only).
-            story_id: Story UUID, forwarded to PendingRollRequest.
-            originating_turn_id: Turn UUID for audit and PendingRollRequest.
-            pending_roll: Non-None on the consume path — the PendingRollRequest
-                being consumed this turn.
-            player_reported_total: Non-None on the consume path — the integer
-                total the player reported.
+        Every operation is validated and certified before any die. The turn's
+        operations then resolve in order with the turn's dice. When the
+        resolution needs the Sojourner (their own die in a player-rolled
+        story, or a result-triggered decision), it pauses: the result carries
+        the sequence start (:class:`~.steps.SequenceStart`) instead of
+        records, and nothing has an effect until the sequence is narrated
+        (CRD Issue 15b). A turn needing no player input resolves as in 15c.
+        ``originating_turn_id`` is recorded by the sequence when persisted.
 
-        Returns:
-            AdjudicationPassResult with resolved records, writer views, and
-            optional pending_roll_request.
+        *sequences* says whether the caller can persist a sequence (its
+        action-resolution service is wired). Without one the pass behaves as
+        in CRD Issue 15c: a proposal the dice handling hands to the player is
+        refused before anything is checked or rolled, and a knockout stays the
+        GameMaster's selection; nothing can pend.
 
         Raises:
             ProviderRefusalError: propagated unchanged for REFUSED_BY_PROVIDER.
             AdjudicationPassError: LLM call failure, missing tool block, schema
-                validation failure, or adapter error on normal path.
+                validation failure, a typed refusal, or adapter error.
         """
-        rule_slice: ActiveRuleSlice | None = (
-            built_context.stable_prefix.rules_package_slice
-        )
-
-        # -- Consume path --------------------------------------------------------
-        if pending_roll is not None and player_reported_total is not None:
-            return self._consume(
-                pending_roll,
-                player_reported_total,
-                rule_slice,
-                session_state,
-            )
-
-        # -- Normal path ---------------------------------------------------------
-        return self._normal(
-            built_context,
-            session_state,
-            sheet,
-            dice_service,
-            provider=provider,
-            rule_slice=rule_slice,
-            story_id=story_id,
-            originating_turn_id=originating_turn_id,
-        )
-
-    # -----------------------------------------------------------------------
-    # Consume path
-    # -----------------------------------------------------------------------
-
-    def _consume(
-        self,
-        pending: PendingRollRequest,
-        reported_total: int,
-        rule_slice: ActiveRuleSlice | None,
-        session_state: RpgSessionState,
-    ) -> AdjudicationPassResult:
-        """Resolve a player-reported roll against the stored PendingRollRequest.
-
-        No LLM call.  Token counts are None (code-only path).
-        """
-        try:
-            record = self._adapter.consume_player_roll(
-                pending,
-                reported_total,
-                rule_slice,
-                session_state.gm_cheating,
-            )
-        except PlayerRollValueError as exc:
-            raise AdjudicationPassError(
-                f"Player-reported roll rejected: {exc}"
-            ) from exc
-        writer_view = self._adapter.to_writer_view(record)
-        return AdjudicationPassResult(
-            proposals=(record,),
-            writer_views=(writer_view,),
-            pending_roll_request=None,
-        )
-
-    # -----------------------------------------------------------------------
-    # Normal path
-    # -----------------------------------------------------------------------
-
-    def _normal(
-        self,
-        built_context: AssembledContext,
-        session_state: RpgSessionState,
-        sheet: TurnCharacter,
-        dice_service: DiceService,
-        *,
-        provider: ProviderAdapter,
-        rule_slice: ActiveRuleSlice | None,
-        story_id: UUID,
-        originating_turn_id: UUID,
-    ) -> AdjudicationPassResult:
         # CRD Issue 15c: the identities a proposal may name, GameMaster-only.
         scene = (
             self._scene_loader(story_id, sheet)
@@ -541,23 +548,102 @@ class RpgAdjudicationPassService:
             p.model_copy(
                 update={
                     "visibility": _effective_visibility(
-                        p.visibility, session_state.dice_handling, False
+                        p.visibility, session_state.dice_handling
                     )
                 }
             )
             for p in output.rolls
         ]
-
-        # CRD Issue 15c: player-rolled dice are CRD Issue 15b/19b's. Refuse
-        # before any proposal is checked, rolled or announced, so no pending
-        # request can exist.
-        if any(p.visibility is RollVisibility.PLAYER for p in proposals):
+        if not sequences and any(
+            p.visibility is RollVisibility.PLAYER for p in proposals
+        ):
             raise AdjudicationRefusal(
                 RefusalKind.PLAYER_ROLL_UNSUPPORTED,
-                "this story's dice handling asks the player to roll; player-"
-                "rolled dice are CRD Issue 15b/19b's and are not resolved here",
+                "this story's dice handling asks the player to roll, and no "
+                "action-resolution sequence can be persisted here",
             )
+        usage = AdjudicationPassResult(
+            proposals=(),
+            writer_views=(),
+            provider=result.provider_name,
+            model_identifier=result.model_identifier,
+            model_tier=result.model_tier.value,
+            latency_ms=result.latency_ms,
+            input_token_count=result.input_token_count,
+            output_token_count=result.output_token_count,
+            cache_read_token_count=result.cache_read_token_count,
+            cache_creation_token_count=result.cache_creation_token_count,
+        )
+        prepared = self.prepare_turn(story_id, sheet, proposals, decisions=sequences)
+        if not sequences:
+            records: list[ResolvedAdjudicationRecord] = []
+            views = self.resolve_turn(
+                prepared, session_state.gm_cheating, dice_service, records
+            )
+            return usage.model_copy(
+                update={
+                    "subjects": tuple(prepared.subjects.values()),
+                    "coordination": prepared.coordination,
+                    "discovery": prepared.discovery,
+                    "proposals": tuple(records),
+                    "writer_views": tuple(views),
+                }
+            )
+        dice = SequenceDice(
+            backend=dice_service,
+            sequence_id=uuid4(),
+            actor=("character", str(sheet.subject_id)),
+            player_rolls=session_state.dice_handling is DiceHandling.PLAYER_ROLLS,
+        )
+        records = []
+        read = {
+            "subjects": tuple(prepared.subjects.values()),
+            "coordination": prepared.coordination,
+            "discovery": prepared.discovery,
+        }
+        try:
+            views = self.resolve_turn(
+                prepared, session_state.gm_cheating, dice, records
+            )
+        except PlayerInputRequired as pause:
+            start = SequenceStart(
+                sequence_id=dice.sequence_id,
+                proposals=tuple(prepared.proposals),
+                reads=prepared.reads(),
+                gm_cheating=session_state.gm_cheating,
+                player_rolls=dice.player_rolls,
+                records=tuple(records),
+                steps=tuple(dice.new_steps),
+                pause=pause,
+            )
+            return usage.model_copy(
+                update={
+                    **read,
+                    "writer_views": (start.announcement(),),
+                    "sequence": start,
+                }
+            )
+        return usage.model_copy(
+            update={**read, "proposals": tuple(records), "writer_views": tuple(views)}
+        )
 
+    def prepare_turn(
+        self,
+        story_id: UUID,
+        sheet: TurnCharacter,
+        proposals: list[RollProposal],
+        *,
+        decisions: bool = True,
+    ) -> PreparedTurn:
+        """Read every subject the proposals name and check every proposal
+        before any die is rolled (CRD Issues 2b, 15c). Dice-free and
+        deterministic for the same stored state, so an action-resolution
+        sequence repeats it to verify its reads (CRD Issue 15b).
+
+        *decisions*: the Sojourner's result-triggered decisions can be
+        offered (an action-resolution sequence can persist them). The
+        knockout is then theirs, never preselected, and a melee hit may leave
+        its target Unconscious whatever was selected."""
         subjects = self._load_subjects(story_id, sheet, proposals)
         coordination = self._load_coordination(story_id, proposals)
         discovery = None
@@ -586,6 +672,8 @@ class RpgAdjudicationPassService:
         self._limited_uses(proposals, subjects)
         _ammunition_supply(proposals, sheet)
         _species_once(proposals)
+        if decisions:
+            _decisions_offered(proposals)
         aura_holders = self._auras(story_id, sheet, proposals, subjects)
         # One subject's hand facts agree across the turn's operations: none
         # changes grip, so a difference is a contradiction.
@@ -650,8 +738,37 @@ class RpgAdjudicationPassService:
                 proposal, view, view_subjects
             ).items():
                 possible.setdefault(key, set()).update(kinds)
+            sel = proposal.weapon_attack
+            if decisions and sel is not None and _melee(sel):
+                # The knockout decision may leave the target Unconscious.
+                key = (sel.target.kind, str(sel.target.subject_id))
+                possible.setdefault(key, set()).add(ConditionKind.UNCONSCIOUS)
+        return PreparedTurn(
+            proposals=proposals,
+            sheet=sheet,
+            subjects=subjects,
+            coordination=coordination,
+            discovery=discovery,
+            openers=openers,
+        )
 
-        records: list[ResolvedAdjudicationRecord] = []
+    def resolve_turn(
+        self,
+        prepared: PreparedTurn,
+        gm_cheating: bool,
+        dice_service: DiceService,
+        records: list[ResolvedAdjudicationRecord],
+    ) -> list[WriterAdjudicationView]:
+        """Resolve the prepared operations in order; return their Writer
+        views. *records* holds what is already resolved: those operations are
+        folded from their records, never resolved again, and every newly
+        resolved one is appended. A sequence pause
+        (:class:`~.models.PlayerInputRequired`) passes through, leaving
+        *records* as resolved so far."""
+        proposals, sheet = prepared.proposals, prepared.sheet
+        subjects, openers = prepared.subjects, prepared.openers
+        coordination = prepared.coordination
+        done = len(records)
         views: list[WriterAdjudicationView] = []
         # Each operation reads the state the turn's earlier operations left
         # (CRD Issue 15c): two hits on one target compound. The snapshots the
@@ -660,72 +777,53 @@ class RpgAdjudicationPassService:
         current, current_subjects = sheet, dict(subjects)
         document = coordination.document if coordination is not None else None
         begun = False
+        method = getattr(type(dice_service), "operation", None)
+        operation = None if method is None else lambda i, h: method(dice_service, i, h)
         for index, proposal in enumerate(proposals):
-            sel = proposal.weapon_attack
-            creature = proposal.creature_attack
-            skipped = (sel is not None and sel.cleave and not _cleaves(records)) or (
-                creature is not None
-                and creature.follows_up
-                and not _follows_up(records)
-            )
-            if skipped:
-                record = self._adapter.not_triggered(
+            if index < done:
+                record = records[index]
+            else:
+                record, skipped = self._resolve_one(
                     proposal,
-                    session_state.gm_cheating,
-                    "cleave" if sel is not None else "follow_up",
-                )
-                records.append(record)
-                views.append(self._adapter.to_writer_view(record))
-                continue
-            counted = _CountingDice(dice_service)
-            try:
-                record = self._adapter.resolve_roll(
-                    proposal,
+                    index,
+                    records,
                     current,
-                    rule_slice,
-                    counted,
-                    session_state.gm_cheating,
                     current_subjects,
                     document,
+                    gm_cheating,
+                    dice_service,
+                    operation,
                 )
-            except AdjudicationRefusal as exc:
-                if records or counted.rolled:
-                    # Dice were rolled; discarding them would let a retry
-                    # reroll (Architecture Invariant 10). The preflight should
-                    # have refused this before any die: a defect, not a
-                    # refusal.
-                    raise PreflightGapError(
-                        f"{proposal.check_label!r} refused after earlier dice "
-                        f"were rolled, which the preflight missed: {exc}"
-                    ) from exc
-                raise
-            except Exception as exc:
-                raise AdjudicationPassError(
-                    f"Adapter failed to resolve proposal "
-                    f"{proposal.check_label!r}: {exc}"
-                ) from exc
-            records.append(record)
+                if document is not None and not skipped:
+                    # A Cleave or follow-up attack that is not triggered takes
+                    # no use.
+                    spent = _uses(document, proposal, current, subjects, index, openers)
+                    if spent:
+                        record = record.model_copy(
+                            update={
+                                "turn_uses": tuple(
+                                    TurnUseRef(
+                                        by=SubjectRef(
+                                            kind=u.by.kind,  # type: ignore[arg-type]
+                                            subject_id=u.by.subject_id,
+                                        ),
+                                        key=u.key,
+                                    )
+                                    for u in spent
+                                )
+                            }
+                        )
+                records.append(record)
             views.append(self._adapter.to_writer_view(record))
             if document is not None:
-                spent = _uses(document, proposal, current, subjects, index, openers)
-                for use in spent:
-                    document = take_use(document, use.by, use.key)
-                if spent:
-                    record = record.model_copy(
-                        update={
-                            "turn_uses": tuple(
-                                TurnUseRef(
-                                    by=SubjectRef(
-                                        kind=u.by.kind,  # type: ignore[arg-type]
-                                        subject_id=u.by.subject_id,
-                                    ),
-                                    key=u.key,
-                                )
-                                for u in spent
-                            )
-                        }
+                for use in record.turn_uses:
+                    document = take_use(
+                        document,
+                        SubjectReference(
+                            kind=use.by.kind, subject_id=use.by.subject_id
+                        ),
+                        use.key,
                     )
-                    records[-1] = record
             if record.turn_edge is not None and document is not None:
                 ref = record.turn_edge.subject
                 document, _ = apply_edge(
@@ -738,23 +836,65 @@ class RpgAdjudicationPassService:
             current, current_subjects = advanced(
                 current, current_subjects, record.sheet_effects
             )
+        return views
 
-        return AdjudicationPassResult(
-            proposals=tuple(records),
-            writer_views=tuple(views),
-            pending_roll_request=None,
-            subjects=tuple(subjects.values()),
-            coordination=coordination,
-            discovery=discovery,
-            provider=result.provider_name,
-            model_identifier=result.model_identifier,
-            model_tier=result.model_tier.value,
-            latency_ms=result.latency_ms,
-            input_token_count=result.input_token_count,
-            output_token_count=result.output_token_count,
-            cache_read_token_count=result.cache_read_token_count,
-            cache_creation_token_count=result.cache_creation_token_count,
+    def _resolve_one(
+        self,
+        proposal: RollProposal,
+        index: int,
+        records: list[ResolvedAdjudicationRecord],
+        current: TurnCharacter,
+        current_subjects: dict[tuple[str, str], TurnSubject],
+        document: TurnCoordination | None,
+        gm_cheating: bool,
+        dice_service: DiceService,
+        operation: Callable[[int, bool], AbstractContextManager[None]] | None,
+    ) -> tuple[ResolvedAdjudicationRecord, bool]:
+        """One operation's record, and whether it was skipped (an extra
+        attack whose trigger did not happen)."""
+        sel = proposal.weapon_attack
+        creature = proposal.creature_attack
+        skipped = (sel is not None and sel.cleave and not _cleaves(records)) or (
+            creature is not None and creature.follows_up and not _follows_up(records)
         )
+        if skipped:
+            record = self._adapter.not_triggered(
+                proposal, gm_cheating, "cleave" if sel is not None else "follow_up"
+            )
+            return record, True
+        counted = _CountingDice(dice_service)
+        hidden = proposal.visibility is RollVisibility.HIDDEN
+        scope = operation(index, hidden) if operation is not None else nullcontext()
+        try:
+            with scope:
+                resolved = self._adapter.resolve_roll(
+                    proposal,
+                    current,
+                    None,
+                    counted,
+                    gm_cheating,
+                    current_subjects,
+                    document,
+                )
+            return resolved, False
+        except PlayerInputRequired:
+            raise
+        except AdjudicationRefusal as exc:
+            if records or counted.rolled:
+                # Dice were rolled; discarding them would let a retry reroll
+                # (Architecture Invariant 10). The preflight should have
+                # refused this before any die: a defect, not a refusal.
+                raise PreflightGapError(
+                    f"{proposal.check_label!r} refused after earlier dice "
+                    f"were rolled, which the preflight missed: {exc}"
+                ) from exc
+            raise
+        except ActionResolutionError:
+            raise
+        except Exception as exc:
+            raise AdjudicationPassError(
+                f"Adapter failed to resolve proposal {proposal.check_label!r}: {exc}"
+            ) from exc
 
     def _load_subjects(
         self,

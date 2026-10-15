@@ -1,7 +1,10 @@
-"""Tests for dice-handling enforcement — CRD Issue 15 remediation.
+"""Tests for dice-handling enforcement — CRD Issues 15 and 15b.
 
-Covers _effective_visibility: model-emitted visibility is advisory;
-dice_handling mode is authoritative.
+Covers _effective_visibility: model-emitted visibility is advisory; the
+story's dice handling is authoritative. Under PLAYER_ROLLS a visible proposal
+is the Sojourner's to roll for the acting character's own dice (CRD Issue
+15b); the single-pending-roll overflow rule of CRD Issue 15 is retired with
+the persisted action-resolution sequence, so it has no input here.
 """
 
 from __future__ import annotations
@@ -11,134 +14,24 @@ import pytest
 from afterworlds.models.enums import DiceHandling, RollVisibility
 from afterworlds.pipeline.rpg.service import _effective_visibility
 
-# ---------------------------------------------------------------------------
-# AI_ROLLS mode
-# ---------------------------------------------------------------------------
-
-
-def test_ai_rolls_coerces_player_to_shown() -> None:
-    """AI_ROLLS + model emits PLAYER → coerce to SHOWN; no pending roll."""
-    result = _effective_visibility(RollVisibility.PLAYER, DiceHandling.AI_ROLLS, False)
-    assert result is RollVisibility.SHOWN
-
-
-def test_ai_rolls_coerces_player_even_when_pending_exists() -> None:
-    """AI_ROLLS always coerces PLAYER to SHOWN regardless of pending state."""
-    result = _effective_visibility(RollVisibility.PLAYER, DiceHandling.AI_ROLLS, True)
-    assert result is RollVisibility.SHOWN
-
-
-def test_ai_rolls_preserves_shown() -> None:
-    """AI_ROLLS + SHOWN proposal stays SHOWN."""
-    result = _effective_visibility(RollVisibility.SHOWN, DiceHandling.AI_ROLLS, False)
-    assert result is RollVisibility.SHOWN
-
-
-def test_ai_rolls_preserves_hidden() -> None:
-    """AI_ROLLS + HIDDEN proposal stays HIDDEN (hidden rolls are always AI-resolved)."""
-    result = _effective_visibility(RollVisibility.HIDDEN, DiceHandling.AI_ROLLS, False)
-    assert result is RollVisibility.HIDDEN
-
-
-# ---------------------------------------------------------------------------
-# PLAYER_ROLLS mode
-# ---------------------------------------------------------------------------
-
-
-def test_player_rolls_first_shown_becomes_player() -> None:
-    """PLAYER_ROLLS + first SHOWN proposal → coerce to PLAYER (create pending)."""
-    result = _effective_visibility(
-        RollVisibility.SHOWN, DiceHandling.PLAYER_ROLLS, False
-    )
-    assert result is RollVisibility.PLAYER
-
-
-def test_player_rolls_shown_pending_exists_deferred_as_player() -> None:
-    """PLAYER_ROLLS + SHOWN + pending exists → PLAYER; overflow is deferred."""
-    result = _effective_visibility(
-        RollVisibility.SHOWN, DiceHandling.PLAYER_ROLLS, True
-    )
-    assert result is RollVisibility.PLAYER
-
-
-def test_player_rolls_player_pending_exists_deferred() -> None:
-    """PLAYER_ROLLS + PLAYER + pending exists → PLAYER (visible overflow deferred)."""
-    result = _effective_visibility(
-        RollVisibility.PLAYER, DiceHandling.PLAYER_ROLLS, True
-    )
-    assert result is RollVisibility.PLAYER
-
-
-def test_player_rolls_hidden_pending_exists_still_code_resolved() -> None:
-    """PLAYER_ROLLS + HIDDEN + pending exists → HIDDEN (hidden always code-resolved)."""
-    result = _effective_visibility(
-        RollVisibility.HIDDEN, DiceHandling.PLAYER_ROLLS, True
-    )
-    assert result is RollVisibility.HIDDEN
-
-
-def test_player_rolls_preserves_player_proposal_first() -> None:
-    """PLAYER_ROLLS + model emits PLAYER when no pending → stays PLAYER."""
-    result = _effective_visibility(
-        RollVisibility.PLAYER, DiceHandling.PLAYER_ROLLS, False
-    )
-    assert result is RollVisibility.PLAYER
-
-
-def test_player_rolls_preserves_hidden() -> None:
-    """PLAYER_ROLLS + HIDDEN → stays HIDDEN (hidden rolls are always AI-resolved)."""
-    result = _effective_visibility(
-        RollVisibility.HIDDEN, DiceHandling.PLAYER_ROLLS, False
-    )
-    assert result is RollVisibility.HIDDEN
-
-
-def test_player_rolls_hidden_unchanged_even_when_no_pending() -> None:
-    """PLAYER_ROLLS + HIDDEN + no pending → still HIDDEN."""
-    result = _effective_visibility(
-        RollVisibility.HIDDEN, DiceHandling.PLAYER_ROLLS, False
-    )
-    assert result is RollVisibility.HIDDEN
-
-
-# ---------------------------------------------------------------------------
-# Exhaustive matrix check
-# ---------------------------------------------------------------------------
-
 
 @pytest.mark.parametrize(
-    ("proposal_vis", "dice_handling", "has_pending", "expected"),
+    ("proposal_vis", "dice_handling", "expected"),
     [
-        # AI_ROLLS: PLAYER → SHOWN; others unchanged
-        (RollVisibility.PLAYER, DiceHandling.AI_ROLLS, False, RollVisibility.SHOWN),
-        (RollVisibility.PLAYER, DiceHandling.AI_ROLLS, True, RollVisibility.SHOWN),
-        (RollVisibility.SHOWN, DiceHandling.AI_ROLLS, False, RollVisibility.SHOWN),
-        (RollVisibility.SHOWN, DiceHandling.AI_ROLLS, True, RollVisibility.SHOWN),
-        (RollVisibility.HIDDEN, DiceHandling.AI_ROLLS, False, RollVisibility.HIDDEN),
-        (RollVisibility.HIDDEN, DiceHandling.AI_ROLLS, True, RollVisibility.HIDDEN),
-        # PLAYER_ROLLS: all visible (SHOWN or PLAYER) → PLAYER; HIDDEN unchanged
-        (RollVisibility.SHOWN, DiceHandling.PLAYER_ROLLS, False, RollVisibility.PLAYER),
-        (RollVisibility.SHOWN, DiceHandling.PLAYER_ROLLS, True, RollVisibility.PLAYER),
-        (
-            RollVisibility.PLAYER,
-            DiceHandling.PLAYER_ROLLS,
-            False,
-            RollVisibility.PLAYER,
-        ),
-        (RollVisibility.PLAYER, DiceHandling.PLAYER_ROLLS, True, RollVisibility.PLAYER),
-        (
-            RollVisibility.HIDDEN,
-            DiceHandling.PLAYER_ROLLS,
-            False,
-            RollVisibility.HIDDEN,
-        ),
-        (RollVisibility.HIDDEN, DiceHandling.PLAYER_ROLLS, True, RollVisibility.HIDDEN),
+        # AI_ROLLS: PLAYER → SHOWN (the backend rolls); others unchanged.
+        (RollVisibility.PLAYER, DiceHandling.AI_ROLLS, RollVisibility.SHOWN),
+        (RollVisibility.SHOWN, DiceHandling.AI_ROLLS, RollVisibility.SHOWN),
+        (RollVisibility.HIDDEN, DiceHandling.AI_ROLLS, RollVisibility.HIDDEN),
+        # PLAYER_ROLLS: every visible proposal → PLAYER; HIDDEN stays HIDDEN
+        # and is always rolled by the backend.
+        (RollVisibility.SHOWN, DiceHandling.PLAYER_ROLLS, RollVisibility.PLAYER),
+        (RollVisibility.PLAYER, DiceHandling.PLAYER_ROLLS, RollVisibility.PLAYER),
+        (RollVisibility.HIDDEN, DiceHandling.PLAYER_ROLLS, RollVisibility.HIDDEN),
     ],
 )
 def test_effective_visibility_matrix(
     proposal_vis: RollVisibility,
     dice_handling: DiceHandling,
-    has_pending: bool,
     expected: RollVisibility,
 ) -> None:
-    assert _effective_visibility(proposal_vis, dice_handling, has_pending) is expected
+    assert _effective_visibility(proposal_vis, dice_handling) is expected

@@ -647,19 +647,19 @@ def test_an_equipped_magic_item_refuses() -> None:
     )
 
 
-def test_a_player_roll_is_refused_before_preparation() -> None:
-    with pytest.raises(AdjudicationRefusal) as caught:
-        D20RulesSystemAdapter().require_supported(
-            _proposal(visibility=RollVisibility.PLAYER), srd_character()
-        )
-    assert caught.value.kind is RefusalKind.PLAYER_ROLL_UNSUPPORTED
+def test_a_player_roll_is_validated_like_a_backend_one() -> None:
+    """CRD Issue 15b: who rolls is the sequence's concern; the check is
+    validated and certified the same way before any die."""
+    D20RulesSystemAdapter().require_supported(
+        _proposal(visibility=RollVisibility.PLAYER), srd_character()
+    )
 
 
 def test_prepare_is_pure_and_matches_the_rolled_record() -> None:
     character = srd_character()
     prepared = checks.prepare(_proposal(), character)
     assert (prepared.dc, prepared.modifier, prepared.expression) == (15, -1, "1d20")
-    rolled = checks.roll(prepared, _dice(12))
+    rolled = checks.roll(prepared, _dice(12), ("character", str(uuid4())))
     assert (rolled.total, rolled.outcome) == (11, "failure")
 
 

@@ -41,6 +41,7 @@ from afterworlds.ingestion.mechanical.representation import (
     RollActor,
     RollContext,
 )
+from afterworlds.models.enums import RollPurpose
 from afterworlds.pipeline.rpg.capability import (
     SAVE_PROCEDURE,
     AdjudicationRefusal,
@@ -48,7 +49,7 @@ from afterworlds.pipeline.rpg.capability import (
 )
 from afterworlds.pipeline.rpg.conditions import effective
 from afterworlds.pipeline.rpg.defense import template as template_of
-from afterworlds.pipeline.rpg.dice import DiceService
+from afterworlds.pipeline.rpg.dice import DiceService, RollRequest, request
 from afterworlds.pipeline.rpg.grants import ability_score, save_proficiency
 from afterworlds.pipeline.rpg.mastery import other_effects
 from afterworlds.services.dnd5e_state.authority import AuthorityIndex
@@ -567,5 +568,19 @@ def prepare(
 def roll(prepared: PreparedSave, dice: DiceService) -> RolledSave:
     if prepared.automatic_failure:
         return RolledSave(prepared, (), None)
-    result = dice.roll(prepared.expression)
+    result = request(
+        dice,
+        prepared.expression,
+        RollRequest(
+            purpose=RollPurpose.SAVING_THROW,
+            roller=(prepared.subject_kind, prepared.subject_id),
+            label=f"{prepared.ability.value.capitalize()} saving throw",
+            modifiers=tuple(
+                (key.replace("_", " ").capitalize(), value, prepared.dc_source)
+                for key, value in prepared.breakdown.items()
+            ),
+            dc=prepared.dc,
+            source_refs=(prepared.dc_source,),
+        ),
+    )
     return RolledSave(prepared, result.raw_rolls, result.chosen)

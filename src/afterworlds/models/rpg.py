@@ -13,8 +13,9 @@ Architectural invariants enforced here:
   the Writer or the Sojourner.
 - ``WriterAdjudicationView`` is the visibility-filtered Writer-facing record.
   For HIDDEN rolls, ``total``, ``dc``, and ``outcome`` are None.
-- ``hidden_modifier_present`` on ``PendingRollRequest`` is INTERNAL ONLY and
-  must never appear in any player-facing output, prompt, or DTO.
+- Hidden modifiers and their existence, an instruction's backend-only fields
+  and a decision's effects never appear in a player-facing view (CRD Issue
+  15b, 15b-17).
 - ``RpgVisibleState`` is character-visible only; hidden state excluded by
   construction.
 """
@@ -22,12 +23,25 @@ Architectural invariants enforced here:
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Annotated, Literal, Self
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from afterworlds.models.enums import ConditionVisibility, RollVisibility
+from afterworlds.models.enums import (
+    ActionResolutionStatus,
+    ConditionVisibility,
+    DiceSelectionRule,
+    ModifierVisibility,
+    ResolvedStepKind,
+    RollAdjustmentTiming,
+    RollContribution,
+    RollPurpose,
+    RollSubmissionSource,
+    RollVisibility,
+    RpgInteractionPhase,
+    SequenceInteractionKind,
+)
 
 # ---------------------------------------------------------------------------
 # Roll proposal DTOs (model-emitted; no trust-relevant numbers)
@@ -430,19 +444,16 @@ class WriterAdjudicationView(BaseModel):
 
 
 class PendingRollRequest(BaseModel):
-    """Persisted state for a player-roll request spanning two turns.
+    """A persisted player-roll request, one step of an action-resolution
+    sequence (CRD Issue 15b).
 
-    Created on the announce turn; consumed on the turn the Sojourner reports
-    the result.  Stores the code-derived roll terms snapshot so consumption
-    validates against what was announced, not freshly recomputed state.
-
-    ``hidden_modifier_present`` is INTERNAL ONLY — it must never appear in
-    ``WriterAdjudicationView``, ``RpgVisibleState``, player-facing prompts,
-    or delivered output.
-
-    ``adapter_context_hash`` surfaces sheet-state drift between announce and
-    consume.  In v1, a mismatch produces a diagnostic but does NOT trigger
-    recomputation or changed resolution.
+    Revised per ADR-015b's Column Disposition and Owner Decision 15b-36: the
+    eight legacy display/derivation fields are gone; the structured
+    ``instruction_snapshot_json`` is the only instruction authority, and
+    display text derives from it. ``schema_version`` is a diagnostic marker
+    (2 when a structured instruction is linked); ``instruction_id is None``
+    is the signal code checks. ``adapter_context_hash`` is a non-authoritative
+    internal drift diagnostic.
     """
 
     model_config = ConfigDict(extra="forbid")
@@ -451,22 +462,605 @@ class PendingRollRequest(BaseModel):
     story_id: UUID
     session_id: UUID
     character_id: UUID
-    check_label: str
-    player_facing_instruction: str
-    expected_value_shape: str
-    visible_modifier_note: str | None = None
     visibility: RollVisibility
     source_proposal_ref: str
     originating_turn_id: UUID
     consumed_turn_id: UUID | None = None
     status: Literal["pending", "consumed", "cancelled", "expired"] = "pending"
     created_at: datetime
-    schema_version: Literal[1] = 1
-    roll_expression: str
-    visible_modifier_total: int | None = None
-    visible_modifier_breakdown_json: str | None = None
-    hidden_modifier_present: bool = False
+    schema_version: Literal[1, 2] = 2
     adapter_context_hash: str | None = None
+    sequence_id: UUID | None = None
+    step_id: UUID | None = None
+    instruction_id: UUID | None = None
+    instruction_revision: int | None = None
+    instruction_schema_version: int | None = None
+    instruction_snapshot_json: str | None = None
+
+
+# ---------------------------------------------------------------------------
+# Roll instruction contract (CRD Issue 15b, ADR-015b Group 2)
+# ---------------------------------------------------------------------------
+
+_Outcome = Literal[
+    "success", "failure", "critical_success", "critical_failure", "undetermined"
+]
+
+#: The roll purposes whose instruction compares a total against a target.
+_MAX_DICE = 100
+_MAX_SIDES = 1000
+
+
+class RollTerm(BaseModel):
+    """One independently meaningful dice term (15b-4, 15b-5).
+
+    Bounded positive ``count``/``sides``; ``keep_count`` only for a keep
+    rule, then ``1 <= keep_count <= count``. No formula is executed.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    term_id: UUID
+    count: int = Field(gt=0, le=_MAX_DICE)
+    sides: int = Field(gt=1, le=_MAX_SIDES)
+    selection_rule: DiceSelectionRule
+    keep_count: int | None = None
+    contribution: RollContribution = RollContribution.ADD
+    label: str | None = None
+
+    @model_validator(mode="after")
+    def _keep_count_matches_rule(self) -> Self:
+        if self.selection_rule is DiceSelectionRule.SUM_ALL:
+            if self.keep_count is not None:
+                raise ValueError("keep_count is only for keep-highest/keep-lowest")
+        elif self.keep_count is None or not 1 <= self.keep_count <= self.count:
+            raise ValueError(
+                f"keep_count must be between 1 and count ({self.count}), "
+                f"got {self.keep_count}"
+            )
+        return self
+
+
+class RollModifierComponent(BaseModel):
+    """One code-owned integer modifier of an instruction. A ``HIDDEN``
+    component never reaches a player view, nor does its existence."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    modifier_id: UUID
+    label: str
+    value: int
+    visibility: ModifierVisibility
+    source_kind: str
+    source_reference: str | None = None
+
+
+class RollAdjustmentOption(BaseModel):
+    """A parameterless, backend-derived adjustment of a pending roll (15b-9,
+    15b-10). ``ability_id`` (the feature or rule granting it) is backend-only."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    option_id: str
+    ability_id: str
+    timing: RollAdjustmentTiming
+    player_visible_label: str
+    resource_preview: str | None = None
+
+
+class NaturalOutcome(BaseModel):
+    """A die face whose outcome the rules fix whatever the total (an attack's
+    natural 20 or 1; a death save's). Backend-only."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    face: int
+    outcome: _Outcome
+
+
+class ContestLinkage(BaseModel):
+    """Backend-only contest linkage on a participant's instruction (ADR-015b
+    Group 17): the contest, both participants and the supplement
+    certificate. ``counterpart_perceived`` is the GameMaster-selected fact
+    that the acting character perceives the opposition."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    contest_id: UUID
+    participant: SubjectRef
+    counterpart: SubjectRef
+    counterpart_perceived: bool
+    certificate: dict[str, str]
+
+
+class RollInstructionSnapshot(BaseModel):
+    """The authoritative structured roll instruction (15b-3).
+
+    ``display_expression``/``display_label`` are display text only. ``dc`` is
+    the code-verified target, ``None`` when nothing is compared. The fields
+    after ``step_id`` are backend-only and never enter a player view: who
+    rolls, the operation and die it belongs to in its sequence, natural-face
+    outcomes, an automatic Critical Hit on success, and contest linkage.
+    """
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    instruction_id: UUID
+    instruction_revision: int = Field(ge=1)
+    purpose: RollPurpose
+    terms: tuple[RollTerm, ...] = Field(min_length=1)
+    modifier_components: tuple[RollModifierComponent, ...]
+    display_expression: str
+    display_label: str
+    dc: int | None = None
+    source_rule_refs: tuple[str, ...]
+    adjustment_options: tuple[RollAdjustmentOption, ...] = ()
+    sequence_id: UUID
+    step_id: UUID
+    roller: SubjectRef
+    operation_index: int = Field(ge=0)
+    die_index: int = Field(ge=0)
+    natural_outcomes: tuple[NaturalOutcome, ...] = ()
+    critical_on_success: bool = False
+    contest: ContestLinkage | None = None
+
+    @model_validator(mode="after")
+    def _distinct_ids(self) -> Self:
+        terms = [t.term_id for t in self.terms]
+        if len(set(terms)) != len(terms):
+            raise ValueError("term_id values are unique within an instruction")
+        options = [o.option_id for o in self.adjustment_options]
+        if len(set(options)) != len(options):
+            raise ValueError("adjustment option ids are unique")
+        return self
+
+
+class PlayerRollTermView(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    term_id: UUID
+    count: int
+    sides: int
+    selection_rule: DiceSelectionRule
+    keep_count: int | None = None
+    contribution: RollContribution
+    label: str | None = None
+
+
+class PlayerModifierView(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    modifier_id: UUID
+    label: str
+    value: int
+
+
+class PlayerAdjustmentOptionView(BaseModel):
+    """``ability_id`` is deliberately absent: it is backend-only."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    option_id: str
+    player_visible_label: str
+    resource_preview: str | None = None
+
+
+class SequenceProgressView(BaseModel):
+    """``step_index`` is 1-based and counts the player's own interactions
+    only; ``known_step_count`` is ``None`` when later steps depend on
+    unresolved outcomes."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    step_index: int = Field(ge=1)
+    known_step_count: int | None = None
+    step_label: str | None = None
+    sequence_label: str | None = None
+
+
+class PlayerRollInstructionView(BaseModel):
+    """The player-visible projection of a pending roll (15b-17)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    pending_roll_request_id: UUID
+    sequence_id: UUID
+    instruction_id: UUID
+    instruction_revision: int
+    purpose: RollPurpose
+    interaction_phase: Literal[RpgInteractionPhase.PENDING_ROLL]
+    progress: SequenceProgressView
+    display_label: str
+    display_expression: str
+    terms: tuple[PlayerRollTermView, ...]
+    visible_modifiers: tuple[PlayerModifierView, ...]
+    visible_modifier_total: int
+    adjustment_options: tuple[PlayerAdjustmentOptionView, ...]
+
+
+# ---------------------------------------------------------------------------
+# Mechanical decision contract (ADR-015b Group 16, 15b-35)
+# ---------------------------------------------------------------------------
+
+
+class MechanicalDecisionOptionSnapshot(BaseModel):
+    """``source_rule_ref`` and ``provisional_effects_json`` are backend-only."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    option_id: str
+    player_visible_label: str
+    source_rule_ref: str | None = None
+    provisional_effects_json: str
+
+
+class MechanicalDecisionSnapshot(BaseModel):
+    """The stored authority of a pending decision. Validation and the
+    event/audit reconstruction read only this, never live state."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    decision_id: UUID
+    decision_revision: int = Field(ge=1)
+    prompt: str
+    options: tuple[MechanicalDecisionOptionSnapshot, ...] = Field(min_length=1)
+    source_rule_refs: tuple[str, ...]
+    sequence_id: UUID
+    step_id: UUID
+
+    @model_validator(mode="after")
+    def _distinct_options(self) -> Self:
+        ids = [o.option_id for o in self.options]
+        if len(set(ids)) != len(ids):
+            raise ValueError("option_id values are unique within a decision")
+        return self
+
+
+class MechanicalDecisionOption(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    option_id: str
+    player_visible_label: str
+
+
+class PendingMechanicalDecisionView(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    decision_request_id: UUID
+    sequence_id: UUID
+    decision_revision: int
+    interaction_phase: Literal[RpgInteractionPhase.PENDING_MECHANICAL_DECISION]
+    prompt: str
+    options: tuple[MechanicalDecisionOption, ...]
+
+
+class MechanicalDecisionSubmission(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    decision_request_id: UUID
+    expected_decision_revision: int
+    option_id: str
+
+
+class ActionResolutionAdvanceResult(BaseModel):
+    """Exactly the payload matching ``interaction_phase``; neither when ready."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    sequence_id: UUID
+    interaction_phase: RpgInteractionPhase
+    pending_roll: PlayerRollInstructionView | None = None
+    pending_decision: PendingMechanicalDecisionView | None = None
+
+    @model_validator(mode="after")
+    def _one_payload(self) -> Self:
+        expected = (
+            self.interaction_phase is RpgInteractionPhase.PENDING_ROLL,
+            self.interaction_phase is RpgInteractionPhase.PENDING_MECHANICAL_DECISION,
+        )
+        actual = (self.pending_roll is not None, self.pending_decision is not None)
+        if expected != actual:
+            raise ValueError("the payload must match interaction_phase")
+        return self
+
+
+# ---------------------------------------------------------------------------
+# Player-roll submissions (15b-14, 15b-15)
+# ---------------------------------------------------------------------------
+
+
+class PlayerRollTermResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    term_id: UUID
+    values: tuple[int, ...]
+
+
+class RawPlayerRollSubmission(BaseModel):
+    """Raw values grouped by ``term_id``. No formula, modifier, target,
+    outcome or total is submitted; the backend derives them."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    source: Literal["inline_ui", "physical_self_report"]
+    pending_roll_request_id: UUID
+    expected_instruction_revision: int
+    term_results: tuple[PlayerRollTermResult, ...]
+
+
+class PhysicalAggregateRollSubmission(BaseModel):
+    """A physical report of the total only: the player's dice plus the
+    visible modifiers they were shown. No raw die is ever fabricated."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    source: Literal["physical_self_report"]
+    pending_roll_request_id: UUID
+    expected_instruction_revision: int
+    reported_aggregate: int
+
+
+RollSubmission = Annotated[
+    RawPlayerRollSubmission | PhysicalAggregateRollSubmission,
+    Field(union_mode="left_to_right"),
+]
+
+
+# ---------------------------------------------------------------------------
+# Resolved steps and the ready bundle
+# ---------------------------------------------------------------------------
+
+
+class DerivedRollTermResult(BaseModel):
+    """``selected_indices`` are zero-based indexes into ``values``: every one
+    for ``SUM_ALL``, the kept dice for a keep rule, so kept and omitted dice
+    stay reconstructable."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    term_id: UUID
+    values: tuple[int, ...]
+    selected_indices: tuple[int, ...]
+    contribution_applied_subtotal: int
+
+
+class ResolvedSequenceStep(BaseModel):
+    """One accepted step. The sequence's provisional working view only; the
+    durable provenance is the event ledger (15b-34)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    sequence_id: UUID
+    step_id: UUID
+    step_index: int = Field(ge=1)
+    kind: ResolvedStepKind
+    instruction_snapshot: RollInstructionSnapshot | None = None
+    submission_source: RollSubmissionSource | None = None
+    submitted_term_results: tuple[PlayerRollTermResult, ...] | None = None
+    reported_aggregate: int | None = None
+    raw_values_complete: bool | None = None
+    derived_term_results: tuple[DerivedRollTermResult, ...] = ()
+    authoritative_total: int | None = None
+    internal_outcome: _Outcome | None = None
+    decision_snapshot: MechanicalDecisionSnapshot | None = None
+    accepted_option_id: str | None = None
+    writer_view: WriterAdjudicationView | None = None
+    provisional_effects: tuple[SheetEffect, ...] = ()
+
+
+class ReadyActionResolutionBundle(BaseModel):
+    """The complete internal bundle of a ready sequence. The orchestrator
+    passes only the visibility-filtered ``writer_views`` to the Writer."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    sequence_id: UUID
+    story_id: UUID
+    session_id: UUID
+    node_id: UUID
+    character_id: UUID
+    originating_turn_id: UUID
+    originating_user_input: str
+    resolved_steps: tuple[ResolvedSequenceStep, ...]
+    writer_views: tuple[WriterAdjudicationView, ...]
+    accumulated_provisional_effects: tuple[SheetEffect, ...]
+
+
+class ActionResolutionSequence(BaseModel):
+    """A persisted sequence: one declared action or linked action group.
+
+    At most one unresolved sequence per story (partial unique index); at most
+    one pending interaction."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    sequence_id: UUID
+    story_id: UUID
+    session_id: UUID
+    node_id: UUID
+    character_id: UUID
+    originating_turn_id: UUID
+    status: ActionResolutionStatus
+    current_interaction_kind: SequenceInteractionKind
+    current_pending_roll_request_id: UUID | None = None
+    current_decision_request_id: UUID | None = None
+    resolved_steps: tuple[ResolvedSequenceStep, ...]
+    projected_state_json: str
+    provisional_effects_json: str
+    created_at: datetime
+    updated_at: datetime
+
+    @model_validator(mode="after")
+    def _one_interaction(self) -> Self:
+        if (
+            self.current_pending_roll_request_id is not None
+            and self.current_decision_request_id is not None
+        ):
+            raise ValueError("a sequence exposes one pending interaction at most")
+        return self
+
+
+# ---------------------------------------------------------------------------
+# Action-resolution event ledger (ADR-015b Group 15, 15b-34)
+# ---------------------------------------------------------------------------
+
+
+class ContestParticipantResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    subject: SubjectRef
+    step_id: UUID
+    total: int
+
+
+class ContestResolution(BaseModel):
+    """The combined result of a generic contest (Group 17), computed once by
+    code when the second total is accepted. Higher total wins; equal totals
+    are a tie that preserves the prior situation (no winner, no effect)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    contest_id: UUID
+    participants: tuple[ContestParticipantResult, ContestParticipantResult]
+    result: Literal["win", "tie"]
+    winner: SubjectRef | None
+    certificate: dict[str, str]
+
+    @model_validator(mode="after")
+    def _winner_matches(self) -> Self:
+        a, b = self.participants
+        if a.total == b.total:
+            if self.result != "tie" or self.winner is not None:
+                raise ValueError("equal totals are a tie with no winner")
+        else:
+            best = a if a.total > b.total else b
+            if self.result != "win" or self.winner != best.subject:
+                raise ValueError("the higher total wins")
+        return self
+
+
+class RollEventPayload(BaseModel):
+    """A ``PLAYER_ROLL``/``AI_ROLL``/``HIDDEN_ROLL`` event. ``total`` and
+    ``outcome`` are never null; only the snapshot's ``dc`` may be.
+    ``pending_roll_request_id`` is set exactly for player rolls.
+    ``contest_resolution`` is set only on a contest-completing roll."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    kind: Literal[
+        ResolvedStepKind.PLAYER_ROLL,
+        ResolvedStepKind.AI_ROLL,
+        ResolvedStepKind.HIDDEN_ROLL,
+    ]
+    instruction_snapshot: RollInstructionSnapshot
+    submission_source: RollSubmissionSource
+    pending_roll_request_id: UUID | None
+    raw_input_json: str | None
+    aggregate_input_json: str | None
+    derived_selections_json: str
+    subtotal: int | None
+    total: int
+    outcome: _Outcome
+    gm_cheating_at_roll: bool
+    contest_resolution: ContestResolution | None = None
+
+    @model_validator(mode="after")
+    def _source_consistency(self) -> Self:
+        player = self.kind is ResolvedStepKind.PLAYER_ROLL
+        backend = self.submission_source is RollSubmissionSource.BACKEND_DICE_SERVICE
+        if player == backend:
+            raise ValueError(
+                "a player roll arrives inline or by physical report; an AI or "
+                "hidden roll by the backend dice service"
+            )
+        if player != (self.pending_roll_request_id is not None):
+            raise ValueError("pending_roll_request_id is set exactly for player rolls")
+        if (self.raw_input_json is None) == (self.aggregate_input_json is None):
+            raise ValueError("exactly one of raw or aggregate input is recorded")
+        if self.instruction_snapshot.dc is None and self.outcome != "undetermined":
+            raise ValueError("a roll with no target resolves undetermined")
+        return self
+
+
+class AdjustmentEventPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    kind: Literal[ResolvedStepKind.ADJUSTMENT] = ResolvedStepKind.ADJUSTMENT
+    resulting_instruction_snapshot: RollInstructionSnapshot
+    accepted_adjustment_option_id: str
+
+
+class MechanicalDecisionEventPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    kind: Literal[ResolvedStepKind.MECHANICAL_DECISION] = (
+        ResolvedStepKind.MECHANICAL_DECISION
+    )
+    decision_snapshot: MechanicalDecisionSnapshot
+    accepted_decision_option_id: str
+
+
+EventPayload = Annotated[
+    RollEventPayload | AdjustmentEventPayload | MechanicalDecisionEventPayload,
+    Field(discriminator="kind"),
+]
+
+
+class ActionResolutionEvent(BaseModel):
+    """One immutable, append-only accepted mechanical outcome. Its common
+    envelope carries the stable story/session/character identity, so the final
+    audit never joins sequence or session state."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    event_id: UUID
+    sequence_id: UUID
+    step_id: UUID
+    story_id: UUID
+    session_id: UUID
+    character_id: UUID
+    event_order: int = Field(ge=1)
+    kind: ResolvedStepKind
+    mechanical_provenance: str
+    provisional_effects_json: str
+    created_at: datetime
+    payload: EventPayload
+
+    @model_validator(mode="after")
+    def _kind_matches_payload(self) -> Self:
+        if self.kind is not self.payload.kind:
+            raise ValueError(
+                f"kind {self.kind.value} must match payload kind "
+                f"{self.payload.kind.value}"
+            )
+        return self
 
 
 # ---------------------------------------------------------------------------
@@ -538,12 +1132,43 @@ class RpgVisibleState(BaseModel):
 
 
 __all__ = [
+    "ActionResolutionAdvanceResult",
+    "ActionResolutionEvent",
+    "ActionResolutionSequence",
     "AdjudicationProposalOutput",
+    "AdjustmentEventPayload",
+    "ContestLinkage",
+    "ContestParticipantResult",
+    "ContestResolution",
+    "DerivedRollTermResult",
     "DiceResult",
+    "MechanicalDecisionEventPayload",
+    "MechanicalDecisionOption",
+    "MechanicalDecisionOptionSnapshot",
+    "MechanicalDecisionSnapshot",
+    "MechanicalDecisionSubmission",
+    "NaturalOutcome",
+    "PendingMechanicalDecisionView",
     "PendingRollRequest",
+    "PhysicalAggregateRollSubmission",
+    "PlayerAdjustmentOptionView",
+    "PlayerModifierView",
+    "PlayerRollInstructionView",
+    "PlayerRollTermResult",
+    "PlayerRollTermView",
+    "RawPlayerRollSubmission",
+    "ReadyActionResolutionBundle",
     "ResolvedAdjudicationRecord",
+    "ResolvedSequenceStep",
+    "RollAdjustmentOption",
+    "RollEventPayload",
+    "RollInstructionSnapshot",
+    "RollModifierComponent",
     "RollProposal",
+    "RollSubmission",
+    "RollTerm",
     "RpgVisibleState",
+    "SequenceProgressView",
     "SheetEffect",
     "VisibleCharacterState",
     "VisibleItem",

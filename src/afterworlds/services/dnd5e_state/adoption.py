@@ -7,7 +7,8 @@ only after fresh validation:
 * The target is named exactly: either a binding, or the shared change whose
   activation produces it. A newer binding is never substituted. A target that
   is no longer the package's current binding is refused.
-* While the subject's story has a pending roll or an in-flight turn, or the
+* While the subject's story has an unresolved action-resolution sequence (CRD
+  Issue 15b) or an in-flight turn, or the
   referenced change is still held, the request is **held**. It is processed
   again after each of those resolves (:func:`process_held`), and is
   revalidated then against the subject's *current* revision. Ordinary changes

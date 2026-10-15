@@ -1,6 +1,7 @@
 """Durable in-flight turn leases — the in-progress adjudication marker.
 
-A pending roll is already durable (``pending_roll_requests``). An adjudicating
+An unresolved action-resolution sequence is already durable (CRD Issue 15b:
+``action_resolution_sequences``). An adjudicating
 turn in flight was not: its work lived only in memory until its outer
 transaction committed. A lease makes it durable so a shared rule change
 cannot activate underneath it:

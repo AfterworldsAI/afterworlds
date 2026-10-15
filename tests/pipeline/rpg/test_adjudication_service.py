@@ -1,10 +1,10 @@
-"""Service-level tests for RpgAdjudicationPassService — CRD Issues 15 and 15c.
+"""Service-level tests for RpgAdjudicationPassService — CRD Issues 15, 15c, 15b.
 
-CRD Issue 15c: the pass resolves backend shown/hidden rolls only. A proposal
-the story's dice handling would hand to the player is refused before any
-proposal is checked or rolled, so no pending request is created; proposals
-beyond the per-turn bound are refused, never dropped; every proposal is
-validated before any die.
+Proposals beyond the per-turn bound are refused, never dropped; every
+proposal is validated before any die. A turn needing no player input
+resolves its backend dice as in 15c; one whose acting character's die is the
+Sojourner's (CRD Issue 15b) pauses into a sequence start instead, with
+nothing applied.
 """
 
 from __future__ import annotations
@@ -162,6 +162,7 @@ def _adjudicate(
     proposals: list,  # type: ignore[type-arg]
     dice_handling: DiceHandling = DiceHandling.AI_ROLLS,
     dice: MagicMock | None = None,
+    sequences: bool = False,
 ):  # type: ignore[no-untyped-def]
     return _make_service().adjudicate(
         _make_assembled(),
@@ -171,6 +172,7 @@ def _adjudicate(
         provider=_FakeProvider(proposals),
         story_id=_STORY_ID,
         originating_turn_id=_TURN_ID,
+        sequences=sequences,
     )
 
 
@@ -202,7 +204,7 @@ def test_ai_rolls_resolve_every_shown_and_hidden_proposal() -> None:
         ],
         dice=dice,
     )
-    assert result.pending_roll_request is None
+    assert result.sequence is None
     assert [r.dc for r in result.proposals] == [15, 10]
     assert [r.source for r in result.proposals] == ["ai", "hidden"]
     assert dice.roll.call_count == 2
@@ -212,13 +214,15 @@ def test_ai_rolls_resolve_every_shown_and_hidden_proposal() -> None:
 def test_a_player_proposal_in_ai_rolls_mode_is_rolled_by_the_backend() -> None:
     result = _adjudicate([_proposal_dict("Climb", RollVisibility.PLAYER)])
     assert result.proposals[0].visibility is RollVisibility.SHOWN
-    assert result.pending_roll_request is None
+    assert result.sequence is None
 
 
 @pytest.mark.parametrize("visibility", [RollVisibility.SHOWN, RollVisibility.PLAYER])
-def test_player_roll_configuration_refuses_before_any_pending_request(
+def test_player_roll_configuration_refuses_when_no_sequence_can_be_persisted(
     visibility: RollVisibility,
 ) -> None:
+    """Under unchanged application wiring (no action-resolution service), the
+    15c behaviour holds: refused before any proposal is checked or rolled."""
     _refusal(
         RefusalKind.PLAYER_ROLL_UNSUPPORTED,
         [
@@ -229,11 +233,43 @@ def test_player_roll_configuration_refuses_before_any_pending_request(
     )
 
 
+@pytest.mark.parametrize("visibility", [RollVisibility.SHOWN, RollVisibility.PLAYER])
+def test_player_roll_configuration_pauses_at_the_players_die(
+    visibility: RollVisibility,
+) -> None:
+    """The hidden check is the backend's and is drawn in order; the visible
+    one is the acting character's, so the turn pauses before it with nothing
+    applied: no records, one announcement, and the structured instruction."""
+    dice = _make_dice_mock()
+    result = _adjudicate(
+        [
+            _proposal_dict(
+                "Jump", RollVisibility.HIDDEN, "glossary.long_jump/low_obstacle"
+            ),
+            _proposal_dict("Climb", visibility),
+        ],
+        DiceHandling.PLAYER_ROLLS,
+        dice,
+        sequences=True,
+    )
+    start = result.sequence
+    assert start is not None and result.proposals == ()
+    assert dice.roll.call_count == 1  # the hidden check only
+    (step,) = start.steps
+    assert step.roll is not None and step.roll.kind.value == "hidden_roll"
+    assert [r.dc for r in start.records] == [10]
+    roll = start.pause.roll
+    assert roll.dc == 15 and roll.operation_index == 1 and roll.die_index == 0
+    (view,) = result.writer_views
+    assert view.player_facing_summary.startswith("Roll needed: ")
+    assert "15" not in view.player_facing_summary  # the target stays backend-only
+
+
 def test_hidden_rolls_still_resolve_under_player_roll_configuration() -> None:
     result = _adjudicate(
         [_proposal_dict("Climb", RollVisibility.HIDDEN)], DiceHandling.PLAYER_ROLLS
     )
-    assert result.pending_roll_request is None
+    assert result.sequence is None
     assert len(result.proposals) == 1
 
 

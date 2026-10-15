@@ -8,9 +8,11 @@ activation must produce.
 **Affected events.** A change to (package, release) affects every story with
 a character or creature bound to that package and release, or a party whose
 items that package governs. Its events are
-that story's pending rolls (``pending_roll_requests.status = 'pending'``) and
+that story's unresolved action-resolution sequences (CRD Issue 15b:
+``active`` or ``ready_for_narration``, whatever their pending interaction) and
 in-flight adjudicating turns (:mod:`.leases`). Existing events finish under
-the rules they started with; the change activates only when none remain.
+the rules they started with; the change activates only when none remain, so a
+sequence's bindings cannot move between its announce and its narration.
 
 **Races.** :func:`activate` claims SQLite's single write lock with its first
 statement, then reads events and current override state and inserts the rows,
@@ -43,7 +45,7 @@ from afterworlds.persistence.orm.dnd5e_state import (
     RpgPartyORM,
     RpgTurnLeaseORM,
 )
-from afterworlds.persistence.orm.rpg import PendingRollRequestORM
+from afterworlds.persistence.orm.rpg import ActionResolutionSequenceORM
 from afterworlds.persistence.orm.rules_authority import (
     MechanicalOverrideORM,
     SharedRuleChangeORM,
@@ -117,7 +119,7 @@ class OverrideSpec:
 @dataclass(frozen=True)
 class ActivationResult:
     status: ChangeStatus
-    #: Pending rolls plus in-flight leases still blocking a held change.
+    #: Unresolved sequences plus in-flight leases still blocking a held change.
     blocking: int = 0
     detail: str = ""
 
@@ -157,14 +159,17 @@ def affected_stories(session: Session, package_uuid: str, release: str) -> set[s
 
 
 def blocking_events(session: Session, stories: set[str]) -> int:
-    """Pending rolls and in-flight turn leases in *stories*."""
+    """Unresolved action-resolution sequences and in-flight turn leases in
+    *stories*. A pending roll always belongs to an unresolved sequence."""
     if not stories:
         return 0
     pending = session.execute(
         sa.select(sa.func.count())
-        .select_from(PendingRollRequestORM)
-        .where(PendingRollRequestORM.story_id.in_(stories))
-        .where(PendingRollRequestORM.status == "pending")
+        .select_from(ActionResolutionSequenceORM)
+        .where(ActionResolutionSequenceORM.story_id.in_(stories))
+        .where(
+            ActionResolutionSequenceORM.status.in_(("active", "ready_for_narration"))
+        )
     ).scalar_one()
     leases = session.execute(
         sa.select(sa.func.count())

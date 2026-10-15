@@ -28,7 +28,6 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from uuid import uuid4
 
 from afterworlds.ingestion.mechanical.representation import (
     ConditionKind,
@@ -54,6 +53,7 @@ from afterworlds.pipeline.rpg import familiars
 from afterworlds.pipeline.rpg.capability import AdjudicationRefusal, RefusalKind
 from afterworlds.pipeline.rpg.conditions import effective
 from afterworlds.pipeline.rpg.defense import damage_responses, facts_of
+from afterworlds.pipeline.rpg.ids import new_id
 from afterworlds.pipeline.rpg.mastery import other_effects
 from afterworlds.services.dnd5e_state.authority import AuthorityIndex
 from afterworlds.services.dnd5e_state.turn import TurnCreature, TurnSubject
@@ -384,7 +384,7 @@ def take_damage(
                 "unconscious",
                 "apply_condition",
                 {
-                    "instance_id": str(uuid4()),
+                    "instance_id": new_id(),
                     "condition": ConditionKind.UNCONSCIOUS.value,
                     "visibility": ConditionVisibility.VISIBLE.value,
                     "source": {"record_key": _RULES, "component_key": "knocking_out"},

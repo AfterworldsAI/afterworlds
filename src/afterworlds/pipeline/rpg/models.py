@@ -7,7 +7,6 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict
 
 from afterworlds.models.rpg import (
-    PendingRollRequest,
     ResolvedAdjudicationRecord,
     WriterAdjudicationView,
 )
@@ -20,20 +19,22 @@ class AdjudicationPassResult(BaseModel):
     at index i has a corresponding writer view at index i.  The Orchestrator
     appends ``writer_views`` to the ``PassForwardLedger`` for the Writer pass.
 
-    ``pending_roll_request`` is populated for turns that announce a PLAYER
-    roll; it is None for AI/hidden roll turns and for turns where no roll is
-    required.
+    ``sequence`` is set when the turn's resolution paused for the Sojourner
+    (CRD Issue 15b): a ``SequenceStart`` the announce transaction persists.
+    ``proposals`` is then empty and ``writer_views`` holds the single
+    announcement of what the Sojourner is asked for.
 
     Token counts follow the ``PlannerResult`` convention: the pass service
-    populates them from the provider call result; they may be None if the
-    adjudication pass did not call the provider (e.g., consume-only turns).
+    populates them from the provider call result.
     """
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     proposals: tuple[ResolvedAdjudicationRecord, ...]
     writer_views: tuple[WriterAdjudicationView, ...]
-    pending_roll_request: PendingRollRequest | None = None
+    #: CRD Issue 15b: the action-resolution sequence this turn starts
+    #: (``SequenceStart``), or ``None``.
+    sequence: Any = None
     #: CRD Issue 15c: the subjects besides the acting character that this
     #: turn's operations read (``TurnCharacter``/``TurnCreature``), each with
     #: the revision and binding it was read at. The orchestrator rechecks
@@ -77,8 +78,145 @@ class PreflightGapError(AdjudicationPassError):
     """
 
 
+class PlayerInputRequired(Exception):  # noqa: N818 - a pause, not a failure
+    """An action-resolution sequence pauses here (CRD Issue 15b): the next
+    die is the Sojourner's to roll, or a result triggered their decision.
+    Raised by the sequence's dice source and caught only by the sequence
+    engine; every other handler lets it through. It carries the stored
+    authority of the pending interaction."""
+
+    def __init__(self, roll: Any = None, decision: Any = None) -> None:
+        #: The pending die's ``RollInstructionSnapshot``.
+        self.roll = roll
+        #: ``(MechanicalDecisionSnapshot, operation index, decision index)``.
+        self.decision = decision
+        super().__init__("player input required")
+
+
+class ActionResolutionError(Exception):
+    """A typed action-resolution failure (#127 Errors). ``code`` is stable;
+    the message never carries hidden mechanics. Nothing was committed."""
+
+    code = "ACTION_SEQUENCE_STATE_CONFLICT"
+
+
+class PendingRollNotFoundError(ActionResolutionError):
+    """PENDING_ROLL_NOT_FOUND"""
+
+    code = "PENDING_ROLL_NOT_FOUND"
+
+
+class PendingRollNotPlayerVisibleError(ActionResolutionError):
+    """PENDING_ROLL_NOT_PLAYER_VISIBLE"""
+
+    code = "PENDING_ROLL_NOT_PLAYER_VISIBLE"
+
+
+class PendingRollAlreadyConsumedError(ActionResolutionError):
+    """PENDING_ROLL_ALREADY_CONSUMED"""
+
+    code = "PENDING_ROLL_ALREADY_CONSUMED"
+
+
+class PendingRollRevisionMismatchError(ActionResolutionError):
+    """PENDING_ROLL_REVISION_MISMATCH"""
+
+    code = "PENDING_ROLL_REVISION_MISMATCH"
+
+
+class PendingRollTermMismatchError(ActionResolutionError):
+    """PENDING_ROLL_TERM_MISMATCH"""
+
+    code = "PENDING_ROLL_TERM_MISMATCH"
+
+
+class PendingRollInvalidValueError(ActionResolutionError):
+    """PENDING_ROLL_INVALID_VALUE"""
+
+    code = "PENDING_ROLL_INVALID_VALUE"
+
+
+class PendingRollInvalidAggregateError(ActionResolutionError):
+    """PENDING_ROLL_INVALID_AGGREGATE"""
+
+    code = "PENDING_ROLL_INVALID_AGGREGATE"
+
+
+class ActionSequenceNotFoundError(ActionResolutionError):
+    """ACTION_SEQUENCE_NOT_FOUND"""
+
+    code = "ACTION_SEQUENCE_NOT_FOUND"
+
+
+class ActionSequenceAlreadyCompletedError(ActionResolutionError):
+    """ACTION_SEQUENCE_ALREADY_COMPLETED"""
+
+    code = "ACTION_SEQUENCE_ALREADY_COMPLETED"
+
+
+class ActionSequenceStateConflictError(ActionResolutionError):
+    """ACTION_SEQUENCE_STATE_CONFLICT"""
+
+    code = "ACTION_SEQUENCE_STATE_CONFLICT"
+
+
+class ActionAdjustmentNotAllowedError(ActionResolutionError):
+    """ACTION_ADJUSTMENT_NOT_ALLOWED"""
+
+    code = "ACTION_ADJUSTMENT_NOT_ALLOWED"
+
+
+class ActionAdjustmentIneligibleError(ActionResolutionError):
+    """ACTION_ADJUSTMENT_INELIGIBLE"""
+
+    code = "ACTION_ADJUSTMENT_INELIGIBLE"
+
+
+class MechanicalDecisionInvalidError(ActionResolutionError):
+    """MECHANICAL_DECISION_INVALID"""
+
+    code = "MECHANICAL_DECISION_INVALID"
+
+
+class MechanicalDecisionRevisionMismatchError(ActionResolutionError):
+    """MECHANICAL_DECISION_REVISION_MISMATCH"""
+
+    code = "MECHANICAL_DECISION_REVISION_MISMATCH"
+
+
+class SequenceNotReadyForNarrationError(ActionResolutionError):
+    """SEQUENCE_NOT_READY_FOR_NARRATION"""
+
+    code = "SEQUENCE_NOT_READY_FOR_NARRATION"
+
+
+class ActionSequenceIntegrityError(ActionResolutionError):
+    """The stored authority and what code computes from current state
+    disagree: never silently replaced."""
+
+    code = "ACTION_SEQUENCE_STATE_CONFLICT"
+
+
 __all__ = [
+    "ActionAdjustmentIneligibleError",
+    "ActionAdjustmentNotAllowedError",
+    "ActionResolutionError",
+    "ActionSequenceAlreadyCompletedError",
+    "ActionSequenceIntegrityError",
+    "ActionSequenceNotFoundError",
+    "ActionSequenceStateConflictError",
     "AdjudicationPassError",
-    "PreflightGapError",
     "AdjudicationPassResult",
+    "MechanicalDecisionInvalidError",
+    "MechanicalDecisionRevisionMismatchError",
+    "PendingRollAlreadyConsumedError",
+    "PendingRollInvalidAggregateError",
+    "PendingRollInvalidValueError",
+    "PendingRollNotFoundError",
+    "PendingRollNotPlayerVisibleError",
+    "PendingRollRevisionMismatchError",
+    "PendingRollTermMismatchError",
+    "PlayerInputRequired",
+    "PreflightGapError",
+    "SequenceNotReadyForNarrationError",
 ]
