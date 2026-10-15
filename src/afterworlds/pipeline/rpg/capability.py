@@ -49,8 +49,11 @@ __all__ = [
     "governing_fingerprint",
 ]
 
-MANIFEST_VERSION = "15c-manifest-4"
-ADAPTER_VERSION = "15c-d20-4"
+#: CRD Issue 15b: the contest operation is added and every operation's dice
+#: may be the Sojourner's (an action-resolution sequence). No other governing
+#: set or fingerprint moved.
+MANIFEST_VERSION = "15b-manifest-5"
+ADAPTER_VERSION = "15b-d20-5"
 
 
 class RefusalKind(StrEnum):
@@ -94,6 +97,7 @@ class Operation(StrEnum):
     CREATURE_SAVE_EFFECT = "creature_save_effect"
     KNOCKOUT_RECOVERY = "knockout_recovery"
     CREATURE_SPECIES = "creature_species"
+    CONTEST = "contest"
 
 
 class CapabilityStatus(StrEnum):
@@ -261,6 +265,14 @@ _ECONOMY_PROCEDURE: tuple[tuple[str, str], ...] = (
     ("glossary.attack", "attack_roll"),
     ("play.actions", "one_bonus_action"),
 )
+#: A generic two-participant contest (ADR-015b Group 17): the Owner-adopted
+#: SRD 5.1 supplement S1's authored component, which states the comparison
+#: and the tie, applied only through a binding whose override set carries it.
+#: Without it the contest refuses as missing authority; a changed S1 moves
+#: the fingerprint (incompatible certification).
+CONTEST_COMPONENT: tuple[str, str] = ("play.d20_tests", "contest")
+_CONTEST_PROCEDURE: tuple[tuple[str, str], ...] = (CONTEST_COMPONENT,)
+
 #: Actor-turn edges (contract G1): the turn structure they mark.
 _TURN_PROCEDURE: tuple[tuple[str, str], ...] = (
     ("play.combat", "rounds_and_turns"),
@@ -535,11 +547,35 @@ MANIFEST: dict[Operation, Capability] = {
         ),
         fingerprint="bafd77c6c5edad6892dbce70bdfb34ad5a60636198ef82d64e71fb5b0b360e41",  # noqa: E501  # pragma: allowlist secret
     ),
+    Operation.CONTEST: Capability(
+        Operation.CONTEST,
+        CapabilityStatus.EXECUTABLE,
+        inputs=(
+            "two distinct participants of the story, each with an ability and an "
+            "optional skill it governs; a character's check by the 15c check "
+            "procedure; a creature's from its C9 printed Skills entry (a listed "
+            "skill with its usual ability is the printed total, nothing added; "
+            "an atypical ability refuses; unlisted or no skill: the ability "
+            "modifier; no Skills fact: missing authority); whether the acting "
+            "character perceives the opposition"
+        ),
+        effects=(
+            "a winner (the higher total) or a tie (equal totals: the prior "
+            "situation is unchanged), and nothing else: no sheet, condition, "
+            "damage, movement, attitude or resource change. The initiator's one "
+            "action in an active turn; none outside one"
+        ),
+        fingerprint="20afc845fd4bd53808301cf05675159fcd39b9e8963a3ad872b9ab5ca799e2c4",  # noqa: E501  # pragma: allowlist secret
+    ),
 }
 
 #: Explicit exclusions (unsupported capability, never coverage).
 EXCLUSIONS: tuple[str, ...] = (
-    "contests and opposed checks",
+    # CRD Issue 15c excluded contests; ADR-015b Group 17 admits the generic
+    # contest (Operation.CONTEST). Hide/Search recorded totals, passive
+    # comparisons and other specific opposed forms keep their own rules.
+    "opposed forms other than the generic contest (recorded totals, passive "
+    "comparisons)",
     "legendary actions and other usage kinds (legendary uses, form-only, "
     "required entries)",
     "general spell and feature execution",
@@ -614,6 +650,7 @@ def _governing(
             *_CREATURE_TYPES,
         ),
         Operation.CREATURE_SPECIES: _CREATURE_TYPES[:-1],
+        Operation.CONTEST: (*_CONTEST_PROCEDURE, *_ECONOMY_PROCEDURE),
         Operation.STABLE_RECOVERY: _RECOVERY_PROCEDURE,
         Operation.KNOCKOUT_RECOVERY: _RECOVERY_PROCEDURE,
     }.get(operation, ())

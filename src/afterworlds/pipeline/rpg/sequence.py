@@ -280,6 +280,7 @@ def _accepted_roll(event: ActionResolutionEvent) -> AcceptedRoll:
         raw_values=raw,
         reported_aggregate=aggregate,
         source=payload.submission_source.value,
+        contest_resolution=payload.contest_resolution,
     )
 
 
@@ -501,7 +502,12 @@ class ActionResolutionService:
             snapshot = RollInstructionSnapshot.model_validate_json(
                 pending.instruction_snapshot_json
             )
-            if snapshot.instruction_revision != expected_instruction_revision:
+            # Exact integers only: ``True`` or ``1.0`` is no revision (#127
+            # Validation 5's ingress rule, as for the roll submissions).
+            if (
+                type(expected_instruction_revision) is not int
+                or snapshot.instruction_revision != expected_instruction_revision
+            ):
                 raise PendingRollRevisionMismatchError(
                     f"pending roll {pending_roll_request_id} is at revision "
                     f"{snapshot.instruction_revision}; the adjustment expected "
@@ -629,6 +635,7 @@ class ActionResolutionService:
                 row.revision,
             )
         records = _ledger_records(events, len(plan.proposals))
+        _check_contests(events, records)
         prepared = self._read(story_id, identity[1], plan, reads)
         views = tuple(self._adapter.to_writer_view(r) for r in records)
         bundle = ReadyActionResolutionBundle(
@@ -813,38 +820,37 @@ class ActionResolutionService:
         consume: tuple[UUID, int] | None = None,
         adjustment: tuple[UUID, RollInstructionSnapshot, str] | None = None,
     ) -> ActionResolutionAdvanceResult:
-        """Read and resolve outside any write, then commit the accepted steps
-        and the advancement in one transaction, or nothing."""
+        """Accept one submission in one intermediate transaction, or nothing.
+
+        The transaction first claims the sequence: a compare-and-swap of its
+        revision (and, for a roll, the conditional consume of the pending
+        request). That takes SQLite's write lock, so a concurrent or stale
+        submission fails here, before any die. Only then is the sequence
+        resolved again, and any backend (AI or hidden) die it needs, such as
+        a contest counterpart's, is drawn inside this same transaction (ADR-015b
+        Group 17); its events and the advancement commit with it. Any failure
+        rolls everything back, those dice included: they never become
+        authority. No provider is called and nothing is settled."""
         from afterworlds.persistence.orm.rpg import (
             ActionResolutionSequenceORM,
             PendingRollRequestORM,
         )
 
-        with self._factory() as session:
-            row = session.get(ActionResolutionSequenceORM, str(sequence_id))
-            assert row is not None
-            plan = plan or _Plan.load(row.plan_json)
-            run = self._replay(session, row, plan, accept)
-        if adjustment is not None:
-            revised = run.pause.roll if run.pause is not None else None
-            _, before, option_id = adjustment
-            if not (
-                isinstance(revised, RollInstructionSnapshot)
-                and revised.instruction_id == before.instruction_id
-                and revised.instruction_revision == before.instruction_revision + 1
-                and not run.steps
-            ):
-                raise ActionAdjustmentIneligibleError(
-                    f"{option_id!r} does not yield a revision of the pending roll"
-                )
         with self._factory() as session, session.begin():
-            row = session.get(ActionResolutionSequenceORM, str(sequence_id))
-            assert row is not None
-            if row.revision != expected_revision:
+            claimed = session.execute(
+                sa.update(ActionResolutionSequenceORM)
+                .where(
+                    ActionResolutionSequenceORM.sequence_id == str(sequence_id),
+                    ActionResolutionSequenceORM.revision == expected_revision,
+                    ActionResolutionSequenceORM.status
+                    == ActionResolutionStatus.ACTIVE.value,
+                )
+                .values(revision=expected_revision + 1)
+            )
+            if claimed.rowcount != 1:  # type: ignore[attr-defined]
                 raise ActionSequenceStateConflictError(
                     f"sequence {sequence_id} advanced concurrently"
                 )
-            _recheck(session, run.prepared)
             if consume is not None:
                 request_id, revision = consume
                 updated = session.execute(
@@ -860,11 +866,23 @@ class ActionResolutionService:
                     raise PendingRollAlreadyConsumedError(
                         f"pending roll {request_id} was consumed concurrently"
                     )
+            row = session.get(ActionResolutionSequenceORM, str(sequence_id))
+            assert row is not None
+            plan = plan or _Plan.load(row.plan_json)
+            run = self._replay(session, row, plan, accept)
+            _recheck(session, run.prepared)
             if adjustment is not None:
                 request_id, before, option_id = adjustment
-                assert run.pause is not None
-                revised = run.pause.roll
-                assert isinstance(revised, RollInstructionSnapshot)
+                revised = run.pause.roll if run.pause is not None else None
+                if not (
+                    isinstance(revised, RollInstructionSnapshot)
+                    and revised.instruction_id == before.instruction_id
+                    and revised.instruction_revision == before.instruction_revision + 1
+                    and not run.steps
+                ):
+                    raise ActionAdjustmentIneligibleError(
+                        f"{option_id!r} does not yield a revision of the pending roll"
+                    )
                 updated = session.execute(
                     sa.update(PendingRollRequestORM)
                     .where(
@@ -903,6 +921,7 @@ class ActionResolutionService:
                 pause=run.pause,
                 projected=run.prepared,
                 adjusted=adjustment is not None,
+                claimed=True,
             )
             return self._advance_result(session, row)
 
@@ -917,6 +936,7 @@ class ActionResolutionService:
         pause: PlayerInputRequired | None,
         projected: PreparedTurn | None,
         adjusted: bool = False,
+        claimed: bool = False,
     ) -> None:
         """Write the run's steps as events (each carrying the records of the
         operations its acceptance completed) and advance the sequence."""
@@ -1053,7 +1073,8 @@ class ActionResolutionService:
             row.current_decision_snapshot_json = snapshot_d.model_dump_json()
             plan.pending_decision = (op, index)
         row.plan_json = plan.dump()
-        row.revision += 1
+        if not claimed:  # an advancement already moved it when it claimed
+            row.revision += 1
         row.updated_at = _now()
         session.flush()
 
@@ -1233,6 +1254,7 @@ def _roll_payload(roll: AcceptedRoll, gm_cheating: bool) -> RollEventPayload:
             total=total,
             outcome=dice_engine.outcome(snapshot, total, face),  # type: ignore[arg-type]
             gm_cheating_at_roll=gm_cheating,
+            contest_resolution=roll.contest_resolution,
         )
     if roll.raw_values is not None:
         values: dict[object, tuple[int, ...]] = {
@@ -1278,6 +1300,7 @@ def _roll_payload(roll: AcceptedRoll, gm_cheating: bool) -> RollEventPayload:
         total=total,
         outcome=dice_engine.outcome(snapshot, total, face),  # type: ignore[arg-type]
         gm_cheating_at_roll=gm_cheating,
+        contest_resolution=roll.contest_resolution,
     )
 
 
@@ -1367,6 +1390,60 @@ def _ledger_records(
             "the event ledger does not complete every operation of the sequence"
         )
     return tuple(found[i] for i in range(count))
+
+
+def _check_contests(
+    events: tuple[ActionResolutionEvent, ...],
+    records: tuple[ResolvedAdjudicationRecord, ...],
+) -> None:
+    """Every contest's one resolution: stored on its completing event, what
+    its two immutable participant events reproduce (step identities
+    included), and the very one its record carries (ADR-015b Group 17). A
+    mismatch or a competing copy is an integrity failure, never patched."""
+    from afterworlds.pipeline.rpg.contests import compare
+
+    pairs: dict[UUID, list[ActionResolutionEvent]] = {}
+    for event in events:
+        payload = event.payload
+        if (
+            isinstance(payload, RollEventPayload)
+            and payload.instruction_snapshot.contest
+        ):
+            pairs.setdefault(
+                payload.instruction_snapshot.contest.contest_id, []
+            ).append(event)
+    for contest_id, pair in pairs.items():
+        if len(pair) != 2:
+            raise ActionSequenceIntegrityError(f"contest {contest_id} is incomplete")
+        first, second = (e.payload for e in pair)
+        assert isinstance(first, RollEventPayload)
+        assert isinstance(second, RollEventPayload)
+        link = first.instruction_snapshot.contest
+        assert link is not None
+        recomputed = compare(
+            contest_id,
+            (first.instruction_snapshot.roller, pair[0].step_id, first.total),
+            (second.instruction_snapshot.roller, pair[1].step_id, second.total),
+            link.certificate,
+        )
+        if first.contest_resolution is not None or (
+            second.contest_resolution != recomputed
+        ):
+            raise ActionSequenceIntegrityError(
+                f"contest {contest_id}'s resolution is not reproduced by its events"
+            )
+    stored = {
+        e.payload.contest_resolution.contest_id: e.payload.contest_resolution
+        for e in events
+        if isinstance(e.payload, RollEventPayload) and e.payload.contest_resolution
+    }
+    for record in records:
+        copy = record.contest_resolution
+        if copy is not None and stored.get(copy.contest_id) != copy:
+            raise ActionSequenceIntegrityError(
+                f"contest {copy.contest_id}'s record disagrees with its "
+                "completing event"
+            )
 
 
 def _step(event: ActionResolutionEvent, index: int) -> ResolvedSequenceStep:

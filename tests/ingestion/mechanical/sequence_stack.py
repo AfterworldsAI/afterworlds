@@ -8,6 +8,11 @@ published; nothing shared is read or written), the unchanged existing
 given to that orchestrator. No ``create_app``, HTTP route or product wiring is
 used: those are CRD Issue 15b Phase 3's. Only the GameMaster's adjudication
 proposals and, where a test says so, backend dice are scripted.
+
+``s1`` applies the Owner-adopted S1 contest supplement in memory only: subjects
+created with its binding are written at the store layer (no rules-authority
+row names S1; nothing is published or activated), and the authority reads of
+that one binding answer with ``s1_index()``.
 """
 
 from __future__ import annotations
@@ -44,6 +49,7 @@ from afterworlds.models.rpg import (
     PlayerRollTermResult,
     RawPlayerRollSubmission,
 )
+from afterworlds.models.rules_package import RulesPackageBinding
 from afterworlds.models.story import Story
 from afterworlds.persistence.crud.session_state import (
     get_rpg_session_state_by_story,
@@ -56,9 +62,10 @@ from afterworlds.pipeline.orchestrator.service import OrchestratorService
 from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
 from afterworlds.pipeline.rpg.dice import SystemRandomDiceService
 from afterworlds.pipeline.rpg.sequence import ActionResolutionService
-from afterworlds.services.dnd5e_state import service
+from afterworlds.services.dnd5e_state import holdings, service, store, turn
+from afterworlds.services.dnd5e_state.authority import AuthorityIndex
 from afterworlds.services.dnd5e_state.holdings import Holder, HolderKind, create_item
-from tests.services.dnd5e_state.builders import complete_character, real_index
+from tests.services.dnd5e_state.builders import complete_character, real_index, s1_index
 
 NOW = "2026-10-14T00:00:00+00:00"
 PACKAGE = UUID("1299484e-c72d-509b-bd8d-d0169ee1f8d2")
@@ -85,6 +92,7 @@ class Stack:
         self,
         dice: DiceHandling = DiceHandling.PLAYER_ROLLS,
         character: Any = None,
+        binding: RulesPackageBinding | None = None,
     ) -> Story_:
         now = datetime.now(UTC)
         with self.factory() as s:
@@ -98,13 +106,15 @@ class Stack:
             anchor = ensure_story_turn_anchor_node(s, story.story_id, StoryMode.RPG)
             state = get_rpg_session_state_by_story(s, story.story_id)
             assert state is not None
-            service.create_character(
-                s,
-                state.character_sheet_id,
-                PACKAGE,
-                character or complete_character(real_index(), "classes.wizard", 3),
-                now=NOW,
-            )
+            sheet = character or complete_character(real_index(), "classes.wizard", 3)
+            if binding is None:
+                service.create_character(
+                    s, state.character_sheet_id, PACKAGE, sheet, now=NOW
+                )
+            else:
+                store.create_character_state(
+                    s, state.character_sheet_id, sheet, binding, now=NOW
+                )
             update_rpg_session_state(
                 s,
                 state.model_copy(
@@ -125,25 +135,25 @@ class Stack:
         hp: int = 11,
         treatment: ZeroHitPointTreatment = MONSTER,
         name: str = "Wolf",
+        binding: RulesPackageBinding | None = None,
     ) -> UUID:
+        state = CreatureState(
+            template_record_key=template,
+            hit_points=HitPoints(current=hp, maximum=hp, temporary=0),
+            conditions=(),
+            active_effects=(),
+            death_state=DeathState(successes=0, failures=0, stable=False, dead=False),
+            zero_hit_point_treatment=treatment,
+        )
         with self.factory() as s:
-            created = service.create_creature(
-                s,
-                story.story_id,
-                name,
-                PACKAGE,
-                CreatureState(
-                    template_record_key=template,
-                    hit_points=HitPoints(current=hp, maximum=hp, temporary=0),
-                    conditions=(),
-                    active_effects=(),
-                    death_state=DeathState(
-                        successes=0, failures=0, stable=False, dead=False
-                    ),
-                    zero_hit_point_treatment=treatment,
-                ),
-                now=NOW,
-            )
+            if binding is None:
+                created = service.create_creature(
+                    s, story.story_id, name, PACKAGE, state, now=NOW
+                )
+            else:
+                created = store.create_creature(
+                    s, story.story_id, name, state, binding, now=NOW
+                )
             s.commit()
             return created.creature_id
 
@@ -299,6 +309,29 @@ def scripted_dice(
 
     monkeypatch.setattr(SystemRandomDiceService, "roll", roll)
     return rolled
+
+
+def s1(monkeypatch: pytest.MonkeyPatch) -> AuthorityIndex:
+    """Apply S1 in memory: the authority reads of its one binding answer with
+    ``s1_index()``; every other binding reads the store as before."""
+    index = s1_index()
+    real_index_of = service.authority_index
+    real_current = service.require_current
+
+    def index_of(session: Session, binding: RulesPackageBinding, **kw: Any) -> Any:
+        if binding == index.binding:
+            return index
+        return real_index_of(session, binding, **kw)
+
+    def current(session: Session, binding: RulesPackageBinding, **kw: Any) -> Any:
+        if binding != index.binding:
+            real_current(session, binding, **kw)
+
+    for module in (service, turn, holdings):
+        monkeypatch.setattr(module, "authority_index", index_of)
+    for module in (service, holdings):
+        monkeypatch.setattr(module, "require_current", current)
+    return index
 
 
 def no_backend_dice(monkeypatch: pytest.MonkeyPatch) -> list[str]:

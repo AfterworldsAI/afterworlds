@@ -404,8 +404,8 @@ def test_the_certificate_binds_the_exact_release_and_versions() -> None:
     cert = json.loads(record.modifiers_json)["certificate"]
     binding = real_index().binding
     assert cert == {
-        "manifest_version": "15c-manifest-4",
-        "adapter_version": "15c-d20-4",
+        "manifest_version": "15b-manifest-5",
+        "adapter_version": "15b-d20-5",
         "operation": "fixed_dc_check",
         "package_uuid": str(binding.package_uuid),
         "release_version": binding.release_version,

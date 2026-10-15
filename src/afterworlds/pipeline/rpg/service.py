@@ -48,6 +48,7 @@ from afterworlds.models.dnd5e_state import SubjectReference, TurnCoordination
 from afterworlds.models.enums import DiceHandling, RollVisibility
 from afterworlds.models.rpg import (
     AdjudicationProposalOutput,
+    ContestResolution,
     DiceResult,
     ResolvedAdjudicationRecord,
     RollProposal,
@@ -219,6 +220,13 @@ class _CountingDice:
 
     def decide(self, request: DecisionRequest) -> str | None:
         return dice_decide(self._inner, request)
+
+    def contest_resolution(self, contest_id: UUID) -> ContestResolution | None:
+        method = getattr(type(self._inner), "contest_resolution", None)
+        found: ContestResolution | None = (
+            None if method is None else method(self._inner, contest_id)
+        )
+        return found
 
 
 def _ammunition_supply(proposals: list[RollProposal], actor: TurnCharacter) -> None:
@@ -920,6 +928,11 @@ class RpgAdjudicationPassService:
                 ]
             if area is not None:
                 named += [area.source, *area.targets]
+            if proposal.contest is not None:
+                named += [
+                    proposal.contest.initiator.subject,
+                    proposal.contest.resister.subject,
+                ]
             for ref in named:
                 if ref is not None:
                     refs[(ref.kind, str(ref.subject_id))] = ref

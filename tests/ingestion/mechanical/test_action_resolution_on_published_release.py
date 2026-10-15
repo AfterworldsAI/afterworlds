@@ -48,6 +48,16 @@ def club_attack(
     }
 
 
+def _keys(value: Any) -> set[str]:
+    """Every key anywhere in a JSON-shaped value (ids are random; a substring
+    check on the dump is not structural)."""
+    if isinstance(value, dict):
+        return set(value).union(*(_keys(v) for v in value.values()))
+    if isinstance(value, list):
+        return set().union(*(_keys(v) for v in value))
+    return set()
+
+
 def begin(story: Story_) -> dict[str, Any]:
     return {
         "check_label": "Turn",
@@ -79,8 +89,8 @@ def test_a_player_rolled_attack_and_its_damage_resolve_as_one_sequence(
     assert attack.interaction_phase is RpgInteractionPhase.PENDING_ROLL
     assert attack.display_expression == "1d20 + 1"  # Str -1, proficiency +2
     assert attack.progress.step_index == 1
-    public = attack.model_dump_json()
-    assert '"dc"' not in public and "12" not in public  # the Wolf's AC stays hidden
+    # The Wolf's AC stays hidden: no public field names a target number.
+    assert not {"dc", "target", "armor_class"} & _keys(attack.model_dump(mode="json"))
     assert stack.sequences.current(story.story_id) == first  # reload: identical
 
     damage_view = stack.roll(attack, 15)  # 15 + 1 = 16 hits AC 12

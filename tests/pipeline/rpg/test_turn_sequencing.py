@@ -194,7 +194,7 @@ def test_a_refusal_after_dice_is_a_named_preflight_defect() -> None:
         RollProposal.model_validate(p)
         for p in (_attack(wolf, "First"), _thrown_dagger(wolf))
     ]
-    prepared = service.prepare_turn(_STORY_ID, attacker, proposals)
+    prepared = service.prepare_turn(_STORY_ID, attacker, proposals, decisions=False)
     dice = _NoKnockout()
     with pytest.raises(PreflightGapError):
         service.resolve_turn(prepared, False, dice, [])

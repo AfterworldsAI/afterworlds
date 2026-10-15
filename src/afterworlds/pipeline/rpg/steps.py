@@ -40,6 +40,7 @@ from afterworlds.models.enums import (
 )
 from afterworlds.models.rpg import (
     ContestLinkage,
+    ContestResolution,
     DiceResult,
     MechanicalDecisionOption,
     MechanicalDecisionOptionSnapshot,
@@ -142,12 +143,37 @@ def build_snapshot(
             for face, outcome in request.naturals
         ),
         critical_on_success=request.critical_on_success,
-        contest=contest if isinstance(contest, ContestLinkage) else None,
+        contest=_linkage(contest, request, sequence_id, operation, die),
         display_expression="",
     )
     return snapshot.model_copy(
         update={"display_expression": player_expression(snapshot)}
     )
+
+
+def _linkage(
+    contest: object,
+    request: RollRequest,
+    sequence_id: UUID,
+    operation: int,
+    die: int,
+) -> ContestLinkage | None:
+    """A contest participant's backend-only linkage; the first participant's
+    carries the counterpart's instruction, frozen now (Group 17)."""
+    if not isinstance(contest, ContestLinkage):
+        return None
+    if request.counterpart is None:
+        return contest
+    expression, counterpart = request.counterpart
+    frozen = build_snapshot(
+        expression,
+        counterpart,
+        sequence_id=sequence_id,
+        operation=operation,
+        die=die + 1,
+        revision=1,
+    )
+    return contest.model_copy(update={"counterpart_instruction": frozen})
 
 
 def build_decision(
@@ -194,6 +220,8 @@ class AcceptedRoll:
     raw_values: dict[str, list[int]] | None = None
     reported_aggregate: int | None = None
     source: str = "backend_dice_service"
+    #: On a contest-completing roll: the combined result (Group 17).
+    contest_resolution: ContestResolution | None = None
 
 
 @dataclass(frozen=True)
@@ -242,12 +270,19 @@ class SequenceDice:
     _hidden: bool = False
     _die: int = 0
     _decision: int = 0
+    #: This run's dice of the current operation: ``die -> (snapshot, dice)``.
+    _served: dict[int, tuple[RollInstructionSnapshot, DiceResult]] = field(
+        default_factory=dict
+    )
+    #: Each contest's one combined resolution, accepted or new.
+    _resolutions: dict[UUID, ContestResolution] = field(default_factory=dict)
 
     @contextmanager
     def operation(self, index: int, hidden: bool) -> Iterator[None]:
         """Resolve operation *index* (its dice, decisions and identities)."""
         self._operation, self._hidden = index, hidden
         self._die = self._decision = 0
+        self._served = {}
         with ids.scoped(ids.derived(self.sequence_id, f"operation:{index}")):
             yield
 
@@ -268,6 +303,12 @@ class SequenceDice:
             die=die,
             revision=self.revisions.get(f"{op}:{die}", 1),
         )
+        frozen = self._frozen(die)
+        if frozen is not None and frozen != snapshot:
+            raise ActionSequenceIntegrityError(
+                "a contest participant's instruction is not the one frozen when "
+                "the contest was created"
+            )
         done = self.rolls.get(op, [])
         if die < len(done):
             if done[die].snapshot != snapshot:
@@ -275,7 +316,10 @@ class SequenceDice:
                     "an accepted roll's instruction is not reproduced by the "
                     "current state"
                 )
-            return done[die].result
+            accepted = done[die].contest_resolution
+            if accepted is not None:
+                self._resolutions[accepted.contest_id] = accepted
+            return self._serve(die, snapshot, done[die].result)
         accept = self.accept
         if (
             isinstance(accept, AcceptedRoll)
@@ -287,15 +331,60 @@ class SequenceDice:
                     "the pending instruction is not reproduced by the current state"
                 )
             self._record(NewStep(roll=accept))
-            return accept.result
+            return self._serve(die, snapshot, accept.result)
         if self.player_owned(request):
             raise PlayerInputRequired(roll=snapshot)
         result = self.backend.roll(expression)
-        kind = (
-            ResolvedStepKind.HIDDEN_ROLL if self._hidden else ResolvedStepKind.AI_ROLL
+        hidden = self._hidden or request.hidden
+        kind = ResolvedStepKind.HIDDEN_ROLL if hidden else ResolvedStepKind.AI_ROLL
+        resolution = self._resolution(die, snapshot, result)
+        if resolution is not None:
+            self._resolutions[resolution.contest_id] = resolution
+        self._record(
+            NewStep(
+                roll=AcceptedRoll(snapshot, result, kind, contest_resolution=resolution)
+            )
         )
-        self._record(NewStep(roll=AcceptedRoll(snapshot, result, kind)))
+        return self._serve(die, snapshot, result)
+
+    def contest_resolution(self, contest_id: UUID) -> ContestResolution | None:
+        """The contest's combined resolution as its completing event holds it
+        (the participants' actual steps): the one the record reuses."""
+        return self._resolutions.get(contest_id)
+
+    def _serve(
+        self, die: int, snapshot: RollInstructionSnapshot, result: DiceResult
+    ) -> DiceResult:
+        self._served[die] = (snapshot, result)
         return result
+
+    def _frozen(self, die: int) -> RollInstructionSnapshot | None:
+        """The instruction a contest's first participant froze for this die."""
+        earlier = self._served.get(die - 1)
+        if earlier is None or earlier[0].contest is None:
+            return None
+        return earlier[0].contest.counterpart_instruction
+
+    def _resolution(
+        self, die: int, snapshot: RollInstructionSnapshot, result: DiceResult
+    ) -> ContestResolution | None:
+        """The contest's combined result, when this die completes one: both
+        authoritative totals compared once (Group 17)."""
+        from afterworlds.pipeline.rpg.contests import compare
+
+        if snapshot.contest is None or snapshot.contest.counterpart_instruction:
+            return None
+        first = self._served.get(die - 1)
+        if first is None or first[0].contest is None:
+            raise ActionSequenceIntegrityError("a contest lost its first participant")
+        before, dice_before = first
+        assert before.contest is not None
+        return compare(
+            snapshot.contest.contest_id,
+            (before.roller, before.step_id, _total(before, dice_before)),
+            (snapshot.roller, snapshot.step_id, _total(snapshot, result)),
+            before.contest.certificate,
+        )
 
     def decide(self, described: DecisionRequest) -> str:
         op, index = self._operation, self._decision
@@ -328,8 +417,12 @@ class SequenceDice:
 
     def player_owned(self, request: RollRequest) -> bool:
         """The die is the acting character's own and the story's dice are
-        player-rolled; a hidden operation's dice are always the backend's."""
-        return self.player_rolls and not self._hidden and request.roller == self.actor
+        player-rolled; a hidden die is always the backend's."""
+        return (
+            self.player_rolls
+            and not (self._hidden or request.hidden)
+            and request.roller == self.actor
+        )
 
     def _record(self, step: NewStep) -> None:
         self.new_steps.append(step)
@@ -427,6 +520,15 @@ def roll_view(
             )
             for o in snapshot.adjustment_options
         ),
+    )
+
+
+def _total(snapshot: RollInstructionSnapshot, result: DiceResult) -> int:
+    """A die's authoritative total: its kept dice and every modifier."""
+    return (
+        result.chosen
+        + modifier_total(snapshot, visible=True)
+        + modifier_total(snapshot, visible=False)
     )
 
 

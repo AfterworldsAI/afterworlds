@@ -3719,6 +3719,11 @@ class OrchestratorService:
                         [e.model_dump(mode="json") for e in record.sheet_effects]
                     ),
                     created_at=now_str,
+                    contest_resolution_json=(
+                        record.contest_resolution.model_dump_json()
+                        if record.contest_resolution is not None
+                        else None
+                    ),
                 )
             )
 

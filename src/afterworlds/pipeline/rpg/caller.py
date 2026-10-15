@@ -155,6 +155,25 @@ _WEAPON_ATTACK_SCHEMA: dict[str, Any] = {
 }
 
 
+#: One contest participant (CRD Issue 15b, ADR-015b Group 17).
+_CONTEST_PARTICIPANT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "subject": _SUBJECT_SCHEMA,
+        "ability": {"type": "string", "enum": [a.value for a in AbilityScore]},
+        "skill": {
+            "oneOf": [
+                {"type": "string", "enum": [k.value for k in Skill]},
+                {"type": "null"},
+            ]
+        },
+        "roll_hidden": {"type": "boolean"},
+    },
+    "required": ["subject", "ability"],
+    "additionalProperties": False,
+}
+
+
 def _selection(values: list[str], description: str) -> dict[str, Any]:
     return {
         "oneOf": [{"type": "string", "enum": values}, {"type": "null"}],
@@ -344,6 +363,34 @@ PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC: dict[str, Any] = {
                                 " the area, also named in enemies_in_area)."
                             ),
                         },
+                        "contest": {
+                            "oneOf": [
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "initiator": _CONTEST_PARTICIPANT_SCHEMA,
+                                        "resister": _CONTEST_PARTICIPANT_SCHEMA,
+                                        "stakes": {"type": "string"},
+                                        "counterpart_perceived": {"type": "boolean"},
+                                    },
+                                    "required": ["initiator", "resister", "stakes"],
+                                    "additionalProperties": False,
+                                },
+                                {"type": "null"},
+                            ],
+                            "description": (
+                                "For contest: two characters or creatures of the"
+                                " story directly opposing each other's effort"
+                                " (the one acting first is the initiator), each"
+                                " with the ability and optional skill of its"
+                                " check; roll_hidden hides a participant's roll."
+                                " counterpart_perceived is false only when the"
+                                " acting character does not perceive the"
+                                " opposition. The engine compares the totals and"
+                                " applies no effect; hiding, persuading,"
+                                " grappling and shoving use their own operations."
+                            ),
+                        },
                         "attestation": {
                             "oneOf": [
                                 {
@@ -390,8 +437,9 @@ PRODUCE_ADJUDICATION_PROPOSALS_TOOL_SPEC: dict[str, Any] = {
                                 " 'shown' — AI roll, result shown to player."
                                 " 'hidden' — backend only; result nulled in"
                                 " player-facing output."
-                                " 'player' — player rolls physically and"
-                                " reports the total next turn."
+                                " 'player' — the Sojourner rolls their own"
+                                " character's dice when the story's dice are"
+                                " player-rolled; the turn pauses for them."
                             ),
                         },
                     },

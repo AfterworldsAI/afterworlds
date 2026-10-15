@@ -1,7 +1,8 @@
-# RPG Adjudication Pass Prompt Contract v4
+# RPG Adjudication Pass Prompt Contract v5
 
 *Canonical source for the RPG_ADJUDICATION pipeline pass system prompt.*
-*Version: v4 (CRD Issue 15c: weapon attacks and actor-turn edges; v3 difficulty, tool and Initiative
+*Version: v5 (CRD Issue 15b: generic contests, player-rolled dice and the Sojourner's knockout
+decision; v4 CRD Issue 15c weapon attacks and actor-turn edges; v3 difficulty, tool and Initiative
 checks; v2 bounded d20 production reachability; v1 June 2026)*
 *Last updated: October 2026*
 
@@ -79,6 +80,14 @@ One proposal per required roll:
     The engine decides whether it recovers.
   - `knockout_recovery` — a knocked-out creature completed its Short Rest.
     Give the knockout's condition instance in `attestation`.
+  - `contest` — two characters or creatures directly oppose each other's
+    effort and no specific rule settles it: each makes a check, the higher
+    total wins, and equal totals leave the situation as it was. Fill
+    `contest`. It changes nothing by itself: you narrate the winner. Hiding,
+    searching, persuading or intimidating, grappling and shoving are **not**
+    contests; use their own operations (or a `difficulty_check`), which the
+    engine refuses if not yet executable. On an active turn the initiator
+    spends its action; the other participant spends nothing.
   - `creature_species` — the story has established the species of a creature
     whose stat block leaves it open (a Humanoid such as a bandit or a mage;
     the scene lists its `species_options`). Name it in `subject` and the
@@ -143,6 +152,14 @@ One proposal per required roll:
   character or creature the operation concerns. Null otherwise.
 - `species` — for `creature_species` only: one of the creature's
   `species_options` from the scene. Null otherwise.
+- `contest` — for `contest` only: `initiator` and `resister`, each with its
+  `subject` (`{kind, subject_id}`), the `ability` of its check and the
+  `skill` (optional, one that ability governs), and `roll_hidden: true` when
+  that participant's roll is hidden from the player; `stakes`, a short note
+  of what is contested (display only); and `counterpart_perceived`, false only
+  when the acting character does not perceive the opposition (its own check
+  then looks like an ordinary check, and the other participant's roll must be
+  hidden). Null otherwise.
 - `attestation` — for `stable_recovery` and `knockout_recovery` only: the
   `instance_id` named in the creature's state and, for `stable_recovery`,
   `elapsed_hours` (1–4; 4 means four or more), the total since it began. You
@@ -176,8 +193,11 @@ One proposal per required roll:
     crossbows, a sling, a blowgun, firearms): the scene `ammunition` item the
     attack fires. The engine checks that it fits the weapon, expends one per
     attack, hit or miss, and refuses when none is left. Null otherwise.
-  - `knock_out` — for a melee attack: if it would reduce the target to 0 Hit
-    Points, knock it out instead.
+  - `knock_out` — whether to knock a target out rather than reduce it to 0 Hit
+    Points is the Sojourner's own decision. Where the engine can ask them at the
+    moment the acting character's melee hit would do so, it asks, and refuses a
+    preset `knock_out`: leave it false. Otherwise set it only when the Sojourner
+    has said this turn that they mean to knock the target out.
   - `mastery` — use the weapon's optional mastery property (Graze, Push,
     Slow, Topple). The engine checks the attacker can use it; Sap and Vex
     apply on their own.
@@ -202,7 +222,11 @@ One proposal per required roll:
   `difficulty_reference_note` — optional narrative notes. **Never** used for
   any number, DC, skill, ability or eligibility.
 - `visibility` — `shown` (the result is shown to the player) or `hidden`
-  (backend only; the character does not know the roll happened).
+  (backend only; the character does not know the roll happened). When the
+  story's dice are player-rolled, the Sojourner rolls the acting character's
+  own visible dice: the engine pauses the turn for them and narrates the whole
+  action once it is resolved. `player` is treated like `shown`. The acting
+  character's own melee attacks are never hidden.
 
 ### When no mechanic is required
 
@@ -231,9 +255,10 @@ Call `produce_adjudication_proposals` with `rolls: []`. This is correct for:
 4. **Do not propose rolls for pure consequences.** A roll is required when the
    outcome is genuinely uncertain under the rules.
 
-5. **Shown or hidden only.** Use `hidden` for any check the character would not
-   know is happening. Player-rolled dice are not resolved by this pass; the
-   engine refuses them.
+5. **Who rolls is not yours to decide.** Use `hidden` for any check the
+   character would not know is happening; otherwise `shown`. The story's dice
+   handling decides whether the Sojourner rolls the acting character's own
+   dice; the engine asks them, not you.
 
 6. **Choose only listed identities.** Never invent an operation, identity or
    rule key. When a `fixed_dc_check` does not fit, use the operation that does
@@ -310,6 +335,36 @@ Sojourner.
     }
   ],
   "reasoning_note": "Picking the lock uses the tool's printed activity."
+}
+```
+
+### Arm-wrestling a sailor (contest)
+
+```json
+{
+  "rolls": [
+    {
+      "operation": "contest",
+      "contest": {
+        "initiator": {
+          "subject": {"kind": "character", "subject_id": "<the acting character>"},
+          "ability": "strength",
+          "skill": "athletics"
+        },
+        "resister": {
+          "subject": {"kind": "creature", "subject_id": "<the sailor>"},
+          "ability": "strength",
+          "skill": "athletics"
+        },
+        "stakes": "who pins the other's arm",
+        "counterpart_perceived": true
+      },
+      "check_label": "Arm wrestling",
+      "subsystem_tag": "contest",
+      "visibility": "shown"
+    }
+  ],
+  "reasoning_note": "Both strain against each other; no specific rule applies."
 }
 ```
 

@@ -45,6 +45,7 @@ from afterworlds.models.rpg import (
 from afterworlds.pipeline.rpg import (
     attacks,
     checks,
+    contests,
     creature_attacks,
     creature_effects,
     creature_types,
@@ -217,6 +218,9 @@ class D20RulesSystemAdapter:
             return
         if proposal.operation == Operation.CREATURE_SPECIES.value:
             creature_types.prepare_species(proposal, subjects or {})
+            return
+        if proposal.operation == Operation.CONTEST.value:
+            contests.prepare(proposal, character, subjects or {})
             return
         if proposal.operation == Operation.STABILIZE.value:
             lifecycle.prepare_first_aid(proposal, character, subjects or {})
@@ -426,6 +430,13 @@ class D20RulesSystemAdapter:
                 sheet_effects=struck.effects,
                 source=source,
                 gm_cheating_at_roll=gm_cheating,
+            )
+        if proposal.operation == Operation.CONTEST.value:
+            return contests.roll(
+                contests.prepare(proposal, character, subjects or {}),
+                dice_service,
+                proposal,
+                gm_cheating,
             )
         if proposal.operation == Operation.CREATURE_SPECIES.value:
             recorded, provenance = creature_types.record_species(
@@ -646,6 +657,8 @@ class D20RulesSystemAdapter:
                 outcome=None,
             )
 
+        if record.contest_resolution is not None:
+            return contests.writer_view(record)
         if not record.expression:  # an edge or attestation: no roll, no number
             return WriterAdjudicationView(
                 check_label=public_label(record),

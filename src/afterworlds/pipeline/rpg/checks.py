@@ -82,7 +82,14 @@ from afterworlds.pipeline.rpg.mastery import other_effects
 from afterworlds.services.dnd5e_state.authority import AuthorityIndex
 from afterworlds.services.dnd5e_state.turn import TurnCharacter
 
-__all__ = ["CHECK_OPERATIONS", "PreparedCheck", "RolledCheck", "prepare", "roll"]
+__all__ = [
+    "CHECK_OPERATIONS",
+    "PreparedCheck",
+    "RolledCheck",
+    "contest_check",
+    "prepare",
+    "roll",
+]
 
 
 _PB_COMPONENT = ("play.proficiency.proficiency_bonus", "proficiency_bonus_bands")
@@ -693,6 +700,51 @@ def prepare(proposal: RollProposal, character: TurnCharacter) -> PreparedCheck:
         )
     certificate = certify(operation, index)
     spec = _spec(operation, proposal, index, character)
+    return _prepared(operation, spec, character, index, certificate)
+
+
+def contest_check(
+    character: TurnCharacter,
+    ability: AbilityScore,
+    skill: Skill | None,
+    certificate: Certificate,
+) -> PreparedCheck:
+    """A character's check in a generic contest (ADR-015b Group 17): the
+    unchanged check procedure (ability modifier, skill proficiency and
+    Expertise, the Proficiency Bonus band, Advantage/Disadvantage from
+    recorded conditions, every contributor hold), with no target: the
+    contest compares the totals."""
+    index = character.index
+    if index is None:
+        raise _refuse(
+            RefusalKind.MISSING_AUTHORITY,
+            "the character's exact binding authority was not resolved",
+        )
+    if skill is not None and SKILL_ABILITY[skill] is not ability:
+        raise _refuse(
+            RefusalKind.INVALID_SELECTION,
+            f"{skill.value} is governed by {SKILL_ABILITY[skill].value}, not "
+            f"{ability.value}",
+        )
+    spec = _Spec(
+        identity=f"contest:{ability.value}" + (f"/{skill.value}" if skill else ""),
+        ability=ability,
+        skill=skill,
+        dc=None,
+        dc_source=None,
+        proficiency="skill",
+        contexts=_CHECK_CONTEXTS,
+    )
+    return _prepared(Operation.CONTEST, spec, character, index, certificate)
+
+
+def _prepared(
+    operation: Operation,
+    spec: _Spec,
+    character: TurnCharacter,
+    index: AuthorityIndex,
+    certificate: Certificate,
+) -> PreparedCheck:
     ability, skill = spec.ability, spec.skill
     state = _state(character)
     extra = (

@@ -26,7 +26,7 @@ from datetime import datetime
 from typing import Annotated, Literal, Self
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictInt, model_validator
 
 from afterworlds.models.enums import (
     ActionResolutionStatus,
@@ -228,6 +228,35 @@ class LifecycleAttestation(BaseModel):
     elapsed_hours: Literal[1, 2, 3, 4] | None = None
 
 
+class ContestParticipant(BaseModel):
+    """One participant of a generic contest (ADR-015b Group 17), as the
+    GameMaster selects it: a subject, the ability of its check and optionally
+    a skill that ability governs. ``roll_hidden``: the participant's dice and
+    numbers are hidden from the player (a backend hidden roll)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    subject: SubjectRef
+    ability: str
+    skill: str | None = None
+    roll_hidden: bool = False
+
+
+class ContestSelection(BaseModel):
+    """The GameMaster's selections for one ``contest`` (ADR-015b Group 17):
+    identities only. Code derives every number, compares the totals (the
+    higher wins; equal totals preserve the prior situation) and applies no
+    effect. ``counterpart_perceived``: the acting character perceives the
+    opposition; when it does not, the player sees an ordinary check."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    initiator: ContestParticipant
+    resister: ContestParticipant
+    stakes: str = Field(min_length=1)
+    counterpart_perceived: bool = True
+
+
 class RollProposal(BaseModel):
     """A single roll proposed by the adjudication pass model.
 
@@ -276,6 +305,8 @@ class RollProposal(BaseModel):
     #: accepted species record the scene offers for ``subject``. An identity
     #: from code-generated options, validated in code.
     species: str | None = None
+    #: The selections of a ``contest`` (CRD Issue 15b, ADR-015b Group 17).
+    contest: ContestSelection | None = None
 
 
 class AdjudicationProposalOutput(BaseModel):
@@ -375,6 +406,41 @@ class TurnEdge(BaseModel):
     subject: SubjectRef
 
 
+class ContestParticipantResult(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    subject: SubjectRef
+    step_id: UUID
+    total: int
+
+
+class ContestResolution(BaseModel):
+    """The combined result of a generic contest (Group 17), computed once by
+    code when the second total is accepted. Higher total wins; equal totals
+    are a tie that preserves the prior situation (no winner, no effect)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    schema_version: Literal[1] = 1
+    contest_id: UUID
+    participants: tuple[ContestParticipantResult, ContestParticipantResult]
+    result: Literal["win", "tie"]
+    winner: SubjectRef | None
+    certificate: dict[str, str]
+
+    @model_validator(mode="after")
+    def _winner_matches(self) -> Self:
+        a, b = self.participants
+        if a.total == b.total:
+            if self.result != "tie" or self.winner is not None:
+                raise ValueError("equal totals are a tie with no winner")
+        else:
+            best = a if a.total > b.total else b
+            if self.result != "win" or self.winner != best.subject:
+                raise ValueError("the higher total wins")
+        return self
+
+
 class ResolvedAdjudicationRecord(BaseModel):
     """Internal authoritative record of a resolved RPG roll.
 
@@ -409,6 +475,8 @@ class ResolvedAdjudicationRecord(BaseModel):
     #: A once-per-turn use this record takes (``record/component``) for the
     #: acting character in the active turn; replayed and committed like edges.
     turn_uses: tuple[TurnUseRef, ...] = ()
+    #: A contest's combined result (ADR-015b Group 17), on its record.
+    contest_resolution: ContestResolution | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -574,6 +642,10 @@ class ContestLinkage(BaseModel):
     counterpart: SubjectRef
     counterpart_perceived: bool
     certificate: dict[str, str]
+    #: On the first participant's instruction: the counterpart's instruction,
+    #: frozen when the contest is created (stored-snapshot authority); its
+    #: dice are drawn only when the first result is accepted.
+    counterpart_instruction: RollInstructionSnapshot | None = None
 
 
 class RollInstructionSnapshot(BaseModel):
@@ -752,7 +824,7 @@ class MechanicalDecisionSubmission(BaseModel):
 
     schema_version: Literal[1] = 1
     decision_request_id: UUID
-    expected_decision_revision: int
+    expected_decision_revision: StrictInt
     option_id: str
 
 
@@ -785,11 +857,15 @@ class ActionResolutionAdvanceResult(BaseModel):
 
 
 class PlayerRollTermResult(BaseModel):
+    """Raw die faces as submitted. Exact integers only (``StrictInt``): a
+    string, float or boolean is refused at ingress, never coerced into a
+    legal face (#127 Validation 5, AC16)."""
+
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     schema_version: Literal[1] = 1
     term_id: UUID
-    values: tuple[int, ...]
+    values: tuple[StrictInt, ...]
 
 
 class RawPlayerRollSubmission(BaseModel):
@@ -801,7 +877,7 @@ class RawPlayerRollSubmission(BaseModel):
     schema_version: Literal[1] = 1
     source: Literal["inline_ui", "physical_self_report"]
     pending_roll_request_id: UUID
-    expected_instruction_revision: int
+    expected_instruction_revision: StrictInt
     term_results: tuple[PlayerRollTermResult, ...]
 
 
@@ -814,8 +890,8 @@ class PhysicalAggregateRollSubmission(BaseModel):
     schema_version: Literal[1] = 1
     source: Literal["physical_self_report"]
     pending_roll_request_id: UUID
-    expected_instruction_revision: int
-    reported_aggregate: int
+    expected_instruction_revision: StrictInt
+    reported_aggregate: StrictInt
 
 
 RollSubmission = Annotated[
@@ -927,41 +1003,6 @@ class ActionResolutionSequence(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-class ContestParticipantResult(BaseModel):
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    subject: SubjectRef
-    step_id: UUID
-    total: int
-
-
-class ContestResolution(BaseModel):
-    """The combined result of a generic contest (Group 17), computed once by
-    code when the second total is accepted. Higher total wins; equal totals
-    are a tie that preserves the prior situation (no winner, no effect)."""
-
-    model_config = ConfigDict(extra="forbid", frozen=True)
-
-    schema_version: Literal[1] = 1
-    contest_id: UUID
-    participants: tuple[ContestParticipantResult, ContestParticipantResult]
-    result: Literal["win", "tie"]
-    winner: SubjectRef | None
-    certificate: dict[str, str]
-
-    @model_validator(mode="after")
-    def _winner_matches(self) -> Self:
-        a, b = self.participants
-        if a.total == b.total:
-            if self.result != "tie" or self.winner is not None:
-                raise ValueError("equal totals are a tie with no winner")
-        else:
-            best = a if a.total > b.total else b
-            if self.result != "win" or self.winner != best.subject:
-                raise ValueError("the higher total wins")
-        return self
-
-
 class RollEventPayload(BaseModel):
     """A ``PLAYER_ROLL``/``AI_ROLL``/``HIDDEN_ROLL`` event. ``total`` and
     ``outcome`` are never null; only the snapshot's ``dc`` may be.
@@ -1001,8 +1042,27 @@ class RollEventPayload(BaseModel):
             raise ValueError("pending_roll_request_id is set exactly for player rolls")
         if (self.raw_input_json is None) == (self.aggregate_input_json is None):
             raise ValueError("exactly one of raw or aggregate input is recorded")
+        aggregate = self.aggregate_input_json is not None
+        if aggregate and (
+            self.submission_source is not RollSubmissionSource.PHYSICAL_SELF_REPORT
+        ):
+            # Only a physical self-report may be aggregate-only (15b-15): the
+            # backend and an inline roll always know every die.
+            raise ValueError("only a physical self-report records an aggregate only")
+        if aggregate != (self.subtotal is None) or (
+            aggregate and self.derived_selections_json != "[]"
+        ):
+            raise ValueError(
+                "an aggregate-only report derives no selection or subtotal; raw "
+                "values always do"
+            )
         if self.instruction_snapshot.dc is None and self.outcome != "undetermined":
             raise ValueError("a roll with no target resolves undetermined")
+        linkage = self.instruction_snapshot.contest
+        if self.contest_resolution is not None and (
+            linkage is None or linkage.contest_id != self.contest_resolution.contest_id
+        ):
+            raise ValueError("only a roll of that contest completes it")
         return self
 
 
@@ -1060,6 +1120,21 @@ class ActionResolutionEvent(BaseModel):
                 f"kind {self.kind.value} must match payload kind "
                 f"{self.payload.kind.value}"
             )
+        payload = self.payload
+        snapshot: RollInstructionSnapshot | MechanicalDecisionSnapshot = (
+            payload.instruction_snapshot
+            if isinstance(payload, RollEventPayload)
+            else (
+                payload.resulting_instruction_snapshot
+                if isinstance(payload, AdjustmentEventPayload)
+                else payload.decision_snapshot
+            )
+        )
+        if (snapshot.sequence_id, snapshot.step_id) != (
+            self.sequence_id,
+            self.step_id,
+        ):
+            raise ValueError("an event records its own sequence step's snapshot")
         return self
 
 
@@ -1131,6 +1206,9 @@ class RpgVisibleState(BaseModel):
     schema_version: Literal[1] = 1
 
 
+ContestLinkage.model_rebuild()
+RollInstructionSnapshot.model_rebuild()
+
 __all__ = [
     "ActionResolutionAdvanceResult",
     "ActionResolutionEvent",
@@ -1138,6 +1216,8 @@ __all__ = [
     "AdjudicationProposalOutput",
     "AdjustmentEventPayload",
     "ContestLinkage",
+    "ContestParticipant",
+    "ContestSelection",
     "ContestParticipantResult",
     "ContestResolution",
     "DerivedRollTermResult",

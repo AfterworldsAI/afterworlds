@@ -218,6 +218,49 @@ def _section_costs(by: SubjectReference, section: EntrySection) -> list[Use]:
     )
 
 
+def _contest_costs(
+    proposal: RollProposal,
+    actor: TurnCharacter,
+    subjects: dict[tuple[str, str], TurnSubject],
+    document: TurnCoordination,
+) -> list[Use]:
+    """A contest's action (ADR-015b Group 17, accepted Action cost): outside
+    an active turn no per-turn use; in one, the initiator's one action when
+    it is the active subject and can act, else a refusal (an off-turn effort
+    would need a Reaction or a Readied action, neither executable). The
+    resisting check costs nothing and spends no Reaction."""
+    sel = proposal.contest
+    assert sel is not None
+    active = document.active
+    if active is None:
+        return []
+    ref = sel.initiator.subject
+    initiator = SubjectReference(kind=ref.kind, subject_id=ref.subject_id)
+    if active.subject != initiator:
+        raise _refuse(
+            RefusalKind.INVALID_SELECTION,
+            "the contest's initiator is not the active turn's subject; an "
+            "off-turn effort would need a Reaction or a Readied action, which "
+            "are not executable",
+        )
+    subject = (
+        actor
+        if ref.kind == "character" and ref.subject_id == actor.subject_id
+        else subjects.get((ref.kind, str(ref.subject_id)))
+    )
+    if subject is None:
+        raise _refuse(RefusalKind.MISSING_STATE, "the initiator was not read")
+    from afterworlds.pipeline.rpg.conditions import cannot_act
+
+    blocked = cannot_act(subject)
+    if blocked:
+        raise _refuse(
+            RefusalKind.INVALID_SELECTION,
+            f"the initiator cannot take actions ({blocked})",
+        )
+    return [Use(initiator, ACTION)]
+
+
 def costs(
     proposal: RollProposal,
     actor: TurnCharacter,
@@ -233,6 +276,8 @@ def costs(
         return _attack_costs(proposal, actor, document)
     if operation == Operation.STABILIZE.value:
         return [Use(_ref(actor), ACTION)]  # the Help action's first aid
+    if operation == Operation.CONTEST.value:
+        return _contest_costs(proposal, actor, subjects, document)
     if operation == Operation.CREATURE_ATTACK.value:
         sel = proposal.creature_attack
         assert sel is not None

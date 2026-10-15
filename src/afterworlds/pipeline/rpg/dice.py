@@ -132,6 +132,12 @@ class RollRequest:
     options: tuple[tuple[str, str, str], ...] = ()
     #: Backend-only contest linkage (ADR-015b Group 17), a ``ContestLinkage``.
     contest: object | None = None
+    #: This die is rolled hidden from the player (a hidden contest
+    #: participant), whatever its operation's visibility.
+    hidden: bool = False
+    #: The contest counterpart's ``(expression, request)``, frozen with this
+    #: first participant's instruction (ADR-015b Group 17).
+    counterpart: tuple[str, RollRequest] | None = None
 
 
 @dataclass(frozen=True)

@@ -99,9 +99,20 @@ def has_pending_roll_request_originating_from_turn(
     era-boundary table (ADR-018 D6) makes ``PendingRollRequest`` the sole
     signal for that shape. This reads only the persisted row; it never
     inspects prose or ``RpgSessionState.play_status``.
+
+    CRD Issue 15b: a turn that announces an action-resolution sequence is the
+    same procedural request output, whether its first interaction is a roll
+    (a pending row) or a result-triggered decision (no pending row). Every
+    such turn is a sequence's ``originating_turn_id``, so that counts too.
     """
+    from afterworlds.persistence.orm.rpg import ActionResolutionSequenceORM
+
     return (
         session.query(PendingRollRequestORM)
+        .filter_by(originating_turn_id=str(turn_id))
+        .first()
+        is not None
+        or session.query(ActionResolutionSequenceORM)
         .filter_by(originating_turn_id=str(turn_id))
         .first()
         is not None

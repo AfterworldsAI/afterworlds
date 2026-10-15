@@ -45,7 +45,13 @@ from tests.pipeline.rpg.test_weapon_attacks import (
     _proposal,
     _run,
 )
-from tests.services.dnd5e_state.builders import index_for, real_index
+from tests.services.dnd5e_state.builders import (
+    committed_inputs_for,
+    index_for,
+    real_index,
+    s1_entry,
+    s1_index,
+)
 
 WOLF = "animals.wolf"
 #: The accepted CRD Issue 15b C9 successor's projection (recorded 2026-10-14)
@@ -106,8 +112,12 @@ def _superseded_c8_index() -> Any:
     return index_for(inputs)
 
 
+#: The 14 CRD Issue 15c operations, certified on C9 itself. The CRD Issue
+#: 15b contest is certified only with the S1 supplement (tested below).
 EXECUTABLE = [
-    op for op, cap in MANIFEST.items() if cap.status is CapabilityStatus.EXECUTABLE
+    op
+    for op, cap in MANIFEST.items()
+    if cap.status is CapabilityStatus.EXECUTABLE and op is not Operation.CONTEST
 ]
 
 
@@ -159,3 +169,47 @@ def test_an_unchanged_template_is_certified_across_bindings() -> None:
     # A weapon attack against it records the target's template too.
     record = _run(_attacker(CLUB), wolf, _proposal(wolf), _dice((15,), (3,)))
     assert json.loads(record.modifiers_json)["templates"]
+
+
+# ---------------------------------------------------------------------------
+# CRD Issue 15b: the contest operation and the S1 supplement (Group 17)
+# ---------------------------------------------------------------------------
+
+#: S1's accepted identities (``s1-on-c9.json`` and the accepted S1 report).
+S1_OVERRIDE_SET = "ffcb9a48-901a-5fe7-9e80-9054b05a9097"
+CONTEST_SCHEMA_ID_PREFIX = "802ea038"
+
+
+def test_the_contest_certifies_only_with_the_s1_supplement() -> None:
+    from afterworlds.services.dnd5e_state.authority import component_schema_id
+
+    index = s1_index()
+    assert str(index.binding.override_set_uuid) == S1_OVERRIDE_SET
+    component = index.component("play.d20_tests", "contest")
+    assert component is not None
+    assert component_schema_id(component).startswith(CONTEST_SCHEMA_ID_PREFIX)
+    certificate = certify(Operation.CONTEST, index)
+    assert certificate.fingerprint == MANIFEST[Operation.CONTEST].fingerprint
+    assert certificate.override_set_uuid == index.binding.override_set_uuid
+    assert certificate.projection_uuid == UUID(C9_PROJECTION)
+    # S1 changes no other operation's governing set.
+    for operation in EXECUTABLE:
+        assert certify(operation, index).fingerprint == MANIFEST[operation].fingerprint
+
+
+def test_a_contest_without_the_supplement_is_missing_authority() -> None:
+    with pytest.raises(AdjudicationRefusal) as caught:
+        certify(Operation.CONTEST, real_index())
+    assert caught.value.kind is RefusalKind.MISSING_AUTHORITY
+
+
+def test_a_contest_under_a_changed_supplement_is_incompatible() -> None:
+    inputs = committed_inputs_for(str(CERTIFIED_RELEASE[0]), CERTIFIED_RELEASE[1])
+    assert inputs is not None
+    changed = index_for(
+        inputs, (s1_entry(authored_prose="A tie goes to the initiator."),)
+    )
+    assert changed.component("play.d20_tests", "contest") is not None
+    with pytest.raises(AdjudicationRefusal) as caught:
+        certify(Operation.CONTEST, changed)
+    assert caught.value.kind is RefusalKind.INCOMPATIBLE_CERTIFICATION
