@@ -433,6 +433,28 @@ class SequenceDice:
 
 
 @dataclass(frozen=True)
+class CompletedSequence:
+    """A turn resolved with no Sojourner input whose operations ADR-015b
+    Group 17 still requires on the event ledger (a contest: both
+    participants' roll events, the combined resolution on the completing one,
+    one audit row per participant from its event). Persisted already
+    completed, inside its originating Turn's transaction: no pending
+    interaction, no ready state and no resume."""
+
+    sequence_id: UUID
+    #: The turn's code-validated proposals (identities only, never numbers).
+    proposals: tuple[RollProposal, ...]
+    #: What the work rests on (``PreparedTurn.reads``).
+    reads: dict[str, Any]
+    gm_cheating: bool
+    player_rolls: bool
+    #: Every operation of the turn, resolved, in order.
+    records: tuple[ResolvedAdjudicationRecord, ...]
+    #: Every die the turn drew (all backend), in order.
+    steps: tuple[NewStep, ...]
+
+
+@dataclass(frozen=True)
 class SequenceStart:
     """A turn whose resolution paused for the Sojourner (CRD Issue 15b):
     everything the announce transaction persists as a new sequence. Nothing

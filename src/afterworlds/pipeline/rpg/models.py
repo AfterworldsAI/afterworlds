@@ -35,6 +35,10 @@ class AdjudicationPassResult(BaseModel):
     #: CRD Issue 15b: the action-resolution sequence this turn starts
     #: (``SequenceStart``), or ``None``.
     sequence: Any = None
+    #: CRD Issue 15b, Group 17: a turn that needed no player input but
+    #: resolved a contest (``CompletedSequence``): the delivered Turn
+    #: persists its ledger completed and audits from its events.
+    completed_sequence: Any = None
     #: CRD Issue 15c: the subjects besides the acting character that this
     #: turn's operations read (``TurnCharacter``/``TurnCreature``), each with
     #: the revision and binding it was read at. The orchestrator rechecks

@@ -1331,14 +1331,15 @@ class OrchestratorService:
                     )
                 if (
                     adj_result.sequence is not None
-                    and self._rpg_sequence_service is None
-                ):
+                    or adj_result.completed_sequence is not None
+                ) and self._rpg_sequence_service is None:
                     return self._pipeline_error(
                         intent_result,
                         latency,
                         turn_start,
-                        "the turn needs the Sojourner's input, and no action"
-                        " sequence service is wired to persist it",
+                        "the turn needs the Sojourner's input or the event"
+                        " ledger, and no action sequence service is wired to"
+                        " persist it",
                         input_safety_result=input_safety,
                         planner_result=planner_result,
                         rpg_adjudication_result=adj_result,
@@ -2133,8 +2134,10 @@ class OrchestratorService:
         # 5b. [RPG only] Inside the outer transaction (Fork B→B1): the turn's
         # adjudication audit rows; or, for a turn that paused for the Sojourner,
         # its new action-resolution sequence (CRD Issue 15b: no audit and no
-        # effect yet); or, for a resume, the final audit derived from the
-        # sequence's event ledger and the sequence completed.
+        # effect yet); or, for a contest needing no player input, its completed
+        # ledger and the audit derived from it (Group 17); or, for a resume,
+        # the final audit derived from the sequence's event ledger and the
+        # sequence completed.
         if (
             adj_result is not None
             and rpg_session_id is not None
@@ -2155,6 +2158,20 @@ class OrchestratorService:
                         node_id=node_id,
                         character_id=rpg_character_id,
                         originating_turn_id=writer_result.turn_id,
+                    )
+                elif adj_result.completed_sequence is not None:
+                    # Group 17: a contest needing no player input still
+                    # persists its participant events; its audit rows come
+                    # from them, committed with this Turn.
+                    assert sequences is not None  # noqa: S101 — wired to adjudicate
+                    sequences.record_completed(
+                        session,
+                        adj_result.completed_sequence,
+                        story_id=story_id,
+                        session_id=rpg_session_id,
+                        node_id=node_id,
+                        character_id=rpg_character_id,
+                        turn_id=writer_result.turn_id,
                     )
                 else:
                     self._write_rpg_audit(

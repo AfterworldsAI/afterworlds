@@ -53,8 +53,16 @@
 > already requires or engineering detail. None is a new product decision.
 > - **Final Audit Projection** gains one nullable column, `contest_resolution_json`. Its source is the
 >   contest-completing roll event's nullable `payload.contest_resolution` (Group 17), so nullable feeds
->   nullable. A contest whose dice are all backend dice writes the column from its record through the
->   15c audit path. See the table below.
+>   nullable. See the table below.
+> - **Contests needing no player input (Group 17 as written).** Both dice are drawn in the originating
+>   turn's adjudication, and the turn's delivery transaction persists the ledger already completed:
+>   - both participants' roll events, with the combined resolution on the completing event;
+>   - one final audit row per participant, from its event alone;
+>   - the sequence, completed with the Turn.
+>
+>   It has no pending interaction, no ready state and no resume, and its Turn is ordinary narration for
+>   retrieval. If adjudication cannot persist the ledger (no action-resolution service), a contest
+>   refuses before any die (`unsupported_capability`). No one-record audit path exists for contests.
 > - **`RollPurpose.RECHARGE`** joins the purpose vocabulary. A creature's Recharge die is a supported
 >   15c mechanic, and 15b-7 requires every supported mechanic to be representable.
 > - **Accepting transaction (Groups 6 and 15).**

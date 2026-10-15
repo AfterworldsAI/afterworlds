@@ -21,6 +21,8 @@ from afterworlds.models.rpg import (
     ContestLinkage,
     ContestParticipantResult,
     ContestResolution,
+    MechanicalDecisionOptionSnapshot,
+    MechanicalDecisionSnapshot,
     MechanicalDecisionSubmission,
     PhysicalAggregateRollSubmission,
     PlayerRollTermResult,
@@ -297,3 +299,100 @@ def test_the_event_envelope_agrees_with_its_payload() -> None:
     ):
         with pytest.raises(ValidationError):
             ActionResolutionEvent.model_validate_json(json.dumps(_event(**changes)))
+
+
+# ---------------------------------------------------------------------------
+# Non-roll events: stored snapshots, identity and cross-kind refusal (AC41-46)
+# ---------------------------------------------------------------------------
+
+
+def _decision_payload(**changes: Any) -> dict[str, Any]:
+    snapshot = MechanicalDecisionSnapshot(
+        decision_id=uuid4(),
+        decision_revision=1,
+        prompt="Knock it out instead?",
+        options=(
+            MechanicalDecisionOptionSnapshot(
+                option_id="knock_out",
+                player_visible_label="Knock it out",
+                source_rule_ref="play.damage_and_healing/knocking_out",
+                provisional_effects_json="[]",
+            ),
+            MechanicalDecisionOptionSnapshot(
+                option_id="no_knock_out",
+                player_visible_label="No",
+                provisional_effects_json="[]",
+            ),
+        ),
+        source_rule_refs=("play.damage_and_healing/knocking_out",),
+        sequence_id=SEQUENCE,
+        step_id=STEP,
+    )
+    values = {
+        "kind": "mechanical_decision",
+        "decision_snapshot": json.loads(snapshot.model_dump_json()),
+        "accepted_decision_option_id": "knock_out",
+    }
+    return values | changes
+
+
+def _adjustment_payload(**changes: Any) -> dict[str, Any]:
+    values = {
+        "kind": "adjustment",
+        "resulting_instruction_snapshot": json.loads(
+            _snapshot(instruction_revision=2).model_dump_json()
+        ),
+        "accepted_adjustment_option_id": "finesse_dexterity",
+    }
+    return values | changes
+
+
+@pytest.mark.parametrize("payload", [_decision_payload, _adjustment_payload])
+def test_a_non_roll_event_reconstructs_its_whole_stored_payload(payload: Any) -> None:
+    data = payload()
+    event = ActionResolutionEvent.model_validate_json(
+        json.dumps(_event(kind=data["kind"], payload=data))
+    )
+    assert json.loads(event.payload.model_dump_json()) == data | {"schema_version": 1}
+
+
+@pytest.mark.parametrize(
+    ("kind", "payload"),
+    [
+        ("mechanical_decision", _payload()),  # a roll payload, decision kind
+        ("adjustment", _decision_payload()),
+        ("player_roll", _adjustment_payload()),
+        ("mechanical_decision", _decision_payload(kind="adjustment")),
+        (
+            "mechanical_decision",
+            _decision_payload(total=12),  # a roll field on a decision
+        ),
+        (
+            "adjustment",
+            _adjustment_payload(accepted_decision_option_id="knock_out"),
+        ),
+        ("mechanical_decision", _decision_payload(accepted_decision_option_id=1)),
+    ],
+    ids=[
+        "roll-as-decision",
+        "decision-as-adjustment",
+        "adjustment-as-roll",
+        "decision-payload-claims-adjustment",
+        "decision-with-roll-field",
+        "adjustment-with-decision-field",
+        "non-string-option",
+    ],
+)
+def test_cross_kind_event_payloads_refuse(kind: str, payload: dict[str, Any]) -> None:
+    with pytest.raises(ValidationError):
+        ActionResolutionEvent.model_validate_json(
+            json.dumps(_event(kind=kind, payload=payload))
+        )
+
+
+def test_a_decision_event_records_its_own_step_snapshot() -> None:
+    data = _decision_payload()
+    with pytest.raises(ValidationError):
+        ActionResolutionEvent.model_validate_json(
+            json.dumps(_event(kind=data["kind"], payload=data, step_id=str(uuid4())))
+        )

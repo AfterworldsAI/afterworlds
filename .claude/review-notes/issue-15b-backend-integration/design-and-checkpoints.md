@@ -173,9 +173,13 @@ the advisor-checkpoint conclusions on context construction or ledger schema nami
 - **§2 downgrade.** Downgrade no longer restores columns over existing data. It refuses before any DDL
   while lifecycle data exists (`require_no_lifecycle_data`). `pending_roll_requests.sequence_id` has no
   foreign key, because SQLite cannot drop a foreign-key column on downgrade.
-- **§3 contest resolution.** A sequenced contest has one resolution, stored on its completing event and
-  identified by the participants' actual step ids. The record reuses it. Delivery refuses a record copy
-  that disagrees with it.
+- **§3 contest resolution.** A contest has one resolution, stored on its completing event and identified
+  by the participants' actual step ids. The record reuses it. Delivery refuses a record copy that
+  disagrees with it.
+- **§3 all-backend contests (supersedes the "no events" bullet).** That bullet contradicted Group 17
+  and is withdrawn. A contest needing no player input still writes both participant events and
+  event-derived per-participant audit rows. They commit, completed, with the originating Turn
+  (`record_completed`). Unwired adjudication refuses contests.
 - **§6 legacy retirement.** `PLAYER_ROLL_UNSUPPORTED` is kept, not migrated away. It is the safe
   unwired behaviour while product wiring constructs no sequence service (Phase 3).
 - **§5 hidden participants.** The acting character's own contest check is never hidden from them, in

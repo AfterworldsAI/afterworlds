@@ -95,6 +95,7 @@ from afterworlds.pipeline.rpg.models import (
 from afterworlds.pipeline.rpg.steps import (
     AcceptedDecision,
     AcceptedRoll,
+    CompletedSequence,
     NewStep,
     SequenceDice,
     SequenceStart,
@@ -452,6 +453,75 @@ class ActionResolutionService:
             projected=None,
         )
         return self._advance_result(session, row)
+
+    def record_completed(
+        self,
+        session: Session,
+        done: CompletedSequence,
+        *,
+        story_id: UUID,
+        session_id: UUID,
+        node_id: UUID,
+        character_id: UUID,
+        turn_id: UUID,
+    ) -> None:
+        """Inside the delivering Turn's transaction: persist a turn that
+        needed no player input but resolved a contest (ADR-015b Group 17).
+        Every die is its roll event, the combined resolution is on the
+        contest-completing one, the sequence is completed with the Turn, and
+        the final ``rpg_roll_audit`` rows come from those events alone, one per
+        die. Commits or rolls back with the Turn."""
+        from afterworlds.persistence.orm.rpg import ActionResolutionSequenceORM
+
+        if not done.steps or any(s.roll is None for s in done.steps):
+            raise ActionSequenceIntegrityError(
+                "a turn completed without the Sojourner has only backend dice"
+            )
+        now = _now()
+        plan = _Plan(
+            proposals=list(done.proposals),
+            gm_cheating=done.gm_cheating,
+            player_rolls=done.player_rolls,
+        )
+        row = ActionResolutionSequenceORM(
+            sequence_id=str(done.sequence_id),
+            story_id=str(story_id),
+            session_id=str(session_id),
+            node_id=str(node_id),
+            character_id=str(character_id),
+            originating_turn_id=str(turn_id),
+            status=ActionResolutionStatus.ACTIVE.value,
+            current_interaction_kind=SequenceInteractionKind.NONE.value,
+            plan_json=plan.dump(),
+            reads_json=_dump(done.reads),
+            records_json="[]",
+            unattached_json="[]",
+            resolved_steps_json="[]",
+            projected_state_json="{}",
+            provisional_effects_json="[]",
+            revision=0,
+            created_at=now,
+            updated_at=now,
+        )
+        session.add(row)
+        session.flush()
+        self._commit_run(
+            session,
+            row,
+            plan,
+            records=list(done.records),
+            steps=list(done.steps),
+            pause=None,
+            projected=None,
+        )
+        events = tuple(_events(session, row))
+        _check_contests(events, _ledger_records(events, len(done.proposals)))
+        row.status = ActionResolutionStatus.COMPLETED.value
+        row.revision = 1
+        row.updated_at = _now()
+        for audit in audit_rows(events, turn_id):
+            session.add(audit)
+        session.flush()
 
     # ------------------------------------------------------------------
     # Intermediate operations

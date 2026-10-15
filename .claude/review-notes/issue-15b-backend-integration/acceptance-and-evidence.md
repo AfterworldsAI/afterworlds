@@ -39,7 +39,8 @@ Exact-head full CI is the whole-candidate gate once Codex publishes the PR.
     same ability used for damage.
   - The knockout is a stored yes/no decision, with snapshot-only membership validation followed by a
     state-guarded continuation.
-  - Contests (Group 17) run with S1 in memory only.
+  - Contests (Group 17) run with S1 in memory only. A contest with no player input completes its
+    ledger inside its originating Turn.
   - A Stable recovery interval is a `DURATION` step.
   - A creature Recharge die has `RollPurpose.RECHARGE`.
 - **Orchestration.**
@@ -68,17 +69,17 @@ Exact-head full CI is the whole-candidate gate once Codex publishes the PR.
 | Surface | Proof |
 | --- | --- |
 | Sequence and adapter: linked attack and damage, the next attack, the contest opponent | `test_action_resolution_on_published_release` (spike); lifecycle `finesse`, `knockout`, `contest` tests; `test_multiattack_compositions::…in_a_sequence…` (ordered linked backend steps; replay draws nothing) |
-| Positive AC8 contests | `tests/pipeline/rpg/test_contests.py` (28): comparison, tie, printed creature total, Action cost, refusals, visibility in both roles, the nonparticipant fallback, whole-hidden. Lifecycle: player against a shown, hidden or unperceived counterpart, with reload, stale, duplicate, concurrent, rollback and tamper cases |
+| Positive AC8 contests | `tests/pipeline/rpg/test_contests.py` (30; includes the completed ledger of an all-backend contest and the unwired refusal): comparison, tie, printed creature total, Action cost, refusals, visibility in both roles, the nonparticipant fallback, whole-hidden. Lifecycle: player against a shown, hidden or unperceived counterpart, with reload, stale, duplicate, concurrent, rollback and tamper cases; `test_an_all_backend_contest_persists_both_participants_with_its_turn` (two `ai_roll` events, resolution on the completing one, sequence completed with the Turn, one audit row per participant, ordinary-narration marker); `test_a_failed_all_backend_contest_turn_leaves_no_ledger` (Writer error, output block: no sequence, event, audit row or Turn) |
 | Finesse revision | lifecycle `test_a_finesse_adjustment_revises_the_pending_attack_and_its_damage`: stale, inexact (`True`, `1.0`) or not-offered requests refuse; the superseded instruction refuses; Dex is used for damage |
-| Knockout decision | lifecycle `test_a_knockout_choice…` (both options), `test_a_stored_decision_is_validated_by_snapshot_then_state_guarded`, `test_an_ai_rolled_hit_starts_a_decision_first_sequence`; `test_zero_hp_lifecycle::…never_takes_the_knockout…` |
-| Dice selection and provenance | `test_sequence_engine.py` (16): kh3/kl3 with ties, mixed, repeated and subtracted terms, the aggregate range, naturals, term validation, a field-complete audit row, aggregate-only rows, backend pool integrity |
+| Knockout decision and stored non-roll events (AC41–46) | lifecycle `test_a_knockout_choice…` (both options; the decision event's whole `decision_snapshot` equals the stored one, with its decision id, revision and string option, and is rebuilt from its row alone after the working copies are blanked and the wolf moved); finesse test (the adjustment event's resulting snapshot equals the stored revised instruction, string option, same row-only reconstruction); `test_action_resolution_models.py` (29; non-roll payload round trips, 7 cross-kind refusals, step agreement); `test_a_stored_decision_is_validated_by_snapshot_then_state_guarded`, `test_an_ai_rolled_hit_starts_a_decision_first_sequence`; `test_zero_hp_lifecycle::…never_takes_the_knockout…` |
+| Dice selection and provenance (AC2–3) | `test_sequence_engine.py` (22). `test_the_executor_keeps_and_sums_its_whole_pool` runs `SystemRandomDiceService.roll` with only its RNG seam scripted: 4d6kh3, 4d6kl3, 3d20kh2, 5d8kl2, 10d6, 3d12, with the whole raw pool kept and `chosen` summing every kept die. Plus kh3/kl3 with ties, mixed, repeated and subtracted terms, the aggregate range, naturals, term validation, a field-complete audit row, aggregate-only rows, backend pool integrity |
 | Duration | lifecycle `test_stabilizing_draws_the_recovery_interval_in_the_accepting_write` |
-| Projected state | the spike (projected HP, sheet unchanged until narration); lifecycle gate test (`hp` unchanged while ready) |
+| Projected state and linked order (AC6–7/23) | lifecycle `test_a_later_attack_resolves_against_the_earlier_hits_projected_state`. The Club's 3 damage is provisional, and the live wolf keeps 4 HP. The Dagger's Light extra attack then deals 2 against the projected 1 HP, so the knockout decision is offered; against the live 4 HP it would not be. The test reloads at every step, checks no Writer call happens between the announce and the last step and exactly one at delivery, and the sheet changes only at delivery. Also the spike; the lifecycle gate test |
 | Intermediate transaction | lifecycle race, stale, duplicate, state-moved-after-preparation, failed-event-write rollback, malformed-input and quiet-intermediates tests (no provider, Turn, effect, audit, usage or settlement row); `test_action_resolution_models.py` (19) |
 | Final delivery | spike (delivery and typed already-completed); lifecycle typed resume refusals (not ready, not found, other node); a failed narration (Writer error, provider refusal, output block) keeps the ledger, buffers and then writes the refusal log, and the retry delivers identical facts once; event-only audit with corrupted working copies |
 | Legacy retirement | `affected-3` (285 orchestration, 160 retrieval, RPG and model suites); `test_pending_roll_db.py`; the retrieval marker tests, including a decision-first sequence |
 | Migration | `test_action_resolution_migration.py` (11): drop and add, ledger triggers, seeded-row abort, round trip, downgrade refusal, one unresolved sequence per story |
-| Unwired product behaviour | `test_bounded_d20_on_published_release.py` through the unchanged `create_app` (`player_roll_unsupported`); knockout preselection with no decision source (`test_zero_hp_lifecycle`, including the `decisions=False` branch); `test_adjudication_service` unwired refusal; orchestrator unwired guard |
+| Unwired product behaviour | `test_bounded_d20_on_published_release.py` through the unchanged `create_app` (`player_roll_unsupported`); a contest refuses unwired (`test_an_unwired_pass_refuses_a_contest_before_any_die`); knockout preselection with no decision source (`test_zero_hp_lifecycle`, including the `decisions=False` branch); `test_adjudication_service` unwired refusal; orchestrator unwired guard |
 
 ## Codex findings, rounds 3 and 4
 
@@ -91,6 +92,8 @@ Exact-head full CI is the whole-candidate gate once Codex publishes the PR.
 | 5. Two contest resolutions | patched: one resolution on the completing event, reused by the record; `_check_contests` compares both. Proven by tamper tests |
 | 6. Missing C9 Skills fact bypass | patched: every creature contest check requires the single Skills fact |
 | 7. Flaky hidden-AC assertion | patched: structural key check |
+| Consolidated residue P1, all-backend contest persistence (`CODEX-PHASE2-CONSOLIDATED-RESIDUE-DISPOSITION.md`) | patched: `CompletedSequence` from adjudication, `record_completed` in the originating Turn's transaction, the retrieval predicate (a completed in-turn ledger is not a procedural request), unwired contest refusal, and the guard. Proven by `lifecycle-6` and `affected-4` |
+| Consolidated residue, proof reachability (AC2–3, AC6–7/23, AC41–46) | added: executor, linked-dependency and stored non-roll event proofs (rows above) |
 | Read/accepting transaction (`CODEX-PHASE2-READ-TRANSACTION-DISPOSITION.md`) | patched: preparation outside the write; the recheck right after the claim, before any die. Proven by `test_state_moved_after_preparation_refuses_before_any_die`. The rollback seam is now the event write, not the recheck |
 
 ## Sibling audits
@@ -111,6 +114,16 @@ Exact-head full CI is the whole-candidate gate once Codex publishes the PR.
   - Disposition: `_advance` patched. The other three were already safe: no new die is drawn under
     their writes, and `complete` is a status-and-revision CAS.
 
+- **Generated steps dropped on a no-pause turn.**
+  - Trigger: the consolidated residue P1.
+  - Inspected: `adjudicate(sequences=True)`'s no-pause return; the orchestrator's 5b branches (start,
+    complete, audit); `_write_rpg_audit`; the unwired guard; the retrieval predicate.
+  - Patched: contests (Group 17 requires their ledger); the guard and the predicate.
+  - Out of scope: other all-backend 15c operations keep their record audit. No accepted authority
+    requires events for them, and changing it would rewrite ordinary 15c delivery.
+  - Note: a turn that combines a contest with other operations records all of its dice on the completed
+    ledger, because one turn is one sequence.
+
 ## Architecture Notes
 
 - **Deviation, Phase 3 boundary.** The Phase 2 sequence service is constructed only by tests
@@ -119,9 +132,15 @@ Exact-head full CI is the whole-candidate gate once Codex publishes the PR.
 - **Deviation, knockout.** The knockout is always the Sojourner's decision wherever decisions can be
   offered. A preselection or a hidden melee attack refuses there. The ADR's status note records this as
   the PRE-ROLL disposition's positive case.
-- **Deviation, contest audit.** A contest whose dice are all backend dice audits as one record row (15c
-  path) carrying `contest_resolution_json`. A sequenced contest audits one row per die, and the
-  completing row carries it.
+- **Contest audit (Group 17 as written, corrected after Codex's consolidated residue review).** An
+  earlier draft let a contest whose dice are all backend dice audit as one record row. That contradicted
+  accepted Group 17 and is removed. Every contest persists both participants' roll events and the one
+  combined resolution on the completing event, and audits one row per participant from its event:
+  - with player input, through the sequence and resume;
+  - with none, through `ActionResolutionService.record_completed` inside the originating Turn's own
+    transaction.
+
+  Unwired adjudication refuses a contest before any die.
 - **Resume Turn input.** The delivered Turn's user input is the originating announce input (the bundle).
   No new Sojourner text exists.
 - **Refusal buffering proof.** The fake provider resolver binds a bare adapter. The proof gives its test
@@ -137,3 +156,21 @@ Exact-head full CI is the whole-candidate gate once Codex publishes the PR.
   (`known_unknowns.md`, *Pending-roll rewind/cancel policy*).
 - **Preserved holds.** Familiar, CR0, mist, conditional, parameterized and source-open Humanoid holds
   are unchanged. Parameterized adjustments still need an ADR-015b amendment.
+
+## Final local gates (15 October 2026)
+
+- **Lifecycle.** `lifecycle-6`: 26 passed. It was rerun because the accepting transaction and the
+  contest persistence changed.
+- **Suites invalidated by the final source change.** `affected-4`: 1141 passed, 1 skipped (RPG,
+  orchestrator, retrieval, markers, models).
+- **Unwired product path and spike.** `published-unwired-2`: 25 passed through the unchanged
+  `create_app`.
+- **Reused unaffected proofs.** `affected-3` (services, API and persistence suites at `56c75bab`), the
+  migration tests (11) and `affected-units-final`.
+- **Static gates.** `black --check`, `ruff check` and `mypy` (strict, 271 files) are clean.
+- **detect-secrets.** No new or removed baseline entries. The tracked baseline is unchanged.
+- **pip-audit (`static-pip-audit-1`).** Exit 1. It finds chromadb 1.5.9 (no fix version) and pip
+  25.0.1 in the pinned interpreter's environment. No dependency file differs from main. This is a
+  pre-existing environment finding, not changed here. Dependency remediation is outside this issue.
+- **Not run locally.** The whole local coverage suite was not run, per Codex's instruction. Exact-head
+  full CI is the whole-candidate gate after publication.

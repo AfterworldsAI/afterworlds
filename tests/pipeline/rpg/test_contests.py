@@ -433,17 +433,32 @@ def _service(subject: Any, active: Any | None) -> RpgAdjudicationPassService:
 
 
 def _turn(
-    wizard: TurnCharacter, service: RpgAdjudicationPassService, proposal: Any
+    wizard: TurnCharacter,
+    service: RpgAdjudicationPassService,
+    proposal: Any,
+    sequences: bool = True,
 ) -> Any:
     return service.adjudicate(
         _make_assembled(),
         _make_session(DiceHandling.AI_ROLLS),
         wizard,
-        _dice(10, 10),
+        _Dice(10, 10),
         provider=_FakeProvider([proposal.model_dump(mode="json", exclude_none=True)]),
         story_id=_STORY_ID,
         originating_turn_id=_TURN_ID,
+        sequences=sequences,
     )
+
+
+class _Dice:
+    """Plain backend dice (a type with ``roll`` only)."""
+
+    def __init__(self, *faces: int) -> None:
+        self._faces = list(faces)
+
+    def roll(self, expression: str) -> DiceResult:
+        face = self._faces.pop(0)
+        return DiceResult(expression=expression, raw_rolls=(face,), chosen=face)
 
 
 def test_an_active_turn_initiator_spends_its_action_and_the_resister_nothing() -> None:
@@ -452,6 +467,49 @@ def test_an_active_turn_initiator_spends_its_action_and_the_resister_nothing() -
     (record,) = result.proposals
     assert [u.key for u in record.turn_uses] == ["glossary.action/action"]
     assert record.turn_uses[0].by.subject_id == wizard.subject_id
+
+
+def test_an_all_backend_contest_carries_its_completed_event_ledger() -> None:
+    """ADR-015b Group 17: with no player-rolled participant both dice are
+    drawn in the originating turn, and the result still carries both
+    participants' roll steps (the backend's) and the one combined resolution
+    the completing step and the record share, for the delivered Turn to
+    persist and audit from."""
+    wizard, ape = _wizard(), _creature(APE)
+    result = _turn(wizard, _service(ape, wizard), _contest(wizard, ape))
+    (record,) = result.proposals
+    done = result.completed_sequence
+    assert done is not None and result.sequence is None
+    first, second = (step.roll for step in done.steps)
+    assert first is not None and second is not None
+    assert [first.kind.value, second.kind.value] == ["ai_roll", "ai_roll"]
+    assert first.contest_resolution is None
+    assert second.contest_resolution == record.contest_resolution
+    steps = [p.step_id for p in record.contest_resolution.participants]
+    assert steps == [first.snapshot.step_id, second.snapshot.step_id]
+    assert done.records == (record,)
+
+
+def test_an_unwired_pass_refuses_a_contest_before_any_die() -> None:
+    """Without the event ledger (no action-resolution service) a contest
+    would run a weaker contract: it refuses before any die instead."""
+    wizard, ape = _wizard(), _creature(APE)
+    dice = _Dice()
+    with pytest.raises(AdjudicationRefusal) as caught:
+        wizard_service = _service(ape, wizard)
+        wizard_service.adjudicate(
+            _make_assembled(),
+            _make_session(DiceHandling.AI_ROLLS),
+            wizard,
+            dice,
+            provider=_FakeProvider(
+                [_contest(wizard, ape).model_dump(mode="json", exclude_none=True)]
+            ),
+            story_id=_STORY_ID,
+            originating_turn_id=_TURN_ID,
+        )
+    assert caught.value.kind is RefusalKind.UNSUPPORTED_CAPABILITY
+    assert "event ledger" in caught.value.detail
 
 
 def test_no_use_is_recorded_outside_an_active_turn() -> None:
@@ -476,7 +534,7 @@ def test_a_used_action_refuses_the_contest() -> None:
             _make_assembled(),
             _make_session(DiceHandling.AI_ROLLS),
             wizard,
-            _dice(10, 10, 10, 10),
+            _Dice(10, 10, 10, 10),
             provider=_FakeProvider(
                 [
                     _contest(wizard, ape).model_dump(mode="json", exclude_none=True),
@@ -485,6 +543,7 @@ def test_a_used_action_refuses_the_contest() -> None:
             ),
             story_id=_STORY_ID,
             originating_turn_id=_TURN_ID,
+            sequences=True,
         )
     assert "already used" in caught.value.detail
 

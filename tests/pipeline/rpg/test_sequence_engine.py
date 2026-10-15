@@ -345,3 +345,52 @@ def test_a_backend_die_must_be_its_terms_whole_pool() -> None:
                 ),
                 gm_cheating=False,
             )
+
+
+# ---------------------------------------------------------------------------
+# The production executor: SystemRandomDiceService.roll with its RNG seam fixed
+# ---------------------------------------------------------------------------
+
+
+class _Faces:
+    """The RNG seam only: ``randint`` answers the scripted faces in order and
+    records each range asked for. ``roll`` itself runs unchanged."""
+
+    def __init__(self, *faces: int) -> None:
+        self.faces = list(faces)
+        self.asked: list[tuple[int, int]] = []
+
+    def randint(self, low: int, high: int) -> int:
+        self.asked.append((low, high))
+        face = self.faces.pop(0)
+        assert low <= face <= high
+        return face
+
+
+@pytest.mark.parametrize(
+    ("expression", "faces", "chosen"),
+    [
+        ("4d6kh3", (6, 1, 6, 3), 15),
+        ("4d6kl3", (6, 1, 6, 3), 10),
+        ("3d20kh2", (7, 19, 12), 31),
+        ("5d8kl2", (8, 2, 5, 2, 7), 4),
+        ("10d6", (1, 2, 3, 4, 5, 6, 6, 5, 4, 3), 39),
+        ("3d12", (12, 1, 7), 20),
+    ],
+)
+def test_the_executor_keeps_and_sums_its_whole_pool(
+    expression: str, faces: tuple[int, ...], chosen: int
+) -> None:
+    dice = engine.SystemRandomDiceService(seed=0)
+    rng = _Faces(*faces)
+    dice._rng = rng  # type: ignore[assignment]  # noqa: SLF001 - the RNG seam
+    result = dice.roll(expression)
+    count, sides, op, keep = engine.parse_expression(expression)
+    assert rng.asked == [(1, sides)] * count and rng.faces == []
+    assert result.raw_rolls == faces  # the entire pool, kept or not
+    assert result.chosen == chosen
+    # The structured engine selects the very dice the executor summed.
+    term = engine.term_of(expression, uuid4())
+    (derived,) = engine.derive(_snapshot(term), {term.term_id: result.raw_rolls})
+    assert derived.contribution_applied_subtotal == result.chosen
+    assert len(derived.selected_indices) == (keep or count)

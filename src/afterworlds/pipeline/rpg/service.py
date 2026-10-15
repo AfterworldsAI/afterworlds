@@ -99,7 +99,11 @@ from afterworlds.pipeline.rpg.models import (
     PlayerInputRequired,
     PreflightGapError,
 )
-from afterworlds.pipeline.rpg.steps import SequenceDice, SequenceStart
+from afterworlds.pipeline.rpg.steps import (
+    CompletedSequence,
+    SequenceDice,
+    SequenceStart,
+)
 from afterworlds.services.dnd5e_state.coordination import (
     EdgeRefused,
     StoredCoordination,
@@ -570,6 +574,16 @@ class RpgAdjudicationPassService:
                 "this story's dice handling asks the player to roll, and no "
                 "action-resolution sequence can be persisted here",
             )
+        if not sequences and any(
+            p.operation == Operation.CONTEST.value for p in proposals
+        ):
+            # Group 17 persists every contest on the event ledger; without it
+            # a contest would run a weaker contract (one record row).
+            raise AdjudicationRefusal(
+                RefusalKind.UNSUPPORTED_CAPABILITY,
+                "a contest is recorded on the action-resolution event ledger, "
+                "and none can be persisted here",
+            )
         usage = AdjudicationPassResult(
             proposals=(),
             writer_views=(),
@@ -631,8 +645,24 @@ class RpgAdjudicationPassService:
                     "sequence": start,
                 }
             )
+        completed = None
+        if any(r.contest_resolution is not None for r in records):
+            completed = CompletedSequence(
+                sequence_id=dice.sequence_id,
+                proposals=tuple(prepared.proposals),
+                reads=prepared.reads(),
+                gm_cheating=session_state.gm_cheating,
+                player_rolls=dice.player_rolls,
+                records=tuple(records),
+                steps=tuple(dice.new_steps),
+            )
         return usage.model_copy(
-            update={**read, "proposals": tuple(records), "writer_views": tuple(views)}
+            update={
+                **read,
+                "proposals": tuple(records),
+                "writer_views": tuple(views),
+                "completed_sequence": completed,
+            }
         )
 
     def prepare_turn(
