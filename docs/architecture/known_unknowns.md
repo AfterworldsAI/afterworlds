@@ -208,6 +208,10 @@ completion. Until this policy exists, an abandoned sequence holds them indefinit
 pending one and one ready for narration but never resumed. This is the same lifecycle-termination
 question. It needs no separate decision. No code path cancels, expires or supersedes a sequence.
 
+**CRD Issue 15b Phase 3 consequence (2026-10-15, touched; not resolved):** `create_app()` now wires the
+sequence service, so these holds are reachable in production. The client resumes a ready sequence at once
+and offers a resume affordance on reload, but nothing ends a sequence the Sojourner never finishes.
+
 **What resolution requires:** Decide at minimum one of: (a) whether the Sojourner can explicitly cancel a
 pending roll or an active/ready sequence and what the mechanical/narrative consequence is; (b) whether a
 pending roll or an abandoned ready sequence expires after N turns or N minutes and what cleanup applies;

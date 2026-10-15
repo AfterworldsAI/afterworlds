@@ -99,6 +99,31 @@
 >   *Pending-roll rewind/cancel policy* in [`known_unknowns.md`](../architecture/known_unknowns.md)
 >   and is not decided here.
 
+> **Status note (2026-10-15, Phase 3 product wiring on `codex/issue-15b-phase3-product-wiring`;
+> awaiting review and Owner acceptance, no new authority):** this supersedes the *Unwired behaviour*
+> item above. Everything else in that note stands.
+> - **Construction.** `create_app()` builds the orchestrator and its one `ActionResolutionService`
+>   through `api/pipeline_wiring.py::build_pipeline`. The routes reach that same instance through the
+>   typed seam `api/rpg_actions.py`; no second service, lock or error envelope exists (Group 11).
+> - **Routes (CRD Issue 19 conventions).**
+>   - `GET .../rpg/pending-interaction`;
+>   - `POST .../rpg/rolls` (raw or aggregate), `.../rpg/adjustments`, `.../rpg/decisions`;
+>   - `POST .../rpg/sequences/{sequence_id}/resume`, a turn on the ordinary access-path and
+>     settlement flow.
+>
+>   Every mutation and ordinary turns share the one non-blocking story lock (`409 turn_in_flight`).
+>   A submission is delegated only when its id is the story's current pending interaction. Backend
+>   codes become lowercase `ApiErrorCode` values with fixed messages.
+> - **Completed resume (15b-32).** With no runnable access path, a sequence that is no longer the
+>   story's unresolved one is classified by the service's own `prepare_delivery` (already completed,
+>   or not found). The story's unresolved sequence keeps the access block, its facts untouched.
+> - **Client (Group 13, minimum).** The play view reads the pending interaction and submits rolls,
+>   adjustments and decisions. It resumes at once when an advancement is ready, shows a resume
+>   affordance on reload without resuming by itself, and treats `action_sequence_already_completed`
+>   as success with a refetch. The dice tray, scorecard and browser dice remain CRD Issue 19b's.
+> - **Known Unknown now reachable in production, not resolved:** an abandoned sequence holds shared
+>   rule changes and adoption (*Pending-roll rewind/cancel policy*).
+
 ---
 
 ## Central Invariant
