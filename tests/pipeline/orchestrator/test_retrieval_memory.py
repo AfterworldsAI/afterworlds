@@ -53,7 +53,6 @@ from tests.pipeline.orchestrator.conftest import (
     make_intent,
 )
 from tests.pipeline.orchestrator.test_service import (
-    _FakePendingRollService,
     _make_orchestrator_with_adjudication,
     _make_rpg_session_and_sheet,
     _seed_writing_story_setup_wss,
@@ -470,38 +469,48 @@ class TestRetrievalQueryConstructionFailureFailsClosed:
         assert result.disposition is PipelineDisposition.DELIVERED
 
 
-def _make_pending_roll_request_for_sheet(
-    story_id: UUID, sheet_id: UUID, originating_turn_id: UUID
-) -> object:
-    """Build a PendingRollRequest whose story_id/character_id satisfy the
-    pending_roll_requests table's FKs to stories/rpg_character_sheet_bases —
-    the announce path writes this row directly via ``session.add``, unlike
-    the mark_consumed path which goes through the injected service."""
-    from datetime import UTC, datetime
-    from uuid import uuid4
+class _FakeSequenceService:
+    """An action-resolution sequence service (CRD Issue 15b) with no
+    unresolved sequence, whose ``start`` persists the announce turn's
+    sequence row in the turn's own transaction, as the real one does."""
 
-    from afterworlds.models.enums import RollVisibility
-    from afterworlds.models.rpg import PendingRollRequest
+    def __init__(self) -> None:
+        self.started: list[UUID] = []
 
-    return PendingRollRequest(
-        request_id=uuid4(),
-        story_id=story_id,
-        session_id=uuid4(),
-        character_id=sheet_id,
-        check_label="Stealth Check",
-        player_facing_instruction="Roll a Stealth Check and report the total!",
-        expected_value_shape="d20",
-        visibility=RollVisibility.PLAYER,
-        source_proposal_ref="roll_0",
-        originating_turn_id=originating_turn_id,
-        created_at=datetime.now(tz=UTC),
-        roll_expression="1d20+5",
-    )
+    def unresolved(self, story_id: UUID) -> None:
+        return None
+
+    def start(self, session: object, start: object, **ids: UUID) -> None:
+        from afterworlds.persistence.orm.rpg import ActionResolutionSequenceORM
+
+        session.add(  # type: ignore[attr-defined]
+            ActionResolutionSequenceORM(
+                sequence_id=str(uuid4()),
+                story_id=str(ids["story_id"]),
+                session_id=str(ids["session_id"]),
+                node_id=str(ids["node_id"]),
+                character_id=str(ids["character_id"]),
+                originating_turn_id=str(ids["originating_turn_id"]),
+                status="active",
+                current_interaction_kind="roll",
+                plan_json="{}",
+                reads_json="{}",
+                records_json="[]",
+                unattached_json="[]",
+                resolved_steps_json="[]",
+                projected_state_json="{}",
+                provisional_effects_json="[]",
+                revision=1,
+                created_at="t",
+                updated_at="t",
+            )
+        )
+        self.started.append(ids["originating_turn_id"])
 
 
 class _AdjServiceAnnouncingPending:
-    """Fake adjudication service that always announces a new pending roll
-    for a specific, already-persisted (story_id, sheet_id) pair."""
+    """Fake adjudication service whose turn always pauses for the Sojourner
+    (CRD Issue 15b): it returns a sequence for the announce turn to start."""
 
     def __init__(self, story_id: UUID, sheet_id: UUID) -> None:
         self._story_id = story_id
@@ -511,17 +520,9 @@ class _AdjServiceAnnouncingPending:
         return True
 
     def adjudicate(self, *args: object, **kwargs: object) -> object:
-        from uuid import uuid4
-
         from afterworlds.pipeline.rpg.models import AdjudicationPassResult
 
-        return AdjudicationPassResult(
-            proposals=(),
-            writer_views=(),
-            pending_roll_request=_make_pending_roll_request_for_sheet(
-                self._story_id, self._sheet_id, uuid4()
-            ),
-        )
+        return AdjudicationPassResult(proposals=(), writer_views=(), sequence=object())
 
 
 def _seed_character_sheet(session_factory: object, story_id: UUID) -> object:
@@ -600,7 +601,7 @@ def _make_rpg_orch_announcing_pending_with_svc(
         ),
         rpg_session_sheet_resolver=lambda _sid: (session_state, sheet),  # type: ignore[arg-type]
         rpg_dice_service=SystemRandomDiceService(seed=42),  # type: ignore[arg-type]
-        rpg_pending_roll_service=_FakePendingRollService(pending=None),  # type: ignore[arg-type]
+        rpg_sequence_service=_FakeSequenceService(),  # type: ignore[arg-type]
         retrieval_write_service=retrieval_write_service,
     )
 
@@ -661,7 +662,15 @@ class TestRpgTurnRetrievalMarker:
         roll must be marked ROLL_REQUEST (not ORDINARY_NARRATIVE) and must
         never enter Retrieval Memory — the marker⟺PendingRollRequest
         correspondence the ADR requires, exercised end-to-end rather than
-        only at the pure-predicate level (see test_eligibility.py)."""
+        only at the pure-predicate level (see test_eligibility.py).
+
+        CRD Issue 15b: the announce turn starts an action-resolution
+        sequence, whose row (originating at this turn) is the correspondence's
+        durable side."""
+        from afterworlds.persistence.crud.retrieval import (
+            has_pending_roll_request_originating_from_turn,
+        )
+
         story_id, node_id = seeded_story
         fake_retrieval = _FakeRetrievalWriteService()
         orch = _make_rpg_orch_announcing_pending_with_svc(
@@ -680,7 +689,11 @@ class TestRpgTurnRetrievalMarker:
         assert result.turn_id is not None
         with session_factory() as read_session:  # type: ignore[operator]
             category = get_rpg_turn_retrieval_marker(read_session, result.turn_id)
+            announced = has_pending_roll_request_originating_from_turn(
+                read_session, result.turn_id
+            )
         assert category is RpgTurnRetrievalCategory.ROLL_REQUEST
+        assert announced
         assert fake_retrieval.calls == []
 
     def test_marker_write_failure_is_mandatory_pipeline_error(

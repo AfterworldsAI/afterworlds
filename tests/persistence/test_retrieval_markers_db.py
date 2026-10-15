@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
+import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
 
 from afterworlds.models.character_sheet import RpgCharacterSheetBase
@@ -87,15 +88,17 @@ def _seed_pending_roll_request(
             session_id=str(uuid4()),
             character_id=str(sheet.sheet_id),
             originating_turn_id=str(originating_turn_id),
-            check_label="Stealth Check",
-            player_facing_instruction="Roll a Stealth Check and report the total!",
-            expected_value_shape="d20",
             visibility=RollVisibility.PLAYER.value,
             source_proposal_ref="roll_0",
             status="pending",
             created_at=_NOW.isoformat(),
-            schema_version=1,
-            roll_expression="1d20+5",
+            schema_version=2,
+            sequence_id=str(uuid4()),
+            step_id=str(uuid4()),
+            instruction_id=str(uuid4()),
+            instruction_revision=1,
+            instruction_schema_version=1,
+            instruction_snapshot_json="{}",
         )
     )
     session.commit()
@@ -211,6 +214,28 @@ class TestHasPendingRollRequestOriginatingFromTurn:
 
     def test_returns_false_when_no_row_exists(self, session) -> None:  # type: ignore[no-untyped-def]
         assert not has_pending_roll_request_originating_from_turn(session, uuid4())
+
+    def test_returns_true_for_a_decision_first_sequence(self, session) -> None:  # type: ignore[no-untyped-def]
+        """CRD Issue 15b: a turn whose sequence first asks for a decision (no
+        pending roll row) announced a procedural request all the same."""
+        from tests.services.dnd5e_state.conftest import add_unresolved_sequence
+
+        story = make_story(mode=StoryMode.RPG)
+        create_story(session, story)  # type: ignore[arg-type]
+        sheet = RpgCharacterSheetBase(
+            story_id=story.story_id,
+            character_name="Ilse",
+            created_at=_NOW,
+            updated_at=_NOW,
+        )
+        create_rpg_base_sheet(session, sheet)
+        add_unresolved_sequence(session, story.story_id, sheet.sheet_id)
+        session.commit()
+        (turn_id,) = session.execute(
+            sa.text("SELECT originating_turn_id FROM action_resolution_sequences")
+        ).scalars()
+        assert session.query(PendingRollRequestORM).count() == 0
+        assert has_pending_roll_request_originating_from_turn(session, turn_id)
 
 
 class TestGatherEligibilityDbIntegrated:

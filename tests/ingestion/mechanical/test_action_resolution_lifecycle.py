@@ -9,27 +9,46 @@ from __future__ import annotations
 
 import json
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import pytest
 import sqlalchemy as sa
+from pydantic import ValidationError
 
 from afterworlds.models.enums import DiceHandling, RpgInteractionPhase
+from afterworlds.models.rpg import (
+    MechanicalDecisionSubmission,
+    PhysicalAggregateRollSubmission,
+    PlayerRollTermResult,
+    RawPlayerRollSubmission,
+)
 from afterworlds.pipeline.orchestrator.models import PipelineDisposition
 from afterworlds.pipeline.rpg import sequence as sequence_module
 from afterworlds.pipeline.rpg.models import (
+    ActionAdjustmentNotAllowedError,
     ActionSequenceStateConflictError,
+    MechanicalDecisionInvalidError,
+    MechanicalDecisionRevisionMismatchError,
     PendingRollAlreadyConsumedError,
+    PendingRollInvalidAggregateError,
+    PendingRollInvalidValueError,
     PendingRollRevisionMismatchError,
+    PendingRollTermMismatchError,
 )
 from afterworlds.pipeline.rpg.sequence import ActionResolutionService
 from afterworlds.services.dnd5e_state.authority import AuthorityIndex
 from tests.ingestion.mechanical.sequence_stack import (
     Stack,
     Story_,
+    no_backend_dice,
     s1,
     scripted_dice,
     stack,
+)
+from tests.ingestion.mechanical.test_action_resolution_on_published_release import (
+    _keys,
+    begin,
+    club_attack,
 )
 from tests.ingestion.mechanical.test_bounded_d20_on_published_release import (
     g1_store,
@@ -355,3 +374,286 @@ def test_an_unperceived_counterpart_reads_as_the_players_ordinary_check(
     (view,) = bundle.writer_views
     assert view.check_label == "Strength (Athletics) check"
     assert view.outcome == "failure"
+
+
+# ---------------------------------------------------------------------------
+# Finesse: a pre-roll ability adjustment (15b-9 to 15b-13)
+# ---------------------------------------------------------------------------
+
+
+def _dagger_attack(stack: Stack, story: Story_, target: UUID) -> dict[str, Any]:
+    attack = club_attack(stack, story, target)
+    dagger = stack.item(story, "equipment.weapons.dagger", equipped=True)
+    attack["check_label"] = "Dagger attack"
+    attack["weapon_attack"] |= {
+        "weapon_item_id": str(dagger),
+        "hands": {"held": [{"item_id": str(dagger), "hands": 1}], "free_hands": 1},
+        "ability": "strength",
+    }
+    return attack
+
+
+def test_a_finesse_adjustment_revises_the_pending_attack_and_its_damage(
+    stack: Stack, gm: GM, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    rolled = no_backend_dice(monkeypatch)
+    story = stack.story(DiceHandling.PLAYER_ROLLS)
+    wolf = stack.creature(story)
+    gm.append([begin(story), _dagger_attack(stack, story, wolf)])
+    stack.turn(story, "I stab the wolf.")
+    view = stack.sequences.current(story.story_id)
+    assert view is not None and view.pending_roll is not None
+    attack = view.pending_roll
+    assert attack.display_expression == "1d20 + 1"  # Str -1, proficiency +2
+    (option,) = attack.adjustment_options
+    assert option.option_id == "finesse_dexterity"
+    assert "ability_id" not in _keys(attack.model_dump(mode="json"))
+    before = _state(stack, story)
+
+    # Refused, changing nothing: a stale or inexact revision, an option not
+    # offered.
+    for revision in (attack.instruction_revision + 1, True, 1.0):
+        with pytest.raises(PendingRollRevisionMismatchError):
+            stack.sequences.apply_adjustment(
+                attack.pending_roll_request_id,
+                revision,  # type: ignore[arg-type]
+                "finesse_dexterity",
+            )
+    with pytest.raises(ActionAdjustmentNotAllowedError):
+        stack.sequences.apply_adjustment(
+            attack.pending_roll_request_id,
+            attack.instruction_revision,
+            "finesse_strength",  # the ability it already uses
+        )
+    assert _state(stack, story) == before
+
+    revised_view = stack.sequences.apply_adjustment(
+        attack.pending_roll_request_id,
+        attack.instruction_revision,
+        "finesse_dexterity",
+    )
+    revised = revised_view.pending_roll
+    assert revised is not None
+    assert revised.interaction_phase is RpgInteractionPhase.PENDING_ROLL
+    assert revised.instruction_id == attack.instruction_id
+    assert revised.instruction_revision == attack.instruction_revision + 1
+    assert revised.display_expression == "1d20 + 4"  # Dex +2, proficiency +2
+    assert [o.option_id for o in revised.adjustment_options] == ["finesse_strength"]
+    assert stack.sequences.current(story.story_id) == revised_view  # reload
+    assert [e.kind for e in stack.events(story)] == ["adjustment"]
+    with pytest.raises(PendingRollRevisionMismatchError):
+        stack.roll(attack, 15)  # the superseded instruction
+
+    damage = stack.roll(revised, 15).pending_roll  # 15 + 4 = 19 hits AC 12
+    assert damage is not None and damage.display_expression == "1d4 + 2"  # Dex
+    ready = stack.roll(damage, 3)
+    assert ready.interaction_phase is RpgInteractionPhase.READY_FOR_NARRATION
+    result = stack.resume(story)
+    assert result.disposition is PipelineDisposition.DELIVERED, result
+    assert rolled == []
+    assert stack.hp(wolf) == (2, 6)
+    # The adjustment is an event, never an audit row.
+    assert [(a.check_label, a.total) for a in stack.audit(story)] == [
+        ("Dagger attack", 19),
+        ("Dagger damage", 5),
+    ]
+    assert [e.kind for e in stack.events(story)] == [
+        "adjustment",
+        "player_roll",
+        "player_roll",
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Knocking out: a result-triggered mechanical decision (15b-35)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("choice", ["knock_out", "no_knock_out"])
+def test_a_knockout_choice_is_a_stored_decision_of_the_sojourner(
+    stack: Stack, gm: GM, monkeypatch: pytest.MonkeyPatch, choice: str
+) -> None:
+    no_backend_dice(monkeypatch)
+    story = stack.story(DiceHandling.PLAYER_ROLLS)
+    wolf = stack.creature(story, hp=2)
+    gm.append([begin(story), club_attack(stack, story, wolf)])
+    stack.turn(story, "I club the wolf.")
+    view = stack.sequences.current(story.story_id)
+    assert view is not None and view.pending_roll is not None
+    damage = stack.roll(view.pending_roll, 15).pending_roll
+    assert damage is not None
+    paused = stack.roll(damage, 4)  # 3 damage would drop the wolf's 2 HP
+    decision = paused.pending_decision
+    assert decision is not None
+    assert paused.interaction_phase is RpgInteractionPhase.PENDING_MECHANICAL_DECISION
+    assert [o.option_id for o in decision.options] == ["knock_out", "no_knock_out"]
+    public = _keys(decision.model_dump(mode="json"))
+    assert not {"source_rule_ref", "provisional_effects_json"} & public
+    assert stack.sequences.current(story.story_id) == paused  # reload
+    before = _state(stack, story)
+
+    def submit(option: str, revision: int | None = None) -> Any:
+        return stack.sequences.submit_decision(
+            MechanicalDecisionSubmission(
+                decision_request_id=decision.decision_request_id,
+                expected_decision_revision=(
+                    decision.decision_revision if revision is None else revision
+                ),
+                option_id=option,
+            )
+        )
+
+    with pytest.raises(MechanicalDecisionInvalidError):
+        submit("knock_out_twice")
+    with pytest.raises(MechanicalDecisionRevisionMismatchError):
+        submit(choice, decision.decision_revision + 1)
+    with pytest.raises(ValidationError):  # an inexact revision never arrives
+        MechanicalDecisionSubmission.model_validate_json(
+            json.dumps(
+                {
+                    "decision_request_id": str(decision.decision_request_id),
+                    "expected_decision_revision": True,
+                    "option_id": choice,
+                }
+            )
+        )
+    assert _state(stack, story) == before
+
+    ready = submit(choice)
+    assert ready.interaction_phase is RpgInteractionPhase.READY_FOR_NARRATION
+    with pytest.raises(MechanicalDecisionInvalidError):
+        submit(choice)  # a duplicate: the decision is no longer pending
+    assert [e.kind for e in stack.events(story)] == [
+        "player_roll",
+        "player_roll",
+        "mechanical_decision",
+    ]
+    result = stack.resume(story)
+    assert result.disposition is PipelineDisposition.DELIVERED, result
+    (row,) = stack.rows(
+        "SELECT document FROM dnd5e_creatures WHERE creature_id = :c", c=str(wolf)
+    )
+    document = (
+        row.document if isinstance(row.document, dict) else json.loads(row.document)
+    )
+    conditions = {c["condition"] for c in document["conditions"]}
+    if choice == "knock_out":
+        assert document["hit_points"]["current"] == 1 and "unconscious" in conditions
+    else:
+        assert document["hit_points"]["current"] == 0
+    assert len(stack.audit(story)) == 2  # a decision is never an audit row
+
+
+def test_an_ai_rolled_hit_starts_a_decision_first_sequence(
+    stack: Stack, gm: GM, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """With the GameMaster rolling, the announce turn draws both dice and
+    pauses for the knockout decision alone: no pending roll exists, and the
+    announce turn is still a procedural request, never retrieval memory."""
+    from afterworlds.models.enums import RpgTurnRetrievalCategory
+    from afterworlds.persistence.crud.retrieval import (
+        get_rpg_turn_retrieval_marker,
+        has_pending_roll_request_originating_from_turn,
+    )
+
+    faces = iter([15, 4])
+    rolled = scripted_dice(monkeypatch, lambda _e: (next(faces),))
+    story = stack.story(DiceHandling.AI_ROLLS)
+    wolf = stack.creature(story, hp=2)
+    gm.append([begin(story), club_attack(stack, story, wolf)])
+    announce = stack.turn(story, "I club the wolf.")
+    assert announce.disposition is PipelineDisposition.DELIVERED, announce
+    assert announce.turn_id is not None
+    assert rolled == ["1d20", "1d4"]
+    view = stack.sequences.current(story.story_id)
+    assert view is not None and view.pending_decision is not None
+    assert stack.rows("SELECT 1 FROM pending_roll_requests") == []
+    assert [e.kind for e in stack.events(story)] == ["ai_roll", "ai_roll"]
+    with stack.factory() as s:
+        assert has_pending_roll_request_originating_from_turn(s, announce.turn_id)
+        marker = get_rpg_turn_retrieval_marker(s, announce.turn_id)
+    assert marker is RpgTurnRetrievalCategory.ROLL_REQUEST
+
+    stack.sequences.submit_decision(
+        MechanicalDecisionSubmission(
+            decision_request_id=view.pending_decision.decision_request_id,
+            expected_decision_revision=view.pending_decision.decision_revision,
+            option_id="knock_out",
+        )
+    )
+    result = stack.resume(story)
+    assert result.disposition is PipelineDisposition.DELIVERED, result
+    assert [(a.source, a.submission_source) for a in stack.audit(story)] == [
+        ("ai", "backend_dice_service"),
+        ("ai", "backend_dice_service"),
+    ]
+    assert rolled == ["1d20", "1d4"]  # nothing redrawn on replay or delivery
+    assert stack.hp(wolf)[1] == 1
+
+
+# ---------------------------------------------------------------------------
+# Player submissions: physical aggregates and malformed input
+# ---------------------------------------------------------------------------
+
+
+def test_malformed_submissions_change_nothing_and_an_aggregate_is_accepted(
+    stack: Stack, gm: GM, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    no_backend_dice(monkeypatch)
+    story = stack.story(DiceHandling.PLAYER_ROLLS)
+    wolf = stack.creature(story)
+    gm.append([begin(story), club_attack(stack, story, wolf)])
+    stack.turn(story, "I swing my club.")
+    view = stack.sequences.current(story.story_id)
+    assert view is not None and view.pending_roll is not None
+    attack = view.pending_roll
+    (term,) = attack.terms
+    before = _state(stack, story)
+
+    def raw(term_id: UUID, *values: int) -> RawPlayerRollSubmission:
+        return RawPlayerRollSubmission(
+            source="inline_ui",
+            pending_roll_request_id=attack.pending_roll_request_id,
+            expected_instruction_revision=attack.instruction_revision,
+            term_results=(PlayerRollTermResult(term_id=term_id, values=values),),
+        )
+
+    def aggregate(total: int) -> PhysicalAggregateRollSubmission:
+        return PhysicalAggregateRollSubmission(
+            source="physical_self_report",
+            pending_roll_request_id=attack.pending_roll_request_id,
+            expected_instruction_revision=attack.instruction_revision,
+            reported_aggregate=total,
+        )
+
+    bad: list[tuple[Any, type[Exception]]] = [
+        (raw(term.term_id, 21), PendingRollInvalidValueError),  # no such face
+        (raw(term.term_id, 0), PendingRollInvalidValueError),
+        (raw(term.term_id, 5, 5), PendingRollInvalidValueError),  # two faces
+        (raw(uuid4(), 5), PendingRollTermMismatchError),  # another term
+        (aggregate(22), PendingRollInvalidAggregateError),  # above 1d20 + 1
+        (aggregate(1), PendingRollInvalidAggregateError),
+    ]
+    for submission, error in bad:
+        with pytest.raises(error):
+            stack.sequences.consume_roll(submission)
+    for payload in (  # inexact integers never reach the service
+        {"term_id": str(term.term_id), "values": [5.0]},
+        {"term_id": str(term.term_id), "values": ["5"]},
+        {"term_id": str(term.term_id), "values": [True]},
+    ):
+        with pytest.raises(ValidationError):
+            PlayerRollTermResult.model_validate_json(json.dumps(payload))
+    assert _state(stack, story) == before
+
+    damage = stack.sequences.consume_roll(aggregate(16)).pending_roll  # hits AC 12
+    assert damage is not None
+    stack.roll(damage, 4)
+    result = stack.resume(story)
+    assert result.disposition is PipelineDisposition.DELIVERED, result
+    first, _ = stack.audit(story)
+    assert (first.total, first.submission_source, first.raw_values_complete) == (
+        16,
+        "physical_self_report",
+        False,
+    )

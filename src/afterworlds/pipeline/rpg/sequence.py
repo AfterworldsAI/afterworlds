@@ -753,12 +753,10 @@ class ActionResolutionService:
         row: Any,
         plan: _Plan,
         accept: AcceptedRoll | AcceptedDecision | None,
+        prepared: PreparedTurn,
     ) -> _Run:
         from afterworlds.persistence.orm.rpg import ActionResolutionEventORM
 
-        prepared = self._read(
-            UUID(row.story_id), UUID(row.character_id), plan, json.loads(row.reads_json)
-        )
         events = [
             _event_from(e)
             for e in session.execute(
@@ -822,20 +820,37 @@ class ActionResolutionService:
     ) -> ActionResolutionAdvanceResult:
         """Accept one submission in one intermediate transaction, or nothing.
 
-        The transaction first claims the sequence: a compare-and-swap of its
-        revision (and, for a roll, the conditional consume of the pending
-        request). That takes SQLite's write lock, so a concurrent or stale
-        submission fails here, before any die. Only then is the sequence
-        resolved again, and any backend (AI or hidden) die it needs, such as
-        a contest counterpart's, is drawn inside this same transaction (ADR-015b
-        Group 17); its events and the advancement commit with it. Any failure
-        rolls everything back, those dice included: they never become
-        authority. No provider is called and nothing is settled."""
+        The turn is first prepared again, dice-free, through the adjudication
+        service's own readers (their sessions, never this transaction's). The
+        transaction then claims the sequence: a compare-and-swap of the
+        revision the submission was validated against (and, for a roll, the
+        conditional consume of the pending request). That takes SQLite's write
+        lock, so a concurrent or stale submission fails here, before any die.
+        Only then is the sequence resolved again, and any backend (AI or
+        hidden) die it needs, such as a contest counterpart's, is drawn inside
+        this same transaction (ADR-015b Group 17); every read the preparation
+        rests on is rechecked in it, and its events and the advancement commit
+        with it. Any failure rolls everything back, those dice included: they
+        never become authority. No provider is called and nothing is
+        settled."""
         from afterworlds.persistence.orm.rpg import (
             ActionResolutionSequenceORM,
             PendingRollRequestORM,
         )
 
+        with self._factory() as session:
+            read = session.get(ActionResolutionSequenceORM, str(sequence_id))
+            if read is None or read.revision != expected_revision:
+                raise ActionSequenceStateConflictError(
+                    f"sequence {sequence_id} advanced concurrently"
+                )
+            plan = plan or _Plan.load(read.plan_json)
+            ids = (UUID(read.story_id), UUID(read.character_id))
+            reads = json.loads(read.reads_json)
+        # Outside the write transaction: the readers may record what they
+        # resolve (binding retention) in their own sessions. The claim below
+        # proves the plan and reads are still the ones prepared here.
+        prepared = self._read(*ids, plan, reads)
         with self._factory() as session, session.begin():
             claimed = session.execute(
                 sa.update(ActionResolutionSequenceORM)
@@ -868,8 +883,7 @@ class ActionResolutionService:
                     )
             row = session.get(ActionResolutionSequenceORM, str(sequence_id))
             assert row is not None
-            plan = plan or _Plan.load(row.plan_json)
-            run = self._replay(session, row, plan, accept)
+            run = self._replay(session, row, plan, accept, prepared)
             _recheck(session, run.prepared)
             if adjustment is not None:
                 request_id, before, option_id = adjustment
