@@ -5,26 +5,12 @@
  */
 import type { components, operations } from "./schema";
 
-// Hand-typed, not generated: FastAPI's OpenAPI export doesn't reflect
-// `@app.exception_handler`-produced shapes, only response_model= schemas --
-// so ApiError (from api/errors.py) never appears in components["schemas"].
-// Keep this in sync with ApiError/ApiErrorCode by hand.
-export type ApiErrorCode =
-  | "not_found"
-  | "validation_failed"
-  | "entitlement_blocked"
-  | "byok_credentials_required"
-  | "turn_in_flight"
-  | "setup_required"
-  | "setup_state_conflict"
-  | "internal_error";
-
-export interface ApiError {
-  error_code: ApiErrorCode;
-  message: string;
-  detail: Record<string, string> | null;
-  schema_version: 1;
-}
+// Generated: FastAPI's OpenAPI export doesn't reflect
+// `@app.exception_handler`-produced shapes on its own, so the CRD Issue 15b
+// routes declare ApiError in their `responses=` (api/errors.py), which puts
+// ApiError/ApiErrorCode into components["schemas"].
+export type ApiErrorCode = components["schemas"]["ApiErrorCode"];
+export type ApiError = components["schemas"]["ApiError"];
 
 export type StoryListItem = components["schemas"]["StoryListItemDTO"];
 export type StoryDetail = components["schemas"]["StoryDetailDTO"];
@@ -42,6 +28,19 @@ export type SetupState = NonNullable<
   components["schemas"]["SetupStateResponse"]["setup_state"]
 >;
 export type PersonaGallery = components["schemas"]["PersonaGalleryResponse"];
+// CRD Issue 15b: the RPG pending interaction and its deterministic operations.
+export type PendingInteraction =
+  components["schemas"]["ActionResolutionAdvanceResult"];
+export type PendingRoll = components["schemas"]["PlayerRollInstructionView"];
+export type PendingDecision =
+  components["schemas"]["PendingMechanicalDecisionView"];
+export type RollSubmission =
+  | components["schemas"]["RawPlayerRollSubmission"]
+  | components["schemas"]["PhysicalAggregateRollSubmission"];
+export type RollAdjustmentRequest =
+  components["schemas"]["RollAdjustmentRequest"];
+export type DecisionSubmission =
+  components["schemas"]["MechanicalDecisionSubmission"];
 
 export class ApiRequestError extends Error {
   constructor(
@@ -121,4 +120,35 @@ export const api = {
     ).then((r) => r.setup_state ?? null),
 
   listPersonas: () => request<PersonaGallery>("/api/personas"),
+
+  getPendingInteraction: (storyId: string) =>
+    request<components["schemas"]["PendingInteractionResponse"]>(
+      `/api/stories/${storyId}/rpg/pending-interaction`,
+    ).then((r) => r.interaction ?? null),
+
+  submitRoll: (storyId: string, body: RollSubmission) =>
+    request<PendingInteraction>(`/api/stories/${storyId}/rpg/rolls`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  applyAdjustment: (storyId: string, body: RollAdjustmentRequest) =>
+    request<PendingInteraction>(`/api/stories/${storyId}/rpg/adjustments`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  submitDecision: (storyId: string, body: DecisionSubmission) =>
+    request<PendingInteraction>(`/api/stories/${storyId}/rpg/decisions`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  // A turn: the server selects the access path and settles as for any turn.
+  // 409 action_sequence_already_completed is success-equivalent (15b-32).
+  resumeSequence: (storyId: string, sequenceId: string) =>
+    request<TurnSubmissionResponse>(
+      `/api/stories/${storyId}/rpg/sequences/${sequenceId}/resume`,
+      { method: "POST" },
+    ),
 };

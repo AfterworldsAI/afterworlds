@@ -12,7 +12,7 @@ from enum import StrEnum
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, StrictInt, field_validator
 
 from afterworlds.models.enums import (
     BranchCountRange,
@@ -29,7 +29,7 @@ from afterworlds.models.enums import (
     StyleDensity,
     WritingForm,
 )
-from afterworlds.models.rpg import RpgVisibleState
+from afterworlds.models.rpg import ActionResolutionAdvanceResult, RpgVisibleState
 from afterworlds.pipeline.branching.models import BranchingVisibleState
 from afterworlds.pipeline.orchestrator.models import PipelineDisposition
 from afterworlds.pipeline.writing.models import WritingVisibleState
@@ -351,6 +351,31 @@ class PersonaGalleryResponse(BaseModel):
 
     mentors: list[PersonaDTO]
     peers: list[PersonaDTO]
+    schema_version: Literal[1] = 1
+
+
+class PendingInteractionResponse(BaseModel):
+    """The story's RPG pending interaction (CRD Issue 15b, 15b-31): ``None``
+    with no unresolved action sequence, else its player view -- a pending
+    roll (adjustment options ride on it), a pending decision, or
+    ``ready_for_narration``, whose affordance is the resume route. Player
+    views only (15b-17): no stored snapshot or backend reference."""
+
+    model_config = {"extra": "forbid"}
+
+    interaction: ActionResolutionAdvanceResult | None = None
+    schema_version: Literal[1] = 1
+
+
+class RollAdjustmentRequest(BaseModel):
+    """Apply one parameterless adjustment option of the pending roll
+    (15b-9, 15b-10). Exact integers only, as for roll submissions."""
+
+    model_config = {"extra": "forbid"}
+
+    pending_roll_request_id: UUID
+    expected_instruction_revision: StrictInt
+    option_id: str
     schema_version: Literal[1] = 1
 
 

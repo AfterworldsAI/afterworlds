@@ -82,8 +82,14 @@ CRUD); the orchestrator now prefers it for play-status resolution and falls
 back to the sheet resolver only when the newer one is not wired (see its
 docstring in ``pipeline/orchestrator/service.py``). The sheet resolver is
 still wired and still required for genuinely sheet-dependent paths:
-adjudication, which CRD Issue 15c wires, and the legacy pending-roll consume
-path, which stays unreachable (no pending-roll service is wired).
+adjudication, which CRD Issue 15c wires, and the action-resolution sequence
+service of CRD Issue 15b, which re-reads the acting character at every
+advancement. The legacy total-only pending-roll consume path is retired.
+
+``build_pipeline`` (CRD Issue 15b Phase 3) returns that one
+``ActionResolutionService`` alongside the orchestrator that owns it, so
+``create_app`` can expose the same instance to the thin RPG action routes
+without reaching into the orchestrator or constructing a second one.
 """
 
 from __future__ import annotations
@@ -143,6 +149,7 @@ from afterworlds.pipeline.rpg.adapter import D20RulesSystemAdapter
 from afterworlds.pipeline.rpg.config import AdjudicationConfig
 from afterworlds.pipeline.rpg.dice import SystemRandomDiceService
 from afterworlds.pipeline.rpg.scene import render as render_scene
+from afterworlds.pipeline.rpg.sequence import ActionResolutionService
 from afterworlds.pipeline.rpg.service import RpgAdjudicationPassService
 from afterworlds.pipeline.safety.config import SafetyConfig
 from afterworlds.pipeline.safety.service import SafetyService
@@ -570,6 +577,13 @@ class _PerTurnRecentTurnsProvider:
 
 def build_orchestrator(session_factory: sessionmaker[Session]) -> OrchestratorService:
     """Assemble the real OrchestratorService from existing typed seams."""
+    return build_pipeline(session_factory)[0]
+
+
+def build_pipeline(
+    session_factory: sessionmaker[Session],
+) -> tuple[OrchestratorService, ActionResolutionService]:
+    """The real OrchestratorService and the ActionResolutionService it owns."""
     use_fake_provider = _fake_provider_enabled()
     # Uniform in both fake and real mode: the orchestrator always supplies a
     # provider-routed model_caller override per call (see module docstring's
@@ -620,7 +634,34 @@ def build_orchestrator(session_factory: sessionmaker[Session]) -> OrchestratorSe
     # never used for real turn processing, just a required placeholder.
     placeholder_session = session_factory()
 
-    return OrchestratorService(
+    # CRD Issue 15c: the RPG adjudication pass runs after Planner and before
+    # Writer on in-play turns. CRD Issue 15b: a turn whose resolution needs
+    # the Sojourner (their own die, or a result-triggered decision) becomes a
+    # persisted action-resolution sequence, which the orchestrator starts on
+    # its announce Turn, gates in-character input on, and narrates through
+    # orchestrate_rpg_resume. The sequence service shares the adjudication
+    # service's readers, dice and resolver.
+    rpg_adjudication = RpgAdjudicationPassService(
+        D20RulesSystemAdapter(),
+        AdjudicationConfig.from_env(),
+        subject_loader=_make_rpg_subject_loader(session_factory),
+        coordination_loader=_make_rpg_coordination_loader(session_factory),
+        bounded_loader=_make_rpg_bounded_loader(session_factory),
+        scene_loader=_make_rpg_scene_loader(session_factory),
+        aura_loader=_make_rpg_aura_loader(session_factory),
+        discovery_reader=_make_rpg_discovery_reader(session_factory),
+    )
+    rpg_dice = SystemRandomDiceService()
+    rpg_sheet_resolver = _make_rpg_session_sheet_resolver(session_factory)
+    rpg_sequences = ActionResolutionService(
+        rpg_adjudication,
+        D20RulesSystemAdapter(),
+        rpg_dice,
+        session_factory,
+        rpg_sheet_resolver,
+    )
+
+    orchestrator = OrchestratorService(
         intent_classifier=intent_classifier,
         # _PerTurnContextBuilder duck-types assemble() only (fresh Session per
         # call, see its docstring) -- not a ContextBuilderService subclass, a
@@ -642,23 +683,10 @@ def build_orchestrator(session_factory: sessionmaker[Session]) -> OrchestratorSe
         # gated by AFTERWORLDS_FAKE_PROVIDER) -- not a ProviderResolver
         # subclass, so this is a deliberate, narrow protocol substitution.
         provider_resolver=provider_resolver,  # type: ignore[arg-type]
-        # CRD Issue 15c: the RPG adjudication pass runs after Planner and
-        # before Writer on in-play turns, resolving backend shown/hidden dice
-        # only. No pending-roll service is wired: player-rolled dice and their
-        # pending lifecycle are CRD Issue 15b/19b's, and the adjudication
-        # service refuses them before any pending request could exist.
-        rpg_adjudication_service=RpgAdjudicationPassService(
-            D20RulesSystemAdapter(),
-            AdjudicationConfig.from_env(),
-            subject_loader=_make_rpg_subject_loader(session_factory),
-            coordination_loader=_make_rpg_coordination_loader(session_factory),
-            bounded_loader=_make_rpg_bounded_loader(session_factory),
-            scene_loader=_make_rpg_scene_loader(session_factory),
-            aura_loader=_make_rpg_aura_loader(session_factory),
-            discovery_reader=_make_rpg_discovery_reader(session_factory),
-        ),
-        rpg_dice_service=SystemRandomDiceService(),
-        rpg_session_sheet_resolver=_make_rpg_session_sheet_resolver(session_factory),
+        rpg_adjudication_service=rpg_adjudication,
+        rpg_dice_service=rpg_dice,
+        rpg_session_sheet_resolver=rpg_sheet_resolver,
+        rpg_sequence_service=rpg_sequences,
         rpg_turn_hold=RpgTurnHold(session_factory, _utc_now),
         rpg_session_resolver=_make_rpg_session_resolver(session_factory),
         branching_session_resolver=_make_branching_session_resolver(session_factory),
@@ -667,6 +695,7 @@ def build_orchestrator(session_factory: sessionmaker[Session]) -> OrchestratorSe
         retrieval_write_service=retrieval_write_service,
         retrieval_query_builder=retrieval_query_builder,
     )
+    return orchestrator, rpg_sequences
 
 
-__all__ = ["build_orchestrator"]
+__all__ = ["build_orchestrator", "build_pipeline"]

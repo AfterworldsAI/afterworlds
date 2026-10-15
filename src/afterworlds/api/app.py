@@ -22,13 +22,15 @@ from afterworlds.api.config import ApiSettings, load_settings
 from afterworlds.api.db_bootstrap import upgrade_to_head
 from afterworlds.api.deps import provision_sojourner_id
 from afterworlds.api.errors import ApiError, ApiErrorCode, ApiErrorResponse
-from afterworlds.api.pipeline_wiring import build_orchestrator
+from afterworlds.api.pipeline_wiring import build_pipeline
 from afterworlds.api.routes.health import router as health_router
 from afterworlds.api.routes.personas import router as personas_router
+from afterworlds.api.routes.rpg_actions import router as rpg_actions_router
 from afterworlds.api.routes.setup import router as setup_router
 from afterworlds.api.routes.stories import router as stories_router
 from afterworlds.api.routes.turns import router as turns_router
 from afterworlds.api.routes.visible_state import router as visible_state_router
+from afterworlds.api.rpg_actions import RpgActions
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.pipeline.provider import ByokCredentialReadinessProvider
 from afterworlds.pipeline.provider.credentials import make_credential_store
@@ -68,7 +70,11 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
     # choke point created once here, not per-request.
     story_locks: dict[UUID, asyncio.Lock] = defaultdict(asyncio.Lock)
     app.state.story_locks = story_locks
-    app.state.orchestrator = build_orchestrator(session_factory)
+    orchestrator, rpg_sequences = build_pipeline(session_factory)
+    app.state.orchestrator = orchestrator
+    # CRD Issue 15b: the RPG action routes reach the orchestrator's own
+    # ActionResolutionService through the typed seam, never a second one.
+    app.state.rpg_actions = RpgActions(rpg_sequences)
     # DoR-E: the readiness seam is constructed once here and consumed only
     # inside the access-path selection helper (api/access_path.py callers) --
     # never in a route handler directly.
@@ -79,6 +85,7 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
     app.include_router(health_router)
     app.include_router(stories_router)
     app.include_router(turns_router)
+    app.include_router(rpg_actions_router)
     app.include_router(visible_state_router)
     app.include_router(setup_router)
     app.include_router(personas_router)

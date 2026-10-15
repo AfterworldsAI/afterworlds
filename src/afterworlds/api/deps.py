@@ -7,12 +7,14 @@ and sojourner id through these, never by constructing their own.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from uuid import UUID
 
 from fastapi import Request
 from sqlalchemy.orm import Session
 
+from afterworlds.api.errors import ApiErrorCode, ApiErrorResponse
+from afterworlds.api.rpg_actions import RpgActions
 from afterworlds.persistence.crud.identity import get_or_create_sojourner_identity
 from afterworlds.pipeline.orchestrator.service import OrchestratorService
 from afterworlds.pipeline.provider import ByokCredentialReadinessProvider
@@ -66,6 +68,37 @@ def get_story_lock(story_id: UUID, request: Request) -> asyncio.Lock:
     """
     locks: dict[UUID, asyncio.Lock] = request.app.state.story_locks
     return locks[story_id]
+
+
+async def run_under_story_lock[**P, T](
+    lock: asyncio.Lock, fn: Callable[P, T], *args: P.args, **kwargs: P.kwargs
+) -> T:
+    """Run *fn* in a worker thread while holding the story's lock.
+
+    The one guard every story mutation shares (Binding Decision 8): ordinary
+    turns and the CRD Issue 15b roll, adjustment, decision and resume
+    operations. Non-blocking: a held lock is ``409 TURN_IN_FLIGHT``, reused
+    deliberately for the deterministic RPG operations (15b-29). The worker
+    thread keeps a slow story from serializing other stories on the event
+    loop; the lock is released in ``finally`` on every path.
+    """
+    if lock.locked():
+        raise ApiErrorResponse(
+            409,
+            ApiErrorCode.TURN_IN_FLIGHT,
+            "A turn is already in flight for this story.",
+        )
+    await lock.acquire()
+    try:
+        return await asyncio.to_thread(fn, *args, **kwargs)
+    finally:
+        lock.release()
+
+
+def get_rpg_actions(request: Request) -> RpgActions:
+    """Return the app-wide RPG action seam over the one
+    ActionResolutionService the orchestrator also owns (CRD Issue 15b)."""
+    return request.app.state.rpg_actions  # type: ignore[no-any-return]
 
 
 def provision_sojourner_id(session_factory: object) -> UUID:
