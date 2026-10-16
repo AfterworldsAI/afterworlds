@@ -17,7 +17,10 @@ from afterworlds.api.errors import ApiErrorCode, ApiErrorResponse
 from afterworlds.api.rpg_actions import RpgActions
 from afterworlds.persistence.crud.identity import get_or_create_sojourner_identity
 from afterworlds.pipeline.orchestrator.service import OrchestratorService
-from afterworlds.pipeline.provider import ByokCredentialReadinessProvider
+from afterworlds.pipeline.provider import (
+    ByokCredentialReadinessProvider,
+    ByokSettingsService,
+)
 
 
 def get_session(request: Request) -> Iterator[Session]:
@@ -54,6 +57,12 @@ def get_byok_readiness_provider(request: Request) -> ByokCredentialReadinessProv
     a route handler directly, and never re-constructed per request.
     """
     return request.app.state.byok_readiness_provider  # type: ignore[no-any-return]
+
+
+def get_byok_settings(request: Request) -> ByokSettingsService:
+    """Return the app-wide BYOK settings service (CRD Issue 20), which shares
+    the readiness provider's credential store."""
+    return request.app.state.byok_settings  # type: ignore[no-any-return]
 
 
 def get_story_lock(story_id: UUID, request: Request) -> asyncio.Lock:

@@ -67,6 +67,13 @@ export default defineConfig({
       timeout: 120_000,
       use: { baseURL: "http://127.0.0.1:8001" },
     },
+    {
+      // CRD Issue 20: billing/BYOK settings on a disposable store with an
+      // in-memory keyring -- see scripts/e2e_account_server.py.
+      name: "account",
+      testMatch: "account.spec.ts",
+      use: { baseURL: "http://127.0.0.1:8002" },
+    },
   ],
   webServer: [
     {
@@ -97,6 +104,18 @@ export default defineConfig({
       env: {
         PYTHONPATH: `src${delimiter}.`,
         AFTERWORLDS_CI: "1",
+      },
+    },
+    {
+      // Its own fresh temp store; never the OS credential manager (the
+      // launcher refuses to serve unless its in-memory keyring is active).
+      command: "python scripts/e2e_account_server.py --port 8002",
+      cwd: "..",
+      url: "http://127.0.0.1:8002/api/health",
+      reuseExistingServer: false,
+      timeout: 60_000,
+      env: {
+        PYTHONPATH: `src${delimiter}.`,
       },
     },
   ],

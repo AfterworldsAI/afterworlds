@@ -642,8 +642,8 @@ Afterworlds uses one canonical Sojourn orchestration path across real product ac
 | Access path | Revenue shape | Cost driver |
 |---|---|---|
 | Hosted Subscription | Monthly subscription with included hosted credits | Model usage, storage, hosted services, support, payment overhead. |
-| Hosted Top-Ups | One-off credit purchases | Incremental model usage and payment overhead. |
-| Starter Access (optional) | Small paid entry package / trial subscription using normal hosted credits | Model usage, storage, hosted services, support, payment overhead. |
+| Hosted Top-Ups / Additional Usage | Additional usage for heavy users; purchase mechanism undecided (pass-through billing or credit packs — ADR-020, CRD Issue 23). Recorded top-up balances keep their runtime meaning | Incremental model usage and payment overhead. |
+| Hosted Free Trial (15 days) | Full-feature trial of the one paid subscription; same features and normal performance. Supersedes the optional paid Starter Access offer as commercial direction (ADR-020). Lifecycle: CRD Issue 23 | Model usage, storage, hosted services, support. |
 | BYOK Perpetual License | One-time purchase | Product access, onboarding, first-year Cloud Services bundle. |
 | BYOK Cloud Services Renewal | Optional annual renewal after year one | Hosted storage, sync, backup, remote access, ingestion processing, service maintenance. |
 | Institutional (future) | Per-seat / pooled credits / capped usage | Aggregate hosted usage and admin/service overhead. |
@@ -702,7 +702,7 @@ If Cloud Services lapse, hosted active-use services suspend. Existing hosted use
 
 ### Billing Platform Ownership
 
-Hosted top-ups, Starter Access, and paid hosted access are product concepts in v1 architecture. The full payment platform is Issue 23, a dedicated launch-blocker issue after Issue 21 and before public launch.
+Hosted top-ups (or other additional-usage purchase; mechanism undecided), the 15-day free trial, and the one paid hosted subscription are product concepts in v1 architecture. Per ADR-020 (`docs/decisions/adr-020-hosted-commercial-direction.md`), the free trial replaces the optional paid Starter Access offer as commercial direction; existing `STARTER_ACCESS` entitlement data keeps its current paid-plan meaning and is not reinterpreted. Trial/subscription allowances, prices, credit-conversion parameters and numeric burn estimates await representative consumption measurement. The full payment platform is Issue 23, a dedicated launch-blocker issue after Issue 21 and before public launch.
 
 That billing-platform/payment-integration issue owns:
 
@@ -788,7 +788,7 @@ v1 includes:
 - one ingested, published, queryable d20 Rules Package
 - bounded d20 Rules System Adapter
 - BYOK API support through local credential storage
-- hosted subscription credit/top-up entitlement framework, including optional Starter Access as a paid entry package using the same full pipeline
+- hosted subscription credit/top-up entitlement framework using the same full pipeline (commercial direction per ADR-020: a 15-day free trial and one paid subscription, delivered by CRD Issue 23; the earlier optional paid Starter Access offer is superseded)
 - user-facing billing/BYOK visibility/configuration
 - React + Vite + TypeScript frontend shell
 - minimal FastAPI API surface

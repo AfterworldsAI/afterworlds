@@ -12,8 +12,10 @@ from enum import StrEnum
 from typing import Annotated, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field, StrictInt, field_validator
+from pydantic import BaseModel, Field, SecretStr, StrictBool, StrictInt, field_validator
 
+from afterworlds.api.errors import ApiErrorCode
+from afterworlds.entitlement.enums import HostedUnavailableReason, RuntimeAccessPath
 from afterworlds.models.enums import (
     BranchCountRange,
     BranchingCadence,
@@ -32,6 +34,7 @@ from afterworlds.models.enums import (
 from afterworlds.models.rpg import ActionResolutionAdvanceResult, RpgVisibleState
 from afterworlds.pipeline.branching.models import BranchingVisibleState
 from afterworlds.pipeline.orchestrator.models import PipelineDisposition
+from afterworlds.pipeline.provider.credentials import ValidationStatus
 from afterworlds.pipeline.writing.models import WritingVisibleState
 
 
@@ -394,4 +397,129 @@ class TranscriptResponse(BaseModel):
     model_config = {"extra": "forbid"}
 
     turns: list[TranscriptTurnDTO]
+    schema_version: Literal[1] = 1
+
+
+# ---------------------------------------------------------------------------
+# CRD Issue 20: account (billing/Cloud Services) and BYOK settings
+# ---------------------------------------------------------------------------
+
+
+class CloudServicesStatus(StrEnum):
+    ACTIVE = "active"
+    LAPSED = "lapsed"
+    NOT_ACTIVATED = "not_activated"
+
+
+class ByokProvider(StrEnum):
+    ANTHROPIC = "anthropic"
+    OPENROUTER = "openrouter"
+
+
+class HostedCreditsDTO(BaseModel):
+    """Authoritative hosted balances as exact decimal strings (four places).
+
+    ``None`` = no hosted plan was ever activated; ``"0.0000"`` = depleted;
+    negative values are shown as recorded, never clamped. Inactive hosted
+    access keeps its balances (``hosted_unavailable_reason`` says why turns
+    are unavailable).
+    """
+
+    model_config = {"extra": "forbid"}
+
+    included: str | None
+    top_up: str | None
+    total: str | None
+    hosted_turn_available: bool
+    hosted_unavailable_reason: HostedUnavailableReason | None
+    schema_version: Literal[1] = 1
+
+
+class ByokProviderStateDTO(BaseModel):
+    """Non-secret per-provider state; no key material or fragment of it.
+
+    ``credential_present`` is None when the credential store could not be
+    read (unknown, not absent). ``enabled``/``validation_status`` are None
+    when no credential metadata exists for the provider.
+    """
+
+    model_config = {"extra": "forbid"}
+
+    provider: ByokProvider
+    credential_present: bool | None
+    enabled: bool | None
+    validation_status: ValidationStatus | None
+    last_validated_at: datetime | None
+    schema_version: Literal[1] = 1
+
+
+class ByokStatusDTO(BaseModel):
+    """``byok_ready`` is the shared resolver/readiness predicate; None when
+    that probe failed (a turn then treats BYOK as not runnable)."""
+
+    model_config = {"extra": "forbid"}
+
+    license_active: bool
+    credential_store_writable: bool
+    providers: list[ByokProviderStateDTO]
+    openrouter_model: str | None
+    byok_ready: bool | None
+    schema_version: Literal[1] = 1
+
+
+class AccountStatusResponse(BaseModel):
+    """Authoritative account view (CRD Issue 20).
+
+    ``selected_access_path`` is what the server would select for a turn
+    started now (None = blocked with ``blocked_error_code``). The three
+    ``*_available`` flags are fixed False: numeric usage estimates await
+    calibration, and purchasing/trial enrollment belong to CRD Issue 23.
+    """
+
+    model_config = {"extra": "forbid"}
+
+    credits: HostedCreditsDTO
+    cloud_services: CloudServicesStatus
+    byok: ByokStatusDTO
+    selected_access_path: RuntimeAccessPath | None
+    blocked_error_code: ApiErrorCode | None
+    usage_estimate_available: Literal[False] = False
+    purchase_available: Literal[False] = False
+    trial_enrollment_available: Literal[False] = False
+    refreshed_at: datetime
+    schema_version: Literal[1] = 1
+
+
+class CredentialWriteRequest(BaseModel):
+    """Raw key, transient: handed to the credential store, never echoed."""
+
+    model_config = {"extra": "forbid"}
+
+    api_key: SecretStr = Field(min_length=1, max_length=512)
+    schema_version: Literal[1] = 1
+
+
+class ProviderEnabledRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    enabled: StrictBool
+    schema_version: Literal[1] = 1
+
+
+class OpenRouterModelRequest(BaseModel):
+    """``None`` clears the model (OpenRouter is then not runnable)."""
+
+    model_config = {"extra": "forbid"}
+
+    model_identifier: str | None = Field(max_length=256)
+    schema_version: Literal[1] = 1
+
+
+class CredentialValidationRequest(BaseModel):
+    """Validation contacts the provider and may incur provider usage; the
+    client must acknowledge that explicitly."""
+
+    model_config = {"extra": "forbid"}
+
+    acknowledge_provider_contact: Literal[True]
     schema_version: Literal[1] = 1

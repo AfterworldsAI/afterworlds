@@ -195,7 +195,7 @@ def _unrouted_intent_caller(prompt: str) -> str:
     )
 
 
-def _fake_provider_enabled() -> bool:
+def fake_provider_enabled() -> bool:
     """DoR-B: "faked provider passes, no real provider calls in default CI".
 
     Env-gated, never true in the product/dev path -- only the E2E CI job
@@ -584,7 +584,7 @@ def build_pipeline(
     session_factory: sessionmaker[Session],
 ) -> tuple[OrchestratorService, ActionResolutionService]:
     """The real OrchestratorService and the ActionResolutionService it owns."""
-    use_fake_provider = _fake_provider_enabled()
+    use_fake_provider = fake_provider_enabled()
     # Uniform in both fake and real mode: the orchestrator always supplies a
     # provider-routed model_caller override per call (see module docstring's
     # Architecture Note) -- fake mode's FakeProviderResolver already resolves

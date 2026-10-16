@@ -188,7 +188,7 @@ def test_the_empty_schema_round_trips(db: Path) -> None:
     assert "contest_resolution_json" not in _columns(db, "rpg_roll_audit")
     assert any("rpg_roll_audit" in t for t in _triggers(db))
     command.upgrade(_cfg(db), "head")
-    assert _version(db) == "0043"
+    assert _version(db) == "0044"  # head: CRD Issue 20 credential revision
 
 
 @pytest.mark.parametrize(

@@ -25,8 +25,8 @@ These were open questions during design or early construction. Decisions are rec
 | Vector DB | ChromaDB, self-hosted from day one | Not a v2 deferral — core to v1 release scope. |
 | Contradiction checker approach | Sequential gate on Writer output, small/fast model | Checker evaluates generated prose, not input context; see CRD Item 7 and CRD Issue 11. |
 | Intent classifier approach | Lightweight model call | Classifies before context assembly; see CRD Issue 7. |
-| Business model and pricing shape | Metered hosted subscription with credits + BYOK perpetual license + first-year Cloud Services + optional Starter Access | See CRD Item 8 and Design Section 8. Exact plan prices, credit quantities, and payment-provider implementation remain separate launch/business decisions. |
-| Starter Access | Retained as an optional paid entry package / trial subscription using normal hosted credits and the full Sojourn pipeline | Starter Access is not a free tier, degraded tier, or reduced-continuity path. It may be abandoned later if a better trial model replaces it, but preserving it causes no architectural harm. |
+| Business model and pricing shape | Metered hosted subscription with credits + 15-day full-feature free trial + BYOK perpetual license + first-year Cloud Services (ADR-020; supersedes optional Starter Access) | See CRD Item 8 and Design Section 8. Exact plan prices, credit quantities, and payment-provider implementation remain separate launch/business decisions. |
+| Starter Access | Superseded as commercial direction by ADR-020's 15-day free trial and one paid subscription (same features, normal performance) | Existing `STARTER_ACCESS` data keeps its paid-plan meaning and is not presented as a free trial; trial lifecycle and any migration belong to CRD Issue 23 through CRD Issue 13's entitlement path. Historical: retained as an optional paid entry package; not a free tier, degraded tier, or reduced-continuity path. |
 | Story Bible schema | Committed | Static / dynamic / provisional partitions, Events Ledger, Locked/Forbidden Facts; see CRD Issue 4. |
 | Events Ledger tiered inclusion N value | 15 (configurable constant) | Resolved during CRD Issue 4. Implemented as `EVENTS_LEDGER_N = 15` in `services/story_bible.py`. Tune with testing. See ADR-0005. |
 | Rolling summary compression trigger value (N turns) | Provisional N = 10 (configurable constant); empirical finalization deferred to CRD Issue 8 | Escape hatch invoked during CRD Issue 6: Context Builder not yet wired; stable-prefix-pressure evidence unavailable. Implemented as `ROLLING_SUMMARY_N = 10` in `services/rolling_summary.py`. Must be finalized in CRD Issue 8 — not deferred past CRD Issue 8. See ADR-0009. |
@@ -137,9 +137,13 @@ CRD Issue 14a completed the provider/cache technical work. Extended-TTL (1h) cac
 
 **Resolve during:** CRD Issue 23, or earlier if pricing copy must be written before then.
 
-Starter Access is retained as an optional paid entry package / trial subscription using normal hosted credits and the full Sojourn pipeline. The exact commercial parameters remain open.
+**Superseded as commercial direction (ADR-020, 2026-10-15):** hosted access will offer a 15-day free trial and one paid subscription with the same features and normal performance. Existing `STARTER_ACCESS` entitlement data keeps its paid-plan meaning until CRD Issue 23 decides any migration. Trial/subscription allowances, prices, credit-conversion parameters and numeric burn estimates remain open pending representative consumption measurement that separates provider costs (including unsuccessful attempts) from customer credit deductions; whether additional usage is pass-through billed or sold as credit packs is undecided.
 
-**What resolution requires:** Decide package price, included hosted credits, expiration/renewal behavior, top-up eligibility, upgrade path, refund/support expectations, and whether Starter Access is presented as a trial subscription, one-time starter pack, or both. Ensure no copy or entitlement logic implies a free tier or degraded pipeline.
+Historical text: Starter Access is retained as an optional paid entry package / trial subscription using normal hosted credits and the full Sojourn pipeline. The exact commercial parameters remain open.
+
+**What resolution requires (CRD Issue 23, through CRD Issue 13's entitlement path):** Using representative consumption measurement across RPG, Branching and Writing, decide the 15-day trial and subscription allowances, prices and credit-conversion parameters; decide whether additional usage is pass-through billed or sold as credit packs; define trial lifecycle (enrollment, eligibility, start/expiry, conversion) and refund/support expectations; and decide whether and how existing `STARTER_ACCESS` data migrates. Trial and paid access keep the same features and normal performance; no copy or entitlement logic may imply a degraded tier.
+
+Historical resolution requirement (superseded): decide Starter Access package price, included hosted credits, expiration/renewal behavior, top-up eligibility, upgrade path, refund/support expectations, and whether Starter Access is presented as a trial subscription, one-time starter pack, or both.
 
 ---
 
@@ -169,7 +173,7 @@ The architecture is resolved: hosted credits are provider-neutral, usage-backed 
 
 ### True CYOA intent-classifier precision (ClassificationHints not wired)
 
-**Resolve during:** A future issue after CRD Issue 16 (target: CRD Issue 20 or whichever issue next touches the classifier).
+**Resolve during:** A future issue after CRD Issue 16 (originally targeted at CRD Issue 20; CRD Issue 20 as accepted excludes classifier changes, so this remains with whichever issue next touches the classifier).
 
 **Surfaced during:** CRD Issue 16.
 

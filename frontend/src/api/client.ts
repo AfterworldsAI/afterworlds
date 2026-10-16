@@ -42,6 +42,10 @@ export type RollAdjustmentRequest =
 export type DecisionSubmission =
   components["schemas"]["MechanicalDecisionSubmission"];
 
+// CRD Issue 20: authoritative account view and BYOK settings.
+export type AccountStatus = components["schemas"]["AccountStatusResponse"];
+export type ByokProviderName = components["schemas"]["ByokProvider"];
+
 export class ApiRequestError extends Error {
   constructor(
     public status: number,
@@ -151,4 +155,39 @@ export const api = {
       `/api/stories/${storyId}/rpg/sequences/${sequenceId}/resume`,
       { method: "POST" },
     ),
+
+  // CRD Issue 20. Every settings operation returns the refreshed account
+  // view. The raw key travels only in this request body -- never a URL,
+  // never returned, never stored by the client.
+  getAccount: () => request<AccountStatus>("/api/account"),
+
+  saveCredential: (provider: ByokProviderName, apiKey: string) =>
+    request<AccountStatus>(`/api/account/byok/${provider}/credential`, {
+      method: "PUT",
+      body: JSON.stringify({ api_key: apiKey }),
+    }),
+
+  removeCredential: (provider: ByokProviderName) =>
+    request<AccountStatus>(`/api/account/byok/${provider}/credential`, {
+      method: "DELETE",
+    }),
+
+  setProviderEnabled: (provider: ByokProviderName, enabled: boolean) =>
+    request<AccountStatus>(`/api/account/byok/${provider}/enabled`, {
+      method: "PUT",
+      body: JSON.stringify({ enabled }),
+    }),
+
+  setOpenRouterModel: (modelIdentifier: string | null) =>
+    request<AccountStatus>("/api/account/byok/openrouter/model", {
+      method: "PUT",
+      body: JSON.stringify({ model_identifier: modelIdentifier }),
+    }),
+
+  // The only operation here that contacts a provider.
+  validateCredential: (provider: ByokProviderName) =>
+    request<AccountStatus>(`/api/account/byok/${provider}/validate`, {
+      method: "POST",
+      body: JSON.stringify({ acknowledge_provider_contact: true }),
+    }),
 };

@@ -16,7 +16,15 @@ import Transcript from "./Transcript";
 import VisibleStatePanel from "./VisibleStatePanel";
 import { localStorageState } from "./localStorage";
 
-export default function StoryView({ storyId }: { storyId: string }) {
+export default function StoryView({
+  storyId,
+  onTurnSettled,
+}: {
+  storyId: string;
+  // CRD Issue 20: a completed turn may have settled credits; the account
+  // view re-reads its authoritative state.
+  onTurnSettled?: () => void;
+}) {
   const [story, setStory] = useState<StoryDetail | null>(null);
   const [turns, setTurns] = useState<TranscriptTurn[]>([]);
   const [visibleState, setVisibleState] = useState<VisibleState | null>(null);
@@ -160,6 +168,7 @@ export default function StoryView({ storyId }: { storyId: string }) {
       // remediation, PR #126 P2): a failure here means the turn was never
       // persisted, so the draft stays and turnError is the right signal.
       response = await api.submitTurn(storyId, userInput);
+      onTurnSettled?.();
       setLastResponse(response);
       // The mutation response already carries server-refreshed visible state
       // (PR #126 P2 round 14, sibling of the round-10 mutation-success-vs-
@@ -250,6 +259,7 @@ export default function StoryView({ storyId }: { storyId: string }) {
   async function narrate(sequenceId: string) {
     try {
       const response = await api.resumeSequence(storyId, sequenceId);
+      onTurnSettled?.();
       setLastResponse(response);
       setVisibleState(response.visible_state ?? null);
     } catch (err) {

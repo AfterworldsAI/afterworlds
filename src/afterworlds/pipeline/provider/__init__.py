@@ -1,5 +1,13 @@
 """Provider/platform adapter layer — CRD Issue 14a/14b."""
 
+from afterworlds.pipeline.provider._byok_settings import (
+    ByokSettingsService,
+    ByokSettingsState,
+    CredentialChecker,
+    CredentialSettingsError,
+    CredentialSettingsErrorKind,
+    ProviderCredentialState,
+)
 from afterworlds.pipeline.provider._catalog import (
     FixtureOpenRouterCatalogProvider,
     LiveOpenRouterCatalogProvider,
@@ -54,9 +62,14 @@ __all__ = [
     "AnthropicCapabilityProfile",
     "AnthropicDirectAdapter",
     "AnthropicNormalizationFactorProvider",
+    "ByokSettingsService",
+    "ByokSettingsState",
     "ByokCredentialReadinessProvider",
     "CapabilityEvidenceSource",
     "CapabilityProfileAwareSafetyPolicy",
+    "CredentialChecker",
+    "CredentialSettingsError",
+    "CredentialSettingsErrorKind",
     "CredentialValidationError",
     "EligibleModelRoute",
     "FixtureOpenRouterCatalogProvider",
@@ -73,6 +86,7 @@ __all__ = [
     "ProviderCallRequest",
     "ProviderCallResult",
     "ProviderConfigError",
+    "ProviderCredentialState",
     "ProviderContentPart",
     "ProviderResolver",
     "ProviderTextPart",

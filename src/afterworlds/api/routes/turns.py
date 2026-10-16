@@ -20,7 +20,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session, sessionmaker
 
-from afterworlds.api.access_path import select_access_path
+from afterworlds.api.access_path import probe_byok_readiness, select_access_path
 from afterworlds.api.deps import (
     get_byok_readiness_provider,
     get_orchestrator,
@@ -200,25 +200,15 @@ def _run_turn_sync(
 
         entitlement_service = EntitlementService(session)
         status = entitlement_service.get_access_path_status(sojourner_id)
-        try:
-            byok_ready = byok_readiness_provider.is_byok_runnable(sojourner_id)
-        except Exception as exc:  # noqa: BLE001
-            # Readiness is a pre-selection probe, not the credential
-            # validation/repair owner -- a keyring/retrieval failure here
-            # must not block a Sojourner who also has hosted access (or turn
-            # the request into a 500 when neither path is available; the
-            # normal "no runnable access path" typed error already covers
-            # that). Never log raw credentials, provider secrets, key names,
-            # or keyring payloads -- error class only.
-            logger.warning(
-                "byok readiness check failed; treating BYOK as not runnable",
-                extra={
-                    "sojourner_id": str(sojourner_id),
-                    "story_id": str(story_id),
-                    "error_class": type(exc).__name__,
-                },
+        byok_ready = (
+            probe_byok_readiness(
+                byok_readiness_provider,
+                sojourner_id,
+                {"story_id": str(story_id)},
+                log=logger,
             )
-            byok_ready = False
+            is True
+        )
         selection = select_access_path(status, byok_ready)
 
         if selection.access_path is None:

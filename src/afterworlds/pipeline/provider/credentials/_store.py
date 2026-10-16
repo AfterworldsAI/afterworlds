@@ -113,6 +113,9 @@ class FallbackEnvCredentialStore:
       ``AFTERWORLDS_BYOK_{PROVIDER_NAME.upper()}_KEY``
     """
 
+    #: CRD Issue 20: the settings service reports writes as unavailable.
+    read_only = True
+
     def get(self, sojourner_id: UUID, provider_name: str) -> str | None:
         # Per-Sojourner key takes precedence; fall back to generic key.
         sid = str(sojourner_id).upper().replace("-", "_")

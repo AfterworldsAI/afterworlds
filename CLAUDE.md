@@ -152,7 +152,7 @@ There is one canonical Sojourn orchestration path across paying access paths. No
 * Hosted access uses included credits plus transparent top-ups. Exhaustion stops or prompts; it never silently degrades quality or drops passes.
 * BYOK perpetual license preserves full pipeline parity. BYOK is a first-class path, not a fallback or reduced-function mode.
 * Cloud Services are separable from perpetual license rights. Lapse may gate hosted storage/sync/backup/remote access/hosted ingestion, but not owned-work read/export/download.
-* Starter Access, if offered, is paid entry access using the same full pipeline and normal hosted credits. It is not a degraded free tier.
+* Hosted commercial direction (ADR-020): a 15-day free trial and one paid subscription with the same features and normal performance — no degraded tier. This replaces the optional paid Starter Access offer; existing `STARTER_ACCESS` data keeps its paid-plan meaning. Trial lifecycle/payment belong to CRD Issue 23 through CRD Issue 13's entitlement path; numeric burn estimates, prices and allowances await calibration.
 * Extended TTL caching is required wherever provider support and adapter verification allow it; cache correctness belongs to provider adapters.
 * Entitlement routing governs access path, credits, Cloud Services, and settlement. Provider routing governs model/provider choice. Do not conflate them.
 * No dark patterns in top-up, renewal, cancellation, export, or data retention.

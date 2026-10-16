@@ -43,7 +43,7 @@ v1 is the first release-capable MVP, not merely an internal milestone.
 - Contradiction Checker.
 - SQLite persistence.
 - BYOK API support with local-first credential storage.
-- Hosted subscription credits / top-ups entitlement framework, including optional Starter Access as a paid entry package using the same full pipeline.
+- Hosted subscription credits / top-ups entitlement framework using the same full pipeline. Commercial direction per ADR-020: a 15-day free trial and one paid subscription (CRD Issue 23); the earlier optional paid Starter Access offer is superseded, and existing `STARTER_ACCESS` data keeps its paid-plan meaning.
 - BYOK perpetual license + first-year Cloud Services inclusion, with renewal-capable Cloud Services state.
 - React + Vite + TypeScript frontend shell.
 - Minimal FastAPI API surface needed by the frontend.
@@ -270,8 +270,8 @@ The business model assumes one canonical Sojourn orchestration path for all real
 | Access Path | Revenue Shape | Cost Driver |
 |---|---|---|
 | Hosted Subscription | Monthly subscription with included hosted credits | Model usage + storage + hosted services. |
-| Hosted Top-Ups | One-off credit purchases | Incremental model usage + payment overhead. |
-| Starter Access (optional) | Small paid entry package / trial subscription using normal hosted credits | Model usage + storage + hosted services + support + payment overhead. |
+| Hosted Top-Ups / Additional Usage | Additional usage for heavy users; purchase mechanism undecided (pass-through billing or credit packs — ADR-020, CRD Issue 23). Recorded top-up balances keep their runtime meaning | Incremental model usage + payment overhead. |
+| Hosted Free Trial (15 days) | Full-feature trial of the one paid subscription; supersedes the optional paid Starter Access offer (ADR-020). Lifecycle: CRD Issue 23 | Model usage + storage + hosted services + support. |
 | BYOK Perpetual License | One-time purchase | Product access, onboarding, first-year Cloud Services bundle. |
 | BYOK Cloud Services Renewal | Optional annual renewal after year one | Storage, sync, hosted ingestion, remote access, service maintenance. |
 | Institutional (future) | Per-seat / pooled credit / capped usage | Aggregate hosted usage + admin/service overhead. |
@@ -322,7 +322,7 @@ If Cloud Services lapse, hosted active-use services suspend. Existing hosted use
 
 ### Payment Platform Ownership
 
-Issue 20 is billing/BYOK visibility and configuration only. It does not implement actual hosted top-up purchase/redemption.
+Issue 20 is billing/BYOK visibility and configuration only. It does not implement actual hosted top-up purchase/redemption, trial enrollment or a numeric burn estimator (ADR-020); purchasing and trial enrollment are shown as unavailable until CRD Issue 23.
 
 A dedicated billing-platform/payment-integration issue lands after Issue 21 and before public launch. It is a commercial launch blocker, not a spine-demo prerequisite.
 
@@ -336,7 +336,7 @@ Committed:
 - provider-neutral hosted credits
 - configurable credit conversion policy from structured usage metrics
 - hosted subscriptions with explicit credits
-- top-ups rather than silent degradation
+- purchasable additional usage rather than silent degradation (mechanism — pass-through billing or credit packs — undecided; ADR-020)
 - BYOK perpetual license + first-year Cloud Services
 - optional annual Cloud Services renewal
 - support/audit/deletion minimums for responsible launch
@@ -344,7 +344,8 @@ Committed:
 Still to finalize before public pricing lock:
 
 - exact monthly hosted credit allotments
-- top-up package sizes and pricing
+- additional-usage purchase mechanism (pass-through billing vs. credit packs) and its pricing
+- 15-day trial and subscription allowances, pending representative consumption measurement (ADR-020)
 - rollover policy and cap
 - exact BYOK license price
 - exact annual Cloud Services renewal price
@@ -571,7 +572,7 @@ Issue 21 remains the narrative spine gate. It is necessary but not sufficient fo
 ### Issue 20 — Billing/BYOK Visibility and Configuration
 
 - **Goal:** Expose user-facing billing and BYOK state/configuration.
-- **In scope:** hosted credit balance, estimated burn-rate communication, Cloud Services active/lapsed status, BYOK provider/key configuration UI over Issue 14 backend contract, provider selection, top-up visibility/eligibility messaging.
+- **In scope:** hosted credit balance, honest unavailable-estimate communication (numeric burn estimates deferred pending calibration — ADR-020), Cloud Services active/lapsed status, BYOK provider/key configuration UI over Issue 14 backend contract, provider selection, top-up visibility/eligibility messaging.
 - **Out of scope:** actual payment/top-up transaction flow, checkout, webhooks, entitlement enforcement, support remediation workflows.
 - **Deliverables:** UI/API for billing/BYOK state and settings, provider selection, key-entry flow using CredentialStore backend, tests for redaction and display state.
 - **Acceptance:** Sojourner can see relevant credit/service/BYOK state and configure provider credentials without exposing raw keys; payment actions are visibility/eligibility only until the billing-platform issue.
@@ -713,7 +714,7 @@ Builders must not:
 - treat provider-specific cost metrics as universal accounting truth
 - cross hosted/BYOK boundaries during provider fallback without explicit permission
 
-Hosted credits are provider-neutral runtime entitlements. Starter Access, if offered, is a paid entry package using the same full orchestration path and normal hosted credits, not a degraded free tier. Cloud Services are hosted-service entitlements covering hosted storage, sync, backup, remote access, hosted ingestion, and hosted runtime dependent on Afterworlds server resources. Issue 13 owns access-path/entitlement enforcement; Issue 14 owns provider/platform routing and fallback; Issue 22 owns human reconstructability and support/compliance history.
+Hosted credits are provider-neutral runtime entitlements. Per ADR-020 the hosted offer is a 15-day free trial and one paid subscription with the same features and normal performance (no degraded tier); this replaces the earlier optional paid Starter Access offer, whose existing `STARTER_ACCESS` data keeps its paid-plan meaning. Cloud Services are hosted-service entitlements covering hosted storage, sync, backup, remote access, hosted ingestion, and hosted runtime dependent on Afterworlds server resources. Issue 13 owns access-path/entitlement enforcement; Issue 14 owns provider/platform routing and fallback; Issue 22 owns human reconstructability and support/compliance history.
 
 ---
 
@@ -725,7 +726,7 @@ Current or newly preserved unknowns include:
 
 - Issue 18 ADR topics for ChromaDB retrieval memory.
 - Production provider/cache calibration in Issue 14.
-- Exact hosted pricing, credit allotments, top-up packages, rollover/cap policy, BYOK price, and Cloud Services renewal price.
+- Exact hosted pricing, trial/subscription allowances, credit allotments, the additional-usage purchase mechanism (pass-through billing vs. credit packs; ADR-020), rollover/cap policy, BYOK price, and Cloud Services renewal price.
 - Future full Writing-mode version-history tooling, including draft branching, restore/rollback, compare views, and broader manuscript evolution tooling.
 - Future direct OpenAI / Google / Gemini provider surfaces.
 - Future local/open-weight or VPS-hosted open-weight provider surfaces, including quality, privacy, cost, hardware, and policy tradeoffs.

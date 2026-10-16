@@ -101,6 +101,17 @@ class CredentialValidator:
         self._update_metadata(sojourner_id, provider_name, result, session)
         return result
 
+    def check(
+        self, provider_name: str, raw_key: str
+    ) -> tuple[ValidationStatus, str | None]:
+        """The live check alone, without recording a result (CRD Issue 20).
+
+        Callers that must not resurrect or overwrite metadata — the BYOK
+        settings service records the result only against the credential
+        revision it captured — use this instead of ``validate``.
+        """
+        return self._check(provider_name, raw_key)
+
     # -----------------------------------------------------------------------
     # Private
     # -----------------------------------------------------------------------
