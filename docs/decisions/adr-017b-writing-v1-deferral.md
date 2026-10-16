@@ -23,7 +23,8 @@ The Owner instead chose to release v1 with two modes and defer Writing.
 1. v1 has two supported user-facing modes: **RPG and Branching**. Writing is
    unavailable through the released application. No Writing persona is
    offered, including Chiron.
-2. There are no current Sojourners and no existing Writing sessions. No
+2. There have never been any Sojourners, there are none now, and there are
+   no existing Writing sessions (an established Owner fact; not investigated). No
    legacy-session handling, migration, conversion, recovery or
    backward-compatibility workflow is designed. Synthetic fixtures are not
    customer data; local development data is not deleted.

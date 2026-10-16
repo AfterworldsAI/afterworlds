@@ -812,7 +812,7 @@ v1 includes:
 - advanced admin console / BI / CRM-style support platform
 - Writing mode and selectable Writing personas (implementation retained; post-v1 direction: an authoring collaborator for RPG adventures and Branching stories — ADR-017b)
 - full Writing-mode version history, draft branching, restore/rollback, compare tooling, and broader manuscript evolution tooling unless separately scoped
-- richer Writing-mode authoring UX beyond the v1 controls needed for setup, beat constraints, and prompt injection
+- the entire Writing-mode user-facing surface, including setup, persona selection, beat constraints and authoring controls (the CRD Issue 17 implementation is retained, but no Writing control is a v1 release requirement — ADR-017b)
 - richer Branching UX including branch-tree visualization, visual story map, non-destructive What If? paths, and branch-timing controls beyond the v1 Branching cadence/verbosity setting
 - persona expansion across RPG and Branching modes
 - direct OpenAI and Google/Gemini provider surfaces unless a later issue adds them

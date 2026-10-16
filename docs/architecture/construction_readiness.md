@@ -68,7 +68,8 @@ Deferred beyond v1:
 - A polished full admin console with advanced analytics, CRM workflow, or enterprise-grade operations tooling.
 - Direct OpenAI or Google/Gemini provider surfaces.
 - Supported local/open-weight or VPS-hosted open-weight model surfaces.
-- Rich Branching/Writing UX beyond the minimal v1 shell and v1 Branching cadence/verbosity setting unless separately scoped.
+- Rich Branching UX beyond the minimal v1 shell and v1 Branching cadence/verbosity setting unless separately scoped.
+- The entire Writing-mode user-facing surface (ADR-017b); the retained CRD Issue 17 implementation is not a v1 release requirement.
 - Persona expansion across RPG and Branching modes.
 - Writing mode and selectable Writing personas (implementation retained behind the release gate; post-v1 direction in ADR-017b).
 
