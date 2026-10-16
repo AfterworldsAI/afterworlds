@@ -150,6 +150,32 @@ describe("StoryView draft preservation (Binding Decision 6)", () => {
     await waitFor(() => expect(textarea).toHaveValue(""));
   });
 
+  it("reports a settled turn (CRD Issue 20 account refresh), not a refused one", async () => {
+    const onTurnSettled = vi.fn();
+    mocks.submitTurn
+      .mockRejectedValueOnce(
+        new ApiRequestError(403, {
+          error_code: "entitlement_blocked",
+          message: "No runnable access path for this Sojourner.",
+          detail: null,
+          schema_version: 1,
+        }),
+      )
+      .mockResolvedValueOnce(deliveredResponse());
+    render(
+      <StoryView storyId={baseStory.story_id} onTurnSettled={onTurnSettled} />,
+    );
+    const textarea = await screen.findByPlaceholderText("What do you do?");
+    fireEvent.change(textarea, { target: { value: "hello there" } });
+    fireEvent.click(screen.getByRole("button", { name: /submit/i }));
+    await screen.findByText(/No runnable access path/);
+    expect(onTurnSettled).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: /submit/i }));
+    await waitFor(() => expect(textarea).toHaveValue(""));
+    expect(onTurnSettled).toHaveBeenCalledTimes(1);
+  });
+
   it("preserves the draft when the turn returns pipeline_error", async () => {
     mocks.submitTurn.mockResolvedValue(pipelineErrorResponse());
     render(<StoryView storyId={baseStory.story_id} />);

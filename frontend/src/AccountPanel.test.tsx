@@ -708,6 +708,71 @@ describe("AccountPanel mutation/read ordering", () => {
 });
 
 describe("App account view", () => {
+  it("re-reads the account when a turn started before opening it settles", async () => {
+    const story = {
+      story_id: "s1",
+      title: "First",
+      mode: "writing",
+      status: "in_play",
+      created_at: "2026-01-01T00:00:00Z",
+      updated_at: "2026-01-01T00:00:00Z",
+      schema_version: 1,
+    };
+    const turn = deferred();
+    const accountReads: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string, init?: RequestInit) => {
+        const path = url.split("?")[0]!;
+        const method = init?.method ?? "GET";
+        if (method === "POST" && path === "/api/stories/s1/turns")
+          return turn.promise;
+        if (path === "/api/account") {
+          accountReads.push(url);
+          return Promise.resolve(json(200, account({})));
+        }
+        const bodies: Record<string, unknown> = {
+          "/api/stories": { stories: [story], schema_version: 1 },
+          "/api/stories/s1": story,
+          "/api/stories/s1/turns": { turns: [], schema_version: 1 },
+          "/api/stories/s1/visible-state": { visible_state: null },
+        };
+        return Promise.resolve(json(200, bodies[path]));
+      }),
+    );
+    render(<App />);
+    const first = await screen.findByRole("button", { name: /^First/ });
+    act(() => first.click());
+    const textarea = await screen.findByPlaceholderText("What do you do?");
+    fireEvent.change(textarea, { target: { value: "hello" } });
+    act(() => screen.getByRole("button", { name: /submit/i }).click());
+
+    // Open the account view while the turn is still in flight.
+    act(() => screen.getByRole("button", { name: "Account & BYOK" }).click());
+    await screen.findByTestId("no-hosted-plan");
+    expect(accountReads).toHaveLength(1);
+
+    await act(async () =>
+      turn.resolve(
+        json(200, {
+          disposition: "delivered",
+          turn_id: "t1",
+          delivered_output: "ok",
+          stable_prefix_cache_warmed: false,
+          interaction_rejection_reason: null,
+          interaction_rejection_message: null,
+          pipeline_error_summary: null,
+          provider_refusal: null,
+          pending_roll_redirect_message: null,
+          settlement_warning: null,
+          visible_state: null,
+          schema_version: 1,
+        }),
+      ),
+    );
+    await waitFor(() => expect(accountReads).toHaveLength(2));
+  });
+
   it("opens the account view from the header", async () => {
     stubFetch({
       "GET /api/stories": [() => json(200, { stories: [], schema_version: 1 })],

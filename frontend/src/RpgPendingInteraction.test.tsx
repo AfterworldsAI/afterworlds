@@ -239,6 +239,23 @@ describe("StoryView RPG pending interaction (CRD Issue 15b)", () => {
     await waitFor(() => expect(mocks.resumeSequence).toHaveBeenCalledTimes(1));
   });
 
+  it("reports a settled resume so the account view re-reads (CRD Issue 20)", async () => {
+    const onTurnSettled = vi.fn();
+    mocks.getPendingInteraction
+      .mockResolvedValueOnce(ready())
+      .mockResolvedValueOnce(null);
+    mocks.resumeSequence.mockResolvedValue(turn("delivered"));
+    render(
+      <StoryView storyId={story.story_id} onTurnSettled={onTurnSettled} />,
+    );
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Narrate the resolved action",
+      }),
+    );
+    await waitFor(() => expect(onTurnSettled).toHaveBeenCalledTimes(1));
+  });
+
   it("treats an already-completed resume as success: refetch, no error", async () => {
     mocks.getPendingInteraction
       .mockResolvedValueOnce(ready())
