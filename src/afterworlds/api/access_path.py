@@ -71,6 +71,7 @@ def probe_byok_readiness(
     provider: ByokCredentialReadinessProvider,
     sojourner_id: UUID,
     log_extra: dict[str, str] | None = None,
+    log: logging.Logger = logger,
 ) -> bool | None:
     """The BYOK readiness probe shared by turn selection and the account view.
 
@@ -82,12 +83,13 @@ def probe_byok_readiness(
     also has hosted access (or turn the request into a 500 when neither path
     is available; the normal "no runnable access path" typed error already
     covers that). Never log raw credentials, provider secrets, key names, or
-    keyring payloads -- error class only.
+    keyring payloads -- error class only. ``log`` lets a caller keep the
+    warning on its own logger (the turn route keeps its historical one).
     """
     try:
         return provider.is_byok_runnable(sojourner_id)
     except Exception as exc:  # noqa: BLE001
-        logger.warning(
+        log.warning(
             "byok readiness check failed; treating BYOK as not runnable",
             extra={
                 "sojourner_id": str(sojourner_id),

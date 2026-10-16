@@ -642,7 +642,7 @@ Afterworlds uses one canonical Sojourn orchestration path across real product ac
 | Access path | Revenue shape | Cost driver |
 |---|---|---|
 | Hosted Subscription | Monthly subscription with included hosted credits | Model usage, storage, hosted services, support, payment overhead. |
-| Hosted Top-Ups | One-off credit purchases | Incremental model usage and payment overhead. |
+| Hosted Top-Ups / Additional Usage | Additional usage for heavy users; purchase mechanism undecided (pass-through billing or credit packs — ADR-020, CRD Issue 23). Recorded top-up balances keep their runtime meaning | Incremental model usage and payment overhead. |
 | Hosted Free Trial (15 days) | Full-feature trial of the one paid subscription; same features and normal performance. Supersedes the optional paid Starter Access offer as commercial direction (ADR-020). Lifecycle: CRD Issue 23 | Model usage, storage, hosted services, support. |
 | BYOK Perpetual License | One-time purchase | Product access, onboarding, first-year Cloud Services bundle. |
 | BYOK Cloud Services Renewal | Optional annual renewal after year one | Hosted storage, sync, backup, remote access, ingestion processing, service maintenance. |

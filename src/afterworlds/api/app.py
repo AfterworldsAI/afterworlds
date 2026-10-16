@@ -18,6 +18,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from afterworlds.api.account import ACCOUNT_PATH_PREFIX, account_validation_location
 from afterworlds.api.config import ApiSettings, load_settings
 from afterworlds.api.db_bootstrap import upgrade_to_head
 from afterworlds.api.deps import provision_sojourner_id
@@ -122,8 +123,16 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
         # Decision 10). detail carries only the dotted field path and a
         # human-safe message per offending field -- never exc.errors()'s
         # raw "input" value, which can echo back client-supplied data.
+        # CRD Issue 20: on the account/credential surface an unknown property
+        # name is client-chosen (it could carry a key), so locations there
+        # name only known fields.
+        account = request.url.path.startswith(ACCOUNT_PATH_PREFIX)
         detail = {
-            ".".join(str(part) for part in error["loc"]): str(error["msg"])
+            (
+                account_validation_location(tuple(error["loc"]))
+                if account
+                else ".".join(str(part) for part in error["loc"])
+            ): str(error["msg"])
             for error in exc.errors()
         }
         error = ApiError(

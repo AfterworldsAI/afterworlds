@@ -11,12 +11,14 @@ Ownership stays here, in the credential layer. Raw keys go only to the
 
 Ordering, so a partial failure never reports better state than exists:
 
-- Replace resets the metadata to ``untested`` under a fresh
-  ``credential_revision`` *before* writing the key. If the key write then
-  fails, the stored state is "untested", never the previous key's verdict.
-- Remove deletes the metadata row *before* the key. Without a row a key is
-  ineligible for the resolver, so a failed key deletion never leaves a
-  runnable credential behind; retrying the removal completes it.
+- Replace gives an existing row a fresh ``credential_revision`` and marks it
+  ERROR with no validation time *before* writing the key, so a failed or
+  indeterminate write is ineligible and carries no predecessor verdict. Only
+  after the key is stored is the row (created or) set to ``untested``.
+- Remove deletes the metadata row *before* the key and then confirms the key
+  is gone. Without a row a key is ineligible for the resolver, so a failed
+  key deletion never leaves a runnable credential behind; retrying the
+  removal completes it.
 - Validate captures (row id, revision, key) together, checks outside the
   lock, then records the verdict only if that row still carries that
   revision. A late result can therefore neither validate a replacement nor
@@ -27,8 +29,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
@@ -127,8 +128,8 @@ class ByokSettingsService:
     # ------------------------------------------------------------------
 
     def read(self, sojourner_id: UUID) -> ByokSettingsState:
-        with self._db() as session:
-            rows = {
+        def rows_of(session: Session) -> dict[str, ProviderCredentialMetadata]:
+            return {
                 row.provider_name: row
                 for row in session.scalars(
                     select(ProviderCredentialMetadata).where(
@@ -136,11 +137,14 @@ class ByokSettingsService:
                     )
                 )
             }
-        with self._db_errors():
-            # The resolver's own lookup, so the shown model is the one used.
-            model = _fetch_openrouter_preferred_model(
+
+        rows = self._in_session(rows_of)
+        # The resolver's own lookup, so the shown model is the one used.
+        model = self._guard_db(
+            lambda: _fetch_openrouter_preferred_model(
                 self._session_factory, sojourner_id
             )
+        )
         providers = []
         for name in _BYOK_PROVIDER_NAMES:
             row = rows.get(name)
@@ -166,8 +170,19 @@ class ByokSettingsService:
     # ------------------------------------------------------------------
 
     def set_credential(self, sojourner_id: UUID, provider_name: str, key: str) -> None:
-        """Add or replace a key. The credential starts ``untested``; a
-        replacement never inherits the previous key's validation."""
+        """Add or replace a key. The installed key starts ``untested``; a
+        replacement never inherits the previous key's validation.
+
+        Fail-safe ordering: before the key write, an existing row gets a new
+        revision (discarding in-flight validations) and becomes ERROR with no
+        validation time. A failed or indeterminate write, or a failed
+        metadata update after it, therefore leaves an ineligible credential
+        that claims no verdict for whichever key is stored; retrying the
+        replacement or validating explicitly recovers it. A new provider's
+        row is created only after the key is stored; until then no row
+        exists and nothing is eligible. Only a confirmed write records
+        UNTESTED, keeping the enabled state.
+        """
         _require_provider(provider_name)
         if (
             not key
@@ -180,40 +195,68 @@ class ByokSettingsService:
                 f"without spaces, at most {_MAX_KEY_LENGTH} long.",
             )
         self._require_writable()
+
+        def before_write(session: Session) -> None:
+            row = _metadata_row(session, sojourner_id, provider_name)
+            if row is None:
+                return
+            # Unverified, not "untested": until the write is confirmed the
+            # stored key is unknown, so no predecessor verdict or timestamp
+            # may describe it, and ERROR keeps it ineligible.
+            row.validation_status = ValidationStatus.ERROR.value
+            row.last_validated_at = None
+            row.credential_revision = str(uuid4())
+            row.updated_at = self._clock()
+            session.commit()
+
+        def after_write(session: Session) -> None:
+            now = self._clock()
+            row = _metadata_row(session, sojourner_id, provider_name)
+            if row is None:
+                row = ProviderCredentialMetadata(
+                    sojourner_id=str(sojourner_id),
+                    provider_name=provider_name,
+                    is_active=True,
+                    created_at=now,
+                )
+                session.add(row)
+            row.validation_status = ValidationStatus.UNTESTED.value
+            row.last_validated_at = None
+            row.credential_revision = str(uuid4())
+            row.updated_at = now
+            session.commit()
+
         with self._lock:
-            with self._db() as session:
-                now = self._clock()
-                row = _metadata_row(session, sojourner_id, provider_name)
-                if row is None:
-                    row = ProviderCredentialMetadata(
-                        sojourner_id=str(sojourner_id),
-                        provider_name=provider_name,
-                        is_active=True,
-                        created_at=now,
-                    )
-                    session.add(row)
-                row.validation_status = ValidationStatus.UNTESTED.value
-                row.last_validated_at = None
-                row.credential_revision = str(uuid4())
-                row.updated_at = now
-                session.commit()
-            with self._store_errors():
-                self._store.set(sojourner_id, provider_name, key)
+            self._in_session(before_write)
+            self._guard_store(lambda: self._store.set(sojourner_id, provider_name, key))
+            self._in_session(after_write)
 
     def remove_credential(self, sojourner_id: UUID, provider_name: str) -> None:
+        """Remove a key. The metadata goes first, so a failed key deletion
+        leaves nothing eligible; success is reported only once the store
+        confirms the key is gone. Removing an absent key succeeds."""
         _require_provider(provider_name)
         self._require_writable()
-        with self._lock:
-            with self._db() as session:
-                session.execute(
-                    delete(ProviderCredentialMetadata).where(
-                        ProviderCredentialMetadata.sojourner_id == str(sojourner_id),
-                        ProviderCredentialMetadata.provider_name == provider_name,
-                    )
+
+        def drop_row(session: Session) -> None:
+            session.execute(
+                delete(ProviderCredentialMetadata).where(
+                    ProviderCredentialMetadata.sojourner_id == str(sojourner_id),
+                    ProviderCredentialMetadata.provider_name == provider_name,
                 )
-                session.commit()
-            with self._store_errors():
-                self._store.delete(sojourner_id, provider_name)
+            )
+            session.commit()
+
+        with self._lock:
+            self._in_session(drop_row)
+            self._guard_store(lambda: self._store.delete(sojourner_id, provider_name))
+            # Backends may report a failed deletion as "already absent".
+            if self._guard_store(lambda: self._store.get(sojourner_id, provider_name)):
+                logger.warning(
+                    "credential store kept a key after deletion",
+                    extra={"provider": provider_name},
+                )
+                raise _store_unavailable()
 
     def set_enabled(
         self, sojourner_id: UUID, provider_name: str, enabled: bool
@@ -221,13 +264,17 @@ class ByokSettingsService:
         """Enable/disable a configured provider. Does not touch the key or its
         validation verdict and makes no provider call."""
         _require_provider(provider_name)
-        with self._lock, self._db() as session:
+
+        def toggle(session: Session) -> None:
             row = _metadata_row(session, sojourner_id, provider_name)
             if row is None:
                 raise _not_configured()
             row.is_active = enabled
             row.updated_at = self._clock()
             session.commit()
+
+        with self._lock:
+            self._in_session(toggle)
 
     def set_openrouter_model(self, sojourner_id: UUID, model: str | None) -> None:
         """Set (or clear, with None) the exact OpenRouter model the BYOK
@@ -245,7 +292,8 @@ class ByokSettingsService:
                     "Enter an exact OpenRouter model identifier (not a dynamic "
                     f"alias), at most {_MAX_MODEL_LENGTH} characters.",
                 )
-        with self._lock, self._db() as session:
+
+        def save(session: Session) -> None:
             row = session.scalars(
                 select(ProviderRouteConfigORM).where(
                     ProviderRouteConfigORM.sojourner_id == str(sojourner_id),
@@ -263,38 +311,48 @@ class ByokSettingsService:
             row.is_active = True
             session.commit()
 
+        with self._lock:
+            self._in_session(save)
+
     # ------------------------------------------------------------------
     # Explicit validation — the only provider-contact operation
     # ------------------------------------------------------------------
 
     def validate(self, sojourner_id: UUID, provider_name: str) -> ValidationStatus:
         _require_provider(provider_name)
-        with self._lock:
-            with self._db() as session:
-                row = _metadata_row(session, sojourner_id, provider_name)
-                if row is None:
-                    raise _not_configured()
-                row_id, revision = row.id, row.credential_revision
-            with self._store_errors():
-                key = self._store.get(sojourner_id, provider_name)
-            if not key:
-                raise _not_configured()
 
+        def capture(session: Session) -> tuple[int, str]:
+            row = _metadata_row(session, sojourner_id, provider_name)
+            if row is None:
+                raise _not_configured()
+            return row.id, row.credential_revision
+
+        with self._lock:
+            row_id, revision = self._in_session(capture)
+            key = self._guard_store(
+                lambda: self._store.get(sojourner_id, provider_name)
+            )
+        if not key:
+            raise _not_configured()
+
+        outcome: tuple[ValidationStatus, str | None] | None = None
         try:
-            status, _detail = self._check(provider_name, key)
+            outcome = self._check(provider_name, key)
         except Exception as exc:  # noqa: BLE001
             logger.warning(
                 "credential validation check failed",
                 extra={"provider": provider_name, "error_class": type(exc).__name__},
             )
+        del key
+        if outcome is None:
+            # Raised outside the handler: nothing upstream stays chained.
             raise CredentialSettingsError(
                 CredentialSettingsErrorKind.VALIDATION_UNAVAILABLE,
                 "Validation could not be completed; nothing was recorded.",
-            ) from None
-        finally:
-            del key
+            )
+        status = outcome[0]
 
-        with self._lock, self._db() as session:
+        def record(session: Session) -> int:
             now = self._clock()
             result = session.execute(
                 update(ProviderCredentialMetadata)
@@ -309,7 +367,11 @@ class ByokSettingsService:
                 )
             )
             session.commit()
-        if result.rowcount == 0:  # type: ignore[attr-defined]
+            return result.rowcount  # type: ignore[attr-defined,no-any-return]
+
+        with self._lock:
+            recorded = self._in_session(record)
+        if recorded == 0:
             raise CredentialSettingsError(
                 CredentialSettingsErrorKind.VALIDATION_SUPERSEDED,
                 "The credential changed while it was being validated; the "
@@ -319,15 +381,16 @@ class ByokSettingsService:
 
     # ------------------------------------------------------------------
     # Internals
+    #
+    # Store and database failures are translated *after* the handler has
+    # finished, so the typed error carries no ``__cause__``/``__context__``:
+    # upstream exceptions (keyring payloads, checker text) can echo key
+    # material and must not travel with it.
     # ------------------------------------------------------------------
 
     def _require_writable(self) -> None:
         if not self.store_writable:
-            raise CredentialSettingsError(
-                CredentialSettingsErrorKind.STORE_READ_ONLY,
-                "This installation's credential store is read-only; keys "
-                "cannot be added or removed here.",
-            )
+            raise _read_only()
 
     def _probe_presence(self, sojourner_id: UUID, provider_name: str) -> bool | None:
         try:
@@ -339,47 +402,57 @@ class ByokSettingsService:
             )
             return None
 
-    @contextmanager
-    def _db(self) -> Iterator[Session]:
-        with self._db_errors(), self._session_factory() as session:
-            yield session
+    def _in_session[T](self, work: Callable[[Session], T]) -> T:
+        def run() -> T:
+            with self._session_factory() as session:
+                return work(session)
+
+        return self._guard_db(run)
 
     @staticmethod
-    @contextmanager
-    def _db_errors() -> Iterator[None]:
+    def _guard_db[T](operation: Callable[[], T]) -> T:
         try:
-            yield
+            return operation()
         except SQLAlchemyError as exc:
             logger.warning(
                 "credential settings database failure",
                 extra={"error_class": type(exc).__name__},
             )
-            raise CredentialSettingsError(
-                CredentialSettingsErrorKind.METADATA_UNAVAILABLE,
-                "Credential settings could not be read or saved; try again.",
-            ) from None
+        raise CredentialSettingsError(
+            CredentialSettingsErrorKind.METADATA_UNAVAILABLE,
+            "Credential settings could not be read or saved; try again.",
+        )
 
-    @contextmanager
-    def _store_errors(self) -> Iterator[None]:
+    @staticmethod
+    def _guard_store[T](operation: Callable[[], T]) -> T:
+        read_only = False
         try:
-            yield
+            return operation()
         except NotImplementedError:
-            raise CredentialSettingsError(
-                CredentialSettingsErrorKind.STORE_READ_ONLY,
-                "This installation's credential store is read-only; keys "
-                "cannot be added or removed here.",
-            ) from None
+            read_only = True
         except Exception as exc:  # noqa: BLE001
             # Error class only: keyring payloads may echo what they were given.
             logger.warning(
                 "credential store operation failed",
                 extra={"error_class": type(exc).__name__},
             )
-            raise CredentialSettingsError(
-                CredentialSettingsErrorKind.STORE_UNAVAILABLE,
-                "The platform credential store is unavailable; the change was "
-                "not completed.",
-            ) from None
+        raise _read_only() if read_only else _store_unavailable()
+
+
+def _read_only() -> CredentialSettingsError:
+    return CredentialSettingsError(
+        CredentialSettingsErrorKind.STORE_READ_ONLY,
+        "This installation's credential store is read-only; keys cannot be "
+        "added or removed here.",
+    )
+
+
+def _store_unavailable() -> CredentialSettingsError:
+    return CredentialSettingsError(
+        CredentialSettingsErrorKind.STORE_UNAVAILABLE,
+        "The platform credential store is unavailable; the change was not "
+        "completed.",
+    )
 
 
 def _require_provider(provider_name: str) -> None:

@@ -222,10 +222,10 @@ describe("AccountPanel billing", () => {
       "would use hosted credits",
     );
     expect(screen.getByTestId("byok-ready")).toHaveTextContent(
-      "could not be checked",
+      "BYOK readiness could not be verified.",
     );
     expect(screen.getByTestId("provider-anthropic")).toHaveTextContent(
-      "unknown (credential store unavailable)",
+      "unknown (could not be read)",
     );
   });
 
@@ -469,6 +469,241 @@ describe("AccountPanel credentials", () => {
     expect(await screen.findByTestId("store-read-only")).toBeInTheDocument();
     expect(screen.getByLabelText("Anthropic API key")).toBeDisabled();
     expect(screen.queryByRole("button", { name: /Remove/ })).toBeNull();
+  });
+});
+
+describe("AccountPanel unknown readiness", () => {
+  it("does not claim absence or a cause when the probe failed", async () => {
+    stubFetch({
+      "GET /api/account": [
+        () =>
+          json(
+            200,
+            account({
+              byok: {
+                license_active: true,
+                byok_ready: null,
+                providers: [
+                  provider("anthropic", {
+                    credential_present: true,
+                    enabled: true,
+                    validation_status: "valid",
+                  }),
+                  provider("openrouter"),
+                ],
+              },
+              rest: { blocked_error_code: "byok_credentials_required" },
+            }),
+          ),
+      ],
+    });
+    render(<AccountPanel refreshKey={0} />);
+    const selection = await screen.findByTestId("selected-access-path");
+    expect(selection).toHaveTextContent(
+      "BYOK readiness could not be verified, so BYOK is not used.",
+    );
+    expect(selection).not.toHaveTextContent(/no provider key/);
+    expect(screen.getByTestId("byok-ready")).toHaveTextContent(
+      "BYOK readiness could not be verified.",
+    );
+    expect(screen.getByTestId("byok-ready")).not.toHaveTextContent(
+      /credential store|No provider key/,
+    );
+    expect(screen.getByTestId("provider-anthropic")).toHaveTextContent(
+      /Key: saved/,
+    );
+  });
+});
+
+function deferred() {
+  let resolve: (r: Response) => void = () => {};
+  const promise = new Promise<Response>((r) => (resolve = r));
+  return { promise, resolve };
+}
+
+const before = account({});
+const after = account({
+  byok: {
+    providers: [
+      provider("anthropic", {
+        credential_present: true,
+        enabled: true,
+        validation_status: "untested",
+      }),
+      provider("openrouter"),
+    ],
+  },
+});
+
+describe("AccountPanel unverified credential", () => {
+  it("shows an incomplete replacement as unverified, not a verdict", async () => {
+    stubFetch({
+      "GET /api/account": [
+        () =>
+          json(
+            200,
+            account({
+              byok: {
+                license_active: true,
+                providers: [
+                  provider("anthropic", {
+                    credential_present: true,
+                    enabled: true,
+                    validation_status: "error",
+                    last_validated_at: null,
+                  }),
+                  provider("openrouter"),
+                ],
+              },
+              rest: { blocked_error_code: "byok_credentials_required" },
+            }),
+          ),
+      ],
+    });
+    render(<AccountPanel refreshKey={0} />);
+    const anthropic = await screen.findByTestId("provider-anthropic");
+    expect(anthropic).toHaveTextContent(
+      "Not verified: a key change did not complete",
+    );
+    expect(anthropic).not.toHaveTextContent(/Validation error|Validated/);
+    // Recovery stays available.
+    expect(
+      screen.getByRole("button", { name: "Validate Anthropic key" }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps a real validation error with its time", async () => {
+    stubFetch({
+      "GET /api/account": [
+        () =>
+          json(
+            200,
+            account({
+              byok: {
+                providers: [
+                  provider("anthropic", {
+                    credential_present: true,
+                    enabled: true,
+                    validation_status: "error",
+                    last_validated_at: "2026-10-15T00:00:00Z",
+                  }),
+                  provider("openrouter"),
+                ],
+              },
+            }),
+          ),
+      ],
+    });
+    render(<AccountPanel refreshKey={0} />);
+    expect(await screen.findByTestId("provider-anthropic")).toHaveTextContent(
+      "Validation error (not used)",
+    );
+  });
+});
+
+describe("AccountPanel mutation/read ordering", () => {
+  async function startSave(
+    reads: (() => Response | Promise<Response>)[],
+    put: Promise<Response>,
+  ) {
+    const calls = stubFetch({
+      "GET /api/account": reads,
+      "PUT /api/account/byok/anthropic/credential": [() => put],
+    });
+    const view = render(<AccountPanel refreshKey={0} />);
+    fireEvent.change(await screen.findByLabelText("Anthropic API key"), {
+      target: { value: SECRET },
+    });
+    act(() =>
+      screen.getByRole("button", { name: "Save Anthropic key" }).click(),
+    );
+    expect(
+      await screen.findByText("Saving Anthropic key…"),
+    ).toBeInTheDocument();
+    return { calls, view };
+  }
+
+  const gets = (calls: Call[]) =>
+    calls.filter((c) => c.method === "GET").length;
+
+  it("defers a refresh clicked while a change is pending", async () => {
+    const put = deferred();
+    const { calls } = await startSave(
+      [() => json(200, before), () => json(200, after)],
+      put.promise,
+    );
+    act(() => screen.getByRole("button", { name: "Refresh" }).click());
+    // No read starts while the change is in flight.
+    expect(gets(calls)).toBe(1);
+
+    await act(async () => put.resolve(json(200, after)));
+    await waitFor(() => expect(gets(calls)).toBe(2));
+    expect(await screen.findByText(/Anthropic key saved/)).toBeInTheDocument();
+    expect(screen.getByTestId("provider-anthropic")).toHaveTextContent(
+      "Key: saved",
+    );
+    expect(screen.queryByText(/may be out of date/)).toBeNull();
+  });
+
+  it("defers a turn-triggered refresh begun during the change", async () => {
+    const put = deferred();
+    const { calls, view } = await startSave(
+      [() => json(200, before), () => json(200, after)],
+      put.promise,
+    );
+    view.rerender(<AccountPanel refreshKey={1} />);
+    expect(gets(calls)).toBe(1);
+    await act(async () => put.resolve(json(200, after)));
+    await waitFor(() => expect(gets(calls)).toBe(2));
+    expect(screen.getByTestId("provider-anthropic")).toHaveTextContent(
+      "Key: saved",
+    );
+  });
+
+  it("discards a read already in flight when the change starts", async () => {
+    const put = deferred();
+    const slowRead = deferred();
+    const calls = stubFetch({
+      "GET /api/account": [() => json(200, before), () => slowRead.promise],
+      "PUT /api/account/byok/anthropic/credential": [() => put.promise],
+    });
+    const view = render(<AccountPanel refreshKey={0} />);
+    fireEvent.change(await screen.findByLabelText("Anthropic API key"), {
+      target: { value: SECRET },
+    });
+    view.rerender(<AccountPanel refreshKey={1} />); // read begins (pre-commit)
+    await waitFor(() => expect(gets(calls)).toBe(2));
+    act(() =>
+      screen.getByRole("button", { name: "Save Anthropic key" }).click(),
+    );
+    await act(async () => put.resolve(json(200, after)));
+    expect(await screen.findByText(/Anthropic key saved/)).toBeInTheDocument();
+    // The pre-commit read lands last but must not overwrite the result.
+    await act(async () => slowRead.resolve(json(200, before)));
+    expect(screen.getByTestId("provider-anthropic")).toHaveTextContent(
+      "Key: saved",
+    );
+    expect(screen.queryByText("Refreshing…")).toBeNull();
+  });
+
+  it("re-reads once after a failed change, marking state stale until then", async () => {
+    const put = deferred();
+    const reread = deferred();
+    const { calls } = await startSave(
+      [() => json(200, before), () => reread.promise],
+      put.promise,
+    );
+    await act(async () =>
+      put.resolve(json(503, apiError("credential_store_unavailable", "Down."))),
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent("Down.");
+    expect(gets(calls)).toBe(2);
+    expect(screen.getByText("Refreshing…")).toBeInTheDocument();
+    await act(async () => reread.resolve(json(200, before)));
+    expect(screen.getByTestId("provider-anthropic")).toHaveTextContent(
+      "Key: not set",
+    );
+    expect(screen.queryByText(/key saved/)).toBeNull();
   });
 });
 

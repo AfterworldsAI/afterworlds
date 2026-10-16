@@ -141,7 +141,9 @@ CRD Issue 14a completed the provider/cache technical work. Extended-TTL (1h) cac
 
 Historical text: Starter Access is retained as an optional paid entry package / trial subscription using normal hosted credits and the full Sojourn pipeline. The exact commercial parameters remain open.
 
-**What resolution requires:** Decide package price, included hosted credits, expiration/renewal behavior, top-up eligibility, upgrade path, refund/support expectations, and whether Starter Access is presented as a trial subscription, one-time starter pack, or both. Ensure no copy or entitlement logic implies a free tier or degraded pipeline.
+**What resolution requires (CRD Issue 23, through CRD Issue 13's entitlement path):** Using representative consumption measurement across RPG, Branching and Writing, decide the 15-day trial and subscription allowances, prices and credit-conversion parameters; decide whether additional usage is pass-through billed or sold as credit packs; define trial lifecycle (enrollment, eligibility, start/expiry, conversion) and refund/support expectations; and decide whether and how existing `STARTER_ACCESS` data migrates. Trial and paid access keep the same features and normal performance; no copy or entitlement logic may imply a degraded tier.
+
+Historical resolution requirement (superseded): decide Starter Access package price, included hosted credits, expiration/renewal behavior, top-up eligibility, upgrade path, refund/support expectations, and whether Starter Access is presented as a trial subscription, one-time starter pack, or both.
 
 ---
 

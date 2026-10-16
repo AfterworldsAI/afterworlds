@@ -138,17 +138,24 @@ test("a keychain failure is typed, confirms nothing and leaks nothing", async ({
   );
   await expect(page.getByLabel("Anthropic API key")).toHaveValue("");
   await expect(page.getByTestId("byok-ready")).toContainText(
-    "could not be checked",
+    "BYOK readiness could not be verified.",
   );
   await expect(page.getByText(/key saved/)).toHaveCount(0);
   await expectNoSecretInBrowser(page, SECRET);
 
   await request.post("/__e2e__/keyring?fail=");
   await page.getByRole("button", { name: "Refresh" }).click();
-  // The failed replacement left the old key untested, never "validated".
-  await expect(page.getByTestId("provider-anthropic")).toContainText(
-    "Not validated",
+  // The failed replacement claims no verdict for the stored key, and BYOK
+  // is not ready until it is validated or replaced.
+  const anthropic = page.getByTestId("provider-anthropic");
+  await expect(anthropic).toContainText(
+    "Not verified: a key change did not complete",
   );
+  await expect(anthropic).not.toContainText("Validated");
+  await expect(page.getByTestId("byok-ready")).toContainText("No provider key");
+  await page.getByLabel(/Validating contacts Anthropic/).check();
+  await page.getByRole("button", { name: "Validate Anthropic key" }).click();
+  await expect(anthropic).toContainText("Validated");
 });
 
 test("removing keys, then a hosted turn settles and the account re-reads", async ({

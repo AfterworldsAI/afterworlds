@@ -31,7 +31,11 @@ from afterworlds.api.dto import (
     ByokProviderStateDTO,
     ByokStatusDTO,
     CloudServicesStatus,
+    CredentialValidationRequest,
+    CredentialWriteRequest,
     HostedCreditsDTO,
+    OpenRouterModelRequest,
+    ProviderEnabledRequest,
 )
 from afterworlds.api.errors import ApiErrorCode, ApiErrorResponse
 from afterworlds.entitlement.service import EntitlementService
@@ -69,6 +73,13 @@ _SETTINGS_ERRORS: dict[CredentialSettingsErrorKind, tuple[int, ApiErrorCode]] = 
         ApiErrorCode.CREDENTIAL_VALIDATION_UNAVAILABLE,
     ),
 }
+
+
+def _utc(value: datetime | None) -> datetime | None:
+    # SQLite returns the stored UTC timestamp naive; say so on the wire.
+    if value is None or value.tzinfo is not None:
+        return value
+    return value.replace(tzinfo=UTC)
 
 
 def _credits(value: Decimal | None) -> str | None:
@@ -112,7 +123,7 @@ def build_account_status(
                     credential_present=p.credential_present,
                     enabled=p.enabled,
                     validation_status=p.validation_status,
-                    last_validated_at=p.last_validated_at,
+                    last_validated_at=_utc(p.last_validated_at),
                 )
                 for p in byok.providers
             ],
@@ -127,8 +138,45 @@ def build_account_status(
 
 def run_settings_operation[T](operation: Callable[[], T]) -> T:
     """Run a ``ByokSettingsService`` call, translating its typed failures."""
+    failure: CredentialSettingsError | None = None
     try:
         return operation()
     except CredentialSettingsError as exc:
-        status_code, code = _SETTINGS_ERRORS[exc.kind]
-        raise ApiErrorResponse(status_code, code, exc.message) from None
+        failure = exc
+    # Raised after the handler, so the envelope chains nothing.
+    assert failure is not None
+    status_code, code = _SETTINGS_ERRORS[failure.kind]
+    raise ApiErrorResponse(status_code, code, failure.message)
+
+
+ACCOUNT_PATH_PREFIX = "/api/account"
+
+#: Location parts a validation error on the account surface may name. Anything
+#: else -- an unknown JSON property name, which a client could fill with a key
+#: -- is reported generically, never echoed.
+_KNOWN_LOCATION_PARTS = frozenset(
+    {"body", "path", "query", "provider"}.union(
+        *(
+            model.model_fields
+            for model in (
+                CredentialWriteRequest,
+                ProviderEnabledRequest,
+                OpenRouterModelRequest,
+                CredentialValidationRequest,
+            )
+        )
+    )
+)
+
+
+def account_validation_location(loc: tuple[int | str, ...]) -> str:
+    """Dotted error location for the account surface, with unrecognized
+    components replaced so no client-chosen name is reflected."""
+    return ".".join(
+        (
+            str(part)
+            if isinstance(part, int) or part in _KNOWN_LOCATION_PARTS
+            else "<unrecognized>"
+        )
+        for part in loc
+    )

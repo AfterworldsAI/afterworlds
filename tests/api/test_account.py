@@ -365,6 +365,8 @@ def test_settings_lifecycle_survives_reload_and_matches_selection(
         )
         assert resp.status_code == 200, resp.text
         assert _provider(resp.json(), "anthropic")["validation_status"] == "valid"
+        validated_at = _provider(resp.json(), "anthropic")["last_validated_at"]
+        assert validated_at.endswith(("Z", "+00:00"))  # explicit UTC
 
         resp = client.put(
             "/api/account/byok/openrouter/enabled", json={"enabled": False}
@@ -489,10 +491,13 @@ def test_keychain_failure_is_typed_and_leaks_nothing(
         read = client.get("/api/account")
     assert put.status_code == 503
     assert put.json()["error_code"] == "credential_store_unavailable"
-    # Unreadable store: presence and readiness are unknown, not absent.
+    # Unreadable store: presence is unknown, not absent. The failed first
+    # write created no metadata, so readiness is established as False from
+    # the database alone (the shared predicate never reads the store).
     assert read.status_code == 200
     assert _provider(read.json(), "anthropic")["credential_present"] is None
-    assert read.json()["byok"]["byok_ready"] is None
+    assert _provider(read.json(), "anthropic")["validation_status"] is None
+    assert read.json()["byok"]["byok_ready"] is False
     for text in (put.text, read.text, caplog.text):
         assert SECRET not in text
     for data in _db_bytes(app_settings):
@@ -610,3 +615,109 @@ def test_account_routes_publish_typed_error_contract(client: TestClient) -> None
     assert request["properties"]["api_key"]["format"] == "password"
     unused = str(schema["components"]["schemas"]["AccountStatusResponse"])
     assert "fallback_model" not in unused
+
+
+@pytest.mark.parametrize(
+    ("path", "payload"),
+    [
+        ("anthropic/credential", {"api_key": SECRET, SECRET: "x"}),
+        ("anthropic/credential", {SECRET: SECRET}),
+        ("anthropic/enabled", {"enabled": True, SECRET: 1}),
+        ("openrouter/model", {"model_identifier": None, SECRET: {"x": 1}}),
+    ],
+)
+def test_secret_bearing_property_names_are_not_reflected(
+    client: TestClient, backend: MemoryKeyring, path: str, payload: dict[str, Any]
+) -> None:
+    resp = client.put(f"/api/account/byok/{path}", json=payload)
+    assert resp.status_code == 422, resp.text
+    body = resp.json()
+    assert body["error_code"] == "validation_failed"
+    assert body["detail"]  # still names what is wrong, generically
+    assert SECRET not in resp.text
+    assert backend.secrets == {}
+
+
+def test_other_routes_keep_their_validation_detail(client: TestClient) -> None:
+    # The sanitization is scoped to the account surface.
+    resp = client.post("/api/stories", json={"title": "t", "mode": "rpg", "zz": 1})
+    assert resp.status_code == 422
+    assert "body.zz" in resp.json()["detail"]
+
+
+def test_api_translation_chains_no_secret(
+    client: TestClient, backend: MemoryKeyring
+) -> None:
+    from afterworlds.api.account import run_settings_operation
+    from afterworlds.api.errors import ApiErrorResponse
+    from tests.pipeline.provider._secret_chain import assert_chain_free_of
+
+    settings = client.app.state.byok_settings  # type: ignore[attr-defined]
+    sid = client.app.state.sojourner_id  # type: ignore[attr-defined]
+    backend.fail_with = f"backend echoed {SECRET}"
+    with pytest.raises(ApiErrorResponse) as err:
+        run_settings_operation(
+            lambda: settings.set_credential(sid, "anthropic", SECRET)
+        )
+    assert err.value.status_code == 503
+    assert err.value.__cause__ is None and err.value.__context__ is None
+    assert_chain_free_of(err.value, SECRET)
+
+
+def test_failed_readiness_probe_is_unknown_not_absent(client: TestClient) -> None:
+    from afterworlds.api.deps import get_byok_readiness_provider
+
+    class Raising:
+        def is_byok_runnable(self, sojourner_id: object) -> bool:
+            raise RuntimeError("probe failed")
+
+    _events(client, _BYOK)
+    client.put("/api/account/byok/anthropic/credential", json={"api_key": SECRET})
+    client.app.dependency_overrides[get_byok_readiness_provider] = Raising
+    body = _account(client)
+    assert body["byok"]["byok_ready"] is None
+    # The credential itself is known to be present.
+    assert _provider(body, "anthropic")["credential_present"] is True
+    # Selection stays the turn route's safe policy: unknown is not runnable.
+    assert body["selected_access_path"] is None
+    assert body["blocked_error_code"] == "byok_credentials_required"
+
+
+def test_partial_replacement_reads_back_unverified_in_the_account_view(
+    client: TestClient, backend: MemoryKeyring
+) -> None:
+    _events(client, _BYOK)
+    client.put("/api/account/byok/anthropic/credential", json={"api_key": SECRET})
+    resp = client.post(
+        "/api/account/byok/anthropic/validate",
+        json={"acknowledge_provider_contact": True},
+    )
+    assert _provider(resp.json(), "anthropic")["validation_status"] == "valid"
+    assert resp.json()["selected_access_path"] == "byok"
+
+    backend.fail_with = f"backend echoed {OR_SECRET}"
+    resp = client.put(
+        "/api/account/byok/anthropic/credential", json={"api_key": OR_SECRET}
+    )
+    assert resp.status_code == 503
+    assert OR_SECRET not in resp.text
+    backend.fail_with = None  # reads recover
+
+    body = _account(client)
+    anthropic = _provider(body, "anthropic")
+    # The predecessor's VALID verdict and time are not shown for this key.
+    assert anthropic["credential_present"] is True
+    assert anthropic["validation_status"] == "error"
+    assert anthropic["last_validated_at"] is None
+    assert anthropic["enabled"] is True
+    assert body["byok"]["byok_ready"] is False
+    assert body["selected_access_path"] is None
+    assert body["blocked_error_code"] == "byok_credentials_required"
+
+    # Explicit validation recovers it.
+    resp = client.post(
+        "/api/account/byok/anthropic/validate",
+        json={"acknowledge_provider_contact": True},
+    )
+    assert _provider(resp.json(), "anthropic")["validation_status"] == "valid"
+    assert resp.json()["selected_access_path"] == "byok"

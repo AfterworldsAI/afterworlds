@@ -37,6 +37,7 @@ from afterworlds.pipeline.provider.credentials import (
 )
 from scripts.e2e_memory_keyring import MemoryKeyring
 from scripts.e2e_memory_keyring import install as install_memory_keyring
+from tests.pipeline.provider._secret_chain import assert_chain_free_of
 
 SECRET = "sk-ant-SYNTHETIC-SECRET-0123456789abcdef"  # pragma: allowlist secret
 SECRET_2 = "sk-ant-SYNTHETIC-REPLACEMENT-fedcba9876543210"  # pragma: allowlist secret
@@ -254,7 +255,9 @@ def test_checker_failure_records_nothing(sf: Any, backend: MemoryKeyring) -> Non
         svc.validate(sid, "anthropic")
     assert err.value.kind is CredentialSettingsErrorKind.VALIDATION_UNAVAILABLE
     assert SECRET not in str(err.value)
-    assert err.value.__cause__ is None and err.value.__suppress_context__
+    # The checker's exception (which echoed the key) is not chained at all.
+    assert err.value.__cause__ is None and err.value.__context__ is None
+    assert_chain_free_of(err.value, SECRET)
     assert _state(svc, sid, "anthropic").validation_status is ValidationStatus.UNTESTED
 
 
@@ -341,30 +344,6 @@ def test_read_only_store_reports_writes_unavailable(sf: Any) -> None:
     assert _row(sf, sid, "anthropic") is None
 
 
-def test_store_failure_on_replace_never_reports_the_old_verdict(
-    sf: Any, backend: MemoryKeyring, caplog: pytest.LogCaptureFixture
-) -> None:
-    sid = uuid4()
-    svc = _service(sf)
-    svc.set_credential(sid, "anthropic", SECRET)
-    svc.validate(sid, "anthropic")
-    backend.fail_with = f"keychain echoed {SECRET_2}"
-
-    with caplog.at_level(logging.DEBUG), pytest.raises(CredentialSettingsError) as err:
-        svc.set_credential(sid, "anthropic", SECRET_2)
-
-    assert err.value.kind is CredentialSettingsErrorKind.STORE_UNAVAILABLE
-    assert SECRET_2 not in str(err.value) and SECRET_2 not in caplog.text
-    assert err.value.__cause__ is None and err.value.__suppress_context__
-    row = _row(sf, sid, "anthropic")
-    assert row is not None and row.validation_status == ValidationStatus.UNTESTED
-    # Unreadable store: presence is unknown, not absent.
-    assert _state(svc, sid, "anthropic").credential_present is None
-    backend.fail_with = None
-    svc.set_credential(sid, "anthropic", SECRET_2)
-    assert backend.secrets[("afterworlds_byok.anthropic", str(sid))] == SECRET_2
-
-
 def test_store_failure_on_remove_leaves_nothing_runnable_and_can_retry(
     sf: Any, backend: MemoryKeyring
 ) -> None:
@@ -416,3 +395,205 @@ def test_database_failure_is_typed(backend: MemoryKeyring) -> None:
             operation()
         assert err.value.kind is CredentialSettingsErrorKind.METADATA_UNAVAILABLE
     assert backend.secrets == {}
+
+
+class ScriptedStore(OSKeychainCredentialStore):
+    """The production keychain store with a hook after ``set``."""
+
+    def __init__(self) -> None:
+        self.after_set: Callable[[], None] | None = None
+
+    def set(self, sojourner_id: UUID, provider_name: str, key: str) -> None:
+        super().set(sojourner_id, provider_name, key)
+        if self.after_set is not None:
+            self.after_set()
+
+
+def _with_verdict(
+    sf: Any, sid: UUID, svc: ByokSettingsService, verdict: ValidationStatus
+) -> None:
+    """Configure SECRET for ``sid`` carrying ``verdict`` (with a validation
+    timestamp unless UNTESTED)."""
+    svc.set_credential(sid, "anthropic", SECRET)
+    if verdict is not ValidationStatus.UNTESTED:
+        svc._check = Checker(verdict)  # type: ignore[method-assign]
+        assert svc.validate(sid, "anthropic") is verdict
+    svc._check = Checker()  # type: ignore[method-assign]
+    row = _row(sf, sid, "anthropic")
+    assert row is not None and row.validation_status == verdict
+
+
+@pytest.mark.parametrize("verdict", list(ValidationStatus))
+@pytest.mark.parametrize("failure", ["clean", "stored_then_raised", "metadata_after"])
+def test_partial_replacement_is_truthful_ineligible_and_recoverable(
+    engine: Any,
+    backend: MemoryKeyring,
+    caplog: pytest.LogCaptureFixture,
+    verdict: ValidationStatus,
+    failure: str,
+) -> None:
+    """Whatever the predecessor's verdict and however the replacement fails,
+    once reads and the database recover the credential:
+
+    - claims no verdict or validation time from the predecessor (ERROR, no
+      timestamp: unverified, never VALID/INVALID/UNTESTED of the old key);
+    - is not runnable (resolver and readiness agree);
+    - keeps its enabled state and a fresh revision (stale validations void);
+    - recovers through explicit validation or a retried replacement;
+    - and no typed error, log or chain carries the new key.
+    """
+    sid = uuid4()
+    real = create_session_factory(engine)
+    db_down = {"on": False}
+
+    def factory() -> Session:
+        if db_down["on"]:
+            raise OperationalError("UPDATE", {}, Exception(f"locked {SECRET_2}"))
+        return real()
+
+    store = ScriptedStore()
+    svc = ByokSettingsService(store, factory, Checker())
+    _with_verdict(real, sid, svc, verdict)
+    svc.set_enabled(sid, "anthropic", False)
+    svc.set_enabled(sid, "anthropic", True)
+    revision = _row(real, sid, "anthropic").credential_revision  # type: ignore[union-attr]
+
+    def raise_after_storing() -> None:
+        raise keyring.errors.KeyringError(f"echo {SECRET_2}")
+
+    if failure == "clean":
+        backend.fail_with = f"keychain echoed {SECRET_2}"
+        expected_kind = CredentialSettingsErrorKind.STORE_UNAVAILABLE
+    elif failure == "stored_then_raised":
+        store.after_set = raise_after_storing
+        expected_kind = CredentialSettingsErrorKind.STORE_UNAVAILABLE
+    else:
+        store.after_set = lambda: db_down.update(on=True)
+        expected_kind = CredentialSettingsErrorKind.METADATA_UNAVAILABLE
+
+    with caplog.at_level(logging.DEBUG), pytest.raises(CredentialSettingsError) as err:
+        svc.set_credential(sid, "anthropic", SECRET_2)
+    assert err.value.kind is expected_kind
+    assert err.value.__cause__ is None and err.value.__context__ is None
+    assert_chain_free_of(err.value, SECRET_2)
+    assert SECRET_2 not in caplog.text
+
+    # Reads and the database recover.
+    backend.fail_with = None
+    db_down["on"] = False
+    store.after_set = None
+    stored = backend.secrets[("afterworlds_byok.anthropic", str(sid))]
+    assert stored == (SECRET if failure == "clean" else SECRET_2)
+
+    state = _state(svc, sid, "anthropic")
+    assert state.credential_present is True
+    assert state.validation_status is ValidationStatus.ERROR
+    assert state.last_validated_at is None
+    assert state.enabled is True
+    row = _row(real, sid, "anthropic")
+    assert row is not None and row.credential_revision != revision
+    assert _agreement(real, sid) == (False, False)
+
+    # Explicit validation describes whatever key is actually stored.
+    checker = Checker(ValidationStatus.VALID)
+    svc._check = checker  # type: ignore[method-assign]
+    assert svc.validate(sid, "anthropic") is ValidationStatus.VALID
+    assert checker.calls == [("anthropic", stored)]
+    assert _agreement(real, sid) == (True, True)
+
+    # A confirmed replacement starts UNTESTED and stays eligible.
+    svc.set_credential(sid, "anthropic", SECRET_2)
+    state = _state(svc, sid, "anthropic")
+    assert state.validation_status is ValidationStatus.UNTESTED
+    assert state.last_validated_at is None
+    assert _agreement(real, sid) == (True, True)
+
+
+def test_new_provider_without_a_confirmed_write_gets_no_row(
+    sf: Any, backend: MemoryKeyring
+) -> None:
+    sid = uuid4()
+    store = ScriptedStore()
+    svc = ByokSettingsService(store, sf, Checker())
+
+    def fail_after_storing() -> None:
+        raise keyring.errors.KeyringError("indeterminate")
+
+    store.after_set = fail_after_storing
+    with pytest.raises(CredentialSettingsError):
+        svc.set_credential(sid, "anthropic", SECRET)
+    # Stored, but no metadata: present, not configured, not eligible.
+    assert _row(sf, sid, "anthropic") is None
+    assert _state(svc, sid, "anthropic").credential_present is True
+    assert _agreement(sf, sid) == (False, False)
+
+
+def test_replacement_keeps_the_enabled_state(sf: Any, backend: MemoryKeyring) -> None:
+    sid = uuid4()
+    svc = _service(sf)
+    svc.set_credential(sid, "anthropic", SECRET)
+    svc.set_enabled(sid, "anthropic", False)
+    svc.set_credential(sid, "anthropic", SECRET_2)
+    state = _state(svc, sid, "anthropic")
+    assert state.enabled is False
+    assert state.validation_status is ValidationStatus.UNTESTED
+
+
+class SwallowingDeleteKeyring(MemoryKeyring):
+    """Like the macOS backend: a real deletion failure surfaces as
+    ``PasswordDeleteError``, which the production store treats as absent."""
+
+    def delete_password(self, service: str, username: str) -> None:
+        raise keyring.errors.PasswordDeleteError(f"delete failed {SECRET}")
+
+
+def test_removal_is_confirmed_not_assumed(sf: Any) -> None:
+    previous = keyring.get_keyring()
+    backend = SwallowingDeleteKeyring()
+    keyring.set_keyring(backend)
+    try:
+        sid = uuid4()
+        svc = _service(sf)
+        svc.set_credential(sid, "anthropic", SECRET)
+        with pytest.raises(CredentialSettingsError) as err:
+            svc.remove_credential(sid, "anthropic")
+        assert err.value.kind is CredentialSettingsErrorKind.STORE_UNAVAILABLE
+        assert_chain_free_of(err.value, SECRET)
+        # The key survived, but its metadata is gone: nothing is runnable.
+        assert backend.secrets
+        assert _row(sf, sid, "anthropic") is None
+        assert _agreement(sf, sid) == (False, False)
+        # Supported retry once the backend deletes again.
+        working = install_memory_keyring()
+        working.secrets.update(backend.secrets)
+        svc.remove_credential(sid, "anthropic")
+        assert working.secrets == {}
+        # Removing an already-absent key still succeeds.
+        svc.remove_credential(sid, "anthropic")
+    finally:
+        keyring.set_keyring(previous)
+
+
+def test_store_and_database_failures_chain_nothing(
+    sf: Any, backend: MemoryKeyring
+) -> None:
+    sid = uuid4()
+    svc = _service(sf)
+    svc.set_credential(sid, "anthropic", SECRET)
+    backend.fail_with = f"echo {SECRET}"
+    for operation in (
+        lambda: svc.validate(sid, "anthropic"),
+        lambda: svc.remove_credential(sid, "anthropic"),
+    ):
+        with pytest.raises(CredentialSettingsError) as err:
+            operation()
+        assert err.value.__cause__ is None and err.value.__context__ is None
+        assert_chain_free_of(err.value, SECRET)
+
+    def broken() -> Session:
+        raise OperationalError("SELECT", {}, Exception(f"locked {SECRET}"))
+
+    db_down = ByokSettingsService(OSKeychainCredentialStore(), broken, Checker())
+    with pytest.raises(CredentialSettingsError) as err:
+        db_down.read(sid)
+    assert err.value.__cause__ is None and err.value.__context__ is None

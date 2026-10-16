@@ -202,7 +202,10 @@ def _run_turn_sync(
         status = entitlement_service.get_access_path_status(sojourner_id)
         byok_ready = (
             probe_byok_readiness(
-                byok_readiness_provider, sojourner_id, {"story_id": str(story_id)}
+                byok_readiness_provider,
+                sojourner_id,
+                {"story_id": str(story_id)},
+                log=logger,
             )
             is True
         )

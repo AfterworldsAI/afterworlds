@@ -59,7 +59,9 @@ function selectionText(account: AccountStatus): string {
   if (account.selected_access_path === "hosted")
     return "A turn started now would use hosted credits.";
   if (account.blocked_error_code === "byok_credentials_required")
-    return "Turns are unavailable: your BYOK license is active, but no provider key and configuration is ready.";
+    return account.byok.byok_ready === null
+      ? "Turns are unavailable: BYOK readiness could not be verified, so BYOK is not used."
+      : "Turns are unavailable: your BYOK license is active, but no provider key and configuration is ready.";
   return "Turns are unavailable: no access path is active.";
 }
 
@@ -86,8 +88,17 @@ export default function AccountPanel({ refreshKey }: { refreshKey: number }) {
   const [modelInput, setModelInput] = useState("");
   // Only the latest read may populate the view.
   const readEpoch = useRef(0);
+  // While a change is in flight no read starts: one begun now could see
+  // pre-commit state and land after the change's own authoritative result.
+  // Requested reads run once the change settles.
+  const mutating = useRef(false);
+  const rereadRequested = useRef(false);
 
   const load = useCallback(async () => {
+    if (mutating.current) {
+      rereadRequested.current = true;
+      return;
+    }
     const epoch = ++readEpoch.current;
     setLoading(true);
     setStale(true);
@@ -116,11 +127,12 @@ export default function AccountPanel({ refreshKey }: { refreshKey: number }) {
     done: string,
     cleanup?: () => void,
   ) {
-    if (pending) return;
+    if (mutating.current) return;
+    mutating.current = true;
     setPending(label);
     setOpError(null);
     setNotice(null);
-    readEpoch.current++; // an older read must not overwrite this result
+    readEpoch.current++; // a read already in flight must not overwrite this
     setLoading(false);
     try {
       const result = await operation();
@@ -131,11 +143,17 @@ export default function AccountPanel({ refreshKey }: { refreshKey: number }) {
       setNotice(done);
     } catch (err) {
       setOpError(errorText(err, "The change could not be completed."));
+      setStale(true);
       // Nothing is assumed: re-read what the backend actually holds.
-      await load();
+      rereadRequested.current = true;
     } finally {
       cleanup?.();
       setPending(null);
+      mutating.current = false;
+    }
+    if (rereadRequested.current) {
+      rereadRequested.current = false;
+      await load();
     }
   }
 
@@ -223,7 +241,7 @@ export default function AccountPanel({ refreshKey }: { refreshKey: number }) {
       </p>
       <p data-testid="byok-ready">
         {byok.byok_ready === null
-          ? "BYOK readiness could not be checked: the credential store is unavailable."
+          ? "BYOK readiness could not be verified."
           : byok.byok_ready
             ? "Provider keys and configuration are ready."
             : "No provider key and configuration is ready."}
@@ -249,7 +267,7 @@ export default function AccountPanel({ refreshKey }: { refreshKey: number }) {
             <p>
               Key:{" "}
               {p.credential_present === null
-                ? "unknown (credential store unavailable)"
+                ? "unknown (could not be read)"
                 : p.credential_present
                   ? "saved"
                   : "not set"}
@@ -258,7 +276,11 @@ export default function AccountPanel({ refreshKey }: { refreshKey: number }) {
                   {" · "}
                   {p.enabled ? "enabled" : "disabled"}
                   {" · "}
-                  {VALIDATION_TEXT[p.validation_status ?? ""]}
+                  {p.validation_status === "error" && !p.last_validated_at
+                    ? // A replacement that did not complete: whichever key is
+                      // stored has no verdict until validated or replaced.
+                      "Not verified: a key change did not complete (not used until validated or replaced)"
+                    : VALIDATION_TEXT[p.validation_status ?? ""]}
                   {p.last_validated_at &&
                     ` (${new Date(p.last_validated_at).toLocaleString()})`}
                 </>
