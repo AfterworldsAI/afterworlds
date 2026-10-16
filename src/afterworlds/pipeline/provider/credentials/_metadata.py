@@ -41,6 +41,11 @@ class ProviderCredentialMetadata(Base):
         String(16), nullable=False, default=ValidationStatus.UNTESTED
     )
     last_validated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # CRD Issue 20: opaque non-secret token replaced on every credential write;
+    # explicit validation commits only against the token it captured.
+    credential_revision: Mapped[str] = mapped_column(
+        String(36), nullable=False, default="", server_default=""
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 

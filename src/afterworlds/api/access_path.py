@@ -19,11 +19,16 @@ No user preference state (Issue 20 territory).
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
+from uuid import UUID
 
 from afterworlds.api.errors import ApiErrorCode
 from afterworlds.entitlement.enums import HostedUnavailableReason, RuntimeAccessPath
 from afterworlds.entitlement.models import AccessPathStatus
+from afterworlds.pipeline.provider import ByokCredentialReadinessProvider
+
+logger = logging.getLogger("afterworlds.api.access_path")
 
 
 @dataclass(frozen=True)
@@ -60,3 +65,34 @@ def select_access_path(
     return AccessPathSelection(
         None, ApiErrorCode.ENTITLEMENT_BLOCKED, status.hosted_unavailable_reason
     )
+
+
+def probe_byok_readiness(
+    provider: ByokCredentialReadinessProvider,
+    sojourner_id: UUID,
+    log_extra: dict[str, str] | None = None,
+) -> bool | None:
+    """The BYOK readiness probe shared by turn selection and the account view.
+
+    ``None`` means the probe failed; turn selection treats that as not
+    runnable, and the account view reports it as unknown.
+
+    Readiness is a pre-selection probe, not the credential validation/repair
+    owner -- a keyring/retrieval failure here must not block a Sojourner who
+    also has hosted access (or turn the request into a 500 when neither path
+    is available; the normal "no runnable access path" typed error already
+    covers that). Never log raw credentials, provider secrets, key names, or
+    keyring payloads -- error class only.
+    """
+    try:
+        return provider.is_byok_runnable(sojourner_id)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "byok readiness check failed; treating BYOK as not runnable",
+            extra={
+                "sojourner_id": str(sojourner_id),
+                **(log_extra or {}),
+                "error_class": type(exc).__name__,
+            },
+        )
+        return None

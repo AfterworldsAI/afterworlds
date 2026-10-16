@@ -22,7 +22,9 @@ from afterworlds.api.config import ApiSettings, load_settings
 from afterworlds.api.db_bootstrap import upgrade_to_head
 from afterworlds.api.deps import provision_sojourner_id
 from afterworlds.api.errors import ApiError, ApiErrorCode, ApiErrorResponse
-from afterworlds.api.pipeline_wiring import build_pipeline
+from afterworlds.api.fake_pipeline import fake_credential_check
+from afterworlds.api.pipeline_wiring import build_pipeline, fake_provider_enabled
+from afterworlds.api.routes.account import router as account_router
 from afterworlds.api.routes.health import router as health_router
 from afterworlds.api.routes.personas import router as personas_router
 from afterworlds.api.routes.rpg_actions import router as rpg_actions_router
@@ -32,7 +34,10 @@ from afterworlds.api.routes.turns import router as turns_router
 from afterworlds.api.routes.visible_state import router as visible_state_router
 from afterworlds.api.rpg_actions import RpgActions
 from afterworlds.persistence.database import create_engine, create_session_factory
-from afterworlds.pipeline.provider import ByokCredentialReadinessProvider
+from afterworlds.pipeline.provider import (
+    ByokCredentialReadinessProvider,
+    ByokSettingsService,
+)
 from afterworlds.pipeline.provider.credentials import make_credential_store
 from afterworlds.services.dnd5e_state.leases import (
     clear_orphans as clear_orphan_turn_leases,
@@ -78,8 +83,16 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
     # DoR-E: the readiness seam is constructed once here and consumed only
     # inside the access-path selection helper (api/access_path.py callers) --
     # never in a route handler directly.
+    credential_store = make_credential_store()
     app.state.byok_readiness_provider = ByokCredentialReadinessProvider(
-        make_credential_store(), session_factory
+        credential_store, session_factory
+    )
+    # CRD Issue 20: settings write the same store the readiness probe reads.
+    # Fake-provider mode never contacts a real provider, validation included.
+    app.state.byok_settings = ByokSettingsService(
+        credential_store,
+        session_factory,
+        checker=fake_credential_check if fake_provider_enabled() else None,
     )
 
     app.include_router(health_router)
@@ -89,6 +102,7 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
     app.include_router(visible_state_router)
     app.include_router(setup_router)
     app.include_router(personas_router)
+    app.include_router(account_router)
 
     @app.exception_handler(ApiErrorResponse)
     async def _api_error_handler(

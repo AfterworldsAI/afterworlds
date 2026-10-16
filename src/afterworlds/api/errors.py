@@ -41,6 +41,13 @@ class ApiErrorCode(StrEnum):
     MECHANICAL_DECISION_INVALID = "mechanical_decision_invalid"
     MECHANICAL_DECISION_REVISION_MISMATCH = "mechanical_decision_revision_mismatch"
     SEQUENCE_NOT_READY_FOR_NARRATION = "sequence_not_ready_for_narration"
+    # CRD Issue 20 BYOK settings failures (``api/account.py``).
+    CREDENTIAL_STORE_READ_ONLY = "credential_store_read_only"
+    CREDENTIAL_STORE_UNAVAILABLE = "credential_store_unavailable"
+    CREDENTIAL_SETTINGS_UNAVAILABLE = "credential_settings_unavailable"
+    CREDENTIAL_NOT_CONFIGURED = "credential_not_configured"
+    CREDENTIAL_VALIDATION_SUPERSEDED = "credential_validation_superseded"
+    CREDENTIAL_VALIDATION_UNAVAILABLE = "credential_validation_unavailable"
 
 
 class ApiError(BaseModel):

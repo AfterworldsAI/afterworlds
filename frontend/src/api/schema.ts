@@ -251,10 +251,141 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Account */
+        get: operations["get_account_api_account_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/byok/{provider}/credential": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Credential */
+        put: operations["put_credential_api_account_byok__provider__credential_put"];
+        post?: never;
+        /** Delete Credential */
+        delete: operations["delete_credential_api_account_byok__provider__credential_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/byok/{provider}/enabled": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Enabled */
+        put: operations["put_enabled_api_account_byok__provider__enabled_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/byok/openrouter/model": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Put Openrouter Model */
+        put: operations["put_openrouter_model_api_account_byok_openrouter_model_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/byok/{provider}/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate Credential */
+        post: operations["validate_credential_api_account_byok__provider__validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AccountStatusResponse
+         * @description Authoritative account view (CRD Issue 20).
+         *
+         *     ``selected_access_path`` is what the server would select for a turn
+         *     started now (None = blocked with ``blocked_error_code``). The three
+         *     ``*_available`` flags are fixed False: numeric usage estimates await
+         *     calibration, and purchasing/trial enrollment belong to CRD Issue 23.
+         */
+        AccountStatusResponse: {
+            credits: components["schemas"]["HostedCreditsDTO"];
+            cloud_services: components["schemas"]["CloudServicesStatus"];
+            byok: components["schemas"]["ByokStatusDTO"];
+            selected_access_path: components["schemas"]["RuntimeAccessPath"] | null;
+            blocked_error_code: components["schemas"]["ApiErrorCode"] | null;
+            /**
+             * Usage Estimate Available
+             * @default false
+             * @constant
+             */
+            usage_estimate_available: false;
+            /**
+             * Purchase Available
+             * @default false
+             * @constant
+             */
+            purchase_available: false;
+            /**
+             * Trial Enrollment Available
+             * @default false
+             * @constant
+             */
+            trial_enrollment_available: false;
+            /**
+             * Refreshed At
+             * Format: date-time
+             */
+            refreshed_at: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
         /**
          * ActionResolutionAdvanceResult
          * @description Exactly the payload matching ``interaction_phase``; neither when ready.
@@ -298,7 +429,7 @@ export interface components {
          * ApiErrorCode
          * @enum {string}
          */
-        ApiErrorCode: "not_found" | "validation_failed" | "entitlement_blocked" | "byok_credentials_required" | "turn_in_flight" | "setup_required" | "setup_state_conflict" | "internal_error" | "pending_roll_not_found" | "pending_roll_not_player_visible" | "pending_roll_already_consumed" | "pending_roll_revision_mismatch" | "pending_roll_term_mismatch" | "pending_roll_invalid_value" | "pending_roll_invalid_aggregate" | "action_sequence_not_found" | "action_sequence_already_completed" | "action_sequence_state_conflict" | "action_adjustment_not_allowed" | "action_adjustment_ineligible" | "mechanical_decision_invalid" | "mechanical_decision_revision_mismatch" | "sequence_not_ready_for_narration";
+        ApiErrorCode: "not_found" | "validation_failed" | "entitlement_blocked" | "byok_credentials_required" | "turn_in_flight" | "setup_required" | "setup_state_conflict" | "internal_error" | "pending_roll_not_found" | "pending_roll_not_player_visible" | "pending_roll_already_consumed" | "pending_roll_revision_mismatch" | "pending_roll_term_mismatch" | "pending_roll_invalid_value" | "pending_roll_invalid_aggregate" | "action_sequence_not_found" | "action_sequence_already_completed" | "action_sequence_state_conflict" | "action_adjustment_not_allowed" | "action_adjustment_ineligible" | "mechanical_decision_invalid" | "mechanical_decision_revision_mismatch" | "sequence_not_ready_for_narration" | "credential_store_read_only" | "credential_store_unavailable" | "credential_settings_unavailable" | "credential_not_configured" | "credential_validation_superseded" | "credential_validation_unavailable";
         /**
          * BranchCountRange
          * @description Validated branch-count ranges by interaction style.
@@ -416,6 +547,63 @@ export interface components {
             last_branch_options?: components["schemas"]["BranchOption"][] | null;
             last_presentation_state?: components["schemas"]["BranchPresentationState"] | null;
         };
+        /**
+         * ByokProvider
+         * @enum {string}
+         */
+        ByokProvider: "anthropic" | "openrouter";
+        /**
+         * ByokProviderStateDTO
+         * @description Non-secret per-provider state; no key material or fragment of it.
+         *
+         *     ``credential_present`` is None when the credential store could not be
+         *     read (unknown, not absent). ``enabled``/``validation_status`` are None
+         *     when no credential metadata exists for the provider.
+         */
+        ByokProviderStateDTO: {
+            provider: components["schemas"]["ByokProvider"];
+            /** Credential Present */
+            credential_present: boolean | null;
+            /** Enabled */
+            enabled: boolean | null;
+            validation_status: components["schemas"]["ValidationStatus"] | null;
+            /** Last Validated At */
+            last_validated_at: string | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * ByokStatusDTO
+         * @description ``byok_ready`` is the shared resolver/readiness predicate; None when
+         *     that probe failed (a turn then treats BYOK as not runnable).
+         */
+        ByokStatusDTO: {
+            /** License Active */
+            license_active: boolean;
+            /** Credential Store Writable */
+            credential_store_writable: boolean;
+            /** Providers */
+            providers: components["schemas"]["ByokProviderStateDTO"][];
+            /** Openrouter Model */
+            openrouter_model: string | null;
+            /** Byok Ready */
+            byok_ready: boolean | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * CloudServicesStatus
+         * @enum {string}
+         */
+        CloudServicesStatus: "active" | "lapsed" | "not_activated";
         /** CreateStoryRequest */
         CreateStoryRequest: {
             /** Title */
@@ -423,6 +611,41 @@ export interface components {
             mode: components["schemas"]["StoryMode"];
             /** Character Name */
             character_name?: string | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * CredentialValidationRequest
+         * @description Validation contacts the provider and may incur provider usage; the
+         *     client must acknowledge that explicitly.
+         */
+        CredentialValidationRequest: {
+            /**
+             * Acknowledge Provider Contact
+             * @constant
+             */
+            acknowledge_provider_contact: true;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * CredentialWriteRequest
+         * @description Raw key, transient: handed to the credential store, never echoed.
+         */
+        CredentialWriteRequest: {
+            /**
+             * Api Key
+             * Format: password
+             */
+            api_key: string;
             /**
              * Schema Version
              * @default 1
@@ -469,6 +692,37 @@ export interface components {
              */
             schema_version: 1;
         };
+        /**
+         * HostedCreditsDTO
+         * @description Authoritative hosted balances as exact decimal strings (four places).
+         *
+         *     ``None`` = no hosted plan was ever activated; ``"0.0000"`` = depleted;
+         *     negative values are shown as recorded, never clamped. Inactive hosted
+         *     access keeps its balances (``hosted_unavailable_reason`` says why turns
+         *     are unavailable).
+         */
+        HostedCreditsDTO: {
+            /** Included */
+            included: string | null;
+            /** Top Up */
+            top_up: string | null;
+            /** Total */
+            total: string | null;
+            /** Hosted Turn Available */
+            hosted_turn_available: boolean;
+            hosted_unavailable_reason: components["schemas"]["HostedUnavailableReason"] | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * HostedUnavailableReason
+         * @enum {string}
+         */
+        HostedUnavailableReason: "no_subscription" | "subscription_inactive" | "credits_exhausted";
         /**
          * IntentType
          * @description Classified intent of a user input or story beat.
@@ -544,6 +798,20 @@ export interface components {
             expected_decision_revision: number;
             /** Option Id */
             option_id: string;
+        };
+        /**
+         * OpenRouterModelRequest
+         * @description ``None`` clears the model (OpenRouter is then not runnable).
+         */
+        OpenRouterModelRequest: {
+            /** Model Identifier */
+            model_identifier: string | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
         };
         /**
          * PendingInteractionResponse
@@ -801,6 +1069,17 @@ export interface components {
             /** Label */
             label?: string | null;
         };
+        /** ProviderEnabledRequest */
+        ProviderEnabledRequest: {
+            /** Enabled */
+            enabled: boolean;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
         /**
          * ProviderRefusalSummaryDTO
          * @description Advisory only -- never authoritative policy (mirrors ProviderRefusal).
@@ -990,6 +1269,11 @@ export interface components {
              */
             schema_version: 1;
         };
+        /**
+         * RuntimeAccessPath
+         * @enum {string}
+         */
+        RuntimeAccessPath: "hosted" | "byok";
         /**
          * SequenceProgressView
          * @description ``step_index`` is 1-based and counts the player's own interactions
@@ -1213,6 +1497,11 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /**
+         * ValidationStatus
+         * @enum {string}
+         */
+        ValidationStatus: "valid" | "invalid" | "untested" | "error";
         /**
          * VisibleCharacterState
          * @description Character state visible to the Sojourner.
@@ -2076,6 +2365,312 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PersonaGalleryResponse"];
+                };
+            };
+        };
+    };
+    get_account_api_account_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountStatusResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    put_credential_api_account_byok__provider__credential_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: components["schemas"]["ByokProvider"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CredentialWriteRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountStatusResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    delete_credential_api_account_byok__provider__credential_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: components["schemas"]["ByokProvider"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountStatusResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    put_enabled_api_account_byok__provider__enabled_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: components["schemas"]["ByokProvider"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProviderEnabledRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountStatusResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    put_openrouter_model_api_account_byok_openrouter_model_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OpenRouterModelRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountStatusResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    validate_credential_api_account_byok__provider__validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: components["schemas"]["ByokProvider"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CredentialValidationRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountStatusResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
                 };
             };
         };

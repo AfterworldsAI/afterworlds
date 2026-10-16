@@ -25,6 +25,7 @@ from afterworlds.pipeline.provider._routing import (
     SafetyWhitelistStatus,
     TurnProviderBinding,
 )
+from afterworlds.pipeline.provider.credentials import ValidationStatus
 
 _FAKE_MODEL = "afterworlds-fake:test-model"
 
@@ -148,3 +149,15 @@ class FakeProviderResolver:
             eligible_writer_routes=(route,),
             access_path=access_path,
         )
+
+
+def fake_credential_check(
+    provider_name: str, raw_key: str
+) -> tuple[ValidationStatus, None]:
+    """Fake-provider-mode stand-in for the live credential check (CRD Issue
+    20): never contacts a provider. A key containing ``"invalid"`` is
+    rejected, anything else accepted, so built-app tests can exercise both
+    verdicts."""
+    if "invalid" in raw_key:
+        return ValidationStatus.INVALID, None
+    return ValidationStatus.VALID, None
