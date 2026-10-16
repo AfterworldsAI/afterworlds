@@ -23,6 +23,10 @@ from afterworlds.persistence.crud.session_state import (
     update_writing_session_state,
 )
 
+# Retained Writing internals (ADR-017b): the release gate refuses Writing, so
+# these proofs of the preserved persona checks run with it re-admitted.
+pytestmark = pytest.mark.usefixtures("writing_released")
+
 
 def _profile(persona_id: str, availability: str) -> dict:  # type: ignore[no-untyped-def]
     return {

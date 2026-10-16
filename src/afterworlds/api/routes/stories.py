@@ -26,6 +26,7 @@ from afterworlds.api.errors import ApiErrorCode, ApiErrorResponse
 from afterworlds.api.story_bootstrap import (
     ensure_mode_session_state,
     ensure_story_turn_anchor_node,
+    require_released_mode,
     resolve_play_status,
 )
 from afterworlds.models.enums import StoryMode
@@ -58,6 +59,7 @@ def list_stories(session: Session = Depends(get_session)) -> StoryListResponse:
 def create_story_route(
     body: CreateStoryRequest, session: Session = Depends(get_session)
 ) -> StoryDetailDTO:
+    require_released_mode(body.mode)
     now = datetime.now(UTC)
     story = create_story(
         session,

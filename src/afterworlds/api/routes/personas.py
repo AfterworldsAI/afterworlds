@@ -1,10 +1,17 @@
-"""GET /api/personas -- Persona Registry gallery, Mentor/Peer split."""
+"""GET /api/personas -- Persona Registry gallery, Mentor/Peer split.
+
+Personas are Writing-only, and Writing is not released in v1 (ADR-017b), so
+the gallery is empty: no persona is selectable and none stands in as a
+fallback. The registry and its six profiles stay intact behind the gate.
+"""
 
 from __future__ import annotations
 
 from fastapi import APIRouter
 
 from afterworlds.api.dto import PersonaDTO, PersonaGalleryResponse
+from afterworlds.models.enums import StoryMode
+from afterworlds.modes.availability import is_mode_released
 from afterworlds.modes.personas.registry import (
     PersonaOrientation,
     PersonaProfile,
@@ -29,6 +36,8 @@ def _to_dto(profile: PersonaProfile) -> PersonaDTO:
 
 @router.get("/personas", response_model=PersonaGalleryResponse)
 def list_personas() -> PersonaGalleryResponse:
+    if not is_mode_released(StoryMode.WRITING):
+        return PersonaGalleryResponse(mentors=[], peers=[])
     registry = get_default_registry()
     profiles = registry.list_active(SupportedMode.WRITING)
     mentors = [

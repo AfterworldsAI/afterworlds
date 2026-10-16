@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 
 def _create_story(client, mode: str, **extra):  # type: ignore[no-untyped-def]
     resp = client.post("/api/stories", json={"title": "T", "mode": mode, **extra})
@@ -195,6 +197,7 @@ def test_branching_setup_promotion_is_idempotent(
         session.close()
 
 
+@pytest.mark.usefixtures("writing_released")
 def test_writing_setup_requires_persona_id(client) -> None:  # type: ignore[no-untyped-def]
     story_id = _create_story(client, "writing")
     resp = client.post(
@@ -204,6 +207,7 @@ def test_writing_setup_requires_persona_id(client) -> None:  # type: ignore[no-u
     assert resp.status_code == 422
 
 
+@pytest.mark.usefixtures("writing_released")
 def test_writing_setup_rejects_unknown_persona(client) -> None:  # type: ignore[no-untyped-def]
     story_id = _create_story(client, "writing")
     resp = client.post(
@@ -218,6 +222,7 @@ def test_writing_setup_rejects_unknown_persona(client) -> None:  # type: ignore[
     assert resp.json()["error_code"] == "validation_failed"
 
 
+@pytest.mark.usefixtures("writing_released")
 def test_writing_setup_requires_specific_goals(client) -> None:  # type: ignore[no-untyped-def]
     # P1 remediation (PR #126 review round 5, owner decision): specific_goals
     # is required so play_status can only legitimately promote to IN_PLAY
@@ -232,6 +237,7 @@ def test_writing_setup_requires_specific_goals(client) -> None:  # type: ignore[
     assert resp.json()["error_code"] == "validation_failed"
 
 
+@pytest.mark.usefixtures("writing_released")
 def test_writing_setup_rejects_blank_specific_goals(client) -> None:  # type: ignore[no-untyped-def]
     story_id = _create_story(client, "writing")
     resp = client.post(
@@ -242,6 +248,7 @@ def test_writing_setup_rejects_blank_specific_goals(client) -> None:  # type: ig
     assert resp.json()["error_code"] == "validation_failed"
 
 
+@pytest.mark.usefixtures("writing_released")
 def test_writing_setup_no_longer_promotes_play_status_itself(client) -> None:  # type: ignore[no-untyped-def]
     # Round 13 boundary decision (owner-approved, superseding round 5's
     # promote-in-/setup behavior): POST /setup persists persona_id and
@@ -311,11 +318,7 @@ def test_setup_mode_mismatch_returns_conflict(client) -> None:  # type: ignore[n
     story_id = _create_story(client, "branching")
     resp = client.post(
         f"/api/stories/{story_id}/setup",
-        json={
-            "mode": "writing",
-            "persona_id": "chiron",
-            "specific_goals": "Draft chapter one",
-        },
+        json={"mode": "rpg", "tone": "gritty"},
     )
     assert resp.status_code == 409
     assert resp.json()["error_code"] == "setup_state_conflict"
@@ -332,6 +335,7 @@ def _assert_writing_setup_validation_envelope(resp) -> None:  # type: ignore[no-
     assert resp.json()["error_code"] == "validation_failed"
 
 
+@pytest.mark.usefixtures("writing_released")
 def test_writing_setup_rejects_ratio_below_zero(client) -> None:  # type: ignore[no-untyped-def]
     story_id = _create_story(client, "writing")
     resp = client.post(
@@ -346,6 +350,7 @@ def test_writing_setup_rejects_ratio_below_zero(client) -> None:  # type: ignore
     _assert_writing_setup_validation_envelope(resp)
 
 
+@pytest.mark.usefixtures("writing_released")
 def test_writing_setup_rejects_ratio_above_hundred(client) -> None:  # type: ignore[no-untyped-def]
     story_id = _create_story(client, "writing")
     resp = client.post(
@@ -360,6 +365,7 @@ def test_writing_setup_rejects_ratio_above_hundred(client) -> None:  # type: ign
     _assert_writing_setup_validation_envelope(resp)
 
 
+@pytest.mark.usefixtures("writing_released")
 def test_writing_setup_rejects_empty_beat_constraint(client) -> None:  # type: ignore[no-untyped-def]
     story_id = _create_story(client, "writing")
     resp = client.post(
@@ -374,6 +380,7 @@ def test_writing_setup_rejects_empty_beat_constraint(client) -> None:  # type: i
     _assert_writing_setup_validation_envelope(resp)
 
 
+@pytest.mark.usefixtures("writing_released")
 def test_writing_setup_rejects_whitespace_only_beat_constraint(client) -> None:  # type: ignore[no-untyped-def]
     story_id = _create_story(client, "writing")
     resp = client.post(
@@ -388,6 +395,7 @@ def test_writing_setup_rejects_whitespace_only_beat_constraint(client) -> None: 
     _assert_writing_setup_validation_envelope(resp)
 
 
+@pytest.mark.usefixtures("writing_released")
 def test_writing_setup_accepts_boundary_ratio_and_nonblank_constraints(
     client,  # type: ignore[no-untyped-def]
 ) -> None:
@@ -452,6 +460,7 @@ def test_get_setup_state_for_missing_story_returns_not_found(
     assert resp.json()["error_code"] == "not_found"
 
 
+@pytest.mark.usefixtures("writing_released")
 def test_get_setup_state_for_branching_and_writing_reflects_saved_config(
     client,  # type: ignore[no-untyped-def]
 ) -> None:
@@ -495,6 +504,7 @@ def test_get_setup_state_for_branching_and_writing_reflects_saved_config(
     assert state["specific_goals"] == "Draft chapter one"
 
 
+@pytest.mark.usefixtures("writing_released")
 def test_get_setup_state_schema_version_present_for_all_three_modes(
     client,  # type: ignore[no-untyped-def]
 ) -> None:

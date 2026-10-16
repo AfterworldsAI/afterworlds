@@ -68,7 +68,7 @@ class _StubOrchestrator:
 
 
 def _create_story(client) -> str:  # type: ignore[no-untyped-def]
-    resp = client.post("/api/stories", json={"title": "T", "mode": "writing"})
+    resp = client.post("/api/stories", json={"title": "T", "mode": "branching"})
     assert resp.status_code == 201, resp.text
     return resp.json()["story_id"]  # type: ignore[no-any-return]
 
@@ -295,9 +295,9 @@ def test_delivered_turn_envelope_carries_refreshed_visible_state(client) -> None
     client.post(
         f"/api/stories/{story_id}/setup",
         json={
-            "mode": "writing",
-            "persona_id": "chiron",
-            "specific_goals": "Draft chapter one",
+            "mode": "branching",
+            "interaction_style": "freeform_only",
+            "branching_cadence": "balanced",
         },
     )
     stub = _StubOrchestrator(make_delivered_result)
@@ -305,7 +305,7 @@ def test_delivered_turn_envelope_carries_refreshed_visible_state(client) -> None
 
     resp = client.post(f"/api/stories/{story_id}/turns", json={"user_input": "hello"})
     assert resp.status_code == 200, resp.text
-    assert resp.json()["visible_state"]["persona_id"] == "chiron"
+    assert resp.json()["visible_state"]["interaction_style"] == "freeform_only"
 
 
 def test_pipeline_error_result_returns_200_with_envelope(client) -> None:  # type: ignore[no-untyped-def]

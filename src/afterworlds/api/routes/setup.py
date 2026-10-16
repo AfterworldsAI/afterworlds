@@ -27,6 +27,7 @@ from afterworlds.api.dto import (
     WritingSetupStateDTO,
 )
 from afterworlds.api.errors import ApiErrorCode, ApiErrorResponse
+from afterworlds.api.story_bootstrap import require_released_mode
 from afterworlds.api.visible_state import build_visible_state
 from afterworlds.models.enums import BranchingPlayStatus, StoryMode
 from afterworlds.modes.personas.registry import (
@@ -172,13 +173,16 @@ def _apply_writing_setup(
 def submit_setup(
     story_id: UUID, body: SetupRequest, session: Session = Depends(get_session)
 ) -> SetupResponse:
+    # A story only accepts its own mode's request, so this also refuses
+    # setup for any story of an unreleased mode (ADR-017b).
+    expected_mode = _MODE_BY_REQUEST_TYPE[type(body)]
+    require_released_mode(expected_mode)
     story = get_story(session, story_id)
     if story is None:
         raise ApiErrorResponse(
             404, ApiErrorCode.NOT_FOUND, f"Story {story_id} not found"
         )
 
-    expected_mode = _MODE_BY_REQUEST_TYPE[type(body)]
     if story.mode is not expected_mode:
         raise ApiErrorResponse(
             409,

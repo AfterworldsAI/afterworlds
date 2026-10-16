@@ -108,6 +108,22 @@ class _AlwaysByokReady:
         return True
 
 
+def _create_branching_story_in_play(client) -> str:  # type: ignore[no-untyped-def]
+    resp = client.post("/api/stories", json={"title": "T", "mode": "branching"})
+    assert resp.status_code == 201, resp.text
+    story_id: str = resp.json()["story_id"]
+    resp = client.post(
+        f"/api/stories/{story_id}/setup",
+        json={
+            "mode": "branching",
+            "interaction_style": "freeform_only",
+            "branching_cadence": "balanced",
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    return story_id
+
+
 def _create_writing_story_with_persona(client) -> str:  # type: ignore[no-untyped-def]
     resp = client.post("/api/stories", json={"title": "T", "mode": "writing"})
     assert resp.status_code == 201, resp.text
@@ -133,7 +149,7 @@ def test_delivered_turn_exercises_retrieval_query_and_write_wiring(
     entirely (never exercised, never verified to actually work end-to-end)."""
     client = fake_provider_client
     _seed_hosted_entitlement(client)
-    story_id = _create_writing_story_with_persona(client)
+    story_id = _create_branching_story_in_play(client)
 
     # First turn: retrieval query builder runs with an empty recent-turn
     # tail (no eligibility-predicate crash on an empty window).
@@ -154,6 +170,7 @@ def test_delivered_turn_exercises_retrieval_query_and_write_wiring(
     assert resp.json()["disposition"] == "delivered", resp.json()
 
 
+@pytest.mark.usefixtures("writing_released")
 def test_writing_in_play_turn_does_not_fail_for_missing_visible_state_service(
     fake_provider_client,  # type: ignore[no-untyped-def]
 ) -> None:
@@ -216,12 +233,12 @@ def test_first_turn_for_anchor_less_legacy_story_does_not_fail(
             session,
             Story(
                 title="Legacy Story",
-                mode=StoryMode.WRITING,
+                mode=StoryMode.BRANCHING,
                 created_at=now,
                 updated_at=now,
             ),
         )
-        ensure_mode_session_state(session, story.story_id, StoryMode.WRITING)
+        ensure_mode_session_state(session, story.story_id, StoryMode.BRANCHING)
         session.commit()
         story_id = str(story.story_id)
     finally:
@@ -230,9 +247,9 @@ def test_first_turn_for_anchor_less_legacy_story_does_not_fail(
     resp = client.post(
         f"/api/stories/{story_id}/setup",
         json={
-            "mode": "writing",
-            "persona_id": "chiron",
-            "specific_goals": "Draft chapter one",
+            "mode": "branching",
+            "interaction_style": "freeform_only",
+            "branching_cadence": "balanced",
         },
     )
     assert resp.status_code == 200, resp.text
@@ -246,6 +263,7 @@ def test_first_turn_for_anchor_less_legacy_story_does_not_fail(
     assert body["pipeline_error_summary"] is None
 
 
+@pytest.mark.usefixtures("writing_released")
 def test_writing_setup_confirmation_turn_then_promotes_to_in_play(
     fake_provider_client,  # type: ignore[no-untyped-def]
 ) -> None:
@@ -337,6 +355,7 @@ def test_writing_setup_confirmation_turn_then_promotes_to_in_play(
         session.close()
 
 
+@pytest.mark.usefixtures("writing_released")
 def test_visible_state_reflects_promotion_even_if_row_was_cached_pre_turn(
     fake_provider_client,  # type: ignore[no-untyped-def]
 ) -> None:
@@ -419,6 +438,7 @@ def test_visible_state_reflects_promotion_even_if_row_was_cached_pre_turn(
     assert response.visible_state.play_status == "in_play"
 
 
+@pytest.mark.usefixtures("writing_released")
 def test_writing_turn_before_setup_stays_non_canon(
     fake_provider_client,  # type: ignore[no-untyped-def]
 ) -> None:
@@ -453,6 +473,7 @@ def test_writing_turn_before_setup_stays_non_canon(
         session.close()
 
 
+@pytest.mark.usefixtures("writing_released")
 def test_writing_turn_with_missing_session_state_does_not_invent_provenance(
     fake_provider_client,  # type: ignore[no-untyped-def]
 ) -> None:
@@ -492,7 +513,7 @@ def test_fake_provider_path_classifies_without_anthropic_api_key(
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     client = fake_provider_client
     _seed_hosted_entitlement(client)
-    story_id = _create_writing_story_with_persona(client)
+    story_id = _create_branching_story_in_play(client)
 
     resp = client.post(
         f"/api/stories/{story_id}/turns", json={"user_input": "Continue the story."}
@@ -576,6 +597,7 @@ def test_rpg_setup_turn_does_not_require_completed_character_sheet(
     assert category is RpgTurnRetrievalCategory.SETUP_CONFIRMATION
 
 
+@pytest.mark.usefixtures("writing_released")
 def test_writing_turn_delivers_even_when_persona_registry_is_stale(
     fake_provider_client,  # type: ignore[no-untyped-def]
 ) -> None:

@@ -14,7 +14,7 @@ Continue the existing restart scope and gates. On 9 October 2026, the Owner with
 
 ## Project and Authority
 
-Afterworlds is an interactive storytelling platform built on the Sojourn Story State Machine. Users are **Sojourners**. Modes are RPG, Branching, and Writing.
+Afterworlds is an interactive storytelling platform built on the Sojourn Story State Machine. Users are **Sojourners**. Modes are RPG, Branching, and Writing; v1 offers RPG and Branching, and Writing is implemented but deferred (ADR-017b).
 
 Implement the governing CRD issue against repository reality. Apply authority in this order:
 

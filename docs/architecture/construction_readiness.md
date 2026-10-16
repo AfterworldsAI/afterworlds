@@ -2,6 +2,8 @@
 
 *Items 1–17 of the Construction Handoff Checklist — maintained from v8 and revised May 2026 to integrate Owner Decisions #1–#14. This revision replaces stale Issue 13–21 roadmap shorthand with resolved ownership boundaries, sets React + Vite + TypeScript as the v1 frontend stack, preserves Branching cadence/verbosity and Starter Access, adds the dedicated post-spine billing-platform/payment-integration issue, and clarifies public-launch blockers after the Issue 21 narrative spine demo.*
 
+*Revised 2026-10-16 per [ADR-017b](../decisions/adr-017b-writing-v1-deferral.md): v1 offers RPG and Branching. Writing mode (CRD Issue 17) is implemented and retained but deferred from the v1 product; Issue 17 text below describes that retained implementation.*
+
 *The safety-envelope model remains binding: the core narrative pipeline is Planner → Writer → Extractor → Contradiction. Input Safety Preflight runs before Planner/Writer when orchestration policy requires it. Conditional Output Safety Audit runs after Writer and before Extractor/Contradiction when provider or risk policy requires it. Provider refusals are typed pass failures, not Safety verdicts.*
 
 *Caching remains adapter-calibrated, not universal. Afterworlds owns stable/volatile separation and deterministic stable-context reuse discipline. Provider/platform-specific cache realization belongs to Issue 14 provider adapters.*
@@ -33,7 +35,7 @@ Afterworlds solves the post-story longing problem with an interactive narrative 
 v1 is the first release-capable MVP, not merely an internal milestone.
 
 - Text engine with full Sojourn orchestration path: Planner → Writer → Extractor → Contradiction with safety envelope.
-- RPG, Branching, and Writing modes.
+- RPG and Branching modes. Writing mode is implemented (CRD Issue 17) but not offered in v1 (ADR-017b).
 - Full story hierarchy: Story / Arc / Chapter / Node / Turn.
 - Rolling Summary + Story Bible.
 - Rules Package support with one curated, ingested, published, and queryable d20 Rules Package.
@@ -66,8 +68,10 @@ Deferred beyond v1:
 - A polished full admin console with advanced analytics, CRM workflow, or enterprise-grade operations tooling.
 - Direct OpenAI or Google/Gemini provider surfaces.
 - Supported local/open-weight or VPS-hosted open-weight model surfaces.
-- Rich Branching/Writing UX beyond the minimal v1 shell and v1 Branching cadence/verbosity setting unless separately scoped.
+- Rich Branching UX beyond the minimal v1 shell and v1 Branching cadence/verbosity setting unless separately scoped.
+- The entire Writing-mode user-facing surface (ADR-017b); the retained CRD Issue 17 implementation is not a v1 release requirement.
 - Persona expansion across RPG and Branching modes.
+- Writing mode and selectable Writing personas (implementation retained behind the release gate; post-v1 direction in ADR-017b).
 
 ### Versioning Clarification
 
@@ -115,7 +119,7 @@ These principles must not be casually reinvented during coding.
 A minimal v1 success statement:
 
 - A Sojourner can create a story.
-- Select RPG, Branching, or Writing mode.
+- Select RPG or Branching mode.
 - Complete mode setup.
 - Submit turns and receive coherent output.
 - Persist story state and turn history.
@@ -222,6 +226,8 @@ The prompt files are versioned artifacts. Construction issues may load and injec
 - Future richer Branching UX — visual story map, non-destructive What If? branches, branch-timing controls beyond the v1 cadence/verbosity dial, and optional external canon/lore packs — must not be architected against, but remains deferred unless separately scoped.
 
 ### Writing Mode — Key Decisions
+
+*v1 release status: deferred (ADR-017b). These decisions describe the implemented, retained Issue 17 contract; Writing and its personas are not offered in v1.*
 
 - Persona selection determines relationship orientation.
 - Personas are divided into Mentors and Peers.
@@ -382,7 +388,7 @@ Still to finalize before public pricing lock:
 14. Provider Routing, Capability Profiles, Cache Adapters, Refusal Fallback, and BYOK Credential Management.
 15. RPG Mode Integration.
 16. Branching Mode Integration.
-17. Writing Mode Integration.
+17. Writing Mode Integration (implemented; deferred from the v1 product by ADR-017b).
 18. ChromaDB Retrieval Memory.
 19. React/Vite Frontend and Minimal FastAPI API Surface.
 20. Billing/BYOK Visibility and Configuration.
@@ -550,6 +556,7 @@ Issue 21 remains the narrative spine gate. It is necessary but not sufficient fo
 - **In scope:** setup flow, persona selection and behavior, Mentor/Peer relationship orientation, prompt-contract injection, beat constraints, mode-specific orchestration behavior, minimal future-compatible version-history pointers.
 - **Out of scope:** full version history, draft branching, restore/rollback workflows, compare views, broad manuscript evolution tooling.
 - **Deliverables:** Writing mode service/contracts, persona injection, beat constraint handling, minimal pointer schema/usage, tests for Mentor/Peer behavior routing.
+- **v1 status:** implemented and merged; deferred from the v1 product by ADR-017b. Its acceptance below is historical implementation acceptance, not a v1 release requirement. The machinery stays retained and tested; Writing story creation, setup and turns are refused at the API boundary.
 - **Acceptance:** Chiron/Merlin/Vidura operate as Mentors; Odin/Athena/Thoth operate as Peers; setup and prompt injection preserve user authorship; minimal pointers may store lightweight identifiers/provenance references/links to prior draft artifacts or turns; v1 does not implement snapshot trees, restore workflows, compare views, branch management, or manuscript-versioning UI; deferred manuscript-evolution tooling is not smuggled into v1 or architected against.
 
 ### Issue 18 — ChromaDB Retrieval Memory
@@ -567,6 +574,7 @@ Issue 21 remains the narrative spine gate. It is necessary but not sufficient fo
 - **Out of scope:** Next.js, SSR, separate Node app server, Electron, new orchestration behavior, mode logic, entitlement logic, persistence architecture, provider routing, business policy.
 - **Deliverables:** frontend shell, API routes, DTOs, service integration, tests.
 - **Acceptance:** route handlers are thin; frontend can create/select story/mode, submit turn, and display output/status through existing services; no business logic leaks into HTTP code.
+- **v1 mode selection (ADR-017b):** new stories offer Branching (default) and RPG. Writing story creation, setup and turn submission return the typed `mode_unavailable` error (422) before any effect, and `GET /api/personas` returns empty `mentors`/`peers`. Writing DTO/schema variants remain in the generated contract as internal representations.
 - **RPG roll-lifecycle routes (Issue 15b Phase 3):** the RPG player-roll lifecycle (pending-interaction read, roll submission, adjustment, mechanical decision, sequence resume) is added as thin routes under these same Issue 19 conventions — app factory, error envelope, access-path helper, story lock, generated contracts. This is route wiring for an owning service's contract, not new mode logic in Issue 19. See `/docs/decisions/adr-015b-structured-rpg-roll-lifecycle.md`.
 
 ### Issue 20 — Billing/BYOK Visibility and Configuration
@@ -579,12 +587,14 @@ Issue 21 remains the narrative spine gate. It is necessary but not sufficient fo
 
 ### Issue 21 — Final Narrative Spine Demo
 
+- **Detailed draft:** [`crd-issue-21-final-narrative-spine.md`](crd-issue-21-final-narrative-spine.md) (revised to two modes per ADR-017b).
 - **Goal:** Verify the first release-capable MVP narrative spine.
-- **In scope:** end-to-end verification for Branching, RPG, and Writing; hosted and BYOK access paths; major v1 systems cooperating coherently; narrow integration fixes when contracts are already clear.
+- **In scope:** end-to-end verification for Branching and RPG; hosted and BYOK access paths; major v1 systems cooperating coherently; narrow integration fixes when contracts are already clear.
 - **Allowed fixes:** DTO name mismatch, route wiring gap, dependency injection issue, fixture/setup issue, frontend/backend field mismatch, small orchestration seam where ownership is already clear.
 - **Out of scope:** architecture, ownership, schema, prompt-contract, entitlement policy, provider behavior, retrieval design, mode semantics, user-facing feature-scope changes.
 - **Deliverables:** final spine demo tests, documented findings, narrow integration fixes where allowed.
-- **Acceptance:** all three modes work end-to-end; hosted and BYOK paths function; if a contract is wrong/incomplete, Issue 21 records and opens/splits follow-up rather than smuggling design work.
+- **Writing:** deferred by ADR-017b. Issue 21 does not demonstrate Writing; it references the ADR-017b change's proof that Writing and persona entry points are closed.
+- **Acceptance:** Branching and RPG work end-to-end; hosted and BYOK paths function; if a contract is wrong/incomplete, Issue 21 records and opens/splits follow-up rather than smuggling design work.
 
 ### Issue 22 — Operations, Support, and Compliance Minimums
 
@@ -743,7 +753,7 @@ The minimal release-capable spine is validated by Issue 21:
 
 - Branching mode end-to-end.
 - RPG mode end-to-end.
-- Writing mode end-to-end.
+- Writing mode unavailable in the released application (deferred by ADR-017b; proof reused from that change).
 - Hosted access path functioning.
 - BYOK access path functioning.
 - Core persistence, Story Bible, Rolling Summary, Retrieval Memory, and Rules Package interactions cooperating.

@@ -1,6 +1,6 @@
 # Afterworlds
 
-Afterworlds is an interactive storytelling platform built on the Sojourn Story State Machine. It lets users inhabit and continue narrative worlds across three modes: RPG, Branching, and Writing. The target users are called Sojourners. This is a solo-developer project operated under AfterworldsAI, LLC.
+Afterworlds is an interactive storytelling platform built on the Sojourn Story State Machine. It lets users inhabit and continue narrative worlds in two modes: RPG and Branching. A third mode, Writing, is implemented but deferred from v1 (ADR-017b). The target users are called Sojourners. This is a solo-developer project operated under AfterworldsAI, LLC.
 
 ## Local Development Setup
 

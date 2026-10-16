@@ -28,16 +28,12 @@ test("entitlement-blocked rendering: a fresh install has no runnable access path
 }) => {
   await page.goto("/");
   await page.getByPlaceholder("Title").fill("Blocked Story");
-  await page.getByRole("combobox").selectOption("writing");
+  await page.getByRole("combobox").selectOption("branching");
   await page.getByRole("button", { name: "Create" }).click();
 
   await expect(
-    page.getByRole("heading", { name: "Choose your Writing companion" }),
+    page.getByRole("heading", { name: "Branching setup" }),
   ).toBeVisible();
-  await page
-    .getByPlaceholder("e.g. Draft the opening chapter of a mystery novel")
-    .fill("Draft the opening chapter of a mystery novel.");
-  await page.getByRole("button", { name: /Chiron/ }).click();
   await page.getByRole("button", { name: "Save setup" }).click();
 
   const textarea = page.getByPlaceholder("What do you do?");
@@ -52,34 +48,39 @@ test("entitlement-blocked rendering: a fresh install has no runnable access path
   await expect(textarea).toHaveValue("Tell me a story about the sea.");
 });
 
-test("story create with mode selection, Writing setup, and a delivered turn", async ({
+test("v1 new-story flow offers only Branching and RPG; Writing is refused (ADR-017b)", async ({
   page,
+  request,
 }) => {
-  seedEntitlement();
-
   await page.goto("/");
-  await page.getByPlaceholder("Title").fill("A Writing Story");
-  await page.getByRole("combobox").selectOption("writing");
-  await page.getByRole("button", { name: "Create" }).click();
+  const modeSelect = page.getByRole("combobox");
+  await expect(modeSelect).toHaveValue("branching");
+  await expect(modeSelect.locator("option")).toHaveText(["Branching", "RPG"]);
 
+  // The untouched default submits a supported mode.
+  await page.getByPlaceholder("Title").fill("Default Mode Story");
+  await page.getByRole("button", { name: "Create" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Branching setup" }),
+  ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "Choose your Writing companion" }),
-  ).toBeVisible();
-  await page
-    .getByPlaceholder("e.g. Draft the opening chapter of a mystery novel")
-    .fill("Draft the opening chapter of a mystery novel.");
-  await page.getByRole("button", { name: /Chiron/ }).click();
-  await page.getByRole("button", { name: "Save setup" }).click();
+  ).toHaveCount(0);
 
-  const textarea = page.getByPlaceholder("What do you do?");
-  await expect(textarea).toBeVisible();
-  await textarea.fill("Tell me a story about the sea.");
-  await page.getByRole("button", { name: "Submit" }).click();
-
-  // The fake provider's canned Writer response, rendered as story content
-  // only because it carries a surviving turn_id (Binding Decision 6).
-  await expect(page.getByText("faked for E2E testing")).toBeVisible();
-  await expect(textarea).toHaveValue(""); // cleared only on confirmed delivery
+  // Bypassing the UI: a direct Writing create gets the typed refusal and
+  // creates nothing; the persona gallery offers nothing selectable.
+  const refused = await request.post("/api/stories", {
+    data: { title: "Direct Writing Story", mode: "writing" },
+  });
+  expect(refused.status()).toBe(422);
+  expect((await refused.json()).error_code).toBe("mode_unavailable");
+  const stories = (await (await request.get("/api/stories")).json()).stories;
+  expect(
+    stories.some((s: { title: string }) => s.title === "Direct Writing Story"),
+  ).toBe(false);
+  const personas = await (await request.get("/api/personas")).json();
+  expect(personas.mentors).toEqual([]);
+  expect(personas.peers).toEqual([]);
 });
 
 test("Branching mode: setup and a delivered turn", async ({ page }) => {
@@ -152,10 +153,10 @@ test("refresh/reload re-derives state from the API, not invented client state", 
 }) => {
   await page.goto("/");
   await page.getByPlaceholder("Title").fill("Reload Test Story");
-  await page.getByRole("combobox").selectOption("writing");
+  await page.getByRole("combobox").selectOption("branching");
   await page.getByRole("button", { name: "Create" }).click();
   await expect(
-    page.getByRole("heading", { name: "Choose your Writing companion" }),
+    page.getByRole("heading", { name: "Branching setup" }),
   ).toBeVisible();
 
   const url = page.url();
@@ -164,7 +165,7 @@ test("refresh/reload re-derives state from the API, not invented client state", 
   // Story detail, mode, and setup status are re-fetched, not reconstructed
   // from any client-held state.
   await expect(
-    page.getByRole("heading", { name: "Choose your Writing companion" }),
+    page.getByRole("heading", { name: "Branching setup" }),
   ).toBeVisible();
 });
 
@@ -173,16 +174,16 @@ test("story selection persists the last-selected story across a full app reload"
 }) => {
   await page.goto("/");
   await page.getByPlaceholder("Title").fill("Resume Story");
-  await page.getByRole("combobox").selectOption("writing");
+  await page.getByRole("combobox").selectOption("branching");
   await page.getByRole("button", { name: "Create" }).click();
   await expect(
-    page.getByRole("heading", { name: "Choose your Writing companion" }),
+    page.getByRole("heading", { name: "Branching setup" }),
   ).toBeVisible();
 
   await page.goto("/");
   // last-selected story_id (permitted localStorage) routes back into it,
   // not the story list.
   await expect(
-    page.getByRole("heading", { name: "Choose your Writing companion" }),
+    page.getByRole("heading", { name: "Branching setup" }),
   ).toBeVisible();
 });

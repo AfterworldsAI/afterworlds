@@ -2,6 +2,8 @@
 
 *Revised May 2026 to integrate Owner Decisions #1–#14 from the CRD issue-drafting sequence. This revision preserves the v10 safety-envelope model and cache architecture while updating entitlement ownership, hosted-credit semantics, BYOK/Cloud Services behavior, provider targets, RPG adjudication boundaries, Branching interaction styles and cadence controls, Writing-mode Mentor/Peer terminology, retrieval-memory ownership, frontend stack, Starter Access retention, and the v1 launch sequence.*
 
+*Revised 2026-10-16 per [ADR-017b](../decisions/adr-017b-writing-v1-deferral.md): v1 offers RPG and Branching. Writing mode is implemented and retained but deferred from the v1 product.*
+
 *Safety remains an envelope around the generation core, not a mandatory fifth narrative pass. The core narrative pipeline is Planner → Writer → Extractor → Contradiction. Input Safety Preflight runs before Planner/Writer when orchestration policy requires it. Conditional Output Safety Audit runs after Writer and before Extractor/Contradiction when provider or risk policy requires it. Provider refusals during provider-backed passes are typed pass failures, not Safety verdicts.*
 
 *Afterworlds owns provider-neutral cache intent, deterministic stable/volatile context separation, and stable-context reuse discipline. Provider/platform-specific cache realization — cache-key semantics, breakpoint or context-object strategy, TTL/retention controls, cache metrics, and verified hit behavior — belongs to provider adapters defined during Issue 14. Stable internal context identity is necessary for cache efficiency; it is not, by itself, a provider-agnostic guarantee of cache hits.*
@@ -322,6 +324,8 @@ These are downstream presentation layers. They must not become a substitute for 
 ## 5. The Three Modes
 
 All three modes run on the same Sojourn orchestration path. They differ in prompt contract, setup flow, mode-specific state, UI affordances, and orchestration details.
+
+**v1 release scope (ADR-017b):** v1 offers RPG and Branching. Writing mode, described below as implemented by CRD Issue 17, is retained but not offered in v1; its personas are not selectable.
 
 ### RPG Mode
 
@@ -765,7 +769,7 @@ Pre-v1 internal milestones are construction milestones, not product versions.
 20. User-facing billing/BYOK visibility and configuration.
 21. Final release-capable narrative spine demo.
 
-Issue 21 is the narrative spine gate, not the commercial launch gate. It verifies all three modes end-to-end, hosted and BYOK access paths, and coherent cooperation among major v1 systems. It is verification-first and may include only narrow integration fixes where contracts are already clear.
+Issue 21 is the narrative spine gate, not the commercial launch gate. It verifies RPG and Branching end-to-end (Writing is deferred by ADR-017b), hosted and BYOK access paths, and coherent cooperation among major v1 systems. It is verification-first and may include only narrow integration fixes where contracts are already clear.
 
 ### Launch Blockers After the Spine Demo
 
@@ -778,7 +782,7 @@ Issue 21 is the narrative spine gate, not the commercial launch gate. It verifie
 v1 includes:
 
 - full Sojourn orchestration path: Planner → Writer → Extractor → Contradiction with safety envelope
-- RPG, Branching, and Writing modes
+- RPG and Branching modes (Writing is implemented but deferred from v1 — ADR-017b)
 - full Story / Arc / Chapter / Node / Turn hierarchy
 - Rolling Summary + Story Bible
 - Extractor update classification policy
@@ -806,8 +810,9 @@ v1 includes:
 - marketplace or collaborative multi-Sojourner stories
 - mobile clients
 - advanced admin console / BI / CRM-style support platform
+- Writing mode and selectable Writing personas (implementation retained; post-v1 direction: an authoring collaborator for RPG adventures and Branching stories — ADR-017b)
 - full Writing-mode version history, draft branching, restore/rollback, compare tooling, and broader manuscript evolution tooling unless separately scoped
-- richer Writing-mode authoring UX beyond the v1 controls needed for setup, beat constraints, and prompt injection
+- the entire Writing-mode user-facing surface, including setup, persona selection, beat constraints and authoring controls (the CRD Issue 17 implementation is retained, but no Writing control is a v1 release requirement — ADR-017b)
 - richer Branching UX including branch-tree visualization, visual story map, non-destructive What If? paths, and branch-timing controls beyond the v1 Branching cadence/verbosity setting
 - persona expansion across RPG and Branching modes
 - direct OpenAI and Google/Gemini provider surfaces unless a later issue adds them

@@ -2,7 +2,9 @@
 
 **Issue:** CRD Issue 17 — Writing Mode Integration
 **Date:** 2026-06-29
-**Status:** Accepted
+**Status:** Accepted. v1 release availability amended by
+[ADR-017b](adr-017b-writing-v1-deferral.md) (2026-10-16): Writing is implemented
+and retained but not offered in v1.
 
 ---
 
