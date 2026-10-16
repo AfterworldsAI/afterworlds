@@ -29,6 +29,7 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from afterworlds.api.errors import ApiErrorCode, ApiErrorResponse
 from afterworlds.models.character_sheet import RpgCharacterSheetBase
 from afterworlds.models.enums import (
     DiceHandling,
@@ -53,6 +54,7 @@ from afterworlds.models.session import (
     WritingSessionState,
 )
 from afterworlds.models.story import Arc, Chapter
+from afterworlds.modes.availability import is_mode_released
 from afterworlds.persistence.crud.character_sheet import create_rpg_base_sheet
 from afterworlds.persistence.crud.node import (
     create_node,
@@ -77,6 +79,22 @@ _MODE_METADATA_FACTORY = {
     StoryMode.BRANCHING: BranchingNodeMetadata,
     StoryMode.WRITING: WritingNodeMetadata,
 }
+
+
+def require_released_mode(mode: StoryMode) -> None:
+    """Refuse a mode this release does not offer (ADR-017b), before any effect.
+
+    Product entry points (story creation, setup, turn submission) call this
+    first, so a refused request creates no story/session/anchor, invokes no
+    provider and reserves or settles nothing. Never maps to another mode.
+    """
+    if not is_mode_released(mode):
+        raise ApiErrorResponse(
+            422,
+            ApiErrorCode.MODE_UNAVAILABLE,
+            f"{mode.value.capitalize()} mode is not available in this release.",
+            detail={"mode": mode.value},
+        )
 
 
 @dataclass(frozen=True)

@@ -10,7 +10,7 @@ from afterworlds.persistence.crud.story import get_story
 
 
 def _create_story(client) -> str:  # type: ignore[no-untyped-def]
-    resp = client.post("/api/stories", json={"title": "T", "mode": "writing"})
+    resp = client.post("/api/stories", json={"title": "T", "mode": "branching"})
     assert resp.status_code == 201, resp.text
     return resp.json()["story_id"]  # type: ignore[no-any-return]
 

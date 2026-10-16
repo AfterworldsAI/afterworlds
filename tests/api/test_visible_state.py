@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from uuid import uuid4
 
+import pytest
+
 
 def _create_story(client, mode: str, **extra):  # type: ignore[no-untyped-def]
     resp = client.post("/api/stories", json={"title": "T", "mode": mode, **extra})
@@ -9,6 +11,7 @@ def _create_story(client, mode: str, **extra):  # type: ignore[no-untyped-def]
     return resp.json()["story_id"]
 
 
+@pytest.mark.usefixtures("writing_released")
 def test_visible_state_none_before_setup_for_writing(client) -> None:  # type: ignore[no-untyped-def]
     story_id = _create_story(client, "writing")
     resp = client.get(f"/api/stories/{story_id}/visible-state")
@@ -16,6 +19,7 @@ def test_visible_state_none_before_setup_for_writing(client) -> None:  # type: i
     assert resp.json()["visible_state"] is None
 
 
+@pytest.mark.usefixtures("writing_released")
 def test_visible_state_populated_after_writing_setup(client) -> None:  # type: ignore[no-untyped-def]
     story_id = _create_story(client, "writing")
     setup_resp = client.post(
@@ -97,6 +101,7 @@ def _stale_writing_persona(client, story_id: str) -> None:  # type: ignore[no-un
         session.close()
 
 
+@pytest.mark.usefixtures("writing_released")
 def test_visible_state_none_for_writing_persona_not_in_registry(
     client,  # type: ignore[no-untyped-def]
 ) -> None:

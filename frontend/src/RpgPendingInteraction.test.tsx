@@ -384,7 +384,7 @@ describe("StoryView RPG pending interaction (CRD Issue 15b)", () => {
   });
 
   it("never reads a pending interaction for a non-RPG story", async () => {
-    mocks.getStory.mockResolvedValue({ ...story, mode: "writing" });
+    mocks.getStory.mockResolvedValue({ ...story, mode: "branching" });
     render(<StoryView storyId={story.story_id} />);
     await screen.findByPlaceholderText("What do you do?");
     expect(mocks.getPendingInteraction).not.toHaveBeenCalled();

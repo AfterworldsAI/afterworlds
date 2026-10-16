@@ -10,7 +10,8 @@ export default function StoryList({
 }) {
   const [stories, setStories] = useState<StoryListItem[]>([]);
   const [title, setTitle] = useState("");
-  const [mode, setMode] = useState<"rpg" | "branching" | "writing">("writing");
+  // v1 offers RPG and Branching only; Writing is deferred (ADR-017b).
+  const [mode, setMode] = useState<"rpg" | "branching">("branching");
   const [characterName, setCharacterName] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -70,7 +71,6 @@ export default function StoryList({
           value={mode}
           onChange={(e) => setMode(e.target.value as typeof mode)}
         >
-          <option value="writing">Writing</option>
           <option value="branching">Branching</option>
           <option value="rpg">RPG</option>
         </select>

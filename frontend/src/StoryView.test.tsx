@@ -7,12 +7,13 @@ import type {
   TurnSubmissionResponse,
   VisibleState,
 } from "./api/client";
+import { WritingSetupForm } from "./SetupForm";
 import StoryView from "./StoryView";
 
 const baseStory: StoryDetail = {
   story_id: "11111111-1111-1111-1111-111111111111",
   title: "Test Story",
-  mode: "writing",
+  mode: "branching",
   status: "in_play",
   created_at: "2026-01-01T00:00:00Z",
   updated_at: "2026-01-01T00:00:00Z",
@@ -354,23 +355,22 @@ describe("StoryView separates mutation success from refresh failure (PR #126 rou
   });
 });
 
-describe("StoryView WritingSetupForm persona load (PR #126 round 13 P2)", () => {
+// Retained Writing component proofs (ADR-017b): SetupForm no longer routes to
+// WritingSetupForm in v1, so it is rendered directly here.
+function renderWritingSetupForm() {
+  render(
+    <WritingSetupForm submitting={false} error={null} onSubmit={vi.fn()} />,
+  );
+}
+
+describe("WritingSetupForm persona load (PR #126 round 13 P2)", () => {
   beforeEach(() => {
-    localStorage.clear();
     vi.clearAllMocks();
-    mocks.getStory.mockResolvedValue({
-      ...baseStory,
-      mode: "writing",
-      status: "setup",
-    });
-    mocks.getLatestTranscript.mockResolvedValue([]);
-    mocks.getVisibleState.mockResolvedValue(null);
-    mocks.getSetupState.mockResolvedValue(null);
   });
 
   it("shows a visible error and keeps Save disabled when the persona gallery fails to load", async () => {
     mocks.listPersonas.mockRejectedValue(new Error("network down"));
-    render(<StoryView storyId={baseStory.story_id} />);
+    renderWritingSetupForm();
 
     await screen.findByText(/Could not load Writing companions/i);
     // "Save setup" isn't reachable via an accessible name until goals are
@@ -384,7 +384,7 @@ describe("StoryView WritingSetupForm persona load (PR #126 round 13 P2)", () => 
 
   it("retry reloads personas and clears the error without a page reload", async () => {
     mocks.listPersonas.mockRejectedValueOnce(new Error("network down"));
-    render(<StoryView storyId={baseStory.story_id} />);
+    renderWritingSetupForm();
 
     await screen.findByText(/Could not load Writing companions/i);
 
@@ -427,7 +427,7 @@ describe("StoryView WritingSetupForm persona load (PR #126 round 13 P2)", () => 
       ],
       peers: [],
     });
-    render(<StoryView storyId={baseStory.story_id} />);
+    renderWritingSetupForm();
 
     const personaButton = await screen.findByRole("button", { name: /Chiron/ });
     fireEvent.click(personaButton);
@@ -587,14 +587,10 @@ describe("StoryView setup handoff survives reload (PR #126 round 3)", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("still shows SetupForm for a Writing story whose persona is set but specific_goals is still blank (PR #126 round 5 follow-up)", async () => {
-    // A pre-round-5 (or otherwise incomplete) row: persona_id is set --
-    // visible state is non-null -- but specific_goals is still blank.
-    // visibleState !== null alone must not be treated as "Writing setup
-    // complete": that would silently reopen the play view for a story
-    // whose turns stay forced to SETUP_CONFIRMATION/NON_CANON_SUPPORT
-    // forever, the exact defect round 5 fixed, resurfacing via this bypass
-    // instead of the original path.
+  it("shows the Writing-unavailable notice, not persona setup, for a Writing story still in setup (ADR-017b)", async () => {
+    // A row with persona_id set but blank specific_goals stays on the setup
+    // screen (PR #126 round 5 follow-up); in v1 that screen offers no
+    // Writing or persona controls.
     mocks.getStory.mockResolvedValue({
       ...baseStory,
       mode: "writing",
@@ -608,9 +604,11 @@ describe("StoryView setup handoff survives reload (PR #126 round 3)", () => {
 
     render(<StoryView storyId={baseStory.story_id} />);
 
-    await screen.findByRole("heading", {
-      name: "Choose your Writing companion",
-    });
+    await screen.findByText("Writing mode is not available in this release.");
+    expect(
+      screen.queryByRole("heading", { name: "Choose your Writing companion" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Save setup/ })).toBeNull();
     expect(
       screen.queryByPlaceholderText("What do you do?"),
     ).not.toBeInTheDocument();

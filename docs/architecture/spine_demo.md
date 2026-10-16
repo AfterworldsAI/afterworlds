@@ -1,8 +1,8 @@
 # Afterworlds — Minimal End-to-End Spine Demo
 
 *Defines the proof-of-life sequence that confirms the Sojourn pipeline is working end-to-end.*
-*All three modes must extend from this spine before v1 is considered release-capable.*
-*Last updated: March 2026*
+*Branching and RPG must extend from this spine before v1 is considered release-capable. Writing is deferred from v1 (ADR-017b).*
+*Last updated: October 2026*
 
 ---
 
@@ -12,7 +12,7 @@ The spine demo is not a unit test. It is a full end-to-end integration verificat
 
 The spine demo must be executable by the project owner without developer intervention. If running it requires consulting code, reading logs, or interpreting ambiguous output, it is not complete.
 
-**Issue 21** is the formal gate: all three mode slices of the spine demo must pass before v1 is declared release-capable.
+**Issue 21** is the formal gate: the Branching and RPG slices of the spine demo must pass before v1 is declared release-capable. The Writing slice is deferred by [ADR-017b](../decisions/adr-017b-writing-v1-deferral.md) and is not a v1 release requirement.
 
 ---
 
@@ -88,7 +88,9 @@ RPG mode extends the spine but has an additional hard dependency: a curated d20 
 
 ---
 
-## Writing Mode Follow-On Slice
+## Writing Mode Follow-On Slice (deferred — not a v1 requirement)
+
+*Deferred by ADR-017b: Writing and its personas are not offered in v1. This slice is retained as the record of Issue 17's intended behavior and is not run for v1.*
 
 Writing mode extends the spine with the persona system. No Rules Package dependency.
 

@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import pytest
 
+
+@pytest.mark.usefixtures("writing_released")
 def test_personas_gallery_splits_mentors_and_peers(client) -> None:  # type: ignore[no-untyped-def]
     resp = client.get("/api/personas")
     assert resp.status_code == 200
@@ -13,6 +16,7 @@ def test_personas_gallery_splits_mentors_and_peers(client) -> None:  # type: ign
         assert persona["orientation"] == "peer"
 
 
+@pytest.mark.usefixtures("writing_released")
 def test_personas_gallery_items_carry_schema_version(client) -> None:  # type: ignore[no-untyped-def]
     # Round 10 remediation (PR #126 P2): PersonaDTO (embedded in
     # PersonaGalleryResponse) lacked schema_version, unlike every other DTO.

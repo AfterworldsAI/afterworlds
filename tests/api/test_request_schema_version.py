@@ -12,8 +12,10 @@ shape).
 
 from __future__ import annotations
 
+import pytest
 
-def _create_story(client, mode: str = "writing", **extra):  # type: ignore[no-untyped-def]
+
+def _create_story(client, mode: str = "branching", **extra):  # type: ignore[no-untyped-def]
     resp = client.post("/api/stories", json={"title": "T", "mode": mode, **extra})
     assert resp.status_code == 201, resp.text
     return resp.json()["story_id"]
@@ -28,20 +30,20 @@ def _assert_validation_envelope(resp) -> None:  # type: ignore[no-untyped-def]
 
 class TestCreateStoryRequest:
     def test_omitted_schema_version_defaults_to_1(self, client) -> None:  # type: ignore[no-untyped-def]
-        resp = client.post("/api/stories", json={"title": "T", "mode": "writing"})
+        resp = client.post("/api/stories", json={"title": "T", "mode": "branching"})
         assert resp.status_code == 201, resp.text
 
     def test_explicit_schema_version_1_accepted(self, client) -> None:  # type: ignore[no-untyped-def]
         resp = client.post(
             "/api/stories",
-            json={"title": "T", "mode": "writing", "schema_version": 1},
+            json={"title": "T", "mode": "branching", "schema_version": 1},
         )
         assert resp.status_code == 201, resp.text
 
     def test_schema_version_2_rejected(self, client) -> None:  # type: ignore[no-untyped-def]
         resp = client.post(
             "/api/stories",
-            json={"title": "T", "mode": "writing", "schema_version": 2},
+            json={"title": "T", "mode": "branching", "schema_version": 2},
         )
         _assert_validation_envelope(resp)
 
@@ -137,6 +139,7 @@ class TestBranchingSetupRequest:
         _assert_validation_envelope(resp)
 
 
+@pytest.mark.usefixtures("writing_released")
 class TestWritingSetupRequest:
     def test_omitted_schema_version_defaults_to_1(self, client) -> None:  # type: ignore[no-untyped-def]
         story_id = _create_story(client, mode="writing")

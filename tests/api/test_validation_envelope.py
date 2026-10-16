@@ -12,7 +12,7 @@ from __future__ import annotations
 from uuid import uuid4
 
 
-def _create_story(client, mode: str = "writing"):  # type: ignore[no-untyped-def]
+def _create_story(client, mode: str = "branching"):  # type: ignore[no-untyped-def]
     resp = client.post("/api/stories", json={"title": "T", "mode": mode})
     assert resp.status_code == 201, resp.text
     return resp.json()["story_id"]

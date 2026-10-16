@@ -483,7 +483,7 @@ def test_reading_an_unknown_storys_pending_interaction_is_not_found(client) -> N
     resp = client.get(f"/api/stories/{uuid4()}/rpg/pending-interaction")
     assert resp.status_code == 404
     assert resp.json()["error_code"] == "not_found"
-    story = _create_story(client)  # a Writing story: nothing pending
+    story = _create_story(client)  # a Branching story: nothing pending
     resp = client.get(f"/api/stories/{story}/rpg/pending-interaction")
     assert resp.json() == {"interaction": None, "schema_version": 1}
 

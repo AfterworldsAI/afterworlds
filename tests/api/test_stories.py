@@ -20,17 +20,14 @@ def test_create_and_get_story_rpg(client) -> None:  # type: ignore[no-untyped-de
     assert detail.json()["story_id"] == story_id
 
 
-def test_create_story_branching_and_writing(client) -> None:  # type: ignore[no-untyped-def]
-    for mode in ("branching", "writing"):
-        resp = client.post(
-            "/api/stories", json={"title": f"{mode} story", "mode": mode}
-        )
-        assert resp.status_code == 201, resp.text
-        assert resp.json()["mode"] == mode
+def test_create_story_branching(client) -> None:  # type: ignore[no-untyped-def]
+    resp = client.post("/api/stories", json={"title": "story", "mode": "branching"})
+    assert resp.status_code == 201, resp.text
+    assert resp.json()["mode"] == "branching"
 
 
 def test_list_stories_reflects_created(client) -> None:  # type: ignore[no-untyped-def]
-    client.post("/api/stories", json={"title": "A", "mode": "writing"})
+    client.post("/api/stories", json={"title": "A", "mode": "rpg"})
     client.post("/api/stories", json={"title": "B", "mode": "branching"})
     resp = client.get("/api/stories")
     assert resp.status_code == 200

@@ -187,12 +187,8 @@ test("removing keys, then a hosted turn settles and the account re-reads", async
 
   await page.getByRole("button", { name: "Close account" }).click();
   await page.getByPlaceholder("Title").fill("Account Story");
-  await page.getByRole("combobox").selectOption("writing");
+  await page.getByRole("combobox").selectOption("branching");
   await page.getByRole("button", { name: "Create" }).click();
-  await page
-    .getByPlaceholder("e.g. Draft the opening chapter of a mystery novel")
-    .fill("Draft the opening chapter of a mystery novel.");
-  await page.getByRole("button", { name: /Chiron/ }).click();
   await page.getByRole("button", { name: "Save setup" }).click();
   await page.getByPlaceholder("What do you do?").fill("Tell me a story.");
   await page.getByRole("button", { name: "Submit" }).click();

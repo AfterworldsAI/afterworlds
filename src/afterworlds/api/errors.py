@@ -21,6 +21,8 @@ class ApiErrorCode(StrEnum):
     TURN_IN_FLIGHT = "turn_in_flight"
     SETUP_REQUIRED = "setup_required"
     SETUP_STATE_CONFLICT = "setup_state_conflict"
+    # ADR-017b: a mode represented internally but not offered by this release.
+    MODE_UNAVAILABLE = "mode_unavailable"
     INTERNAL_ERROR = "internal_error"
     # CRD Issue 15b action-resolution refusals (#127 Errors), translated
     # one-to-one from the backend's typed codes by ``api/rpg_actions.py``.

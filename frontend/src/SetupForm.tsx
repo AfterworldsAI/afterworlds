@@ -45,8 +45,11 @@ export default function SetupForm({
       />
     );
   }
+  // Writing is not offered in v1 (ADR-017b): no persona or setup controls.
   return (
-    <WritingSetupForm submitting={submitting} error={error} onSubmit={submit} />
+    <p className="form-error" role="alert">
+      Writing mode is not available in this release.
+    </p>
   );
 }
 
@@ -224,7 +227,8 @@ function BranchingSetupForm({ submitting, error, onSubmit }: FormProps) {
   );
 }
 
-function WritingSetupForm({ submitting, error, onSubmit }: FormProps) {
+// Retained for post-v1 Writing work (ADR-017b); not routed from SetupForm.
+export function WritingSetupForm({ submitting, error, onSubmit }: FormProps) {
   const [personas, setPersonas] = useState<PersonaGallery | null>(null);
   const [personaId, setPersonaId] = useState<string | null>(null);
   const [specificGoals, setSpecificGoals] = useState("");

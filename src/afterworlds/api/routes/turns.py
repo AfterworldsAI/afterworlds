@@ -42,6 +42,7 @@ from afterworlds.api.rpg_actions import RpgActions, raise_for_action_sequence_er
 from afterworlds.api.story_bootstrap import (
     derive_writing_turn_request,
     ensure_story_turn_anchor_node,
+    require_released_mode,
 )
 from afterworlds.api.visible_state import build_visible_state
 from afterworlds.entitlement.enums import RuntimeAccessPath
@@ -197,6 +198,9 @@ def _run_turn_sync(
             raise ApiErrorResponse(
                 404, ApiErrorCode.NOT_FOUND, f"Story {story_id} not found"
             )
+        # Before access-path selection, anchor creation, orchestration and
+        # settlement (ADR-017b).
+        require_released_mode(story.mode)
 
         entitlement_service = EntitlementService(session)
         status = entitlement_service.get_access_path_status(sojourner_id)

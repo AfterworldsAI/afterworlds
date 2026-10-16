@@ -24,7 +24,9 @@ nothing.
    remain distinct.
 5. Trial/subscription allowances, prices, credit-conversion parameters and
    numeric burn estimates await representative consumption measurements across
-   RPG, Branching and Writing.
+   RPG, Branching and Writing. *(Narrowed by ADR-017b, 2026-10-16: the v1
+   release modes are RPG and Branching; Writing is deferred and does not block
+   v1 measurement.)*
 
 The free-trial direction **replaces the optional paid Starter Access offer**
 as commercial direction.
