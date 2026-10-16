@@ -137,8 +137,14 @@ test("a keychain failure is typed, confirms nothing and leaks nothing", async ({
     "credential store is unavailable",
   );
   await expect(page.getByLabel("Anthropic API key")).toHaveValue("");
+  // The incomplete replacement already marked the credential unverified
+  // (ineligible) before the failing write, so readiness is established from
+  // metadata as not ready -- never as ready, and without reading the store.
   await expect(page.getByTestId("byok-ready")).toContainText(
-    "BYOK readiness could not be verified.",
+    "No provider key and configuration is ready.",
+  );
+  await expect(page.getByTestId("provider-anthropic")).toContainText(
+    "unknown (could not be read)",
   );
   await expect(page.getByText(/key saved/)).toHaveCount(0);
   await expectNoSecretInBrowser(page, SECRET);
