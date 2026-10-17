@@ -4,8 +4,9 @@ This is assembly of already-shipped seams (Issues 3-14a), not new
 orchestration/provider/entitlement policy: every constructor call below uses
 an existing typed class with its own ``.from_env()`` / factory function.
 
-Mode-specific pass SERVICES (Branching writer, Writing OOC extractors) are
-wired in Phase 3 alongside the mode surfaces they serve; RPG adjudication and
+The Branching pass SERVICES (writer, selection validation, OOC config
+extractor, visible state) are wired here since CRD Issue 21 Prerequisite A
+(ADR-016b); Writing's OOC extractor stays unwired (ADR-017b). RPG adjudication and
 its dice service are wired by CRD Issue 15c (backend rolls only) --
 ``OrchestratorService`` already treats them as optional and falls back to the
 generic prose Writer path when absent (ADR-016 Decision 3). The three session
@@ -56,7 +57,8 @@ validation gate for IN_PLAY Writing turns, unlike ``rpg_visible_state_service``/
 ``branching_visible_state_service``, which the orchestrator treats as
 optional enrichment -- see the ``is not None`` guards around each in
 ``pipeline/orchestrator/service.py``). All three are existing Issue 17/18
-classes, wired here exactly as they already exist:
+classes, wired here exactly as they already exist (the "remain deliberately
+unwired" note below on Branching pass services is historical; see ADR-016b):
 ``RetrievalMemoryWriteService`` and ``ChromaRetrievalMemoryProvider`` share
 one Chroma client/config; ``RetrievalQueryBuilder`` needs a session-bound
 ``SQLiteRecentTurnsProvider``, so it gets the same per-call-session
@@ -127,6 +129,12 @@ from afterworlds.persistence.orm.dnd5e_state import (
     Dnd5eCharacterStateORM,
     Dnd5eCreatureORM,
 )
+from afterworlds.pipeline.branching.ooc_config_extractor import (
+    BranchingOocConfigExtractorService,
+)
+from afterworlds.pipeline.branching.selection import BranchSelectionValidationService
+from afterworlds.pipeline.branching.service import BranchingWriterService
+from afterworlds.pipeline.branching.visible_state import BranchingVisibleStateService
 from afterworlds.pipeline.contradiction.config import ContradictionConfig
 from afterworlds.pipeline.contradiction.service import ContradictionService
 from afterworlds.pipeline.extractor.config import ExtractorConfig
@@ -474,6 +482,12 @@ def _make_rpg_scene_loader(
     return _load
 
 
+def _context_builder_never_generates(_prior: str | None, _texts: list[str]) -> str:
+    """Context Builder only reads the current Rolling Summary (ADR-006b);
+    compression runs in the orchestrator's turn transaction."""
+    raise RuntimeError("Context Builder must not generate Rolling Summaries")
+
+
 class _PerTurnContextBuilder:
     """Assembles context via a fresh SQLAlchemy Session per ``assemble()`` call.
 
@@ -520,8 +534,7 @@ class _PerTurnContextBuilder:
             per_turn_builder = ContextBuilderService(
                 story_bible_service=StoryBibleService(session),
                 rolling_summary_service=RollingSummaryService(
-                    session,
-                    generator=lambda _prior, _texts: "",
+                    session, generator=_context_builder_never_generates
                 ),
                 recent_turns_provider=SQLiteRecentTurnsProvider(session),
                 retrieval_memory=self._retrieval_memory,
@@ -620,6 +633,10 @@ def build_pipeline(
         hosted_config = HostedRoutingConfig(
             anthropic_api_key=os.environ.get("ANTHROPIC_API_KEY", ""),
             openrouter_api_key=os.environ.get("OPENROUTER_API_KEY"),
+            # The operator-selected hosted OpenRouter fallback model
+            # (ADR-014a/014b); no default. A key without it fails closed in
+            # ProviderResolver, as before (CRD Issue 21 round 1, F5).
+            openrouter_fallback_model=os.environ.get("OPENROUTER_FALLBACK_MODEL"),
         )
         provider_resolver = ProviderResolver(
             credential_store=make_credential_store(),
@@ -690,6 +707,13 @@ def build_pipeline(
         rpg_turn_hold=RpgTurnHold(session_factory, _utc_now),
         rpg_session_resolver=_make_rpg_session_resolver(session_factory),
         branching_session_resolver=_make_branching_session_resolver(session_factory),
+        # CRD Issue 21 Prerequisite A (ADR-016b): the owning Branching pass
+        # services, so Hybrid/True CYOA use the typed card writer, selection
+        # validation and OOC configuration updates instead of failing closed.
+        branching_writer_service=BranchingWriterService(),
+        branching_selection_service=BranchSelectionValidationService(),
+        branching_ooc_config_extractor=BranchingOocConfigExtractorService(),
+        branching_visible_state_service=BranchingVisibleStateService(),
         writing_session_resolver=_make_writing_session_resolver(session_factory),
         writing_visible_state_service=writing_visible_state_service,
         retrieval_write_service=retrieval_write_service,

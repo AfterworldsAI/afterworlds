@@ -45,3 +45,7 @@ def writing_released(monkeypatch):  # type: ignore[no-untyped-def]
     monkeypatch.setattr(
         "afterworlds.modes.availability.RELEASED_STORY_MODES", frozenset(StoryMode)
     )
+
+
+# CRD Issue 21: the production-resolver spine harness (tests/api/_spine.py).
+from tests.api._spine import spine  # noqa: E402, F401

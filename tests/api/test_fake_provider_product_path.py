@@ -121,6 +121,10 @@ def _create_branching_story_in_play(client) -> str:  # type: ignore[no-untyped-d
         },
     )
     assert resp.status_code == 200, resp.text
+    # ADR-016b: Begin story is what moves a configured story into play.
+    resp = client.post(f"/api/stories/{story_id}/begin")
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["outcome"] == "started", resp.json()
     return story_id
 
 
@@ -527,11 +531,11 @@ def test_fake_provider_path_classifies_without_anthropic_api_key(
 def test_true_cyoa_freeform_turn_after_setup_is_interaction_rejected(
     fake_provider_client,  # type: ignore[no-untyped-def]
 ) -> None:
-    """Round 7 remediation (PR #126 P1) regression: before this fix, Branching
-    setup never promoted play_status past SETUP, so this freeform turn would
-    have fallen through to the ordinary prose Writer path (delivered) instead
-    of reaching the orchestrator's in-play True CYOA INTERACTION_REJECTED
-    rail. The fake classifier's fixed in_character_action intent is exactly
+    """Round 7 remediation (PR #126 P1) regression, updated for ADR-016b:
+    once Begin story has started play, this freeform turn must reach the
+    orchestrator's in-play True CYOA INTERACTION_REJECTED rail rather than
+    the setup-phase prose Writer path. The fake classifier's fixed
+    in_character_action intent is exactly
     "not BRANCH_CHOICE", satisfying that rail's gate."""
     client = fake_provider_client
     _seed_hosted_entitlement(client)
@@ -546,9 +550,14 @@ def test_true_cyoa_freeform_turn_after_setup_is_interaction_rejected(
             "mode": "branching",
             "interaction_style": "true_cyoa",
             "branching_cadence": "balanced",
+            "branch_count_range": "2-3",
         },
     )
     assert resp.status_code == 200, resp.text
+    # ADR-016b: setup saves; Begin story starts play with the first cards.
+    resp = client.post(f"/api/stories/{story_id}/begin")
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["outcome"] == "started", resp.json()
 
     resp = client.post(
         f"/api/stories/{story_id}/turns",

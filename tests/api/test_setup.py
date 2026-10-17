@@ -26,13 +26,12 @@ def test_branching_setup_applies_structured_fields(client) -> None:  # type: ign
     assert resp.json()["visible_state"]["branching_cadence"] == "balanced"
 
 
-def test_branching_setup_with_both_required_fields_promotes_to_in_play(
+def test_branching_complete_setup_saves_without_starting_play(
     client,  # type: ignore[no-untyped-def]
 ) -> None:
-    """Round 7 remediation (PR #126 P1): Branching setup must receive the
-    same durable completion treatment as Writing -- once interaction_style
-    and branching_cadence are both persisted, play_status must promote to
-    IN_PLAY, not stay SETUP forever."""
+    """ADR-016b Decision 1 (supersedes PR #126 round 7's promotion on setup):
+    a complete configuration is saved, but play_status stays SETUP until
+    the separate Begin story operation starts the story."""
     story_id = _create_story(client, "branching")
     resp = client.post(
         f"/api/stories/{story_id}/setup",
@@ -55,7 +54,7 @@ def test_branching_setup_with_both_required_fields_promotes_to_in_play(
     try:
         state = get_branching_session_state_by_story(session, UUID(story_id))
         assert state is not None
-        assert state.play_status is BranchingPlayStatus.IN_PLAY
+        assert state.play_status is BranchingPlayStatus.SETUP
     finally:
         session.close()
 
@@ -120,12 +119,11 @@ def test_branching_partial_setup_missing_interaction_style_does_not_promote(
         session.close()
 
 
-def test_branching_setup_promotes_using_effective_state_across_two_partial_calls(
+def test_branching_setup_merges_partial_calls_without_starting_play(
     client,  # type: ignore[no-untyped-def]
 ) -> None:
-    """Do not infer completion from the incoming body alone: a second call
-    supplying only the still-missing field must promote using the
-    already-persisted field from the first call."""
+    """Two partial calls merge into the effective persisted configuration;
+    neither starts play (ADR-016b Decision 1)."""
     story_id = _create_story(client, "branching")
     resp = client.post(
         f"/api/stories/{story_id}/setup",
@@ -158,17 +156,18 @@ def test_branching_setup_promotes_using_effective_state_across_two_partial_calls
     try:
         state = get_branching_session_state_by_story(session, UUID(story_id))
         assert state is not None
-        assert state.play_status is BranchingPlayStatus.IN_PLAY
+        assert state.play_status is BranchingPlayStatus.SETUP
         assert state.interaction_style.value == "hybrid"
+        assert state.branching_cadence.value == "balanced"
     finally:
         session.close()
 
 
-def test_branching_setup_promotion_is_idempotent(
+def test_branching_repeated_setup_is_idempotent_and_never_starts_play(
     client,  # type: ignore[no-untyped-def]
 ) -> None:
-    """Repeated setup calls after promotion must not error or regress
-    play_status."""
+    """Repeated setup calls must not error, and never start play
+    (ADR-016b Decision 1)."""
     story_id = _create_story(client, "branching")
     for _ in range(2):
         resp = client.post(
@@ -192,7 +191,7 @@ def test_branching_setup_promotion_is_idempotent(
     try:
         state = get_branching_session_state_by_story(session, UUID(story_id))
         assert state is not None
-        assert state.play_status is BranchingPlayStatus.IN_PLAY
+        assert state.play_status is BranchingPlayStatus.SETUP
     finally:
         session.close()
 
@@ -294,7 +293,12 @@ def test_rpg_setup_applies_play_config_fields(client) -> None:  # type: ignore[n
     story_id = _create_story(client, "rpg", character_name="Arden")
     resp = client.post(
         f"/api/stories/{story_id}/setup",
-        json={"mode": "rpg", "dice_handling": "player_rolls", "gm_cheating": False},
+        json={
+            "mode": "rpg",
+            "dice_handling": "player_rolls",
+            "gm_cheating": False,
+            "expected_configuration_revision": 0,
+        },
     )
     assert resp.status_code == 200, resp.text
 
@@ -312,6 +316,77 @@ def test_rpg_setup_applies_play_config_fields(client) -> None:  # type: ignore[n
         assert state.gm_cheating is False
     finally:
         session.close()
+
+
+def _rpg_setup_view(client, story_id: str) -> dict:  # type: ignore[no-untyped-def,type-arg]
+    resp = client.get(f"/api/stories/{story_id}/rpg/setup")
+    assert resp.status_code == 200, resp.text
+    return resp.json()  # type: ignore[no-any-return]
+
+
+def _rpg_save(client, story_id: str, revision: int | None, **fields):  # type: ignore[no-untyped-def]
+    body = {"mode": "rpg", **fields}
+    if revision is not None:
+        body["expected_configuration_revision"] = revision
+    return client.post(f"/api/stories/{story_id}/setup", json=body)
+
+
+def test_rpg_setup_rejects_a_form_based_on_an_older_configuration(client) -> None:  # type: ignore[no-untyped-def]
+    """ADR-015c (Codex R1 re-review P1): two forms opened at the same
+    revision -- the second save must not silently revert the first."""
+    story_id = _create_story(client, "rpg", character_name="Arden")
+    assert _rpg_save(client, story_id, None, tone="gritty").status_code == 422
+    base = _rpg_setup_view(client, story_id)["configuration_revision"]
+
+    first = _rpg_save(client, story_id, base, tone="gritty")
+    assert first.status_code == 200, first.text
+    stale = _rpg_save(
+        client, story_id, base, tone="balanced", dice_handling="player_rolls"
+    )
+    assert stale.status_code == 409
+    assert stale.json()["error_code"] == "setup_state_conflict"
+
+    after = _rpg_setup_view(client, story_id)
+    assert after["configuration"]["tone"] == "gritty"
+    assert after["configuration"]["dice_handling"] == "ai_rolls"
+    assert after["configuration_revision"] == base + 1
+    # Rebased on the newer revision, the edit applies.
+    rebased = _rpg_save(
+        client,
+        story_id,
+        after["configuration_revision"],
+        dice_handling="player_rolls",
+    )
+    assert rebased.status_code == 200, rebased.text
+    final = _rpg_setup_view(client, story_id)["configuration"]
+    assert (final["tone"], final["dice_handling"]) == ("gritty", "player_rolls")
+
+
+def test_rpg_setup_clears_an_optional_setting_only_when_sent_as_null(client) -> None:  # type: ignore[no-untyped-def]
+    """Codex R1 re-review P2: omission keeps a value; explicit null clears it."""
+    story_id = _create_story(client, "rpg", character_name="Arden")
+
+    def revision() -> int:
+        return _rpg_setup_view(client, story_id)["configuration_revision"]  # type: ignore[no-any-return]
+
+    saved = _rpg_save(
+        client, story_id, revision(), house_rules="No crits", genre_flavor="Noir"
+    )
+    assert saved.status_code == 200, saved.text
+    omitted = _rpg_save(client, story_id, revision(), tone="gritty")
+    assert omitted.status_code == 200, omitted.text
+    config = _rpg_setup_view(client, story_id)["configuration"]
+    assert (config["house_rules"], config["genre_flavor"]) == ("No crits", "Noir")
+
+    cleared = _rpg_save(client, story_id, revision(), house_rules=None)
+    assert cleared.status_code == 200, cleared.text
+    config = _rpg_setup_view(client, story_id)["configuration"]
+    assert config["house_rules"] is None
+    assert (config["genre_flavor"], config["tone"]) == ("Noir", "gritty")
+    # A required setting sent as null is still "no change", not a clear.
+    kept = _rpg_save(client, story_id, revision(), tone=None)
+    assert kept.status_code == 200, kept.text
+    assert _rpg_setup_view(client, story_id)["configuration"]["tone"] == "gritty"
 
 
 def test_setup_mode_mismatch_returns_conflict(client) -> None:  # type: ignore[no-untyped-def]
@@ -439,7 +514,12 @@ def test_get_setup_state_reflects_saved_rpg_config_after_reload(
     story_id = _create_story(client, "rpg", character_name="Arden")
     resp = client.post(
         f"/api/stories/{story_id}/setup",
-        json={"mode": "rpg", "dice_handling": "player_rolls", "tone": "gritty"},
+        json={
+            "mode": "rpg",
+            "dice_handling": "player_rolls",
+            "tone": "gritty",
+            "expected_configuration_revision": 0,
+        },
     )
     assert resp.status_code == 200, resp.text
 

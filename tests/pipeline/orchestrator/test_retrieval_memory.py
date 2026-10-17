@@ -53,6 +53,7 @@ from tests.pipeline.orchestrator.conftest import (
     make_intent,
 )
 from tests.pipeline.orchestrator.test_service import (
+    FakeRpgSetupWriter,
     _make_orchestrator_with_adjudication,
     _make_rpg_session_and_sheet,
     _seed_writing_story_setup_wss,
@@ -141,6 +142,7 @@ def _make_rpg_orch_without_adjudication(
         rpg_session_sheet_resolver=lambda _sid: (session_state, sheet),  # type: ignore[arg-type]
         # rpg_adjudication_service intentionally absent.
         retrieval_write_service=retrieval_write_service,
+        rpg_setup_writer_service=FakeRpgSetupWriter(),  # type: ignore[arg-type]
     )
 
 
@@ -874,6 +876,7 @@ class TestRpgSessionResolverSetupWithoutSheet:
             rpg_session_resolver=lambda _sid: setup_state,
             # rpg_adjudication_service intentionally absent -- setup turns
             # never require it (Codex P1, PR #126 round 3).
+            rpg_setup_writer_service=FakeRpgSetupWriter(),  # type: ignore[arg-type]
         )
 
         result = orch.orchestrate_turn(

@@ -96,6 +96,8 @@ _PASS_PROFILE: dict[PipelinePassId, tuple[str, ModelTier]] = {
         _DEFAULT_HAIKU_MODEL,
         ModelTier.HAIKU,
     ),
+    # ADR-006b: the lightweight summary model, overridable per profile.
+    PipelinePassId.ROLLING_SUMMARY: (_DEFAULT_HAIKU_MODEL, ModelTier.HAIKU),
 }
 
 
@@ -436,6 +438,7 @@ def _pass_id_to_pass_identifier(pass_id: PipelinePassId) -> PassIdentifier:
         PipelinePassId.WRITING_OOC_CONFIG_EXTRACTOR: (
             PassIdentifier.WRITING_OOC_CONFIG_EXTRACTOR
         ),
+        PipelinePassId.ROLLING_SUMMARY: PassIdentifier.ROLLING_SUMMARY,
     }
     return _MAP[pass_id]
 

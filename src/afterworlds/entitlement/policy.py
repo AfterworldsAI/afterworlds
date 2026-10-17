@@ -40,6 +40,7 @@ PASS_TIER_DEFAULTS: dict[PipelinePassId, ModelTier] = {
     PipelinePassId.BRANCHING_WRITER: ModelTier.SONNET,
     PipelinePassId.BRANCHING_OOC_CONFIG_EXTRACTOR: ModelTier.HAIKU,
     PipelinePassId.WRITING_OOC_CONFIG_EXTRACTOR: ModelTier.HAIKU,
+    PipelinePassId.ROLLING_SUMMARY: ModelTier.HAIKU,
 }
 
 _CREDIT_QUANTIZE = Decimal("0.0001")
@@ -398,6 +399,27 @@ class TurnCostPolicy:
                     wocr.model_identifier,
                     provider=wocr.provider,
                     model_tier_str=wocr.model_tier,
+                )
+            )
+
+        # ADR-006b: a due Rolling Summary compression of a delivered turn.
+        if result.rolling_summary_result is not None:
+            from afterworlds.pipeline.rolling_summary import (  # noqa: PLC0415
+                RollingSummaryPassResult,
+            )
+
+            assert isinstance(result.rolling_summary_result, RollingSummaryPassResult)
+            rsr = result.rolling_summary_result
+            snapshots.append(
+                _require_tokens(
+                    PipelinePassId.ROLLING_SUMMARY,
+                    rsr.input_token_count,
+                    rsr.output_token_count,
+                    rsr.cache_read_token_count,
+                    rsr.cache_creation_token_count,
+                    rsr.model_identifier,
+                    provider=rsr.provider,
+                    model_tier_str=rsr.model_tier,
                 )
             )
 

@@ -1,0 +1,67 @@
+# CRD Issue 21 — Integration Prerequisite Contracts
+
+**Status:** Accepted by the Owner on 2026-10-16 ("I've reviewed the two docs. I accept them. Please begin implementation."), together with the full CRD Issue 21 draft. The three product choices below were explicitly selected by the Owner on 2026-10-16. Implementation of both prerequisites and the authority reconciliation they require is authorized; GitHub publication, merge, deployment, shared-runtime changes, real provider calls and Rules Package activation are not. Authority reconciliation: [ADR-016b](../decisions/adr-016b-branching-story-start.md) (Prerequisite A) and [ADR-006b](../decisions/adr-006b-automatic-rolling-summary.md) (Prerequisite B).
+**Governing issue:** the Owner authorized publication of this governing issue on 2026-10-17; it is published as [#203](https://github.com/AfterworldsAI/afterworlds/issues/203), with the three accepted prerequisite contracts linked as its comments (exact body and AC1–11 readback verified 2026-10-17). That publication authorized no implementation push, PR or merge. Later on 2026-10-17 the Owner conditionally authorized commit, push and a PR for the reviewed candidate after satisfactory Codex review and local verification, holding at merge; merge, auto-merge, deployment, shared-runtime operations and Rules Package publication/activation remain unauthorized.  
+**Basis:** main `3f638667512be1a7c1a885d566724ba827c09258`; ADR-016, ADR-0009/0010, ADR-0014, ADR-013/014a/014b and ADR-017b; live CRD Issues 6/8/12c (#63/#68/#84).
+
+## Recorded Owner Decisions
+
+1. Branching setup saves configuration; a separate **Begin story** action starts play and generates the opening. Setup confirmation does not generate the opening automatically.
+2. A due Rolling Summary and the ordinary narrative Turn/canon commit atomically. Summary failure blocks delivery and rolls back the current narrative turn on the selected access path, using existing non-billable failure rules.
+3. Only delivered ordinary Branching/RPG narrative turns count toward provisional N = 10. The first playable opening counts. Setup-only exchanges, OOC, pending roll/decision steps and blocked/refused/errored attempts do not count.
+
+The sections below make these choices reviewable as bounded prerequisite proposals. They extend contracts missing from the existing implementation; they do not reclassify that extension as a narrow CRD Issue 21 wiring fix.
+
+## Prerequisite A — Branching Start and Product Integration
+
+**Outcome:** a newly configured Branching story can begin and continue in Freeform-only, Hybrid or True CYOA, without seeded cards or an ordinary-play validation bypass.
+
+**Owner:** the existing Branching mode service/orchestration boundary from CRD Issue 16, exposed through thin CRD Issue 19 API/UI conventions. The settled service-injection, configuration and card-read corrections may accompany this dependency; no new owner or alternate pipeline is created.
+
+### Required behavior
+
+- Structured setup validates and persists the accepted interaction style, cadence and applicable branch-count range. It does not start a fresh story or promote it to ordinary play. Retain the lightweight setup-confirmation role specified in Design/ADR-016; setup-only narration is not the playable opening. Existing in-play configuration updates must not reset a started story.
+- Once required configuration is complete, show a separate Begin story control. Its explicit typed operation means “generate the first playable beat,” not “select a nonexistent branch.” Seed that beat from persisted world/setup context and optional story seeds; do not invent a player choice, require freeform action in True CYOA, or rely on the classifier to discover startup from ordinary prose.
+- Begin uses production access selection/readiness/binding, classification before context, the existing core pipeline and conditional Safety, Extractor, Contradiction and transaction rules. Preserve one stable prefix per turn. Card styles use the owning typed Branching writer; Freeform-only uses its accepted prose path.
+- Only the explicit start operation on a configured, not-yet-started story may generate cards without a preceding selection. Persist the successful opening Turn/canon, first card set and setup-to-play transition in the same owning transaction. Failed, blocked or refused attempts leave the saved configuration available for retry, no playable opening or cards, no promotion to in-play, and no hosted deduction under existing failure rules. Show the typed outcome without candidate prose.
+- After successful start, ordinary True CYOA requires explicit valid selection. Do not weaken the accepted freeform rejection, annotation/selection validation or OOC behavior. Cadence cannot leave True CYOA awaiting input without a valid next selectable card set.
+- Generated cards, presentation and selection records are code-owned and persisted through ADR-016's existing Node metadata contract. Turn responses and reload reads expose the current authoritative committed cards. No browser-only cards or prose scraping.
+- Repeated/concurrent Begin requests use the existing story serialization boundary. Once play has started, Begin returns an already-started/no-op outcome with current persisted state; it never creates another opening, calls a provider or deducts again. Reload before start restores the ready-to-begin state; reload after start restores play and committed cards.
+- Successful opening delivery settles as an ordinary delivered turn through existing hosted events; BYOK never deducts hosted credits. Keep unavailable paths and bounded same-path fallback behavior.
+
+### Acceptance proof
+
+Use fresh built-app stories for all three styles and both access paths. Demonstrate setup, distinct Begin, opening, next interaction and reload; test missing/invalid configuration, repeated Begin, failed opening, explicit/invalid selection, annotations and OOC changes. Keep real provider selection and parsers; double only external transport/credential storage. Preserve accepted component proofs and all Writing restrictions.
+
+**Authority reconciliation before implementation:** accept this startup extension in an ADR-016 addendum or successor ADR and reconcile Design's setup transition and relevant CRD/API tests. Preserve historical ADR-016 setup decisions rather than silently rewriting them. No graph traversal, labeled-edge migration, classifier paraphrase work, new persona or Writing scope.
+
+## Prerequisite B — Automatic Rolling Summary in Production
+
+**Outcome:** eligible product turns automatically advance durable compressed history at the approved threshold; subsequent context uses it. An unavailable producer cannot be hidden by manual compression, seeded summaries or a generator returning empty text.
+
+**Owner:** RollingSummaryService owns generation inputs and append-safe summary persistence (CRD Issue 6); orchestration owns eligible turn completion and the outer transaction; Context Builder remains a reader (CRD Issue 8); provider adapters own lightweight model selection; entitlements own hosted usage settlement. API routes remain thin.
+
+### Required behavior
+
+- Count only the Owner-approved ordinary delivered narrative turns, per story and in persisted chronological order with a deterministic tie-break. Count the current provisional ordinary turn only within its transaction; it contributes to the persisted count only if delivery commits. The first playable opening is ordinary narrative even though its pre-start session was in setup. Final narrative emitted on RPG resume counts once; pending/support/decision steps do not.
+- Determine eligibility from code-owned delivery-time facts and preserve it durably per Turn for reload and future compression. Do not infer historical eligibility from today's session status, LLM prose, mutable Node snapshots or Retrieval Memory's policy. Prefer the existing Turn metadata storage; a narrow typed extension in that existing JSON carrier is within this prerequisite proposal. New tables, columns or migrations require a separately reviewed dependency. Do not reclassify historical or shared development data; verification uses disposable fresh stores.
+- Keep provisional N = 10. At eligible counts N, 2N, and so on, compress prior current-summary text plus the newly eligible ordered narrative window since the last coverage endpoint. Supply the eligible user input and delivered player-visible response; exclude hidden RPG state, setup-only/OOC material and failed candidates. Existing from/through Turn anchors and append-safe versions remain authoritative. A window may skip ineligible Turns between its endpoint IDs; endpoints do not assert that excluded Turns were summarized.
+- Provide a minimal generic compression prompt/request and validate non-empty summary output. Reuse the turn's already assembled immutable stable prefix through the existing renderer; do not assemble a replacement prefix. The prior summary and explicitly supplied eligible window are the compression source; other prefix content is background authority, not new narrative to summarize. Do not supply hidden RPG adjudication ledgers or roll state as summary source material. The summary preserves narrative continuity, does not invent facts, expose hidden information or ratify Story Bible canon. No mode-prompt retuning, token-budget redesign or empirical summary-quality/calibration program is part of this dependency.
+- Add the summary pass to production provider/pass contracts and structured usage results. Inject model invocation and use the owning adapter's configurable lightweight model on the already-selected hosted/BYOK binding. No hardcoded model, independent resolver, hidden free call, cross-path fallback or silent pass omission. Include actual summary usage in the existing successful hosted-turn cost calculation; preserve BYOK non-deduction and same-path bounded fallback. Retain failure usage for audit without charging a non-delivered turn.
+- Run a due compression only after the narrative has passed its applicable output Safety and Contradiction gates, before its owning outer transaction commits. Turn/canon, eligibility provenance and new current summary commit together. Context Builder must not generate or write summaries. Keep the stable prefix used for the current turn unchanged; later turns consume the new summary.
+- Exhausted provider refusal produces the existing typed refusal outcome; malformed/empty output, operational failure or persistence failure produces the existing typed pipeline error. Both roll back the current Turn/canon and summary change, expose no candidate delivery, and exclude the failed turn from retrieval ingestion and threshold progression. Existing post-commit entitlement-settlement warning behavior is unchanged.
+- A user retry after a rolled-back failure retries an uncommitted turn/window; it is not a new background recovery system. Persisted coverage idempotency and one-current-row guarantees stay with RollingSummaryService/savepoint constraints. GitHub #65's accepted tolerance of duplicate concurrent generator work remains; no single-flight reservations, extra locking service or migration is introduced.
+
+### Acceptance proof
+
+With scripted external transport behind production routing, cross the threshold with actual product turns, verify summary text/version/coverage and later context use, then advance another window using the prior summary. Cover both released modes and access paths. Interleave excluded setup/OOC/pending/failure cases; verify they do not affect count or summary inputs. Exercise due-summary refusal, malformed/empty output and commit failure: no Turn/canon/summary change, no delivery or retrieval ingestion, and no hosted deduction. Verify retry and persisted-coverage idempotency, story isolation and hidden-state exclusion. Reuse existing summary service/current-row and unaffected RPG transaction proofs.
+
+**Authority reconciliation before implementation:** record the accepted production eligibility/transaction/provider-pass extension in an ADR and reconcile Design, Known Unknowns, provider/pass contracts and the relevant governing follow-up. Retain ADR-0010's provisional threshold and GitHub #65's cost deferral. Writing-specific summary eligibility remains deferred under ADR-017b.
+
+## Prerequisite C — RPG Product Startup
+
+Accepted separately on 2026-10-16: [RPG Startup Prerequisite](crd-issue-21-rpg-startup-prerequisite.md), recorded in [ADR-015c](../decisions/adr-015c-rpg-product-startup.md).
+
+## Relationship to CRD Issue 21
+
+Deliver these contract extensions through explicitly accepted prerequisite scope before the corresponding CRD Issue 21 verification can pass. Exact follow-up issue numbers are unassigned; do not publish them without authorization. Since Owner acceptance (2026-10-16) both prerequisites are implemented in the CRD Issue 21 candidate as accepted prerequisite scope. Keep the complete CRD Issue 21 draft and AC1–11 unchanged except for explicit prerequisite references and refreshed provenance. Passing the spine requires both dependencies to work; their separation never waives Branching or Rolling Summary acceptance. No public-launch, payment, support/compliance, shared-runtime, corpus or activation authority is created.

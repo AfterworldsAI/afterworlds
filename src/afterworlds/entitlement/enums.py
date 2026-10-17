@@ -68,6 +68,8 @@ class PipelinePassId(StrEnum):
     OUTPUT_SAFETY = "output_safety"
     EXTRACTOR = "extractor"
     CONTRADICTION = "contradiction"
+    #: ADR-006b: automatic Rolling Summary compression (lightweight tier).
+    ROLLING_SUMMARY = "rolling_summary"
 
 
 class ModelTier(StrEnum):

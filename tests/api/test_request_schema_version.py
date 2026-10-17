@@ -78,7 +78,11 @@ class TestRpgSetupRequest:
         story_id = _create_story(client, mode="rpg")
         resp = client.post(
             f"/api/stories/{story_id}/setup",
-            json={"mode": "rpg", "tone": "balanced"},
+            json={
+                "mode": "rpg",
+                "tone": "balanced",
+                "expected_configuration_revision": 0,
+            },
         )
         assert resp.status_code == 200, resp.text
 
@@ -86,7 +90,12 @@ class TestRpgSetupRequest:
         story_id = _create_story(client, mode="rpg")
         resp = client.post(
             f"/api/stories/{story_id}/setup",
-            json={"mode": "rpg", "tone": "balanced", "schema_version": 1},
+            json={
+                "mode": "rpg",
+                "tone": "balanced",
+                "schema_version": 1,
+                "expected_configuration_revision": 0,
+            },
         )
         assert resp.status_code == 200, resp.text
 

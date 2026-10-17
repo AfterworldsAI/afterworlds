@@ -50,6 +50,10 @@ The character sheet is a first-class persistent object. It persists across all s
 
 After world setup and character creation, the GM confirms play configuration: session type, tone, dice handling, GM cheating setting, house rules, visible content boundaries, and any hard content lines.
 
+### Code-owned confirmations (ADR-015c)
+
+Each setup turn's Writer output is a versioned envelope ([`rpg_setup_writer.md`](rpg_setup_writer.md)): visible GM text plus a phase-specific world-confirmation proposal, character proposal or clarification. The Sojourner advances each phase with explicit, typed product actions: **Confirm world**, Rules Package selection, **Accept character** (validated and bound by code through the character-state service) and **Complete setup**. GM prose never advances a phase, and completing setup generates no scene: the Sojourner's next ordinary action begins play.
+
 ---
 
 ## System Prompt

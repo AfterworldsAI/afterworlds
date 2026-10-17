@@ -29,6 +29,7 @@ from afterworlds.api.routes.account import router as account_router
 from afterworlds.api.routes.health import router as health_router
 from afterworlds.api.routes.personas import router as personas_router
 from afterworlds.api.routes.rpg_actions import router as rpg_actions_router
+from afterworlds.api.routes.rpg_setup import router as rpg_setup_router
 from afterworlds.api.routes.setup import router as setup_router
 from afterworlds.api.routes.stories import router as stories_router
 from afterworlds.api.routes.turns import router as turns_router
@@ -102,6 +103,7 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
     app.include_router(rpg_actions_router)
     app.include_router(visible_state_router)
     app.include_router(setup_router)
+    app.include_router(rpg_setup_router)
     app.include_router(personas_router)
     app.include_router(account_router)
 

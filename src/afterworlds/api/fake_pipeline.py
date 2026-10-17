@@ -11,6 +11,7 @@ execute end-to-end against deterministic data, never a mocked pass service.
 from __future__ import annotations
 
 import json
+import re
 
 from afterworlds.entitlement.enums import ModelTier, RuntimeAccessPath
 from afterworlds.pipeline.provider._models import (
@@ -28,6 +29,7 @@ from afterworlds.pipeline.provider._routing import (
 from afterworlds.pipeline.provider.credentials import ValidationStatus
 
 _FAKE_MODEL = "afterworlds-fake:test-model"
+_FAKE_RANGE_MINIMUM = {"1-2": 1, "2-3": 2, "3-4": 3, "2-4": 2, "2-5": 2}
 
 
 class FakeProviderAdapter:
@@ -63,6 +65,31 @@ class FakeProviderAdapter:
                     },
                 )
             ]
+        elif (
+            pass_id == "writer" and request.forced_tool_name == "produce_rpg_setup_turn"
+        ):
+            # ADR-015c: an RPG setup turn's envelope. The fake confirms the
+            # world and otherwise clarifies; it never proposes a character.
+            world = any(
+                "phase: world_setup" in block.text for block in request.rendered_blocks
+            )
+            content = [
+                ProviderToolCallPart(
+                    tool_name="produce_rpg_setup_turn",
+                    tool_input={
+                        "schema_version": 1,
+                        "gm_text": "The setup continues, faked for E2E testing.",
+                        "result": (
+                            {
+                                "kind": "world_confirmation",
+                                "understanding": "A world, faked for E2E.",
+                            }
+                            if world
+                            else {"kind": "clarification", "questions": []}
+                        ),
+                    },
+                )
+            ]
         elif pass_id == "writer":
             content = [
                 ProviderTextPart(text="The story continues, faked for E2E testing.")
@@ -94,10 +121,45 @@ class FakeProviderAdapter:
                     tool_name="report_safety_assessment", tool_input={"concerns": []}
                 )
             ]
+        elif pass_id == "branching_writer":
+            # CRD Issue 21: the Branching writer is wired; propose the minimum
+            # count the session's code-owned range allows (validated by code).
+            rendered = "\n".join(block.text for block in request.rendered_blocks)
+            match = re.search(r"branch_count_range: (\S+)", rendered)
+            count = _FAKE_RANGE_MINIMUM.get(match.group(1), 2) if match else 2
+            content = [
+                ProviderToolCallPart(
+                    tool_name="produce_branch_output",
+                    tool_input={
+                        "narrative_text": "The story branches, faked for E2E.",
+                        "branch_options_text": [
+                            f"Fake path {i + 1}" for i in range(count)
+                        ],
+                        "branch_presentation_state": "shown",
+                    },
+                )
+            ]
+        elif pass_id == "branching_ooc_config_extractor":
+            content = [
+                ProviderToolCallPart(
+                    tool_name="extract_branching_config_update",
+                    tool_input={
+                        "interaction_style": None,
+                        "branching_cadence": None,
+                        "branch_count_range": None,
+                        "length_preference": None,
+                    },
+                )
+            ]
+        elif pass_id == "rolling_summary":
+            content = [
+                ProviderToolCallPart(
+                    tool_name="record_rolling_summary",
+                    tool_input={"summary": "The story so far, faked for E2E."},
+                )
+            ]
         else:
-            # Mode-specific passes (Branching writer, OOC extractors) are out
-            # of Issue 19's core-path wiring (see
-            # Architecture Notes) -- not exercised by the E2E spine.
+            # Writing's OOC extractor is out of v1 scope (ADR-017b).
             raise NotImplementedError(
                 f"FakeProviderAdapter has no canned response for pass_id={pass_id!r}"
             )

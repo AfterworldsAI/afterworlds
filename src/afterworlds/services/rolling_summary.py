@@ -93,6 +93,18 @@ def should_compress(story_turn_count: int, n: int = ROLLING_SUMMARY_N) -> bool:
     return story_turn_count > 0 and story_turn_count % n == 0
 
 
+#: The code-owned recorded input of a Branching Begin story opening
+#: (ADR-016b). It is not Sojourner text, so it is never summary source.
+STORY_START_INPUT = "[Begin story]"
+
+
+def render_window_turn(user_input: str, assistant_output: str) -> str:
+    """One window entry: the Sojourner's input and the delivered narration."""
+    if user_input == STORY_START_INPUT:
+        return f"Narration: {assistant_output}"
+    return f"Sojourner: {user_input}\nNarration: {assistant_output}"
+
+
 # ---------------------------------------------------------------------------
 # Coverage validation
 # ---------------------------------------------------------------------------
@@ -294,6 +306,70 @@ class RollingSummaryService:
             raise  # unexpected — no conflicting row found
 
         return _orm_to_model(new_row)
+
+    # ------------------------------------------------------------------
+    # Automatic advancement (ADR-006b)
+    # ------------------------------------------------------------------
+
+    def eligible_turns(self, story_id: UUID) -> list[TurnORM]:
+        """The story's Rolling-Summary-eligible Turns, oldest first.
+
+        Eligibility is the durable per-Turn fact recorded at delivery
+        (``mode_metadata.rolling_summary_eligible``); a Turn without it is not
+        eligible. Ordered by ``timestamp`` then ``turn_id``. Includes Turns
+        flushed but not yet committed in this session (the current turn).
+        """
+        # shortcut: filters the story's Turns in Python rather than with a
+        # JSON-path index; fine at v1 story sizes, index it if stories grow
+        # to many thousands of turns.
+        rows = (
+            self._session.execute(
+                select(TurnORM)
+                .join(NodeORM, TurnORM.node_id == NodeORM.node_id)
+                .join(ChapterORM, NodeORM.chapter_id == ChapterORM.chapter_id)
+                .join(ArcORM, ChapterORM.arc_id == ArcORM.arc_id)
+                .where(ArcORM.story_id == str(story_id))
+                .order_by(TurnORM.timestamp.asc(), TurnORM.turn_id.asc())
+            )
+            .scalars()
+            .all()
+        )
+        return [
+            r
+            for r in rows
+            if isinstance(r.mode_metadata, dict)
+            and r.mode_metadata.get("rolling_summary_eligible") is True
+        ]
+
+    def advance_if_due(
+        self, story_id: UUID, *, n: int = ROLLING_SUMMARY_N
+    ) -> RollingSummary | None:
+        """Compress the eligible window when the eligible count reaches a
+        multiple of *n*; otherwise return None without calling the generator.
+
+        The window is every eligible Turn after the current summary's
+        ``compressed_through_turn_id``. Its endpoints anchor the new row;
+        ineligible Turns between them are skipped, not summarized.
+        """
+        eligible = self.eligible_turns(story_id)
+        if not should_compress(len(eligible), n):
+            return None
+        current = self.get_current_summary(story_id)
+        start = 0
+        if current is not None:
+            ids = [r.turn_id for r in eligible]
+            through = str(current.compressed_through_turn_id)
+            if through in ids:
+                start = ids.index(through) + 1
+        window = eligible[start:]
+        if not window:
+            return None
+        return self.compress(
+            story_id,
+            UUID(window[0].turn_id),
+            UUID(window[-1].turn_id),
+            [render_window_turn(r.user_input, r.assistant_output) for r in window],
+        )
 
     # ------------------------------------------------------------------
     # Retrieval

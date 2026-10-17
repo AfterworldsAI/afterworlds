@@ -212,6 +212,11 @@ class OrchestrationResult(BaseModel):
     planner_skipped: bool = False
     action_sequence_error: str | None = None
 
+    # ADR-006b: usage of a due Rolling Summary compression
+    # (``RollingSummaryPassResult``; Any to avoid an import cycle). Settled
+    # with a DELIVERED turn; kept on PIPELINE_ERROR for audit only.
+    rolling_summary_result: Any | None = None
+
     @model_validator(mode="after")
     def _enforce_disposition_invariants(self) -> OrchestrationResult:
         """Enforce the per-disposition required / forbidden field matrix.
@@ -253,6 +258,14 @@ class OrchestrationResult(BaseModel):
             self._forbid(
                 "action_sequence_error only on PIPELINE_ERROR",
                 self.action_sequence_error is not None,
+            )
+        if d not in (
+            PipelineDisposition.DELIVERED,
+            PipelineDisposition.PIPELINE_ERROR,
+        ):
+            self._forbid(
+                "rolling_summary_result only on DELIVERED or PIPELINE_ERROR",
+                self.rolling_summary_result is not None,
             )
 
         # rpg_visible_state and branching_visible_state are only valid on

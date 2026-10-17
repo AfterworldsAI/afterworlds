@@ -31,6 +31,7 @@ from afterworlds.api.deps import (
     run_under_story_lock,
 )
 from afterworlds.api.dto import (
+    BeginStoryResponse,
     ProviderRefusalSummaryDTO,
     TranscriptResponse,
     TranscriptTurnDTO,
@@ -40,6 +41,7 @@ from afterworlds.api.dto import (
 from afterworlds.api.errors import API_ERROR_RESPONSES, ApiErrorCode, ApiErrorResponse
 from afterworlds.api.rpg_actions import RpgActions, raise_for_action_sequence_error
 from afterworlds.api.story_bootstrap import (
+    branching_configuration_problems,
     derive_writing_turn_request,
     ensure_story_turn_anchor_node,
     require_released_mode,
@@ -54,8 +56,12 @@ from afterworlds.entitlement.errors import (
 )
 from afterworlds.entitlement.policy import TurnCostPolicy
 from afterworlds.entitlement.service import EntitlementService
+from afterworlds.models.enums import BranchingPlayStatus, StoryMode
 from afterworlds.models.story import Story
 from afterworlds.persistence.crud.node import list_turns_by_story
+from afterworlds.persistence.crud.session_state import (
+    get_branching_session_state_by_story,
+)
 from afterworlds.persistence.crud.story import get_story
 from afterworlds.pipeline.orchestrator.models import (
     OrchestrationResult,
@@ -175,6 +181,74 @@ def _resume_sync(
         sojourner_id,
         orchestrate,
         before_access_block=classify_settled,
+    )
+
+
+def _begin_sync(
+    session_factory: sessionmaker[Session],
+    orchestrator: OrchestratorService,
+    byok_readiness_provider: ByokCredentialReadinessProvider,
+    story_id: UUID,
+    sojourner_id: UUID,
+) -> BeginStoryResponse:
+    """ADR-016b Decision 2: refusals and the already-started no-op come
+    before access selection, so none reaches a provider or settlement."""
+    session = session_factory()
+    try:
+        story = get_story(session, story_id)
+        if story is None:
+            raise ApiErrorResponse(
+                404, ApiErrorCode.NOT_FOUND, f"Story {story_id} not found"
+            )
+        require_released_mode(story.mode)
+        if story.mode is not StoryMode.BRANCHING:
+            raise ApiErrorResponse(
+                409,
+                ApiErrorCode.SETUP_STATE_CONFLICT,
+                f"Story {story_id} is mode {story.mode.value}; only Branching"
+                " stories begin through this operation",
+            )
+        state = get_branching_session_state_by_story(session, story_id)
+        if state is None:
+            raise ApiErrorResponse(
+                404,
+                ApiErrorCode.NOT_FOUND,
+                f"No Branching session state for story {story_id}",
+            )
+        if state.play_status is BranchingPlayStatus.IN_PLAY:
+            return BeginStoryResponse(
+                outcome="already_started",
+                visible_state=build_visible_state(session, story_id, story.mode),
+            )
+        missing, invalid = branching_configuration_problems(state)
+        if missing or invalid:
+            raise ApiErrorResponse(
+                409,
+                ApiErrorCode.SETUP_REQUIRED,
+                "Complete Branching setup before beginning the story: "
+                + "; ".join([f"{field} is not set" for field in missing] + invalid),
+            )
+    finally:
+        session.close()
+
+    def orchestrate(
+        session: Session, story: Story, node_id: UUID, access_path: RuntimeAccessPath
+    ) -> OrchestrationResult:
+        return orchestrator.orchestrate_branching_start(
+            story.story_id, node_id, sojourner_id, access_path
+        )
+
+    turn = _run_turn_sync(
+        session_factory, byok_readiness_provider, story_id, sojourner_id, orchestrate
+    )
+    return BeginStoryResponse(
+        outcome=(
+            "started"
+            if turn.disposition is PipelineDisposition.DELIVERED
+            else "not_started"
+        ),
+        turn=turn,
+        visible_state=turn.visible_state,
     )
 
 
@@ -352,6 +426,37 @@ async def submit_turn(
         story_id,
         sojourner_id,
         body.user_input,
+    )
+
+
+@router.post(
+    "/{story_id}/begin",
+    response_model=BeginStoryResponse,
+    responses=API_ERROR_RESPONSES,
+)
+async def begin_story(
+    story_id: UUID,
+    request: Request,
+    orchestrator: OrchestratorService = Depends(get_orchestrator),
+    byok_readiness_provider: ByokCredentialReadinessProvider = Depends(
+        get_byok_readiness_provider
+    ),
+    sojourner_id: UUID = Depends(get_sojourner_id),
+    lock: asyncio.Lock = Depends(get_story_lock),
+) -> BeginStoryResponse:
+    """Begin story (ADR-016b): generate a configured Branching story's first
+    playable beat -- and, for Hybrid/True CYOA, its first cards -- through
+    the ordinary access-path selection, pipeline and settlement. Runs under
+    the story's turn lock, so repeated or concurrent requests serialize; once
+    started, it answers ``already_started`` without any provider call."""
+    return await run_under_story_lock(
+        lock,
+        _begin_sync,
+        request.app.state.session_factory,
+        orchestrator,
+        byok_readiness_provider,
+        story_id,
+        sojourner_id,
     )
 
 

@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, field_validator
 from afterworlds.models.enums import (
     BranchCountRange,
     BranchingCadence,
+    BranchingPlayStatus,
     BranchPresentationState,
     InteractionRejectionReason,
     InteractionStyle,
@@ -280,6 +281,9 @@ class BranchingVisibleState(BaseModel):
     length_preference: LengthPreference | None
     last_branch_options: list[BranchOption] | None = None
     last_presentation_state: BranchPresentationState | None = None
+    #: ADR-016b: ``setup`` until Begin story commits the opening, then
+    #: ``in_play``. None only on snapshots built without a session state.
+    play_status: BranchingPlayStatus | None = None
 
 
 __all__ = [

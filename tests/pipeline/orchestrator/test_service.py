@@ -4708,6 +4708,39 @@ def _make_rpg_session_and_sheet() -> tuple[object, object]:
     return session_state, sheet
 
 
+class FakeRpgSetupWriter:
+    """Stub of ``RpgSetupWriterService`` (ADR-015c): a valid setup envelope
+    for the turn's phase (world confirmation, else a clarification)."""
+
+    def write(
+        self, ctx: object, phase: object, setup_block: str, **_: object
+    ) -> object:
+        from afterworlds.models.enums import RpgSetupPhase
+        from afterworlds.pipeline.rpg.setup_writer import (
+            RpgSetupEnvelope,
+            RpgSetupWriterResult,
+        )
+
+        result = (
+            {"kind": "world_confirmation", "understanding": "A world."}
+            if phase is RpgSetupPhase.WORLD_SETUP
+            else {"kind": "clarification", "questions": []}
+        )
+        return RpgSetupWriterResult(
+            envelope=RpgSetupEnvelope.model_validate(
+                {"schema_version": 1, "gm_text": "The GM responds.", "result": result}
+            ),
+            provider="fake-anthropic",
+            model_identifier="fake-anthropic:claude-test",
+            model_tier="sonnet",
+            latency_ms=1,
+            input_token_count=10,
+            output_token_count=5,
+            cache_read_token_count=None,
+            cache_creation_token_count=None,
+        )
+
+
 def _make_orchestrator_with_adjudication(
     session_factory: object,
     *,
@@ -4750,6 +4783,7 @@ def _make_orchestrator_with_adjudication(
         rpg_session_sheet_resolver=lambda _sid: (session_state, sheet),  # type: ignore[arg-type]
         rpg_dice_service=SystemRandomDiceService(seed=42),  # type: ignore[arg-type]
         rpg_visible_state_service=visible_svc,  # type: ignore[arg-type]
+        rpg_setup_writer_service=FakeRpgSetupWriter(),  # type: ignore[arg-type]
     )
 
 

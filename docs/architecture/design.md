@@ -163,7 +163,7 @@ Six memory layers remain distinct.
 | Layer | Contents | Inclusion |
 |---|---|---|
 | Immediate | Last ~10 recent narrative turns verbatim | Always for ordinary narrative windows; OOC turns remain persisted for audit/history but are excluded from later narrative recent-turn windows by `RecentTurnReader` unless a later issue explicitly defines a different retrieval surface. |
-| Rolling Summary | Compressed narrative history, auto-updated every N turns | Always when present. |
+| Rolling Summary | Compressed narrative history, auto-updated every N eligible ordinary narrative turns (delivered Branching/RPG narrative, including the Branching opening; setup-only, OOC, pending-roll/decision and failed attempts excluded) atomically with the turn that crosses the threshold ([ADR-006b](../decisions/adr-006b-automatic-rolling-summary.md)) | Always when present. |
 | Story Bible | Structured canon and active context window | Always. |
 | Rules Package | Retrieved mechanical canon or future canon-pack slices | On demand by mode and intent. |
 | Retrieval Memory | Vector DB of past scenes/events and other approved retrieval records | On demand. |
@@ -304,7 +304,7 @@ A delivered ordinary narrative turn persists:
 - the associated Node or Node update
 - approved state deltas
 - Extractor-routed Story Bible updates
-- rolling summary updates when threshold conditions are met
+- rolling summary updates when threshold conditions are met: a due compression runs after the Contradiction gate and commits with the Turn and canon, and its failure blocks delivery and rolls the turn back (ADR-006b)
 - retrieval-memory writes for delivery-cleared material
 
 Blocked, refused, or errored outputs do not survive as ordinary delivered narrative state.
@@ -445,7 +445,7 @@ If ordinary freeform narrative text reaches the backend while the story is confi
 Branching setup preserves the older story-architect intent while translating it into the typed interaction contract.
 
 - **Tone** is not a rigid separate dropdown. It lives in the world/story summary alongside genre, setting, and narrative register.
-- **Setup** uses the hybrid model: structured fields followed by a lightweight story-architect confirmation pass.
+- **Setup** uses the hybrid model: structured fields followed by a lightweight story-architect confirmation pass. Saving setup does not start play. Once configuration is complete, a separate **Begin story** action generates the first playable beat (and, for branch-card styles, the first selectable cards) and moves the story from setup to play in the same transaction; setup-confirmation exchanges are not the playable opening ([ADR-016b](../decisions/adr-016b-branching-story-start.md)).
 - **Length preference** is a configuration parameter: Short Story / Novella / Novel. It shapes pacing-stage progression through setup, escalation, reversal, climax, and aftermath.
 - **Story seeds and supporting cast** are optional setup fields. Sojourners may provide dramatic hooks, premises, allies, rivals, and antagonists.
 - **Branching cadence/verbosity** is a persisted configuration parameter with Interactive / Balanced / Immersive values. It applies to all Branching interaction styles; for branch-card styles it shapes both storyteller verbosity and branch presentation cadence, while for Freeform-only it shapes storyteller verbosity and pacing only.

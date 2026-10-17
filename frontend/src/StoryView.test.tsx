@@ -3,11 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApiRequestError } from "./api/client";
 import type {
+  RpgSetupView,
   StoryDetail,
   TurnSubmissionResponse,
   VisibleState,
 } from "./api/client";
-import { WritingSetupForm } from "./SetupForm";
+import SetupForm, { WritingSetupForm } from "./SetupForm";
 import StoryView from "./StoryView";
 
 const baseStory: StoryDetail = {
@@ -19,6 +20,33 @@ const baseStory: StoryDetail = {
   updated_at: "2026-01-01T00:00:00Z",
   schema_version: 1,
 };
+
+function rpgSetupView(overrides: Partial<RpgSetupView> = {}): RpgSetupView {
+  return {
+    phase: "world_setup",
+    play_status: "setup",
+    world_revision: 0,
+    world_target: null,
+    packages: [],
+    selected_package_uuid: null,
+    candidate: null,
+    character_accepted: false,
+    configuration_revision: 0,
+    configuration_target: null,
+    configuration: {
+      dice_handling: "ai_rolls",
+      gm_cheating: true,
+      tone: "balanced",
+      session_type: "open_ended",
+      genre_flavor: null,
+      house_rules: null,
+      acceptable_content: null,
+      schema_version: 1,
+    },
+    schema_version: 1,
+    ...overrides,
+  };
+}
 
 function deliveredResponse(): TurnSubmissionResponse {
   return {
@@ -42,7 +70,7 @@ function branchingVisibleState(): VisibleState {
     schema_version: 1,
     interaction_style: "hybrid",
     branching_cadence: "balanced",
-    branch_count_range: null,
+    branch_count_range: "2-3",
     freeform_available: true,
     length_preference: null,
   };
@@ -107,6 +135,12 @@ const mocks = vi.hoisted(() => ({
   applyAdjustment: vi.fn(),
   submitDecision: vi.fn(),
   resumeSequence: vi.fn(),
+  beginStory: vi.fn(),
+  getRpgSetup: vi.fn(),
+  confirmWorld: vi.fn(),
+  selectRulesPackage: vi.fn(),
+  acceptCharacter: vi.fn(),
+  completeRpgSetup: vi.fn(),
 }));
 
 vi.mock("./api/client", async () => {
@@ -123,6 +157,12 @@ vi.mock("./api/client", async () => {
       submitSetup: mocks.submitSetup,
       listPersonas: mocks.listPersonas,
       getPendingInteraction: mocks.getPendingInteraction,
+      beginStory: mocks.beginStory,
+      getRpgSetup: mocks.getRpgSetup,
+      confirmWorld: mocks.confirmWorld,
+      selectRulesPackage: mocks.selectRulesPackage,
+      acceptCharacter: mocks.acceptCharacter,
+      completeRpgSetup: mocks.completeRpgSetup,
       submitRoll: mocks.submitRoll,
       applyAdjustment: mocks.applyAdjustment,
       submitDecision: mocks.submitDecision,
@@ -349,6 +389,10 @@ describe("StoryView separates mutation success from refresh failure (PR #126 rou
     render(<StoryView storyId={baseStory.story_id} />);
 
     await screen.findByRole("heading", { name: "Branching setup" });
+    // Save waits for the persisted setup to hydrate (ADR-016b partial setup).
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Save setup" })).toBeEnabled(),
+    );
     fireEvent.click(screen.getByRole("button", { name: "Save setup" }));
 
     await screen.findByText("post-setup refresh failed");
@@ -630,23 +674,65 @@ describe("StoryView setup handoff survives reload (PR #126 round 3)", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("still shows SetupForm for an RPG story with status=setup and null visible state", async () => {
-    // RPG visible state stays null until a concrete character sheet exists
-    // -- unlike Writing/Branching, RPG must not skip its own setup screen
-    // just because visible state happens to be non-null-checkable here.
+  it("shows the RPG pre-play panel (not the configuration form) for an RPG story in setup", async () => {
+    // ADR-015c: world first -- the GM conversation and its typed controls,
+    // restored from the server's setup view on every load.
     mocks.getStory.mockResolvedValue({
       ...baseStory,
       mode: "rpg",
       status: "setup",
     });
     mocks.getVisibleState.mockResolvedValue(null);
+    mocks.getRpgSetup.mockResolvedValue(rpgSetupView());
 
     render(<StoryView storyId={baseStory.story_id} />);
 
-    await screen.findByRole("heading", { name: "RPG setup" });
-    expect(
-      screen.queryByPlaceholderText("What do you do?"),
-    ).not.toBeInTheDocument();
+    expect(await screen.findByTestId("rpg-setup-phase")).toHaveTextContent(
+      "world",
+    );
+    expect(screen.getByPlaceholderText("What do you do?")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Save setup" })).toBeNull();
+  });
+
+  it("re-reads the RPG setup view after each answered turn, even at the 50-turn transcript cap", async () => {
+    // Codex whole-candidate review R1: the capped transcript length stops
+    // changing at 50, so it cannot be what triggers the setup refresh.
+    const capped = Array.from({ length: 50 }, (_, i) => ({
+      turn_id: `t${i}`,
+      user_input: `say ${i}`,
+      assistant_output: `reply ${i}`,
+      timestamp: "2026-01-01T00:00:00Z",
+      intent_classification: "setup_confirmation" as const,
+      schema_version: 1 as const,
+    }));
+    mocks.getStory.mockResolvedValue({
+      ...baseStory,
+      mode: "rpg",
+      status: "setup",
+    });
+    mocks.getVisibleState.mockResolvedValue(null);
+    mocks.getLatestTranscript.mockResolvedValue(capped);
+    mocks.getRpgSetup.mockResolvedValue(rpgSetupView());
+    mocks.submitTurn.mockResolvedValue(deliveredResponse());
+
+    render(<StoryView storyId={baseStory.story_id} />);
+    await screen.findByTestId("rpg-setup-phase");
+    const before = mocks.getRpgSetup.mock.calls.length;
+
+    for (const text of ["first", "second"]) {
+      fireEvent.change(screen.getByPlaceholderText("What do you do?"), {
+        target: { value: text },
+      });
+      fireEvent.click(screen.getByRole("button", { name: /submit/i }));
+      await waitFor(() =>
+        expect(mocks.submitTurn).toHaveBeenCalledWith(baseStory.story_id, text),
+      );
+    }
+    await waitFor(() =>
+      expect(mocks.getRpgSetup.mock.calls.length).toBeGreaterThanOrEqual(
+        before + 2,
+      ),
+    );
   });
 
   it("shows the play view immediately after saving Branching structured setup, before any confirmation turn", async () => {
@@ -672,7 +758,10 @@ describe("StoryView setup handoff survives reload (PR #126 round 3)", () => {
   });
 });
 
-describe("StoryView RPG setup reload preservation (PR #126 round 5)", () => {
+// ADR-015c: StoryView now routes RPG setup to the pre-play panel; the
+// retained configuration form (and its hydration guards) is exercised
+// directly.
+describe("RpgSetupForm reload preservation (PR #126 round 5)", () => {
   beforeEach(() => {
     localStorage.clear();
     // Round 12 additions to this suite assert on submitSetup call counts,
@@ -699,7 +788,12 @@ describe("StoryView RPG setup reload preservation (PR #126 round 5)", () => {
       acceptable_content: null,
     });
 
-    render(<StoryView storyId={baseStory.story_id} />);
+    render(
+      <SetupForm
+        story={{ ...baseStory, mode: "rpg", status: "setup" }}
+        onComplete={vi.fn()}
+      />,
+    );
 
     await screen.findByRole("heading", { name: "RPG setup" });
     await waitFor(() =>
@@ -728,7 +822,12 @@ describe("StoryView RPG setup reload preservation (PR #126 round 5)", () => {
     });
     mocks.submitSetup.mockResolvedValue({});
 
-    render(<StoryView storyId={baseStory.story_id} />);
+    render(
+      <SetupForm
+        story={{ ...baseStory, mode: "rpg", status: "setup" }}
+        onComplete={vi.fn()}
+      />,
+    );
 
     await screen.findByRole("heading", { name: "RPG setup" });
     await waitFor(() =>
@@ -757,7 +856,12 @@ describe("StoryView RPG setup reload preservation (PR #126 round 5)", () => {
     // Never resolves within this test -- simulates hydration still pending.
     mocks.getSetupState.mockReturnValue(new Promise(() => {}));
 
-    render(<StoryView storyId={baseStory.story_id} />);
+    render(
+      <SetupForm
+        story={{ ...baseStory, mode: "rpg", status: "setup" }}
+        onComplete={vi.fn()}
+      />,
+    );
 
     await screen.findByRole("heading", { name: "RPG setup" });
     expect(screen.getByRole("button", { name: "Save setup" })).toBeDisabled();
@@ -777,7 +881,12 @@ describe("StoryView RPG setup reload preservation (PR #126 round 5)", () => {
     );
     mocks.submitSetup.mockResolvedValue({});
 
-    render(<StoryView storyId={baseStory.story_id} />);
+    render(
+      <SetupForm
+        story={{ ...baseStory, mode: "rpg", status: "setup" }}
+        onComplete={vi.fn()}
+      />,
+    );
 
     await screen.findByRole("heading", { name: "RPG setup" });
     // Clicking a disabled submit button must not submit the form.
@@ -817,7 +926,12 @@ describe("StoryView RPG setup reload preservation (PR #126 round 5)", () => {
     });
     mocks.getSetupState.mockRejectedValueOnce(new Error("network down"));
 
-    render(<StoryView storyId={baseStory.story_id} />);
+    render(
+      <SetupForm
+        story={{ ...baseStory, mode: "rpg", status: "setup" }}
+        onComplete={vi.fn()}
+      />,
+    );
 
     await screen.findByRole("heading", { name: "RPG setup" });
     await screen.findByText(/Could not load saved RPG setup/i);
@@ -844,7 +958,7 @@ describe("StoryView RPG setup reload preservation (PR #126 round 5)", () => {
   });
 });
 
-describe("StoryView Branching setup defaults to freeform_only (PR #126 round 8 P1)", () => {
+describe("StoryView Branching setup (ADR-016b: all styles, Begin story)", () => {
   beforeEach(() => {
     localStorage.clear();
     mocks.getLatestTranscript.mockResolvedValue([]);
@@ -858,21 +972,203 @@ describe("StoryView Branching setup defaults to freeform_only (PR #126 round 8 P
     });
   });
 
-  it("defaults the interaction style select to freeform_only and disables hybrid/true_cyoa", async () => {
+  it("offers every interaction style and a style-specific branch range", async () => {
     render(<StoryView storyId={baseStory.story_id} />);
 
     await screen.findByRole("heading", { name: "Branching setup" });
     const select = screen.getByLabelText("Interaction style");
     expect(select).toHaveValue("freeform_only");
+    for (const name of [/hybrid/i, /true cyoa/i]) {
+      const option = screen.getByRole("option", { name }) as HTMLOptionElement;
+      expect(option.disabled).toBe(false);
+    }
+    expect(screen.queryByLabelText("Branch options per beat")).toBeNull();
 
-    const hybridOption = screen.getByRole("option", {
-      name: /hybrid/i,
-    }) as HTMLOptionElement;
-    const trueCyoaOption = screen.getByRole("option", {
-      name: /true cyoa/i,
-    }) as HTMLOptionElement;
-    expect(hybridOption.disabled).toBe(true);
-    expect(trueCyoaOption.disabled).toBe(true);
+    fireEvent.change(select, { target: { value: "true_cyoa" } });
+    const range = screen.getByLabelText("Branch options per beat");
+    expect(
+      Array.from((range as HTMLSelectElement).options).map((o) => o.value),
+    ).toEqual(["2-3", "2-4", "2-5"]);
+    fireEvent.change(range, { target: { value: "2-5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save setup" }));
+    await waitFor(() =>
+      expect(mocks.submitSetup).toHaveBeenCalledWith(
+        baseStory.story_id,
+        expect.objectContaining({
+          interaction_style: "true_cyoa",
+          branch_count_range: "2-5",
+        }),
+      ),
+    );
+  });
+
+  it("shows Begin story for a saved setup and starts play only when clicked", async () => {
+    const ready = { ...branchingVisibleState(), play_status: "setup" as const };
+    const started = {
+      ...branchingVisibleState(),
+      play_status: "in_play" as const,
+      last_branch_options: [
+        { option_id: "opt_1", action_text: "Cross the bridge" },
+        { option_id: "opt_2", action_text: "Wait for dawn" },
+      ],
+    };
+    mocks.getVisibleState.mockResolvedValue(ready);
+    mocks.beginStory.mockResolvedValue({
+      outcome: "started",
+      turn: { ...deliveredResponse(), visible_state: started },
+      visible_state: started,
+      schema_version: 1,
+    });
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    const begin = await screen.findByRole("button", { name: "Begin story" });
+    expect(mocks.beginStory).not.toHaveBeenCalled();
+    mocks.getStory.mockResolvedValue({
+      ...baseStory,
+      mode: "branching",
+      status: "in_play",
+    });
+    mocks.getVisibleState.mockResolvedValue(started);
+    fireEvent.click(begin);
+
+    await waitFor(() =>
+      expect(mocks.beginStory).toHaveBeenCalledWith(baseStory.story_id),
+    );
+    expect(
+      await screen.findByRole("button", { name: "Cross the bridge" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Begin story" })).toBeNull();
+  });
+
+  it("reopens a partially saved card-style setup, hydrated, instead of a Begin it cannot pass", async () => {
+    // ADR-016b allows a partial save: Hybrid with no range yet.
+    mocks.getVisibleState.mockResolvedValue({
+      ...branchingVisibleState(),
+      branch_count_range: null,
+      play_status: "setup",
+    });
+    mocks.getSetupState.mockResolvedValue({
+      mode: "branching",
+      interaction_style: "hybrid",
+      branching_cadence: "immersive",
+      branch_count_range: null,
+      length_preference: null,
+      schema_version: 1,
+    });
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    await screen.findByRole("heading", { name: "Branching setup" });
+    expect(screen.queryByRole("button", { name: "Begin story" })).toBeNull();
+    await waitFor(() =>
+      expect(screen.getByLabelText("Interaction style")).toHaveValue("hybrid"),
+    );
+    expect(screen.getByLabelText("Cadence")).toHaveValue("immersive");
+    fireEvent.change(screen.getByLabelText("Branch options per beat"), {
+      target: { value: "1-2" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save setup" }));
+    await waitFor(() =>
+      expect(mocks.submitSetup).toHaveBeenCalledWith(
+        baseStory.story_id,
+        expect.objectContaining({
+          interaction_style: "hybrid",
+          branching_cadence: "immersive",
+          branch_count_range: "1-2",
+        }),
+      ),
+    );
+  });
+
+  it("returns to setup, with the server's reason, when Begin reports setup_required", async () => {
+    mocks.getVisibleState.mockResolvedValue({
+      ...branchingVisibleState(),
+      play_status: "setup",
+    });
+    mocks.getSetupState.mockResolvedValue(null);
+    mocks.beginStory.mockRejectedValueOnce(
+      new ApiRequestError(409, {
+        error_code: "setup_required",
+        message: "Complete Branching setup before beginning the story.",
+        detail: null,
+        schema_version: 1,
+      }),
+    );
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Begin story" }));
+    await screen.findByRole("heading", { name: "Branching setup" });
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Complete Branching setup before beginning the story.",
+    );
+
+    // A successful Save closes the form and clears the obsolete refusal,
+    // leaving a valid Begin control.
+    mocks.submitSetup.mockResolvedValue({});
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Save setup" })).toBeEnabled(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Save setup" }));
+    expect(
+      await screen.findByRole("button", { name: "Begin story" }),
+    ).toBeEnabled();
+    expect(
+      screen.queryByText(
+        "Complete Branching setup before beginning the story.",
+      ),
+    ).toBeNull();
+  });
+
+  it("clears an earlier failed opening's banner when another tab already started", async () => {
+    mocks.getVisibleState.mockResolvedValue({
+      ...branchingVisibleState(),
+      play_status: "setup",
+    });
+    mocks.beginStory
+      .mockResolvedValueOnce({
+        outcome: "not_started",
+        turn: pipelineErrorResponse(),
+        visible_state: { ...branchingVisibleState(), play_status: "setup" },
+        schema_version: 1,
+      })
+      .mockResolvedValueOnce({
+        outcome: "already_started",
+        turn: null,
+        visible_state: { ...branchingVisibleState(), play_status: "in_play" },
+        schema_version: 1,
+      });
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Begin story" }));
+    await screen.findByText(/Please try submitting again/);
+    mocks.getStory.mockResolvedValue({
+      ...baseStory,
+      mode: "branching",
+      status: "in_play",
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Begin story" }));
+    await waitFor(() =>
+      expect(screen.queryByText(/Please try submitting again/)).toBeNull(),
+    );
+  });
+
+  it("keeps the story ready to begin after a failed opening", async () => {
+    mocks.getVisibleState.mockResolvedValue({
+      ...branchingVisibleState(),
+      play_status: "setup",
+    });
+    mocks.beginStory.mockResolvedValue({
+      outcome: "not_started",
+      turn: pipelineErrorResponse(),
+      visible_state: { ...branchingVisibleState(), play_status: "setup" },
+      schema_version: 1,
+    });
+    render(<StoryView storyId={baseStory.story_id} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Begin story" }));
+    await waitFor(() => expect(mocks.beginStory).toHaveBeenCalled());
+    expect(
+      await screen.findByRole("button", { name: "Begin story" }),
+    ).toBeEnabled();
   });
 
   it("submits interaction_style: freeform_only when saved without changes", async () => {

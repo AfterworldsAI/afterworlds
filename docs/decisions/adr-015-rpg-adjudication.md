@@ -245,6 +245,8 @@ sheet stores structure; the adapter interprets meaning.
 
 ## Decision 9: `RpgSessionState` extension — play status and session configuration
 
+> **Addendum (2026-10-16): [ADR-015c](adr-015c-rpg-product-startup.md)** defines the product path that drives this sequence: the setup Writer envelope, code-owned world confirmation, Rules Package selection, typed character acceptance through the character service, and setup completion. The decision text below is unchanged.
+
 **Decision:** `RpgSessionState` must carry the fields required for play-status
 dispatch and per-session configuration:
 
