@@ -156,6 +156,12 @@ from afterworlds.pipeline.provider._protocol import ProviderAdapter
 from afterworlds.pipeline.provider._resolver import ProviderResolver
 from afterworlds.pipeline.provider._routing import TurnProviderBinding
 from afterworlds.pipeline.provider.adapters._scoped import ScopedProviderAdapter
+from afterworlds.pipeline.rolling_summary import (
+    RollingSummaryPassError,
+    RollingSummaryPassResult,
+    RollingSummaryPassService,
+)
+from afterworlds.pipeline.rpg.setup_writer import RpgSetupWriterService
 from afterworlds.pipeline.safety.models import (
     SafetyPassError,
     SafetyResult,
@@ -420,6 +426,8 @@ class OrchestratorService:
         writing_ooc_config_extractor: WritingOocConfigExtractorService | None = None,
         retrieval_write_service: RetrievalIngestionServiceLike | None = None,
         retrieval_query_builder: RetrievalQueryBuilderLike | None = None,
+        rolling_summary_pass_service: RollingSummaryPassService | None = None,
+        rpg_setup_writer_service: RpgSetupWriterService | None = None,
     ) -> None:
         self._intent_classifier = intent_classifier
         self._context_builder = context_builder
@@ -451,6 +459,12 @@ class OrchestratorService:
         self._writing_ooc_config_extractor = writing_ooc_config_extractor
         self._retrieval_write_service = retrieval_write_service
         self._retrieval_query_builder = retrieval_query_builder
+        # ADR-006b: always present -- a due compression is never skipped.
+        self._rolling_summary_pass = (
+            rolling_summary_pass_service or RollingSummaryPassService()
+        )
+        # ADR-015c: the RPG setup Writer envelope (same WRITER pass).
+        self._rpg_setup_writer = rpg_setup_writer_service or RpgSetupWriterService()
         self._provided_executor = executor
         # Owned executor is created once and reused for the lifetime of
         # this instance — see the Executor-lifecycle contract above.
@@ -1105,6 +1119,7 @@ class OrchestratorService:
         _pre_selected_context: SelectedBranchContext | None = None,
         _pre_writing_state: WritingSessionState | None = None,
         writing_turn_request: WritingTurnRequest | None = None,
+        story_start: bool = False,
     ) -> OrchestrationResult:
         # 3. Input Safety Preflight, conditional.
         input_safety: SafetyResult | None = None
@@ -1204,6 +1219,8 @@ class OrchestratorService:
         # resolver is wired at all, or resolution fails; the marker-write
         # block below fails closed (typed PIPELINE_ERROR) in that case.
         rpg_play_status: RpgPlayStatus | None = None
+        # ADR-015c: the session state this turn resolved, for setup turns.
+        rpg_session_state: RpgSessionState | None = None
 
         if story_mode == StoryMode.RPG and self._rpg_adjudication_service is not None:
             if (
@@ -1240,6 +1257,7 @@ class OrchestratorService:
             session_state = _ss
             rpg_session_id = session_state.session_id
             rpg_play_status = session_state.play_status
+            rpg_session_state = session_state
             if _sh is not None:
                 rpg_character_id = _sh.sheet_id
                 rpg_sheet = _sh
@@ -1367,12 +1385,14 @@ class OrchestratorService:
                     rpg_play_status = (
                         _pre_ss.play_status if _pre_ss is not None else None
                     )
+                    rpg_session_state = _pre_ss
                 except Exception:  # noqa: BLE001
                     rpg_play_status = None
             elif self._rpg_session_sheet_resolver is not None:
                 try:
                     _pre_ss2, _ = self._rpg_session_sheet_resolver(story_id)
                     rpg_play_status = _pre_ss2.play_status
+                    rpg_session_state = _pre_ss2
                 except Exception:  # noqa: BLE001
                     rpg_play_status = None
         # -------------------------------------------------------------------------
@@ -1408,6 +1428,8 @@ class OrchestratorService:
                 writing_session_state=_pre_writing_state,
                 writing_turn_request=writing_turn_request,
                 rpg_play_status=rpg_play_status,
+                rpg_session_state=rpg_session_state,
+                story_start=story_start,
             ),
             intent_result,
             latency,
@@ -1455,6 +1477,8 @@ class OrchestratorService:
         writing_session_state: WritingSessionState | None = None,
         writing_turn_request: WritingTurnRequest | None = None,
         rpg_play_status: RpgPlayStatus | None = None,
+        rpg_session_state: RpgSessionState | None = None,
+        story_start: bool = False,
     ) -> OrchestrationResult:
         """Writer, Output Safety, Extractor/Contradiction and the RPG delivery
         commits, inside the outer transaction: the shared delivery core of an
@@ -1500,10 +1524,16 @@ class OrchestratorService:
         # through to the prose Writer, which would bypass the typed branch-card
         # contract and omit branching_pass_result.  Setup turns and
         # FREEFORM_ONLY still route through the prose Writer per ADR-016 Dec. 3.
+        # ADR-016b: the explicit Begin story operation runs on a story still
+        # in SETUP and is routed exactly like the in-play turn it creates.
+        _plays = story_start or (
+            branching_state is not None
+            and branching_state.play_status is BranchingPlayStatus.IN_PLAY
+        )
         _branching_required = (
             story_mode is StoryMode.BRANCHING
             and branching_state is not None
-            and branching_state.play_status is BranchingPlayStatus.IN_PLAY
+            and _plays
             and branching_state.interaction_style
             in (
                 InteractionStyle.HYBRID,
@@ -1532,6 +1562,9 @@ class OrchestratorService:
         # refusal-log rows are consistent with the Turn row on success.  On
         # failure no Turn is persisted; the log row still carries the candidate id.
         branching_pass_result: _BranchingPassResult | None = None
+        # ADR-015c: what Output Safety audits when it is more than the
+        # delivered text (an RPG setup envelope's other visible fields).
+        output_audit_text: str | None = None
         if _use_branching_writer:
             # 5a-branching: BranchingWriterService produces narrative + branch cards.
             # Fail-closed: BranchingPassError + ProviderRefusalError both abort the turn.  # noqa: E501
@@ -1773,6 +1806,133 @@ class OrchestratorService:
                 provider=_bpr.provider,
                 model_tier=_bpr.model_tier or "",
             )
+            # Output Safety also audits the cards the Sojourner is shown
+            # (PR #204); the Turn, canon and summary keep the narrative alone.
+            if _bpr.branch_options:
+                output_audit_text = "\n\n".join(
+                    [
+                        _bpr.narrative_text,
+                        *(f"Choice: {o.action_text}" for o in _bpr.branch_options),
+                    ]
+                )
+        elif (
+            story_mode is StoryMode.RPG
+            and rpg_play_status is RpgPlayStatus.SETUP
+            and delivery is None
+        ):
+            # 5a-rpg-setup (ADR-015c): the setup Writer returns a versioned
+            # envelope -- visible GM text plus a phase-specific proposal --
+            # on the same WRITER pass. The Turn and what it proposed (world
+            # confirmation target or character candidate) commit together.
+            from datetime import UTC as _SUTC  # noqa: PLC0415
+            from datetime import datetime as _sdt  # noqa: PLC0415
+
+            from afterworlds.models.turn import Turn as _STurn  # noqa: PLC0415
+            from afterworlds.persistence.crud.node import (  # noqa: PLC0415
+                create_turn as _screate_turn,
+            )
+            from afterworlds.pipeline.rpg.setup_writer import (  # noqa: PLC0415
+                RpgSetupWriterError,
+                visible_output,
+            )
+            from afterworlds.pipeline.writer.models import (  # noqa: PLC0415
+                WriterResult as _SWriterResult,
+            )
+            from afterworlds.services import rpg_setup as _setup  # noqa: PLC0415
+
+            _snow = _sdt.now(_SUTC).isoformat()
+            try:
+                _sphase, _sblock = _setup.render_setup_block(
+                    session, story_id, node_id, now=_snow, state=rpg_session_state
+                )
+                _sres, ms = _timed(
+                    lambda: self._rpg_setup_writer.write(
+                        ctx,
+                        _sphase,
+                        _sblock,
+                        provider=ScopedProviderAdapter(
+                            binding.adapter,  # type: ignore[arg-type]
+                            sojourner_id,
+                            turn_id=writer_turn_id,
+                        ),
+                    )
+                )
+                latency["writer"] = ms
+            except ProviderRefusalError as exc:
+                return _built(
+                    PipelineDisposition.REFUSED_BY_PROVIDER,
+                    intent_result,
+                    latency,
+                    turn_start,
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                    provider_refusal=exc.refusal,
+                )
+            except RpgSetupWriterError as exc:
+                return _error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"rpg setup writer failed: {exc}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                )
+            except Exception as exc:  # noqa: BLE001 — see boundary docstring
+                return _error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"rpg setup writer unexpected error: {exc}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                )
+            writer_result = _SWriterResult(
+                turn_id=writer_turn_id,
+                assistant_output=_sres.envelope.gm_text,
+                model_identifier=_sres.model_identifier or "",
+                latency_ms=_sres.latency_ms,
+                input_token_count=_sres.input_token_count,
+                output_token_count=_sres.output_token_count,
+                cache_read_token_count=_sres.cache_read_token_count,
+                cache_creation_token_count=_sres.cache_creation_token_count,
+                provider=_sres.provider,
+                model_tier=_sres.model_tier or "",
+            )
+            output_audit_text = visible_output(_sres.envelope)
+            try:
+                _icr_s = ctx.volatile_suffix.classified_intent
+                _screate_turn(
+                    session,
+                    _STurn(
+                        turn_id=writer_turn_id,
+                        user_input=ctx.volatile_suffix.current_input,
+                        assistant_output=_sres.envelope.gm_text,
+                        timestamp=_sdt.now(_SUTC),
+                        intent_classification=IntentType(_icr_s.intent_type.value),
+                        node_id=node_id,
+                        intent_classification_result=_icr_s,
+                    ),
+                )
+                _setup.apply_envelope(
+                    session,
+                    story_id,
+                    node_id,
+                    _sphase,
+                    writer_turn_id,
+                    _sres.envelope,
+                    now=_snow,
+                    state=rpg_session_state,
+                )
+            except Exception as exc:  # noqa: BLE001
+                return _error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"rpg setup persistence failed: {exc}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                    writer_result=writer_result,
+                )
         else:
             # Thread selected branch context into the ledger when the branching
             # writer is not active (partially-wired orchestrator: selection service
@@ -1800,7 +1960,7 @@ class OrchestratorService:
             if (
                 story_mode is StoryMode.BRANCHING
                 and branching_state is not None
-                and branching_state.play_status is BranchingPlayStatus.IN_PLAY
+                and _plays
                 and branching_state.interaction_style is InteractionStyle.FREEFORM_ONLY
             ):
                 _cfg_lines = [
@@ -1863,6 +2023,101 @@ class OrchestratorService:
                     input_safety_result=input_safety,
                     planner_result=planner_result,
                     rpg_adjudication_result=adj_result,
+                )
+            # Phase G for an in-play Freeform-only beat: every narrative beat
+            # replaces the choices on offer (ADR-016), and this one offers
+            # none, so the anchor Node's committed card set is cleared in the
+            # same transaction. Otherwise an earlier card beat's options could
+            # be shown and selected again after a later switch back to a card
+            # style. Fails closed like the card-beat write.
+            if (
+                story_mode is StoryMode.BRANCHING
+                and branching_state is not None
+                and _plays
+                and branching_state.interaction_style is InteractionStyle.FREEFORM_ONLY
+            ):
+                try:
+                    from afterworlds.models.node import (  # noqa: PLC0415
+                        BranchingNodeMetadata as _FreeBNM,
+                    )
+                    from afterworlds.persistence.crud.node import (  # noqa: PLC0415
+                        get_node as _free_gn,
+                    )
+                    from afterworlds.persistence.crud.node import (  # noqa: PLC0415
+                        update_node as _free_un,
+                    )
+
+                    _free_node = _free_gn(session, node_id)
+                    if _free_node is None:
+                        raise RuntimeError(f"node {node_id} not found")
+                    _free_mm = _free_node.mode_metadata
+                    _free_node.mode_metadata = _FreeBNM(
+                        pacing_stage_at_beat=(
+                            _free_mm.pacing_stage_at_beat
+                            if isinstance(_free_mm, _FreeBNM)
+                            else None
+                        ),
+                        interaction_style=InteractionStyle.FREEFORM_ONLY,
+                        branching_cadence=branching_state.branching_cadence,
+                        freeform_available=True,
+                        branch_options=[],
+                    )
+                    if _free_un(session, _free_node) is None:
+                        raise RuntimeError(f"node {node_id} update returned no row")
+                except Exception as exc:  # noqa: BLE001
+                    return _error(
+                        intent_result,
+                        latency,
+                        turn_start,
+                        f"branch-card metadata persistence failed: {exc}",
+                        input_safety_result=input_safety,
+                        planner_result=planner_result,
+                        writer_result=writer_result,
+                    )
+
+        # 5a-start: [Branching Begin story only] the SETUP -> IN_PLAY
+        # transition commits with the opening Turn and its first cards
+        # (ADR-016b Decision 4). Conditional on the row still being in SETUP,
+        # so a concurrent start can never produce a second opening.
+        if story_start:
+            import sqlalchemy as _sa  # noqa: PLC0415
+
+            from afterworlds.persistence.orm.session_state import (  # noqa: PLC0415
+                BranchingSessionStateORM as _BSS,
+            )
+
+            _start_failure: str | None = None
+            try:
+                _promotion: _sa.CursorResult[Any] = session.execute(  # type: ignore[assignment]
+                    _sa.update(_BSS)
+                    .where(
+                        _BSS.story_id == str(story_id),
+                        _BSS.play_status == BranchingPlayStatus.SETUP.value,
+                        # The opening was generated for this configuration; a
+                        # setup write that landed meanwhile must not be paired
+                        # with it (CRD Issue 21 round 1, F3).
+                        *_start_config_clauses(_BSS, branching_state),
+                    )
+                    .values(play_status=BranchingPlayStatus.IN_PLAY.value)
+                    .execution_options(synchronize_session=False)
+                )
+                if _promotion.rowcount != 1:
+                    _start_failure = (
+                        "the story is no longer in setup with the configuration"
+                        " this opening was generated for; retry Begin story"
+                    )
+            except Exception as exc:  # noqa: BLE001
+                _start_failure = str(exc)
+            if _start_failure is not None:
+                return _error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"story start transition failed: {_start_failure}",
+                    input_safety_result=input_safety,
+                    planner_result=planner_result,
+                    writer_result=writer_result,
+                    branching_pass_result=branching_pass_result,
                 )
 
         # 5a-writing: [WRITING only] Phase G — persist WritingNodeMetadata (persona
@@ -2315,11 +2570,12 @@ class OrchestratorService:
         )
         if self._safety_policy.should_run_output_audit(audit_ctx):
             _post_writer_turn_id = writer_result.turn_id
+            _audited = output_audit_text or writer_result.assistant_output
             try:
                 output_safety, ms = _timed(
                     lambda: self._safety_service.check(
                         ctx,
-                        writer_result.assistant_output,
+                        _audited,
                         SafetyTarget.OUTPUT,
                         provider=ScopedProviderAdapter(
                             binding.adapter,  # type: ignore[arg-type]
@@ -2484,6 +2740,123 @@ class OrchestratorService:
                 branching_pass_result=branching_pass_result,
             )
 
+        # 8a. ADR-006b: record this Turn's durable Rolling Summary eligibility
+        # and, when the eligible count reaches the threshold, compress inside
+        # this outer transaction so Turn, canon, eligibility and the new
+        # current summary commit (or roll back) together. Runs only after
+        # Output Safety and the Contradiction gate have passed.
+        rolling_summary_result: RollingSummaryPassResult | None = None
+        if story_mode in (StoryMode.BRANCHING, StoryMode.RPG):
+            from afterworlds.models.node import (  # noqa: PLC0415
+                BranchingNodeMetadata as _SumBNM,
+            )
+            from afterworlds.models.node import (  # noqa: PLC0415
+                RpgNodeMetadata as _SumRNM,
+            )
+            from afterworlds.persistence.crud.node import (  # noqa: PLC0415
+                update_turn_mode_metadata as _set_turn_mm,
+            )
+            from afterworlds.services.rolling_summary import (  # noqa: PLC0415
+                RollingSummaryService,
+            )
+
+            if story_mode is StoryMode.BRANCHING:
+                _eligible = story_start or (
+                    branching_state is not None
+                    and branching_state.play_status is BranchingPlayStatus.IN_PLAY
+                )
+                _turn_mm: _SumBNM | _SumRNM = _SumBNM(
+                    rolling_summary_eligible=_eligible
+                )
+            else:
+                # A turn announcing a pending roll/decision is not narrative
+                # delivery; its resume narration (no new sequence) is.
+                _eligible = rpg_play_status is RpgPlayStatus.IN_PLAY and not (
+                    adj_result is not None and adj_result.sequence is not None
+                )
+                _turn_mm = _SumRNM(rolling_summary_eligible=_eligible)
+            _summary_upstream: dict[str, Any] = {
+                "input_safety_result": input_safety,
+                "planner_result": planner_result,
+                "writer_result": writer_result,
+                "output_safety_result": output_safety,
+                "rpg_adjudication_result": adj_result,
+                "branching_pass_result": branching_pass_result,
+                # Completed before the summary: kept on any non-delivered
+                # result for audit (never settled; ADR-006b D5).
+                "extractor_result": extractor_result,
+                "contradiction_result": contradiction_result,
+            }
+            try:
+                if not _set_turn_mm(session, writer_result.turn_id, _turn_mm):
+                    raise RuntimeError(f"turn {writer_result.turn_id} not found")
+            except Exception as exc:  # noqa: BLE001
+                return _error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"rolling summary eligibility write failed: {exc}",
+                    **_summary_upstream,
+                )
+            if _eligible:
+                _summary_calls: list[RollingSummaryPassResult] = []
+                _summary_provider = ScopedProviderAdapter(
+                    binding.adapter,  # type: ignore[arg-type]
+                    sojourner_id,
+                    turn_id=writer_result.turn_id,
+                )
+
+                def _generate(prior: str | None, window: list[str]) -> str:
+                    try:
+                        produced = self._rolling_summary_pass.summarize(
+                            ctx, prior, window, provider=_summary_provider
+                        )
+                    except RollingSummaryPassError as exc:
+                        if exc.usage is not None:
+                            _summary_calls.append(exc.usage)
+                        raise
+                    _summary_calls.append(produced)
+                    return produced.summary_text
+
+                try:
+                    _, ms = _timed(
+                        lambda: RollingSummaryService(
+                            session, generator=_generate
+                        ).advance_if_due(story_id)
+                    )
+                    if _summary_calls:
+                        latency["rolling_summary"] = ms
+                except ProviderRefusalError as exc:
+                    return _built(
+                        PipelineDisposition.REFUSED_BY_PROVIDER,
+                        intent_result,
+                        latency,
+                        turn_start,
+                        provider_refusal=exc.refusal,
+                        **_summary_upstream,
+                    )
+                except RollingSummaryPassError as exc:
+                    return _error(
+                        intent_result,
+                        latency,
+                        turn_start,
+                        f"rolling summary pass failed: {exc}",
+                        rolling_summary_result=exc.usage,
+                        **_summary_upstream,
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    return _error(
+                        intent_result,
+                        latency,
+                        turn_start,
+                        f"rolling summary persistence failed: {exc}",
+                        rolling_summary_result=(
+                            _summary_calls[-1] if _summary_calls else None
+                        ),
+                        **_summary_upstream,
+                    )
+                rolling_summary_result = _summary_calls[-1] if _summary_calls else None
+
         # Build branching visible state for BRANCHING-mode DELIVERED turns.
         branching_visible_state = None
         if (
@@ -2493,7 +2866,13 @@ class OrchestratorService:
         ):
             try:
                 branching_visible_state = self._branching_visible_state_service.build(
-                    branching_state,
+                    (
+                        branching_state.model_copy(
+                            update={"play_status": BranchingPlayStatus.IN_PLAY}
+                        )
+                        if story_start
+                        else branching_state
+                    ),
                     branching_pass_result,
                 )
             except Exception:  # noqa: BLE001
@@ -2533,6 +2912,121 @@ class OrchestratorService:
             writing_visible_state=writing_visible_state,
             delivered_output=writer_result.assistant_output,
             turn_id=writer_result.turn_id,
+            rolling_summary_result=rolling_summary_result,
+        )
+
+    # ------------------------------------------------------------------
+    # Branching Begin story (ADR-016b)
+    # ------------------------------------------------------------------
+
+    def orchestrate_branching_start(
+        self,
+        story_id: UUID,
+        node_id: UUID,
+        sojourner_id: UUID,
+        access_path: RuntimeAccessPath,
+        *,
+        request_risk_signal: bool = False,
+    ) -> OrchestrationResult:
+        """Generate the first playable beat of a configured Branching story.
+
+        The explicit start operation (ADR-016b): it carries no Sojourner text,
+        so its intent is code-owned and fixed before context assembly (the
+        RPG resume precedent, 15b-22). Context is assembled once, with a
+        code-owned ``story_start`` frame; the ordinary narrative path then
+        runs Planner, the style's Writer, conditional Safety, Extractor and
+        Contradiction, and commits the opening Turn, its first cards and the
+        SETUP -> IN_PLAY transition together. A story no longer in setup is
+        refused before any provider call (the route answers that as a no-op).
+        """
+        from afterworlds.services.rolling_summary import (  # noqa: PLC0415
+            STORY_START_INPUT,
+        )
+
+        turn_start = time.perf_counter()
+        latency: dict[str, int] = {}
+        intent_result = IntentClassificationResult(
+            intent_type=IntentType.BEAT_MILESTONE,
+            confidence=1.0,
+            raw_input=STORY_START_INPUT,
+            ambiguous=False,
+        )
+        if self._branching_session_resolver is None:
+            return self._pipeline_error(
+                intent_result,
+                latency,
+                turn_start,
+                "branching session resolver not wired for story start",
+            )
+        try:
+            state = self._branching_session_resolver(story_id)
+        except Exception as exc:  # noqa: BLE001
+            return self._pipeline_error(
+                intent_result,
+                latency,
+                turn_start,
+                f"branching session resolution failed: {exc}",
+            )
+        if state is None or state.play_status is not BranchingPlayStatus.SETUP:
+            return self._pipeline_error(
+                intent_result,
+                latency,
+                turn_start,
+                "story start requires a Branching story still in setup",
+            )
+        try:
+            binding = self._provider_resolver.resolve_for_turn(
+                access_path, sojourner_id
+            )
+        except Exception as exc:  # noqa: BLE001
+            return self._pipeline_error(
+                intent_result,
+                latency,
+                turn_start,
+                f"provider resolution failed: {exc}",
+            )
+        retrieval_query_request: RetrievalQueryRequest | None = None
+        if self._retrieval_query_builder is not None:
+            try:
+                retrieval_query_request = (
+                    self._retrieval_query_builder.build_query_request(
+                        story_id, STORY_START_INPUT, StoryMode.BRANCHING, intent_result
+                    )
+                )
+            except Exception as exc:  # noqa: BLE001
+                return self._pipeline_error(
+                    intent_result,
+                    latency,
+                    turn_start,
+                    f"retrieval query construction failed: {exc}",
+                )
+        try:
+            ctx, _, ctx_ms = self._build_context(
+                story_id,
+                STORY_START_INPUT,
+                intent_result,
+                mode=StoryMode.BRANCHING,
+                retrieval_query_request=retrieval_query_request,
+            )
+            latency["context"] = ctx_ms
+        except Exception as exc:  # noqa: BLE001
+            return self._pipeline_error(
+                intent_result, latency, turn_start, f"context assembly failed: {exc}"
+            )
+        ctx.pass_forward_ledger.add("story_start", _story_start_frame(state))
+        return self._run_narrative(
+            ctx,
+            story_id,
+            node_id,
+            sojourner_id,
+            intent_result,
+            binding,
+            latency,
+            turn_start,
+            request_risk_signal,
+            StoryMode.BRANCHING,
+            _pre_branching_state=state,
+            story_start=True,
         )
 
     # ------------------------------------------------------------------
@@ -3203,6 +3697,52 @@ class OrchestratorService:
                             f"{_requested_range.value} is not valid for "
                             f"{_range_style_txt}.]"
                         )
+
+                # ADR-016b: an in-play story may not become True CYOA (style
+                # switch or range change) unless its committed card set is
+                # selectable under the effective range -- configuration does
+                # not generate cards. Keep the playable configuration and say
+                # so, as for the other suppressed changes above.
+                if _bss_row is None:
+                    _bss_row = _get_bss(session, story_id)
+                if (
+                    _bss_row is not None
+                    and _bss_row.play_status is BranchingPlayStatus.IN_PLAY
+                ):
+                    from afterworlds.models.node import (  # noqa: PLC0415
+                        BranchingNodeMetadata as _OocBNM,
+                    )
+                    from afterworlds.persistence.crud.node import (  # noqa: PLC0415
+                        get_node as _ooc_gn,
+                    )
+                    from afterworlds.pipeline.branching.config import (  # noqa: PLC0415
+                        true_cyoa_unplayable_reason as _tc_reason,
+                    )
+
+                    _eff_style = _apply_style or _bss_row.interaction_style
+                    _eff_range = (
+                        None
+                        if _should_clear_range
+                        else _validated_range or _bss_row.branch_count_range
+                    )
+                    _anchor = _ooc_gn(session, node_id)
+                    _anchor_mm = _anchor.mode_metadata if _anchor else None
+                    _committed = (
+                        len(_anchor_mm.branch_options)
+                        if isinstance(_anchor_mm, _OocBNM)
+                        else 0
+                    )
+                    _why = _tc_reason(_eff_style, _eff_range, _committed)
+                    if _why is not None and (
+                        _apply_style is not None or _validated_range is not None
+                    ):
+                        _apply_style = None
+                        _validated_range = None
+                        _ooc_style_noop_note = (
+                            "[Interaction style and branch-count range not"
+                            f" changed: {_why}.]"
+                        )
+                        _ooc_range_noop_note = None
 
                 _apply_cfg(
                     session,
@@ -3997,6 +4537,7 @@ class OrchestratorService:
         intent_classifier_usage: IntentClassifierUsage | None = None,
         planner_skipped: bool = False,
         action_sequence_error: str | None = None,
+        rolling_summary_result: RollingSummaryPassResult | None = None,
     ) -> OrchestrationResult:
         total_ms = max(0, int((time.perf_counter() - turn_start) * 1000))
         cache_warmed = _any_cache_read(
@@ -4012,6 +4553,7 @@ class OrchestratorService:
             branching_pass_result,
             branching_ooc_config_result,
             writing_ooc_config_result,
+            rolling_summary_result,
         )
         return OrchestrationResult(
             disposition=disposition,
@@ -4039,6 +4581,7 @@ class OrchestratorService:
             intent_classifier_usage=intent_classifier_usage,
             planner_skipped=planner_skipped,
             action_sequence_error=action_sequence_error,
+            rolling_summary_result=rolling_summary_result,
             total_latency_ms=total_ms,
             pass_latency_breakdown=dict(latency),
             stable_prefix_cache_warmed=cache_warmed,
@@ -4060,6 +4603,9 @@ class OrchestratorService:
         intent_classifier_usage: IntentClassifierUsage | None = None,
         planner_skipped: bool = False,
         action_sequence_error: str | None = None,
+        rolling_summary_result: RollingSummaryPassResult | None = None,
+        extractor_result: ExtractorResult | None = None,
+        contradiction_result: ContradictionResult | None = None,
     ) -> OrchestrationResult:
         return self._build_result(
             PipelineDisposition.PIPELINE_ERROR,
@@ -4070,12 +4616,15 @@ class OrchestratorService:
             planner_result=planner_result,
             writer_result=writer_result,
             output_safety_result=output_safety_result,
+            extractor_result=extractor_result,
+            contradiction_result=contradiction_result,
             pipeline_error_summary=summary,
             rpg_adjudication_result=rpg_adjudication_result,
             branching_pass_result=branching_pass_result,
             intent_classifier_usage=intent_classifier_usage,
             planner_skipped=planner_skipped,
             action_sequence_error=action_sequence_error,
+            rolling_summary_result=rolling_summary_result,
         )
 
     def _run_with_transaction(
@@ -4243,6 +4792,8 @@ class OrchestratorService:
                         inner_result.branching_ooc_config_result
                     ),
                     writing_ooc_config_result=(inner_result.writing_ooc_config_result),
+                    # ADR-006b: a compression that ran is audit evidence too.
+                    rolling_summary_result=inner_result.rolling_summary_result,
                     planner_skipped=inner_result.planner_skipped,
                     pipeline_error_summary=(
                         f"transaction commit failed after "
@@ -4464,6 +5015,46 @@ def _synthesize_resume_intent(user_input: str) -> IntentClassificationResult:
         raw_input=user_input,
         ambiguous=False,
     )
+
+
+def _start_config_clauses(orm: Any, state: BranchingSessionState | None) -> list[Any]:
+    """SQL conditions matching the Branching configuration a Begin story
+    opening was generated for (``IS NULL`` for an unset field)."""
+    if state is None:
+        return []
+    clauses: list[Any] = []
+    for column, value in (
+        (orm.interaction_style, state.interaction_style),
+        (orm.branching_cadence, state.branching_cadence),
+        (orm.branch_count_range, state.branch_count_range),
+        (orm.length_preference, state.length_preference),
+    ):
+        clauses.append(column.is_(None) if value is None else column == value.value)
+    return clauses
+
+
+def _story_start_frame(state: BranchingSessionState) -> str:
+    """The code-owned frame of a Branching Begin story opening (ADR-016b):
+    persisted setup context only, no Sojourner prose and no invented choice."""
+    lines = [
+        "[Story Start]",
+        "This turn is the explicit Begin story operation: write the opening "
+        "scene of this story. No player action or choice has happened yet; "
+        "do not invent one. Ground the opening in the Story Bible and the "
+        "persisted setup context below.",
+    ]
+    for label, value in (
+        ("world_summary", state.world_summary),
+        ("story_seeds", state.story_seeds),
+        ("character_concept", state.character_concept),
+        ("supporting_cast", state.supporting_cast),
+        ("world_constraints", state.world_constraints),
+        ("pacing_notes", state.pacing_notes),
+        ("acceptable_content", state.acceptable_content),
+    ):
+        if value:
+            lines.append(f"{label}: {value}")
+    return "\n".join(lines)
 
 
 #: The code-owned continuation frame of an RPG resume (15b-24).

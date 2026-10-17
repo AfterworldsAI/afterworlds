@@ -41,12 +41,69 @@ class NodeMetadata(BaseModel):
     timestamp: datetime | None = None
 
 
+class RpgWorldConfirmationTarget(BaseModel):
+    """The world understanding a Confirm world action may confirm (ADR-015c):
+    the delivered setup Turn that proposed it, at its world revision."""
+
+    turn_id: UUID
+    world_revision: int
+    understanding: str
+
+
+class RpgCharacterCandidate(BaseModel):
+    """An unaccepted, reviewable character proposal (ADR-015c).
+
+    ``proposal`` is the model's untrusted ``Dnd5eCharacterState``-shaped
+    input; ``problems`` is what code found when validating it under
+    ``binding`` (empty means acceptable). Never the accepted sheet.
+    """
+
+    revision: int
+    turn_id: UUID
+    path: Literal["gm_led", "completed_sheet"]
+    proposal: dict[str, Any]
+    unresolved: list[str] = Field(default_factory=list)
+    problems: list[str] = Field(default_factory=list)
+    binding: dict[str, Any] | None = None
+
+
+class RpgConfigurationConfirmationTarget(BaseModel):
+    """The configuration a Complete setup action may confirm (ADR-015c):
+    what the GM's delivered summary Turn presented, at its revision."""
+
+    turn_id: UUID
+    configuration_revision: int
+    configuration: dict[str, Any]
+    summary: str
+
+
+class RpgSetupMetadata(BaseModel):
+    """Code-owned RPG pre-play progress on the story's anchor Node."""
+
+    schema_version: Literal[1] = 1
+    world_revision: int = 0
+    world_target: RpgWorldConfirmationTarget | None = None
+    selected_package_uuid: UUID | None = None
+    candidate_revision: int = 0
+    candidate: RpgCharacterCandidate | None = None
+    #: Bumped by every configuration edit; a summary target names the
+    #: revision it presented, so an edit after it invalidates the target.
+    configuration_revision: int = 0
+    configuration_target: RpgConfigurationConfirmationTarget | None = None
+
+
 class RpgNodeMetadata(BaseModel):
     """RPG-mode beat metadata — mechanical notes, dice outcomes."""
 
     mode: Literal["rpg"] = "rpg"
+    #: ADR-015c: pre-play setup progress (anchor Node only).
+    setup: RpgSetupMetadata | None = None
     mechanical_notes: str | None = None
     dice_results: list[int] = Field(default_factory=list)
+    #: ADR-006b: on a Turn's own metadata, whether this delivered Turn counts
+    #: toward Rolling Summary compression. Decided by code at delivery; None
+    #: (absent, legacy or Node-level) means not eligible.
+    rolling_summary_eligible: bool | None = None
 
 
 class PersistedBranchOption(BaseModel):
@@ -95,6 +152,8 @@ class BranchingNodeMetadata(BaseModel):
     selected_option_id: str | None = None
     selected_action_text: str | None = None
     selection_annotation: str | None = None
+    #: ADR-006b: see ``RpgNodeMetadata.rolling_summary_eligible``.
+    rolling_summary_eligible: bool | None = None
 
 
 class WritingNodeMetadata(BaseModel):

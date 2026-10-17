@@ -74,6 +74,14 @@ export default defineConfig({
       testMatch: "account.spec.ts",
       use: { baseURL: "http://127.0.0.1:8002" },
     },
+    {
+      // CRD Issue 21: the narrative spine on the production provider
+      // resolver -- see scripts/e2e_spine_server.py.
+      name: "crd21-spine",
+      testMatch: "crd21-spine.spec.ts",
+      timeout: 180_000,
+      use: { baseURL: "http://127.0.0.1:8003" },
+    },
   ],
   webServer: [
     {
@@ -114,6 +122,19 @@ export default defineConfig({
       url: "http://127.0.0.1:8002/api/health",
       reuseExistingServer: false,
       timeout: 60_000,
+      env: {
+        PYTHONPATH: `src${delimiter}.`,
+      },
+    },
+    {
+      // Builds its own published-release store in a fresh temp directory
+      // (minutes) and serves the built app with the production provider
+      // resolver over a scripted provider transport and in-memory keyring.
+      command: "python scripts/e2e_spine_server.py --port 8003",
+      cwd: "..",
+      url: "http://127.0.0.1:8003/api/health",
+      reuseExistingServer: false,
+      timeout: 900_000,
       env: {
         PYTHONPATH: `src${delimiter}.`,
       },

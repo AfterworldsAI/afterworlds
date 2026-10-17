@@ -79,6 +79,7 @@ class BranchingVisibleStateService:
             length_preference=session_state.length_preference,
             last_branch_options=last_branch_options if last_branch_options else None,
             last_presentation_state=last_presentation_state,
+            play_status=session_state.play_status,
         )
 
 

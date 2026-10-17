@@ -156,6 +156,9 @@ class RpgSetupRequest(BaseModel):
     genre_flavor: str | None = None
     house_rules: str | None = None
     acceptable_content: str | None = None
+    #: ADR-015c: required while the story is in RPG setup -- the configuration
+    #: revision the edited form was based on; a stale one is a 409.
+    expected_configuration_revision: StrictInt | None = None
     schema_version: Literal[1] = 1
 
 
@@ -236,6 +239,23 @@ SetupRequest = Annotated[
     RpgSetupRequest | BranchingSetupRequest | WritingSetupRequest,
     Field(discriminator="mode"),
 ]
+
+
+class BeginStoryResponse(BaseModel):
+    """``POST .../begin`` (ADR-016b). ``started``: the opening was delivered
+    (``turn`` carries it). ``not_started``: the opening failed typed and the
+    story stays ready to begin (``turn`` carries the disposition, never
+    candidate prose). ``already_started``: a no-op -- no provider call, Turn
+    or deduction -- with the current persisted visible state."""
+
+    model_config = {"extra": "forbid"}
+
+    outcome: Literal["started", "not_started", "already_started"]
+    turn: TurnSubmissionResponse | None = None
+    visible_state: (
+        RpgVisibleState | BranchingVisibleState | WritingVisibleState | None
+    ) = None
+    schema_version: Literal[1] = 1
 
 
 class SetupResponse(BaseModel):
@@ -522,4 +542,128 @@ class CredentialValidationRequest(BaseModel):
     model_config = {"extra": "forbid"}
 
     acknowledge_provider_contact: Literal[True]
+    schema_version: Literal[1] = 1
+
+
+# ---------------------------------------------------------------------------
+# RPG product startup (ADR-015c)
+# ---------------------------------------------------------------------------
+
+
+class RpgRulesPackageOptionDTO(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    package_uuid: UUID
+    name: str
+    system: str
+    version: str
+    schema_version: Literal[1] = 1
+
+
+class RpgWorldTargetDTO(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    turn_id: UUID
+    world_revision: int
+    understanding: str
+    schema_version: Literal[1] = 1
+
+
+class RpgSheetRowDTO(BaseModel):
+    """One readable line of a candidate sheet (display only)."""
+
+    model_config = {"extra": "forbid"}
+
+    label: str
+    value: str
+    schema_version: Literal[1] = 1
+
+
+class RpgCharacterCandidateDTO(BaseModel):
+    """The reviewable, unaccepted candidate. ``problems`` empty means it can
+    be accepted; chat prose is never the authoritative sheet."""
+
+    model_config = {"extra": "forbid"}
+
+    revision: int
+    path: Literal["gm_led", "completed_sheet"]
+    sheet: list[RpgSheetRowDTO]
+    unresolved: list[str]
+    problems: list[str]
+    schema_version: Literal[1] = 1
+
+
+class RpgSetupConfigurationDTO(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    dice_handling: DiceHandling
+    gm_cheating: bool
+    tone: RpgTone
+    session_type: RpgSessionType
+    genre_flavor: str | None = None
+    house_rules: str | None = None
+    acceptable_content: str | None = None
+    schema_version: Literal[1] = 1
+
+
+class RpgSetupViewDTO(BaseModel):
+    """Authoritative RPG pre-play progress, restored on every reload."""
+
+    model_config = {"extra": "forbid"}
+
+    phase: Literal[
+        "world_setup", "character_creation", "play_configuration", "complete"
+    ]
+    play_status: Literal["setup", "in_play"]
+    world_revision: int
+    world_target: RpgWorldTargetDTO | None
+    packages: list[RpgRulesPackageOptionDTO]
+    selected_package_uuid: UUID | None
+    candidate: RpgCharacterCandidateDTO | None
+    character_accepted: bool
+    configuration: RpgSetupConfigurationDTO
+    configuration_revision: int = 0
+    configuration_target: RpgConfigurationTargetDTO | None = None
+    schema_version: Literal[1] = 1
+
+
+class RpgConfirmWorldRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    expected_world_revision: StrictInt
+    schema_version: Literal[1] = 1
+
+
+class RpgSelectRulesPackageRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    package_uuid: UUID
+    schema_version: Literal[1] = 1
+
+
+class RpgAcceptCharacterRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    expected_candidate_revision: StrictInt
+    schema_version: Literal[1] = 1
+
+
+class RpgConfigurationTargetDTO(BaseModel):
+    """What the GM's delivered summary presented for confirmation."""
+
+    model_config = {"extra": "forbid"}
+
+    turn_id: UUID
+    configuration_revision: int
+    configuration: RpgSetupConfigurationDTO
+    summary: str
+    schema_version: Literal[1] = 1
+
+
+class RpgCompleteSetupRequest(BaseModel):
+    """Confirm the configuration the GM summarized, at its revision."""
+
+    model_config = {"extra": "forbid"}
+
+    expected_configuration_revision: StrictInt
     schema_version: Literal[1] = 1

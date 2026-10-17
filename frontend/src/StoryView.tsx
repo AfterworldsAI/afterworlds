@@ -11,6 +11,7 @@ import type {
 } from "./api/client";
 import DispositionBanner from "./DispositionBanner";
 import RpgPendingInteraction from "./RpgPendingInteraction";
+import RpgSetupPanel from "./RpgSetupPanel";
 import SetupForm from "./SetupForm";
 import Transcript from "./Transcript";
 import VisibleStatePanel from "./VisibleStatePanel";
@@ -51,6 +52,10 @@ export default function StoryView({
   // structured fields are saved; it never asserts a backend fact the server
   // hasn't recorded (Frontend State Discipline).
   const [structuredSetupSaved, setStructuredSetupSaved] = useState(false);
+  // ADR-016b: a saved but incomplete (or refused) Branching setup reopens
+  // its form so it can be completed; the server stays authoritative.
+  const [editingSetup, setEditingSetup] = useState(false);
+  const [setupRefresh, setSetupRefresh] = useState(0);
   // CRD Issue 15b: the RPG story's pending interaction, exactly as the
   // backend reports it (never inferred locally), and the failure of one of
   // its operations -- shown inline like turnError, never replacing the view.
@@ -157,8 +162,11 @@ export default function StoryView({
     localStorageState.setDraft(storyId, draft);
   }, [storyId, draft]);
 
-  async function submitTurn(userInput: string) {
-    if (inFlight || !userInput.trim()) return;
+  // Resolves true only when the turn was confirmed persisted (delivered or
+  // OOC-handled), so a caller holding separate input (the pasted RPG sheet)
+  // keeps it for a retry on every other outcome.
+  async function submitTurn(userInput: string): Promise<boolean> {
+    if (inFlight || !userInput.trim()) return false;
     setInFlight(true);
     setTurnError(null);
     setRefreshError(null);
@@ -196,9 +204,12 @@ export default function StoryView({
         );
       }
       setInFlight(false);
-      return;
+      return false;
     }
     setInFlight(false);
+    // ADR-015c: every answered submission may have changed the setup view;
+    // a counter, unlike the transcript length, is not capped by paging.
+    setSetupRefresh((n) => n + 1);
     // The turn already succeeded above -- a failure here is a separate,
     // non-fatal refresh problem, not a submission failure. lastResponse and
     // the (possibly just-cleared) draft are left exactly as the successful
@@ -211,6 +222,10 @@ export default function StoryView({
     if (response.disposition === "blocked_pending_roll") {
       setFocusRequest((n) => n + 1);
     }
+    return (
+      response.disposition === "delivered" ||
+      response.disposition === "ooc_handled"
+    );
   }
 
   function errorMessage(err: unknown, fallback: string) {
@@ -281,6 +296,45 @@ export default function StoryView({
     await refreshTranscriptAndVisibleState();
   }
 
+  // ADR-016b: the explicit Begin story operation. Only its typed outcome is
+  // shown on failure (never candidate prose); the saved setup stays ready.
+  async function beginStory() {
+    if (inFlight) return;
+    setInFlight(true);
+    setTurnError(null);
+    try {
+      const begun = await api.beginStory(storyId);
+      if (begun.turn) {
+        onTurnSettled?.();
+        setLastResponse(begun.turn);
+      } else {
+        // already_started (e.g. begun in another tab): an earlier failed
+        // opening's banner no longer describes this story.
+        setLastResponse(null);
+      }
+      setVisibleState(begun.visible_state ?? null);
+    } catch (err) {
+      setTurnError(errorMessage(err, "The story could not begin."));
+      if (
+        err instanceof ApiRequestError &&
+        err.apiError.error_code === "setup_required"
+      ) {
+        setEditingSetup(true);
+      }
+      setInFlight(false);
+      return;
+    }
+    setInFlight(false);
+    // The story's status changed server-side: re-read story and transcript.
+    await refresh().catch((err) => {
+      setRefreshError(
+        err instanceof Error
+          ? err.message
+          : "Failed to refresh transcript/visible state.",
+      );
+    });
+  }
+
   async function resumeFromAffordance(sequenceId: string) {
     if (operating.current) return;
     operating.current = true;
@@ -344,9 +398,21 @@ export default function StoryView({
   // genuinely complete. specific_goals is unaffected by that timing: it is
   // persisted (nonblank, by the same request) before play_status ever
   // changes.
+  // A Branching setup counts as saved only when it is complete enough to
+  // begin: a style and cadence, and a range for card styles. A partial save
+  // (ADR-016b allows it) returns to its hydrated form instead of a Begin
+  // control the server would refuse.
+  const savedBranching =
+    visibleState !== null && "interaction_style" in visibleState
+      ? visibleState
+      : null;
+  const branchingSetupComplete =
+    savedBranching !== null &&
+    (savedBranching.interaction_style === "freeform_only" ||
+      savedBranching.branch_count_range !== null);
   const structuredSetupPersisted =
     story.status === "setup" &&
-    ((story.mode === "branching" && visibleState !== null) ||
+    ((story.mode === "branching" && branchingSetupComplete) ||
       (story.mode === "writing" &&
         visibleState !== null &&
         "specific_goals" in visibleState &&
@@ -354,37 +420,104 @@ export default function StoryView({
 
   if (
     story.status === "setup" &&
-    !structuredSetupSaved &&
-    !structuredSetupPersisted
+    // ADR-015c: RPG setup is the in-view pre-play sequence (world, character,
+    // configuration), not the configuration-first form.
+    story.mode !== "rpg" &&
+    (editingSetup ||
+      (story.mode === "branching"
+        ? !branchingSetupComplete
+        : !structuredSetupSaved && !structuredSetupPersisted))
   ) {
     return (
-      <SetupForm
-        story={story}
-        onComplete={() => {
-          setStructuredSetupSaved(true);
-          // Sibling audit (round 11, same "mutation success vs. follow-up
-          // read" defect family as submitTurn): setup itself already
-          // succeeded by the time onComplete fires (SetupForm's own
-          // submit() only calls this after a successful api.submitSetup),
-          // so a refresh() failure here must not surface as a setup error
-          // or throw an unhandled promise rejection -- refreshError already
-          // covers this same "stale play view, recoverable via Retry" case.
-          refresh().catch((err) => {
-            setRefreshError(
-              err instanceof Error
-                ? err.message
-                : "Failed to refresh transcript/visible state.",
-            );
-          });
-        }}
-      />
+      <>
+        {turnError && (
+          <p className="turn-error" role="alert">
+            {turnError}
+          </p>
+        )}
+        {refreshError && (
+          <p className="refresh-error" role="alert">
+            {refreshError}{" "}
+            <button type="button" onClick={() => loadStory()}>
+              Retry
+            </button>
+          </p>
+        )}
+        <SetupForm
+          story={story}
+          onComplete={() => {
+            setStructuredSetupSaved(true);
+            setEditingSetup(false);
+            // The save succeeded: an earlier Begin refusal (setup_required)
+            // no longer describes this story.
+            setTurnError(null);
+            // Sibling audit (round 11, same "mutation success vs. follow-up
+            // read" defect family as submitTurn): setup itself already
+            // succeeded by the time onComplete fires (SetupForm's own
+            // submit() only calls this after a successful api.submitSetup),
+            // so a refresh() failure here must not surface as a setup error
+            // or throw an unhandled promise rejection -- refreshError already
+            // covers this same "stale play view, recoverable via Retry" case.
+            refresh().catch((err) => {
+              setRefreshError(
+                err instanceof Error
+                  ? err.message
+                  : "Failed to refresh transcript/visible state.",
+              );
+            });
+          }}
+        />
+      </>
     );
   }
+
+  const branchingState =
+    visibleState !== null && "interaction_style" in visibleState
+      ? visibleState
+      : null;
+  const readyToBegin =
+    story.mode === "branching" && branchingState?.play_status === "setup";
 
   return (
     <div className="story-play-view">
       <div className="story-main">
         <Transcript turns={turns} />
+        {story.mode === "rpg" && story.status === "setup" && (
+          <RpgSetupPanel
+            storyId={storyId}
+            refreshKey={setupRefresh}
+            disabled={inFlight}
+            onSubmitTurn={(text) => submitTurn(text)}
+            onSetupChanged={() => {
+              refresh().catch((err) => {
+                setRefreshError(
+                  err instanceof Error
+                    ? err.message
+                    : "Failed to refresh transcript/visible state.",
+                );
+              });
+            }}
+          />
+        )}
+        {readyToBegin && (
+          <div className="begin-story">
+            <p>Setup is saved. Begin the story when you are ready.</p>
+            <button
+              type="button"
+              onClick={() => beginStory()}
+              disabled={inFlight}
+            >
+              {inFlight ? "Beginning..." : "Begin story"}
+            </button>{" "}
+            <button
+              type="button"
+              onClick={() => setEditingSetup(true)}
+              disabled={inFlight}
+            >
+              Edit setup
+            </button>
+          </div>
+        )}
         {lastResponse && <DispositionBanner response={lastResponse} />}
         {turnError && (
           <p className="turn-error" role="alert">
@@ -453,7 +586,13 @@ export default function StoryView({
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             disabled={inFlight}
-            placeholder="What do you do?"
+            placeholder={
+              branchingState &&
+              !branchingState.freeform_available &&
+              !readyToBegin
+                ? "Choose a branch card, or start with [OOC] to change settings."
+                : "What do you do?"
+            }
           />
           <button type="submit" disabled={inFlight || !draft.trim()}>
             {inFlight ? "Submitting..." : "Submit"}

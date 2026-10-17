@@ -83,6 +83,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/stories/{story_id}/begin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Begin Story
+         * @description Begin story (ADR-016b): generate a configured Branching story's first
+         *     playable beat -- and, for Hybrid/True CYOA, its first cards -- through
+         *     the ordinary access-path selection, pipeline and settlement. Runs under
+         *     the story's turn lock, so repeated or concurrent requests serialize; once
+         *     started, it answers ``already_started`` without any provider call.
+         */
+        post: operations["begin_story_api_stories__story_id__begin_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stories/{story_id}/rpg/sequences/{sequence_id}/resume": {
         parameters: {
             query?: never;
@@ -226,8 +250,98 @@ export interface paths {
         /** Get Setup State */
         get: operations["get_setup_state_api_stories__story_id__setup_get"];
         put?: never;
-        /** Submit Setup */
+        /**
+         * Submit Setup
+         * @description Setup shares the story's turn lock (CRD Issue 21 round 1, F3), so a
+         *     configuration write cannot interleave with a Begin story opening or any
+         *     other turn of the same story; a held lock is ``409 turn_in_flight``.
+         */
         post: operations["submit_setup_api_stories__story_id__setup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stories/{story_id}/rpg/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Rpg Setup */
+        get: operations["get_rpg_setup_api_stories__story_id__rpg_setup_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stories/{story_id}/rpg/setup/confirm-world": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm World */
+        post: operations["confirm_world_api_stories__story_id__rpg_setup_confirm_world_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stories/{story_id}/rpg/setup/rules-package": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Select Rules Package */
+        post: operations["select_rules_package_api_stories__story_id__rpg_setup_rules_package_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stories/{story_id}/rpg/setup/accept-character": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept Character */
+        post: operations["accept_character_api_stories__story_id__rpg_setup_accept_character_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/stories/{story_id}/rpg/setup/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete Setup */
+        post: operations["complete_setup_api_stories__story_id__rpg_setup_complete_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -431,6 +545,30 @@ export interface components {
          */
         ApiErrorCode: "not_found" | "validation_failed" | "entitlement_blocked" | "byok_credentials_required" | "turn_in_flight" | "setup_required" | "setup_state_conflict" | "mode_unavailable" | "internal_error" | "pending_roll_not_found" | "pending_roll_not_player_visible" | "pending_roll_already_consumed" | "pending_roll_revision_mismatch" | "pending_roll_term_mismatch" | "pending_roll_invalid_value" | "pending_roll_invalid_aggregate" | "action_sequence_not_found" | "action_sequence_already_completed" | "action_sequence_state_conflict" | "action_adjustment_not_allowed" | "action_adjustment_ineligible" | "mechanical_decision_invalid" | "mechanical_decision_revision_mismatch" | "sequence_not_ready_for_narration" | "credential_store_read_only" | "credential_store_unavailable" | "credential_settings_unavailable" | "credential_not_configured" | "credential_validation_superseded" | "credential_validation_unavailable";
         /**
+         * BeginStoryResponse
+         * @description ``POST .../begin`` (ADR-016b). ``started``: the opening was delivered
+         *     (``turn`` carries it). ``not_started``: the opening failed typed and the
+         *     story stays ready to begin (``turn`` carries the disposition, never
+         *     candidate prose). ``already_started``: a no-op -- no provider call, Turn
+         *     or deduction -- with the current persisted visible state.
+         */
+        BeginStoryResponse: {
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "started" | "not_started" | "already_started";
+            turn?: components["schemas"]["TurnSubmissionResponse"] | null;
+            /** Visible State */
+            visible_state?: components["schemas"]["RpgVisibleState"] | components["schemas"]["BranchingVisibleState"] | components["schemas"]["WritingVisibleState"] | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
          * BranchCountRange
          * @description Validated branch-count ranges by interaction style.
          *
@@ -468,6 +606,12 @@ export interface components {
          * @enum {string}
          */
         BranchingCadence: "interactive" | "balanced" | "immersive";
+        /**
+         * BranchingPlayStatus
+         * @description Play-status for a Branching story: setup phase or active play.
+         * @enum {string}
+         */
+        BranchingPlayStatus: "setup" | "in_play";
         /**
          * BranchingSetupRequest
          * @description Branching structured setup fields. The confirmation pass itself is an
@@ -546,6 +690,7 @@ export interface components {
             /** Last Branch Options */
             last_branch_options?: components["schemas"]["BranchOption"][] | null;
             last_presentation_state?: components["schemas"]["BranchPresentationState"] | null;
+            play_status?: components["schemas"]["BranchingPlayStatus"] | null;
         };
         /**
          * ByokProvider
@@ -1165,18 +1310,156 @@ export interface components {
          * @enum {string}
          */
         RollPurpose: "attack" | "saving_throw" | "ability_check" | "skill_check" | "damage" | "healing" | "duration" | "contested" | "recharge";
+        /** RpgAcceptCharacterRequest */
+        RpgAcceptCharacterRequest: {
+            /** Expected Candidate Revision */
+            expected_candidate_revision: number;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * RpgCharacterCandidateDTO
+         * @description The reviewable, unaccepted candidate. ``problems`` empty means it can
+         *     be accepted; chat prose is never the authoritative sheet.
+         */
+        RpgCharacterCandidateDTO: {
+            /** Revision */
+            revision: number;
+            /**
+             * Path
+             * @enum {string}
+             */
+            path: "gm_led" | "completed_sheet";
+            /** Sheet */
+            sheet: components["schemas"]["RpgSheetRowDTO"][];
+            /** Unresolved */
+            unresolved: string[];
+            /** Problems */
+            problems: string[];
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * RpgCompleteSetupRequest
+         * @description Confirm the configuration the GM summarized, at its revision.
+         */
+        RpgCompleteSetupRequest: {
+            /** Expected Configuration Revision */
+            expected_configuration_revision: number;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * RpgConfigurationTargetDTO
+         * @description What the GM's delivered summary presented for confirmation.
+         */
+        RpgConfigurationTargetDTO: {
+            /**
+             * Turn Id
+             * Format: uuid
+             */
+            turn_id: string;
+            /** Configuration Revision */
+            configuration_revision: number;
+            configuration: components["schemas"]["RpgSetupConfigurationDTO"];
+            /** Summary */
+            summary: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** RpgConfirmWorldRequest */
+        RpgConfirmWorldRequest: {
+            /** Expected World Revision */
+            expected_world_revision: number;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
         /**
          * RpgInteractionPhase
          * @description What kind of pending interaction a sequence exposes — CRD Issue 15b.
          * @enum {string}
          */
         RpgInteractionPhase: "pending_roll" | "pending_mechanical_decision" | "ready_for_narration";
+        /** RpgRulesPackageOptionDTO */
+        RpgRulesPackageOptionDTO: {
+            /**
+             * Package Uuid
+             * Format: uuid
+             */
+            package_uuid: string;
+            /** Name */
+            name: string;
+            /** System */
+            system: string;
+            /** Version */
+            version: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** RpgSelectRulesPackageRequest */
+        RpgSelectRulesPackageRequest: {
+            /**
+             * Package Uuid
+             * Format: uuid
+             */
+            package_uuid: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
         /**
          * RpgSessionType
          * @description Pacing expectation set by the Sojourner at play configuration.
          * @enum {string}
          */
         RpgSessionType: "short_adventure" | "campaign" | "open_ended";
+        /** RpgSetupConfigurationDTO */
+        RpgSetupConfigurationDTO: {
+            dice_handling: components["schemas"]["DiceHandling"];
+            /** Gm Cheating */
+            gm_cheating: boolean;
+            tone: components["schemas"]["RpgTone"];
+            session_type: components["schemas"]["RpgSessionType"];
+            /** Genre Flavor */
+            genre_flavor?: string | null;
+            /** House Rules */
+            house_rules?: string | null;
+            /** Acceptable Content */
+            acceptable_content?: string | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
         /**
          * RpgSetupRequest
          * @description RPG play-config form fields. Conversational setup (character creation,
@@ -1200,6 +1483,8 @@ export interface components {
             house_rules?: string | null;
             /** Acceptable Content */
             acceptable_content?: string | null;
+            /** Expected Configuration Revision */
+            expected_configuration_revision?: number | null;
             /**
              * Schema Version
              * @default 1
@@ -1240,6 +1525,61 @@ export interface components {
             schema_version: 1;
         };
         /**
+         * RpgSetupViewDTO
+         * @description Authoritative RPG pre-play progress, restored on every reload.
+         */
+        RpgSetupViewDTO: {
+            /**
+             * Phase
+             * @enum {string}
+             */
+            phase: "world_setup" | "character_creation" | "play_configuration" | "complete";
+            /**
+             * Play Status
+             * @enum {string}
+             */
+            play_status: "setup" | "in_play";
+            /** World Revision */
+            world_revision: number;
+            world_target: components["schemas"]["RpgWorldTargetDTO"] | null;
+            /** Packages */
+            packages: components["schemas"]["RpgRulesPackageOptionDTO"][];
+            /** Selected Package Uuid */
+            selected_package_uuid: string | null;
+            candidate: components["schemas"]["RpgCharacterCandidateDTO"] | null;
+            /** Character Accepted */
+            character_accepted: boolean;
+            configuration: components["schemas"]["RpgSetupConfigurationDTO"];
+            /**
+             * Configuration Revision
+             * @default 0
+             */
+            configuration_revision: number;
+            configuration_target?: components["schemas"]["RpgConfigurationTargetDTO"] | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
+         * RpgSheetRowDTO
+         * @description One readable line of a candidate sheet (display only).
+         */
+        RpgSheetRowDTO: {
+            /** Label */
+            label: string;
+            /** Value */
+            value: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
          * RpgTone
          * @description Consequence severity calibration configured at play configuration.
          * @enum {string}
@@ -1262,6 +1602,24 @@ export interface components {
             relationship_meters: components["schemas"]["VisibleRelationship"][];
             /** Known Objectives */
             known_objectives: string[];
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** RpgWorldTargetDTO */
+        RpgWorldTargetDTO: {
+            /**
+             * Turn Id
+             * Format: uuid
+             */
+            turn_id: string;
+            /** World Revision */
+            world_revision: number;
+            /** Understanding */
+            understanding: string;
             /**
              * Schema Version
              * @default 1
@@ -1949,6 +2307,64 @@ export interface operations {
             };
         };
     };
+    begin_story_api_stories__story_id__begin_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BeginStoryResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     resume_rpg_sequence_api_stories__story_id__rpg_sequences__sequence_id__resume_post: {
         parameters: {
             query?: never;
@@ -2345,6 +2761,312 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_rpg_setup_api_stories__story_id__rpg_setup_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RpgSetupViewDTO"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    confirm_world_api_stories__story_id__rpg_setup_confirm_world_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RpgConfirmWorldRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RpgSetupViewDTO"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    select_rules_package_api_stories__story_id__rpg_setup_rules_package_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RpgSelectRulesPackageRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RpgSetupViewDTO"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    accept_character_api_stories__story_id__rpg_setup_accept_character_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RpgAcceptCharacterRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RpgSetupViewDTO"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    complete_setup_api_stories__story_id__rpg_setup_complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RpgCompleteSetupRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RpgSetupViewDTO"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
                 };
             };
         };

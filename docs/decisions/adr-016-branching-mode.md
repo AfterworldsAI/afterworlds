@@ -2,7 +2,7 @@
 
 **Issue:** CRD Issue 16 — Branching Mode Integration  
 **Date:** 2026-06-24  
-**Status:** Accepted
+**Status:** Accepted. Decision 3 and the setup route's promotion are amended by [ADR-016b](adr-016b-branching-story-start.md) (2026-10-16): setup saves configuration and a separate Begin story operation starts play.
 
 ---
 
@@ -116,6 +116,8 @@ added. `InteractionRejectionReason` enum with four values added to
 ---
 
 ## Decision 3: Branching setup confirmation = `DELIVERED` turn (full pipeline, creates Node)
+
+> **Amended by ADR-016b (2026-10-16).** Setup-phase turns keep this lightweight setup-confirmation role, but they no longer start play: the structured setup route never promotes to `in_play`, and the first playable beat (with the first card set for Hybrid/True CYOA) comes only from the explicit Begin story operation. The decision text below is preserved as history.
 
 **Decision:** Turns during the Branching setup phase (interaction style/cadence
 not yet configured; `play_status = "setup"`) route through the standard narrative

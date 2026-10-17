@@ -39,6 +39,7 @@ export default function SetupForm({
   if (story.mode === "branching") {
     return (
       <BranchingSetupForm
+        storyId={story.story_id}
         submitting={submitting}
         error={error}
         onSubmit={submit}
@@ -163,19 +164,59 @@ function RpgSetupForm({
   );
 }
 
-function BranchingSetupForm({ submitting, error, onSubmit }: FormProps) {
-  // Round 8 remediation (PR #126 P1): default to freeform_only and disable
-  // hybrid/true_cyoa. BranchingWriterService is deliberately not wired for
-  // Issue 19 (see Architecture Notes), and the orchestrator fails closed
-  // with PIPELINE_ERROR for an in-play hybrid/true_cyoa session with no
-  // branching writer -- offering them here would let a Sojourner configure
-  // a story whose first Branching turn deterministically fails.
+type BranchCountRange = "1-2" | "2-3" | "3-4" | "2-4" | "2-5";
+
+// The ranges each card style allows (Design: Interaction Styles). The server
+// validates them too (ADR-016b); Freeform-only has none.
+const RANGES_BY_STYLE: Record<"hybrid" | "true_cyoa", BranchCountRange[]> = {
+  hybrid: ["1-2", "2-3", "3-4"],
+  true_cyoa: ["2-3", "2-4", "2-5"],
+};
+
+function BranchingSetupForm({
+  storyId,
+  submitting,
+  error,
+  onSubmit,
+}: FormProps & { storyId: string }) {
+  // CRD Issue 21 Prerequisite A (ADR-016b): every style is offered now that
+  // the Branching writer, selection and OOC services are wired. Saving setup
+  // does not start play; the separate Begin story control does.
   const [interactionStyle, setInteractionStyle] = useState<
     "freeform_only" | "hybrid" | "true_cyoa"
   >("freeform_only");
   const [cadence, setCadence] = useState<
     "interactive" | "balanced" | "immersive"
   >("balanced");
+  const [countRange, setCountRange] = useState<BranchCountRange>("2-3");
+  // ADR-016b permits a partially saved setup: restore what is persisted
+  // before Save is enabled, so these defaults never overwrite saved choices
+  // (the same hydration guard as the RPG form).
+  const [hydrationStatus, setHydrationStatus] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
+
+  const hydrate = () => {
+    setHydrationStatus("loading");
+    api
+      .getSetupState(storyId)
+      .then((state) => {
+        if (state && state.mode === "branching") {
+          if (state.interaction_style)
+            setInteractionStyle(state.interaction_style);
+          if (state.branching_cadence) setCadence(state.branching_cadence);
+          if (state.branch_count_range) setCountRange(state.branch_count_range);
+        }
+        setHydrationStatus("ready");
+      })
+      .catch(() => setHydrationStatus("error"));
+  };
+
+  useEffect(hydrate, [storyId]);
+  const ranges =
+    interactionStyle === "freeform_only"
+      ? []
+      : RANGES_BY_STYLE[interactionStyle];
 
   return (
     <form
@@ -185,7 +226,12 @@ function BranchingSetupForm({ submitting, error, onSubmit }: FormProps) {
           mode: "branching",
           interaction_style: interactionStyle,
           branching_cadence: cadence,
-          clear_branch_count_range: false,
+          ...(interactionStyle === "freeform_only"
+            ? { clear_branch_count_range: true }
+            : {
+                branch_count_range: countRange,
+                clear_branch_count_range: false,
+              }),
           schema_version: 1,
         });
       }}
@@ -195,19 +241,37 @@ function BranchingSetupForm({ submitting, error, onSubmit }: FormProps) {
         Interaction style
         <select
           value={interactionStyle}
-          onChange={(e) =>
-            setInteractionStyle(e.target.value as typeof interactionStyle)
-          }
+          onChange={(e) => {
+            const style = e.target.value as typeof interactionStyle;
+            setInteractionStyle(style);
+            if (
+              style !== "freeform_only" &&
+              !RANGES_BY_STYLE[style].includes(countRange)
+            ) {
+              setCountRange(RANGES_BY_STYLE[style][0] ?? "2-3");
+            }
+          }}
         >
           <option value="freeform_only">Freeform only</option>
-          <option value="hybrid" disabled>
-            Hybrid (unsupported in this build)
-          </option>
-          <option value="true_cyoa" disabled>
-            True CYOA (unsupported in this build)
-          </option>
+          <option value="hybrid">Hybrid (freeform + branch cards)</option>
+          <option value="true_cyoa">True CYOA (choices only)</option>
         </select>
       </label>
+      {ranges.length > 0 && (
+        <label>
+          Branch options per beat
+          <select
+            value={countRange}
+            onChange={(e) => setCountRange(e.target.value as BranchCountRange)}
+          >
+            {ranges.map((r) => (
+              <option key={r} value={r}>
+                {r}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
       <label>
         Cadence
         <select
@@ -219,8 +283,19 @@ function BranchingSetupForm({ submitting, error, onSubmit }: FormProps) {
           <option value="immersive">Immersive</option>
         </select>
       </label>
+      {hydrationStatus === "error" && (
+        <p className="form-error" role="alert">
+          Could not load saved Branching setup. Retry before saving.{" "}
+          <button type="button" onClick={hydrate}>
+            Retry
+          </button>
+        </p>
+      )}
       {error && <p className="form-error">{error}</p>}
-      <button type="submit" disabled={submitting}>
+      <button
+        type="submit"
+        disabled={submitting || hydrationStatus !== "ready"}
+      >
         Save setup
       </button>
     </form>
