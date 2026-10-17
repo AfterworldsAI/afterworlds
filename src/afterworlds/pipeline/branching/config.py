@@ -43,6 +43,40 @@ ALLOWED_RANGES_BY_STYLE: dict[InteractionStyle, frozenset[BranchCountRange] | No
 }
 
 
+def true_cyoa_unplayable_reason(
+    interaction_style: InteractionStyle | None,
+    branch_count_range: BranchCountRange | None,
+    committed_option_count: int,
+) -> str | None:
+    """Why an in-play story would be left with no valid next choice, or None.
+
+    ADR-016b: True CYOA in play must always have a selectable committed card
+    set, because freeform input is rejected. A configuration change cannot
+    create cards (no new narrative is generated for it), so a change that
+    would make an in-play story True CYOA without a committed set that fits
+    its range is refused, keeping the current playable configuration.
+    """
+    if interaction_style is not InteractionStyle.TRUE_CYOA:
+        return None
+    if committed_option_count == 0:
+        return (
+            "True CYOA needs a current set of branch cards to choose from, and"
+            " this story has none right now; continue a beat in Hybrid first"
+        )
+    bounds = (
+        BRANCH_COUNT_RANGE_BOUNDS.get(branch_count_range.value)
+        if branch_count_range is not None
+        else None
+    )
+    if bounds is None or not bounds[0] <= committed_option_count <= bounds[1]:
+        shown = branch_count_range.value if branch_count_range else "none"
+        return (
+            f"the current {committed_option_count} branch card(s) do not fit"
+            f" the True CYOA range {shown}"
+        )
+    return None
+
+
 @dataclass
 class BranchingWriterConfig:
     model: str = _DEFAULT_BRANCHING_WRITER_MODEL
@@ -69,4 +103,5 @@ __all__ = [
     "BRANCH_COUNT_RANGE_BOUNDS",
     "BRANCHING_WRITER_MAX_TOKENS",
     "BranchingWriterConfig",
+    "true_cyoa_unplayable_reason",
 ]

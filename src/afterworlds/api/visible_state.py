@@ -27,15 +27,23 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from afterworlds.models.enums import StoryMode
+from afterworlds.api.story_bootstrap import find_story_turn_anchor_node
+from afterworlds.models.enums import (
+    BranchingPlayStatus,
+    BranchPresentationState,
+    InteractionStyle,
+    StoryMode,
+)
+from afterworlds.models.node import BranchingNodeMetadata
 from afterworlds.models.rpg import RpgVisibleState
 from afterworlds.modes.personas.registry import get_default_registry
+from afterworlds.persistence.crud.node import get_node
 from afterworlds.persistence.crud.session_state import (
     get_branching_session_state_by_story,
     get_rpg_session_state_by_story,
     get_writing_session_state_by_story,
 )
-from afterworlds.pipeline.branching.models import BranchingVisibleState
+from afterworlds.pipeline.branching.models import BranchingVisibleState, BranchOption
 from afterworlds.pipeline.branching.visible_state import BranchingVisibleStateService
 from afterworlds.pipeline.rpg.visible_state import RpgVisibleStateService
 from afterworlds.pipeline.writing.models import WritingVisibleState
@@ -48,6 +56,48 @@ from afterworlds.services.dnd5e_state.store import get_character
 VisibleStateUnion = RpgVisibleState | BranchingVisibleState | WritingVisibleState
 
 logger = logging.getLogger(__name__)
+
+
+def _with_committed_cards(
+    session: Session, story_id: UUID, state: BranchingVisibleState
+) -> BranchingVisibleState:
+    """The current committed card set of an in-play card-style story
+    (ADR-016b Decision 5), read from the anchor Node's
+    ``BranchingNodeMetadata`` -- the surface the next selection is validated
+    against. Read-only: never creates the anchor. Freeform-only and setup
+    stories show no cards."""
+    if (
+        state.play_status is not BranchingPlayStatus.IN_PLAY
+        or state.interaction_style
+        not in (
+            InteractionStyle.HYBRID,
+            InteractionStyle.TRUE_CYOA,
+        )
+    ):
+        return state
+    anchor = find_story_turn_anchor_node(session, story_id)
+    node = get_node(session, anchor) if anchor is not None else None
+    metadata = node.mode_metadata if node is not None else None
+    if not isinstance(metadata, BranchingNodeMetadata):
+        return state
+    try:
+        presentation = (
+            BranchPresentationState(metadata.branch_presentation_state)
+            if metadata.branch_presentation_state
+            else None
+        )
+    except ValueError:
+        presentation = None
+    return state.model_copy(
+        update={
+            "last_branch_options": [
+                BranchOption(option_id=o.option_id, action_text=o.action_text)
+                for o in metadata.branch_options
+            ]
+            or None,
+            "last_presentation_state": presentation,
+        }
+    )
 
 
 def build_visible_state(
@@ -78,7 +128,9 @@ def build_visible_state(
             or branching_state.branching_cadence is None
         ):
             return None
-        return BranchingVisibleStateService().build(branching_state)
+        return _with_committed_cards(
+            session, story_id, BranchingVisibleStateService().build(branching_state)
+        )
 
     writing_state = get_writing_session_state_by_story(session, story_id)
     if writing_state is None or writing_state.persona_id is None:

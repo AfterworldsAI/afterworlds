@@ -84,10 +84,8 @@ test("v1 new-story flow offers only Branching and RPG; Writing is refused (ADR-0
 });
 
 test("Branching mode: setup and a delivered turn", async ({ page }) => {
-  // FREEFORM_ONLY is the only interaction style selectable in this build
-  // (round 8, PR #126 P1 -- hybrid/true_cyoa are disabled pending
-  // BranchingWriterService wiring), so freeform input here always reaches
-  // the ordinary prose Writer path regardless of play_status.
+  // FREEFORM_ONLY: before Begin story this is a setup-confirmation turn on
+  // the ordinary prose Writer path (ADR-016 Decision 3, ADR-016b).
   seedEntitlement();
 
   await page.goto("/");
@@ -110,42 +108,40 @@ test("Branching mode: setup and a delivered turn", async ({ page }) => {
   await expect(textarea).toHaveValue("");
 });
 
-test("Branching mode: Hybrid and True CYOA are unsupported and not selectable", async ({
+test("Branching mode: card styles are selectable and Begin story opens with cards", async ({
   page,
 }) => {
-  // Round 8 remediation (PR #126 P1): BranchingWriterService is deliberately
-  // not wired for Issue 19, and /setup now durably promotes completed
-  // Branching setup to IN_PLAY (round 7), so the orchestrator's fail-closed
-  // guard would deterministically PIPELINE_ERROR the first turn of any
-  // hybrid/true_cyoa story. The minimal UI must not let a Sojourner
-  // configure that broken state -- hybrid/true_cyoa are disabled options,
-  // and freeform_only is the default. INTERACTION_REJECTED coverage for
-  // true_cyoa (configured directly via the API, bypassing the UI) still
-  // lives at the API level:
-  // tests/api/test_fake_provider_product_path.py::
-  // test_true_cyoa_freeform_turn_after_setup_is_interaction_rejected.
+  // CRD Issue 21 Prerequisite A (ADR-016b): the Branching writer is wired,
+  // setup only saves, and the separate Begin story control generates the
+  // opening and its first cards. The fake provider's fixed classifier can't
+  // express a selection; selection and True CYOA proofs run on the
+  // production resolver in crd21-spine.spec.ts.
   seedEntitlement();
 
   await page.goto("/");
-  await page.getByPlaceholder("Title").fill("A True CYOA Story");
+  await page.getByPlaceholder("Title").fill("A Hybrid Story");
   await page.getByRole("combobox").selectOption("branching");
   await page.getByRole("button", { name: "Create" }).click();
 
   await expect(
     page.getByRole("heading", { name: "Branching setup" }),
   ).toBeVisible();
-
   const interactionStyleSelect = page.locator("select").first();
   await expect(interactionStyleSelect).toHaveValue("freeform_only");
-  // Playwright's toBeDisabled() checks actionability, not the <option>
-  // element's own `disabled` DOM property (options inside a closed <select>
-  // are never independently "actionable") -- assert the property directly.
-  await expect(
-    interactionStyleSelect.locator("option[value=hybrid]"),
-  ).toHaveJSProperty("disabled", true);
   await expect(
     interactionStyleSelect.locator("option[value=true_cyoa]"),
-  ).toHaveJSProperty("disabled", true);
+  ).toHaveJSProperty("disabled", false);
+  await interactionStyleSelect.selectOption("hybrid");
+  await page.getByLabel("Branch options per beat").selectOption("2-3");
+  await page.getByRole("button", { name: "Save setup" }).click();
+
+  await page.getByRole("button", { name: "Begin story" }).click();
+  await expect(
+    page.getByText("The story branches, faked for E2E."),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "Fake path 2" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Fake path 2" })).toBeVisible();
 });
 
 test("refresh/reload re-derives state from the API, not invented client state", async ({

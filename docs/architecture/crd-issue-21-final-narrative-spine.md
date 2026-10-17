@@ -1,8 +1,9 @@
 # CRD Issue 21 — Final Narrative Spine Demo
 
-**Status:** Draft for Owner review. Implementation and GitHub publication are not authorized.  
+**Status:** Accepted by the Owner on 2026-10-16 with its [Integration Prerequisite Contracts](crd-issue-21-integration-prerequisites.md); implementation authorized. GitHub publication, merge, auto-merge, deployment, shared-runtime operations and Rules Package publication/activation remain unauthorized.  
+**Governing issue:** the Owner authorized publication of this governing issue on 2026-10-17; it is published as [#203](https://github.com/AfterworldsAI/afterworlds/issues/203), with the three accepted prerequisite contracts linked as its comments (exact body and AC1–11 readback verified 2026-10-17). That publication authorized no implementation push, PR or merge. Later on 2026-10-17 the Owner conditionally authorized commit, push and a PR for the reviewed candidate after satisfactory Codex review and local verification, holding at merge; merge, auto-merge, deployment, shared-runtime operations and Rules Package publication/activation remain unauthorized.  
 **Prepared against:** main `a08f7aac88748c39464ddc86b6115a90dd7b6cd0`, including accepted PR #200.  
-**Revised:** 2026-10-16 to the two-mode v1 scope of [ADR-017b](../decisions/adr-017b-writing-v1-deferral.md) (Writing deferred). That release-scope change is a separate prerequisite that must merge before this issue begins; it is not part of this issue.
+**Revised:** 2026-10-16 to the two-mode v1 scope of [ADR-017b](../decisions/adr-017b-writing-v1-deferral.md) (Writing deferred). Its separate release-scope prerequisite merged as PR #202. Startup was rechecked against main `3f638667512be1a7c1a885d566724ba827c09258`; merging the prerequisite did not accept this draft. The Owner accepted this draft and the prerequisite contracts on 2026-10-16; the readiness prerequisites below are implemented as accepted prerequisite scope (ADR-016b, ADR-006b) and are verified by the CRD Issue 21 evidence, not by that acceptance.
 
 ## Goal
 
@@ -35,6 +36,36 @@ Current main exposes several verification gaps:
 - Existing canned fake-provider tests bypass credential-based provider resolution and generally return empty canon proposals, Safety concerns and contradiction violations.
 
 These are starting findings for verification and boundary classification, not an instruction to redesign those systems.
+
+## Readiness Prerequisites — Recorded Decisions and Bounded Dependencies
+
+The two integration gaps have been traced and their required product choices recorded. Their complete proposed contracts are in [Integration Prerequisite Contracts](crd-issue-21-integration-prerequisites.md). Those contract extensions required Owner acceptance and separate implementation authorization, both given on 2026-10-16; they are not silently absorbed into CRD Issue 21's narrow wiring allowance.
+
+### Branching product integration
+
+**Recorded Owner Decision (2026-10-16):** setup saves configuration; a separate **Begin story** action generates the first playable scene and, for card styles, the first selectable cards. Setup confirmation does not automatically generate the opening.
+
+The prerequisite defines the saved-setup/start/play transition, explicit start operation, pipeline and access behavior, atomic delivery, failed/repeated-start handling and persisted reload state. It preserves True CYOA's ordinary-play selection guard; startup must not be disguised as a choice against an empty card set. Reconcile the accepted extension with ADR-016 before implementation.
+
+Already-settled corrections remain narrow integration work: inject the owning Branching writer, selection and OOC services; supply valid persisted card-count configuration; and expose authoritative committed cards in turn responses and reload reads. Preserve code-owned affordances, cadence, selection/annotation validation, OOC behavior, the paraphrase-classifier limitation and deferred graph traversal.
+
+Proof starts from fresh built-app stories without seeded cards and covers setup, distinct Begin, opening, selection/continuation and reload across all styles and hosted/BYOK. Include invalid selection, OOC changes and failed/repeated Begin. AC1, AC2 and AC5 cannot pass merely because the controls are enabled.
+
+### Automatic Rolling Summary advancement
+
+**Recorded Owner Decisions (2026-10-16):** a due Rolling Summary and the narrative Turn/canon commit atomically on the selected hosted/BYOK path; generation failure blocks delivery and rolls back the turn under existing non-billable failure rules. Only delivered ordinary Branching/RPG narrative counts toward provisional N = 10, including the first playable opening. Setup-only, OOC, pending roll/decision steps and blocked/refused/errored attempts are excluded.
+
+The prerequisite defines delivery-time eligibility/provenance, ordered incremental input, generic generation/non-empty output validation, lightweight provider pass and usage accounting, transaction placement, typed failures, retry/idempotency and later context consumption under existing owners. Context Builder remains a reader. Reconcile this production contract in accepted authority before implementation; replacing its empty generator alone cannot establish advancement.
+
+Proof uses actual product turns crossing the eligible threshold, persisted summary versions/coverage and later production-context use. Cover exclusion, isolation, refusal/error/rollback, retry, hosted usage and BYOK non-deduction. Manual compression or seeded summaries do not satisfy AC5; affected AC4/AC6 guarantees must also be demonstrated.
+
+Retain ADR-0010's provisional threshold, GitHub #65's concurrent-generation cost deferral and Writing's ADR-017b deferral. No summary UI, calibration program, new database migration, shared-data reclassification or Writing semantics belong here.
+
+### RPG product startup
+
+**Accepted 2026-10-16** ([RPG Startup Prerequisite](crd-issue-21-rpg-startup-prerequisite.md), [ADR-015c](../decisions/adr-015c-rpg-product-startup.md)): fresh RPG stories complete world-first setup, choose a supported published Rules Package, create a character through GM-led conversation or a pasted completed sheet, accept a typed, adjudicable sheet under its exact binding, confirm configuration and enter play through the product path. Seeded character state does not satisfy AC1/AC2.
+
+Both dependencies remain necessary for a passing spine verdict. Continue unaffected verification; splitting prerequisite work does not waive AC1–11. The Owner's 2026-10-16 acceptance authorizes implementation only; it creates no publication or merge authority.
 
 ## Owner Decisions and Deferred Questions
 
@@ -198,8 +229,8 @@ Public launch continues to require CRD Issues 22/23, applicable security/complia
 
 ## Branch and Merge
 
-Claude Code implements only after explicit authorization; Codex reviews.
+Claude Code implements under the Owner's explicit 2026-10-16 authorization; Codex reviews.
 
 Use a clean isolated checkout from refreshed main. Preserve the protected dirty checkout, accepted artifacts and unaffected proofs.
 
-This draft authorizes no implementation, GitHub publication, merge, auto-merge, shared-runtime operation or Rules Package publication/activation.
+Acceptance authorizes implementation only: no GitHub publication, merge, auto-merge, shared-runtime operation or Rules Package publication/activation.

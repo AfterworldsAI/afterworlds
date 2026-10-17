@@ -111,14 +111,8 @@ class StoryTurnAnchorResult:
     created: bool
 
 
-def ensure_story_turn_anchor_node(
-    session: Session, story_id: UUID, mode: StoryMode
-) -> StoryTurnAnchorResult:
-    """Return the story's turn-anchor node id, creating it if absent.
-
-    Idempotent: if the story already has an anchor (any node belonging to
-    it), that node is reused rather than creating a duplicate.
-    """
+def find_story_turn_anchor_node(session: Session, story_id: UUID) -> UUID | None:
+    """The story's existing turn-anchor node id, or None. Never creates one."""
     from afterworlds.persistence.orm.node import NodeORM
     from afterworlds.persistence.orm.story import ArcORM, ChapterORM
 
@@ -129,8 +123,77 @@ def ensure_story_turn_anchor_node(
         .filter(ArcORM.story_id == str(story_id))
         .first()
     )
+    return UUID(existing[0]) if existing is not None else None
+
+
+def in_play_true_cyoa_problem(
+    session: Session, story_id: UUID, effective: BranchingSessionState
+) -> str | None:
+    """Why *effective* would leave an in-play story's True CYOA with no valid
+    next choice given its committed card set (ADR-016b), or None."""
+    from afterworlds.models.node import BranchingNodeMetadata
+    from afterworlds.persistence.crud.node import get_node
+    from afterworlds.pipeline.branching.config import true_cyoa_unplayable_reason
+
+    anchor = find_story_turn_anchor_node(session, story_id)
+    node = get_node(session, anchor) if anchor is not None else None
+    metadata = node.mode_metadata if node is not None else None
+    committed = (
+        len(metadata.branch_options)
+        if isinstance(metadata, BranchingNodeMetadata)
+        else 0
+    )
+    return true_cyoa_unplayable_reason(
+        effective.interaction_style, effective.branch_count_range, committed
+    )
+
+
+def branching_configuration_problems(
+    state: BranchingSessionState,
+) -> tuple[list[str], list[str]]:
+    """``(missing, invalid)`` for a Branching configuration (ADR-016b).
+
+    *missing* names required fields not yet saved (Begin story refuses
+    them); *invalid* names a branch-count range incompatible with the
+    style, which setup never persists (``ALLOWED_RANGES_BY_STYLE``).
+    """
+    from afterworlds.pipeline.branching.config import ALLOWED_RANGES_BY_STYLE
+
+    missing: list[str] = []
+    invalid: list[str] = []
+    if state.interaction_style is None:
+        missing.append("interaction_style")
+    if state.branching_cadence is None:
+        missing.append("branching_cadence")
+    style, rng = state.interaction_style, state.branch_count_range
+    if style is not None:
+        allowed = ALLOWED_RANGES_BY_STYLE[style]
+        if allowed is None:
+            if rng is not None:
+                invalid.append(f"{style.value} takes no branch_count_range")
+        elif rng is None:
+            missing.append("branch_count_range")
+        elif rng not in allowed:
+            invalid.append(
+                f"branch_count_range {rng.value} is not allowed for {style.value}"
+                f" (allowed: {', '.join(sorted(r.value for r in allowed))})"
+            )
+    elif rng is not None:
+        invalid.append("branch_count_range requires an interaction_style")
+    return missing, invalid
+
+
+def ensure_story_turn_anchor_node(
+    session: Session, story_id: UUID, mode: StoryMode
+) -> StoryTurnAnchorResult:
+    """Return the story's turn-anchor node id, creating it if absent.
+
+    Idempotent: if the story already has an anchor (any node belonging to
+    it), that node is reused rather than creating a duplicate.
+    """
+    existing = find_story_turn_anchor_node(session, story_id)
     if existing is not None:
-        return StoryTurnAnchorResult(node_id=UUID(existing[0]), created=False)
+        return StoryTurnAnchorResult(node_id=existing, created=False)
 
     now = datetime.now(UTC)
     arc = create_arc(session, Arc(story_id=story_id, title=_ANCHOR_ARC_TITLE, order=0))

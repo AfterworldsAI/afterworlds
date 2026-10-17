@@ -18,6 +18,11 @@ export type CreateStoryRequest = components["schemas"]["CreateStoryRequest"];
 export type TurnSubmissionResponse =
   components["schemas"]["TurnSubmissionResponse"];
 export type TranscriptTurn = components["schemas"]["TranscriptTurnDTO"];
+export type BeginStoryResponse = components["schemas"]["BeginStoryResponse"];
+// ADR-015c: RPG product startup.
+export type RpgSetupView = components["schemas"]["RpgSetupViewDTO"];
+export type RpgSetupConfiguration =
+  components["schemas"]["RpgSetupConfigurationDTO"];
 export type VisibleState =
   | components["schemas"]["RpgVisibleState"]
   | components["schemas"]["BranchingVisibleState"]
@@ -101,6 +106,13 @@ export const api = {
       `/api/stories/${storyId}/turns?limit=${limit}&latest=true`,
     ).then((r) => r.turns),
 
+  // ADR-016b: start a configured Branching story (its opening and first
+  // cards). A repeat answers "already_started" without any provider call.
+  beginStory: (storyId: string) =>
+    request<BeginStoryResponse>(`/api/stories/${storyId}/begin`, {
+      method: "POST",
+    }),
+
   submitTurn: (storyId: string, userInput: string) =>
     request<TurnSubmissionResponse>(`/api/stories/${storyId}/turns`, {
       method: "POST",
@@ -124,6 +136,42 @@ export const api = {
     ).then((r) => r.setup_state ?? null),
 
   listPersonas: () => request<PersonaGallery>("/api/personas"),
+
+  // ADR-015c: typed RPG setup operations. None calls a provider or settles.
+  getRpgSetup: (storyId: string) =>
+    request<RpgSetupView>(`/api/stories/${storyId}/rpg/setup`),
+
+  confirmWorld: (storyId: string, expectedWorldRevision: number) =>
+    request<RpgSetupView>(`/api/stories/${storyId}/rpg/setup/confirm-world`, {
+      method: "POST",
+      body: JSON.stringify({ expected_world_revision: expectedWorldRevision }),
+    }),
+
+  selectRulesPackage: (storyId: string, packageUuid: string) =>
+    request<RpgSetupView>(`/api/stories/${storyId}/rpg/setup/rules-package`, {
+      method: "POST",
+      body: JSON.stringify({ package_uuid: packageUuid }),
+    }),
+
+  acceptCharacter: (storyId: string, expectedCandidateRevision: number) =>
+    request<RpgSetupView>(
+      `/api/stories/${storyId}/rpg/setup/accept-character`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          expected_candidate_revision: expectedCandidateRevision,
+        }),
+      },
+    ),
+
+  // Confirms exactly what the GM's summary presented, at its revision.
+  completeRpgSetup: (storyId: string, expectedConfigurationRevision: number) =>
+    request<RpgSetupView>(`/api/stories/${storyId}/rpg/setup/complete`, {
+      method: "POST",
+      body: JSON.stringify({
+        expected_configuration_revision: expectedConfigurationRevision,
+      }),
+    }),
 
   getPendingInteraction: (storyId: string) =>
     request<components["schemas"]["PendingInteractionResponse"]>(

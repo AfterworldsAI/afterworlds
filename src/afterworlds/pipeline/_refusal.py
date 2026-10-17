@@ -32,6 +32,7 @@ class PassIdentifier(StrEnum):
     WRITER = "writer"
     EXTRACTOR = "extractor"
     CONTRADICTION = "contradiction"
+    ROLLING_SUMMARY = "rolling_summary"
 
 
 class RefusalCategory(StrEnum):
