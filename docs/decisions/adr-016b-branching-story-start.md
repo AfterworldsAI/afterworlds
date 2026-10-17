@@ -64,7 +64,9 @@ Context is assembled once; the stable prefix is reused by every pass. A code-own
 context and any persisted story seeds, and that no player choice exists yet. Planner, Writer
 (the typed `BranchingWriterService` for Hybrid/True CYOA, the prose Writer for Freeform-only),
 conditional Safety, Extractor and Contradiction, and the existing transaction rules apply
-unchanged.
+unchanged. When the existing policy requires Output Safety, its audit covers the narrative and
+the card labels shown with it (PR #204), for the opening and every later beat. The Turn, canon
+and summary inputs stay the narrative alone, and a block leaves no Turn, cards or start.
 
 ## Decision 4: The opening, first cards and transition commit together
 

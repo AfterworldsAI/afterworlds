@@ -21,7 +21,7 @@ While an RPG story is in `setup`, its Writer turn uses forced tool `produce_rpg_
 | `character_creation` | `character_proposal` (`path`: `gm_led` / `completed_sheet`, `character`: the existing `Dnd5eCharacterState` schema, possibly partial, plus `unresolved` notes) or `clarification` |
 | `play_configuration` | `configuration_summary` or `clarification` |
 
-A kind the phase does not allow, or a malformed envelope, fails the turn as a typed `PIPELINE_ERROR` (no Turn, non-billable). The Turn records `gm_text`. Extractor, Contradiction and conditional Safety run on it as for any turn. Setup turns stay ineligible for Rolling Summary (ADR-006b) and keep their `setup_confirmation` retrieval marker. The prompt contract is `docs/prompts/rpg_setup_writer.md`.
+A kind the phase does not allow, or a malformed envelope, fails the turn as a typed `PIPELINE_ERROR` (no Turn, non-billable). The Turn records `gm_text`. Extractor and Contradiction run on it as for any turn. When the existing policy requires Output Safety, the audit covers every model-authored value the setup view can display: `gm_text` plus the world understanding, or the character proposal and its unresolved notes (`setup_writer.visible_output`; PR #204). That text is the audit's input only; it is never transcript, canon or summary text. A block or audit failure leaves no Turn, target, candidate or phase change. Clarification questions are neither stored nor shown, and a configuration summary's displayed text is `gm_text` itself. Setup turns stay ineligible for Rolling Summary (ADR-006b) and keep their `setup_confirmation` retrieval marker. The prompt contract is `docs/prompts/rpg_setup_writer.md`.
 
 ## Decision 2: Code-owned setup state in the anchor Node's typed metadata
 

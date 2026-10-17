@@ -292,28 +292,55 @@ async function rpgStartup(
 
   await page.getByRole("button", { name: "Use this Rules Package" }).click();
   await expect(page.getByText("Selected.")).toBeVisible();
-  const character = await (
-    await request.get("/__e2e__/fixtures/character")
-  ).json();
-  const proposal = (unresolved: string[]) =>
-    envelope("Here is your character as I have it.", {
-      kind: "character_proposal",
-      path,
-      character,
-      unresolved,
-    });
   const accept = page.getByRole("button", { name: "Accept character" });
+  const candidate = page.locator(".rpg-candidate");
   if (path === "gm_led") {
-    // The scripted GM's default character-creation reply is a clarification.
-    await say("A wizard with a sage background.");
+    // GM-led: nothing is queued and no fixture is used. The scripted GM
+    // (scripts/e2e_gm_led.py) proposes only what is said here and asks for
+    // anything missing or ambiguous.
+    await say("Class: wizard. Background: sage.");
     // The first authority read on a fresh server warms its index (slow).
-    await expect(narration(page).last()).toContainText("sage background", {
+    await expect(narration(page).last()).toContainText("I still need", {
       timeout: 120_000,
     });
+    await expect(narration(page).last()).toContainText("ability scores");
     await expect(page.getByText(/Character for review/)).toHaveCount(0);
-    await push(request, "rpg_setup_writer", proposal([]));
-    await say("Standard array, please.");
+    await say(
+      "Species: elf. Lineage: high elf. Lineage ability: intelligence. " +
+        "Alignment: neutral good. Ability scores: standard array, " +
+        "Str 8 Dex 14 Con 13 Int 15 Wis 12 Cha 13.",
+    );
+    await expect(narration(page).last()).toContainText("once each");
+    await expect(page.getByText(/Character for review/)).toHaveCount(0);
+    await say(
+      "Ability scores: standard array, Str 8 Dex 14 Con 13 Int 15 Wis 12 " +
+        "Cha 10. Cantrip: fire bolt. Equipment: 15 gp. Backstory hooks: " +
+        "owes the Lamplighters a debt, hunts a drowned library.",
+    );
+    await expect(narration(page).last()).toContainText(
+      "hunts a drowned library",
+    );
+    // The reviewable sheet carries exactly the stated choices.
+    await expect(candidate).toContainText('"intelligence": 15');
+    await expect(candidate).toContainText('"charisma": 10');
+    await expect(candidate).toContainText("high_elf");
+    await expect(candidate).toContainText("spells.fire_bolt");
+    await expect(candidate).toContainText("neutral_good");
+    await expect(candidate).toContainText('"gp": 15');
+    await expect(page.getByLabel("Outstanding problems")).toHaveCount(0);
   } else {
+    // Completed sheet: the scripted GM's reading of the pasted sheet is
+    // queued transport data.
+    const character = await (
+      await request.get("/__e2e__/fixtures/character")
+    ).json();
+    const proposal = (unresolved: string[]) =>
+      envelope("Here is your character as I have it.", {
+        kind: "character_proposal",
+        path,
+        character,
+        unresolved,
+      });
     await push(request, "rpg_setup_writer", proposal(["Which cantrips?"]));
     const sheet = page.getByLabel("Completed character sheet");
     await sheet.fill(
@@ -340,6 +367,38 @@ async function rpgStartup(
   await expect(page.getByTestId("rpg-setup-phase")).toContainText(
     "play configuration",
   );
+  // What persisted is exactly the reviewed candidate, under the binding it
+  // was validated in, for the package the Sojourner selected (PR #204).
+  await page.reload();
+  const id = await storyIdOf(page);
+  const stored = await (
+    await request.get(`/__e2e__/stories/${id}/character`)
+  ).json();
+  const setupView = await (
+    await request.get(`/api/stories/${id}/rpg/setup`)
+  ).json();
+  expect(stored.accepted).toBe(true);
+  expect(stored.equals_reviewed_candidate).toBe(true);
+  expect(stored.binding_is_reviewed_binding).toBe(true);
+  expect(stored.selected_package_uuid).toBe(setupView.selected_package_uuid);
+  expect(stored.binding.package_uuid).toBe(setupView.selected_package_uuid);
+  if (path === "gm_led") {
+    // ... and carries the choices stated in the conversation.
+    expect(stored.state.ability_scores).toEqual({
+      strength: 8,
+      dexterity: 14,
+      constitution: 13,
+      intelligence: 15,
+      wisdom: 12,
+      charisma: 10,
+    });
+    expect(stored.state.alignment).toBe("neutral_good");
+    expect(stored.state.currency).toEqual({ gp: 15 });
+    expect(stored.state.spell_access[0].spell_record_key).toBe(
+      "spells.fire_bolt",
+    );
+    expect(JSON.stringify(stored.state.choices)).toContain("high_elf");
+  }
 
   // Configuration: saved, summarized by the GM, then exactly that confirmed.
   await page.reload();

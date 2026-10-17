@@ -25,9 +25,11 @@ Test-only routes (inserted ahead of the frontend mount, never in
 * ``GET /__e2e__/stories/{story_id}/summaries`` and ``GET /__e2e__/deductions``
   read the persisted Rolling Summary rows and hosted credit deductions;
 * ``GET /__e2e__/fixtures/character`` returns a complete character in the
-  existing schema for a test to queue as the scripted GM's proposal. RPG
-  stories start through the product's setup sequence (ADR-015c); nothing
-  seeds character state or forces play.
+  existing schema for a test to queue as the scripted GM's reading of a
+  pasted completed sheet. GM-led creation never uses it: the scripted GM
+  composes from the conversation (``scripts/e2e_gm_led.py``). RPG stories
+  start through the product's setup sequence (ADR-015c); nothing seeds
+  character state or forces play.
 
 Usage (repository root, ``src`` and the root on ``PYTHONPATH``)::
 
@@ -74,6 +76,10 @@ def build_app(work: Path, provider: Any) -> Any:
     from tests.services.dnd5e_state.builders import complete_character, real_index
 
     real = real_index()  # built once here, not inside a timed request
+    from scripts.e2e_gm_led import responder as gm_led_responder
+
+    # GM-led creation composes only from what the Sojourner said (PR #204).
+    provider.responders["rpg_setup_writer"] = gm_led_responder(real)
     app: FastAPI = create_app(
         ApiSettings(
             database_url=f"sqlite:///{work / 'store.db'}",
@@ -159,6 +165,31 @@ def build_app(work: Path, provider: Any) -> Any:
                 out[str(r.turn_id)] = str(total)
             return out
 
+    def accepted_character(story_id: UUID) -> dict[str, Any]:
+        """The accepted, stored character and its binding, read through the
+        character store, beside the candidate the Sojourner reviewed (test
+        seam, PR #204): the browser proof checks what persisted."""
+        from afterworlds.models.dnd5e_state import Dnd5eCharacterState
+        from afterworlds.services import rpg_setup
+        from afterworlds.services.dnd5e_state import store as character_store
+
+        with factory() as s:
+            state = rpg_setup._state(s, story_id)
+            stored = character_store.get_character(s, state.character_sheet_id)
+            setup = rpg_setup.load_setup(s, rpg_setup.anchor_node_id(s, story_id))
+            if stored is None or setup.candidate is None:
+                return {"accepted": False}
+            return {
+                "accepted": True,
+                "state": stored.state.model_dump(mode="json"),
+                "binding": stored.binding.model_dump(mode="json"),
+                "selected_package_uuid": str(setup.selected_package_uuid),
+                "equals_reviewed_candidate": stored.state
+                == Dnd5eCharacterState.model_validate(setup.candidate.proposal),
+                "binding_is_reviewed_binding": stored.binding.model_dump(mode="json")
+                == setup.candidate.binding,
+            }
+
     def character_fixture() -> dict[str, Any]:
         """A complete character in the existing schema: the scripted model's
         proposal for a setup turn (transport data). Code still validates and
@@ -174,6 +205,9 @@ def build_app(work: Path, provider: Any) -> Any:
         APIRoute("/__e2e__/stories/{story_id}/summaries", summaries, methods=["GET"]),
         APIRoute("/__e2e__/deductions", deductions, methods=["GET"]),
         APIRoute("/__e2e__/fixtures/character", character_fixture, methods=["GET"]),
+        APIRoute(
+            "/__e2e__/stories/{story_id}/character", accepted_character, methods=["GET"]
+        ),
     ):
         app.router.routes.insert(0, route)
     return app

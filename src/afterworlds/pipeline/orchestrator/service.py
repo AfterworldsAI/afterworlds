@@ -1562,6 +1562,9 @@ class OrchestratorService:
         # refusal-log rows are consistent with the Turn row on success.  On
         # failure no Turn is persisted; the log row still carries the candidate id.
         branching_pass_result: _BranchingPassResult | None = None
+        # ADR-015c: what Output Safety audits when it is more than the
+        # delivered text (an RPG setup envelope's other visible fields).
+        output_audit_text: str | None = None
         if _use_branching_writer:
             # 5a-branching: BranchingWriterService produces narrative + branch cards.
             # Fail-closed: BranchingPassError + ProviderRefusalError both abort the turn.  # noqa: E501
@@ -1803,6 +1806,15 @@ class OrchestratorService:
                 provider=_bpr.provider,
                 model_tier=_bpr.model_tier or "",
             )
+            # Output Safety also audits the cards the Sojourner is shown
+            # (PR #204); the Turn, canon and summary keep the narrative alone.
+            if _bpr.branch_options:
+                output_audit_text = "\n\n".join(
+                    [
+                        _bpr.narrative_text,
+                        *(f"Choice: {o.action_text}" for o in _bpr.branch_options),
+                    ]
+                )
         elif (
             story_mode is StoryMode.RPG
             and rpg_play_status is RpgPlayStatus.SETUP
@@ -1821,6 +1833,7 @@ class OrchestratorService:
             )
             from afterworlds.pipeline.rpg.setup_writer import (  # noqa: PLC0415
                 RpgSetupWriterError,
+                visible_output,
             )
             from afterworlds.pipeline.writer.models import (  # noqa: PLC0415
                 WriterResult as _SWriterResult,
@@ -1885,6 +1898,7 @@ class OrchestratorService:
                 provider=_sres.provider,
                 model_tier=_sres.model_tier or "",
             )
+            output_audit_text = visible_output(_sres.envelope)
             try:
                 _icr_s = ctx.volatile_suffix.classified_intent
                 _screate_turn(
@@ -2556,11 +2570,12 @@ class OrchestratorService:
         )
         if self._safety_policy.should_run_output_audit(audit_ctx):
             _post_writer_turn_id = writer_result.turn_id
+            _audited = output_audit_text or writer_result.assistant_output
             try:
                 output_safety, ms = _timed(
                     lambda: self._safety_service.check(
                         ctx,
-                        writer_result.assistant_output,
+                        _audited,
                         SafetyTarget.OUTPUT,
                         provider=ScopedProviderAdapter(
                             binding.adapter,  # type: ignore[arg-type]

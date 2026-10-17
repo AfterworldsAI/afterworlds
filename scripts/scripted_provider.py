@@ -44,6 +44,9 @@ _TOOL_PASS = {
 _RANGES = {"1-2": 1, "2-3": 2, "3-4": 3, "2-4": 2, "2-5": 2}
 _CLASSIFY_MARKER = "## Player Input to Classify"
 _REFUSAL_TEXT = "I can't assist with that request."
+#: Text the default Safety pass blocks wherever it appears in what it audits,
+#: so a test proves which content actually reached the audit.
+SCRIPTED_SAFETY_BLOCK = "SCRIPTED-SAFETY-BLOCK-SENTINEL"
 
 
 @dataclass
@@ -73,6 +76,11 @@ class ScriptedProvider:
     _queues: dict[str, deque[Reply]] = field(default_factory=lambda: defaultdict(deque))
     _lock: threading.Lock = field(default_factory=threading.Lock)
     _undo: list[Callable[[], None]] = field(default_factory=list)
+    #: Per-pass responders consulted after queued replies and before the
+    #: defaults; returning ``None`` falls through to the default.
+    responders: dict[str, Callable[[list[str]], Reply | None]] = field(
+        default_factory=dict
+    )
 
     # -- scripting ---------------------------------------------------------
 
@@ -132,6 +140,8 @@ class ScriptedProvider:
             self.calls.append(Call(api, pass_name, body, texts, key))
             queue = self._queues.get(pass_name)
             reply = queue.popleft() if queue else None
+        if reply is None and pass_name in self.responders:
+            reply = self.responders[pass_name](texts)
         if reply is None:
             reply = _default(pass_name, texts)
         if reply.status is not None:
@@ -253,6 +263,13 @@ def _default(pass_name: str, texts: list[str]) -> Reply:
     if pass_name == "contradiction":
         return Reply(tool_input={"violations": []})
     if pass_name == "safety":
+        if SCRIPTED_SAFETY_BLOCK in joined:
+            concern = {
+                "category": "OTHER",
+                "description": "scripted sentinel",
+                "evidence_summary": "scripted sentinel",
+            }
+            return Reply(tool_input={"concerns": [concern]})
         return Reply(tool_input={"concerns": []})
     if pass_name == "rpg_adjudication":
         return Reply(tool_input={"rolls": []})

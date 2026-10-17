@@ -16,7 +16,8 @@ from afterworlds.persistence.crud.session_state import (
     get_branching_session_state_by_story,
 )
 from afterworlds.persistence.orm.node import TurnORM
-from scripts.scripted_provider import Reply
+from afterworlds.pipeline.provider._routing import CapabilityProfileAwareSafetyPolicy
+from scripts.scripted_provider import SCRIPTED_SAFETY_BLOCK, Reply
 from tests.api._spine import Spine
 
 _CARD_STYLES = [("hybrid", "2-3"), ("true_cyoa", "2-4")]
@@ -242,3 +243,64 @@ def test_true_cyoa_selection_rails_and_ooc_after_begin(
     assert vs["interaction_style"] == "hybrid" and vs["play_status"] == "in_play"
     # Hybrid now accepts freeform input against the committed cards.
     assert s.turn(story_id, "I climb the wall.")["disposition"] == "delivered"
+
+
+def _cards(*labels: str) -> Reply:
+    return Reply(
+        tool_input={
+            "narrative_text": "The harbor bells ring.",
+            "branch_options_text": list(labels),
+            "branch_presentation_state": "shown",
+        }
+    )
+
+
+@pytest.mark.parametrize("path", ["hosted", "byok"])
+def test_output_safety_audits_the_cards_shown_with_a_beat(
+    spine: Spine, monkeypatch: pytest.MonkeyPatch, path: str
+) -> None:
+    """PR #204 sibling: with Output Safety required, blocked content confined
+    to a card label -- the narrative is benign -- reaches the audit and fails
+    closed for the Begin opening and for an in-play beat: no Turn, cards,
+    play-status change or hosted deduction. Clean cards then deliver."""
+    s = spine
+    if path == "hosted":
+        s.seed_hosted()
+        # The existing policy, made to require the audit on this route.
+        monkeypatch.setattr(
+            CapabilityProfileAwareSafetyPolicy,
+            "should_run_output_audit",
+            lambda self, ctx: True,
+        )
+    else:
+        s.seed_byok(openrouter=True)  # an OpenRouter route requires Safety
+    story_id = _begin_ready(s, "true_cyoa", "2-3")
+    marked = f"Sail for the reef {SCRIPTED_SAFETY_BLOCK}"
+
+    s.provider.push("branching_writer", _cards("Ring the bell", marked))
+    blocked = s.begin(story_id)
+    assert blocked["outcome"] == "not_started", blocked
+    assert blocked["turn"]["disposition"] == "blocked_output_safety"
+    audited = s.provider.calls_for("safety")[-1]
+    assert any(SCRIPTED_SAFETY_BLOCK in text for text in audited.texts)
+    assert _play_status(s, story_id) is BranchingPlayStatus.SETUP
+    assert _turn_count(s) == 0 and s.deductions() == {}
+    assert s.visible(story_id)["last_branch_options"] is None
+
+    s.provider.push("branching_writer", _cards("Ring the bell", "Sail for the reef"))
+    begun = s.begin(story_id)
+    assert begun["outcome"] == "started", begun
+    assert any(
+        "Choice: Sail for the reef" in text
+        for text in s.provider.calls_for("safety")[-1].texts
+    )
+    (turn,) = s.transcript(story_id)
+    assert turn["assistant_output"] == "The harbor bells ring."  # narrative only
+    shown = s.visible(story_id)
+    before = (_turn_count(s), s.deductions())
+
+    s.provider.push("branching_writer", _cards("Go ashore", marked))
+    beat = s.turn(story_id, "I choose opt_1")
+    assert beat["disposition"] == "blocked_output_safety", beat
+    assert (_turn_count(s), s.deductions()) == before
+    assert s.visible(story_id) == shown  # the earlier cards remain committed

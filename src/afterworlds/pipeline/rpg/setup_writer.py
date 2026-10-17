@@ -14,6 +14,7 @@ parses the proposal.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated, Any, Literal
 
@@ -128,6 +129,30 @@ class RpgSetupEnvelope(BaseModel):
     schema_version: Literal[1]
     gm_text: str = Field(min_length=1)
     result: SetupResult
+
+
+def visible_output(envelope: RpgSetupEnvelope) -> str:
+    """Every model-authored value this envelope can show the Sojourner.
+
+    Output Safety audits this text instead of ``gm_text`` alone (PR #204
+    P1): a world understanding, or a character proposal and its unresolved
+    notes, is displayed for review and confirmation. It is the audit's input
+    only -- never the transcript, canon or summary text. Clarification
+    questions are neither stored nor shown; a configuration summary's
+    displayed text is ``gm_text`` itself, and its settings are the
+    Sojourner's own.
+    """
+    result = envelope.result
+    parts = [envelope.gm_text]
+    if isinstance(result, WorldConfirmationResult):
+        parts.append(f"World understanding: {result.understanding}")
+    elif isinstance(result, CharacterProposalResult):
+        parts.append(
+            "Proposed character: "
+            + json.dumps(result.character, sort_keys=True, ensure_ascii=False)
+        )
+        parts += [f"Unresolved: {note}" for note in result.unresolved]
+    return "\n\n".join(parts)
 
 
 #: Which result kinds each setup phase admits.

@@ -17,10 +17,12 @@ from uuid import UUID
 import pytest
 import sqlalchemy as sa
 
+from afterworlds.models.dnd5e_state import Dnd5eCharacterState
+from afterworlds.pipeline.provider._routing import CapabilityProfileAwareSafetyPolicy
 from afterworlds.services import rpg_setup
 from afterworlds.services.dnd5e_state import store as character_store
 from afterworlds.services.dnd5e_state.authority import current_binding
-from scripts.scripted_provider import Reply
+from scripts.scripted_provider import SCRIPTED_SAFETY_BLOCK, Reply
 from tests.api._spine import Spine
 from tests.ingestion.mechanical.test_bounded_d20_on_published_release import (
     PACKAGE,
@@ -221,6 +223,13 @@ def test_fresh_story_completes_setup_and_plays_through_both_paths(
         stored = character_store.get_character(session, state.character_sheet_id)
         assert stored is not None
         assert stored.binding == current_binding(session, PACKAGE, now=rpg_setup_now())
+        # Exactly the reviewed candidate, under the binding it was validated in.
+        assert stored.state == Dnd5eCharacterState.model_validate(_character())
+        setup = rpg_setup.load_setup(
+            session, rpg_setup.anchor_node_id(session, UUID(story))
+        )
+        assert setup.candidate is not None
+        assert stored.binding.model_dump(mode="json") == setup.candidate.binding
         assert len(_rows(s, "SELECT 1 FROM dnd5e_character_states")) >= 1
 
     # Configuration: saved through the typed setup route, summarized by the
@@ -495,3 +504,109 @@ def test_blocked_setup_output_exposes_no_candidate(rpg_spine: Spine) -> None:
     blocked = s.turn(story, "Make my character.")
     assert blocked["disposition"] == "blocked_output_safety", blocked
     assert _view(s, story)["candidate"] is None
+
+
+def _setup_state(s: Spine, story: str) -> tuple[Any, ...]:
+    """The authoritative state a blocked setup exchange must leave intact."""
+    return (
+        _view(s, story),
+        s.deductions(),
+        _rows(s, "SELECT turn_id, assistant_output FROM turns ORDER BY timestamp"),
+        _rows(s, "SELECT count(*) FROM sb_events"),
+    )
+
+
+@pytest.mark.parametrize(
+    "field", ["world_understanding", "character_value", "unresolved_note"]
+)
+def test_output_safety_audits_every_visible_setup_field(
+    rpg_spine: Spine, monkeypatch: pytest.MonkeyPatch, field: str
+) -> None:
+    """PR #204 P1: with Output Safety required, content confined to a field
+    the setup view displays -- never the benign ``gm_text`` -- reaches the
+    audit and fails closed: no Turn, target, candidate, phase change, canon
+    event or hosted deduction. The same exchange without it then delivers."""
+    s = rpg_spine
+    s.seed_hosted()
+    # The existing policy, made to require the audit on this hosted route.
+    monkeypatch.setattr(
+        CapabilityProfileAwareSafetyPolicy,
+        "should_run_output_audit",
+        lambda self, ctx: True,
+    )
+    story = _new_story(s)
+    if field != "world_understanding":
+        _through_world(s, story)
+        _ok(_op(s, story, "rules-package", {"package_uuid": str(PACKAGE)}))
+
+    def push(marked: bool) -> None:
+        mark = f" {SCRIPTED_SAFETY_BLOCK}" if marked else ""
+        if field == "world_understanding":
+            result: dict[str, Any] = {
+                "kind": "world_confirmation",
+                "understanding": f"Lighthouse guilds rule the isles.{mark}",
+            }
+        else:
+            character = _character()
+            unresolved = ["Which cantrips?"]
+            if field == "character_value":
+                character["backstory_hooks"] = [f"Owes the guild a debt.{mark}"]
+            else:
+                unresolved = [f"Which cantrips?{mark}"]
+            result = {
+                "kind": "character_proposal",
+                "path": "gm_led",
+                "character": character,
+                "unresolved": unresolved,
+            }
+        s.provider.push(
+            "rpg_setup_writer",
+            Reply(
+                tool_input={
+                    "schema_version": 1,
+                    "gm_text": "Here is what I have so far.",
+                    "result": result,
+                }
+            ),
+        )
+
+    before = _setup_state(s, story)
+    push(marked=True)
+    blocked = s.turn(story, "Go on.")
+    assert blocked["disposition"] == "blocked_output_safety", blocked
+    audited = s.provider.calls_for("safety")[-1]
+    assert any(SCRIPTED_SAFETY_BLOCK in text for text in audited.texts)
+    assert _setup_state(s, story) == before  # reload shows nothing new
+
+    push(marked=False)
+    delivered = s.turn(story, "Go on.")
+    assert delivered["disposition"] == "delivered", delivered
+    (turn_text,) = _rows(
+        s, "SELECT assistant_output FROM turns WHERE turn_id = :t",
+        t=delivered["turn_id"],
+    )[0]  # fmt: skip
+    # The transcript keeps the GM's text alone; the audit saw the rest.
+    assert turn_text == "Here is what I have so far."
+    shown = s.provider.calls_for("safety")[-1].texts
+    expected = (
+        "Lighthouse guilds rule the isles."
+        if field == "world_understanding"
+        else "Which cantrips?"
+    )
+    assert any(expected in text for text in shown)
+    view = _view(s, story)
+    if field == "world_understanding":
+        assert view["world_target"]["turn_id"] == delivered["turn_id"]
+    else:
+        assert before[0]["candidate"] is None and view["candidate"]["revision"] == 1
+
+
+def test_setup_output_audit_follows_the_existing_policy(rpg_spine: Spine) -> None:
+    """When the policy does not require Output Safety (hosted Anthropic, no
+    risk signal), no audit runs and the setup turn delivers as before."""
+    s = rpg_spine
+    s.seed_hosted()
+    story = _new_story(s)
+    audits = len(s.provider.calls_for("safety"))
+    _through_world(s, story)
+    assert len(s.provider.calls_for("safety")) == audits
