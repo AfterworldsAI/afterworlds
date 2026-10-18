@@ -36,6 +36,7 @@ from afterworlds.pipeline.retrieval.write_service import RetrievalMemoryWriteSer
 from afterworlds.remote.control_orm import BackupInventoryORM
 from afterworlds.remote.control_store import open_control_store, utc_now
 from afterworlds.remote.storage import (
+    StoreRefused,
     acquire_store_lock,
     begin_restore,
     content_store_id,
@@ -92,7 +93,13 @@ def main(argv: list[str] | None = None) -> int:
             if row is None:
                 print("backup is not inventoried", file=sys.stderr)
                 return 1
-            restore_id = begin_restore(control, args.backup_id, now=now)
+            try:
+                restore_id = begin_restore(
+                    control, args.backup_id, live_database=db_path, now=now
+                )
+            except StoreRefused as exc:
+                print(f"restore refused: {exc}", file=sys.stderr)
+                return 1
             source = Path(row.storage_locator)
             shutil.copyfile(source / db_path.name, db_path)
             for suffix in ("-wal", "-shm"):

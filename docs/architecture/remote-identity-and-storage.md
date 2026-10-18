@@ -133,7 +133,9 @@ account ID, ticket, Story ID or old session is never accepted as proof.
 
 1. Stop the app. `python -m afterworlds.remote.storage_cli capture --to <dir>` (prints the backup ID).
 2. `... storage_cli due` lists backups at/after 21 days; `... storage_cli dispose --backup-id <id>` removes one and records its disposal.
-3. Restore: stop the app; `... storage_cli restore --backup-id <id>`. The app now refuses to start.
+3. Restore: stop the app; `... storage_cli restore --backup-id <id>`. It is refused (exit 1, nothing
+   copied) unless the live entitlement ledger is a prefix of the snapshot's; otherwise the app now
+   refuses to start until step 4.
 4. Enforce every active deletion suppression (CRD Issue 22 supplies this), then
    `... storage_cli verify-restore --restore-id <id>`; exit `2` lists suppressed Stories still present,
    and an unavailable Chroma read fails rather than counting as zero. Only `verified` lets the app start.
@@ -155,6 +157,6 @@ account ID, ticket, Story ID or old session is never accepted as proof.
 - CRD Issue 22 fulfillment (export, deletion, suppression creation, retention expiry, anomalies) and CRD
   Issue 23 payments.
 - Multiworker coordination, if ever required.
-- **Restore and the entitlement ledger:** `entitlement_event` lives in the content store, so a
-  restore discards events recorded after the snapshot's capture. A reviewed reconciliation (or ledger
-  placement) is required before any production restore (ADR-021 Consequences).
+- **Accepting an unprovable restore (Owner decision):** "When a content restore cannot prove that the restored entitlement ledger contains every recorded event (the live store is lost, or events were recorded after capture), what authority and reconciliation accept the restored money/access state before hosted service resumes?" The foundation guarantee is
+  implemented: a restore that would rewind, diverge from or cannot read the live entitlement ledger
+  is refused (§7). In practice that blocks restoring an older snapshot of an active hosted store.

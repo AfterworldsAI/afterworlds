@@ -158,11 +158,15 @@ prerequisite proves the hooks with a disposable enforcer fixture.
   fulfillment and CRD Issue 23 payments. These are recorded launch gates, not implemented claims.
 - Account-closure erasure, export and suppression creation are CRD Issue 22 operations over these
   hooks.
-- **Restore rewinds content, including the entitlement ledger.** Entitlement events live in the
-  content store, so restoring a snapshot discards events appended after its capture. Identity,
-  closure and suppression survive (control store), but money/access reconstructability across a
-  restore is an unresolved boundary: a reviewed reconciliation (or ledger placement) is required
-  before any production restore. Recorded as a launch gate, not solved here.
+- **A restore never silently rewinds the entitlement ledger.** `entitlement_event` is append-only
+  accounting authority (ADR-013, Invariant 11) kept in the content store. `begin_restore` refuses,
+  before anything is copied, unless the live ledger is a prefix of the snapshot's (same
+  `global_sequence` order and event IDs); a missing or unreadable live store, a divergent ledger or
+  any event recorded after capture refuses the restore. Nothing is carried forward, rebuilt or
+  relocated — that would be new accounting semantics.
+- **Open Owner decision (not resolved here):** "When a content restore cannot prove that the restored entitlement ledger contains every recorded event (the live store is lost, or events were recorded after capture), what authority and reconciliation accept the restored money/access state before hosted service resumes?" Every hosted turn records a credit
+  deduction, so in practice this guard blocks production restore of an older snapshot until the
+  question is answered. It touches CRD Issue 23's reconciliation ownership.
 - `verify_restore` proves only that no content table with a `story_id` column holds a row for a
   suppressed Story and that its story-memory chunk count is zero. Turns orphaned by `SET NULL`, and
   per-class disposal, belong to CRD Issue 22's enforcer and its pre-detachment inventory.

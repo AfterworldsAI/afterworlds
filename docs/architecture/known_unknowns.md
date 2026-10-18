@@ -777,9 +777,9 @@ These are recorded dependencies, not implementation choices; no code resolves th
   remote foundation ships only an operator outbox notice transport and a backup inventory hook.
 - **Multiworker or multi-host operation:** requires a separately reviewed shared-coordination and
   storage contract (#205 §5); the delivered topology is one writer process.
-- **Restore and entitlement reconstructability:** entitlement events live in the content store, so a
-  content restore discards events recorded after capture. Reconciliation or ledger placement needs a
-  reviewed decision before any production restore (ADR-021 Consequences).
+- **Accepting a restore whose ledger continuity is unprovable:** "When a content restore cannot prove that the restored entitlement ledger contains every recorded event (the live store is lost, or events were recorded after capture), what authority and reconciliation accept the restored money/access state before hosted service resumes?" The #205 guarantee
+  (no silent rewind) is implemented by refusing such restores; the acceptance/reconciliation authority
+  is an Owner decision touching CRD Issue 23 (ADR-021 Consequences).
 - **Remote abuse protection:** sign-in rate limiting / credential-stuffing protection for the public
   endpoint is not part of #205's accepted behavior and must be decided before public exposure.
 

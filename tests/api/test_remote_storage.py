@@ -107,7 +107,9 @@ def _count(table: str) -> Any:
     return sa.text(f"SELECT COUNT(*) FROM {table}")
 
 
-def _snapshot(harness: RemoteHarness, target: Path) -> str:
+def _snapshot(
+    harness: RemoteHarness, target: Path, captured: datetime | None = None
+) -> str:
     """Capture the content store like ``storage_cli capture`` and inventory it."""
     target.mkdir()
     db = harness.tmp_path / "content.db"
@@ -120,8 +122,12 @@ def _snapshot(harness: RemoteHarness, target: Path) -> str:
         harness.app.state.control_factory,
         store_id=content_store_id(harness.app.state.session_factory),
         storage_locator=str(target),
-        original_capture_at=datetime.now(UTC),
+        original_capture_at=captured or datetime.now(UTC),
     )
+
+
+def _live(harness: RemoteHarness) -> Path:
+    return harness.tmp_path / "content.db"
 
 
 class TestRestoreGate:
@@ -165,7 +171,9 @@ class TestRestoreGate:
 
         # Restore the pre-deletion snapshot.
         control = h.app.state.control_factory
-        restore_id = begin_restore(control, backup_id, now=datetime.now(UTC))
+        restore_id = begin_restore(
+            control, backup_id, live_database=env / "content.db", now=datetime.now(UTC)
+        )
         shutil.copyfile(env / "backup1" / "content.db", env / "content.db")
         for suffix in ("-wal", "-shm"):
             (env / f"content.db{suffix}").unlink(missing_ok=True)
@@ -229,16 +237,20 @@ class TestRestoreGate:
 class TestBackupClocks:
     def test_lifetime_runs_from_original_capture(self, remote: RemoteHarness) -> None:
         control = remote.app.state.control_factory
-        b1 = register_backup(
-            control, store_id="s", storage_locator="/x", original_capture_at=T0
+        b1 = _snapshot(remote, remote.tmp_path / "b1", captured=T0)
+        later_copy = copy_backup(
+            control, b1, storage_locator=str(remote.tmp_path / "b1")
         )
-        later_copy = copy_backup(control, b1, storage_locator="/y")
         day21 = T0 + timedelta(days=21)
+        live = _live(remote)
         assert due_backups(control, now=day21 - timedelta(seconds=1)) == []
         assert set(due_backups(control, now=day21)) == {b1, later_copy}
         with pytest.raises(StoreRefused, match="21-day"):
-            begin_restore(control, later_copy, now=day21)  # copies never renew
-        begin_restore(control, later_copy, now=day21 - timedelta(seconds=1))
+            # copies never renew
+            begin_restore(control, later_copy, live_database=live, now=day21)
+        begin_restore(
+            control, later_copy, live_database=live, now=day21 - timedelta(seconds=1)
+        )
 
     def test_deletion_backup_deadline_is_thirty_days_overall(
         self, remote: RemoteHarness
@@ -289,7 +301,7 @@ class TestBackupClocks:
             verification_status="unverified",
         )
         with pytest.raises(StoreRefused, match="unverified"):
-            begin_restore(control, unverified, now=T0)
+            begin_restore(control, unverified, live_database=_live(remote), now=T0)
 
 
 class _FakeRead:
@@ -418,14 +430,13 @@ class TestRetrievalGuardAndDelayedWork:
 
 class TestRestoreVerificationScope:
     def _restore(self, remote: RemoteHarness) -> str:
-        control = remote.app.state.control_factory
-        backup = register_backup(
-            control,
-            store_id="s",
-            storage_locator="/x",
-            original_capture_at=datetime.now(UTC),
+        backup = _snapshot(remote, remote.tmp_path / "snap")
+        return begin_restore(
+            remote.app.state.control_factory,
+            backup,
+            live_database=_live(remote),
+            now=datetime.now(UTC),
         )
-        return begin_restore(control, backup, now=datetime.now(UTC))
 
     def test_account_scope_covers_every_owned_story(
         self, remote: RemoteHarness
@@ -502,3 +513,87 @@ class TestRestoreVerificationScope:
         with remote.app.state.session_factory.begin() as s:
             s.query(SBDynamicFieldHistoryORM).filter_by(story_id=sid).delete()
         assert verify_restore(*args, now=datetime.now(UTC)) == []
+
+
+class TestEntitlementLedgerContinuity:
+    """A restore must never silently rewind append-only accounting authority."""
+
+    def _grant(self, remote: RemoteHarness, account: str) -> None:
+        from afterworlds.entitlement.enums import EntitlementEventType
+        from afterworlds.entitlement.payloads import ByokLicenseActivatedPayload
+        from afterworlds.entitlement.service import EntitlementService
+
+        with remote.app.state.session_factory() as session:
+            EntitlementService(session).receive_entitlement_event(
+                uuid.UUID(account),
+                EntitlementEventType.BYOK_LICENSE_ACTIVATED,
+                ByokLicenseActivatedPayload(purchased_at=datetime.now(UTC)),
+            )
+            session.commit()
+
+    def test_an_event_recorded_after_capture_refuses_the_restore(
+        self, remote: RemoteHarness
+    ) -> None:
+        a = remote.enroll("a@example.test")
+        account = remote.account_id(a)
+        self._grant(remote, account)
+        backup = _snapshot(remote, remote.tmp_path / "before")
+        control = remote.app.state.control_factory
+        # Equal ledgers restore.
+        begin_restore(
+            control, backup, live_database=_live(remote), now=datetime.now(UTC)
+        )
+        self._grant(remote, account)  # recorded after capture
+        with pytest.raises(StoreRefused, match=r"discard 1 entitlement event"):
+            begin_restore(
+                control, backup, live_database=_live(remote), now=datetime.now(UTC)
+            )
+
+    def test_a_divergent_ledger_refuses_the_restore(
+        self, remote: RemoteHarness
+    ) -> None:
+        a = remote.enroll("a@example.test")
+        backup = _snapshot(remote, remote.tmp_path / "snap")
+        snapshot = remote.tmp_path / "snap" / "content.db"
+        with closing(sqlite3.connect(snapshot)) as conn:
+            conn.execute(
+                "INSERT INTO entitlement_event (event_id, sojourner_id, event_type,"
+                " payload_json, created_at) VALUES ('foreign', ?, 'x', '{}', 't')",
+                (remote.account_id(a),),
+            )
+            conn.commit()
+        self._grant(remote, remote.account_id(a))
+        with pytest.raises(StoreRefused, match="diverges"):
+            begin_restore(
+                remote.app.state.control_factory,
+                backup,
+                live_database=_live(remote),
+                now=datetime.now(UTC),
+            )
+
+    def test_a_missing_live_store_cannot_prove_continuity(
+        self, remote: RemoteHarness
+    ) -> None:
+        backup = _snapshot(remote, remote.tmp_path / "snap")
+        with pytest.raises(StoreRefused, match="live content store is missing"):
+            begin_restore(
+                remote.app.state.control_factory,
+                backup,
+                live_database=remote.tmp_path / "lost" / "content.db",
+                now=datetime.now(UTC),
+            )
+
+    def test_a_missing_snapshot_is_refused(self, remote: RemoteHarness) -> None:
+        backup = register_backup(
+            remote.app.state.control_factory,
+            store_id="s",
+            storage_locator=str(remote.tmp_path / "nowhere"),
+            original_capture_at=datetime.now(UTC),
+        )
+        with pytest.raises(StoreRefused, match="snapshot is missing"):
+            begin_restore(
+                remote.app.state.control_factory,
+                backup,
+                live_database=_live(remote),
+                now=datetime.now(UTC),
+            )

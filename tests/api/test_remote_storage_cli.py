@@ -109,3 +109,32 @@ def test_storage_commands_require_a_remote_deployment(
     monkeypatch.setenv("AFTERWORLDS_DEPLOYMENT", "local")
     with pytest.raises(SystemExit):
         storage_cli.main(["due"])
+
+
+def test_restore_refuses_to_rewind_the_entitlement_ledger(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from afterworlds.entitlement.enums import EntitlementEventType
+    from afterworlds.entitlement.payloads import ByokLicenseActivatedPayload
+    from afterworlds.entitlement.service import EntitlementService
+
+    h = make_remote(remote_env)
+    account = h.account_id(h.enroll("a@example.test"))
+    h.close()
+    code, backup_id = _run(capsys, "capture", "--to", str(remote_env / "b1"))
+    assert code == 0
+    engine = create_engine(f"sqlite:///{remote_env / 'content.db'}")
+    with create_session_factory(engine)() as session:
+        EntitlementService(session).receive_entitlement_event(
+            uuid.UUID(account),
+            EntitlementEventType.BYOK_LICENSE_ACTIVATED,
+            ByokLicenseActivatedPayload(purchased_at=datetime.now(UTC)),
+        )
+        session.commit()
+    engine.dispose()
+    before = (remote_env / "content.db").read_bytes()
+    assert storage_cli.main(["restore", "--backup-id", backup_id]) == 1
+    assert "discard 1 entitlement event" in capsys.readouterr().err
+    # Nothing was copied and no restore is pending.
+    assert (remote_env / "content.db").read_bytes() == before
+    make_remote(remote_env).close()

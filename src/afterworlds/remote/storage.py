@@ -263,12 +263,20 @@ def backup_disposition(
 
 
 def begin_restore(
-    control: sessionmaker[Session], backup_id: str, *, now: datetime
+    control: sessionmaker[Session],
+    backup_id: str,
+    *,
+    live_database: Path,
+    now: datetime,
 ) -> str:
-    """Record that *backup_id* is being restored; the app will not serve the
-    content store until :func:`verify_restore` passes. An expired, disposed or
-    unverified backup cannot be restored (restore never renews its life)."""
-    with control.begin() as s:
+    """Record that *backup_id* is being restored over *live_database*; the app
+    will not serve the content store until :func:`verify_restore` passes.
+
+    Refused, before anything is copied, when the backup is expired, disposed or
+    unverified (restore never renews its life), or when the restore cannot
+    prove entitlement-ledger continuity (:func:`check_ledger_continuity`).
+    """
+    with control() as s:
         row = s.get(BackupInventoryORM, backup_id)
         if row is None:
             raise StoreRefused("backup is not inventoried")
@@ -276,7 +284,10 @@ def begin_restore(
             raise StoreRefused("backup is past its 21-day lifetime or disposed")
         if row.verification_status != "verified":
             raise StoreRefused("backup coverage is unverified")
-        restore_id = str(uuid4())
+        snapshot = Path(row.storage_locator) / live_database.name
+    check_ledger_continuity(live_database, snapshot)
+    restore_id = str(uuid4())
+    with control.begin() as s:
         s.add(
             RestoreRecordORM(
                 restore_id=restore_id,
@@ -286,6 +297,57 @@ def begin_restore(
             )
         )
     return restore_id
+
+
+def _ledger(path: Path, *, read_only: bool) -> list[tuple[int, str]]:
+    target = f"file:{path.as_posix()}?mode=ro" if read_only else str(path)
+    with closing(sqlite3.connect(target, uri=read_only)) as conn:
+        return [
+            (int(seq), str(event_id))
+            for seq, event_id in conn.execute(
+                "SELECT global_sequence, event_id FROM entitlement_event"
+                " ORDER BY global_sequence"
+            )
+        ]
+
+
+def check_ledger_continuity(live_database: Path, snapshot: Path) -> None:
+    """Refuse a restore that would rewind the entitlement ledger.
+
+    ``entitlement_event`` is append-only accounting authority (ADR-013) kept in
+    the content store, so a snapshot may be restored only if the live ledger is
+    a prefix of the snapshot's, in the same ``global_sequence`` order with the
+    same event IDs. A live store that is missing or unreadable cannot prove
+    that, so it is refused too. Nothing is carried forward or rebuilt: deciding
+    how an unprovable restore is accepted is not this hook's to make.
+    """
+    if not snapshot.is_file():
+        raise StoreRefused("the backup's content snapshot is missing")
+    try:
+        restored = _ledger(snapshot, read_only=True)
+    except sqlite3.Error:
+        raise StoreRefused("the backup's entitlement ledger is unreadable") from None
+    if not live_database.is_file():
+        raise StoreRefused(
+            "the live content store is missing, so entitlement-ledger "
+            "continuity cannot be proven"
+        )
+    try:
+        # Not read-only: the stopped live store may still hold WAL frames,
+        # which a read-only connection without its -shm file cannot read.
+        live = _ledger(live_database, read_only=False)
+    except sqlite3.Error:
+        raise StoreRefused(
+            "the live entitlement ledger is unreadable, so continuity cannot "
+            "be proven"
+        ) from None
+    if restored[: len(live)] != live[: len(restored)]:
+        raise StoreRefused("the backup's entitlement ledger diverges from the live one")
+    if len(live) > len(restored):
+        raise StoreRefused(
+            f"restoring would discard {len(live) - len(restored)} entitlement "
+            "event(s) recorded after the backup was captured"
+        )
 
 
 def pending_restores(control: sessionmaker[Session]) -> list[str]:
