@@ -89,6 +89,8 @@ class RemoteHarness:
     def close(self) -> None:
         for c in self.clients:
             c.__exit__(None, None, None)
+        # Like process exit: release pooled connections and the store lock.
+        self.app.state.session_factory.kw["bind"].dispose()
         self.app.state.store_lock.close()
 
 
