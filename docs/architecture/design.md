@@ -108,6 +108,8 @@ The Story Bible has three partitions:
 | Dynamic | Current relationship states, active world conditions, ongoing plot threads, transient character/world state not owned by the character sheet | Extractor-maintained and append-safe. Prior values remain reconstructable. |
 | Provisional | Extractor-proposed updates pending ratification | Staged separately. Not visible as canon until ratified. |
 
+*CRD Issue 22 lifecycle amendment (Owner-accepted 2026-10-17):* "Prior values remain reconstructable" is the ordinary-operation rule. A verified, explicitly confirmed Story or account-wide terminal erasure, or governed retention expiry, removes in-scope current and historical canon values through the Story Bible owner under the [accepted lifecycle ADR amendment contract](https://github.com/AfterworldsAI/afterworlds/issues/206#issuecomment-6246562569) (see ADR-0006). No old canon value remains recoverable or reindexable after confirmed erasure.
+
 The Extractor proposes Story Bible updates. It does not write canon directly.
 
 ### The Rules Package
@@ -520,7 +522,7 @@ Persona expansion across RPG and Branching is a future consideration. v1 should 
 | Persistence | SQLite first. |
 | Retrieval memory | ChromaDB included in v1. |
 | Frontend | React + Vite + TypeScript. |
-| Deployment | Local web server accessed through a browser. |
+| Deployment | Local web server accessed through a browser. Hosted subscriptions and Cloud Services additionally run as a remote deployment of the same app (CRD Issue 22 D1; prerequisite #205; ADR-021). |
 | Model access | Hosted provider routing and BYOK provider credentials. |
 | Package management | pip + virtualenv. |
 | Testing / quality | pytest, mypy strict, Ruff, Black, pip-audit, detect-secrets. |
@@ -531,7 +533,7 @@ Route handlers stay thin. They expose existing service contracts rather than smu
 
 ### Future Model and Deployment Surfaces
 
-The v1 build target is local-first browser deployment with hosted provider routing and BYOK provider credentials. That does not eliminate the older extensibility intent around local/open-weight models, VPS-hosted open-weight models, or broader hybrid BYOK surfaces.
+The v1 build target is local-first browser deployment with hosted provider routing and BYOK provider credentials. *Reconciled 2026-10-17 (CRD Issue 22 D1, [prerequisite #205](https://github.com/AfterworldsAI/afterworlds/issues/205)):* hosted subscriptions are accessed remotely in production; local subscription access may support early testing. The local-first BYOK path is preserved unchanged — see §8 “Remote Accounts and Cloud Services”. That does not eliminate the older extensibility intent around local/open-weight models, VPS-hosted open-weight models, or broader hybrid BYOK surfaces.
 
 Future issues may add those surfaces if quality, cost, privacy, hardware, and policy constraints justify them. The v1 adapter interfaces should therefore avoid assumptions that only direct hosted APIs can ever satisfy a provider-backed pass.
 
@@ -611,6 +613,8 @@ Raw API keys must never be persisted in:
 - Story/Turn data
 
 Cloud Services may sync non-secret provider preferences/metadata in v1. Cloud-hosted storage or sync of BYOK API keys is deferred unless a later issue defines a dedicated security model, threat model, audit trail, and deletion/export semantics.
+
+*Remote deployment (prerequisite #205, ADR-021 D9):* a remote Cloud Services account does not upload, store, validate or infer local BYOK credentials. The remote server constructs no credential store, never probes BYOK readiness, refuses the local key-write/validation/settings routes before reading a key, and reports local readiness as unavailable rather than inferring it. Remote Cloud Services do not imply server-hosted BYOK provider execution; any server-mediated BYOK path needing key material is a separate governed security/product decision.
 
 ### Canonical Prompt/Context Shape
 
@@ -703,6 +707,17 @@ Cloud Services fund ongoing hosted convenience and service costs:
 - any hosted runtime dependent on Afterworlds server resources
 
 If Cloud Services lapse, hosted active-use services suspend. Existing hosted user content remains available for read/export/download and later reactivation, but ongoing turn generation continues through the local BYOK path rather than through uncompensated server-hosted storage/retrieval.
+
+### Remote Accounts and Cloud Services
+
+*Added 2026-10-17 under CRD Issue 22 Owner Decision D1 and the accepted [Remote Identity and Storage Prerequisite #205](https://github.com/AfterworldsAI/afterworlds/issues/205); engineering selections in ADR-021, operations in `remote-identity-and-storage.md`.*
+
+- Hosted subscriptions run on a remote web server and are accessed remotely in production. BYOK users need a remote account only for Cloud Services. Local BYOK orchestration, local owned-content read/export/deletion and perpetual rights work without a cloud account, sign-in or active Cloud Services.
+- Every remote request resolves an authenticated principal, a stable hosted account (also the entitlement subject) and a role from server-validated state; no request field, header, browser storage or Story ID selects identity or privilege.
+- Each hosted account owns only the hosted records it explicitly creates. Initial remote stores import no local/test/proof data, and unknown ownership is never guessed.
+- The Owner is the sole initial full administrator through a controlled server-side bootstrap; staff authority is a separate session context and never includes local-device access or raw BYOK key disclosure.
+- Remote accounts are a deployment of the same orchestration path; they remove no continuity function or safety envelope (Business invariant: one canonical Sojourn path).
+- CRD Issue 22 owns support, export/deletion fulfillment, retention and anomaly visibility over this foundation; CRD Issue 23 owns payments and trial enrollment.
 
 ### Billing Platform Ownership
 

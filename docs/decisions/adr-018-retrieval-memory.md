@@ -693,13 +693,39 @@ already specified. See the mutation table below.
 | Turn ingested (first time) | Upsert by deterministic ID; re-ingesting the same turn replaces byte-identically — zero duplicates. |
 | Turn re-ingested after prose correction, re-chunking, or any chunk-set-replacing operation (future) | **Delete all existing chunks for that `turn_id` first, then write the current chunk set** — not upsert-only. Required even when the new chunk count is unchanged, and mandatory when it is smaller, so old higher-index chunks from a prior, larger chunk set never survive. |
 | Turn deleted | Delete all chunks whose IDs derive from that `turn_id`. |
-| Story deleted / CRD Issue 22 deletion request | Delete by `story_id` metadata filter across story-memory collections; a post-delete count-zero verification is part of the operation's contract. |
+| Story deleted / CRD Issue 22 deletion request | Delete by `story_id` metadata filter across story-memory collections; a post-delete count-zero verification is part of the operation's contract. *(CRD Issue 22 lifecycle amendment, 2026-10-17 — see the note below this table.)* |
 | Reindex (story or corpus) | Rebuild from SQLite-authoritative content; embedding-model change forces reindex. |
 | Retrieval config change (top_k, threshold) | Configuration only; no vector mutation. |
 | Rules package republished | CRD Issue 5b re-ingestion remains idempotent; CRD Issue 18 reindex refreshes the rules collection without mutating CRD Issue 5a source records. |
 | RPG turn-category marker written | Insert-once at turn creation inside the outer transaction; never updated; rolls back with a blocked turn. |
 | RPG turn deleted | Marker row deleted with its turn; no orphaned markers. |
 | Historical pre-boundary RPG turn | No-op — never retroactively classified; predicate treats it as `ORDINARY_NARRATIVE`. |
+
+> **CRD Issue 22 lifecycle amendment to the D11 “Story deleted / CRD Issue 22 deletion request” row
+> (Owner-accepted 2026-10-17).** Authority: [CRD Issue 22 #206](https://github.com/AfterworldsAI/afterworlds/issues/206),
+> the [accepted lifecycle ADR amendment contract, revision 1](https://github.com/AfterworldsAI/afterworlds/issues/206#issuecomment-6246562569)
+> and the [field/store retention matrix, revision 1](https://github.com/AfterworldsAI/afterworlds/issues/206#issuecomment-6246563742);
+> repository copies in `docs/architecture/crd-issue-22-governing/`.
+>
+> **Superseded portion:** none; the row stays the per-Story rule.
+>
+> **Inserted clause:** “For account-wide erasure, enumerate all owned Story IDs before parent
+> detachment and apply D11 to each. A missing collection may prove zero through the supported
+> delete-only path; an unavailable read cannot. Restore/reindex/backfill/delayed ingestion must
+> consult deletion suppression. The receipt includes per-Story count-zero evidence and later backup
+> disposition.”
+>
+> **Preserved:** SQLite remains authority for live content; the shared Rules corpus remains untouched.
+>
+> **Remote prerequisite #205 note:** in a remote deployment every story-memory read, write, reindex
+> and delete is preceded by account-to-Story authorization against the durable ownership map, and
+> refused for an unowned, closed-account or suppressed Story, before the existing `story_id` filter
+> ([ADR-021](adr-021-remote-identity-and-storage.md)).
+>
+> **Common amendment clause (verbatim):** Ordinary operation retains this ADR's append-only, immutable, transactional, replay and provenance requirements. A verified, explicitly confirmed Story or account-wide terminal deletion, or an approved record's retention expiry, is a separately authorized lifecycle operation. It may remove only inventoried in-scope content or expired minimized records through the owning service and a reviewed migration/maintenance contract. The operation records trusted actor, subject/scope, confirmation and source revision, policy version, exact affected classes/counts, per-store progress, timestamps and verification in minimized append-safe receipts. It fences new work, preserves unrelated subjects, shared Rules Packages, current money/access reconstructability and perpetual BYOK rights, and prevents restore, replay, delayed jobs and reindex from resurrecting erased data. Existing database UPDATE/DELETE triggers are not simply disabled by an ad hoc administrator action; the reviewed lifecycle path must preserve ordinary immutability and have tests for its exceptional behavior. An operational receipt is not a retained copy of narrative, provider, RPG or credential payload. This exception neither resolves gameplay cancellation/expiration/rewind nor creates a refund, credit repair, payment event or new entitlement path. Backups and legal exceptions follow the accepted CRD Issue 22 matrix; final deletion cannot be claimed before verified backup disposition.
+>
+> A service that cannot meet the approved 7-day live or overall 30-day backup deletion limit is an
+> unmet prerequisite, not grounds for an implicit extension.
 
 **Phase 2 test obligation (turn-level replacement):** Phase 2 must add a test proving that when a
 turn's chunk count is reduced by re-ingestion (e.g., a corrected/shorter version of the same prose that

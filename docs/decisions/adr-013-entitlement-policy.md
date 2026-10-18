@@ -37,6 +37,39 @@ append-only path. Without `MANUAL_CREDIT_ADJUSTMENT`, Issue 22 would have no leg
 adjust credit balances; removing it from Issue 13 would leave Issue 22 with no callable
 mutation primitive.
 
+> **CRD Issue 22 lifecycle amendment (Owner-accepted 2026-10-17).** Authority:
+> [CRD Issue 22 #206](https://github.com/AfterworldsAI/afterworlds/issues/206), the
+> [accepted lifecycle ADR amendment contract, revision 1](https://github.com/AfterworldsAI/afterworlds/issues/206#issuecomment-6246562569)
+> and the [field/store retention matrix, revision 1](https://github.com/AfterworldsAI/afterworlds/issues/206#issuecomment-6246563742)
+> (including its exact accounting and perpetual-rights allowlist); repository copies in
+> `docs/architecture/crd-issue-22-governing/`.
+>
+> **Superseded portion:** none of the ordinary mutation rule above. The amendment adds the retained
+> lifetime and governed-expiry boundary.
+>
+> **Inserted clause:** “CRD Issue 22 support actions still call only this mutation path. During
+> active life plus 24 calendar months after account closure, minimized retained events must parse and
+> replay at exact `global_sequence` order with stable `event_id`, subject, source/idempotency/turn
+> references when material, and all typed fields necessary to reconstruct credit/access effects. The
+> retained event representation is versioned and owned by entitlement service; it is not arbitrary
+> JSON redaction or a second ledger. Expiry after the approved lifetime uses a governed path, subject
+> to an individually justified financial-record duty. Minimum BYOK-rights evidence survives
+> independently while enforceable, reviewed annually. Story deletion alone does not start
+> account-closure expiry.”
+>
+> **Preserved:** existing credit precision, negative balances, BYOK independence, Cloud expiry and
+> event mutation semantics.
+>
+> **Remote prerequisite #205 note:** in a remote deployment the entitlement subject
+> (`sojourner_id`) of a hosted account is that account's stable `account_id`
+> ([ADR-021](adr-021-remote-identity-and-storage.md)). No new event type, parallel ledger or
+> mutation path is introduced; local installations keep the single local Sojourner subject.
+>
+> **Common amendment clause (verbatim):** Ordinary operation retains this ADR's append-only, immutable, transactional, replay and provenance requirements. A verified, explicitly confirmed Story or account-wide terminal deletion, or an approved record's retention expiry, is a separately authorized lifecycle operation. It may remove only inventoried in-scope content or expired minimized records through the owning service and a reviewed migration/maintenance contract. The operation records trusted actor, subject/scope, confirmation and source revision, policy version, exact affected classes/counts, per-store progress, timestamps and verification in minimized append-safe receipts. It fences new work, preserves unrelated subjects, shared Rules Packages, current money/access reconstructability and perpetual BYOK rights, and prevents restore, replay, delayed jobs and reindex from resurrecting erased data. Existing database UPDATE/DELETE triggers are not simply disabled by an ad hoc administrator action; the reviewed lifecycle path must preserve ordinary immutability and have tests for its exceptional behavior. An operational receipt is not a retained copy of narrative, provider, RPG or credential payload. This exception neither resolves gameplay cancellation/expiration/rewind nor creates a refund, credit repair, payment event or new entitlement path. Backups and legal exceptions follow the accepted CRD Issue 22 matrix; final deletion cannot be claimed before verified backup disposition.
+>
+> A service that cannot meet the approved 7-day live or overall 30-day backup deletion limit is an
+> unmet prerequisite, not grounds for an implicit extension.
+
 **`MANUAL_CREDIT_ADJUSTMENT` exists solely so Issue 22 support/remediation code can mutate
 runtime entitlement state through the approved append-only path.** It is a seam primitive,
 not a support-workflow implementation. Issue 13 intentionally defines and enforces it here

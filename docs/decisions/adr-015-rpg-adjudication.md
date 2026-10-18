@@ -80,6 +80,30 @@ before the provisional Turn row.
 second transaction model. Rollback safety is inherited. A blocked turn leaves no
 audit residue.
 
+> **CRD Issue 22 lifecycle amendment (Owner-accepted 2026-10-17)** — applies to Decision 1's
+> delivery transaction and Decision 4's “immutable single source of truth for outcome and
+> `sheet_effects`”. Authority: [CRD Issue 22 #206](https://github.com/AfterworldsAI/afterworlds/issues/206),
+> the [accepted lifecycle ADR amendment contract, revision 1](https://github.com/AfterworldsAI/afterworlds/issues/206#issuecomment-6246562569)
+> and the [field/store retention matrix, revision 1](https://github.com/AfterworldsAI/afterworlds/issues/206#issuecomment-6246563742);
+> repository copies in `docs/architecture/crd-issue-22-governing/`.
+>
+> **Superseded portion:** neither decision for a live Story. Immutability of final audit and sheet
+> content is superseded only for confirmed terminal erasure of the entire Story/account.
+>
+> **Inserted clause:** “Delivery still atomically commits Turn, RPG final audit and sheet effects; a
+> block still rolls them back. For confirmed terminal erasure of the entire Story/account, fence
+> continuing work and dispose of scoped final audit/sheet content through the reviewed lifecycle
+> path. This does not reverse a delivered result in a live Story, falsify hidden-roll history while
+> retained, reroll or refund. The minimized receipt has IDs/counts, not hidden results or full
+> snapshots.”
+>
+> **Preserved:** mechanical truth and hidden/player visibility for live Stories.
+>
+> **Common amendment clause (verbatim):** Ordinary operation retains this ADR's append-only, immutable, transactional, replay and provenance requirements. A verified, explicitly confirmed Story or account-wide terminal deletion, or an approved record's retention expiry, is a separately authorized lifecycle operation. It may remove only inventoried in-scope content or expired minimized records through the owning service and a reviewed migration/maintenance contract. The operation records trusted actor, subject/scope, confirmation and source revision, policy version, exact affected classes/counts, per-store progress, timestamps and verification in minimized append-safe receipts. It fences new work, preserves unrelated subjects, shared Rules Packages, current money/access reconstructability and perpetual BYOK rights, and prevents restore, replay, delayed jobs and reindex from resurrecting erased data. Existing database UPDATE/DELETE triggers are not simply disabled by an ad hoc administrator action; the reviewed lifecycle path must preserve ordinary immutability and have tests for its exceptional behavior. An operational receipt is not a retained copy of narrative, provider, RPG or credential payload. This exception neither resolves gameplay cancellation/expiration/rewind nor creates a refund, credit repair, payment event or new entitlement path. Backups and legal exceptions follow the accepted CRD Issue 22 matrix; final deletion cannot be claimed before verified backup disposition.
+>
+> A service that cannot meet the approved 7-day live or overall 30-day backup deletion limit is an
+> unmet prerequisite, not grounds for an implicit extension.
+
 ---
 
 ## Decision 2: `RPG_ADJUDICATION` pass identity
@@ -130,6 +154,9 @@ The mechanical truth is already locked in the record.
 
 **Rationale:** `gm_cheating = off` is a player-trust invariant, not a preference.
 Code enforcement (not prompt-only) is required.
+
+> *CRD Issue 22 lifecycle amendment (2026-10-17):* immutability here is unchanged for live Stories;
+> terminal erasure of an entire Story/account follows the amendment recorded under Decision 1.
 
 ---
 

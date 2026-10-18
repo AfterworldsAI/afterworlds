@@ -81,6 +81,30 @@ the pipeline must go through the service.
 History records are never soft-deleted or hard-deleted.  `soft_delete` on the service
 does not mark history records as inactive.
 
+> **CRD Issue 22 lifecycle amendment (Owner-accepted 2026-10-17).** Authority:
+> [CRD Issue 22 #206](https://github.com/AfterworldsAI/afterworlds/issues/206), the
+> [accepted lifecycle ADR amendment contract, revision 1](https://github.com/AfterworldsAI/afterworlds/issues/206#issuecomment-6246562569)
+> and the [field/store retention matrix, revision 1](https://github.com/AfterworldsAI/afterworlds/issues/206#issuecomment-6246563742);
+> repository copies in `docs/architecture/crd-issue-22-governing/`.
+>
+> **Superseded portion:** the two sentences above, and the Consequences bullet on recovery after
+> deletion, **only for confirmed terminal erasure and governed expiry**. They remain the historical
+> decision and the ordinary rule.
+>
+> **Inserted clause:** “`sb_dynamic_field_history` continues to record prior values on ordinary
+> dynamic updates and survives ordinary soft deletion. The terminal lifecycle deletes every matching
+> `story_id` row, including old values after entity/Story removal, through the Story Bible owner. No
+> old canon value remains recoverable or reindexable after confirmed erasure. Prove complete
+> matching-row removal from live and affected backup stores.”
+>
+> **Preserved:** the `update_dynamic_field` versioning mechanism, migration 0040 owner backfill, and
+> live-Story review history.
+>
+> **Common amendment clause (verbatim):** Ordinary operation retains this ADR's append-only, immutable, transactional, replay and provenance requirements. A verified, explicitly confirmed Story or account-wide terminal deletion, or an approved record's retention expiry, is a separately authorized lifecycle operation. It may remove only inventoried in-scope content or expired minimized records through the owning service and a reviewed migration/maintenance contract. The operation records trusted actor, subject/scope, confirmation and source revision, policy version, exact affected classes/counts, per-store progress, timestamps and verification in minimized append-safe receipts. It fences new work, preserves unrelated subjects, shared Rules Packages, current money/access reconstructability and perpetual BYOK rights, and prevents restore, replay, delayed jobs and reindex from resurrecting erased data. Existing database UPDATE/DELETE triggers are not simply disabled by an ad hoc administrator action; the reviewed lifecycle path must preserve ordinary immutability and have tests for its exceptional behavior. An operational receipt is not a retained copy of narrative, provider, RPG or credential payload. This exception neither resolves gameplay cancellation/expiration/rewind nor creates a refund, credit repair, payment event or new entitlement path. Backups and legal exceptions follow the accepted CRD Issue 22 matrix; final deletion cannot be claimed before verified backup disposition.
+>
+> A service that cannot meet the approved 7-day live or overall 30-day backup deletion limit is an
+> unmet prerequisite, not grounds for an implicit extension. CRD Issue 22 owns the fulfillment.
+
 ---
 
 ## Consequences
@@ -90,6 +114,8 @@ does not mark history records as inactive.
 - Prior values are recoverable for any dynamic field via
   `get_dynamic_field_history(entity_type, entity_id, story_id=...)`, which reads
   only the history table and so works after the entity or Story is deleted.
+  *(Superseded only for confirmed terminal erasure and governed expiry by the CRD Issue 22
+  lifecycle amendment under Scope above; it still holds after ordinary soft deletion.)*
 - The history table grows with every dynamic update.  This is expected and acceptable.
   Story Bible updates are low-frequency relative to prose generation.
 - If a future issue requires per-field history tables for performance reasons (e.g.

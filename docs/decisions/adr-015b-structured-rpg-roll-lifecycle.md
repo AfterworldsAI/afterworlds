@@ -442,12 +442,42 @@ deferred. Failed final narration preserves validated results and does not author
 event ledger (Group 15, 15b-34) is the durable mechanism that makes "failed final narration preserves
 validated results" a transactional guarantee rather than a stated intention only.
 
+> *CRD Issue 22 lifecycle amendment (2026-10-17):* 15b-33 remains unresolved for continuing Stories.
+> The only addition is the terminal-disposal boundary for a confirmed deleted Story/account, recorded
+> under 15b-34 below; it is not a cancellation, expiration or rewind policy.
+
 ### Group 15 — Durable intermediate audit
 
 **Decision (15b-34):** Every accepted intermediate roll, adjustment, or mechanical decision commits an
 append-only action-resolution event atomically with sequence advancement. These events preserve durable
 mechanical provenance without becoming sheet, canon, or delivered-result authority. `rpg_roll_audit`
 remains delivery-gated and tied to a non-null final `turn_id`.
+
+> **CRD Issue 22 lifecycle amendment (Owner-accepted 2026-10-17)** — applies to 15b-34 (“Every accepted
+> intermediate roll, adjustment, or mechanical decision commits an append-only action-resolution event
+> atomically with sequence advancement.”), its DB-trigger clause, and the Group 14 / 15b-33 deferral.
+> Authority: [CRD Issue 22 #206](https://github.com/AfterworldsAI/afterworlds/issues/206), the
+> [accepted lifecycle ADR amendment contract, revision 1](https://github.com/AfterworldsAI/afterworlds/issues/206#issuecomment-6246562569)
+> and the [field/store retention matrix, revision 1](https://github.com/AfterworldsAI/afterworlds/issues/206#issuecomment-6246563742);
+> repository copies in `docs/architecture/crd-issue-22-governing/`.
+>
+> **Superseded portion:** the append-only/no-delete guarantee only for confirmed terminal erasure of
+> the entire Story/account. 15b-34 stays the ordinary rule and 15b-33 stays unresolved.
+>
+> **Inserted clause:** “For a confirmed terminal erasure of the entire Story/account, fence submission
+> and resume, then remove its pending request, sequence JSON, intermediate events and final audit
+> content through a guarded lifecycle path. This is disposal of a no-longer-existing Story, not a
+> gameplay cancel, expiration, rewind, mechanical decision, retry or refund for a continuing Story. An
+> unfenceable in-flight external operation is a visible operational failure to resolve within the
+> approved deletion service deadline; it is not an indefinite gameplay-policy hold.”
+>
+> **Preserved:** normal atomic sequence advancement and recovery after failed narration in an existing
+> Story; 15b-33 remains unresolved.
+>
+> **Common amendment clause (verbatim):** Ordinary operation retains this ADR's append-only, immutable, transactional, replay and provenance requirements. A verified, explicitly confirmed Story or account-wide terminal deletion, or an approved record's retention expiry, is a separately authorized lifecycle operation. It may remove only inventoried in-scope content or expired minimized records through the owning service and a reviewed migration/maintenance contract. The operation records trusted actor, subject/scope, confirmation and source revision, policy version, exact affected classes/counts, per-store progress, timestamps and verification in minimized append-safe receipts. It fences new work, preserves unrelated subjects, shared Rules Packages, current money/access reconstructability and perpetual BYOK rights, and prevents restore, replay, delayed jobs and reindex from resurrecting erased data. Existing database UPDATE/DELETE triggers are not simply disabled by an ad hoc administrator action; the reviewed lifecycle path must preserve ordinary immutability and have tests for its exceptional behavior. An operational receipt is not a retained copy of narrative, provider, RPG or credential payload. This exception neither resolves gameplay cancellation/expiration/rewind nor creates a refund, credit repair, payment event or new entitlement path. Backups and legal exceptions follow the accepted CRD Issue 22 matrix; final deletion cannot be claimed before verified backup disposition.
+>
+> A service that cannot meet the approved 7-day live or overall 30-day backup deletion limit is an
+> unmet prerequisite, not grounds for an implicit extension.
 
 The Phase 2 contract:
 
