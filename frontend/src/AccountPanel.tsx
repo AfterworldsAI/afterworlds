@@ -239,14 +239,23 @@ export default function AccountPanel({ refreshKey }: { refreshKey: number }) {
       <p data-testid="byok-license">
         BYOK license: {byok.license_active ? "active" : "not active"}.
       </p>
-      <p data-testid="byok-ready">
-        {byok.byok_ready === null
-          ? "BYOK readiness could not be verified."
-          : byok.byok_ready
-            ? "Provider keys and configuration are ready."
-            : "No provider key and configuration is ready."}
-      </p>
-      {!writable && (
+      {byok.readiness_source === "unavailable_remotely" ? (
+        // Prerequisite #205: the remote service never sees device keys.
+        <p data-testid="byok-remote">
+          Provider keys stay in your local Afterworlds installation. This remote
+          account cannot see, store or use them, so local BYOK readiness is not
+          available here.
+        </p>
+      ) : (
+        <p data-testid="byok-ready">
+          {byok.byok_ready === null
+            ? "BYOK readiness could not be verified."
+            : byok.byok_ready
+              ? "Provider keys and configuration are ready."
+              : "No provider key and configuration is ready."}
+        </p>
+      )}
+      {!writable && byok.readiness_source !== "unavailable_remotely" && (
         <p data-testid="store-read-only">
           This installation&apos;s credential store is read-only; keys cannot be
           added or removed here.

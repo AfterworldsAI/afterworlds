@@ -21,6 +21,19 @@ export const localStorageState = {
     else localStorage.removeItem(draftKey(storyId));
   },
 
+  // Prerequisite #205: on remote sign-out, forget which story and drafts the
+  // previous account left, so the next account on this browser sees none.
+  clearAccountState: (): void => {
+    const keys = Array.from({ length: localStorage.length }, (_, i) =>
+      localStorage.key(i),
+    );
+    for (const key of keys) {
+      if (key === LAST_STORY_KEY || key?.startsWith("afterworlds:draft:")) {
+        localStorage.removeItem(key);
+      }
+    }
+  },
+
   getSidebarCollapsed: (): boolean =>
     localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true",
   setSidebarCollapsed: (collapsed: boolean): void =>
