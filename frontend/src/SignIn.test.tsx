@@ -135,7 +135,7 @@ describe("remote sign-in (prerequisite #205)", () => {
     expect(JSON.parse(complete.body!)).toEqual({
       contact_address: "new@example.test",
       code: "the-code",
-      password: "a brand new passphrase",
+      password: "a brand new passphrase", // pragma: allowlist secret
     });
     expect(localStorage.length).toBe(0);
   });

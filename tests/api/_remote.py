@@ -8,6 +8,7 @@ use ``https://testserver`` because session cookies are ``Secure``.
 
 from __future__ import annotations
 
+import gc
 import json
 from collections.abc import Iterator
 from dataclasses import dataclass, field
@@ -91,6 +92,12 @@ class RemoteHarness:
             c.__exit__(None, None, None)
         # Like process exit: release pooled connections and the store lock.
         self.app.state.session_factory.kw["bind"].dispose()
+        from chromadb.api.client import SharedSystemClient
+
+        SharedSystemClient.clear_system_cache()
+        self.app.state.orchestrator = None
+        self.app.state.rpg_actions = None
+        gc.collect()
         self.app.state.store_lock.close()
 
 

@@ -121,7 +121,10 @@ class TestEnrollmentAndSignIn:
         # Registration takes no password: only the code holder sets it.
         resp = remote.client().post(
             "/api/auth/register",
-            json={"contact_address": "x@example.test", "password": "squatter-pass"},
+            json={
+                "contact_address": "x@example.test",
+                "password": "squatter-pass",  # pragma: allowlist secret
+            },
         )
         assert resp.status_code == 422
 
@@ -130,7 +133,10 @@ class TestEnrollmentAndSignIn:
         c = remote.client()
         wrong = c.post(
             "/api/auth/sign-in",
-            json={"contact_address": "a@example.test", "password": "wrong password!"},
+            json={
+                "contact_address": "a@example.test",
+                "password": "wrong password!",  # pragma: allowlist secret
+            },
         )
         unknown = c.post(
             "/api/auth/sign-in",
