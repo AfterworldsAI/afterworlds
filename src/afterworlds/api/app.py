@@ -82,15 +82,20 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
         outbox = settings.notice_outbox_dir
         assert outbox is not None
         app.state.store_lock = acquire_store_lock(settings.database_url)
-        control_factory = open_control_store(settings.control_database_url)
-        fresh = check_content_store_before_migration(
-            settings.database_url, control_factory
-        )
-        if pending_restores(control_factory):
-            raise StoreRefused(
-                "a restored content store is awaiting deletion-suppression "
-                "enforcement and verification; it cannot be served yet"
+        try:
+            control_factory = open_control_store(settings.control_database_url)
+            fresh = check_content_store_before_migration(
+                settings.database_url, control_factory
             )
+            if pending_restores(control_factory):
+                raise StoreRefused(
+                    "a restored content store is awaiting deletion-suppression "
+                    "enforcement and verification; it cannot be served yet"
+                )
+        except BaseException:
+            # A refused start must not keep the store locked.
+            app.state.store_lock.close()
+            raise
 
     # P1 remediation (PR #126 review round 1): apply the real Alembic
     # migrations rather than Base.metadata.create_all(), which silently
