@@ -164,6 +164,11 @@ from afterworlds.pipeline.safety.service import SafetyService
 from afterworlds.pipeline.writer.config import WriterConfig
 from afterworlds.pipeline.writer.service import WriterService
 from afterworlds.pipeline.writing.visible_state import WritingVisibleStateService
+from afterworlds.remote.access import AccessPolicy
+from afterworlds.remote.retrieval_guard import (
+    GuardedRetrievalMemory,
+    GuardedRetrievalWrites,
+)
 from afterworlds.services.context_builder import (
     ContextBuilderService,
     RetrievalMemoryProvider,
@@ -595,8 +600,13 @@ def build_orchestrator(session_factory: sessionmaker[Session]) -> OrchestratorSe
 
 def build_pipeline(
     session_factory: sessionmaker[Session],
+    access_policy: AccessPolicy | None = None,
 ) -> tuple[OrchestratorService, ActionResolutionService]:
-    """The real OrchestratorService and the ActionResolutionService it owns."""
+    """The real OrchestratorService and the ActionResolutionService it owns.
+
+    A remote ``access_policy`` (prerequisite #205) puts both Retrieval Memory
+    seams behind the ownership guard; locally they are wired unchanged.
+    """
     use_fake_provider = fake_provider_enabled()
     # Uniform in both fake and real mode: the orchestrator always supplies a
     # provider-routed model_caller override per call (see module docstring's
@@ -609,12 +619,22 @@ def build_pipeline(
     # write (RetrievalMemoryWriteService) sides of Retrieval Memory -- both
     # operate on the same story_memory collection under the same config.
     chroma_client = build_chroma_client(retrieval_config)
-    retrieval_memory = ChromaRetrievalMemoryProvider(
+    retrieval_memory: RetrievalMemoryProvider = ChromaRetrievalMemoryProvider(
         client=chroma_client, config=retrieval_config
     )
-    retrieval_write_service = RetrievalMemoryWriteService(
+    raw_writes = RetrievalMemoryWriteService(
         client=chroma_client, config=retrieval_config
     )
+    retrieval_write_service: RetrievalMemoryWriteService | GuardedRetrievalWrites = (
+        raw_writes
+    )
+    if access_policy is not None and access_policy.remote:
+        retrieval_memory = GuardedRetrievalMemory(
+            retrieval_memory, access_policy, session_factory
+        )
+        retrieval_write_service = GuardedRetrievalWrites(
+            raw_writes, access_policy, session_factory
+        )
     retrieval_query_builder = RetrievalQueryBuilder(
         recent_turns_provider=_PerTurnRecentTurnsProvider(session_factory),
         session_factory=session_factory,

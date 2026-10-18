@@ -11,14 +11,22 @@ Usage
 
     python scripts/retrieval_backfill.py --story-id <uuid> --mode reindex \\
         --chroma-path .chroma_data --db-url sqlite:///afterworlds.db
+
+Remote deployment (prerequisite #205 §5): with ``AFTERWORLDS_DEPLOYMENT=remote``
+the job must carry its trusted account scope (``--account-id``) and is
+refused unless that account still owns the Story, is active and the Story is
+not under deletion suppression -- checked when the job runs, so a stale job
+can neither cross accounts nor recreate deleted content.
 """
 
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from dataclasses import replace
 from pathlib import Path
+from typing import Any
 from uuid import UUID
 
 # Ensure project src is on path when run from repo root
@@ -47,6 +55,14 @@ from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig  # noqa:
 from afterworlds.pipeline.retrieval.write_service import (  # noqa: E402
     RetrievalMemoryWriteService,
 )
+from afterworlds.remote.access import (  # noqa: E402
+    AccessPolicy,
+    DelayedWorkScope,
+    StoryAccessDenied,
+    story_owner,
+)
+from afterworlds.remote.control_store import open_control_store  # noqa: E402
+from afterworlds.remote.identity import IdentityService  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -71,7 +87,52 @@ def parse_args() -> argparse.Namespace:
         "be passed to deliberately point at a different Chroma directory.",
     )
     parser.add_argument("--db-url", default="sqlite:///afterworlds.db")
+    parser.add_argument(
+        "--account-id",
+        default=None,
+        help="Remote deployment only: the owning hosted account (required).",
+    )
     return parser.parse_args()
+
+
+class _NoNotices:
+    def send(self, *, contact_address: str, kind: str, code: str) -> None:
+        raise AssertionError("backfill sends no notices")
+
+
+def remote_scope_check(
+    session_factory: Any, story_id: UUID, account_id: str | None, mode: str
+) -> None:
+    """Recheck the job's trusted scope (remote only); exit 3 when refused."""
+    if os.environ.get("AFTERWORLDS_DEPLOYMENT") != "remote":
+        return
+    control_url = os.environ.get("AFTERWORLDS_CONTROL_DATABASE_URL")
+    if account_id is None or control_url is None:
+        print(
+            "remote backfill requires --account-id and "
+            "AFTERWORLDS_CONTROL_DATABASE_URL",
+            file=sys.stderr,
+        )
+        raise SystemExit(3)
+    control = open_control_store(control_url)
+    policy = AccessPolicy(IdentityService(control, _NoNotices()), control)
+    scope = DelayedWorkScope(
+        account_id=UUID(account_id), story_id=story_id, operation=f"retrieval_{mode}"
+    )
+    session = session_factory()
+    try:
+        if mode == "delete":
+            # Deletion enforces a suppression: it needs the owner, not an
+            # unsuppressed Story (remote/retrieval_guard.py).
+            if story_owner(session, story_id) != account_id:
+                raise StoryAccessDenied(scope.operation)
+        else:
+            policy.check_delayed_work(session, scope)
+    except StoryAccessDenied:
+        print("story not accessible for this account", file=sys.stderr)
+        raise SystemExit(3) from None
+    finally:
+        session.close()
 
 
 def build_effective_config(chroma_path: str | None) -> RetrievalMemoryConfig:
@@ -101,6 +162,8 @@ def main() -> None:
     config = build_effective_config(args.chroma_path)
     client = build_chroma_client(config)
     write_service = RetrievalMemoryWriteService(client, config)
+
+    remote_scope_check(session_factory, story_id, args.account_id, args.mode)
 
     session = session_factory()
     try:

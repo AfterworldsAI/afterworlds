@@ -11,7 +11,8 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request, Response
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 
 from afterworlds.api.account import build_account_status, run_settings_operation
@@ -24,21 +25,35 @@ from afterworlds.api.deps import (
 from afterworlds.api.dto import (
     AccountStatusResponse,
     ByokProvider,
+    CloseAccountRequest,
     CredentialValidationRequest,
     CredentialWriteRequest,
+    DeploymentKind,
     OpenRouterModelRequest,
     ProviderEnabledRequest,
+    SessionStatusResponse,
 )
 from afterworlds.api.errors import ApiError
+from afterworlds.api.remote_access import (
+    SESSION_COOKIE,
+    clear_session_cookie,
+    get_actor,
+    identity_service,
+    raise_identity_error,
+)
 from afterworlds.pipeline.provider import (
     ByokCredentialReadinessProvider,
     ByokSettingsService,
 )
+from afterworlds.remote.identity import Actor, IdentityError
 
 router = APIRouter(prefix="/api/account", tags=["account"])
 
 _RESPONSES: dict[int | str, dict[str, Any]] = {
-    status: {"model": ApiError} for status in (409, 422, 503)
+    status: {"model": ApiError} for status in (401, 409, 422, 503)
+}
+_CLOSE_RESPONSES: dict[int | str, dict[str, Any]] = {
+    status: {"model": ApiError} for status in (401, 404, 422)
 }
 
 
@@ -145,3 +160,24 @@ def validate_credential(
     # rejected a request without the explicit acknowledgement.
     run_settings_operation(lambda: settings.validate(sojourner_id, provider.value))
     return build_account_status(session, sojourner_id, readiness, settings)
+
+
+@router.post("/close", response_model=SessionStatusResponse, responses=_CLOSE_RESPONSES)
+async def close_account(
+    body: CloseAccountRequest,
+    request: Request,
+    response: Response,
+    actor: Actor = Depends(get_actor),
+) -> SessionStatusResponse:
+    """Remote self-service closure (prerequisite #205 §1): re-authenticate,
+    close, revoke every session. Erasure and export are CRD Issue 22's."""
+    identity = identity_service(request)
+    assert identity is not None  # enforce_access refuses this route locally
+    try:
+        await run_in_threadpool(
+            identity.close_account, actor, body.password.get_secret_value()
+        )
+    except IdentityError as exc:
+        raise_identity_error(exc)
+    clear_session_cookie(request, response, SESSION_COOKIE)
+    return SessionStatusResponse(deployment=DeploymentKind.REMOTE, signed_in=False)

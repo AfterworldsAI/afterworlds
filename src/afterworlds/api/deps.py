@@ -33,12 +33,15 @@ def get_session(request: Request) -> Iterator[Session]:
 
 
 def get_sojourner_id(request: Request) -> UUID:
-    """Return the server-provisioned Sojourner id.
+    """Return the acting entitlement subject.
 
     Never derived from client input (DoR-A) -- callers must not accept a
-    ``sojourner_id`` from request bodies/headers/query params.
+    ``sojourner_id`` from request bodies/headers/query params. Locally it is
+    the server-provisioned Sojourner id; remotely, the authenticated hosted
+    account's stable id (prerequisite #205, ADR-021 D4), resolved by the
+    app-level ``enforce_access`` dependency from the server-side session.
     """
-    return request.app.state.sojourner_id  # type: ignore[no-any-return]
+    return request.state.actor.account_id  # type: ignore[no-any-return]
 
 
 def get_orchestrator(request: Request) -> OrchestratorService:

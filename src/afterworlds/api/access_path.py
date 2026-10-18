@@ -21,12 +21,12 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from typing import Protocol
 from uuid import UUID
 
 from afterworlds.api.errors import ApiErrorCode
 from afterworlds.entitlement.enums import HostedUnavailableReason, RuntimeAccessPath
 from afterworlds.entitlement.models import AccessPathStatus
-from afterworlds.pipeline.provider import ByokCredentialReadinessProvider
 
 logger = logging.getLogger("afterworlds.api.access_path")
 
@@ -67,8 +67,22 @@ def select_access_path(
     )
 
 
+class ByokReadinessProbe(Protocol):
+    def is_byok_runnable(self, sojourner_id: UUID) -> bool: ...
+
+
+class ServerHostedByokUnavailable:
+    """Remote deployment readiness (prerequisite #205 §3, ADR-021 D9).
+
+    The server holds no BYOK credential store and never reads a device, so
+    BYOK is never runnable server-side: no hosted BYOK execution model."""
+
+    def is_byok_runnable(self, sojourner_id: UUID) -> bool:  # noqa: ARG002
+        return False
+
+
 def probe_byok_readiness(
-    provider: ByokCredentialReadinessProvider,
+    provider: ByokReadinessProbe,
     sojourner_id: UUID,
     log_extra: dict[str, str] | None = None,
     log: logging.Logger = logger,

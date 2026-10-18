@@ -8,6 +8,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal
 
 _DEFAULT_DB_URL = "sqlite:///./afterworlds.db"
 _DEFAULT_FRONTEND_DIST = Path(__file__).resolve().parents[3] / "frontend" / "dist"
@@ -15,11 +16,30 @@ _DEFAULT_FRONTEND_DIST = Path(__file__).resolve().parents[3] / "frontend" / "dis
 
 @dataclass(frozen=True)
 class ApiSettings:
-    """Runtime configuration for the Afterworlds API."""
+    """Runtime configuration for the Afterworlds API.
+
+    ``deployment`` selects the local product (default; CRD Issues 19-21) or the
+    remote hosted deployment (prerequisite #205, ADR-021). A remote deployment
+    also needs its control store and notice outbox; ``cookie_secure=False`` is
+    only for an explicitly local test server.
+    """
 
     database_url: str
     frontend_dist_dir: Path
     schema_version: int = 1
+    deployment: Literal["local", "remote"] = "local"
+    control_database_url: str | None = None
+    notice_outbox_dir: Path | None = None
+    cookie_secure: bool = True
+
+    def __post_init__(self) -> None:
+        if self.deployment == "remote" and (
+            self.control_database_url is None or self.notice_outbox_dir is None
+        ):
+            raise RuntimeError(
+                "A remote deployment requires AFTERWORLDS_CONTROL_DATABASE_URL and "
+                "AFTERWORLDS_NOTICE_OUTBOX_DIR."
+            )
 
 
 def load_settings() -> ApiSettings:
@@ -47,7 +67,15 @@ def load_settings() -> ApiSettings:
             "set. Build the frontend (npm run build in frontend/) or set "
             "AFTERWORLDS_FRONTEND_DIST to a built frontend/dist directory."
         )
+    deployment = os.environ.get("AFTERWORLDS_DEPLOYMENT", "local")
+    if deployment not in ("local", "remote"):
+        raise RuntimeError(f"Unknown AFTERWORLDS_DEPLOYMENT {deployment!r}.")
+    outbox = os.environ.get("AFTERWORLDS_NOTICE_OUTBOX_DIR")
     return ApiSettings(
         database_url=os.environ.get("AFTERWORLDS_DATABASE_URL", _DEFAULT_DB_URL),
         frontend_dist_dir=Path(override) if override else _DEFAULT_FRONTEND_DIST,
+        deployment="remote" if deployment == "remote" else "local",
+        control_database_url=os.environ.get("AFTERWORLDS_CONTROL_DATABASE_URL"),
+        notice_outbox_dir=Path(outbox) if outbox else None,
+        cookie_secure=os.environ.get("AFTERWORLDS_INSECURE_TEST_COOKIES") != "1",
     )

@@ -12,12 +12,13 @@ import logging
 from collections import defaultdict
 from uuid import UUID
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from afterworlds.api.access_path import ServerHostedByokUnavailable
 from afterworlds.api.account import ACCOUNT_PATH_PREFIX, account_validation_location
 from afterworlds.api.config import ApiSettings, load_settings
 from afterworlds.api.db_bootstrap import upgrade_to_head
@@ -25,13 +26,17 @@ from afterworlds.api.deps import provision_sojourner_id
 from afterworlds.api.errors import ApiError, ApiErrorCode, ApiErrorResponse
 from afterworlds.api.fake_pipeline import fake_credential_check
 from afterworlds.api.pipeline_wiring import build_pipeline, fake_provider_enabled
+from afterworlds.api.remote_access import authorize_story, enforce_access
 from afterworlds.api.routes.account import router as account_router
+from afterworlds.api.routes.admin import router as admin_router
+from afterworlds.api.routes.auth import router as auth_router
 from afterworlds.api.routes.health import router as health_router
 from afterworlds.api.routes.personas import router as personas_router
 from afterworlds.api.routes.rpg_actions import router as rpg_actions_router
 from afterworlds.api.routes.rpg_setup import router as rpg_setup_router
 from afterworlds.api.routes.setup import router as setup_router
 from afterworlds.api.routes.stories import router as stories_router
+from afterworlds.api.routes.stories import story_router
 from afterworlds.api.routes.turns import router as turns_router
 from afterworlds.api.routes.visible_state import router as visible_state_router
 from afterworlds.api.rpg_actions import RpgActions
@@ -41,6 +46,17 @@ from afterworlds.pipeline.provider import (
     ByokSettingsService,
 )
 from afterworlds.pipeline.provider.credentials import make_credential_store
+from afterworlds.remote.access import AccessPolicy
+from afterworlds.remote.control_store import open_control_store, utc_now
+from afterworlds.remote.identity import IdentityService
+from afterworlds.remote.notices import OutboxDirectoryTransport
+from afterworlds.remote.storage import (
+    StoreRefused,
+    acquire_store_lock,
+    check_content_store_before_migration,
+    initialize_remote_content_store,
+    pending_restores,
+)
 from afterworlds.services.dnd5e_state.leases import (
     clear_orphans as clear_orphan_turn_leases,
 )
@@ -55,7 +71,26 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
     CORS middleware (DoR-C), built frontend served via StaticFiles.
     """
     settings = settings or load_settings()
-    app = FastAPI(title="Afterworlds API")
+    # Prerequisite #205: every /api route passes the one access choke point.
+    app = FastAPI(title="Afterworlds API", dependencies=[Depends(enforce_access)])
+    remote = settings.deployment == "remote"
+
+    if remote:
+        # ADR-021 D6/D7: one writer process, and only a fresh or this
+        # deployment's own store -- checked before any migration touches it.
+        assert settings.control_database_url is not None
+        outbox = settings.notice_outbox_dir
+        assert outbox is not None
+        app.state.store_lock = acquire_store_lock(settings.database_url)
+        control_factory = open_control_store(settings.control_database_url)
+        fresh = check_content_store_before_migration(
+            settings.database_url, control_factory
+        )
+        if pending_restores(control_factory):
+            raise StoreRefused(
+                "a restored content store is awaiting deletion-suppression "
+                "enforcement and verification; it cannot be served yet"
+            )
 
     # P1 remediation (PR #126 review round 1): apply the real Alembic
     # migrations rather than Base.metadata.create_all(), which silently
@@ -72,12 +107,28 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
 
     app.state.settings = settings
     app.state.session_factory = session_factory
-    app.state.sojourner_id = provision_sojourner_id(session_factory)
+    if remote:
+        if fresh:
+            initialize_remote_content_store(
+                session_factory, control_factory, now=utc_now()
+            )
+        assert outbox is not None
+        identity = IdentityService(control_factory, OutboxDirectoryTransport(outbox))
+        app.state.identity = identity
+        app.state.control_factory = control_factory
+        app.state.access_policy = AccessPolicy(identity, control_factory)
+        # ADR-021 D4: no shared subject -- each request's account is its own.
+    else:
+        app.state.identity = None
+        app.state.access_policy = AccessPolicy()
+        app.state.sojourner_id = provision_sojourner_id(session_factory)
     # Per-story turn-submission lock registry (Binding Decision 8). A single
     # choke point created once here, not per-request.
     story_locks: dict[UUID, asyncio.Lock] = defaultdict(asyncio.Lock)
     app.state.story_locks = story_locks
-    orchestrator, rpg_sequences = build_pipeline(session_factory)
+    orchestrator, rpg_sequences = build_pipeline(
+        session_factory, app.state.access_policy
+    )
     app.state.orchestrator = orchestrator
     # CRD Issue 15b: the RPG action routes reach the orchestrator's own
     # ActionResolutionService through the typed seam, never a second one.
@@ -85,25 +136,39 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
     # DoR-E: the readiness seam is constructed once here and consumed only
     # inside the access-path selection helper (api/access_path.py callers) --
     # never in a route handler directly.
-    credential_store = make_credential_store()
-    app.state.byok_readiness_provider = ByokCredentialReadinessProvider(
-        credential_store, session_factory
-    )
-    # CRD Issue 20: settings write the same store the readiness probe reads.
-    # Fake-provider mode never contacts a real provider, validation included.
-    app.state.byok_settings = ByokSettingsService(
-        credential_store,
-        session_factory,
-        checker=fake_credential_check if fake_provider_enabled() else None,
-    )
+    if remote:
+        # ADR-021 D9: no credential store exists server-side; BYOK readiness
+        # is never probed, so no hosted BYOK execution model can arise.
+        app.state.byok_readiness_provider = ServerHostedByokUnavailable()
+        app.state.byok_settings = None
+    else:
+        credential_store = make_credential_store()
+        app.state.byok_readiness_provider = ByokCredentialReadinessProvider(
+            credential_store, session_factory
+        )
+        # CRD Issue 20: settings write the same store the readiness probe
+        # reads. Fake-provider mode never contacts a real provider,
+        # validation included.
+        app.state.byok_settings = ByokSettingsService(
+            credential_store,
+            session_factory,
+            checker=fake_credential_check if fake_provider_enabled() else None,
+        )
 
+    # Both deployments mount every router (one OpenAPI document); behavior
+    # is gated by enforce_access. Every /api/stories/{story_id} route passes
+    # the one Story ownership guard.
+    story_guard = [Depends(authorize_story)]
     app.include_router(health_router)
+    app.include_router(auth_router)
+    app.include_router(admin_router)
     app.include_router(stories_router)
-    app.include_router(turns_router)
-    app.include_router(rpg_actions_router)
-    app.include_router(visible_state_router)
-    app.include_router(setup_router)
-    app.include_router(rpg_setup_router)
+    app.include_router(story_router, dependencies=story_guard)
+    app.include_router(turns_router, dependencies=story_guard)
+    app.include_router(rpg_actions_router, dependencies=story_guard)
+    app.include_router(visible_state_router, dependencies=story_guard)
+    app.include_router(setup_router, dependencies=story_guard)
+    app.include_router(rpg_setup_router, dependencies=story_guard)
     app.include_router(personas_router)
     app.include_router(account_router)
 
