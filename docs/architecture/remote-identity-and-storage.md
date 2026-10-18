@@ -138,6 +138,10 @@ account ID, ticket, Story ID or old session is never accepted as proof.
    `... storage_cli verify-restore --restore-id <id>`; exit `2` lists suppressed Stories still present,
    and an unavailable Chroma read fails rather than counting as zero. Only `verified` lets the app start.
 5. Revoked sessions, closures and suppressions survive because they live in the control store.
+6. `verify-restore` checks every content table with a `story_id` column and the story-memory chunk
+   count for each suppressed Story (account-scope instructions expand to every Story the account ever
+   owned). Turns orphaned by `SET NULL` carry no `story_id`; CRD Issue 22's enforcer removes them from
+   its pre-detachment inventory before verification.
 
 ## 8. Open launch gates (not implemented claims)
 
@@ -151,3 +155,6 @@ account ID, ticket, Story ID or old session is never accepted as proof.
 - CRD Issue 22 fulfillment (export, deletion, suppression creation, retention expiry, anomalies) and CRD
   Issue 23 payments.
 - Multiworker coordination, if ever required.
+- **Restore and the entitlement ledger:** `entitlement_event` lives in the content store, so a
+  restore discards events recorded after the snapshot's capture. A reviewed reconciliation (or ledger
+  placement) is required before any production restore (ADR-021 Consequences).

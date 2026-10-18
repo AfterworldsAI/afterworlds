@@ -27,8 +27,10 @@ import sqlalchemy as sa
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 
-from afterworlds.persistence.orm.ownership import RemoteStoreMarkerORM
-from afterworlds.persistence.orm.story import StoryORM
+from afterworlds.persistence.orm.ownership import (
+    AccountResourceORM,
+    RemoteStoreMarkerORM,
+)
 from afterworlds.remote.control_orm import (
     BackupInventoryORM,
     DeletionSuppressionORM,
@@ -307,22 +309,49 @@ def verify_restore(
 ) -> list[str]:
     """Verify every active suppression holds in the restored stores.
 
-    Returns the Story IDs still present (row or story-memory chunk); empty
-    means verified, and the restore is marked so. A failing chunk count read
-    propagates: an unavailable read is not proof of zero.
+    Targets are the listed Story IDs plus, for an account-scope instruction,
+    every Story the account has ever owned in the restored store's ownership
+    map (retired mappings included: the inventory must not depend on parent
+    links). A target remains while any content table with a ``story_id``
+    column still has a row for it -- not just ``stories``, since FK cascade
+    alone does not prove deletion (ADR-0004 amendment) -- or while it has
+    story-memory chunks. ``turns`` carry no ``story_id``: Turns orphaned by
+    ``SET NULL`` are attributable only through CRD Issue 22's pre-detachment
+    inventory, which its enforcer must dispose of before this check.
+
+    Returns the Story IDs still present; empty means verified, and the
+    restore is marked so. A failing chunk count read propagates: an
+    unavailable read is not proof of zero.
     """
     suppressions = active_suppressions(control)
     targets = {story for sup in suppressions for story in sup.story_refs}
+    accounts = {sup.subject_ref for sup in suppressions if sup.scope == "account"}
+    present: set[str] = set()
     with content() as s:
-        present_rows = set(
-            s.scalars(
-                sa.select(StoryORM.story_id).where(StoryORM.story_id.in_(targets))
+        if accounts:
+            targets |= set(
+                s.scalars(
+                    sa.select(AccountResourceORM.resource_id).where(
+                        AccountResourceORM.account_id.in_(accounts),
+                        AccountResourceORM.resource_type == "story",
+                    )
+                )
             )
-        )
+        inspector = sa.inspect(s.get_bind())
+        for table in inspector.get_table_names():
+            columns = {c["name"] for c in inspector.get_columns(table)}
+            if "story_id" not in columns or not targets:
+                continue
+            present |= set(
+                s.scalars(
+                    sa.select(sa.column("story_id"))
+                    .select_from(sa.table(table))
+                    .where(sa.column("story_id").in_(targets))
+                    .distinct()
+                )
+            )
     remaining = sorted(
-        story
-        for story in targets
-        if story in present_rows or story_chunk_count(story) != 0
+        story for story in targets if story in present or story_chunk_count(story) != 0
     )
     if not remaining:
         with control.begin() as s:

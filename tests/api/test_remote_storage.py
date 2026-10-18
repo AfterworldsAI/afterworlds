@@ -414,3 +414,91 @@ class TestRetrievalGuardAndDelayedWork:
             with pytest.raises(SystemExit) as exc:
                 retrieval_backfill.remote_scope_check(factory, story, account, mode)
             assert exc.value.code == 3
+
+
+class TestRestoreVerificationScope:
+    def _restore(self, remote: RemoteHarness) -> str:
+        control = remote.app.state.control_factory
+        backup = register_backup(
+            control,
+            store_id="s",
+            storage_locator="/x",
+            original_capture_at=datetime.now(UTC),
+        )
+        return begin_restore(control, backup, now=datetime.now(UTC))
+
+    def test_account_scope_covers_every_owned_story(
+        self, remote: RemoteHarness
+    ) -> None:
+        a = remote.enroll("a@example.test")
+        listed = a.post(
+            "/api/stories", json={"title": "1", "mode": "branching"}
+        ).json()["story_id"]
+        unlisted = a.post("/api/stories", json={"title": "2", "mode": "rpg"}).json()[
+            "story_id"
+        ]
+        restore_id = self._restore(remote)
+        record_suppression(
+            remote.app.state.control_factory,
+            subject_ref=remote.account_id(a),
+            story_refs=[listed],  # incomplete on purpose
+            request_id="r",
+            scope="account",
+            effective_boundary_at=datetime.now(UTC),
+            now=datetime.now(UTC),
+        )
+        remaining = verify_restore(
+            remote.app.state.control_factory,
+            restore_id,
+            remote.app.state.session_factory,
+            lambda _s: 0,
+            now=datetime.now(UTC),
+        )
+        assert remaining == sorted([listed, unlisted])
+
+    def test_cascade_survivors_keep_a_story_unverified(
+        self, remote: RemoteHarness
+    ) -> None:
+        from afterworlds.persistence.orm.story_bible import (
+            SBDynamicFieldHistoryORM,
+        )
+
+        a = remote.enroll("a@example.test")
+        sid = a.post("/api/stories", json={"title": "1", "mode": "branching"}).json()[
+            "story_id"
+        ]
+        with remote.app.state.session_factory.begin() as s:
+            s.add(
+                SBDynamicFieldHistoryORM(
+                    history_id=str(uuid.uuid4()),
+                    story_id=sid,
+                    entity_type="setting",
+                    entity_id=str(uuid.uuid4()),
+                    field_name="dynamic_conditions",
+                    old_value='"old canon"',
+                    changed_at=datetime.now(UTC).isoformat(),
+                )
+            )
+        restore_id = self._restore(remote)
+        record_suppression(
+            remote.app.state.control_factory,
+            subject_ref=remote.account_id(a),
+            story_refs=[sid],
+            request_id="r",
+            scope="story",
+            effective_boundary_at=datetime.now(UTC),
+            now=datetime.now(UTC),
+        )
+        # Bare Story CRUD deletion leaves the plain-string history row behind.
+        with remote.app.state.session_factory.begin() as s:
+            delete_story(s, uuid.UUID(sid))
+        args = (
+            remote.app.state.control_factory,
+            restore_id,
+            remote.app.state.session_factory,
+            lambda _s: 0,
+        )
+        assert verify_restore(*args, now=datetime.now(UTC)) == [sid]
+        with remote.app.state.session_factory.begin() as s:
+            s.query(SBDynamicFieldHistoryORM).filter_by(story_id=sid).delete()
+        assert verify_restore(*args, now=datetime.now(UTC)) == []

@@ -1,8 +1,8 @@
 # ADR-021 — Remote Identity, Account Ownership and Storage Boundary
 
 **Date:** 2026-10-17
-**Status:** Accepted authority; implementation delivered under prerequisite #205 (Owner review, merge
-and remote activation pending)
+**Status:** Proposed — engineering selections made under the accepted prerequisite #205, pending
+Codex review and Owner acceptance. Only #205 and its companion contracts are accepted authority.
 **Governing contract:** [Remote Identity and Storage Prerequisite for CRD Issue 22, #205](https://github.com/AfterworldsAI/afterworlds/issues/205),
 revision 1, with [CRD Issue 22 #206](https://github.com/AfterworldsAI/afterworlds/issues/206) revision 7
 and its accepted companions: [lifecycle ADR amendments](https://github.com/AfterworldsAI/afterworlds/issues/206#issuecomment-6246562569),
@@ -158,3 +158,11 @@ prerequisite proves the hooks with a disposable enforcer fixture.
   fulfillment and CRD Issue 23 payments. These are recorded launch gates, not implemented claims.
 - Account-closure erasure, export and suppression creation are CRD Issue 22 operations over these
   hooks.
+- **Restore rewinds content, including the entitlement ledger.** Entitlement events live in the
+  content store, so restoring a snapshot discards events appended after its capture. Identity,
+  closure and suppression survive (control store), but money/access reconstructability across a
+  restore is an unresolved boundary: a reviewed reconciliation (or ledger placement) is required
+  before any production restore. Recorded as a launch gate, not solved here.
+- `verify_restore` proves only that no content table with a `story_id` column holds a row for a
+  suppressed Story and that its story-memory chunk count is zero. Turns orphaned by `SET NULL`, and
+  per-class disposal, belong to CRD Issue 22's enforcer and its pre-detachment inventory.

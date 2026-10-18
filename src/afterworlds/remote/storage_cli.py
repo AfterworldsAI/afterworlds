@@ -13,9 +13,9 @@ Chroma directory and inventories them with their capture time. ``restore``
 copies an inventoried, unexpired snapshot back and records a pending restore:
 the app refuses to start until ``verify-restore`` confirms every active
 deletion suppression holds (CRD Issue 22 supplies the enforcement). ``due``
-lists backups past their 21-day lifetime;
-``dispose`` records that an operator destroyed one (its files are removed). Configuration comes from the same
-environment variables as the app.
+lists backups past their 21-day lifetime; ``dispose`` removes one's files and
+records its disposal. Configuration comes from the same environment variables
+as the app.
 """
 
 from __future__ import annotations
