@@ -122,8 +122,9 @@ def _release_construction(app: FastAPI, chroma_before: dict[str, int]) -> None:
     with contextlib.suppress(Exception):
         # Stop (not merely forget) the embedded Chroma systems this
         # construction created, and undo its refcounts on existing ones.
-        # shortcut: reads chromadb's private registry (pinned 1.5.x); revisit
-        # on a chromadb upgrade.
+        # shortcut: reads chromadb's private registries, verified on the
+        # exact pin chromadb==1.5.9 (pyproject.toml); any pin change needs a
+        # deliberate compatibility review here.
         systems = SharedSystemClient._identifier_to_system
         refcounts = SharedSystemClient._identifier_to_refcount
         for ident in [i for i in systems if i not in chroma_before]:

@@ -111,7 +111,9 @@ match and empty user tables are never enough, so an unrelated store copied onto 
 refused. Only a completed `deployment_marker` counts as a bound deployment,
 so maintenance, capture and restore refuse a half-initialized one, and a completed deployment whose
 store or vector marker is missing is never re-initialized. A failed start releases both locks and
-disposes its engine. An in-process per-account fence orders request effects against closure (and CRD Issue 22
+disposes its engine. (Its embedded-Chroma release reads chromadb's private client registries,
+so `chromadb` is pinned exactly to the verified 1.5.9; changing the pin requires a compatibility
+review of that cleanup.) An in-process per-account fence orders request effects against closure (and CRD Issue 22
 suppression): requests hold it shared; closure takes it exclusive with a bounded wait
 (`close_fence_timeout`, 30 s) and returns `409 account_operation_in_progress` without changing
 anything if in-flight work does not finish. Multiple workers, replicas or hosts are not enabled; they

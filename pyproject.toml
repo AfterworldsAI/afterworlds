@@ -11,7 +11,11 @@ dependencies = [
     "pydantic>=2.7",
     "sqlalchemy>=2.0",
     "alembic>=1.13",
-    "chromadb>=0.5",
+    # Exact pin (#205): failed-construction cleanup in api/app.py reads
+    # chromadb.api.shared_system_client.SharedSystemClient's private
+    # system/refcount registries, verified on 1.5.9 only. Changing this pin
+    # requires a deliberate compatibility review of that code.
+    "chromadb==1.5.9",
     "anthropic>=0.40",
     "keyring>=24.0",
     "openai>=1.0",
