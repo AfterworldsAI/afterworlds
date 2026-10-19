@@ -209,12 +209,15 @@ preserve. Every maintenance step records its state before touching files:
 - **Disposal** removes files, then records its evidence (`removed`); only recorded evidence
   discharges a backup's obligation (an interrupted or once-inaccessible capture included). Evidence is
   bound to the physical object, not the pathname: each backup root carries a random storage token also
-  recorded in the inventory with its parent directory's identity; removal requires the token, is
+  recorded in the inventory with a random namespace that a witness file beside the backup (outside its
+  tree, written only at admission) also carries; removal requires the token and the witness, is
   recorded as started, renames the root to a fixed-length token-named sibling and deletes the identity
-  file last; a missing location is certified only for a removal this deployment started beneath the
-  same parent directory object. Otherwise the backup is `inaccessible` and incomplete. A copy is
-  one operation: its inventory row is claimed before the destination changes, and every retry completes
-  that row from positive evidence bound to its destination and parent directory object.
+  file last; a missing location is certified only when the witness, still present, records that the
+  disposal moved this backup's own tree into its holding directory (a recorded start alone is not). An OS device/inode pair is not durable proof (it can recur on replacement
+  media). Otherwise the backup is `inaccessible` and incomplete. A copy is one operation: its inventory
+  row is claimed before the destination changes, and every retry completes that row from positive
+  evidence bound to its destination and witness; its namespace is committed before the first physical
+  effect, so a retry never rebinds it to other media.
 - **Pairing:** every live-store maintenance command first requires the configured content, control and
   vector stores (backup-only `due`/`dispose` need just the bound control store and its lease) — and a restore's snapshot — to carry one deployment's identity; a swapped store is refused
   untouched. Restore cleanup never removes the vector marker, so an interruption stays retryable.

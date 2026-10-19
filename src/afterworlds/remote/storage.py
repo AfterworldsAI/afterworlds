@@ -26,7 +26,7 @@ import os
 import shutil
 import sqlite3
 from collections.abc import Callable, Iterable, Iterator
-from contextlib import closing, contextmanager
+from contextlib import closing, contextmanager, suppress
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -176,10 +176,79 @@ class _UnprovenBackup(Exception):
     the inventoried backup."""
 
 
-def _namespace(directory: Path) -> str:
-    """The identity of a directory object (device and inode), not its path."""
-    info = os.stat(directory)
-    return f"{info.st_dev}:{info.st_ino}"
+def _witness_path(locator: Path, token: str) -> Path:
+    """The backup's namespace witness: beside it on the same parent, outside
+    its tree, so it survives the tree's removal."""
+    return locator.with_name(f".afterworlds-witness-{token}")
+
+
+def _read_witness_record(locator: Path, token: str) -> dict[str, object] | None:
+    """This backup's witness record, or ``None`` if absent, unreadable or
+    another backup's."""
+    try:
+        data = json.loads(_witness_path(locator, token).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if (
+        isinstance(data, dict)
+        and data.get("storage_token") == token
+        and isinstance(data.get("namespace"), str)
+    ):
+        return data
+    return None
+
+
+def _read_witness(locator: Path, token: str) -> str | None:
+    """The random namespace recorded beside *locator* for *token*."""
+    record = _read_witness_record(locator, token)
+    return None if record is None else str(record["namespace"])
+
+
+def _witness_moved(locator: Path, token: str, namespace: str) -> bool:
+    """Whether this backup's witness records that its own tree was moved into
+    the holding directory -- the proof that the disposal controlled it."""
+    record = _read_witness_record(locator, token)
+    return (
+        record is not None
+        and record["namespace"] == namespace
+        and record.get("moved") is True
+    )
+
+
+def _write_witness(
+    locator: Path, token: str, namespace: str, *, moved: bool = False
+) -> None:
+    path = _witness_path(locator, token)
+    temp = path.with_name(path.name + ".tmp")
+    temp.write_text(
+        json.dumps({"storage_token": token, "namespace": namespace, "moved": moved}),
+        encoding="utf-8",
+    )
+    os.replace(temp, path)
+
+
+def _admit_witness(locator: Path, token: str, namespace: str) -> None:
+    """Write the namespace witness when a backup is admitted. An OS
+    device/inode pair can recur on replacement media; this random value lives
+    only on the medium that held the backup, so neither replacement storage
+    nor a disposal or absence retry -- which never write one -- can produce
+    it. Only capture and the one copy step that committed the namespace first
+    call this."""
+    present = _read_witness(locator, token)
+    if present == namespace:
+        return
+    path = _witness_path(locator, token)
+    if present is not None or path.exists():
+        raise StoreRefused(f"{path} already exists and is not this backup's")
+    _write_witness(locator, token, namespace)
+
+
+def _discard_witness(locator: Path, token: str) -> None:
+    """After a recorded disposal: remove this backup's own witness (only a
+    file carrying its token). A failure leaves it for a terminal repeat."""
+    if _read_witness(locator, token) is not None:
+        with suppress(OSError):
+            _witness_path(locator, token).unlink()
 
 
 def _disposing_path(locator: Path, token: str) -> Path:
@@ -192,26 +261,44 @@ def _disposing_path(locator: Path, token: str) -> Path:
 def _claim_backup_paths(
     s: Session, locator: str, token: str, public_root: Path | None
 ) -> None:
-    """Before any effect: the backup root and the holding directory its
-    removal will use are both free of other backups and of the public root."""
-    holding = str(_disposing_path(Path(locator), token))
-    for path in (locator, holding):
+    """Before any effect: the backup root, the holding directory its removal
+    will use and its namespace witness are all free of other backups and of
+    the public root, and no witness exists there yet."""
+    paths = _backup_paths(locator, token)
+    for path in paths:
         _claim_locator(s, path)
-    refuse_public_overlap(
-        public_root, [(locator, "a backup location"), (holding, "a backup location")]
-    )
+    if Path(paths[2]).exists():
+        raise StoreRefused(f"{paths[2]} already exists")
+    refuse_public_overlap(public_root, [(p, "a backup location") for p in paths])
 
 
-def stamp_storage_identity(target: Path, token: str, **provenance: str) -> str:
+def _backup_paths(locator: str, token: str) -> list[str]:
+    """Everything a backup with *token* at *locator* owns on its volume."""
+    root = Path(locator)
+    return [
+        locator,
+        str(_disposing_path(root, token)),
+        str(_witness_path(root, token)),
+    ]
+
+
+def _write_identity(target: Path, token: str, **provenance: str) -> None:
     """Write the backup directory *target*'s physical identity -- *token*,
-    plus any copy provenance -- atomically into it; return its parent
-    directory's identity."""
+    plus any copy provenance -- atomically into it."""
     temp = target / (BACKUP_IDENTITY_FILE + ".tmp")
     temp.write_text(
         json.dumps({"storage_token": token, **provenance}), encoding="utf-8"
     )
     os.replace(temp, target / BACKUP_IDENTITY_FILE)
-    return _namespace(target.parent)
+
+
+def stamp_storage_identity(target: Path, token: str) -> str:
+    """Admit a freshly created backup directory *target* (capture): a new
+    namespace witness beside it, then its identity. Returns the namespace."""
+    namespace = str(uuid4())
+    _admit_witness(target, token, namespace)
+    _write_identity(target, token)
+    return namespace
 
 
 def _remove_identity_last(path: Path) -> None:
@@ -266,16 +353,15 @@ def _overlaps(a: str, b: str) -> bool:
 
 def _held_namespaces(s: Session) -> list[str]:
     """Every location an undisposed backup owns: its locator and, once it has
-    an identity, the token-named holding directory a removal moves it to."""
+    an identity, the token-named holding directory a removal moves it to and
+    its namespace witness."""
     held: list[str] = []
     for locator, token in s.execute(
         sa.select(
             BackupInventoryORM.storage_locator, BackupInventoryORM.storage_token
         ).where(BackupInventoryORM.disposed_at.is_(None))
     ):
-        held.append(locator)
-        if token is not None:
-            held.append(str(_disposing_path(Path(locator), token)))
+        held.extend([locator] if token is None else _backup_paths(locator, token))
     return held
 
 
@@ -362,8 +448,10 @@ def copy_backup(
     Completion requires positive evidence at the destination, beneath a
     readable parent: either the source backup's identity (a copy of its tree,
     which is then stamped with the row's token and intent), or this row's own
-    stamp written for this destination and parent directory object (a lost
-    commit). Only then does the copy inherit the source's verification and
+    stamp written for this destination, beside its still-present namespace
+    witness (a lost commit). The namespace is committed before the first
+    physical effect, so a retry never rebinds the operation to other media.
+    Only then does the copy inherit the source's verification and
     clean-suppression proof. Otherwise -- absent, unreadable, foreign, a
     marker copied from elsewhere, a replaced parent -- it stays metadata-only:
     unverified, no clean claims, not dischargeable, and completable by a later
@@ -405,10 +493,7 @@ def copy_backup(
                 public_root,
                 [
                     (p, "a backup location")
-                    for p in (
-                        locator,
-                        _disposing_path(Path(locator), str(pending.storage_token)),
-                    )
+                    for p in _backup_paths(locator, str(pending.storage_token))
                 ],
             )
         copy_id = pending.backup_id
@@ -418,47 +503,72 @@ def copy_backup(
 
 def _complete_copy(control: sessionmaker[Session], copy_id: str) -> None:
     """Prove a pending copy from what is at its destination (see
-    :func:`copy_backup`); without positive evidence nothing changes."""
+    :func:`copy_backup`); without positive evidence nothing changes.
+
+    1. Admission intent: only while no namespace is recorded, and only when
+       the destination carries the source's identity, a fresh namespace is
+       committed to the row -- before any physical effect. From then on the
+       operation is bound to that one namespace.
+    2. Effects: the witness is written only by the call that committed the
+       intent; any later call finds it or does nothing (it may be on other
+       media, so a missing witness never rebinds the operation). Beside the
+       operation's own witness the destination is stamped with the row's
+       token and intent.
+    3. Completion: only with the witness and this row's own stamp present
+       does the copy inherit the source's verification and clean proof.
+    """
     with control.begin() as s:
         row = s.get(BackupInventoryORM, copy_id)
         assert row is not None and row.copied_from_backup_id is not None
         source = s.get(BackupInventoryORM, row.copied_from_backup_id)
-        if row.storage_namespace is not None or row.storage_token is None:
-            return  # already proven (a lost response), or never claimable
-        destination = Path(row.storage_locator)
-        try:
-            namespace = _namespace(destination.parent)
-            found = _read_identity(destination) if destination.is_dir() else None
-        except OSError:
-            return  # unavailable: stays pending for a later retry
-        intent = {
-            "storage_token": row.storage_token,
-            "copy_of": source.storage_token if source is not None else None,
-            "copy_backup_id": row.backup_id,
-            "copy_destination": row.storage_locator,
-            "copy_namespace": namespace,
-        }
+        token = row.storage_token
         if (
-            source is None
+            token is None
+            or source is None
             or source.storage_token is None
             or source.storage_namespace is None  # an unproven source proves nothing
-            or found is None
+            or row.removal_started_at is not None  # being disposed: never re-proven
         ):
             return
-        if found.get("storage_token") == source.storage_token:
-            stamp_storage_identity(
-                destination,
-                row.storage_token,
-                copy_of=source.storage_token,
-                copy_backup_id=row.backup_id,
-                copy_destination=row.storage_locator,
-                copy_namespace=namespace,
-            )
-        elif found != intent:
-            return  # foreign, copied from elsewhere, or beneath another parent
-        row.storage_namespace = namespace
-        row.verification_status = source.verification_status
-        row.clean_suppression_ids = source.clean_suppression_ids
+        source_token = source.storage_token
+        locator = row.storage_locator
+        destination = Path(locator)
+        namespace = row.storage_namespace
+        admitting = False
+        if namespace is None:
+            found = _read_identity(destination) if destination.is_dir() else None
+            if found is None or found.get("storage_token") != source_token:
+                return  # nothing admitted and no evidence: a later retry may admit
+            namespace = row.storage_namespace = str(uuid4())
+            admitting = True
+        verification = source.verification_status
+        clean = source.clean_suppression_ids
+    provenance = {
+        "copy_of": source_token,
+        "copy_backup_id": copy_id,
+        "copy_destination": locator,
+        "copy_namespace": namespace,
+    }
+    try:
+        witnessed = _read_witness(destination, token)
+        if witnessed is None:
+            if not admitting:
+                return  # admitted before: never rebind to whatever is here now
+            _admit_witness(destination, token, namespace)
+        elif witnessed != namespace:
+            return  # foreign evidence
+        found = _read_identity(destination) if destination.is_dir() else None
+        if found != {"storage_token": token, **provenance}:
+            if found is None or found.get("storage_token") != source_token:
+                return  # foreign, copied from elsewhere, or unavailable
+            _write_identity(destination, token, **provenance)
+    except OSError:
+        return  # unavailable: stays pending, bound to its namespace
+    with control.begin() as s:
+        row = s.get(BackupInventoryORM, copy_id)
+        assert row is not None and row.storage_namespace == namespace
+        row.verification_status = verification
+        row.clean_suppression_ids = clean
 
 
 #: Proof that a backup's copy is gone: removed by the disposal, or verified
@@ -1574,12 +1684,21 @@ def dispose_snapshot(
        recorded start -- the token-named holding directory, also after a
        partial removal; a tokenless holding directory is removed only as the
        empty shell identity-last deletion leaves.
-    3. With neither present, the removal is certified only when this
-       deployment had started it.
+    3. With neither present, the removal is certified only when the witness
+       records that this backup's own tree was moved into the holding
+       directory -- recorded the moment that tree is seen there, before any
+       of it is deleted. A recorded start is only an intention: a rename that
+       failed (a bind-mounted or busy root, say) never moved the tree, so its
+       later absence is never evidence.
 
-    Every step requires the location's parent to still be the directory
-    object recorded at capture; a detached, replaced or bind-mounted
-    namespace, or a backup never proven to exist, is not.
+    Every destructive step, and the certification, requires the backup's
+    namespace witness -- written beside it when it was admitted, outside its
+    tree, carrying the recorded random namespace -- to still be there. A
+    detached, replaced or remounted parent (even one presenting the same OS
+    device/inode pair), or a backup never proven to exist, has none; nothing
+    here ever writes one. After the disposal is recorded the witness is
+    removed (a terminal repeat finishes that, touching only this backup's
+    own witness).
 
     Anything else marks it ``inaccessible`` and leaves the obligation
     incomplete; an object not proven to be this backup is never removed."""
@@ -1588,7 +1707,10 @@ def dispose_snapshot(
         if row is None:
             raise KeyError(backup_id)
         if _disposed(row):
-            # Terminal: the location may already belong to a newer backup.
+            # Terminal: the location may already belong to a newer backup;
+            # only this backup's own leftover witness is removed.
+            if row.storage_token is not None:
+                _discard_witness(Path(row.storage_locator), row.storage_token)
             return
         _refuse_copying_source(s, row, now)  # before any file is touched
         locator = Path(row.storage_locator)
@@ -1598,9 +1720,9 @@ def dispose_snapshot(
     try:
         if token is None or namespace is None:
             raise _UnprovenBackup  # never proven to exist as this object
-        # Every destructive step and every certification happens only beneath
-        # the parent directory object recorded when the backup was proven.
-        if not locator.parent.is_dir() or _namespace(locator.parent) != namespace:
+        # Every destructive step and every certification happens only beside
+        # the durable witness of the namespace the backup was admitted in.
+        if _read_witness(locator, token) != namespace:
             raise _UnprovenBackup
         disposing = _disposing_path(locator, token)
         if locator.exists():
@@ -1614,22 +1736,30 @@ def dispose_snapshot(
                 raise _UnprovenBackup  # a token-named directory is no witness
             present = read_storage_token(disposing)
             if present is None:
-                # Identity-last deletion leaves at most an empty shell; any
-                # other tokenless content is not adopted.
-                if any(disposing.iterdir()):
+                # Identity-last deletion leaves at most an empty shell (after
+                # a recorded move); any other tokenless content is not adopted.
+                if not _witness_moved(locator, token, namespace) or any(
+                    disposing.iterdir()
+                ):
                     raise _UnprovenBackup
                 disposing.rmdir()
             elif present != token:
                 raise _UnprovenBackup
             else:
+                # This backup's own tree, moved under our control: record it
+                # in the witness before deleting anything from it.
+                _write_witness(locator, token, namespace, moved=True)
                 _remove_identity_last(disposing)
             if disposing.exists():
                 raise OSError(f"{disposing} is still present")
-        elif not started:
-            raise _UnprovenBackup  # absence proves nothing about this object
         if locator.exists():
             raise OSError(f"{locator} is present again")
+        if not _witness_moved(locator, token, namespace):
+            # Never moved under our control (or the namespace changed
+            # underneath): absence proves nothing about this object.
+            raise _UnprovenBackup
     except (OSError, _UnprovenBackup):
         set_backup_status(control, backup_id, "inaccessible")
         raise StoreRefused("the backup could not be verified as removed") from None
     dispose_backup(control, backup_id, now=now, evidence="removed")
+    _discard_witness(locator, token)  # only after the record: never strands it

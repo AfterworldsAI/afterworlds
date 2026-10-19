@@ -208,10 +208,12 @@ class BackupInventoryORM(ControlBase):
     #: it. None for metadata-only rows (never proven to exist), whose disposal
     #: stays incomplete. Operational, non-personal; lives and ends with the row.
     storage_token: Mapped[str | None] = mapped_column(sa.String(36))
-    #: ``"st_dev:st_ino"`` of the backup location's parent directory when the
-    #: object was proven: the parent directory object itself, so an absent
-    #: object counts as removed only beneath that same parent -- not beneath a
-    #: replacement, bind mount or underlying directory exposed by a detach.
+    #: Random namespace, also written into the witness file beside the backup
+    #: (outside its tree): set at capture, or committed as a copy's admission
+    #: intent before its first physical effect. An absent object counts as
+    #: removed only while that witness is still there and records the
+    #: disposal's controlled move of the tree -- not on replacement media
+    #: (even with a reused OS device/inode pair) or after a failed move.
     storage_namespace: Mapped[str | None] = mapped_column(sa.String(64))
     #: When this deployment verified the object's token and began removing it:
     #: lets a retry finish after a removal whose disposal record was lost.

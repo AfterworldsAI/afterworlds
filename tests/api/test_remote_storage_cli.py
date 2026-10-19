@@ -2175,7 +2175,7 @@ def test_a_copy_whose_completion_commit_failed_is_resumed(
     stamped = read_storage_token(destination)
     assert stamped not in (None, source_row.storage_token)  # identity changed
     [claim] = _copy_rows(control, destination)  # the pending claim, unproven
-    assert claim.storage_token == stamped and claim.storage_namespace is None
+    assert claim.storage_token == stamped and claim.storage_namespace is not None
     assert claim.verification_status == "unverified"
 
     copy = copy_backup(control, source, storage_locator=str(destination))
@@ -2233,7 +2233,7 @@ def test_a_copy_resumes_after_its_backup_volume_returns(
     ids = {copy_backup(control, source, storage_locator=str(b)) for _ in range(2)}
     assert len(ids) == 1  # one operation, no competing reservation
     [row] = _copy_rows(control, b)
-    assert row.storage_namespace is None and row.verification_status == "unverified"
+    assert row.verification_status == "unverified"  # admitted, not completed
     assert storage_cli.main(["dispose", "--backup-id", row.backup_id]) == 1
     assert _inventory_row(remote_env, row.backup_id).disposed_at is None
 
@@ -2295,9 +2295,313 @@ def test_copied_copy_intent_never_takes_over_the_pending_operation(
     (detached / "d").rename(d)
     waiting = copy_backup(control, source, storage_locator=str(d))
     row = _inventory_row(remote_env, waiting)
-    assert row.storage_namespace is None and row.verification_status == "unverified"
+    assert row.verification_status == "unverified"  # waits for its own medium
     d.rename(detached / "d")
     other.rmdir()
     detached.rename(other)  # the original namespace returns
     assert copy_backup(control, source, storage_locator=str(d)) == waiting
     _assert_completed(_inventory_row(remote_env, waiting), source_row, d_stamped)
+
+
+# -- durable namespace boundary: witness, not OS device/inode -----------------
+
+
+def test_reused_os_identity_on_replacement_media_never_certifies_a_removal(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Portable fault model of device/inode reuse: an interrupted removal,
+    then different empty media at the same place reporting the recorded OS
+    identity. Both names are absent, yet nothing is certified; foreign or
+    forged witnesses prove nothing; when the original medium returns a fresh
+    invocation resumes and certifies."""
+    import json
+    import shutil
+
+    from afterworlds.remote import storage
+
+    make_remote(remote_env).close()
+    volume = remote_env / "vol"
+    code, backup = _run(capsys, "capture", "--to", str(volume / "b1"))
+    assert code == 0
+    row = _inventory_row(remote_env, backup)
+
+    def fails(*_a: object, **_k: object) -> None:
+        raise OSError("removal interrupted")
+
+    with monkeypatch.context() as m:
+        m.setattr(storage.shutil, "rmtree", fails)
+        assert storage_cli.main(["dispose", "--backup-id", backup]) == 1
+    capsys.readouterr()
+    old_medium = _detach(volume)  # different empty media, same mount point
+    with monkeypatch.context() as m:
+        # The replacement reports the recorded OS identity (st_dev:2 reuse).
+        m.setattr(
+            storage, "_namespace", lambda _d: row.storage_namespace, raising=False
+        )
+        assert storage_cli.main(["dispose", "--backup-id", backup]) == 1
+        # Another backup's witness, or a forged one, on the replacement.
+        code, other = _run(capsys, "capture", "--to", str(remote_env / "o" / "b2"))
+        other_token = _inventory_row(remote_env, other).storage_token
+        shutil.copyfile(
+            remote_env / "o" / f".afterworlds-witness-{other_token}",
+            volume / f".afterworlds-witness-{row.storage_token}",
+        )
+        assert storage_cli.main(["dispose", "--backup-id", backup]) == 1
+        (volume / f".afterworlds-witness-{row.storage_token}").write_text(
+            json.dumps(
+                {"storage_token": row.storage_token, "namespace": str(uuid.uuid4())}
+            ),
+            encoding="utf-8",
+        )
+        assert storage_cli.main(["dispose", "--backup-id", backup]) == 1
+    capsys.readouterr()
+    assert _inventory_row(remote_env, backup).disposed_at is None
+    [held] = list(old_medium.glob(".afterworlds-disposing-*"))
+    assert any(held.iterdir())  # the old medium still holds the backup
+
+    # The original medium returns: a fresh invocation resumes and certifies.
+    shutil.rmtree(volume)
+    old_medium.rename(volume)
+    assert _run(capsys, "dispose", "--backup-id", backup) == (0, "disposed")
+    assert not list(volume.iterdir())  # backup and its witness gone
+    assert _inventory_row(remote_env, backup).disposal_evidence == "removed"
+
+
+def test_a_leftover_witness_is_removed_by_a_terminal_repeat_only(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The witness goes only after the disposal is recorded; one left behind
+    is finished by a terminal repeat, which touches nothing else."""
+    from afterworlds.remote import storage
+
+    make_remote(remote_env).close()
+    volume = remote_env / "vol"
+    code, backup = _run(capsys, "capture", "--to", str(volume / "b1"))
+    token = _inventory_row(remote_env, backup).storage_token
+    witness = volume / f".afterworlds-witness-{token}"
+    assert witness.is_file()
+    with monkeypatch.context() as m:
+        m.setattr(storage, "_discard_witness", lambda *_a: None)
+        assert _run(capsys, "dispose", "--backup-id", backup) == (0, "disposed")
+    assert witness.is_file()  # recorded first; the witness outlived it
+    code, newer = _run(capsys, "capture", "--to", str(volume / "b1"))
+    assert code == 0
+    newer_files = sorted(p.name for p in volume.rglob("*") if p != witness)
+    assert _run(capsys, "dispose", "--backup-id", backup) == (0, "disposed")
+    assert not witness.exists()
+    assert sorted(p.name for p in volume.rglob("*")) == newer_files
+    assert _inventory_row(remote_env, newer).disposed_at is None
+
+
+def test_an_admitted_copy_is_never_rebound_to_replacement_media(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Residue 1: stamp on medium A, lose the completion commit, then an
+    ordinary recopy of the source onto replacement medium B at the same path.
+    The operation keeps A's namespace: B is never admitted, nothing on B
+    discharges it, and it completes and disposes once A returns."""
+    import shutil
+
+    from afterworlds.remote.storage import copy_backup, read_storage_token
+
+    make_remote(remote_env).close()
+    code, source = _run(capsys, "capture", "--to", str(remote_env / "src" / "a"))
+    source_row = _inventory_row(remote_env, source)
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    volume = remote_env / "vol"
+    b = volume / "b"
+    shutil.copytree(remote_env / "src" / "a", b)
+    _failed_copy(control, source, b)
+    stamped = read_storage_token(b)
+
+    medium_a = _detach(volume)  # replacement medium B at the same place
+    shutil.copytree(remote_env / "src" / "a", b)  # ordinary recopy onto B
+    retry = copy_backup(control, source, storage_locator=str(b))
+    row = _inventory_row(remote_env, retry)
+    assert storage_cli.main(["dispose", "--backup-id", retry]) == 1
+    assert _inventory_row(remote_env, retry).disposed_at is None
+    assert row.verification_status == "unverified"  # not completed on B
+    assert read_storage_token(b) == source_row.storage_token  # B not stamped
+    assert not (volume / f".afterworlds-witness-{stamped}").exists()
+    assert (medium_a / "b" / "afterworlds-backup.json").is_file()  # A keeps it
+
+    shutil.rmtree(volume)
+    medium_a.rename(volume)  # medium A returns
+    assert copy_backup(control, source, storage_locator=str(b)) == retry
+    _assert_completed(_inventory_row(remote_env, retry), source_row, stamped)
+    assert _run(capsys, "dispose", "--backup-id", retry) == (0, "disposed")
+    assert not b.exists() and (remote_env / "src" / "a").is_dir()
+
+
+def test_a_root_that_was_never_moved_is_never_certified_absent(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Residue 2 (portable model of a bind-mounted root): the removal starts
+    but the rename fails (EBUSY); the root is then unmounted, leaving no
+    original or holding path while the witness stays. A recorded start is no
+    evidence: nothing is certified until the tree is actually removed."""
+    import errno
+
+    from afterworlds.remote import storage
+
+    make_remote(remote_env).close()
+    volume = remote_env / "vol"
+    b1 = volume / "b1"
+    code, backup = _run(capsys, "capture", "--to", str(b1))
+    assert code == 0
+    real_replace = storage.os.replace
+
+    def busy(src: Any, dst: Any) -> None:
+        if Path(src) == b1.resolve():
+            raise OSError(errno.EBUSY, "Device or resource busy")
+        real_replace(src, dst)
+
+    with monkeypatch.context() as m:
+        m.setattr(storage.os, "replace", busy)
+        assert storage_cli.main(["dispose", "--backup-id", backup]) == 1
+    assert _inventory_row(remote_env, backup).removal_started_at is not None
+    # Unmount: the bound tree lives on elsewhere; the empty mount point goes.
+    bound_source = remote_env / "bound-source"
+    bound_source.mkdir()
+    b1.rename(bound_source / "b1")
+    assert storage_cli.main(["dispose", "--backup-id", backup]) == 1
+    capsys.readouterr()
+    assert _inventory_row(remote_env, backup).disposed_at is None
+    assert (bound_source / "b1" / "afterworlds-backup.json").is_file()
+
+    # The data is put back as an ordinary directory (a still-mounted root would
+    # keep refusing the rename: such a backup stays incomplete); then the real
+    # removal proceeds and is certified.
+    (bound_source / "b1").rename(b1)
+    assert _run(capsys, "dispose", "--backup-id", backup) == (0, "disposed")
+    assert not list(volume.iterdir())
+    assert _inventory_row(remote_env, backup).disposal_evidence == "removed"
+
+
+def test_a_copy_being_disposed_is_never_re_proven_by_a_repeat(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Once a removal has started (here its rename failed), a repeated copy
+    call does not make the copy verified -- and so restorable -- again."""
+    import errno
+    import shutil
+
+    from afterworlds.remote import storage
+    from afterworlds.remote.storage import copy_backup
+
+    make_remote(remote_env).close()
+    code, source = _run(capsys, "capture", "--to", str(remote_env / "a"))
+    destination = remote_env / "a-copy"
+    shutil.copytree(remote_env / "a", destination)
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    copy = copy_backup(control, source, storage_locator=str(destination))
+    assert _inventory_row(remote_env, copy).verification_status == "verified"
+    real_replace = storage.os.replace
+
+    def busy(src: Any, dst: Any) -> None:
+        if Path(src) == destination.resolve():
+            raise OSError(errno.EBUSY, "Device or resource busy")
+        real_replace(src, dst)
+
+    with monkeypatch.context() as m:
+        m.setattr(storage.os, "replace", busy)
+        assert storage_cli.main(["dispose", "--backup-id", copy]) == 1
+    assert copy_backup(control, source, storage_locator=str(destination)) == copy
+    assert _inventory_row(remote_env, copy).verification_status == "inaccessible"
+
+
+def test_a_copy_whose_witness_write_failed_stays_incomplete_and_bound(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Admission intent committed, then the witness write fails before any
+    witness or stamp exists. No later retry mints new authority -- not on the
+    same medium, not on replacement media -- and nothing certifies; the copy
+    stays visibly incomplete with its original age and deadline (the
+    disclosed fail-closed window)."""
+    import shutil
+
+    from afterworlds.remote import storage
+    from afterworlds.remote.storage import copy_backup, read_storage_token
+
+    make_remote(remote_env).close()
+    code, source = _run(capsys, "capture", "--to", str(remote_env / "src" / "a"))
+    source_row = _inventory_row(remote_env, source)
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    volume = remote_env / "vol"
+    b = volume / "b"
+    shutil.copytree(remote_env / "src" / "a", b)
+
+    def witness_write_fails(*_a: object, **_k: object) -> None:
+        raise OSError("witness write failed")
+
+    with monkeypatch.context() as m:
+        m.setattr(storage, "_admit_witness", witness_write_fails)
+        copy = copy_backup(control, source, storage_locator=str(b))
+    row = _inventory_row(remote_env, copy)
+    assert row.storage_namespace is not None  # the intent was committed
+    assert row.verification_status == "unverified"
+    assert read_storage_token(b) == source_row.storage_token  # no stamp
+    assert not list(volume.glob(".afterworlds-witness-*"))  # no witness
+
+    assert copy_backup(control, source, storage_locator=str(b)) == copy  # same medium
+    _detach(volume)
+    shutil.copytree(remote_env / "src" / "a", b)  # replacement medium
+    assert copy_backup(control, source, storage_locator=str(b)) == copy
+    assert not list(volume.glob(".afterworlds-witness-*"))
+    assert read_storage_token(b) == source_row.storage_token
+    assert storage_cli.main(["dispose", "--backup-id", copy]) == 1
+    row = _inventory_row(remote_env, copy)
+    assert row.disposed_at is None and row.storage_namespace is not None
+    assert row.verification_status != "verified"
+    assert row.original_capture_at == source_row.original_capture_at
+    assert row.expires_at == source_row.expires_at  # the deadline persists
+    assert len(_copy_rows(control, b)) == 1
+
+
+def test_a_move_whose_witness_record_failed_is_resumed_by_a_fresh_retry(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The rename into the holding tree succeeds, then recording the move in
+    the witness fails before anything is deleted: the tree stays whole and the
+    obligation incomplete; a fresh retry recognizes its own holding tree,
+    records the move and completes."""
+    from afterworlds.remote import storage
+
+    make_remote(remote_env).close()
+    volume = remote_env / "vol"
+    code, backup = _run(capsys, "capture", "--to", str(volume / "b1"))
+    assert code == 0
+    real_write = storage._write_witness
+
+    def move_record_fails(
+        locator: Path, token: str, namespace: str, *, moved: bool = False
+    ) -> None:
+        if moved:
+            raise OSError("witness record failed")
+        real_write(locator, token, namespace, moved=moved)
+
+    with monkeypatch.context() as m:
+        m.setattr(storage, "_write_witness", move_record_fails)
+        assert storage_cli.main(["dispose", "--backup-id", backup]) == 1
+    capsys.readouterr()
+    assert not (volume / "b1").exists()
+    [holding] = list(volume.glob(".afterworlds-disposing-*"))
+    assert (holding / "afterworlds-backup.json").is_file()  # nothing deleted
+    assert (holding / "content.sqlite3").is_file()
+    assert _inventory_row(remote_env, backup).disposed_at is None
+
+    assert _run(capsys, "dispose", "--backup-id", backup) == (0, "disposed")
+    assert not list(volume.iterdir())
+    assert _inventory_row(remote_env, backup).disposal_evidence == "removed"
