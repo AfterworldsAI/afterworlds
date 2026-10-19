@@ -1044,6 +1044,11 @@ def capture_snapshot(
     clean = capture_preconditions(control, content, story_chunk_count)
     store_id = content_store_id(content)
     target = Path(_canonical_locator(target))
+    if _overlaps(str(target), _canonical_locator(vector_dir)):
+        # A target inside the live vector store would be copied into itself.
+        raise StoreRefused(
+            f"capture target {target} overlaps the live vector store {vector_dir}"
+        )
     with control() as s:
         _claim_locator(s, str(target))  # before creating anything there
     # Claim a new, empty directory before inventorying it: an existing path

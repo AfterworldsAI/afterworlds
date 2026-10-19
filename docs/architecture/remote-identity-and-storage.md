@@ -139,7 +139,7 @@ gone while the durable ownership mapping remains (the same is true of local `--m
    `python -m afterworlds.remote.bootstrap --contact-address <owner address>`; enter the Owner's
    password at the prompt (never on the command line).
 3. Expected: `owner administrator: provisioned`. A re-run prints `already_provisioned`; any other
-   principal is refused (exit 1). Each attempt is an `identity_audit_events` row (`owner_admin_bootstrap`), committed before the command reports: a refusal before the identity is proven (malformed address, unknown or unverified principal, wrong password, inactive account) is recorded with `actor_ref = unauthenticated` and a reason code only -- never the address or any credential. If the receipt cannot be committed the command exits 2 and nothing is provisioned.
+   principal is refused (exit 1). Each attempt is an `identity_audit_events` row (`owner_admin_bootstrap`), committed before the command reports: a refusal before the identity is proven (malformed address, unknown or unverified principal, wrong password, inactive account) is recorded with `actor_ref = unauthenticated` and a reason code only -- never the address or any credential. If the control store cannot be opened or migrated, or the receipt cannot be committed, the command exits 2 with a fixed message and nothing is provisioned.
 4. The Owner signs in to staff context via `POST /api/admin/session` (separate from ordinary sign-in).
 
 ### Account recovery
@@ -177,7 +177,7 @@ then select the package during setup. The local `reset_corpus_baseline.py` remai
    directory. Locators are recorded as absolute, symlink-resolved paths (a relative `--to` is fixed
    against the directory it was given in), and a location belongs to at most one undisposed backup:
    capture and copy refuse a location an undisposed backup still holds, including after a disposal
-   whose record was lost, until that disposal is recorded.
+   whose record was lost, until that disposal is recorded. A target inside (or around) the live vector store is refused before anything is created.
 2. `due` and `dispose` need only both locks and the control binding, so backups can still be
    expired while a live store is damaged. `... storage_cli due` lists backups at/after 21 days; `... storage_cli dispose --backup-id <id>`
    removes the files, then records the disposal. Re-running after a lost record is safe; a path that

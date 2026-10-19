@@ -753,3 +753,29 @@ def test_aliased_control_and_content_stores_are_refused_before_any_effect(
     assert state() == before
     acquire_store_lock(f"sqlite:///{content}").close()
     acquire_vector_lock(remote_env / "chroma").close()
+
+
+@pytest.mark.parametrize("spelling", ["direct", "alias"])
+def test_capture_never_targets_the_live_vector_store(
+    remote_env: Path, capsys: pytest.CaptureFixture[str], spelling: str
+) -> None:
+    """Review r4313982102: a target inside the live vector store is refused
+    before anything is created, inventoried or copied."""
+    from afterworlds.remote.control_orm import BackupInventoryORM
+
+    make_remote(remote_env).close()
+    vectors = remote_env / "chroma"
+    target = (
+        vectors / "snapshots" / "b1"
+        if spelling == "direct"
+        else remote_env / "elsewhere" / ".." / "chroma" / "b1"
+    )
+    before = sorted(str(p.relative_to(vectors)) for p in vectors.rglob("*"))
+    assert storage_cli.main(["capture", "--to", str(target)]) == 1
+    assert "overlaps the live vector store" in capsys.readouterr().err
+    assert sorted(str(p.relative_to(vectors)) for p in vectors.rglob("*")) == before
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    with control() as s:
+        assert s.query(BackupInventoryORM).count() == 0
+    # An ordinary separate target still captures.
+    assert _run(capsys, "capture", "--to", str(remote_env / "b1"))[0] == 0

@@ -142,6 +142,97 @@ class TestFreshStoreAndSingleWriter:
         assert not hasattr(remote.app.state, "sojourner_id")
 
 
+def _released(env: Path) -> None:
+    """Every store handle a failed construction held is gone: both locks can
+    be taken, and (on Windows, where open files cannot move) each store file
+    and the vector directory can be renamed and put back."""
+    _locks_released(env)
+    for name in ("content.db", "control.db", "chroma"):
+        path = env / name
+        if path.exists():
+            moved = path.with_name(name + ".moved")
+            path.rename(moved)
+            moved.rename(path)
+
+
+def _fail_after(real: Any) -> Any:
+    def wrapped(*a: Any, **k: Any) -> Any:
+        real(*a, **k)
+        raise RuntimeError("injected construction fault")
+
+    return wrapped
+
+
+class TestFailedConstructionReleasesEverything:
+    """Review r4313982093: a construction failing after the first lock
+    releases locks, engines and vector clients; the same process retries."""
+
+    @pytest.mark.parametrize(
+        "point",
+        [
+            "vector_config",  # after the content lock, before the vector lock
+            "lease_recovery",  # after the content engine
+            "pipeline",  # after Chroma clients were opened
+            "late_wiring",  # after the pipeline and seams
+        ],
+    )
+    def test_original_error_propagates_and_retry_succeeds(
+        self, env: Path, monkeypatch: pytest.MonkeyPatch, point: str
+    ) -> None:
+        import afterworlds.api.app as app_module
+
+        make_remote(env).close()  # a completed deployment
+        with monkeypatch.context() as m:
+            if point == "vector_config":
+                m.setattr(
+                    app_module.RetrievalMemoryConfig, "from_env", _injected_construction
+                )
+            elif point == "lease_recovery":
+                m.setattr(
+                    app_module, "clear_orphan_turn_leases", _injected_construction
+                )
+            elif point == "pipeline":
+                m.setattr(
+                    app_module, "build_pipeline", _fail_after(app_module.build_pipeline)
+                )
+            else:
+                m.setattr(
+                    app_module, "ServerHostedByokUnavailable", _injected_construction
+                )
+            with pytest.raises(RuntimeError, match="injected construction fault"):
+                create_app(remote_settings(env))
+        _released(env)
+        again = make_remote(env)
+        try:
+            again.enroll("a@example.test")
+        finally:
+            again.close()
+
+    def test_a_failed_first_start_releases_and_resumes(
+        self, env: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import afterworlds.api.app as app_module
+
+        with monkeypatch.context() as m:
+            m.setattr(
+                app_module, "build_pipeline", _fail_after(app_module.build_pipeline)
+            )
+            with pytest.raises(RuntimeError, match="injected construction fault"):
+                create_app(remote_settings(env))
+        identity = _control_row(env, "deployment_marker")
+        assert identity is not None  # initialization itself had completed
+        _released(env)
+        again = make_remote(env)
+        try:
+            assert content_store_id(again.app.state.session_factory) == identity
+        finally:
+            again.close()
+
+
+def _injected_construction(*_a: object, **_k: object) -> Any:
+    raise RuntimeError("injected construction fault")
+
+
 def _count(table: str) -> Any:
     import sqlalchemy as sa
 

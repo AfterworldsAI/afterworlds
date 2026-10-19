@@ -8,11 +8,14 @@ anywhere else is a defect.
 from __future__ import annotations
 
 import asyncio
+import contextlib
+import gc
 import logging
 from collections import defaultdict
 from pathlib import Path
 from uuid import UUID
 
+from chromadb.api.shared_system_client import SharedSystemClient
 from fastapi import Depends, FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -77,10 +80,59 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
 
     Product configuration: single uvicorn worker (Binding Decision 8), no
     CORS middleware (DoR-C), built frontend served via StaticFiles.
+
+    A construction that fails at any step releases everything it acquired
+    (store locks, the content engine, embedded Chroma's clients) and
+    re-raises the original error, so the same process can retry.
     """
     settings = settings or load_settings()
     # Prerequisite #205: every /api route passes the one access choke point.
     app = FastAPI(title="Afterworlds API", dependencies=[Depends(enforce_access)])
+    app.state.store_lock = None
+    app.state.vector_lock = None
+    app.state.engine = None
+    try:
+        _wire_app(app, settings)
+    except BaseException:
+        _release_construction(app)
+        raise
+    return app
+
+
+def _release_construction(app: FastAPI) -> None:
+    """Best-effort release after a failed construction; never masks it."""
+    control = getattr(app.state, "control_factory", None)
+    for engine in (app.state.engine, control.kw["bind"] if control else None):
+        if engine is not None:
+            with contextlib.suppress(Exception):
+                engine.dispose()
+    app.state.orchestrator = None
+    app.state.rpg_actions = None
+    vector_dir = getattr(app.state, "vector_dir", None)
+    with contextlib.suppress(Exception):
+        # Stop (not merely forget) the embedded Chroma systems a partly built
+        # pipeline opened on this construction's vector store -- it holds that
+        # store's lock, so no other app shares them -- then drop the cache.
+        # shortcut: reads chromadb's private registry (pinned 1.5.x); revisit
+        # on a chromadb upgrade.
+        for system in list(SharedSystemClient._identifier_to_system.values()):
+            persist = system.settings.persist_directory
+            if (
+                vector_dir is not None
+                and persist
+                and Path(persist).resolve() == (vector_dir.resolve())
+            ):
+                system.stop()
+        SharedSystemClient.clear_system_cache()
+    gc.collect()
+    for name in ("vector_lock", "store_lock"):
+        handle = getattr(app.state, name)
+        if handle is not None:
+            with contextlib.suppress(Exception):
+                handle.close()
+
+
+def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
     remote = settings.deployment == "remote"
 
     if remote:
@@ -89,41 +141,34 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
         assert settings.control_database_url is not None
         outbox = settings.notice_outbox_dir
         assert outbox is not None
+        # A refused or failed start keeps neither store locked or open
+        # (create_app releases whatever was acquired).
         app.state.store_lock = acquire_store_lock(settings.database_url)
         vector_dir = Path(RetrievalMemoryConfig.from_env().persist_directory)
-        app.state.vector_lock = None
-        engine = None
-        try:
-            app.state.vector_lock = acquire_vector_lock(vector_dir)
-            refuse_store_aliasing(settings.database_url, settings.control_database_url)
-            control_factory = open_control_store(settings.control_database_url)
-            # A fresh deployment's identity is recorded before anything is
-            # created; an interrupted initialization resumes that identity.
-            initializing = check_content_store_before_migration(
-                settings.database_url, vector_dir, control_factory, now=utc_now()
+        app.state.vector_dir = vector_dir
+        app.state.vector_lock = acquire_vector_lock(vector_dir)
+        refuse_store_aliasing(settings.database_url, settings.control_database_url)
+        control_factory = open_control_store(settings.control_database_url)
+        app.state.control_factory = control_factory
+        # A fresh deployment's identity is recorded before anything is
+        # created; an interrupted initialization resumes that identity.
+        initializing = check_content_store_before_migration(
+            settings.database_url, vector_dir, control_factory, now=utc_now()
+        )
+        if pending_restores(control_factory):
+            raise StoreRefused(
+                "a restored content store is awaiting deletion-suppression "
+                "enforcement and verification; it cannot be served yet"
             )
-            if pending_restores(control_factory):
-                raise StoreRefused(
-                    "a restored content store is awaiting deletion-suppression "
-                    "enforcement and verification; it cannot be served yet"
-                )
-            check_vector_store(vector_dir, control_factory)
-            upgrade_to_head(settings.database_url)
-            engine = create_engine(settings.database_url)
-            if initializing is not None:
-                initialize_remote_content_store(
-                    create_session_factory(engine), initializing, now=utc_now()
-                )
-                bind_vector_store(vector_dir, initializing)
-                complete_remote_initialization(control_factory, initializing)
-        except BaseException:
-            # A refused or failed start keeps neither store locked or open.
-            if engine is not None:
-                engine.dispose()
-            app.state.store_lock.close()
-            if app.state.vector_lock is not None:
-                app.state.vector_lock.close()
-            raise
+        check_vector_store(vector_dir, control_factory)
+        upgrade_to_head(settings.database_url)
+        engine = app.state.engine = create_engine(settings.database_url)
+        if initializing is not None:
+            initialize_remote_content_store(
+                create_session_factory(engine), initializing, now=utc_now()
+            )
+            bind_vector_store(vector_dir, initializing)
+            complete_remote_initialization(control_factory, initializing)
     else:
         # P1 remediation (PR #126 review round 1): apply the real Alembic
         # migrations rather than Base.metadata.create_all(), which silently
@@ -131,7 +176,7 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
         # fresh DB, any table whose ORM module app.py did not happen to
         # import. See db_bootstrap.py's docstring for the full defect writeup.
         upgrade_to_head(settings.database_url)
-        engine = create_engine(settings.database_url)
+        engine = app.state.engine = create_engine(settings.database_url)
     session_factory = create_session_factory(engine)
     # CRD Issue 2b: recover turn leases whose owning process is proven dead
     # (its OS owner lock is free). A live or unprovable lease is kept, so a
@@ -322,5 +367,3 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
             StaticFiles(directory=str(settings.frontend_dist_dir), html=True),
             name="frontend",
         )
-
-    return app

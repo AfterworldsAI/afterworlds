@@ -407,6 +407,45 @@ class TestAdministrator:
                 s.scalar(sa.select(sa.func.count()).select_from(AdminBindingORM)) == 0
             )
 
+    @pytest.mark.parametrize("failure", ["unopenable", "migration"])
+    def test_bootstrap_store_failures_are_sanitized(
+        self,
+        remote: RemoteHarness,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+        failure: str,
+    ) -> None:
+        """Review r4313982112: opening or migrating the control store fails
+        closed with the fixed message, no driver text, no grant."""
+        import hashlib
+
+        remote.enroll("owner@example.test")
+        content = remote.tmp_path / "content.db"
+        url = (
+            f"sqlite:///{remote.tmp_path / 'zq9marker-missing' / 'control.db'}"
+            if failure == "unopenable"
+            else f"sqlite:///{content}"  # not a control store: migration fails
+        )
+        before = hashlib.sha256(content.read_bytes()).hexdigest()
+        monkeypatch.setattr("sys.stdin", io.StringIO("zq9marker-passphrase\n"))
+        capsys.readouterr()
+        code = bootstrap.main(
+            [
+                "--contact-address",
+                "zq9marker@example.test",
+                "--control-db",
+                url,
+                "--password-stdin",
+            ]
+        )
+        out = capsys.readouterr()
+        assert code == 2
+        assert "nothing was provisioned" in out.err
+        assert "zq9marker" not in out.out + out.err
+        assert "Traceback" not in out.err and "owner administrator" not in out.out
+        assert hashlib.sha256(content.read_bytes()).hexdigest() == before
+        assert self._bootstrap_receipts(remote) == []
+
     def test_targeted_revocation_is_reasoned_and_audited(
         self, remote: RemoteHarness
     ) -> None:
