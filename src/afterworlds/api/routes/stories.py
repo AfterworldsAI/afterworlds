@@ -19,7 +19,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from afterworlds.api.deps import get_session
+from afterworlds.api.deps import AdmittedWorkerRoute, get_session
 from afterworlds.api.dto import (
     CreateStoryRequest,
     StoryDetailDTO,
@@ -46,8 +46,12 @@ from afterworlds.remote.access import (
 )
 from afterworlds.remote.identity import Actor
 
-router = APIRouter(prefix="/api/stories", tags=["stories"])
-story_router = APIRouter(prefix="/api/stories", tags=["stories"])
+router = APIRouter(
+    prefix="/api/stories", tags=["stories"], route_class=AdmittedWorkerRoute
+)
+story_router = APIRouter(
+    prefix="/api/stories", tags=["stories"], route_class=AdmittedWorkerRoute
+)
 
 
 @router.get("", response_model=StoryListResponse)

@@ -51,7 +51,7 @@ from afterworlds.pipeline.provider import (
 )
 from afterworlds.pipeline.provider.credentials import make_credential_store
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
-from afterworlds.remote.access import AccessPolicy, ScopedSeam
+from afterworlds.remote.access import AccessPolicy, IdentityUnavailable, ScopedSeam
 from afterworlds.remote.control_store import open_control_store, utc_now
 from afterworlds.remote.fence import AccountFence
 from afterworlds.remote.identity import IdentityService
@@ -66,6 +66,7 @@ from afterworlds.remote.storage import (
     complete_remote_initialization,
     initialize_remote_content_store,
     pending_restores,
+    refuse_notice_store_exposure,
     refuse_store_aliasing,
 )
 from afterworlds.services.dnd5e_state.leases import (
@@ -152,8 +153,9 @@ def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
         assert outbox is not None
         # A refused or failed start keeps neither store locked or open
         # (create_app releases whatever was acquired).
-        app.state.store_lock = acquire_store_lock(settings.database_url)
         vector_dir = Path(RetrievalMemoryConfig.from_env().persist_directory)
+        refuse_notice_store_exposure(outbox, vector_dir, settings.frontend_dist_dir)
+        app.state.store_lock = acquire_store_lock(settings.database_url)
         app.state.vector_lock = acquire_vector_lock(vector_dir)
         refuse_store_aliasing(settings.database_url, settings.control_database_url)
         control_factory = open_control_store(settings.control_database_url)
@@ -287,6 +289,18 @@ def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
         request: Request, exc: ApiErrorResponse
     ) -> JSONResponse:
         return JSONResponse(status_code=exc.status_code, content=exc.error.model_dump())
+
+    @app.exception_handler(IdentityUnavailable)
+    async def _identity_unavailable_handler(
+        request: Request, exc: IdentityUnavailable
+    ) -> JSONResponse:
+        # A control-authority read failed after admission (#205): the same
+        # sanitized answer as an unreachable identity store at admission.
+        error = ApiError(
+            error_code=ApiErrorCode.IDENTITY_UNAVAILABLE,
+            message="Sign-in is temporarily unavailable.",
+        )
+        return JSONResponse(status_code=503, content=error.model_dump())
 
     @app.exception_handler(RequestValidationError)
     async def _validation_error_handler(

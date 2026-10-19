@@ -43,6 +43,7 @@ from afterworlds.remote.storage import (
     dispose_snapshot,
     due_backups,
     maintenance_locks,
+    refuse_notice_store_exposure,
     refuse_store_aliasing,
     restore_snapshot,
     sqlite_path,
@@ -79,12 +80,20 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("requires AFTERWORLDS_DEPLOYMENT=remote and a control store")
     try:
         refuse_store_aliasing(settings.database_url, settings.control_database_url)
+        if settings.notice_outbox_dir is not None:
+            # capture copies, and restore rewrites, the live vector store
+            refuse_notice_store_exposure(
+                settings.notice_outbox_dir,
+                Path(RetrievalMemoryConfig.from_env().persist_directory),
+                settings.frontend_dist_dir,
+            )
     except StoreRefused as exc:
         print(f"{args.command} refused: {exc}", file=sys.stderr)
         return 1
     control = open_control_store(settings.control_database_url)
     config = RetrievalMemoryConfig.from_env()
     vector_dir = Path(config.persist_directory)
+    confidential = [settings.notice_outbox_dir] if settings.notice_outbox_dir else []
     db_path = sqlite_path(settings.database_url)
     now = utc_now()
     with maintenance_locks(
@@ -106,6 +115,7 @@ def main(argv: list[str] | None = None) -> int:
                         target=args.to,
                         story_chunk_count=_chunk_counter(config),
                         now=now,
+                        confidential=confidential,
                     )
                 )
             elif args.command == "restore":
@@ -117,6 +127,7 @@ def main(argv: list[str] | None = None) -> int:
                         database_path=db_path,
                         vector_dir=vector_dir,
                         now=now,
+                        confidential=confidential,
                     )
                 )
             elif args.command == "verify-restore":

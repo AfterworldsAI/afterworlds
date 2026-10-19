@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 
 from afterworlds.api.account import build_account_status, run_settings_operation
 from afterworlds.api.deps import (
+    AdmittedWorkerRoute,
     get_byok_readiness_provider,
     get_byok_settings,
     get_session,
@@ -47,7 +48,9 @@ from afterworlds.pipeline.provider import (
 from afterworlds.remote.fence import FenceBusy
 from afterworlds.remote.identity import Actor
 
-router = APIRouter(prefix="/api/account", tags=["account"])
+router = APIRouter(
+    prefix="/api/account", tags=["account"], route_class=AdmittedWorkerRoute
+)
 
 _RESPONSES: dict[int | str, dict[str, Any]] = {
     status: {"model": ApiError} for status in (401, 409, 422, 503)

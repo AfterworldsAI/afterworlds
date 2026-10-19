@@ -28,6 +28,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 import sqlalchemy as sa
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from afterworlds.persistence.orm.ownership import AccountResourceORM
@@ -126,6 +127,20 @@ def owned_story_ids(session: Session, account_id: UUID) -> list[str]:
     )
 
 
+class IdentityUnavailable(Exception):
+    """A control-authority (identity/suppression) read failed. Raised only
+    around control-store reads, so content-store faults keep their own
+    provenance; HTTP maps it to the sanitized ``503 identity_unavailable``."""
+
+
+@contextmanager
+def _control_read() -> Iterator[None]:
+    try:
+        yield
+    except SQLAlchemyError:
+        raise IdentityUnavailable from None
+
+
 class AccessPolicy:
     """Remote ownership policy; ``identity is None`` means a local deployment."""
 
@@ -182,18 +197,21 @@ class AccessPolicy:
         if not self.remote:
             return False
         assert self._control is not None
+        with _control_read():
+            suppressions = active_suppressions(self._control)
         return any(
             sup.scope == "account" and sup.subject_ref == str(account_id)
-            for sup in active_suppressions(self._control)
+            for sup in suppressions
         )
 
     def _servable(self, owner: str, story_id: UUID) -> bool:
         assert self._identity is not None and self._control is not None
-        if not self._identity.active_account_ids({owner}):
-            return False
-        return not is_suppressed(
-            self._control, story_id=str(story_id), account_id=owner
-        )
+        with _control_read():
+            if not self._identity.active_account_ids({owner}):
+                return False
+            return not is_suppressed(
+                self._control, story_id=str(story_id), account_id=owner
+            )
 
 
 class ScopedSeam:

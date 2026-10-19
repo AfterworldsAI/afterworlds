@@ -997,3 +997,141 @@ def _active_suppression_ids(control: Any) -> list[str]:
     from afterworlds.remote.storage import active_suppressions
 
     return [s.suppression_id for s in active_suppressions(control)]
+
+
+@pytest.mark.parametrize(
+    "layout",
+    ["vector_inside", "vector_alias", "vector_ancestor", "static_inside", "link_alias"],
+)
+def test_the_notice_store_must_be_separate_before_any_effect(
+    remote_env: Path, layout: str
+) -> None:
+    """Review 5572565473 r4314625054: the outbox (raw codes) may not overlap
+    the live vector store (backed up) or the public static root."""
+    import os
+    import subprocess
+
+    from afterworlds.api.config import ApiSettings
+    from afterworlds.remote.storage import acquire_store_lock, acquire_vector_lock
+
+    settings = remote_settings(remote_env)
+    vectors = remote_env / "chroma"
+    static = remote_env / "no_frontend"
+    if layout == "vector_inside":
+        outbox = vectors / "outbox"
+    elif layout == "vector_alias":
+        outbox = remote_env / "elsewhere" / ".." / "chroma" / "notices"
+    elif layout == "vector_ancestor":
+        outbox = remote_env
+    elif layout == "static_inside":
+        outbox = static / "notices"
+    else:
+        vectors.mkdir()
+        link = remote_env / "link"
+        if os.name == "nt":  # a junction needs no symlink privilege
+            subprocess.run(
+                ["cmd", "/c", "mklink", "/J", str(link), str(vectors)],
+                check=True,
+                capture_output=True,
+            )
+        else:
+            link.symlink_to(vectors, target_is_directory=True)
+        outbox = link / "notices"
+    unsafe = ApiSettings(**{**settings.__dict__, "notice_outbox_dir": outbox})
+    with pytest.raises(StoreRefused, match="notice outbox"):
+        create_app(unsafe)
+    # Refused before any lock, migration or notice write.
+    assert not (remote_env / "content.db").exists()
+    assert not (remote_env / "control.db").exists()
+    assert layout == "vector_ancestor" or not outbox.exists()
+    acquire_store_lock(settings.database_url).close()
+    acquire_vector_lock(vectors).close()
+    # A disjoint layout works.
+    make_remote(remote_env).close()
+
+
+def test_maintenance_refuses_an_overlapping_notice_store(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from afterworlds.remote.control_orm import BackupInventoryORM
+
+    make_remote(remote_env).close()
+    code, backup = _run(capsys, "capture", "--to", str(remote_env / "b1"))
+    assert code == 0
+    leaked = remote_env / "chroma" / "outbox"
+    leaked.mkdir()
+    marker = leaked / "recovery-1.json"
+    marker.write_text('{"code": "zq5code"}', encoding="utf-8")
+    monkeypatch.setenv("AFTERWORLDS_NOTICE_OUTBOX_DIR", str(leaked))
+    for argv in (
+        ["capture", "--to", str(remote_env / "b2")],
+        ["restore", "--backup-id", backup],
+    ):
+        assert storage_cli.main(argv) == 1
+        assert "notice outbox" in capsys.readouterr().err
+    assert not (remote_env / "b2").exists()
+    assert marker.read_text(encoding="utf-8") == '{"code": "zq5code"}'
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    with control() as s:
+        assert s.query(BackupInventoryORM).count() == 1
+
+
+def _link_dir(link: Path, target: Path) -> None:
+    import os
+    import subprocess
+
+    if os.name == "nt":  # a junction needs no symlink privilege
+        subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(link), str(target)],
+            check=True,
+            capture_output=True,
+        )
+    else:
+        link.symlink_to(target, target_is_directory=True)
+
+
+def test_a_link_into_the_notice_store_is_never_copied(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Residue: disjoint roots, but vector_dir/shortcut -> notice outbox.
+    copytree follows links, so capture and restore refuse before copying."""
+    from afterworlds.remote.control_orm import BackupInventoryORM, RestoreRecordORM
+
+    make_remote(remote_env).close()
+    code, backup = _run(capsys, "capture", "--to", str(remote_env / "b1"))
+    assert code == 0
+    outbox = remote_env / "outbox"
+    outbox.mkdir(exist_ok=True)
+    marker = outbox / "recovery-1.json"
+    marker.write_text('{"code": "zq6code"}', encoding="utf-8")
+    shortcut = remote_env / "chroma" / "deep" / "shortcut"
+    shortcut.parent.mkdir()
+    _link_dir(shortcut, outbox)
+
+    assert storage_cli.main(["capture", "--to", str(remote_env / "b2")]) == 1
+    assert "confidential store" in capsys.readouterr().err
+    assert not (remote_env / "b2").exists()
+    # A snapshot carrying such a link is not restored either.
+    _link_dir(remote_env / "b1" / "chroma" / "shortcut", outbox)
+    assert storage_cli.main(["restore", "--backup-id", backup]) == 1
+    assert "confidential store" in capsys.readouterr().err
+    assert marker.read_text(encoding="utf-8") == '{"code": "zq6code"}'
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    with control() as s:
+        assert s.query(BackupInventoryORM).count() == 1
+        assert s.query(RestoreRecordORM).count() == 0
+    # Without the link, a disjoint layout captures as usual.
+    if shortcut.is_symlink():
+        shortcut.unlink()
+    else:
+        os_rmdir(shortcut)
+    assert _run(capsys, "capture", "--to", str(remote_env / "b2"))[0] == 0
+    assert not list((remote_env / "b2").rglob("recovery-*.json"))
+
+
+def os_rmdir(path: Path) -> None:
+    import os
+
+    os.rmdir(path)  # removes a junction without touching its target

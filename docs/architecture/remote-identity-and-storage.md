@@ -23,7 +23,7 @@ Nothing here authorizes deployment, real-data migration, remote activation or pu
 | Request authority | App-level `enforce_access`: default deny outside `PUBLIC_PATHS`; actor only from the server session | `api/remote_access.py` |
 | Cross-site submission | Unsafe methods require `X-Afterworlds-Request: 1` (no CORS middleware grants a cross-origin preflight); `SameSite=Strict` | `api/remote_access.py`, `frontend/src/api/client.ts` |
 | Transport | The deployment must terminate TLS in front of the single uvicorn process; `Secure` cookies are not sent over plain HTTP except to a loopback test server | launch gate (§8) |
-| Failure | Identity store unreachable → `503 identity_unavailable` on every HTTP identity operation (public auth routes, session discovery, staff session/target/revocation, closure, and request admission); every credential failure → `401 authentication_failed`; missing/expired/revoked session → `401 authentication_required`; ordinary session on staff route → `403 staff_authority_required` | `api/errors.py` |
+| Failure | Identity store unreachable → `503 identity_unavailable` on every HTTP identity operation (public auth routes, session discovery, staff session/target/revocation, closure, and request admission) and when a control-authority read fails after admission (Story authorization/listing, suppression admission, owning-service rechecks; content-store faults keep their own error); every credential failure → `401 authentication_failed`; missing/expired/revoked session → `401 authentication_required`; ordinary session on staff route → `403 staff_authority_required` | `api/errors.py` |
 
 Enrollment and recovery answer `202 accepted` identically whether or not the address exists; sign-in
 failure is identical for unknown and wrong-password cases and costs the same scrypt work.
@@ -77,7 +77,7 @@ an active ownership row is invisible and returns 404. No import, claim or reassi
 | Content SQLite + `-wal`/`-shm` | Narrative, RPG, entitlement, ownership | App process (O); operator under both store locks | No secrets | `storage_cli capture` inventories first, then copies (online backup API); `restore` → write-ahead `copying` → copied → verified | Backups expire 21 days after original capture (`due`) |
 | Control SQLite + journal | Identity, sessions, binding, audit, suppression, inventory | App process; bootstrap/storage operators | Verifiers only | **Not** restored with content; back it up separately under host controls (launch gate) | Session/recovery removal is CRD 22's erasure step |
 | Embedded Chroma directory (bound by `afterworlds-deployment.json`, locked by `.afterworlds-serve.lock`) | `story_memory` chunks, Rules corpus | App process; operator under both locks | No secrets | Copied with each capture (required; a snapshot without its bound vector store cannot be restored); replaced with SQL on restore | Per-Story delete + count-zero (ADR-018 D11) |
-| Notice outbox directory | Pending enrollment/recovery codes | Operator relay only (files `0600`) | Codes are single-use, 15-minute | Never backed up | Operator removes delivered notices; replaced by a real processor before launch |
+| Notice outbox directory | Pending enrollment/recovery codes | Operator relay only (files `0600`) | Codes are single-use, 15-minute | Never backed up: startup and every storage command refuse an outbox inside, equal to or around the live vector store or the public static root, and capture/restore refuse a vector tree containing a link into it | Operator removes delivered notices; replaced by a real processor before launch |
 | Turn-lease owner sidecars (`<db>.turn-owners/`), store locks (`<db>.serve.lock`, vector `.afterworlds-serve.lock`) | Process liveness only | App process | None | Not backed up (the vector lock file is excluded from captures) | Process lifetime |
 | Browser | HttpOnly session cookie; last Story ID and drafts (cleared at sign-out) | The user | No authority | — | — |
 
@@ -116,7 +116,7 @@ so `chromadb` is pinned exactly to the verified 1.5.9; changing the pin requires
 review of that cleanup.) An in-process per-account fence orders request effects against closure (and CRD Issue 22
 suppression): requests hold it shared; closure takes it exclusive with a bounded wait
 (`close_fence_timeout`, 30 s) and returns `409 account_operation_in_progress` without changing
-anything if in-flight work does not finish. Multiple workers, replicas or hosts are not enabled; they
+anything if in-flight work does not finish. Work handed to a worker thread -- every synchronous route handler and every Story-locked mutation -- keeps its own counted fence lease (and its Story lock) until the synchronous worker actually finishes, and a cancelled request keeps awaiting the worker so request-owned resources such as its database session are not closed under it, so a cancelled or disconnected request never lets closure, suppression or another same-Story mutation start while its effects can still land. Multiple workers, replicas or hosts are not enabled; they
 require a separately reviewed shared-coordination contract.
 
 ## 6. Delayed work and owning-service scope

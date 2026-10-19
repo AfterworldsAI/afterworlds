@@ -17,7 +17,7 @@ from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy.orm import Session
 
 from afterworlds.api.account import build_admin_account_view
-from afterworlds.api.deps import get_session
+from afterworlds.api.deps import AdmittedWorkerRoute, get_session
 from afterworlds.api.dto import (
     AdminAccountViewResponse,
     RevokeSessionsRequest,
@@ -42,7 +42,7 @@ from afterworlds.remote.identity import (
     SessionContext,
 )
 
-router = APIRouter(prefix="/api/admin", tags=["admin"])
+router = APIRouter(prefix="/api/admin", tags=["admin"], route_class=AdmittedWorkerRoute)
 
 _RESPONSES: dict[int | str, dict[str, Any]] = {
     status: {"model": ApiError} for status in (401, 403, 404, 422, 503)

@@ -493,3 +493,96 @@ class TestClosure:
         assert not list(remote.outbox.glob("recovery-*.json"))
         replay.post("/api/auth/register", json={"contact_address": "a@example.test"})
         assert len(list(remote.outbox.glob("enrollment-*.json"))) == 1
+
+
+class TestPostAdmissionControlFailures:
+    """Review 5572565473 r4314625068: a control-authority read failing after
+    admission is 503 identity_unavailable at its source -- never a false 404,
+    an empty list or a relabelled content-store fault."""
+
+    @staticmethod
+    def _broken_control_read(*_a: object, **_k: object) -> object:
+        raise OperationalError("SELECT secret-ish", {}, Exception("control down"))
+
+    def test_story_authorization_and_listing(
+        self, remote: RemoteHarness, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        a = remote.enroll("a@example.test")
+        sid = a.post("/api/stories", json={"title": "S", "mode": "branching"}).json()[
+            "story_id"
+        ]
+        monkeypatch.setattr(
+            "afterworlds.remote.access.is_suppressed", self._broken_control_read
+        )
+        for resp in (a.get(f"/api/stories/{sid}"), a.get("/api/stories")):
+            assert resp.status_code == 503 and _error(resp) == "identity_unavailable"
+            assert "control down" not in resp.text and "SELECT" not in resp.text
+
+    def test_suppression_admission(
+        self, remote: RemoteHarness, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        a = remote.enroll("a@example.test")
+        with monkeypatch.context() as m:
+            m.setattr(
+                "afterworlds.remote.access.active_suppressions",
+                self._broken_control_read,
+            )
+            resp = a.post("/api/stories", json={"title": "S", "mode": "branching"})
+        assert resp.status_code == 503 and _error(resp) == "identity_unavailable"
+        assert a.get("/api/stories").json()["stories"] == []  # nothing created
+
+    def test_owning_service_recheck(
+        self, remote: RemoteHarness, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import sqlalchemy as sa
+
+        from afterworlds.persistence.orm.node import TurnORM
+        from tests.api.test_remote_isolation import _branching_in_play, _seed_hosted
+
+        a = remote.enroll("a@example.test")
+        _seed_hosted(remote, remote.account_id(a))
+        sid = _branching_in_play(a)
+        import afterworlds.remote.access as access
+
+        real = access.is_suppressed
+        calls = {"n": 0}
+
+        def fails_after_authorization(*a_: object, **k: object) -> object:
+            calls["n"] += 1
+            if calls["n"] > 1:  # the route guard passed; the seam rechecks
+                return self._broken_control_read()
+            return real(*a_, **k)
+
+        with remote.app.state.session_factory() as s:
+            before = s.scalar(sa.select(sa.func.count()).select_from(TurnORM))
+        monkeypatch.setattr(access, "is_suppressed", fails_after_authorization)
+        resp = a.post(f"/api/stories/{sid}/turns", json={"user_input": "Go."})
+        assert resp.status_code == 503 and _error(resp) == "identity_unavailable"
+        assert calls["n"] >= 2
+        with remote.app.state.session_factory() as s:
+            assert s.scalar(sa.select(sa.func.count()).select_from(TurnORM)) == before
+
+    def test_a_content_store_fault_is_not_relabelled(
+        self, remote: RemoteHarness, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from fastapi.testclient import TestClient
+
+        from afterworlds.api.remote_access import CSRF_HEADER
+
+        a = remote.enroll("a@example.test")
+        sid = a.post("/api/stories", json={"title": "S", "mode": "branching"}).json()[
+            "story_id"
+        ]
+        monkeypatch.setattr(
+            "afterworlds.remote.access.story_owner", self._broken_control_read
+        )
+        quiet = TestClient(
+            remote.app,
+            base_url="https://testserver",
+            headers={CSRF_HEADER: "1"},
+            cookies=dict(a.cookies),
+            raise_server_exceptions=False,
+        )
+        with quiet:
+            resp = quiet.get(f"/api/stories/{sid}")
+        assert resp.status_code == 500 and _error(resp) == "internal_error"

@@ -657,6 +657,26 @@ def refuse_store_aliasing(database_url: str, control_database_url: str) -> None:
         )
 
 
+def refuse_notice_store_exposure(
+    notice_dir: Path, vector_dir: Path, frontend_dist_dir: Path | None
+) -> None:
+    """The notice outbox holds raw enrollment/recovery codes and is
+    operator-only, never backed up or served: refuse it physically inside,
+    equal to or around the live vector store (captured into backups and
+    rewritten by restore) or the public static content root. Checked before
+    any lock, migration or notice write."""
+    notices = _canonical_locator(notice_dir)
+    for other, what in (
+        (vector_dir, "the live vector store, which backups copy"),
+        (frontend_dist_dir, "the public static content root"),
+    ):
+        if other is not None and _overlaps(notices, _canonical_locator(other)):
+            raise StoreRefused(
+                f"the notice outbox {notices} overlaps {what} ({other}); "
+                "configure it in a separate operator-only directory"
+            )
+
+
 def acquire_store_lock(database_url: str) -> IO[bytes]:
     """Hold an exclusive OS lock for the life of the serving process (D6).
 
@@ -1065,6 +1085,29 @@ def check_store_pairing(
     check_vector_store(vector_dir, control)
 
 
+def _refuse_confidential_aliases(tree: Path, confidential: Iterable[Path]) -> None:
+    """Refuse a tree whose recursive copy (``shutil.copytree`` follows links)
+    would reach a confidential store such as the notice outbox -- through a
+    symlink or junction anywhere inside it, at any depth."""
+    protected = [_canonical_locator(p) for p in confidential]
+    if not protected or not tree.exists():
+        return
+    seen: set[str] = set()
+    for dirpath, dirnames, filenames in os.walk(tree, followlinks=True):
+        real = _canonical_locator(dirpath)
+        if real in seen:  # a link cycle: copytree would fail; stop walking it
+            dirnames.clear()
+            continue
+        seen.add(real)
+        for name in [real, *(_canonical_locator(Path(dirpath, f)) for f in filenames)]:
+            hit = next((p for p in protected if _overlaps(name, p)), None)
+            if hit is not None:
+                raise StoreRefused(
+                    f"{tree} reaches the confidential store {hit} through a link; "
+                    "remove that link before copying this store"
+                )
+
+
 def capture_snapshot(
     control: sessionmaker[Session],
     content: sessionmaker[Session],
@@ -1074,6 +1117,7 @@ def capture_snapshot(
     target: Path,
     story_chunk_count: Callable[[str], int],
     now: datetime,
+    confidential: Iterable[Path] = (),
 ) -> str:
     """Snapshot both stores into *target* and inventory it.
 
@@ -1089,6 +1133,8 @@ def capture_snapshot(
         raise StoreRefused(
             f"capture target {target} overlaps the live vector store {vector_dir}"
         )
+    # The copy follows links: none may lead into the notice outbox.
+    _refuse_confidential_aliases(vector_dir, confidential)
     with control() as s:
         _claim_locator(s, str(target))  # before creating anything there
     # Claim a new, empty directory before inventorying it: an existing path
@@ -1130,10 +1176,18 @@ def restore_snapshot(
     database_path: Path,
     vector_dir: Path,
     now: datetime,
+    confidential: Iterable[Path] = (),
 ) -> str:
     """Replace both stores from *backup_id*. Recorded as ``copying`` first and
     marked copied only after both replacements finish; a failure leaves the
     restore unfinished (the app refuses to serve) and a retry supersedes it."""
+    with control() as s:
+        row = s.get(BackupInventoryORM, backup_id)
+        if row is not None:
+            # The snapshot's vector copy follows links too; refused unrecorded.
+            _refuse_confidential_aliases(
+                Path(row.storage_locator) / SNAPSHOT_VECTOR_DIR, confidential
+            )
     restore_id = begin_restore(control, backup_id, live_database=database_path, now=now)
     with control() as s:
         row = s.get(BackupInventoryORM, backup_id)

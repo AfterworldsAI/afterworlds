@@ -13,6 +13,7 @@ from typing import Any
 
 from fastapi import APIRouter, Request, Response
 
+from afterworlds.api.deps import AdmittedWorkerRoute
 from afterworlds.api.dto import (
     AcceptedResponse,
     CompleteEnrollmentRequest,
@@ -38,7 +39,7 @@ from afterworlds.remote.identity import (
     SignInResult,
 )
 
-router = APIRouter(prefix="/api/auth", tags=["auth"])
+router = APIRouter(prefix="/api/auth", tags=["auth"], route_class=AdmittedWorkerRoute)
 
 _RESPONSES: dict[int | str, dict[str, Any]] = {
     status: {"model": ApiError} for status in (401, 403, 404, 422, 503)

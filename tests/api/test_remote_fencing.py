@@ -485,3 +485,437 @@ def test_direct_guarded_vector_write_cannot_land_after_closure_or_suppression(
             with pytest.raises(StoryAccessDenied):
                 late()
     assert len(inner.writes) == 1
+
+
+# -- review 5572565473 r4314625062: worker lifetime survives cancellation ----
+
+
+def _cancel_admitted_request(
+    remote: RemoteHarness, client_of: Any, method: str, path: str, **kwargs: Any
+) -> Any:
+    """Coroutine factory: send an admitted request through the ASGI app and
+    cancel the request task itself (twice) once its worker is paused."""
+    import asyncio
+    import contextlib
+
+    import httpx
+
+    from afterworlds.api.remote_access import CSRF_HEADER
+
+    async def send_and_cancel(entered: threading.Event, during: Any) -> Any:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=remote.app),
+            base_url="https://testserver",
+            cookies=dict(client_of.cookies),
+            headers={CSRF_HEADER: "1"},
+        ) as client:
+            task = asyncio.create_task(client.request(method, path, **kwargs))
+            assert await asyncio.to_thread(entered.wait, 30)
+            task.cancel()
+            await asyncio.sleep(0)
+            task.cancel()  # repeated raw cancellation
+            await asyncio.sleep(0.1)
+            assert not task.done()  # the cancelled request drains its worker
+            result = await during()  # must release the worker
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
+            assert task.cancelled()
+            return result
+
+    return send_and_cancel
+
+
+@pytest.mark.parametrize("exclusive", ["closure", "suppression"])
+def test_a_cancelled_turn_keeps_its_fence_and_story_lock_until_the_worker_ends(
+    remote: RemoteHarness, monkeypatch: pytest.MonkeyPatch, exclusive: str
+) -> None:
+    import asyncio
+
+    from afterworlds.remote.access import FenceBusy, record_suppression_fenced
+
+    writer = _PausedWriter(monkeypatch)
+    a, closer, sid = _turn_setup(remote)
+    account = uuid.UUID(remote.account_id(a))
+    before = _turns(remote)
+    send_and_cancel = _cancel_admitted_request(
+        remote, a, "POST", f"/api/stories/{sid}/turns", json={"user_input": "I wait."}
+    )
+
+    def close(timeout: float) -> tuple[int, int]:
+        remote.app.state.identity.close_fence_timeout = timeout
+        resp = closer.post("/api/account/close", json={"password": PASSWORD})
+        return resp.status_code, _turns(remote)
+
+    def suppress(timeout: float) -> tuple[int, int]:
+        record_suppression_fenced(
+            remote.app.state.account_fence,
+            remote.app.state.control_factory,
+            account_id=account,
+            story_refs=[sid],
+            request_id="r",
+            scope="story",
+            effective_boundary_at=datetime.now(UTC),
+            now=datetime.now(UTC),
+            timeout=timeout,
+        )
+        return 200, _turns(remote)
+
+    async def during() -> tuple[int, int]:
+        # The request is cancelled; its worker is paused before any effect.
+        if exclusive == "closure":
+            status, _ = await asyncio.to_thread(close, 0.3)
+            assert status == 409  # bounded refusal, nothing changed
+        else:
+            with pytest.raises(FenceBusy):
+                await asyncio.to_thread(suppress, 0.2)
+        same_story = await asyncio.to_thread(
+            closer.post, f"/api/stories/{sid}/turns", json={"user_input": "Me too."}
+        )
+        assert same_story.status_code == 409
+        assert same_story.json()["error_code"] == "turn_in_flight"
+        assert _turns(remote) == before
+        waiting = asyncio.ensure_future(
+            asyncio.to_thread(close if exclusive == "closure" else suppress, 30)
+        )
+        await asyncio.sleep(0.5)
+        assert not waiting.done()  # exclusivity waits for the worker
+        writer.release.set()
+        return await waiting
+
+    async def scenario() -> tuple[int, int]:
+        writer.armed = True
+        return await send_and_cancel(writer.entered, during)  # type: ignore[no-any-return]
+
+    status, turns_at_return = asyncio.run(scenario())
+    assert status == 200
+    # The worker's effects all landed before exclusivity was granted.
+    assert turns_at_return == _turns(remote) > before
+
+
+def test_a_cancelled_setup_read_keeps_its_fence_until_the_worker_ends(
+    remote: RemoteHarness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The standalone RPG setup read can commit retained state: its worker
+    owns a fence lease past request cancellation."""
+    import asyncio
+
+    from afterworlds.remote.access import FenceBusy, record_suppression_fenced
+
+    a, _closer, sid = _turn_setup(remote)
+    account = uuid.UUID(remote.account_id(a))
+    entered, release = threading.Event(), threading.Event()
+    order: list[str] = []
+
+    def paused_read(*_a: Any) -> None:
+        entered.set()
+        assert release.wait(30)
+        order.append("read committed")
+
+    monkeypatch.setattr("afterworlds.api.routes.rpg_setup.read_setup_view", paused_read)
+    send_and_cancel = _cancel_admitted_request(
+        remote, a, "GET", f"/api/stories/{sid}/rpg/setup"
+    )
+
+    def suppress(timeout: float) -> None:
+        record_suppression_fenced(
+            remote.app.state.account_fence,
+            remote.app.state.control_factory,
+            account_id=account,
+            story_refs=[sid],
+            request_id="r",
+            scope="story",
+            effective_boundary_at=datetime.now(UTC),
+            now=datetime.now(UTC),
+            timeout=timeout,
+        )
+        order.append("suppressed")
+
+    async def during() -> None:
+        with pytest.raises(FenceBusy):
+            await asyncio.to_thread(suppress, 0.2)
+        waiting = asyncio.ensure_future(asyncio.to_thread(suppress, 30))
+        await asyncio.sleep(0.5)
+        assert not waiting.done()
+        release.set()
+        await waiting
+
+    asyncio.run(send_and_cancel(entered, during))
+    assert order == ["read committed", "suppressed"]
+
+
+def _stories(remote: RemoteHarness) -> int:
+    with remote.app.state.session_factory() as s:
+        return int(s.execute(sa.text("SELECT COUNT(*) FROM stories")).scalar() or 0)
+
+
+@pytest.mark.parametrize("exclusive", ["closure", "suppression"])
+def test_a_cancelled_synchronous_handler_keeps_its_fence_until_it_ends(
+    remote: RemoteHarness, monkeypatch: pytest.MonkeyPatch, exclusive: str
+) -> None:
+    """Residue: a synchronous effect handler (Story creation) runs as an
+    admitted worker, so request cancellation cannot release its fence."""
+    import asyncio
+
+    import afterworlds.api.routes.stories as stories_routes
+    from afterworlds.remote.access import FenceBusy, record_suppression_fenced
+
+    a = remote.enroll("a@example.test")
+    closer = remote.client()
+    closer.post(
+        "/api/auth/sign-in",
+        json={"contact_address": "a@example.test", "password": PASSWORD},
+    )
+    account = uuid.UUID(remote.account_id(a))
+    entered, release = threading.Event(), threading.Event()
+    real = stories_routes.require_released_mode
+
+    def paused(mode: Any) -> None:  # before any durable effect
+        entered.set()
+        assert release.wait(30)
+        real(mode)
+
+    monkeypatch.setattr(stories_routes, "require_released_mode", paused)
+    send_and_cancel = _cancel_admitted_request(
+        remote, a, "POST", "/api/stories", json={"title": "late", "mode": "branching"}
+    )
+
+    def exclusive_op(timeout: float) -> tuple[int, int]:
+        if exclusive == "closure":
+            remote.app.state.identity.close_fence_timeout = timeout
+            status = closer.post(
+                "/api/account/close", json={"password": PASSWORD}
+            ).status_code
+        else:
+            try:
+                record_suppression_fenced(
+                    remote.app.state.account_fence,
+                    remote.app.state.control_factory,
+                    account_id=account,
+                    story_refs=[],
+                    request_id="r",
+                    scope="account",
+                    effective_boundary_at=datetime.now(UTC),
+                    now=datetime.now(UTC),
+                    timeout=timeout,
+                )
+                status = 200
+            except FenceBusy:
+                status = 409
+        return status, _stories(remote)
+
+    async def during() -> tuple[int, int]:
+        assert await asyncio.to_thread(exclusive_op, 0.3) == (409, 0)
+        waiting = asyncio.ensure_future(asyncio.to_thread(exclusive_op, 30))
+        await asyncio.sleep(0.5)
+        assert not waiting.done()
+        release.set()
+        return await waiting
+
+    # The Story the handler was already admitted to create lands first.
+    assert asyncio.run(send_and_cancel(entered, during)) == (200, 1)
+
+
+def test_worker_protections_survive_repeated_cancellation() -> None:
+    """Releasing depends on the synchronous worker's completion: repeated raw
+    cancellation leaves the request draining, the Story lock held and the
+    fence refused until the worker ends; a waiting exclusive comes after."""
+    import asyncio
+    import contextlib
+
+    from afterworlds.api.deps import run_admitted_worker
+    from afterworlds.remote.fence import AccountFence, FenceBusy, mark_fence_held
+
+    fence, account = AccountFence(), uuid.uuid4()
+    entered, release = threading.Event(), threading.Event()
+    order: list[str] = []
+
+    def work() -> None:
+        entered.set()
+        assert release.wait(30)
+        order.append("effect")
+
+    def take_exclusive(timeout: float) -> None:
+        with fence.exclusive(account, timeout=timeout):
+            order.append("exclusive")
+
+    async def scenario() -> None:
+        story_lock = asyncio.Lock()
+
+        async def request() -> None:
+            with fence.shared(account):  # the request's own admission lease
+                mark_fence_held(account, fence)
+                await story_lock.acquire()
+                await run_admitted_worker(story_lock, work)
+                order.append("request returned")  # never: it was cancelled
+
+        task = asyncio.ensure_future(request())
+        assert await asyncio.to_thread(entered.wait, 30)
+        for _ in range(3):
+            task.cancel()
+            await asyncio.sleep(0)
+        assert not task.done()  # draining the worker, not abandoning it
+        assert story_lock.locked()
+        with pytest.raises(FenceBusy):
+            await asyncio.to_thread(take_exclusive, 0.2)
+        waiting = asyncio.ensure_future(asyncio.to_thread(take_exclusive, 30))
+        await asyncio.sleep(0.3)
+        assert not waiting.done()
+        release.set()
+        with contextlib.suppress(asyncio.CancelledError):
+            await task
+        assert task.cancelled()
+        await waiting
+        assert not story_lock.locked()
+
+    asyncio.run(scenario())
+    assert order == ["effect", "exclusive"]
+
+
+def test_a_failed_submission_keeps_no_protection() -> None:
+    import asyncio
+
+    import afterworlds.api.deps as deps
+    from afterworlds.remote.fence import AccountFence, mark_fence_held
+
+    fence, account = AccountFence(), uuid.uuid4()
+    ran: list[str] = []
+
+    class Refusing:
+        def submit(self, *_a: Any, **_k: Any) -> Any:
+            raise RuntimeError("executor unavailable")
+
+    async def scenario() -> None:
+        story_lock = asyncio.Lock()
+        with fence.shared(account):
+            mark_fence_held(account, fence)
+            await story_lock.acquire()
+            real = deps._WORKERS
+            deps._WORKERS = Refusing()  # type: ignore[assignment]
+            try:
+                with pytest.raises(RuntimeError, match="executor unavailable"):
+                    await deps.run_admitted_worker(story_lock, ran.append, "x")
+            finally:
+                deps._WORKERS = real
+            await asyncio.sleep(0)
+            assert not story_lock.locked()
+        with fence.exclusive(account, timeout=0.1):  # no lease left behind
+            pass
+
+    asyncio.run(scenario())
+    assert ran == []
+
+
+@pytest.mark.parametrize("outcome", ["completes", "fails"])
+def test_a_cancelled_story_creation_keeps_its_session_until_it_ends(
+    remote: RemoteHarness, monkeypatch: pytest.MonkeyPatch, outcome: str
+) -> None:
+    """Paused after Story creation flushed and before its final commit: the
+    cancelled request's dependency cleanup does not touch the worker's
+    Session; the outcome is atomic (Story + ownership, or neither), and
+    closure waits for it."""
+    import asyncio
+
+    import afterworlds.api.routes.stories as stories_routes
+
+    a = remote.enroll("a@example.test")
+    closer = remote.client()
+    closer.post(
+        "/api/auth/sign-in",
+        json={"contact_address": "a@example.test", "password": PASSWORD},
+    )
+    entered, release = threading.Event(), threading.Event()
+    real = stories_routes.ensure_mode_session_state
+
+    def after_flush(session: Any, *a_: Any, **k: Any) -> Any:
+        entered.set()  # create_story has flushed the Story row
+        assert release.wait(30)
+        if outcome == "fails":
+            raise RuntimeError("worker failed before commit")
+        return real(session, *a_, **k)
+
+    monkeypatch.setattr(stories_routes, "ensure_mode_session_state", after_flush)
+    send_and_cancel = _cancel_admitted_request(
+        remote, a, "POST", "/api/stories", json={"title": "late", "mode": "branching"}
+    )
+
+    def counts() -> tuple[int, int]:
+        with remote.app.state.session_factory() as s:
+            return (
+                int(s.execute(sa.text("SELECT COUNT(*) FROM stories")).scalar() or 0),
+                int(
+                    s.execute(
+                        sa.text("SELECT COUNT(*) FROM account_resources")
+                    ).scalar()
+                    or 0
+                ),
+            )
+
+    def close(timeout: float) -> tuple[int, tuple[int, int]]:
+        remote.app.state.identity.close_fence_timeout = timeout
+        resp = closer.post("/api/account/close", json={"password": PASSWORD})
+        return resp.status_code, counts()
+
+    async def during() -> tuple[int, tuple[int, int]]:
+        assert await asyncio.to_thread(close, 0.3) == (409, (0, 0))
+        waiting = asyncio.ensure_future(asyncio.to_thread(close, 30))
+        await asyncio.sleep(0.5)
+        assert not waiting.done()
+        release.set()
+        return await waiting
+
+    status, at_close = asyncio.run(send_and_cancel(entered, during))
+    assert status == 200
+    assert at_close == ((1, 1) if outcome == "completes" else (0, 0))
+
+
+def test_a_post_enqueue_submission_failure_never_runs_the_work() -> None:
+    """A real executor whose thread start fails after the item was enqueued
+    (CPython submit enqueues, then starts a thread): the request fails, its
+    protections are released, and when a later submission starts a thread
+    that drains the queue, the abandoned work never runs."""
+    import asyncio
+    from concurrent.futures import ThreadPoolExecutor
+
+    import afterworlds.api.deps as deps
+    from afterworlds.remote.fence import AccountFence, mark_fence_held
+
+    fence, account = AccountFence(), uuid.uuid4()
+    ran: list[str] = []
+    executor = ThreadPoolExecutor(max_workers=1)
+    real_start = threading.Thread.start
+
+    def failing_start(self: threading.Thread) -> None:
+        threading.Thread.start = real_start  # type: ignore[method-assign]
+        raise RuntimeError("can't start new thread")
+
+    async def scenario() -> None:
+        story_lock = asyncio.Lock()
+        real_workers = deps._WORKERS
+        deps._WORKERS = executor
+        try:
+            with fence.shared(account):
+                mark_fence_held(account, fence)
+                await story_lock.acquire()
+                threading.Thread.start = failing_start  # type: ignore[method-assign]
+                try:
+                    with pytest.raises(RuntimeError, match="start new thread"):
+                        await deps.run_admitted_worker(
+                            story_lock, ran.append, "abandoned"
+                        )
+                finally:
+                    threading.Thread.start = real_start  # type: ignore[method-assign]
+                assert executor._work_queue.qsize() == 1  # it was enqueued
+                await asyncio.sleep(0)
+                assert not story_lock.locked()  # released at once
+                await story_lock.acquire()
+                await deps.run_admitted_worker(story_lock, ran.append, "admitted")
+                # One FIFO worker ran the abandoned item before this one.
+                assert executor._work_queue.qsize() == 0
+        finally:
+            deps._WORKERS = real_workers
+        executor.shutdown(wait=True)
+
+    asyncio.run(scenario())
+    assert ran == ["admitted"]
+    with fence.exclusive(account, timeout=0.1):  # no lease left behind
+        pass

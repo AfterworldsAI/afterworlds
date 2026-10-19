@@ -168,7 +168,7 @@ async def enforce_access(request: Request) -> AsyncIterator[None]:
                 ApiErrorCode.ACCOUNT_OPERATION_IN_PROGRESS,
                 "This account is being deleted; no changes are accepted.",
             )
-        mark_fence_held(actor.account_id)
+        mark_fence_held(actor.account_id, fence)
         with work_scope(DelayedWorkScope(actor.account_id, None, "request")):
             yield
     finally:
