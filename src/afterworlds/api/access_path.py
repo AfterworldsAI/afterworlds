@@ -112,3 +112,25 @@ def probe_byok_readiness(
             },
         )
         return None
+
+
+class NoServerCredentials:
+    """The remote deployment's ``CredentialStore`` (prerequisite #205 §3).
+
+    Holds nothing and refuses writes, so even a caller below HTTP access
+    selection cannot obtain or plant a BYOK key server-side: BYOK resolution
+    fails closed with "no configured credentials"."""
+
+    def get(self, sojourner_id: UUID, provider_name: str) -> str | None:  # noqa: ARG002
+        return None
+
+    def set(
+        self, sojourner_id: UUID, provider_name: str, key: str
+    ) -> None:  # noqa: ARG002
+        raise PermissionError("the remote service never stores BYOK keys")
+
+    def delete(self, sojourner_id: UUID, provider_name: str) -> None:  # noqa: ARG002
+        return None
+
+    def has(self, sojourner_id: UUID, provider_name: str) -> bool:  # noqa: ARG002
+        return False

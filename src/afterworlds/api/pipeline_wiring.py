@@ -106,6 +106,7 @@ from uuid import UUID
 import sqlalchemy as sa
 from sqlalchemy.orm import Session, sessionmaker
 
+from afterworlds.api.access_path import NoServerCredentials
 from afterworlds.api.fake_pipeline import FakeProviderResolver
 from afterworlds.models.context import AssembledContext
 from afterworlds.models.enums import StoryMode
@@ -658,8 +659,12 @@ def build_pipeline(
             # ProviderResolver, as before (CRD Issue 21 round 1, F5).
             openrouter_fallback_model=os.environ.get("OPENROUTER_FALLBACK_MODEL"),
         )
+        remote = access_policy is not None and access_policy.remote
         provider_resolver = ProviderResolver(
-            credential_store=make_credential_store(),
+            # #205 §3: no server-side BYOK custody in a remote deployment.
+            credential_store=(
+                NoServerCredentials() if remote else make_credential_store()
+            ),
             hosted_config=hosted_config,
             session_factory=session_factory,
         )

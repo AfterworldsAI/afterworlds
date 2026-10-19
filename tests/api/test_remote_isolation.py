@@ -412,3 +412,40 @@ class TestLocalByokSeparation:
             resp = client.post(path, json={})
             assert resp.status_code == 404
             assert _error(resp) == "deployment_route_unavailable"
+
+
+def test_real_provider_wiring_has_no_server_byok_custody(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Non-fake remote construction: no credential store is built and BYOK
+    resolution below HTTP access selection fails closed. No key is set, so
+    no provider transport is ever constructed or called."""
+    from afterworlds.api.access_path import NoServerCredentials
+    from afterworlds.entitlement.enums import RuntimeAccessPath
+    from afterworlds.pipeline.provider import ProviderConfigError
+    from tests.api._remote import make_remote
+
+    def forbidden() -> object:
+        raise AssertionError("remote deployment must not build a credential store")
+
+    monkeypatch.delenv("AFTERWORLDS_FAKE_PROVIDER", raising=False)
+    for name in ("ANTHROPIC_API_KEY", "OPENROUTER_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv(
+        "AFTERWORLDS_RETRIEVAL_PERSIST_DIRECTORY", str(tmp_path / "chroma")
+    )
+    monkeypatch.setattr("afterworlds.api.app.make_credential_store", forbidden)
+    monkeypatch.setattr(
+        "afterworlds.api.pipeline_wiring.make_credential_store", forbidden
+    )
+    harness = make_remote(tmp_path)
+    try:
+        resolver = harness.app.state.orchestrator._inner._provider_resolver
+        store = resolver._credential_store
+        assert isinstance(store, NoServerCredentials)
+        with pytest.raises(PermissionError):
+            store.set(uuid.uuid4(), "anthropic", SYNTHETIC_KEY)
+        with pytest.raises(ProviderConfigError, match="no configured credentials"):
+            resolver.resolve_for_turn(RuntimeAccessPath.BYOK, uuid.uuid4())
+    finally:
+        harness.close()
