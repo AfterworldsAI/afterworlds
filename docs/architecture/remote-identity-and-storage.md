@@ -172,6 +172,11 @@ then select the package during setup. The local `reset_corpus_baseline.py` remai
 1. Stop the app (the commands need both store locks). Every entry point that knows both stores
    (app startup, storage CLI, Rules provisioning, remote backfill) refuses a control store that is
    physically the content store (same path, symlink or hard link) before opening either.
+   The public static root (`frontend_dist_dir`, served unauthenticated at `/`) may not be, contain or
+   sit inside the content or control store, the live vector store, the notice outbox or any undisposed
+   backup (verified or not): startup refuses before creating any store or mounting, `capture` and
+   `restore` refuse a public target, snapshot or live destination, while `due`/`dispose` stay available
+   so an unsafely placed backup can still be removed.
    `python -m afterworlds.remote.storage_cli capture --to <dir>` prints the backup ID. It refuses while
    a restore is pending or suppressed content is still present. The backup is inventoried
    (`unverified`) before any copy and becomes `verified` only when both stores are copied; an

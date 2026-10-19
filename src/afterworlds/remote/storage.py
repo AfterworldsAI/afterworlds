@@ -201,11 +201,15 @@ def register_backup(
     class_code: str = "content_snapshot",
     verification_status: str = "verified",
     clean_suppression_ids: Iterable[str] = (),
+    public_root: Path | None = None,
 ) -> str:
     """Inventory a backup. ``clean_suppression_ids`` names the active
-    suppressions whose content the capture proved absent from both stores."""
+    suppressions whose content the capture proved absent from both stores.
+    A location in the public static root is refused (startup also refuses
+    to serve with any undisposed backup there)."""
     backup_id = str(uuid4())
     locator = _canonical_locator(storage_locator)
+    refuse_public_overlap(public_root, [(locator, "a backup location")])
     with control.begin() as s:
         _claim_locator(s, locator)
         s.add(
@@ -235,10 +239,15 @@ def set_backup_status(
 
 
 def copy_backup(
-    control: sessionmaker[Session], backup_id: str, *, storage_locator: str
+    control: sessionmaker[Session],
+    backup_id: str,
+    *,
+    storage_locator: str,
+    public_root: Path | None = None,
 ) -> str:
     """Inventory a copy. It keeps the original capture time, expiry and proof."""
     locator = _canonical_locator(storage_locator)
+    refuse_public_overlap(public_root, [(locator, "a backup location")])
     with control.begin() as s:
         source = s.get(BackupInventoryORM, backup_id)
         if source is None:
@@ -675,6 +684,39 @@ def refuse_notice_store_exposure(
                 f"the notice outbox {notices} overlaps {what} ({other}); "
                 "configure it in a separate operator-only directory"
             )
+
+
+def refuse_public_overlap(
+    public_root: Path | None, private: Iterable[tuple[Path | str, str]]
+) -> None:
+    """The public static root (served unauthenticated at ``/``) may not be,
+    contain or sit inside a confidential store: live SQLite (journals and
+    staging files sit beside it), vectors, the notice outbox, or a backup."""
+    if public_root is None:
+        return
+    public = _canonical_locator(public_root)
+    for path, what in private:
+        if _overlaps(public, _canonical_locator(path)):
+            raise StoreRefused(
+                f"the public static root {public} overlaps {what} ({path}); "
+                "serve the frontend from a directory holding no store or backup"
+            )
+
+
+def refuse_public_backups(
+    control: sessionmaker[Session], public_root: Path | None
+) -> None:
+    """No undisposed backup -- verified or not, expired or not -- may lie in
+    or around the public static root; disposed ones reserve nothing."""
+    with control() as s:
+        held = list(
+            s.scalars(
+                sa.select(BackupInventoryORM.storage_locator).where(
+                    BackupInventoryORM.disposed_at.is_(None)
+                )
+            )
+        )
+    refuse_public_overlap(public_root, [(p, "an undisposed backup") for p in held])
 
 
 def acquire_store_lock(database_url: str) -> IO[bytes]:
@@ -1118,6 +1160,7 @@ def capture_snapshot(
     story_chunk_count: Callable[[str], int],
     now: datetime,
     confidential: Iterable[Path] = (),
+    public_root: Path | None = None,
 ) -> str:
     """Snapshot both stores into *target* and inventory it.
 
@@ -1133,6 +1176,8 @@ def capture_snapshot(
         raise StoreRefused(
             f"capture target {target} overlaps the live vector store {vector_dir}"
         )
+    # A backup is confidential: never in or around the public static root.
+    refuse_public_overlap(public_root, [(target, "the capture target")])
     # The copy follows links: none may lead into the notice outbox.
     _refuse_confidential_aliases(vector_dir, confidential)
     with control() as s:
@@ -1177,6 +1222,7 @@ def restore_snapshot(
     vector_dir: Path,
     now: datetime,
     confidential: Iterable[Path] = (),
+    public_root: Path | None = None,
 ) -> str:
     """Replace both stores from *backup_id*. Recorded as ``copying`` first and
     marked copied only after both replacements finish; a failure leaves the
@@ -1184,6 +1230,15 @@ def restore_snapshot(
     with control() as s:
         row = s.get(BackupInventoryORM, backup_id)
         if row is not None:
+            # Neither the snapshot nor the live destinations may be public.
+            refuse_public_overlap(
+                public_root,
+                [
+                    (row.storage_locator, "the restore snapshot"),
+                    (database_path, "the live content store"),
+                    (vector_dir, "the live vector store"),
+                ],
+            )
             # The snapshot's vector copy follows links too; refused unrecorded.
             _refuse_confidential_aliases(
                 Path(row.storage_locator) / SNAPSHOT_VECTOR_DIR, confidential

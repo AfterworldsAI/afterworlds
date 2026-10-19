@@ -1135,3 +1135,185 @@ def os_rmdir(path: Path) -> None:
     import os
 
     os.rmdir(path)  # removes a junction without touching its target
+
+
+# -- review 5573874599: the public static root holds no confidential store --
+
+
+def _public(remote_env: Path, root: Path) -> Any:
+    from afterworlds.api.config import ApiSettings
+
+    return ApiSettings(
+        **{**remote_settings(remote_env).__dict__, "frontend_dist_dir": root}
+    )
+
+
+@pytest.mark.parametrize(
+    "layout", ["store_dir", "vector_dir", "control_dir", "alias", "link_alias"]
+)
+def test_startup_refuses_a_public_root_over_a_live_store(
+    remote_env: Path, layout: str
+) -> None:
+    """r4315655748: refused before any store is created, migrated or served."""
+    from afterworlds.api.config import ApiSettings
+    from afterworlds.remote.storage import acquire_store_lock, acquire_vector_lock
+
+    settings = remote_settings(remote_env)
+    data = remote_env / "data"  # the content store's own directory
+    data.mkdir()
+    settings = ApiSettings(
+        **{**settings.__dict__, "database_url": f"sqlite:///{data / 'content.db'}"}
+    )
+    if layout == "store_dir":  # holds content.db (and its journals)
+        root = data
+    elif layout == "vector_dir":
+        root = remote_env / "chroma"
+    elif layout == "control_dir":
+        (remote_env / "ctl").mkdir()
+        control = remote_env / "ctl" / "control.db"
+        settings = ApiSettings(
+            **{**settings.__dict__, "control_database_url": f"sqlite:///{control}"}
+        )
+        root = remote_env / "ctl"
+    elif layout == "alias":
+        root = remote_env / "elsewhere" / ".." / "data"
+    else:
+        root = remote_env / "link"
+        _link_dir(root, data)
+    unsafe = ApiSettings(**{**settings.__dict__, "frontend_dist_dir": root})
+    with pytest.raises(StoreRefused, match="public static root"):
+        create_app(unsafe)
+    assert not (data / "content.db").exists()
+    assert not (remote_env / "control.db").exists()
+    assert not (remote_env / "ctl" / "control.db").exists()
+    acquire_store_lock(settings.database_url).close()
+    acquire_vector_lock(remote_env / "chroma").close()
+
+
+def test_a_disjoint_public_root_still_serves_its_assets(remote_env: Path) -> None:
+    from fastapi.testclient import TestClient
+
+    dist = remote_env / "dist"
+    dist.mkdir()
+    (dist / "index.html").write_text("<p>afterworlds</p>", encoding="utf-8")
+    app = create_app(_public(remote_env, dist))
+    try:
+        with TestClient(app, base_url="https://testserver") as client:
+            assert "afterworlds" in client.get("/").text
+            assert client.get("/content.db").status_code == 404
+    finally:
+        app.state.session_factory.kw["bind"].dispose()
+        app.state.control_factory.kw["bind"].dispose()
+        from chromadb.api.shared_system_client import SharedSystemClient
+
+        SharedSystemClient.clear_system_cache()
+        app.state.store_lock.close()
+        app.state.vector_lock.close()
+
+
+@pytest.mark.parametrize("spelling", ["inside", "alias", "around"])
+def test_capture_never_targets_the_public_root(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+    spelling: str,
+) -> None:
+    """r4315655762: refused before the target, inventory or any copy."""
+    from afterworlds.remote.control_orm import BackupInventoryORM
+
+    make_remote(remote_env).close()
+    site = remote_env / "site"
+    dist = site / "dist"
+    dist.mkdir(parents=True)
+    monkeypatch.setenv("AFTERWORLDS_FRONTEND_DIST", str(dist))
+    target = {
+        "inside": dist / "b1",
+        "alias": remote_env / "x" / ".." / "site" / "dist" / "b1",
+        "around": site,  # the target would contain the public root
+    }[spelling]
+    before = sorted(p.name for p in site.rglob("*"))
+    assert storage_cli.main(["capture", "--to", str(target)]) == 1
+    assert "public static root" in capsys.readouterr().err
+    assert sorted(p.name for p in site.rglob("*")) == before
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    with control() as s:
+        assert s.query(BackupInventoryORM).count() == 0
+
+
+@pytest.mark.parametrize("status", ["verified", "unverified"])
+def test_startup_refuses_a_public_root_exposing_an_undisposed_backup(
+    remote_env: Path, capsys: pytest.CaptureFixture[str], status: str
+) -> None:
+    """Re-pointing the public root at an existing backup is refused before
+    mounting, whatever the backup's verification; disposal frees it."""
+    from afterworlds.remote.storage import register_backup
+
+    make_remote(remote_env).close()
+    site = remote_env / "site"
+    site.mkdir()
+    if status == "verified":
+        code, backup = _run(capsys, "capture", "--to", str(site / "b1"))
+        assert code == 0
+    else:
+        control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+        backup = register_backup(
+            control,
+            store_id="s",
+            storage_locator=str(site / "b1"),
+            original_capture_at=datetime.now(UTC),
+            verification_status="unverified",
+        )
+    with pytest.raises(StoreRefused, match="undisposed backup"):
+        create_app(_public(remote_env, site))
+    # Cleanup stays possible despite the unsafe public configuration.
+    import os
+
+    os.environ["AFTERWORLDS_FRONTEND_DIST"] = str(site)
+    try:
+        assert _run(capsys, "dispose", "--backup-id", backup) == (0, "disposed")
+    finally:
+        os.environ["AFTERWORLDS_FRONTEND_DIST"] = str(remote_env / "no_frontend")
+    make_remote(remote_env).close()  # disjoint again: serves
+    app = create_app(_public(remote_env, site))  # disposed: reserves nothing
+    app.state.session_factory.kw["bind"].dispose()
+    app.state.control_factory.kw["bind"].dispose()
+    from chromadb.api.shared_system_client import SharedSystemClient
+
+    SharedSystemClient.clear_system_cache()
+    app.state.store_lock.close()
+    app.state.vector_lock.close()
+
+
+def test_register_copy_and_restore_refuse_public_locations(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from afterworlds.remote.control_orm import RestoreRecordORM
+    from afterworlds.remote.storage import copy_backup, register_backup
+
+    make_remote(remote_env).close()
+    code, backup = _run(capsys, "capture", "--to", str(remote_env / "b1"))
+    assert code == 0
+    dist = remote_env / "dist"
+    dist.mkdir()
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    with pytest.raises(StoreRefused, match="public static root"):
+        register_backup(
+            control,
+            store_id="s",
+            storage_locator=str(dist / "b9"),
+            original_capture_at=datetime.now(UTC),
+            public_root=dist,
+        )
+    with pytest.raises(StoreRefused, match="public static root"):
+        copy_backup(control, backup, storage_locator=str(dist / "c1"), public_root=dist)
+    # A snapshot that is public (re-pointed root) is not restored.
+    monkeypatch.setenv("AFTERWORLDS_FRONTEND_DIST", str(remote_env / "b1"))
+    assert storage_cli.main(["restore", "--backup-id", backup]) == 1
+    assert "public static root" in capsys.readouterr().err
+    with control() as s:
+        assert s.query(RestoreRecordORM).count() == 0
+    # With a safe public root the same restore runs.
+    monkeypatch.setenv("AFTERWORLDS_FRONTEND_DIST", str(dist))
+    assert _run(capsys, "restore", "--backup-id", backup)[0] == 0

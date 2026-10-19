@@ -67,7 +67,10 @@ from afterworlds.remote.storage import (
     initialize_remote_content_store,
     pending_restores,
     refuse_notice_store_exposure,
+    refuse_public_backups,
+    refuse_public_overlap,
     refuse_store_aliasing,
+    sqlite_path,
 )
 from afterworlds.services.dnd5e_state.leases import (
     clear_orphans as clear_orphan_turn_leases,
@@ -155,11 +158,25 @@ def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
         # (create_app releases whatever was acquired).
         vector_dir = Path(RetrievalMemoryConfig.from_env().persist_directory)
         refuse_notice_store_exposure(outbox, vector_dir, settings.frontend_dist_dir)
+        # The public static root is served unauthenticated: no live store may
+        # be in or around it (checked before any store is created).
+        private: list[tuple[Path | str, str]] = [
+            (sqlite_path(settings.database_url), "the content store"),
+            (vector_dir, "the live vector store"),
+            (outbox, "the notice outbox"),
+        ]
+        with contextlib.suppress(StoreRefused):  # a non-file control store
+            private.append(
+                (sqlite_path(settings.control_database_url), "the control store")
+            )
+        refuse_public_overlap(settings.frontend_dist_dir, private)
         app.state.store_lock = acquire_store_lock(settings.database_url)
         app.state.vector_lock = acquire_vector_lock(vector_dir)
         refuse_store_aliasing(settings.database_url, settings.control_database_url)
         control_factory = open_control_store(settings.control_database_url)
         app.state.control_factory = control_factory
+        # ...nor any undisposed backup, before anything is mounted.
+        refuse_public_backups(control_factory, settings.frontend_dist_dir)
         # A fresh deployment's identity is recorded before anything is
         # created; an interrupted initialization resumes that identity.
         initializing = check_content_store_before_migration(

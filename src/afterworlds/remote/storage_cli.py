@@ -80,7 +80,12 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("requires AFTERWORLDS_DEPLOYMENT=remote and a control store")
     try:
         refuse_store_aliasing(settings.database_url, settings.control_database_url)
-        if settings.notice_outbox_dir is not None:
+        # due/dispose only remove backups: a misconfiguration must never
+        # prevent removing one (even an unsafely placed one).
+        if settings.notice_outbox_dir is not None and args.command not in (
+            "due",
+            "dispose",
+        ):
             # capture copies, and restore rewrites, the live vector store
             refuse_notice_store_exposure(
                 settings.notice_outbox_dir,
@@ -116,6 +121,7 @@ def main(argv: list[str] | None = None) -> int:
                         story_chunk_count=_chunk_counter(config),
                         now=now,
                         confidential=confidential,
+                        public_root=settings.frontend_dist_dir,
                     )
                 )
             elif args.command == "restore":
@@ -128,6 +134,7 @@ def main(argv: list[str] | None = None) -> int:
                         vector_dir=vector_dir,
                         now=now,
                         confidential=confidential,
+                        public_root=settings.frontend_dist_dir,
                     )
                 )
             elif args.command == "verify-restore":
