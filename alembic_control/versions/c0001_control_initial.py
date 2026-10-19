@@ -184,10 +184,19 @@ def upgrade() -> None:
         sa.Column("content_store_id", sa.String(36), nullable=False),
         sa.Column("initialized_at", _TS, nullable=False),
     )
+    op.create_table(
+        "deployment_initialization",
+        sa.Column("id", sa.Integer, primary_key=True),
+        sa.Column("content_store_id", sa.String(36), nullable=False),
+        sa.Column("started_at", _TS, nullable=False),
+        sa.Column("content_target", sa.Text, nullable=False),
+        sa.Column("vector_target", sa.Text, nullable=False),
+    )
 
 
 def downgrade() -> None:
     for table in (
+        "deployment_initialization",
         "deployment_marker",
         "restore_records",
         "backup_inventory",

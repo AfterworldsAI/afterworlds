@@ -12,7 +12,6 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, Response
-from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.orm import Session
 
 from afterworlds.api.account import build_account_status, run_settings_operation
@@ -38,15 +37,15 @@ from afterworlds.api.remote_access import (
     SESSION_COOKIE,
     clear_session_cookie,
     get_actor,
+    identity_call,
     identity_service,
-    raise_identity_error,
 )
 from afterworlds.pipeline.provider import (
     ByokCredentialReadinessProvider,
     ByokSettingsService,
 )
 from afterworlds.remote.fence import FenceBusy
-from afterworlds.remote.identity import Actor, IdentityError
+from afterworlds.remote.identity import Actor
 
 router = APIRouter(prefix="/api/account", tags=["account"])
 
@@ -54,7 +53,7 @@ _RESPONSES: dict[int | str, dict[str, Any]] = {
     status: {"model": ApiError} for status in (401, 409, 422, 503)
 }
 _CLOSE_RESPONSES: dict[int | str, dict[str, Any]] = {
-    status: {"model": ApiError} for status in (401, 404, 409, 422)
+    status: {"model": ApiError} for status in (401, 404, 409, 422, 503)
 }
 
 
@@ -179,7 +178,7 @@ async def close_account(
     identity = identity_service(request)
     assert identity is not None  # enforce_access refuses this route locally
     try:
-        await run_in_threadpool(
+        await identity_call(
             identity.close_account, actor, body.password.get_secret_value()
         )
     except FenceBusy:
@@ -189,7 +188,5 @@ async def close_account(
             "Requests for this account are still in progress; nothing was "
             "closed. Try again shortly.",
         ) from None
-    except IdentityError as exc:
-        raise_identity_error(exc)
     clear_session_cookie(request, response, SESSION_COOKIE)
     return SessionStatusResponse(deployment=DeploymentKind.REMOTE, signed_in=False)

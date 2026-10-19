@@ -221,10 +221,31 @@ class RestoreRecordORM(ControlBase):
 
 
 class DeploymentMarkerORM(ControlBase):
-    """Binds this control store to the one content store it governs."""
+    """Binds this control store to the one content store it governs.
+
+    Written only when a fresh deployment's initialization completes, so every
+    reader of the binding sees a completed deployment or none."""
 
     __tablename__ = "deployment_marker"
 
     id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
     content_store_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
     initialized_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+
+
+class DeploymentInitializationORM(ControlBase):
+    """A fresh deployment's initialization in progress (ADR-021 D7).
+
+    Committed while the recorded content and vector targets are proven empty,
+    before anything is created; its id is the deployment identity every
+    resumed attempt on those same targets completes. Removed in the
+    transaction that writes :class:`DeploymentMarkerORM`."""
+
+    __tablename__ = "deployment_initialization"
+
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    content_store_id: Mapped[str] = mapped_column(sa.String(36), nullable=False)
+    started_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
+    # The physical targets proven fresh (normalized absolute paths).
+    content_target: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    vector_target: Mapped[str] = mapped_column(sa.Text, nullable=False)

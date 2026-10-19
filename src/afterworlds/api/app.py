@@ -60,6 +60,7 @@ from afterworlds.remote.storage import (
     bind_vector_store,
     check_content_store_before_migration,
     check_vector_store,
+    complete_remote_initialization,
     initialize_remote_content_store,
     pending_restores,
 )
@@ -90,11 +91,14 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
         app.state.store_lock = acquire_store_lock(settings.database_url)
         vector_dir = Path(RetrievalMemoryConfig.from_env().persist_directory)
         app.state.vector_lock = None
+        engine = None
         try:
             app.state.vector_lock = acquire_vector_lock(vector_dir)
             control_factory = open_control_store(settings.control_database_url)
-            fresh = check_content_store_before_migration(
-                settings.database_url, control_factory
+            # A fresh deployment's identity is recorded before anything is
+            # created; an interrupted initialization resumes that identity.
+            initializing = check_content_store_before_migration(
+                settings.database_url, vector_dir, control_factory, now=utc_now()
             )
             if pending_restores(control_factory):
                 raise StoreRefused(
@@ -102,20 +106,30 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
                     "enforcement and verification; it cannot be served yet"
                 )
             check_vector_store(vector_dir, control_factory)
+            upgrade_to_head(settings.database_url)
+            engine = create_engine(settings.database_url)
+            if initializing is not None:
+                initialize_remote_content_store(
+                    create_session_factory(engine), initializing, now=utc_now()
+                )
+                bind_vector_store(vector_dir, initializing)
+                complete_remote_initialization(control_factory, initializing)
         except BaseException:
-            # A refused start must not keep either store locked.
+            # A refused or failed start keeps neither store locked or open.
+            if engine is not None:
+                engine.dispose()
             app.state.store_lock.close()
             if app.state.vector_lock is not None:
                 app.state.vector_lock.close()
             raise
-
-    # P1 remediation (PR #126 review round 1): apply the real Alembic
-    # migrations rather than Base.metadata.create_all(), which silently
-    # skipped Alembic-only DDL (append-only audit triggers) and, on a fresh
-    # DB, any table whose ORM module app.py did not happen to import. See
-    # db_bootstrap.py's docstring for the full defect writeup.
-    upgrade_to_head(settings.database_url)
-    engine = create_engine(settings.database_url)
+    else:
+        # P1 remediation (PR #126 review round 1): apply the real Alembic
+        # migrations rather than Base.metadata.create_all(), which silently
+        # skipped Alembic-only DDL (append-only audit triggers) and, on a
+        # fresh DB, any table whose ORM module app.py did not happen to
+        # import. See db_bootstrap.py's docstring for the full defect writeup.
+        upgrade_to_head(settings.database_url)
+        engine = create_engine(settings.database_url)
     session_factory = create_session_factory(engine)
     # CRD Issue 2b: recover turn leases whose owning process is proven dead
     # (its OS owner lock is free). A live or unprovable lease is kept, so a
@@ -125,11 +139,6 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
     app.state.settings = settings
     app.state.session_factory = session_factory
     if remote:
-        if fresh:
-            store_id = initialize_remote_content_store(
-                session_factory, control_factory, now=utc_now()
-            )
-            bind_vector_store(vector_dir, store_id)
         assert outbox is not None
         fence = AccountFence()
         identity = IdentityService(

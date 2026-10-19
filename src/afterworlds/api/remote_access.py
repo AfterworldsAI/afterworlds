@@ -131,10 +131,10 @@ async def enforce_access(request: Request) -> AsyncIterator[None]:
     if path.startswith("/api/admin/"):
         # Staff effects revalidate the staff session inside their own
         # control-store transaction (IdentityService._require_current).
-        request.state.actor = await _identity_call(_resolve_staff, request, identity)
+        request.state.actor = await identity_call(_resolve_staff, request, identity)
         yield
         return
-    actor = await _identity_call(
+    actor = await identity_call(
         identity.resolve, request.cookies.get(SESSION_COOKIE), SessionContext.SOJOURNER
     )
     request.state.actor = actor
@@ -155,7 +155,7 @@ async def enforce_access(request: Request) -> AsyncIterator[None]:
     try:
         # Admitted under the fence: the session must still be current, so a
         # closure that completed before admission is never outrun.
-        if not await _identity_call(identity.actor_is_current, actor):
+        if not await identity_call(identity.actor_is_current, actor):
             raise ApiErrorResponse(
                 401, ApiErrorCode.AUTHENTICATION_REQUIRED, "Authentication required."
             )
@@ -175,12 +175,21 @@ async def enforce_access(request: Request) -> AsyncIterator[None]:
         shared.__exit__(None, None, None)
 
 
-async def _identity_call[**P, T](
+async def identity_call[**P, T](
     fn: Callable[P, T], *args: P.args, **kwargs: P.kwargs
 ) -> T:
-    """Run an identity-store call off the event loop with typed failures."""
+    """Run an identity-store call off the event loop with typed failures.
+
+    Every HTTP identity operation goes through this (or ``run_identity`` from
+    a sync handler), so an unreachable identity store is the same sanitized
+    ``503 identity_unavailable`` on public, staff and admitted routes."""
+    return await run_in_threadpool(lambda: run_identity(fn, *args, **kwargs))
+
+
+def run_identity[**P, T](fn: Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T:
+    """Call *fn* (identity-store work only) with typed failures."""
     try:
-        return await run_in_threadpool(fn, *args, **kwargs)
+        return fn(*args, **kwargs)
     except IdentityError as exc:
         raise_identity_error(exc)
     except SQLAlchemyError:

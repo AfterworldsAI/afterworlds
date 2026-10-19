@@ -54,6 +54,14 @@ export default function App() {
     api
       .getSessionStatus()
       .then((status) => {
+        // A confirmed remote signed-out answer ends any previous account's
+        // local state through the same clearing as a confirmed sign-out.
+        // Discovery runs only before any account view has opened, so the
+        // remembered Story is the only view state to reset.
+        if (status.deployment === "remote" && !status.signed_in) {
+          localStorageState.clearAccountState();
+          setStoryId(null);
+        }
         setSession(status);
         setDiscovery("ok");
       })

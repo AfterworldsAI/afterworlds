@@ -203,6 +203,69 @@ describe("remote sign-in (prerequisite #205)", () => {
     expect(localStorage.getItem("afterworlds:draft:s1")).toBeNull();
   });
 
+  it("forgets the previous account's story and drafts when discovery confirms signed out", async () => {
+    const otherSignedIn = {
+      ...signedIn,
+      account_id: "acct-b",
+      contact_address: "b@example.test",
+    };
+    const calls = stub({
+      "GET /api/auth/session": [() => json(200, signedOut)],
+      "POST /api/auth/sign-in": [() => json(200, otherSignedIn)],
+      "GET /api/stories": [() => json(200, { stories: [], schema_version: 1 })],
+    });
+    localStorage.setItem("afterworlds:last-story-id", "story-of-a");
+    localStorage.setItem("afterworlds:draft:story-of-a", "a's unsent words");
+    render(<App />);
+    await screen.findByRole("heading", { name: "Sign in" });
+    expect(localStorage.getItem("afterworlds:last-story-id")).toBeNull();
+    expect(localStorage.getItem("afterworlds:draft:story-of-a")).toBeNull();
+    type(/Email address/, "b@example.test");
+    type(/^Password/, "correct horse battery staple");
+    act(() => screen.getByRole("button", { name: "Sign in" }).click());
+    // B lands on the story list, not A's remembered story.
+    expect(await screen.findByText("Your stories")).toBeInTheDocument();
+    expect(calls.some((c) => c.url.includes("story-of-a"))).toBe(false);
+  });
+
+  it("clears account state when a retried discovery confirms signed out", async () => {
+    stub({
+      "GET /api/auth/session": [
+        () => {
+          throw new TypeError("offline");
+        },
+        () => json(200, signedOut),
+      ],
+    });
+    localStorage.setItem("afterworlds:last-story-id", "story-of-a");
+    localStorage.setItem("afterworlds:draft:story-of-a", "a's unsent words");
+    render(<App />);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "could not be reached",
+    );
+    // Unknown sign-in state discards nothing.
+    expect(localStorage.getItem("afterworlds:draft:story-of-a")).toBe(
+      "a's unsent words",
+    );
+    act(() => screen.getByRole("button", { name: "Retry" }).click());
+    await screen.findByRole("heading", { name: "Sign in" });
+    expect(localStorage.getItem("afterworlds:last-story-id")).toBeNull();
+    expect(localStorage.getItem("afterworlds:draft:story-of-a")).toBeNull();
+  });
+
+  it("keeps local story state on a local deployment", async () => {
+    stub({
+      "GET /api/auth/session": [
+        () => json(200, { ...signedOut, deployment: "local" }),
+      ],
+      "GET /api/stories": [() => json(200, { stories: [], schema_version: 1 })],
+    });
+    localStorage.setItem("afterworlds:draft:s1", "local words");
+    render(<App />);
+    expect(await screen.findByText("Your stories")).toBeInTheDocument();
+    expect(localStorage.getItem("afterworlds:draft:s1")).toBe("local words");
+  });
+
   it("never treats an unanswered status read as a local deployment", async () => {
     stub({
       "GET /api/auth/session": [

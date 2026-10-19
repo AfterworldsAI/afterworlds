@@ -44,6 +44,7 @@ from afterworlds.persistence.orm.ownership import (
 from afterworlds.remote.control_orm import (
     BackupInventoryORM,
     DeletionSuppressionORM,
+    DeploymentInitializationORM,
     DeploymentMarkerORM,
     RestoreRecordORM,
 )
@@ -586,17 +587,49 @@ _FOREIGN_DATA_TABLES = ("sojourner_identity", "stories", "entitlement_event")
 
 
 def check_content_store_before_migration(
-    database_url: str, control: sessionmaker[Session]
-) -> bool:
+    database_url: str,
+    vector_dir: Path,
+    control: sessionmaker[Session],
+    *,
+    now: datetime,
+) -> str | None:
     """Refuse a pre-existing store not initialized for this deployment (D7).
 
     Runs before any migration so a refused store is never modified. Returns
-    True when the content store must be initialized (brand new).
+    the deployment identity to initialize (fresh or resumed), or None for a
+    completed deployment.
+
+    A new initialization is recorded in the control store -- only while the
+    content store and vector directory are both empty -- before anything is
+    created; a later attempt resumes that same identity. Resumption accepts
+    only this initialization's own partial effects: an unmarked store that
+    holds no user data (the migration ran), or this identity's marker. An
+    unmarked or foreign store is never adopted, and a completed deployment
+    with a missing store is never re-initialized.
     """
     path = sqlite_path(database_url)
+    content_target, vector_target = _target(path), _target(vector_dir)
     with control() as s:
         bound = s.get(DeploymentMarkerORM, 1)
+        intent = s.get(DeploymentInitializationORM, 1)
+        store_id = intent.content_store_id if intent is not None else None
+        if (
+            intent is not None
+            and bound is None
+            and (
+                intent.content_target != content_target
+                or intent.vector_target != vector_target
+            )
+        ):
+            # The pending identity belongs to the targets proven fresh, never
+            # to whatever store a retry is pointed at.
+            raise StoreRefused(
+                "a deployment initialization is in progress for different "
+                "content or vector stores; resume it with its original stores"
+            )
     tables: set[str] = set()
+    marker: str | None = None
+    has_data = False
     if path.exists():
         with closing(sqlite3.connect(path)) as conn:
             tables = {
@@ -605,52 +638,105 @@ def check_content_store_before_migration(
                     "SELECT name FROM sqlite_master WHERE type='table'"
                 )
             }
-            marker = (
-                conn.execute(
+            if "remote_store_marker" in tables:
+                row = conn.execute(
                     "SELECT content_store_id FROM remote_store_marker WHERE id = 1"
                 ).fetchone()
-                if "remote_store_marker" in tables
-                else None
+                marker = str(row[0]) if row else None
+            has_data = any(
+                conn.execute(f"SELECT 1 FROM {table} LIMIT 1").fetchone()
+                for table in _FOREIGN_DATA_TABLES
+                if table in tables
             )
-    else:
-        marker = None
-    if not tables:
-        if bound is not None:
+    if bound is not None:
+        if not tables:
             raise StoreRefused(
                 "the control store is bound to a content store that is missing"
             )
-        return True
-    if marker is None:
+        if marker is None:
+            raise StoreRefused(
+                "the content store was not initialized for this remote deployment; "
+                "remote stores never import local or test data"
+            )
+        if bound.content_store_id != marker:
+            raise StoreRefused("the content store belongs to a different deployment")
+        return None
+    if store_id is None:
+        if tables:
+            raise StoreRefused(
+                "the content store was not initialized for this remote deployment; "
+                "remote stores never import local or test data"
+                if marker is None
+                else "the content store belongs to a different deployment"
+            )
+        if read_vector_marker(vector_dir) is not None or not _vector_dir_is_empty(
+            vector_dir
+        ):
+            raise StoreRefused(
+                "the vector store holds data that does not belong to this new "
+                "deployment; remote stores never import local or test data"
+            )
+        store_id = str(uuid4())
+        with control.begin() as s:
+            s.add(
+                DeploymentInitializationORM(
+                    id=1,
+                    content_store_id=store_id,
+                    started_at=iso(now),
+                    content_target=content_target,
+                    vector_target=vector_target,
+                )
+            )
+        return store_id
+    if marker is not None and marker != store_id:
+        raise StoreRefused("the content store belongs to a different deployment")
+    if has_data:
         raise StoreRefused(
-            "the content store was not initialized for this remote deployment; "
+            "the content store holds data this initialization did not create; "
             "remote stores never import local or test data"
         )
-    if bound is None or bound.content_store_id != marker[0]:
-        raise StoreRefused("the content store belongs to a different deployment")
-    return False
+    return store_id
+
+
+def _target(path: Path) -> str:
+    return os.path.normcase(str(path.resolve()))
 
 
 def initialize_remote_content_store(
-    content: sessionmaker[Session], control: sessionmaker[Session], *, now: datetime
-) -> str:
-    """Mark a freshly migrated, empty content store as this deployment's."""
+    content: sessionmaker[Session], store_id: str, *, now: datetime
+) -> None:
+    """Mark a freshly migrated, empty content store with the initialization's
+    identity; a resumed attempt finds its own marker and keeps it."""
     with content.begin() as s:
         for table in _FOREIGN_DATA_TABLES:
             if s.execute(sa.text(f"SELECT 1 FROM {table} LIMIT 1")).first():
                 raise StoreRefused(f"a fresh remote store must be empty ({table})")
-        store_id = str(uuid4())
-        s.add(
-            RemoteStoreMarkerORM(
-                id=1, content_store_id=store_id, initialized_at=iso(now)
+        marker = s.get(RemoteStoreMarkerORM, 1)
+        if marker is None:
+            s.add(
+                RemoteStoreMarkerORM(
+                    id=1, content_store_id=store_id, initialized_at=iso(now)
+                )
             )
-        )
+        elif marker.content_store_id != store_id:
+            raise StoreRefused("the content store belongs to a different deployment")
+
+
+def complete_remote_initialization(
+    control: sessionmaker[Session], store_id: str
+) -> None:
+    """Bind the control store and retire the initialization, atomically: the
+    binding exists only for a deployment whose three markers are written."""
     with control.begin() as s:
+        intent = s.get(DeploymentInitializationORM, 1)
+        if intent is None or intent.content_store_id != store_id:
+            raise StoreRefused("no matching deployment initialization is in progress")
         s.add(
             DeploymentMarkerORM(
-                id=1, content_store_id=store_id, initialized_at=iso(now)
+                id=1, content_store_id=store_id, initialized_at=intent.started_at
             )
         )
-    return store_id
+        s.delete(intent)
 
 
 def content_store_id(content: sessionmaker[Session]) -> str:
@@ -674,10 +760,28 @@ def read_vector_marker(vector_dir: Path) -> str | None:
         return None
 
 
+_VECTOR_MARKER_TEMP = VECTOR_MARKER + ".tmp"
+
+
 def _vector_dir_is_empty(vector_dir: Path) -> bool:
     if not vector_dir.exists():
         return True
     return all(p.name in (VECTOR_LOCK,) for p in vector_dir.iterdir())
+
+
+def _vector_dir_holds_only_initialization(vector_dir: Path, store_id: str) -> bool:
+    """While an initialization is in progress Chroma has never opened the
+    directory: only the lock and this initialization's (possibly partial)
+    marker publication may be there."""
+    if not vector_dir.exists():
+        return True
+    names = {p.name for p in vector_dir.iterdir()}
+    if not names <= {VECTOR_LOCK, VECTOR_MARKER, _VECTOR_MARKER_TEMP}:
+        return False
+    if VECTOR_MARKER not in names:
+        return True
+    # bind_vector_store publishes atomically: a present marker is whole.
+    return read_vector_marker(vector_dir) == store_id
 
 
 def check_vector_store(vector_dir: Path, control: sessionmaker[Session]) -> None:
@@ -690,8 +794,20 @@ def check_vector_store(vector_dir: Path, control: sessionmaker[Session]) -> None
     directory has gone missing is refused too."""
     with control() as s:
         bound = s.get(DeploymentMarkerORM, 1)
+        intent = s.get(DeploymentInitializationORM, 1)
+        store_id = intent.content_store_id if intent is not None else None
+        target = intent.vector_target if intent is not None else None
     marker = read_vector_marker(vector_dir)
     if bound is None:
+        if store_id is not None:
+            if target != _target(vector_dir) or not (
+                _vector_dir_holds_only_initialization(vector_dir, store_id)
+            ):
+                raise StoreRefused(
+                    "the vector store holds data this initialization did not "
+                    "create; remote stores never import local or test data"
+                )
+            return
         if marker is not None or not _vector_dir_is_empty(vector_dir):
             raise StoreRefused(
                 "the vector store holds data that does not belong to this new "
@@ -705,10 +821,14 @@ def check_vector_store(vector_dir: Path, control: sessionmaker[Session]) -> None
 
 
 def bind_vector_store(vector_dir: Path, store_id: str) -> None:
+    """Publish the vector marker atomically (a crash leaves the old state or
+    a whole marker, never a torn one); rewriting the same id is a no-op."""
+    if read_vector_marker(vector_dir) == store_id:
+        return
     vector_dir.mkdir(parents=True, exist_ok=True)
-    (vector_dir / VECTOR_MARKER).write_text(
-        json.dumps({"content_store_id": store_id}), encoding="utf-8"
-    )
+    temp = vector_dir / _VECTOR_MARKER_TEMP
+    temp.write_text(json.dumps({"content_store_id": store_id}), encoding="utf-8")
+    os.replace(temp, vector_dir / VECTOR_MARKER)
 
 
 def acquire_vector_lock(vector_dir: Path) -> IO[bytes]:

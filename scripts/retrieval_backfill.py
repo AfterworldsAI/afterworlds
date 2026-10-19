@@ -169,6 +169,14 @@ def _run_mode(
     story_id: UUID,
     delete: Any,
 ) -> None:
+    if mode == "delete":
+        # Deletion needs no live Story: its chunks (and, remotely, its durable
+        # ownership) can outlive the SQL Story after an interrupted deletion.
+        remaining = delete()
+        print(f"deleted story chunks; remaining={remaining}")
+        if remaining != 0:
+            raise SystemExit(2)
+        return
     session = session_factory()
     try:
         story = get_story(session, story_id)
@@ -176,12 +184,6 @@ def _run_mode(
             print(f"story {story_id} not found", file=sys.stderr)
             raise SystemExit(1)
         story_mode = story.mode
-        if mode == "delete":
-            remaining = delete()
-            print(f"deleted story chunks; remaining={remaining}")
-            if remaining != 0:
-                raise SystemExit(2)
-            return
         if mode == "reindex":
             report = reindex_story(session, write_service, story_id, story_mode)
         else:

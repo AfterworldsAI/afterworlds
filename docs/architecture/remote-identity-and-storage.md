@@ -23,7 +23,7 @@ Nothing here authorizes deployment, real-data migration, remote activation or pu
 | Request authority | App-level `enforce_access`: default deny outside `PUBLIC_PATHS`; actor only from the server session | `api/remote_access.py` |
 | Cross-site submission | Unsafe methods require `X-Afterworlds-Request: 1` (no CORS middleware grants a cross-origin preflight); `SameSite=Strict` | `api/remote_access.py`, `frontend/src/api/client.ts` |
 | Transport | The deployment must terminate TLS in front of the single uvicorn process; `Secure` cookies are not sent over plain HTTP except to a loopback test server | launch gate (§8) |
-| Failure | Identity store unreachable → `503 identity_unavailable`; every credential failure → `401 authentication_failed`; missing/expired/revoked session → `401 authentication_required`; ordinary session on staff route → `403 staff_authority_required` | `api/errors.py` |
+| Failure | Identity store unreachable → `503 identity_unavailable` on every HTTP identity operation (public auth routes, session discovery, staff session/target/revocation, closure, and request admission); every credential failure → `401 authentication_failed`; missing/expired/revoked session → `401 authentication_required`; ordinary session on staff route → `403 staff_authority_required` | `api/errors.py` |
 
 Enrollment and recovery answer `202 accepted` identically whether or not the address exists; sign-in
 failure is identical for unknown and wrong-password cases and costs the same scrypt work.
@@ -46,6 +46,7 @@ in the accepted matrix, with its owner, purpose and disposition recorded before 
 | Object/backup inventory | `backup_inventory`: `backup_id`, `store_id`, `storage_locator`, `class_code`, `original_capture_at`, `copied_from_backup_id`, `policy_version`, `expires_at`, `disposed_at`, `verification_status` | Extra: `copied_from_backup_id` (copy lineage proves lifetime is not renewed). Locator is a server path, never a credential. |
 | — (extra record) | `restore_records`: `restore_id`, `backup_id`, `restored_at`, `status`, `verified_at` | Restore gate. Non-personal. |
 | — (extra record) | `deployment_marker` / *content* `remote_store_marker`: `content_store_id`, `initialized_at` | Binds one control store to one content store. Non-personal. |
+| — (extra record) | `deployment_initialization`: `content_store_id`, `started_at`, `content_target`, `vector_target` | A fresh deployment's in-progress initialization identity; removed when `deployment_marker` is written. Non-personal. |
 
 No record holds a raw password, session token, code, BYOK key, profile JSON or Story content.
 
@@ -96,7 +97,17 @@ process lifetime and releases them if startup is refused; a second process, a st
 backfill job fails while they are held. Per-Story turn locks, durable RPG leases (and their
 owner-process proof), entitlement idempotency and SQL/vector sequencing are therefore unchanged.
 Startup migration runs only after the fresh-store, vector-binding and restore-gate checks, inside the
-locks. An in-process per-account fence orders request effects against closure (and CRD Issue 22
+locks. A fresh deployment first commits a `deployment_initialization` record (its new
+`content_store_id` and the normalized paths of the content and vector stores it proved empty) to
+the control store while those stores are still empty; migration, the content marker, the atomically published vector marker and finally
+`deployment_marker` (which retires the record in the same transaction) follow. A start interrupted
+at any of these boundaries is retried by simply starting again: it resumes that same identity on
+those same recorded stores (a retry pointed at any other content or vector store is refused
+untouched), accepting only its own partial effects (an unmarked store with no user data, its own markers) and
+refusing anything else untouched. Only a completed `deployment_marker` counts as a bound deployment,
+so maintenance, capture and restore refuse a half-initialized one, and a completed deployment whose
+store or vector marker is missing is never re-initialized. A failed start releases both locks and
+disposes its engine. An in-process per-account fence orders request effects against closure (and CRD Issue 22
 suppression): requests hold it shared; closure takes it exclusive with a bounded wait
 (`close_fence_timeout`, 30 s) and returns `409 account_operation_in_progress` without changing
 anything if in-flight work does not finish. Multiple workers, replicas or hosts are not enabled; they
@@ -112,7 +123,8 @@ calls are refused before the service runs. The only delayed job is `scripts/retr
 remotely it requires `--account-id`, runs inside both store locks (so only while the app is stopped),
 refuses a pending restore, and every write rechecks the scope — a closure or suppression mid-job stops
 the remaining writes (exit `3`). Deletion (`--mode delete`) needs only the owning account, because it
-enforces a suppression.
+enforces a suppression, and no live Story row: it removes orphan chunks whose SQL Story is already
+gone while the durable ownership mapping remains (the same is true of local `--mode delete`).
 
 ## 7. Runbooks
 

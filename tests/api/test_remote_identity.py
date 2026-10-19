@@ -204,6 +204,161 @@ class TestEnrollmentAndSignIn:
         assert "store down" not in resp.text and "SELECT" not in resp.text
 
 
+def _break(remote: RemoteHarness, monkeypatch: pytest.MonkeyPatch, method: str) -> None:
+    def broken(*_a: object, **_k: object) -> object:
+        raise OperationalError("SELECT secret-ish", {}, Exception("store down"))
+
+    monkeypatch.setattr(remote.app.state.identity, method, broken)
+
+
+def _unavailable(resp) -> None:  # type: ignore[no-untyped-def]
+    assert resp.status_code == 503, resp.text
+    assert _error(resp) == "identity_unavailable"
+    assert "store down" not in resp.text and "SELECT" not in resp.text
+    # No false success: no session cookie is set or cleared.
+    assert "set-cookie" not in resp.headers
+
+
+class TestIdentityUnavailableOnHttpIdentityCalls:
+    """Every HTTP identity operation answers a typed, sanitized 503 when the
+    identity store fails -- public, staff and post-admission routes alike."""
+
+    @pytest.mark.parametrize(
+        ("method", "path", "body"),
+        [
+            ("register", "/api/auth/register", {"contact_address": "n@example.test"}),
+            (
+                "complete_enrollment",
+                "/api/auth/register/complete",
+                {
+                    "contact_address": "n@example.test",
+                    "code": "000000",
+                    "password": PASSWORD,
+                },
+            ),
+            (
+                "sign_in",
+                "/api/auth/sign-in",
+                {"contact_address": "a@example.test", "password": PASSWORD},
+            ),
+            ("begin_recovery", "/api/auth/recovery", {"contact_address": "a@x.test"}),
+            (
+                "complete_recovery",
+                "/api/auth/recovery/complete",
+                {
+                    "contact_address": "a@example.test",
+                    "code": "000000",
+                    "new_password": NEW_PASSWORD,
+                },
+            ),
+            (
+                "sign_in",
+                "/api/admin/session",
+                {"contact_address": "a@example.test", "password": PASSWORD},
+            ),
+        ],
+    )
+    def test_public_lifecycle_calls(
+        self,
+        remote: RemoteHarness,
+        monkeypatch: pytest.MonkeyPatch,
+        method: str,
+        path: str,
+        body: dict[str, str],
+    ) -> None:
+        remote.enroll("a@example.test")
+        _break(remote, monkeypatch, method)
+        _unavailable(remote.client().post(path, json=body))
+
+    def test_sign_in_contact_lookup_sets_no_cookie(
+        self, remote: RemoteHarness, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        remote.enroll("a@example.test")
+        _break(remote, monkeypatch, "contact_address_for")
+        anon = remote.client()
+        _unavailable(
+            anon.post(
+                "/api/auth/sign-in",
+                json={"contact_address": "a@example.test", "password": PASSWORD},
+            )
+        )
+        assert anon.cookies.get("aw_session") is None
+
+    def test_session_discovery(
+        self, remote: RemoteHarness, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        a = remote.enroll("a@example.test")
+        anon = remote.client()
+        anon.cookies.set("aw_session", "not-a-real-token")
+        with monkeypatch.context() as m:
+            _break(remote, m, "contact_address_for")
+            _unavailable(a.get("/api/auth/session"))
+        with monkeypatch.context() as m:
+            _break(remote, m, "resolve")
+            # An unreachable store is never reported as signed out.
+            _unavailable(a.get("/api/auth/session"))
+            _unavailable(anon.get("/api/auth/session"))
+        # Missing and invalid sessions remain ordinary signed-out answers.
+        assert remote.client().get("/api/auth/session").json()["signed_in"] is False
+        assert anon.get("/api/auth/session").json()["signed_in"] is False
+        assert a.get("/api/auth/session").json()["signed_in"] is True
+
+    def test_sign_out_is_not_confirmed(
+        self, remote: RemoteHarness, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        a = remote.enroll("a@example.test")
+        with monkeypatch.context() as m:
+            _break(remote, m, "sign_out")
+            _unavailable(a.post("/api/auth/sign-out"))
+        # Nothing was revoked or cleared: the session still works.
+        assert a.get("/api/stories").status_code == 200
+
+    def test_closure_after_admission(
+        self, remote: RemoteHarness, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        a = remote.enroll("a@example.test")
+        with monkeypatch.context() as m:
+            _break(remote, m, "close_account")
+            _unavailable(a.post("/api/account/close", json={"password": PASSWORD}))
+        assert a.get("/api/stories").status_code == 200
+
+    def test_staff_calls_after_admission(
+        self, remote: RemoteHarness, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        owner = remote.enroll("owner@example.test")
+        target = remote.account_id(owner)
+        identity = remote.app.state.identity
+        assert (
+            identity.bootstrap_owner_administrator("owner@example.test", PASSWORD).value
+            == "provisioned"
+        )
+        staff = remote.client()
+        assert (
+            staff.post(
+                "/api/admin/session",
+                json={"contact_address": "owner@example.test", "password": PASSWORD},
+            ).status_code
+            == 200
+        )
+        for method, call in (
+            ("get_account", lambda: staff.get(f"/api/admin/accounts/{target}")),
+            (
+                "revoke_account_sessions",
+                lambda: staff.post(
+                    f"/api/admin/accounts/{target}/sessions/revoke",
+                    json={"reason": "store test"},
+                ),
+            ),
+            ("sign_out", lambda: staff.delete("/api/admin/session")),
+        ):
+            with monkeypatch.context() as m:
+                _break(remote, m, method)
+                _unavailable(call())
+        # The staff session and the target's session survived every failure.
+        assert staff.get(f"/api/admin/accounts/{target}").status_code == 200
+        assert owner.get("/api/stories").status_code == 200
+
+
 class TestRecovery:
     def test_recovery_rotates_credentials_and_revokes_sessions(
         self, remote: RemoteHarness

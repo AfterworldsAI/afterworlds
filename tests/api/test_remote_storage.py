@@ -147,6 +147,218 @@ def _count(table: str) -> Any:
     return sa.text(f"SELECT COUNT(*) FROM {table}")
 
 
+def _injected(*_a: object, **_k: object) -> None:
+    raise RuntimeError("injected initialization fault")
+
+
+def _control_row(env: Path, table: str) -> str | None:
+    with closing(sqlite3.connect(env / "control.db")) as db:
+        row = db.execute(
+            f"SELECT content_store_id FROM {table} WHERE id = 1"
+        ).fetchone()
+    return str(row[0]) if row else None
+
+
+def _locks_released(env: Path) -> None:
+    from afterworlds.remote.storage import acquire_store_lock, acquire_vector_lock
+
+    acquire_store_lock(f"sqlite:///{env / 'content.db'}").close()
+    acquire_vector_lock(env / "chroma").close()
+
+
+def _fail_first_start(env: Path, monkeypatch: pytest.MonkeyPatch, fault: str) -> str:
+    """Start a fresh deployment with one injected fault; return the identity
+    its durable initialization record carries."""
+    with monkeypatch.context() as m:
+        if fault == "vector_marker_publication":
+            # The temporary marker is written; publishing it fails.
+            m.setattr("afterworlds.remote.storage.os.replace", _injected)
+        else:
+            m.setattr(f"afterworlds.api.app.{fault}", _injected)
+        with pytest.raises(RuntimeError, match="injected"):
+            create_app(remote_settings(env))
+    _locks_released(env)
+    assert _control_row(env, "deployment_marker") is None
+    intent = _control_row(env, "deployment_initialization")
+    assert intent is not None
+    return intent
+
+
+_INIT_FAULTS = [
+    "upgrade_to_head",
+    "initialize_remote_content_store",
+    "vector_marker_publication",
+    "complete_remote_initialization",
+]
+
+
+class TestInterruptedInitializationResumes:
+    """A legitimate fresh deployment interrupted at any initialization
+    boundary resumes the same identity; nothing else is ever adopted."""
+
+    @pytest.mark.parametrize("fault", _INIT_FAULTS)
+    def test_retry_completes_the_same_deployment(
+        self, env: Path, monkeypatch: pytest.MonkeyPatch, fault: str
+    ) -> None:
+        from afterworlds.remote.storage import read_vector_marker
+
+        identity = _fail_first_start(env, monkeypatch, fault)
+        resumed = make_remote(env)
+        try:
+            assert content_store_id(resumed.app.state.session_factory) == identity
+            assert read_vector_marker(env / "chroma") == identity
+            assert _control_row(env, "deployment_marker") == identity
+            assert _control_row(env, "deployment_initialization") is None
+            with resumed.app.state.session_factory() as s:
+                for table in ("stories", "entitlement_event", "sojourner_identity"):
+                    assert s.execute(_count(table)).scalar() == 0, table
+            resumed.enroll("a@example.test")
+        finally:
+            resumed.close()
+        # A normal restart serves the completed deployment, unchanged.
+        again = make_remote(env)
+        try:
+            assert content_store_id(again.app.state.session_factory) == identity
+            assert read_vector_marker(env / "chroma") == identity
+        finally:
+            again.close()
+
+    def test_a_foreign_content_marker_is_never_adopted(
+        self, env: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _fail_first_start(env, monkeypatch, "vector_marker_publication")
+        with closing(sqlite3.connect(env / "content.db")) as db, db:
+            db.execute(
+                "UPDATE remote_store_marker SET content_store_id = ?",
+                (str(uuid.uuid4()),),
+            )
+        before = _sha(env / "content.db")
+        with pytest.raises(StoreRefused, match="different deployment"):
+            create_app(remote_settings(env))
+        assert _sha(env / "content.db") == before
+        _locks_released(env)
+
+    def test_user_data_in_an_unmarked_store_is_never_adopted(
+        self, env: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _fail_first_start(env, monkeypatch, "initialize_remote_content_store")
+        with closing(sqlite3.connect(env / "content.db")) as db, db:
+            db.execute(
+                "INSERT INTO stories (story_id, title, mode, created_at, updated_at)"
+                " VALUES (?, 'local', 'branching', 'x', 'x')",
+                (str(uuid.uuid4()),),
+            )
+        before = _sha(env / "content.db")
+        with pytest.raises(StoreRefused, match="did not create"):
+            create_app(remote_settings(env))
+        assert _sha(env / "content.db") == before
+        _locks_released(env)
+
+    def test_unknown_vector_files_are_never_adopted(
+        self, env: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _fail_first_start(env, monkeypatch, "upgrade_to_head")
+        (env / "chroma" / "chroma.sqlite3").write_bytes(b"local story memory")
+        with pytest.raises(StoreRefused, match="did not create"):
+            create_app(remote_settings(env))
+        assert (env / "chroma" / "chroma.sqlite3").read_bytes() == (
+            b"local story memory"
+        )
+        assert not (env / "content.db").exists()
+        _locks_released(env)
+
+    def test_a_retry_aimed_at_another_content_store_is_refused(
+        self, env: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from afterworlds.api.db_bootstrap import upgrade_to_head
+        from afterworlds.remote.storage import acquire_store_lock
+
+        identity = _fail_first_start(env, monkeypatch, "upgrade_to_head")
+        # An existing migrated, unmarked store: the three sampled tables are
+        # empty, but it holds other data.
+        other = env / "other.db"
+        upgrade_to_head(f"sqlite:///{other}")
+        with closing(sqlite3.connect(other)) as db, db:
+            db.execute("CREATE TABLE other_data (note TEXT)")
+            db.execute("INSERT INTO other_data VALUES ('not this deployment''s')")
+        before = _sha(other)
+        retargeted = ApiSettings(
+            **{
+                **remote_settings(env).__dict__,
+                "database_url": f"sqlite:///{other}",
+            }
+        )
+        with pytest.raises(StoreRefused, match="different content or vector"):
+            create_app(retargeted)
+        assert _sha(other) == before
+        acquire_store_lock(f"sqlite:///{other}").close()
+        assert _control_row(env, "deployment_initialization") == identity
+
+    def test_a_retry_aimed_at_another_vector_store_is_refused(
+        self, env: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        identity = _fail_first_start(env, monkeypatch, "upgrade_to_head")
+        monkeypatch.setenv(
+            "AFTERWORLDS_RETRIEVAL_PERSIST_DIRECTORY", str(env / "other_chroma")
+        )
+        with pytest.raises(StoreRefused, match="different content or vector"):
+            create_app(remote_settings(env))
+        assert not (env / "other_chroma" / "afterworlds-deployment.json").exists()
+        assert not (env / "content.db").exists()
+        assert _control_row(env, "deployment_initialization") == identity
+
+    def test_a_torn_temporary_vector_marker_is_replaced(
+        self, env: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from afterworlds.remote.storage import read_vector_marker
+
+        identity = _fail_first_start(env, monkeypatch, "upgrade_to_head")
+        temp = env / "chroma" / "afterworlds-deployment.json.tmp"
+        temp.write_bytes(b'{"content_st')  # a crash mid-write
+        resumed = make_remote(env)
+        try:
+            assert read_vector_marker(env / "chroma") == identity
+            assert not temp.exists()
+            assert _control_row(env, "deployment_marker") == identity
+        finally:
+            resumed.close()
+
+    def test_a_lost_completion_response_restarts_as_completed(
+        self, env: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import afterworlds.api.app as app_module
+
+        real = app_module.complete_remote_initialization
+
+        def complete_then_fail(*a: Any, **k: Any) -> None:
+            real(*a, **k)
+            raise RuntimeError("injected initialization fault")
+
+        with monkeypatch.context() as m:
+            m.setattr(app_module, "complete_remote_initialization", complete_then_fail)
+            with pytest.raises(RuntimeError, match="injected"):
+                create_app(remote_settings(env))
+        _locks_released(env)
+        identity = _control_row(env, "deployment_marker")
+        assert identity is not None
+        assert _control_row(env, "deployment_initialization") is None
+        again = make_remote(env)
+        try:
+            assert content_store_id(again.app.state.session_factory) == identity
+        finally:
+            again.close()
+
+    def test_a_completed_deployment_is_never_reinitialized(self, env: Path) -> None:
+        make_remote(env).close()
+        identity = _control_row(env, "deployment_marker")
+        (env / "chroma" / "afterworlds-deployment.json").unlink()
+        with pytest.raises(StoreRefused, match="missing or belongs"):
+            create_app(remote_settings(env))
+        assert _control_row(env, "deployment_initialization") is None
+        assert _control_row(env, "deployment_marker") == identity
+        _locks_released(env)
+
+
 def _snapshot(
     harness: RemoteHarness, target: Path, captured: datetime | None = None
 ) -> str:
@@ -789,6 +1001,82 @@ class TestBackfillJobMain:
             retrieval_backfill.main(self._argv(env, sid, account, mode="reindex"))
         assert exc.value.code == 3
         assert len(writes) == 1  # the guard refused every later write
+
+    def test_delete_cleans_orphan_chunks_after_the_story_row_is_gone(
+        self,
+        env: Path,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        from chromadb.api.shared_system_client import SharedSystemClient
+
+        from afterworlds.pipeline.retrieval.client import build_chroma_client
+        from afterworlds.pipeline.retrieval.write_service import (
+            RetrievalMemoryWriteService,
+        )
+        from afterworlds.remote.control_orm import HostedAccountORM
+        from scripts import retrieval_backfill
+
+        h, sid, account = self._story_with_turns(env)
+        b_account = h.account_id(h.enroll("b@example.test"))
+        control = h.app.state.control_factory
+        # An interrupted deletion removed the SQL Story (bare Story CRUD);
+        # its durable ownership and vector chunks survive.
+        with h.app.state.session_factory.begin() as s:
+            assert delete_story(s, uuid.UUID(sid))
+        h.close()
+        self._remote_env(env, monkeypatch)
+
+        def chunks() -> int:
+            config = retrieval_backfill.build_effective_config(None)
+            try:
+                return RetrievalMemoryWriteService(
+                    build_chroma_client(config), config
+                ).count_for_story(uuid.UUID(sid))
+            finally:
+                SharedSystemClient.clear_system_cache()
+
+        assert chunks() > 0
+        with closing(sqlite3.connect(env / "content.db")) as db:
+            assert db.execute(
+                "SELECT count(*) FROM stories WHERE story_id = ?", (sid,)
+            ).fetchone() == (0,)
+            owned = db.execute(
+                "SELECT account_id FROM account_resources WHERE resource_id = ?",
+                (sid,),
+            ).fetchall()
+        assert owned == [(account,)]
+
+        # Non-owners, a missing account and non-delete modes delete nothing.
+        refusals: list[tuple[list[str], int]] = [
+            (self._argv(env, sid, b_account, mode="delete"), 3),
+            (self._argv(env, sid, account, mode="delete")[:-2], 3),
+            (self._argv(env, sid, account, mode="backfill"), 1),
+            (self._argv(env, sid, account, mode="reindex"), 1),
+        ]
+        for argv, code in refusals:
+            with pytest.raises(SystemExit) as exc:
+                retrieval_backfill.main(argv)
+            assert exc.value.code == code, argv
+        assert chunks() > 0
+        # A Story with no ownership row cannot be targeted either.
+        with pytest.raises(SystemExit) as exc:
+            retrieval_backfill.main(
+                self._argv(env, str(uuid.uuid4()), account, mode="delete")
+            )
+        assert exc.value.code == 3
+
+        # The owner's cleanup still works once the account is closed (the
+        # closure/suppression cleanup path), and a retry is idempotent.
+        with control.begin() as s:
+            row = s.get(HostedAccountORM, account)
+            assert row is not None
+            row.status = "closed"
+        capsys.readouterr()
+        for _ in range(2):
+            retrieval_backfill.main(self._argv(env, sid, account, mode="delete"))
+            assert "remaining=0" in capsys.readouterr().out
+        assert chunks() == 0
 
 
 def test_the_corpus_baseline_reset_refuses_in_a_remote_deployment(

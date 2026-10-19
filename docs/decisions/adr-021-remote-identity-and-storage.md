@@ -131,7 +131,12 @@ marker that matches its control store. A store with a `sojourner_identity` row, 
 events or no matching marker is refused **before** migration. The vector directory is held to the
 same rule: it must be absent/empty (then bound to the deployment by a marker file) or carry this
 deployment's marker; an unmarked, foreign or missing vector store is refused untouched and never
-adopted. A fresh deployment therefore starts without shared Rules Package data (SQL or vectors);
+adopted. Initialization is restartable without weakening this: the new identity is recorded in the
+control store (`deployment_initialization`) while both stores are still empty and before anything
+is created; the record names the content and vector stores proven empty, and an interrupted start resumes
+only that identity, only on those stores and only with its own partial effects, and
+`deployment_marker` -- the binding every other path checks -- is written last, atomically retiring
+the record. A completed deployment with a missing store is refused, never re-initialized. A fresh deployment therefore starts without shared Rules Package data (SQL or vectors);
 `python -m afterworlds.remote.rules_provisioning` gives it the qualified shared authority by running
 only the existing publication owners (`finalize_source_release`, then the committed accepted oracle
 through `publish_from_committed_oracle`) inside both store locks, against the bound vector store,
