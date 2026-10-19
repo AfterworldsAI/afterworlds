@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import sqlalchemy as sa
+from alembic import command
 from alembic.config import Config
 from alembic.script import ScriptDirectory
 from alembic.util.exc import CommandError
@@ -14,9 +15,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from afterworlds.persistence.database import create_engine, create_session_factory
-from alembic import command
 
-_REPO_ROOT = Path(__file__).resolve().parents[3]
+#: The control Alembic chain, shipped inside the package (#205).
+CONTROL_MIGRATIONS = Path(__file__).resolve().parents[1] / "migrations" / "control"
 
 #: Version of the accepted retention policy these records are written under.
 POLICY_VERSION = "crd22-matrix-r1"
@@ -25,7 +26,7 @@ POLICY_VERSION = "crd22-matrix-r1"
 def upgrade_control_to_head(database_url: str) -> None:
     """Apply every control-store migration (idempotent)."""
     config = Config()
-    config.set_main_option("script_location", str(_REPO_ROOT / "alembic_control"))
+    config.set_main_option("script_location", str(CONTROL_MIGRATIONS))
     config.set_main_option("sqlalchemy.url", database_url)
     command.upgrade(config, "head")
 
@@ -49,7 +50,7 @@ def control_head() -> str:
     broken migration scripts, no head or several heads are an unavailable
     authority (typed, without repository paths)."""
     config = Config()
-    config.set_main_option("script_location", str(_REPO_ROOT / "alembic_control"))
+    config.set_main_option("script_location", str(CONTROL_MIGRATIONS))
     try:
         head = ScriptDirectory.from_config(config).get_current_head()
     except CommandError:

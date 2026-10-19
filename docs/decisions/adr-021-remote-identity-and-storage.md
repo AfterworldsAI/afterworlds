@@ -57,7 +57,10 @@ store:
 - **Closure** (self-service, password re-authentication) sets the account `closed`, revokes all
   sessions and denies every later request; account deletion/erasure remains CRD Issue 22's.
 - **Notice transport:** a protocol with one implementation, a restricted operator outbox
-  directory. Selecting a real email processor is an open launch gate (package contract
+  directory. Codes are committed before the public answer; the notice is then written by the
+  identity service's single background worker, off the response path, so eligible and ineligible
+  requests (which prepare a code alike) answer without waiting on delivery. Expected outbox
+  failures and unexpected runner errors are logged under fixed sanitized categories. Selecting a real email processor is an open launch gate (package contract
   "Processors and storage"); remote mode refuses to start without a configured transport.
 
 - **Concurrency:** every identity transition that decides on stored state (registration, enrollment,

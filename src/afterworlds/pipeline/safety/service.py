@@ -63,12 +63,13 @@ from afterworlds.pipeline.safety.models import (
     SafetyResult,
     SafetyTarget,
 )
+from afterworlds.prompt_contracts import PROMPT_DIR
 
 # ---------------------------------------------------------------------------
 # Prompt loading
 # ---------------------------------------------------------------------------
 
-_PROMPT_DIR: Path = Path(__file__).parents[4] / "docs" / "prompts"
+_PROMPT_DIR: Path = PROMPT_DIR
 
 
 class UnknownPromptError(ValueError):

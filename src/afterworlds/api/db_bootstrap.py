@@ -19,11 +19,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from alembic import command
 from alembic.config import Config
 
-from alembic import command
-
-_REPO_ROOT = Path(__file__).resolve().parents[3]
+#: The content Alembic chain, shipped inside the package (#205).
+CONTENT_MIGRATIONS = Path(__file__).resolve().parents[1] / "migrations" / "content"
 
 
 def upgrade_to_head(database_url: str) -> None:
@@ -32,8 +32,8 @@ def upgrade_to_head(database_url: str) -> None:
     Idempotent: Alembic tracks the applied revision in the ``alembic_version``
     table, so calling this against an already-current database is a no-op.
     """
-    config = Config(str(_REPO_ROOT / "alembic.ini"))
-    config.set_main_option("script_location", str(_REPO_ROOT / "alembic"))
+    config = Config()
+    config.set_main_option("script_location", str(CONTENT_MIGRATIONS))
     config.set_main_option("sqlalchemy.url", database_url)
     command.upgrade(config, "head")
 

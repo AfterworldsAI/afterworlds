@@ -16,7 +16,7 @@ from sqlalchemy.exc import OperationalError
 
 from afterworlds.api.remote_access import PUBLIC_PATHS, enforce_access
 from afterworlds.remote.control_store import utc_now
-from tests.api._remote import PASSWORD, RemoteHarness, latest_code
+from tests.api._remote import PASSWORD, RemoteHarness
 
 NEW_PASSWORD = "an entirely new passphrase"  # pragma: allowlist secret
 
@@ -373,7 +373,7 @@ class TestRecovery:
             ).status_code
             == 202
         )
-        code = latest_code(remote.outbox, "a@example.test", "recovery")
+        code = remote.code("a@example.test", "recovery")
         resp = anon.post(
             "/api/auth/recovery/complete",
             json={
@@ -447,7 +447,7 @@ class TestRecovery:
         remote.enroll("a@example.test")
         c = remote.client()
         c.post("/api/auth/recovery", json={"contact_address": "a@example.test"})
-        code = latest_code(remote.outbox, "a@example.test", "recovery")
+        code = remote.code("a@example.test", "recovery")
         for _ in range(5):
             c.post(
                 "/api/auth/recovery/complete",
@@ -759,6 +759,7 @@ class TestNoticeDeliveryFailure:
             assert eligible.status_code == ineligible.status_code == 202, kind
             assert eligible.json() == ineligible.json(), kind
             assert "set-cookie" not in eligible.headers
+        remote.app.state.identity.drain_notices()  # delivered in the background
         failures = [r for r in caplog.records if "notice delivery failed" in r.message]
         assert {r.getMessage().split("kind=")[1].split()[0] for r in failures} == {
             "enrollment",
@@ -784,3 +785,130 @@ class TestNoticeDeliveryFailure:
             .status_code
             == 200
         )
+
+
+class TestInitiationDoesNotWaitForDelivery:
+    """Review 5575759407 (P2): eligible and ineligible initiation prepare
+    alike and answer without waiting on the notice transport."""
+
+    def test_responses_complete_while_delivery_is_held(
+        self, remote: RemoteHarness, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import threading
+
+        import sqlalchemy as sa
+
+        from afterworlds.remote import identity as identity_module
+        from afterworlds.remote.control_orm import VerificationOperationORM
+
+        remote.enroll("known@example.test")
+        identity = remote.app.state.identity
+        identity.drain_notices()
+        release = threading.Event()
+        sent: list[tuple[str, str]] = []
+
+        class HeldTransport:
+            def send(self, *, contact_address: str, kind: str, code: str) -> None:
+                assert release.wait(30)
+                sent.append((contact_address, kind))
+
+        monkeypatch.setattr(identity, "_notices", HeldTransport())
+        prepared: list[int] = []
+        real_token = identity_module.new_token
+
+        def counted_token() -> str:
+            prepared.append(1)
+            return real_token()
+
+        monkeypatch.setattr(identity_module, "new_token", counted_token)
+        client = remote.client()
+        cases = [
+            ("/api/auth/register", "fresh@example.test"),  # eligible
+            ("/api/auth/register", "known@example.test"),  # already verified
+            ("/api/auth/recovery", "known@example.test"),  # eligible
+            ("/api/auth/recovery", "nobody@example.test"),  # unknown
+        ]
+        answers = []
+        for path, address in cases:
+            before = len(prepared)
+            resp = client.post(path, json={"contact_address": address})
+            answers.append((resp.status_code, resp.json()))
+            assert len(prepared) - before == 1  # the same bounded preparation
+        # Every answer came back while delivery is still held.
+        assert not release.is_set() and sent == []
+        assert len({str(a) for a in answers}) == 1 and answers[0][0] == 202
+        with remote.app.state.control_factory() as s:
+            open_kinds = sorted(
+                op.kind
+                for op in s.scalars(
+                    sa.select(VerificationOperationORM).where(
+                        VerificationOperationORM.used_at.is_(None),
+                        VerificationOperationORM.revoked_at.is_(None),
+                    )
+                )
+            )
+        assert open_kinds == ["enrollment", "recovery"]  # committed before 202
+        release.set()
+        identity.drain_notices()
+        assert sent == [
+            ("fresh@example.test", "enrollment"),
+            ("known@example.test", "recovery"),
+        ]  # only eligible notices
+
+    def test_an_unexpected_runner_error_is_visible_and_sanitized(
+        self,
+        remote: RemoteHarness,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        import logging
+
+        identity = remote.app.state.identity
+
+        class BrokenTransport:
+            def send(self, *, contact_address: str, kind: str, code: str) -> None:
+                raise RuntimeError(f"bug carrying {contact_address} {code}")
+
+        monkeypatch.setattr(identity, "_notices", BrokenTransport())
+        caplog.set_level(logging.DEBUG)
+        resp = remote.client().post(
+            "/api/auth/register", json={"contact_address": "zq9marker@example.test"}
+        )
+        assert resp.status_code == 202
+        identity.drain_notices()
+        messages = [r.getMessage() for r in caplog.records]
+        runner = [m for m in messages if "notice_runner_error" in m]
+        assert runner and "type=RuntimeError" in runner[0]
+        assert not any("zq9marker" in m or "bug carrying" in m for m in messages)
+
+    def test_a_refused_handoff_answers_the_same_and_is_visible(
+        self,
+        remote: RemoteHarness,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """Early review: the runner refusing the handoff (here: shut down)
+        must not turn an eligible request into a different answer."""
+        import logging
+
+        remote.enroll("known@example.test")
+        identity = remote.app.state.identity
+        identity.drain_notices()
+        identity._delivery.shutdown(wait=True)  # submit now raises RuntimeError
+        caplog.set_level(logging.DEBUG)
+        client = remote.client()
+        answers = {
+            label: client.post(path, json={"contact_address": address})
+            for label, path, address in (
+                ("eligible_register", "/api/auth/register", "zq4marker@example.test"),
+                ("ineligible_register", "/api/auth/register", "known@example.test"),
+                ("eligible_recovery", "/api/auth/recovery", "known@example.test"),
+                ("ineligible_recovery", "/api/auth/recovery", "nobody@example.test"),
+            )
+        }
+        assert {(r.status_code, r.text) for r in answers.values()} == {
+            (202, answers["ineligible_register"].text)
+        }
+        messages = [r.getMessage() for r in caplog.records]
+        handoff = [m for m in messages if "notice_handoff_failed" in m]
+        assert len(handoff) == 2 and all("delivery=uncertain" in m for m in handoff)
+        assert not any("zq4marker" in m or "known@" in m for m in messages)

@@ -52,13 +52,14 @@ from afterworlds.pipeline.provider._models import (
     ProviderToolDefinition,
 )
 from afterworlds.pipeline.provider._protocol import ProviderAdapter
+from afterworlds.prompt_contracts import PROMPT_DIR
 from afterworlds.services.story_bible import EntityNotFoundError, StoryBibleService
 
 # ---------------------------------------------------------------------------
 # Prompt loading
 # ---------------------------------------------------------------------------
 
-_PROMPT_DIR: Path = Path(__file__).parents[4] / "docs" / "prompts"
+_PROMPT_DIR: Path = PROMPT_DIR
 
 
 class UnknownPromptError(ValueError):

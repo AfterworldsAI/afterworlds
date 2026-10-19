@@ -24,3 +24,7 @@ exclude src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a
 exclude src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c.json
 exclude src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c7.json
 exclude src/afterworlds/ingestion/mechanical/oracles/srd-5-2-1-corpus-8781d4e0-a3b-15c-c8.json
+# #205: the content and control Alembic chains ship with the package.
+recursive-include src/afterworlds/migrations *.py *.mako
+# #205: the prompt contracts the runtime reads; setup.py copies them into the package.
+recursive-include docs/prompts *.md

@@ -478,14 +478,13 @@ class TestAdministrator:
     def test_owner_recovery_revokes_staff_sessions_keeps_binding(
         self, remote: RemoteHarness
     ) -> None:
-        from tests.api._remote import latest_code
 
         remote.enroll("owner@example.test")
         assert self._bootstrap(remote, "owner@example.test", PASSWORD) == 0
         staff = self._staff(remote, "owner@example.test")
         anon = remote.client()
         anon.post("/api/auth/recovery", json={"contact_address": "owner@example.test"})
-        code = latest_code(remote.outbox, "owner@example.test", "recovery")
+        code = remote.code("owner@example.test", "recovery")
         new = "owner's replacement passphrase"  # pragma: allowlist secret
         anon.post(
             "/api/auth/recovery/complete",

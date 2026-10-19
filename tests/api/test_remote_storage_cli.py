@@ -1621,7 +1621,9 @@ def test_unavailable_schema_authority_fails_typed_before_any_connection(
 
     make_remote(remote_env).close()
     if authority == "broken_scripts":
-        monkeypatch.setattr(control_store, "_REPO_ROOT", remote_env / "no-repo")
+        monkeypatch.setattr(
+            control_store, "CONTROL_MIGRATIONS", remote_env / "no-repo" / "control"
+        )
     elif authority == "ambiguous_heads":
 
         def ambiguous(self: Any) -> str:

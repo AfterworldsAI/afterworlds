@@ -66,7 +66,10 @@ def build_app(work: Path) -> Any:
     )
 
     def latest_code(address: str, kind: str) -> dict[str, str]:
-        notices = sorted(outbox.glob(f"{kind}-*.json"), key=lambda p: p.stat().st_mtime_ns)
+        app.state.identity.drain_notices()  # notices are written in the background
+        notices = sorted(
+            outbox.glob(f"{kind}-*.json"), key=lambda p: p.stat().st_mtime_ns
+        )
         for path in reversed(notices):
             notice = json.loads(path.read_text(encoding="utf-8"))
             if notice["to"] == address.strip().lower():

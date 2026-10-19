@@ -41,7 +41,9 @@ class _Notices:
 def svc(tmp_path: Path) -> tuple[IdentityService, _Notices]:
     notices = _Notices()
     service = IdentityService(
-        open_control_store(f"sqlite:///{tmp_path / 'control.db'}"), notices
+        open_control_store(f"sqlite:///{tmp_path / 'control.db'}"),
+        notices,
+        deliver_in_background=False,
     )
     service.register(ADDRESS)
     service.complete_enrollment(
@@ -148,7 +150,9 @@ def test_a_recovery_code_is_consumed_exactly_once_under_concurrency(
 def test_concurrent_registration_of_one_address_is_safe(tmp_path: Path) -> None:
     notices = _Notices()
     service = IdentityService(
-        open_control_store(f"sqlite:///{tmp_path / 'control.db'}"), notices
+        open_control_store(f"sqlite:///{tmp_path / 'control.db'}"),
+        notices,
+        deliver_in_background=False,
     )
     barrier = threading.Barrier(4)
     errors: list[BaseException] = []
@@ -233,7 +237,7 @@ def test_overlapping_recovery_requests_leave_one_open_code(
 
     notices = _AllNotices()
     control = open_control_store(f"sqlite:///{tmp_path / 'control.db'}")
-    service = IdentityService(control, notices)
+    service = IdentityService(control, notices, deliver_in_background=False)
     service.register(ADDRESS)
     service.complete_enrollment(ADDRESS, notices.sent[-1][2], PASSWORD)
 

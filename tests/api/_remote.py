@@ -70,7 +70,7 @@ class RemoteHarness:
             c.post("/api/auth/register", json={"contact_address": address}).status_code
             == 202
         )
-        code = latest_code(self.outbox, address, "enrollment")
+        code = self.code(address, "enrollment")
         resp = c.post(
             "/api/auth/register/complete",
             json={"contact_address": address, "code": code, "password": password},
@@ -81,6 +81,11 @@ class RemoteHarness:
         )
         assert resp.status_code == 200, resp.text
         return c
+
+    def code(self, address: str, kind: str) -> str:
+        """The latest mailed code, after the background delivery settled."""
+        self.app.state.identity.drain_notices()
+        return latest_code(self.outbox, address, kind)
 
     def account_id(self, c: TestClient) -> str:
         body = c.get("/api/auth/session").json()

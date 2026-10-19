@@ -104,6 +104,7 @@ from afterworlds.pipeline.rpg.steps import (
     SequenceDice,
     SequenceStart,
 )
+from afterworlds.prompt_contracts import PROMPT_DIR
 from afterworlds.services.dnd5e_state.coordination import (
     EdgeRefused,
     StoredCoordination,
@@ -128,7 +129,7 @@ if TYPE_CHECKING:
 # Prompt loading
 # ---------------------------------------------------------------------------
 
-_PROMPT_DIR: Path = Path(__file__).parents[4] / "docs" / "prompts"
+_PROMPT_DIR: Path = PROMPT_DIR
 
 
 class UnknownPromptError(ValueError):

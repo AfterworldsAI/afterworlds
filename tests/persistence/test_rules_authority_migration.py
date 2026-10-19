@@ -25,6 +25,13 @@ from tests.services.rules_authority.conftest import (
     _trigger_names,
 )
 
+CONTENT_MIGRATIONS = (
+    Path(__file__).resolve().parents[2]
+    / "src"
+    / "afterworlds"
+    / "migrations"
+    / "content"
+)
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 RETAINED_TABLES = (
@@ -47,8 +54,8 @@ def _alembic(db: Path, *args: str) -> None:
         source = (REPO_ROOT / "alembic.ini").read_text()
         ini.write_text(
             source.replace(
-                "script_location = alembic",
-                f"script_location = {REPO_ROOT / 'alembic'}",
+                "script_location = src/afterworlds/migrations/content",
+                f"script_location = {CONTENT_MIGRATIONS}",
             ).replace(
                 "sqlalchemy.url = sqlite:///afterworlds.db",
                 f"sqlalchemy.url = sqlite:///{db}",

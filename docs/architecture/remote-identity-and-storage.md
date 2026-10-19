@@ -31,7 +31,7 @@ failure is identical for unknown and wrong-password cases and costs the same scr
 ## 2. Logical matrix → actual store mapping
 
 All rows below are in the **control store** (`AFTERWORLDS_CONTROL_DATABASE_URL`, chain
-`alembic_control/`, revision `c0001`) unless marked *content*. "Extra" marks a field or record not named
+`src/afterworlds/migrations/control/`, revision `c0001`) unless marked *content*. "Extra" marks a field or record not named
 in the accepted matrix, with its owner, purpose and disposition recorded before collection.
 
 | Matrix record | Table / columns | Notes |
@@ -98,7 +98,9 @@ store is therefore refused, and a hard-linked content or control file is refused
 backfill job fails while they are held. Per-Story turn locks, durable RPG leases (and their
 owner-process proof), entitlement idempotency and SQL/vector sequencing are therefore unchanged.
 Startup migration runs only after the fresh-store, vector-binding and restore-gate checks, inside the
-locks. The control store is migrated only there too: the storage commands, Rules provisioning,
+locks. Both Alembic chains ship inside the package (`afterworlds/migrations/content`,
+`afterworlds/migrations/control`), so an installed distribution migrates exactly as a checkout does;
+a built frontend is served from the configured external `frontend_dist_dir`. The control store is migrated only there too: the storage commands, Rules provisioning,
 remote backfill and the bootstrap command open it without any schema change and refuse a missing or
 older control schema (start the application once after an upgrade, then run maintenance). A fresh deployment first commits a `deployment_initialization` record (its new
 `content_store_id` and the normalized paths of the content and vector stores it proved empty) to
@@ -164,8 +166,12 @@ account ID, ticket, Story ID or old session is never accepted as proof.
 
 `python -m afterworlds.remote.rules_provisioning` (same environment as the app). It holds both store
 locks, requires the content/control/vector pairing, refuses a pending restore, and runs the existing
-publication owners: the source corpus release from the repository's pinned source, then the
-committed accepted oracle for that release. Output names the package and release; a re-run reports
+publication owners: the source corpus release from the pinned, qualified source, then the
+committed accepted oracle for that release. From a source checkout the inputs are the checkout's; an
+installed distribution has none, so pass `--source-root <dir>` holding the official PDF
+(`docs/sources/…`) and the pinned snapshot. That directory only supplies inputs: the candidate built
+from it must match a committed accepted oracle shipped with the release, checked before anything is
+published, and a missing or tampered input is refused. Output names the package and release; a re-run reports
 `corpus reused, authority already_published`. It writes only Rules SQL tables and the Rules corpus
 collection — never Story memory, accounts or Story data — and imports nothing local. RPG Stories can
 then select the package during setup. The local `reset_corpus_baseline.py` remains refused remotely.

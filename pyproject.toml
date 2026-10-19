@@ -63,6 +63,15 @@ afterworlds = [
     # recorded by its CRD Issue 15b C9 successor artifact, so the glob must ship it, or an installed distribution would resolve no
     # accepted authority and publication would return ABSENT.
     "ingestion/mechanical/oracles/*.json",
+    # #205: both Alembic chains (content, control) ship with the package so an
+    # installed remote startup can migrate; resolved package-relative by
+    # api/db_bootstrap.py and remote/control_store.py.
+    "migrations/content/env.py",
+    "migrations/content/script.py.mako",
+    "migrations/content/versions/*.py",
+    "migrations/control/env.py",
+    "migrations/control/script.py.mako",
+    "migrations/control/versions/*.py",
 ]
 
 [tool.setuptools.exclude-package-data]
@@ -89,6 +98,9 @@ afterworlds = [
 [tool.black]
 target-version = ["py312"]
 line-length = 88
+# The Alembic chains moved under src/ only so they ship (#205); they were never
+# formatted, linted, type-checked or coverage-measured before, and stay so.
+extend-exclude = "src/afterworlds/migrations/"
 
 # ---------------------------------------------------------------------------
 # Ruff
@@ -96,6 +108,7 @@ line-length = 88
 [tool.ruff]
 target-version = "py312"
 line-length = 88
+extend-exclude = ["src/afterworlds/migrations"]  # see [tool.black]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
@@ -113,6 +126,7 @@ ignore = []
 python_version = "3.12"
 strict = true
 files = ["src"]
+exclude = ["src/afterworlds/migrations/"]  # see [tool.black]
 plugins = ["pydantic.mypy"]
 
 [tool.pydantic-mypy]
@@ -127,3 +141,6 @@ warn_required_dynamic_aliases = true
 testpaths = ["tests"]
 addopts = "--tb=short --cov=src/afterworlds --cov-report=term-missing --cov-fail-under=80"
 pythonpath = ["."]
+
+[tool.coverage.run]
+omit = ["*/afterworlds/migrations/*"]  # see [tool.black]

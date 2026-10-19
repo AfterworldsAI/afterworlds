@@ -14,6 +14,7 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Callable, Iterator
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -134,6 +135,12 @@ def _check_password(password: str) -> None:
 UNAUTHENTICATED_ACTOR = "unauthenticated"
 
 
+def _prepare_unsent_code() -> None:
+    """The code generation and hashing an issuance does, for a request that
+    issues nothing -- so eligible and ineligible requests prepare alike."""
+    token_verifier(new_token())
+
+
 def _failed() -> IdentityError:
     return IdentityError(
         IdentityErrorKind.AUTHENTICATION_FAILED, "Authentication failed."
@@ -150,9 +157,17 @@ class IdentityService:
         *,
         now: Callable[[], datetime] = utc_now,
         fence: AccountFence | None = None,
+        deliver_in_background: bool = True,
     ) -> None:
         self._factory = control_factory
         self._notices = notices
+        #: Notices go out after the committed issuance on this single worker,
+        #: off the public response path (#205 §6); None = synchronously.
+        self._delivery = (
+            ThreadPoolExecutor(max_workers=1, thread_name_prefix="afterworlds-notice")
+            if deliver_in_background
+            else None
+        )
         self._now = now
         #: The process's account fence (ADR-021 D6); closure takes it exclusive.
         self.fence = fence or AccountFence()
@@ -169,6 +184,7 @@ class IdentityService:
         with self._locked() as s:
             principal = self._principal_by_address(s, address)
             if principal is not None and principal.address_verified_at is not None:
+                _prepare_unsent_code()  # comparable preparation; nothing sent
                 return
             if principal is None:
                 principal = IdentityPrincipalORM(
@@ -364,6 +380,7 @@ class IdentityService:
                 )
             )
             if principal is None or self._active_account(s, principal) is None:
+                _prepare_unsent_code()  # comparable preparation; nothing sent
                 return
             code = self._issue_code(s, principal.principal_ref, "recovery", now)
         self._deliver(address, "recovery", code)
@@ -614,13 +631,53 @@ class IdentityService:
 
     # -- internals ---------------------------------------------------------
 
+    def drain_notices(self, timeout: float = 30.0) -> None:
+        """Wait until every notice handed off so far has been attempted."""
+        if self._delivery is not None:
+            self._delivery.submit(lambda: None).result(timeout)
+
     def _deliver(self, address: str, kind: str, code: str) -> None:
-        """Hand a committed code to the notice transport. An expected delivery
-        failure (the outbox cannot be written) is recorded for the operator
-        with a fixed category and an opaque correlation id only -- never the
-        address, code or exception text -- and the caller still answers the
-        same ``accepted`` as for an ineligible address (#205 §6). The code
-        stays issued and simply expires."""
+        """Hand a committed code to the notice transport -- in the background,
+        so the public answer never waits on (or reveals) delivery."""
+        if self._delivery is None:
+            self._send(address, kind, code)
+            return
+        try:
+            self._delivery.submit(self._send_in_background, address, kind, code)
+        except RuntimeError as exc:
+            # The runner refused the handoff (shut down, or no thread could
+            # start -- CPython may already have queued the item). The code is
+            # committed either way; the request answers like any other and the
+            # operator sees a distinct category, without the notice.
+            logger.error(
+                "notice delivery failed: category=notice_handoff_failed type=%s "
+                "kind=%s delivery=uncertain correlation=%s",
+                type(exc).__name__,
+                kind,
+                uuid4().hex,
+            )
+
+    def _send_in_background(self, address: str, kind: str, code: str) -> None:
+        try:
+            self._send(address, kind, code)
+        except Exception as exc:
+            # No request is left to fail: an unexpected runner error is
+            # recorded under its own category (type only -- its text may carry
+            # the notice) rather than lost.
+            logger.error(
+                "notice delivery failed: category=notice_runner_error type=%s "
+                "kind=%s correlation=%s",
+                type(exc).__name__,
+                kind,
+                uuid4().hex,
+            )
+
+    def _send(self, address: str, kind: str, code: str) -> None:
+        """An expected delivery failure (the outbox cannot be written) is
+        recorded for the operator with a fixed category and an opaque
+        correlation id only -- never the address, code or exception text; the
+        request answered the same ``accepted`` as for an ineligible address
+        (#205 §6), and the code stays issued and simply expires."""
         try:
             self._notices.send(contact_address=address, kind=kind, code=code)
         except OSError:

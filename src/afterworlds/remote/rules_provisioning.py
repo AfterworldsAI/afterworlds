@@ -10,8 +10,10 @@ their documented order -- the same sequence the backend product proofs and
 the RPG E2E store use:
 
 1. :func:`~afterworlds.ingestion.corpus.persistence.finalize_source_release`
-   for the source corpus built from the repository's pinned, qualified source
-   (it proves source completeness and refuses a stale or swapped candidate);
+   for the source corpus built from the pinned, qualified source -- the source
+   checkout's, or an installation's operator-supplied `--source-root` (it
+   proves source completeness and refuses a stale or swapped candidate; the
+   candidate must match a committed accepted oracle before anything publishes);
 2. the committed accepted oracle for that release, persisted as a draft and
    published through
    :func:`~afterworlds.ingestion.mechanical.publication.publish_from_committed_oracle`
@@ -40,8 +42,10 @@ from chromadb.api.shared_system_client import SharedSystemClient
 from sqlalchemy.orm import Session, sessionmaker
 
 from afterworlds.api.config import load_settings
+from afterworlds.ingestion.corpus.pdf_source import PDF_REPO_PATH
 from afterworlds.ingestion.corpus.persistence import finalize_source_release
 from afterworlds.ingestion.corpus.pipeline import build_source_candidate
+from afterworlds.ingestion.corpus.source_ledger import SourceInputError
 from afterworlds.ingestion.mechanical.oracle import (
     candidate_from_accepted_inputs,
     committed_inputs_for,
@@ -75,6 +79,18 @@ from afterworlds.remote.storage import (
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
+
+def default_source_root() -> Path | None:
+    """The source checkout holding the qualified Rules inputs, when this
+    module runs from one; an installed distribution has none (pass
+    ``--source-root``)."""
+    if (REPO_ROOT / "pyproject.toml").is_file() and (
+        REPO_ROOT / PDF_REPO_PATH
+    ).is_file():
+        return REPO_ROOT
+    return None
+
+
 _OK = frozenset({PublicationOutcome.PUBLISHED, PublicationOutcome.ALREADY_PUBLISHED})
 
 
@@ -98,10 +114,29 @@ def provision_shared_rules(
     retrieval_config: RetrievalMemoryConfig,
     now: str,
     embedding_function: RetrievalEmbeddingFunction | None = None,
+    source_root: Path | None = None,
 ) -> ProvisionResult:
     """Run the publication owners for the qualified shared release. The caller
-    holds the deployment's maintenance locks."""
-    candidate = build_source_candidate(REPO_ROOT, retrieval_config=retrieval_config)
+    holds the deployment's maintenance locks.
+
+    *source_root* supplies the qualified inputs (official PDF, pinned
+    snapshot); it cannot choose the authority: the candidate built from it
+    must match a committed accepted oracle shipped with this release, checked
+    before anything is published."""
+    root = source_root or default_source_root()
+    if root is None:
+        raise StoreRefused(
+            "no qualified Rules inputs are installed; pass --source-root"
+        )
+    try:
+        candidate = build_source_candidate(root, retrieval_config=retrieval_config)
+    except (SourceInputError, OSError):
+        raise StoreRefused(
+            "the Rules inputs are missing or not the qualified ones"
+        ) from None
+    inputs = committed_inputs_for(candidate.package_uuid, candidate.release_version)
+    if inputs is None:
+        raise StoreRefused("no committed accepted oracle exists for this release")
     with content() as session:
         finalized = finalize_source_release(
             session,
@@ -113,9 +148,6 @@ def provision_shared_rules(
         )
     if not finalized.published:
         raise StoreRefused(f"the source release was not published: {finalized.gate}")
-    inputs = committed_inputs_for(candidate.package_uuid, candidate.release_version)
-    if inputs is None:
-        raise StoreRefused("no committed accepted oracle exists for this release")
     identified = identify_projection(candidate_from_accepted_inputs(inputs))
     with content() as session:
         if session.get(MechanicalProjectionORM, identified.projection_uuid) is None:
@@ -138,7 +170,14 @@ def provision_shared_rules(
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.parse_args(argv)
+    parser.add_argument(
+        "--source-root",
+        type=Path,
+        default=None,
+        help="Directory holding the qualified Rules inputs (official PDF and "
+        "pinned snapshot) when the installation has none.",
+    )
+    args = parser.parse_args(argv)
     settings = load_settings()
     if settings.deployment != "remote" or settings.control_database_url is None:
         parser.error("requires AFTERWORLDS_DEPLOYMENT=remote and a control store")
@@ -167,6 +206,7 @@ def main(argv: list[str] | None = None) -> int:
                     retrieval_config=config,
                     now=iso(utc_now()),
                     embedding_function=_embedding_function(),
+                    source_root=args.source_root,
                 )
             finally:
                 engine.dispose()
