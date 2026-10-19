@@ -36,7 +36,11 @@ from afterworlds.pipeline.retrieval.collections import (
     get_existing_story_memory_collection_for_delete,
 )
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
-from afterworlds.remote.control_store import open_control_store, utc_now
+from afterworlds.remote.control_store import (
+    ControlStoreUnavailable,
+    connect_control_store,
+    utc_now,
+)
 from afterworlds.remote.storage import (
     StoreRefused,
     capture_snapshot,
@@ -95,7 +99,13 @@ def main(argv: list[str] | None = None) -> int:
     except StoreRefused as exc:
         print(f"{args.command} refused: {exc}", file=sys.stderr)
         return 1
-    control = open_control_store(settings.control_database_url)
+    try:
+        # Never migrates: a maintenance command opens the existing control
+        # store and is refused beside a serving app before any schema change.
+        control = connect_control_store(settings.control_database_url)
+    except ControlStoreUnavailable as exc:
+        print(f"{args.command} refused: {exc}", file=sys.stderr)
+        return 1
     config = RetrievalMemoryConfig.from_env()
     vector_dir = Path(config.persist_directory)
     confidential = [settings.notice_outbox_dir] if settings.notice_outbox_dir else []

@@ -60,7 +60,12 @@ from afterworlds.persistence.orm.mechanical import MechanicalProjectionORM
 from afterworlds.pipeline.retrieval.client import build_chroma_client
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
 from afterworlds.pipeline.retrieval.embedding import RetrievalEmbeddingFunction
-from afterworlds.remote.control_store import iso, open_control_store, utc_now
+from afterworlds.remote.control_store import (
+    ControlStoreUnavailable,
+    connect_control_store,
+    iso,
+    utc_now,
+)
 from afterworlds.remote.storage import (
     StoreRefused,
     maintenance_locks,
@@ -142,7 +147,11 @@ def main(argv: list[str] | None = None) -> int:
     except StoreRefused as exc:
         print(f"provisioning refused: {exc}", file=sys.stderr)
         return 1
-    control = open_control_store(settings.control_database_url)
+    try:
+        control = connect_control_store(settings.control_database_url)  # no DDL
+    except ControlStoreUnavailable as exc:
+        print(f"provisioning refused: {exc}", file=sys.stderr)
+        return 1
     config = RetrievalMemoryConfig.from_env()
     try:
         with maintenance_locks(

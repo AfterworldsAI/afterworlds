@@ -97,7 +97,9 @@ process lifetime and releases them if startup is refused; a second process, a st
 backfill job fails while they are held. Per-Story turn locks, durable RPG leases (and their
 owner-process proof), entitlement idempotency and SQL/vector sequencing are therefore unchanged.
 Startup migration runs only after the fresh-store, vector-binding and restore-gate checks, inside the
-locks. A fresh deployment first commits a `deployment_initialization` record (its new
+locks. The control store is migrated only there too: the storage commands, Rules provisioning,
+remote backfill and the bootstrap command open it without any schema change and refuse a missing or
+older control schema (start the application once after an upgrade, then run maintenance). A fresh deployment first commits a `deployment_initialization` record (its new
 `content_store_id` and the normalized paths of the content and vector stores it proved empty) to
 the control store while those stores are still empty, then stamps the still table-less content
 store it is creating with that identity (`remote_initialization_provenance`, retired when the

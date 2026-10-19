@@ -21,7 +21,10 @@ import sys
 from alembic.util.exc import CommandError
 from sqlalchemy.exc import SQLAlchemyError
 
-from afterworlds.remote.control_store import open_control_store
+from afterworlds.remote.control_store import (
+    ControlStoreUnavailable,
+    connect_control_store,
+)
 from afterworlds.remote.identity import IdentityError, IdentityService
 
 
@@ -48,12 +51,13 @@ def main(argv: list[str] | None = None) -> int:
         else getpass.getpass("Owner password: ")
     )
     try:
-        identity = IdentityService(open_control_store(args.control_db), _NoNotices())
+        # Never migrates: bootstrap may run beside the serving app.
+        identity = IdentityService(connect_control_store(args.control_db), _NoNotices())
         outcome = identity.bootstrap_owner_administrator(args.contact_address, password)
     except IdentityError as exc:
         print(f"bootstrap refused: {exc}", file=sys.stderr)
         return 1
-    except (SQLAlchemyError, CommandError):
+    except (SQLAlchemyError, CommandError, ControlStoreUnavailable):
         # Opening, migrating or writing the control store failed. Fail closed
         # without the driver's text (it can carry the address or path): the
         # attempt was neither recorded nor granted.

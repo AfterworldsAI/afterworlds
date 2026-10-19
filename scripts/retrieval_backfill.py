@@ -64,7 +64,10 @@ from afterworlds.remote.access import (  # noqa: E402
     story_owner,
     work_scope,
 )
-from afterworlds.remote.control_store import open_control_store  # noqa: E402
+from afterworlds.remote.control_store import (  # noqa: E402
+    ControlStoreUnavailable,
+    connect_control_store,
+)
 from afterworlds.remote.identity import IdentityService  # noqa: E402
 from afterworlds.remote.retrieval_guard import GuardedRetrievalWrites  # noqa: E402
 from afterworlds.remote.storage import (  # noqa: E402
@@ -110,6 +113,15 @@ class _NoNotices:
         raise AssertionError("backfill sends no notices")
 
 
+def _connect(control_url: str) -> Any:
+    """The existing control store, never migrated here (exit 3 if absent)."""
+    try:
+        return connect_control_store(control_url)
+    except ControlStoreUnavailable as exc:
+        print(f"refused: {exc}", file=sys.stderr)
+        raise SystemExit(3) from None
+
+
 def remote_scope_check(
     session_factory: Any, story_id: UUID, account_id: str | None, mode: str
 ) -> None:
@@ -124,7 +136,7 @@ def remote_scope_check(
             file=sys.stderr,
         )
         raise SystemExit(3)
-    control = open_control_store(control_url)
+    control = _connect(control_url)
     policy = AccessPolicy(IdentityService(control, _NoNotices()), control)
     scope = DelayedWorkScope(
         account_id=UUID(account_id), story_id=story_id, operation=f"retrieval_{mode}"
@@ -220,7 +232,7 @@ def _remote_main(args: argparse.Namespace, story_id: UUID, config: Any) -> None:
     except StoreRefused as exc:
         print(f"refused: {exc}", file=sys.stderr)
         raise SystemExit(3) from None
-    control = open_control_store(control_url)
+    control = _connect(control_url)
     try:
         with maintenance_locks(args.db_url, Path(config.persist_directory), control):
             if pending_restores(control):

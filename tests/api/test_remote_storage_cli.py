@@ -1390,3 +1390,251 @@ def test_snapshots_in_the_earlier_layout_stay_restorable(
     assert code == 0, restore_id
     assert _run(capsys, "verify-restore", "--restore-id", restore_id) == (0, "verified")
     make_remote(remote_env).close()
+
+
+# -- review 5574902607: operational opening never migrates the control store -
+
+
+def _control_schema(remote_env: Path, name: str = "control.db") -> tuple[Any, ...]:
+    import sqlite3
+    from contextlib import closing
+
+    with closing(sqlite3.connect(remote_env / name)) as db:
+        version = db.execute("SELECT version_num FROM alembic_version").fetchall()
+        schema = db.execute(
+            "SELECT name, sql FROM sqlite_master ORDER BY name"
+        ).fetchall()
+    return tuple(version), tuple(schema)
+
+
+def _no_migration(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    from afterworlds.remote import control_store
+
+    calls: list[str] = []
+
+    def forbidden(url: str) -> None:
+        calls.append(url)
+        raise AssertionError("an operational path migrated the control store")
+
+    monkeypatch.setattr(control_store, "upgrade_control_to_head", forbidden)
+    return calls
+
+
+def test_maintenance_beside_a_serving_app_never_migrates(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import io
+
+    from afterworlds.remote import bootstrap, rules_provisioning
+    from afterworlds.remote.storage import acquire_store_lock
+    from scripts import retrieval_backfill
+
+    serving = make_remote(remote_env)
+    try:
+        owner = serving.enroll("owner@example.test")
+        account = serving.account_id(owner)
+        story = owner.post(
+            "/api/stories", json={"title": "S", "mode": "branching"}
+        ).json()["story_id"]
+        before = _control_schema(remote_env)
+        calls = _no_migration(monkeypatch)
+        for argv in (
+            ["capture", "--to", str(remote_env / "b1")],
+            ["due"],
+            ["dispose", "--backup-id", str(uuid.uuid4())],
+        ):
+            with pytest.raises(StoreRefused, match="another process"):
+                storage_cli.main(argv)
+        assert rules_provisioning.main([]) == 1
+        with pytest.raises(SystemExit) as exc:
+            retrieval_backfill.main(
+                [
+                    "--story-id",
+                    story,
+                    "--mode",
+                    "delete",
+                    "--db-url",
+                    f"sqlite:///{remote_env / 'content.db'}",
+                    "--account-id",
+                    account,
+                ]
+            )
+        assert exc.value.code == 3
+        # The audited bootstrap and the direct scope guard work beside it.
+        monkeypatch.setattr("sys.stdin", io.StringIO("correct horse battery staple\n"))
+        assert (
+            bootstrap.main(
+                [
+                    "--contact-address",
+                    "owner@example.test",
+                    "--control-db",
+                    str(serving.settings.control_database_url),
+                    "--password-stdin",
+                ]
+            )
+            == 0
+        )
+        factory = serving.app.state.session_factory
+        retrieval_backfill.remote_scope_check(
+            factory, uuid.UUID(story), account, "backfill"
+        )
+        with pytest.raises(SystemExit):
+            retrieval_backfill.remote_scope_check(
+                factory, uuid.UUID(story), str(uuid.uuid4()), "backfill"
+            )
+        assert calls == []
+        version, schema = _control_schema(remote_env)
+        assert (version, schema) == before
+        # The serving app's locks were never released by the refusals.
+        with pytest.raises(StoreRefused, match="another process"):
+            acquire_store_lock(serving.settings.database_url)
+    finally:
+        serving.close()
+
+
+@pytest.mark.parametrize("state", ["missing", "older_revision"])
+def test_operational_paths_refuse_a_missing_or_older_control_schema(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+    state: str,
+) -> None:
+    import io
+    import sqlite3
+    from contextlib import closing
+
+    from afterworlds.remote import bootstrap, rules_provisioning
+    from scripts import retrieval_backfill
+
+    make_remote(remote_env).close()
+    if state == "missing":
+        url = f"sqlite:///{remote_env / 'absent' / 'control.db'}"
+        monkeypatch.setenv("AFTERWORLDS_CONTROL_DATABASE_URL", url)
+    else:
+        url = f"sqlite:///{remote_env / 'control.db'}"
+        with closing(sqlite3.connect(remote_env / "control.db")) as db, db:
+            db.execute("UPDATE alembic_version SET version_num = 'c0000'")
+    calls = _no_migration(monkeypatch)
+    capsys.readouterr()
+    assert storage_cli.main(["due"]) == 1
+    assert storage_cli.main(["dispose", "--backup-id", str(uuid.uuid4())]) == 1
+    assert rules_provisioning.main([]) == 1
+    with pytest.raises(SystemExit) as exc:
+        retrieval_backfill.main(
+            [
+                "--story-id",
+                str(uuid.uuid4()),
+                "--mode",
+                "delete",
+                "--db-url",
+                f"sqlite:///{remote_env / 'content.db'}",
+                "--account-id",
+                str(uuid.uuid4()),
+            ]
+        )
+    assert exc.value.code == 3
+    monkeypatch.setattr("sys.stdin", io.StringIO("zq7marker-passphrase\n"))
+    assert (
+        bootstrap.main(
+            [
+                "--contact-address",
+                "zq7marker@example.test",
+                "--control-db",
+                url,
+                "--password-stdin",
+            ]
+        )
+        == 2
+    )
+    err = capsys.readouterr().err
+    assert "zq7marker" not in err and "Traceback" not in err
+    assert calls == []
+    if state == "missing":
+        assert not (remote_env / "absent").exists()  # nothing was created
+    else:
+        assert _control_schema(remote_env)[0] == (("c0000",),)  # not upgraded
+
+
+def test_fresh_startup_migrates_the_control_store_under_both_locks(
+    remote_env: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from afterworlds.remote import control_store
+    from afterworlds.remote.storage import acquire_store_lock, acquire_vector_lock
+
+    real = control_store.upgrade_control_to_head
+    held: list[bool] = []
+
+    def while_locked(url: str) -> None:
+        for acquire in (
+            lambda: acquire_store_lock(f"sqlite:///{remote_env / 'content.db'}"),
+            lambda: acquire_vector_lock(remote_env / "chroma"),
+        ):
+            with pytest.raises(StoreRefused, match="another process"):
+                acquire()
+        held.append(True)
+        real(url)
+
+    monkeypatch.setattr(control_store, "upgrade_control_to_head", while_locked)
+    make_remote(remote_env).close()
+    assert held == [True]
+
+
+def test_a_control_store_recording_the_head_plus_another_revision_is_refused(
+    remote_env: Path,
+) -> None:
+    """Residue 1: exactly the supported singleton head, not first-row
+    equality; refused without touching the store."""
+    import sqlite3
+    from contextlib import closing
+
+    from afterworlds.remote.control_store import (
+        ControlStoreUnavailable,
+        connect_control_store,
+    )
+
+    make_remote(remote_env).close()
+    with closing(sqlite3.connect(remote_env / "control.db")) as db, db:
+        db.execute("INSERT INTO alembic_version (version_num) VALUES ('zz_branch')")
+    before = _control_schema(remote_env)
+    with pytest.raises(ControlStoreUnavailable, match="not at this release"):
+        connect_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    assert _control_schema(remote_env) == before
+
+
+@pytest.mark.parametrize("authority", ["broken_scripts", "ambiguous_heads", "no_head"])
+def test_unavailable_schema_authority_fails_typed_before_any_connection(
+    remote_env: Path, monkeypatch: pytest.MonkeyPatch, authority: str
+) -> None:
+    """Residue 2: the supported head is resolved before an engine exists;
+    broken, ambiguous or empty authority is ControlStoreUnavailable without
+    repository paths, and no engine is created or kept."""
+    from alembic.script import ScriptDirectory
+    from alembic.util.exc import CommandError
+
+    from afterworlds.remote import control_store
+
+    make_remote(remote_env).close()
+    if authority == "broken_scripts":
+        monkeypatch.setattr(control_store, "_REPO_ROOT", remote_env / "no-repo")
+    elif authority == "ambiguous_heads":
+
+        def ambiguous(self: Any) -> str:
+            raise CommandError("The script directory has multiple heads")
+
+        monkeypatch.setattr(ScriptDirectory, "get_current_head", ambiguous)
+    else:
+        monkeypatch.setattr(ScriptDirectory, "get_current_head", lambda self: None)
+    engines: list[Any] = []
+    real_engine = control_store.create_engine
+    monkeypatch.setattr(
+        control_store,
+        "create_engine",
+        lambda url: engines.append(url) or real_engine(url),
+    )
+    with pytest.raises(control_store.ControlStoreUnavailable) as exc:
+        control_store.connect_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    assert str(remote_env) not in str(exc.value)
+    assert "no-repo" not in str(exc.value)
+    assert engines == []  # nothing acquired, nothing left open
