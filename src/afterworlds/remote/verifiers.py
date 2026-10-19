@@ -8,6 +8,9 @@ import secrets
 
 _N, _R, _P, _DKLEN = 2**14, 8, 1, 32
 _MAXMEM = 64 * 1024 * 1024
+#: hashlib.scrypt takes n, r and p as C unsigned longs (32-bit on Windows):
+#: larger values raise TypeError, so a stored verifier carrying one is unusable.
+_PARAM_LIMIT = 2**32
 
 
 def _scrypt(password: str, salt: bytes, n: int, r: int, p: int) -> bytes:
@@ -39,6 +42,8 @@ def _parse(verifier: str) -> tuple[bytes, int, int, int, str] | None:
         cost, block, parallel = int(n), int(r), int(p)
         if cost < 2 or cost & (cost - 1) or block < 1 or parallel < 1:
             return None  # not valid scrypt parameters
+        if max(cost, block, parallel) >= _PARAM_LIMIT:
+            return None  # beyond what hashlib accepts (TypeError on 32-bit C long)
         return bytes.fromhex(salt), cost, block, parallel, digest
     except ValueError:
         return None

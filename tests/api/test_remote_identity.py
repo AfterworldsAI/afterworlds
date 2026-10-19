@@ -642,6 +642,32 @@ class TestVerifierWork:
         for stored in (None, "!", unusable):
             assert verifiers.verify_password(PASSWORD, stored) is False
 
+    @pytest.mark.parametrize(
+        "stored",
+        [
+            f"scrypt${2**64}$8$1$aa$bb",
+            f"scrypt$16384${2**64}$1$aa$bb",
+            f"scrypt$16384$8${2**64}$aa$bb",
+            f"scrypt${2**32}$8$1$aa$bb",  # a power of two beyond C unsigned long
+            f"scrypt$16384${2**32}$1$aa$bb",
+            f"scrypt$16384$8${2**32}$aa$bb",
+        ],
+    )
+    def test_numeric_overflow_costs_one_standard_hash_and_fails(
+        self, monkeypatch: pytest.MonkeyPatch, stored: str
+    ) -> None:
+        """Residue: hashlib raises TypeError (not ValueError) for parameters
+        beyond a C unsigned long; such a verifier is unusable."""
+        from afterworlds.remote import verifiers
+
+        calls = self._spy(monkeypatch)
+        assert verifiers.verify_password(PASSWORD, stored) is False
+        assert calls == [(verifiers._N, verifiers._R, verifiers._P)]
+        digest = bytes(32)
+        monkeypatch.setattr(verifiers, "_scrypt", lambda *_a: digest)
+        forged = stored.rsplit("$", 1)[0] + "$" + digest.hex()
+        assert verifiers.verify_password(PASSWORD, forged) is False
+
     def test_valid_verifiers_keep_their_behavior_and_one_hash(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
