@@ -1,12 +1,13 @@
 """Retrieval Memory ownership guard -- prerequisite #205 §2/§6, ADR-018 note.
 
 Wraps the shared ``story_memory`` read and write services so every remote
-read, write and reindex first binds the Story to an active owning account
-with no deletion suppression, before the existing ``story_id`` metadata
-filter. A refused call raises :class:`StoryAccessDenied` and touches nothing
-in Chroma. Deletion is bound to an explicit :class:`DelayedWorkScope`: it is
-the enforcement of a suppression, so it requires the owning account, not an
-unsuppressed Story. ``create_app`` installs the guard only remotely.
+read, write and reindex first requires the current trusted scope's account to
+own the Story, the account to be active and the Story unsuppressed, before
+the existing ``story_id`` metadata filter. A refused call raises
+:class:`StoryAccessDenied` and touches nothing in Chroma. Deletion is bound
+to an explicit :class:`DelayedWorkScope`: it is the enforcement of a
+suppression, so it requires the owning account, not an unsuppressed Story.
+``create_app`` installs the guard only remotely.
 """
 
 from __future__ import annotations
@@ -35,8 +36,7 @@ class _Guard:
 
     def _require_servable(self, story_id: UUID) -> None:
         with self._factory() as session:
-            if not self._policy.story_servable(session, story_id):
-                raise StoryAccessDenied("retrieval")
+            self._policy.check_current(session, story_id)
 
 
 class GuardedRetrievalMemory(_Guard):
@@ -90,8 +90,15 @@ class GuardedRetrievalWrites(_Guard):
         self._require_servable(story_id)
         return self._inner.count_for_story(story_id)
 
+    def delete_story(self, story_id: UUID) -> int:
+        """Reindex's wipe step: under the current scope, like any write."""
+        self._require_servable(story_id)
+        return self._inner.delete_story(story_id)
+
     def delete_story_for(self, scope: DelayedWorkScope) -> int:
         """Delete a Story's chunks for its owning account (may be suppressed)."""
+        if scope.story_id is None:
+            raise StoryAccessDenied(scope.operation)
         with self._factory() as session:
             if story_owner(session, scope.story_id) != str(scope.account_id):
                 raise StoryAccessDenied(scope.operation)

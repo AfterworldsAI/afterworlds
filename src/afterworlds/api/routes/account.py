@@ -33,7 +33,7 @@ from afterworlds.api.dto import (
     ProviderEnabledRequest,
     SessionStatusResponse,
 )
-from afterworlds.api.errors import ApiError
+from afterworlds.api.errors import ApiError, ApiErrorCode, ApiErrorResponse
 from afterworlds.api.remote_access import (
     SESSION_COOKIE,
     clear_session_cookie,
@@ -45,6 +45,7 @@ from afterworlds.pipeline.provider import (
     ByokCredentialReadinessProvider,
     ByokSettingsService,
 )
+from afterworlds.remote.access import AccountFence, FenceBusy
 from afterworlds.remote.identity import Actor, IdentityError
 
 router = APIRouter(prefix="/api/account", tags=["account"])
@@ -53,7 +54,7 @@ _RESPONSES: dict[int | str, dict[str, Any]] = {
     status: {"model": ApiError} for status in (401, 409, 422, 503)
 }
 _CLOSE_RESPONSES: dict[int | str, dict[str, Any]] = {
-    status: {"model": ApiError} for status in (401, 404, 422)
+    status: {"model": ApiError} for status in (401, 404, 409, 422)
 }
 
 
@@ -170,13 +171,29 @@ async def close_account(
     actor: Actor = Depends(get_actor),
 ) -> SessionStatusResponse:
     """Remote self-service closure (prerequisite #205 §1): re-authenticate,
-    close, revoke every session. Erasure and export are CRD Issue 22's."""
+    close, revoke every session. Erasure and export are CRD Issue 22's.
+
+    Closure holds the account's fence exclusive: it waits (bounded) for the
+    account's in-flight requests, so none of their effects can land after it
+    returns; on timeout nothing changes and the typed error says so."""
     identity = identity_service(request)
     assert identity is not None  # enforce_access refuses this route locally
+    fence: AccountFence = request.app.state.account_fence
+    timeout: float = request.app.state.close_fence_timeout
+
+    def close() -> None:
+        with fence.exclusive(actor.account_id, timeout=timeout):
+            identity.close_account(actor, body.password.get_secret_value())
+
     try:
-        await run_in_threadpool(
-            identity.close_account, actor, body.password.get_secret_value()
-        )
+        await run_in_threadpool(close)
+    except FenceBusy:
+        raise ApiErrorResponse(
+            409,
+            ApiErrorCode.ACCOUNT_OPERATION_IN_PROGRESS,
+            "Requests for this account are still in progress; nothing was "
+            "closed. Try again shortly.",
+        ) from None
     except IdentityError as exc:
         raise_identity_error(exc)
     clear_session_cookie(request, response, SESSION_COOKIE)

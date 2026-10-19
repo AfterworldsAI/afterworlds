@@ -46,7 +46,7 @@ from afterworlds.pipeline.provider import (
     ByokSettingsService,
 )
 from afterworlds.pipeline.provider.credentials import make_credential_store
-from afterworlds.remote.access import AccessPolicy
+from afterworlds.remote.access import AccessPolicy, AccountFence, ScopedSeam
 from afterworlds.remote.control_store import open_control_store, utc_now
 from afterworlds.remote.identity import IdentityService
 from afterworlds.remote.notices import OutboxDirectoryTransport
@@ -122,6 +122,9 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
         app.state.identity = identity
         app.state.control_factory = control_factory
         app.state.access_policy = AccessPolicy(identity, control_factory)
+        app.state.account_fence = AccountFence()
+        # Bounded wait for an account's in-flight requests at closure.
+        app.state.close_fence_timeout = 30.0
         # ADR-021 D4: no shared subject -- each request's account is its own.
     else:
         app.state.identity = None
@@ -138,6 +141,28 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
     # CRD Issue 15b: the RPG action routes reach the orchestrator's own
     # ActionResolutionService through the typed seam, never a second one.
     app.state.rpg_actions = RpgActions(rpg_sequences)
+    if remote:
+        # #205: the routes' owning-service seams refuse unscoped remote calls.
+        app.state.orchestrator = ScopedSeam(
+            orchestrator,
+            app.state.access_policy,
+            session_factory,
+            frozenset(
+                {
+                    "orchestrate_turn",
+                    "orchestrate_rpg_resume",
+                    "orchestrate_branching_start",
+                }
+            ),
+        )
+        app.state.rpg_actions = ScopedSeam(
+            app.state.rpg_actions,
+            app.state.access_policy,
+            session_factory,
+            frozenset(
+                {"current", "submit_roll", "adjust", "decide", "refuse_settled_resume"}
+            ),
+        )
     # DoR-E: the readiness seam is constructed once here and consumed only
     # inside the access-path selection helper (api/access_path.py callers) --
     # never in a route handler directly.

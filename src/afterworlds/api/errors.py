@@ -58,6 +58,7 @@ class ApiErrorCode(StrEnum):
     BYOK_LOCAL_ONLY = "byok_local_only"
     DEPLOYMENT_ROUTE_UNAVAILABLE = "deployment_route_unavailable"
     IDENTITY_UNAVAILABLE = "identity_unavailable"
+    ACCOUNT_OPERATION_IN_PROGRESS = "account_operation_in_progress"
 
 
 class ApiError(BaseModel):

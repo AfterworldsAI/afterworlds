@@ -24,7 +24,7 @@ from afterworlds.api.app import create_app
 from afterworlds.api.config import ApiSettings
 from afterworlds.models.context import RetrievalMemoryPayload
 from afterworlds.persistence.crud.story import delete_story
-from afterworlds.remote.access import DelayedWorkScope, StoryAccessDenied
+from afterworlds.remote.access import DelayedWorkScope, StoryAccessDenied, work_scope
 from afterworlds.remote.retrieval_guard import (
     GuardedRetrievalMemory,
     GuardedRetrievalWrites,
@@ -354,6 +354,17 @@ class TestRetrievalGuardAndDelayedWork:
         guarded = GuardedRetrievalWrites(writes, policy, factory)  # type: ignore[arg-type]
         story = uuid.UUID(sid)
 
+        # Direct calls with no trusted scope, or another account's, are refused.
+        with pytest.raises(StoryAccessDenied):
+            guarded_read.retrieve(story, "q")
+        with work_scope(DelayedWorkScope(uuid.UUID(b_id), None, "direct")):
+            with pytest.raises(StoryAccessDenied):
+                guarded_read.retrieve(story, "q")
+            with pytest.raises(StoryAccessDenied):
+                guarded.ingest_turn(story, uuid.uuid4(), None, "branching", "x", "t")
+        assert read.calls == [] and writes.calls == []
+        a_scope = work_scope(DelayedWorkScope(uuid.UUID(a_id), None, "direct"))
+        a_scope.__enter__()
         guarded_read.retrieve(story, "q")
         guarded.ingest_turn(story, uuid.uuid4(), None, "branching", "prose", "t")
         assert read.calls == [story] and len(writes.calls) == 1
@@ -387,6 +398,7 @@ class TestRetrievalGuardAndDelayedWork:
         )
         assert read.calls == [story]
         assert writes.calls[-1] == f"delete:{story}"
+        a_scope.__exit__(None, None, None)
 
     def test_delayed_work_rechecks_scope_when_it_runs(
         self, remote: RemoteHarness
