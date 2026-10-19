@@ -1,7 +1,12 @@
 import { useEffect, useState } from "react";
 
 import AccountPanel from "./AccountPanel";
-import { api, setSignedOutListener, type SessionStatus } from "./api/client";
+import {
+  api,
+  ApiRequestError,
+  setSignedOutListener,
+  type SessionStatus,
+} from "./api/client";
 import { localStorageState } from "./localStorage";
 import SignIn from "./SignIn";
 import StoryList from "./StoryList";
@@ -17,39 +22,89 @@ export default function App() {
   const [settledTurns, setSettledTurns] = useState(0);
   // Prerequisite #205: remote deployments need a session; local ones never
   // do. Presentation only -- the server enforces every request regardless.
+  // "unavailable" is an unanswered status read: never treated as local.
+  const [discovery, setDiscovery] = useState<"loading" | "ok" | "unavailable">(
+    "loading",
+  );
   const [session, setSession] = useState<SessionStatus | null>(null);
-  const [sessionKnown, setSessionKnown] = useState(false);
   const [signInNotice, setSignInNotice] = useState<string | null>(null);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
 
+  // Server-confirmed end of the session (sign-out, expiry or revocation).
+  // Only a remote deployment answers authentication_required.
   function signedOut(notice: string | null) {
     localStorageState.clearAccountState();
     setStoryId(null);
     setShowAccount(false);
     setSignInNotice(notice);
-    setSession((s) => (s ? { ...s, signed_in: false, account_id: null } : s));
+    setSignOutError(null);
+    setSession(() => ({
+      deployment: "remote",
+      signed_in: false,
+      account_id: null,
+      contact_address: null,
+      schema_version: 1,
+    }));
+    setDiscovery("ok");
+  }
+
+  function discover() {
+    setDiscovery("loading");
+    api
+      .getSessionStatus()
+      .then((status) => {
+        setSession(status);
+        setDiscovery("ok");
+      })
+      .catch(() => setDiscovery("unavailable"));
+  }
+
+  async function signOut() {
+    setSigningOut(true);
+    setSignOutError(null);
+    try {
+      await api.signOut();
+      signedOut(null);
+    } catch (err) {
+      // The listener already handled a server-confirmed ended session.
+      if (
+        !(err instanceof ApiRequestError) ||
+        err.apiError.error_code !== "authentication_required"
+      ) {
+        setSignOutError(
+          "Sign-out could not be confirmed, so you may still be signed in. Try again.",
+        );
+      }
+    } finally {
+      setSigningOut(false);
+    }
   }
 
   useEffect(() => {
-    // A failed status read falls back to the local layout: any protected
-    // request then answers 401 and lands here.
-    api
-      .getSessionStatus()
-      .then(setSession)
-      .catch(() => setSession(null))
-      .finally(() => setSessionKnown(true));
+    discover();
     setSignedOutListener(() =>
       signedOut("Your session ended. Sign in again to continue."),
     );
     return () => setSignedOutListener(null);
   }, []);
 
-  if (!sessionKnown) {
+  if (discovery !== "ok") {
     return (
       <main>
         <header>
           <h1>Afterworlds</h1>
         </header>
-        <p>Loading…</p>
+        {discovery === "loading" ? (
+          <p>Loading…</p>
+        ) : (
+          <p role="alert">
+            The service could not be reached, so your sign-in state is unknown.{" "}
+            <button type="button" onClick={discover}>
+              Retry
+            </button>
+          </p>
+        )}
       </main>
     );
   }
@@ -94,18 +149,15 @@ export default function App() {
             <span className="signed-in-as">{session?.contact_address}</span>
             <button
               type="button"
-              onClick={() =>
-                void api
-                  .signOut()
-                  .catch(() => undefined)
-                  .then(() => signedOut(null))
-              }
+              disabled={signingOut}
+              onClick={() => void signOut()}
             >
               Sign out
             </button>
           </>
         )}
       </header>
+      {signOutError && <p role="alert">{signOutError}</p>}
       {showAccount ? (
         <AccountPanel refreshKey={settledTurns} />
       ) : storyId ? (

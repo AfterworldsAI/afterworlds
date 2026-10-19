@@ -733,6 +733,13 @@ describe("App account view", () => {
           return Promise.resolve(json(200, account({})));
         }
         const bodies: Record<string, unknown> = {
+          "/api/auth/session": {
+            deployment: "local",
+            signed_in: false,
+            account_id: null,
+            contact_address: null,
+            schema_version: 1,
+          },
           "/api/stories": { stories: [story], schema_version: 1 },
           "/api/stories/s1": story,
           "/api/stories/s1/turns": { turns: [], schema_version: 1 },
@@ -776,6 +783,16 @@ describe("App account view", () => {
 
   it("opens the account view from the header", async () => {
     stubFetch({
+      "GET /api/auth/session": [
+        () =>
+          json(200, {
+            deployment: "local",
+            signed_in: false,
+            account_id: null,
+            contact_address: null,
+            schema_version: 1,
+          }),
+      ],
       "GET /api/stories": [() => json(200, { stories: [], schema_version: 1 })],
       "GET /api/account": [() => json(200, account({}))],
     });

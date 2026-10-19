@@ -173,4 +173,57 @@ describe("remote sign-in (prerequisite #205)", () => {
     expect(await screen.findByText("Your stories")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Sign out" })).toBeNull();
   });
+
+  it("keeps the session visible when sign-out is not confirmed, and retries", async () => {
+    let attempts = 0;
+    stub({
+      "GET /api/auth/session": [() => json(200, signedIn)],
+      "GET /api/stories": [() => json(200, { stories: [], schema_version: 1 })],
+      "POST /api/auth/sign-out": [
+        () => {
+          attempts += 1;
+          throw new TypeError("network down");
+        },
+        () => json(200, signedOut),
+      ],
+    });
+    localStorage.setItem("afterworlds:draft:s1", "unsent words");
+    render(<App />);
+    const signOut = await screen.findByRole("button", { name: "Sign out" });
+    act(() => signOut.click());
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "may still be signed in",
+    );
+    // Still presented as signed in; nothing local was discarded.
+    expect(screen.getByText("Your stories")).toBeInTheDocument();
+    expect(localStorage.getItem("afterworlds:draft:s1")).toBe("unsent words");
+    expect(attempts).toBe(1);
+    act(() => screen.getByRole("button", { name: "Sign out" }).click());
+    await screen.findByRole("heading", { name: "Sign in" });
+    expect(localStorage.getItem("afterworlds:draft:s1")).toBeNull();
+  });
+
+  it("never treats an unanswered status read as a local deployment", async () => {
+    stub({
+      "GET /api/auth/session": [
+        () => {
+          throw new TypeError("offline");
+        },
+        () => json(200, signedIn),
+      ],
+      "GET /api/stories": [() => json(401, expired)],
+    });
+    render(<App />);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "could not be reached",
+    );
+    expect(screen.queryByText("Your stories")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Account & BYOK" })).toBeNull();
+    act(() => screen.getByRole("button", { name: "Retry" }).click());
+    // Retried: remote and signed in; the next protected 401 returns to sign-in.
+    expect(await screen.findByText(/Your session ended/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Sign in" }),
+    ).toBeInTheDocument();
+  });
 });
