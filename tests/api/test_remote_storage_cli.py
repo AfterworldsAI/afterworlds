@@ -535,3 +535,51 @@ def test_backup_expiry_and_disposal_survive_a_damaged_live_store(
     # Expiry and disposal of backup copies stay possible.
     assert _run(capsys, "due") == (0, "")
     assert _run(capsys, "dispose", "--backup-id", backup_id) == (0, "disposed")
+
+
+def test_restore_copy_interrupted_keeps_the_marker_and_is_retryable(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Review residue 2: the copy phase never rewrites the trusted marker, so
+    an interruption mid-copy leaves a store the documented retry accepts."""
+    import shutil as real_shutil
+
+    from afterworlds.remote import storage
+
+    make_remote(remote_env).close()
+    code, backup_id = _run(capsys, "capture", "--to", str(remote_env / "b1"))
+    assert code == 0
+    marker = remote_env / "chroma" / "afterworlds-deployment.json"
+    trusted = marker.read_bytes()
+    copied: list[str] = []
+
+    def copy_then_fail(src: Any, dst: Any, *a: Any, **k: Any) -> Any:
+        copied.append(Path(dst).name)
+        raise OSError("interrupted mid-copy")
+
+    real_copytree = real_shutil.copytree
+
+    def interrupted_copytree(src: Any, dst: Any, *args: Any, **kwargs: Any) -> Any:
+        # shutil recurses through the module-level name, so subdirectories
+        # come back here too; every file copy goes through copy_then_fail.
+        kwargs["copy_function"] = copy_then_fail
+        if len(args) >= 3:
+            args = (*args[:2], copy_then_fail, *args[3:])
+            kwargs.pop("copy_function")
+        return real_copytree(src, dst, *args, **kwargs)
+
+    with pytest.MonkeyPatch.context() as mp, pytest.raises(OSError):
+        mp.setattr(storage.shutil, "copytree", interrupted_copytree)
+        storage_cli.main(["restore", "--backup-id", backup_id])
+    assert "afterworlds-deployment.json" not in copied  # never copied over
+    assert marker.read_bytes() == trusted
+    with pytest.raises(StoreRefused, match="awaiting"):
+        create_app(remote_settings(remote_env))
+    code, restore_id = _run(capsys, "restore", "--backup-id", backup_id)
+    assert code == 0
+    assert _run(capsys, "verify-restore", "--restore-id", restore_id) == (
+        0,
+        "verified",
+    )
+    assert marker.read_bytes() == trusted
+    make_remote(remote_env).close()

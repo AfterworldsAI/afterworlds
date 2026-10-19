@@ -12,6 +12,7 @@ suppression, so it requires the owning account, not an unsuppressed Story.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from uuid import UUID
 
 from sqlalchemy.orm import Session, sessionmaker
@@ -22,8 +23,10 @@ from afterworlds.remote.access import (
     AccessPolicy,
     DelayedWorkScope,
     StoryAccessDenied,
+    current_scope,
     story_owner,
 )
+from afterworlds.remote.fence import FenceBusy
 from afterworlds.services.context_builder import RetrievalMemoryProvider
 
 
@@ -34,9 +37,23 @@ class _Guard:
         self._policy = policy
         self._factory = session_factory
 
-    def _require_servable(self, story_id: UUID) -> None:
-        with self._factory() as session:
-            self._policy.check_current(session, story_id)
+    def _guarded[T](self, story_id: UUID, effect: Callable[[], T]) -> T:
+        """Run *effect* under the current trusted scope with the account fence
+        held for its whole lifetime (re-entrant inside a request or scoped
+        call), so closure or suppression waits for it or refuses it and no
+        late vector effect lands after they return."""
+        if not self._policy.remote:
+            return effect()
+        scope = current_scope()
+        if scope is None:
+            raise StoryAccessDenied("unscoped")
+        try:
+            with self._policy.fence.held(scope.account_id):
+                with self._factory() as session:
+                    self._policy.check_current(session, story_id)
+                return effect()
+        except FenceBusy:
+            raise StoryAccessDenied("fenced") from None
 
 
 class GuardedRetrievalMemory(_Guard):
@@ -52,8 +69,7 @@ class GuardedRetrievalMemory(_Guard):
         self._inner = inner
 
     def retrieve(self, story_id: UUID, query: str) -> RetrievalMemoryPayload:
-        self._require_servable(story_id)
-        return self._inner.retrieve(story_id, query)
+        return self._guarded(story_id, lambda: self._inner.retrieve(story_id, query))
 
 
 class GuardedRetrievalWrites(_Guard):
@@ -77,26 +93,29 @@ class GuardedRetrievalWrites(_Guard):
         delivered_output: str,
         created_at: str,
     ) -> None:
-        self._require_servable(story_id)
-        self._inner.ingest_turn(
-            story_id, turn_id, node_id, mode, delivered_output, created_at
+        self._guarded(
+            story_id,
+            lambda: self._inner.ingest_turn(
+                story_id, turn_id, node_id, mode, delivered_output, created_at
+            ),
         )
 
     def delete_turn(self, story_id: UUID, turn_id: UUID) -> None:
-        self._require_servable(story_id)
-        self._inner.delete_turn(story_id, turn_id)
+        self._guarded(story_id, lambda: self._inner.delete_turn(story_id, turn_id))
 
     def count_for_story(self, story_id: UUID) -> int:
-        self._require_servable(story_id)
-        return self._inner.count_for_story(story_id)
+        return self._guarded(story_id, lambda: self._inner.count_for_story(story_id))
 
     def delete_story(self, story_id: UUID) -> int:
         """Reindex's wipe step: under the current scope, like any write."""
-        self._require_servable(story_id)
-        return self._inner.delete_story(story_id)
+        return self._guarded(story_id, lambda: self._inner.delete_story(story_id))
 
     def delete_story_for(self, scope: DelayedWorkScope) -> int:
-        """Delete a Story's chunks for its owning account (may be suppressed)."""
+        """Delete a Story's chunks for its owning account (may be suppressed).
+
+        The suppression enforcer's path: it takes no shared fence, because the
+        enforcer may run while holding the account's fence exclusive, and a
+        deletion cannot recreate content."""
         if scope.story_id is None:
             raise StoryAccessDenied(scope.operation)
         with self._factory() as session:

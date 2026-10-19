@@ -888,7 +888,15 @@ def restore_snapshot(
             shutil.rmtree(child)
         else:
             child.unlink()
-    shutil.copytree(source / SNAPSHOT_VECTOR_DIR, vector_dir, dirs_exist_ok=True)
+    # The live marker is never rewritten: the snapshot's is the same binding
+    # (begin_restore checked it), so an interruption mid-copy still leaves a
+    # store the documented retry can maintain.
+    shutil.copytree(
+        source / SNAPSHOT_VECTOR_DIR,
+        vector_dir,
+        dirs_exist_ok=True,
+        ignore=shutil.ignore_patterns(VECTOR_MARKER, VECTOR_LOCK),
+    )
     mark_restore_copied(control, restore_id)
     return restore_id
 

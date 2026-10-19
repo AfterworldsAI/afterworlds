@@ -138,6 +138,12 @@ class AccessPolicy:
         self._control = control
 
     @property
+    def fence(self) -> AccountFence:
+        """The process's account fence (the identity service owns it)."""
+        assert self._identity is not None
+        return self._identity.fence
+
+    @property
     def remote(self) -> bool:
         return self._identity is not None
 

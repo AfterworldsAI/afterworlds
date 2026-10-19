@@ -379,3 +379,109 @@ def test_account_suppression_admits_no_new_story(remote: RemoteHarness) -> None:
         b.post("/api/stories", json={"title": "B", "mode": "branching"}).status_code
         == 201
     )
+
+
+class _PausedWrites:
+    """A vector write service whose ingest pauses inside the inner effect."""
+
+    def __init__(self) -> None:
+        self.entered = threading.Event()
+        self.release = threading.Event()
+        self.writes: list[str] = []
+
+    def ingest_turn(self, story_id: Any, turn_id: Any, *_a: Any) -> None:
+        self.entered.set()
+        assert self.release.wait(30)
+        self.writes.append(str(turn_id))
+
+    def delete_turn(self, story_id: Any, turn_id: Any) -> None:
+        self.writes.append(f"delete:{turn_id}")
+
+    def count_for_story(self, story_id: Any) -> int:
+        return 0
+
+    def delete_story(self, story_id: Any) -> int:
+        self.writes.append(f"delete-story:{story_id}")
+        return 0
+
+
+@pytest.mark.parametrize("terminal", ["http_closure", "fenced_suppression"])
+def test_direct_guarded_vector_write_cannot_land_after_closure_or_suppression(
+    remote: RemoteHarness, terminal: str
+) -> None:
+    """Review residue 1: a supported direct GuardedRetrievalWrites call holds
+    the account fence for its lifetime; closure/suppression wait for it, and
+    every later vector operation of that account/Story is refused."""
+    from afterworlds.remote.access import record_suppression_fenced
+    from afterworlds.remote.retrieval_guard import (
+        GuardedRetrievalMemory,
+        GuardedRetrievalWrites,
+    )
+
+    a = remote.enroll("a@example.test")
+    closer = remote.client()
+    closer.post(
+        "/api/auth/sign-in",
+        json={"contact_address": "a@example.test", "password": PASSWORD},
+    )
+    account = uuid.UUID(remote.account_id(a))
+    sid = uuid.UUID(
+        a.post("/api/stories", json={"title": "S", "mode": "branching"}).json()[
+            "story_id"
+        ]
+    )
+    inner = _PausedWrites()
+    policy = remote.app.state.access_policy
+    factory = remote.app.state.session_factory
+    writes = GuardedRetrievalWrites(inner, policy, factory)  # type: ignore[arg-type]
+    reads = GuardedRetrievalMemory(
+        type("R", (), {"retrieve": lambda *_a: None})(), policy, factory
+    )
+
+    def direct_ingest() -> None:
+        with work_scope(DelayedWorkScope(account, None, "direct")):
+            writes.ingest_turn(sid, uuid.uuid4(), None, "branching", "prose", "t")
+
+    work, _ = _in_thread(direct_ingest)
+    assert inner.entered.wait(30)
+
+    def finish_terminal() -> int:
+        if terminal == "http_closure":
+            assert (
+                closer.post(
+                    "/api/account/close", json={"password": PASSWORD}
+                ).status_code
+                == 200
+            )
+        else:
+            record_suppression_fenced(
+                remote.app.state.account_fence,
+                remote.app.state.control_factory,
+                account_id=account,
+                story_refs=[str(sid)],
+                request_id="r",
+                scope="story",
+                effective_boundary_at=datetime.now(UTC),
+                now=datetime.now(UTC),
+                timeout=30,
+            )
+        return len(inner.writes)  # writes when the terminal step returned
+
+    finishing, out = _in_thread(finish_terminal)
+    finishing.join(0.5)
+    assert finishing.is_alive()  # waits for the admitted vector write
+    inner.release.set()
+    work.join(30)
+    finishing.join(30)
+    assert out[0] == len(inner.writes) == 1  # it landed before, not after
+    with work_scope(DelayedWorkScope(account, None, "direct")):
+        for late in (
+            lambda: writes.ingest_turn(sid, uuid.uuid4(), None, "branching", "x", "t"),
+            lambda: writes.delete_turn(sid, uuid.uuid4()),
+            lambda: writes.count_for_story(sid),
+            lambda: writes.delete_story(sid),
+            lambda: reads.retrieve(sid, "q"),
+        ):
+            with pytest.raises(StoryAccessDenied):
+                late()
+    assert len(inner.writes) == 1
