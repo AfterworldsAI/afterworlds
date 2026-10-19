@@ -586,3 +586,95 @@ class TestPostAdmissionControlFailures:
         with quiet:
             resp = quiet.get(f"/api/stories/{sid}")
         assert resp.status_code == 500 and _error(resp) == "internal_error"
+
+
+class TestVerifierWork:
+    """Review 5573568757 r4315408061: no usable verifier -- unknown address,
+    pending enrollment, unknown scheme, malformed value -- costs exactly the
+    same scrypt work as a real check and never authenticates."""
+
+    @staticmethod
+    def _spy(monkeypatch: pytest.MonkeyPatch) -> list[tuple[int, int, int]]:
+        from afterworlds.remote import verifiers
+
+        calls: list[tuple[int, int, int]] = []
+        real = verifiers._scrypt
+
+        def counted(password: str, salt: bytes, n: int, r: int, p: int) -> bytes:
+            digest = real(password, salt, n, r, p)
+            calls.append((n, r, p))  # a completed hash only
+            return digest
+
+        monkeypatch.setattr(verifiers, "_scrypt", counted)
+        return calls
+
+    @pytest.mark.parametrize(
+        "stored",
+        [
+            None,
+            "",
+            "!",  # a pending enrollment's unusable marker
+            "argon2$1$2$3$aa$bb",  # unknown scheme
+            "scrypt$16384$8$1$aa",  # missing field
+            "scrypt$sixteen$8$1$aa$bb",  # malformed number
+            "scrypt$16384$8$1$zz$bb",  # malformed salt hex
+            "scrypt$16384$8$1$aa$not-hex",  # malformed digest
+            "scrypt$3$8$1$aa$bb",  # parameters hashlib rejects
+        ],
+    )
+    def test_unusable_verifiers_cost_one_standard_hash_and_fail(
+        self, monkeypatch: pytest.MonkeyPatch, stored: str | None
+    ) -> None:
+        from afterworlds.remote import verifiers
+
+        calls = self._spy(monkeypatch)
+        assert verifiers.verify_password(PASSWORD, stored) is False
+        assert calls == [(verifiers._N, verifiers._R, verifiers._P)]
+
+    def test_a_dummy_match_still_fails_closed(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from afterworlds.remote import verifiers
+
+        digest = bytes(32)
+        monkeypatch.setattr(verifiers, "_scrypt", lambda *_a: digest)
+        unusable = f"scrypt$3$8$1$aa${digest.hex()}"
+        for stored in (None, "!", unusable):
+            assert verifiers.verify_password(PASSWORD, stored) is False
+
+    def test_valid_verifiers_keep_their_behavior_and_one_hash(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from afterworlds.remote import verifiers
+
+        stored = verifiers.hash_password(PASSWORD)
+        calls = self._spy(monkeypatch)
+        assert verifiers.verify_password(PASSWORD, stored) is True
+        assert verifiers.verify_password(NEW_PASSWORD, stored) is False
+        assert calls == [(verifiers._N, verifiers._R, verifiers._P)] * 2
+
+    @pytest.mark.parametrize("path", ["/api/auth/sign-in", "/api/admin/session"])
+    def test_pending_enrollment_sign_in_does_the_same_work_as_an_unknown_address(
+        self, remote: RemoteHarness, monkeypatch: pytest.MonkeyPatch, path: str
+    ) -> None:
+        anon = remote.client()
+        assert (
+            anon.post(
+                "/api/auth/register", json={"contact_address": "pending@example.test"}
+            ).status_code
+            == 202
+        )  # enrollment started, never completed
+        calls = self._spy(monkeypatch)
+        responses = []
+        for address in ("pending@example.test", "nobody@example.test"):
+            before = len(calls)
+            resp = remote.client().post(
+                path, json={"contact_address": address, "password": PASSWORD}
+            )
+            responses.append((resp.status_code, resp.json()))
+            assert "set-cookie" not in resp.headers
+            assert len(calls) - before == 1  # one hash each, same parameters
+        assert len(set(calls)) == 1
+        assert responses[0] == responses[1]
+        assert responses[0][0] == 401
+        assert responses[0][1]["error_code"] == "authentication_failed"
