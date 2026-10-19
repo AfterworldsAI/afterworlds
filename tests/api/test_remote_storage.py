@@ -772,3 +772,19 @@ class TestBackfillJobMain:
             retrieval_backfill.main(self._argv(env, sid, account, mode="reindex"))
         assert exc.value.code == 3
         assert len(writes) == 1  # the guard refused every later write
+
+
+def test_the_corpus_baseline_reset_refuses_in_a_remote_deployment(
+    env: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from scripts import reset_corpus_baseline
+
+    make_remote(env).close()
+    marker = (env / "chroma" / "afterworlds-deployment.json").read_bytes()
+    monkeypatch.setenv("AFTERWORLDS_DEPLOYMENT", "remote")
+    monkeypatch.setattr(
+        "sys.argv", ["reset", "--db-url", f"sqlite:///{env / 'content.db'}"]
+    )
+    assert reset_corpus_baseline.main() == 3
+    assert "would erase every account's Story memory" in capsys.readouterr().err
+    assert (env / "chroma" / "afterworlds-deployment.json").read_bytes() == marker

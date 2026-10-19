@@ -19,7 +19,7 @@ admitted before them can land after they complete.
 from __future__ import annotations
 
 import threading
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, replace
@@ -33,7 +33,7 @@ from sqlalchemy.orm import Session, sessionmaker
 from afterworlds.persistence.orm.ownership import AccountResourceORM
 from afterworlds.remote.control_store import iso
 from afterworlds.remote.identity import Actor, ActorKind, IdentityService
-from afterworlds.remote.storage import is_suppressed
+from afterworlds.remote.storage import is_suppressed, record_suppression
 
 STORY = "story"
 
@@ -262,3 +262,34 @@ class ScopedSeam:
             return attr(*args, **kwargs)
 
         return guarded
+
+
+def record_suppression_fenced(
+    fence: AccountFence,
+    control: sessionmaker[Session],
+    *,
+    account_id: UUID,
+    story_refs: Iterable[str],
+    request_id: str,
+    scope: str,
+    effective_boundary_at: datetime,
+    now: datetime,
+    timeout: float,
+) -> str:
+    """The supported way for CRD Issue 22 to record a deletion suppression.
+
+    Holds the owning account's fence exclusive while recording, so every
+    request admitted earlier has finished and no later one is admitted until
+    the instruction is durable: no effect lands after this returns. Raises
+    :class:`FenceBusy` (nothing recorded) if in-flight work does not finish
+    within *timeout*."""
+    with fence.exclusive(account_id, timeout=timeout):
+        return record_suppression(
+            control,
+            subject_ref=str(account_id),
+            story_refs=story_refs,
+            request_id=request_id,
+            scope=scope,
+            effective_boundary_at=effective_boundary_at,
+            now=now,
+        )

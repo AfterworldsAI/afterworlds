@@ -72,6 +72,7 @@ surviving story::
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from pathlib import Path
 from uuid import UUID
@@ -314,6 +315,16 @@ def preflight(
 
 
 def main() -> int:
+    # Prerequisite #205: the reset deletes every Chroma collection, which in a
+    # remote deployment holds every account's Story memory. Refused before
+    # argument parsing or any store access.
+    if os.environ.get("AFTERWORLDS_DEPLOYMENT") == "remote":
+        print(
+            "refused: the corpus baseline reset is a local pre-release operation; "
+            "it would erase every account's Story memory in a remote deployment",
+            file=sys.stderr,
+        )
+        return 3
     # Raw formatter: the destructive-behaviour section above must reach --help
     # laid out as written, not reflowed into one paragraph.
     ap = argparse.ArgumentParser(

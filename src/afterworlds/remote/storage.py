@@ -732,6 +732,14 @@ def capture_snapshot(
     counts as unverified coverage."""
     clean = capture_preconditions(control, content, story_chunk_count)
     store_id = content_store_id(content)
+    # Claim a new, empty directory before inventorying it: an existing path
+    # is refused untouched, so a later disposal can never remove data this
+    # capture did not create. A failure between here and registration leaves
+    # only an empty directory.
+    try:
+        target.mkdir(parents=True, exist_ok=False)
+    except FileExistsError:
+        raise StoreRefused(f"capture target {target} already exists") from None
     backup_id = register_backup(
         control,
         store_id=store_id,
@@ -740,7 +748,6 @@ def capture_snapshot(
         verification_status="unverified",
         clean_suppression_ids=clean,
     )
-    target.mkdir(parents=True, exist_ok=False)
     with (
         closing(sqlite3.connect(database_path)) as src,
         closing(sqlite3.connect(target / database_path.name)) as dst,

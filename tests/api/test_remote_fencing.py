@@ -198,3 +198,48 @@ def test_owning_service_seams_refuse_unscoped_and_cross_account_calls(
             # The scope's account must be the entitlement subject passed.
             orchestrator.orchestrate_turn(sid, "x", sojourner_id=b_id)
         assert actions.current(sid) is None  # owner's own scope passes
+
+
+def test_fenced_suppression_waits_for_the_in_flight_turn(
+    remote: RemoteHarness, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from afterworlds.remote.access import FenceBusy, record_suppression_fenced
+
+    writer = _PausedWriter(monkeypatch)
+    a, _closer, sid = _turn_setup(remote)
+    account = uuid.UUID(remote.account_id(a))
+    before = _turns(remote)
+    writer.armed = True
+    turn, turn_out = _in_thread(
+        lambda: a.post(f"/api/stories/{sid}/turns", json={"user_input": "I wait."})
+    )
+    assert writer.entered.wait(30)
+
+    def suppress(timeout: float) -> tuple[str, int]:
+        sup = record_suppression_fenced(
+            remote.app.state.account_fence,
+            remote.app.state.control_factory,
+            account_id=account,
+            story_refs=[sid],
+            request_id="r",
+            scope="story",
+            effective_boundary_at=datetime.now(UTC),
+            now=datetime.now(UTC),
+            timeout=timeout,
+        )
+        return sup, _turns(remote)
+
+    # A bounded wait that expires records nothing.
+    with pytest.raises(FenceBusy):
+        suppress(0.2)
+    assert a.get(f"/api/stories/{sid}").status_code == 200
+    suppressing, out = _in_thread(lambda: suppress(30))
+    suppressing.join(0.5)
+    assert suppressing.is_alive()  # waiting on the admitted turn
+    writer.release.set()
+    turn.join(60)
+    suppressing.join(60)
+    assert turn_out[0].status_code == 200
+    _sup, turns_at_return = out[0]
+    assert turns_at_return == _turns(remote) > before  # nothing landed after
+    assert a.get(f"/api/stories/{sid}").status_code == 404

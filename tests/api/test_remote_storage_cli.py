@@ -297,3 +297,20 @@ def test_dispose_is_retry_safe_and_never_guesses_absence(
     assert storage_cli.main(["dispose", "--backup-id", unreachable]) == 1
     row = _inventory(remote_env, unreachable)
     assert row.disposed_at is None and row.verification_status == "inaccessible"
+
+
+def test_capture_never_claims_an_existing_directory(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from afterworlds.remote.control_orm import BackupInventoryORM
+
+    make_remote(remote_env).close()
+    existing = remote_env / "operator-files"
+    existing.mkdir()
+    (existing / "keep.txt").write_text("not a backup", encoding="utf-8")
+    assert storage_cli.main(["capture", "--to", str(existing)]) == 1
+    assert "already exists" in capsys.readouterr().err
+    assert [p.name for p in existing.iterdir()] == ["keep.txt"]
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    with control() as s:
+        assert s.query(BackupInventoryORM).count() == 0  # nothing to dispose
