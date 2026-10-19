@@ -73,36 +73,46 @@ an active ownership row is invisible and returns 404. No import, claim or reassi
 
 | Store | Holds | Authorized readers | Secret handling | Backup / restore | Expiry hook |
 |---|---|---|---|---|---|
-| Content SQLite + `-wal`/`-shm` | Narrative, RPG, entitlement, ownership | App process (O); operator under the store lock | No secrets | `storage_cli capture` (online backup API) → inventoried with capture time; `restore` → pending gate | Backups expire 21 days after original capture (`due`) |
+| Content SQLite + `-wal`/`-shm` | Narrative, RPG, entitlement, ownership | App process (O); operator under both store locks | No secrets | `storage_cli capture` inventories first, then copies (online backup API); `restore` → write-ahead `copying` → copied → verified | Backups expire 21 days after original capture (`due`) |
 | Control SQLite + journal | Identity, sessions, binding, audit, suppression, inventory | App process; bootstrap/storage operators | Verifiers only | **Not** restored with content; back it up separately under host controls (launch gate) | Session/recovery removal is CRD 22's erasure step |
-| Embedded Chroma directory | `story_memory` chunks, Rules corpus | App process; operator under lock | No secrets | Copied with each capture; restored with it | Per-Story delete + count-zero (ADR-018 D11) |
+| Embedded Chroma directory (bound by `afterworlds-deployment.json`, locked by `.afterworlds-serve.lock`) | `story_memory` chunks, Rules corpus | App process; operator under both locks | No secrets | Copied with each capture (required; a snapshot without its bound vector store cannot be restored); replaced with SQL on restore | Per-Story delete + count-zero (ADR-018 D11) |
 | Notice outbox directory | Pending enrollment/recovery codes | Operator relay only (files `0600`) | Codes are single-use, 15-minute | Never backed up | Operator removes delivered notices; replaced by a real processor before launch |
-| Turn-lease owner sidecars (`<db>.turn-owners/`), store lock (`<db>.serve.lock`) | Process liveness only | App process | None | Not backed up | Process lifetime |
+| Turn-lease owner sidecars (`<db>.turn-owners/`), store locks (`<db>.serve.lock`, vector `.afterworlds-serve.lock`) | Process liveness only | App process | None | Not backed up (the vector lock file is excluded from captures) | Process lifetime |
 | Browser | HttpOnly session cookie; last Story ID and drafts (cleared at sign-out) | The user | No authority | — | — |
 
 **Deadline support (D4):** `register_backup`/`copy_backup` keep `original_capture_at` and `expires_at`;
 `begin_restore` refuses a backup at or past 21 days, disposed, or with unverified coverage;
-`backup_disposition` lists every backup captured at or before a suppression's boundary until disposed,
-treats `inaccessible`/`unverified` entries as incomplete, and reports overdue at the overall 30-day limit
-from the confirmed request. CRD Issue 22 orchestrates the operations; the hooks prove the clocks.
+`backup_disposition` counts every backup that its capture did not prove clean of the suppression
+(`clean_suppression_ids`, inherited by copies) until disposed, treats `inaccessible`/`unverified`
+entries as incomplete, and reports overdue at the overall 30-day limit from the confirmed request.
+Capture refuses while suppressed content remains, so a post-boundary backup is clean only by proof,
+never by its timestamp. CRD Issue 22 orchestrates the operations; the hooks prove the clocks.
 
 ## 5. Topology
 
-One uvicorn worker process per content store (Binding Decision 8, ADR-021 D6). `create_app` holds an
-exclusive OS lock (`<db>.serve.lock`) for the process lifetime and releases it if startup is refused;
-a second process or a storage command fails while it is held. Per-Story turn locks, durable RPG leases
-(and their owner-process proof), entitlement idempotency and SQL/vector sequencing are therefore
-unchanged. Startup migration runs only after the fresh-store and restore-gate checks, inside the lock.
-Multiple workers, replicas or hosts are not enabled; they require a separately reviewed
-shared-coordination contract.
+One uvicorn worker process per deployment (Binding Decision 8, ADR-021 D6). `create_app` holds
+exclusive OS locks on the content store (`<db>.serve.lock`) and the bound vector store for the
+process lifetime and releases them if startup is refused; a second process, a storage command or the
+backfill job fails while they are held. Per-Story turn locks, durable RPG leases (and their
+owner-process proof), entitlement idempotency and SQL/vector sequencing are therefore unchanged.
+Startup migration runs only after the fresh-store, vector-binding and restore-gate checks, inside the
+locks. An in-process per-account fence orders request effects against closure (and CRD Issue 22
+suppression): requests hold it shared; closure takes it exclusive with a bounded wait
+(`close_fence_timeout`, 30 s) and returns `409 account_operation_in_progress` without changing
+anything if in-flight work does not finish. Multiple workers, replicas or hosts are not enabled; they
+require a separately reviewed shared-coordination contract.
 
-## 6. Delayed work
+## 6. Delayed work and owning-service scope
 
-Every delayed operation carries a `DelayedWorkScope` (account, Story, operation) rechecked when it runs:
-ownership, active account and no suppression (`AccessPolicy.check_delayed_work`). The only delayed job is
-`scripts/retrieval_backfill.py`; remotely it requires `--account-id` and exits `3` when refused. Deletion
-(`--mode delete`) needs only the owning account, because it enforces a suppression. Retrieval writes
-during a turn pass the same guard, so a turn finishing after closure or suppression cannot re-ingest.
+Remote effects run under a trusted `DelayedWorkScope` (account, Story, operation): set by the request
+after its session is revalidated under the fence, or explicitly by a job. The orchestrator, RPG action
+and Retrieval Memory seams recheck it at every call (`AccessPolicy.check_current`): owner = scope
+account, account active, Story unsuppressed. Unscoped, cross-account or mismatched-subject direct
+calls are refused before the service runs. The only delayed job is `scripts/retrieval_backfill.py`;
+remotely it requires `--account-id`, runs inside both store locks (so only while the app is stopped),
+refuses a pending restore, and every write rechecks the scope — a closure or suppression mid-job stops
+the remaining writes (exit `3`). Deletion (`--mode delete`) needs only the owning account, because it
+enforces a suppression.
 
 ## 7. Runbooks
 
@@ -131,19 +141,30 @@ account ID, ticket, Story ID or old session is never accepted as proof.
 
 ### Backup, restore and fence
 
-1. Stop the app. `python -m afterworlds.remote.storage_cli capture --to <dir>` (prints the backup ID).
-2. `... storage_cli due` lists backups at/after 21 days; `... storage_cli dispose --backup-id <id>` removes one and records its disposal.
+1. Stop the app (the commands need both store locks).
+   `python -m afterworlds.remote.storage_cli capture --to <dir>` prints the backup ID. It refuses while
+   a restore is pending or suppressed content is still present. The backup is inventoried
+   (`unverified`) before any copy and becomes `verified` only when both stores are copied; an
+   interrupted capture stays inventoried as unverified — dispose it and capture again to a new
+   directory.
+2. `... storage_cli due` lists backups at/after 21 days; `... storage_cli dispose --backup-id <id>`
+   removes the files, then records the disposal. Re-running after a lost record is safe; a path that
+   cannot be verified absent is marked `inaccessible` and the command fails.
 3. Restore: stop the app; `... storage_cli restore --backup-id <id>`. It is refused (exit 1, nothing
-   copied) unless the live entitlement ledger is a prefix of the snapshot's; otherwise the app now
-   refuses to start until step 4.
+   recorded or copied) unless the backup is verified and unexpired, its snapshot holds this
+   deployment's vector store, and the live entitlement ledger is a prefix of the snapshot's. The
+   restore is recorded `copying` before files change and marked copied only after both stores are
+   replaced. If it fails part-way the app stays fenced; run `restore` again (it supersedes the
+   unfinished attempt).
 4. Enforce every active deletion suppression (CRD Issue 22 supplies this), then
-   `... storage_cli verify-restore --restore-id <id>`; exit `2` lists suppressed Stories still present,
-   and an unavailable Chroma read fails rather than counting as zero. Only `verified` lets the app start.
+   `... storage_cli verify-restore --restore-id <id>`. It refuses an unfinished copy; exit `2` lists
+   suppressed Stories still present, and an unavailable Chroma read fails rather than counting as zero.
+   Only `verified` lets the app start.
 5. Revoked sessions, closures and suppressions survive because they live in the control store.
-6. `verify-restore` checks every content table with a `story_id` column and the story-memory chunk
-   count for each suppressed Story (account-scope instructions expand to every Story the account ever
-   owned). Turns orphaned by `SET NULL` carry no `story_id`; CRD Issue 22's enforcer removes them from
-   its pre-detachment inventory before verification.
+6. Verification checks every content table with a `story_id` column and the story-memory chunk count
+   for each suppressed Story (account-scope instructions expand to every Story the account ever owned).
+   Turns orphaned by `SET NULL` carry no `story_id`; CRD Issue 22 takes the pre-detachment inventory
+   (`remote.inventory.account_inventory`) and disposes of them before verification.
 
 ## 8. Open launch gates (not implemented claims)
 

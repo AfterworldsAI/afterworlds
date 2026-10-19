@@ -635,6 +635,10 @@ export interface paths {
          * Close Account
          * @description Remote self-service closure (prerequisite #205 §1): re-authenticate,
          *     close, revoke every session. Erasure and export are CRD Issue 22's.
+         *
+         *     Closure holds the account's fence exclusive: it waits (bounded) for the
+         *     account's in-flight requests, so none of their effects can land after it
+         *     returns; on timeout nothing changes and the typed error says so.
          */
         post: operations["close_account_api_account_close_post"];
         delete?: never;
@@ -792,7 +796,7 @@ export interface components {
          * ApiErrorCode
          * @enum {string}
          */
-        ApiErrorCode: "not_found" | "validation_failed" | "entitlement_blocked" | "byok_credentials_required" | "turn_in_flight" | "setup_required" | "setup_state_conflict" | "mode_unavailable" | "internal_error" | "pending_roll_not_found" | "pending_roll_not_player_visible" | "pending_roll_already_consumed" | "pending_roll_revision_mismatch" | "pending_roll_term_mismatch" | "pending_roll_invalid_value" | "pending_roll_invalid_aggregate" | "action_sequence_not_found" | "action_sequence_already_completed" | "action_sequence_state_conflict" | "action_adjustment_not_allowed" | "action_adjustment_ineligible" | "mechanical_decision_invalid" | "mechanical_decision_revision_mismatch" | "sequence_not_ready_for_narration" | "credential_store_read_only" | "credential_store_unavailable" | "credential_settings_unavailable" | "credential_not_configured" | "credential_validation_superseded" | "credential_validation_unavailable" | "authentication_required" | "authentication_failed" | "staff_authority_required" | "request_origin_rejected" | "byok_local_only" | "deployment_route_unavailable" | "identity_unavailable";
+        ApiErrorCode: "not_found" | "validation_failed" | "entitlement_blocked" | "byok_credentials_required" | "turn_in_flight" | "setup_required" | "setup_state_conflict" | "mode_unavailable" | "internal_error" | "pending_roll_not_found" | "pending_roll_not_player_visible" | "pending_roll_already_consumed" | "pending_roll_revision_mismatch" | "pending_roll_term_mismatch" | "pending_roll_invalid_value" | "pending_roll_invalid_aggregate" | "action_sequence_not_found" | "action_sequence_already_completed" | "action_sequence_state_conflict" | "action_adjustment_not_allowed" | "action_adjustment_ineligible" | "mechanical_decision_invalid" | "mechanical_decision_revision_mismatch" | "sequence_not_ready_for_narration" | "credential_store_read_only" | "credential_store_unavailable" | "credential_settings_unavailable" | "credential_not_configured" | "credential_validation_superseded" | "credential_validation_unavailable" | "authentication_required" | "authentication_failed" | "staff_authority_required" | "request_origin_rejected" | "byok_local_only" | "deployment_route_unavailable" | "identity_unavailable" | "account_operation_in_progress";
         /**
          * BeginStoryResponse
          * @description ``POST .../begin`` (ADR-016b). ``started``: the opening was delivered
@@ -4641,6 +4645,15 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

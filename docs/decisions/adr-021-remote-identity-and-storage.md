@@ -60,6 +60,13 @@ store:
   directory. Selecting a real email processor is an open launch gate (package contract
   "Processors and storage"); remote mode refuses to start without a configured transport.
 
+- **Concurrency:** every identity transition that decides on stored state (registration, enrollment,
+  sign-in session issuance, recovery, closure, staff revocation, bootstrap) runs under SQLite's write
+  lock (`BEGIN IMMEDIATE`); scrypt runs outside it, and sign-in issues a session only if the verifier
+  it proved is unchanged. An old-password sign-in racing recovery cannot mint a session, and a
+  recovery code is consumed exactly once. Service methods that take an `Actor` revalidate its stored
+  session (current, right context, binding active for staff); Actor fields are never trusted.
+
 ### D3. Sole Owner administrator and distinct staff context
 
 The only path to staff authority is the server-side bootstrap command
@@ -102,17 +109,29 @@ preserved by D6.
 ### D6. Topology: one writer process
 
 Remote mode retains the single-uvicorn-worker envelope (Binding Decision 8). `create_app()` holds an
-exclusive OS lock on the content store for the process lifetime; a second app process, or the
-restore command while the app runs, fails to start. Per-Story turn locks, RPG lease recovery and
-entitlement idempotency are therefore unchanged. Multiple workers, replicas or hosts remain
-unauthorized until a separately reviewed shared-coordination contract exists.
+exclusive OS lock on the content store **and** on the bound vector store for the process lifetime
+(released if startup is refused); a second app process, a storage command or the backfill job fails
+while they are held. Per-Story turn locks, RPG lease recovery and entitlement idempotency are
+therefore unchanged. Because the writer is one process, an in-process per-account fence
+(`AccountFence`) orders effects against closure and suppression: every remote Sojourner request
+holds its account's fence shared for its whole handler and revalidates its session under it;
+closure (and CRD Issue 22 suppression) take it exclusive with a bounded wait, admitting no new
+request meanwhile and changing nothing on timeout. No effect of an admitted request can land after
+closure returns. Multiple workers, replicas or hosts remain unauthorized until a separately reviewed
+shared-coordination contract exists (the fence would then need a shared equivalent).
 
 ### D7. Fresh remote stores and unknown ownership
 
 A remote deployment initializes only an empty content store, or one already carrying the remote
 marker that matches its control store. A store with a `sojourner_identity` row, Stories, entitlement
-events or no matching marker is refused **before** migration. No import, claim or reassignment
-path exists. Rows without an active ownership mapping are invisible and inaccessible.
+events or no matching marker is refused **before** migration. The vector directory is held to the
+same rule: it must be absent/empty (then bound to the deployment by a marker file) or carry this
+deployment's marker; an unmarked, foreign or missing vector store is refused untouched and never
+adopted. A fresh deployment therefore starts without shared Rules corpus vectors, which are ingested
+through the existing publication path. No import, claim or reassignment path exists. Rows without
+an active ownership mapping are invisible and inaccessible. Account-wide enumeration survives parent
+detachment through `account_resources`; Turn IDs are captured by the pre-detachment inventory seam
+(`remote.inventory`), and no ordinary path detaches Story children.
 
 ### D8. Authorization
 
@@ -124,18 +143,22 @@ path exists. Rows without an active ownership mapping are invisible and inaccess
 - Every `/api/stories/{story_id}` route authorizes the actor against the ownership map before any
   read, mutation, provider call or vector operation; a foreign or unknown Story is the same `404`.
   Child identifiers (pending roll, sequence) are resolved only within the authorized Story.
-- Retrieval Memory reads, writes, reindex and delete pass through an ownership guard that refuses a
-  Story without an active mapping to an active account, or under suppression, before the existing
-  `story_id` filter.
-- Delayed work carries an explicit `DelayedWorkScope` (account, Story, operation) rechecked when it
-  executes. The only delayed job today is `scripts/retrieval_backfill.py`; no product websocket,
+- Remote effects run under a trusted `DelayedWorkScope` (account, Story, operation) carried in a
+  context variable that `asyncio.to_thread`/anyio copy into worker threads. The orchestrator, RPG
+  action and Retrieval Memory seams recheck it at each call: the scope's account must own the Story,
+  be active, and the Story must be unsuppressed. A direct remote call with no scope, another
+  account's scope or a mismatched entitlement subject is refused before the service runs.
+- Delayed work carries the same explicit scope, rechecked at every write. The only delayed job today
+  is `scripts/retrieval_backfill.py`; it runs inside both store locks, refuses a pending restore, and
+  a closure or suppression mid-job stops its remaining writes. No product websocket,
   stream, upload/download, export artifact endpoint or account-scoped cache exists. Any later one
   inherits this boundary.
 
 ### D9. Local BYOK separation
 
-In remote mode no credential store (keychain or environment) is constructed and BYOK readiness is
-never probed: access-path selection treats BYOK as not runnable on the server. The local key-write,
+In remote mode no credential store (keychain or environment) is constructed — the provider
+resolver receives a store that holds nothing and refuses writes, so BYOK resolution below HTTP
+access selection fails closed — and BYOK readiness is never probed: access-path selection treats BYOK as not runnable on the server. The local key-write,
 validation and settings routes return `409 byok_local_only` before reading the body's key. The
 account view reports `byok_readiness_source = "unavailable_remotely"` with only source-bound licence
 state. Local installations are unchanged and need no account.
@@ -144,11 +167,26 @@ state. Local installations are unchanged and need no account.
 
 The control store accepts authoritative deletion-suppression instructions (the matrix's suppression
 record) and keeps a backup inventory with original capture time, which copies and restores
-preserve. A restore is recorded as pending; the app refuses to start until every active suppression
-has been enforced against the restored content and Chroma stores and verified (no suppressed Story
-row, zero story-memory chunks). Suppressed Stories are also denied by the ownership guard at all
-times. CRD Issue 22 supplies the operational suppression records and deletion orchestration; the
-prerequisite proves the hooks with a disposable enforcer fixture.
+preserve. Every maintenance step records its state before touching files:
+
+- **Capture** refuses while a restore is pending or any suppressed content is still present in
+  either store, inventories the backup (`unverified`, original capture time, the suppressions it
+  proved absent) before copying, and marks it `verified` only after both stores are copied. Backup
+  coverage is proof-based: a backup counts against a suppression unless its capture proved that
+  content absent; capture time alone proves nothing.
+- **Restore** checks the snapshot's bound vector store and entitlement-ledger continuity, records a
+  `copying` restore before touching files (superseding any unfinished one), replaces both stores and
+  only then marks it copied. The app refuses to start while any restore is unfinished, and
+  verification refuses a restore whose copy did not finish — an absence of suppression targets is
+  never evidence of a successful restore.
+- **Verification** proves every active suppression holds (no `story_id`-bearing content row, zero
+  story-memory chunks; an unavailable read fails).
+- **Disposal** removes files, then records; a retry records a verifiably absent path, and an
+  unverifiable one is marked `inaccessible`.
+
+Suppressed Stories are also denied by the ownership guard at all times. CRD Issue 22 supplies the
+operational suppression records and deletion orchestration; the prerequisite proves the hooks with a
+disposable enforcer fixture.
 
 ## Consequences
 
