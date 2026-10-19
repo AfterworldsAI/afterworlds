@@ -65,6 +65,9 @@ _UNFINISHED_RESTORE = ("copying", "pending_enforcement")
 VECTOR_MARKER = "afterworlds-deployment.json"
 VECTOR_LOCK = ".afterworlds-serve.lock"
 SNAPSHOT_VECTOR_DIR = "chroma"
+#: The snapshot's content SQLite, at a reserved name independent of the live
+#: database's basename (which may itself be ``chroma``).
+SNAPSHOT_CONTENT_FILE = "content.sqlite3"
 
 
 class StoreRefused(RuntimeError):
@@ -401,6 +404,15 @@ def backup_disposition(
     )
 
 
+def _snapshot_sql(locator: Path, live_database: Path) -> Path | None:
+    """The snapshot's content SQLite file: the reserved name, or -- for
+    snapshots captured before it existed -- the live database's basename."""
+    for candidate in (locator / SNAPSHOT_CONTENT_FILE, locator / live_database.name):
+        if candidate.is_file():
+            return candidate
+    return None
+
+
 def capture_preconditions(
     control: sessionmaker[Session],
     content: sessionmaker[Session],
@@ -456,11 +468,12 @@ def begin_restore(
         bound = s.get(DeploymentMarkerORM, 1)
     if bound is None or store_id != bound.content_store_id:
         raise StoreRefused("the backup belongs to a different deployment")
+    snapshot_sql = _snapshot_sql(locator, live_database)
     if read_vector_marker(locator / SNAPSHOT_VECTOR_DIR) != store_id:
         raise StoreRefused("the backup's vector snapshot is missing or not bound")
-    if _content_marker(locator / live_database.name) != store_id:
+    if snapshot_sql is None or _content_marker(snapshot_sql) != store_id:
         raise StoreRefused("the backup's content snapshot is missing or not bound")
-    check_ledger_continuity(live_database, locator / live_database.name)
+    check_ledger_continuity(live_database, snapshot_sql)
     restore_id = str(uuid4())
     with control.begin() as s:
         for old in s.scalars(
@@ -1200,7 +1213,7 @@ def capture_snapshot(
     )
     with (
         closing(sqlite3.connect(database_path)) as src,
-        closing(sqlite3.connect(target / database_path.name)) as dst,
+        closing(sqlite3.connect(target / SNAPSHOT_CONTENT_FILE)) as dst,
     ):
         src.backup(dst)
     shutil.copytree(
@@ -1256,7 +1269,9 @@ def restore_snapshot(
         with closing(sqlite3.connect(database_path)) as conn:
             conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
     staged = database_path.with_name(database_path.name + ".restoring")
-    shutil.copyfile(source / database_path.name, staged)
+    snapshot_sql = _snapshot_sql(source, database_path)
+    assert snapshot_sql is not None  # begin_restore validated it
+    shutil.copyfile(snapshot_sql, staged)
     os.replace(staged, database_path)
     for suffix in ("-wal", "-shm"):
         database_path.with_name(database_path.name + suffix).unlink(missing_ok=True)

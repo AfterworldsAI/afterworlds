@@ -19,7 +19,11 @@ from afterworlds.persistence.crud.story import delete_story
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.remote import storage_cli
 from afterworlds.remote.control_store import open_control_store
-from afterworlds.remote.storage import StoreRefused, record_suppression
+from afterworlds.remote.storage import (
+    SNAPSHOT_CONTENT_FILE,
+    StoreRefused,
+    record_suppression,
+)
 from tests.api._remote import make_remote, remote_settings
 
 
@@ -214,7 +218,7 @@ def test_an_interrupted_capture_stays_inventoried_and_unverified(
         [row] = s.query(BackupInventoryORM).all()
         assert row.verification_status == "unverified"
         assert Path(row.storage_locator) == remote_env / "b1"
-        assert (remote_env / "b1" / "content.db").exists()
+        assert (remote_env / "b1" / SNAPSHOT_CONTENT_FILE).exists()
         partial = row.backup_id
     # It can neither be restored nor counted as clean, and a retry works.
     assert storage_cli.main(["restore", "--backup-id", partial]) == 1
@@ -486,7 +490,7 @@ def test_an_interrupted_sql_replacement_never_leaves_a_partial_store(
     h.close()
     code, backup_id = _run(capsys, "capture", "--to", str(remote_env / "b1"))
     assert code == 0
-    snapshot_ledger = _ledger_rows(remote_env / "b1" / "content.db")
+    snapshot_ledger = _ledger_rows(remote_env / "b1" / SNAPSHOT_CONTENT_FILE)
     live = remote_env / "content.db"
     assert _ledger_rows(live) == snapshot_ledger
 
@@ -1317,3 +1321,72 @@ def test_register_copy_and_restore_refuse_public_locations(
     # With a safe public root the same restore runs.
     monkeypatch.setenv("AFTERWORLDS_FRONTEND_DIST", str(dist))
     assert _run(capsys, "restore", "--backup-id", backup)[0] == 0
+
+
+# -- review 5574610859: snapshot layout independent of the live basename ----
+
+
+def test_a_content_store_named_chroma_captures_restores_and_verifies(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """r4316274742: a live SQLite named ``chroma`` no longer collides with
+    the snapshot's vector directory."""
+    from afterworlds.api.config import ApiSettings
+    from afterworlds.remote.storage import SNAPSHOT_VECTOR_DIR, read_vector_marker
+    from tests.api._remote import RemoteHarness
+
+    data = remote_env / "data"
+    data.mkdir()
+    url = f"sqlite:///{data / 'chroma'}"
+    settings = ApiSettings(
+        **{**remote_settings(remote_env).__dict__, "database_url": url}
+    )
+    monkeypatch.setenv("AFTERWORLDS_DATABASE_URL", url)
+    RemoteHarness(
+        app=create_app(settings), settings=settings, tmp_path=remote_env
+    ).close()
+
+    code, backup = _run(capsys, "capture", "--to", str(remote_env / "b1"))
+    assert code == 0, backup
+    row = _inventory_row(remote_env, backup)
+    assert row.verification_status == "verified"
+    snapshot = remote_env / "b1"
+    assert (snapshot / SNAPSHOT_CONTENT_FILE).is_file()
+    assert read_vector_marker(snapshot / SNAPSHOT_VECTOR_DIR) == row.store_id
+    code, restore_id = _run(capsys, "restore", "--backup-id", backup)
+    assert code == 0, restore_id
+    assert _run(capsys, "verify-restore", "--restore-id", restore_id) == (0, "verified")
+    RemoteHarness(
+        app=create_app(settings), settings=settings, tmp_path=remote_env
+    ).close()
+    assert (
+        _inventory_row(remote_env, backup).original_capture_at
+        == row.original_capture_at
+    )
+
+
+def test_snapshots_in_the_earlier_layout_stay_restorable(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A snapshot captured before the reserved name (SQL at the live
+    basename) is still validated, ledger-checked and restored; a snapshot with
+    no SQL file is refused before any restore state."""
+    from afterworlds.remote.control_orm import RestoreRecordORM
+
+    make_remote(remote_env).close()
+    code, legacy = _run(capsys, "capture", "--to", str(remote_env / "b1"))
+    code, missing = _run(capsys, "capture", "--to", str(remote_env / "b2"))
+    (remote_env / "b1" / SNAPSHOT_CONTENT_FILE).rename(remote_env / "b1" / "content.db")
+    (remote_env / "b2" / SNAPSHOT_CONTENT_FILE).unlink()
+
+    assert storage_cli.main(["restore", "--backup-id", missing]) == 1
+    assert "content snapshot is missing" in capsys.readouterr().err
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    with control() as s:
+        assert s.query(RestoreRecordORM).count() == 0
+    code, restore_id = _run(capsys, "restore", "--backup-id", legacy)
+    assert code == 0, restore_id
+    assert _run(capsys, "verify-restore", "--restore-id", restore_id) == (0, "verified")
+    make_remote(remote_env).close()

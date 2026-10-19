@@ -184,7 +184,8 @@ then select the package during setup. The local `reset_corpus_baseline.py` remai
    directory. Locators are recorded as absolute, symlink-resolved paths (a relative `--to` is fixed
    against the directory it was given in), and a location belongs to at most one undisposed backup:
    capture and copy refuse a location an undisposed backup still holds, including after a disposal
-   whose record was lost, until that disposal is recorded. A target inside (or around) the live vector store is refused before anything is created.
+   whose record was lost, until that disposal is recorded. A snapshot holds the content store as `content.sqlite3` and the vectors as `chroma/` (reserved names, whatever the live database is called);
+   snapshots captured earlier with the SQL file under the live database's name remain restorable. A target inside (or around) the live vector store is refused before anything is created.
 2. `due` and `dispose` need only both locks and the control binding, so backups can still be
    expired while a live store is damaged. `... storage_cli due` lists backups at/after 21 days; `... storage_cli dispose --backup-id <id>`
    removes the files, then records the disposal. Re-running after a lost record is safe; a path that
