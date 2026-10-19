@@ -139,7 +139,7 @@ gone while the durable ownership mapping remains (the same is true of local `--m
    `python -m afterworlds.remote.bootstrap --contact-address <owner address>`; enter the Owner's
    password at the prompt (never on the command line).
 3. Expected: `owner administrator: provisioned`. A re-run prints `already_provisioned`; any other
-   principal is refused (exit 1). Each attempt is an `identity_audit_events` row.
+   principal is refused (exit 1). Each attempt is an `identity_audit_events` row (`owner_admin_bootstrap`), committed before the command reports: a refusal before the identity is proven (malformed address, unknown or unverified principal, wrong password, inactive account) is recorded with `actor_ref = unauthenticated` and a reason code only -- never the address or any credential. If the receipt cannot be committed the command exits 2 and nothing is provisioned.
 4. The Owner signs in to staff context via `POST /api/admin/session` (separate from ordinary sign-in).
 
 ### Account recovery

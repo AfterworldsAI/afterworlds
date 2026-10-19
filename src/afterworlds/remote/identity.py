@@ -126,6 +126,11 @@ def _check_password(password: str) -> None:
         )
 
 
+#: ``actor_ref`` of a receipt whose submitted identity was never proven: an
+#: opaque system value, never a principal reference or anything address-derived.
+UNAUTHENTICATED_ACTOR = "unauthenticated"
+
+
 def _failed() -> IdentityError:
     return IdentityError(
         IdentityErrorKind.AUTHENTICATION_FAILED, "Authentication failed."
@@ -526,9 +531,19 @@ class IdentityService:
         The principal must re-authenticate and have a verified address and an
         active account. Idempotent for that principal; refuses any other while
         an active binding exists. No HTTP route reaches this method.
+
+        Every attempt leaves a committed receipt. A refusal before the
+        submitted identity is proven is recorded as ``UNAUTHENTICATED_ACTOR``
+        with a reason code only -- never the address or any credential -- and
+        committed before the typed refusal is raised; if the receipt cannot be
+        committed the store error propagates instead, and nothing is granted.
         """
-        address = normalize_address(contact_address)
         now = self._now()
+        try:
+            address = normalize_address(contact_address)
+        except IdentityError:
+            self._refuse_bootstrap(now, "invalid_input")
+            raise
         with self._locked() as s:
             principal = s.scalar(
                 sa.select(IdentityPrincipalORM).where(
@@ -541,6 +556,8 @@ class IdentityService:
                 or principal is None
                 or self._active_account(s, principal) is None
             ):
+                self._audit_unauthenticated_bootstrap(s, now, "authentication_failed")
+                s.commit()
                 raise _failed()
             existing = s.scalar(
                 sa.select(AdminBindingORM).where(
@@ -591,6 +608,23 @@ class IdentityService:
         return BootstrapOutcome.PROVISIONED
 
     # -- internals ---------------------------------------------------------
+
+    def _refuse_bootstrap(self, now: datetime, reason_code: str) -> None:
+        with self._locked() as s:
+            self._audit_unauthenticated_bootstrap(s, now, reason_code)
+
+    @classmethod
+    def _audit_unauthenticated_bootstrap(
+        cls, s: Session, now: datetime, reason_code: str
+    ) -> None:
+        cls._audit(
+            s,
+            actor_ref=UNAUTHENTICATED_ACTOR,
+            action_code="owner_admin_bootstrap",
+            reason_code=reason_code,
+            outcome_code="refused",
+            now=now,
+        )
 
     @contextmanager
     def _locked(self) -> Iterator[Session]:

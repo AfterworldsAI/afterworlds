@@ -18,6 +18,8 @@ import getpass
 import os
 import sys
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from afterworlds.remote.control_store import open_control_store
 from afterworlds.remote.identity import IdentityError, IdentityService
 
@@ -50,6 +52,15 @@ def main(argv: list[str] | None = None) -> int:
     except IdentityError as exc:
         print(f"bootstrap refused: {exc}", file=sys.stderr)
         return 1
+    except SQLAlchemyError:
+        # Fail closed without the driver's text (it can carry the address):
+        # the attempt was neither recorded nor granted.
+        print(
+            "bootstrap failed: the control store could not record the attempt; "
+            "nothing was provisioned",
+            file=sys.stderr,
+        )
+        return 2
     print(f"owner administrator: {outcome.value}")
     return 0
 

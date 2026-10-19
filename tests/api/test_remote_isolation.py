@@ -277,6 +277,136 @@ class TestAdministrator:
         )
         assert staff.get(f"/api/admin/accounts/{uuid.uuid4()}").status_code == 404
 
+    def _bootstrap_receipts(self, remote: RemoteHarness) -> list[tuple[str, ...]]:
+        with remote.app.state.control_factory() as s:  # a fresh session
+            return [
+                (
+                    r.actor_ref,
+                    r.outcome_code,
+                    str(r.reason_code),
+                    str(r.target_ref),
+                    str(r.reason_text),
+                )
+                for r in s.scalars(
+                    sa.select(IdentityAuditEventORM)
+                    .where(IdentityAuditEventORM.action_code == "owner_admin_bootstrap")
+                    .order_by(IdentityAuditEventORM.event_order)
+                )
+            ]
+
+    def test_bootstrap_refusals_leave_minimized_receipts(
+        self, remote: RemoteHarness, capsys: pytest.CaptureFixture[str]
+    ) -> None:
+        import hashlib
+        import sqlite3
+        from contextlib import closing
+
+        from afterworlds.remote.control_orm import AdminBindingORM, AuthSessionORM
+        from afterworlds.remote.identity import UNAUTHENTICATED_ACTOR, SessionContext
+
+        remote.enroll("owner@example.test")
+        closed = remote.enroll("closed@example.test")
+        assert closed.post("/api/account/close", json={"password": PASSWORD}).is_success
+        remote.client().post(
+            "/api/auth/register", json={"contact_address": "unverified@example.test"}
+        )
+        capsys.readouterr()
+        refusals = [
+            ("not-an-address-zq7marker", PASSWORD),
+            ("ghost-zq7marker@example.test", PASSWORD),
+            ("owner@example.test", "wrong-zq7marker-passphrase"),
+            ("unverified@example.test", PASSWORD),
+            ("closed@example.test", PASSWORD),
+        ]
+        for address, password in refusals:
+            assert self._bootstrap(remote, address, password) == 1
+        out = capsys.readouterr()
+        assert "zq7marker" not in out.out + out.err
+        assert "@" not in out.out + out.err
+
+        # Durable after the raise, unauthenticated, codes only.
+        assert (
+            self._bootstrap_receipts(remote)
+            == [(UNAUTHENTICATED_ACTOR, "refused", "invalid_input", "None", "None")]
+            + [
+                (
+                    UNAUTHENTICATED_ACTOR,
+                    "refused",
+                    "authentication_failed",
+                    "None",
+                    "None",
+                )
+            ]
+            * 4
+        )
+        url = remote.settings.control_database_url
+        assert url is not None
+        with closing(sqlite3.connect(url.removeprefix("sqlite:///"))) as db:
+            dump = "\n".join(db.iterdump()).lower()
+        assert "zq7marker" not in dump
+        ghost = hashlib.sha256(b"ghost-zq7marker@example.test").hexdigest()
+        assert ghost not in dump
+        # No authority was granted by any refusal.
+        with remote.app.state.control_factory() as s:
+            assert (
+                s.scalar(sa.select(sa.func.count()).select_from(AdminBindingORM)) == 0
+            )
+            assert (
+                s.scalar(
+                    sa.select(sa.func.count())
+                    .select_from(AuthSessionORM)
+                    .where(AuthSessionORM.context == SessionContext.STAFF.value)
+                )
+                == 0
+            )
+
+        # Success, repetition and another principal keep their receipts.
+        assert self._bootstrap(remote, "owner@example.test", PASSWORD) == 0
+        assert self._bootstrap(remote, "owner@example.test", PASSWORD) == 0
+        remote.enroll("b@example.test")
+        assert self._bootstrap(remote, "b@example.test", PASSWORD) == 1
+        tail = self._bootstrap_receipts(remote)[5:]
+        assert [(r[1], r[3] != "None") for r in tail] == [
+            ("provisioned", True),
+            ("already_provisioned", True),
+            ("refused", True),
+        ]
+        assert all(r[0] != UNAUTHENTICATED_ACTOR for r in tail)
+
+    def test_bootstrap_grants_nothing_without_its_receipt(
+        self,
+        remote: RemoteHarness,
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        from sqlalchemy.exc import OperationalError
+
+        from afterworlds.remote.control_orm import AdminBindingORM
+        from afterworlds.remote.identity import IdentityService
+
+        remote.enroll("owner@example.test")
+
+        def broken(*_a: object, **_k: object) -> None:
+            raise OperationalError(
+                "INSERT owner@example.test", {}, Exception("disk full")
+            )
+
+        capsys.readouterr()
+        with monkeypatch.context() as m:
+            m.setattr(IdentityService, "_audit", staticmethod(broken))
+            # Neither a success nor a refusal is reported without its receipt.
+            assert self._bootstrap(remote, "owner@example.test", PASSWORD) == 2
+            assert self._bootstrap(remote, "owner@example.test", "wrong pass!") == 2
+            assert self._bootstrap(remote, "not-an-address", PASSWORD) == 2
+        out = capsys.readouterr()
+        assert "@" not in out.out + out.err and "disk full" not in out.err
+        assert "owner administrator" not in out.out
+        assert self._bootstrap_receipts(remote) == []
+        with remote.app.state.control_factory() as s:
+            assert (
+                s.scalar(sa.select(sa.func.count()).select_from(AdminBindingORM)) == 0
+            )
+
     def test_targeted_revocation_is_reasoned_and_audited(
         self, remote: RemoteHarness
     ) -> None:
