@@ -25,6 +25,7 @@ import json
 import os
 import shutil
 import sqlite3
+import stat
 from collections.abc import Callable, Iterable, Iterator
 from contextlib import closing, contextmanager, suppress
 from dataclasses import dataclass
@@ -176,6 +177,49 @@ class _UnprovenBackup(Exception):
     the inventoried backup."""
 
 
+def _is_redirect(info: os.stat_result) -> bool:
+    """A symbolic link, or (Windows) any reparse point such as a junction."""
+    reparse = getattr(info, "st_file_attributes", 0) & stat.FILE_ATTRIBUTE_REPARSE_POINT
+    return stat.S_ISLNK(info.st_mode) or bool(reparse)
+
+
+def _owned_dir(path: Path) -> bool:
+    """Whether *path* is an actual directory entry, inspected without
+    following it: ``False`` only when nothing is there. A link or junction --
+    dangling or not -- or any non-directory raises :class:`_UnprovenBackup`:
+    redirection is neither the owned directory nor absence."""
+    try:
+        info = os.lstat(path)
+    except FileNotFoundError:
+        return False
+    if _is_redirect(info) or not stat.S_ISDIR(info.st_mode):
+        raise _UnprovenBackup
+    return True
+
+
+def _read_owned_json(path: Path) -> object:
+    """JSON from *path* only if it is an actual regular file (not followed);
+    ``None`` otherwise -- metadata borrowed through a link proves nothing."""
+    try:
+        info = os.lstat(path)
+        if _is_redirect(info) or not stat.S_ISREG(info.st_mode):
+            return None
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def _write_atomic(path: Path, text: str) -> None:
+    """Publish *text* at *path* through a fresh temporary file: a stale temp,
+    or a link planted at its name, is removed -- never written through."""
+    temp = path.with_name(path.name + ".tmp")
+    with suppress(FileNotFoundError):
+        os.unlink(temp)
+    with open(temp, "x", encoding="utf-8") as f:
+        f.write(text)
+    os.replace(temp, path)  # replaces a link at *path* itself, never its target
+
+
 def _witness_path(locator: Path, token: str) -> Path:
     """The backup's namespace witness: beside it on the same parent, outside
     its tree, so it survives the tree's removal."""
@@ -185,10 +229,7 @@ def _witness_path(locator: Path, token: str) -> Path:
 def _read_witness_record(locator: Path, token: str) -> dict[str, object] | None:
     """This backup's witness record, or ``None`` if absent, unreadable or
     another backup's."""
-    try:
-        data = json.loads(_witness_path(locator, token).read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return None
+    data = _read_owned_json(_witness_path(locator, token))
     if (
         isinstance(data, dict)
         and data.get("storage_token") == token
@@ -218,13 +259,10 @@ def _witness_moved(locator: Path, token: str, namespace: str) -> bool:
 def _write_witness(
     locator: Path, token: str, namespace: str, *, moved: bool = False
 ) -> None:
-    path = _witness_path(locator, token)
-    temp = path.with_name(path.name + ".tmp")
-    temp.write_text(
+    _write_atomic(
+        _witness_path(locator, token),
         json.dumps({"storage_token": token, "namespace": namespace, "moved": moved}),
-        encoding="utf-8",
     )
-    os.replace(temp, path)
 
 
 def _admit_witness(locator: Path, token: str, namespace: str) -> None:
@@ -238,7 +276,7 @@ def _admit_witness(locator: Path, token: str, namespace: str) -> None:
     if present == namespace:
         return
     path = _witness_path(locator, token)
-    if present is not None or path.exists():
+    if present is not None or os.path.lexists(path):
         raise StoreRefused(f"{path} already exists and is not this backup's")
     _write_witness(locator, token, namespace)
 
@@ -267,7 +305,7 @@ def _claim_backup_paths(
     paths = _backup_paths(locator, token)
     for path in paths:
         _claim_locator(s, path)
-    if Path(paths[2]).exists():
+    if os.path.lexists(paths[2]):  # a link there, dangling or not, occupies it
         raise StoreRefused(f"{paths[2]} already exists")
     refuse_public_overlap(public_root, [(p, "a backup location") for p in paths])
 
@@ -285,17 +323,19 @@ def _backup_paths(locator: str, token: str) -> list[str]:
 def _write_identity(target: Path, token: str, **provenance: str) -> None:
     """Write the backup directory *target*'s physical identity -- *token*,
     plus any copy provenance -- atomically into it."""
-    temp = target / (BACKUP_IDENTITY_FILE + ".tmp")
-    temp.write_text(
-        json.dumps({"storage_token": token, **provenance}), encoding="utf-8"
+    _write_atomic(
+        target / BACKUP_IDENTITY_FILE,
+        json.dumps({"storage_token": token, **provenance}),
     )
-    os.replace(temp, target / BACKUP_IDENTITY_FILE)
 
 
-def stamp_storage_identity(target: Path, token: str) -> str:
-    """Admit a freshly created backup directory *target* (capture): a new
-    namespace witness beside it, then its identity. Returns the namespace."""
-    namespace = str(uuid4())
+def stamp_storage_identity(
+    target: Path, token: str, namespace: str | None = None
+) -> str:
+    """Admit a freshly created backup directory *target* (capture): its
+    namespace witness beside it (with the namespace already inventoried, or a
+    new one), then its identity. Returns the namespace."""
+    namespace = namespace or str(uuid4())
     _admit_witness(target, token, namespace)
     _write_identity(target, token)
     return namespace
@@ -307,20 +347,34 @@ def _remove_identity_last(path: Path) -> None:
     for child in path.iterdir():
         if child.name == BACKUP_IDENTITY_FILE:
             continue
-        if child.is_dir() and not child.is_symlink():
+        info = os.lstat(child)
+        if stat.S_ISDIR(info.st_mode) and not _is_redirect(info):
             shutil.rmtree(child)
         else:
-            child.unlink()
+            # A file, link or junction: remove the entry only, never its target.
+            try:
+                child.unlink()
+            except (IsADirectoryError, PermissionError):
+                os.rmdir(child)  # a directory link or junction (Windows)
     (path / BACKUP_IDENTITY_FILE).unlink(missing_ok=True)
     path.rmdir()
 
 
 def _read_identity(locator: Path) -> dict[str, str] | None:
-    """A backup root's identity file, or ``None`` if absent/unreadable."""
+    """A backup root's identity file, or ``None`` if absent, unreadable or
+    not an actual file (a linked identity is borrowed, not owned)."""
+    data = _read_owned_json(locator / BACKUP_IDENTITY_FILE)
+    if not isinstance(data, dict):
+        return None
+    return {str(k): str(v) for k, v in data.items()}
+
+
+def _owned_identity(root: Path) -> dict[str, str] | None:
+    """The identity of an actual directory at *root* (not followed); ``None``
+    when absent, redirected (a link or junction) or unreadable."""
     try:
-        data = json.loads((locator / BACKUP_IDENTITY_FILE).read_text(encoding="utf-8"))
-        return {str(k): str(v) for k, v in data.items()}
-    except (OSError, ValueError, AttributeError):
+        return _read_identity(root) if _owned_dir(root) else None
+    except (_UnprovenBackup, OSError):
         return None
 
 
@@ -536,7 +590,7 @@ def _complete_copy(control: sessionmaker[Session], copy_id: str) -> None:
         namespace = row.storage_namespace
         admitting = False
         if namespace is None:
-            found = _read_identity(destination) if destination.is_dir() else None
+            found = _owned_identity(destination)
             if found is None or found.get("storage_token") != source_token:
                 return  # nothing admitted and no evidence: a later retry may admit
             namespace = row.storage_namespace = str(uuid4())
@@ -557,7 +611,7 @@ def _complete_copy(control: sessionmaker[Session], copy_id: str) -> None:
             _admit_witness(destination, token, namespace)
         elif witnessed != namespace:
             return  # foreign evidence
-        found = _read_identity(destination) if destination.is_dir() else None
+        found = _owned_identity(destination)
         if found != {"storage_token": token, **provenance}:
             if found is None or found.get("storage_token") != source_token:
                 return  # foreign, copied from elsewhere, or unavailable
@@ -1542,10 +1596,14 @@ def capture_snapshot(
 ) -> str:
     """Snapshot both stores into *target* and inventory it.
 
-    The inventory row (``unverified``, original capture time, the proven-clean
-    suppressions) is written before any file, and becomes ``verified`` only
-    after both copies complete; an interrupted capture stays inventoried and
-    counts as unverified coverage."""
+    The inventory row (its token and namespace, ``unverified``, original
+    capture time, the proven-clean suppressions) commits before the first
+    filesystem effect, and becomes ``verified`` only after both copies
+    complete. Any interruption after that -- creating the directory, its
+    witness or identity, or copying -- leaves an inventoried, incomplete
+    capture that ``due``/``dispose`` find and that counts as unverified
+    coverage; disposal removes it only once its witness and identity prove
+    it, and otherwise leaves the obligation incomplete."""
     clean = capture_preconditions(control, content, story_chunk_count)
     store_id = content_store_id(content)
     target = Path(_canonical_locator(target))
@@ -1562,16 +1620,13 @@ def capture_snapshot(
     with control() as s:
         # Before creating anything: the target and its holding directory.
         _claim_backup_paths(s, str(target), token, public_root)
-    # Claim a new, empty directory before inventorying it: an existing path
-    # is refused untouched, so a later disposal can never remove data this
-    # capture did not create. A failure between here and registration leaves
-    # only an empty directory.
-    try:
-        target.mkdir(parents=True, exist_ok=False)
-    except FileExistsError:
-        raise StoreRefused(f"capture target {target} already exists") from None
-    # The physical identity exists before the inventory row that names it.
-    namespace = stamp_storage_identity(target, token)
+    # An existing entry (directory, file or link) is refused untouched and
+    # nothing is recorded, so a disposal never removes data this capture did
+    # not create.
+    if os.path.lexists(target):
+        raise StoreRefused(f"capture target {target} already exists")
+    # Ownership before any filesystem effect: the row commits first.
+    namespace = str(uuid4())
     backup_id = register_backup(
         control,
         store_id=store_id,
@@ -1582,6 +1637,13 @@ def capture_snapshot(
         storage_token=token,
         storage_namespace=namespace,
     )
+    try:
+        target.mkdir(parents=True, exist_ok=False)
+    except FileExistsError:
+        # Appeared since the check: never adopted; the capture stays
+        # inventoried and incomplete.
+        raise StoreRefused(f"capture target {target} already exists") from None
+    stamp_storage_identity(target, token, namespace)
     with (
         closing(sqlite3.connect(database_path)) as src,
         closing(sqlite3.connect(target / SNAPSHOT_CONTENT_FILE)) as dst,
@@ -1691,6 +1753,11 @@ def dispose_snapshot(
        failed (a bind-mounted or busy root, say) never moved the tree, so its
        later absence is never evidence.
 
+    The original and holding roots count only as actual directory entries,
+    inspected without following them; identity and witness files only as
+    actual files. A link or junction there -- dangling or not -- is neither
+    this backup nor its absence: nothing is renamed, traversed or certified.
+
     Every destructive step, and the certification, requires the backup's
     namespace witness -- written beside it when it was admitted, outside its
     tree, carrying the recorded random namespace -- to still be there. A
@@ -1725,13 +1792,16 @@ def dispose_snapshot(
         if _read_witness(locator, token) != namespace:
             raise _UnprovenBackup
         disposing = _disposing_path(locator, token)
-        if locator.exists():
+        # The original and holding roots must be actual directory entries,
+        # inspected without following them: a link or junction (dangling or
+        # not) raises -- never renamed, traversed or taken for absence.
+        if _owned_dir(locator):
             if read_storage_token(locator) != token:
                 raise _UnprovenBackup  # a different or unidentified object
             _record_removal_started(control, backup_id, now)
             started = True
             os.replace(locator, disposing)
-        if disposing.exists():
+        if _owned_dir(disposing):
             if not started:
                 raise _UnprovenBackup  # a token-named directory is no witness
             present = read_storage_token(disposing)
@@ -1750,9 +1820,9 @@ def dispose_snapshot(
                 # in the witness before deleting anything from it.
                 _write_witness(locator, token, namespace, moved=True)
                 _remove_identity_last(disposing)
-            if disposing.exists():
+            if os.path.lexists(disposing):
                 raise OSError(f"{disposing} is still present")
-        if locator.exists():
+        if os.path.lexists(locator):
             raise OSError(f"{locator} is present again")
         if not _witness_moved(locator, token, namespace):
             # Never moved under our control (or the namespace changed

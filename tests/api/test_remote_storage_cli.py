@@ -2605,3 +2605,247 @@ def test_a_move_whose_witness_record_failed_is_resumed_by_a_fresh_retry(
     assert _run(capsys, "dispose", "--backup-id", backup) == (0, "disposed")
     assert not list(volume.iterdir())
     assert _inventory_row(remote_env, backup).disposal_evidence == "removed"
+
+
+# -- review 5577962136: capture ownership and non-following disposal ---------
+
+
+def _unlink_dir(link: Path) -> None:
+    import os
+
+    os.rmdir(link) if os.name == "nt" else link.unlink()
+
+
+def _tree_bytes(root: Path) -> dict[str, bytes]:
+    return {
+        str(p.relative_to(root)): p.read_bytes() for p in root.rglob("*") if p.is_file()
+    }
+
+
+def _capture_rows(remote_env: Path) -> list[Any]:
+    from afterworlds.remote.control_orm import BackupInventoryORM
+
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    with control() as s:
+        return list(s.query(BackupInventoryORM).all())
+
+
+def test_a_capture_whose_registration_failed_left_nothing_to_strand(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """P2 A: the inventory row commits before any filesystem effect, so a
+    failed registration leaves no directory, witness or identity behind and
+    the ordinary retry at the same target succeeds."""
+    from afterworlds.remote import storage
+
+    make_remote(remote_env).close()
+    volume = remote_env / "vol"
+
+    def registration_fails(*_a: object, **_k: object) -> str:
+        raise RuntimeError("control store commit failed")
+
+    with pytest.MonkeyPatch.context() as mp, pytest.raises(RuntimeError):
+        mp.setattr(storage, "register_backup", registration_fails)
+        storage_cli.main(["capture", "--to", str(volume / "b1")])
+    assert not (volume / "b1").exists()
+    assert not volume.exists() or not list(volume.glob(".afterworlds-witness-*"))
+    assert _capture_rows(remote_env) == []
+    code, backup = _run(capsys, "capture", "--to", str(volume / "b1"))
+    assert code == 0
+    assert _inventory_row(remote_env, backup).verification_status == "verified"
+
+
+@pytest.mark.parametrize("step", ["_admit_witness", "_write_identity"])
+def test_an_interrupted_capture_admission_stays_inventoried_and_incomplete(
+    remote_env: Path, capsys: pytest.CaptureFixture[str], step: str
+) -> None:
+    """P2 A: interrupted while creating the witness or identity, the capture
+    is already inventoried -- unverified, with its original capture time and
+    deadline -- found by dispose, never certified, and its location stays
+    owned (not reused or adopted)."""
+    from datetime import timedelta
+
+    from afterworlds.remote import storage
+    from afterworlds.remote.control_store import parse_iso
+
+    make_remote(remote_env).close()
+    target = remote_env / "vol" / "b1"
+
+    def interrupted(*_a: object, **_k: object) -> None:
+        raise OSError(f"{step} interrupted")
+
+    with pytest.MonkeyPatch.context() as mp, pytest.raises(OSError):
+        mp.setattr(storage, step, interrupted)
+        storage_cli.main(["capture", "--to", str(target)])
+    rows = _capture_rows(remote_env)
+    assert len(rows) == 1  # inventoried before the interrupted effect
+    row = rows[0]
+    assert row.verification_status == "unverified"
+    assert row.storage_token is not None and row.storage_namespace is not None
+    captured = parse_iso(row.original_capture_at)
+    assert parse_iso(row.expires_at) == captured + timedelta(days=21)
+    assert storage_cli.main(["dispose", "--backup-id", row.backup_id]) == 1
+    assert _inventory_row(remote_env, row.backup_id).disposed_at is None
+    assert target.is_dir()  # nothing unproven was erased
+    assert storage_cli.main(["capture", "--to", str(target)]) == 1  # still owned
+    assert len(_capture_rows(remote_env)) == 1
+
+
+def test_a_redirected_backup_root_is_never_followed(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """P2 B: the backup root replaced by a link (a junction on Windows) to a
+    tree carrying the same identity is not the owned directory: nothing is
+    renamed, traversed or certified, and the target's bytes are unchanged."""
+    make_remote(remote_env).close()
+    volume = remote_env / "vol"
+    code, backup = _run(capsys, "capture", "--to", str(volume / "b1"))
+    elsewhere = remote_env / "elsewhere"
+    elsewhere.mkdir()
+    (volume / "b1").rename(elsewhere / "b1")
+    _link_dir(volume / "b1", elsewhere / "b1")
+    before = _tree_bytes(elsewhere / "b1")
+    assert storage_cli.main(["dispose", "--backup-id", backup]) == 1
+    capsys.readouterr()
+    assert _tree_bytes(elsewhere / "b1") == before
+    assert _inventory_row(remote_env, backup).disposed_at is None
+    assert _inventory_row(remote_env, backup).removal_started_at is None
+    assert not list(volume.glob(".afterworlds-disposing-*"))
+
+
+def test_a_redirected_holding_root_is_never_followed_or_taken_for_absence(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """P2 B: after an interrupted removal the holding root is replaced by a
+    link to the moved tree, then the link dangles: neither is traversed nor
+    counts as absence; once the actual tree is back the retry completes."""
+    backup, holding = _interrupted_removal(remote_env, capsys, monkeypatch)
+    elsewhere = remote_env / "elsewhere"
+    elsewhere.mkdir()
+    holding.rename(elsewhere / "held")
+    _link_dir(holding, elsewhere / "held")
+    before = _tree_bytes(elsewhere / "held")
+    assert storage_cli.main(["dispose", "--backup-id", backup]) == 1
+    assert _tree_bytes(elsewhere / "held") == before
+    (elsewhere / "held").rename(elsewhere / "away")  # the link now dangles
+    assert storage_cli.main(["dispose", "--backup-id", backup]) == 1
+    capsys.readouterr()
+    assert _inventory_row(remote_env, backup).disposed_at is None
+    assert _tree_bytes(elsewhere / "away") == before
+
+    _unlink_dir(holding)
+    (elsewhere / "away").rename(holding)  # the actual tree is back
+    assert _run(capsys, "dispose", "--backup-id", backup) == (0, "disposed")
+    assert not list((remote_env / "vol").iterdir())
+
+
+@pytest.mark.parametrize("evidence", ["identity", "witness"])
+def test_redirected_identity_or_witness_evidence_proves_nothing(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+    evidence: str,
+) -> None:
+    """P2 B: genuine evidence bytes reached through a link are borrowed, not
+    owned. A real file symlink where the platform allows it; otherwise (an
+    unprivileged Windows host) a labelled semantic model: the same genuine
+    bytes in place, with ``lstat`` reporting a link at that one path."""
+    import os
+    import shutil
+    import stat
+
+    make_remote(remote_env).close()
+    volume = remote_env / "vol"
+    code, backup = _run(capsys, "capture", "--to", str(volume / "b1"))
+    token = _inventory_row(remote_env, backup).storage_token
+    path = (
+        volume / "b1" / "afterworlds-backup.json"
+        if evidence == "identity"
+        else volume / f".afterworlds-witness-{token}"
+    )
+    elsewhere = remote_env / "elsewhere"
+    elsewhere.mkdir()
+    borrowed = elsewhere / path.name
+    shutil.move(path, borrowed)
+    try:
+        os.symlink(borrowed, path)
+    except OSError:  # semantic model: no file-symlink privilege here
+        shutil.copyfile(borrowed, path)
+        real_lstat = os.lstat
+        link = os.stat_result(
+            (stat.S_IFLNK | 0o777, 0, 0, 1, 0, 0, 0, 0, 0, 0),
+            {"st_file_attributes": stat.FILE_ATTRIBUTE_REPARSE_POINT},
+        )
+        target = os.path.normcase(str(path))
+        monkeypatch.setattr(
+            os,
+            "lstat",
+            lambda p, *a, **k: (
+                link
+                if os.path.normcase(os.fspath(p)) == target
+                else real_lstat(p, *a, **k)
+            ),
+        )
+    before = _tree_bytes(volume / "b1")
+    borrowed_bytes = borrowed.read_bytes()
+    assert storage_cli.main(["dispose", "--backup-id", backup]) == 1
+    capsys.readouterr()
+    assert _inventory_row(remote_env, backup).disposed_at is None
+    assert (volume / "b1").is_dir() and _tree_bytes(volume / "b1") == before
+    assert borrowed.read_bytes() == borrowed_bytes
+
+
+def test_a_planted_temp_alias_never_overwrites_foreign_bytes(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The atomic publication temp name may already be taken by a hard link
+    to someone else's file (no privilege needed, also on Windows). Publishing
+    the copy's identity and the disposal's move record replaces that entry;
+    the foreign file's bytes never change."""
+    import os
+    import shutil
+
+    from afterworlds.remote.storage import copy_backup
+
+    make_remote(remote_env).close()
+    code, source = _run(capsys, "capture", "--to", str(remote_env / "a"))
+    foreign = remote_env / "foreign"
+    foreign.mkdir()
+    victims = {name: foreign / name for name in ("identity.txt", "witness.txt")}
+    for victim in victims.values():
+        victim.write_bytes(b"someone else's bytes")
+
+    # Identity publication: the copy's completion stamps its destination.
+    destination = remote_env / "copy"
+    shutil.copytree(remote_env / "a", destination)
+    os.link(victims["identity.txt"], destination / "afterworlds-backup.json.tmp")
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    copy = copy_backup(control, source, storage_locator=str(destination))
+    assert _inventory_row(remote_env, copy).verification_status == "verified"
+
+    # Witness publication: the disposal records the controlled move.
+    token = _inventory_row(remote_env, copy).storage_token
+    os.link(victims["witness.txt"], remote_env / f".afterworlds-witness-{token}.tmp")
+    assert _run(capsys, "dispose", "--backup-id", copy) == (0, "disposed")
+
+    for victim in victims.values():
+        assert victim.read_bytes() == b"someone else's bytes"
+
+
+def test_an_internal_descendant_link_is_removed_as_an_entry_only(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Normal disposal of a backup holding a link (a junction on Windows) to
+    an outside directory removes the link entry; the outside bytes remain."""
+    make_remote(remote_env).close()
+    volume = remote_env / "vol"
+    code, backup = _run(capsys, "capture", "--to", str(volume / "b1"))
+    outside = remote_env / "outside"
+    outside.mkdir()
+    (outside / "keep.txt").write_text("outside the backup", encoding="utf-8")
+    _link_dir(volume / "b1" / "linked", outside)
+    assert _run(capsys, "dispose", "--backup-id", backup) == (0, "disposed")
+    assert not list(volume.iterdir())
+    assert (outside / "keep.txt").read_text(encoding="utf-8") == "outside the backup"

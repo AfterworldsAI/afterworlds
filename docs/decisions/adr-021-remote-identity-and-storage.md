@@ -196,7 +196,8 @@ preserve. Every maintenance step records its state before touching files:
 
 - **Capture** refuses while a restore is pending or any suppressed content is still present in
   either store, inventories the backup (`unverified`, original capture time, the suppressions it
-  proved absent) before copying, and marks it `verified` only after both stores are copied. Backup
+  proved absent, its token and namespace) before its first filesystem effect -- creating the directory,
+  witness or identity -- so any interruption leaves an inventoried, incomplete capture; it marks it `verified` only after both stores are copied. Backup
   coverage is proof-based: a backup counts against a suppression unless its capture proved that
   content absent; capture time alone proves nothing.
 - **Restore** checks the snapshot's bound vector store and entitlement-ledger continuity, records a
@@ -214,7 +215,9 @@ preserve. Every maintenance step records its state before touching files:
   recorded as started, renames the root to a fixed-length token-named sibling and deletes the identity
   file last; a missing location is certified only when the witness, still present, records that the
   disposal moved this backup's own tree into its holding directory (a recorded start alone is not). An OS device/inode pair is not durable proof (it can recur on replacement
-  media). Otherwise the backup is `inaccessible` and incomplete. A copy is one operation: its inventory
+  media). Backup roots and holding directories count only as actual directory entries, and identity and
+  witness files only as actual files, inspected without following links or junctions; a redirection,
+  dangling or not, is neither the backup nor its absence. Otherwise the backup is `inaccessible` and incomplete. A copy is one operation: its inventory
   row is claimed before the destination changes, and every retry completes that row from positive
   evidence bound to its destination and witness; its namespace is committed before the first physical
   effect, so a retry never rebinds it to other media.

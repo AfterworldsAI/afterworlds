@@ -188,9 +188,10 @@ then select the package during setup. The local `reset_corpus_baseline.py` remai
    so an unsafely placed backup can still be removed.
    `python -m afterworlds.remote.storage_cli capture --to <dir>` prints the backup ID. It refuses while
    a restore is pending or suppressed content is still present. The backup is inventoried
-   (`unverified`) before any copy and becomes `verified` only when both stores are copied; an
-   interrupted capture stays inventoried as unverified — dispose it and capture again to a new
-   directory. Locators are recorded as absolute, symlink-resolved paths (a relative `--to` is fixed
+   (`unverified`, with its token and namespace) before its first filesystem effect and becomes `verified`
+   only when both stores are copied; an existing target is refused untouched with nothing recorded. An
+   interrupted capture stays inventoried as unverified — dispose it (it is removed only once its witness
+   and identity prove it; otherwise it stays incomplete) and capture again to a new directory. Locators are recorded as absolute, symlink-resolved paths (a relative `--to` is fixed
    against the directory it was given in), and a location belongs to at most one undisposed backup:
    capture and copy refuse a location an undisposed backup still holds, including after a disposal
    whose record was lost, until that disposal is recorded. A snapshot holds the content store as `content.sqlite3` and the vectors as `chroma/` (reserved names, whatever the live database is called);
@@ -199,7 +200,9 @@ then select the package during setup. The local `reset_corpus_baseline.py` remai
    locks or paths -- so backups can still be expired and disposed while a live store is damaged or its
    volume is unavailable (an inaccessible *backup* still stays incomplete). `... storage_cli due` lists backups at/after 21 days; `... storage_cli dispose --backup-id <id>`
    removes the files, then records the disposal -- only for the object carrying the inventoried
-   identity: it records the removal as started, renames the backup beside itself to a fixed-length name
+   identity -- the root and holding directory as actual directory entries, and the identity and witness as
+   actual files, never followed through a link or junction (a redirection, dangling or not, is neither the
+   backup nor its absence, and its target is never touched): it records the removal as started, renames the backup beside itself to a fixed-length name
    carrying only its token, and removes the contents with the identity file last. A retry resumes from either (also after
    a partial removal). A missing location counts as removed only when this deployment had started the
    removal and the backup's namespace witness (`.afterworlds-witness-<token>` beside it, outside its
