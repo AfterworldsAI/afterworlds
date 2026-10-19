@@ -81,7 +81,12 @@ def main(argv: list[str] | None = None) -> int:
     vector_dir = Path(config.persist_directory)
     db_path = sqlite_path(settings.database_url)
     now = utc_now()
-    with maintenance_locks(settings.database_url, vector_dir, control):
+    with maintenance_locks(
+        settings.database_url,
+        vector_dir,
+        control,
+        touches_live_stores=args.command not in ("due", "dispose"),
+    ):
         engine = create_engine(settings.database_url)
         content = create_session_factory(engine)
         try:

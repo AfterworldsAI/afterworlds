@@ -454,3 +454,84 @@ def test_maintenance_refuses_a_swapped_content_store_untouched(
                 storage_cli.main(argv)
         assert foreign.read_bytes() == before
         assert not (remote_env / f"never-{foreign.parent.name}").exists()
+
+
+def _ledger_rows(db: Path) -> list[tuple[int, str]]:
+    import sqlite3
+    from contextlib import closing
+
+    with closing(sqlite3.connect(db)) as conn:
+        return [
+            (int(seq), str(eid))
+            for seq, eid in conn.execute(
+                "SELECT global_sequence, event_id FROM entitlement_event"
+                " ORDER BY global_sequence"
+            )
+        ]
+
+
+@pytest.mark.parametrize("failure", ["mid_copy", "before_swap"])
+def test_an_interrupted_sql_replacement_never_leaves_a_partial_store(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    failure: str,
+) -> None:
+    """The live content path holds the old store or the full snapshot, so the
+    documented retry runs and the restored ledger is exactly the snapshot's."""
+    from afterworlds.remote import storage
+    from tests.api.test_remote_isolation import _seed_hosted
+
+    h = make_remote(remote_env)
+    _seed_hosted(h, h.account_id(h.enroll("a@example.test")))
+    h.close()
+    code, backup_id = _run(capsys, "capture", "--to", str(remote_env / "b1"))
+    assert code == 0
+    snapshot_ledger = _ledger_rows(remote_env / "b1" / "content.db")
+    live = remote_env / "content.db"
+    assert _ledger_rows(live) == snapshot_ledger
+
+    real_copyfile = storage.shutil.copyfile
+
+    def partial_copy(src: Any, dst: Any) -> None:
+        Path(dst).write_bytes(Path(src).read_bytes()[:4096])
+        raise OSError("interrupted mid-copy")
+
+    def no_swap(*_a: object, **_k: object) -> None:
+        raise OSError("interrupted before the swap")
+
+    with pytest.MonkeyPatch.context() as mp, pytest.raises(OSError):
+        if failure == "mid_copy":
+            mp.setattr(storage.shutil, "copyfile", partial_copy)
+        else:
+            mp.setattr(storage.os, "replace", no_swap)
+        storage_cli.main(["restore", "--backup-id", backup_id])
+    assert storage.shutil.copyfile is real_copyfile
+    assert _ledger_rows(live) == snapshot_ledger  # never a partial live file
+    with pytest.raises(StoreRefused, match="awaiting"):
+        create_app(remote_settings(remote_env))
+    code, restore_id = _run(capsys, "restore", "--backup-id", backup_id)
+    assert code == 0
+    assert _run(capsys, "verify-restore", "--restore-id", restore_id) == (
+        0,
+        "verified",
+    )
+    assert _ledger_rows(live) == snapshot_ledger
+    make_remote(remote_env).close()
+
+
+def test_backup_expiry_and_disposal_survive_a_damaged_live_store(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    make_remote(remote_env).close()
+    code, backup_id = _run(capsys, "capture", "--to", str(remote_env / "b1"))
+    assert code == 0
+    live = remote_env / "content.db"
+    live.write_bytes(b"not a database any more")
+    for suffix in ("-wal", "-shm"):
+        (remote_env / f"content.db{suffix}").unlink(missing_ok=True)
+    # Touching the live stores is refused, distinctly from a foreign store.
+    with pytest.raises(StoreRefused, match="unreadable"):
+        storage_cli.main(["capture", "--to", str(remote_env / "b2")])
+    # Expiry and disposal of backup copies stay possible.
+    assert _run(capsys, "due") == (0, "")
+    assert _run(capsys, "dispose", "--backup-id", backup_id) == (0, "disposed")

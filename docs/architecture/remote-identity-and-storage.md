@@ -157,7 +157,8 @@ then select the package during setup. The local `reset_corpus_baseline.py` remai
    (`unverified`) before any copy and becomes `verified` only when both stores are copied; an
    interrupted capture stays inventoried as unverified — dispose it and capture again to a new
    directory.
-2. `... storage_cli due` lists backups at/after 21 days; `... storage_cli dispose --backup-id <id>`
+2. `due` and `dispose` need only both locks and the control binding, so backups can still be
+   expired while a live store is damaged. `... storage_cli due` lists backups at/after 21 days; `... storage_cli dispose --backup-id <id>`
    removes the files, then records the disposal. Re-running after a lost record is safe; a path that
    cannot be verified absent is marked `inaccessible` and the command fails.
 3. Restore: stop the app; `... storage_cli restore --backup-id <id>`. It is refused (exit 1, nothing
@@ -171,6 +172,7 @@ then select the package during setup. The local `reset_corpus_baseline.py` remai
    suppressed Stories still present, and an unavailable Chroma read fails rather than counting as zero.
    Only `verified` lets the app start.
 5. Revoked sessions, closures and suppressions survive because they live in the control store.
+   CRD Issue 22 records suppressions only through `remote.access.record_suppression_fenced`.
 6. Verification checks every content table with a `story_id` column and the story-memory chunk count
    for each suppressed Story (account-scope instructions expand to every Story the account ever owned).
    Turns orphaned by `SET NULL` carry no `story_id`; CRD Issue 22 takes the pre-detachment inventory

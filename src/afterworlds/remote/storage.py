@@ -22,6 +22,7 @@ All state lives in the control store, outside the content snapshot.
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import sqlite3
 from collections.abc import Callable, Iterable, Iterator
@@ -92,6 +93,10 @@ def record_suppression(
     now: datetime,
 ) -> str:
     """Accept an authoritative deletion-suppression instruction.
+
+    Low-level writer. CRD Issue 22 must call
+    :func:`afterworlds.remote.access.record_suppression_fenced`, the only
+    supported entry point: calling this directly bypasses the account fence.
 
     The backup horizon is the overall 30-day limit from the confirmed request
     boundary -- not 30 days after live deletion.
@@ -724,15 +729,30 @@ def acquire_vector_lock(vector_dir: Path) -> IO[bytes]:
 
 @contextmanager
 def maintenance_locks(
-    database_url: str, vector_dir: Path, control: sessionmaker[Session]
+    database_url: str,
+    vector_dir: Path,
+    control: sessionmaker[Session],
+    *,
+    touches_live_stores: bool = True,
 ) -> Iterator[None]:
-    """Hold both physical stores' locks and require the vector store to be
-    this deployment's: no maintenance or job runs beside a serving app."""
+    """Hold both physical stores' locks: no maintenance or job runs beside a
+    serving app. Work that touches the live stores also requires the content,
+    control and vector stores to be one deployment's. Backup expiry and
+    disposal touch only backup copies and the control store, so they need
+    just the control binding and stay possible while a live store is damaged
+    (the 21-day obligation must remain enforceable during an outage)."""
     content_lock = acquire_store_lock(database_url)
     try:
         vector_lock = acquire_vector_lock(vector_dir)
         try:
-            check_store_pairing(database_url, vector_dir, control)
+            if touches_live_stores:
+                check_store_pairing(database_url, vector_dir, control)
+            else:
+                with control() as s:
+                    if s.get(DeploymentMarkerORM, 1) is None:
+                        raise StoreRefused(
+                            "the control store is not bound to a deployment"
+                        )
             yield
         finally:
             vector_lock.close()
@@ -740,18 +760,24 @@ def maintenance_locks(
         content_lock.close()
 
 
-def _content_marker(path: Path) -> str | None:
-    """The ``remote_store_marker`` of a SQLite file, read-only; None if absent."""
+def _content_marker(path: Path, *, live: bool = False) -> str | None:
+    """The ``remote_store_marker`` of a SQLite file; None if absent or unmarked.
+
+    A snapshot is opened read-only. A *live* store is opened normally, like
+    :func:`_ledger`: after an unclean stop it may hold WAL frames a read-only
+    connection cannot read; an unreadable live store raises rather than being
+    reported as foreign."""
     if not path.is_file():
         return None
+    target = str(path) if live else f"file:{path.as_posix()}?mode=ro"
     try:
-        with closing(
-            sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)
-        ) as conn:
+        with closing(sqlite3.connect(target, uri=not live)) as conn:
             row = conn.execute(
                 "SELECT content_store_id FROM remote_store_marker WHERE id = 1"
             ).fetchone()
     except sqlite3.Error:
+        if live:
+            raise StoreRefused("the live content store is unreadable") from None
         return None
     return str(row[0]) if row else None
 
@@ -766,7 +792,9 @@ def check_store_pairing(
         bound = s.get(DeploymentMarkerORM, 1)
     if bound is None:
         raise StoreRefused("the control store is not bound to a deployment")
-    if _content_marker(sqlite_path(database_url)) != bound.content_store_id:
+    if _content_marker(sqlite_path(database_url), live=True) != (
+        bound.content_store_id
+    ):
         raise StoreRefused("the content store belongs to a different deployment")
     check_vector_store(vector_dir, control)
 
@@ -837,7 +865,16 @@ def restore_snapshot(
         row = s.get(BackupInventoryORM, backup_id)
         assert row is not None
         source = Path(row.storage_locator)
-    shutil.copyfile(source / database_path.name, database_path)
+    # The live path holds either the old store or the complete snapshot,
+    # never a partial file: checkpoint and empty the live WAL, stage the copy
+    # beside it, then swap atomically. Both carry this deployment's identity,
+    # so an interruption anywhere leaves a store the documented retry accepts.
+    if database_path.is_file():
+        with closing(sqlite3.connect(database_path)) as conn:
+            conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    staged = database_path.with_name(database_path.name + ".restoring")
+    shutil.copyfile(source / database_path.name, staged)
+    os.replace(staged, database_path)
     for suffix in ("-wal", "-shm"):
         database_path.with_name(database_path.name + suffix).unlink(missing_ok=True)
     # Keep the held lock file; replace everything else in the vector store.
