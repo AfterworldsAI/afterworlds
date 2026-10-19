@@ -45,6 +45,7 @@ from afterworlds.remote.storage import (
     record_suppression,
     register_backup,
     restore_snapshot,
+    stamp_storage_identity,
     verify_restore,
 )
 from tests.api._remote import PASSWORD, RemoteHarness, make_remote, remote_settings
@@ -678,11 +679,15 @@ def _snapshot(
         src.backup(dst)
     store_id = content_store_id(harness.app.state.session_factory)
     bind_vector_store(target / "chroma", store_id)
+    token = str(uuid.uuid4())
+    namespace = stamp_storage_identity(target, token)  # a proven object
     return register_backup(
         harness.app.state.control_factory,
         store_id=store_id,
         storage_locator=str(target),
         original_capture_at=captured or datetime.now(UTC),
+        storage_token=token,
+        storage_namespace=namespace,
     )
 
 
@@ -858,11 +863,17 @@ class TestBackupClocks:
         copy_of_clean = copy_backup(control, after_clean, storage_locator="/f")
         report = backup_disposition(control, sup, now=boundary)
         assert report.deadline == boundary + timedelta(days=30)
-        assert set(report.pending_backup_ids) == {before, broken, after_unproven}
+        # A copy whose destination was never proven to be the source's tree
+        # carries no clean proof (review 5576834591): it stays affected.
+        assert set(report.pending_backup_ids) == {
+            before,
+            broken,
+            after_unproven,
+            copy_of_clean,
+        }
         assert after_clean not in report.pending_backup_ids
-        assert copy_of_clean not in report.pending_backup_ids  # copies keep proof
         assert not report.complete and not report.overdue
-        for backup in (before, after_unproven):
+        for backup in (before, after_unproven, copy_of_clean):
             dispose_backup(
                 control,
                 backup,

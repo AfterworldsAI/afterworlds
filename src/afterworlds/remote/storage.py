@@ -166,6 +166,92 @@ def is_suppressed(
 # -- backup inventory -------------------------------------------------------
 
 
+#: Written into every backup root this deployment creates or adopts: the
+#: object's identity, matched against the inventory before removal.
+BACKUP_IDENTITY_FILE = "afterworlds-backup.json"
+
+
+class _UnprovenBackup(Exception):
+    """The object at (or missing from) a backup location is not proven to be
+    the inventoried backup."""
+
+
+def _namespace(directory: Path) -> str:
+    """The identity of a directory object (device and inode), not its path."""
+    info = os.stat(directory)
+    return f"{info.st_dev}:{info.st_ino}"
+
+
+def _disposing_path(locator: Path, token: str) -> Path:
+    """Where a verified removal moves the backup first: beside it, on the same
+    parent, named only by the backup's own token -- a bounded name whatever
+    the backup's own name, so every accepted location stays removable."""
+    return locator.with_name(f".afterworlds-disposing-{token}")
+
+
+def _claim_backup_paths(
+    s: Session, locator: str, token: str, public_root: Path | None
+) -> None:
+    """Before any effect: the backup root and the holding directory its
+    removal will use are both free of other backups and of the public root."""
+    holding = str(_disposing_path(Path(locator), token))
+    for path in (locator, holding):
+        _claim_locator(s, path)
+    refuse_public_overlap(
+        public_root, [(locator, "a backup location"), (holding, "a backup location")]
+    )
+
+
+def stamp_storage_identity(target: Path, token: str, **provenance: str) -> str:
+    """Write the backup directory *target*'s physical identity -- *token*,
+    plus any copy provenance -- atomically into it; return its parent
+    directory's identity."""
+    temp = target / (BACKUP_IDENTITY_FILE + ".tmp")
+    temp.write_text(
+        json.dumps({"storage_token": token, **provenance}), encoding="utf-8"
+    )
+    os.replace(temp, target / BACKUP_IDENTITY_FILE)
+    return _namespace(target.parent)
+
+
+def _remove_identity_last(path: Path) -> None:
+    """Remove a backup tree, deleting its identity file last, so a partial
+    removal always leaves the token behind for the retry."""
+    for child in path.iterdir():
+        if child.name == BACKUP_IDENTITY_FILE:
+            continue
+        if child.is_dir() and not child.is_symlink():
+            shutil.rmtree(child)
+        else:
+            child.unlink()
+    (path / BACKUP_IDENTITY_FILE).unlink(missing_ok=True)
+    path.rmdir()
+
+
+def _read_identity(locator: Path) -> dict[str, str] | None:
+    """A backup root's identity file, or ``None`` if absent/unreadable."""
+    try:
+        data = json.loads((locator / BACKUP_IDENTITY_FILE).read_text(encoding="utf-8"))
+        return {str(k): str(v) for k, v in data.items()}
+    except (OSError, ValueError, AttributeError):
+        return None
+
+
+def read_storage_token(locator: Path) -> str | None:
+    """The identity token in a backup root, or ``None`` if absent/unreadable."""
+    return (_read_identity(locator) or {}).get("storage_token")
+
+
+def _record_removal_started(
+    control: sessionmaker[Session], backup_id: str, now: datetime
+) -> None:
+    with control.begin() as s:
+        row = s.get(BackupInventoryORM, backup_id)
+        assert row is not None
+        if row.removal_started_at is None:
+            row.removal_started_at = iso(now)
+
+
 def _canonical_locator(storage_locator: str | Path) -> str:
     """The absolute, symlink-resolved identity of a backup location, fixed
     when it is recorded so no later working directory reinterprets it."""
@@ -178,16 +264,28 @@ def _overlaps(a: str, b: str) -> bool:
     return a == b or a.startswith(b + os.sep) or b.startswith(a + os.sep)
 
 
+def _held_namespaces(s: Session) -> list[str]:
+    """Every location an undisposed backup owns: its locator and, once it has
+    an identity, the token-named holding directory a removal moves it to."""
+    held: list[str] = []
+    for locator, token in s.execute(
+        sa.select(
+            BackupInventoryORM.storage_locator, BackupInventoryORM.storage_token
+        ).where(BackupInventoryORM.disposed_at.is_(None))
+    ):
+        held.append(locator)
+        if token is not None:
+            held.append(str(_disposing_path(Path(locator), token)))
+    return held
+
+
 def _claim_locator(s: Session, locator: str) -> None:
     """A location -- with everything beneath and above it -- belongs to at
-    most one undisposed backup. Until a disposal is recorded the old backup
-    keeps it, so nothing new can be placed where a stale disposal retry would
-    remove it, and no backup can be created inside or around another."""
-    for held in s.scalars(
-        sa.select(BackupInventoryORM.storage_locator).where(
-            BackupInventoryORM.disposed_at.is_(None)
-        )
-    ):
+    most one undisposed backup (its holding directory included). Until a
+    disposal is recorded the old backup keeps both, so nothing new can be
+    placed where a stale disposal retry would remove it, and no backup can be
+    created inside or around another."""
+    for held in _held_namespaces(s):
         if _overlaps(held, locator):
             raise StoreRefused(
                 f"backup location {locator} overlaps {held}, which still belongs "
@@ -205,6 +303,8 @@ def register_backup(
     verification_status: str = "verified",
     clean_suppression_ids: Iterable[str] = (),
     public_root: Path | None = None,
+    storage_token: str | None = None,
+    storage_namespace: str | None = None,
 ) -> str:
     """Inventory a backup. ``clean_suppression_ids`` names the active
     suppressions whose content the capture proved absent from both stores.
@@ -226,6 +326,8 @@ def register_backup(
                 expires_at=iso(original_capture_at + BACKUP_LIFETIME),
                 verification_status=verification_status,
                 clean_suppression_ids=json.dumps(sorted(set(clean_suppression_ids))),
+                storage_token=storage_token,
+                storage_namespace=storage_namespace,
             )
         )
     return backup_id
@@ -248,18 +350,44 @@ def copy_backup(
     storage_locator: str,
     public_root: Path | None = None,
 ) -> str:
-    """Inventory a copy. It keeps the original capture time, expiry and proof."""
+    """Inventory a copy. It keeps the original capture time, expiry and proof.
+
+    A copy is one operation: its inventory row. The row -- the destination,
+    the identity token it will carry (reserving the root and its holding
+    directory) and the source's lineage and age, but no proof -- is committed
+    before anything at the destination changes. Proof is then completed in a
+    second step, which every retry of the same source and destination repeats
+    on that same row; a retry never mints a competing one.
+
+    Completion requires positive evidence at the destination, beneath a
+    readable parent: either the source backup's identity (a copy of its tree,
+    which is then stamped with the row's token and intent), or this row's own
+    stamp written for this destination and parent directory object (a lost
+    commit). Only then does the copy inherit the source's verification and
+    clean-suppression proof. Otherwise -- absent, unreadable, foreign, a
+    marker copied from elsewhere, a replaced parent -- it stays metadata-only:
+    unverified, no clean claims, not dischargeable, and completable by a later
+    retry once the evidence is there."""
     locator = _canonical_locator(storage_locator)
     refuse_public_overlap(public_root, [(locator, "a backup location")])
     with control.begin() as s:
         source = s.get(BackupInventoryORM, backup_id)
         if source is None:
             raise KeyError(backup_id)
-        _claim_locator(s, locator)
-        copy_id = str(uuid4())
-        s.add(
-            BackupInventoryORM(
-                backup_id=copy_id,
+        pending = s.scalar(
+            sa.select(BackupInventoryORM).where(
+                BackupInventoryORM.storage_locator == locator,
+                BackupInventoryORM.copied_from_backup_id == source.backup_id,
+                BackupInventoryORM.disposed_at.is_(None),
+            )
+        )
+        if pending is None:
+            token = str(uuid4())
+            # Any other owner of the location, its surroundings or the
+            # holding directory is refused before anything is recorded.
+            _claim_backup_paths(s, locator, token, public_root)
+            pending = BackupInventoryORM(
+                backup_id=str(uuid4()),
                 store_id=source.store_id,
                 storage_locator=locator,
                 class_code=source.class_code,
@@ -267,11 +395,70 @@ def copy_backup(
                 copied_from_backup_id=source.backup_id,
                 policy_version=source.policy_version,
                 expires_at=source.expires_at,
-                verification_status=source.verification_status,
-                clean_suppression_ids=source.clean_suppression_ids,
+                verification_status="unverified",
+                clean_suppression_ids="[]",
+                storage_token=token,
             )
-        )
+            s.add(pending)
+        else:
+            refuse_public_overlap(
+                public_root,
+                [
+                    (p, "a backup location")
+                    for p in (
+                        locator,
+                        _disposing_path(Path(locator), str(pending.storage_token)),
+                    )
+                ],
+            )
+        copy_id = pending.backup_id
+    _complete_copy(control, copy_id)
     return copy_id
+
+
+def _complete_copy(control: sessionmaker[Session], copy_id: str) -> None:
+    """Prove a pending copy from what is at its destination (see
+    :func:`copy_backup`); without positive evidence nothing changes."""
+    with control.begin() as s:
+        row = s.get(BackupInventoryORM, copy_id)
+        assert row is not None and row.copied_from_backup_id is not None
+        source = s.get(BackupInventoryORM, row.copied_from_backup_id)
+        if row.storage_namespace is not None or row.storage_token is None:
+            return  # already proven (a lost response), or never claimable
+        destination = Path(row.storage_locator)
+        try:
+            namespace = _namespace(destination.parent)
+            found = _read_identity(destination) if destination.is_dir() else None
+        except OSError:
+            return  # unavailable: stays pending for a later retry
+        intent = {
+            "storage_token": row.storage_token,
+            "copy_of": source.storage_token if source is not None else None,
+            "copy_backup_id": row.backup_id,
+            "copy_destination": row.storage_locator,
+            "copy_namespace": namespace,
+        }
+        if (
+            source is None
+            or source.storage_token is None
+            or source.storage_namespace is None  # an unproven source proves nothing
+            or found is None
+        ):
+            return
+        if found.get("storage_token") == source.storage_token:
+            stamp_storage_identity(
+                destination,
+                row.storage_token,
+                copy_of=source.storage_token,
+                copy_backup_id=row.backup_id,
+                copy_destination=row.storage_locator,
+                copy_namespace=namespace,
+            )
+        elif found != intent:
+            return  # foreign, copied from elsewhere, or beneath another parent
+        row.storage_namespace = namespace
+        row.verification_status = source.verification_status
+        row.clean_suppression_ids = source.clean_suppression_ids
 
 
 #: Proof that a backup's copy is gone: removed by the disposal, or verified
@@ -464,6 +651,9 @@ def begin_restore(
             raise StoreRefused("backup coverage is unverified")
         locator = Path(row.storage_locator)
         store_id = row.store_id
+        token = row.storage_token
+    if token is not None and read_storage_token(locator) != token:
+        raise StoreRefused("the object at the backup location is not this backup")
     with control() as s:
         bound = s.get(DeploymentMarkerORM, 1)
     if bound is None or store_id != bound.content_store_id:
@@ -733,13 +923,7 @@ def refuse_public_backups(
     """No undisposed backup -- verified or not, expired or not -- may lie in
     or around the public static root; disposed ones reserve nothing."""
     with control() as s:
-        held = list(
-            s.scalars(
-                sa.select(BackupInventoryORM.storage_locator).where(
-                    BackupInventoryORM.disposed_at.is_(None)
-                )
-            )
-        )
+        held = _held_namespaces(s)  # holding directories of pending removals too
     refuse_public_overlap(public_root, [(p, "an undisposed backup") for p in held])
 
 
@@ -1264,8 +1448,10 @@ def capture_snapshot(
     refuse_public_overlap(public_root, [(target, "the capture target")])
     # The copy follows links: none may lead into the notice outbox.
     _refuse_confidential_aliases(vector_dir, confidential)
+    token = str(uuid4())
     with control() as s:
-        _claim_locator(s, str(target))  # before creating anything there
+        # Before creating anything: the target and its holding directory.
+        _claim_backup_paths(s, str(target), token, public_root)
     # Claim a new, empty directory before inventorying it: an existing path
     # is refused untouched, so a later disposal can never remove data this
     # capture did not create. A failure between here and registration leaves
@@ -1274,6 +1460,8 @@ def capture_snapshot(
         target.mkdir(parents=True, exist_ok=False)
     except FileExistsError:
         raise StoreRefused(f"capture target {target} already exists") from None
+    # The physical identity exists before the inventory row that names it.
+    namespace = stamp_storage_identity(target, token)
     backup_id = register_backup(
         control,
         store_id=store_id,
@@ -1281,6 +1469,8 @@ def capture_snapshot(
         original_capture_at=now,
         verification_status="unverified",
         clean_suppression_ids=clean,
+        storage_token=token,
+        storage_namespace=namespace,
     )
     with (
         closing(sqlite3.connect(database_path)) as src,
@@ -1373,9 +1563,26 @@ def restore_snapshot(
 def dispose_snapshot(
     control: sessionmaker[Session], backup_id: str, *, now: datetime
 ) -> None:
-    """Remove a backup's files, then record the disposal. Retry-safe: a path
-    already gone is recorded as disposed only when its parent is readable
-    (verified absence); any access failure marks it ``inaccessible``."""
+    """Remove a backup's files, then record the disposal -- only with proof
+    that the object removed (or found gone) is this backup.
+
+    1. The backup root must carry the inventoried ``storage_token``. The
+       removal is recorded as started, the root is renamed atomically beside
+       itself to a name carrying that token, and its contents are removed with
+       the identity file last.
+    2. A retry resumes from the token-bearing original or -- only after a
+       recorded start -- the token-named holding directory, also after a
+       partial removal; a tokenless holding directory is removed only as the
+       empty shell identity-last deletion leaves.
+    3. With neither present, the removal is certified only when this
+       deployment had started it.
+
+    Every step requires the location's parent to still be the directory
+    object recorded at capture; a detached, replaced or bind-mounted
+    namespace, or a backup never proven to exist, is not.
+
+    Anything else marks it ``inaccessible`` and leaves the obligation
+    incomplete; an object not proven to be this backup is never removed."""
     with control() as s:
         row = s.get(BackupInventoryORM, backup_id)
         if row is None:
@@ -1385,17 +1592,44 @@ def dispose_snapshot(
             return
         _refuse_copying_source(s, row, now)  # before any file is touched
         locator = Path(row.storage_locator)
+        token = row.storage_token
+        namespace = row.storage_namespace
+        started = row.removal_started_at is not None
     try:
+        if token is None or namespace is None:
+            raise _UnprovenBackup  # never proven to exist as this object
+        # Every destructive step and every certification happens only beneath
+        # the parent directory object recorded when the backup was proven.
+        if not locator.parent.is_dir() or _namespace(locator.parent) != namespace:
+            raise _UnprovenBackup
+        disposing = _disposing_path(locator, token)
         if locator.exists():
-            shutil.rmtree(locator)
-            evidence = "removed"
-        elif locator.parent.is_dir():
-            evidence = "verified_absent"
-        else:
-            raise OSError(f"cannot verify that {locator} is absent")
+            if read_storage_token(locator) != token:
+                raise _UnprovenBackup  # a different or unidentified object
+            _record_removal_started(control, backup_id, now)
+            started = True
+            os.replace(locator, disposing)
+        if disposing.exists():
+            if not started:
+                raise _UnprovenBackup  # a token-named directory is no witness
+            present = read_storage_token(disposing)
+            if present is None:
+                # Identity-last deletion leaves at most an empty shell; any
+                # other tokenless content is not adopted.
+                if any(disposing.iterdir()):
+                    raise _UnprovenBackup
+                disposing.rmdir()
+            elif present != token:
+                raise _UnprovenBackup
+            else:
+                _remove_identity_last(disposing)
+            if disposing.exists():
+                raise OSError(f"{disposing} is still present")
+        elif not started:
+            raise _UnprovenBackup  # absence proves nothing about this object
         if locator.exists():
-            raise OSError(f"{locator} is still present")
-    except OSError:
+            raise OSError(f"{locator} is present again")
+    except (OSError, _UnprovenBackup):
         set_backup_status(control, backup_id, "inaccessible")
         raise StoreRefused("the backup could not be verified as removed") from None
-    dispose_backup(control, backup_id, now=now, evidence=evidence)
+    dispose_backup(control, backup_id, now=now, evidence="removed")

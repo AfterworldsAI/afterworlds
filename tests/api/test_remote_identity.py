@@ -912,3 +912,200 @@ class TestInitiationDoesNotWaitForDelivery:
         handoff = [m for m in messages if "notice_handoff_failed" in m]
         assert len(handoff) == 2 and all("delivery=uncertain" in m for m in handoff)
         assert not any("zq4marker" in m or "known@" in m for m in messages)
+
+
+class TestDelayedNoticeScope:
+    """Consolidated review B: a queued notice rechecks its operation and
+    account under the account fence when it runs."""
+
+    def test_a_queued_notice_is_not_written_after_its_account_closes(
+        self, remote: RemoteHarness, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import threading
+
+        a = remote.enroll("a@example.test")
+        b = remote.enroll("b@example.test")
+        identity = remote.app.state.identity
+        identity.drain_notices()
+        release = threading.Event()
+        entered = threading.Event()
+        sent: list[tuple[str, str]] = []
+
+        class HeldTransport:
+            def send(self, *, contact_address: str, kind: str, code: str) -> None:
+                if contact_address == "a@example.test":
+                    entered.set()
+                    assert release.wait(30)
+                sent.append((contact_address, kind))
+
+        monkeypatch.setattr(identity, "_notices", HeldTransport())
+        client = remote.client()
+        # A's notice occupies the single worker; B's queues behind it.
+        assert (
+            client.post(
+                "/api/auth/recovery", json={"contact_address": "a@example.test"}
+            ).status_code
+            == 202
+        )
+        assert entered.wait(30)
+        assert (
+            client.post(
+                "/api/auth/recovery", json={"contact_address": "b@example.test"}
+            ).status_code
+            == 202
+        )  # public initiation stays non-blocking
+        # B closes while its notice is still queued.
+        assert (
+            b.post("/api/account/close", json={"password": PASSWORD}).status_code == 200
+        )
+        release.set()
+        identity.drain_notices()
+        assert sent == [("a@example.test", "recovery")]  # no post-closure notice
+        assert a.get("/api/stories").status_code == 200
+
+    def test_an_admitted_notice_holds_closure_and_suppression_until_it_ends(
+        self, remote: RemoteHarness, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The other half of the effect lifetime: while an admitted notice is
+        in its transport, closure and account suppression time out changing
+        nothing; a notice whose transport fails still releases the account."""
+        import threading
+        from datetime import UTC, datetime
+        from uuid import UUID
+
+        from afterworlds.remote.access import record_suppression_fenced
+        from afterworlds.remote.fence import FenceBusy
+        from afterworlds.remote.storage import active_suppressions
+
+        a = remote.enroll("a@example.test")
+        account = UUID(remote.account_id(a))
+        identity = remote.app.state.identity
+        identity.drain_notices()
+        identity.close_fence_timeout = 0.3
+        control = remote.app.state.control_factory
+        release = threading.Event()
+        entered = threading.Event()
+        sent: list[tuple[str, str]] = []
+
+        def suppress() -> str:
+            now = datetime.now(UTC)
+            return record_suppression_fenced(
+                remote.app.state.account_fence,
+                control,
+                account_id=account,
+                story_refs=[],
+                request_id="r",
+                scope="account",
+                effective_boundary_at=now,
+                now=now,
+                timeout=0.3,
+            )
+
+        class HeldTransport:
+            def send(self, *, contact_address: str, kind: str, code: str) -> None:
+                entered.set()
+                assert release.wait(30)
+                sent.append((contact_address, kind))
+
+        monkeypatch.setattr(identity, "_notices", HeldTransport())
+        client = remote.client()
+        recover = {"contact_address": "a@example.test"}
+        try:
+            assert client.post("/api/auth/recovery", json=recover).status_code == 202
+            assert entered.wait(30)  # admitted: the effect is in its transport
+            resp = a.post("/api/account/close", json={"password": PASSWORD})
+            assert resp.status_code == 409
+            assert resp.json()["error_code"] == "account_operation_in_progress"
+            with pytest.raises(FenceBusy):
+                suppress()
+            # Neither landed: the account is open and unsuppressed.
+            assert a.get("/api/stories").status_code == 200
+            assert active_suppressions(control) == []
+        finally:
+            release.set()
+        identity.drain_notices()
+        assert sent == [("a@example.test", "recovery")]
+
+        class FailingTransport:
+            def send(self, *, contact_address: str, kind: str, code: str) -> None:
+                raise OSError("outbox unwritable")
+
+        monkeypatch.setattr(identity, "_notices", FailingTransport())
+        assert client.post("/api/auth/recovery", json=recover).status_code == 202
+        identity.drain_notices()
+        # The failed effect released its lease: both succeed at once.
+        closed = a.post("/api/account/close", json={"password": PASSWORD})
+        assert closed.status_code == 200
+        assert a.get("/api/stories").status_code == 401
+        assert suppress()
+
+    def test_queued_notices_for_a_suppressed_account_or_stale_code_are_withheld(
+        self,
+        remote: RemoteHarness,
+        monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture,
+    ) -> None:
+        """The current-state rechecks at the production handoff: an account
+        suppressed, or a code superseded, while its notice is queued."""
+        import logging
+        import threading
+        from datetime import UTC, datetime
+        from uuid import UUID
+
+        from afterworlds.remote.access import record_suppression_fenced
+
+        remote.enroll("x@example.test")
+        b = remote.enroll("b@example.test")
+        remote.enroll("c@example.test")
+        b_account = UUID(remote.account_id(b))
+        identity = remote.app.state.identity
+        identity.drain_notices()
+        release = threading.Event()
+        entered = threading.Event()
+        sent: list[tuple[str, str]] = []
+
+        class HeldTransport:
+            def send(self, *, contact_address: str, kind: str, code: str) -> None:
+                if contact_address == "x@example.test":
+                    entered.set()
+                    assert release.wait(30)
+                sent.append((contact_address, kind))
+
+        monkeypatch.setattr(identity, "_notices", HeldTransport())
+        client = remote.client()
+
+        def recover(address: str) -> None:
+            resp = client.post("/api/auth/recovery", json={"contact_address": address})
+            assert resp.status_code == 202
+
+        try:
+            recover("x@example.test")  # occupies the single worker
+            assert entered.wait(30)
+            recover("b@example.test")  # queued
+            recover("c@example.test")  # queued, then superseded
+            recover("c@example.test")  # queued, current
+            now = datetime.now(UTC)
+            record_suppression_fenced(  # B's queued notice holds no lease yet
+                remote.app.state.account_fence,
+                remote.app.state.control_factory,
+                account_id=b_account,
+                story_refs=[],
+                request_id="r",
+                scope="account",
+                effective_boundary_at=now,
+                now=now,
+                timeout=0.3,
+            )
+            caplog.set_level(logging.DEBUG)
+        finally:
+            release.set()
+        identity.drain_notices()
+        assert sent == [("x@example.test", "recovery"), ("c@example.test", "recovery")]
+        withheld = [
+            r.getMessage()
+            for r in caplog.records
+            if "notice_withheld" in r.getMessage()
+        ]
+        assert len(withheld) == 2
+        assert all("reason=no_longer_current" in m for m in withheld)
+        assert not any("@example.test" in m for m in withheld)

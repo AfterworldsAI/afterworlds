@@ -374,12 +374,14 @@ def test_proven_disposal_reconciles_failed_and_inaccessible_backups(
     report = _disposition(remote_env, sup)
     assert report.unverified_backup_ids == (lost,) and not report.complete
     assert _inventory(remote_env, lost).verification_status == "inaccessible"
-    # The volume comes back: the path is now verifiably absent.
+    # Review 5576834591: a readable parent where the volume was proves nothing
+    # about a backup never proven to exist there -- it stays incomplete.
     later.parent.mkdir()
-    assert _run(capsys, "dispose", "--backup-id", lost) == (0, "disposed")
+    assert storage_cli.main(["dispose", "--backup-id", lost]) == 1
+    capsys.readouterr()
     report = _disposition(remote_env, sup)
-    assert report.complete and report.pending_backup_ids == ()
-    assert _inventory(remote_env, lost).disposal_evidence == "verified_absent"
+    assert report.unverified_backup_ids == (lost,) and not report.complete
+    assert _inventory(remote_env, lost).disposed_at is None
     assert _inventory(remote_env, interrupted).disposal_evidence == "removed"
     assert _inventory(remote_env, interrupted).original_capture_at == original_age
 
@@ -645,7 +647,8 @@ def test_a_stale_disposal_retry_never_removes_a_newer_backup(
     assert _run(capsys, "dispose", "--backup-id", old) == (0, "disposed")
     assert sorted(p.name for p in b1.rglob("*")) == newer
     assert _inventory_row(remote_env, new).disposed_at is None
-    assert _inventory_row(remote_env, old).disposal_evidence == "verified_absent"
+    # Completing this deployment's own verified removal (review 5576834591).
+    assert _inventory_row(remote_env, old).disposal_evidence == "removed"
 
 
 def test_locators_are_fixed_when_recorded(
@@ -1252,7 +1255,6 @@ def test_startup_refuses_a_public_root_exposing_an_undisposed_backup(
 ) -> None:
     """Re-pointing the public root at an existing backup is refused before
     mounting, whatever the backup's verification; disposal frees it."""
-    from afterworlds.remote.storage import register_backup
 
     make_remote(remote_env).close()
     site = remote_env / "site"
@@ -1260,15 +1262,23 @@ def test_startup_refuses_a_public_root_exposing_an_undisposed_backup(
     if status == "verified":
         code, backup = _run(capsys, "capture", "--to", str(site / "b1"))
         assert code == 0
-    else:
+    else:  # an interrupted capture: unverified, but a real, identified object
+        from afterworlds.remote import storage
+
+        def fails(*_a: object, **_k: object) -> None:
+            raise OSError("interrupted")
+
+        with pytest.MonkeyPatch.context() as mp, pytest.raises(OSError):
+            mp.setattr(storage.shutil, "copytree", fails)
+            storage_cli.main(["capture", "--to", str(site / "b1")])
+        capsys.readouterr()
         control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
-        backup = register_backup(
-            control,
-            store_id="s",
-            storage_locator=str(site / "b1"),
-            original_capture_at=datetime.now(UTC),
-            verification_status="unverified",
-        )
+        with control() as s:
+            from afterworlds.remote.control_orm import BackupInventoryORM
+
+            [row] = s.query(BackupInventoryORM).all()
+            assert row.verification_status == "unverified"
+            backup = row.backup_id
     with pytest.raises(StoreRefused, match="undisposed backup"):
         create_app(_public(remote_env, site))
     # Cleanup stays possible despite the unsafe public configuration.
@@ -1848,3 +1858,446 @@ def test_backup_only_cleanup_still_refuses_bad_authority_and_aliases(
         f"sqlite:///{remote_env / 'absent' / 'control.db'}",
     )
     assert storage_cli.main(["dispose", "--backup-id", str(uuid.uuid4())]) == 1
+
+
+# -- review 5576834591: physical backup evidence ------------------------------
+
+
+def _detach(volume: Path) -> Path:
+    """Simulate the backup namespace going away: the volume directory moves
+    aside (still holding everything) and an empty directory -- same device,
+    different directory object -- appears in its place."""
+    detached = volume.with_name(volume.name + "-detached")
+    volume.rename(detached)
+    volume.mkdir()
+    return detached
+
+
+def test_an_absent_backup_is_not_certified_beneath_a_replaced_namespace(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The parent counterexample: a readable, same-device parent where the
+    backup's namespace was proves nothing; the backup stays incomplete."""
+    make_remote(remote_env).close()
+    volume = remote_env / "vol"
+    code, backup = _run(capsys, "capture", "--to", str(volume / "b1"))
+    assert code == 0
+    detached = _detach(volume)
+    assert storage_cli.main(["dispose", "--backup-id", backup]) == 1
+    row = _inventory_row(remote_env, backup)
+    assert row.disposed_at is None and row.verification_status == "inaccessible"
+    assert (detached / "b1" / "afterworlds-backup.json").is_file()  # untouched
+
+
+def test_a_partial_removal_resumes_and_a_detach_meanwhile_is_not_certified(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from afterworlds.remote import storage
+
+    make_remote(remote_env).close()
+    volume = remote_env / "vol"
+    code, backup = _run(capsys, "capture", "--to", str(volume / "b1"))
+    real_rmtree = storage.shutil.rmtree
+
+    def fails(path: object, *a: object, **k: object) -> None:
+        raise OSError("removal interrupted")
+
+    with monkeypatch.context() as m:
+        m.setattr(storage.shutil, "rmtree", fails)
+        assert storage_cli.main(["dispose", "--backup-id", backup]) == 1
+    capsys.readouterr()
+    [disposing] = list(volume.glob(".afterworlds-disposing-*"))
+    assert (disposing / "afterworlds-backup.json").is_file()  # identity kept
+    # The namespace detaches before the retry: nothing is certified.
+    detached = _detach(volume)
+    assert storage_cli.main(["dispose", "--backup-id", backup]) == 1
+    assert _inventory_row(remote_env, backup).disposed_at is None
+    # It comes back: the retry resumes from the token-named directory.
+    volume.rmdir()
+    detached.rename(volume)
+    assert storage.shutil.rmtree is real_rmtree
+    assert _run(capsys, "dispose", "--backup-id", backup) == (0, "disposed")
+    assert not list(volume.iterdir())
+    assert _inventory_row(remote_env, backup).disposal_evidence == "removed"
+
+
+def test_a_different_object_at_the_location_is_never_removed(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    import shutil
+
+    from afterworlds.remote.storage import begin_restore, register_backup
+
+    make_remote(remote_env).close()
+    code, backup = _run(capsys, "capture", "--to", str(remote_env / "b1"))
+    shutil.rmtree(remote_env / "b1")
+    (remote_env / "b1").mkdir()
+    (remote_env / "b1" / "other.txt").write_text("someone else's", encoding="utf-8")
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    with pytest.raises(StoreRefused, match="not this backup"):
+        begin_restore(
+            control,
+            backup,
+            live_database=remote_env / "content.db",
+            now=datetime.now(UTC),
+        )
+    assert storage_cli.main(["dispose", "--backup-id", backup]) == 1
+    assert (remote_env / "b1" / "other.txt").read_text(encoding="utf-8") == (
+        "someone else's"
+    )
+    assert _inventory_row(remote_env, backup).disposed_at is None
+    # Metadata-only rows were never proven to exist: incomplete either way.
+    for locator in (remote_env / "present-meta", remote_env / "absent-meta"):
+        if locator.name == "present-meta":
+            locator.mkdir()
+        meta = register_backup(
+            control,
+            store_id="s",
+            storage_locator=str(locator),
+            original_capture_at=datetime.now(UTC),
+        )
+        assert storage_cli.main(["dispose", "--backup-id", meta]) == 1
+        assert _inventory_row(remote_env, meta).disposed_at is None
+    assert (remote_env / "present-meta").is_dir()  # never removed
+
+
+def test_a_copy_is_its_own_physical_object(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    import shutil
+
+    from afterworlds.remote.storage import copy_backup, read_storage_token
+
+    make_remote(remote_env).close()
+    code, source = _run(capsys, "capture", "--to", str(remote_env / "b1"))
+    shutil.copytree(remote_env / "b1", remote_env / "b1-copy")
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    copy = copy_backup(control, source, storage_locator=str(remote_env / "b1-copy"))
+    source_row = _inventory_row(remote_env, source)
+    copy_row = _inventory_row(remote_env, copy)
+    assert copy_row.storage_token not in (None, source_row.storage_token)
+    assert read_storage_token(remote_env / "b1-copy") == copy_row.storage_token
+    assert copy_row.original_capture_at == source_row.original_capture_at
+    assert _run(capsys, "dispose", "--backup-id", copy) == (0, "disposed")
+    assert not (remote_env / "b1-copy").exists() and (remote_env / "b1").is_dir()
+    # A destination not present yet is metadata-only: not dischargeable.
+    pending = copy_backup(control, source, storage_locator=str(remote_env / "later"))
+    assert _inventory_row(remote_env, pending).storage_namespace is None
+    assert storage_cli.main(["dispose", "--backup-id", pending]) == 1
+
+
+def _interrupted_removal(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> tuple[str, Path]:
+    """A captured backup whose removal was interrupted: its contents sit in
+    the token-named holding directory beside the old location."""
+    from afterworlds.remote import storage
+
+    make_remote(remote_env).close()
+    code, backup = _run(capsys, "capture", "--to", str(remote_env / "vol" / "b1"))
+    assert code == 0
+
+    def fails(*_a: object, **_k: object) -> None:
+        raise OSError("removal interrupted")
+
+    with monkeypatch.context() as m:
+        m.setattr(storage.shutil, "rmtree", fails)
+        assert storage_cli.main(["dispose", "--backup-id", backup]) == 1
+    capsys.readouterr()
+    [holding] = list((remote_env / "vol").glob(".afterworlds-disposing-*"))
+    return backup, holding
+
+
+def test_a_holding_directory_is_reserved_and_never_public(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Consolidated review A/P1: a pending removal's holding directory is the
+    backup's too -- no capture/copy beneath it, no public root over it -- and
+    the retry still completes."""
+    from afterworlds.remote.storage import copy_backup
+
+    backup, holding = _interrupted_removal(remote_env, capsys, monkeypatch)
+    assert storage_cli.main(["capture", "--to", str(holding / "nested")]) == 1
+    assert "undisposed backup" in capsys.readouterr().err
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    with pytest.raises(StoreRefused, match="undisposed"):
+        copy_backup(control, backup, storage_locator=str(holding / "copy"))
+    with pytest.raises(StoreRefused, match="undisposed backup"):
+        create_app(_public(remote_env, holding))
+    assert _run(capsys, "dispose", "--backup-id", backup) == (0, "disposed")
+    assert not holding.exists()
+
+
+def test_an_unidentified_holding_directory_is_not_adopted(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A token-named directory alone is no removal witness, and a nonempty
+    tokenless one is never removed."""
+    make_remote(remote_env).close()
+    volume = remote_env / "vol"
+    code, backup = _run(capsys, "capture", "--to", str(volume / "b1"))
+    token = _inventory_row(remote_env, backup).storage_token
+    # Someone else's directory carrying this backup's holding name, while the
+    # backup itself is still in place: removal proceeds into ... nothing --
+    # the rename target exists, so nothing is adopted or removed.
+    squatter = volume / f".afterworlds-disposing-{token}"
+    squatter.mkdir()
+    (squatter / "theirs.txt").write_text("unrelated", encoding="utf-8")
+    assert storage_cli.main(["dispose", "--backup-id", backup]) == 1
+    assert (squatter / "theirs.txt").is_file()
+    assert _inventory_row(remote_env, backup).disposed_at is None
+
+
+def test_an_unrelated_copy_destination_stays_metadata_only(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from afterworlds.remote.storage import copy_backup
+
+    make_remote(remote_env).close()
+    code, source = _run(capsys, "capture", "--to", str(remote_env / "b1"))
+    unrelated = remote_env / "unrelated"
+    unrelated.mkdir()
+    (unrelated / "data.txt").write_text("not a copy", encoding="utf-8")
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    copy = copy_backup(control, source, storage_locator=str(unrelated))
+    row = _inventory_row(remote_env, copy)
+    assert row.storage_namespace is None
+    assert row.verification_status == "unverified"
+    assert row.clean_suppression_ids == "[]"
+    assert not (unrelated / "afterworlds-backup.json").exists()  # not stamped
+    assert storage_cli.main(["dispose", "--backup-id", copy]) == 1
+    assert (unrelated / "data.txt").is_file()
+
+
+# -- frozen-source review: bounded holding name, copy intent across commit ----
+
+
+def test_an_accepted_long_backup_name_stays_removable(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """P2: a 220-character backup name is accepted by capture, so its removal
+    (holding directory included) must work too -- also after an interruption."""
+    from afterworlds.remote import storage
+
+    make_remote(remote_env).close()
+    volume = remote_env / "vol"
+    target = volume / ("b" * 220)
+    code, backup = _run(capsys, "capture", "--to", str(target))
+    assert code == 0 and target.is_dir()
+
+    def fails(*_a: object, **_k: object) -> None:
+        raise OSError("removal interrupted")
+
+    with monkeypatch.context() as m:
+        m.setattr(storage.shutil, "rmtree", fails)
+        assert storage_cli.main(["dispose", "--backup-id", backup]) == 1
+    capsys.readouterr()
+    assert not target.exists()  # moved aside: the holding name is accepted
+    leftovers = list(volume.iterdir())
+    assert leftovers and all(len(p.name) < 64 for p in leftovers)  # bounded
+    assert _run(capsys, "dispose", "--backup-id", backup) == (0, "disposed")
+    assert not list(volume.iterdir())
+    assert _inventory_row(remote_env, backup).disposal_evidence == "removed"
+
+
+def _failed_copy(control: Any, source: str, destination: Path) -> None:
+    """copy_backup whose control commit fails once the destination's identity
+    has been rewritten (whichever commit that is)."""
+    from sqlalchemy import event
+
+    from afterworlds.remote.storage import copy_backup, read_storage_token
+
+    source_token = read_storage_token(destination)  # the source tree's copy
+
+    def fails_after_stamp(_session: object) -> None:
+        if read_storage_token(destination) not in (None, source_token):
+            raise RuntimeError("control store commit failed")
+
+    event.listen(control, "before_commit", fails_after_stamp)
+    try:
+        with pytest.raises(RuntimeError, match="commit failed"):
+            copy_backup(control, source, storage_locator=str(destination))
+    finally:
+        event.remove(control, "before_commit", fails_after_stamp)
+
+
+def _copy_rows(control: Any, destination: Path) -> list[Any]:
+    import sqlalchemy as sa
+
+    from afterworlds.remote.control_orm import BackupInventoryORM
+
+    with control() as s:
+        return list(
+            s.scalars(
+                sa.select(BackupInventoryORM).where(
+                    BackupInventoryORM.storage_locator == str(destination.resolve())
+                )
+            )
+        )
+
+
+def _assert_completed(row: Any, source_row: Any, token: str | None) -> None:
+    """The one copy operation, proven: its token, the source's lineage, age
+    and proof -- never renewed."""
+    assert row.storage_token == token and row.storage_namespace is not None
+    assert row.copied_from_backup_id == source_row.backup_id
+    assert row.verification_status == source_row.verification_status == "verified"
+    assert row.clean_suppression_ids == source_row.clean_suppression_ids
+    assert row.original_capture_at == source_row.original_capture_at
+    assert row.expires_at == source_row.expires_at
+
+
+def test_a_copy_whose_completion_commit_failed_is_resumed(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The copy's identity changed but its completion never committed; the
+    retry completes the same operation -- no downgrade, no new id."""
+    import json
+    import shutil
+
+    from afterworlds.remote.storage import copy_backup, read_storage_token
+
+    make_remote(remote_env).close()
+    code, source = _run(capsys, "capture", "--to", str(remote_env / "b1"))
+    destination = remote_env / "b1-copy"
+    shutil.copytree(remote_env / "b1", destination)
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    source_row = _inventory_row(remote_env, source)
+    _failed_copy(control, source, destination)
+    stamped = read_storage_token(destination)
+    assert stamped not in (None, source_row.storage_token)  # identity changed
+    [claim] = _copy_rows(control, destination)  # the pending claim, unproven
+    assert claim.storage_token == stamped and claim.storage_namespace is None
+    assert claim.verification_status == "unverified"
+
+    copy = copy_backup(control, source, storage_locator=str(destination))
+    assert copy == claim.backup_id
+    _assert_completed(_inventory_row(remote_env, copy), source_row, stamped)
+    intent = json.loads((destination / "afterworlds-backup.json").read_text("utf-8"))
+    assert intent["copy_backup_id"] == copy
+    # A lost response: repeating the completed copy is the same operation.
+    assert copy_backup(control, source, storage_locator=str(destination)) == copy
+    assert len(_copy_rows(control, destination)) == 1
+    assert _run(capsys, "dispose", "--backup-id", copy) == (0, "disposed")
+    assert not destination.exists() and (remote_env / "b1").is_dir()
+
+    # Intent naming another inventoried id is never adopted.
+    claimed = remote_env / "claimed"
+    claimed.mkdir()
+    (claimed / "afterworlds-backup.json").write_text(
+        json.dumps(
+            {
+                "storage_token": str(uuid.uuid4()),
+                "copy_of": source_row.storage_token,
+                "copy_backup_id": source,
+            }
+        ),
+        encoding="utf-8",
+    )
+    other = copy_backup(control, source, storage_locator=str(claimed))
+    assert other != source
+    assert _inventory_row(remote_env, other).storage_namespace is None
+    assert _inventory_row(remote_env, other).verification_status == "unverified"
+
+
+def test_a_copy_resumes_after_its_backup_volume_returns(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Copy lifecycle: stamp, failed completion commit, retries while the
+    backup volume is unavailable, the original volume returns -- the same
+    operation resumes and its verified disposal succeeds. No retry creates a
+    competing reservation."""
+    import shutil
+
+    from afterworlds.remote.storage import copy_backup, read_storage_token
+
+    make_remote(remote_env).close()
+    code, source = _run(capsys, "capture", "--to", str(remote_env / "src" / "a"))
+    source_row = _inventory_row(remote_env, source)
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    volume = remote_env / "vol"
+    b = volume / "b"
+    shutil.copytree(remote_env / "src" / "a", b)
+    _failed_copy(control, source, b)
+    stamped = read_storage_token(b)
+
+    offline = volume.rename(remote_env / "vol-offline")  # the volume goes away
+    ids = {copy_backup(control, source, storage_locator=str(b)) for _ in range(2)}
+    assert len(ids) == 1  # one operation, no competing reservation
+    [row] = _copy_rows(control, b)
+    assert row.storage_namespace is None and row.verification_status == "unverified"
+    assert storage_cli.main(["dispose", "--backup-id", row.backup_id]) == 1
+    assert _inventory_row(remote_env, row.backup_id).disposed_at is None
+
+    offline.rename(volume)  # the original volume returns
+    resumed = copy_backup(control, source, storage_locator=str(b))
+    assert resumed in ids
+    _assert_completed(_inventory_row(remote_env, resumed), source_row, stamped)
+    assert _run(capsys, "dispose", "--backup-id", resumed) == (0, "disposed")
+    assert not b.exists() and (remote_env / "src" / "a").is_dir()
+
+
+def test_copied_copy_intent_never_takes_over_the_pending_operation(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The intent belongs to its operation's destination and parent directory
+    object: a filesystem copy of the genuine marker, or the same path beneath
+    a replaced parent, proves nothing; the original operation completes once
+    its own namespace is back."""
+    import json
+    import shutil
+
+    from afterworlds.remote.storage import copy_backup, read_storage_token
+
+    make_remote(remote_env).close()
+    volume = remote_env / "vol"
+    code, source = _run(capsys, "capture", "--to", str(volume / "a"))
+    source_row = _inventory_row(remote_env, source)
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    b = volume / "b"
+    shutil.copytree(volume / "a", b)
+    _failed_copy(control, source, b)
+    stamped = read_storage_token(b)
+    pending = json.loads((b / "afterworlds-backup.json").read_text("utf-8"))
+    copy_id = pending["copy_backup_id"]  # the operation's own id
+
+    # An ordinary copy B -> C carries B's genuine marker; C gets nothing of it.
+    shutil.copytree(b, volume / "c")
+    off = copy_backup(control, source, storage_locator=str(volume / "c"))
+    off_row = _inventory_row(remote_env, off)
+    assert off != copy_id
+    assert off_row.storage_namespace is None
+    assert off_row.verification_status == "unverified"
+    assert off_row.clean_suppression_ids == "[]"
+
+    # B still resumes its own operation.
+    assert copy_backup(control, source, storage_locator=str(b)) == copy_id
+    _assert_completed(_inventory_row(remote_env, copy_id), source_row, stamped)
+    assert _run(capsys, "dispose", "--backup-id", copy_id) == (0, "disposed")
+    assert not b.exists() and (volume / "a").is_dir()
+
+    # The same path beneath a different parent directory object is not the
+    # original destination; the operation waits, then completes on return.
+    other = remote_env / "vol2"
+    d = other / "d"
+    shutil.copytree(volume / "a", d)
+    _failed_copy(control, source, d)
+    d_stamped = read_storage_token(d)
+    detached = _detach(other)
+    (detached / "d").rename(d)
+    waiting = copy_backup(control, source, storage_locator=str(d))
+    row = _inventory_row(remote_env, waiting)
+    assert row.storage_namespace is None and row.verification_status == "unverified"
+    d.rename(detached / "d")
+    other.rmdir()
+    detached.rename(other)  # the original namespace returns
+    assert copy_backup(control, source, storage_locator=str(d)) == waiting
+    _assert_completed(_inventory_row(remote_env, waiting), source_row, d_stamped)

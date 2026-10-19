@@ -164,6 +164,9 @@ def upgrade() -> None:
         sa.Column(
             "clean_suppression_ids", sa.Text, nullable=False, server_default="[]"
         ),
+        sa.Column("storage_token", sa.String(36)),
+        sa.Column("storage_namespace", sa.String(64)),
+        sa.Column("removal_started_at", _TS),
     )
     op.create_table(
         "restore_records",

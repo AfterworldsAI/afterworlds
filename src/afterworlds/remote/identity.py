@@ -27,13 +27,14 @@ from sqlalchemy.orm import Session, sessionmaker
 from afterworlds.remote.control_orm import (
     AdminBindingORM,
     AuthSessionORM,
+    DeletionSuppressionORM,
     HostedAccountORM,
     IdentityAuditEventORM,
     IdentityPrincipalORM,
     VerificationOperationORM,
 )
 from afterworlds.remote.control_store import POLICY_VERSION, iso, parse_iso, utc_now
-from afterworlds.remote.fence import AccountFence
+from afterworlds.remote.fence import AccountFence, FenceBusy
 from afterworlds.remote.notices import NoticeTransport
 from afterworlds.remote.verifiers import (
     hash_password,
@@ -135,6 +136,16 @@ def _check_password(password: str) -> None:
 UNAUTHENTICATED_ACTOR = "unauthenticated"
 
 
+def _withheld(kind: str, reason: str) -> None:
+    """A delayed notice that is no longer current is not sent (sanitized)."""
+    logger.info(
+        "notice withheld: category=notice_withheld reason=%s kind=%s correlation=%s",
+        reason,
+        kind,
+        uuid4().hex,
+    )
+
+
 def _prepare_unsent_code() -> None:
     """The code generation and hashing an issuance does, for a request that
     issues nothing -- so eligible and ineligible requests prepare alike."""
@@ -196,8 +207,10 @@ class IdentityService:
                 )
                 s.add(principal)
                 s.flush()
-            code = self._issue_code(s, principal.principal_ref, "enrollment", now)
-        self._deliver(address, "enrollment", code)
+            code, operation = self._issue_code(
+                s, principal.principal_ref, "enrollment", now
+            )
+        self._deliver(address, "enrollment", code, operation, None)
 
     def complete_enrollment(
         self, contact_address: str, code: str, password: str
@@ -382,8 +395,11 @@ class IdentityService:
             if principal is None or self._active_account(s, principal) is None:
                 _prepare_unsent_code()  # comparable preparation; nothing sent
                 return
-            code = self._issue_code(s, principal.principal_ref, "recovery", now)
-        self._deliver(address, "recovery", code)
+            account_id = principal.account_id
+            code, operation = self._issue_code(
+                s, principal.principal_ref, "recovery", now
+            )
+        self._deliver(address, "recovery", code, operation, account_id)
 
     def complete_recovery(
         self, contact_address: str, code: str, new_password: str
@@ -636,14 +652,30 @@ class IdentityService:
         if self._delivery is not None:
             self._delivery.submit(lambda: None).result(timeout)
 
-    def _deliver(self, address: str, kind: str, code: str) -> None:
+    def _deliver(
+        self,
+        address: str,
+        kind: str,
+        code: str,
+        operation_id: str,
+        account_id: str | None,
+    ) -> None:
         """Hand a committed code to the notice transport -- in the background,
-        so the public answer never waits on (or reveals) delivery."""
+        so the public answer never waits on (or reveals) delivery. The job
+        carries its trusted scope (operation, account) and rechecks it when it
+        runs."""
         if self._delivery is None:
             self._send(address, kind, code)
             return
         try:
-            self._delivery.submit(self._send_in_background, address, kind, code)
+            self._delivery.submit(
+                self._send_in_background,
+                address,
+                kind,
+                code,
+                operation_id,
+                account_id,
+            )
         except RuntimeError as exc:
             # The runner refused the handoff (shut down, or no thread could
             # start -- CPython may already have queued the item). The code is
@@ -657,8 +689,29 @@ class IdentityService:
                 uuid4().hex,
             )
 
-    def _send_in_background(self, address: str, kind: str, code: str) -> None:
+    def _send_in_background(
+        self,
+        address: str,
+        kind: str,
+        code: str,
+        operation_id: str,
+        account_id: str | None,
+    ) -> None:
+        """The delayed notice effect (#205 §5): it holds the account's fence
+        for the whole effect -- so a closure or deletion suppression that has
+        completed can never be followed by it -- and sends only if its
+        operation and account are still current."""
+        release = None
         try:
+            if account_id is not None:
+                try:
+                    release = self.fence.lease(UUID(account_id))
+                except FenceBusy:
+                    _withheld(kind, "account_operation_in_progress")
+                    return
+            if not self._notice_still_current(operation_id, kind, account_id):
+                _withheld(kind, "no_longer_current")
+                return
             self._send(address, kind, code)
         except Exception as exc:
             # No request is left to fail: an unexpected runner error is
@@ -671,6 +724,41 @@ class IdentityService:
                 kind,
                 uuid4().hex,
             )
+        finally:
+            if release is not None:
+                release()
+
+    def _notice_still_current(
+        self, operation_id: str, kind: str, account_id: str | None
+    ) -> bool:
+        """The issued code is still open and its recipient still eligible:
+        enrollment for a still-unverified principal; recovery for the same,
+        still-active account with no account-scope deletion suppression."""
+        with self._factory() as s:
+            op = s.get(VerificationOperationORM, operation_id)
+            if (
+                op is None
+                or op.used_at is not None
+                or op.revoked_at is not None
+                or parse_iso(op.expires_at) <= self._now()
+            ):
+                return False
+            principal = s.get(IdentityPrincipalORM, op.principal_ref)
+            if principal is None:
+                return False
+            if kind == "enrollment":
+                return principal.address_verified_at is None
+            account = self._active_account(s, principal)
+            if account is None or account.account_id != account_id:
+                return False
+            suppressed = s.scalar(
+                sa.select(DeletionSuppressionORM.suppression_id).where(
+                    DeletionSuppressionORM.status == "active",
+                    DeletionSuppressionORM.scope == "account",
+                    DeletionSuppressionORM.subject_ref == account_id,
+                )
+            )
+            return suppressed is None
 
     def _send(self, address: str, kind: str, code: str) -> None:
         """An expected delivery failure (the outbox cannot be written) is
@@ -791,7 +879,8 @@ class IdentityService:
 
     def _issue_code(
         self, s: Session, principal_ref: str, kind: str, now: datetime
-    ) -> str:
+    ) -> tuple[str, str]:
+        """Issue a code (returned with its operation id)."""
         # A new code supersedes every earlier open one of the same kind.
         for op in s.scalars(
             sa.select(VerificationOperationORM).where(
@@ -803,9 +892,10 @@ class IdentityService:
         ):
             op.revoked_at = iso(now)
         code = new_token()
+        operation_id = str(uuid4())
         s.add(
             VerificationOperationORM(
-                operation_id=str(uuid4()),
+                operation_id=operation_id,
                 principal_ref=principal_ref,
                 kind=kind,
                 code_verifier=token_verifier(code),
@@ -814,7 +904,7 @@ class IdentityService:
                 attempts=0,
             )
         )
-        return code
+        return code, operation_id
 
     @staticmethod
     def _consume_code(

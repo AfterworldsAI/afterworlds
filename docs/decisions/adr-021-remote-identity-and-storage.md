@@ -206,9 +206,15 @@ preserve. Every maintenance step records its state before touching files:
   never evidence of a successful restore.
 - **Verification** proves every active suppression holds (no `story_id`-bearing content row, zero
   story-memory chunks; an unavailable read fails).
-- **Disposal** removes files, then records its evidence (`removed` / `verified_absent`); a retry
-  records a verifiably absent path, an unverifiable one is marked `inaccessible`, and only recorded
-  evidence discharges a backup's obligation (an interrupted or once-inaccessible capture included).
+- **Disposal** removes files, then records its evidence (`removed`); only recorded evidence
+  discharges a backup's obligation (an interrupted or once-inaccessible capture included). Evidence is
+  bound to the physical object, not the pathname: each backup root carries a random storage token also
+  recorded in the inventory with its parent directory's identity; removal requires the token, is
+  recorded as started, renames the root to a fixed-length token-named sibling and deletes the identity
+  file last; a missing location is certified only for a removal this deployment started beneath the
+  same parent directory object. Otherwise the backup is `inaccessible` and incomplete. A copy is
+  one operation: its inventory row is claimed before the destination changes, and every retry completes
+  that row from positive evidence bound to its destination and parent directory object.
 - **Pairing:** every live-store maintenance command first requires the configured content, control and
   vector stores (backup-only `due`/`dispose` need just the bound control store and its lease) — and a restore's snapshot — to carry one deployment's identity; a swapped store is refused
   untouched. Restore cleanup never removes the vector marker, so an interruption stays retryable.
