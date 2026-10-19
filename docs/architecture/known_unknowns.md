@@ -780,6 +780,9 @@ These are recorded dependencies, not implementation choices; no code resolves th
 - **Accepting a restore whose ledger continuity is unprovable:** "When a content restore cannot prove that the restored entitlement ledger contains every recorded event (the live store is lost, or events were recorded after capture), what authority and reconciliation accept the restored money/access state before hosted service resumes?" The #205 guarantee
   (no silent rewind) is implemented by refusing such restores; the acceptance/reconciliation authority
   is an Owner decision touching CRD Issue 23 (ADR-021 Consequences).
+- **Remote Rules Package provisioning:** publishing the shared Rules release into a fresh remote
+  deployment's content and vector stores needs a lock-aware, reviewed path; none exists in #205.
+  Required before remote RPG play (ADR-021 D7).
 - **Remote abuse protection:** sign-in rate limiting / credential-stuffing protection for the public
   endpoint is not part of #205's accepted behavior and must be decided before public exposure.
 

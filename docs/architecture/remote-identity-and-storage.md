@@ -178,6 +178,9 @@ account ID, ticket, Story ID or old session is never accepted as proof.
 - CRD Issue 22 fulfillment (export, deletion, suppression creation, retention expiry, anomalies) and CRD
   Issue 23 payments.
 - Multiworker coordination, if ever required.
+- **Remote Rules Package provisioning:** a fresh remote deployment has no shared Rules data, and no
+  lock-aware path publishes it into the remote content and vector stores (the local
+  `reset_corpus_baseline.py` refuses remotely). RPG play needs this before remote activation.
 - **Accepting an unprovable restore (Owner decision):** "When a content restore cannot prove that the restored entitlement ledger contains every recorded event (the live store is lost, or events were recorded after capture), what authority and reconciliation accept the restored money/access state before hosted service resumes?" The foundation guarantee is
   implemented: a restore that would rewind, diverge from or cannot read the live entitlement ledger
   is refused (§7). In practice that blocks restoring an older snapshot of an active hosted store.
