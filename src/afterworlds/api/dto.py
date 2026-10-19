@@ -473,9 +473,22 @@ class ByokProviderStateDTO(BaseModel):
     schema_version: Literal[1] = 1
 
 
+class ByokReadinessSource(StrEnum):
+    """Where ``byok_ready`` comes from (prerequisite #205 §3).
+
+    ``local_device``: this installation's own credential store. A remote
+    deployment never reads a device: ``unavailable_remotely`` means local
+    readiness is unknown here, not absent, and ``byok_ready`` is then None.
+    """
+
+    LOCAL_DEVICE = "local_device"
+    UNAVAILABLE_REMOTELY = "unavailable_remotely"
+
+
 class ByokStatusDTO(BaseModel):
     """``byok_ready`` is the shared resolver/readiness predicate; None when
-    that probe failed (a turn then treats BYOK as not runnable)."""
+    that probe failed (a turn then treats BYOK as not runnable) or when
+    ``readiness_source`` is ``unavailable_remotely``."""
 
     model_config = {"extra": "forbid"}
 
@@ -484,6 +497,7 @@ class ByokStatusDTO(BaseModel):
     providers: list[ByokProviderStateDTO]
     openrouter_model: str | None
     byok_ready: bool | None
+    readiness_source: ByokReadinessSource = ByokReadinessSource.LOCAL_DEVICE
     schema_version: Literal[1] = 1
 
 
@@ -666,4 +680,120 @@ class RpgCompleteSetupRequest(BaseModel):
     model_config = {"extra": "forbid"}
 
     expected_configuration_revision: StrictInt
+    schema_version: Literal[1] = 1
+
+
+# ---------------------------------------------------------------------------
+# Remote identity (prerequisite #205; ADR-021). Credentials are SecretStr:
+# never echoed, logged or returned.
+# ---------------------------------------------------------------------------
+
+
+class DeploymentKind(StrEnum):
+    LOCAL = "local"
+    REMOTE = "remote"
+
+
+class SessionStatusResponse(BaseModel):
+    """Presentation state only -- never authority. ``signed_in`` is always
+    False for a local deployment, which needs no sign-in."""
+
+    model_config = {"extra": "forbid"}
+
+    deployment: DeploymentKind
+    signed_in: bool
+    account_id: UUID | None = None
+    contact_address: str | None = None
+    schema_version: Literal[1] = 1
+
+
+class AcceptedResponse(BaseModel):
+    """Identical for every outcome, so it reveals no account's existence."""
+
+    model_config = {"extra": "forbid"}
+
+    status: Literal["accepted"] = "accepted"
+    schema_version: Literal[1] = 1
+
+
+class ContactAddressRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    contact_address: str = Field(min_length=3, max_length=320)
+    schema_version: Literal[1] = 1
+
+
+class CompleteEnrollmentRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    contact_address: str = Field(min_length=3, max_length=320)
+    code: SecretStr = Field(min_length=1, max_length=128)
+    password: SecretStr = Field(min_length=1, max_length=1024)
+    schema_version: Literal[1] = 1
+
+
+class SignInRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    contact_address: str = Field(min_length=1, max_length=320)
+    password: SecretStr = Field(min_length=1, max_length=1024)
+    schema_version: Literal[1] = 1
+
+
+class CompleteRecoveryRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    contact_address: str = Field(min_length=3, max_length=320)
+    code: SecretStr = Field(min_length=1, max_length=128)
+    new_password: SecretStr = Field(min_length=1, max_length=1024)
+    schema_version: Literal[1] = 1
+
+
+class CloseAccountRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    password: SecretStr = Field(min_length=1, max_length=1024)
+    schema_version: Literal[1] = 1
+
+
+class StaffSessionResponse(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    signed_in: bool
+    expires_at: datetime | None = None
+    schema_version: Literal[1] = 1
+
+
+class AdminAccountViewResponse(BaseModel):
+    """Owner-administrator view of one deliberately targeted hosted account.
+
+    Allowlisted, non-secret operational metadata only: no contact address,
+    Story content, credential or local-device state."""
+
+    model_config = {"extra": "forbid"}
+
+    account_id: UUID
+    status: Literal["active", "closed"]
+    created_at: datetime
+    closed_at: datetime | None
+    owned_story_count: int
+    credits: HostedCreditsDTO
+    cloud_services: CloudServicesStatus
+    byok_license_active: bool
+    byok_readiness_source: ByokReadinessSource
+    schema_version: Literal[1] = 1
+
+
+class RevokeSessionsRequest(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    reason: str = Field(min_length=1, max_length=280)
+    schema_version: Literal[1] = 1
+
+
+class RevokeSessionsResponse(BaseModel):
+    model_config = {"extra": "forbid"}
+
+    account_id: UUID
+    revoked_sessions: int
     schema_version: Literal[1] = 1

@@ -171,6 +171,7 @@ from afterworlds.pipeline.safety.models import (
 from afterworlds.pipeline.safety.service import SafetyService
 from afterworlds.pipeline.writer.models import WriterPassError, WriterResult
 from afterworlds.pipeline.writer.service import WriterService
+from afterworlds.prompt_contracts import PROMPT_DIR
 from afterworlds.services.context_builder import ContextBuilderService
 from afterworlds.services.intent_classifier import IntentClassifierService
 
@@ -210,7 +211,7 @@ _ADJUDICATING_INTENT_TYPES: frozenset[IntentType] = frozenset(
 # OOC handler prompt loading
 # ---------------------------------------------------------------------------
 
-_PROMPT_DIR: Path = Path(__file__).parents[4] / "docs" / "prompts"
+_PROMPT_DIR: Path = PROMPT_DIR
 
 
 def load_ooc_handler_prompt() -> str:

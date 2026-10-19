@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
+from afterworlds.api.deps import AdmittedWorkerRoute
 from afterworlds.api.dto import PersonaDTO, PersonaGalleryResponse
 from afterworlds.models.enums import StoryMode
 from afterworlds.modes.availability import is_mode_released
@@ -19,7 +20,7 @@ from afterworlds.modes.personas.registry import (
     get_default_registry,
 )
 
-router = APIRouter(prefix="/api", tags=["personas"])
+router = APIRouter(prefix="/api", tags=["personas"], route_class=AdmittedWorkerRoute)
 
 
 def _to_dto(profile: PersonaProfile) -> PersonaDTO:

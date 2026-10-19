@@ -21,6 +21,177 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Session Status */
+        get: operations["get_session_status_api_auth_session_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Register */
+        post: operations["register_api_auth_register_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/register/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete Registration */
+        post: operations["complete_registration_api_auth_register_complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/sign-in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sign In */
+        post: operations["sign_in_api_auth_sign_in_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/sign-out": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sign Out */
+        post: operations["sign_out_api_auth_sign_out_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/recovery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Begin Recovery */
+        post: operations["begin_recovery_api_auth_recovery_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/recovery/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete Recovery */
+        post: operations["complete_recovery_api_auth_recovery_complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Staff Sign In */
+        post: operations["staff_sign_in_api_admin_session_post"];
+        /** Staff Sign Out */
+        delete: operations["staff_sign_out_api_admin_session_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/accounts/{account_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Account View */
+        get: operations["get_account_view_api_admin_accounts__account_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/accounts/{account_id}/sessions/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke Account Sessions */
+        post: operations["revoke_account_sessions_api_admin_accounts__account_id__sessions_revoke_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stories": {
         parameters: {
             query?: never;
@@ -451,10 +622,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/close": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Close Account
+         * @description Remote self-service closure (prerequisite #205 §1): re-authenticate,
+         *     close, revoke every session. Erasure and export are CRD Issue 22's.
+         *
+         *     Closure holds the account's fence exclusive: it waits (bounded) for the
+         *     account's in-flight requests, so none of their effects can land after it
+         *     returns; on timeout nothing changes and the typed error says so.
+         */
+        post: operations["close_account_api_account_close_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AcceptedResponse
+         * @description Identical for every outcome, so it reveals no account's existence.
+         */
+        AcceptedResponse: {
+            /**
+             * Status
+             * @default accepted
+             * @constant
+             */
+            status: "accepted";
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
         /**
          * AccountStatusResponse
          * @description Authoritative account view (CRD Issue 20).
@@ -521,6 +735,45 @@ export interface components {
             pending_decision?: components["schemas"]["PendingMechanicalDecisionView"] | null;
         };
         /**
+         * AdminAccountViewResponse
+         * @description Owner-administrator view of one deliberately targeted hosted account.
+         *
+         *     Allowlisted, non-secret operational metadata only: no contact address,
+         *     Story content, credential or local-device state.
+         */
+        AdminAccountViewResponse: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "active" | "closed";
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Closed At */
+            closed_at: string | null;
+            /** Owned Story Count */
+            owned_story_count: number;
+            credits: components["schemas"]["HostedCreditsDTO"];
+            cloud_services: components["schemas"]["CloudServicesStatus"];
+            /** Byok License Active */
+            byok_license_active: boolean;
+            byok_readiness_source: components["schemas"]["ByokReadinessSource"];
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /**
          * ApiError
          * @description The single API error envelope shape.
          */
@@ -543,7 +796,7 @@ export interface components {
          * ApiErrorCode
          * @enum {string}
          */
-        ApiErrorCode: "not_found" | "validation_failed" | "entitlement_blocked" | "byok_credentials_required" | "turn_in_flight" | "setup_required" | "setup_state_conflict" | "mode_unavailable" | "internal_error" | "pending_roll_not_found" | "pending_roll_not_player_visible" | "pending_roll_already_consumed" | "pending_roll_revision_mismatch" | "pending_roll_term_mismatch" | "pending_roll_invalid_value" | "pending_roll_invalid_aggregate" | "action_sequence_not_found" | "action_sequence_already_completed" | "action_sequence_state_conflict" | "action_adjustment_not_allowed" | "action_adjustment_ineligible" | "mechanical_decision_invalid" | "mechanical_decision_revision_mismatch" | "sequence_not_ready_for_narration" | "credential_store_read_only" | "credential_store_unavailable" | "credential_settings_unavailable" | "credential_not_configured" | "credential_validation_superseded" | "credential_validation_unavailable";
+        ApiErrorCode: "not_found" | "validation_failed" | "entitlement_blocked" | "byok_credentials_required" | "turn_in_flight" | "setup_required" | "setup_state_conflict" | "mode_unavailable" | "internal_error" | "pending_roll_not_found" | "pending_roll_not_player_visible" | "pending_roll_already_consumed" | "pending_roll_revision_mismatch" | "pending_roll_term_mismatch" | "pending_roll_invalid_value" | "pending_roll_invalid_aggregate" | "action_sequence_not_found" | "action_sequence_already_completed" | "action_sequence_state_conflict" | "action_adjustment_not_allowed" | "action_adjustment_ineligible" | "mechanical_decision_invalid" | "mechanical_decision_revision_mismatch" | "sequence_not_ready_for_narration" | "credential_store_read_only" | "credential_store_unavailable" | "credential_settings_unavailable" | "credential_not_configured" | "credential_validation_superseded" | "credential_validation_unavailable" | "authentication_required" | "authentication_failed" | "staff_authority_required" | "request_origin_rejected" | "byok_local_only" | "deployment_route_unavailable" | "identity_unavailable" | "account_operation_in_progress";
         /**
          * BeginStoryResponse
          * @description ``POST .../begin`` (ADR-016b). ``started``: the opening was delivered
@@ -722,9 +975,20 @@ export interface components {
             schema_version: 1;
         };
         /**
+         * ByokReadinessSource
+         * @description Where ``byok_ready`` comes from (prerequisite #205 §3).
+         *
+         *     ``local_device``: this installation's own credential store. A remote
+         *     deployment never reads a device: ``unavailable_remotely`` means local
+         *     readiness is unknown here, not absent, and ``byok_ready`` is then None.
+         * @enum {string}
+         */
+        ByokReadinessSource: "local_device" | "unavailable_remotely";
+        /**
          * ByokStatusDTO
          * @description ``byok_ready`` is the shared resolver/readiness predicate; None when
-         *     that probe failed (a turn then treats BYOK as not runnable).
+         *     that probe failed (a turn then treats BYOK as not runnable) or when
+         *     ``readiness_source`` is ``unavailable_remotely``.
          */
         ByokStatusDTO: {
             /** License Active */
@@ -737,6 +1001,22 @@ export interface components {
             openrouter_model: string | null;
             /** Byok Ready */
             byok_ready: boolean | null;
+            /** @default local_device */
+            readiness_source: components["schemas"]["ByokReadinessSource"];
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** CloseAccountRequest */
+        CloseAccountRequest: {
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
             /**
              * Schema Version
              * @default 1
@@ -749,6 +1029,59 @@ export interface components {
          * @enum {string}
          */
         CloudServicesStatus: "active" | "lapsed" | "not_activated";
+        /** CompleteEnrollmentRequest */
+        CompleteEnrollmentRequest: {
+            /** Contact Address */
+            contact_address: string;
+            /**
+             * Code
+             * Format: password
+             */
+            code: string;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** CompleteRecoveryRequest */
+        CompleteRecoveryRequest: {
+            /** Contact Address */
+            contact_address: string;
+            /**
+             * Code
+             * Format: password
+             */
+            code: string;
+            /**
+             * New Password
+             * Format: password
+             */
+            new_password: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** ContactAddressRequest */
+        ContactAddressRequest: {
+            /** Contact Address */
+            contact_address: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
         /** CreateStoryRequest */
         CreateStoryRequest: {
             /** Title */
@@ -804,6 +1137,11 @@ export interface components {
          * @enum {string}
          */
         CritiqueIntensity: "gentle" | "balanced" | "blunt" | "ruthless";
+        /**
+         * DeploymentKind
+         * @enum {string}
+         */
+        DeploymentKind: "local" | "remote";
         /**
          * DiceHandling
          * @description Dice-roll mode configured by the player in RPG mode.
@@ -1272,6 +1610,33 @@ export interface components {
             /** Term Results */
             term_results: components["schemas"]["PlayerRollTermResult"][];
         };
+        /** RevokeSessionsRequest */
+        RevokeSessionsRequest: {
+            /** Reason */
+            reason: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** RevokeSessionsResponse */
+        RevokeSessionsResponse: {
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Revoked Sessions */
+            revoked_sessions: number;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
         /**
          * RollAdjustmentRequest
          * @description Apply one parameterless adjustment option of the pending roll
@@ -1654,6 +2019,26 @@ export interface components {
             /** Sequence Label */
             sequence_label?: string | null;
         };
+        /**
+         * SessionStatusResponse
+         * @description Presentation state only -- never authority. ``signed_in`` is always
+         *     False for a local deployment, which needs no sign-in.
+         */
+        SessionStatusResponse: {
+            deployment: components["schemas"]["DeploymentKind"];
+            /** Signed In */
+            signed_in: boolean;
+            /** Account Id */
+            account_id?: string | null;
+            /** Contact Address */
+            contact_address?: string | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
         /** SetupResponse */
         SetupResponse: {
             /** Visible State */
@@ -1675,6 +2060,35 @@ export interface components {
         SetupStateResponse: {
             /** Setup State */
             setup_state?: components["schemas"]["RpgSetupStateDTO"] | components["schemas"]["BranchingSetupStateDTO"] | components["schemas"]["WritingSetupStateDTO"] | null;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** SignInRequest */
+        SignInRequest: {
+            /** Contact Address */
+            contact_address: string;
+            /**
+             * Password
+             * Format: password
+             */
+            password: string;
+            /**
+             * Schema Version
+             * @default 1
+             * @constant
+             */
+            schema_version: 1;
+        };
+        /** StaffSessionResponse */
+        StaffSessionResponse: {
+            /** Signed In */
+            signed_in: boolean;
+            /** Expires At */
+            expires_at?: string | null;
             /**
              * Schema Version
              * @default 1
@@ -2153,6 +2567,753 @@ export interface operations {
             };
         };
     };
+    get_session_status_api_auth_session_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionStatusResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    register_api_auth_register_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactAddressRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcceptedResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    complete_registration_api_auth_register_complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompleteEnrollmentRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcceptedResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    sign_in_api_auth_sign_in_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignInRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionStatusResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    sign_out_api_auth_sign_out_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionStatusResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    begin_recovery_api_auth_recovery_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactAddressRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcceptedResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    complete_recovery_api_auth_recovery_complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompleteRecoveryRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcceptedResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    staff_sign_in_api_admin_session_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignInRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffSessionResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    staff_sign_out_api_admin_session_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffSessionResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    get_account_view_api_admin_accounts__account_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminAccountViewResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    revoke_account_sessions_api_admin_accounts__account_id__sessions_revoke_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RevokeSessionsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevokeSessionsResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     list_stories_api_stories_get: {
         parameters: {
             query?: never;
@@ -2327,6 +3488,15 @@ export interface operations {
                     "application/json": components["schemas"]["BeginStoryResponse"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
             /** @description Forbidden */
             403: {
                 headers: {
@@ -2386,6 +3556,15 @@ export interface operations {
                     "application/json": components["schemas"]["TurnSubmissionResponse"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
             /** @description Forbidden */
             403: {
                 headers: {
@@ -2442,6 +3621,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PendingInteractionResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
                 };
             };
             /** @description Forbidden */
@@ -2506,6 +3694,15 @@ export interface operations {
                     "application/json": components["schemas"]["ActionResolutionAdvanceResult"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
             /** @description Forbidden */
             403: {
                 headers: {
@@ -2568,6 +3765,15 @@ export interface operations {
                     "application/json": components["schemas"]["ActionResolutionAdvanceResult"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
             /** @description Forbidden */
             403: {
                 headers: {
@@ -2628,6 +3834,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ActionResolutionAdvanceResult"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
                 };
             };
             /** @description Forbidden */
@@ -2785,6 +4000,15 @@ export interface operations {
                     "application/json": components["schemas"]["RpgSetupViewDTO"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
             /** @description Forbidden */
             403: {
                 headers: {
@@ -2845,6 +4069,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RpgSetupViewDTO"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
                 };
             };
             /** @description Forbidden */
@@ -2909,6 +4142,15 @@ export interface operations {
                     "application/json": components["schemas"]["RpgSetupViewDTO"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
             /** @description Forbidden */
             403: {
                 headers: {
@@ -2971,6 +4213,15 @@ export interface operations {
                     "application/json": components["schemas"]["RpgSetupViewDTO"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
             /** @description Forbidden */
             403: {
                 headers: {
@@ -3031,6 +4282,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RpgSetupViewDTO"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
                 };
             };
             /** @description Forbidden */
@@ -3109,6 +4369,15 @@ export interface operations {
                     "application/json": components["schemas"]["AccountStatusResponse"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
             /** @description Conflict */
             409: {
                 headers: {
@@ -3162,6 +4431,15 @@ export interface operations {
                     "application/json": components["schemas"]["AccountStatusResponse"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
             /** @description Conflict */
             409: {
                 headers: {
@@ -3209,6 +4487,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccountStatusResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
                 };
             };
             /** @description Conflict */
@@ -3264,6 +4551,15 @@ export interface operations {
                     "application/json": components["schemas"]["AccountStatusResponse"];
                 };
             };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
             /** @description Conflict */
             409: {
                 headers: {
@@ -3313,6 +4609,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccountStatusResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
                 };
             };
             /** @description Conflict */
@@ -3366,6 +4671,84 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccountStatusResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    close_account_api_account_close_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CloseAccountRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionStatusResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
                 };
             };
             /** @description Conflict */

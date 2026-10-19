@@ -49,3 +49,11 @@ def writing_released(monkeypatch):  # type: ignore[no-untyped-def]
 
 # CRD Issue 21: the production-resolver spine harness (tests/api/_spine.py).
 from tests.api._spine import spine  # noqa: E402, F401
+
+
+@pytest.fixture()
+def remote(tmp_path, monkeypatch):  # type: ignore[no-untyped-def]
+    """Prerequisite #205: a remote deployment on disposable stores."""
+    from tests.api._remote import remote_harness
+
+    yield from remote_harness(tmp_path, monkeypatch)

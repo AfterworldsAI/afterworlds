@@ -13,7 +13,12 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request
 
-from afterworlds.api.deps import get_story_lock, run_under_story_lock
+from afterworlds.api.deps import (
+    AdmittedWorkerRoute,
+    get_story_lock,
+    run_admitted_worker,
+    run_under_story_lock,
+)
 from afterworlds.api.dto import (
     RpgAcceptCharacterRequest,
     RpgCompleteSetupRequest,
@@ -25,7 +30,9 @@ from afterworlds.api.errors import API_ERROR_RESPONSES
 from afterworlds.api.rpg_setup import now, read_setup_view, run_setup_operation
 from afterworlds.services import rpg_setup
 
-router = APIRouter(prefix="/api/stories", tags=["rpg-setup"])
+router = APIRouter(
+    prefix="/api/stories", tags=["rpg-setup"], route_class=AdmittedWorkerRoute
+)
 
 
 @router.get(
@@ -34,8 +41,9 @@ router = APIRouter(prefix="/api/stories", tags=["rpg-setup"])
     responses=API_ERROR_RESPONSES,
 )
 async def get_rpg_setup(story_id: UUID, request: Request) -> RpgSetupViewDTO:
-    return await asyncio.to_thread(
-        read_setup_view, request.app.state.session_factory, story_id
+    # The read can commit retained setup state: its worker owns a fence lease.
+    return await run_admitted_worker(
+        None, read_setup_view, request.app.state.session_factory, story_id
     )
 
 

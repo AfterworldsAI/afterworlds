@@ -11,20 +11,30 @@ Usage
 
     python scripts/retrieval_backfill.py --story-id <uuid> --mode reindex \\
         --chroma-path .chroma_data --db-url sqlite:///afterworlds.db
+
+Remote deployment (prerequisite #205 §5): with ``AFTERWORLDS_DEPLOYMENT=remote``
+the job must carry its trusted account scope (``--account-id``) and is
+refused unless that account still owns the Story, is active and the Story is
+not under deletion suppression -- checked when the job runs, so a stale job
+can neither cross accounts nor recreate deleted content.
 """
 
 from __future__ import annotations
 
 import argparse
+import os
 import sys
 from dataclasses import replace
 from pathlib import Path
+from typing import Any
 from uuid import UUID
 
 # Ensure project src is on path when run from repo root
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 # Import all ORM models so Base.metadata is complete
+from chromadb.api.shared_system_client import SharedSystemClient  # noqa: E402
+
 import afterworlds.persistence.orm.character_sheet  # noqa: E402, F401
 import afterworlds.persistence.orm.node  # noqa: E402, F401
 import afterworlds.persistence.orm.retrieval  # noqa: E402, F401
@@ -47,9 +57,28 @@ from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig  # noqa:
 from afterworlds.pipeline.retrieval.write_service import (  # noqa: E402
     RetrievalMemoryWriteService,
 )
+from afterworlds.remote.access import (  # noqa: E402
+    AccessPolicy,
+    DelayedWorkScope,
+    StoryAccessDenied,
+    story_owner,
+    work_scope,
+)
+from afterworlds.remote.control_store import (  # noqa: E402
+    ControlStoreUnavailable,
+    connect_control_store,
+)
+from afterworlds.remote.identity import IdentityService  # noqa: E402
+from afterworlds.remote.retrieval_guard import GuardedRetrievalWrites  # noqa: E402
+from afterworlds.remote.storage import (  # noqa: E402
+    StoreRefused,
+    maintenance_locks,
+    pending_restores,
+    refuse_store_aliasing,
+)
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Backfill or reindex Retrieval Memory for one story."
     )
@@ -71,7 +100,61 @@ def parse_args() -> argparse.Namespace:
         "be passed to deliberately point at a different Chroma directory.",
     )
     parser.add_argument("--db-url", default="sqlite:///afterworlds.db")
-    return parser.parse_args()
+    parser.add_argument(
+        "--account-id",
+        default=None,
+        help="Remote deployment only: the owning hosted account (required).",
+    )
+    return parser.parse_args(argv)
+
+
+class _NoNotices:
+    def send(self, *, contact_address: str, kind: str, code: str) -> None:
+        raise AssertionError("backfill sends no notices")
+
+
+def _connect(control_url: str) -> Any:
+    """The existing control store, never migrated here (exit 3 if absent)."""
+    try:
+        return connect_control_store(control_url)
+    except ControlStoreUnavailable as exc:
+        print(f"refused: {exc}", file=sys.stderr)
+        raise SystemExit(3) from None
+
+
+def remote_scope_check(
+    session_factory: Any, story_id: UUID, account_id: str | None, mode: str
+) -> None:
+    """Recheck the job's trusted scope (remote only); exit 3 when refused."""
+    if os.environ.get("AFTERWORLDS_DEPLOYMENT") != "remote":
+        return
+    control_url = os.environ.get("AFTERWORLDS_CONTROL_DATABASE_URL")
+    if account_id is None or control_url is None:
+        print(
+            "remote backfill requires --account-id and "
+            "AFTERWORLDS_CONTROL_DATABASE_URL",
+            file=sys.stderr,
+        )
+        raise SystemExit(3)
+    control = _connect(control_url)
+    policy = AccessPolicy(IdentityService(control, _NoNotices()), control)
+    scope = DelayedWorkScope(
+        account_id=UUID(account_id), story_id=story_id, operation=f"retrieval_{mode}"
+    )
+    session = session_factory()
+    try:
+        if mode == "delete":
+            # Deletion enforces a suppression: it needs the owner, not an
+            # unsuppressed Story (remote/retrieval_guard.py).
+            if story_owner(session, story_id) != account_id:
+                raise StoryAccessDenied(scope.operation)
+        else:
+            policy.check_delayed_work(session, scope)
+    except StoryAccessDenied:
+        print("story not accessible for this account", file=sys.stderr)
+        raise SystemExit(3) from None
+    finally:
+        session.close()
 
 
 def build_effective_config(chroma_path: str | None) -> RetrievalMemoryConfig:
@@ -92,16 +175,21 @@ def build_effective_config(chroma_path: str | None) -> RetrievalMemoryConfig:
     return config
 
 
-def main() -> None:
-    args = parse_args()
-    story_id = UUID(args.story_id)
-
-    engine = create_engine(args.db_url)
-    session_factory = create_session_factory(engine)
-    config = build_effective_config(args.chroma_path)
-    client = build_chroma_client(config)
-    write_service = RetrievalMemoryWriteService(client, config)
-
+def _run_mode(
+    mode: str,
+    session_factory: Any,
+    write_service: Any,
+    story_id: UUID,
+    delete: Any,
+) -> None:
+    if mode == "delete":
+        # Deletion needs no live Story: its chunks (and, remotely, its durable
+        # ownership) can outlive the SQL Story after an interrupted deletion.
+        remaining = delete()
+        print(f"deleted story chunks; remaining={remaining}")
+        if remaining != 0:
+            raise SystemExit(2)
+        return
     session = session_factory()
     try:
         story = get_story(session, story_id)
@@ -109,13 +197,7 @@ def main() -> None:
             print(f"story {story_id} not found", file=sys.stderr)
             raise SystemExit(1)
         story_mode = story.mode
-        if args.mode == "delete":
-            remaining = write_service.delete_story(story_id)
-            print(f"deleted story chunks; remaining={remaining}")
-            if remaining != 0:
-                raise SystemExit(2)
-            return
-        if args.mode == "reindex":
+        if mode == "reindex":
             report = reindex_story(session, write_service, story_id, story_mode)
         else:
             report = backfill_story(session, write_service, story_id, story_mode)
@@ -129,6 +211,85 @@ def main() -> None:
     )
     if report.data_integrity_errors:
         raise SystemExit(2)
+
+
+def _remote_main(args: argparse.Namespace, story_id: UUID, config: Any) -> None:
+    """The remote job: inside both store locks (so never beside a serving app
+    or a storage operation), refused while a restore is pending, and every
+    write rechecks the job's trusted scope through the Retrieval guard, so a
+    closure or suppression mid-job stops the remaining writes. Exit 3 on any
+    refusal."""
+    control_url = os.environ.get("AFTERWORLDS_CONTROL_DATABASE_URL")
+    if args.account_id is None or control_url is None:
+        print(
+            "remote backfill requires --account-id and "
+            "AFTERWORLDS_CONTROL_DATABASE_URL",
+            file=sys.stderr,
+        )
+        raise SystemExit(3)
+    try:
+        refuse_store_aliasing(args.db_url, control_url)
+    except StoreRefused as exc:
+        print(f"refused: {exc}", file=sys.stderr)
+        raise SystemExit(3) from None
+    control = _connect(control_url)
+    try:
+        with maintenance_locks(args.db_url, Path(config.persist_directory), control):
+            if pending_restores(control):
+                print("a restore is pending; no job may run", file=sys.stderr)
+                raise SystemExit(3)
+            engine = create_engine(args.db_url)
+            session_factory = create_session_factory(engine)
+            try:
+                remote_scope_check(
+                    session_factory, story_id, args.account_id, args.mode
+                )
+                policy = AccessPolicy(IdentityService(control, _NoNotices()), control)
+                writes = GuardedRetrievalWrites(
+                    RetrievalMemoryWriteService(build_chroma_client(config), config),
+                    policy,
+                    session_factory,
+                )
+                scope = DelayedWorkScope(
+                    UUID(args.account_id), story_id, f"retrieval_{args.mode}"
+                )
+                with work_scope(scope):
+                    _run_mode(
+                        args.mode,
+                        session_factory,
+                        writes,
+                        story_id,
+                        lambda: writes.delete_story_for(scope),
+                    )
+            except StoryAccessDenied:
+                print("story not accessible for this account", file=sys.stderr)
+                raise SystemExit(3) from None
+            finally:
+                engine.dispose()
+                SharedSystemClient.clear_system_cache()
+    except StoreRefused as exc:
+        print(f"refused: {exc}", file=sys.stderr)
+        raise SystemExit(3) from None
+
+
+def main(argv: list[str] | None = None) -> None:
+    args = parse_args(argv)
+    story_id = UUID(args.story_id)
+    config = build_effective_config(args.chroma_path)
+    if os.environ.get("AFTERWORLDS_DEPLOYMENT") == "remote":
+        _remote_main(args, story_id, config)
+        return
+
+    engine = create_engine(args.db_url)
+    session_factory = create_session_factory(engine)
+    write_service = RetrievalMemoryWriteService(build_chroma_client(config), config)
+    _run_mode(
+        args.mode,
+        session_factory,
+        write_service,
+        story_id,
+        lambda: write_service.delete_story(story_id),
+    )
 
 
 if __name__ == "__main__":

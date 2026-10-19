@@ -29,14 +29,13 @@ from afterworlds.pipeline.provider._models import (
     ProviderToolCallPart,
     ProviderToolDefinition,
 )
+from afterworlds.prompt_contracts import PROMPT_DIR
 
 if TYPE_CHECKING:
     from afterworlds.models.context import AssembledContext
     from afterworlds.pipeline.provider._protocol import ProviderAdapter
 
-_PROMPT_PATH: Path = (
-    Path(__file__).parents[3] / "docs" / "prompts" / "rolling_summary.md"
-)
+_PROMPT_PATH: Path = PROMPT_DIR / "rolling_summary.md"
 
 RECORD_ROLLING_SUMMARY_TOOL_NAME = "record_rolling_summary"
 ROLLING_SUMMARY_MAX_TOKENS = 1024

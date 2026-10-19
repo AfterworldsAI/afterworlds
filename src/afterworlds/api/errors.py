@@ -50,6 +50,15 @@ class ApiErrorCode(StrEnum):
     CREDENTIAL_NOT_CONFIGURED = "credential_not_configured"
     CREDENTIAL_VALIDATION_SUPERSEDED = "credential_validation_superseded"
     CREDENTIAL_VALIDATION_UNAVAILABLE = "credential_validation_unavailable"
+    # Prerequisite #205 remote identity boundary (``api/remote_access.py``).
+    AUTHENTICATION_REQUIRED = "authentication_required"
+    AUTHENTICATION_FAILED = "authentication_failed"
+    STAFF_AUTHORITY_REQUIRED = "staff_authority_required"
+    REQUEST_ORIGIN_REJECTED = "request_origin_rejected"
+    BYOK_LOCAL_ONLY = "byok_local_only"
+    DEPLOYMENT_ROUTE_UNAVAILABLE = "deployment_route_unavailable"
+    IDENTITY_UNAVAILABLE = "identity_unavailable"
+    ACCOUNT_OPERATION_IN_PROGRESS = "account_operation_in_progress"
 
 
 class ApiError(BaseModel):
@@ -67,7 +76,7 @@ class ApiError(BaseModel):
 #: contract (CRD Issue 15b): exception-handler shapes are otherwise absent
 #: from OpenAPI, so ``ApiError``/``ApiErrorCode`` reach the TypeScript types.
 API_ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
-    status: {"model": ApiError} for status in (403, 404, 409, 422)
+    status: {"model": ApiError} for status in (401, 403, 404, 409, 422)
 }
 
 

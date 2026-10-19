@@ -133,9 +133,8 @@ def test_rpg_roll_audit_migration_turn_id_fk_no_cascade() -> None:
         db_path = f.name
 
     try:
-        from alembic.config import Config
-
         from alembic import command
+        from alembic.config import Config
 
         ini_path = os.path.join(os.path.dirname(__file__), "..", "..", "alembic.ini")
         cfg = Config(ini_path)

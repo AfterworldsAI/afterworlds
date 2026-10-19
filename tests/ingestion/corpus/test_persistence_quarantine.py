@@ -89,12 +89,14 @@ def test_migration_0018_deletes_incomplete_package_and_dependent_rows(tmp_path):
     db_url = f"sqlite:///{tmp_path / 'baseline.db'}"
     # Bring a fresh DB to the revision *before* 0018, seed the legacy package +
     # dependent rows, then run 0018 and confirm the targeted deletion.
+    from alembic import command
     from alembic.config import Config
 
-    from alembic import command
-
     cfg = Config(str(REPO_ROOT / "alembic.ini"))
-    cfg.set_main_option("script_location", str(REPO_ROOT / "alembic"))
+    cfg.set_main_option(
+        "script_location",
+        str(REPO_ROOT / "src" / "afterworlds" / "migrations" / "content"),
+    )
     cfg.set_main_option("sqlalchemy.url", db_url)
     command.upgrade(cfg, "0017")
 

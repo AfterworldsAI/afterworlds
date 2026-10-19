@@ -7,11 +7,11 @@ from pathlib import Path
 
 import pytest
 import sqlalchemy as sa
+from alembic import command
 from alembic.config import Config
 
 import afterworlds.persistence.orm.dnd5e_state  # noqa: F401
 from afterworlds.persistence.orm.base import Base
-from alembic import command
 
 _REPO = Path(__file__).resolve().parents[2]
 _NEW = ("rpg_turn_coordination", "rpg_turn_edges")
@@ -23,7 +23,9 @@ _STORY = (
 
 def _cfg(db: Path) -> Config:
     cfg = Config(str(_REPO / "alembic.ini"))
-    cfg.set_main_option("script_location", str(_REPO / "alembic"))
+    cfg.set_main_option(
+        "script_location", str(_REPO / "src" / "afterworlds" / "migrations" / "content")
+    )
     cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db.as_posix()}")
     return cfg
 

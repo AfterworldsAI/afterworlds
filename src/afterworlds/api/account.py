@@ -24,11 +24,18 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from afterworlds.api.access_path import probe_byok_readiness, select_access_path
+from afterworlds.api.access_path import (
+    AccessPathSelection,
+    ByokReadinessProbe,
+    probe_byok_readiness,
+    select_access_path,
+)
 from afterworlds.api.dto import (
     AccountStatusResponse,
+    AdminAccountViewResponse,
     ByokProvider,
     ByokProviderStateDTO,
+    ByokReadinessSource,
     ByokStatusDTO,
     CloudServicesStatus,
     CredentialValidationRequest,
@@ -38,13 +45,15 @@ from afterworlds.api.dto import (
     ProviderEnabledRequest,
 )
 from afterworlds.api.errors import ApiErrorCode, ApiErrorResponse
+from afterworlds.entitlement.models import AccessPathStatus
 from afterworlds.entitlement.service import EntitlementService
 from afterworlds.pipeline.provider import (
-    ByokCredentialReadinessProvider,
     ByokSettingsService,
     CredentialSettingsError,
     CredentialSettingsErrorKind,
 )
+from afterworlds.remote.access import owned_story_ids
+from afterworlds.remote.identity import AccountRecord
 
 _SETTINGS_ERRORS: dict[CredentialSettingsErrorKind, tuple[int, ApiErrorCode]] = {
     CredentialSettingsErrorKind.INVALID_INPUT: (422, ApiErrorCode.VALIDATION_FAILED),
@@ -90,31 +99,34 @@ def _credits(value: Decimal | None) -> str | None:
 def build_account_status(
     session: Session,
     sojourner_id: UUID,
-    readiness_provider: ByokCredentialReadinessProvider,
-    settings: ByokSettingsService,
+    readiness_provider: ByokReadinessProbe,
+    settings: ByokSettingsService | None,
 ) -> AccountStatusResponse:
+    """``settings is None`` is the remote deployment (prerequisite #205 §3):
+    no credential store exists there, so local BYOK readiness is reported as
+    unavailable -- never probed, inferred or read from a device."""
     status = EntitlementService(session).get_access_path_status(sojourner_id)
+    if settings is None:
+        return _account_response(
+            status,
+            select_access_path(status, False),
+            ByokStatusDTO(
+                license_active=status.byok_turn_available,
+                credential_store_writable=False,
+                providers=[],
+                openrouter_model=None,
+                byok_ready=None,
+                readiness_source=ByokReadinessSource.UNAVAILABLE_REMOTELY,
+            ),
+        )
     byok_ready = probe_byok_readiness(readiness_provider, sojourner_id)
     selection = select_access_path(status, byok_ready is True)
     byok = run_settings_operation(lambda: settings.read(sojourner_id))
 
-    if status.cloud_services_active:
-        cloud = CloudServicesStatus.ACTIVE
-    elif status.cloud_services_lapsed:
-        cloud = CloudServicesStatus.LAPSED
-    else:
-        cloud = CloudServicesStatus.NOT_ACTIVATED
-
-    return AccountStatusResponse(
-        credits=HostedCreditsDTO(
-            included=_credits(status.hosted_credit_balance),
-            top_up=_credits(status.top_up_credit_balance),
-            total=_credits(status.total_hosted_credit_balance),
-            hosted_turn_available=status.hosted_turn_available,
-            hosted_unavailable_reason=status.hosted_unavailable_reason,
-        ),
-        cloud_services=cloud,
-        byok=ByokStatusDTO(
+    return _account_response(
+        status,
+        selection,
+        ByokStatusDTO(
             license_active=status.byok_turn_available,
             credential_store_writable=byok.store_writable,
             providers=[
@@ -130,6 +142,52 @@ def build_account_status(
             openrouter_model=byok.openrouter_model,
             byok_ready=byok_ready,
         ),
+    )
+
+
+def build_admin_account_view(
+    session: Session, record: AccountRecord
+) -> AdminAccountViewResponse:
+    """Allowlisted operational view of one targeted hosted account (#205)."""
+    status = EntitlementService(session).get_access_path_status(record.account_id)
+    return AdminAccountViewResponse(
+        account_id=record.account_id,
+        status="closed" if record.status == "closed" else "active",
+        created_at=record.created_at,
+        closed_at=record.closed_at,
+        owned_story_count=len(owned_story_ids(session, record.account_id)),
+        credits=hosted_credits(status),
+        cloud_services=cloud_services_status(status),
+        byok_license_active=status.byok_turn_available,
+        byok_readiness_source=ByokReadinessSource.UNAVAILABLE_REMOTELY,
+    )
+
+
+def hosted_credits(status: AccessPathStatus) -> HostedCreditsDTO:
+    return HostedCreditsDTO(
+        included=_credits(status.hosted_credit_balance),
+        top_up=_credits(status.top_up_credit_balance),
+        total=_credits(status.total_hosted_credit_balance),
+        hosted_turn_available=status.hosted_turn_available,
+        hosted_unavailable_reason=status.hosted_unavailable_reason,
+    )
+
+
+def cloud_services_status(status: AccessPathStatus) -> CloudServicesStatus:
+    if status.cloud_services_active:
+        return CloudServicesStatus.ACTIVE
+    if status.cloud_services_lapsed:
+        return CloudServicesStatus.LAPSED
+    return CloudServicesStatus.NOT_ACTIVATED
+
+
+def _account_response(
+    status: AccessPathStatus, selection: AccessPathSelection, byok: ByokStatusDTO
+) -> AccountStatusResponse:
+    return AccountStatusResponse(
+        credits=hosted_credits(status),
+        cloud_services=cloud_services_status(status),
+        byok=byok,
         selected_access_path=selection.access_path,
         blocked_error_code=selection.blocked_error_code,
         refreshed_at=datetime.now(UTC),

@@ -52,6 +52,7 @@ function account(overrides: {
       providers: [provider("anthropic"), provider("openrouter")],
       openrouter_model: null,
       byok_ready: false,
+      readiness_source: "local_device",
       schema_version: 1,
       ...overrides.byok,
     },
@@ -732,6 +733,13 @@ describe("App account view", () => {
           return Promise.resolve(json(200, account({})));
         }
         const bodies: Record<string, unknown> = {
+          "/api/auth/session": {
+            deployment: "local",
+            signed_in: false,
+            account_id: null,
+            contact_address: null,
+            schema_version: 1,
+          },
           "/api/stories": { stories: [story], schema_version: 1 },
           "/api/stories/s1": story,
           "/api/stories/s1/turns": { turns: [], schema_version: 1 },
@@ -775,13 +783,47 @@ describe("App account view", () => {
 
   it("opens the account view from the header", async () => {
     stubFetch({
+      "GET /api/auth/session": [
+        () =>
+          json(200, {
+            deployment: "local",
+            signed_in: false,
+            account_id: null,
+            contact_address: null,
+            schema_version: 1,
+          }),
+      ],
       "GET /api/stories": [() => json(200, { stories: [], schema_version: 1 })],
       "GET /api/account": [() => json(200, account({}))],
     });
     render(<App />);
-    act(() => screen.getByRole("button", { name: "Account & BYOK" }).click());
+    // The app first reads its session status (prerequisite #205).
+    const open = await screen.findByRole("button", { name: "Account & BYOK" });
+    act(() => open.click());
     expect(await screen.findByTestId("no-hosted-plan")).toBeInTheDocument();
     act(() => screen.getByRole("button", { name: "Close account" }).click());
     expect(await screen.findByText("Your stories")).toBeInTheDocument();
+  });
+});
+
+describe("AccountPanel on a remote account (prerequisite #205)", () => {
+  it("never shows or offers device BYOK state remotely", async () => {
+    const remoteView = account({
+      byok: {
+        license_active: true,
+        credential_store_writable: false,
+        providers: [],
+        byok_ready: null,
+        readiness_source: "unavailable_remotely",
+      },
+    });
+    stubFetch({ "GET /api/account": [() => json(200, remoteView)] });
+    render(<AccountPanel refreshKey={0} />);
+    expect(await screen.findByTestId("byok-remote")).toHaveTextContent(
+      "cannot see, store or use them",
+    );
+    expect(screen.queryByTestId("byok-ready")).toBeNull();
+    expect(screen.queryByTestId("store-read-only")).toBeNull();
+    expect(screen.queryByLabelText(/API key/i)).toBeNull();
   });
 });

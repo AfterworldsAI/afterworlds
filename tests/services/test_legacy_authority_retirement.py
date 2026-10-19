@@ -32,6 +32,7 @@ from uuid import UUID
 
 import pytest
 import sqlalchemy as sa
+from alembic import command
 from alembic.config import Config
 
 import afterworlds.ingestion.ingestion_service as ingestion_service
@@ -51,7 +52,6 @@ from afterworlds.services.rules_authority import (
     RulesAuthorityService,
 )
 from afterworlds.services.rules_package import RulesPackageService
-from alembic import command
 from tests.services.rules_authority.conftest import (
     DESCRIPTOR_FACT_TARGET,
     DISABLE_PAYLOAD,
@@ -154,7 +154,9 @@ def test_the_orm_registers_neither_legacy_table() -> None:
 
 def _cfg(db: Path) -> Config:
     cfg = Config(str(_REPO / "alembic.ini"))
-    cfg.set_main_option("script_location", str(_REPO / "alembic"))
+    cfg.set_main_option(
+        "script_location", str(_REPO / "src" / "afterworlds" / "migrations" / "content")
+    )
     cfg.set_main_option("sqlalchemy.url", f"sqlite:///{db.as_posix()}")
     return cfg
 

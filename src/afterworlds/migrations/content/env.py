@@ -24,6 +24,7 @@ import afterworlds.persistence.orm.rolling_summary  # noqa: F401
 import afterworlds.persistence.orm.rpg  # noqa: F401
 import afterworlds.persistence.orm.retrieval  # noqa: F401
 import afterworlds.persistence.orm.identity  # noqa: F401
+import afterworlds.persistence.orm.ownership  # noqa: F401
 import afterworlds.entitlement.orm  # noqa: F401
 import afterworlds.pipeline.provider.credentials._metadata  # noqa: F401
 import afterworlds.pipeline.provider._route_config  # noqa: F401
@@ -32,7 +33,9 @@ import afterworlds.pipeline.provider._refusal_log  # noqa: F401
 config = context.config
 
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    # Keep the application's own loggers (created before startup migration)
+    # enabled: fileConfig would otherwise silence them for the process.
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = Base.metadata
 

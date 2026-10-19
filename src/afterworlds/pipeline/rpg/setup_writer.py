@@ -34,6 +34,7 @@ from afterworlds.pipeline.provider._models import (
     ProviderToolDefinition,
 )
 from afterworlds.pipeline.writer.config import WRITER_MAX_TOKENS
+from afterworlds.prompt_contracts import PROMPT_DIR
 
 if TYPE_CHECKING:
     from afterworlds.models.context import AssembledContext
@@ -41,9 +42,7 @@ if TYPE_CHECKING:
 
 PRODUCE_RPG_SETUP_TURN_TOOL_NAME = "produce_rpg_setup_turn"
 
-_PROMPT_PATH: Path = (
-    Path(__file__).parents[4] / "docs" / "prompts" / "rpg_setup_writer.md"
-)
+_PROMPT_PATH: Path = PROMPT_DIR / "rpg_setup_writer.md"
 
 _TOOL_DEF = ProviderToolDefinition(
     name=PRODUCE_RPG_SETUP_TURN_TOOL_NAME,

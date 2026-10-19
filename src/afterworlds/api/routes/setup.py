@@ -16,7 +16,12 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session, sessionmaker
 
-from afterworlds.api.deps import get_session, get_story_lock, run_under_story_lock
+from afterworlds.api.deps import (
+    AdmittedWorkerRoute,
+    get_session,
+    get_story_lock,
+    run_under_story_lock,
+)
 from afterworlds.api.dto import (
     BranchingSetupRequest,
     BranchingSetupStateDTO,
@@ -57,7 +62,9 @@ from afterworlds.persistence.crud.session_state import (
 from afterworlds.persistence.crud.story import get_story
 from afterworlds.services import rpg_setup
 
-router = APIRouter(prefix="/api/stories", tags=["setup"])
+router = APIRouter(
+    prefix="/api/stories", tags=["setup"], route_class=AdmittedWorkerRoute
+)
 
 _MODE_BY_REQUEST_TYPE = {
     RpgSetupRequest: StoryMode.RPG,

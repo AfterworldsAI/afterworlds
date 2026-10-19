@@ -58,6 +58,8 @@ These were open questions during design or early construction. Decisions are rec
 | Provider capability profiles and fallback eligibility | `AnthropicCapabilityProfile` owns pass→model mapping. `EligibleModelRoute` carries `whitelist_status` + `supports_required_capabilities`. `RefusalFallbackRouter` owns at-most-one-fallback semantics. BYOK pool bounded by configured credentials; no hosted/BYOK boundary crossing. | Resolved during CRD Issue 14a/14b; see adr-014a, adr-014b. OpenRouter cache adapter verification deferred — still open (see Open section). |
 | OpenRouter context-length floor value and rejection semantics | `resolve_route` rejects routes with known `context_length < writer_context_length_floor` (ProviderConfigError). Floor is a constructor parameter on `OpenRouterCapabilityRegistry`; default `_WRITER_CONTEXT_LENGTH_FLOOR = 8192` is provisional. `context_length=None` does not reject. | Resolved during CRD Issue 14b; see adr-014b Decision 4. The correct production floor value remains an operator configuration decision. |
 | OpenRouter structured-pass capability pre-validation at route resolution | `resolve_route` rejects routes where `supports_tool_use is False AND supports_structured_output is False` (ProviderConfigError). Only explicit False triggers rejection; None fields fail safe. | Resolved during CRD Issue 14b; see adr-014b Decision 11. |
+| Hosted deployment, accounts and administrator authority | Owner Decision D1 (CRD Issue 22 [#206](https://github.com/AfterworldsAI/afterworlds/issues/206), 2026-10-17): hosted subscriptions run remotely in production; BYOK users need accounts for Cloud Services only; the Owner is the sole initial full administrator via controlled bootstrap. Foundation: [prerequisite #205](https://github.com/AfterworldsAI/afterworlds/issues/205), ADR-021. | The local-first shell (CRD Issue 19) remains the local product; local BYOK never needs an account. Multiworker coordination, the notice/email processor, actual host/backup configuration and initial-market legal/financial applicability remain open gates (see “Remote launch gates” below). |
+| Story vs account-wide export/deletion scope | Owner Decision D2 (2026-10-17): both Story and account-wide export/deletion are required v1 scope, with the accepted retention schedule (D4) and field/store matrix. | CRD Issue 22 owns fulfillment; the lifecycle exception is recorded in ADR-0004/0006/013/014a/015/015b/018. |
 | React for the initial frontend | Deferred to before CRD Issue 19 per CRD Item 4. All Issues 1–18 are backend/pipeline and are unblocked. | CRD Item 4 establishes this must be resolved before frontend skeleton work (CRD Issue 19). No decision required before CRD Issue 18. |
 
 ---
@@ -222,6 +224,14 @@ pending roll or an abandoned ready sequence expires after N turns or N minutes a
 (c) whether a GM-initiated scene transition supersedes a pending roll or sequence. Implement the chosen
 policy, add or remove `cancelled`/`expired` lifecycle transitions accordingly, and test rollback for each
 non-consumed termination path.
+
+**CRD Issue 22 lifecycle amendment (2026-10-17, touched; not resolved):** this item remains open for
+continuing Stories. The accepted [lifecycle ADR amendment contract](https://github.com/AfterworldsAI/afterworlds/issues/206#issuecomment-6246562569)
+adds only one precise boundary: for a verified, confirmed terminal erasure of an entire Story or account,
+submission and resume are fenced and the deleted Story's pending request, sequence JSON, intermediate
+events and final audit content are removed through a guarded lifecycle path (ADR-015b 15b-34
+amendment). That is disposal of a no-longer-existing Story, not cancellation, expiration, rewind,
+retry or refund; an unfenceable in-flight operation is a visible deletion-deadline failure.
 
 ---
 
@@ -748,6 +758,30 @@ amendment defining a typed `RollAdjustmentOption` extension before any implement
 illustrative example, not an approved schema:* a field shaped like `chosen_slot_level: int`,
 server-validated against the sheet's available slots, is one possible form this could take. This is
 independent of, and not resolved by, the Rules Authority repair order above.
+
+---
+
+### Remote launch gates (prerequisite #205 / CRD Issue 22)
+
+**Resolve during:** before remote activation or public launch, as stated per gate. **Surfaced
+during:** CRD Issue 22 package acceptance and prerequisite #205 implementation (2026-10-17).
+
+These are recorded dependencies, not implementation choices; no code resolves them.
+
+- **Initial-market financial/privacy applicability** (package contract worksheet): US financial
+  supporting records, Canada and Mexico privacy/financial scope, US state privacy scope, exceptional
+  preservation. Owner obtains qualified advice. Required before an affected exception is implemented
+  or enabled and before public launch. No blanket seven-year or foreign retention is implied.
+- **Processors and storage:** the actual host, backup, notice/email and payment processors, storage
+  locations and disposal controls, and confirmation that the 21-day/30-day limits can be met. The
+  remote foundation ships only an operator outbox notice transport and a backup inventory hook.
+- **Multiworker or multi-host operation:** requires a separately reviewed shared-coordination and
+  storage contract (#205 §5); the delivered topology is one writer process.
+- **Accepting a restore whose ledger continuity is unprovable:** "When a content restore cannot prove that the restored entitlement ledger contains every recorded event (the live store is lost, or events were recorded after capture), what authority and reconciliation accept the restored money/access state before hosted service resumes?" The #205 guarantee
+  (no silent rewind) is implemented by refusing such restores; the acceptance/reconciliation authority
+  is an Owner decision touching CRD Issue 23 (ADR-021 Consequences).
+- **Remote abuse protection:** sign-in rate limiting / credential-stuffing protection for the public
+  endpoint is not part of #205's accepted behavior and must be decided before public exposure.
 
 ---
 

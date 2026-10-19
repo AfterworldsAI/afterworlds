@@ -12,7 +12,13 @@ def _load_migration_0013() -> object:
     """Import the 0013 migration module so we can test its helper functions."""
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
     migration_path = os.path.join(
-        project_root, "alembic", "versions", "0013_writing_mode.py"
+        project_root,
+        "src",
+        "afterworlds",
+        "migrations",
+        "content",
+        "versions",
+        "0013_writing_mode.py",
     )
     spec = importlib.util.spec_from_file_location("migration_0013", migration_path)
     assert spec is not None and spec.loader is not None
@@ -23,9 +29,8 @@ def _load_migration_0013() -> object:
 
 def test_alembic_upgrade_head() -> None:
     """alembic upgrade head must run to completion without error."""
-    from alembic.config import Config
-
     from alembic import command
+    from alembic.config import Config
 
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
         db_path = f.name
@@ -69,9 +74,8 @@ def test_alembic_upgrade_head() -> None:
 
 def test_alembic_downgrade_base() -> None:
     """alembic downgrade base must undo all tables."""
-    from alembic.config import Config
-
     from alembic import command
+    from alembic.config import Config
 
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
         db_path = f.name
@@ -198,7 +202,6 @@ def _alembic_cfg(db_path: str) -> object:
 def test_migration_0013_persona_backfill() -> None:
     """0012→0013 upgrade: legacy persona='chiron' → persona_id='chiron'."""  # noqa: E501
     import sqlalchemy as sa
-
     from alembic import command
 
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
@@ -261,7 +264,6 @@ def test_migration_0013_persona_backfill() -> None:
 def test_migration_0013_version_pointers_conversion() -> None:
     """Upgrade from 0012 to 0013: legacy UUID-string list is converted to dict list."""
     import sqlalchemy as sa
-
     from alembic import command
 
     with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:

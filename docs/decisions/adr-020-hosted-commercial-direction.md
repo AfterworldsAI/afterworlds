@@ -65,3 +65,13 @@ passages in Design §8, CRD Item 8 / Issue 13 scope and the Known Unknowns
 (Business model, Starter Access rows and the Starter Access package parameters
 entry), which are annotated accordingly. ADR-0001's rejection of a crippled
 free tier stands: the trial is full-feature, not a degraded tier.
+
+## CRD Issue 22 dependency note (2026-10-17)
+
+Per the [accepted lifecycle ADR amendment contract](https://github.com/AfterworldsAI/afterworlds/issues/206#issuecomment-6246562569)
+(“Other ADRs and explicit limits”): this ADR remains commercial direction and CRD Issue 23 remains
+the payment owner. Account closure coordinates existing subscription/renewal references through
+implemented owning contracts before severing them. No payment schema or retention period is
+invented here. Remote hosted accounts ([prerequisite #205](https://github.com/AfterworldsAI/afterworlds/issues/205),
+[ADR-021](adr-021-remote-identity-and-storage.md)) supply the authenticated subject that CRD Issue 23
+will later bind commercial events to; they implement no trial, checkout or payment behavior.

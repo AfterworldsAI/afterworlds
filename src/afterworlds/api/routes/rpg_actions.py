@@ -16,6 +16,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from afterworlds.api.deps import (
+    AdmittedWorkerRoute,
     get_rpg_actions,
     get_session,
     get_story_lock,
@@ -31,7 +32,7 @@ from afterworlds.models.rpg import (
 )
 from afterworlds.persistence.crud.story import get_story
 
-router = APIRouter(prefix="/api/stories", tags=["rpg"])
+router = APIRouter(prefix="/api/stories", tags=["rpg"], route_class=AdmittedWorkerRoute)
 
 
 @router.get(

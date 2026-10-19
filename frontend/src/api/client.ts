@@ -51,6 +51,10 @@ export type DecisionSubmission =
 export type AccountStatus = components["schemas"]["AccountStatusResponse"];
 export type ByokProviderName = components["schemas"]["ByokProvider"];
 
+// Prerequisite #205: remote session presentation state. Never authority --
+// the server decides every request from its own session record.
+export type SessionStatus = components["schemas"]["SessionStatusResponse"];
+
 export class ApiRequestError extends Error {
   constructor(
     public status: number,
@@ -60,14 +64,32 @@ export class ApiRequestError extends Error {
   }
 }
 
+// Called when the server reports that the session is missing, expired or
+// revoked, so the app can return to sign-in. One listener: the App.
+let onSignedOut: (() => void) | null = null;
+export function setSignedOutListener(listener: (() => void) | null): void {
+  onSignedOut = listener;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
+    // The custom header marks a same-origin client request: the remote
+    // server refuses state-changing requests without it (cross-site forms
+    // cannot set it). Cookies are HttpOnly; the client never stores them.
+    headers: {
+      "Content-Type": "application/json",
+      "X-Afterworlds-Request": "1",
+      ...init?.headers,
+    },
+    credentials: "same-origin",
   });
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as ApiError | null;
     if (body && "error_code" in body) {
+      if (res.status === 401 && body.error_code === "authentication_required") {
+        onSignedOut?.();
+      }
       throw new ApiRequestError(res.status, body);
     }
     throw new Error(`Request to ${path} failed with status ${res.status}`);
@@ -77,6 +99,65 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   health: () => request<components["schemas"]["HealthResponse"]>("/api/health"),
+
+  // Prerequisite #205: remote identity. Codes arrive only by notice, never
+  // in a response; every outcome of register/recovery reads the same.
+  getSessionStatus: () => request<SessionStatus>("/api/auth/session"),
+
+  signIn: (contactAddress: string, password: string) =>
+    request<SessionStatus>("/api/auth/sign-in", {
+      method: "POST",
+      body: JSON.stringify({ contact_address: contactAddress, password }),
+    }),
+
+  signOut: () =>
+    request<SessionStatus>("/api/auth/sign-out", { method: "POST" }),
+
+  register: (contactAddress: string) =>
+    request<components["schemas"]["AcceptedResponse"]>("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify({ contact_address: contactAddress }),
+    }),
+
+  completeRegistration: (
+    contactAddress: string,
+    code: string,
+    password: string,
+  ) =>
+    request<components["schemas"]["AcceptedResponse"]>(
+      "/api/auth/register/complete",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          contact_address: contactAddress,
+          code,
+          password,
+        }),
+      },
+    ),
+
+  beginRecovery: (contactAddress: string) =>
+    request<components["schemas"]["AcceptedResponse"]>("/api/auth/recovery", {
+      method: "POST",
+      body: JSON.stringify({ contact_address: contactAddress }),
+    }),
+
+  completeRecovery: (
+    contactAddress: string,
+    code: string,
+    newPassword: string,
+  ) =>
+    request<components["schemas"]["AcceptedResponse"]>(
+      "/api/auth/recovery/complete",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          contact_address: contactAddress,
+          code,
+          new_password: newPassword,
+        }),
+      },
+    ),
 
   listStories: () =>
     request<components["schemas"]["StoryListResponse"]>("/api/stories").then(

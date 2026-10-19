@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from afterworlds.api.access_path import probe_byok_readiness, select_access_path
 from afterworlds.api.deps import (
+    AdmittedWorkerRoute,
     get_byok_readiness_provider,
     get_orchestrator,
     get_rpg_actions,
@@ -72,7 +73,9 @@ from afterworlds.pipeline.provider import ByokCredentialReadinessProvider
 
 logger = logging.getLogger("afterworlds.api.turns")
 
-router = APIRouter(prefix="/api/stories", tags=["turns"])
+router = APIRouter(
+    prefix="/api/stories", tags=["turns"], route_class=AdmittedWorkerRoute
+)
 
 _BILLABLE_DISPOSITIONS = (
     PipelineDisposition.DELIVERED,

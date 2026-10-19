@@ -7,13 +7,15 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from afterworlds.api.deps import get_session
+from afterworlds.api.deps import AdmittedWorkerRoute, get_session
 from afterworlds.api.dto import VisibleStateResponse
 from afterworlds.api.errors import ApiErrorCode, ApiErrorResponse
 from afterworlds.api.visible_state import build_visible_state
 from afterworlds.persistence.crud.story import get_story
 
-router = APIRouter(prefix="/api/stories", tags=["visible-state"])
+router = APIRouter(
+    prefix="/api/stories", tags=["visible-state"], route_class=AdmittedWorkerRoute
+)
 
 
 @router.get("/{story_id}/visible-state", response_model=VisibleStateResponse)

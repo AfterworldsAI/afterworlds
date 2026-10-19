@@ -55,6 +55,7 @@ from afterworlds.models.story_bible import StoryBibleContext
 from afterworlds.models.turn import Turn
 from afterworlds.persistence.orm.node import NodeORM, TurnORM
 from afterworlds.persistence.orm.story import ArcORM, ChapterORM
+from afterworlds.prompt_contracts import PROMPT_DIR
 
 # ---------------------------------------------------------------------------
 # Configurable constant
@@ -81,7 +82,7 @@ _TIMESTAMP_SAFETY_BUFFER: int = 10
 # ---------------------------------------------------------------------------
 
 #: Root directory for mode prompt files.  Patchable in tests.
-_PROMPT_DIR: Path = Path(__file__).parents[3] / "docs" / "prompts"
+_PROMPT_DIR: Path = PROMPT_DIR
 
 
 class UnknownModeError(ValueError):

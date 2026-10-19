@@ -82,6 +82,14 @@ export default defineConfig({
       timeout: 180_000,
       use: { baseURL: "http://127.0.0.1:8003" },
     },
+    {
+      // Prerequisite #205: the remote deployment -- accounts, isolation,
+      // Owner administrator and recovery -- see scripts/e2e_remote_server.py.
+      name: "remote",
+      testMatch: "remote.spec.ts",
+      timeout: 60_000,
+      use: { baseURL: "http://127.0.0.1:8004" },
+    },
   ],
   webServer: [
     {
@@ -135,6 +143,17 @@ export default defineConfig({
       url: "http://127.0.0.1:8003/api/health",
       reuseExistingServer: false,
       timeout: 900_000,
+      env: {
+        PYTHONPATH: `src${delimiter}.`,
+      },
+    },
+    {
+      // Its own fresh content, control, Chroma and outbox stores.
+      command: "python scripts/e2e_remote_server.py --port 8004",
+      cwd: "..",
+      url: "http://127.0.0.1:8004/api/health",
+      reuseExistingServer: false,
+      timeout: 60_000,
       env: {
         PYTHONPATH: `src${delimiter}.`,
       },

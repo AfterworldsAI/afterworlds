@@ -575,6 +575,7 @@ Issue 21 remains the narrative spine gate. It is necessary but not sufficient fo
 - **Deliverables:** frontend shell, API routes, DTOs, service integration, tests.
 - **Acceptance:** route handlers are thin; frontend can create/select story/mode, submit turn, and display output/status through existing services; no business logic leaks into HTTP code.
 - **v1 mode selection (ADR-017b):** new stories offer Branching (default) and RPG. Writing story creation, setup and turn submission return the typed `mode_unavailable` error (422) before any effect, and `GET /api/personas` returns empty `mentors`/`peers`. Writing DTO/schema variants remain in the generated contract as internal representations.
+- **Remote reconciliation (2026-10-17, CRD Issue 22 D1 / prerequisite [#205](https://github.com/AfterworldsAI/afterworlds/issues/205)):** the local-first shell and its single server-provisioned local Sojourner identity remain the accepted **local** product decision and keep their CRD Issue 19–21 proofs. Hosted subscriptions additionally run as a remote deployment of the same app factory with authenticated accounts, per-account ownership and a sole Owner administrator (ADR-021). Local success is not proof of multi-account isolation, and the remote account requirement never gates local BYOK use.
 - **RPG roll-lifecycle routes (Issue 15b Phase 3):** the RPG player-roll lifecycle (pending-interaction read, roll submission, adjustment, mechanical decision, sequence resume) is added as thin routes under these same Issue 19 conventions — app factory, error envelope, access-path helper, story lock, generated contracts. This is route wiring for an owning service's contract, not new mode logic in Issue 19. See `/docs/decisions/adr-015b-structured-rpg-roll-lifecycle.md`.
 
 ### Issue 20 — Billing/BYOK Visibility and Configuration
@@ -603,6 +604,16 @@ Issue 21 remains the narrative spine gate. It is necessary but not sufficient fo
 - **Out of scope:** full admin dashboard, BI analytics, CRM/ticketing system, fraud suite, enterprise reporting, payment integration.
 - **Deliverables:** support-facing lookup path, event history, remediation service/UI path, delete/export workflow, anomaly surfacing, documentation.
 - **Acceptance:** support can inspect access/credit/service state; transitions reconstruct in order; manual actions require reasons and logs; delete/export requests have defined status; no support action silently mutates state.
+- **Governing issue (2026-10-17):** [CRD Issue 22 #206](https://github.com/AfterworldsAI/afterworlds/issues/206), Owner-accepted revision 7, supersedes the summary above where they differ. It records Owner Decisions D1 (remote hosted production; accounts for Cloud Services only; sole Owner full administrator), D2 (Story **and** account-wide export/deletion are required v1 scope — no longer a deferred question), D3 (full administrator authority through owning services) and D4 (approved retention schedule; Reno, Nevada business location; initial US/Canada/Mexico market; Australia/NZ/UK/EU need fresh review). Accepted companions: [lifecycle ADR amendments](https://github.com/AfterworldsAI/afterworlds/issues/206#issuecomment-6246562569), [field/store retention matrix](https://github.com/AfterworldsAI/afterworlds/issues/206#issuecomment-6246563742), [package and gate contract](https://github.com/AfterworldsAI/afterworlds/issues/206#issuecomment-6246567253); copies in `crd-issue-22-governing/`. The lifecycle amendments are recorded in ADR-0004, ADR-0006, ADR-013, ADR-014a, ADR-015, ADR-015b and ADR-018.
+- **Dependency:** remote CRD Issue 22 integration cannot pass before the Remote Identity and Storage Prerequisite below is delivered and accepted; that prerequisite has no circular dependency on CRD Issue 22 fulfillment. Financial/privacy applicability is a launch and affected-exception gate.
+
+### Prerequisite #205 — Remote Identity and Storage (for CRD Issue 22)
+
+- **Governing issue:** [#205](https://github.com/AfterworldsAI/afterworlds/issues/205), Owner-accepted revision 1. Engineering selections: ADR-021; operations: `remote-identity-and-storage.md`.
+- **Goal:** authenticated, account-isolated remote foundation for hosted subscriptions, Cloud Services and CRD Issue 22, preserving independent local BYOK use and perpetual rights.
+- **In scope:** remote accounts and stable subject mapping, distinct staff context, controlled Owner bootstrap, revocation, recovery and closure; ownership enforcement across API, services, SQL, Retrieval Memory, files, caches and jobs; no implicit import; store/backup/restore inventory and fence hooks; declared single-worker topology; production-shaped API/frontend integration.
+- **Out of scope:** CRD Issue 22 fulfillment, CRD Issue 23 payments, multi-staff hierarchy, a prescribed identity vendor, legacy migration/claim or sync products, server-hosted BYOK keys, deployment or real-data migration.
+- **Acceptance:** the ten acceptance criteria of #205.
 
 ### Issue 23 — Billing Platform / Payment Integration
 
@@ -660,11 +671,11 @@ The following table is a construction checklist for explicit invariant tests. In
 | Invariant test | First issue that must enforce it |
 |---|---|
 | Story Bible schema is structurally separate from prose history and ordinary Turn/Node text. | Issue 4 |
-| Story Bible records are soft-deleted / append-safe where specified; application behavior does not hard-delete canon records. | Issue 4 |
+| Story Bible records are soft-deleted / append-safe where specified; application behavior does not hard-delete canon records. *Exception (CRD Issue 22 lifecycle amendment, 2026-10-17): verified, confirmed terminal Story/account erasure and governed expiry remove in-scope canon and history through the Story Bible owner (ADR-0006); ordinary behavior is unchanged.* | Issue 4 |
 | Static Story Bible partition updates require explicit Sojourner confirmation. | Issue 4 |
 | Rules Package tables carry no FK to Story, Arc, Chapter, Node, Turn, Story Bible, or session-state tables. | Issue 5a |
 | Play-time Rules Package queries surface only published/enabled package content. | Issue 5a |
-| Rolling Summary versions are append-safe, coverage-anchored, and unique by `(story_id, compressed_through_turn_id)`. | Issue 6 |
+| Rolling Summary versions are append-safe, coverage-anchored, and unique by `(story_id, compressed_through_turn_id)`. *Exception (CRD Issue 22 lifecycle amendment, 2026-10-17): confirmed terminal erasure removes every version of the Story's summaries before their `RESTRICT` anchor Turns; ordinary operation stays append-safe.* | Issue 6 |
 | Intent classification runs before Context Builder and produces a typed `IntentClassificationResult`. | Issue 7 |
 | Context Builder assembles the stable prefix once per turn and does not reassemble it per pass. | Issue 8 |
 | Stable prefix and volatile suffix are structured typed payloads, not concatenated strings. | Issue 8 |
@@ -689,6 +700,9 @@ The following table is a construction checklist for explicit invariant tests. In
 | Frontend/API route handlers remain thin and do not absorb orchestration, provider, entitlement, or business policy. | Issue 19 |
 | Issue 20 displays billing/BYOK state and configuration without implementing payment flows. | Issue 20 |
 | Issue 21 records/splits contract defects rather than smuggling architecture, schema, mode semantics, retrieval design, or entitlement changes into the spine demo. | Issue 21 |
+| Remote requests resolve a trusted account/role from server state; every `/api` route outside the public allowlist is denied without a valid session; a foreign Story is indistinguishable from a missing one; ordinary sessions never carry staff authority. | Prerequisite #205 |
+| Remote stores import no local/test data; unowned rows are inaccessible; restoring content cannot revive revoked sessions, closed accounts or suppressed Stories. | Prerequisite #205 |
+| The remote server never constructs a BYOK credential store, probes local readiness or accepts a raw BYOK key. | Prerequisite #205 |
 | Issue 22 support/remediation actions are append-safe, reason-captured, and reconstructable. | Issue 22 |
 | Issue 23 payment webhooks are idempotent and mutate runtime entitlements only through the approved Issue 13 path. | Issue 23 |
 
