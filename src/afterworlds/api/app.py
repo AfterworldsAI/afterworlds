@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections import defaultdict
+from pathlib import Path
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, Request
@@ -46,6 +47,7 @@ from afterworlds.pipeline.provider import (
     ByokSettingsService,
 )
 from afterworlds.pipeline.provider.credentials import make_credential_store
+from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
 from afterworlds.remote.access import AccessPolicy, AccountFence, ScopedSeam
 from afterworlds.remote.control_store import open_control_store, utc_now
 from afterworlds.remote.identity import IdentityService
@@ -53,7 +55,10 @@ from afterworlds.remote.notices import OutboxDirectoryTransport
 from afterworlds.remote.storage import (
     StoreRefused,
     acquire_store_lock,
+    acquire_vector_lock,
+    bind_vector_store,
     check_content_store_before_migration,
+    check_vector_store,
     initialize_remote_content_store,
     pending_restores,
 )
@@ -82,7 +87,10 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
         outbox = settings.notice_outbox_dir
         assert outbox is not None
         app.state.store_lock = acquire_store_lock(settings.database_url)
+        vector_dir = Path(RetrievalMemoryConfig.from_env().persist_directory)
+        app.state.vector_lock = None
         try:
+            app.state.vector_lock = acquire_vector_lock(vector_dir)
             control_factory = open_control_store(settings.control_database_url)
             fresh = check_content_store_before_migration(
                 settings.database_url, control_factory
@@ -92,9 +100,12 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
                     "a restored content store is awaiting deletion-suppression "
                     "enforcement and verification; it cannot be served yet"
                 )
+            check_vector_store(vector_dir, control_factory)
         except BaseException:
-            # A refused start must not keep the store locked.
+            # A refused start must not keep either store locked.
             app.state.store_lock.close()
+            if app.state.vector_lock is not None:
+                app.state.vector_lock.close()
             raise
 
     # P1 remediation (PR #126 review round 1): apply the real Alembic
@@ -114,9 +125,10 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
     app.state.session_factory = session_factory
     if remote:
         if fresh:
-            initialize_remote_content_store(
+            store_id = initialize_remote_content_store(
                 session_factory, control_factory, now=utc_now()
             )
+            bind_vector_store(vector_dir, store_id)
         assert outbox is not None
         identity = IdentityService(control_factory, OutboxDirectoryTransport(outbox))
         app.state.identity = identity

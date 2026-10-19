@@ -197,6 +197,10 @@ class BackupInventoryORM(ControlBase):
     disposed_at: Mapped[str | None] = mapped_column(sa.String(64))
     # "verified" | "unverified" | "inaccessible"
     verification_status: Mapped[str] = mapped_column(sa.String(16), nullable=False)
+    #: JSON list of suppression IDs whose content this capture proved absent.
+    clean_suppression_ids: Mapped[str] = mapped_column(
+        sa.Text, nullable=False, default="[]"
+    )
 
 
 class RestoreRecordORM(ControlBase):
@@ -209,7 +213,7 @@ class RestoreRecordORM(ControlBase):
         sa.String(36), sa.ForeignKey("backup_inventory.backup_id"), nullable=False
     )
     restored_at: Mapped[str] = mapped_column(sa.String(64), nullable=False)
-    # "pending_enforcement" | "verified"
+    # "copying" | "pending_enforcement" | "verified" | "superseded"
     status: Mapped[str] = mapped_column(sa.String(24), nullable=False)
     verified_at: Mapped[str | None] = mapped_column(sa.String(64))
 

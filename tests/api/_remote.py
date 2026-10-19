@@ -92,13 +92,14 @@ class RemoteHarness:
             c.__exit__(None, None, None)
         # Like process exit: release pooled connections and the store lock.
         self.app.state.session_factory.kw["bind"].dispose()
-        from chromadb.api.client import SharedSystemClient
+        from chromadb.api.shared_system_client import SharedSystemClient
 
         SharedSystemClient.clear_system_cache()
         self.app.state.orchestrator = None
         self.app.state.rpg_actions = None
         gc.collect()
         self.app.state.store_lock.close()
+        self.app.state.vector_lock.close()
 
 
 def make_remote(tmp_path: Path, **_: Any) -> RemoteHarness:

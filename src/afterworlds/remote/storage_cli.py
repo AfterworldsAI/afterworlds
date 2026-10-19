@@ -1,6 +1,7 @@
 """Operator commands for the remote store/backup/restore boundary (ADR-021 D10).
 
-Every command takes the content-store lock, so none runs while the app serves::
+Every command holds both physical stores' locks (content SQLite and the bound
+vector store), so none runs beside a serving app::
 
     python -m afterworlds.remote.storage_cli capture --to DIR
     python -m afterworlds.remote.storage_cli restore --backup-id ID
@@ -8,44 +9,58 @@ Every command takes the content-store lock, so none runs while the app serves::
     python -m afterworlds.remote.storage_cli due
     python -m afterworlds.remote.storage_cli dispose --backup-id ID
 
-``capture`` snapshots the content SQLite store (online backup API) and the
-Chroma directory and inventories them with their capture time. ``restore``
-copies an inventoried, unexpired snapshot back and records a pending restore:
+``capture`` inventories first, then snapshots both stores; it refuses while a
+restore is pending or suppressed content is still present. ``restore``
+records a ``copying`` restore, replaces both stores and marks them copied;
 the app refuses to start until ``verify-restore`` confirms every active
-deletion suppression holds (CRD Issue 22 supplies the enforcement). ``due``
-lists backups past their 21-day lifetime; ``dispose`` removes one's files and
-records its disposal. Configuration comes from the same environment variables
-as the app.
+deletion suppression holds (CRD Issue 22 supplies the enforcement). A failed
+step leaves inventoried, retryable state. ``due`` lists backups past their
+21-day lifetime; ``dispose`` removes one's files, then records the disposal.
+Configuration comes from the same environment variables as the app.
 """
 
 from __future__ import annotations
 
 import argparse
-import shutil
-import sqlite3
+import gc
 import sys
-from contextlib import closing
+from collections.abc import Callable
 from pathlib import Path
-from uuid import UUID
+
+from chromadb.api.shared_system_client import SharedSystemClient
 
 from afterworlds.api.config import load_settings
 from afterworlds.persistence.database import create_engine, create_session_factory
 from afterworlds.pipeline.retrieval.client import build_chroma_client
+from afterworlds.pipeline.retrieval.collections import (
+    get_existing_story_memory_collection_for_delete,
+)
 from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
-from afterworlds.pipeline.retrieval.write_service import RetrievalMemoryWriteService
-from afterworlds.remote.control_orm import BackupInventoryORM
 from afterworlds.remote.control_store import open_control_store, utc_now
 from afterworlds.remote.storage import (
     StoreRefused,
-    acquire_store_lock,
-    begin_restore,
-    content_store_id,
-    dispose_backup,
+    capture_snapshot,
+    dispose_snapshot,
     due_backups,
-    register_backup,
+    maintenance_locks,
+    restore_snapshot,
     sqlite_path,
     verify_restore,
 )
+
+
+def _chunk_counter(config: RetrievalMemoryConfig) -> Callable[[str], int]:
+    """Story-memory chunk counts without creating the collection; a missing
+    collection is zero, an unreadable one raises (never presumed zero)."""
+    client = build_chroma_client(config)
+
+    def count(story_id: str) -> int:
+        collection = get_existing_story_memory_collection_for_delete(client)
+        if collection is None:
+            return 0
+        return len(collection.get(where={"story_id": story_id}).get("ids") or [])
+
+    return count
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -61,85 +76,64 @@ def main(argv: list[str] | None = None) -> int:
     settings = load_settings()
     if settings.deployment != "remote" or settings.control_database_url is None:
         parser.error("requires AFTERWORLDS_DEPLOYMENT=remote and a control store")
-    lock = acquire_store_lock(settings.database_url)
-    engine = None
-    try:
-        control = open_control_store(settings.control_database_url)
+    control = open_control_store(settings.control_database_url)
+    config = RetrievalMemoryConfig.from_env()
+    vector_dir = Path(config.persist_directory)
+    db_path = sqlite_path(settings.database_url)
+    now = utc_now()
+    with maintenance_locks(settings.database_url, vector_dir, control):
         engine = create_engine(settings.database_url)
         content = create_session_factory(engine)
-        db_path = sqlite_path(settings.database_url)
-        chroma_dir = Path(RetrievalMemoryConfig.from_env().persist_directory)
-        now = utc_now()
-        if args.command == "capture":
-            target: Path = args.to
-            target.mkdir(parents=True, exist_ok=False)
-            with (
-                closing(sqlite3.connect(db_path)) as src,
-                closing(sqlite3.connect(target / db_path.name)) as dst,
-            ):
-                src.backup(dst)
-            if chroma_dir.is_dir():
-                shutil.copytree(chroma_dir, target / "chroma")
-            backup_id = register_backup(
-                control,
-                store_id=content_store_id(content),
-                storage_locator=str(target),
-                original_capture_at=now,
-            )
-            print(backup_id)
-        elif args.command == "restore":
-            with control() as s:
-                row = s.get(BackupInventoryORM, args.backup_id)
-            if row is None:
-                print("backup is not inventoried", file=sys.stderr)
-                return 1
-            try:
-                restore_id = begin_restore(
-                    control, args.backup_id, live_database=db_path, now=now
+        try:
+            if args.command == "capture":
+                print(
+                    capture_snapshot(
+                        control,
+                        content,
+                        database_path=db_path,
+                        vector_dir=vector_dir,
+                        target=args.to,
+                        story_chunk_count=_chunk_counter(config),
+                        now=now,
+                    )
                 )
-            except StoreRefused as exc:
-                print(f"restore refused: {exc}", file=sys.stderr)
-                return 1
-            source = Path(row.storage_locator)
-            shutil.copyfile(source / db_path.name, db_path)
-            for suffix in ("-wal", "-shm"):
-                db_path.with_name(db_path.name + suffix).unlink(missing_ok=True)
-            if (source / "chroma").is_dir():
-                # Fails loudly: a half-replaced vector store must not be served.
-                if chroma_dir.exists():
-                    shutil.rmtree(chroma_dir)
-                shutil.copytree(source / "chroma", chroma_dir)
-            print(restore_id)
-        elif args.command == "verify-restore":
-            config = RetrievalMemoryConfig.from_env()
-            writes = RetrievalMemoryWriteService(build_chroma_client(config), config)
-            remaining = verify_restore(
-                control,
-                args.restore_id,
-                content,
-                lambda story: writes.count_for_story(UUID(story)),
-                now=now,
-            )
-            if remaining:
-                print("suppressed stories still present: " + ", ".join(remaining))
-                return 2
-            print("verified")
-        elif args.command == "dispose":
-            with control() as s:
-                row = s.get(BackupInventoryORM, args.backup_id)
-            if row is None:
-                print("backup is not inventoried", file=sys.stderr)
-                return 1
-            shutil.rmtree(row.storage_locator, ignore_errors=False)
-            dispose_backup(control, args.backup_id, now=now)
-            print("disposed")
-        else:
-            for backup_id in due_backups(control, now=now):
-                print(backup_id)
-    finally:
-        if engine is not None:
+            elif args.command == "restore":
+                engine.dispose()  # the live file is about to be replaced
+                print(
+                    restore_snapshot(
+                        control,
+                        args.backup_id,
+                        database_path=db_path,
+                        vector_dir=vector_dir,
+                        now=now,
+                    )
+                )
+            elif args.command == "verify-restore":
+                remaining = verify_restore(
+                    control,
+                    args.restore_id,
+                    content,
+                    _chunk_counter(config),
+                    now=now,
+                )
+                if remaining:
+                    print("suppressed stories still present: " + ", ".join(remaining))
+                    return 2
+                print("verified")
+            elif args.command == "dispose":
+                dispose_snapshot(control, args.backup_id, now=now)
+                print("disposed")
+            else:
+                for backup_id in due_backups(control, now=now):
+                    print(backup_id)
+        except (StoreRefused, KeyError) as exc:
+            print(f"{args.command} refused: {exc}", file=sys.stderr)
+            return 1
+        finally:
             engine.dispose()
-        lock.close()
+            # Release embedded Chroma's file handles before the locks go.
+            SharedSystemClient.clear_system_cache()
+            gc.collect()
     return 0
 
 

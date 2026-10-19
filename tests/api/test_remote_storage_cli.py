@@ -10,6 +10,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -138,3 +139,161 @@ def test_restore_refuses_to_rewind_the_entitlement_ledger(
     # Nothing was copied and no restore is pending.
     assert (remote_env / "content.db").read_bytes() == before
     make_remote(remote_env).close()
+
+
+def _inventory(remote_env: Path, backup_id: str) -> Any:
+    from afterworlds.remote.control_orm import BackupInventoryORM
+
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    with control() as s:
+        return s.get(BackupInventoryORM, backup_id)
+
+
+def _restore_status(remote_env: Path, restore_id: str) -> str:
+    from afterworlds.remote.control_orm import RestoreRecordORM
+
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    with control() as s:
+        row = s.get(RestoreRecordORM, restore_id)
+        assert row is not None
+        return row.status
+
+
+def test_capture_refuses_while_suppressed_content_remains(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    h = make_remote(remote_env)
+    a = h.enroll("a@example.test")
+    story = a.post("/api/stories", json={"title": "S", "mode": "branching"}).json()[
+        "story_id"
+    ]
+    account = h.account_id(a)
+    h.close()
+    record_suppression(
+        open_control_store(f"sqlite:///{remote_env / 'control.db'}"),
+        subject_ref=account,
+        story_refs=[story],
+        request_id=str(uuid.uuid4()),
+        scope="story",
+        effective_boundary_at=datetime.now(UTC),
+        now=datetime.now(UTC),
+    )
+    assert storage_cli.main(["capture", "--to", str(remote_env / "b1")]) == 1
+    assert "suppressed content is still present" in capsys.readouterr().err
+    assert not (remote_env / "b1").exists()
+    # Once enforced (fixture), a capture is proven clean of that suppression.
+    engine = create_engine(f"sqlite:///{remote_env / 'content.db'}")
+    with create_session_factory(engine).begin() as s:
+        delete_story(s, uuid.UUID(story))
+    engine.dispose()
+    code, backup_id = _run(capsys, "capture", "--to", str(remote_env / "b2"))
+    assert code == 0
+    assert _inventory(remote_env, backup_id).clean_suppression_ids != "[]"
+
+
+def test_an_interrupted_capture_stays_inventoried_and_unverified(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from afterworlds.remote import storage
+
+    make_remote(remote_env).close()
+
+    def vector_copy_fails(*_a: object, **_k: object) -> None:
+        raise OSError("disk full during vector copy")
+
+    with pytest.MonkeyPatch.context() as mp, pytest.raises(OSError):
+        mp.setattr(storage.shutil, "copytree", vector_copy_fails)
+        storage_cli.main(["capture", "--to", str(remote_env / "b1")])
+    # The SQL copy that did happen is inventoried with its original age.
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    from afterworlds.remote.control_orm import BackupInventoryORM
+
+    with control() as s:
+        [row] = s.query(BackupInventoryORM).all()
+        assert row.verification_status == "unverified"
+        assert Path(row.storage_locator) == remote_env / "b1"
+        assert (remote_env / "b1" / "content.db").exists()
+        partial = row.backup_id
+    # It can neither be restored nor counted as clean, and a retry works.
+    assert storage_cli.main(["restore", "--backup-id", partial]) == 1
+    assert "unverified" in capsys.readouterr().err
+    code, retried = _run(capsys, "capture", "--to", str(remote_env / "b2"))
+    assert code == 0 and _inventory(remote_env, retried).verification_status == (
+        "verified"
+    )
+    # The partial copy is still disposable through the normal path.
+    assert _run(capsys, "dispose", "--backup-id", partial) == (0, "disposed")
+
+
+def test_an_interrupted_restore_keeps_serving_fenced_until_retried(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from afterworlds.remote import storage
+
+    make_remote(remote_env).close()
+    code, backup_id = _run(capsys, "capture", "--to", str(remote_env / "b1"))
+    assert code == 0
+
+    def vector_copy_fails(*_a: object, **_k: object) -> None:
+        raise OSError("vector copy interrupted")
+
+    with pytest.MonkeyPatch.context() as mp, pytest.raises(OSError):
+        mp.setattr(storage.shutil, "copytree", vector_copy_fails)
+        storage_cli.main(["restore", "--backup-id", backup_id])
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    from afterworlds.remote.storage import pending_restores
+
+    [failed] = pending_restores(control)
+    assert _restore_status(remote_env, failed) == "copying"
+    with pytest.raises(StoreRefused, match="awaiting"):
+        create_app(remote_settings(remote_env))
+    # No suppression exists, yet the incomplete restore cannot be verified.
+    assert storage_cli.main(["verify-restore", "--restore-id", failed]) == 1
+    assert "copying" in capsys.readouterr().err
+    code, restore_id = _run(capsys, "restore", "--backup-id", backup_id)
+    assert code == 0
+    assert _restore_status(remote_env, failed) == "superseded"
+    assert _run(capsys, "verify-restore", "--restore-id", restore_id) == (
+        0,
+        "verified",
+    )
+    make_remote(remote_env).close()  # serves again
+
+
+def test_dispose_is_retry_safe_and_never_guesses_absence(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from afterworlds.remote import storage
+    from afterworlds.remote.storage import register_backup
+
+    make_remote(remote_env).close()
+    code, backup_id = _run(capsys, "capture", "--to", str(remote_env / "b1"))
+    assert code == 0
+
+    def record_fails(*_a: object, **_k: object) -> None:
+        raise RuntimeError("control store write lost")
+
+    with pytest.MonkeyPatch.context() as mp, pytest.raises(RuntimeError):
+        mp.setattr(storage, "dispose_backup", record_fails)
+        storage_cli.main(["dispose", "--backup-id", backup_id])
+    assert not (remote_env / "b1").exists()
+    assert _inventory(remote_env, backup_id).disposed_at is None
+    # Retry: the files are verifiably gone, so the disposal is recorded.
+    assert _run(capsys, "dispose", "--backup-id", backup_id) == (0, "disposed")
+    assert _inventory(remote_env, backup_id).disposed_at is not None
+
+    unreachable = register_backup(
+        open_control_store(f"sqlite:///{remote_env / 'control.db'}"),
+        store_id="s",
+        storage_locator=str(remote_env / "no-such-volume" / "b9"),
+        original_capture_at=datetime.now(UTC),
+    )
+    assert storage_cli.main(["dispose", "--backup-id", unreachable]) == 1
+    row = _inventory(remote_env, unreachable)
+    assert row.disposed_at is None and row.verification_status == "inaccessible"

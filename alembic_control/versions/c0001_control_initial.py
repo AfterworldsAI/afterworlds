@@ -160,6 +160,9 @@ def upgrade() -> None:
         sa.Column("expires_at", _TS, nullable=False),
         sa.Column("disposed_at", _TS),
         sa.Column("verification_status", sa.String(16), nullable=False),
+        sa.Column(
+            "clean_suppression_ids", sa.Text, nullable=False, server_default="[]"
+        ),
     )
     op.create_table(
         "restore_records",

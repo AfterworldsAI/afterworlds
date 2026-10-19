@@ -4,9 +4,17 @@
   supplies) and their backup deadlines;
 * the backup inventory, whose 21-day lifetime runs from original capture and
   survives copies and restores;
-* the restore gate: a restored content store is not served until every active
-  suppression is enforced and verified;
-* the fresh-store rule and the single-writer store lock.
+* the restore gate: a restored content store is not served until both stores
+  were replaced (write-ahead ``copying`` state) and every active suppression
+  is enforced and verified;
+* the fresh-store rule, the vector-store binding and the single-writer locks
+  on both physical stores.
+
+Coverage is proof-based: a backup is clear of a suppression only if the
+capture proved the suppressed content absent from both stores; capture
+refuses while that proof is impossible. Every maintenance step records its
+state before touching files, so an interrupted capture/restore/disposal
+leaves inventoried, retryable state rather than untracked data.
 
 All state lives in the control store, outside the content snapshot.
 """
@@ -14,9 +22,10 @@ All state lives in the control store, outside the content snapshot.
 from __future__ import annotations
 
 import json
+import shutil
 import sqlite3
-from collections.abc import Callable, Iterable
-from contextlib import closing
+from collections.abc import Callable, Iterable, Iterator
+from contextlib import closing, contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -45,6 +54,14 @@ BACKUP_LIFETIME = timedelta(days=21)
 #: D4: overall limit for affected-backup disposal after a confirmed deletion.
 DELETION_BACKUP_DEADLINE = timedelta(days=30)
 ANNUAL_REVIEW = timedelta(days=365)
+
+
+_UNFINISHED_RESTORE = ("copying", "pending_enforcement")
+#: The deployment-binding marker and serve lock inside the vector directory,
+#: and the snapshot subdirectory holding the copied vector store.
+VECTOR_MARKER = "afterworlds-deployment.json"
+VECTOR_LOCK = ".afterworlds-serve.lock"
+SNAPSHOT_VECTOR_DIR = "chroma"
 
 
 class StoreRefused(RuntimeError):
@@ -147,7 +164,10 @@ def register_backup(
     original_capture_at: datetime,
     class_code: str = "content_snapshot",
     verification_status: str = "verified",
+    clean_suppression_ids: Iterable[str] = (),
 ) -> str:
+    """Inventory a backup. ``clean_suppression_ids`` names the active
+    suppressions whose content the capture proved absent from both stores."""
     backup_id = str(uuid4())
     with control.begin() as s:
         s.add(
@@ -160,15 +180,26 @@ def register_backup(
                 policy_version=POLICY_VERSION,
                 expires_at=iso(original_capture_at + BACKUP_LIFETIME),
                 verification_status=verification_status,
+                clean_suppression_ids=json.dumps(sorted(set(clean_suppression_ids))),
             )
         )
     return backup_id
 
 
+def set_backup_status(
+    control: sessionmaker[Session], backup_id: str, verification_status: str
+) -> None:
+    with control.begin() as s:
+        row = s.get(BackupInventoryORM, backup_id)
+        if row is None:
+            raise KeyError(backup_id)
+        row.verification_status = verification_status
+
+
 def copy_backup(
     control: sessionmaker[Session], backup_id: str, *, storage_locator: str
 ) -> str:
-    """Inventory a copy. It keeps the original capture time and expiry."""
+    """Inventory a copy. It keeps the original capture time, expiry and proof."""
     with control.begin() as s:
         source = s.get(BackupInventoryORM, backup_id)
         if source is None:
@@ -185,6 +216,7 @@ def copy_backup(
                 policy_version=source.policy_version,
                 expires_at=source.expires_at,
                 verification_status=source.verification_status,
+                clean_suppression_ids=source.clean_suppression_ids,
             )
         )
     return copy_id
@@ -230,20 +262,21 @@ def backup_disposition(
 ) -> BackupDisposition:
     """Which inventoried backups may still hold the suppressed content.
 
-    Any backup captured at or before the deletion boundary is affected until
-    disposed. An inaccessible or unverified entry never counts as disposed:
-    unverified coverage is a failure, not presumed compliance.
+    A backup is clear of the suppression only if its capture proved that
+    content absent (``clean_suppression_ids``); capture time alone proves
+    nothing. Every other backup is affected until disposed. An inaccessible
+    or unverified entry never counts as disposed: unverified coverage is a
+    failure, not presumed compliance.
     """
     with control() as s:
         sup = s.get(DeletionSuppressionORM, suppression_id)
         if sup is None:
             raise KeyError(suppression_id)
-        boundary = parse_iso(sup.effective_boundary_at)
         deadline = parse_iso(sup.backup_horizon_at)
         affected = [
             row
             for row in s.scalars(sa.select(BackupInventoryORM))
-            if parse_iso(row.original_capture_at) <= boundary
+            if suppression_id not in json.loads(row.clean_suppression_ids)
         ]
     pending = tuple(r.backup_id for r in affected if r.disposed_at is None)
     unverified = tuple(
@@ -259,6 +292,26 @@ def backup_disposition(
     )
 
 
+def capture_preconditions(
+    control: sessionmaker[Session],
+    content: sessionmaker[Session],
+    story_chunk_count: Callable[[str], int],
+) -> list[str]:
+    """Refuse a capture that would copy content already under deletion, and
+    return the suppressions the capture is proven clean of (all active ones).
+    A pending restore or any suppressed content still present refuses it."""
+    if pending_restores(control):
+        raise StoreRefused("a restore is pending; capture would copy unverified data")
+    remaining = suppressed_content_present(control, content, story_chunk_count)
+    if remaining:
+        raise StoreRefused(
+            "suppressed content is still present ("
+            + ", ".join(remaining)
+            + "); a backup now would copy it"
+        )
+    return [sup.suppression_id for sup in active_suppressions(control)]
+
+
 # -- restore gate -----------------------------------------------------------
 
 
@@ -269,12 +322,16 @@ def begin_restore(
     live_database: Path,
     now: datetime,
 ) -> str:
-    """Record that *backup_id* is being restored over *live_database*; the app
-    will not serve the content store until :func:`verify_restore` passes.
+    """Record, before any file is touched, that *backup_id* is being restored
+    over *live_database* (state ``copying``); the app will not serve until
+    :func:`mark_restore_copied` and :func:`verify_restore` both pass.
 
-    Refused, before anything is copied, when the backup is expired, disposed or
-    unverified (restore never renews its life), or when the restore cannot
-    prove entitlement-ledger continuity (:func:`check_ledger_continuity`).
+    Refused, before anything is recorded or copied, when the backup is
+    expired, disposed or unverified (restore never renews its life), when its
+    snapshot lacks either store, or when the restore cannot prove
+    entitlement-ledger continuity (:func:`check_ledger_continuity`). Any
+    earlier unfinished restore is superseded, so a failed attempt can be
+    retried.
     """
     with control() as s:
         row = s.get(BackupInventoryORM, backup_id)
@@ -284,19 +341,37 @@ def begin_restore(
             raise StoreRefused("backup is past its 21-day lifetime or disposed")
         if row.verification_status != "verified":
             raise StoreRefused("backup coverage is unverified")
-        snapshot = Path(row.storage_locator) / live_database.name
-    check_ledger_continuity(live_database, snapshot)
+        locator = Path(row.storage_locator)
+        store_id = row.store_id
+    if read_vector_marker(locator / SNAPSHOT_VECTOR_DIR) != store_id:
+        raise StoreRefused("the backup's vector snapshot is missing or not bound")
+    check_ledger_continuity(live_database, locator / live_database.name)
     restore_id = str(uuid4())
     with control.begin() as s:
+        for old in s.scalars(
+            sa.select(RestoreRecordORM).where(
+                RestoreRecordORM.status.in_(_UNFINISHED_RESTORE)
+            )
+        ):
+            old.status = "superseded"
         s.add(
             RestoreRecordORM(
                 restore_id=restore_id,
                 backup_id=backup_id,
                 restored_at=iso(now),
-                status="pending_enforcement",
+                status="copying",
             )
         )
     return restore_id
+
+
+def mark_restore_copied(control: sessionmaker[Session], restore_id: str) -> None:
+    """Both stores were replaced from the snapshot; suppression proof is next."""
+    with control.begin() as s:
+        row = s.get(RestoreRecordORM, restore_id)
+        if row is None or row.status != "copying":
+            raise StoreRefused("no restore copy is in progress under that ID")
+        row.status = "pending_enforcement"
 
 
 def _ledger(path: Path, *, read_only: bool) -> list[tuple[int, str]]:
@@ -355,35 +430,29 @@ def pending_restores(control: sessionmaker[Session]) -> list[str]:
         return list(
             s.scalars(
                 sa.select(RestoreRecordORM.restore_id).where(
-                    RestoreRecordORM.status == "pending_enforcement"
+                    RestoreRecordORM.status.in_(_UNFINISHED_RESTORE)
                 )
             )
         )
 
 
-def verify_restore(
+def suppressed_content_present(
     control: sessionmaker[Session],
-    restore_id: str,
     content: sessionmaker[Session],
     story_chunk_count: Callable[[str], int],
-    *,
-    now: datetime,
 ) -> list[str]:
-    """Verify every active suppression holds in the restored stores.
+    """Story IDs under active suppression that still have content.
 
     Targets are the listed Story IDs plus, for an account-scope instruction,
-    every Story the account has ever owned in the restored store's ownership
-    map (retired mappings included: the inventory must not depend on parent
+    every Story the account has ever owned in the store's ownership map
+    (retired mappings included: the inventory must not depend on parent
     links). A target remains while any content table with a ``story_id``
     column still has a row for it -- not just ``stories``, since FK cascade
     alone does not prove deletion (ADR-0004 amendment) -- or while it has
     story-memory chunks. ``turns`` carry no ``story_id``: Turns orphaned by
-    ``SET NULL`` are attributable only through CRD Issue 22's pre-detachment
-    inventory, which its enforcer must dispose of before this check.
-
-    Returns the Story IDs still present; empty means verified, and the
-    restore is marked so. A failing chunk count read propagates: an
-    unavailable read is not proof of zero.
+    ``SET NULL`` are attributable only through the pre-detachment inventory
+    (``remote.inventory``), which CRD Issue 22's enforcer disposes of first.
+    A failing chunk count read propagates: an unavailable read is not zero.
     """
     suppressions = active_suppressions(control)
     targets = {story for sup in suppressions for story in sup.story_refs}
@@ -412,16 +481,41 @@ def verify_restore(
                     .distinct()
                 )
             )
-    remaining = sorted(
+    return sorted(
         story for story in targets if story in present or story_chunk_count(story) != 0
     )
+
+
+def verify_restore(
+    control: sessionmaker[Session],
+    restore_id: str,
+    content: sessionmaker[Session],
+    story_chunk_count: Callable[[str], int],
+    *,
+    now: datetime,
+) -> list[str]:
+    """Verify a restore whose store replacement completed.
+
+    Refused unless the restore reached ``pending_enforcement`` (both stores
+    were replaced): an absence of suppression targets is never evidence of a
+    successful restore. Returns the suppressed Story IDs still present; empty
+    means verified, and the restore is marked so.
+    """
+    with control() as s:
+        row = s.get(RestoreRecordORM, restore_id)
+        if row is None:
+            raise KeyError(restore_id)
+        if row.status != "pending_enforcement":
+            raise StoreRefused(
+                f"restore is {row.status}; both stores must be replaced first"
+            )
+    remaining = suppressed_content_present(control, content, story_chunk_count)
     if not remaining:
         with control.begin() as s:
-            row = s.get(RestoreRecordORM, restore_id)
-            if row is None:
-                raise KeyError(restore_id)
-            row.status = "verified"
-            row.verified_at = iso(now)
+            record = s.get(RestoreRecordORM, restore_id)
+            assert record is not None
+            record.status = "verified"
+            record.verified_at = iso(now)
             for sup in s.scalars(
                 sa.select(DeletionSuppressionORM).where(
                     DeletionSuppressionORM.status == "active"
@@ -534,3 +628,190 @@ def content_store_id(content: sessionmaker[Session]) -> str:
         if marker is None:
             raise StoreRefused("content store has no remote marker")
         return marker.content_store_id
+
+
+# -- the vector store: binding and lock --------------------------------------
+
+
+def read_vector_marker(vector_dir: Path) -> str | None:
+    marker = vector_dir / VECTOR_MARKER
+    if not marker.is_file():
+        return None
+    try:
+        return str(json.loads(marker.read_text(encoding="utf-8"))["content_store_id"])
+    except (OSError, ValueError, KeyError):
+        return None
+
+
+def _vector_dir_is_empty(vector_dir: Path) -> bool:
+    if not vector_dir.exists():
+        return True
+    return all(p.name in (VECTOR_LOCK,) for p in vector_dir.iterdir())
+
+
+def check_vector_store(vector_dir: Path, control: sessionmaker[Session]) -> None:
+    """Refuse a vector directory that is not this deployment's (ADR-021 D7).
+
+    Allowed: absent/empty (a fresh deployment, bound at initialization) or
+    carrying this deployment's marker. A directory holding unmarked or
+    another deployment's data -- local, test or another remote store -- is
+    refused untouched; it is never adopted. A bound deployment whose vector
+    directory has gone missing is refused too."""
+    with control() as s:
+        bound = s.get(DeploymentMarkerORM, 1)
+    marker = read_vector_marker(vector_dir)
+    if bound is None:
+        if marker is not None or not _vector_dir_is_empty(vector_dir):
+            raise StoreRefused(
+                "the vector store holds data that does not belong to this new "
+                "deployment; remote stores never import local or test data"
+            )
+        return
+    if marker != bound.content_store_id:
+        raise StoreRefused(
+            "the vector store is missing or belongs to a different deployment"
+        )
+
+
+def bind_vector_store(vector_dir: Path, store_id: str) -> None:
+    vector_dir.mkdir(parents=True, exist_ok=True)
+    (vector_dir / VECTOR_MARKER).write_text(
+        json.dumps({"content_store_id": store_id}), encoding="utf-8"
+    )
+
+
+def acquire_vector_lock(vector_dir: Path) -> IO[bytes]:
+    """Exclusive lock on the physical vector store, held with the content
+    lock, so two deployments can never write one embedded Chroma."""
+    vector_dir.mkdir(parents=True, exist_ok=True)
+    handle = (vector_dir / VECTOR_LOCK).open("a+b")
+    if not _try_lock(handle):
+        handle.close()
+        raise StoreRefused(
+            "another process is serving or maintaining this vector store"
+        )
+    return handle
+
+
+# -- maintenance operations (storage_cli and tests use these) ----------------
+
+
+@contextmanager
+def maintenance_locks(
+    database_url: str, vector_dir: Path, control: sessionmaker[Session]
+) -> Iterator[None]:
+    """Hold both physical stores' locks and require the vector store to be
+    this deployment's: no maintenance or job runs beside a serving app."""
+    content_lock = acquire_store_lock(database_url)
+    try:
+        vector_lock = acquire_vector_lock(vector_dir)
+        try:
+            check_vector_store(vector_dir, control)
+            yield
+        finally:
+            vector_lock.close()
+    finally:
+        content_lock.close()
+
+
+def capture_snapshot(
+    control: sessionmaker[Session],
+    content: sessionmaker[Session],
+    *,
+    database_path: Path,
+    vector_dir: Path,
+    target: Path,
+    story_chunk_count: Callable[[str], int],
+    now: datetime,
+) -> str:
+    """Snapshot both stores into *target* and inventory it.
+
+    The inventory row (``unverified``, original capture time, the proven-clean
+    suppressions) is written before any file, and becomes ``verified`` only
+    after both copies complete; an interrupted capture stays inventoried and
+    counts as unverified coverage."""
+    clean = capture_preconditions(control, content, story_chunk_count)
+    store_id = content_store_id(content)
+    backup_id = register_backup(
+        control,
+        store_id=store_id,
+        storage_locator=str(target),
+        original_capture_at=now,
+        verification_status="unverified",
+        clean_suppression_ids=clean,
+    )
+    target.mkdir(parents=True, exist_ok=False)
+    with (
+        closing(sqlite3.connect(database_path)) as src,
+        closing(sqlite3.connect(target / database_path.name)) as dst,
+    ):
+        src.backup(dst)
+    shutil.copytree(
+        vector_dir,
+        target / SNAPSHOT_VECTOR_DIR,
+        ignore=shutil.ignore_patterns(VECTOR_LOCK),
+    )
+    if read_vector_marker(target / SNAPSHOT_VECTOR_DIR) != store_id:
+        raise StoreRefused("the copied vector store is not bound to this deployment")
+    set_backup_status(control, backup_id, "verified")
+    return backup_id
+
+
+def restore_snapshot(
+    control: sessionmaker[Session],
+    backup_id: str,
+    *,
+    database_path: Path,
+    vector_dir: Path,
+    now: datetime,
+) -> str:
+    """Replace both stores from *backup_id*. Recorded as ``copying`` first and
+    marked copied only after both replacements finish; a failure leaves the
+    restore unfinished (the app refuses to serve) and a retry supersedes it."""
+    restore_id = begin_restore(control, backup_id, live_database=database_path, now=now)
+    with control() as s:
+        row = s.get(BackupInventoryORM, backup_id)
+        assert row is not None
+        source = Path(row.storage_locator)
+        store_id = row.store_id
+    shutil.copyfile(source / database_path.name, database_path)
+    for suffix in ("-wal", "-shm"):
+        database_path.with_name(database_path.name + suffix).unlink(missing_ok=True)
+    # Keep the held lock file; replace everything else in the vector store.
+    for child in vector_dir.iterdir():
+        if child.name == VECTOR_LOCK:
+            continue
+        if child.is_dir():
+            shutil.rmtree(child)
+        else:
+            child.unlink()
+    # A half-restored store stays recognizably ours, so a retry can run;
+    # serving stays fenced by the unfinished restore record.
+    bind_vector_store(vector_dir, store_id)
+    shutil.copytree(source / SNAPSHOT_VECTOR_DIR, vector_dir, dirs_exist_ok=True)
+    mark_restore_copied(control, restore_id)
+    return restore_id
+
+
+def dispose_snapshot(
+    control: sessionmaker[Session], backup_id: str, *, now: datetime
+) -> None:
+    """Remove a backup's files, then record the disposal. Retry-safe: a path
+    already gone is recorded as disposed only when its parent is readable
+    (verified absence); any access failure marks it ``inaccessible``."""
+    with control() as s:
+        row = s.get(BackupInventoryORM, backup_id)
+        if row is None:
+            raise KeyError(backup_id)
+        locator = Path(row.storage_locator)
+    try:
+        if locator.exists():
+            shutil.rmtree(locator)
+        elif not locator.parent.is_dir():
+            raise OSError(f"cannot verify that {locator} is absent")
+        if locator.exists():
+            raise OSError(f"{locator} is still present")
+    except OSError:
+        set_backup_status(control, backup_id, "inaccessible")
+        raise StoreRefused("the backup could not be verified as removed") from None
+    dispose_backup(control, backup_id, now=now)

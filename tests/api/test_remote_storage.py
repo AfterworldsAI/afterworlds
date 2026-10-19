@@ -33,13 +33,16 @@ from afterworlds.remote.storage import (
     StoreRefused,
     backup_disposition,
     begin_restore,
+    bind_vector_store,
     content_store_id,
     copy_backup,
     dispose_backup,
     due_backups,
+    mark_restore_copied,
     pending_restores,
     record_suppression,
     register_backup,
+    restore_snapshot,
     verify_restore,
 )
 from tests.api._remote import PASSWORD, RemoteHarness, make_remote, remote_settings
@@ -94,6 +97,43 @@ class TestFreshStoreAndSingleWriter:
         finally:
             first.close()
 
+    def test_unmarked_vector_store_is_refused_untouched(self, env: Path) -> None:
+        local_vectors = env / "chroma"
+        local_vectors.mkdir()
+        (local_vectors / "chroma.sqlite3").write_bytes(b"local story memory")
+        with pytest.raises(StoreRefused, match="never import local or test data"):
+            create_app(remote_settings(env))
+        assert (local_vectors / "chroma.sqlite3").read_bytes() == b"local story memory"
+        assert not (env / "content.db").exists()  # refused before migration
+
+    def test_another_deployments_vector_store_is_refused(
+        self, env: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        make_remote(env).close()  # binds env/chroma to that deployment
+        other = env / "other"
+        other.mkdir()
+        with pytest.raises(StoreRefused, match="vector store"):
+            create_app(remote_settings(other))  # fresh SQL, foreign vectors
+
+    def test_two_content_stores_cannot_share_one_vector_store(self, env: Path) -> None:
+        first = make_remote(env)
+        second = env / "second"
+        second.mkdir()
+        try:
+            with pytest.raises(StoreRefused, match="vector store"):
+                create_app(remote_settings(second))
+        finally:
+            first.close()
+        assert not (second / "content.db").exists()
+
+    def test_a_bound_deployment_with_missing_vectors_is_refused(
+        self, env: Path
+    ) -> None:
+        make_remote(env).close()
+        shutil.rmtree(env / "chroma")
+        with pytest.raises(StoreRefused, match="missing or belongs"):
+            create_app(remote_settings(env))
+
     def test_fresh_store_imports_nothing(self, remote: RemoteHarness) -> None:
         with remote.app.state.session_factory() as s:
             for table in ("stories", "entitlement_event", "sojourner_identity"):
@@ -110,7 +150,9 @@ def _count(table: str) -> Any:
 def _snapshot(
     harness: RemoteHarness, target: Path, captured: datetime | None = None
 ) -> str:
-    """Capture the content store like ``storage_cli capture`` and inventory it."""
+    """A snapshot of the live content store plus a bound (empty) vector
+    snapshot, inventoried. The app keeps serving, so the live Chroma files are
+    not copied here; ``test_remote_storage_cli`` covers the real copy."""
     target.mkdir()
     db = harness.tmp_path / "content.db"
     with (
@@ -118,9 +160,11 @@ def _snapshot(
         closing(sqlite3.connect(target / "content.db")) as dst,
     ):
         src.backup(dst)
+    store_id = content_store_id(harness.app.state.session_factory)
+    bind_vector_store(target / "chroma", store_id)
     return register_backup(
         harness.app.state.control_factory,
-        store_id=content_store_id(harness.app.state.session_factory),
+        store_id=store_id,
         storage_locator=str(target),
         original_capture_at=captured or datetime.now(UTC),
     )
@@ -171,12 +215,13 @@ class TestRestoreGate:
 
         # Restore the pre-deletion snapshot.
         control = h.app.state.control_factory
-        restore_id = begin_restore(
-            control, backup_id, live_database=env / "content.db", now=datetime.now(UTC)
+        restore_id = restore_snapshot(
+            control,
+            backup_id,
+            database_path=env / "content.db",
+            vector_dir=env / "chroma",
+            now=datetime.now(UTC),
         )
-        shutil.copyfile(env / "backup1" / "content.db", env / "content.db")
-        for suffix in ("-wal", "-shm"):
-            (env / f"content.db{suffix}").unlink(missing_ok=True)
         with pytest.raises(StoreRefused, match="awaiting deletion-suppression"):
             create_app(remote_settings(env))
 
@@ -266,12 +311,6 @@ class TestBackupClocks:
             original_capture_at=T0,
             verification_status="inaccessible",
         )
-        after = register_backup(
-            control,
-            store_id="s",
-            storage_locator="/c",
-            original_capture_at=T0 + timedelta(days=3),
-        )
         boundary = T0 + timedelta(days=2)
         sup = record_suppression(
             control,
@@ -282,13 +321,31 @@ class TestBackupClocks:
             effective_boundary_at=boundary,
             now=boundary,
         )
+        # Captured after the boundary while the content was still present:
+        # creation time proves nothing, so it stays affected (review S3).
+        after_unproven = register_backup(
+            control,
+            store_id="s",
+            storage_locator="/c",
+            original_capture_at=boundary + timedelta(hours=1),
+        )
+        # Captured after the capture preconditions proved the content absent.
+        after_clean = register_backup(
+            control,
+            store_id="s",
+            storage_locator="/e",
+            original_capture_at=boundary + timedelta(days=3),
+            clean_suppression_ids=[sup],
+        )
+        copy_of_clean = copy_backup(control, after_clean, storage_locator="/f")
         report = backup_disposition(control, sup, now=boundary)
         assert report.deadline == boundary + timedelta(days=30)
-        assert set(report.pending_backup_ids) == {before, broken}
-        assert after not in report.pending_backup_ids
+        assert set(report.pending_backup_ids) == {before, broken, after_unproven}
+        assert after_clean not in report.pending_backup_ids
+        assert copy_of_clean not in report.pending_backup_ids  # copies keep proof
         assert not report.complete and not report.overdue
-        dispose_backup(control, before, now=boundary + timedelta(days=19))
-        dispose_backup(control, broken, now=boundary + timedelta(days=19))
+        for backup in (before, broken, after_unproven):
+            dispose_backup(control, backup, now=boundary + timedelta(days=19))
         report = backup_disposition(control, sup, now=boundary + timedelta(days=30))
         # Unverified coverage is a failure, not presumed compliance.
         assert report.unverified_backup_ids == (broken,)
@@ -443,12 +500,21 @@ class TestRetrievalGuardAndDelayedWork:
 class TestRestoreVerificationScope:
     def _restore(self, remote: RemoteHarness) -> str:
         backup = _snapshot(remote, remote.tmp_path / "snap")
-        return begin_restore(
-            remote.app.state.control_factory,
-            backup,
-            live_database=_live(remote),
-            now=datetime.now(UTC),
+        control = remote.app.state.control_factory
+        restore_id = begin_restore(
+            control, backup, live_database=_live(remote), now=datetime.now(UTC)
         )
+        # Verification never accepts a restore whose copy did not finish.
+        with pytest.raises(StoreRefused, match="copying"):
+            verify_restore(
+                control,
+                restore_id,
+                remote.app.state.session_factory,
+                lambda _s: 0,
+                now=datetime.now(UTC),
+            )
+        mark_restore_copied(control, restore_id)
+        return restore_id
 
     def test_account_scope_covers_every_owned_story(
         self, remote: RemoteHarness
@@ -609,3 +675,100 @@ class TestEntitlementLedgerContinuity:
                 live_database=_live(remote),
                 now=datetime.now(UTC),
             )
+
+
+class TestBackfillJobMain:
+    """The actual ``scripts/retrieval_backfill.py`` entry point, remotely."""
+
+    def _story_with_turns(self, env: Path) -> tuple[RemoteHarness, str, str]:
+        from tests.api.test_remote_isolation import _branching_in_play, _seed_hosted
+
+        h = make_remote(env)
+        a = h.enroll("a@example.test")
+        account = h.account_id(a)
+        _seed_hosted(h, account)
+        sid = _branching_in_play(a)
+        for text in ("I look around.", "I open the door."):
+            assert (
+                a.post(
+                    f"/api/stories/{sid}/turns", json={"user_input": text}
+                ).status_code
+                == 200
+            )
+        return h, sid, account
+
+    def _argv(
+        self, env: Path, sid: str, account: str, mode: str = "reindex"
+    ) -> list[str]:
+        return [
+            "--story-id",
+            sid,
+            "--mode",
+            mode,
+            "--db-url",
+            f"sqlite:///{env / 'content.db'}",
+            "--account-id",
+            account,
+        ]
+
+    def _remote_env(self, env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setenv("AFTERWORLDS_DEPLOYMENT", "remote")
+        monkeypatch.setenv(
+            "AFTERWORLDS_CONTROL_DATABASE_URL", f"sqlite:///{env / 'control.db'}"
+        )
+
+    def test_refused_beside_a_serving_app_and_during_a_pending_restore(
+        self, env: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from scripts import retrieval_backfill
+
+        h, sid, account = self._story_with_turns(env)
+        self._remote_env(env, monkeypatch)
+        with pytest.raises(SystemExit) as exc:
+            retrieval_backfill.main(self._argv(env, sid, account))
+        assert exc.value.code == 3  # the app holds the store locks
+        backup = _snapshot(h, env / "snap")
+        h.close()
+        begin_restore(
+            h.app.state.control_factory,
+            backup,
+            live_database=env / "content.db",
+            now=datetime.now(UTC),
+        )
+        with pytest.raises(SystemExit) as exc:
+            retrieval_backfill.main(self._argv(env, sid, account))
+        assert exc.value.code == 3
+
+    def test_closure_between_writes_stops_the_rest(
+        self, env: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from afterworlds.pipeline.retrieval.write_service import (
+            RetrievalMemoryWriteService,
+        )
+        from afterworlds.remote.control_orm import HostedAccountORM
+        from scripts import retrieval_backfill
+
+        h, sid, account = self._story_with_turns(env)
+        control = h.app.state.control_factory
+        h.close()
+        self._remote_env(env, monkeypatch)
+        # The owner's job runs and ingests.
+        retrieval_backfill.main(self._argv(env, sid, account, mode="backfill"))
+        writes: list[str] = []
+        real_ingest = RetrievalMemoryWriteService.ingest_turn
+
+        def ingest_then_close(self: Any, story_id: Any, turn_id: Any, *a: Any) -> None:
+            real_ingest(self, story_id, turn_id, *a)
+            writes.append(str(turn_id))
+            with control.begin() as s:  # the account closes mid-job
+                row = s.get(HostedAccountORM, account)
+                assert row is not None
+                row.status = "closed"
+
+        monkeypatch.setattr(
+            RetrievalMemoryWriteService, "ingest_turn", ingest_then_close
+        )
+        with pytest.raises(SystemExit) as exc:
+            retrieval_backfill.main(self._argv(env, sid, account, mode="reindex"))
+        assert exc.value.code == 3
+        assert len(writes) == 1  # the guard refused every later write
