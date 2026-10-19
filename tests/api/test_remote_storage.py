@@ -344,12 +344,29 @@ class TestBackupClocks:
         assert after_clean not in report.pending_backup_ids
         assert copy_of_clean not in report.pending_backup_ids  # copies keep proof
         assert not report.complete and not report.overdue
-        for backup in (before, broken, after_unproven):
-            dispose_backup(control, backup, now=boundary + timedelta(days=19))
+        for backup in (before, after_unproven):
+            dispose_backup(
+                control,
+                backup,
+                now=boundary + timedelta(days=19),
+                evidence="removed",
+            )
         report = backup_disposition(control, sup, now=boundary + timedelta(days=30))
-        # Unverified coverage is a failure, not presumed compliance.
+        # An inaccessible copy that was never proven disposed is a failure,
+        # not presumed compliance.
         assert report.unverified_backup_ids == (broken,)
         assert not report.complete and report.overdue
+        # Once its removal is proven, the obligation is discharged; the
+        # capture's own status stays a record of what the capture was
+        # (review R1).
+        dispose_backup(
+            control, broken, now=boundary + timedelta(days=29), evidence="removed"
+        )
+        report = backup_disposition(control, sup, now=boundary + timedelta(days=30))
+        assert report.pending_backup_ids == report.unverified_backup_ids == ()
+        assert report.complete and not report.overdue
+        with pytest.raises(ValueError):
+            dispose_backup(control, after_clean, now=boundary, evidence="assumed")
         unverified = register_backup(
             control,
             store_id="s",
@@ -664,7 +681,7 @@ class TestEntitlementLedgerContinuity:
     def test_a_missing_snapshot_is_refused(self, remote: RemoteHarness) -> None:
         backup = register_backup(
             remote.app.state.control_factory,
-            store_id="s",
+            store_id=content_store_id(remote.app.state.session_factory),
             storage_locator=str(remote.tmp_path / "nowhere"),
             original_capture_at=datetime.now(UTC),
         )

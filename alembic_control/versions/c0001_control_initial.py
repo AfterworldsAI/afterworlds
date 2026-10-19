@@ -160,6 +160,7 @@ def upgrade() -> None:
         sa.Column("expires_at", _TS, nullable=False),
         sa.Column("disposed_at", _TS),
         sa.Column("verification_status", sa.String(16), nullable=False),
+        sa.Column("disposal_evidence", sa.String(16)),
         sa.Column(
             "clean_suppression_ids", sa.Text, nullable=False, server_default="[]"
         ),

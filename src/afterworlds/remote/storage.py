@@ -222,14 +222,30 @@ def copy_backup(
     return copy_id
 
 
+#: Proof that a backup's copy is gone: removed by the disposal, or verified
+#: absent under a readable parent. Nothing else satisfies a disposal.
+DISPOSAL_EVIDENCE = frozenset({"removed", "verified_absent"})
+
+
 def dispose_backup(
-    control: sessionmaker[Session], backup_id: str, *, now: datetime
+    control: sessionmaker[Session], backup_id: str, *, now: datetime, evidence: str
 ) -> None:
+    """Record a proven disposal. ``verification_status`` keeps describing the
+    capture (for instance ``unverified`` for an interrupted one); the disposal
+    evidence is what discharges the backup's obligations."""
+    if evidence not in DISPOSAL_EVIDENCE:
+        raise ValueError(f"not disposal evidence: {evidence!r}")
     with control.begin() as s:
         row = s.get(BackupInventoryORM, backup_id)
         if row is None:
             raise KeyError(backup_id)
-        row.disposed_at = row.disposed_at or iso(now)
+        if row.disposed_at is None:
+            row.disposed_at = iso(now)
+            row.disposal_evidence = evidence
+
+
+def _disposed(row: BackupInventoryORM) -> bool:
+    return row.disposed_at is not None and row.disposal_evidence in DISPOSAL_EVIDENCE
 
 
 def due_backups(control: sessionmaker[Session], *, now: datetime) -> list[str]:
@@ -278,9 +294,13 @@ def backup_disposition(
             for row in s.scalars(sa.select(BackupInventoryORM))
             if suppression_id not in json.loads(row.clean_suppression_ids)
         ]
-    pending = tuple(r.backup_id for r in affected if r.disposed_at is None)
+    # A proven disposal discharges the obligation, whatever the capture's own
+    # status was; an undisposed copy that is not verified is unverified.
+    pending = tuple(r.backup_id for r in affected if not _disposed(r))
     unverified = tuple(
-        r.backup_id for r in affected if r.verification_status != "verified"
+        r.backup_id
+        for r in affected
+        if not _disposed(r) and r.verification_status != "verified"
     )
     complete = not pending and not unverified
     return BackupDisposition(
@@ -343,8 +363,14 @@ def begin_restore(
             raise StoreRefused("backup coverage is unverified")
         locator = Path(row.storage_locator)
         store_id = row.store_id
+    with control() as s:
+        bound = s.get(DeploymentMarkerORM, 1)
+    if bound is None or store_id != bound.content_store_id:
+        raise StoreRefused("the backup belongs to a different deployment")
     if read_vector_marker(locator / SNAPSHOT_VECTOR_DIR) != store_id:
         raise StoreRefused("the backup's vector snapshot is missing or not bound")
+    if _content_marker(locator / live_database.name) != store_id:
+        raise StoreRefused("the backup's content snapshot is missing or not bound")
     check_ledger_continuity(live_database, locator / live_database.name)
     restore_id = str(uuid4())
     with control.begin() as s:
@@ -706,12 +732,43 @@ def maintenance_locks(
     try:
         vector_lock = acquire_vector_lock(vector_dir)
         try:
-            check_vector_store(vector_dir, control)
+            check_store_pairing(database_url, vector_dir, control)
             yield
         finally:
             vector_lock.close()
     finally:
         content_lock.close()
+
+
+def _content_marker(path: Path) -> str | None:
+    """The ``remote_store_marker`` of a SQLite file, read-only; None if absent."""
+    if not path.is_file():
+        return None
+    try:
+        with closing(
+            sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)
+        ) as conn:
+            row = conn.execute(
+                "SELECT content_store_id FROM remote_store_marker WHERE id = 1"
+            ).fetchone()
+    except sqlite3.Error:
+        return None
+    return str(row[0]) if row else None
+
+
+def check_store_pairing(
+    database_url: str, vector_dir: Path, control: sessionmaker[Session]
+) -> None:
+    """Maintenance may touch data only when the configured content store, the
+    control store and the vector store all belong to one deployment. Locking a
+    file proves exclusivity, not ownership."""
+    with control() as s:
+        bound = s.get(DeploymentMarkerORM, 1)
+    if bound is None:
+        raise StoreRefused("the control store is not bound to a deployment")
+    if _content_marker(sqlite_path(database_url)) != bound.content_store_id:
+        raise StoreRefused("the content store belongs to a different deployment")
+    check_vector_store(vector_dir, control)
 
 
 def capture_snapshot(
@@ -780,21 +837,20 @@ def restore_snapshot(
         row = s.get(BackupInventoryORM, backup_id)
         assert row is not None
         source = Path(row.storage_locator)
-        store_id = row.store_id
     shutil.copyfile(source / database_path.name, database_path)
     for suffix in ("-wal", "-shm"):
         database_path.with_name(database_path.name + suffix).unlink(missing_ok=True)
     # Keep the held lock file; replace everything else in the vector store.
+    # The held lock file and the deployment marker are never removed: the
+    # snapshot's marker is the same binding (checked by begin_restore), so an
+    # interrupted cleanup leaves a store this deployment can still maintain.
     for child in vector_dir.iterdir():
-        if child.name == VECTOR_LOCK:
+        if child.name in (VECTOR_LOCK, VECTOR_MARKER):
             continue
         if child.is_dir():
             shutil.rmtree(child)
         else:
             child.unlink()
-    # A half-restored store stays recognizably ours, so a retry can run;
-    # serving stays fenced by the unfinished restore record.
-    bind_vector_store(vector_dir, store_id)
     shutil.copytree(source / SNAPSHOT_VECTOR_DIR, vector_dir, dirs_exist_ok=True)
     mark_restore_copied(control, restore_id)
     return restore_id
@@ -814,11 +870,14 @@ def dispose_snapshot(
     try:
         if locator.exists():
             shutil.rmtree(locator)
-        elif not locator.parent.is_dir():
+            evidence = "removed"
+        elif locator.parent.is_dir():
+            evidence = "verified_absent"
+        else:
             raise OSError(f"cannot verify that {locator} is absent")
         if locator.exists():
             raise OSError(f"{locator} is still present")
     except OSError:
         set_backup_status(control, backup_id, "inaccessible")
         raise StoreRefused("the backup could not be verified as removed") from None
-    dispose_backup(control, backup_id, now=now)
+    dispose_backup(control, backup_id, now=now, evidence=evidence)

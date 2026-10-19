@@ -197,6 +197,8 @@ class BackupInventoryORM(ControlBase):
     disposed_at: Mapped[str | None] = mapped_column(sa.String(64))
     # "verified" | "unverified" | "inaccessible"
     verification_status: Mapped[str] = mapped_column(sa.String(16), nullable=False)
+    #: "removed" | "verified_absent" -- the proof recorded with ``disposed_at``.
+    disposal_evidence: Mapped[str | None] = mapped_column(sa.String(16))
     #: JSON list of suppression IDs whose content this capture proved absent.
     clean_suppression_ids: Mapped[str] = mapped_column(
         sa.Text, nullable=False, default="[]"

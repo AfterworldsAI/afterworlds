@@ -314,3 +314,143 @@ def test_capture_never_claims_an_existing_directory(
     control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
     with control() as s:
         assert s.query(BackupInventoryORM).count() == 0  # nothing to dispose
+
+
+def _disposition(remote_env: Path, suppression: str) -> Any:
+    from afterworlds.remote.storage import backup_disposition
+
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    return backup_disposition(control, suppression, now=datetime.now(UTC))
+
+
+def test_proven_disposal_reconciles_failed_and_inaccessible_backups(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Review R1: a verified disposal discharges the obligation of an
+    interrupted or once-inaccessible backup; unverifiable storage never does."""
+    from afterworlds.remote import storage
+    from afterworlds.remote.storage import register_backup
+
+    make_remote(remote_env).close()
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+
+    def vector_copy_fails(*_a: object, **_k: object) -> None:
+        raise OSError("interrupted")
+
+    with pytest.MonkeyPatch.context() as mp, pytest.raises(OSError):
+        mp.setattr(storage.shutil, "copytree", vector_copy_fails)
+        storage_cli.main(["capture", "--to", str(remote_env / "b1")])
+    # Recorded after the capture, which therefore proved nothing about it.
+    sup = record_suppression(
+        control,
+        subject_ref=str(uuid.uuid4()),
+        story_refs=[str(uuid.uuid4())],  # no such content: capture is allowed
+        request_id="r",
+        scope="story",
+        effective_boundary_at=datetime.now(UTC),
+        now=datetime.now(UTC),
+    )
+
+    later = remote_env / "offline-volume" / "b2"
+    lost = register_backup(
+        control,
+        store_id="s",
+        storage_locator=str(later),
+        original_capture_at=datetime.now(UTC),
+        verification_status="unverified",
+    )
+    partial = _disposition(remote_env, sup).unverified_backup_ids
+    assert lost in partial and len(partial) == 2
+    [interrupted] = [b for b in partial if b != lost]
+    original_age = _inventory(remote_env, interrupted).original_capture_at
+
+    assert _run(capsys, "dispose", "--backup-id", interrupted) == (0, "disposed")
+    assert storage_cli.main(["dispose", "--backup-id", lost]) == 1  # unverifiable
+    capsys.readouterr()
+    report = _disposition(remote_env, sup)
+    assert report.unverified_backup_ids == (lost,) and not report.complete
+    assert _inventory(remote_env, lost).verification_status == "inaccessible"
+    # The volume comes back: the path is now verifiably absent.
+    later.parent.mkdir()
+    assert _run(capsys, "dispose", "--backup-id", lost) == (0, "disposed")
+    report = _disposition(remote_env, sup)
+    assert report.complete and report.pending_backup_ids == ()
+    assert _inventory(remote_env, lost).disposal_evidence == "verified_absent"
+    assert _inventory(remote_env, interrupted).disposal_evidence == "removed"
+    assert _inventory(remote_env, interrupted).original_capture_at == original_age
+
+
+def test_restore_cleanup_interrupted_before_rebind_is_retryable(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Review R2: an interruption while clearing the vector store keeps the
+    deployment marker, so the documented retry and verification work."""
+    from afterworlds.remote import storage
+
+    make_remote(remote_env).close()
+    code, backup_id = _run(capsys, "capture", "--to", str(remote_env / "b1"))
+    assert code == 0
+    (remote_env / "chroma" / "segment-after-capture").mkdir()
+
+    def cleanup_fails(*_a: object, **_k: object) -> None:
+        raise OSError("interrupted while clearing the vector store")
+
+    with pytest.MonkeyPatch.context() as mp, pytest.raises(OSError):
+        mp.setattr(storage.shutil, "rmtree", cleanup_fails)
+        storage_cli.main(["restore", "--backup-id", backup_id])
+    assert (remote_env / "chroma" / "afterworlds-deployment.json").exists()
+    with pytest.raises(StoreRefused, match="awaiting"):
+        create_app(remote_settings(remote_env))
+    code, restore_id = _run(capsys, "restore", "--backup-id", backup_id)
+    assert code == 0
+    assert _run(capsys, "verify-restore", "--restore-id", restore_id) == (
+        0,
+        "verified",
+    )
+    assert not (remote_env / "chroma" / "segment-after-capture").exists()
+    make_remote(remote_env).close()
+
+
+def test_maintenance_refuses_a_swapped_content_store_untouched(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Review R3: deployment A's control and vector stores with another
+    deployment's (or a local) content file are refused before any copy."""
+    from afterworlds.api.config import ApiSettings
+
+    make_remote(remote_env).close()
+    code, backup_id = _run(capsys, "capture", "--to", str(remote_env / "b1"))
+    assert code == 0
+    # Deployment B: its own content/control/vectors, same content filename.
+    other = remote_env / "other"
+    other.mkdir()
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("AFTERWORLDS_RETRIEVAL_PERSIST_DIRECTORY", str(other / "chroma"))
+        make_remote(other).close()
+    # A local install's store, also named content.db.
+    local = remote_env / "local"
+    local.mkdir()
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("AFTERWORLDS_RETRIEVAL_PERSIST_DIRECTORY", str(local / "chroma"))
+        app = create_app(
+            ApiSettings(
+                database_url=f"sqlite:///{local / 'content.db'}",
+                frontend_dist_dir=local / "x",
+            )
+        )
+        app.state.session_factory.kw["bind"].dispose()
+    for foreign in (other / "content.db", local / "content.db"):
+        before = foreign.read_bytes()
+        monkeypatch.setenv("AFTERWORLDS_DATABASE_URL", f"sqlite:///{foreign}")
+        for argv in (
+            ["capture", "--to", str(remote_env / f"never-{foreign.parent.name}")],
+            ["restore", "--backup-id", backup_id],
+        ):
+            with pytest.raises(StoreRefused, match="different deployment"):
+                storage_cli.main(argv)
+        assert foreign.read_bytes() == before
+        assert not (remote_env / f"never-{foreign.parent.name}").exists()
