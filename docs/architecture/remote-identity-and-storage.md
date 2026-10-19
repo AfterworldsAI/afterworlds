@@ -191,6 +191,15 @@ then select the package during setup. The local `reset_corpus_baseline.py` remai
    restore is recorded `copying` before files change and marked copied only after both stores are
    replaced. If it fails part-way the app stays fenced; run `restore` again (it supersedes the
    unfinished attempt).
+   While a restore of a backup is still `copying`, that backup's disposal is refused (`dispose` exits 1;
+   nothing changes) until its earliest disposal deadline: its own 21-day expiry, or the 30-day backup
+   horizon of any active suppression it is not proven clean of. From that deadline on, `dispose` runs
+   normally. The restore stays `copying` and the app stays fenced: disposal neither completes nor
+   cancels it, and recovery from that backup is no longer possible (`restore` also refuses an expired
+   backup). Once the restore reaches `pending_enforcement`, or is superseded by a restore from another
+   backup, disposal works normally at any time. No clock changes: `due` and backup disposition keep
+   their 21-day and 30-day rules. Retry or supersede a stuck restore before its deadline; one left
+   `copying` past it is an open recovery failure for CRD Issue 22 (#206) fulfillment.
 4. Enforce every active deletion suppression (CRD Issue 22 supplies this), then
    `... storage_cli verify-restore --restore-id <id>`. It refuses an unfinished copy; exit `2` lists
    suppressed Stories still present, and an unavailable Chroma read fails rather than counting as zero.

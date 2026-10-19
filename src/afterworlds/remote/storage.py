@@ -267,6 +267,45 @@ def copy_backup(
 DISPOSAL_EVIDENCE = frozenset({"removed", "verified_absent"})
 
 
+def _refuse_copying_source(s: Session, row: BackupInventoryORM, now: datetime) -> None:
+    """A restore still ``copying`` from this backup needs it to retry, so its
+    disposal is refused -- but only before the backup's earliest disposal
+    deadline: its own 21-day ``expires_at`` or the 30-day ``backup_horizon_at``
+    of any active suppression it is not proven clean of (the
+    :func:`backup_disposition` rule). From that deadline on, ordinary disposal
+    proceeds; the restore stays ``copying`` and the app stays fenced. No clock
+    changes."""
+    copying = s.scalar(
+        sa.select(RestoreRecordORM.restore_id)
+        .where(
+            RestoreRecordORM.backup_id == row.backup_id,
+            RestoreRecordORM.status == "copying",
+        )
+        .limit(1)
+    )
+    if copying is None:
+        return
+    clean = set(json.loads(row.clean_suppression_ids))
+    deadline = min(
+        [parse_iso(row.expires_at)]
+        + [
+            parse_iso(sup.backup_horizon_at)
+            for sup in s.scalars(
+                sa.select(DeletionSuppressionORM).where(
+                    DeletionSuppressionORM.status == "active"
+                )
+            )
+            if sup.suppression_id not in clean
+        ]
+    )
+    if now < deadline:
+        raise StoreRefused(
+            f"backup {row.backup_id} is the source of restore {copying}, which is "
+            f"still copying; retry or supersede that restore before {iso(deadline)}, "
+            "when disposal is required"
+        )
+
+
 def dispose_backup(
     control: sessionmaker[Session], backup_id: str, *, now: datetime, evidence: str
 ) -> None:
@@ -280,6 +319,7 @@ def dispose_backup(
         if row is None:
             raise KeyError(backup_id)
         if row.disposed_at is None:
+            _refuse_copying_source(s, row, now)
             row.disposed_at = iso(now)
             row.disposal_evidence = evidence
 
@@ -1148,6 +1188,7 @@ def dispose_snapshot(
         if _disposed(row):
             # Terminal: the location may already belong to a newer backup.
             return
+        _refuse_copying_source(s, row, now)  # before any file is touched
         locator = Path(row.storage_locator)
     try:
         if locator.exists():

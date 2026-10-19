@@ -779,3 +779,221 @@ def test_capture_never_targets_the_live_vector_store(
         assert s.query(BackupInventoryORM).count() == 0
     # An ordinary separate target still captures.
     assert _run(capsys, "capture", "--to", str(remote_env / "b1"))[0] == 0
+
+
+def _restore_statuses(remote_env: Path, restore_id: str | None = None) -> list[str]:
+    from afterworlds.remote.control_orm import RestoreRecordORM
+
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    with control() as s:
+        rows = s.query(RestoreRecordORM).order_by(RestoreRecordORM.restored_at).all()
+        return [r.status for r in rows if restore_id in (None, r.restore_id)]
+
+
+def _interrupted_restore(
+    capsys: pytest.CaptureFixture[str], backup: str, fault: str
+) -> None:
+    """A restore of *backup* interrupted while copying (status stays copying)."""
+    from afterworlds.remote import storage
+
+    def fails(*_a: object, **_k: object) -> None:
+        raise OSError("interrupted restore")
+
+    with pytest.MonkeyPatch.context() as mp, pytest.raises(OSError):
+        if fault == "vector_copy":
+            mp.setattr(storage.shutil, "copytree", fails)
+        else:  # the copied-status commit is lost
+            mp.setattr(storage, "mark_restore_copied", fails)
+        storage_cli.main(["restore", "--backup-id", backup])
+    capsys.readouterr()
+
+
+@pytest.mark.parametrize("fault", ["vector_copy", "lost_copied_commit"])
+def test_a_copying_restore_keeps_its_source_until_it_finishes(
+    remote_env: Path, capsys: pytest.CaptureFixture[str], fault: str
+) -> None:
+    """Review r4314309653: neither disposal path removes the source of a
+    restore still copying; once both stores are replaced, disposal works
+    while the serving fence stays until verification."""
+    from afterworlds.remote.storage import dispose_backup
+
+    make_remote(remote_env).close()
+    b1 = remote_env / "b1"
+    code, backup = _run(capsys, "capture", "--to", str(b1))
+    assert code == 0
+    _interrupted_restore(capsys, backup, fault)
+    assert _restore_statuses(remote_env) == ["copying"]
+    files = sorted(str(p.relative_to(b1)) for p in b1.rglob("*"))
+
+    assert storage_cli.main(["dispose", "--backup-id", backup]) == 1
+    assert "still copying" in capsys.readouterr().err
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    with pytest.raises(StoreRefused, match="still copying"):
+        dispose_backup(control, backup, now=datetime.now(UTC), evidence="removed")
+    assert sorted(str(p.relative_to(b1)) for p in b1.rglob("*")) == files
+    assert _inventory_row(remote_env, backup).disposed_at is None
+
+    # The pre-expiry retry still works from the protected source.
+    code, restore_id = _run(capsys, "restore", "--backup-id", backup)
+    assert code == 0
+    assert _restore_statuses(remote_env, restore_id) == ["pending_enforcement"]
+    assert _run(capsys, "dispose", "--backup-id", backup) == (0, "disposed")
+    assert not b1.exists()
+    with pytest.raises(StoreRefused, match="awaiting"):
+        create_app(remote_settings(remote_env))  # fence until verification
+    code, out = _run(capsys, "verify-restore", "--restore-id", restore_id)
+    assert (code, out) == (0, "verified")
+    make_remote(remote_env).close()
+
+
+def test_only_the_current_copying_restore_protects_a_source(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    make_remote(remote_env).close()
+    code, first = _run(capsys, "capture", "--to", str(remote_env / "b1"))
+    code, second = _run(capsys, "capture", "--to", str(remote_env / "b2"))
+    # Retrying the same source supersedes the old attempt; the new one
+    # still protects it.
+    _interrupted_restore(capsys, first, "vector_copy")
+    _interrupted_restore(capsys, first, "vector_copy")
+    assert _restore_statuses(remote_env) == ["superseded", "copying"]
+    assert storage_cli.main(["dispose", "--backup-id", first]) == 1
+    capsys.readouterr()
+    # A restore from another backup supersedes it: the first is free again.
+    _interrupted_restore(capsys, second, "vector_copy")
+    assert _restore_statuses(remote_env) == ["superseded", "superseded", "copying"]
+    assert _run(capsys, "dispose", "--backup-id", first) == (0, "disposed")
+    assert storage_cli.main(["dispose", "--backup-id", second]) == 1
+
+
+def _copying_source(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    *,
+    clean_horizon_days: int | None = None,
+    affected_horizon_days: int | None = None,
+) -> tuple[Any, str, datetime | None]:
+    """A backup whose restore is stuck copying. Optionally an active
+    suppression recorded before capture (the backup is proven clean of it)
+    and/or one recorded after (affected); each horizon is that many days
+    after now. Returns (control, backup, affected horizon)."""
+    from datetime import timedelta
+
+    from afterworlds.remote.storage import DELETION_BACKUP_DEADLINE
+
+    make_remote(remote_env).close()
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+
+    def suppress(horizon_days: int) -> datetime:
+        now = datetime.now(UTC)
+        boundary = now + timedelta(days=horizon_days) - DELETION_BACKUP_DEADLINE
+        sup = record_suppression(
+            control,
+            subject_ref=str(uuid.uuid4()),
+            story_refs=[str(uuid.uuid4())],  # no such content: capture allowed
+            request_id=str(uuid.uuid4()),
+            scope="story",
+            effective_boundary_at=boundary,
+            now=now,
+        )
+        return datetime.fromisoformat(_suppression_horizon(control, sup))
+
+    if clean_horizon_days is not None:
+        suppress(clean_horizon_days)
+    code, backup = _run(capsys, "capture", "--to", str(remote_env / "b1"))
+    assert code == 0
+    horizon = (
+        suppress(affected_horizon_days) if affected_horizon_days is not None else None
+    )
+    _interrupted_restore(capsys, backup, "lost_copied_commit")
+    return control, backup, horizon
+
+
+def _suppression_horizon(control: Any, suppression_id: str) -> str:
+    from afterworlds.remote.control_orm import DeletionSuppressionORM
+
+    with control() as s:
+        row = s.get(DeletionSuppressionORM, suppression_id)
+        assert row is not None
+        return str(row.backup_horizon_at)
+
+
+def _disposal_boundary(
+    remote_env: Path, control: Any, backup: str, deadline: datetime
+) -> None:
+    """Refused an instant before *deadline*; ordinary disposal exactly at it,
+    with the restore still copying and the app still fenced."""
+    from datetime import timedelta
+
+    from afterworlds.remote.storage import dispose_snapshot
+
+    row = _inventory_row(remote_env, backup)
+    clocks = (row.original_capture_at, row.expires_at)
+    with pytest.raises(StoreRefused, match="still copying"):
+        dispose_snapshot(control, backup, now=deadline - timedelta(microseconds=1))
+    assert (remote_env / "b1").exists()
+    dispose_snapshot(control, backup, now=deadline)
+    row = _inventory_row(remote_env, backup)
+    assert row.disposal_evidence == "removed" and not (remote_env / "b1").exists()
+    assert (row.original_capture_at, row.expires_at) == clocks
+    assert _restore_statuses(remote_env) == ["copying"]  # not completed or cancelled
+    with pytest.raises(StoreRefused, match="awaiting"):
+        create_app(remote_settings(remote_env))
+
+
+def test_a_copying_source_is_disposable_at_its_21_day_expiry(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from afterworlds.remote.storage import begin_restore, due_backups
+
+    control, backup, _ = _copying_source(remote_env, capsys)
+    expires = datetime.fromisoformat(_inventory_row(remote_env, backup).expires_at)
+    assert backup in due_backups(control, now=expires)  # 21-day rule unchanged
+    with pytest.raises(StoreRefused, match="21-day"):
+        begin_restore(
+            control, backup, live_database=remote_env / "content.db", now=expires
+        )
+    _disposal_boundary(remote_env, control, backup, expires)
+
+
+def test_an_earlier_affected_30_day_horizon_is_the_deadline(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from afterworlds.remote.storage import backup_disposition
+
+    control, backup, horizon = _copying_source(
+        remote_env, capsys, affected_horizon_days=5
+    )
+    assert horizon is not None
+    assert horizon < datetime.fromisoformat(
+        _inventory_row(remote_env, backup).expires_at
+    )
+    [sup] = [
+        s
+        for s in _active_suppression_ids(control)
+        if _suppression_horizon(control, s) == horizon.isoformat()
+    ]
+    report = backup_disposition(control, sup, now=horizon)
+    assert report.overdue and backup in report.pending_backup_ids  # 30-day rule
+    _disposal_boundary(remote_env, control, backup, horizon)
+
+
+def test_a_clean_backup_does_not_inherit_a_suppression_horizon(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from afterworlds.remote.storage import dispose_snapshot
+
+    control, backup, _ = _copying_source(remote_env, capsys, clean_horizon_days=5)
+    [sup] = _active_suppression_ids(control)
+    early = datetime.fromisoformat(_suppression_horizon(control, sup))
+    # The backup proved that suppression's content absent: still protected.
+    with pytest.raises(StoreRefused, match="still copying"):
+        dispose_snapshot(control, backup, now=early)
+    expires = datetime.fromisoformat(_inventory_row(remote_env, backup).expires_at)
+    _disposal_boundary(remote_env, control, backup, expires)
+
+
+def _active_suppression_ids(control: Any) -> list[str]:
+    from afterworlds.remote.storage import active_suppressions
+
+    return [s.suppression_id for s in active_suppressions(control)]
