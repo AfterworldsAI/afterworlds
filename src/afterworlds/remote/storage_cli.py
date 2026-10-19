@@ -106,16 +106,38 @@ def main(argv: list[str] | None = None) -> int:
     except ControlStoreUnavailable as exc:
         print(f"{args.command} refused: {exc}", file=sys.stderr)
         return 1
+    now = utc_now()
+    if args.command in ("due", "dispose"):
+        # Backup-only: control authority and backup storage, never the live
+        # content or vector paths (they may be down; the deadlines still run).
+        try:
+            with maintenance_locks(
+                settings.database_url,
+                Path(),
+                control,
+                touches_live_stores=False,
+            ):
+                try:
+                    if args.command == "dispose":
+                        dispose_snapshot(control, args.backup_id, now=now)
+                        print("disposed")
+                    else:
+                        for backup_id in due_backups(control, now=now):
+                            print(backup_id)
+                except (StoreRefused, KeyError) as exc:
+                    print(f"{args.command} refused: {exc}", file=sys.stderr)
+                    return 1
+        finally:
+            control.kw["bind"].dispose()
+        return 0
     config = RetrievalMemoryConfig.from_env()
     vector_dir = Path(config.persist_directory)
     confidential = [settings.notice_outbox_dir] if settings.notice_outbox_dir else []
     db_path = sqlite_path(settings.database_url)
-    now = utc_now()
     with maintenance_locks(
         settings.database_url,
         vector_dir,
         control,
-        touches_live_stores=args.command not in ("due", "dispose"),
     ):
         engine = create_engine(settings.database_url)
         content = create_session_factory(engine)
@@ -159,12 +181,6 @@ def main(argv: list[str] | None = None) -> int:
                     print("suppressed stories still present: " + ", ".join(remaining))
                     return 2
                 print("verified")
-            elif args.command == "dispose":
-                dispose_snapshot(control, args.backup_id, now=now)
-                print("disposed")
-            else:
-                for backup_id in due_backups(control, now=now):
-                    print(backup_id)
         except (StoreRefused, KeyError) as exc:
             print(f"{args.command} refused: {exc}", file=sys.stderr)
             return 1

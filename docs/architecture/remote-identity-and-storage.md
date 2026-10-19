@@ -178,7 +178,7 @@ then select the package during setup. The local `reset_corpus_baseline.py` remai
 
 ### Backup, restore and fence
 
-1. Stop the app (the commands need both store locks). Every entry point that knows both stores
+1. Stop the app (the commands need the store locks; `due`/`dispose` need only the control lease). Every entry point that knows both stores
    (app startup, storage CLI, Rules provisioning, remote backfill) refuses a control store that is
    physically the content store (same path, symlink or hard link) before opening either.
    The public static root (`frontend_dist_dir`, served unauthenticated at `/`) may not be, contain or
@@ -195,8 +195,9 @@ then select the package during setup. The local `reset_corpus_baseline.py` remai
    capture and copy refuse a location an undisposed backup still holds, including after a disposal
    whose record was lost, until that disposal is recorded. A snapshot holds the content store as `content.sqlite3` and the vectors as `chroma/` (reserved names, whatever the live database is called);
    snapshots captured earlier with the SQL file under the live database's name remain restorable. A target inside (or around) the live vector store is refused before anything is created.
-2. `due` and `dispose` need only both locks and the control binding, so backups can still be
-   expired while a live store is damaged. `... storage_cli due` lists backups at/after 21 days; `... storage_cli dispose --backup-id <id>`
+2. `due` and `dispose` need only the control-store lease and binding -- not the live content or vector
+   locks or paths -- so backups can still be expired and disposed while a live store is damaged or its
+   volume is unavailable (an inaccessible *backup* still stays incomplete). `... storage_cli due` lists backups at/after 21 days; `... storage_cli dispose --backup-id <id>`
    removes the files, then records the disposal. Re-running after a lost record is safe; a path that
    cannot be verified absent is marked `inaccessible` and the command fails. Disposing an already
    disposed backup touches nothing (its old location may hold a newer backup).

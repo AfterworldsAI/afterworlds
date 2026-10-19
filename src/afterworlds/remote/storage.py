@@ -666,14 +666,25 @@ def sqlite_path(database_url: str) -> Path:
 def refuse_store_aliasing(database_url: str, control_database_url: str) -> None:
     """Refuse, before either store is opened or migrated, a control store that
     is physically the content store (same path, symlink or hard link)."""
-    content = sqlite_path(database_url)
     try:
         control = sqlite_path(control_database_url)
     except StoreRefused:
         return  # not a file-backed SQLite control store: it cannot alias one
-    if os.path.normcase(str(content)) == os.path.normcase(str(control)) or (
-        content.exists() and control.exists() and os.path.samefile(content, control)
-    ):
+    try:
+        content = sqlite_path(database_url)
+    except OSError:
+        # The live path cannot be resolved (its volume is unavailable): compare
+        # the configured spelling; a hard link is refused by the control
+        # store's own link check when it is opened.
+        url = make_url(database_url)
+        content = Path(os.path.abspath(str(url.database)))
+    try:
+        linked = (
+            content.exists() and control.exists() and os.path.samefile(content, control)
+        )
+    except OSError:
+        linked = False  # an unavailable live path cannot be the control file
+    if os.path.normcase(str(content)) == os.path.normcase(str(control)) or linked:
         raise StoreRefused(
             "the control store and the content store are the same database file"
         )
@@ -1113,9 +1124,15 @@ def maintenance_locks(
     (the 21-day obligation must remain enforceable during an outage).
 
     Locks are taken content, vector, control -- the serving app's order -- and
-    each one acquired here is released here, whatever fails later."""
-    if touches_live_stores:
-        refuse_multiply_linked(sqlite_path(database_url), "the content store")
+    each one acquired here is released here, whatever fails later. Backup-only
+    work (``touches_live_stores=False``) takes just the control-authority
+    lease -- which every serving or live-store writer also holds -- so it never
+    touches the live content or vector paths and survives their outage."""
+    if not touches_live_stores:
+        with _backup_only_lease(control):
+            yield
+        return
+    refuse_multiply_linked(sqlite_path(database_url), "the content store")
     content_lock = acquire_store_lock(database_url)
     try:
         vector_lock = acquire_vector_lock(vector_dir)
@@ -1127,14 +1144,7 @@ def maintenance_locks(
             vector_lock.close()
             raise
         try:
-            if touches_live_stores:
-                check_store_pairing(database_url, vector_dir, control)
-            else:
-                with control() as s:
-                    if s.get(DeploymentMarkerORM, 1) is None:
-                        raise StoreRefused(
-                            "the control store is not bound to a deployment"
-                        )
+            check_store_pairing(database_url, vector_dir, control)
             yield
         finally:
             if control_lock is not None:
@@ -1142,6 +1152,24 @@ def maintenance_locks(
             vector_lock.close()
     finally:
         content_lock.close()
+
+
+@contextmanager
+def _backup_only_lease(control: sessionmaker[Session]) -> Iterator[None]:
+    """Backup expiry and disposal: the control-authority lease and a bound
+    control store, nothing on the live stores (21/30-day obligations stay
+    enforceable through a live-store outage)."""
+    lease = acquire_control_lock(
+        control.kw["bind"].url.render_as_string(hide_password=False)
+    )
+    try:
+        with control() as s:
+            if s.get(DeploymentMarkerORM, 1) is None:
+                raise StoreRefused("the control store is not bound to a deployment")
+        yield
+    finally:
+        if lease is not None:
+            lease.close()
 
 
 def _content_marker(path: Path, *, live: bool = False) -> str | None:

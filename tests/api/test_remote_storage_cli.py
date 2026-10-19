@@ -1756,3 +1756,95 @@ def test_a_second_deployment_sharing_the_control_store_is_refused(
     # With the first owner gone the copied pair could start (supported layout
     # check aside), and the original deployment restarts normally.
     make_remote(remote_env).close()
+
+
+# -- review 5576516987: backup-only cleanup through a live-store outage -------
+
+
+def _live_outage(remote_env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Point the live content and vector paths beneath regular files: neither
+    can be created, opened or locked. Any live-store touch fails loudly."""
+    from afterworlds.remote import storage, storage_cli
+
+    for name in ("down-content", "down-vectors"):
+        (remote_env / name).write_text("not a directory", encoding="utf-8")
+    monkeypatch.setenv(
+        "AFTERWORLDS_DATABASE_URL",
+        f"sqlite:///{remote_env / 'down-content' / 'content.db'}",
+    )
+    monkeypatch.setenv(
+        "AFTERWORLDS_RETRIEVAL_PERSIST_DIRECTORY",
+        str(remote_env / "down-vectors" / "chroma"),
+    )
+
+    def forbidden(*_a: object, **_k: object) -> None:
+        raise AssertionError("backup-only cleanup touched a live store")
+
+    monkeypatch.setattr(storage, "acquire_store_lock", forbidden)
+    monkeypatch.setattr(storage, "acquire_vector_lock", forbidden)
+    monkeypatch.setattr(storage_cli, "create_engine", forbidden)
+    monkeypatch.setattr(storage_cli.SharedSystemClient, "clear_system_cache", forbidden)
+
+
+def test_due_and_dispose_survive_a_live_store_outage(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """r4317836349: the 21/30-day obligations stay enforceable from healthy
+    control authority and backup storage while live content/vectors are down;
+    an inaccessible backup stays incomplete."""
+    from afterworlds.remote.storage import register_backup
+
+    make_remote(remote_env).close()
+    code, backup = _run(capsys, "capture", "--to", str(remote_env / "b1"))
+    assert code == 0
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    unreachable = register_backup(
+        control,
+        store_id="s",
+        storage_locator=str(remote_env / "offline-volume" / "b9"),
+        original_capture_at=datetime.now(UTC),
+    )
+    _live_outage(remote_env, monkeypatch)
+
+    assert storage_cli.main(["due"]) == 0
+    assert _run(capsys, "dispose", "--backup-id", backup) == (0, "disposed")
+    assert not (remote_env / "b1").exists()
+    assert _inventory_row(remote_env, backup).disposal_evidence == "removed"
+    assert storage_cli.main(["dispose", "--backup-id", unreachable]) == 1
+    row = _inventory_row(remote_env, unreachable)
+    assert row.disposed_at is None and row.verification_status == "inaccessible"
+    # Terminal disposal stays a no-op through the outage.
+    assert _run(capsys, "dispose", "--backup-id", backup) == (0, "disposed")
+
+
+def test_backup_only_cleanup_still_refuses_bad_authority_and_aliases(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from afterworlds.remote.storage import acquire_control_lock
+
+    make_remote(remote_env).close()
+    _live_outage(remote_env, monkeypatch)
+    # A same-path alias is refused even though the live path is unavailable.
+    alias = f"sqlite:///{remote_env / 'down-content' / 'content.db'}"
+    monkeypatch.setenv("AFTERWORLDS_CONTROL_DATABASE_URL", alias)
+    assert storage_cli.main(["due"]) == 1
+    assert "same database file" in capsys.readouterr().err
+    # An unbound control store is refused, and its lease is released.
+    unbound = f"sqlite:///{remote_env / 'unbound-control.db'}"
+    open_control_store(unbound).kw["bind"].dispose()
+    monkeypatch.setenv("AFTERWORLDS_CONTROL_DATABASE_URL", unbound)
+    with pytest.raises(StoreRefused, match="not bound"):
+        storage_cli.main(["due"])
+    lease = acquire_control_lock(unbound)
+    assert lease is not None
+    lease.close()
+    # Missing control authority fails safely.
+    monkeypatch.setenv(
+        "AFTERWORLDS_CONTROL_DATABASE_URL",
+        f"sqlite:///{remote_env / 'absent' / 'control.db'}",
+    )
+    assert storage_cli.main(["dispose", "--backup-id", str(uuid.uuid4())]) == 1

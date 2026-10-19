@@ -116,8 +116,10 @@ exclusive OS lock on the content store, on the bound vector store **and** on the
 (`<control>.serve.lock`, canonical path) for the process lifetime, acquired in that order before the
 control store is opened or migrated (released if startup fails); a configured content or control
 SQLite file with more than one hard link is refused before it is opened, so no second name can carry
-different pathname locks. Storage maintenance, Rules provisioning and remote backfill take the same three
-leases; bootstrap and direct authority reads take none and never migrate; a second app process, a storage command or the backfill job fails
+different pathname locks. Storage maintenance that touches the live stores, Rules provisioning and remote
+backfill take the same three leases; backup expiry and disposal (`due`/`dispose`) take only the control
+lease and require a bound control store, never touching the live content or vector paths, so the
+accepted 21-day and 30-day backup obligations stay enforceable through a live-store outage; bootstrap and direct authority reads take none and never migrate; a second app process, a storage command or the backfill job fails
 while they are held. Per-Story turn locks, RPG lease recovery and entitlement idempotency are
 therefore unchanged. Because the writer is one process, an in-process per-account fence
 (`AccountFence`) orders effects against closure and suppression: every remote Sojourner request
@@ -207,8 +209,8 @@ preserve. Every maintenance step records its state before touching files:
 - **Disposal** removes files, then records its evidence (`removed` / `verified_absent`); a retry
   records a verifiably absent path, an unverifiable one is marked `inaccessible`, and only recorded
   evidence discharges a backup's obligation (an interrupted or once-inaccessible capture included).
-- **Pairing:** every maintenance command first requires the configured content, control and vector
-  stores — and a restore's snapshot — to carry one deployment's identity; a swapped store is refused
+- **Pairing:** every live-store maintenance command first requires the configured content, control and
+  vector stores (backup-only `due`/`dispose` need just the bound control store and its lease) — and a restore's snapshot — to carry one deployment's identity; a swapped store is refused
   untouched. Restore cleanup never removes the vector marker, so an interruption stays retryable.
 
 Suppressed Stories are also denied by the ownership guard at all times. CRD Issue 22 supplies the
