@@ -120,7 +120,20 @@ test("two accounts enroll, sign in and stay isolated", async ({ browser }) => {
   );
   expect(seeded.ok()).toBe(true);
   await ownerPage.getByPlaceholder("Title").fill("Owner's tale");
-  await ownerPage.getByRole("button", { name: "Create" }).click();
+  // The click does not await the asynchronous create; wait for the server's
+  // answer and the UI that follows it before reading the list.
+  const [created] = await Promise.all([
+    ownerPage.waitForResponse(
+      (r) =>
+        r.request().method() === "POST" &&
+        new URL(r.url()).pathname === "/api/stories",
+    ),
+    ownerPage.getByRole("button", { name: "Create" }).click(),
+  ]);
+  expect(created.ok()).toBe(true);
+  await expect(
+    ownerPage.getByRole("heading", { name: "Branching setup" }),
+  ).toBeVisible();
   const list = await call(ownerPage, "GET", "/api/stories");
   const stories = list.body.stories as { story_id: string }[];
   expect(stories).toHaveLength(1);
