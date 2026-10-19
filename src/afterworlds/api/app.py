@@ -91,16 +91,27 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
     app.state.store_lock = None
     app.state.vector_lock = None
     app.state.engine = None
+    # Chroma clients that already exist in this process (and their refcounts)
+    # are not this construction's: only systems it creates are its own.
+    chroma_before = {
+        ident: SharedSystemClient._identifier_to_refcount.get(ident, 0)
+        for ident in SharedSystemClient._identifier_to_system
+    }
     try:
         _wire_app(app, settings)
     except BaseException:
-        _release_construction(app)
+        _release_construction(app, chroma_before)
         raise
     return app
 
 
-def _release_construction(app: FastAPI) -> None:
-    """Best-effort release after a failed construction; never masks it."""
+def _release_construction(app: FastAPI, chroma_before: dict[str, int]) -> None:
+    """Best-effort release after a failed construction; never masks it.
+
+    Releases only what this construction acquired or created: the locks and
+    engines it holds (a failed acquisition grants none) and the Chroma systems
+    that appeared during it. Pre-existing clients keep running, with their
+    refcounts restored."""
     control = getattr(app.state, "control_factory", None)
     for engine in (app.state.engine, control.kw["bind"] if control else None):
         if engine is not None:
@@ -108,22 +119,19 @@ def _release_construction(app: FastAPI) -> None:
                 engine.dispose()
     app.state.orchestrator = None
     app.state.rpg_actions = None
-    vector_dir = getattr(app.state, "vector_dir", None)
     with contextlib.suppress(Exception):
-        # Stop (not merely forget) the embedded Chroma systems a partly built
-        # pipeline opened on this construction's vector store -- it holds that
-        # store's lock, so no other app shares them -- then drop the cache.
+        # Stop (not merely forget) the embedded Chroma systems this
+        # construction created, and undo its refcounts on existing ones.
         # shortcut: reads chromadb's private registry (pinned 1.5.x); revisit
         # on a chromadb upgrade.
-        for system in list(SharedSystemClient._identifier_to_system.values()):
-            persist = system.settings.persist_directory
-            if (
-                vector_dir is not None
-                and persist
-                and Path(persist).resolve() == (vector_dir.resolve())
-            ):
-                system.stop()
-        SharedSystemClient.clear_system_cache()
+        systems = SharedSystemClient._identifier_to_system
+        refcounts = SharedSystemClient._identifier_to_refcount
+        for ident in [i for i in systems if i not in chroma_before]:
+            refcounts.pop(ident, None)
+            systems.pop(ident).stop()
+        for ident, count in chroma_before.items():
+            if ident in refcounts:
+                refcounts[ident] = count
     gc.collect()
     for name in ("vector_lock", "store_lock"):
         handle = getattr(app.state, name)
@@ -145,7 +153,6 @@ def _wire_app(app: FastAPI, settings: ApiSettings) -> None:
         # (create_app releases whatever was acquired).
         app.state.store_lock = acquire_store_lock(settings.database_url)
         vector_dir = Path(RetrievalMemoryConfig.from_env().persist_directory)
-        app.state.vector_dir = vector_dir
         app.state.vector_lock = acquire_vector_lock(vector_dir)
         refuse_store_aliasing(settings.database_url, settings.control_database_url)
         control_factory = open_control_store(settings.control_database_url)

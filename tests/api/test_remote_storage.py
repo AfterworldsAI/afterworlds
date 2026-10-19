@@ -13,6 +13,7 @@ import shutil
 import sqlite3
 import uuid
 from contextlib import closing
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -225,6 +226,86 @@ class TestFailedConstructionReleasesEverything:
         again = make_remote(env)
         try:
             assert content_store_id(again.app.state.session_factory) == identity
+        finally:
+            again.close()
+
+
+class TestFailedConstructionReleasesOnlyItsOwn:
+    """Follow-up: cleanup touches only what the failed construction acquired
+    or created -- never a serving app's or an unrelated client's resources."""
+
+    @staticmethod
+    def _registry() -> dict[str, tuple[object, int]]:
+        from chromadb.api.shared_system_client import SharedSystemClient
+
+        return {
+            ident: (system, SharedSystemClient._identifier_to_refcount.get(ident, 0))
+            for ident, system in SharedSystemClient._identifier_to_system.items()
+        }
+
+    @staticmethod
+    def _usable(path: Path) -> None:
+        from afterworlds.pipeline.retrieval.client import build_chroma_client
+        from afterworlds.pipeline.retrieval.config import RetrievalMemoryConfig
+        from afterworlds.pipeline.retrieval.write_service import (
+            RetrievalMemoryWriteService,
+        )
+
+        config = replace(RetrievalMemoryConfig.from_env(), persist_directory=str(path))
+        service = RetrievalMemoryWriteService(build_chroma_client(config), config)
+        assert service.count_for_story(uuid.uuid4()) == 0  # raises if stopped
+
+    def test_a_refused_construction_leaves_the_serving_app_running(
+        self, env: Path
+    ) -> None:
+        serving = make_remote(env)
+        try:
+            serving.enroll("a@example.test")
+            self._usable(env / "chroma")
+            before = self._registry()
+            other = env / "other"
+            other.mkdir()
+            # Another content store aimed at the serving app's vector store.
+            with pytest.raises(StoreRefused, match="another process"):
+                create_app(remote_settings(other))
+            assert self._registry() == before  # same systems, same refcounts
+            self._usable(env / "chroma")
+            serving.enroll("b@example.test")
+            # The serving app still excludes a second writer.
+            with pytest.raises(StoreRefused, match="another process"):
+                create_app(remote_settings(env))
+        finally:
+            serving.close()
+
+    @pytest.mark.parametrize("point", ["early", "late"])
+    def test_an_unrelated_client_survives_a_failed_construction(
+        self, env: Path, monkeypatch: pytest.MonkeyPatch, point: str
+    ) -> None:
+        import afterworlds.api.app as app_module
+
+        make_remote(env).close()
+        unrelated = env / "unrelated_chroma"
+        self._usable(unrelated)
+        before = self._registry()
+        assert any(
+            str(unrelated) in str(s.settings.persist_directory)
+            for s, _ in before.values()
+        )
+        with monkeypatch.context() as m:
+            if point == "early":
+                m.setattr(app_module, "refuse_store_aliasing", _injected_construction)
+            else:
+                m.setattr(
+                    app_module, "build_pipeline", _fail_after(app_module.build_pipeline)
+                )
+            with pytest.raises(RuntimeError, match="injected construction fault"):
+                create_app(remote_settings(env))
+        assert self._registry() == before
+        self._usable(unrelated)
+        _released(env)
+        again = make_remote(env)
+        try:
+            again.enroll("a@example.test")
         finally:
             again.close()
 
