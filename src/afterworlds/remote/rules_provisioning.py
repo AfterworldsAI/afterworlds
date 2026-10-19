@@ -65,6 +65,7 @@ from afterworlds.remote.storage import (
     StoreRefused,
     maintenance_locks,
     pending_restores,
+    refuse_store_aliasing,
 )
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -136,6 +137,11 @@ def main(argv: list[str] | None = None) -> int:
     settings = load_settings()
     if settings.deployment != "remote" or settings.control_database_url is None:
         parser.error("requires AFTERWORLDS_DEPLOYMENT=remote and a control store")
+    try:
+        refuse_store_aliasing(settings.database_url, settings.control_database_url)
+    except StoreRefused as exc:
+        print(f"provisioning refused: {exc}", file=sys.stderr)
+        return 1
     control = open_control_store(settings.control_database_url)
     config = RetrievalMemoryConfig.from_env()
     try:

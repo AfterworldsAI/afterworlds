@@ -71,6 +71,7 @@ from afterworlds.remote.storage import (  # noqa: E402
     StoreRefused,
     maintenance_locks,
     pending_restores,
+    refuse_store_aliasing,
 )
 
 
@@ -214,6 +215,11 @@ def _remote_main(args: argparse.Namespace, story_id: UUID, config: Any) -> None:
             file=sys.stderr,
         )
         raise SystemExit(3)
+    try:
+        refuse_store_aliasing(args.db_url, control_url)
+    except StoreRefused as exc:
+        print(f"refused: {exc}", file=sys.stderr)
+        raise SystemExit(3) from None
     control = open_control_store(control_url)
     try:
         with maintenance_locks(args.db_url, Path(config.persist_directory), control):

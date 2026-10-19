@@ -583,3 +583,173 @@ def test_restore_copy_interrupted_keeps_the_marker_and_is_retryable(
     )
     assert marker.read_bytes() == trusted
     make_remote(remote_env).close()
+
+
+def _inventory_row(remote_env: Path, backup_id: str) -> Any:
+    from afterworlds.remote.control_orm import BackupInventoryORM
+
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    with control() as s:
+        return s.get(BackupInventoryORM, backup_id)
+
+
+def test_a_stale_disposal_retry_never_removes_a_newer_backup(
+    remote_env: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Review r4313719098: a disposal whose record was lost keeps its location
+    until the retry records it; a later backup there is never touched."""
+    from afterworlds.remote import storage
+    from afterworlds.remote.storage import copy_backup
+
+    make_remote(remote_env).close()
+    b1 = remote_env / "b1"
+    code, old = _run(capsys, "capture", "--to", str(b1))
+    assert code == 0
+
+    def record_fails(*_a: object, **_k: object) -> None:
+        raise RuntimeError("control store write lost")
+
+    with pytest.MonkeyPatch.context() as mp, pytest.raises(RuntimeError):
+        mp.setattr(storage, "dispose_backup", record_fails)
+        storage_cli.main(["dispose", "--backup-id", old])
+    assert not b1.exists() and _inventory_row(remote_env, old).disposed_at is None
+
+    # The location still belongs to the undisposed backup: no reuse.
+    assert storage_cli.main(["capture", "--to", str(b1)]) == 1
+    assert "still belongs to an undisposed backup" in capsys.readouterr().err
+    assert not b1.exists()
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    other = remote_env / "b0"
+    code, source = _run(capsys, "capture", "--to", str(other))
+    with pytest.raises(StoreRefused, match="undisposed"):
+        copy_backup(control, source, storage_locator=str(b1))
+    # Nor beneath it (the retry's rmtree would take it) or around it.
+    assert storage_cli.main(["capture", "--to", str(b1 / "nested")]) == 1
+    assert "undisposed backup" in capsys.readouterr().err
+    assert not b1.exists()
+    with pytest.raises(StoreRefused, match="undisposed"):
+        copy_backup(control, source, storage_locator=str(other / "inner"))
+    with pytest.raises(StoreRefused, match="undisposed"):
+        copy_backup(control, source, storage_locator=str(remote_env))
+
+    # The retry records the verified absence and releases the location.
+    assert _run(capsys, "dispose", "--backup-id", old) == (0, "disposed")
+    code, new = _run(capsys, "capture", "--to", str(b1))
+    assert code == 0
+    newer = sorted(p.name for p in b1.rglob("*"))
+    # Repeating the terminal disposal acts on nothing.
+    assert _run(capsys, "dispose", "--backup-id", old) == (0, "disposed")
+    assert sorted(p.name for p in b1.rglob("*")) == newer
+    assert _inventory_row(remote_env, new).disposed_at is None
+    assert _inventory_row(remote_env, old).disposal_evidence == "verified_absent"
+
+
+def test_locators_are_fixed_when_recorded(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Review r4313719114: a relative locator recorded from A is never
+    reinterpreted from B; canonical aliases are one location."""
+    from afterworlds.remote.storage import copy_backup
+
+    make_remote(remote_env).close()
+    site_a, site_b = remote_env / "site_a", remote_env / "site_b"
+    site_a.mkdir()
+    (site_b / "rel-backup").mkdir(parents=True)
+    sentinel = site_b / "rel-backup" / "sentinel.txt"
+    sentinel.write_text("unrelated operator data", encoding="utf-8")
+
+    monkeypatch.chdir(site_a)
+    code, backup = _run(capsys, "capture", "--to", "rel-backup")
+    assert code == 0
+    assert (
+        Path(_inventory_row(remote_env, backup).storage_locator)
+        == (site_a / "rel-backup").resolve()
+    )
+    control = open_control_store(f"sqlite:///{remote_env / 'control.db'}")
+    copy_id = copy_backup(control, backup, storage_locator="rel-copy")
+    assert (
+        Path(_inventory_row(remote_env, copy_id).storage_locator)
+        == (site_a / "rel-copy").resolve()
+    )
+    # A canonical alias of an inventoried location is that location.
+    with pytest.raises(StoreRefused, match="undisposed"):
+        copy_backup(
+            control,
+            backup,
+            storage_locator=str(site_b / ".." / "site_a" / "rel-backup"),
+        )
+
+    monkeypatch.chdir(site_b)
+    code, restore_id = _run(capsys, "restore", "--backup-id", backup)
+    assert code == 0, restore_id
+    assert _run(capsys, "dispose", "--backup-id", backup) == (0, "disposed")
+    assert not (site_a / "rel-backup").exists()
+    assert sentinel.read_text(encoding="utf-8") == "unrelated operator data"
+
+
+@pytest.mark.parametrize("alias", ["same_path", "hard_link"])
+def test_aliased_control_and_content_stores_are_refused_before_any_effect(
+    remote_env: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+    alias: str,
+) -> None:
+    """Review r4313719122: a control store that is physically the content
+    store is refused before it is opened or migrated, by every entry point."""
+    import hashlib
+    import os
+    import sqlite3
+    from contextlib import closing
+
+    from afterworlds.api.config import ApiSettings
+    from afterworlds.remote import rules_provisioning
+    from afterworlds.remote.storage import acquire_store_lock, acquire_vector_lock
+    from scripts import retrieval_backfill
+
+    make_remote(remote_env).close()
+    content = remote_env / "content.db"
+    if alias == "same_path":
+        control_url = f"sqlite:///{content}"
+    else:
+        os.link(content, remote_env / "alias.db")
+        control_url = f"sqlite:///{remote_env / 'alias.db'}"
+    monkeypatch.setenv("AFTERWORLDS_CONTROL_DATABASE_URL", control_url)
+
+    def state() -> tuple[str, list[str]]:
+        with closing(sqlite3.connect(content)) as db:
+            tables = sorted(
+                n
+                for (n,) in db.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                )
+            )
+        return hashlib.sha256(content.read_bytes()).hexdigest(), tables
+
+    before = state()
+    settings = ApiSettings(
+        **{**remote_settings(remote_env).__dict__, "control_database_url": control_url}
+    )
+    with pytest.raises(StoreRefused, match="same database file"):
+        create_app(settings)
+    assert storage_cli.main(["due"]) == 1
+    assert rules_provisioning.main([]) == 1
+    with pytest.raises(SystemExit) as exc:
+        retrieval_backfill.main(
+            [
+                "--story-id",
+                str(uuid.uuid4()),
+                "--mode",
+                "delete",
+                "--db-url",
+                f"sqlite:///{content}",
+                "--account-id",
+                str(uuid.uuid4()),
+            ]
+        )
+    assert exc.value.code == 3
+    assert capsys.readouterr().err.count("same database file") == 3
+    assert state() == before
+    acquire_store_lock(f"sqlite:///{content}").close()
+    acquire_vector_lock(remote_env / "chroma").close()

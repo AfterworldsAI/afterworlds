@@ -63,6 +63,7 @@ from afterworlds.remote.storage import (
     complete_remote_initialization,
     initialize_remote_content_store,
     pending_restores,
+    refuse_store_aliasing,
 )
 from afterworlds.services.dnd5e_state.leases import (
     clear_orphans as clear_orphan_turn_leases,
@@ -94,6 +95,7 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
         engine = None
         try:
             app.state.vector_lock = acquire_vector_lock(vector_dir)
+            refuse_store_aliasing(settings.database_url, settings.control_database_url)
             control_factory = open_control_store(settings.control_database_url)
             # A fresh deployment's identity is recorded before anything is
             # created; an interrupted initialization resumes that identity.

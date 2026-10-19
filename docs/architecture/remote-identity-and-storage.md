@@ -167,16 +167,22 @@ then select the package during setup. The local `reset_corpus_baseline.py` remai
 
 ### Backup, restore and fence
 
-1. Stop the app (the commands need both store locks).
+1. Stop the app (the commands need both store locks). Every entry point that knows both stores
+   (app startup, storage CLI, Rules provisioning, remote backfill) refuses a control store that is
+   physically the content store (same path, symlink or hard link) before opening either.
    `python -m afterworlds.remote.storage_cli capture --to <dir>` prints the backup ID. It refuses while
    a restore is pending or suppressed content is still present. The backup is inventoried
    (`unverified`) before any copy and becomes `verified` only when both stores are copied; an
    interrupted capture stays inventoried as unverified — dispose it and capture again to a new
-   directory.
+   directory. Locators are recorded as absolute, symlink-resolved paths (a relative `--to` is fixed
+   against the directory it was given in), and a location belongs to at most one undisposed backup:
+   capture and copy refuse a location an undisposed backup still holds, including after a disposal
+   whose record was lost, until that disposal is recorded.
 2. `due` and `dispose` need only both locks and the control binding, so backups can still be
    expired while a live store is damaged. `... storage_cli due` lists backups at/after 21 days; `... storage_cli dispose --backup-id <id>`
    removes the files, then records the disposal. Re-running after a lost record is safe; a path that
-   cannot be verified absent is marked `inaccessible` and the command fails.
+   cannot be verified absent is marked `inaccessible` and the command fails. Disposing an already
+   disposed backup touches nothing (its old location may hold a newer backup).
 3. Restore: stop the app; `... storage_cli restore --backup-id <id>`. It is refused (exit 1, nothing
    recorded or copied) unless the backup is verified and unexpired, its snapshot holds this
    deployment's vector store, and the live entitlement ledger is a prefix of the snapshot's. The

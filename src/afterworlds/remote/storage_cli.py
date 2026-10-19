@@ -43,6 +43,7 @@ from afterworlds.remote.storage import (
     dispose_snapshot,
     due_backups,
     maintenance_locks,
+    refuse_store_aliasing,
     restore_snapshot,
     sqlite_path,
     verify_restore,
@@ -76,6 +77,11 @@ def main(argv: list[str] | None = None) -> int:
     settings = load_settings()
     if settings.deployment != "remote" or settings.control_database_url is None:
         parser.error("requires AFTERWORLDS_DEPLOYMENT=remote and a control store")
+    try:
+        refuse_store_aliasing(settings.database_url, settings.control_database_url)
+    except StoreRefused as exc:
+        print(f"{args.command} refused: {exc}", file=sys.stderr)
+        return 1
     control = open_control_store(settings.control_database_url)
     config = RetrievalMemoryConfig.from_env()
     vector_dir = Path(config.persist_directory)

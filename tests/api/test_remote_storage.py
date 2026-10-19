@@ -627,8 +627,10 @@ class TestBackupClocks:
     def test_lifetime_runs_from_original_capture(self, remote: RemoteHarness) -> None:
         control = remote.app.state.control_factory
         b1 = _snapshot(remote, remote.tmp_path / "b1", captured=T0)
+        # A real copy at its own location (one location, one backup).
+        shutil.copytree(remote.tmp_path / "b1", remote.tmp_path / "b1-copy")
         later_copy = copy_backup(
-            control, b1, storage_locator=str(remote.tmp_path / "b1")
+            control, b1, storage_locator=str(remote.tmp_path / "b1-copy")
         )
         day21 = T0 + timedelta(days=21)
         live = _live(remote)

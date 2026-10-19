@@ -163,6 +163,35 @@ def is_suppressed(
 # -- backup inventory -------------------------------------------------------
 
 
+def _canonical_locator(storage_locator: str | Path) -> str:
+    """The absolute, symlink-resolved identity of a backup location, fixed
+    when it is recorded so no later working directory reinterprets it."""
+    return str(Path(storage_locator).resolve())
+
+
+def _overlaps(a: str, b: str) -> bool:
+    """Same location, or one inside the other (disposal removes a whole tree)."""
+    a, b = os.path.normcase(a).rstrip(os.sep), os.path.normcase(b).rstrip(os.sep)
+    return a == b or a.startswith(b + os.sep) or b.startswith(a + os.sep)
+
+
+def _claim_locator(s: Session, locator: str) -> None:
+    """A location -- with everything beneath and above it -- belongs to at
+    most one undisposed backup. Until a disposal is recorded the old backup
+    keeps it, so nothing new can be placed where a stale disposal retry would
+    remove it, and no backup can be created inside or around another."""
+    for held in s.scalars(
+        sa.select(BackupInventoryORM.storage_locator).where(
+            BackupInventoryORM.disposed_at.is_(None)
+        )
+    ):
+        if _overlaps(held, locator):
+            raise StoreRefused(
+                f"backup location {locator} overlaps {held}, which still belongs "
+                "to an undisposed backup"
+            )
+
+
 def register_backup(
     control: sessionmaker[Session],
     *,
@@ -176,12 +205,14 @@ def register_backup(
     """Inventory a backup. ``clean_suppression_ids`` names the active
     suppressions whose content the capture proved absent from both stores."""
     backup_id = str(uuid4())
+    locator = _canonical_locator(storage_locator)
     with control.begin() as s:
+        _claim_locator(s, locator)
         s.add(
             BackupInventoryORM(
                 backup_id=backup_id,
                 store_id=store_id,
-                storage_locator=storage_locator,
+                storage_locator=locator,
                 class_code=class_code,
                 original_capture_at=iso(original_capture_at),
                 policy_version=POLICY_VERSION,
@@ -207,16 +238,18 @@ def copy_backup(
     control: sessionmaker[Session], backup_id: str, *, storage_locator: str
 ) -> str:
     """Inventory a copy. It keeps the original capture time, expiry and proof."""
+    locator = _canonical_locator(storage_locator)
     with control.begin() as s:
         source = s.get(BackupInventoryORM, backup_id)
         if source is None:
             raise KeyError(backup_id)
+        _claim_locator(s, locator)
         copy_id = str(uuid4())
         s.add(
             BackupInventoryORM(
                 backup_id=copy_id,
                 store_id=source.store_id,
-                storage_locator=storage_locator,
+                storage_locator=locator,
                 class_code=source.class_code,
                 original_capture_at=source.original_capture_at,
                 copied_from_backup_id=source.backup_id,
@@ -566,6 +599,22 @@ def sqlite_path(database_url: str) -> Path:
     if url.get_backend_name() != "sqlite" or url.database in (None, "", ":memory:"):
         raise StoreRefused("the remote deployment requires a file-backed SQLite store")
     return Path(str(url.database)).resolve()
+
+
+def refuse_store_aliasing(database_url: str, control_database_url: str) -> None:
+    """Refuse, before either store is opened or migrated, a control store that
+    is physically the content store (same path, symlink or hard link)."""
+    content = sqlite_path(database_url)
+    try:
+        control = sqlite_path(control_database_url)
+    except StoreRefused:
+        return  # not a file-backed SQLite control store: it cannot alias one
+    if os.path.normcase(str(content)) == os.path.normcase(str(control)) or (
+        content.exists() and control.exists() and os.path.samefile(content, control)
+    ):
+        raise StoreRefused(
+            "the control store and the content store are the same database file"
+        )
 
 
 def acquire_store_lock(database_url: str) -> IO[bytes]:
@@ -994,6 +1043,9 @@ def capture_snapshot(
     counts as unverified coverage."""
     clean = capture_preconditions(control, content, story_chunk_count)
     store_id = content_store_id(content)
+    target = Path(_canonical_locator(target))
+    with control() as s:
+        _claim_locator(s, str(target))  # before creating anything there
     # Claim a new, empty directory before inventorying it: an existing path
     # is refused untouched, so a later disposal can never remove data this
     # capture did not create. A failure between here and registration leaves
@@ -1088,6 +1140,9 @@ def dispose_snapshot(
         row = s.get(BackupInventoryORM, backup_id)
         if row is None:
             raise KeyError(backup_id)
+        if _disposed(row):
+            # Terminal: the location may already belong to a newer backup.
+            return
         locator = Path(row.storage_locator)
     try:
         if locator.exists():
