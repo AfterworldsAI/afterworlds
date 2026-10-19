@@ -37,6 +37,7 @@ import sqlalchemy as sa
 from sqlalchemy.engine import make_url
 from sqlalchemy.orm import Session, sessionmaker
 
+from afterworlds.persistence.database import ensure_physical_transaction
 from afterworlds.persistence.orm.ownership import (
     AccountResourceORM,
     RemoteStoreMarkerORM,
@@ -584,6 +585,9 @@ def acquire_store_lock(database_url: str) -> IO[bytes]:
 
 
 _FOREIGN_DATA_TABLES = ("sojourner_identity", "stories", "entitlement_event")
+#: Written into a content store this initialization itself created (while it
+#: had no tables), before migration; replaced by ``remote_store_marker``.
+INITIALIZATION_PROVENANCE_TABLE = "remote_initialization_provenance"
 
 
 def check_content_store_before_migration(
@@ -601,11 +605,14 @@ def check_content_store_before_migration(
 
     A new initialization is recorded in the control store -- only while the
     content store and vector directory are both empty -- before anything is
-    created; a later attempt resumes that same identity. Resumption accepts
-    only this initialization's own partial effects: an unmarked store that
-    holds no user data (the migration ran), or this identity's marker. An
-    unmarked or foreign store is never adopted, and a completed deployment
-    with a missing store is never re-initialized.
+    created; a later attempt resumes that same identity. The initialization
+    then stamps the (still table-less) content store it is creating with that
+    identity, so a resumed attempt accepts only a store carrying this
+    identity's stamp or marker -- its own partial creation -- or one still
+    without any table. A path match and empty user tables never suffice: an
+    unrelated store at the recorded path is refused untouched, a foreign one is
+    never adopted, and a completed deployment with a missing store is never
+    re-initialized.
     """
     path = sqlite_path(database_url)
     content_target, vector_target = _target(path), _target(vector_dir)
@@ -629,6 +636,7 @@ def check_content_store_before_migration(
             )
     tables: set[str] = set()
     marker: str | None = None
+    provenance: str | None = None
     has_data = False
     if path.exists():
         with closing(sqlite3.connect(path)) as conn:
@@ -643,6 +651,12 @@ def check_content_store_before_migration(
                     "SELECT content_store_id FROM remote_store_marker WHERE id = 1"
                 ).fetchone()
                 marker = str(row[0]) if row else None
+            if INITIALIZATION_PROVENANCE_TABLE in tables:
+                row = conn.execute(
+                    "SELECT content_store_id FROM "
+                    f"{INITIALIZATION_PROVENANCE_TABLE} WHERE id = 1"
+                ).fetchone()
+                provenance = str(row[0]) if row else None
             has_data = any(
                 conn.execute(f"SELECT 1 FROM {table} LIMIT 1").fetchone()
                 for table in _FOREIGN_DATA_TABLES
@@ -687,9 +701,19 @@ def check_content_store_before_migration(
                     vector_target=vector_target,
                 )
             )
+        _stamp_initialization(path, store_id)
+        return store_id
+    if not tables:
+        # Interrupted before its stamp: the store is still empty.
+        _stamp_initialization(path, store_id)
         return store_id
     if marker is not None and marker != store_id:
         raise StoreRefused("the content store belongs to a different deployment")
+    if store_id not in (marker, provenance):
+        raise StoreRefused(
+            "the content store was not created by this deployment's "
+            "initialization; remote stores never import local or test data"
+        )
     if has_data:
         raise StoreRefused(
             "the content store holds data this initialization did not create; "
@@ -702,12 +726,42 @@ def _target(path: Path) -> str:
     return os.path.normcase(str(path.resolve()))
 
 
+def _stamp_initialization(path: Path, store_id: str) -> None:
+    """Stamp a table-less content store as this initialization's creation.
+
+    One physical transaction: the legacy ``sqlite3`` mode would run the CREATE
+    outside any transaction, so an interruption before the INSERT could leave
+    a stampless table that no retry could prove its own. Autocommit mode with
+    an explicit ``BEGIN`` puts the DDL inside it."""
+    with closing(sqlite3.connect(path, isolation_level=None)) as conn:
+        conn.execute("BEGIN IMMEDIATE")
+        try:
+            conn.execute(
+                f"CREATE TABLE IF NOT EXISTS {INITIALIZATION_PROVENANCE_TABLE} "
+                "(id INTEGER PRIMARY KEY CHECK (id = 1), "
+                "content_store_id TEXT NOT NULL)"
+            )
+            conn.execute(
+                f"INSERT OR REPLACE INTO {INITIALIZATION_PROVENANCE_TABLE} "
+                "VALUES (1, ?)",
+                (store_id,),
+            )
+            conn.execute("COMMIT")
+        except BaseException:
+            conn.execute("ROLLBACK")
+            raise
+
+
 def initialize_remote_content_store(
     content: sessionmaker[Session], store_id: str, *, now: datetime
 ) -> None:
     """Mark a freshly migrated, empty content store with the initialization's
     identity; a resumed attempt finds its own marker and keeps it."""
     with content.begin() as s:
+        # Marker write and stamp retirement are one physical transaction (the
+        # DROP would otherwise autocommit ahead of the marker), so no
+        # interruption leaves a store with neither.
+        ensure_physical_transaction(s)
         for table in _FOREIGN_DATA_TABLES:
             if s.execute(sa.text(f"SELECT 1 FROM {table} LIMIT 1")).first():
                 raise StoreRefused(f"a fresh remote store must be empty ({table})")
@@ -720,6 +774,9 @@ def initialize_remote_content_store(
             )
         elif marker.content_store_id != store_id:
             raise StoreRefused("the content store belongs to a different deployment")
+        # The marker now carries the provenance; the stamp is retired with it.
+        s.flush()
+        s.execute(sa.text(f"DROP TABLE IF EXISTS {INITIALIZATION_PROVENANCE_TABLE}"))
 
 
 def complete_remote_initialization(

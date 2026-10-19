@@ -134,7 +134,9 @@ deployment's marker; an unmarked, foreign or missing vector store is refused unt
 adopted. Initialization is restartable without weakening this: the new identity is recorded in the
 control store (`deployment_initialization`) while both stores are still empty and before anything
 is created; the record names the content and vector stores proven empty, and an interrupted start resumes
-only that identity, only on those stores and only with its own partial effects, and
+only that identity, only on those stores and only with its own partial effects -- the content
+store it creates carries that identity's stamp from before migration until its marker replaces it,
+so an unrelated store at the recorded path is refused -- and
 `deployment_marker` -- the binding every other path checks -- is written last, atomically retiring
 the record. A completed deployment with a missing store is refused, never re-initialized. A fresh deployment therefore starts without shared Rules Package data (SQL or vectors);
 `python -m afterworlds.remote.rules_provisioning` gives it the qualified shared authority by running

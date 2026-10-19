@@ -30,6 +30,7 @@ from afterworlds.remote.retrieval_guard import (
     GuardedRetrievalWrites,
 )
 from afterworlds.remote.storage import (
+    INITIALIZATION_PROVENANCE_TABLE,
     StoreRefused,
     backup_disposition,
     begin_restore,
@@ -159,6 +160,16 @@ def _control_row(env: Path, table: str) -> str | None:
     return str(row[0]) if row else None
 
 
+def _tables(db: Path) -> set[str]:
+    with closing(sqlite3.connect(db)) as conn:
+        return {
+            n
+            for (n,) in conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            )
+        }
+
+
 def _locks_released(env: Path) -> None:
     from afterworlds.remote.storage import acquire_store_lock, acquire_vector_lock
 
@@ -264,7 +275,7 @@ class TestInterruptedInitializationResumes:
         assert (env / "chroma" / "chroma.sqlite3").read_bytes() == (
             b"local story memory"
         )
-        assert not (env / "content.db").exists()
+        assert _tables(env / "content.db") == {INITIALIZATION_PROVENANCE_TABLE}
         _locks_released(env)
 
     def test_a_retry_aimed_at_another_content_store_is_refused(
@@ -304,7 +315,7 @@ class TestInterruptedInitializationResumes:
         with pytest.raises(StoreRefused, match="different content or vector"):
             create_app(remote_settings(env))
         assert not (env / "other_chroma" / "afterworlds-deployment.json").exists()
-        assert not (env / "content.db").exists()
+        assert _tables(env / "content.db") == {INITIALIZATION_PROVENANCE_TABLE}
         assert _control_row(env, "deployment_initialization") == identity
 
     def test_a_torn_temporary_vector_marker_is_replaced(
@@ -347,6 +358,127 @@ class TestInterruptedInitializationResumes:
             assert content_store_id(again.app.state.session_factory) == identity
         finally:
             again.close()
+
+    def test_an_unrelated_store_at_the_recorded_path_is_refused(
+        self, env: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from afterworlds.api.db_bootstrap import upgrade_to_head
+
+        identity = _fail_first_start(
+            env, monkeypatch, "initialize_remote_content_store"
+        )
+        # By mistake, another unmarked migrated store is copied over the
+        # recorded content path: empty sampled tables, other data present.
+        unrelated = env / "unrelated" / "content.db"
+        unrelated.parent.mkdir()
+        upgrade_to_head(f"sqlite:///{unrelated}")
+        with closing(sqlite3.connect(unrelated)) as db, db:
+            db.execute("CREATE TABLE other_data (note TEXT)")
+            db.execute("INSERT INTO other_data VALUES ('rules and detached rows')")
+        for suffix in ("", "-wal", "-shm"):
+            (env / f"content.db{suffix}").unlink(missing_ok=True)
+        shutil.copyfile(unrelated, env / "content.db")
+        before = _sha(env / "content.db")
+        with pytest.raises(StoreRefused, match="not created by this deployment"):
+            create_app(remote_settings(env))
+        assert _sha(env / "content.db") == before
+        assert _control_row(env, "deployment_initialization") == identity
+        _locks_released(env)
+
+    def test_an_interrupted_provenance_stamp_resumes_its_own_empty_store(
+        self, env: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from afterworlds.remote.storage import read_vector_marker
+
+        with monkeypatch.context() as m:
+            m.setattr("afterworlds.remote.storage._stamp_initialization", _injected)
+            with pytest.raises(RuntimeError, match="injected"):
+                create_app(remote_settings(env))
+        _locks_released(env)
+        identity = _control_row(env, "deployment_initialization")
+        assert identity is not None
+        assert not (env / "content.db").exists()
+        resumed = make_remote(env)
+        try:
+            assert content_store_id(resumed.app.state.session_factory) == identity
+            assert read_vector_marker(env / "chroma") == identity
+            assert _control_row(env, "deployment_marker") == identity
+        finally:
+            resumed.close()
+
+    def test_a_fault_inside_stamp_publication_rolls_back_and_resumes(
+        self, env: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        real_connect = sqlite3.connect
+
+        class StampInsertFails(sqlite3.Connection):
+            def execute(self, sql: str, *a: Any) -> sqlite3.Cursor:  # type: ignore[override]
+                if sql.startswith(
+                    f"INSERT OR REPLACE INTO {INITIALIZATION_PROVENANCE_TABLE}"
+                ):
+                    raise RuntimeError("injected initialization fault")
+                return super().execute(sql, *a)
+
+        def connect(*a: Any, **k: Any) -> sqlite3.Connection:
+            # Only the stamp's own INSERT, issued through Connection.execute,
+            # is failed; SQLAlchemy and Alembic use cursors.
+            k.setdefault("factory", StampInsertFails)
+            return real_connect(*a, **k)
+
+        with monkeypatch.context() as m:
+            m.setattr(sqlite3, "connect", connect)
+            with pytest.raises(RuntimeError, match="injected"):
+                create_app(remote_settings(env))
+        _locks_released(env)
+        identity = _control_row(env, "deployment_initialization")
+        assert identity is not None
+        # The CREATE was rolled back with the failed INSERT: no stampless table.
+        assert _tables(env / "content.db") == set()
+        resumed = make_remote(env)
+        try:
+            assert content_store_id(resumed.app.state.session_factory) == identity
+            assert _control_row(env, "deployment_marker") == identity
+        finally:
+            resumed.close()
+
+    def test_a_fault_inside_stamp_retirement_rolls_back_and_resumes(
+        self, env: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from sqlalchemy import event
+        from sqlalchemy.engine import Engine
+
+        drop = f"DROP TABLE IF EXISTS {INITIALIZATION_PROVENANCE_TABLE}"
+
+        def fail_after_drop(_conn: Any, _cursor: Any, statement: str, *_a: Any) -> None:
+            if statement.startswith(drop):
+                raise RuntimeError("injected initialization fault")
+
+        event.listen(Engine, "after_cursor_execute", fail_after_drop)
+        try:
+            with pytest.raises(RuntimeError, match="injected"):
+                create_app(remote_settings(env))
+        finally:
+            event.remove(Engine, "after_cursor_execute", fail_after_drop)
+        _locks_released(env)
+        identity = _control_row(env, "deployment_initialization")
+        assert identity is not None
+        # The executed DROP and the flushed marker rolled back together.
+        with closing(sqlite3.connect(env / "content.db")) as db:
+            assert db.execute(
+                f"SELECT content_store_id FROM {INITIALIZATION_PROVENANCE_TABLE}"
+            ).fetchall() == [(identity,)]
+            assert db.execute("SELECT * FROM remote_store_marker").fetchall() == []
+        resumed = make_remote(env)
+        try:
+            assert content_store_id(resumed.app.state.session_factory) == identity
+            assert _control_row(env, "deployment_marker") == identity
+        finally:
+            resumed.close()
+        assert INITIALIZATION_PROVENANCE_TABLE not in _tables(env / "content.db")
+
+    def test_the_provenance_stamp_is_retired_on_completion(self, env: Path) -> None:
+        make_remote(env).close()
+        assert INITIALIZATION_PROVENANCE_TABLE not in _tables(env / "content.db")
 
     def test_a_completed_deployment_is_never_reinitialized(self, env: Path) -> None:
         make_remote(env).close()

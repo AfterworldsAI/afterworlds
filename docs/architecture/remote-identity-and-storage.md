@@ -99,12 +99,16 @@ owner-process proof), entitlement idempotency and SQL/vector sequencing are ther
 Startup migration runs only after the fresh-store, vector-binding and restore-gate checks, inside the
 locks. A fresh deployment first commits a `deployment_initialization` record (its new
 `content_store_id` and the normalized paths of the content and vector stores it proved empty) to
-the control store while those stores are still empty; migration, the content marker, the atomically published vector marker and finally
+the control store while those stores are still empty, then stamps the still table-less content
+store it is creating with that identity (`remote_initialization_provenance`, retired when the
+content marker is written); migration, the content marker, the atomically published vector marker and finally
 `deployment_marker` (which retires the record in the same transaction) follow. A start interrupted
 at any of these boundaries is retried by simply starting again: it resumes that same identity on
 those same recorded stores (a retry pointed at any other content or vector store is refused
-untouched), accepting only its own partial effects (an unmarked store with no user data, its own markers) and
-refusing anything else untouched. Only a completed `deployment_marker` counts as a bound deployment,
+untouched), accepting only its own partial effects (a store still without tables, or one carrying its stamp or
+marker and no user data, and its own vector marker) and refusing anything else untouched -- a path
+match and empty user tables are never enough, so an unrelated store copied onto the recorded path is
+refused. Only a completed `deployment_marker` counts as a bound deployment,
 so maintenance, capture and restore refuse a half-initialized one, and a completed deployment whose
 store or vector marker is missing is never re-initialized. A failed start releases both locks and
 disposes its engine. An in-process per-account fence orders request effects against closure (and CRD Issue 22
